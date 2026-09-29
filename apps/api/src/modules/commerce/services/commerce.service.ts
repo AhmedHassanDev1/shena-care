@@ -1,4 +1,9 @@
-import { Injectable, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Optional,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
 
@@ -32,6 +37,16 @@ export interface SellabilityEvaluation {
   terms: SellingTerms | null;
 }
 
+export interface ListingDetail {
+  id: string;
+  skuId: string;
+  isListed: boolean;
+  listedAt: Date | null;
+  unlistedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 @Injectable()
 export class CommerceService {
   constructor(
@@ -42,6 +57,10 @@ export class CommerceService {
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
   }
+
+  // ---------------------------------------------------------------------------
+  // Sellability Evaluation (GLO-101)
+  // ---------------------------------------------------------------------------
 
   /**
    * Deterministic sellability evaluation for a SKU.
@@ -271,20 +290,250 @@ export class CommerceService {
     };
   }
 
-  async createListing(skuId: string): Promise<void> {
-    const existing = await this.prisma.listing.findUnique({ where: { skuId } });
+  // ---------------------------------------------------------------------------
+  // Listing Management (GLO-102)
+  // ---------------------------------------------------------------------------
 
-    if (existing) {
-      await this.prisma.listing.update({
-        where: { skuId },
-        data: { isListed: true, listedAt: new Date(), unlistedAt: null },
-      });
-    } else {
-      await this.prisma.listing.create({
-        data: { skuId, isListed: true, listedAt: new Date() },
-      });
+  async getListing(skuId: string): Promise<ListingDetail | null> {
+    if (!this.isUuid(skuId)) {
+      return null;
     }
+
+    const listing = await this.prisma.listing.findUnique({
+      where: { skuId },
+    });
+
+    if (!listing) {
+      return null;
+    }
+
+    return {
+      id: listing.id,
+      skuId: listing.skuId,
+      isListed: listing.isListed,
+      listedAt: listing.listedAt,
+      unlistedAt: listing.unlistedAt,
+      createdAt: listing.createdAt,
+      updatedAt: listing.updatedAt,
+    };
   }
+
+  async getListings(filters?: {
+    isListed?: boolean;
+    page?: number;
+    limit?: number;
+  }): Promise<{ items: ListingDetail[]; total: number; page: number; limit: number }> {
+    const where = {
+      ...(filters?.isListed !== undefined && { isListed: filters.isListed }),
+    };
+
+    const page = filters?.page && filters.page > 0 ? filters.page : 1;
+    const limit = filters?.limit && filters.limit > 0 ? Math.min(filters.limit, 100) : 20;
+    const skip = (page - 1) * limit;
+
+    const [total, listings] = await Promise.all([
+      this.prisma.listing.count({ where }),
+      this.prisma.listing.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    return {
+      items: listings.map((l) => ({
+        id: l.id,
+        skuId: l.skuId,
+        isListed: l.isListed,
+        listedAt: l.listedAt,
+        unlistedAt: l.unlistedAt,
+        createdAt: l.createdAt,
+        updatedAt: l.updatedAt,
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async createListing(skuId: string, isListed = true): Promise<ListingDetail> {
+    if (!this.isUuid(skuId)) {
+      throw new BadRequestException(`Invalid SKU ID format: ${skuId}`);
+    }
+
+    if (this.catalogService) {
+      const isValid = await this.catalogService.validateSku(skuId);
+      if (!isValid) {
+        throw new NotFoundException(`SKU not found or inactive in Catalog: ${skuId}`);
+      }
+    }
+
+    const existing = await this.prisma.listing.findUnique({ where: { skuId } });
+    if (existing) {
+      if (existing.isListed !== isListed) {
+        const updated = await this.prisma.listing.update({
+          where: { skuId },
+          data: {
+            isListed,
+            listedAt: isListed ? new Date() : existing.listedAt,
+            unlistedAt: isListed ? null : new Date(),
+          },
+        });
+        return {
+          id: updated.id,
+          skuId: updated.skuId,
+          isListed: updated.isListed,
+          listedAt: updated.listedAt,
+          unlistedAt: updated.unlistedAt,
+          createdAt: updated.createdAt,
+          updatedAt: updated.updatedAt,
+        };
+      }
+      return {
+        id: existing.id,
+        skuId: existing.skuId,
+        isListed: existing.isListed,
+        listedAt: existing.listedAt,
+        unlistedAt: existing.unlistedAt,
+        createdAt: existing.createdAt,
+        updatedAt: existing.updatedAt,
+      };
+    }
+
+    const now = new Date();
+    const created = await this.prisma.listing.create({
+      data: {
+        skuId,
+        isListed,
+        listedAt: isListed ? now : null,
+        unlistedAt: isListed ? null : now,
+      },
+    });
+
+    return {
+      id: created.id,
+      skuId: created.skuId,
+      isListed: created.isListed,
+      listedAt: created.listedAt,
+      unlistedAt: created.unlistedAt,
+      createdAt: created.createdAt,
+      updatedAt: created.updatedAt,
+    };
+  }
+
+  async listSku(skuId: string): Promise<ListingDetail> {
+    if (!this.isUuid(skuId)) {
+      throw new BadRequestException(`Invalid SKU ID format: ${skuId}`);
+    }
+
+    if (this.catalogService) {
+      const isValid = await this.catalogService.validateSku(skuId);
+      if (!isValid) {
+        throw new NotFoundException(`SKU not found or inactive in Catalog: ${skuId}`);
+      }
+    }
+
+    const existing = await this.prisma.listing.findUnique({ where: { skuId } });
+    const now = new Date();
+
+    if (!existing) {
+      const created = await this.prisma.listing.create({
+        data: {
+          skuId,
+          isListed: true,
+          listedAt: now,
+          unlistedAt: null,
+        },
+      });
+      return {
+        id: created.id,
+        skuId: created.skuId,
+        isListed: created.isListed,
+        listedAt: created.listedAt,
+        unlistedAt: created.unlistedAt,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+      };
+    }
+
+    if (existing.isListed) {
+      return {
+        id: existing.id,
+        skuId: existing.skuId,
+        isListed: existing.isListed,
+        listedAt: existing.listedAt,
+        unlistedAt: existing.unlistedAt,
+        createdAt: existing.createdAt,
+        updatedAt: existing.updatedAt,
+      };
+    }
+
+    const updated = await this.prisma.listing.update({
+      where: { skuId },
+      data: {
+        isListed: true,
+        listedAt: now,
+        unlistedAt: null,
+      },
+    });
+
+    return {
+      id: updated.id,
+      skuId: updated.skuId,
+      isListed: updated.isListed,
+      listedAt: updated.listedAt,
+      unlistedAt: updated.unlistedAt,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
+  async unlistSku(skuId: string): Promise<ListingDetail> {
+    if (!this.isUuid(skuId)) {
+      throw new BadRequestException(`Invalid SKU ID format: ${skuId}`);
+    }
+
+    const existing = await this.prisma.listing.findUnique({ where: { skuId } });
+    if (!existing) {
+      throw new NotFoundException(`Listing not found for SKU: ${skuId}`);
+    }
+
+    if (!existing.isListed) {
+      return {
+        id: existing.id,
+        skuId: existing.skuId,
+        isListed: existing.isListed,
+        listedAt: existing.listedAt,
+        unlistedAt: existing.unlistedAt,
+        createdAt: existing.createdAt,
+        updatedAt: existing.updatedAt,
+      };
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.listing.update({
+      where: { skuId },
+      data: {
+        isListed: false,
+        unlistedAt: now,
+      },
+    });
+
+    return {
+      id: updated.id,
+      skuId: updated.skuId,
+      isListed: updated.isListed,
+      listedAt: updated.listedAt,
+      unlistedAt: updated.unlistedAt,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // SellingPrice Management (Baseline)
+  // ---------------------------------------------------------------------------
 
   async createSellingPrice(
     skuId: string,

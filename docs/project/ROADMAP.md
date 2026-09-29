@@ -22,7 +22,7 @@ This roadmap defines the sequential backend-first milestones for Shena Care. Eac
 
 ### [Active] B2 — Commerce & Sellability v1
 - [x] Define and implement explicit Commerce sellability rules (`isListed` + valid `SellingPrice` + active SKU — GLO-101).
-- [ ] Listing management APIs: list/unlist commands with timestamps (GLO-102).
+- [x] Listing management APIs: list/unlist commands with timestamps (GLO-102).
 - [ ] SellingPrice management commands and historical price intervals (`validFrom`, `validUntil` — GLO-103).
 - [ ] Close Commerce Core v1 with composition + regression tests (GLO-104).
 

@@ -1,45 +1,43 @@
-# Current Task: GLO-102 — Implement Listing management APIs
+# Current Task: GLO-103 — Implement SellingPrice commands + price history rules
 
 ## Goal
-Manage the commercial decision to offer a SKU for sale through dedicated Commerce APIs rather than manual database edits.
+Manage SKU selling prices with historical tracking, currency validation, interval conflict checks, and compareAtAmount support rather than treating price as a static scalar.
 
 ---
 
 ## Scope
-- DTOs for Listing operations (`CreateListingDto`, `ListSkuDto`, `UnlistSkuDto`, query filters).
-- Listing management methods in `CommerceService`:
-  - `createListing(skuId)` / `ensureListing(skuId)` with SKU validation against Catalog via `catalogService.validateSku(skuId)`.
-  - `listSku(skuId)`: set `isListed = true`, `listedAt = now`, `unlistedAt = null` (idempotent).
-  - `unlistSku(skuId)`: set `isListed = false`, `unlistedAt = now` (idempotent).
-  - `getListing(skuId)`: retrieve current listing state with timestamps.
-  - `getListings(filters)`: list listings with pagination and `isListed` filter.
-- Commerce controller in composition layer (`ListingController` or `CommerceController`) exposing:
-  - `POST /commerce/listings` (create listing for SKU)
-  - `GET /commerce/listings` (list listings)
-  - `GET /commerce/listings/:skuId` (get listing by SKU)
-  - `PATCH /commerce/listings/:skuId/list` or `POST /commerce/listings/:skuId/list` (list command)
-  - `PATCH /commerce/listings/:skuId/unlist` or `POST /commerce/listings/:skuId/unlist` (unlist command)
-- Public contract export in `modules/commerce/public.ts`.
-- Maintain strict module boundaries (Catalog does not import Commerce; Composition imports only from `public.ts`).
+- DTOs for SellingPrice operations (`CreateSellingPriceDto`, `UpdateSellingPriceDto`, query/filter DTOs).
+- Currency validation (e.g. ISO 3-letter currency code, default 'EGP' or 'USD').
+- SellingPrice commands in `CommerceService`:
+  - `createSellingPrice(dto)`: validate SKU existence in Catalog via `catalogService.validateSku(skuId)`, ensure non-negative amount, compareAtAmount >= amount if provided, validate date range (`validFrom < validUntil` if `validUntil` provided), prevent conflicting active overlapping intervals.
+  - `updateSellingPrice(id, dto)`: update price record (amount, compareAtAmount, validFrom, validUntil, isActive).
+  - `deactivateSellingPrice(id)`: set `isActive = false` to expire or remove a price without deleting history.
+  - `getSellingPrices(skuId)`: list all price records (active & historical) for a SKU.
+  - `getCurrentSellingPrice(skuId)`: deterministic resolution of the current active price.
+- Controller in composition layer (`PriceController` or endpoints under `ListingController` / `CommerceController`):
+  - `POST /commerce/prices` (create selling price)
+  - `GET /commerce/prices/skus/:skuId` (list prices for SKU)
+  - `GET /commerce/prices/skus/:skuId/current` (get current active price)
+  - `PATCH /commerce/prices/:id` (update price interval / values)
+  - `DELETE /commerce/prices/:id` or `PATCH /commerce/prices/:id/deactivate` (deactivate price)
+- Export public contracts in `modules/commerce/public.ts`.
 - Comprehensive integration tests covering:
-  - Create listing for valid SKU -> succeeds.
-  - Create listing for non-existent SKU -> 404 / NotFound.
-  - List/unlist toggles update `isListed`, `listedAt`, `unlistedAt` correctly.
-  - Idempotency when calling list or unlist repeatedly.
-  - Listing queries and filters.
+  - Create selling price for valid SKU -> succeeds.
+  - Reject non-existent Catalog SKU -> NotFoundException.
+  - Interval validation: `validFrom <= validUntil`, active overlap handling.
+  - compareAtAmount validation.
+  - Historical resolution picking the currently valid price window.
 
 ---
 
 ## Out of Scope
-- SellingPrice CRUD commands (reserved for GLO-103).
-- Sourcing availability / suppliers (Milestone B3).
-- Frontend / Admin UI screens (Milestone B8).
-- Cart / Checkout / Orders (Milestone B4).
+- Dynamic discounts / promotional coupon engine (future milestone).
+- Sourcing cost / supplier margins (Milestone B3).
+- Frontend price rendering UI (Milestone B8).
 
 ---
 
 ## Definition of Done
-- Listing can be created, activated (`list`), deactivated (`unlist`), and queried via API.
-- Attempting to create a listing for an invalid/non-existent Catalog SKU fails with appropriate validation error.
-- All architecture and integration tests pass cleanly (`npm test`).
-- NestJS compiles with zero lint errors (`npm run lint`, `npm run build`).
+- Prices can be added and updated via API while retaining historical audit records.
+- Deterministic price resolution functions accurately across time windows.
+- All integration tests and architecture tests pass cleanly.

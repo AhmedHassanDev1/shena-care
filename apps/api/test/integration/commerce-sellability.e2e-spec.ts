@@ -128,8 +128,10 @@ describe('Commerce Sellability Evaluation (GLO-101 e2e)', () => {
       });
       createdSkuIds.push(inactiveSku.id);
 
-      // Create listing and active price in Commerce
-      await commerceService.createListing(inactiveSku.id);
+      // Create listing and active price directly in DB to simulate preexisting state
+      await prisma.listing.create({
+        data: { skuId: inactiveSku.id, isListed: true, listedAt: new Date() },
+      });
       await commerceService.createSellingPrice(inactiveSku.id, 150, 'EGP');
 
       const evaluation = await commerceService.evaluateSellability(inactiveSku.id);
@@ -168,7 +170,9 @@ describe('Commerce Sellability Evaluation (GLO-101 e2e)', () => {
       });
       createdSkuIds.push(activeSku.id);
 
-      await commerceService.createListing(activeSku.id);
+      await prisma.listing.create({
+        data: { skuId: activeSku.id, isListed: true, listedAt: new Date() },
+      });
       await commerceService.createSellingPrice(activeSku.id, 200, 'EGP');
 
       const evaluation = await commerceService.evaluateSellability(activeSku.id);

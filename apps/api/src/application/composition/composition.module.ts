@@ -4,6 +4,7 @@ import { CommerceModule } from '../../modules/commerce/public';
 import { ProductViewController } from './controllers/product-view.controller';
 import { BrandController } from './controllers/brand.controller';
 import { CategoryController } from './controllers/category.controller';
+import { ListingController } from './controllers/listing.controller';
 import { ProductViewService } from './services/product-view.service';
 
 // ─── CompositionModule ────────────────────────────────────────────────────────
@@ -20,6 +21,7 @@ import { ProductViewService } from './services/product-view.service';
     ProductViewController,  // GET /products, GET /products/:slug
     BrandController,        // GET /brands, GET /brands/:slug
     CategoryController,     // GET /categories, GET /categories/:slug
+    ListingController,      // /commerce/listings
   ],
   providers: [ProductViewService],
 })
