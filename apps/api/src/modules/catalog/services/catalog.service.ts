@@ -350,6 +350,27 @@ export class CatalogService {
     return sku !== null && sku.product.isPublished;
   }
 
+  async getSkuByBarcode(barcode: string): Promise<PublishedSku | null> {
+    const sku = await this.prisma.sku.findFirst({
+      where: { barcode, isActive: true },
+      include: { product: true },
+    });
+
+    if (!sku || !sku.product.isPublished) {
+      return null;
+    }
+
+    return {
+      id: sku.id,
+      code: sku.code,
+      variantName: sku.variantName,
+      size: sku.size ? sku.size.toNumber() : null,
+      sizeUnit: sku.sizeUnit,
+      barcode: sku.barcode,
+      isActive: sku.isActive,
+    };
+  }
+
   async getSkuValidationStatus(skuId: string): Promise<SkuValidationStatus | null> {
     if (!this.isUuid(skuId)) {
       return null;

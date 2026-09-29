@@ -7,6 +7,7 @@ import { DatabaseModule } from './platform/database/database.module';
 import { SourcingModule } from './modules/sourcing/sourcing.module';
 import { OrderingModule } from './modules/ordering/ordering.module';
 import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
+import { IngestionModule } from './modules/ingestion/ingestion.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
     SourcingModule,
     OrderingModule,
     FulfillmentModule,
+    IngestionModule,
   ],
 })
 export class AppModule {}

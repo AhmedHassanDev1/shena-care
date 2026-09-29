@@ -42,13 +42,13 @@ This roadmap defines the sequential backend-first milestones for Shena Care. Eac
 - [x] Hub modeled as `FulfillmentLocation` (GLO-111).
 - [x] Receiving allocations, packing readiness, shipment dispatch, and delivery status transitions (GLO-112).
 
-### [Active] B6 — Product Ingestion & Catalog Ops
-- Ingestion module and workflow pipeline (`ingestion` schema).
-- Supplier catalog intake, candidate matching, and automated/manual review gate before publishing to Catalog.
+### [Done] B6 — Product Ingestion & Catalog Ops
+- [x] Ingestion module and workflow pipeline (`ingestion` schema).
+- [x] Supplier catalog intake, candidate matching, and automated/manual review gate before publishing to Catalog.
 
-### B7 — Care & AI
-- Care module for routine profiles and customer skin/hair concerns.
-- Shared FastAPI AI service integration under `services/ai` for advisory recommendations and routine proposals.
+### [Active] B7 — Care & AI
+- [ ] Care module for routine profiles and customer skin/hair concerns (GLO-114).
+- [ ] Shared FastAPI AI service integration under `services/ai` for advisory recommendations and routine proposals (GLO-115).
 
 ### B8 — Customer & Operations Interfaces
 - Stable backend API contract consumption for storefront UI (browsing, detail, checkout).
