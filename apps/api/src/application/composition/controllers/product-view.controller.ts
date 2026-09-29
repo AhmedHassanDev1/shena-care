@@ -34,17 +34,24 @@ export class ProductViewController {
   // ---------------------------------------------------------------------------
 
   // GET /products
-  // GET /products?category=moisturizers&brand=cerave&productLine=cerave-daily-moisturizers
+  // GET /products?category=moisturizers&brand=cerave&productLine=cerave-daily-moisturizers&page=1&limit=20
   @Get()
   async listProducts(
     @Query('category') categorySlug?: string,
     @Query('brand') brandSlug?: string,
     @Query('productLine') productLineSlug?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
+    const pageNum = page ? parseInt(page, 10) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+
     return this.productViewService.getProductViews({
       categorySlug,
       brandSlug,
       productLineSlug,
+      page: pageNum && !isNaN(pageNum) ? pageNum : undefined,
+      limit: limitNum && !isNaN(limitNum) ? limitNum : undefined,
     });
   }
 

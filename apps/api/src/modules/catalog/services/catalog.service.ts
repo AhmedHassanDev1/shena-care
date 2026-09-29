@@ -109,6 +109,8 @@ export class CatalogService {
     categorySlug?: string;
     brandSlug?: string;
     productLineSlug?: string;
+    page?: number;
+    limit?: number;
   }): Promise<PublishedProduct[]> {
     const where = {
       isPublished: true,
@@ -124,13 +126,41 @@ export class CatalogService {
       ...(filters?.productLineSlug && { productLine: { slug: filters.productLineSlug } }),
     };
 
+    const page = filters?.page && filters.page > 0 ? filters.page : 1;
+    const limit = filters?.limit && filters.limit > 0 ? Math.min(filters.limit, 100) : undefined;
+    const skip = limit ? (page - 1) * limit : undefined;
+
     const products = await this.prisma.product.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
       ...productWithRelations,
     });
 
     return products.map((p) => this.mapToPublishedProduct(p));
+  }
+
+  async countPublishedProducts(filters?: {
+    categorySlug?: string;
+    brandSlug?: string;
+    productLineSlug?: string;
+  }): Promise<number> {
+    const where = {
+      isPublished: true,
+      ...(filters?.categorySlug && {
+        category: {
+          OR: [
+            { slug: filters.categorySlug },
+            { parent: { slug: filters.categorySlug } },
+          ],
+        },
+      }),
+      ...(filters?.brandSlug && { brand: { slug: filters.brandSlug } }),
+      ...(filters?.productLineSlug && { productLine: { slug: filters.productLineSlug } }),
+    };
+
+    return this.prisma.product.count({ where });
   }
 
   // ---------------------------------------------------------------------------

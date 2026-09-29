@@ -53,10 +53,15 @@ export class CategoryService {
     return categories.map((c) => this.mapToNode(c));
   }
 
-  // جيب تصنيف واحد بالـ slug مع المنتجات بتاعته
-  async getCategory(slug: string): Promise<CategoryDetail | null> {
-    const category = await this.prisma.category.findUnique({
-      where: { slug },
+  private isUuid(val: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+  }
+
+  // جيب تصنيف واحد بالـ slug أو الـ id مع المنتجات بتاعته
+  async getCategory(slugOrId: string): Promise<CategoryDetail | null> {
+    const isId = this.isUuid(slugOrId);
+    const category = await this.prisma.category.findFirst({
+      where: isId ? { OR: [{ id: slugOrId }, { slug: slugOrId }] } : { slug: slugOrId },
       include: {
         children: {
           where: { isActive: true },
