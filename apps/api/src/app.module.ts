@@ -4,6 +4,8 @@ import { CatalogModule } from './modules/catalog/catalog.module';
 import { CommerceModule } from './modules/commerce/commerce.module';
 import { CompositionModule } from './application/composition/composition.module';
 import { DatabaseModule } from './platform/database/database.module';
+import { SourcingModule } from './modules/sourcing/sourcing.module';
+import { OrderingModule } from './modules/ordering/ordering.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { DatabaseModule } from './platform/database/database.module';
     CatalogModule,
     CommerceModule,
     CompositionModule,
+    SourcingModule,
+    OrderingModule,
   ],
 })
 export class AppModule {}

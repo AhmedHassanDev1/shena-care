@@ -33,9 +33,9 @@ This roadmap defines the sequential backend-first milestones for Shena Care. Eac
 - [x] Availability fresh resolution without exposing supplier concepts to customer APIs (GLO-106).
 
 ### [Active] B4 — Ordering Core v1
-- Ordering module domain rules and `ordering` PostgreSQL schema.
-- Cart and checkout validation against real-time Commerce sellability.
-- Order creation, item snapshots, status state machine, and Cash On Delivery (COD) flow.
+- [x] Ordering module domain rules and `ordering` PostgreSQL schema (GLO-107).
+- [x] Cart and checkout validation against real-time Commerce sellability (GLO-108).
+- [x] Order creation, item snapshots, status state machine, and Cash On Delivery (COD) flow (GLO-109).
 
 ### B5 — Fulfillment & Delivery v1
 - Fulfillment module and Hub operations.
