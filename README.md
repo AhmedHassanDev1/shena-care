@@ -123,24 +123,78 @@ pnpm typecheck
 
 ## API Endpoints
 
-### Products
+### Products & Composition
 
-- `GET /products` - List all published products
-- `GET /products/:slugOrId` - Get product details by slug or ID
+- `GET /products` - List products with commerce data (Filters: `category`, `brand`, `productLine`, `page`, `limit`)
+- `GET /products/:slugOrId` - Get composed product details by slug or ID
+- `POST /products` - Create new catalog product
+- `PATCH /products/:id` - Update catalog product
+
+### SKUs
+
+- `GET /products/:productId/skus` - List SKUs for a product
+- `POST /products/:productId/skus` - Create SKU under product
+- `PATCH /products/skus/:skuId` - Update SKU details
+
+### Product Media
+
+- `GET /products/:productId/media` - List media items for a product
+- `POST /products/:productId/media` - Add media item to product (`originType`: `verified`, `generated`, `derived`)
+- `PATCH /products/media/:mediaId` - Update media item
+- `DELETE /products/media/:mediaId` - Remove media item
+
+### Brands & Product Lines
+
+- `GET /brands` - List active brands (supports `?includeInactive=true`)
+- `GET /brands/:slugOrId` - Get brand details with product lines and products
+- `POST /brands` - Create brand
+- `PATCH /brands/:id` - Update brand
+- `GET /brands/:brandId/product-lines` - List product lines for a brand
+- `POST /brands/:brandId/product-lines` - Create product line under brand
+- `GET /brands/product-lines/:id` - Get product line by ID
+- `PATCH /brands/product-lines/:id` - Update product line
+
+### Categories
+
+- `GET /categories` - List category hierarchy tree (`Skin Care`, `Hair Care` roots + leaf categories)
+- `GET /categories/:slugOrId` - Get category details with assigned products
 
 ## Module Boundaries
 
-Each business module exposes a small explicit public API through `public.ts`:
+Each business module exposes an explicit public API through `public.ts`:
 
-### Catalog Public API
+### Catalog Public API (`catalog/public.ts`)
 ```typescript
+// Services
 CatalogService.getPublishedProduct(slugOrId: string)
-CatalogService.getPublishedProducts()
+CatalogService.getProduct(slugOrId: string)
+CatalogService.getPublishedProducts(filters?)
+CatalogService.createProduct(dto: CreateProductDto)
+CatalogService.updateProduct(id: string, dto: UpdateProductDto)
 CatalogService.getPublishedSku(skuId: string)
 CatalogService.validateSku(skuId: string)
+CatalogService.createSku(productId: string, dto: CreateSkuDto)
+CatalogService.updateSku(id: string, dto: UpdateSkuDto)
+CatalogService.getSkus(productId: string)
+CatalogService.addMedia(productId: string, dto: CreateProductMediaDto)
+CatalogService.updateMedia(id: string, dto: UpdateProductMediaDto)
+CatalogService.deleteMedia(id: string)
+CatalogService.getMedia(productId: string)
+
+BrandService.getBrands(includeInactive?: boolean)
+BrandService.getBrand(slugOrId: string)
+BrandService.createBrand(dto: CreateBrandDto)
+BrandService.updateBrand(id: string, dto: UpdateBrandDto)
+BrandService.getProductLines(brandId: string)
+BrandService.getProductLine(slugOrId: string)
+BrandService.createProductLine(brandId: string, dto: CreateProductLineDto)
+BrandService.updateProductLine(id: string, dto: UpdateProductLineDto)
+
+CategoryService.getCategories()
+CategoryService.getCategory(slugOrId: string)
 ```
 
-### Commerce Public API
+### Commerce Public API (`commerce/public.ts`)
 ```typescript
 CommerceService.getSellingTerms(skuId: string)
 CommerceService.evaluateSellability(skuId: string)
@@ -148,10 +202,10 @@ CommerceService.createListing(skuId: string)
 CommerceService.createSellingPrice(...)
 ```
 
-### Composition Layer
+### Composition Layer (`application/composition`)
 ```typescript
 ProductViewService.getProductView(slugOrId: string)
-ProductViewService.getProductViews()
+ProductViewService.getProductViews(filters?)
 ```
 
 ## Architecture Principles
