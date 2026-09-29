@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { DatabaseModule } from '../../../src/platform/database/database.module';
-import { CatalogModule } from '../../../src/modules/catalog/catalog.module';
-import { CommerceModule } from '../../../src/modules/commerce/commerce.module';
-import { CompositionModule } from '../../../src/application/composition/composition.module';
-import { CatalogService } from '../../../src/modules/catalog/public';
-import { CommerceService } from '../../../src/modules/commerce/public';
-import { ProductViewService } from '../../../src/application/composition/services/product-view.service';
+import { DatabaseModule } from '../../src/platform/database/database.module';
+import { CatalogModule } from '../../src/modules/catalog/public';
+import { CommerceModule } from '../../src/modules/commerce/public';
+import { CompositionModule } from '../../src/application/composition/composition.module';
+import { CatalogService } from '../../src/modules/catalog/public';
+import { CommerceService } from '../../src/modules/commerce/public';
+import { ProductViewService } from '../../src/application/composition/services/product-view.service';
 
 describe('First Vertical Slice (e2e)', () => {
   let app: INestApplication;

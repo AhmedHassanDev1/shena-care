@@ -23,6 +23,17 @@ export interface PublishedProduct {
     name: string;
     slug: string;
   };
+  productLine?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+    parentId: string | null;
+  } | null;
   skus: PublishedSku[];
   media: Array<{
     id: string;
@@ -30,11 +41,12 @@ export interface PublishedProduct {
     url: string;
     altText: string | null;
     isPrimary: boolean;
+    originType: string;
   }>;
 }
 
 const productWithRelations = Prisma.validator<Prisma.ProductDefaultArgs>()({
-  include: { brand: true, skus: true, media: true },
+  include: { brand: true, skus: true, media: true, productLine: true, category: true },
 });
 
 type ProductWithRelations = Prisma.ProductGetPayload<typeof productWithRelations>;
@@ -43,9 +55,14 @@ type ProductWithRelations = Prisma.ProductGetPayload<typeof productWithRelations
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private isUuid(val: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+  }
+
   async getPublishedProduct(slugOrId: string): Promise<PublishedProduct | null> {
+    const isId = this.isUuid(slugOrId);
     const product = await this.prisma.product.findFirst({
-      where: { OR: [{ slug: slugOrId }, { id: slugOrId }] },
+      where: isId ? { OR: [{ id: slugOrId }, { slug: slugOrId }] } : { slug: slugOrId },
       ...productWithRelations,
     });
 
@@ -56,9 +73,22 @@ export class CatalogService {
     return this.mapToPublishedProduct(product);
   }
 
-  async getPublishedProducts(): Promise<PublishedProduct[]> {
+  async getPublishedProducts(filters?: {
+    categorySlug?: string;
+    brandSlug?: string;
+  }): Promise<PublishedProduct[]> {
+    // نبني الـ where clause بشكل ديناميكي حسب الـ filters الموجودة
+    // لو مفيش فلتر → كل المنتجات المنشورة
+    // لو في categorySlug → فلتر على اسم التصنيف
+    // لو في brandSlug → فلتر على اسم الماركة
+    const where = {
+      isPublished: true,
+      ...(filters?.categorySlug && { category: { slug: filters.categorySlug } }),
+      ...(filters?.brandSlug && { brand: { slug: filters.brandSlug } }),
+    };
+
     const products = await this.prisma.product.findMany({
-      where: { isPublished: true },
+      where,
       orderBy: { createdAt: 'desc' },
       ...productWithRelations,
     });
@@ -67,6 +97,10 @@ export class CatalogService {
   }
 
   async getPublishedSku(skuId: string): Promise<PublishedSku | null> {
+    if (!this.isUuid(skuId)) {
+      return null;
+    }
+
     const sku = await this.prisma.sku.findFirst({
       where: { id: skuId, isActive: true },
       include: { product: true },
@@ -87,6 +121,10 @@ export class CatalogService {
   }
 
   async validateSku(skuId: string): Promise<boolean> {
+    if (!this.isUuid(skuId)) {
+      return false;
+    }
+
     const sku = await this.prisma.sku.findFirst({
       where: { id: skuId, isActive: true },
       include: { product: true },
@@ -108,6 +146,21 @@ export class CatalogService {
         name: product.brand.name,
         slug: product.brand.slug,
       },
+      productLine: product.productLine
+        ? {
+            id: product.productLine.id,
+            name: product.productLine.name,
+            slug: product.productLine.slug,
+          }
+        : null,
+      category: product.category
+        ? {
+            id: product.category.id,
+            name: product.category.name,
+            slug: product.category.slug,
+            parentId: product.category.parentId,
+          }
+        : null,
       skus: product.skus
         .filter((sku) => sku.isActive)
         .map((sku) => ({
@@ -126,6 +179,7 @@ export class CatalogService {
           url: m.url,
           altText: m.altText,
           isPrimary: m.isPrimary,
+          originType: m.originType,
         })),
     };
   }

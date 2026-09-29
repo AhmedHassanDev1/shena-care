@@ -16,7 +16,15 @@ export interface SellingTerms {
 export class CommerceService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private isUuid(val: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+  }
+
   async getSellingTerms(skuId: string): Promise<SellingTerms | null> {
+    if (!this.isUuid(skuId)) {
+      return null;
+    }
+
     const listing = await this.prisma.listing.findUnique({
       where: { skuId },
     });

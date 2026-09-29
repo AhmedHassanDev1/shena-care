@@ -12,6 +12,9 @@ async function seed() {
   await prisma.productMedia.deleteMany({});
   await prisma.sku.deleteMany({});
   await prisma.product.deleteMany({});
+  await prisma.productLine.deleteMany({});
+  await prisma.category.deleteMany({ where: { parentId: { not: null } } });
+  await prisma.category.deleteMany({});
   await prisma.brand.deleteMany({});
 
   // Create brands
@@ -23,6 +26,7 @@ async function seed() {
       description: 'Dermatologist-developed skincare with essential ceramides',
       logoUrl: 'https://example.com/brands/cerave-logo.png',
       websiteUrl: 'https://www.cerave.com',
+      countryOfOrigin: 'United States',
       isActive: true,
     },
   });
@@ -34,15 +38,106 @@ async function seed() {
       description: 'French dermocosmetics brand recommended by dermatologists',
       logoUrl: 'https://example.com/brands/lrp-logo.png',
       websiteUrl: 'https://www.laroche-posay.com',
+      countryOfOrigin: 'France',
       isActive: true,
     },
   });
+
+  // Create product lines (Brand lines)
+  console.log('Creating product lines...');
+  const ceraveMoisturizers = await prisma.productLine.create({
+    data: {
+      brandId: cerave.id,
+      name: 'Daily Moisturizers',
+      slug: 'cerave-daily-moisturizers',
+      description: 'Essential ceramide-infused daily hydrating care',
+      isActive: true,
+    },
+  });
+
+  const lrpAnthelios = await prisma.productLine.create({
+    data: {
+      brandId: lrp.id,
+      name: 'Anthelios Sun Care',
+      slug: 'lrp-anthelios',
+      description: 'Advanced UV protection formulated for sensitive skin',
+      isActive: true,
+    },
+  });
+  // ---------------------------------------------------------------------------
+  // Create categories (skincare taxonomy)
+  // ---------------------------------------------------------------------------
+  console.log('Creating categories...');
+
+  // Root categories
+  const cleansers = await prisma.category.create({
+    data: { name: 'Cleansers', slug: 'cleansers', sortOrder: 1 },
+  });
+  const moisturizers = await prisma.category.create({
+    data: { name: 'Moisturizers', slug: 'moisturizers', sortOrder: 2 },
+  });
+  const serums = await prisma.category.create({
+    data: { name: 'Serums & Treatments', slug: 'serums-treatments', sortOrder: 3 },
+  });
+  const sunscreens = await prisma.category.create({
+    data: { name: 'Sunscreens', slug: 'sunscreens', sortOrder: 4 },
+  });
+  await prisma.category.createMany({
+    data: [
+      { name: 'Toners & Essences', slug: 'toners-essences', sortOrder: 5 },
+      { name: 'Masks', slug: 'masks', sortOrder: 6 },
+      { name: 'Eye Care', slug: 'eye-care', sortOrder: 7 },
+    ],
+  });
+
+  // Sub-categories — Cleansers
+  await prisma.category.createMany({
+    data: [
+      { name: 'Foaming Cleansers', slug: 'foaming-cleansers', parentId: cleansers.id, sortOrder: 1 },
+      { name: 'Oil Cleansers', slug: 'oil-cleansers', parentId: cleansers.id, sortOrder: 2 },
+      { name: 'Micellar Water', slug: 'micellar-water', parentId: cleansers.id, sortOrder: 3 },
+      { name: 'Cleansing Balms', slug: 'cleansing-balms', parentId: cleansers.id, sortOrder: 4 },
+    ],
+  });
+
+  // Sub-categories — Moisturizers
+  await prisma.category.createMany({
+    data: [
+      { name: 'Face Creams', slug: 'face-creams', parentId: moisturizers.id, sortOrder: 1 },
+      { name: 'Face Lotions', slug: 'face-lotions', parentId: moisturizers.id, sortOrder: 2 },
+      { name: 'Body Lotions', slug: 'body-lotions', parentId: moisturizers.id, sortOrder: 3 },
+      { name: 'Night Creams', slug: 'night-creams', parentId: moisturizers.id, sortOrder: 4 },
+    ],
+  });
+
+  // Sub-categories — Serums
+  await prisma.category.createMany({
+    data: [
+      { name: 'Vitamin C Serums', slug: 'vitamin-c-serums', parentId: serums.id, sortOrder: 1 },
+      { name: 'Hyaluronic Acid Serums', slug: 'hyaluronic-acid-serums', parentId: serums.id, sortOrder: 2 },
+      { name: 'Retinol Treatments', slug: 'retinol-treatments', parentId: serums.id, sortOrder: 3 },
+      { name: 'Niacinamide Serums', slug: 'niacinamide-serums', parentId: serums.id, sortOrder: 4 },
+    ],
+  });
+
+  // Sub-categories — Sunscreens
+  await prisma.category.createMany({
+    data: [
+      { name: 'Face Sunscreens', slug: 'face-sunscreens', parentId: sunscreens.id, sortOrder: 1 },
+      { name: 'Body Sunscreens', slug: 'body-sunscreens', parentId: sunscreens.id, sortOrder: 2 },
+      { name: 'Tinted Sunscreens', slug: 'tinted-sunscreens', parentId: sunscreens.id, sortOrder: 3 },
+    ],
+  });
+
+  console.log('Categories created ✓');
 
   // Create products
   console.log('Creating products...');
   const moisturizingCream = await prisma.product.create({
     data: {
       brandId: cerave.id,
+      productLineId: ceraveMoisturizers.id,
+      categoryId: moisturizers.id,
       name: 'Moisturizing Cream',
       slug: 'cerave-moisturizing-cream',
       description:
@@ -57,6 +152,8 @@ async function seed() {
   const hydratingSunscreen = await prisma.product.create({
     data: {
       brandId: lrp.id,
+      productLineId: lrpAnthelios.id,
+      categoryId: sunscreens.id,
       name: 'Anthelios Melt-In Milk Sunscreen SPF 60',
       slug: 'lrp-anthelios-sunscreen-spf60',
       description:
@@ -183,7 +280,9 @@ async function seed() {
   console.log(`
 Created:
 - 2 brands (CeraVe, La Roche-Posay)
-- 2 products
+- 2 product lines
+- 7 root categories + 14 sub-categories
+- 2 products (with categories assigned)
 - 3 SKUs
 - 2 media items
 - 3 listings

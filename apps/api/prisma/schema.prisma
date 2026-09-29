@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["catalog", "commerce"]
+  schemas  = ["catalog", "commerce", "sourcing", "ingestion"]
 }
 
 // ---------------------------------------------------------------------------
@@ -14,39 +14,85 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model Brand {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @unique
-  slug        String   @unique
-  description String?
-  logoUrl     String?  @map("logo_url")
-  websiteUrl  String?  @map("website_url")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @unique
+  slug            String   @unique
+  description     String?
+  logoUrl         String?  @map("logo_url")
+  websiteUrl      String?  @map("website_url")
+  countryOfOrigin String?  @map("country_of_origin")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  products Product[]
+  products     Product[]
+  productLines ProductLine[]
 
   @@map("brands")
   @@schema("catalog")
 }
 
-model Product {
+model ProductLine {
   id          String   @id @default(uuid()) @db.Uuid
   brandId     String   @map("brand_id") @db.Uuid
   name        String
   slug        String   @unique
   description String?
-  usage       String?
-  warnings    String?
-  isPublished Boolean  @default(true) @map("is_published")
+  isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  brand Brand          @relation(fields: [brandId], references: [id])
-  skus  Sku[]
-  media ProductMedia[]
+  brand    Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  products Product[]
 
   @@index([brandId])
+  @@map("product_lines")
+  @@schema("catalog")
+}
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  parentId    String?  @map("parent_id") @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  products Product[]
+
+  @@index([parentId])
+  @@map("categories")
+  @@schema("catalog")
+}
+
+model Product {
+  id            String   @id @default(uuid()) @db.Uuid
+  brandId       String   @map("brand_id") @db.Uuid
+  productLineId String?  @map("product_line_id") @db.Uuid
+  categoryId    String?  @map("category_id") @db.Uuid
+  name          String
+  slug          String   @unique
+  description   String?
+  usage         String?
+  warnings      String?
+  isPublished   Boolean  @default(true) @map("is_published")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  brand       Brand        @relation(fields: [brandId], references: [id])
+  productLine ProductLine? @relation(fields: [productLineId], references: [id])
+  category    Category?    @relation(fields: [categoryId], references: [id])
+  skus        Sku[]
+  media       ProductMedia[]
+
+  @@index([brandId])
+  @@index([productLineId])
+  @@index([categoryId])
   @@map("products")
   @@schema("catalog")
 }
@@ -78,19 +124,30 @@ enum MediaType {
   @@schema("catalog")
 }
 
+enum MediaOriginType {
+  verified   // صورة من المورد أو المصنع
+  generated  // صورة AI
+  derived    // معالجة من verified (crop/bg-remove)
+
+  @@schema("catalog")
+}
+
 model ProductMedia {
   id        String    @id @default(uuid()) @db.Uuid
   productId String    @map("product_id") @db.Uuid
   type      MediaType
   url       String
-  altText   String?   @map("alt_text")
-  sortOrder Int       @default(0) @map("sort_order")
-  isPrimary Boolean   @default(false) @map("is_primary")
-  createdAt DateTime  @default(now()) @map("created_at")
+  altText             String?         @map("alt_text")
+  sortOrder           Int             @default(0) @map("sort_order")
+  isPrimary           Boolean         @default(false) @map("is_primary")
+  originType          MediaOriginType @default(verified) @map("origin_type")
+  generationMetadata  Json?           @map("generation_metadata")
+  createdAt           DateTime        @default(now()) @map("created_at")
 
   product Product @relation(fields: [productId], references: [id])
 
   @@index([productId])
+  @@index([originType])
   @@map("product_media")
   @@schema("catalog")
 }
