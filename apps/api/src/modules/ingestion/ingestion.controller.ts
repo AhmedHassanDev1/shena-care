@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, HttpCode, HttpStatus } from '@nestjs/common';
 import { IngestionService } from './services/ingestion.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto } from './dto/ingestion.dto';
 
@@ -22,6 +22,7 @@ export class IngestionController {
   }
 
   @Post('jobs/:id/publish')
+  @HttpCode(HttpStatus.CREATED)
   async publishJob(@Param('id') id: string) {
     return this.ingestionService.publishJob(id);
   }
@@ -38,4 +39,11 @@ export class IngestionController {
   async rejectItem(@Param('id') id: string) {
     return this.ingestionService.rejectItem(id);
   }
+
+  @Post('items/:id/enrich')
+  @HttpCode(HttpStatus.OK)
+  async enrichItem(@Param('id') id: string) {
+    return this.ingestionService.enrichItem(id);
+  }
 }
+

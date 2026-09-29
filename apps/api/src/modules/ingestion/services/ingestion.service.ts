@@ -3,7 +3,8 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
 import { SourcingService } from '../../sourcing/public';
 import { CreateIngestionJobDto, ApproveIngestionItemDto } from '../dto/ingestion.dto';
-import { IngestionStatus } from '@prisma/client';
+import { IngestionStatus, IngestionItemEnrichmentStatus } from '@prisma/client';
+import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
 
 export interface IngestionJobDetail {
   id: string;
@@ -29,6 +30,7 @@ export class IngestionService {
     private readonly prisma: PrismaService,
     private readonly catalogService: CatalogService,
     private readonly sourcingService: SourcingService,
+    private readonly aiClient: AiClient,
   ) {}
 
   private isUuid(val: string): boolean {
@@ -134,6 +136,11 @@ export class IngestionService {
         where: { id: item.id },
         data: { matchedSkuId, status },
       });
+
+      // Trigger AI enrichment asynchronously (best-effort, non-blocking)
+      this.enrichItemAsync(item.id, item.name, item.brand, item.barcode ?? undefined).catch(
+        (err) => console.error(`Enrichment background error for item ${item.id}:`, err),
+      );
     }
 
     // Check if all items are approved/rejected, update job status
@@ -206,6 +213,96 @@ export class IngestionService {
         data: { status: IngestionStatus.approved },
       });
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // AI Enrichment
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Internal fire-and-forget enrichment. Called automatically after matching.
+   * Errors are swallowed so they don't block the matching flow.
+   */
+  private async enrichItemAsync(
+    itemId: string,
+    rawTitle: string,
+    brand: string,
+    barcode?: string,
+  ): Promise<void> {
+    await this.prisma.ingestionItem.update({
+      where: { id: itemId },
+      data: { enrichmentStatus: IngestionItemEnrichmentStatus.pending },
+    });
+
+    try {
+      const result = await this.aiClient.enrichProduct({
+        candidateRef: itemId,
+        sourceType: 'supplier_item',
+        rawTitle,
+        brand,
+        barcode: barcode ?? null,
+      });
+
+      await this.prisma.ingestionItem.update({
+        where: { id: itemId },
+        data: {
+          enrichment: result as unknown as import('@prisma/client').Prisma.InputJsonValue,
+          enrichmentStatus: IngestionItemEnrichmentStatus.succeeded,
+          enrichmentError: null,
+        },
+      });
+    } catch (err) {
+      const isKnownAiError = err instanceof AiClientError;
+      const isSoftError =
+        isKnownAiError &&
+        (err.kind === AiErrorKind.UNAVAILABLE || err.kind === AiErrorKind.TIMEOUT);
+
+      const errorMessage =
+        isKnownAiError
+          ? `${err.kind}: ${err.message}`
+          : err instanceof Error
+          ? err.message
+          : String(err);
+
+      await this.prisma.ingestionItem.update({
+        where: { id: itemId },
+        data: {
+          enrichmentStatus: isSoftError
+            ? IngestionItemEnrichmentStatus.pending // can retry
+            : IngestionItemEnrichmentStatus.failed,
+          enrichmentError: errorMessage,
+        },
+      });
+
+      if (!isSoftError) {
+        console.error(`AI enrichment hard failure for item ${itemId}:`, errorMessage);
+      }
+    }
+  }
+
+  /**
+   * Manual enrichment trigger via API. Allows retrying enrichment on demand.
+   * Returns the updated item enrichment status and result.
+   */
+  async enrichItem(itemId: string): Promise<{
+    enrichmentStatus: IngestionItemEnrichmentStatus;
+    enrichment: unknown;
+    enrichmentError: string | null;
+  }> {
+    if (!this.isUuid(itemId)) throw new BadRequestException('Invalid item ID');
+
+    const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId } });
+    if (!item) throw new NotFoundException('Item not found');
+
+    // Run synchronously here (caller awaits result)
+    await this.enrichItemAsync(item.id, item.name, item.brand, item.barcode ?? undefined);
+
+    const updated = await this.prisma.ingestionItem.findUnique({ where: { id: itemId } });
+    return {
+      enrichmentStatus: updated!.enrichmentStatus,
+      enrichment: updated!.enrichment,
+      enrichmentError: updated!.enrichmentError,
+    };
   }
 
   async publishJob(jobId: string): Promise<IngestionJobDetail> {
