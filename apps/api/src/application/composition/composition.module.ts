@@ -5,6 +5,7 @@ import { ProductViewController } from './controllers/product-view.controller';
 import { BrandController } from './controllers/brand.controller';
 import { CategoryController } from './controllers/category.controller';
 import { ListingController } from './controllers/listing.controller';
+import { PriceController } from './controllers/price.controller';
 import { ProductViewService } from './services/product-view.service';
 
 // ─── CompositionModule ────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ import { ProductViewService } from './services/product-view.service';
     BrandController,        // GET /brands, GET /brands/:slug
     CategoryController,     // GET /categories, GET /categories/:slug
     ListingController,      // /commerce/listings
+    PriceController,        // /commerce/prices
   ],
   providers: [ProductViewService],
 })

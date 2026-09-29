@@ -3,9 +3,12 @@ import {
   Optional,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
+import { CreateSellingPriceDto, UpdateSellingPriceDto } from '../dto/price.dto';
 
 export type SellabilityReason =
   | 'SELLABLE'
@@ -43,6 +46,19 @@ export interface ListingDetail {
   isListed: boolean;
   listedAt: Date | null;
   unlistedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SellingPriceDetail {
+  id: string;
+  skuId: string;
+  amount: number;
+  currency: string;
+  compareAtAmount: number | null;
+  validFrom: Date;
+  validUntil: Date | null;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -532,9 +548,282 @@ export class CommerceService {
   }
 
   // ---------------------------------------------------------------------------
-  // SellingPrice Management (Baseline)
+  // SellingPrice Management (GLO-103)
   // ---------------------------------------------------------------------------
 
+  async addSellingPrice(dto: CreateSellingPriceDto): Promise<SellingPriceDetail> {
+    if (!this.isUuid(dto.skuId)) {
+      throw new BadRequestException(`Invalid SKU ID format: ${dto.skuId}`);
+    }
+
+    if (this.catalogService) {
+      const isValid = await this.catalogService.validateSku(dto.skuId);
+      if (!isValid) {
+        throw new NotFoundException(`SKU not found or inactive in Catalog: ${dto.skuId}`);
+      }
+    }
+
+    if (dto.compareAtAmount !== undefined && dto.compareAtAmount !== null) {
+      if (dto.compareAtAmount < dto.amount) {
+        throw new BadRequestException('compareAtAmount must be greater than or equal to amount');
+      }
+    }
+
+    const currency = (dto.currency ?? 'EGP').toUpperCase();
+    if (currency.length !== 3) {
+      throw new BadRequestException('Currency must be a 3-letter code (e.g. EGP, USD)');
+    }
+
+    const validFrom = dto.validFrom ? new Date(dto.validFrom) : new Date();
+    const validUntil = dto.validUntil ? new Date(dto.validUntil) : null;
+
+    if (validUntil && validUntil <= validFrom) {
+      throw new BadRequestException('validUntil must be after validFrom');
+    }
+
+    const isActive = dto.isActive ?? true;
+
+    // Interval Overlap Check
+    if (isActive) {
+      const existingPrices = await this.prisma.sellingPrice.findMany({
+        where: { skuId: dto.skuId, isActive: true },
+      });
+
+      const newFrom = validFrom.getTime();
+      const newUntil = validUntil ? validUntil.getTime() : Infinity;
+
+      for (const ep of existingPrices) {
+        const epFrom = ep.validFrom.getTime();
+        const epUntil = ep.validUntil ? ep.validUntil.getTime() : Infinity;
+
+        if (epFrom < newUntil && epUntil > newFrom) {
+          if (dto.autoClosePrevious && ep.validUntil === null && epFrom <= newFrom) {
+            // Auto close the previous open-ended price
+            await this.prisma.sellingPrice.update({
+              where: { id: ep.id },
+              data: { validUntil: validFrom },
+            });
+          } else {
+            throw new ConflictException(
+              `An active selling price already exists for SKU '${dto.skuId}' with an overlapping time interval.`,
+            );
+          }
+        }
+      }
+    }
+
+    const created = await this.prisma.sellingPrice.create({
+      data: {
+        skuId: dto.skuId,
+        amount: new Prisma.Decimal(dto.amount),
+        currency,
+        compareAtAmount:
+          dto.compareAtAmount !== undefined && dto.compareAtAmount !== null
+            ? new Prisma.Decimal(dto.compareAtAmount)
+            : null,
+        validFrom,
+        validUntil,
+        isActive,
+      },
+    });
+
+    return {
+      id: created.id,
+      skuId: created.skuId,
+      amount: created.amount.toNumber(),
+      currency: created.currency,
+      compareAtAmount: created.compareAtAmount ? created.compareAtAmount.toNumber() : null,
+      validFrom: created.validFrom,
+      validUntil: created.validUntil,
+      isActive: created.isActive,
+      createdAt: created.createdAt,
+      updatedAt: created.updatedAt,
+    };
+  }
+
+  async updateSellingPrice(id: string, dto: UpdateSellingPriceDto): Promise<SellingPriceDetail> {
+    if (!this.isUuid(id)) {
+      throw new BadRequestException(`Invalid SellingPrice ID format: ${id}`);
+    }
+
+    const existing = await this.prisma.sellingPrice.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException(`SellingPrice not found with id: ${id}`);
+    }
+
+    const targetAmount = dto.amount ?? existing.amount.toNumber();
+    const targetCompareAt =
+      dto.compareAtAmount !== undefined
+        ? dto.compareAtAmount
+        : existing.compareAtAmount
+          ? existing.compareAtAmount.toNumber()
+          : null;
+
+    if (targetCompareAt !== null && targetCompareAt < targetAmount) {
+      throw new BadRequestException('compareAtAmount must be greater than or equal to amount');
+    }
+
+    const targetCurrency = dto.currency ? dto.currency.toUpperCase() : existing.currency;
+    if (targetCurrency.length !== 3) {
+      throw new BadRequestException('Currency must be a 3-letter code');
+    }
+
+    const targetValidFrom = dto.validFrom ? new Date(dto.validFrom) : existing.validFrom;
+    const targetValidUntil =
+      dto.validUntil !== undefined
+        ? dto.validUntil
+          ? new Date(dto.validUntil)
+          : null
+        : existing.validUntil;
+
+    if (targetValidUntil && targetValidUntil <= targetValidFrom) {
+      throw new BadRequestException('validUntil must be after validFrom');
+    }
+
+    const targetIsActive = dto.isActive !== undefined ? dto.isActive : existing.isActive;
+
+    // Check overlap with OTHER active prices for the same SKU
+    if (targetIsActive) {
+      const otherPrices = await this.prisma.sellingPrice.findMany({
+        where: { skuId: existing.skuId, isActive: true, NOT: { id } },
+      });
+
+      const newFrom = targetValidFrom.getTime();
+      const newUntil = targetValidUntil ? targetValidUntil.getTime() : Infinity;
+
+      for (const op of otherPrices) {
+        const opFrom = op.validFrom.getTime();
+        const opUntil = op.validUntil ? op.validUntil.getTime() : Infinity;
+
+        if (opFrom < newUntil && opUntil > newFrom) {
+          throw new ConflictException(
+            `Updated price interval conflicts with another active selling price for SKU '${existing.skuId}'.`,
+          );
+        }
+      }
+    }
+
+    const updated = await this.prisma.sellingPrice.update({
+      where: { id },
+      data: {
+        ...(dto.amount !== undefined && { amount: new Prisma.Decimal(dto.amount) }),
+        ...(dto.currency !== undefined && { currency: targetCurrency }),
+        ...(dto.compareAtAmount !== undefined && {
+          compareAtAmount:
+            dto.compareAtAmount !== null ? new Prisma.Decimal(dto.compareAtAmount) : null,
+        }),
+        ...(dto.validFrom !== undefined && { validFrom: targetValidFrom }),
+        ...(dto.validUntil !== undefined && { validUntil: targetValidUntil }),
+        ...(dto.isActive !== undefined && { isActive: targetIsActive }),
+      },
+    });
+
+    return {
+      id: updated.id,
+      skuId: updated.skuId,
+      amount: updated.amount.toNumber(),
+      currency: updated.currency,
+      compareAtAmount: updated.compareAtAmount ? updated.compareAtAmount.toNumber() : null,
+      validFrom: updated.validFrom,
+      validUntil: updated.validUntil,
+      isActive: updated.isActive,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
+  async deactivateSellingPrice(id: string): Promise<SellingPriceDetail> {
+    if (!this.isUuid(id)) {
+      throw new BadRequestException(`Invalid SellingPrice ID format: ${id}`);
+    }
+
+    const existing = await this.prisma.sellingPrice.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException(`SellingPrice not found with id: ${id}`);
+    }
+
+    const updated = await this.prisma.sellingPrice.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    return {
+      id: updated.id,
+      skuId: updated.skuId,
+      amount: updated.amount.toNumber(),
+      currency: updated.currency,
+      compareAtAmount: updated.compareAtAmount ? updated.compareAtAmount.toNumber() : null,
+      validFrom: updated.validFrom,
+      validUntil: updated.validUntil,
+      isActive: updated.isActive,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
+  }
+
+  async getSellingPrices(skuId: string): Promise<SellingPriceDetail[]> {
+    if (!this.isUuid(skuId)) {
+      throw new BadRequestException(`Invalid SKU ID format: ${skuId}`);
+    }
+
+    const prices = await this.prisma.sellingPrice.findMany({
+      where: { skuId },
+      orderBy: { validFrom: 'desc' },
+    });
+
+    return prices.map((p) => ({
+      id: p.id,
+      skuId: p.skuId,
+      amount: p.amount.toNumber(),
+      currency: p.currency,
+      compareAtAmount: p.compareAtAmount ? p.compareAtAmount.toNumber() : null,
+      validFrom: p.validFrom,
+      validUntil: p.validUntil,
+      isActive: p.isActive,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    }));
+  }
+
+  async getCurrentSellingPrice(skuId: string): Promise<SellingPriceDetail | null> {
+    if (!this.isUuid(skuId)) {
+      return null;
+    }
+
+    const now = new Date();
+    const price = await this.prisma.sellingPrice.findFirst({
+      where: {
+        skuId,
+        isActive: true,
+        validFrom: { lte: now },
+        OR: [{ validUntil: { gte: now } }, { validUntil: null }],
+      },
+      orderBy: { validFrom: 'desc' },
+    });
+
+    if (!price) {
+      return null;
+    }
+
+    return {
+      id: price.id,
+      skuId: price.skuId,
+      amount: price.amount.toNumber(),
+      currency: price.currency,
+      compareAtAmount: price.compareAtAmount ? price.compareAtAmount.toNumber() : null,
+      validFrom: price.validFrom,
+      validUntil: price.validUntil,
+      isActive: price.isActive,
+      createdAt: price.createdAt,
+      updatedAt: price.updatedAt,
+    };
+  }
+
+  // Backward-compatible helper used across initial tests
   async createSellingPrice(
     skuId: string,
     amount: number,
@@ -544,9 +833,9 @@ export class CommerceService {
     await this.prisma.sellingPrice.create({
       data: {
         skuId,
-        amount,
+        amount: new Prisma.Decimal(amount),
         currency,
-        compareAtAmount: compareAtAmount ?? null,
+        compareAtAmount: compareAtAmount ? new Prisma.Decimal(compareAtAmount) : null,
         validFrom: new Date(),
         isActive: true,
       },
