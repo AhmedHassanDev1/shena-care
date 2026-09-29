@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["catalog", "commerce", "sourcing", "ingestion", "ordering", "fulfillment"]
+  schemas  = ["catalog", "commerce", "sourcing", "ingestion", "ordering", "fulfillment", "care"]
 }
 
 // ---------------------------------------------------------------------------
@@ -87,8 +87,9 @@ model Product {
   brand       Brand        @relation(fields: [brandId], references: [id])
   productLine ProductLine? @relation(fields: [productLineId], references: [id])
   category    Category?    @relation(fields: [categoryId], references: [id])
-  skus        Sku[]
-  media       ProductMedia[]
+  skus                Sku[]
+  media               ProductMedia[]
+  careRecommendations RoutineStepRecommendation[]
 
   @@index([brandId])
   @@index([productLineId])
@@ -420,4 +421,101 @@ model IngestionItem {
   @@index([status])
   @@map("ingestion_items")
   @@schema("ingestion")
+}
+
+// ---------------------------------------------------------------------------
+// Care schema
+// ---------------------------------------------------------------------------
+
+enum CareArea {
+  skin
+  hair
+
+  @@schema("care")
+}
+
+enum RoutineTiming {
+  am
+  pm
+  both
+  as_needed
+
+  @@schema("care")
+}
+
+model Concern {
+  id          String   @id @default(uuid()) @db.Uuid
+  careArea    CareArea @map("care_area")
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("concerns")
+  @@schema("care")
+}
+
+model Routine {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  description String?
+  careArea    CareArea @map("care_area")
+  isTemplate  Boolean  @default(true) @map("is_template")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  steps       RoutineStep[]
+
+  @@map("routines")
+  @@schema("care")
+}
+
+model RoutineStep {
+  id           String        @id @default(uuid()) @db.Uuid
+  routineId    String        @map("routine_id") @db.Uuid
+  title        String
+  instructions String?
+  stepOrder    Int           @map("step_order")
+  timing       RoutineTiming
+  isOptional   Boolean       @default(false) @map("is_optional")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  routine         Routine                     @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  recommendations RoutineStepRecommendation[]
+
+  @@unique([routineId, stepOrder])
+  @@index([routineId])
+  @@map("routine_steps")
+  @@schema("care")
+}
+
+enum RecommendationSource {
+  manual
+  rule_engine
+  ai
+  expert
+
+  @@schema("care")
+}
+
+model RoutineStepRecommendation {
+  id          String               @id @default(uuid()) @db.Uuid
+  stepId      String               @map("step_id") @db.Uuid
+  productId   String               @map("product_id") @db.Uuid
+  source      RecommendationSource @default(manual)
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  step    RoutineStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([stepId, productId])
+  @@index([stepId])
+  @@index([productId])
+  @@map("routine_step_recommendations")
+  @@schema("care")
 }

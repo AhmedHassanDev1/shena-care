@@ -8,6 +8,7 @@ import { SourcingModule } from './modules/sourcing/sourcing.module';
 import { OrderingModule } from './modules/ordering/ordering.module';
 import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
+import { CareModule } from './modules/care/care.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
     OrderingModule,
     FulfillmentModule,
     IngestionModule,
+    CareModule,
   ],
 })
 export class AppModule {}
