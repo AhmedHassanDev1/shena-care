@@ -132,11 +132,13 @@ describe('First Vertical Slice (e2e)', () => {
       expect(terms?.canOrder).toBe(true);
     });
 
-    it('should mark SKU as not orderable when missing price', async () => {
-      // This would require creating a listing without a price
-      // For now, we verify the logic path exists
-      const canOrder = await commerceService.evaluateSellability('non-existent-sku');
-      expect(canOrder).toBe(false);
+    it('should mark SKU as not orderable when missing price or non-existent', async () => {
+      const evaluation = await commerceService.evaluateSellability('non-existent-sku');
+      expect(evaluation.isSellable).toBe(false);
+      expect(evaluation.reason).toBe('INVALID_SKU_ID');
+
+      const isSellable = await commerceService.isSellable('non-existent-sku');
+      expect(isSellable).toBe(false);
     });
   });
 

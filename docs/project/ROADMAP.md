@@ -12,7 +12,7 @@ This roadmap defines the sequential backend-first milestones for Shena Care. Eac
 - ProductView composition layer.
 - Baseline architecture boundary tests and integration test suite passing.
 
-### [Active] B1 — Catalog Core v1
+### [Done] B1 — Catalog Core v1
 - Hierarchical Category model with root (`Skin Care`, `Hair Care`) and leaf taxonomy.
 - Primary Category assignment on Product.
 - ProductMedia tracking with `MediaOriginType` (`verified`, `generated`, `derived`).
@@ -20,11 +20,11 @@ This roadmap defines the sequential backend-first milestones for Shena Care. Eac
 - Product + SKU + Media write and management operations.
 - Catalog read APIs, filtering (by category tree, brand, product line), and pagination.
 
-### B2 — Commerce & Sellability v1
-- Define and implement explicit Commerce sellability rules (`isListed` + valid `SellingPrice` + active SKU).
-- Listing management APIs (list/unlist commands with timestamps).
-- SellingPrice management commands and historical price intervals (`validFrom`, `validUntil`).
-- Composition layer regression verification for listed, unlisted, and priced products.
+### [Active] B2 — Commerce & Sellability v1
+- [x] Define and implement explicit Commerce sellability rules (`isListed` + valid `SellingPrice` + active SKU — GLO-101).
+- [ ] Listing management APIs: list/unlist commands with timestamps (GLO-102).
+- [ ] SellingPrice management commands and historical price intervals (`validFrom`, `validUntil` — GLO-103).
+- [ ] Close Commerce Core v1 with composition + regression tests (GLO-104).
 
 ### B3 — Sourcing & Availability v1
 - Sourcing module domain rules and `sourcing` PostgreSQL schema.

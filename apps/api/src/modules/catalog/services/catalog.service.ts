@@ -21,6 +21,12 @@ export interface PublishedSku {
   isActive: boolean;
 }
 
+export interface SkuValidationStatus {
+  exists: boolean;
+  isActive: boolean;
+  isProductPublished: boolean;
+}
+
 export interface PublishedMedia {
   id: string;
   type: string;
@@ -342,6 +348,27 @@ export class CatalogService {
     });
 
     return sku !== null && sku.product.isPublished;
+  }
+
+  async getSkuValidationStatus(skuId: string): Promise<SkuValidationStatus | null> {
+    if (!this.isUuid(skuId)) {
+      return null;
+    }
+
+    const sku = await this.prisma.sku.findUnique({
+      where: { id: skuId },
+      include: { product: true },
+    });
+
+    if (!sku) {
+      return null;
+    }
+
+    return {
+      exists: true,
+      isActive: sku.isActive,
+      isProductPublished: sku.product.isPublished,
+    };
   }
 
   async createSku(productId: string, dto: CreateSkuDto): Promise<PublishedSku> {

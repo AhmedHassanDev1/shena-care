@@ -55,3 +55,9 @@ This document summarizes key architectural decisions established in the reposito
 ### ADR 009: Merchandising Category Hierarchy Scope
 - **Decision**: Structure Category as a simple merchandising hierarchy supporting both `Skin Care` and `Hair Care` roots with primary leaf assignments in v1. Keep skin concerns, routines, and ingredients as independent dimensions.
 - **Rationale**: Prevents category taxonomy explosion and avoids rigid classification traps. Merchandising browsing stays clean while clinical concerns and ingredients remain flexible, multi-dimensional attributes.
+
+---
+
+### ADR 010: Deterministic Commerce Sellability Rules
+- **Decision**: A SKU is commercially sellable if and only if three conditions are satisfied: (1) SKU is valid, active, and published in Catalog, (2) Listing exists and is marked `isListed = true` in Commerce, and (3) an active `SellingPrice` exists where `validFrom <= now <= validUntil` (or `validUntil` is null). Operational availability (Sourcing) is kept as a strictly separate downstream concern.
+- **Rationale**: Separates commercial intent (what we agree to sell and at what price) from physical supply execution (where to source it). Providing deterministic reasons (`SELLABLE`, `INVALID_SKU_ID`, `SKU_NOT_FOUND`, `SKU_INACTIVE`, `LISTING_NOT_FOUND`, `NOT_LISTED`, `PRICE_NOT_FOUND`, `PRICE_EXPIRED`, `PRICE_INACTIVE`) avoids hidden guesswork in consumer and checkout flows.

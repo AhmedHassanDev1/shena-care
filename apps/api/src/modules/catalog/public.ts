@@ -23,6 +23,6 @@ export { CreateProductMediaDto, UpdateProductMediaDto } from './dto/media.dto';
 
 // Types — بنصدر الـ interfaces عشان الـ Composition Layer
 // يقدر يستخدمها في الـ types بتاعته من غير ما يحتاج يعرف الـ implementation
-export type { PublishedProduct, PublishedSku, PublishedMedia } from './services/catalog.service';
+export type { PublishedProduct, PublishedSku, PublishedMedia, SkuValidationStatus } from './services/catalog.service';
 export type { BrandSummary, BrandDetail, ProductLineSummary } from './services/brand.service';
 export type { CategoryNode, CategoryDetail } from './services/category.service';
