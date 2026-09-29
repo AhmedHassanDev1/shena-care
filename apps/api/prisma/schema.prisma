@@ -226,3 +226,196 @@ model SupplierOffer {
   @@map("supplier_offers")
   @@schema("sourcing")
 }
+
+// ---------------------------------------------------------------------------
+// Ordering schema
+// ---------------------------------------------------------------------------
+
+model Cart {
+  id        String   @id @default(uuid()) @db.Uuid
+  sessionId String   @unique @map("session_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  items CartItem[]
+
+  @@map("carts")
+  @@schema("ordering")
+}
+
+model CartItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  cartId    String   @map("cart_id") @db.Uuid
+  skuId     String   @map("sku_id") @db.Uuid
+  quantity  Int
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, skuId])
+  @@index([cartId])
+  @@index([skuId])
+  @@map("cart_items")
+  @@schema("ordering")
+}
+
+enum OrderStatus {
+  placed
+  confirmed
+  packing
+  shipped
+  delivered
+  cancelled
+
+  @@schema("ordering")
+}
+
+model Order {
+  id            String      @id @default(uuid()) @db.Uuid
+  orderNumber   String      @unique @map("order_number")
+  customerName  String      @map("customer_name")
+  customerPhone String      @map("customer_phone")
+  shippingAddress String    @map("shipping_address")
+  totalAmount   Decimal     @map("total_amount") @db.Decimal(10, 2)
+  currency      String      @db.VarChar(3)
+  status        OrderStatus @default(placed)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  items OrderItem[]
+
+  @@map("orders")
+  @@schema("ordering")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  skuId     String   @map("sku_id") @db.Uuid
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+  currency  String   @db.VarChar(3)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([skuId])
+  @@map("order_items")
+  @@schema("ordering")
+}
+
+// ---------------------------------------------------------------------------
+// Fulfillment schema
+// ---------------------------------------------------------------------------
+
+model FulfillmentLocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  address   String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shipments Shipment[]
+
+  @@map("fulfillment_locations")
+  @@schema("fulfillment")
+}
+
+enum ShipmentStatus {
+  pending
+  packing
+  dispatched
+  delivered
+  failed
+
+  @@schema("fulfillment")
+}
+
+model Shipment {
+  id             String         @id @default(uuid()) @db.Uuid
+  orderId        String         @unique @map("order_id") @db.Uuid
+  locationId     String         @map("location_id") @db.Uuid
+  status         ShipmentStatus @default(pending)
+  trackingNumber String?        @map("tracking_number")
+  dispatchedAt   DateTime?      @map("dispatched_at")
+  deliveredAt    DateTime?      @map("delivered_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  location FulfillmentLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  items    ShipmentItem[]
+
+  @@index([locationId])
+  @@map("shipments")
+  @@schema("fulfillment")
+}
+
+model ShipmentItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  shipmentId String   @map("shipment_id") @db.Uuid
+  skuId      String   @map("sku_id") @db.Uuid
+  quantity   Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([skuId])
+  @@map("shipment_items")
+  @@schema("fulfillment")
+}
+
+// ---------------------------------------------------------------------------
+// Ingestion schema (B6)
+// ---------------------------------------------------------------------------
+
+enum IngestionStatus {
+  pending
+  review_required
+  approved
+  rejected
+  published
+
+  @@schema("ingestion")
+}
+
+model IngestionJob {
+  id         String   @id @default(uuid()) @db.Uuid
+  supplierId String   @map("supplier_id") @db.Uuid
+  status     IngestionStatus @default(pending)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  items IngestionItem[]
+
+  @@index([supplierId])
+  @@map("ingestion_jobs")
+  @@schema("ingestion")
+}
+
+model IngestionItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  jobId           String   @map("job_id") @db.Uuid
+  supplierSkuCode String   @map("supplier_sku_code")
+  name            String
+  brand           String
+  barcode         String?
+  price           Decimal  @db.Decimal(10, 2)
+  currency        String   @db.VarChar(3)
+  status          IngestionStatus @default(pending)
+  matchedSkuId    String?  @map("matched_sku_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  job IngestionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([status])
+  @@map("ingestion_items")
+  @@schema("ingestion")
+}

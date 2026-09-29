@@ -1,1 +1,1 @@
-GLO-110 — Fulfillment module domain rules and `fulfillment` PostgreSQL schema.
+GLO-113 — Ingestion module and workflow pipeline (`ingestion` schema).
