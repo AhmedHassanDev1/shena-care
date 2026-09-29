@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-const request = require('supertest');
+import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 
@@ -9,7 +9,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
   let prisma: PrismaService;
 
   let productId: string;
-  let invalidProductId = '00000000-0000-0000-0000-000000000000';
+  const invalidProductId = '00000000-0000-0000-0000-000000000000';
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -27,16 +27,21 @@ describe('Care Domain Lifecycle (e2e)', () => {
     await app.close();
   });
 
+  async function cleanFixture() {
+    await prisma.routine.deleteMany({
+      where: { title: { in: ['Basic Acne Routine', 'Delete Test Routine'] } },
+    });
+    await prisma.concern.deleteMany({ where: { name: { in: ['Acne', 'Frizz'] } } });
+    const product = await prisma.product.findUnique({ where: { slug: 'care-cleanser' } });
+    if (product) {
+      await prisma.productMedia.deleteMany({ where: { productId: product.id } });
+      await prisma.product.delete({ where: { id: product.id } });
+    }
+    await prisma.brand.deleteMany({ where: { slug: 'care-brand' } });
+  }
+
   beforeEach(async () => {
-    // Clean tables
-    await prisma.routineStepRecommendation.deleteMany();
-    await prisma.routineStep.deleteMany();
-    await prisma.routine.deleteMany();
-    await prisma.concern.deleteMany();
-    await prisma.productMedia.deleteMany();
-    await prisma.sku.deleteMany();
-    await prisma.product.deleteMany();
-    await prisma.brand.deleteMany();
+    await cleanFixture();
 
     // Setup basic catalog product for recommendation
     const brand = await prisma.brand.create({
@@ -53,6 +58,8 @@ describe('Care Domain Lifecycle (e2e)', () => {
     });
     productId = product.id;
   });
+
+  afterEach(cleanFixture);
 
   it('verifies the care domain lifecycle: concerns, routines, steps, and catalog references', async () => {
     // 1. Create a Concern

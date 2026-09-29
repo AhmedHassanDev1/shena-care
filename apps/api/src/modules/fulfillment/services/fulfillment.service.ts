@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { OrderingService } from '../../ordering/public';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto } from '../dto/fulfillment.dto';
-import { ShipmentStatus } from '@prisma/client';
+import { ShipmentStatus, Prisma } from '@prisma/client';
 
 export interface FulfillmentLocationDetail {
   id: string;
@@ -130,7 +130,7 @@ export class FulfillmentService {
       throw new NotFoundException('Shipment not found');
     }
 
-    const updateData: any = { status: dto.status };
+    const updateData: Prisma.ShipmentUpdateInput = { status: dto.status };
     if (dto.trackingNumber !== undefined) updateData.trackingNumber = dto.trackingNumber;
 
     if (dto.status === ShipmentStatus.dispatched && !shipment.dispatchedAt) {

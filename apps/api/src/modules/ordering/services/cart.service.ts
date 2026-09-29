@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CommerceService } from '../../commerce/public';
 import { SourcingService } from '../../sourcing/public';

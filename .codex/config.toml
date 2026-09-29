@@ -1,0 +1,14 @@
+# Project MCP connections. Keep credentials outside this repository.
+
+[mcp_servers.linear]
+url = "https://mcp.linear.app/mcp/readonly"
+
+[mcp_servers.stitch]
+command = "C:/nvm4w/nodejs/node.exe"
+args = [
+  "--env-file=C:/Users/Administrator/.codex/secrets/shena-stitch.env",
+  "C:/Users/Administrator/Desktop/shena care/tools/stitch-mcp/dist/index.js",
+]
+
+[mcp_servers.stitch.env]
+NODE_EXTRA_CA_CERTS = "C:/Users/Administrator/.codex/certs/windows-trusted-roots.pem"

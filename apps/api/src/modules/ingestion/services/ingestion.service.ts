@@ -261,11 +261,13 @@ export class IngestionService {
                   data: { status: IngestionStatus.published },
                 });
               }
-            } catch (innerErr: any) {
-              errors.push(`Failed to update existing offer for item ${item.id}: ${innerErr.message}`);
+            } catch (innerErr) {
+              const errorMessage = innerErr instanceof Error ? innerErr.message : String(innerErr);
+              errors.push(`Failed to update existing offer for item ${item.id}: ${errorMessage}`);
             }
           } else {
-            errors.push(`Failed to create offer for item ${item.id}: ${e.message}`);
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            errors.push(`Failed to create offer for item ${item.id}: ${errorMessage}`);
           }
         }
       }

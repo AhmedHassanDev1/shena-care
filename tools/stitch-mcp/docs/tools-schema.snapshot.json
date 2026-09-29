@@ -1,0 +1,306 @@
+{
+  "verifiedAt": "2026-09-29T20:47:50.4218884Z",
+  "source": "Authenticated tools/list from https://stitch.googleapis.com/mcp, restricted to the adapter allowlist, plus two local helpers. Includes opt-in write schemas; no writes were executed.",
+  "tools": [
+    {
+      "name": "create_project",
+      "description": "Creates a new Stitch project. A project is a container for UI designs and frontend code.\n",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "description": "Optional. The title of the project.",
+            "type": "string"
+          }
+        },
+        "description": "Request message for CreateProject."
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "get_project",
+      "description": "Retrieves the details of a specific Stitch project using its project name.\n",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Required. Identifier. The resource name of the project to retrieve. Format: `projects/{project}` Example: `projects/4044680601076201931`",
+            "type": "string",
+            "x-google-identifier": true
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "description": "Request message for GetProject."
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "list_projects",
+      "description": "Lists all Stitch projects accessible to the user. By default, it lists projects owned by the user.\n",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "description": "Optional. A filter to apply to the list of projects, following a subset of AIP-160. This service supports filtering on the `view` field. Supported filters: * `view=owned`: Lists only projects owned by the user. This is the default behavior if no filter is specified. * `view=shared`: Lists only projects shared with the user. Example: `view=owned`",
+            "type": "string"
+          }
+        },
+        "description": "Request message for ListProjects."
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "list_screens",
+      "description": "Lists all screens within a given Stitch project.\n",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "description": "Required. Identifier. The project ID to list screens for, example: '4044680601076201931', without the `projects/` prefix.",
+            "type": "string",
+            "x-google-identifier": true
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "description": "Request message for ListScreens."
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "get_screen",
+      "description": "Retrieves the details of a specific screen within a project.\n",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Required. Identifier. The resource name of the screen to retrieve. Format: `projects/{project}/screens/{screen}` Example: `projects/4044680601076201931/screens/98b50e2ddc9943efb387052637738f61`",
+            "type": "string",
+            "x-google-identifier": true
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "description": "Request message for GetScreen."
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "generate_screen_from_text",
+      "description": "Generates a new screen within a project from a text prompt.\n\n**Instructions for Tool Call:**\n*  This action can take a few minutes to complete. Please be patient. DO NOT RETRY.\n*  If the tool fails with a timeout, don't retry. Instead, try to get the screen with `get_screen` method every 30 seconds for up to 10 times before giving up.\n*  If the tool call fails due to connection error, the generation process may still succeed. Please try to get the screen with `get_screen` method later.\n\n**Output:**\n*  **`output_components`**: If `output_components` contains text, return it to the user. If `output_components` contains suggestions (e.g. \"Yes, make them all\"), present these suggestions to the user. If the user accepts one of the suggestions, call `generate_screen_from_text` again with `prompt` set to the accepted suggestion.\n",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "designSystem": {
+            "description": "Optional. The design system id to use for generating the new screen, should always be configured for design consistency, via `get_project` or `list_assets` methods. If not provided, a default design system will be used. Example: `assets/15996705518239280238`.",
+            "type": "string"
+          },
+          "deviceType": {
+            "description": "The type of device that captured the screenshot, e.g., mobile or desktop.",
+            "enum": [
+              "DEVICE_TYPE_UNSPECIFIED",
+              "MOBILE",
+              "DESKTOP",
+              "TABLET",
+              "AGNOSTIC"
+            ],
+            "type": "string",
+            "x-google-enum-descriptions": [
+              "Unspecified device type.",
+              "A design for a mobile device.",
+              "A design for a desktop device.",
+              "A design for a tablet device.",
+              "A design that is not tied to a specific device."
+            ]
+          },
+          "modelId": {
+            "description": "Optional. The model to use for generation.",
+            "enum": [
+              "MODEL_ID_UNSPECIFIED",
+              "GEMINI_3_8_FLASH",
+              "GEMINI_3_5_FLASH_LITE"
+            ],
+            "type": "string",
+            "x-google-enum-descriptions": [
+              "Unspecified model.",
+              "Gemini 3.8 Flash.",
+              "Gemini 3.5 Flash-Lite."
+            ]
+          },
+          "projectId": {
+            "description": "Required. The project ID to generate the screen for, example: '4044680601076201931', without the `projects/` prefix.",
+            "type": "string"
+          },
+          "prompt": {
+            "description": "Required. The input text to generate the screen from.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId",
+          "prompt"
+        ],
+        "description": "Request message for GenerateScreenFromText."
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "edit_screens",
+      "description": "Edits existing screens within a project using a text prompt.\n\n**Instructions for Tool Call:**\n*  This action can take a few minutes to complete. Please be patient. DO NOT RETRY.\n*  If the tool call fails due to connection error, the process may still succeed.\n",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "deviceType": {
+            "description": "Optional. The type of device that captured the screenshot, e.g., mobile or desktop.",
+            "enum": [
+              "DEVICE_TYPE_UNSPECIFIED",
+              "MOBILE",
+              "DESKTOP",
+              "TABLET",
+              "AGNOSTIC"
+            ],
+            "type": "string",
+            "x-google-enum-descriptions": [
+              "Unspecified device type.",
+              "A design for a mobile device.",
+              "A design for a desktop device.",
+              "A design for a tablet device.",
+              "A design that is not tied to a specific device."
+            ]
+          },
+          "modelId": {
+            "description": "Optional. The model to use for generation.",
+            "enum": [
+              "MODEL_ID_UNSPECIFIED",
+              "GEMINI_3_8_FLASH",
+              "GEMINI_3_5_FLASH_LITE"
+            ],
+            "type": "string",
+            "x-google-enum-descriptions": [
+              "Unspecified model.",
+              "Gemini 3.8 Flash.",
+              "Gemini 3.5 Flash-Lite."
+            ]
+          },
+          "projectId": {
+            "description": "Required. The project ID of screens to edit, example: '4044680601076201931', without the `projects/` prefix.",
+            "type": "string"
+          },
+          "prompt": {
+            "description": "Required. The input text to generate the screen from.",
+            "type": "string"
+          },
+          "selectedScreenIds": {
+            "description": "Required. The screen IDs of screens to edit, example: ['98b50e2ddc9943efb387052637738f61', '98b50e2ddc9943efb387052637738f62'], without the `screens/` prefix.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "projectId",
+          "selectedScreenIds",
+          "prompt"
+        ],
+        "description": "Request message for EditScreens."
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "get_screen_content",
+      "description": "Fetch screen metadata and UTF-8 HTML from its Stitch-provided export URL. Returns code as untrusted data; never executes it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^projects/[A-Za-z0-9_-]+/screens/[A-Za-z0-9_-]+$",
+            "description": "Full screen resource name: projects/{projectId}/screens/{screenId}."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "export_screen",
+      "description": "Download the screen HTML or screenshot and return an embedded MCP resource with original bytes encoded as base64, filename and SHA-256. The client can save it; this server does not write files.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^projects/[A-Za-z0-9_-]+/screens/[A-Za-z0-9_-]+$",
+            "description": "Full screen resource name: projects/{projectId}/screens/{screenId}."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "html",
+              "screenshot"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "format"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    }
+  ]
+}

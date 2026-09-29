@@ -110,8 +110,12 @@ cd apps/web && pnpm dev
 
 ### Testing
 
+Integration tests delete their own fixture records and require a separate PostgreSQL database whose name ends in `_test`. Create the test database, apply migrations, and seed it before running the full suite. Set `DATABASE_URL` to the test database URL in the shell running the commands; the API test guard rejects the development database.
+
 ```bash
-# Run all tests
+# With DATABASE_URL pointing to the dedicated test database
+pnpm --filter api migration:run
+pnpm --filter api seed
 pnpm test
 
 # Run linting
@@ -221,6 +225,7 @@ ProductViewService.getProductViews(filters?)
 See [docs/architecture/](docs/architecture/) for Architecture Decision Records (ADRs).
 
 ### Key Documentation
+- [Linear and Stitch MCP connections](docs/project/MCP_INTEGRATIONS.md) - Codex project setup and verification
 - [ADR Index](docs/architecture/README.md) - All architecture decisions
 - [ER Model](docs/architecture/ER_MODEL.md) - Complete data model
 - [Product Workflow](docs/architecture/006-product-workflow-architecture.md) - Controlled product intake pipeline

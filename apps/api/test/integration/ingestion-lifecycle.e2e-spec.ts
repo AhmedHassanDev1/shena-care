@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-const request = require('supertest');
+import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 
@@ -11,6 +11,22 @@ describe('Ingestion Lifecycle (e2e)', () => {
   let brandId: string;
   let skuId: string;
   let supplierId: string;
+
+  type JobBody = {
+    status: string;
+    items: Array<{ id: string; barcode: string | null; status: string; matchedSkuId: string | null }>;
+  };
+
+  async function waitForJob(jobId: string, ready: (job: JobBody) => boolean): Promise<JobBody> {
+    const deadline = Date.now() + 5000;
+    do {
+      const response = await request(app.getHttpServer()).get(`/ingestion/jobs/${jobId}`).expect(200);
+      const job = response.body as JobBody;
+      if (ready(job)) return job;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    } while (Date.now() < deadline);
+    throw new Error(`Ingestion job ${jobId} did not reach the expected state`);
+  }
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -28,16 +44,24 @@ describe('Ingestion Lifecycle (e2e)', () => {
     await app.close();
   });
 
+  async function cleanFixture() {
+    const supplier = await prisma.supplier.findUnique({ where: { slug: 'ingest-supplier' } });
+    if (supplier) {
+      await prisma.ingestionItem.deleteMany({ where: { job: { supplierId: supplier.id } } });
+      await prisma.ingestionJob.deleteMany({ where: { supplierId: supplier.id } });
+      await prisma.supplierOffer.deleteMany({ where: { supplierId: supplier.id } });
+      await prisma.supplier.delete({ where: { id: supplier.id } });
+    }
+    const product = await prisma.product.findUnique({ where: { slug: 'ingest-product' } });
+    if (product) {
+      await prisma.sku.deleteMany({ where: { productId: product.id } });
+      await prisma.product.delete({ where: { id: product.id } });
+    }
+    await prisma.brand.deleteMany({ where: { slug: 'ingest-brand' } });
+  }
+
   beforeEach(async () => {
-    // Clean tables
-    await prisma.ingestionItem.deleteMany();
-    await prisma.ingestionJob.deleteMany();
-    await prisma.supplierOffer.deleteMany();
-    await prisma.supplier.deleteMany();
-    await prisma.productMedia.deleteMany();
-    await prisma.sku.deleteMany();
-    await prisma.product.deleteMany();
-    await prisma.brand.deleteMany();
+    await cleanFixture();
 
     // Setup basic catalog & supplier
     const brand = await prisma.brand.create({
@@ -71,6 +95,8 @@ describe('Ingestion Lifecycle (e2e)', () => {
     supplierId = supplier.id;
   });
 
+  afterEach(cleanFixture);
+
   it('verifies the ingestion lifecycle with matching and publishing', async () => {
     // 1. Create Ingestion Job
     const createJobRes = await request(app.getHttpServer())
@@ -101,23 +127,20 @@ describe('Ingestion Lifecycle (e2e)', () => {
     const jobId = createJobRes.body.id;
     expect(jobId).toBeDefined();
 
-    // Wait a brief moment for async matching
-    await new Promise((r) => setTimeout(r, 100));
+    const job = await waitForJob(jobId, (current) =>
+      current.items.every((item) => item.status !== 'pending'),
+    );
 
-    const jobRes = await request(app.getHttpServer())
-      .get(`/ingestion/jobs/${jobId}`)
-      .expect(200);
-
-    const items = jobRes.body.items;
+    const items = job.items;
     expect(items.length).toBe(2);
 
     // 2. barcode automatically matches existing SKU
-    const matchedItem = items.find((i: any) => i.barcode === '1234567890123');
+    const matchedItem = items.find((i) => i.barcode === '1234567890123');
     expect(matchedItem.status).toBe('approved');
     expect(matchedItem.matchedSkuId).toBe(skuId);
 
     // 3. unknown barcode remains unresolved
-    const unresolvedItem = items.find((i: any) => i.barcode === '0000000000000');
+    const unresolvedItem = items.find((i) => i.barcode === '0000000000000');
     expect(unresolvedItem.status).toBe('review_required');
     expect(unresolvedItem.matchedSkuId).toBeNull();
 
@@ -178,7 +201,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
       })
       .expect(201);
 
-    await new Promise((r) => setTimeout(r, 100));
+    await waitForJob(createJobRes2.body.id, (current) => current.status === 'approved');
 
     // publish the duplicate
     await request(app.getHttpServer())

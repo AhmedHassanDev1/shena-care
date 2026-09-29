@@ -1,6 +1,5 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, ValidateNested, IsArray, IsEnum, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, ValidateNested, IsArray, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { IngestionStatus } from '@prisma/client';
 
 export class IngestionItemInput {
   @IsString()

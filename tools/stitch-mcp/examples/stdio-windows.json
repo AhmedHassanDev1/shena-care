@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "C:/Program Files/nodejs/node.exe",
+      "args": ["--env-file=C:/tools/stitch-mcp/.env", "C:/tools/stitch-mcp/dist/index.js"]
+    }
+  }
+}

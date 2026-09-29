@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "node",
+      "args": ["--env-file=/ABSOLUTE/PATH/stitch-mcp/.env", "/ABSOLUTE/PATH/stitch-mcp/dist/index.js"]
+    }
+  }
+}

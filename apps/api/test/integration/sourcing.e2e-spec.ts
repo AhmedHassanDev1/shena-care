@@ -11,9 +11,6 @@ describe('Sourcing Management (e2e)', () => {
   let catalogService: CatalogService;
   let supplierController: SupplierController;
 
-  let testBrandId: string;
-  let testCategoryId: string;
-  let testProductId: string;
   let testSkuId: string;
   let supplierId: string;
   let offerId: string;
@@ -36,8 +33,11 @@ describe('Sourcing Management (e2e)', () => {
     testSkuId = product?.skus[0]?.id as string;
     
     // Clean only sourcing tables
-    await prisma.supplierOffer.deleteMany();
-    await prisma.supplier.deleteMany();
+    const previousSupplier = await prisma.supplier.findUnique({ where: { slug: 'global-meds' } });
+    if (previousSupplier) {
+      await prisma.supplierOffer.deleteMany({ where: { supplierId: previousSupplier.id } });
+      await prisma.supplier.delete({ where: { id: previousSupplier.id } });
+    }
   });
 
   afterAll(async () => {

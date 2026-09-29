@@ -160,7 +160,7 @@ export class SourcingService {
     supplierId?: string;
     skuId?: string;
   }): Promise<SupplierOfferDetail[]> {
-    const where: any = {};
+    const where: Record<string, string> = {};
     if (filters?.supplierId) {
       if (!this.isUuid(filters.supplierId)) return [];
       where.supplierId = filters.supplierId;
