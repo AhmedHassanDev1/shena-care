@@ -401,19 +401,30 @@ model IngestionJob {
   @@schema("ingestion")
 }
 
+enum IngestionItemEnrichmentStatus {
+  pending
+  succeeded
+  failed
+
+  @@schema("ingestion")
+}
+
 model IngestionItem {
-  id              String   @id @default(uuid()) @db.Uuid
-  jobId           String   @map("job_id") @db.Uuid
-  supplierSkuCode String   @map("supplier_sku_code")
-  name            String
-  brand           String
-  barcode         String?
-  price           Decimal  @db.Decimal(10, 2)
-  currency        String   @db.VarChar(3)
-  status          IngestionStatus @default(pending)
-  matchedSkuId    String?  @map("matched_sku_id") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid()) @db.Uuid
+  jobId            String   @map("job_id") @db.Uuid
+  supplierSkuCode  String   @map("supplier_sku_code")
+  name             String
+  brand            String
+  barcode          String?
+  price            Decimal  @db.Decimal(10, 2)
+  currency         String   @db.VarChar(3)
+  status           IngestionStatus @default(pending)
+  matchedSkuId     String?  @map("matched_sku_id") @db.Uuid
+  enrichmentStatus IngestionItemEnrichmentStatus @default(pending) @map("enrichment_status")
+  enrichment       Json?
+  enrichmentError  String?  @map("enrichment_error")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   job IngestionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
