@@ -1,43 +1,39 @@
-# Current Task: GLO-103 — Implement SellingPrice commands + price history rules
+# Current Task: GLO-105 — Implement Supplier + SupplierOffer management APIs
 
 ## Goal
-Manage SKU selling prices with historical tracking, currency validation, interval conflict checks, and compareAtAmount support rather than treating price as a static scalar.
+Manage suppliers and their offers internally via a structured Backend schema before implementing any UI or automation.
 
 ---
 
 ## Scope
-- DTOs for SellingPrice operations (`CreateSellingPriceDto`, `UpdateSellingPriceDto`, query/filter DTOs).
-- Currency validation (e.g. ISO 3-letter currency code, default 'EGP' or 'USD').
-- SellingPrice commands in `CommerceService`:
-  - `createSellingPrice(dto)`: validate SKU existence in Catalog via `catalogService.validateSku(skuId)`, ensure non-negative amount, compareAtAmount >= amount if provided, validate date range (`validFrom < validUntil` if `validUntil` provided), prevent conflicting active overlapping intervals.
-  - `updateSellingPrice(id, dto)`: update price record (amount, compareAtAmount, validFrom, validUntil, isActive).
-  - `deactivateSellingPrice(id)`: set `isActive = false` to expire or remove a price without deleting history.
-  - `getSellingPrices(skuId)`: list all price records (active & historical) for a SKU.
-  - `getCurrentSellingPrice(skuId)`: deterministic resolution of the current active price.
-- Controller in composition layer (`PriceController` or endpoints under `ListingController` / `CommerceController`):
-  - `POST /commerce/prices` (create selling price)
-  - `GET /commerce/prices/skus/:skuId` (list prices for SKU)
-  - `GET /commerce/prices/skus/:skuId/current` (get current active price)
-  - `PATCH /commerce/prices/:id` (update price interval / values)
-  - `DELETE /commerce/prices/:id` or `PATCH /commerce/prices/:id/deactivate` (deactivate price)
-- Export public contracts in `modules/commerce/public.ts`.
-- Comprehensive integration tests covering:
-  - Create selling price for valid SKU -> succeeds.
-  - Reject non-existent Catalog SKU -> NotFoundException.
-  - Interval validation: `validFrom <= validUntil`, active overlap handling.
-  - compareAtAmount validation.
-  - Historical resolution picking the currently valid price window.
+- Create `sourcing` schema in Prisma.
+- `Supplier` model (id, name, slug, isActive, timestamps).
+- `SupplierOffer` model (id, supplierId, skuId, costPrice, currency, isAvailable, lastObservedAt, lastConfirmedAt, timestamps).
+- Create `SourcingModule` and `SourcingService`.
+- Supplier endpoints:
+  - `POST /sourcing/suppliers`
+  - `GET /sourcing/suppliers`
+  - `GET /sourcing/suppliers/:id`
+  - `PATCH /sourcing/suppliers/:id`
+- SupplierOffer endpoints:
+  - `POST /sourcing/offers` (validates `skuId` exists via Catalog public contract)
+  - `GET /sourcing/offers` (filterable by `skuId` and `supplierId`)
+  - `PATCH /sourcing/offers/:id`
+- Export public contracts in `modules/sourcing/public.ts`.
+- Write unit and integration tests.
 
 ---
 
 ## Out of Scope
-- Dynamic discounts / promotional coupon engine (future milestone).
-- Sourcing cost / supplier margins (Milestone B3).
-- Frontend price rendering UI (Milestone B8).
+- Exposing suppliers to customers in the Storefront.
+- UI for Supplier Management (Milestone B8).
+- Automated integration with external supplier APIs (Milestone B6).
 
 ---
 
 ## Definition of Done
-- Prices can be added and updated via API while retaining historical audit records.
-- Deterministic price resolution functions accurately across time windows.
-- All integration tests and architecture tests pass cleanly.
+- Prisma migration created and applied.
+- `SourcingModule` can create suppliers and multiple offers for the same SKU.
+- Validation prevents creating offers for non-existent SKUs.
+- Timestamps and evidence of availability are tracked clearly.
+- Integration tests pass cleanly.

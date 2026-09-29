@@ -20,16 +20,17 @@ This roadmap defines the sequential backend-first milestones for Shena Care. Eac
 - Product + SKU + Media write and management operations.
 - Catalog read APIs, filtering (by category tree, brand, product line), and pagination.
 
-### [Active] B2 — Commerce & Sellability v1
+### [Done] B2 — Commerce & Sellability v1
 - [x] Define and implement explicit Commerce sellability rules (`isListed` + valid `SellingPrice` + active SKU — GLO-101).
 - [x] Listing management APIs: list/unlist commands with timestamps (GLO-102).
-- [ ] SellingPrice management commands and historical price intervals (`validFrom`, `validUntil` — GLO-103).
-- [ ] Close Commerce Core v1 with composition + regression tests (GLO-104).
+- [x] SellingPrice management commands and historical price intervals (`validFrom`, `validUntil` — GLO-103).
+- [x] Close Commerce Core v1 with composition + regression tests (GLO-104).
 
-### B3 — Sourcing & Availability v1
-- Sourcing module domain rules and `sourcing` PostgreSQL schema.
-- Supplier and SupplierOffer management APIs (cost, observed timestamps, evidence).
-- Availability fresh resolution without exposing supplier concepts to customer APIs.
+### [Active] B3 — Sourcing & Availability v1
+- [ ] Implement Supplier + SupplierOffer management APIs (GLO-105).
+- [ ] Sourcing module domain rules and `sourcing` PostgreSQL schema.
+- [ ] Supplier and SupplierOffer management APIs (cost, observed timestamps, evidence).
+- [ ] Availability fresh resolution without exposing supplier concepts to customer APIs.
 
 ### B4 — Ordering Core v1
 - Ordering module domain rules and `ordering` PostgreSQL schema.

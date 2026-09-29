@@ -187,3 +187,42 @@ model SellingPrice {
   @@map("selling_prices")
   @@schema("commerce")
 }
+
+// ---------------------------------------------------------------------------
+// Sourcing schema
+// ---------------------------------------------------------------------------
+
+model Supplier {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  slug      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  offers SupplierOffer[]
+
+  @@map("suppliers")
+  @@schema("sourcing")
+}
+
+model SupplierOffer {
+  id              String    @id @default(uuid()) @db.Uuid
+  supplierId      String    @map("supplier_id") @db.Uuid
+  skuId           String    @map("sku_id") @db.Uuid
+  costPrice       Decimal   @map("cost_price") @db.Decimal(10, 2)
+  currency        String    @db.VarChar(3)
+  isAvailable     Boolean   @default(true) @map("is_available")
+  lastObservedAt  DateTime  @default(now()) @map("last_observed_at")
+  lastConfirmedAt DateTime? @map("last_confirmed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([supplierId, skuId])
+  @@index([supplierId])
+  @@index([skuId])
+  @@map("supplier_offers")
+  @@schema("sourcing")
+}
