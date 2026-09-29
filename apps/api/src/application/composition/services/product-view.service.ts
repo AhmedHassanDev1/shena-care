@@ -97,6 +97,7 @@ export class ProductViewService {
   async getProductViews(filters?: {
     categorySlug?: string;
     brandSlug?: string;
+    productLineSlug?: string;
   }): Promise<ProductView[]> {
     // بنمرر الـ filters للـ CatalogService اللي هو مسؤول عن الـ DB query
     const products = await this.catalogService.getPublishedProducts(filters);
