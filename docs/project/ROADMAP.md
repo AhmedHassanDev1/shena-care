@@ -26,13 +26,13 @@ This roadmap defines the sequential backend-first milestones for Shena Care. Eac
 - [x] SellingPrice management commands and historical price intervals (`validFrom`, `validUntil` — GLO-103).
 - [x] Close Commerce Core v1 with composition + regression tests (GLO-104).
 
-### [Active] B3 — Sourcing & Availability v1
-- [ ] Implement Supplier + SupplierOffer management APIs (GLO-105).
-- [ ] Sourcing module domain rules and `sourcing` PostgreSQL schema.
-- [ ] Supplier and SupplierOffer management APIs (cost, observed timestamps, evidence).
-- [ ] Availability fresh resolution without exposing supplier concepts to customer APIs.
+### [Done] B3 — Sourcing & Availability v1
+- [x] Implement Supplier + SupplierOffer management APIs (GLO-105).
+- [x] Sourcing module domain rules and `sourcing` PostgreSQL schema.
+- [x] Supplier and SupplierOffer management APIs (cost, observed timestamps, evidence).
+- [x] Availability fresh resolution without exposing supplier concepts to customer APIs (GLO-106).
 
-### B4 — Ordering Core v1
+### [Active] B4 — Ordering Core v1
 - Ordering module domain rules and `ordering` PostgreSQL schema.
 - Cart and checkout validation against real-time Commerce sellability.
 - Order creation, item snapshots, status state machine, and Cash On Delivery (COD) flow.

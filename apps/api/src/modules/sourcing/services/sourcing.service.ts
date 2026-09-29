@@ -233,4 +233,28 @@ export class SourcingService {
       costPrice: updated.costPrice.toNumber(),
     };
   }
+
+  // ---------------------------------------------------------------------------
+  // Availability Resolution (GLO-106)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Resolves whether a SKU is currently available based on active supplier offers.
+   * Returns true if there is at least one available offer from an active supplier.
+   */
+  async checkAvailability(skuId: string): Promise<boolean> {
+    if (!this.isUuid(skuId)) return false;
+
+    const offer = await this.prisma.supplierOffer.findFirst({
+      where: {
+        skuId,
+        isAvailable: true,
+        supplier: {
+          isActive: true,
+        },
+      },
+    });
+
+    return !!offer;
+  }
 }

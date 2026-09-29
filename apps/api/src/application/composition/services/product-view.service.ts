@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CatalogService } from '../../../modules/catalog/public';
 import { CommerceService } from '../../../modules/commerce/public';
+import { SourcingService } from '../../../modules/sourcing/public';
 
 export interface ProductView {
   id: string;
@@ -36,6 +37,7 @@ export interface ProductView {
       currency: string;
       compareAtAmount: number | null;
     } | null;
+    isAvailable: boolean;
     canOrder: boolean;
   }>;
   media: Array<{
@@ -53,6 +55,7 @@ export class ProductViewService {
   constructor(
     private readonly catalogService: CatalogService,
     private readonly commerceService: CommerceService,
+    private readonly sourcingService: SourcingService,
   ) {}
 
   async getProductView(slugOrId: string): Promise<ProductView | null> {
@@ -64,7 +67,10 @@ export class ProductViewService {
 
     const skusWithCommerce = await Promise.all(
       product.skus.map(async (sku) => {
-        const terms = await this.commerceService.getSellingTerms(sku.id);
+        const [terms, isAvailable] = await Promise.all([
+          this.commerceService.getSellingTerms(sku.id),
+          this.sourcingService.checkAvailability(sku.id),
+        ]);
 
         return {
           id: sku.id,
@@ -73,7 +79,8 @@ export class ProductViewService {
           size: sku.size,
           sizeUnit: sku.sizeUnit,
           price: terms?.price ?? null,
-          canOrder: terms?.canOrder ?? false,
+          isAvailable,
+          canOrder: (terms?.canOrder ?? false) && isAvailable,
         };
       }),
     );
@@ -108,7 +115,10 @@ export class ProductViewService {
       products.map(async (product) => {
         const skusWithCommerce = await Promise.all(
           product.skus.map(async (sku) => {
-            const terms = await this.commerceService.getSellingTerms(sku.id);
+            const [terms, isAvailable] = await Promise.all([
+              this.commerceService.getSellingTerms(sku.id),
+              this.sourcingService.checkAvailability(sku.id),
+            ]);
 
             return {
               id: sku.id,
@@ -117,7 +127,8 @@ export class ProductViewService {
               size: sku.size,
               sizeUnit: sku.sizeUnit,
               price: terms?.price ?? null,
-              canOrder: terms?.canOrder ?? false,
+              isAvailable,
+              canOrder: (terms?.canOrder ?? false) && isAvailable,
             };
           }),
         );
