@@ -1,4 +1,4 @@
-import { PrismaClient, MediaType } from '@prisma/client';
+import { PrismaClient, MediaType, MediaOriginType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -65,68 +65,101 @@ async function seed() {
     },
   });
   // ---------------------------------------------------------------------------
-  // Create categories (skincare taxonomy)
+  // Create categories (Skin Care + Hair Care root taxonomy)
   // ---------------------------------------------------------------------------
   console.log('Creating categories...');
 
   // Root categories
-  const cleansers = await prisma.category.create({
-    data: { name: 'Cleansers', slug: 'cleansers', sortOrder: 1 },
+  const skinCare = await prisma.category.create({
+    data: {
+      name: 'Skin Care',
+      slug: 'skin-care',
+      description: 'Facial and body dermatological skincare products',
+      sortOrder: 1,
+      isActive: true,
+    },
   });
+
+  const hairCare = await prisma.category.create({
+    data: {
+      name: 'Hair Care',
+      slug: 'hair-care',
+      description: 'Hair care, cleansing, and conditioning treatments',
+      sortOrder: 2,
+      isActive: true,
+    },
+  });
+
+  // Leaf categories — Skin Care
+  await prisma.category.create({
+    data: {
+      name: 'Cleansers',
+      slug: 'cleansers',
+      parentId: skinCare.id,
+      sortOrder: 1,
+      isActive: true,
+    },
+  });
+
   const moisturizers = await prisma.category.create({
-    data: { name: 'Moisturizers', slug: 'moisturizers', sortOrder: 2 },
+    data: {
+      name: 'Moisturizers',
+      slug: 'moisturizers',
+      parentId: skinCare.id,
+      sortOrder: 2,
+      isActive: true,
+    },
   });
-  const serums = await prisma.category.create({
-    data: { name: 'Serums & Treatments', slug: 'serums-treatments', sortOrder: 3 },
+
+  await prisma.category.create({
+    data: {
+      name: 'Serums & Treatments',
+      slug: 'serums-treatments',
+      parentId: skinCare.id,
+      sortOrder: 3,
+      isActive: true,
+    },
   });
+
   const sunscreens = await prisma.category.create({
-    data: { name: 'Sunscreens', slug: 'sunscreens', sortOrder: 4 },
-  });
-  await prisma.category.createMany({
-    data: [
-      { name: 'Toners & Essences', slug: 'toners-essences', sortOrder: 5 },
-      { name: 'Masks', slug: 'masks', sortOrder: 6 },
-      { name: 'Eye Care', slug: 'eye-care', sortOrder: 7 },
-    ],
-  });
-
-  // Sub-categories — Cleansers
-  await prisma.category.createMany({
-    data: [
-      { name: 'Foaming Cleansers', slug: 'foaming-cleansers', parentId: cleansers.id, sortOrder: 1 },
-      { name: 'Oil Cleansers', slug: 'oil-cleansers', parentId: cleansers.id, sortOrder: 2 },
-      { name: 'Micellar Water', slug: 'micellar-water', parentId: cleansers.id, sortOrder: 3 },
-      { name: 'Cleansing Balms', slug: 'cleansing-balms', parentId: cleansers.id, sortOrder: 4 },
-    ],
+    data: {
+      name: 'Sunscreens',
+      slug: 'sunscreens',
+      parentId: skinCare.id,
+      sortOrder: 4,
+      isActive: true,
+    },
   });
 
-  // Sub-categories — Moisturizers
-  await prisma.category.createMany({
-    data: [
-      { name: 'Face Creams', slug: 'face-creams', parentId: moisturizers.id, sortOrder: 1 },
-      { name: 'Face Lotions', slug: 'face-lotions', parentId: moisturizers.id, sortOrder: 2 },
-      { name: 'Body Lotions', slug: 'body-lotions', parentId: moisturizers.id, sortOrder: 3 },
-      { name: 'Night Creams', slug: 'night-creams', parentId: moisturizers.id, sortOrder: 4 },
-    ],
+  // Leaf categories — Hair Care
+  await prisma.category.create({
+    data: {
+      name: 'Shampoos',
+      slug: 'shampoos',
+      parentId: hairCare.id,
+      sortOrder: 1,
+      isActive: true,
+    },
   });
 
-  // Sub-categories — Serums
-  await prisma.category.createMany({
-    data: [
-      { name: 'Vitamin C Serums', slug: 'vitamin-c-serums', parentId: serums.id, sortOrder: 1 },
-      { name: 'Hyaluronic Acid Serums', slug: 'hyaluronic-acid-serums', parentId: serums.id, sortOrder: 2 },
-      { name: 'Retinol Treatments', slug: 'retinol-treatments', parentId: serums.id, sortOrder: 3 },
-      { name: 'Niacinamide Serums', slug: 'niacinamide-serums', parentId: serums.id, sortOrder: 4 },
-    ],
+  await prisma.category.create({
+    data: {
+      name: 'Conditioners',
+      slug: 'conditioners',
+      parentId: hairCare.id,
+      sortOrder: 2,
+      isActive: true,
+    },
   });
 
-  // Sub-categories — Sunscreens
-  await prisma.category.createMany({
-    data: [
-      { name: 'Face Sunscreens', slug: 'face-sunscreens', parentId: sunscreens.id, sortOrder: 1 },
-      { name: 'Body Sunscreens', slug: 'body-sunscreens', parentId: sunscreens.id, sortOrder: 2 },
-      { name: 'Tinted Sunscreens', slug: 'tinted-sunscreens', parentId: sunscreens.id, sortOrder: 3 },
-    ],
+  await prisma.category.create({
+    data: {
+      name: 'Hair Treatments',
+      slug: 'hair-treatments',
+      parentId: hairCare.id,
+      sortOrder: 3,
+      isActive: true,
+    },
   });
 
   console.log('Categories created ✓');
@@ -214,6 +247,7 @@ async function seed() {
       altText: 'CeraVe Moisturizing Cream front view',
       sortOrder: 0,
       isPrimary: true,
+      originType: MediaOriginType.verified,
     },
   });
 
@@ -225,6 +259,7 @@ async function seed() {
       altText: 'La Roche-Posay Anthelios Sunscreen front view',
       sortOrder: 0,
       isPrimary: true,
+      originType: MediaOriginType.verified,
     },
   });
 
@@ -281,10 +316,10 @@ async function seed() {
 Created:
 - 2 brands (CeraVe, La Roche-Posay)
 - 2 product lines
-- 7 root categories + 14 sub-categories
-- 2 products (with categories assigned)
+- 2 root categories (Skin Care, Hair Care) + 7 leaf categories
+- 2 products (with leaf categories assigned)
 - 3 SKUs
-- 2 media items
+- 2 media items (verified origin)
 - 3 listings
 - 3 prices
 

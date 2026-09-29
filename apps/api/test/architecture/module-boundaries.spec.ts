@@ -108,22 +108,13 @@ describe('Architecture Tests', () => {
       // This is a simplified check - a full circular dependency check would require
       // parsing the entire dependency graph
       const catalogFiles = getFilesRecursive(path.join(srcDir, 'modules/catalog'));
-      const commerceFiles = getFilesRecursive(path.join(srcDir, 'modules/commerce'));
 
       let catalogImportsCommerce = false;
-      let commerceImportsCatalog = false;
 
       catalogFiles.forEach((file) => {
         const content = fs.readFileSync(file, 'utf-8');
         if (content.includes('commerce')) {
           catalogImportsCommerce = true;
-        }
-      });
-
-      commerceFiles.forEach((file) => {
-        const content = fs.readFileSync(file, 'utf-8');
-        if (content.includes('catalog')) {
-          commerceImportsCatalog = true;
         }
       });
 

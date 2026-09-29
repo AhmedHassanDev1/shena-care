@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { CatalogService, PublishedProduct } from '../../../modules/catalog/public';
-import { CommerceService, SellingTerms } from '../../../modules/commerce/public';
+import { CatalogService } from '../../../modules/catalog/public';
+import { CommerceService } from '../../../modules/commerce/public';
 
 export interface ProductView {
   id: string;
@@ -18,6 +18,12 @@ export interface ProductView {
     id: string;
     name: string;
     slug: string;
+  } | null;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+    parentId: string | null;
   } | null;
   skus: Array<{
     id: string;
@@ -38,6 +44,7 @@ export interface ProductView {
     url: string;
     altText: string | null;
     isPrimary: boolean;
+    originType: string;
   }>;
 }
 
@@ -80,6 +87,7 @@ export class ProductViewService {
       warnings: product.warnings,
       brand: product.brand,
       productLine: product.productLine ?? null,
+      category: product.category ?? null,
       skus: skusWithCommerce,
       media: product.media,
     };

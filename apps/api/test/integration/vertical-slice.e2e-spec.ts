@@ -1,11 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { DatabaseModule } from '../../src/platform/database/database.module';
-import { CatalogModule } from '../../src/modules/catalog/public';
-import { CommerceModule } from '../../src/modules/commerce/public';
+import { CatalogModule, CatalogService, BrandService, CategoryService } from '../../src/modules/catalog/public';
+import { CommerceModule, CommerceService } from '../../src/modules/commerce/public';
 import { CompositionModule } from '../../src/application/composition/composition.module';
-import { CatalogService } from '../../src/modules/catalog/public';
-import { CommerceService } from '../../src/modules/commerce/public';
 import { ProductViewService } from '../../src/application/composition/services/product-view.service';
 
 describe('First Vertical Slice (e2e)', () => {
@@ -13,6 +11,8 @@ describe('First Vertical Slice (e2e)', () => {
   let catalogService: CatalogService;
   let commerceService: CommerceService;
   let productViewService: ProductViewService;
+  let brandService: BrandService;
+  let categoryService: CategoryService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -31,6 +31,8 @@ describe('First Vertical Slice (e2e)', () => {
     catalogService = moduleFixture.get<CatalogService>(CatalogService);
     commerceService = moduleFixture.get<CommerceService>(CommerceService);
     productViewService = moduleFixture.get<ProductViewService>(ProductViewService);
+    brandService = moduleFixture.get<BrandService>(BrandService);
+    categoryService = moduleFixture.get<CategoryService>(CategoryService);
 
     await app.init();
   });
@@ -54,6 +56,10 @@ describe('First Vertical Slice (e2e)', () => {
       expect(firstSku?.variantName).toBeDefined(); // From Catalog
       expect(firstSku?.price).toBeDefined(); // From Commerce
       expect(firstSku?.canOrder).toBeDefined(); // From Commerce
+
+      // Verify category and media origin
+      expect(productView?.category?.name).toBe('Moisturizers');
+      expect(productView?.media[0]?.originType).toBe('verified');
     });
 
     it('should return null for unpublished products', async () => {
@@ -86,7 +92,7 @@ describe('First Vertical Slice (e2e)', () => {
       expect(product).toBeDefined();
       expect(product?.name).toBe('Moisturizing Cream');
       // Catalog should not include commerce data
-      expect((product as any).price).toBeUndefined();
+      expect((product as unknown as Record<string, unknown>).price).toBeUndefined();
     });
 
     it('should allow Commerce to operate independently', async () => {
@@ -133,4 +139,66 @@ describe('First Vertical Slice (e2e)', () => {
       expect(canOrder).toBe(false);
     });
   });
+
+  describe('Category Hierarchy & Taxonomy (GLO-94 & GLO-95)', () => {
+    it('should return root categories with child leaf categories', async () => {
+      const roots = await categoryService.getCategories();
+
+      expect(roots.length).toBe(2); // Skin Care and Hair Care
+      const skinCare = roots.find((r) => r.slug === 'skin-care');
+      const hairCare = roots.find((r) => r.slug === 'hair-care');
+
+      expect(skinCare).toBeDefined();
+      expect(skinCare?.name).toBe('Skin Care');
+      expect(skinCare?.children.length).toBeGreaterThan(0);
+      expect(skinCare?.children.some((c) => c.slug === 'moisturizers')).toBe(true);
+
+      expect(hairCare).toBeDefined();
+      expect(hairCare?.name).toBe('Hair Care');
+      expect(hairCare?.children.length).toBeGreaterThan(0);
+      expect(hairCare?.children.some((c) => c.slug === 'shampoos')).toBe(true);
+    });
+
+    it('should return category with its associated published products', async () => {
+      const category = await categoryService.getCategory('moisturizers');
+
+      expect(category).toBeDefined();
+      expect(category?.name).toBe('Moisturizers');
+      expect(category?.products.length).toBeGreaterThan(0);
+      expect(category?.products.some((p) => p.slug === 'cerave-moisturizing-cream')).toBe(true);
+    });
+
+    it('should return null for non-existent category', async () => {
+      const category = await categoryService.getCategory('non-existent-category');
+      expect(category).toBeNull();
+    });
+  });
+
+  describe('Brand & ProductLine Operations (GLO-97 Read Side)', () => {
+    it('should list all active brands with their product lines', async () => {
+      const brands = await brandService.getBrands();
+
+      expect(brands.length).toBeGreaterThan(0);
+      const cerave = brands.find((b) => b.slug === 'cerave');
+      expect(cerave).toBeDefined();
+      expect(cerave?.name).toBe('CeraVe');
+      expect(cerave?.productLines.length).toBeGreaterThan(0);
+      expect(cerave?.productLines.some((pl) => pl.slug === 'cerave-daily-moisturizers')).toBe(true);
+    });
+
+    it('should return brand detail with products by slug', async () => {
+      const brand = await brandService.getBrand('cerave');
+
+      expect(brand).toBeDefined();
+      expect(brand?.name).toBe('CeraVe');
+      expect(brand?.products.length).toBeGreaterThan(0);
+      expect(brand?.products.some((p) => p.slug === 'cerave-moisturizing-cream')).toBe(true);
+    });
+
+    it('should return null for non-existent brand', async () => {
+      const brand = await brandService.getBrand('unknown-brand');
+      expect(brand).toBeNull();
+    });
+  });
 });
+
