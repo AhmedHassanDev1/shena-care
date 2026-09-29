@@ -201,6 +201,7 @@ model Supplier {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   offers SupplierOffer[]
+  ingestionJobs IngestionJob[]
 
   @@map("suppliers")
   @@schema("sourcing")
@@ -391,7 +392,8 @@ model IngestionJob {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  items IngestionItem[]
+  items    IngestionItem[]
+  supplier Supplier @relation(fields: [supplierId], references: [id])
 
   @@index([supplierId])
   @@map("ingestion_jobs")

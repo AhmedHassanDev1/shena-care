@@ -1,1 +1,1 @@
-GLO-113 — Ingestion module and workflow pipeline (`ingestion` schema).
+GLO-114 — Care module for routine profiles and customer skin/hair concerns (B7).

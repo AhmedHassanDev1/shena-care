@@ -141,14 +141,21 @@ export class IngestionService {
   }
 
   async approveItem(itemId: string, dto: ApproveIngestionItemDto): Promise<void> {
-    const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId } });
+    const item = await this.prisma.ingestionItem.findUnique({
+      where: { id: itemId },
+      include: { job: true },
+    });
     if (!item) throw new NotFoundException('Item not found');
+
+    if (item.job.status === IngestionStatus.published) {
+      throw new BadRequestException('Cannot modify items of a published job');
+    }
 
     if (!this.isUuid(dto.matchedSkuId)) throw new BadRequestException('Invalid SKU ID');
     
     // Verify SKU exists
     const isValid = await this.catalogService.validateSku(dto.matchedSkuId);
-    if (!isValid) throw new NotFoundException('SKU not found in catalog');
+    if (!isValid) throw new NotFoundException('SKU not found in catalog or is inactive');
 
     await this.prisma.ingestionItem.update({
       where: { id: itemId },
@@ -162,8 +169,15 @@ export class IngestionService {
   }
 
   async rejectItem(itemId: string): Promise<void> {
-    const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId } });
+    const item = await this.prisma.ingestionItem.findUnique({
+      where: { id: itemId },
+      include: { job: true },
+    });
     if (!item) throw new NotFoundException('Item not found');
+
+    if (item.job.status === IngestionStatus.published) {
+      throw new BadRequestException('Cannot modify items of a published job');
+    }
 
     await this.prisma.ingestionItem.update({
       where: { id: itemId },
@@ -202,9 +216,15 @@ export class IngestionService {
 
     if (!job) throw new NotFoundException('Job not found');
 
+    if (job.status === IngestionStatus.published) {
+      throw new BadRequestException('Job is already published');
+    }
+
     if (job.status !== IngestionStatus.approved) {
       throw new BadRequestException('Job is not fully approved yet. Resolve pending items first.');
     }
+
+    const errors: string[] = [];
 
     // Publish approved items to Sourcing
     for (const item of job.items) {
@@ -217,30 +237,46 @@ export class IngestionService {
             currency: item.currency,
             isAvailable: true,
           });
+          
+          await this.prisma.ingestionItem.update({
+            where: { id: item.id },
+            data: { status: IngestionStatus.published },
+          });
         } catch (e) {
           if (e instanceof ConflictException) {
-            // Offer already exists, update it instead
-            const offers = await this.sourcingService.getSupplierOffers({
-              supplierId: job.supplierId,
-              skuId: item.matchedSkuId,
-            });
-            if (offers.length > 0) {
-              await this.sourcingService.updateSupplierOffer(offers[0].id, {
-                costPrice: item.price.toNumber(),
-                currency: item.currency,
-                isAvailable: true,
+            // Offer already exists, update it instead safely
+            try {
+              const offers = await this.sourcingService.getSupplierOffers({
+                supplierId: job.supplierId,
+                skuId: item.matchedSkuId,
               });
+              if (offers.length > 0) {
+                await this.sourcingService.updateSupplierOffer(offers[0].id, {
+                  costPrice: item.price.toNumber(),
+                  currency: item.currency,
+                  isAvailable: true,
+                });
+                await this.prisma.ingestionItem.update({
+                  where: { id: item.id },
+                  data: { status: IngestionStatus.published },
+                });
+              }
+            } catch (innerErr: any) {
+              errors.push(`Failed to update existing offer for item ${item.id}: ${innerErr.message}`);
             }
           } else {
-            throw e;
+            errors.push(`Failed to create offer for item ${item.id}: ${e.message}`);
           }
         }
-
-        await this.prisma.ingestionItem.update({
-          where: { id: item.id },
-          data: { status: IngestionStatus.published },
-        });
       }
+    }
+
+    if (errors.length > 0) {
+      // Partial failure: state remains approved (or partially published)
+      throw new BadRequestException({
+        message: 'Partial publish failure',
+        errors,
+      });
     }
 
     const updatedJob = await this.prisma.ingestionJob.update({

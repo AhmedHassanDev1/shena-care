@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, ValidateNested, IsArray, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, ValidateNested, IsArray, IsEnum, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { IngestionStatus } from '@prisma/client';
 
@@ -20,6 +20,7 @@ export class IngestionItemInput {
   barcode?: string;
 
   @IsNumber()
+  @Min(0)
   price: number;
 
   @IsString()
