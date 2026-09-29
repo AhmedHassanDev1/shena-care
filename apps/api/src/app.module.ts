@@ -6,6 +6,7 @@ import { CompositionModule } from './application/composition/composition.module'
 import { DatabaseModule } from './platform/database/database.module';
 import { SourcingModule } from './modules/sourcing/sourcing.module';
 import { OrderingModule } from './modules/ordering/ordering.module';
+import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { OrderingModule } from './modules/ordering/ordering.module';
     CompositionModule,
     SourcingModule,
     OrderingModule,
+    FulfillmentModule,
   ],
 })
 export class AppModule {}
