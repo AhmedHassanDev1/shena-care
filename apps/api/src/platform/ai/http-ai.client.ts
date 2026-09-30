@@ -6,6 +6,8 @@ import {
   AiSizeUnit,
   ProductEnrichmentInput,
   ProductEnrichmentResult,
+  GuidanceRecommendationRequest,
+  GuidanceRecommendationResult,
 } from './ai-client.contract';
 
 const SIZE_UNITS = new Set(['ml', 'l', 'g', 'kg', 'oz', 'unit']);
@@ -88,6 +90,63 @@ export class HttpAiClient implements AiClient {
     const result = this.validateResult(body, input.candidateRef);
     this.logger.log(`AI enrichment success candidate=${input.candidateRef}`);
     return result;
+  }
+
+  async recommendRoutine(input: GuidanceRecommendationRequest, correlationId?: string): Promise<GuidanceRecommendationResult> {
+    const url = `${this.baseUrl.replace(/\/$/, '')}/v1/guidance/recommend`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    this.logger.log(
+      `AI guidance attempt customer=${input.customerId}${correlationId ? ` correlation=${correlationId}` : ''}`,
+    );
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(correlationId ? { 'X-Correlation-ID': correlationId } : {}),
+        },
+        body: JSON.stringify(input),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw this.mapNetworkError(err, input.customerId);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (response.status === 503) {
+      throw new AiClientError(AiErrorKind.UNAVAILABLE, 'AI service reported provider unavailable', 503);
+    }
+
+    if (!response.ok) {
+      throw new AiClientError(
+        AiErrorKind.INVALID_RESPONSE,
+        `AI service returned unexpected status ${response.status}`,
+        response.status,
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new AiClientError(AiErrorKind.INVALID_RESPONSE, 'AI service returned non-JSON body', response.status);
+    }
+
+    // In a real implementation we would thoroughly validate body structure, here we cast and do a soft check.
+    const raw = body as any;
+    if (raw.schemaVersion !== '1') {
+      throw new AiClientError(
+        AiErrorKind.INCOMPATIBLE_SCHEMA,
+        `Unsupported AI guidance schemaVersion ${String(raw.schemaVersion)} for ${input.customerId}`,
+      );
+    }
+
+    return raw as GuidanceRecommendationResult;
   }
 
   private toTransportRequest(input: ProductEnrichmentInput): Record<string, unknown> {

@@ -40,6 +40,40 @@ export interface ProductEnrichmentResult {
   providerMetadata: Record<string, string>;
 }
 
+export interface GuidanceRecommendationRequest {
+  customerId: string;
+  profile: {
+    skinType?: string | null;
+    sensitivities?: string | null;
+    concerns: string[];
+  };
+  chatHistory: Array<{
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+  }>;
+}
+
+export interface RoutineStepProposal {
+  title: string;
+  instructions?: string | null;
+  timing: 'am' | 'pm' | 'both' | 'as_needed';
+  isOptional: boolean;
+  productQuery?: string | null;
+}
+
+export interface RoutineProposal {
+  title: string;
+  description?: string | null;
+  careArea: 'skin' | 'hair';
+  steps: RoutineStepProposal[];
+}
+
+export interface GuidanceRecommendationResult {
+  schemaVersion: '1';
+  message: string;
+  proposal?: RoutineProposal | null;
+}
+
 export const AI_MODULE_OPTIONS = Symbol('AI_MODULE_OPTIONS');
 
 export interface AiModuleOptions {
@@ -72,6 +106,7 @@ export const AI_CLIENT = Symbol('AI_CLIENT');
 @Injectable()
 export abstract class AiClient implements ProductEnrichmentCaller {
   abstract enrichProduct(input: ProductEnrichmentInput, correlationId?: string): Promise<ProductEnrichmentResult>;
+  abstract recommendRoutine(input: GuidanceRecommendationRequest, correlationId?: string): Promise<GuidanceRecommendationResult>;
 }
 
 export interface ProductEnrichmentCaller {

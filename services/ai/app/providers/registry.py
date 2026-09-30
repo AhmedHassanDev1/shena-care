@@ -1,5 +1,5 @@
 from app.providers.base import ProviderUnavailableError
-from app.providers.mock_provider import MockProductEnrichmentProvider
+from app.providers.mock_provider import MockProductEnrichmentProvider, MockGuidanceProvider
 
 
 class RealProviderNotConfiguredError(ProviderUnavailableError):
@@ -16,4 +16,11 @@ def get_provider(provider_name: str):
         return MockProductEnrichmentProvider()
     raise RealProviderNotConfiguredError(
         f"Provider '{provider_name}' is not configured. Set AI_PROVIDER to an implemented provider."
+    )
+
+def get_guidance_provider(provider_name: str):
+    if provider_name == "mock":
+        return MockGuidanceProvider()
+    raise RealProviderNotConfiguredError(
+        f"Provider '{provider_name}' is not configured for guidance."
     )

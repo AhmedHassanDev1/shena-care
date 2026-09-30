@@ -5,9 +5,14 @@ from app.contracts.enrichment import (
     ProductEnrichmentRequest,
     ProductEnrichmentResult,
 )
+from app.contracts.guidance import (
+    GuidanceRecommendationRequest,
+    GuidanceRecommendationResult,
+)
 from app.core.config import get_settings
-from app.providers.registry import get_provider
+from app.providers.registry import get_provider, get_guidance_provider
 from app.services.enrichment_service import EnrichmentService
+from app.services.guidance_service import GuidanceService
 
 router = APIRouter()
 
@@ -30,3 +35,15 @@ async def enrich_product(
 ) -> ProductEnrichmentResult:
     service = EnrichmentService(get_provider(get_settings().provider))
     return await service.enrich(request, correlation_id=x_correlation_id)
+
+@router.post(
+    "/v1/guidance/recommend",
+    response_model=GuidanceRecommendationResult,
+    status_code=status.HTTP_200_OK,
+)
+async def recommend_routine(
+    request: GuidanceRecommendationRequest,
+    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-ID"),
+) -> GuidanceRecommendationResult:
+    service = GuidanceService(get_guidance_provider(get_settings().provider))
+    return await service.recommend(request, correlation_id=x_correlation_id)

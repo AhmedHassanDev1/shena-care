@@ -10,6 +10,7 @@ import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { CareModule } from './modules/care/care.module';
 import { AiModule } from './platform/ai/ai.module';
+import { GuidanceModule } from './modules/guidance/guidance.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AiModule } from './platform/ai/ai.module';
     FulfillmentModule,
     IngestionModule,
     CareModule,
+    GuidanceModule,
   ],
 })
 export class AppModule {}

@@ -1,6 +1,7 @@
 from typing import Protocol, runtime_checkable
 
 from app.contracts.enrichment import ProductEnrichmentRequest, ProductEnrichmentResult
+from app.contracts.guidance import GuidanceRecommendationRequest, GuidanceRecommendationResult
 
 
 @runtime_checkable
@@ -8,6 +9,12 @@ class ProductEnrichmentProvider(Protocol):
     name: str
 
     async def enrich(self, request: ProductEnrichmentRequest) -> ProductEnrichmentResult: ...
+
+@runtime_checkable
+class GuidanceProvider(Protocol):
+    name: str
+
+    async def recommend(self, request: 'GuidanceRecommendationRequest') -> 'GuidanceRecommendationResult': ...
 
 
 class ProviderError(Exception):

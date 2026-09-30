@@ -634,3 +634,48 @@ model CustomerCareProfileConcern {
   @@map("customer_care_profile_concerns")
   @@schema("care")
 }
+
+enum GuidanceSessionStatus {
+  active
+  completed
+  abandoned
+
+  @@schema("care")
+}
+
+model GuidanceSession {
+  id         String                @id @default(uuid()) @db.Uuid
+  customerId String                @map("customer_id")
+  status     GuidanceSessionStatus @default(active)
+  createdAt  DateTime              @default(now()) @map("created_at")
+  updatedAt  DateTime              @updatedAt @map("updated_at")
+
+  messages   GuidanceMessage[]
+
+  @@index([customerId])
+  @@map("guidance_sessions")
+  @@schema("care")
+}
+
+enum GuidanceMessageRole {
+  user
+  assistant
+  system
+
+  @@schema("care")
+}
+
+model GuidanceMessage {
+  id        String              @id @default(uuid()) @db.Uuid
+  sessionId String              @map("session_id") @db.Uuid
+  role      GuidanceMessageRole
+  content   String
+  proposal  Json?               // Store structured routine proposal if returned by AI
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  session   GuidanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("guidance_messages")
+  @@schema("care")
+}

@@ -6,6 +6,12 @@ from app.contracts.enrichment import (
     ProductEnrichmentSuggestions,
     SizeSuggestion,
 )
+from app.contracts.guidance import (
+    GuidanceRecommendationRequest,
+    GuidanceRecommendationResult,
+    RoutineProposal,
+    RoutineStepProposal,
+)
 from app.providers.base import ProviderUnavailableError
 
 
@@ -84,3 +90,32 @@ class MockProductEnrichmentProvider:
     def _tokenize_field(self, text: str, _field: str) -> list[str]:
         # The mock does not attempt real ingredient extraction.
         return []
+
+class MockGuidanceProvider:
+    name = "mock"
+
+    async def recommend(self, request: GuidanceRecommendationRequest) -> GuidanceRecommendationResult:
+        if "force error" in str(request.chatHistory):
+            raise ProviderUnavailableError("Simulated error")
+
+        proposal = None
+        if len(request.chatHistory) > 1 or request.profile.skinType == "oily":
+            proposal = RoutineProposal(
+                title="Recommended Balancing Routine",
+                description="A lightweight routine for oily/combination skin.",
+                careArea="skin",
+                steps=[
+                    RoutineStepProposal(
+                        title="Gentle Cleansing",
+                        instructions="Wash face with warm water.",
+                        timing="both",
+                        productQuery="Foaming Cleanser"
+                    )
+                ]
+            )
+
+        return GuidanceRecommendationResult(
+            schemaVersion="1",
+            message="Based on your profile, here is a suggested routine." if proposal else "Could you tell me more about your specific goals?",
+            proposal=proposal
+        )
