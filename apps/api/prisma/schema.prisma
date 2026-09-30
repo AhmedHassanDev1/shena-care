@@ -332,6 +332,7 @@ enum OrderStatus {
 model Order {
   id            String      @id @default(uuid()) @db.Uuid
   orderNumber   String      @unique @map("order_number")
+  customerId    String?     @map("customer_id")
   customerName  String      @map("customer_name")
   customerPhone String      @map("customer_phone")
   shippingAddress String    @map("shipping_address")

@@ -1,4 +1,4 @@
-import { IsString, IsPhoneNumber, IsNotEmpty } from 'class-validator';
+import { IsString, IsPhoneNumber, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CheckoutDto {
   @IsString()
@@ -15,4 +15,8 @@ export class CheckoutDto {
   @IsString()
   @IsNotEmpty()
   shippingAddress: string;
+
+  @IsString()
+  @IsOptional()
+  idempotencyKey?: string;
 }
