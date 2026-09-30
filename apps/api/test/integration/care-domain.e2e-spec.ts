@@ -28,8 +28,11 @@ describe('Care Domain Lifecycle (e2e)', () => {
   });
 
   async function cleanFixture() {
+    await prisma.customerCareProfile.deleteMany({
+      where: { customerId: 'cust-123' },
+    });
     await prisma.routine.deleteMany({
-      where: { title: { in: ['Basic Acne Routine', 'Delete Test Routine'] } },
+      where: { title: { in: ['Basic Acne Routine', 'Delete Test Routine', 'Custom Profile Routine'] } },
     });
     await prisma.concern.deleteMany({ where: { name: { in: ['Acne', 'Frizz'] } } });
     const product = await prisma.product.findUnique({ where: { slug: 'care-cleanser' } });
@@ -192,5 +195,60 @@ describe('Care Domain Lifecycle (e2e)', () => {
       where: { id: step.id }
     });
     expect(stepAfter).toBeDefined();
+  });
+
+  it('verifies CustomerCareProfile lifecycle: creation, routine linkage, and update', async () => {
+    // 1. Create concerns
+    const acneConcern = await prisma.concern.create({
+      data: { name: 'Acne', careArea: 'skin' },
+    });
+
+    // 2. Create custom routine
+    const customRoutineRes = await request(app.getHttpServer())
+      .post('/care/routines')
+      .send({
+        title: 'Custom Profile Routine',
+        careArea: 'skin',
+      })
+      .expect(201);
+    
+    const customRoutineId = customRoutineRes.body.id;
+
+    // 3. Create profile
+    const createProfileRes = await request(app.getHttpServer())
+      .post('/care/profiles')
+      .send({
+        customerId: 'cust-123',
+        skinType: 'oily',
+        budget: 50.00,
+        currency: 'USD',
+        concerns: [{ concernId: acneConcern.id, severity: 4 }]
+      })
+      .expect(201);
+
+    expect(createProfileRes.body.skinType).toBe('oily');
+    expect(createProfileRes.body.concerns.length).toBe(1);
+    expect(createProfileRes.body.concerns[0].severity).toBe(4);
+    expect(createProfileRes.body.concerns[0].concern.name).toBe('Acne');
+
+    // 4. Update profile (assign routine, change budget)
+    const updateProfileRes = await request(app.getHttpServer())
+      .patch('/care/profiles/cust-123')
+      .send({
+        budget: 100.00,
+        routineId: customRoutineId,
+      })
+      .expect(200);
+
+    expect(updateProfileRes.body.budget).toBe('100'); // Decimal converts to string in JSON
+    expect(updateProfileRes.body.routineId).toBe(customRoutineId);
+
+    // 5. Get profile
+    const getProfileRes = await request(app.getHttpServer())
+      .get('/care/profiles/cust-123')
+      .expect(200);
+
+    expect(getProfileRes.body.routine).toBeDefined();
+    expect(getProfileRes.body.routine.title).toBe('Custom Profile Routine');
   });
 });

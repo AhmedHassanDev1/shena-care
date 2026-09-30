@@ -522,6 +522,7 @@ model Concern {
 
   @@map("concerns")
   @@schema("care")
+  profiles    CustomerCareProfileConcern[]
 }
 
 model Routine {
@@ -538,6 +539,7 @@ model Routine {
 
   @@map("routines")
   @@schema("care")
+  profiles    CustomerCareProfile[]
 }
 
 model RoutineStep {
@@ -584,5 +586,51 @@ model RoutineStepRecommendation {
   @@index([stepId])
   @@index([productId])
   @@map("routine_step_recommendations")
+  @@schema("care")
+}
+
+enum SkinType {
+  normal
+  dry
+  oily
+  combination
+  sensitive
+
+  @@schema("care")
+}
+
+model CustomerCareProfile {
+  id            String   @id @default(uuid()) @db.Uuid
+  customerId    String   @unique @map("customer_id")
+  skinType      SkinType? @map("skin_type")
+  budget        Decimal? @db.Decimal(10, 2)
+  currency      String?  @db.VarChar(3)
+  sensitivities String?
+  routineId     String?  @map("routine_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  routine  Routine? @relation(fields: [routineId], references: [id])
+  concerns CustomerCareProfileConcern[]
+
+  @@index([routineId])
+  @@map("customer_care_profiles")
+  @@schema("care")
+}
+
+model CustomerCareProfileConcern {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  concernId String   @map("concern_id") @db.Uuid
+  severity  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile CustomerCareProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  concern Concern             @relation(fields: [concernId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, concernId])
+  @@index([profileId])
+  @@index([concernId])
+  @@map("customer_care_profile_concerns")
   @@schema("care")
 }

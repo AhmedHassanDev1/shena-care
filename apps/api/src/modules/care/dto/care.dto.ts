@@ -1,6 +1,6 @@
 import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsInt, Min, ValidateNested, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CareArea, RoutineTiming, RecommendationSource } from '@prisma/client';
+import { CareArea, RoutineTiming, RecommendationSource, SkinType } from '@prisma/client';
 
 export class CreateConcernDto {
   @IsString()
@@ -79,4 +79,69 @@ export class CreateRoutineStepDto {
   @Type(() => CreateRoutineStepRecommendationDto)
   @IsOptional()
   recommendations?: CreateRoutineStepRecommendationDto[];
+}
+
+export class CreateCustomerCareProfileConcernDto {
+  @IsString()
+  @IsNotEmpty()
+  concernId: string;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  severity?: number;
+}
+
+export class CreateCustomerCareProfileDto {
+  @IsString()
+  @IsNotEmpty()
+  customerId: string;
+
+  @IsEnum(SkinType)
+  @IsOptional()
+  skinType?: SkinType;
+
+  @IsString()
+  @IsOptional()
+  sensitivities?: string;
+
+  @IsOptional()
+  budget?: number;
+
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateCustomerCareProfileConcernDto)
+  @IsOptional()
+  concerns?: CreateCustomerCareProfileConcernDto[];
+}
+
+export class UpdateCustomerCareProfileDto {
+  @IsEnum(SkinType)
+  @IsOptional()
+  skinType?: SkinType;
+
+  @IsString()
+  @IsOptional()
+  sensitivities?: string;
+
+  @IsOptional()
+  budget?: number;
+
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
+  @IsString()
+  @IsOptional()
+  routineId?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateCustomerCareProfileConcernDto)
+  @IsOptional()
+  concerns?: CreateCustomerCareProfileConcernDto[];
 }
