@@ -203,6 +203,7 @@ model Supplier {
 
   offers SupplierOffer[]
   ingestionJobs IngestionJob[]
+  purchaseOrders SupplierPurchaseOrder[]
 
   @@map("suppliers")
   @@schema("sourcing")
@@ -226,6 +227,61 @@ model SupplierOffer {
   @@index([supplierId])
   @@index([skuId])
   @@map("supplier_offers")
+  @@schema("sourcing")
+}
+
+enum PurchaseOrderStatus {
+  created
+  sent
+  reviewed
+  confirmed
+  partial
+  ready
+  received_at_hub
+
+  @@schema("sourcing")
+}
+
+enum PurchaseOrderLineStatus {
+  pending
+  confirmed_full
+  confirmed_partial
+  unavailable
+
+  @@schema("sourcing")
+}
+
+model SupplierPurchaseOrder {
+  id         String   @id @default(uuid()) @db.Uuid
+  supplierId String   @map("supplier_id") @db.Uuid
+  status     PurchaseOrderStatus @default(created)
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  lines    PurchaseOrderLine[]
+
+  @@index([supplierId])
+  @@map("supplier_purchase_orders")
+  @@schema("sourcing")
+}
+
+model PurchaseOrderLine {
+  id               String   @id @default(uuid()) @db.Uuid
+  purchaseOrderId  String   @map("purchase_order_id") @db.Uuid
+  skuId            String   @map("sku_id") @db.Uuid
+  requestedQuantity Int     @map("requested_quantity")
+  confirmedQuantity Int?    @map("confirmed_quantity")
+  status           PurchaseOrderLineStatus @default(pending)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  purchaseOrder SupplierPurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+  @@index([skuId])
+  @@map("purchase_order_lines")
   @@schema("sourcing")
 }
 

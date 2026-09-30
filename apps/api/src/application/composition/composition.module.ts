@@ -8,6 +8,7 @@ import { CategoryController } from './controllers/category.controller';
 import { ListingController } from './controllers/listing.controller';
 import { PriceController } from './controllers/price.controller';
 import { SupplierController } from './controllers/supplier.controller';
+import { PurchaseOrderController } from './controllers/purchase-order.controller';
 import { ProductViewService } from './services/product-view.service';
 
 // ─── CompositionModule ────────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ import { ProductViewService } from './services/product-view.service';
     ListingController,      // /commerce/listings
     PriceController,        // /commerce/prices
     SupplierController,     // /sourcing/suppliers and /sourcing/offers
+    PurchaseOrderController,// /purchase-orders
   ],
   providers: [ProductViewService],
 })
