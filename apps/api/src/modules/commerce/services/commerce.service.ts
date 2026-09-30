@@ -4,6 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
@@ -65,6 +66,8 @@ export interface SellingPriceDetail {
 
 @Injectable()
 export class CommerceService {
+  private readonly logger = new Logger(CommerceService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly catalogService?: CatalogService,

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CartService } from './cart.service';
 import { CheckoutDto } from '../dto/order.dto';
@@ -26,6 +26,8 @@ export interface OrderDetail {
 
 @Injectable()
 export class OrderingService {
+  private readonly logger = new Logger(OrderingService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly cartService: CartService,
@@ -93,6 +95,13 @@ export class OrderingService {
       return createdOrder;
     });
 
+    this.logger.log(`[AUDIT] Order Placed: ${JSON.stringify({ 
+      orderNumber: order.orderNumber, 
+      customerId: order.customerId, 
+      totalAmount: order.totalAmount.toNumber(),
+      itemsCount: order.items.length 
+    })}`);
+
     return {
       ...order,
       totalAmount: order.totalAmount.toNumber(),
@@ -139,6 +148,13 @@ export class OrderingService {
       data: { status },
       include: { items: true },
     });
+
+    this.logger.log(`[AUDIT] Order Status Changed: ${JSON.stringify({ 
+      orderId: updatedOrder.id, 
+      orderNumber: updatedOrder.orderNumber,
+      oldStatus: order.status,
+      newStatus: updatedOrder.status 
+    })}`);
 
     return {
       ...updatedOrder,

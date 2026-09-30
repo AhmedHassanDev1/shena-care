@@ -11,6 +11,8 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { CareModule } from './modules/care/care.module';
 import { AiModule } from './platform/ai/ai.module';
 import { GuidanceModule } from './modules/guidance/guidance.module';
+import { MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { RequestIdMiddleware } from './platform/logger/request-id.middleware';
 
 @Module({
   imports: [
@@ -31,4 +33,8 @@ import { GuidanceModule } from './modules/guidance/guidance.module';
     GuidanceModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}
