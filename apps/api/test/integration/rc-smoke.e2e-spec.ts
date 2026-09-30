@@ -5,11 +5,13 @@ import { DatabaseModule } from '../../src/platform/database/database.module';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 
+import * as crypto from 'crypto';
+
 describe('Release Candidate Smoke Test (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  const customerId = 'smoke-test-customer-123';
-  const supplierId = 'smoke-test-supplier-123';
+  const customerId = crypto.randomUUID();
+  const supplierId = crypto.randomUUID();
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -59,7 +61,7 @@ describe('Release Candidate Smoke Test (e2e)', () => {
     res = await request(app.getHttpServer())
       .post('/guidance/sessions')
       .set('x-customer-id', customerId)
-      .send({})
+      .send({ customerId })
       .expect(201);
       
     const sessionId = res.body.id;
@@ -86,6 +88,7 @@ describe('Release Candidate Smoke Test (e2e)', () => {
       .post('/ordering/cart/add')
       .set('x-customer-id', customerId)
       .send({
+        sessionId: customerId,
         skuId: skuId,
         quantity: 2
       })

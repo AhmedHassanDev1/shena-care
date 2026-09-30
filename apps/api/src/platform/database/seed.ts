@@ -16,6 +16,10 @@ async function seed() {
   await prisma.category.deleteMany({ where: { parentId: { not: null } } });
   await prisma.category.deleteMany({});
   await prisma.brand.deleteMany({});
+  
+  // Clear Sourcing
+  await prisma.supplierOffer.deleteMany({});
+  await prisma.supplier.deleteMany({});
 
   // Create brands
   console.log('Creating brands...');
@@ -309,6 +313,48 @@ async function seed() {
       validFrom: new Date(),
       isActive: true,
     },
+  });
+
+  console.log('Creating sourcing data...');
+  const defaultSupplier = await prisma.supplier.create({
+    data: {
+      name: 'Default Test Supplier',
+      slug: 'default-test-supplier',
+      isActive: true,
+    }
+  });
+
+  await prisma.supplierOffer.create({
+    data: {
+      supplierId: defaultSupplier.id,
+      skuId: ceraveSmall.id,
+      costPrice: 10.0,
+      currency: 'USD',
+      isAvailable: true,
+      lastConfirmedAt: new Date()
+    }
+  });
+
+  await prisma.supplierOffer.create({
+    data: {
+      supplierId: defaultSupplier.id,
+      skuId: ceraveLarge.id,
+      costPrice: 15.0,
+      currency: 'USD',
+      isAvailable: true,
+      lastConfirmedAt: new Date()
+    }
+  });
+
+  await prisma.supplierOffer.create({
+    data: {
+      supplierId: defaultSupplier.id,
+      skuId: lrpSunscreen.id,
+      costPrice: 20.0,
+      currency: 'USD',
+      isAvailable: true,
+      lastConfirmedAt: new Date()
+    }
   });
 
   console.log('Seed completed successfully!');
