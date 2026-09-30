@@ -19,3 +19,16 @@ export class RemoveFromCartDto {
   @IsString()
   skuId: string;
 }
+
+export class UpdateCartItemQuantityDto {
+  @IsString()
+  sessionId: string;
+
+  @IsString()
+  skuId: string;
+
+  @IsInt()
+  @Min(1)
+  quantity: number;
+}
+

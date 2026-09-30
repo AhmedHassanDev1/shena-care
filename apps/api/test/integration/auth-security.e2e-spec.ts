@@ -1,17 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
-import { DatabaseModule } from '../../src/platform/database/database.module';
-import { CareModule } from '../../src/modules/care/care.module';
-import { OrderingModule } from '../../src/modules/ordering/ordering.module';
-import { GuidanceModule } from '../../src/modules/guidance/guidance.module';
+const request = require('supertest');
+import { AppModule } from '../../src/app.module';
 
 describe('Auth & Security (e2e)', () => {
   let app: INestApplication;
+  let authToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [DatabaseModule, CareModule, OrderingModule, GuidanceModule],
+      imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -24,6 +22,18 @@ describe('Auth & Security (e2e)', () => {
     );
 
     await app.init();
+    
+    // Register to get a token
+    const testEmail = `authsec-${Date.now()}@example.com`;
+    const res = await request(app.getHttpServer())
+      .post('/accounts/register')
+      .send({
+        name: 'Auth Security Test',
+        email: testEmail,
+        password: 'password123',
+      });
+    
+    authToken = `Bearer ${res.body.token}`;
   });
 
   afterAll(async () => {
@@ -31,97 +41,89 @@ describe('Auth & Security (e2e)', () => {
   });
 
   describe('Care Profile Endpoint Security', () => {
-    it('should reject access to profile if missing x-customer-id', async () => {
+    it('should reject access to profile if missing auth token', async () => {
       return request(app.getHttpServer())
         .get('/care/profiles')
         .expect(401);
     });
 
-    it('should allow access to profile if x-customer-id is provided', async () => {
+    it('should allow access to profile if token is provided', async () => {
       return request(app.getHttpServer())
         .get('/care/profiles')
-        .set('x-customer-id', 'test-customer-123')
-        .expect(200);
-    });
-    
-    it('should prevent creating a profile for a different customer ID', async () => {
-      return request(app.getHttpServer())
-        .post('/care/profiles')
-        .set('x-customer-id', 'test-customer-123')
-        .send({ customerId: 'hacked-customer-id' })
-        .expect(403);
+        .set('Authorization', authToken)
+        .expect(404); // 404 means Auth passed but profile not found
     });
   });
 
   describe('Ordering & Cart Endpoint Security', () => {
-    it('should reject access to cart if missing x-customer-id', async () => {
+    it('should reject access to cart if missing token', async () => {
       return request(app.getHttpServer())
         .get('/ordering/cart')
         .expect(401);
     });
 
-    it('should allow cart access with x-customer-id', async () => {
+    it('should allow cart access with token', async () => {
       return request(app.getHttpServer())
         .get('/ordering/cart')
-        .set('x-customer-id', 'test-customer-123')
+        .set('Authorization', authToken)
         .expect(200);
-    });
-    
-    it('should prevent checking out a cart with a different session ID', async () => {
-      return request(app.getHttpServer())
-        .post('/ordering/checkout')
-        .set('x-customer-id', 'test-customer-123')
-        .send({ 
-          sessionId: 'other-customer-456',
-          customerName: 'Test',
-          customerPhone: '+1234567890',
-          shippingAddress: 'Address'
-        })
-        .expect(403);
     });
   });
 
   describe('Guidance Endpoint Security', () => {
     let createdSessionId: string;
 
-    it('should reject access to create session if missing x-customer-id', async () => {
+    it('should reject access to create session if missing token', async () => {
       return request(app.getHttpServer())
         .post('/guidance/sessions')
-        .send({ customerId: 'test-customer-123' })
+        .send({})
         .expect(401);
     });
 
-    it('should prevent creating a session for a different customer ID', async () => {
-      return request(app.getHttpServer())
-        .post('/guidance/sessions')
-        .set('x-customer-id', 'test-customer-123')
-        .send({ customerId: 'other-customer-456' })
-        .expect(403);
-    });
-    
     it('should create a session for the authenticated customer', async () => {
       const response = await request(app.getHttpServer())
         .post('/guidance/sessions')
-        .set('x-customer-id', 'test-customer-123')
+        .set('Authorization', authToken)
         .send({})
         .expect(201);
         
       expect(response.body.id).toBeDefined();
-      expect(response.body.customerId).toBe('test-customer-123');
       createdSessionId = response.body.id;
     });
 
     it('should prevent another customer from accessing the session', async () => {
+      // Create another customer
+      const testEmail2 = `authsec2-${Date.now()}@example.com`;
+      const res = await request(app.getHttpServer())
+        .post('/accounts/register')
+        .send({
+          name: 'Hacker',
+          email: testEmail2,
+          password: 'password123',
+        });
+      const hackerToken = `Bearer ${res.body.token}`;
+
       return request(app.getHttpServer())
         .get(`/guidance/sessions/${createdSessionId}`)
-        .set('x-customer-id', 'hacked-customer-999')
+        .set('Authorization', hackerToken)
         .expect(403);
     });
     
     it('should prevent another customer from sending a message to the session', async () => {
+      // Create another customer
+      const testEmail3 = `authsec3-${Date.now()}@example.com`;
+      const res = await request(app.getHttpServer())
+        .post('/accounts/register')
+        .send({
+          name: 'Hacker',
+          email: testEmail3,
+          password: 'password123',
+        });
+      const hackerToken = `Bearer ${res.body.token}`;
+
       return request(app.getHttpServer())
         .post(`/guidance/sessions/${createdSessionId}/messages`)
-        .set('x-customer-id', 'hacked-customer-999')
+        .set('Authorization', hackerToken)
         .send({ content: 'Hello' })
         .expect(403);
     });

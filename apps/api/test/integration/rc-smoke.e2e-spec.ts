@@ -1,17 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 const request = require('supertest');
-import { DatabaseModule } from '../../src/platform/database/database.module';
 import { AppModule } from '../../src/app.module';
-import { PrismaService } from '../../src/platform/database/prisma.service';
-
-import * as crypto from 'crypto';
 
 describe('Release Candidate Smoke Test (e2e)', () => {
   let app: INestApplication;
-  let prisma: PrismaService;
-  const customerId = crypto.randomUUID();
-  const supplierId = crypto.randomUUID();
+  let authToken: string;
+  let customerId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -26,10 +21,26 @@ describe('Release Candidate Smoke Test (e2e)', () => {
         transform: true,
       }),
     );
-    prisma = moduleFixture.get<PrismaService>(PrismaService);
     await app.init();
     
-    // Seed some prerequisite data if necessary, or assume test DB is seeded.
+    // Register to get a token
+    const testEmail = `smoke-${Date.now()}@example.com`;
+    const res = await request(app.getHttpServer())
+      .post('/accounts/register')
+      .send({
+        name: 'Smoke Tester',
+        email: testEmail,
+        password: 'password123',
+      });
+    
+    authToken = `Bearer ${res.body.token}`;
+
+    // Get the user's ID
+    const meRes = await request(app.getHttpServer())
+      .get('/accounts/me')
+      .set('Authorization', authToken);
+    
+    customerId = meRes.body.id;
   });
 
   afterAll(async () => {
@@ -43,15 +54,13 @@ describe('Release Candidate Smoke Test (e2e)', () => {
       
     expect(res.body.name).toBe('Moisturizing Cream');
     expect(res.body.skus.length).toBeGreaterThan(0);
-    // Relax the canOrder check for smoke testing if availability logic is blocking it in later domains
-    // expect(res.body.skus[0].canOrder).toBe(true);
   });
 
   it('2. Care Profile & AI Recommendation', async () => {
     // Care Profile
     let res = await request(app.getHttpServer())
       .post('/care/profiles')
-      .set('x-customer-id', customerId)
+      .set('Authorization', authToken)
       .send({ customerId, skinType: 'dry' })
       .expect(201);
       
@@ -60,7 +69,7 @@ describe('Release Candidate Smoke Test (e2e)', () => {
     // Create Guidance Session
     res = await request(app.getHttpServer())
       .post('/guidance/sessions')
-      .set('x-customer-id', customerId)
+      .set('Authorization', authToken)
       .send({ customerId })
       .expect(201);
       
@@ -69,7 +78,7 @@ describe('Release Candidate Smoke Test (e2e)', () => {
     // Ask AI for Recommendation (Mocked)
     res = await request(app.getHttpServer())
       .post(`/guidance/sessions/${sessionId}/messages`)
-      .set('x-customer-id', customerId)
+      .set('Authorization', authToken)
       .send({ content: 'I need a moisturizer for dry skin' })
       .expect(201);
       
@@ -86,7 +95,7 @@ describe('Release Candidate Smoke Test (e2e)', () => {
     // Add to Cart
     const res = await request(app.getHttpServer())
       .post('/ordering/cart/add')
-      .set('x-customer-id', customerId)
+      .set('Authorization', authToken)
       .send({
         sessionId: customerId,
         skuId: skuId,
@@ -100,7 +109,7 @@ describe('Release Candidate Smoke Test (e2e)', () => {
   it('4. Checkout -> COD Order', async () => {
     const res = await request(app.getHttpServer())
       .post('/ordering/checkout')
-      .set('x-customer-id', customerId)
+      .set('Authorization', authToken)
       .send({
         sessionId: customerId,
         customerName: 'Smoke Tester',
@@ -113,8 +122,4 @@ describe('Release Candidate Smoke Test (e2e)', () => {
     expect(res.body.orderNumber).toBeDefined();
     expect(res.body.status).toBe('placed');
   });
-
-  // Note: Since this is an E2E smoke test verifying endpoints, the internal Sourcing / Hub receiving 
-  // flows (B5, B6) are typically verified via internal services or specific admin APIs.
-  // We verified the happy path for the customer here.
 });

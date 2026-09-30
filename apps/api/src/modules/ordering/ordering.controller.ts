@@ -1,12 +1,13 @@
-import { Controller, Post, Body, Get, Param, Delete, UseGuards, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, UseGuards, ForbiddenException, Patch } from '@nestjs/common';
 import { OrderingService } from './services/ordering.service';
 import { CartService } from './services/cart.service';
-import { AddToCartDto, RemoveFromCartDto } from './dto/cart.dto';
+import { AddToCartDto, RemoveFromCartDto, UpdateCartItemQuantityDto } from './dto/cart.dto';
 import { CheckoutDto } from './dto/order.dto';
-import { CustomerAuthGuard, CurrentCustomer } from '../../platform/auth';
+import { AuthGuard } from '../accounts/guards/auth.guard';
+import { CurrentUser } from '../accounts/decorators/current-user.decorator';
 
 @Controller('ordering')
-@UseGuards(CustomerAuthGuard)
+@UseGuards(AuthGuard)
 export class OrderingController {
   constructor(
     private readonly orderingService: OrderingService,
@@ -14,37 +15,40 @@ export class OrderingController {
   ) {}
 
   @Get('cart')
-  async getCart(@CurrentCustomer() customerId: string) {
-    return this.cartService.getCart(customerId);
+  async getCart(@CurrentUser() customer: any) {
+    return this.cartService.getCart(customer.id);
   }
 
   @Post('cart/add')
-  async addToCart(@CurrentCustomer() customerId: string, @Body() dto: AddToCartDto) {
-    // Forcing the DTO's sessionId to match the authenticated customer
-    return this.cartService.addToCart({ ...dto, sessionId: customerId });
+  async addToCart(@CurrentUser() customer: any, @Body() dto: AddToCartDto) {
+    return this.cartService.addToCart({ ...dto, sessionId: customer.id });
   }
 
   @Post('cart/remove')
-  async removeFromCart(@CurrentCustomer() customerId: string, @Body() dto: RemoveFromCartDto) {
-    return this.cartService.removeFromCart({ ...dto, sessionId: customerId });
+  async removeFromCart(@CurrentUser() customer: any, @Body() dto: RemoveFromCartDto) {
+    return this.cartService.removeFromCart({ ...dto, sessionId: customer.id });
+  }
+
+  @Patch('cart/quantity')
+  async updateQuantity(@CurrentUser() customer: any, @Body() dto: UpdateCartItemQuantityDto) {
+    return this.cartService.updateQuantity({ ...dto, sessionId: customer.id });
   }
 
   @Delete('cart')
-  async clearCart(@CurrentCustomer() customerId: string) {
-    return this.cartService.clearCart(customerId);
+  async clearCart(@CurrentUser() customer: any) {
+    return this.cartService.clearCart(customer.id);
   }
 
   @Post('checkout')
-  async checkout(@CurrentCustomer() customerId: string, @Body() dto: CheckoutDto) {
-    if (dto.sessionId && dto.sessionId !== customerId) {
+  async checkout(@CurrentUser() customer: any, @Body() dto: CheckoutDto) {
+    if (dto.sessionId && dto.sessionId !== customer.id) {
       throw new ForbiddenException('Cannot checkout another customer cart');
     }
-    return this.orderingService.checkout({ ...dto, sessionId: customerId });
+    return this.orderingService.checkout({ ...dto, sessionId: customer.id });
   }
 
   @Get('orders/:idOrOrderNumber')
-  async getOrder(@CurrentCustomer() customerId: string, @Param('idOrOrderNumber') id: string) {
-    // The service must verify the order belongs to the customer
-    return this.orderingService.getOrder(id, customerId);
+  async getOrder(@CurrentUser() customer: any, @Param('idOrOrderNumber') id: string) {
+    return this.orderingService.getOrder(id, customer.id);
   }
 }

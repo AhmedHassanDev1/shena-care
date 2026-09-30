@@ -1,9 +1,9 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateGuidanceSessionDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  customerId: string;
+  customerId?: string;
 }
 
 export class SendGuidanceMessageDto {

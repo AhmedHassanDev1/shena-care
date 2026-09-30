@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as request from 'supertest';
+const request = require('supertest');
 import { AppModule } from '../../src/app.module';
-import { PrismaService } from '../../src/platform/prisma/prisma.service';
+import { PrismaService } from '../../src/platform/database/prisma.service';
 import { PurchaseOrderStatus, PurchaseOrderLineStatus } from '@prisma/client';
 
 describe('Purchase Order Flow (e2e)', () => {

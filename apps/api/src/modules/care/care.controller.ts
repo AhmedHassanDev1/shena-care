@@ -2,8 +2,8 @@ import { Controller, Post, Body, Get, Param, Patch, UseGuards, ForbiddenExceptio
 import { CareService } from './services/care.service';
 import { CareProfileService } from './services/care-profile.service';
 import { CreateConcernDto, CreateRoutineDto, CreateRoutineStepDto, CreateCustomerCareProfileDto, UpdateCustomerCareProfileDto } from './dto/care.dto';
-import { CustomerAuthGuard, CurrentCustomer } from '../../platform/auth';
-
+import { AuthGuard } from '../accounts/guards/auth.guard';
+import { CurrentUser } from '../accounts/decorators/current-user.decorator';
 @Controller('care')
 export class CareController {
   constructor(
@@ -38,23 +38,23 @@ export class CareController {
 
   // Profile Endpoints
   @Post('profiles')
-  @UseGuards(CustomerAuthGuard)
-  async createProfile(@CurrentCustomer() customerId: string, @Body() dto: CreateCustomerCareProfileDto) {
-    if (dto.customerId && dto.customerId !== customerId) {
+  @UseGuards(AuthGuard)
+  async createProfile(@CurrentUser() customer: any, @Body() dto: CreateCustomerCareProfileDto) {
+    if (dto.customerId && dto.customerId !== customer.id) {
       throw new ForbiddenException('Cannot create profile for another customer');
     }
-    return this.profileService.createProfile({ ...dto, customerId });
+    return this.profileService.createProfile({ ...dto, customerId: customer.id });
   }
 
   @Get('profiles')
-  @UseGuards(CustomerAuthGuard)
-  async getProfile(@CurrentCustomer() customerId: string) {
-    return this.profileService.getProfile(customerId);
+  @UseGuards(AuthGuard)
+  async getProfile(@CurrentUser() customer: any) {
+    return this.profileService.getProfile(customer.id);
   }
 
   @Patch('profiles')
-  @UseGuards(CustomerAuthGuard)
-  async updateProfile(@CurrentCustomer() customerId: string, @Body() dto: UpdateCustomerCareProfileDto) {
-    return this.profileService.updateProfile(customerId, dto);
+  @UseGuards(AuthGuard)
+  async updateProfile(@CurrentUser() customer: any, @Body() dto: UpdateCustomerCareProfileDto) {
+    return this.profileService.updateProfile(customer.id, dto);
   }
 }

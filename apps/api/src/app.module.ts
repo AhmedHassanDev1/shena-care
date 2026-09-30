@@ -11,6 +11,7 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { CareModule } from './modules/care/care.module';
 import { AiModule } from './platform/ai/ai.module';
 import { GuidanceModule } from './modules/guidance/guidance.module';
+import { AccountsModule } from './modules/accounts/accounts.module';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { RequestIdMiddleware } from './platform/logger/request-id.middleware';
 
@@ -31,6 +32,7 @@ import { RequestIdMiddleware } from './platform/logger/request-id.middleware';
     IngestionModule,
     CareModule,
     GuidanceModule,
+    AccountsModule,
   ],
 })
 export class AppModule implements NestModule {

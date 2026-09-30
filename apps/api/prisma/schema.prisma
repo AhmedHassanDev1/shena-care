@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["catalog", "commerce", "sourcing", "ingestion", "ordering", "fulfillment", "care"]
+  schemas  = ["catalog", "commerce", "sourcing", "ingestion", "ordering", "fulfillment", "care", "accounts"]
 }
 
 // ---------------------------------------------------------------------------
@@ -84,9 +84,9 @@ model Product {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  brand       Brand        @relation(fields: [brandId], references: [id])
-  productLine ProductLine? @relation(fields: [productLineId], references: [id])
-  category    Category?    @relation(fields: [categoryId], references: [id])
+  brand               Brand                       @relation(fields: [brandId], references: [id])
+  productLine         ProductLine?                @relation(fields: [productLineId], references: [id])
+  category            Category?                   @relation(fields: [categoryId], references: [id])
   skus                Sku[]
   media               ProductMedia[]
   careRecommendations RoutineStepRecommendation[]
@@ -126,24 +126,24 @@ enum MediaType {
 }
 
 enum MediaOriginType {
-  verified   // صورة من المورد أو المصنع
-  generated  // صورة AI
-  derived    // معالجة من verified (crop/bg-remove)
+  verified // صورة من المورد أو المصنع
+  generated // صورة AI
+  derived // معالجة من verified (crop/bg-remove)
 
   @@schema("catalog")
 }
 
 model ProductMedia {
-  id        String    @id @default(uuid()) @db.Uuid
-  productId String    @map("product_id") @db.Uuid
-  type      MediaType
-  url       String
-  altText             String?         @map("alt_text")
-  sortOrder           Int             @default(0) @map("sort_order")
-  isPrimary           Boolean         @default(false) @map("is_primary")
-  originType          MediaOriginType @default(verified) @map("origin_type")
-  generationMetadata  Json?           @map("generation_metadata")
-  createdAt           DateTime        @default(now()) @map("created_at")
+  id                 String          @id @default(uuid()) @db.Uuid
+  productId          String          @map("product_id") @db.Uuid
+  type               MediaType
+  url                String
+  altText            String?         @map("alt_text")
+  sortOrder          Int             @default(0) @map("sort_order")
+  isPrimary          Boolean         @default(false) @map("is_primary")
+  originType         MediaOriginType @default(verified) @map("origin_type")
+  generationMetadata Json?           @map("generation_metadata")
+  createdAt          DateTime        @default(now()) @map("created_at")
 
   product Product @relation(fields: [productId], references: [id])
 
@@ -172,16 +172,16 @@ model Listing {
 }
 
 model SellingPrice {
-  id               String    @id @default(uuid()) @db.Uuid
-  skuId            String    @map("sku_id") @db.Uuid
-  amount           Decimal   @db.Decimal(10, 2)
-  currency         String    @db.VarChar(3)
-  compareAtAmount  Decimal?  @map("compare_at_amount") @db.Decimal(10, 2)
-  validFrom        DateTime  @map("valid_from")
-  validUntil       DateTime? @map("valid_until")
-  isActive         Boolean   @default(true) @map("is_active")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(uuid()) @db.Uuid
+  skuId           String    @map("sku_id") @db.Uuid
+  amount          Decimal   @db.Decimal(10, 2)
+  currency        String    @db.VarChar(3)
+  compareAtAmount Decimal?  @map("compare_at_amount") @db.Decimal(10, 2)
+  validFrom       DateTime  @map("valid_from")
+  validUntil      DateTime? @map("valid_until")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@index([skuId])
   @@index([skuId, validFrom])
@@ -201,8 +201,8 @@ model Supplier {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  offers SupplierOffer[]
-  ingestionJobs IngestionJob[]
+  offers         SupplierOffer[]
+  ingestionJobs  IngestionJob[]
   purchaseOrders SupplierPurchaseOrder[]
 
   @@map("suppliers")
@@ -252,14 +252,14 @@ enum PurchaseOrderLineStatus {
 }
 
 model SupplierPurchaseOrder {
-  id         String   @id @default(uuid()) @db.Uuid
-  supplierId String   @map("supplier_id") @db.Uuid
+  id         String              @id @default(uuid()) @db.Uuid
+  supplierId String              @map("supplier_id") @db.Uuid
   status     PurchaseOrderStatus @default(created)
   notes      String?
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
 
-  supplier Supplier @relation(fields: [supplierId], references: [id])
+  supplier Supplier            @relation(fields: [supplierId], references: [id])
   lines    PurchaseOrderLine[]
 
   @@index([supplierId])
@@ -268,14 +268,14 @@ model SupplierPurchaseOrder {
 }
 
 model PurchaseOrderLine {
-  id               String   @id @default(uuid()) @db.Uuid
-  purchaseOrderId  String   @map("purchase_order_id") @db.Uuid
-  skuId            String   @map("sku_id") @db.Uuid
-  requestedQuantity Int     @map("requested_quantity")
-  confirmedQuantity Int?    @map("confirmed_quantity")
-  status           PurchaseOrderLineStatus @default(pending)
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id                String                  @id @default(uuid()) @db.Uuid
+  purchaseOrderId   String                  @map("purchase_order_id") @db.Uuid
+  skuId             String                  @map("sku_id") @db.Uuid
+  requestedQuantity Int                     @map("requested_quantity")
+  confirmedQuantity Int?                    @map("confirmed_quantity")
+  status            PurchaseOrderLineStatus @default(pending)
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
 
   purchaseOrder SupplierPurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
 
@@ -330,17 +330,17 @@ enum OrderStatus {
 }
 
 model Order {
-  id            String      @id @default(uuid()) @db.Uuid
-  orderNumber   String      @unique @map("order_number")
-  customerId    String?     @map("customer_id")
-  customerName  String      @map("customer_name")
-  customerPhone String      @map("customer_phone")
-  shippingAddress String    @map("shipping_address")
-  totalAmount   Decimal     @map("total_amount") @db.Decimal(10, 2)
-  currency      String      @db.VarChar(3)
-  status        OrderStatus @default(placed)
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  id              String      @id @default(uuid()) @db.Uuid
+  orderNumber     String      @unique @map("order_number")
+  customerId      String?     @map("customer_id")
+  customerName    String      @map("customer_name")
+  customerPhone   String      @map("customer_phone")
+  shippingAddress String      @map("shipping_address")
+  totalAmount     Decimal     @map("total_amount") @db.Decimal(10, 2)
+  currency        String      @db.VarChar(3)
+  status          OrderStatus @default(placed)
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
   items OrderItem[]
 
@@ -444,14 +444,14 @@ enum IngestionStatus {
 }
 
 model IngestionJob {
-  id         String   @id @default(uuid()) @db.Uuid
-  supplierId String   @map("supplier_id") @db.Uuid
+  id         String          @id @default(uuid()) @db.Uuid
+  supplierId String          @map("supplier_id") @db.Uuid
   status     IngestionStatus @default(pending)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
 
   items    IngestionItem[]
-  supplier Supplier @relation(fields: [supplierId], references: [id])
+  supplier Supplier        @relation(fields: [supplierId], references: [id])
 
   @@index([supplierId])
   @@map("ingestion_jobs")
@@ -467,21 +467,21 @@ enum IngestionItemEnrichmentStatus {
 }
 
 model IngestionItem {
-  id               String   @id @default(uuid()) @db.Uuid
-  jobId            String   @map("job_id") @db.Uuid
-  supplierSkuCode  String   @map("supplier_sku_code")
+  id               String                        @id @default(uuid()) @db.Uuid
+  jobId            String                        @map("job_id") @db.Uuid
+  supplierSkuCode  String                        @map("supplier_sku_code")
   name             String
   brand            String
   barcode          String?
-  price            Decimal  @db.Decimal(10, 2)
-  currency         String   @db.VarChar(3)
-  status           IngestionStatus @default(pending)
-  matchedSkuId     String?  @map("matched_sku_id") @db.Uuid
+  price            Decimal                       @db.Decimal(10, 2)
+  currency         String                        @db.VarChar(3)
+  status           IngestionStatus               @default(pending)
+  matchedSkuId     String?                       @map("matched_sku_id") @db.Uuid
   enrichmentStatus IngestionItemEnrichmentStatus @default(pending) @map("enrichment_status")
   enrichment       Json?
-  enrichmentError  String?  @map("enrichment_error")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  enrichmentError  String?                       @map("enrichment_error")
+  createdAt        DateTime                      @default(now()) @map("created_at")
+  updatedAt        DateTime                      @updatedAt @map("updated_at")
 
   job IngestionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
@@ -512,18 +512,18 @@ enum RoutineTiming {
 }
 
 model Concern {
-  id          String   @id @default(uuid()) @db.Uuid
-  careArea    CareArea @map("care_area")
-  name        String   @unique
-  slug        String   @unique
+  id          String                       @id @default(uuid()) @db.Uuid
+  careArea    CareArea                     @map("care_area")
+  name        String                       @unique
+  slug        String                       @unique
   description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  isActive    Boolean                      @default(true) @map("is_active")
+  createdAt   DateTime                     @default(now()) @map("created_at")
+  updatedAt   DateTime                     @updatedAt @map("updated_at")
+  profiles    CustomerCareProfileConcern[]
 
   @@map("concerns")
   @@schema("care")
-  profiles    CustomerCareProfileConcern[]
 }
 
 model Routine {
@@ -536,11 +536,11 @@ model Routine {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  steps       RoutineStep[]
+  steps    RoutineStep[]
+  profiles CustomerCareProfile[]
 
   @@map("routines")
   @@schema("care")
-  profiles    CustomerCareProfile[]
 }
 
 model RoutineStep {
@@ -573,12 +573,12 @@ enum RecommendationSource {
 }
 
 model RoutineStepRecommendation {
-  id          String               @id @default(uuid()) @db.Uuid
-  stepId      String               @map("step_id") @db.Uuid
-  productId   String               @map("product_id") @db.Uuid
-  source      RecommendationSource @default(manual)
-  createdAt   DateTime             @default(now()) @map("created_at")
-  updatedAt   DateTime             @updatedAt @map("updated_at")
+  id        String               @id @default(uuid()) @db.Uuid
+  stepId    String               @map("step_id") @db.Uuid
+  productId String               @map("product_id") @db.Uuid
+  source    RecommendationSource @default(manual)
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
 
   step    RoutineStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
   product Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -601,17 +601,17 @@ enum SkinType {
 }
 
 model CustomerCareProfile {
-  id            String   @id @default(uuid()) @db.Uuid
-  customerId    String   @unique @map("customer_id")
+  id            String    @id @default(uuid()) @db.Uuid
+  customerId    String    @unique @map("customer_id")
   skinType      SkinType? @map("skin_type")
-  budget        Decimal? @db.Decimal(10, 2)
-  currency      String?  @db.VarChar(3)
+  budget        Decimal?  @db.Decimal(10, 2)
+  currency      String?   @db.VarChar(3)
   sensitivities String?
-  routineId     String?  @map("routine_id") @db.Uuid
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  routineId     String?   @map("routine_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  routine  Routine? @relation(fields: [routineId], references: [id])
+  routine  Routine?                     @relation(fields: [routineId], references: [id])
   concerns CustomerCareProfileConcern[]
 
   @@index([routineId])
@@ -651,7 +651,7 @@ model GuidanceSession {
   createdAt  DateTime              @default(now()) @map("created_at")
   updatedAt  DateTime              @updatedAt @map("updated_at")
 
-  messages   GuidanceMessage[]
+  messages GuidanceMessage[]
 
   @@index([customerId])
   @@map("guidance_sessions")
@@ -671,12 +671,64 @@ model GuidanceMessage {
   sessionId String              @map("session_id") @db.Uuid
   role      GuidanceMessageRole
   content   String
-  proposal  Json?               // Store structured routine proposal if returned by AI
+  proposal  Json? // Store structured routine proposal if returned by AI
   createdAt DateTime            @default(now()) @map("created_at")
 
-  session   GuidanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session GuidanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@map("guidance_messages")
   @@schema("care")
+}
+
+// ---------------------------------------------------------------------------
+// Accounts schema
+// ---------------------------------------------------------------------------
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  identities Identity[]
+  sessions   Session[]
+
+  @@map("customers")
+  @@schema("accounts")
+}
+
+model Identity {
+  id           String   @id @default(uuid()) @db.Uuid
+  customerId   String   @map("customer_id") @db.Uuid
+  provider     String // e.g., 'EMAIL', 'GOOGLE'
+  providerId   String   @map("provider_id") // e.g., email address
+  passwordHash String?  @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([customerId])
+  @@map("identities")
+  @@schema("accounts")
+}
+
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  token      String   @unique @db.Uuid
+  isValid    Boolean  @default(true) @map("is_valid")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([token])
+  @@map("sessions")
+  @@schema("accounts")
 }

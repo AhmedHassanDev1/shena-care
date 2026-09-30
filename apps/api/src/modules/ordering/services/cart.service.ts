@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CommerceService } from '../../commerce/public';
 import { SourcingService } from '../../sourcing/public';
-import { AddToCartDto, RemoveFromCartDto } from '../dto/cart.dto';
+import { AddToCartDto, RemoveFromCartDto, UpdateCartItemQuantityDto } from '../dto/cart.dto';
 
 export interface CartDetail {
   id: string;
@@ -140,6 +140,36 @@ export class CartService {
         });
       }
     }
+
+    return this.getCart(dto.sessionId);
+  }
+
+  async updateQuantity(dto: UpdateCartItemQuantityDto): Promise<CartDetail> {
+    const cart = await this.prisma.cart.findUnique({
+      where: { sessionId: dto.sessionId },
+    });
+
+    if (!cart) {
+      throw new BadRequestException('Cart not found');
+    }
+
+    const existingItem = await this.prisma.cartItem.findUnique({
+      where: {
+        cartId_skuId: {
+          cartId: cart.id,
+          skuId: dto.skuId,
+        },
+      },
+    });
+
+    if (!existingItem) {
+      throw new BadRequestException('Item not found in cart');
+    }
+
+    await this.prisma.cartItem.update({
+      where: { id: existingItem.id },
+      data: { quantity: dto.quantity },
+    });
 
     return this.getCart(dto.sessionId);
   }

@@ -63,7 +63,7 @@ export class OrderingService {
     const order = await this.prisma.$transaction(async (tx) => {
       const createdOrder = await tx.order.create({
         data: {
-          orderNumber: dto.idempotencyKey ? `ORD-${dto.idempotencyKey.substring(0, 8).toUpperCase()}-${Date.now().toString(36).substring(0, 4)}` : this.generateOrderNumber(),
+          orderNumber: dto.idempotencyKey ? `ORD-${dto.idempotencyKey.substring(0, 8).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}` : this.generateOrderNumber(),
           customerId: dto.sessionId, // dto.sessionId is matched to customerId by the controller
           customerName: dto.customerName,
           customerPhone: dto.customerPhone,

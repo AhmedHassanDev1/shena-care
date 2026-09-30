@@ -10,6 +10,8 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
   let productId: string;
   const invalidProductId = '00000000-0000-0000-0000-000000000000';
+  let authToken: string;
+  let customerId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -21,6 +23,22 @@ describe('Care Domain Lifecycle (e2e)', () => {
     await app.init();
 
     prisma = app.get<PrismaService>(PrismaService);
+
+    // Get Auth Token
+    const testEmail = `care-${Date.now()}@example.com`;
+    const res = await request(app.getHttpServer())
+      .post('/accounts/register')
+      .send({
+        name: 'Care Tester',
+        email: testEmail,
+        password: 'password123',
+      });
+    authToken = `Bearer ${res.body.token}`;
+
+    const meRes = await request(app.getHttpServer())
+      .get('/accounts/me')
+      .set('Authorization', authToken);
+    customerId = meRes.body.id;
   });
 
   afterAll(async () => {
@@ -29,7 +47,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
   async function cleanFixture() {
     await prisma.customerCareProfile.deleteMany({
-      where: { customerId: 'cust-123' },
+      where: { customerId },
     });
     await prisma.routine.deleteMany({
       where: { title: { in: ['Basic Acne Routine', 'Delete Test Routine', 'Custom Profile Routine'] } },
@@ -200,7 +218,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
   it('verifies CustomerCareProfile lifecycle: creation, routine linkage, and update', async () => {
     // 1. Create concerns
     const acneConcern = await prisma.concern.create({
-      data: { name: 'Acne', careArea: 'skin' },
+      data: { name: 'Acne', careArea: 'skin', slug: 'acne-e2e-' + Date.now() },
     });
 
     // 2. Create custom routine
@@ -217,8 +235,9 @@ describe('Care Domain Lifecycle (e2e)', () => {
     // 3. Create profile
     const createProfileRes = await request(app.getHttpServer())
       .post('/care/profiles')
+      .set('Authorization', authToken)
       .send({
-        customerId: 'cust-123',
+        customerId,
         skinType: 'oily',
         budget: 50.00,
         currency: 'USD',
@@ -233,7 +252,8 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
     // 4. Update profile (assign routine, change budget)
     const updateProfileRes = await request(app.getHttpServer())
-      .patch('/care/profiles/cust-123')
+      .patch('/care/profiles')
+      .set('Authorization', authToken)
       .send({
         budget: 100.00,
         routineId: customRoutineId,
@@ -245,7 +265,8 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
     // 5. Get profile
     const getProfileRes = await request(app.getHttpServer())
-      .get('/care/profiles/cust-123')
+      .get('/care/profiles')
+      .set('Authorization', authToken)
       .expect(200);
 
     expect(getProfileRes.body.routine).toBeDefined();

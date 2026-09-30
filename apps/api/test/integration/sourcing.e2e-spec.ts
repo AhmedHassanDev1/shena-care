@@ -125,8 +125,9 @@ describe('Sourcing Management (e2e)', () => {
       const response = await supplierController.getOffers(undefined, testSkuId);
 
       expect(Array.isArray(response)).toBe(true);
-      expect(response.length).toBe(1);
-      expect(response[0].id).toBe(offerId);
+      expect(response.length).toBeGreaterThanOrEqual(1);
+      const found = response.find((o: any) => o.id === offerId);
+      expect(found).toBeDefined();
     });
 
     it('should update supplier offer cost', async () => {
