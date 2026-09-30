@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../../platform/prisma/prisma.service';
+import { PrismaService } from '../../../platform/database/prisma.service';
 import { CreatePurchaseOrderDto, ConfirmPurchaseOrderDto } from '../dto/purchase-order.dto';
 import { PurchaseOrderStatus, PurchaseOrderLineStatus } from '@prisma/client';
 
@@ -57,16 +57,16 @@ export class PurchaseOrderService {
     }
 
     // Validate that all lines are provided
-    const lineIds = order.lines.map((l) => l.id);
-    const dtoLineIds = dto.lines.map((l) => l.id);
-    const missingLines = lineIds.filter((id) => !dtoLineIds.includes(id));
+    const lineIds = order.lines.map((l: any) => l.id);
+    const dtoLineIds = dto.lines.map((l: any) => l.id);
+    const missingLines = lineIds.filter((id: string) => !dtoLineIds.includes(id));
 
     if (missingLines.length > 0) {
       throw new BadRequestException(`Missing confirmation for lines: ${missingLines.join(', ')}`);
     }
 
     // Start a transaction to update lines and the order
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx: any) => {
       let isPartial = false;
 
       for (const line of dto.lines) {
