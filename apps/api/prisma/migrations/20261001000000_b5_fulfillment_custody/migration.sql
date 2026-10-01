@@ -2,11 +2,11 @@
 CREATE TYPE "fulfillment"."PreparationSessionStatus" AS ENUM ('in_progress', 'completed');
 
 -- AlterEnum
+-- Note: 'packing' already defined in init_tables. Only new values added here.
 ALTER TYPE "fulfillment"."ShipmentStatus" ADD VALUE 'ready_to_prepare';
 ALTER TYPE "fulfillment"."ShipmentStatus" ADD VALUE 'preparing';
 ALTER TYPE "fulfillment"."ShipmentStatus" ADD VALUE 'prepared';
 ALTER TYPE "fulfillment"."ShipmentStatus" ADD VALUE 'ready_to_pack';
-ALTER TYPE "fulfillment"."ShipmentStatus" ADD VALUE 'packing';
 ALTER TYPE "fulfillment"."ShipmentStatus" ADD VALUE 'packed';
 ALTER TYPE "fulfillment"."ShipmentStatus" ADD VALUE 'out_for_delivery';
 ALTER TYPE "fulfillment"."ShipmentStatus" ADD VALUE 'returned';

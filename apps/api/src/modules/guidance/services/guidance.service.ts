@@ -20,15 +20,18 @@ export class GuidanceService {
 
     if (!profile) {
       // Create empty profile if none exists so we can at least associate it
-      profile = await this.prisma.customerCareProfile.create({
-        data: { customerId: dto.customerId },
+      await this.prisma.customerCareProfile.create({
+        data: { customerId: dto.customerId! },
+      });
+      profile = await this.prisma.customerCareProfile.findUnique({
+        where: { customerId: dto.customerId },
         include: { concerns: { include: { concern: true } } },
       });
     }
 
     const session = await this.prisma.guidanceSession.create({
       data: {
-        customerId: dto.customerId,
+        customerId: dto.customerId!,
         status: GuidanceSessionStatus.active,
       },
     });
