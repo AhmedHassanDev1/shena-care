@@ -1,0 +1,63 @@
+name: Security Validation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0' # Weekly deep scan
+
+jobs:
+  fast-checks:
+    name: Fast PR Checks (Lint, Typecheck, Tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm ci || npm install
+        
+      - name: Lint
+        run: npm run lint
+        
+      - name: Typecheck
+        run: npm run typecheck
+        
+      - name: Tests
+        run: npm test
+
+  security-scans:
+    name: Security Scans (Audit, CodeQL, Secrets)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+        
+      - name: Dependency Vulnerability Scan (npm audit)
+        run: npm audit --audit-level=high
+
+      - name: Secret Scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Initialize CodeQL (SAST)
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
