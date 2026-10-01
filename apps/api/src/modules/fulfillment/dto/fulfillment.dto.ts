@@ -33,3 +33,33 @@ export class UpdateShipmentStatusDto {
   @IsString()
   trackingNumber?: string;
 }
+
+export class StartPreparationDto {
+  @IsString()
+  @IsNotEmpty()
+  operatorId: string;
+}
+
+export class ScanItemDto {
+  @IsOptional()
+  @IsString()
+  skuId?: string;
+
+  @IsOptional()
+  @IsString()
+  barcodeScanned?: string;
+}
+
+export class RecordShipmentEventDto {
+  @IsString()
+  @IsNotEmpty()
+  type: string;
+
+  @IsOptional()
+  @IsString()
+  actorId?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
