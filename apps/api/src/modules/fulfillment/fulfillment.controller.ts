@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Param, Patch, Delete } from '@nestjs/common';
 import { FulfillmentService } from './services/fulfillment.service';
-import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto } from './dto/fulfillment.dto';
+import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto } from './dto/fulfillment.dto';
 
 @Controller('fulfillment')
 export class FulfillmentController {
@@ -109,5 +109,16 @@ export class FulfillmentController {
   async completeBatch(@Param('id') id: string) {
     return this.fulfillmentService.completeBatch(id);
   }
-}
 
+  // --- Inventory Management (GLO-151) ---
+
+  @Get('locations/:id/inventory')
+  async getInventoryBalances(@Param('id') locationId: string) {
+    return this.fulfillmentService.getInventoryBalances(locationId);
+  }
+
+  @Post('inventory/adjust')
+  async adjustInventory(@Body() dto: AdjustInventoryDto) {
+    return this.fulfillmentService.adjustInventory(dto);
+  }
+}

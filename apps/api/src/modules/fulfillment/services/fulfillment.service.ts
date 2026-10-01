@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { OrderingService } from '../../ordering/public';
-import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto } from '../dto/fulfillment.dto';
+import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto } from '../dto/fulfillment.dto';
 import { ShipmentStatus, PreparationSessionStatus, Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 
@@ -602,6 +602,94 @@ export class FulfillmentService {
           completedAt: new Date()
         }
       });
+    });
+  }
+
+  // --- Inventory Management (GLO-151) ---
+
+  async getInventoryBalances(locationId: string) {
+    if (!this.isUuid(locationId)) throw new BadRequestException('Invalid location ID');
+    return this.prisma.inventoryBalance.findMany({
+      where: { locationId },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async adjustInventory(dto: AdjustInventoryDto) {
+    if (!this.isUuid(dto.locationId) || !this.isUuid(dto.skuId)) {
+      throw new BadRequestException('Invalid ID');
+    }
+    
+    return this.prisma.$transaction(async (tx) => {
+      let balance = await tx.inventoryBalance.findUnique({
+        where: { locationId_skuId: { locationId: dto.locationId, skuId: dto.skuId } }
+      });
+
+      if (!balance) {
+        // Initialize balance
+        balance = await tx.inventoryBalance.create({
+          data: {
+            locationId: dto.locationId,
+            skuId: dto.skuId,
+            ownedOnHand: 0,
+            reserved: 0,
+            availableToSell: 0,
+            orderAllocatedExternalGoods: 0
+          }
+        });
+      }
+
+      // Update fields depending on the transaction type
+      const updateData: any = {};
+      
+      switch (dto.type) {
+        case 'RECEIVE_OWNED':
+          updateData.ownedOnHand = balance.ownedOnHand + dto.quantity;
+          updateData.availableToSell = balance.availableToSell + dto.quantity;
+          break;
+        case 'RESERVE':
+          updateData.reserved = balance.reserved + dto.quantity;
+          updateData.availableToSell = balance.availableToSell - dto.quantity;
+          break;
+        case 'RELEASE':
+          updateData.reserved = balance.reserved - dto.quantity;
+          updateData.availableToSell = balance.availableToSell + dto.quantity;
+          break;
+        case 'PICK':
+          updateData.ownedOnHand = balance.ownedOnHand - dto.quantity;
+          updateData.reserved = balance.reserved - dto.quantity;
+          break;
+        case 'ADJUST':
+        case 'RETURN_TO_STOCK':
+          updateData.ownedOnHand = balance.ownedOnHand + dto.quantity;
+          updateData.availableToSell = balance.availableToSell + dto.quantity;
+          break;
+        case 'DAMAGE':
+          updateData.ownedOnHand = balance.ownedOnHand - dto.quantity;
+          updateData.availableToSell = balance.availableToSell - dto.quantity;
+          break;
+        default:
+          throw new BadRequestException(`Unsupported inventory transaction type: ${dto.type}`);
+      }
+
+      // Ensure no negative availableToSell if not intended, but for MVP keep it simple
+      const updatedBalance = await tx.inventoryBalance.update({
+        where: { id: balance.id },
+        data: updateData
+      });
+
+      const transaction = await tx.inventoryTransaction.create({
+        data: {
+          balanceId: balance.id,
+          type: dto.type,
+          quantity: dto.quantity,
+          reason: dto.reason,
+          actorId: dto.actorId,
+          referenceId: dto.referenceId
+        }
+      });
+
+      return { balance: updatedBalance, transaction };
     });
   }
 }

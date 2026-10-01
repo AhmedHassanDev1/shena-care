@@ -379,6 +379,7 @@ model FulfillmentLocation {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   shipments Shipment[]
+  inventoryBalances InventoryBalance[]
 
   @@map("fulfillment_locations")
   @@schema("fulfillment")
@@ -483,6 +484,44 @@ model ShipmentEvent {
 
   @@index([shipmentId])
   @@map("shipment_events")
+  @@schema("fulfillment")
+}
+
+model InventoryBalance {
+  id                  String   @id @default(uuid()) @db.Uuid
+  locationId          String   @map("location_id") @db.Uuid
+  skuId               String   @map("sku_id") @db.Uuid
+  ownedOnHand         Int      @default(0) @map("owned_on_hand")
+  reserved            Int      @default(0)
+  availableToSell     Int      @default(0) @map("available_to_sell")
+  orderAllocatedExternalGoods Int @default(0) @map("order_allocated_external_goods")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  location            FulfillmentLocation @relation(fields: [locationId], references: [id])
+  transactions        InventoryTransaction[]
+
+  @@unique([locationId, skuId])
+  @@index([locationId])
+  @@index([skuId])
+  @@map("inventory_balances")
+  @@schema("fulfillment")
+}
+
+model InventoryTransaction {
+  id               String   @id @default(uuid()) @db.Uuid
+  balanceId        String   @map("balance_id") @db.Uuid
+  type             String   // RECEIVE_OWNED, RESERVE, RELEASE, PICK, ADJUST, DAMAGE, RETURN_TO_STOCK
+  quantity         Int
+  reason           String?
+  actorId          String?  @map("actor_id")
+  referenceId      String?  @map("reference_id") // OrderId, ShipmentId, etc
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  balance          InventoryBalance @relation(fields: [balanceId], references: [id], onDelete: Cascade)
+
+  @@index([balanceId])
+  @@map("inventory_transactions")
   @@schema("fulfillment")
 }
 

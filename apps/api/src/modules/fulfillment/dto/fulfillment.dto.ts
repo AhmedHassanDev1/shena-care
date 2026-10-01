@@ -96,3 +96,32 @@ export class UpdateStopSequenceDto {
   @IsNotEmpty()
   stops: DeliveryStopInputDto[]; // { shipmentId, sequence }
 }
+
+export class AdjustInventoryDto {
+  @IsString()
+  @IsNotEmpty()
+  locationId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  skuId: string;
+
+  @IsNotEmpty()
+  quantity: number; // positive for adding, negative for removing
+
+  @IsString()
+  @IsNotEmpty()
+  type: string; // RECEIVE_OWNED, RESERVE, RELEASE, PICK, ADJUST, DAMAGE, RETURN_TO_STOCK
+
+  @IsString()
+  @IsNotEmpty()
+  reason: string;
+
+  @IsString()
+  @IsNotEmpty()
+  actorId: string;
+
+  @IsOptional()
+  @IsString()
+  referenceId?: string;
+}
