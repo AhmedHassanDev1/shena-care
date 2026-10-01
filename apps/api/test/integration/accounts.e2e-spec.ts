@@ -7,6 +7,7 @@ describe('Accounts (e2e)', () => {
   let app: INestApplication;
   
   beforeAll(async () => {
+    process.env.TEST_BYPASS_AUTH = 'false';
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

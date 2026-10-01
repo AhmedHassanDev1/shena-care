@@ -6,10 +6,12 @@ import { CheckoutDto } from './dto/order.dto';
 import { CreateResolutionDto, UpdateResolutionStatusDto, CreateSettlementBatchDto } from './dto/reconciliation.dto';
 import { ReconciliationService } from './services/reconciliation.service';
 import { AuthGuard } from '../accounts/guards/auth.guard';
+import { RolesGuard } from '../accounts/guards/roles.guard';
 import { CurrentUser } from '../accounts/decorators/current-user.decorator';
+import { Roles } from '../accounts/decorators/roles.decorator';
 
 @Controller('ordering')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class OrderingController {
   constructor(
     private readonly orderingService: OrderingService,
@@ -58,12 +60,13 @@ export class OrderingController {
   // --- GLO-127: Order Resolutions ---
 
   @Post('resolutions')
+  @Roles('ADMIN', 'HUB_OPERATOR')
   async createResolution(@CurrentUser() admin: any, @Body() dto: CreateResolutionDto) {
-    // In a real scenario, restrict to admins/support roles.
     return this.reconciliationService.createResolution({ ...dto, actorId: admin.id });
   }
 
   @Patch('resolutions/:id/status')
+  @Roles('ADMIN', 'HUB_OPERATOR')
   async updateResolutionStatus(
     @Param('id') id: string,
     @CurrentUser() admin: any,
@@ -72,9 +75,29 @@ export class OrderingController {
     return this.reconciliationService.updateResolutionStatus(id, dto.status, admin.id, dto.notes);
   }
 
+  // --- Refunds ---
+  @Post('resolutions/:id/refund')
+  @Roles('ADMIN')
+  async initiateRefund(
+    @Param('id') id: string,
+    @Body() dto: { amount: number, currency: string, paymentProvider?: string }
+  ) {
+    return this.reconciliationService.initiateRefund(id, dto.amount, dto.currency, dto.paymentProvider);
+  }
+
+  @Patch('resolutions/:id/refund/status')
+  @Roles('ADMIN')
+  async updateRefundStatus(
+    @Param('id') id: string,
+    @Body() dto: { status: 'succeeded' | 'failed' | 'processing', providerRef?: string, errorReason?: string }
+  ) {
+    return this.reconciliationService.updateRefundStatus(id, dto.status as any, dto.providerRef, dto.errorReason);
+  }
+
   // --- GLO-128: COD Settlement Reconciliation ---
 
   @Post('settlements/initialize')
+  @Roles('ADMIN', 'DRIVER', 'HUB_OPERATOR')
   async initializePaymentCollection(
     @CurrentUser() admin: any,
     @Body() dto: { orderId: string, amount: number, currency: string }
@@ -83,6 +106,7 @@ export class OrderingController {
   }
 
   @Post('settlements/batch')
+  @Roles('ADMIN', 'HUB_OPERATOR')
   async createSettlementBatch(@CurrentUser() admin: any, @Body() dto: CreateSettlementBatchDto) {
     return this.reconciliationService.createSettlementBatch({ ...dto, actorId: admin.id });
   }

@@ -1,8 +1,13 @@
-import { Controller, Post, Body, Get, Param, Patch, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { IngestionService } from './services/ingestion.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto } from './dto/ingestion.dto';
+import { AuthGuard } from '../accounts/guards/auth.guard';
+import { RolesGuard } from '../accounts/guards/roles.guard';
+import { Roles } from '../accounts/decorators/roles.decorator';
 
 @Controller('ingestion')
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('ADMIN', 'HUB_OPERATOR') // Mostly backend operations
 export class IngestionController {
   constructor(private readonly ingestionService: IngestionService) {}
 
@@ -46,4 +51,3 @@ export class IngestionController {
     return this.ingestionService.enrichItem(id);
   }
 }
-

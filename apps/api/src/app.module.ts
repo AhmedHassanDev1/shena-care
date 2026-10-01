@@ -12,6 +12,7 @@ import { CareModule } from './modules/care/care.module';
 import { AiModule } from './platform/ai/ai.module';
 import { GuidanceModule } from './modules/guidance/guidance.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
+import { OperationsModule } from './modules/operations/operations.module';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { RequestIdMiddleware } from './platform/logger/request-id.middleware';
 
@@ -33,6 +34,7 @@ import { RequestIdMiddleware } from './platform/logger/request-id.middleware';
     CareModule,
     GuidanceModule,
     AccountsModule,
+    OperationsModule,
   ],
 })
 export class AppModule implements NestModule {

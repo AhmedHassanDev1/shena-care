@@ -3,8 +3,12 @@ import { CareService } from './services/care.service';
 import { CareProfileService } from './services/care-profile.service';
 import { CreateConcernDto, CreateRoutineDto, CreateRoutineStepDto, CreateCustomerCareProfileDto, UpdateCustomerCareProfileDto } from './dto/care.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
+import { RolesGuard } from '../accounts/guards/roles.guard';
+import { Roles } from '../accounts/decorators/roles.decorator';
 import { CurrentUser } from '../accounts/decorators/current-user.decorator';
+
 @Controller('care')
+@UseGuards(AuthGuard, RolesGuard)
 export class CareController {
   constructor(
     private readonly careService: CareService,
@@ -12,6 +16,7 @@ export class CareController {
   ) {}
 
   @Post('concerns')
+  @Roles('ADMIN')
   async createConcern(@Body() dto: CreateConcernDto) {
     return this.careService.createConcern(dto);
   }
@@ -22,6 +27,7 @@ export class CareController {
   }
 
   @Post('routines')
+  @Roles('ADMIN')
   async createRoutine(@Body() dto: CreateRoutineDto) {
     return this.careService.createRoutine(dto);
   }
@@ -32,13 +38,13 @@ export class CareController {
   }
 
   @Post('routines/:id/steps')
+  @Roles('ADMIN')
   async addRoutineStep(@Param('id') id: string, @Body() dto: CreateRoutineStepDto) {
     return this.careService.addRoutineStep(id, dto);
   }
 
   // Profile Endpoints
   @Post('profiles')
-  @UseGuards(AuthGuard)
   async createProfile(@CurrentUser() customer: any, @Body() dto: CreateCustomerCareProfileDto) {
     if (dto.customerId && dto.customerId !== customer.id) {
       throw new ForbiddenException('Cannot create profile for another customer');
@@ -47,13 +53,11 @@ export class CareController {
   }
 
   @Get('profiles')
-  @UseGuards(AuthGuard)
   async getProfile(@CurrentUser() customer: any) {
     return this.profileService.getProfile(customer.id);
   }
 
   @Patch('profiles')
-  @UseGuards(AuthGuard)
   async updateProfile(@CurrentUser() customer: any, @Body() dto: UpdateCustomerCareProfileDto) {
     return this.profileService.updateProfile(customer.id, dto);
   }

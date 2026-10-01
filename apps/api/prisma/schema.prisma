@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["catalog", "commerce", "sourcing", "ingestion", "ordering", "fulfillment", "care", "accounts"]
+  schemas  = ["catalog", "commerce", "sourcing", "ingestion", "ordering", "fulfillment", "care", "accounts", "operations"]
 }
 
 // ---------------------------------------------------------------------------
@@ -298,22 +298,22 @@ enum PayableStatus {
 }
 
 model SupplierPayable {
-  id              String            @id @default(uuid()) @db.Uuid
-  supplierId      String            @map("supplier_id") @db.Uuid
-  purchaseOrderId String            @map("purchase_order_id") @db.Uuid
-  amount          Decimal           @db.Decimal(10, 2)
-  currency        String            @db.VarChar(3)
-  status          PayableStatus     @default(open)
-  dueDate         DateTime?         @map("due_date")
-  paidAt          DateTime?         @map("paid_at")
-  paymentRef      String?           @map("payment_ref")
+  id              String        @id @default(uuid()) @db.Uuid
+  supplierId      String        @map("supplier_id") @db.Uuid
+  purchaseOrderId String        @map("purchase_order_id") @db.Uuid
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @db.VarChar(3)
+  status          PayableStatus @default(open)
+  dueDate         DateTime?     @map("due_date")
+  paidAt          DateTime?     @map("paid_at")
+  paymentRef      String?       @map("payment_ref")
   notes           String?
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  supplier        Supplier          @relation(fields: [supplierId], references: [id])
-  purchaseOrder   SupplierPurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
-  adjustments     PayableAdjustment[]
+  supplier      Supplier              @relation(fields: [supplierId], references: [id])
+  purchaseOrder SupplierPurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  adjustments   PayableAdjustment[]
 
   @@index([supplierId])
   @@index([purchaseOrderId])
@@ -322,20 +322,19 @@ model SupplierPayable {
 }
 
 model PayableAdjustment {
-  id              String          @id @default(uuid()) @db.Uuid
-  payableId       String          @map("payable_id") @db.Uuid
-  amount          Decimal         @db.Decimal(10, 2)
-  reason          String
-  actorId         String          @map("actor_id")
-  createdAt       DateTime        @default(now()) @map("created_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  payableId String   @map("payable_id") @db.Uuid
+  amount    Decimal  @db.Decimal(10, 2)
+  reason    String
+  actorId   String   @map("actor_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  payable         SupplierPayable @relation(fields: [payableId], references: [id], onDelete: Cascade)
+  payable SupplierPayable @relation(fields: [payableId], references: [id], onDelete: Cascade)
 
   @@index([payableId])
   @@map("payable_adjustments")
   @@schema("sourcing")
 }
-
 
 // ---------------------------------------------------------------------------
 // Ordering schema
@@ -394,9 +393,10 @@ model Order {
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
-  items OrderItem[]
-  resolutions OrderResolution[]
+  items             OrderItem[]
+  resolutions       OrderResolution[]
   paymentCollection PaymentCollection?
+  refundTransactions RefundTransaction[]
 
   @@map("orders")
   @@schema("ordering")
@@ -412,7 +412,7 @@ model OrderItem {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order       Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
   resolutions OrderResolutionItem[]
 
   @@index([orderId])
@@ -443,20 +443,21 @@ enum OrderResolutionStatus {
 }
 
 model OrderResolution {
-  id              String                @id @default(uuid()) @db.Uuid
-  orderId         String                @map("order_id") @db.Uuid
-  type            OrderResolutionType
-  status          OrderResolutionStatus @default(requested)
-  reasonCode      String?               @map("reason_code")
-  notes           String?
-  resolutionDetails Json?               @map("resolution_details")
-  actorId         String                @map("actor_id")
-  createdAt       DateTime              @default(now()) @map("created_at")
-  updatedAt       DateTime              @updatedAt @map("updated_at")
+  id                String                @id @default(uuid()) @db.Uuid
+  orderId           String                @map("order_id") @db.Uuid
+  type              OrderResolutionType
+  status            OrderResolutionStatus @default(requested)
+  reasonCode        String?               @map("reason_code")
+  notes             String?
+  resolutionDetails Json?                 @map("resolution_details")
+  actorId           String                @map("actor_id")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
 
-  order           Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  items           OrderResolutionItem[]
-  events          OrderResolutionEvent[]
+  order             Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items             OrderResolutionItem[]
+  events            OrderResolutionEvent[]
+  refundTransaction RefundTransaction?
 
   @@index([orderId])
   @@map("order_resolutions")
@@ -464,13 +465,13 @@ model OrderResolution {
 }
 
 model OrderResolutionItem {
-  id              String          @id @default(uuid()) @db.Uuid
-  resolutionId    String          @map("resolution_id") @db.Uuid
-  orderItemId     String          @map("order_item_id") @db.Uuid
-  quantity        Int
-  
-  resolution      OrderResolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
-  orderItem       OrderItem       @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+  id           String @id @default(uuid()) @db.Uuid
+  resolutionId String @map("resolution_id") @db.Uuid
+  orderItemId  String @map("order_item_id") @db.Uuid
+  quantity     Int
+
+  resolution OrderResolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+  orderItem  OrderItem       @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
 
   @@unique([resolutionId, orderItemId])
   @@map("order_resolution_items")
@@ -478,17 +479,47 @@ model OrderResolutionItem {
 }
 
 model OrderResolutionEvent {
-  id              String          @id @default(uuid()) @db.Uuid
-  resolutionId    String          @map("resolution_id") @db.Uuid
-  status          OrderResolutionStatus
-  actorId         String          @map("actor_id")
-  notes           String?
-  createdAt       DateTime        @default(now()) @map("created_at")
+  id           String                @id @default(uuid()) @db.Uuid
+  resolutionId String                @map("resolution_id") @db.Uuid
+  status       OrderResolutionStatus
+  actorId      String                @map("actor_id")
+  notes        String?
+  createdAt    DateTime              @default(now()) @map("created_at")
 
-  resolution      OrderResolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+  resolution OrderResolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
 
   @@index([resolutionId])
   @@map("order_resolution_events")
+  @@schema("ordering")
+}
+
+enum RefundStatus {
+  pending
+  processing
+  succeeded
+  failed
+
+  @@schema("ordering")
+}
+
+model RefundTransaction {
+  id              String         @id @default(uuid()) @db.Uuid
+  resolutionId    String         @unique @map("resolution_id") @db.Uuid
+  orderId         String         @map("order_id") @db.Uuid
+  amount          Decimal        @db.Decimal(10, 2)
+  currency        String         @db.VarChar(3)
+  status          RefundStatus   @default(pending)
+  paymentProvider String?        @map("payment_provider")
+  providerRef     String?        @map("provider_ref")
+  errorReason     String?        @map("error_reason")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  resolution      OrderResolution @relation(fields: [resolutionId], references: [id])
+  order           Order           @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("refund_transactions")
   @@schema("ordering")
 }
 
@@ -504,17 +535,17 @@ enum SettlementStatus {
 }
 
 model PaymentCollection {
-  id                String            @id @default(uuid()) @db.Uuid
-  orderId           String            @unique @map("order_id") @db.Uuid
-  expectedAmount    Decimal           @map("expected_amount") @db.Decimal(10, 2)
-  collectedAmount   Decimal?          @map("collected_amount") @db.Decimal(10, 2)
-  currency          String            @db.VarChar(3)
-  status            SettlementStatus  @default(expected)
-  courierId         String?           @map("courier_id")
-  settlementBatchId String?           @map("settlement_batch_id") @db.Uuid
+  id                String           @id @default(uuid()) @db.Uuid
+  orderId           String           @unique @map("order_id") @db.Uuid
+  expectedAmount    Decimal          @map("expected_amount") @db.Decimal(10, 2)
+  collectedAmount   Decimal?         @map("collected_amount") @db.Decimal(10, 2)
+  currency          String           @db.VarChar(3)
+  status            SettlementStatus @default(expected)
+  courierId         String?          @map("courier_id")
+  settlementBatchId String?          @map("settlement_batch_id") @db.Uuid
   notes             String?
-  createdAt         DateTime          @default(now()) @map("created_at")
-  updatedAt         DateTime          @updatedAt @map("updated_at")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
 
   order           Order                   @relation(fields: [orderId], references: [id])
   settlementBatch CourierSettlementBatch? @relation(fields: [settlementBatchId], references: [id])
@@ -524,19 +555,19 @@ model PaymentCollection {
 }
 
 model CourierSettlementBatch {
-  id              String              @id @default(uuid()) @db.Uuid
-  reference       String              @unique
-  courierId       String              @map("courier_id")
-  totalExpected   Decimal             @map("total_expected") @db.Decimal(10, 2)
-  totalCollected  Decimal             @map("total_collected") @db.Decimal(10, 2)
-  fees            Decimal             @default(0) @db.Decimal(10, 2)
-  netSettled      Decimal             @map("net_settled") @db.Decimal(10, 2)
-  currency        String              @db.VarChar(3)
-  settledAt       DateTime            @default(now()) @map("settled_at")
-  actorId         String              @map("actor_id")
-  notes           String?
-  
-  collections     PaymentCollection[]
+  id             String   @id @default(uuid()) @db.Uuid
+  reference      String   @unique
+  courierId      String   @map("courier_id")
+  totalExpected  Decimal  @map("total_expected") @db.Decimal(10, 2)
+  totalCollected Decimal  @map("total_collected") @db.Decimal(10, 2)
+  fees           Decimal  @default(0) @db.Decimal(10, 2)
+  netSettled     Decimal  @map("net_settled") @db.Decimal(10, 2)
+  currency       String   @db.VarChar(3)
+  settledAt      DateTime @default(now()) @map("settled_at")
+  actorId        String   @map("actor_id")
+  notes          String?
+
+  collections PaymentCollection[]
 
   @@map("courier_settlement_batches")
   @@schema("ordering")
@@ -554,7 +585,7 @@ model FulfillmentLocation {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  shipments Shipment[]
+  shipments         Shipment[]
   inventoryBalances InventoryBalance[]
 
   @@map("fulfillment_locations")
@@ -664,18 +695,18 @@ model ShipmentEvent {
 }
 
 model InventoryBalance {
-  id                  String   @id @default(uuid()) @db.Uuid
-  locationId          String   @map("location_id") @db.Uuid
-  skuId               String   @map("sku_id") @db.Uuid
-  ownedOnHand         Int      @default(0) @map("owned_on_hand")
-  reserved            Int      @default(0)
-  availableToSell     Int      @default(0) @map("available_to_sell")
-  orderAllocatedExternalGoods Int @default(0) @map("order_allocated_external_goods")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                          String   @id @default(uuid()) @db.Uuid
+  locationId                  String   @map("location_id") @db.Uuid
+  skuId                       String   @map("sku_id") @db.Uuid
+  ownedOnHand                 Int      @default(0) @map("owned_on_hand")
+  reserved                    Int      @default(0)
+  availableToSell             Int      @default(0) @map("available_to_sell")
+  orderAllocatedExternalGoods Int      @default(0) @map("order_allocated_external_goods")
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
 
-  location            FulfillmentLocation @relation(fields: [locationId], references: [id])
-  transactions        InventoryTransaction[]
+  location     FulfillmentLocation    @relation(fields: [locationId], references: [id])
+  transactions InventoryTransaction[]
 
   @@unique([locationId, skuId])
   @@index([locationId])
@@ -685,16 +716,16 @@ model InventoryBalance {
 }
 
 model InventoryTransaction {
-  id               String   @id @default(uuid()) @db.Uuid
-  balanceId        String   @map("balance_id") @db.Uuid
-  type             String   // RECEIVE_OWNED, RESERVE, RELEASE, PICK, ADJUST, DAMAGE, RETURN_TO_STOCK
-  quantity         Int
-  reason           String?
-  actorId          String?  @map("actor_id")
-  referenceId      String?  @map("reference_id") // OrderId, ShipmentId, etc
-  createdAt        DateTime @default(now()) @map("created_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  balanceId   String   @map("balance_id") @db.Uuid
+  type        String // RECEIVE_OWNED, RESERVE, RELEASE, PICK, ADJUST, DAMAGE, RETURN_TO_STOCK
+  quantity    Int
+  reason      String?
+  actorId     String?  @map("actor_id")
+  referenceId String?  @map("reference_id") // OrderId, ShipmentId, etc
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  balance          InventoryBalance @relation(fields: [balanceId], references: [id], onDelete: Cascade)
+  balance InventoryBalance @relation(fields: [balanceId], references: [id], onDelete: Cascade)
 
   @@index([balanceId])
   @@map("inventory_transactions")
@@ -997,10 +1028,21 @@ model GuidanceMessage {
 // Accounts schema
 // ---------------------------------------------------------------------------
 
+enum Role {
+  CUSTOMER
+  ADMIN
+  HUB_OPERATOR
+  SUPPLIER
+  DRIVER
+
+  @@schema("accounts")
+}
+
 model Customer {
   id        String   @id @default(uuid()) @db.Uuid
   name      String
   email     String   @unique
+  roles     Role[]   @default([CUSTOMER])
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1043,4 +1085,112 @@ model Session {
   @@index([token])
   @@map("sessions")
   @@schema("accounts")
+}
+
+// ---------------------------------------------------------------------------
+// Operations schema
+// ---------------------------------------------------------------------------
+
+enum OutboxEventStatus {
+  pending
+  processing
+  completed
+  failed
+
+  @@schema("operations")
+}
+
+model OutboxEvent {
+  id        String            @id @default(uuid()) @db.Uuid
+  type      String
+  payload   Json
+  status    OutboxEventStatus @default(pending)
+  error     String?
+  attempts  Int               @default(0)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("outbox_events")
+  @@schema("operations")
+}
+
+enum SupportCaseStatus {
+  open
+  in_progress
+  resolved
+  closed
+
+  @@schema("operations")
+}
+
+enum SupportCasePriority {
+  low
+  medium
+  high
+  critical
+
+  @@schema("operations")
+}
+
+enum SupportCaseCategory {
+  payment
+  sourcing
+  delivery
+  damaged_item
+  wrong_item
+  cancellation
+  return
+  supplier_dispute
+  other
+
+  @@schema("operations")
+}
+
+model SupportCase {
+  id          String              @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  category    SupportCaseCategory @default(other)
+  priority    SupportCasePriority @default(medium)
+  status      SupportCaseStatus   @default(open)
+
+  customerId String? @map("customer_id")
+  orderId    String? @map("order_id") @db.Uuid
+  supplierId String? @map("supplier_id") @db.Uuid
+
+  assigneeId    String? @map("assignee_id")
+  internalNotes String? @map("internal_notes")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([assigneeId])
+  @@map("support_cases")
+  @@schema("operations")
+}
+
+enum AccountingExportStatus {
+  pending
+  processing
+  completed
+  failed
+
+  @@schema("operations")
+}
+
+model AccountingExportJob {
+  id            String                 @id @default(uuid()) @db.Uuid
+  startDate     DateTime               @map("start_date")
+  endDate       DateTime               @map("end_date")
+  status        AccountingExportStatus @default(pending)
+  fileUrl       String?                @map("file_url")
+  error         String?
+  actorId       String                 @map("actor_id")
+  createdAt     DateTime               @default(now()) @map("created_at")
+  updatedAt     DateTime               @updatedAt @map("updated_at")
+
+  @@map("accounting_export_jobs")
+  @@schema("operations")
 }

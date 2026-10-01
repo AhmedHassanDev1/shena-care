@@ -1,29 +1,20 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../platform/database/prisma.service';
 import { RegisterDto, LoginDto } from './dto/accounts.dto';
-import { randomBytes, scryptSync, timingSafeEqual, randomUUID } from 'crypto';
+import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AccountsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private hashPassword(password: string): string {
-    const salt = randomBytes(16).toString('hex');
-    const derivedKey = scryptSync(password, salt, 64).toString('hex');
-    return `${salt}:${derivedKey}`;
+  private async hashPassword(password: string): Promise<string> {
+    const saltRounds = 12; // Secure default
+    return bcrypt.hash(password, saltRounds);
   }
 
-  private verifyPassword(password: string, hash: string): boolean {
-    const [salt, key] = hash.split(':');
-    if (!salt || !key) return false;
-    
-    const keyBuffer = Buffer.from(key, 'hex');
-    const derivedKey = scryptSync(password, salt, 64);
-    
-    if (keyBuffer.length !== derivedKey.length) {
-      return false;
-    }
-    return timingSafeEqual(keyBuffer, derivedKey);
+  private async verifyPassword(password: string, hash: string): Promise<boolean> {
+    return bcrypt.compare(password, hash);
   }
 
   async register(dto: RegisterDto) {
@@ -35,12 +26,13 @@ export class AccountsService {
       throw new ConflictException('Email already in use');
     }
 
-    const passwordHash = this.hashPassword(dto.password);
+    const passwordHash = await this.hashPassword(dto.password);
 
     const customer = await this.prisma.customer.create({
       data: {
         name: dto.name,
         email: dto.email,
+        roles: ['CUSTOMER'],
         identities: {
           create: {
             provider: 'EMAIL',
@@ -69,7 +61,8 @@ export class AccountsService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!this.verifyPassword(dto.password, identity.passwordHash)) {
+    const isMatch = await this.verifyPassword(dto.password, identity.passwordHash);
+    if (!isMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }
 

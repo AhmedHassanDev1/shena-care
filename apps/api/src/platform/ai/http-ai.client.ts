@@ -9,6 +9,7 @@ import {
   GuidanceRecommendationRequest,
   GuidanceRecommendationResult,
 } from './ai-client.contract';
+import { validateSafeUrl } from '../security/url-validator';
 
 const SIZE_UNITS = new Set(['ml', 'l', 'g', 'kg', 'oz', 'unit']);
 
@@ -42,6 +43,10 @@ export class HttpAiClient implements AiClient {
   ) {}
 
   async enrichProduct(input: ProductEnrichmentInput, correlationId?: string): Promise<ProductEnrichmentResult> {
+    if (input.sourceUrl) {
+      validateSafeUrl(input.sourceUrl);
+    }
+    
     const url = `${this.baseUrl.replace(/\/$/, '')}/v1/enrichment/product`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);

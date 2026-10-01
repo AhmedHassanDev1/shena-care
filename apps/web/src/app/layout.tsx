@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { Header } from '@/components/Header';
 
 export const metadata: Metadata = {
   title: 'Shena Care - Beauty & Skincare',
@@ -14,14 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <header className="site-header">
-          <div className="container">
-            <a href="/" className="logo">Shena Care</a>
-            <nav className="nav">
-              <a href="/products">Products</a>
-            </nav>
-          </div>
-        </header>
+        <Header />
         <main>{children}</main>
         <footer className="site-footer">
           <div className="container">

@@ -1,11 +1,44 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ProductView } from '../api/products';
+import { cart } from '@/lib/cart';
+import { auth } from '@/lib/auth';
 
 interface ProductDetailProps {
   product: ProductView;
 }
 
 export function ProductDetail({ product }: ProductDetailProps) {
+  const router = useRouter();
   const primaryImage = product.media.find((m) => m.isPrimary) || product.media[0];
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleAddToCart = async (skuId: string) => {
+    if (!auth.isAuthenticated()) {
+      router.push('/auth/login');
+      return;
+    }
+
+    setAddingToCart(skuId);
+    setMessage(null);
+
+    try {
+      await cart.addToCart(skuId, 1);
+      setMessage({ type: 'success', text: 'Added to cart!' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err) {
+      if (err instanceof Error && 'status' in err && (err as { status: number }).status === 401) {
+        router.push('/auth/login');
+      } else {
+        setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to add to cart' });
+      }
+    } finally {
+      setAddingToCart(null);
+    }
+  };
 
   return (
     <div className="product-detail">
@@ -28,6 +61,12 @@ export function ProductDetail({ product }: ProductDetailProps) {
         {product.description && (
           <div className="product-description">
             <p>{product.description}</p>
+          </div>
+        )}
+
+        {message && (
+          <div className={message.type === 'success' ? 'success-message' : 'error-message'}>
+            {message.text}
           </div>
         )}
 
@@ -56,7 +95,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
               )}
 
               {sku.canOrder ? (
-                <button className="add-to-cart-btn">Add to Cart</button>
+                <button
+                  className="add-to-cart-btn"
+                  onClick={() => handleAddToCart(sku.id)}
+                  disabled={addingToCart === sku.id}
+                >
+                  {addingToCart === sku.id ? 'Adding...' : 'Add to Cart'}
+                </button>
               ) : (
                 <div className="unavailable">Currently unavailable</div>
               )}

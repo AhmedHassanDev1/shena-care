@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { SettlementStatus, OrderResolutionType, OrderResolutionStatus, Prisma } from '@prisma/client';
+import { SettlementStatus, OrderResolutionType, OrderResolutionStatus, Prisma, RefundStatus } from '@prisma/client';
 
 @Injectable()
 export class ReconciliationService {
@@ -82,6 +82,49 @@ export class ReconciliationService {
       });
 
       return resolution;
+    });
+  }
+
+  // --- Advanced Refund Tracking ---
+  
+  async initiateRefund(resolutionId: string, amount: number, currency: string, paymentProvider?: string) {
+    if (!this.isUuid(resolutionId)) throw new BadRequestException('Invalid resolution ID');
+
+    return this.prisma.$transaction(async (tx) => {
+      const resolution = await tx.orderResolution.findUnique({
+        where: { id: resolutionId },
+      });
+
+      if (!resolution) throw new NotFoundException('Resolution not found');
+      
+      const existingRefund = await tx.refundTransaction.findUnique({
+        where: { resolutionId }
+      });
+      if (existingRefund) throw new BadRequestException('Refund already initiated for this resolution');
+
+      return tx.refundTransaction.create({
+        data: {
+          resolutionId,
+          orderId: resolution.orderId,
+          amount,
+          currency,
+          status: 'pending',
+          paymentProvider
+        }
+      });
+    });
+  }
+
+  async updateRefundStatus(resolutionId: string, status: RefundStatus, providerRef?: string, errorReason?: string) {
+    if (!this.isUuid(resolutionId)) throw new BadRequestException('Invalid resolution ID');
+
+    return this.prisma.refundTransaction.update({
+      where: { resolutionId },
+      data: {
+        status,
+        providerRef,
+        errorReason
+      }
     });
   }
 
