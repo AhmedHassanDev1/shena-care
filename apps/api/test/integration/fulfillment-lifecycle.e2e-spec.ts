@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe, Catch, ExceptionFilter, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 const request = require('supertest');
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
@@ -27,6 +27,21 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
  * Note: FulfillmentController has no auth guard — it is a hub-internal API.
  * OrderingController IS guarded — checkout must use the real auth token.
  */
+@Catch()
+class TestErrorFilter implements ExceptionFilter {
+  catch(exception: any, host: ArgumentsHost) {
+    console.error('TEST SERVER ERROR:', exception);
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    response.status(status).json({
+      statusCode: status,
+      message: exception.message,
+      error: 'Test Error'
+    });
+  }
+}
+
 describe('Fulfillment Lifecycle (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -49,6 +64,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
+    app.useGlobalFilters(new TestErrorFilter());
     await app.init();
 
     prisma = app.get<PrismaService>(PrismaService);
@@ -63,8 +79,11 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     const email = `fulfill-${Date.now()}@test.local`;
     const regRes = await request(app.getHttpServer())
       .post('/accounts/register')
-      .send({ name: 'Fulfill Tester', email, password: 'TestPass!1' })
-      .expect(201);
+      .send({ name: 'Fulfill Tester', email, password: 'TestPass!1' });
+    if (regRes.status !== 201) {
+      console.log('Register failed:', regRes.body);
+    }
+    expect(regRes.status).toBe(201);
 
     authToken = `Bearer ${regRes.body.token}`;
 
@@ -347,6 +366,86 @@ describe('Fulfillment Lifecycle (e2e)', () => {
         .expect(400);
 
       expect(res.body.message).toBe('Invalid shipment ID');
+    });
+  });
+
+  describe('GLO-149: Delivery Batch Planning', () => {
+    let batchId: string;
+
+    it('should get eligible shipments for batching', async () => {
+      // Revert the shipment status back to packed for batch planning tests
+      await request(app.getHttpServer())
+        .patch(`/fulfillment/shipments/${shipmentId}/status`)
+        .send({ status: 'packed' })
+        .expect(200);
+
+      const res = await request(app.getHttpServer())
+        .get(`/fulfillment/locations/${locationId}/eligible-shipments`)
+        .expect(200);
+
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should create a delivery batch', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/fulfillment/delivery-batches')
+        .send({ hubId: locationId, name: 'Morning Run A' })
+        .expect(201);
+
+      expect(res.body.id).toBeDefined();
+      expect(res.body.status).toBe('planning');
+      batchId = res.body.id;
+    });
+
+    it('should add stops to batch', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/delivery-batches/${batchId}/stops`)
+        .send({
+          stops: [{ shipmentId, sequence: 1 }]
+        })
+        .expect(201);
+
+      expect(res.body.stops.length).toBe(1);
+      expect(res.body.stops[0].shipmentId).toBe(shipmentId);
+    });
+
+    it('should prevent duplicate shipment assignment', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/delivery-batches/${batchId}/stops`)
+        .send({
+          stops: [{ shipmentId, sequence: 2 }]
+        })
+        .expect(400);
+      
+      expect(res.body.message).toMatch(/already assigned/);
+    });
+
+    it('should allow manual stop ordering', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/fulfillment/delivery-batches/${batchId}/stops/sequence`)
+        .send({
+          stops: [{ shipmentId, sequence: 10 }]
+        })
+        .expect(200);
+
+      expect(res.body.stops[0].sequence).toBe(10);
+    });
+
+    it('should dispatch the batch', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/delivery-batches/${batchId}/dispatch`)
+        .expect(201);
+
+      expect(res.body.status).toBe('dispatched');
+    });
+
+    it('should reject modifications after dispatch', async () => {
+      const res = await request(app.getHttpServer())
+        .delete(`/fulfillment/delivery-batches/${batchId}/stops/${shipmentId}`)
+        .expect(400);
+
+      expect(res.body.message).toMatch(/Cannot modify/);
     });
   });
 });

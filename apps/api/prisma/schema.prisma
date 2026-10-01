@@ -412,13 +412,11 @@ model Shipment {
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
 
-  location FulfillmentLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  items    ShipmentItem[]
+  location            FulfillmentLocation          @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  items               ShipmentItem[]
   preparationSessions ShipmentPreparationSession[]
-  events   ShipmentEvent[]
-
-  deliveryBatchId String? @map("delivery_batch_id") @db.Uuid
-  deliveryBatch   DeliveryBatch? @relation(fields: [deliveryBatchId], references: [id])
+  events              ShipmentEvent[]
+  deliveryStops       DeliveryStop[]
 
   @@index([locationId])
   @@map("shipments")
@@ -443,7 +441,7 @@ model ShipmentItem {
 
 model DeliveryBatch {
   id           String    @id @default(uuid()) @db.Uuid
-  status       String    @default("planned") // planned, dispatched, completed
+  status       String    @default("planning") // planning, dispatched, completed
   driverId     String?   @map("driver_id")
   plannedAt    DateTime? @default(now()) @map("planned_at")
   dispatchedAt DateTime? @map("dispatched_at")
@@ -451,21 +449,37 @@ model DeliveryBatch {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  shipments    Shipment[]
+  stops DeliveryStop[]
 
   @@map("delivery_batches")
   @@schema("fulfillment")
 }
 
-model ShipmentEvent {
-  id         String    @id @default(uuid()) @db.Uuid
-  shipmentId String    @map("shipment_id") @db.Uuid
-  type       String    // e.g. PACKED, LABEL_PRINTED, HANDOFF_SCANNED, OUT_FOR_DELIVERY, DELIVERED, FAILED, RETURNED
-  actorId    String?   @map("actor_id") // ID of hub operator or driver
-  notes      String?
-  createdAt  DateTime  @default(now()) @map("created_at")
+model DeliveryStop {
+  id         String   @id @default(uuid()) @db.Uuid
+  batchId    String   @map("batch_id") @db.Uuid
+  shipmentId String   @unique @map("shipment_id") @db.Uuid
+  sequence   Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  shipment   Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  batch    DeliveryBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  shipment Shipment      @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
+
+  @@unique([batchId, sequence])
+  @@map("delivery_stops")
+  @@schema("fulfillment")
+}
+
+model ShipmentEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  shipmentId String   @map("shipment_id") @db.Uuid
+  type       String // e.g. PACKED, LABEL_PRINTED, HANDOFF_SCANNED, OUT_FOR_DELIVERY, DELIVERED, FAILED, RETURNED
+  actorId    String?  @map("actor_id") // ID of hub operator or driver
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
 
   @@index([shipmentId])
   @@map("shipment_events")
@@ -481,15 +495,15 @@ enum PreparationSessionStatus {
 }
 
 model ShipmentPreparationSession {
-  id           String    @id @default(uuid()) @db.Uuid
-  shipmentId   String    @map("shipment_id") @db.Uuid
-  operatorId   String    @map("operator_id") // Optional UUID or username representing the hub operator
-  startedAt    DateTime  @default(now()) @map("started_at")
-  completedAt  DateTime? @map("completed_at")
-  status       PreparationSessionStatus @default(in_progress)
-  
-  shipment     Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  scanEvents   PreparationScanEvent[]
+  id          String                   @id @default(uuid()) @db.Uuid
+  shipmentId  String                   @map("shipment_id") @db.Uuid
+  operatorId  String                   @map("operator_id") // Optional UUID or username representing the hub operator
+  startedAt   DateTime                 @default(now()) @map("started_at")
+  completedAt DateTime?                @map("completed_at")
+  status      PreparationSessionStatus @default(in_progress)
+
+  shipment   Shipment               @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  scanEvents PreparationScanEvent[]
 
   @@index([shipmentId])
   @@map("shipment_preparation_sessions")
@@ -497,15 +511,15 @@ model ShipmentPreparationSession {
 }
 
 model PreparationScanEvent {
-  id             String    @id @default(uuid()) @db.Uuid
-  sessionId      String    @map("session_id") @db.Uuid
-  skuId          String?   @map("sku_id") @db.Uuid
-  barcodeScanned String?   @map("barcode_scanned")
-  scannedAt      DateTime  @default(now()) @map("scanned_at")
-  isSuccessful   Boolean   @default(true) @map("is_successful")
-  errorReason    String?   @map("error_reason")
-  
-  session        ShipmentPreparationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id             String   @id @default(uuid()) @db.Uuid
+  sessionId      String   @map("session_id") @db.Uuid
+  skuId          String?  @map("sku_id") @db.Uuid
+  barcodeScanned String?  @map("barcode_scanned")
+  scannedAt      DateTime @default(now()) @map("scanned_at")
+  isSuccessful   Boolean  @default(true) @map("is_successful")
+  errorReason    String?  @map("error_reason")
+
+  session ShipmentPreparationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@map("preparation_scan_events")

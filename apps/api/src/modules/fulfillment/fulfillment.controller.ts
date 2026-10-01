@@ -1,6 +1,6 @@
-import { Controller, Post, Body, Get, Param, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, Delete } from '@nestjs/common';
 import { FulfillmentService } from './services/fulfillment.service';
-import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto } from './dto/fulfillment.dto';
+import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto } from './dto/fulfillment.dto';
 
 @Controller('fulfillment')
 export class FulfillmentController {
@@ -72,4 +72,42 @@ export class FulfillmentController {
   ) {
     return this.fulfillmentService.recordShipmentEvent(id, dto);
   }
+
+  // --- Delivery Batch Planning ---
+
+  @Get('locations/:id/eligible-shipments')
+  async getEligibleShipmentsForBatching(@Param('id') locationId: string) {
+    return this.fulfillmentService.getEligibleShipmentsForBatching(locationId);
+  }
+
+  @Post('delivery-batches')
+  async createDeliveryBatch(@Body() dto: CreateDeliveryBatchDto) {
+    return this.fulfillmentService.createDeliveryBatch(dto);
+  }
+
+  @Post('delivery-batches/:id/stops')
+  async addStopsToBatch(@Param('id') id: string, @Body() dto: AddStopsToBatchDto) {
+    return this.fulfillmentService.addStopsToBatch(id, dto.stops);
+  }
+
+  @Patch('delivery-batches/:id/stops/sequence')
+  async updateBatchStopsSequence(@Param('id') id: string, @Body() dto: UpdateStopSequenceDto) {
+    return this.fulfillmentService.updateBatchStopsSequence(id, dto.stops);
+  }
+
+  @Delete('delivery-batches/:id/stops/:shipmentId')
+  async removeStopFromBatch(@Param('id') id: string, @Param('shipmentId') shipmentId: string) {
+    return this.fulfillmentService.removeStopFromBatch(id, shipmentId);
+  }
+
+  @Post('delivery-batches/:id/dispatch')
+  async dispatchBatch(@Param('id') id: string) {
+    return this.fulfillmentService.dispatchBatch(id);
+  }
+
+  @Post('delivery-batches/:id/complete')
+  async completeBatch(@Param('id') id: string) {
+    return this.fulfillmentService.completeBatch(id);
+  }
 }
+

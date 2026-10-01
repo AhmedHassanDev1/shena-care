@@ -413,4 +413,195 @@ export class FulfillmentService {
 
     return event;
   }
+
+  // --- Delivery Batch Planning (GLO-149) ---
+
+  async getEligibleShipmentsForBatching(locationId: string) {
+    if (!this.isUuid(locationId)) throw new BadRequestException('Invalid location ID');
+    // Eligible shipments are packed (ready for dispatch) and not already assigned to a stop
+    return this.prisma.shipment.findMany({
+      where: {
+        locationId,
+        status: 'packed',
+        deliveryStops: { none: {} }
+      },
+      include: { items: true }
+    });
+  }
+
+  async createDeliveryBatch(dto: any) {
+    if (!this.isUuid(dto.hubId)) throw new BadRequestException('Invalid hub ID');
+    return this.prisma.deliveryBatch.create({
+      data: {
+        id: crypto.randomUUID(),
+        status: 'planning',
+        driverId: dto.driverId,
+        stops: {
+          create: []
+        }
+      }
+    });
+  }
+
+  async addStopsToBatch(batchId: string, stops: any[]) {
+    if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
+    
+    return this.prisma.$transaction(async (tx) => {
+      const batch = await tx.deliveryBatch.findUnique({ where: { id: batchId }, include: { stops: true } });
+      if (!batch) throw new NotFoundException('Batch not found');
+      if (batch.status !== 'planning') {
+        throw new BadRequestException('Cannot add stops to a dispatched/completed batch');
+      }
+
+      let currentMaxSeq = batch.stops.length > 0 ? Math.max(...batch.stops.map(s => s.sequence)) : 0;
+
+      for (const stop of stops) {
+        if (!this.isUuid(stop.shipmentId)) throw new BadRequestException('Invalid shipment ID');
+        
+        // Ensure shipment exists and is eligible
+        const shipment = await tx.shipment.findUnique({ where: { id: stop.shipmentId }, include: { deliveryStops: true } });
+        if (!shipment) throw new NotFoundException(`Shipment ${stop.shipmentId} not found`);
+        if (shipment.status !== 'packed') {
+          throw new BadRequestException(`Shipment ${stop.shipmentId} must be packed`);
+        }
+        if (shipment.deliveryStops.length > 0) {
+          throw new BadRequestException(`Shipment ${stop.shipmentId} is already assigned to a batch`);
+        }
+
+        const seq = stop.sequence !== undefined ? stop.sequence : ++currentMaxSeq;
+        
+        await tx.deliveryStop.create({
+          data: {
+            batchId,
+            shipmentId: stop.shipmentId,
+            sequence: seq
+          }
+        });
+      }
+
+      return tx.deliveryBatch.findUnique({
+        where: { id: batchId },
+        include: { stops: { orderBy: { sequence: 'asc' }, include: { shipment: true } } }
+      });
+    });
+  }
+
+  async updateBatchStopsSequence(batchId: string, stops: any[]) {
+    if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
+
+    return this.prisma.$transaction(async (tx) => {
+      const batch = await tx.deliveryBatch.findUnique({ where: { id: batchId } });
+      if (!batch) throw new NotFoundException('Batch not found');
+      if (batch.status !== 'planning') {
+        throw new BadRequestException('Cannot modify a dispatched/completed batch');
+      }
+
+      const uniqueSequences = new Set(stops.map(s => s.sequence));
+      if (uniqueSequences.size !== stops.length) {
+        throw new BadRequestException('Duplicate sequences provided');
+      }
+
+      // Instead of dropping and recreating, we should update sequence values.
+      // To avoid unique constraint violation during swap, we can use negative temporary sequences.
+      for (const stop of stops) {
+        await tx.deliveryStop.updateMany({
+          where: { batchId, shipmentId: stop.shipmentId },
+          data: { sequence: -stop.sequence } // temporary negative
+        });
+      }
+      for (const stop of stops) {
+        await tx.deliveryStop.updateMany({
+          where: { batchId, shipmentId: stop.shipmentId },
+          data: { sequence: stop.sequence }
+        });
+      }
+
+      return tx.deliveryBatch.findUnique({
+        where: { id: batchId },
+        include: { stops: { orderBy: { sequence: 'asc' } } }
+      });
+    });
+  }
+
+  async removeStopFromBatch(batchId: string, shipmentId: string) {
+    if (!this.isUuid(batchId) || !this.isUuid(shipmentId)) throw new BadRequestException('Invalid ID');
+
+    return this.prisma.$transaction(async (tx) => {
+      const batch = await tx.deliveryBatch.findUnique({ where: { id: batchId } });
+      if (!batch) throw new NotFoundException('Batch not found');
+      if (batch.status !== 'planning') {
+        throw new BadRequestException('Cannot modify a dispatched/completed batch');
+      }
+
+      await tx.deliveryStop.delete({
+        where: { shipmentId } // Using unique constraint on shipmentId
+      });
+
+      return { success: true };
+    });
+  }
+
+  async dispatchBatch(batchId: string) {
+    if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
+
+    return this.prisma.$transaction(async (tx) => {
+      const batch = await tx.deliveryBatch.findUnique({
+        where: { id: batchId },
+        include: { stops: true }
+      });
+      if (!batch) throw new NotFoundException('Batch not found');
+      if (batch.status !== 'planning') throw new BadRequestException('Batch is already dispatched/completed');
+      if (batch.stops.length === 0) throw new BadRequestException('Cannot dispatch an empty batch');
+
+      const updated = await tx.deliveryBatch.update({
+        where: { id: batchId },
+        data: {
+          status: 'dispatched',
+          dispatchedAt: new Date()
+        }
+      });
+
+      // Update all associated shipments
+      for (const stop of batch.stops) {
+        await tx.shipment.update({
+          where: { id: stop.shipmentId },
+          data: {
+            status: 'out_for_delivery',
+            dispatchedAt: new Date()
+          }
+        });
+      }
+
+      return updated;
+    });
+  }
+
+  async completeBatch(batchId: string) {
+    if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
+
+    return this.prisma.$transaction(async (tx) => {
+      const batch = await tx.deliveryBatch.findUnique({
+        where: { id: batchId },
+        include: { stops: { include: { shipment: true } } }
+      });
+      if (!batch) throw new NotFoundException('Batch not found');
+      if (batch.status !== 'dispatched') throw new BadRequestException('Batch must be dispatched to complete');
+
+      // Check if all shipments are in a terminal state
+      const terminalStates = ['delivered', 'failed', 'returned'];
+      const incomplete = batch.stops.filter(s => !terminalStates.includes(s.shipment.status));
+
+      if (incomplete.length > 0) {
+        throw new BadRequestException('Cannot complete batch until all shipments are in a terminal state (delivered, failed, returned)');
+      }
+
+      return tx.deliveryBatch.update({
+        where: { id: batchId },
+        data: {
+          status: 'completed',
+          completedAt: new Date()
+        }
+      });
+    });
+  }
 }

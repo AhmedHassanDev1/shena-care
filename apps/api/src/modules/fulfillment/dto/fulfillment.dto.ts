@@ -63,3 +63,36 @@ export class RecordShipmentEventDto {
   @IsString()
   notes?: string;
 }
+
+export class CreateDeliveryBatchDto {
+  @IsString()
+  @IsNotEmpty()
+  hubId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  driverId?: string;
+}
+
+export class DeliveryStopInputDto {
+  @IsString()
+  @IsNotEmpty()
+  shipmentId: string;
+
+  @IsOptional()
+  sequence?: number; // Optional. If missing, append to end.
+}
+
+export class AddStopsToBatchDto {
+  @IsNotEmpty()
+  stops: DeliveryStopInputDto[];
+}
+
+export class UpdateStopSequenceDto {
+  @IsNotEmpty()
+  stops: DeliveryStopInputDto[]; // { shipmentId, sequence }
+}
