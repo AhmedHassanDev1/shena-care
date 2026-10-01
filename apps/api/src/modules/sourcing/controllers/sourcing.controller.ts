@@ -2,7 +2,9 @@ import { Controller, Get, Post, Body, Param, Patch, Query } from '@nestjs/common
 import { SourcingService } from '../services/sourcing.service';
 import { CreateSupplierDto, UpdateSupplierDto } from '../dto/supplier.dto';
 import { CreateSupplierOfferDto, UpdateSupplierOfferDto } from '../dto/supplier-offer.dto';
+import { AdjustPayableDto, MarkAsPaidDto } from '../dto/payables.dto';
 import { IsBoolean, IsNotEmpty } from 'class-validator';
+import { PayablesService } from '../services/payables.service';
 
 export class ConfirmAvailabilityDto {
   @IsBoolean()
@@ -12,7 +14,10 @@ export class ConfirmAvailabilityDto {
 
 @Controller('sourcing')
 export class SourcingController {
-  constructor(private readonly sourcingService: SourcingService) {}
+  constructor(
+    private readonly sourcingService: SourcingService,
+    private readonly payablesService: PayablesService,
+  ) {}
 
   @Post('suppliers')
   async createSupplier(@Body() dto: CreateSupplierDto) {
@@ -60,5 +65,28 @@ export class SourcingController {
   @Post('offers/:id/confirm-availability')
   async confirmAvailability(@Param('id') id: string, @Body() dto: ConfirmAvailabilityDto) {
     return this.sourcingService.confirmSupplierOfferAvailability(id, dto.isAvailable);
+  }
+
+  // --- GLO-129: Supplier Payables ---
+
+  @Post('purchase-orders/:id/payable')
+  async createPayableFromPO(@Param('id') id: string) {
+    return this.payablesService.createPayableFromPO(id);
+  }
+
+  @Patch('payables/:id/adjust')
+  async adjustPayable(
+    @Param('id') id: string,
+    @Body() dto: AdjustPayableDto
+  ) {
+    return this.payablesService.adjustPayable(id, dto);
+  }
+
+  @Patch('payables/:id/mark-paid')
+  async markPayableAsPaid(
+    @Param('id') id: string,
+    @Body() dto: MarkAsPaidDto
+  ) {
+    return this.payablesService.markAsPaid(id, dto.paymentRef);
   }
 }

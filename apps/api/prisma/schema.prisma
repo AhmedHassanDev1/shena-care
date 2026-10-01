@@ -204,6 +204,7 @@ model Supplier {
   offers         SupplierOffer[]
   ingestionJobs  IngestionJob[]
   purchaseOrders SupplierPurchaseOrder[]
+  payables       SupplierPayable[]
 
   @@map("suppliers")
   @@schema("sourcing")
@@ -261,6 +262,7 @@ model SupplierPurchaseOrder {
 
   supplier Supplier            @relation(fields: [supplierId], references: [id])
   lines    PurchaseOrderLine[]
+  payables SupplierPayable[]
 
   @@index([supplierId])
   @@map("supplier_purchase_orders")
@@ -284,6 +286,56 @@ model PurchaseOrderLine {
   @@map("purchase_order_lines")
   @@schema("sourcing")
 }
+
+enum PayableStatus {
+  open
+  ready_to_pay
+  paid
+  disputed
+  adjusted
+
+  @@schema("sourcing")
+}
+
+model SupplierPayable {
+  id              String            @id @default(uuid()) @db.Uuid
+  supplierId      String            @map("supplier_id") @db.Uuid
+  purchaseOrderId String            @map("purchase_order_id") @db.Uuid
+  amount          Decimal           @db.Decimal(10, 2)
+  currency        String            @db.VarChar(3)
+  status          PayableStatus     @default(open)
+  dueDate         DateTime?         @map("due_date")
+  paidAt          DateTime?         @map("paid_at")
+  paymentRef      String?           @map("payment_ref")
+  notes           String?
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  supplier        Supplier          @relation(fields: [supplierId], references: [id])
+  purchaseOrder   SupplierPurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  adjustments     PayableAdjustment[]
+
+  @@index([supplierId])
+  @@index([purchaseOrderId])
+  @@map("supplier_payables")
+  @@schema("sourcing")
+}
+
+model PayableAdjustment {
+  id              String          @id @default(uuid()) @db.Uuid
+  payableId       String          @map("payable_id") @db.Uuid
+  amount          Decimal         @db.Decimal(10, 2)
+  reason          String
+  actorId         String          @map("actor_id")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  payable         SupplierPayable @relation(fields: [payableId], references: [id], onDelete: Cascade)
+
+  @@index([payableId])
+  @@map("payable_adjustments")
+  @@schema("sourcing")
+}
+
 
 // ---------------------------------------------------------------------------
 // Ordering schema
@@ -343,6 +395,8 @@ model Order {
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
   items OrderItem[]
+  resolutions OrderResolution[]
+  paymentCollection PaymentCollection?
 
   @@map("orders")
   @@schema("ordering")
@@ -359,10 +413,132 @@ model OrderItem {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  resolutions OrderResolutionItem[]
 
   @@index([orderId])
   @@index([skuId])
   @@map("order_items")
+  @@schema("ordering")
+}
+
+enum OrderResolutionType {
+  cancellation
+  return
+  refund
+  replacement
+  compensation
+
+  @@schema("ordering")
+}
+
+enum OrderResolutionStatus {
+  requested
+  approved
+  rejected
+  in_transit
+  received
+  resolved
+
+  @@schema("ordering")
+}
+
+model OrderResolution {
+  id              String                @id @default(uuid()) @db.Uuid
+  orderId         String                @map("order_id") @db.Uuid
+  type            OrderResolutionType
+  status          OrderResolutionStatus @default(requested)
+  reasonCode      String?               @map("reason_code")
+  notes           String?
+  resolutionDetails Json?               @map("resolution_details")
+  actorId         String                @map("actor_id")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  order           Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items           OrderResolutionItem[]
+  events          OrderResolutionEvent[]
+
+  @@index([orderId])
+  @@map("order_resolutions")
+  @@schema("ordering")
+}
+
+model OrderResolutionItem {
+  id              String          @id @default(uuid()) @db.Uuid
+  resolutionId    String          @map("resolution_id") @db.Uuid
+  orderItemId     String          @map("order_item_id") @db.Uuid
+  quantity        Int
+  
+  resolution      OrderResolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+  orderItem       OrderItem       @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@unique([resolutionId, orderItemId])
+  @@map("order_resolution_items")
+  @@schema("ordering")
+}
+
+model OrderResolutionEvent {
+  id              String          @id @default(uuid()) @db.Uuid
+  resolutionId    String          @map("resolution_id") @db.Uuid
+  status          OrderResolutionStatus
+  actorId         String          @map("actor_id")
+  notes           String?
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  resolution      OrderResolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+
+  @@index([resolutionId])
+  @@map("order_resolution_events")
+  @@schema("ordering")
+}
+
+enum SettlementStatus {
+  expected
+  collected
+  settled
+  short
+  over
+  disputed
+
+  @@schema("ordering")
+}
+
+model PaymentCollection {
+  id                String            @id @default(uuid()) @db.Uuid
+  orderId           String            @unique @map("order_id") @db.Uuid
+  expectedAmount    Decimal           @map("expected_amount") @db.Decimal(10, 2)
+  collectedAmount   Decimal?          @map("collected_amount") @db.Decimal(10, 2)
+  currency          String            @db.VarChar(3)
+  status            SettlementStatus  @default(expected)
+  courierId         String?           @map("courier_id")
+  settlementBatchId String?           @map("settlement_batch_id") @db.Uuid
+  notes             String?
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  order           Order                   @relation(fields: [orderId], references: [id])
+  settlementBatch CourierSettlementBatch? @relation(fields: [settlementBatchId], references: [id])
+
+  @@map("payment_collections")
+  @@schema("ordering")
+}
+
+model CourierSettlementBatch {
+  id              String              @id @default(uuid()) @db.Uuid
+  reference       String              @unique
+  courierId       String              @map("courier_id")
+  totalExpected   Decimal             @map("total_expected") @db.Decimal(10, 2)
+  totalCollected  Decimal             @map("total_collected") @db.Decimal(10, 2)
+  fees            Decimal             @default(0) @db.Decimal(10, 2)
+  netSettled      Decimal             @map("net_settled") @db.Decimal(10, 2)
+  currency        String              @db.VarChar(3)
+  settledAt       DateTime            @default(now()) @map("settled_at")
+  actorId         String              @map("actor_id")
+  notes           String?
+  
+  collections     PaymentCollection[]
+
+  @@map("courier_settlement_batches")
   @@schema("ordering")
 }
 
