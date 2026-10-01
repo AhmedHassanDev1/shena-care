@@ -7,6 +7,10 @@ export class AdjustPayableDto {
   @IsString()
   @IsNotEmpty()
   reason: string;
+
+  @IsString()
+  @IsNotEmpty()
+  actorId: string;
 }
 
 export class MarkAsPaidDto {
