@@ -47,9 +47,11 @@ Frontend Integration & Operational Validation
 - [x] Typecheck passes
 
 ## In Progress
-- [ ] GLO-134: Harden Uploads, External Fetching & Untrusted Inputs
+- [ ] Next Issue TBD
 
 ## Completed
+- [x] GLO-136: Run Final Security Threat Model + Abuse-Case Release Gate
+- [x] GLO-134: Harden Uploads, External Fetching & Untrusted Inputs
 - [x] GLO-135: Implement Privacy, Secrets & Production Security Baseline
 - [x] GLO-133: Harden Authentication, Sessions & RBAC
 - [x] Build verification (web workspace built successfully)
