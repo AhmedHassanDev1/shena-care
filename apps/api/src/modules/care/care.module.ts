@@ -8,11 +8,12 @@ import { MessagingModule } from '../messaging/messaging.module';
 import { CareReminderOrchestrator } from './services/reminder-orchestrator.service';
 import { ReplenishmentEstimatorService } from './services/replenishment-estimator.service';
 import { AdaptiveCheckinService } from './services/adaptive-checkin.service';
+import { LifecycleTriggerService } from './services/lifecycle-trigger.service';
 
 @Module({
   imports: [CatalogModule, MessagingModule],
   controllers: [CareController],
-  providers: [CareService, CareProfileService, CareReminderOrchestrator, ReplenishmentEstimatorService, AdaptiveCheckinService],
-  exports: [CareService, CareProfileService, CareReminderOrchestrator, ReplenishmentEstimatorService, AdaptiveCheckinService],
+  providers: [CareService, CareProfileService, CareReminderOrchestrator, ReplenishmentEstimatorService, AdaptiveCheckinService, LifecycleTriggerService],
+  exports: [CareService, CareProfileService, CareReminderOrchestrator, ReplenishmentEstimatorService, AdaptiveCheckinService, LifecycleTriggerService],
 })
 export class CareModule {}
