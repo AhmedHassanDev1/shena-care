@@ -50,6 +50,7 @@ Frontend Integration & Operational Validation
 - [ ] Next Issue TBD
 
 ## Completed
+- [x] GLO-160: Complete Routine Builder high-fi — Mobile + Desktop
 - [x] GLO-161: Complete Cart high-fi — Mobile + Desktop
 - [x] GLO-162: Complete Guest Checkout — Delivery + Review
 - [x] GLO-165: Design launch-blocking edge states and recovery paths
