@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { OrderPlacedEvent } from '../../../../platform/events/integration.events';
+import { OrderPlacedEvent } from '../../../platform/events/integration.events';
 import { PurchaseOrderService } from './purchase-order.service';
 
 @Injectable()
@@ -17,11 +17,11 @@ export class SourcingEventListener {
       for (const item of event.items) {
         try {
           await this.purchaseOrderService.autoSourceDemand(item.skuId, item.quantity);
-        } catch (itemError) {
+        } catch (itemError: any) {
           this.logger.warn(`Failed to auto-source item ${item.skuId} for order ${event.orderId}: ${itemError.message}`);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to process sourcing for order ${event.orderId}: ${error.message}`);
     }
   }

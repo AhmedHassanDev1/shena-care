@@ -63,7 +63,7 @@ export class FulfillmentService {
     });
   }
 
-  async createShipmentFromOrder(event: import('../../../../platform/events/integration.events').OrderPlacedEvent): Promise<ShipmentDetail> {
+  async createShipmentFromOrder(event: import('../../../platform/events/integration.events').OrderPlacedEvent): Promise<ShipmentDetail> {
     const location = await this.prisma.fulfillmentLocation.findFirst({
       where: { isActive: true }
     });
