@@ -50,6 +50,7 @@ Frontend Integration & Operational Validation
 - [ ] Next Issue TBD
 
 ## Completed
+- [x] GLO-172: Build Post-Purchase Lifecycle & Retention v1 (Epic)
 - [x] GLO-173: Implement Customer Lifecycle State + Trigger Engine
 - [x] GLO-174: Upgrade Routine Follow-up to Adaptive Check-ins v1
 - [x] GLO-175: Implement Replenishment Estimator + Safe Reorder Suggestions
