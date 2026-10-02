@@ -29,29 +29,40 @@ Frontend Integration & Operational Validation
 - `POST /ordering/checkout` - CheckoutDto: {customerName, customerPhone, shippingAddress, idempotencyKey?}
 - `GET /ordering/orders/:idOrOrderNumber` - get order details
 
-## In Progress
-- [ ] Create typed API client with auth handling
-- [ ] Implement auth pages (register/login)
-- [ ] Add cart functionality to product detail page
-- [ ] Create cart page
-- [ ] Create checkout page
-- [ ] Create order confirmation page
-- [ ] Update header with auth state and cart link
-
 ## Completed
 - [x] Backend API discovery and contract mapping
 - [x] Existing frontend structure inspection
+- [x] Created typed API client with auth handling (`lib/api-client.ts`)
+- [x] Created auth service (`lib/auth.ts`)
+- [x] Created cart service (`lib/cart.ts`)
+- [x] Created orders service (`lib/orders.ts`)
+- [x] Implemented register page (`/auth/register`)
+- [x] Implemented login page (`/auth/login`)
+- [x] Updated Header component with auth state and cart link
+- [x] Wired up Add to Cart functionality in ProductDetail
+- [x] Created cart page (`/cart`) with quantity controls
+- [x] Created checkout page (`/checkout`) with COD flow
+- [x] Created order confirmation page (`/orders/[id]`)
+- [x] Fixed TypeScript/ESLint errors (removed explicit any types)
+- [x] Typecheck passes
+
+## In Progress
+- [ ] Build verification
+- [ ] Manual end-to-end flow testing
 
 ## Blocked
 None
 
 ## Discovered Backend Gaps
-None yet
+None - all required APIs exist and work as expected
 
 ## Next Steps
-1. Create API client with TypeScript types
-2. Implement authentication flow
-3. Wire up Add to Cart functionality
-4. Build cart page
-5. Build checkout flow
-6. Test end-to-end customer journey
+1. Complete build verification
+2. Test end-to-end customer journey:
+   - Register/login
+   - Browse products
+   - Add to cart
+   - Checkout with COD
+   - View order confirmation
+3. Move to Hub/Operations Slice 1
+
