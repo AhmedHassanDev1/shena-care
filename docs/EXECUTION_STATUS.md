@@ -56,6 +56,7 @@ Frontend Integration & Operational Validation
 - [x] GLO-175: Implement Replenishment Estimator + Safe Reorder Suggestions
 - [x] GLO-176: Implement Smart Reminder Orchestration + Suppression Rules
 - [x] GLO-177: Build Customer Follow-up + Reorder Experience
+- [x] GLO-178: Implement Retention Metrics + Lifecycle Experimentation v1
 - [x] GLO-179: Implement Omnichannel Conversation Router + WhatsApp-first Messaging
 - [x] GLO-160: Complete Routine Builder high-fi — Mobile + Desktop
 - [x] GLO-161: Complete Cart high-fi — Mobile + Desktop
