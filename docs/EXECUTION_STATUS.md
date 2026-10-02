@@ -50,6 +50,8 @@ Frontend Integration & Operational Validation
 - [ ] Next Issue TBD
 
 ## Completed
+- [x] GLO-162: Complete Guest Checkout — Delivery + Review
+- [x] GLO-165: Design launch-blocking edge states and recovery paths
 - [x] GLO-163: Complete Order Received, Tracking and Action Required flows
 - [x] GLO-126: Implement Supplier Selection Ranking + Anti-Gaming
 - [x] GLO-136: Run Final Security Threat Model + Abuse-Case Release Gate
