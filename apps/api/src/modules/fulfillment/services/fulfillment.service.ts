@@ -4,6 +4,8 @@ import { OrderingService } from '../../ordering/public';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto } from '../dto/fulfillment.dto';
 import { ShipmentStatus, PreparationSessionStatus, Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OrderDeliveredEvent } from '../../../platform/events/integration.events';
 
 export interface FulfillmentLocationDetail {
   id: string;
@@ -34,6 +36,7 @@ export class FulfillmentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orderingService: OrderingService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private isUuid(val: string): boolean {
@@ -58,6 +61,44 @@ export class FulfillmentService {
     return this.prisma.fulfillmentLocation.findMany({
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async createShipmentFromOrder(event: import('../../../../platform/events/integration.events').OrderPlacedEvent): Promise<ShipmentDetail> {
+    const location = await this.prisma.fulfillmentLocation.findFirst({
+      where: { isActive: true }
+    });
+
+    if (!location) {
+      throw new BadRequestException('No active fulfillment location available to route order.');
+    }
+
+    const existingShipment = await this.prisma.shipment.findUnique({
+      where: { orderId: event.orderId },
+    });
+
+    if (existingShipment) {
+      return existingShipment as any; // already allocated
+    }
+
+    // Update order status to packing
+    await this.orderingService.updateOrderStatus(event.orderId, 'packing');
+
+    return this.prisma.shipment.create({
+      data: {
+        orderId: event.orderId,
+        locationId: location.id,
+        status: ShipmentStatus.pending,
+        items: {
+          create: event.items.map((item: any) => ({
+            skuId: item.skuId,
+            quantity: item.quantity,
+          })),
+        },
+      },
+      include: {
+        items: true,
+      },
+    }) as unknown as ShipmentDetail;
   }
 
   async allocateShipment(dto: AllocateShipmentDto): Promise<ShipmentDetail> {
@@ -140,6 +181,19 @@ export class FulfillmentService {
     } else if (dto.status === ShipmentStatus.delivered && !shipment.deliveredAt) {
       updateData.deliveredAt = new Date();
       await this.orderingService.updateOrderStatus(shipment.orderId, 'delivered');
+      
+      const order = await this.orderingService.getOrder(shipment.orderId);
+      if (order) {
+        this.eventEmitter.emit(
+          'order.delivered',
+          new OrderDeliveredEvent(
+            shipment.orderId,
+            (order as any).customerId || 'unknown',
+            shipment.items.map(i => ({ productId: i.skuId })),
+            updateData.deliveredAt
+          )
+        );
+      }
     } else if (dto.status === ShipmentStatus.failed) {
       await this.orderingService.updateOrderStatus(shipment.orderId, 'cancelled');
     }

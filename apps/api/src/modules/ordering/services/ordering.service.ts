@@ -3,7 +3,8 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { CartService } from './cart.service';
 import { CheckoutDto } from '../dto/order.dto';
 import { OrderStatus } from '@prisma/client';
-
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OrderPlacedEvent } from '../../../platform/events/integration.events';
 export interface OrderDetail {
   id: string;
   orderNumber: string;
@@ -31,6 +32,7 @@ export class OrderingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cartService: CartService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private generateOrderNumber(): string {
@@ -101,6 +103,17 @@ export class OrderingService {
       totalAmount: order.totalAmount.toNumber(),
       itemsCount: order.items.length 
     })}`);
+
+    this.eventEmitter.emit(
+      'order.placed',
+      new OrderPlacedEvent(
+        order.id,
+        order.orderNumber,
+        order.customerId || '',
+        order.items.map(i => ({ skuId: i.skuId, quantity: i.quantity })),
+        order.shippingAddress
+      )
+    );
 
     return {
       ...order,

@@ -50,6 +50,8 @@ Frontend Integration & Operational Validation
 - [ ] Next Issue TBD
 
 ## Completed
+- [x] GLO-180: Implement Backend Cross-Domain Event Integration
+- [x] GLO-181: Build Minimal Operational Frontends (Hub, Supplier, Admin)
 - [x] GLO-172: Build Post-Purchase Lifecycle & Retention v1 (Epic)
 - [x] GLO-173: Implement Customer Lifecycle State + Trigger Engine
 - [x] GLO-174: Upgrade Routine Follow-up to Adaptive Check-ins v1
