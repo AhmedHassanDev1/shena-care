@@ -34,10 +34,10 @@ export interface Order {
 }
 
 export const orders = {
-  async checkout(data: CheckoutData): Promise<Order> {
+  async checkout(data: CheckoutData, isGuest?: boolean): Promise<Order & { guestToken?: string }> {
     const token = auth.getToken();
-    if (!token) throw new Error('Not authenticated');
-    return apiClient.post<Order>('/ordering/checkout', data, token);
+    if (!token && !isGuest) throw new Error('Not authenticated');
+    return apiClient.post<Order & { guestToken?: string }>('/ordering/checkout', data, token || undefined);
   },
 
   async getOrder(idOrOrderNumber: string, guestToken?: string): Promise<Order> {
