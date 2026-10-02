@@ -38,9 +38,11 @@ export class OutboxService implements OnModuleInit {
           this.logger.log(`Processing outbox event ${event.id} of type ${event.type}`);
           
           if (event.type === 'ORDER_SUBMITTED') {
-            this.logger.log(`[Mock Email/SMS] Order submitted for payload: ${JSON.stringify(event.payload)}`);
+            const payload = event.payload as any;
+            this.logger.log(`[Mock Email/SMS] Order submitted for order ID: ${payload?.orderId || 'unknown'}`);
           } else if (event.type === 'SUPPORT_CASE_CREATED') {
-            this.logger.log(`[Mock Admin Alert] New support case: ${JSON.stringify(event.payload)}`);
+            const payload = event.payload as any;
+            this.logger.log(`[Mock Admin Alert] New support case created with ID: ${payload?.caseId || 'unknown'}`);
           }
 
           await this.prisma.outboxEvent.update({

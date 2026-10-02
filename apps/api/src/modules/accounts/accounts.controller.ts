@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, Delete } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import { RegisterDto, LoginDto } from './dto/accounts.dto';
 import { AuthGuard } from './guards/auth.guard';
@@ -28,5 +28,17 @@ export class AccountsController {
   @UseGuards(AuthGuard)
   getMe(@CurrentUser() user: any) {
     return this.accountsService.getMe(user.id);
+  }
+
+  @Get('me/export')
+  @UseGuards(AuthGuard)
+  exportData(@CurrentUser() user: any) {
+    return this.accountsService.exportCustomerData(user.id);
+  }
+
+  @Delete('me')
+  @UseGuards(AuthGuard)
+  deleteAccount(@CurrentUser() user: any) {
+    return this.accountsService.deleteCustomerAccount(user.id);
   }
 }

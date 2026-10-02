@@ -114,4 +114,38 @@ export class AccountsService {
     
     return customer;
   }
+
+  async exportCustomerData(customerId: string) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      include: {
+        identities: true,
+        careProfile: { include: { concerns: true } },
+        orders: true,
+        supportCases: true,
+      }
+    });
+
+    if (!customer) {
+      throw new UnauthorizedException('Customer not found');
+    }
+
+    // Strip out sensitive fields (like passwordHash) from the export
+    const exportData = {
+      ...customer,
+      identities: customer.identities.map(id => ({ provider: id.provider, providerId: id.providerId }))
+    };
+
+    return exportData;
+  }
+
+  async deleteCustomerAccount(customerId: string) {
+    // For MVP, we perform a hard delete of the customer, which cascades to identities/sessions.
+    // If soft-delete is preferred, we would update a deletedAt column.
+    // Ensure all PII is scrubbed.
+    await this.prisma.customer.delete({
+      where: { id: customerId }
+    });
+    return { success: true, message: 'Account deleted successfully' };
+  }
 }
