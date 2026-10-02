@@ -42,6 +42,18 @@ export const auth = {
     return response;
   },
 
+  async sendOtp(phoneNumber: string): Promise<void> {
+    await apiClient.post('/accounts/otp/send', { phoneNumber });
+  },
+
+  async verifyOtp(phoneNumber: string, code: string): Promise<{ token: string, expiresAt: Date }> {
+    const response = await apiClient.post<{ token: string, expiresAt: Date }>('/accounts/otp/verify', { phoneNumber, code });
+    if (response.token) {
+      localStorage.setItem(TOKEN_KEY, response.token);
+    }
+    return response;
+  },
+
   async logout(): Promise<void> {
     const token = this.getToken();
     if (token) {

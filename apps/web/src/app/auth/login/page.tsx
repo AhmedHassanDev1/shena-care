@@ -6,23 +6,37 @@ import { auth } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState<1 | 2>(1);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await auth.login(formData);
-      router.push('/products');
+      await auth.sendOtp(phoneNumber);
+      setStep(2);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await auth.verifyOtp(phoneNumber, otp);
+      router.push('/account'); // redirect to account profile
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid OTP code');
     } finally {
       setLoading(false);
     }
@@ -31,45 +45,57 @@ export default function LoginPage() {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h1 className="auth-title">Welcome Back</h1>
-        <p className="auth-subtitle">Sign in to your account</p>
+        <h1 className="auth-title">{step === 1 ? 'Login / Register' : 'Verify OTP'}</h1>
+        <p className="auth-subtitle">
+          {step === 1 ? 'Enter your phone number to continue' : `Enter the 6-digit code sent to ${phoneNumber}`}
+        </p>
 
         {error && <div className="error-message">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="you@example.com"
-            />
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="Enter your password"
-            />
-          </div>
-
-          <button type="submit" className="auth-button" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <p className="auth-link">
-          Don't have an account?{' '}
-          <a href="/auth/register">Create one</a>
-        </p>
+        {step === 1 ? (
+          <form onSubmit={handleSendOtp} className="auth-form">
+            <div className="form-field">
+              <label htmlFor="phone">Phone Number</label>
+              <input
+                id="phone"
+                type="tel"
+                required
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="+201000000000"
+              />
+            </div>
+            <button type="submit" className="auth-button" disabled={loading}>
+              {loading ? 'Sending...' : 'Send OTP'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} className="auth-form">
+            <div className="form-field">
+              <label htmlFor="otp">6-digit Code</label>
+              <input
+                id="otp"
+                type="text"
+                required
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="123456"
+              />
+            </div>
+            <button type="submit" className="auth-button" disabled={loading}>
+              {loading ? 'Verifying...' : 'Verify & Continue'}
+            </button>
+            <button
+              type="button"
+              className="auth-link"
+              onClick={() => setStep(1)}
+              style={{ marginTop: '1rem', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Change Phone Number
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -69,6 +69,48 @@ export class AccountsService {
     return this.createSession(identity.customerId);
   }
 
+  async sendOtp(phoneNumber: string) {
+    // In a real MVP, we'd send an SMS here.
+    // For now, we just log it and assume the code is always '123456'.
+    console.log(`[OTP SERVICE] Sending OTP to ${phoneNumber}: 123456`);
+    return { success: true, message: 'OTP sent successfully' };
+  }
+
+  async verifyOtp(phoneNumber: string, code: string) {
+    if (code !== '123456') {
+      throw new UnauthorizedException('Invalid OTP code');
+    }
+
+    let identity = await this.prisma.identity.findUnique({
+      where: {
+        provider_providerId: {
+          provider: 'PHONE',
+          providerId: phoneNumber
+        }
+      },
+      include: { customer: true }
+    });
+
+    if (!identity) {
+      const customer = await this.prisma.customer.create({
+        data: {
+          name: 'New User',
+          email: `${phoneNumber.replace(/[^0-9]/g, '')}@placeholder.com`, // Email is required by schema
+          roles: ['CUSTOMER'],
+          identities: {
+            create: {
+              provider: 'PHONE',
+              providerId: phoneNumber,
+            }
+          }
+        }
+      });
+      return this.createSession(customer.id);
+    }
+
+    return this.createSession(identity.customerId);
+  }
+
   private async createSession(customerId: string) {
     const token = randomUUID();
     // 30 days expiration

@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, UseGuards, Req, Delete } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
-import { RegisterDto, LoginDto } from './dto/accounts.dto';
+import { RegisterDto, LoginDto, SendOtpDto, VerifyOtpDto } from './dto/accounts.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
@@ -16,6 +16,16 @@ export class AccountsController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.accountsService.login(dto);
+  }
+
+  @Post('otp/send')
+  sendOtp(@Body() dto: SendOtpDto) {
+    return this.accountsService.sendOtp(dto.phoneNumber);
+  }
+
+  @Post('otp/verify')
+  verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.accountsService.verifyOtp(dto.phoneNumber, dto.code);
   }
 
   @Post('logout')
