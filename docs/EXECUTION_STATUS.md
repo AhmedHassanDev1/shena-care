@@ -50,6 +50,7 @@ Frontend Integration & Operational Validation
 - [ ] Next Issue TBD
 
 ## Completed
+- [x] GLO-126: Implement Supplier Selection Ranking + Anti-Gaming
 - [x] GLO-136: Run Final Security Threat Model + Abuse-Case Release Gate
 - [x] GLO-134: Harden Uploads, External Fetching & Untrusted Inputs
 - [x] GLO-135: Implement Privacy, Secrets & Production Security Baseline
