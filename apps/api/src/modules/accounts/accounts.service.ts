@@ -120,9 +120,6 @@ export class AccountsService {
       where: { id: customerId },
       include: {
         identities: true,
-        careProfile: { include: { concerns: true } },
-        orders: true,
-        supportCases: true,
       }
     });
 
@@ -133,7 +130,7 @@ export class AccountsService {
     // Strip out sensitive fields (like passwordHash) from the export
     const exportData = {
       ...customer,
-      identities: customer.identities.map(id => ({ provider: id.provider, providerId: id.providerId }))
+      identities: (customer as any).identities?.map((id: any) => ({ provider: id.provider, providerId: id.providerId })) || []
     };
 
     return exportData;

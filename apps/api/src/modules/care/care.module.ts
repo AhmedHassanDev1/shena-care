@@ -4,10 +4,13 @@ import { CareProfileService } from './services/care-profile.service';
 import { CareController } from './care.controller';
 import { CatalogModule } from '../catalog/public';
 
+import { MessagingModule } from '../messaging/messaging.module';
+import { CareReminderOrchestrator } from './services/reminder-orchestrator.service';
+
 @Module({
-  imports: [CatalogModule],
+  imports: [CatalogModule, MessagingModule],
   controllers: [CareController],
-  providers: [CareService, CareProfileService],
-  exports: [CareService, CareProfileService],
+  providers: [CareService, CareProfileService, CareReminderOrchestrator],
+  exports: [CareService, CareProfileService, CareReminderOrchestrator],
 })
 export class CareModule {}
