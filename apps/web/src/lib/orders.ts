@@ -40,9 +40,19 @@ export const orders = {
     return apiClient.post<Order>('/ordering/checkout', data, token);
   },
 
-  async getOrder(idOrOrderNumber: string): Promise<Order> {
+  async getOrder(idOrOrderNumber: string, guestToken?: string): Promise<Order> {
     const token = auth.getToken();
-    if (!token) throw new Error('Not authenticated');
-    return apiClient.get<Order>(`/ordering/orders/${idOrOrderNumber}`, token);
+    
+    // For guest access, we use the guestToken in query or custom header. 
+    // Here we'll append it to the URL query string.
+    const url = guestToken 
+      ? `/ordering/orders/${idOrOrderNumber}?token=${encodeURIComponent(guestToken)}`
+      : `/ordering/orders/${idOrOrderNumber}`;
+
+    if (!token && !guestToken) {
+      throw new Error('Not authenticated');
+    }
+
+    return apiClient.get<Order>(url, token || undefined);
   },
 };
