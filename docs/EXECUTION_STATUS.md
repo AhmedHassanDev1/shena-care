@@ -50,6 +50,7 @@ Frontend Integration & Operational Validation
 - [ ] Next Issue TBD
 
 ## Completed
+- [x] GLO-174: Upgrade Routine Follow-up to Adaptive Check-ins v1
 - [x] GLO-175: Implement Replenishment Estimator + Safe Reorder Suggestions
 - [x] GLO-176: Implement Smart Reminder Orchestration + Suppression Rules
 - [x] GLO-177: Build Customer Follow-up + Reorder Experience
