@@ -37,9 +37,11 @@ export class SupportService {
     });
   }
 
-  async getCaseById(id: string) {
+  async getCaseById(id: string, customerId?: string) {
     const c = await this.prisma.supportCase.findUnique({ where: { id } });
-    if (!c) throw new NotFoundException('Support case not found');
+    if (!c || (customerId && c.customerId !== customerId)) {
+      throw new NotFoundException('Support case not found');
+    }
     return c;
   }
 

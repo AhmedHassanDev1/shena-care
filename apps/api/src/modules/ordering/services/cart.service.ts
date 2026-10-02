@@ -71,7 +71,7 @@ export class CartService {
     };
   }
 
-  async addToCart(dto: AddToCartDto): Promise<CartDetail> {
+  async addToCart(dto: AddToCartDto & { sessionId: string }): Promise<CartDetail> {
     let cart = await this.prisma.cart.findUnique({
       where: { sessionId: dto.sessionId },
     });
@@ -119,7 +119,7 @@ export class CartService {
     return this.getCart(dto.sessionId);
   }
 
-  async removeFromCart(dto: RemoveFromCartDto): Promise<CartDetail> {
+  async removeFromCart(dto: RemoveFromCartDto & { sessionId: string }): Promise<CartDetail> {
     const cart = await this.prisma.cart.findUnique({
       where: { sessionId: dto.sessionId },
     });
@@ -144,7 +144,7 @@ export class CartService {
     return this.getCart(dto.sessionId);
   }
 
-  async updateQuantity(dto: UpdateCartItemQuantityDto): Promise<CartDetail> {
+  async updateQuantity(dto: UpdateCartItemQuantityDto & { sessionId: string }): Promise<CartDetail> {
     const cart = await this.prisma.cart.findUnique({
       where: { sessionId: dto.sessionId },
     });

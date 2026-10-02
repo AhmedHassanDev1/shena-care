@@ -2,8 +2,8 @@ import { IsString, IsPhoneNumber, IsNotEmpty, IsOptional } from 'class-validator
 
 export class CheckoutDto {
   @IsString()
-  @IsNotEmpty()
-  sessionId: string;
+  @IsOptional()
+  sessionId?: string;
 
   @IsString()
   @IsNotEmpty()

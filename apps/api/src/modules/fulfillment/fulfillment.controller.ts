@@ -3,10 +3,11 @@ import { FulfillmentService } from './services/fulfillment.service';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto } from './dto/fulfillment.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
+import { PermissionsGuard, RequirePermissions } from '../../platform/auth';
 import { Roles } from '../accounts/decorators/roles.decorator';
 
 @Controller('fulfillment')
-@UseGuards(AuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 export class FulfillmentController {
   constructor(private readonly fulfillmentService: FulfillmentService) {}
 

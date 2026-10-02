@@ -3,10 +3,11 @@ import { IngestionService } from './services/ingestion.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto } from './dto/ingestion.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
+import { PermissionsGuard, RequirePermissions } from '../../platform/auth';
 import { Roles } from '../accounts/decorators/roles.decorator';
 
 @Controller('ingestion')
-@UseGuards(AuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 @Roles('ADMIN', 'HUB_OPERATOR') // Mostly backend operations
 export class IngestionController {
   constructor(private readonly ingestionService: IngestionService) {}

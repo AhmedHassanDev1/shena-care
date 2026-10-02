@@ -1,8 +1,9 @@
-import { IsString, IsInt, Min } from 'class-validator';
+import { IsString, IsInt, Min, IsOptional } from 'class-validator';
 
 export class AddToCartDto {
   @IsString()
-  sessionId: string;
+  @IsOptional()
+  sessionId?: string;
 
   @IsString()
   skuId: string;
@@ -14,7 +15,8 @@ export class AddToCartDto {
 
 export class RemoveFromCartDto {
   @IsString()
-  sessionId: string;
+  @IsOptional()
+  sessionId?: string;
 
   @IsString()
   skuId: string;
@@ -22,7 +24,8 @@ export class RemoveFromCartDto {
 
 export class UpdateCartItemQuantityDto {
   @IsString()
-  sessionId: string;
+  @IsOptional()
+  sessionId?: string;
 
   @IsString()
   skuId: string;

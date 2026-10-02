@@ -4,11 +4,12 @@ import { CareProfileService } from './services/care-profile.service';
 import { CreateConcernDto, CreateRoutineDto, CreateRoutineStepDto, CreateCustomerCareProfileDto, UpdateCustomerCareProfileDto } from './dto/care.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
+import { PermissionsGuard, RequirePermissions } from '../../platform/auth';
 import { Roles } from '../accounts/decorators/roles.decorator';
 import { CurrentUser } from '../accounts/decorators/current-user.decorator';
 
 @Controller('care')
-@UseGuards(AuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 export class CareController {
   constructor(
     private readonly careService: CareService,
@@ -17,6 +18,7 @@ export class CareController {
 
   @Post('concerns')
   @Roles('ADMIN')
+  @RequirePermissions('catalog.manage')
   async createConcern(@Body() dto: CreateConcernDto) {
     return this.careService.createConcern(dto);
   }
@@ -28,6 +30,7 @@ export class CareController {
 
   @Post('routines')
   @Roles('ADMIN')
+  @RequirePermissions('catalog.manage')
   async createRoutine(@Body() dto: CreateRoutineDto) {
     return this.careService.createRoutine(dto);
   }
@@ -39,6 +42,7 @@ export class CareController {
 
   @Post('routines/:id/steps')
   @Roles('ADMIN')
+  @RequirePermissions('catalog.manage')
   async addRoutineStep(@Param('id') id: string, @Body() dto: CreateRoutineStepDto) {
     return this.careService.addRoutineStep(id, dto);
   }

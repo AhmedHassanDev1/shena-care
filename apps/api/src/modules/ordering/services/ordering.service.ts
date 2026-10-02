@@ -39,7 +39,7 @@ export class OrderingService {
     return `ORD-${timestamp}-${random}`;
   }
 
-  async checkout(dto: CheckoutDto): Promise<OrderDetail> {
+  async checkout(dto: CheckoutDto & { sessionId: string }): Promise<OrderDetail> {
     const cart = await this.cartService.getCart(dto.sessionId);
 
     if (cart.items.length === 0) {

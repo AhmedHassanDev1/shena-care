@@ -47,8 +47,9 @@ Frontend Integration & Operational Validation
 - [x] Typecheck passes
 
 ## In Progress
-- [ ] Build verification
-- [ ] Manual end-to-end flow testing
+- [x] Build verification (web workspace built successfully)
+- [x] Manual end-to-end flow testing (API validated with script, storefront flow works)
+- [x] GLO-133: Harden Authentication, Sessions & RBAC (PermissionsGuard, Rate Limiting, Object-Level Auth)
 
 ## Blocked
 None

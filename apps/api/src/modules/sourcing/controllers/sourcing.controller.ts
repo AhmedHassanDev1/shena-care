@@ -7,6 +7,7 @@ import { IsBoolean, IsNotEmpty } from 'class-validator';
 import { PayablesService } from '../services/payables.service';
 import { AuthGuard } from '../../accounts/guards/auth.guard';
 import { RolesGuard } from '../../accounts/guards/roles.guard';
+import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
 import { Roles } from '../../accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../accounts/decorators/current-user.decorator';
 
@@ -17,7 +18,7 @@ export class ConfirmAvailabilityDto {
 }
 
 @Controller('sourcing')
-@UseGuards(AuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 export class SourcingController {
   constructor(
     private readonly sourcingService: SourcingService,
