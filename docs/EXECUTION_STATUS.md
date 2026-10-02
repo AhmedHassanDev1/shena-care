@@ -47,9 +47,13 @@ Frontend Integration & Operational Validation
 - [x] Typecheck passes
 
 ## In Progress
+- [ ] GLO-134: Harden Uploads, External Fetching & Untrusted Inputs
+
+## Completed
+- [x] GLO-135: Implement Privacy, Secrets & Production Security Baseline
+- [x] GLO-133: Harden Authentication, Sessions & RBAC
 - [x] Build verification (web workspace built successfully)
-- [x] Manual end-to-end flow testing (API validated with script, storefront flow works)
-- [x] GLO-133: Harden Authentication, Sessions & RBAC (PermissionsGuard, Rate Limiting, Object-Level Auth)
+- [x] Manual end-to-end flow testing (API validated with script, storefront flow works) (PermissionsGuard, Rate Limiting, Object-Level Auth)
 
 ## Blocked
 None
