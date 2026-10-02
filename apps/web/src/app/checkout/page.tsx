@@ -39,7 +39,7 @@ export default function CheckoutPage() {
       // In a real app, cart could be synced from local storage for guests
       const data = await cartApi.getCart().catch(() => {
         // Mock fallback for guests without server cart
-        return { items: [], total: 0 } as Cart;
+        return { items: [], total: 0, itemCount: 0, sessionId: '' } as Cart;
       });
       
       if (data.items.length === 0 && !isGuest) {

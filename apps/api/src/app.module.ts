@@ -16,6 +16,8 @@ import { OperationsModule } from './modules/operations/operations.module';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { RequestIdMiddleware } from './platform/logger/request-id.middleware';
 
+import { MessagingModule } from './modules/messaging/messaging.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -35,6 +37,7 @@ import { RequestIdMiddleware } from './platform/logger/request-id.middleware';
     GuidanceModule,
     AccountsModule,
     OperationsModule,
+    MessagingModule,
   ],
 })
 export class AppModule implements NestModule {

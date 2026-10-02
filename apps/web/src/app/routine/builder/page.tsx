@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 type Step = 'category' | 'goal' | 'type' | 'constraints' | 'budget' | 'preview';
 
@@ -16,10 +15,7 @@ type RoutineState = {
 const STEPS: Step[] = ['category', 'goal', 'type', 'constraints', 'budget', 'preview'];
 
 export default function RoutineBuilderPage() {
-  const router = useRouter();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   
   const [state, setState] = useState<RoutineState>({
     category: '',
@@ -43,7 +39,7 @@ export default function RoutineBuilderPage() {
     }
   };
 
-  const setField = (field: keyof RoutineState, value: any) => {
+  const setField = (field: keyof RoutineState, value: string) => {
     setState(s => ({ ...s, [field]: value }));
   };
 
