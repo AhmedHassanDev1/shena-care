@@ -50,6 +50,7 @@ Frontend Integration & Operational Validation
 - [ ] Next Issue TBD
 
 ## Completed
+- [x] GLO-177: Build Customer Follow-up + Reorder Experience
 - [x] GLO-179: Implement Omnichannel Conversation Router + WhatsApp-first Messaging
 - [x] GLO-160: Complete Routine Builder high-fi — Mobile + Desktop
 - [x] GLO-161: Complete Cart high-fi — Mobile + Desktop
