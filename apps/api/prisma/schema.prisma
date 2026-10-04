@@ -223,11 +223,116 @@ model SupplierOffer {
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  sourceAllocations SourceAllocation[]
 
   @@unique([supplierId, skuId])
   @@index([supplierId])
   @@index([skuId])
   @@map("supplier_offers")
+  @@schema("sourcing")
+}
+
+enum SupplyPlanStatus {
+  CONFIRMING
+  COVERED
+  PARTIALLY_UNAVAILABLE
+  UNAVAILABLE
+
+  @@schema("sourcing")
+}
+
+enum SourceConfirmationResult {
+  pending
+  confirmed_full
+  confirmed_partial
+  unavailable
+  rejected
+  price_changed
+
+  @@schema("sourcing")
+}
+
+model SupplyRequest {
+  id        String @id @default(uuid()) @db.Uuid
+  orderId   String @unique @map("order_id") @db.Uuid
+  status    SupplyPlanStatus @default(CONFIRMING)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  requirements SupplyRequirement[]
+  events SupplyPlanEvent[]
+
+  @@map("supply_requests")
+  @@schema("sourcing")
+}
+
+model SupplyRequirement {
+  id String @id @default(uuid()) @db.Uuid
+  supplyRequestId String @map("supply_request_id") @db.Uuid
+  orderItemId String @unique @map("order_item_id") @db.Uuid
+  skuId String @map("sku_id") @db.Uuid
+  requiredQuantity Int @map("required_quantity")
+  orderSnapshotRef String @map("order_snapshot_ref") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  supplyRequest SupplyRequest @relation(fields: [supplyRequestId], references: [id], onDelete: Cascade)
+  allocations SourceAllocation[]
+  actionRequirement AvailabilityActionRequirement?
+
+  @@index([supplyRequestId])
+  @@map("supply_requirements")
+  @@schema("sourcing")
+}
+
+model SourceAllocation {
+  id String @id @default(uuid()) @db.Uuid
+  requirementId String @map("requirement_id") @db.Uuid
+  supplierOfferId String @map("supplier_offer_id") @db.Uuid
+  requestedQuantity Int @map("requested_quantity")
+  allocatedQuantity Int @map("allocated_quantity")
+  confirmedQuantity Int @default(0) @map("confirmed_quantity")
+  selectedCost Decimal @map("selected_cost") @db.Decimal(10, 2)
+  selectedCurrency String @map("selected_currency") @db.VarChar(3)
+  rankingDecisionId String @map("ranking_decision_id") @db.Uuid
+  result SourceConfirmationResult @default(pending)
+  reportedResult SourceConfirmationResult? @map("reported_result")
+  reportedQuantity Int? @map("reported_quantity")
+  selectedAt DateTime @default(now()) @map("selected_at")
+  confirmedAt DateTime? @map("confirmed_at")
+  evidenceRef String? @map("evidence_ref") @db.VarChar(255)
+
+  requirement SupplyRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  supplierOffer SupplierOffer @relation(fields: [supplierOfferId], references: [id])
+
+  @@unique([requirementId, supplierOfferId])
+  @@index([requirementId])
+  @@map("source_allocations")
+  @@schema("sourcing")
+}
+
+model AvailabilityActionRequirement {
+  id String @id @default(uuid()) @db.Uuid
+  requirementId String @unique @map("requirement_id") @db.Uuid
+  category String @db.VarChar(40)
+  unresolvedQuantity Int @map("unresolved_quantity")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  requirement SupplyRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@map("availability_action_requirements")
+  @@schema("sourcing")
+}
+
+model SupplyPlanEvent {
+  id String @id @default(uuid()) @db.Uuid
+  supplyRequestId String @map("supply_request_id") @db.Uuid
+  status SupplyPlanStatus
+  createdAt DateTime @default(now()) @map("created_at")
+
+  supplyRequest SupplyRequest @relation(fields: [supplyRequestId], references: [id], onDelete: Cascade)
+
+  @@index([supplyRequestId, createdAt])
+  @@map("supply_plan_events")
   @@schema("sourcing")
 }
 
@@ -341,24 +446,34 @@ model PayableAdjustment {
 // ---------------------------------------------------------------------------
 
 model Cart {
-  id        String   @id @default(uuid()) @db.Uuid
-  sessionId String   @unique @map("session_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @db.Uuid
+  // Exactly one owner: an authenticated customer, or an anonymous guest identified by an
+  // opaque server-issued token (only its SHA-256 hash is stored; no PII).
+  customerId     String?  @unique @map("customer_id") @db.Uuid
+  guestTokenHash String?  @unique @map("guest_token_hash")
+  revision       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   items CartItem[]
+  checkoutQuotes CheckoutQuote[]
 
   @@map("carts")
   @@schema("ordering")
 }
 
 model CartItem {
-  id        String   @id @default(uuid()) @db.Uuid
-  cartId    String   @map("cart_id") @db.Uuid
-  skuId     String   @map("sku_id") @db.Uuid
-  quantity  Int
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  cartId          String   @map("cart_id") @db.Uuid
+  skuId           String   @map("sku_id") @db.Uuid
+  quantity        Int
+  // Transparency only: the price the customer saw when adding. Never pricing authority.
+  priceAtAdd      Decimal? @map("price_at_add") @db.Decimal(10, 2)
+  priceObservedAt DateTime? @map("price_observed_at")
+  // Lightweight provenance from a trusted flow (PDP | ROUTINE | REORDER). No lifecycle coupling.
+  sourceType      String?  @map("source_type")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
@@ -366,6 +481,24 @@ model CartItem {
   @@index([cartId])
   @@index([skuId])
   @@map("cart_items")
+  @@schema("ordering")
+}
+
+model CheckoutQuote {
+  id         String    @id @default(uuid()) @db.Uuid
+  cartId     String    @map("cart_id") @db.Uuid
+  revision   Int
+  snapshot   Json
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  orderId    String?   @unique @map("order_id") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  cart  Cart   @relation(fields: [cartId], references: [id], onDelete: Restrict)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([cartId, revision])
+  @@map("checkout_quotes")
   @@schema("ordering")
 }
 
@@ -386,19 +519,50 @@ model Order {
   customerId      String?     @map("customer_id")
   customerName    String      @map("customer_name")
   customerPhone   String      @map("customer_phone")
+  governorate     String?
+  area            String?
   shippingAddress String      @map("shipping_address")
+  notes           String?
+  latitude        Float?
+  longitude       Float?
+  locationSource  String?     @map("location_source")
   totalAmount     Decimal     @map("total_amount") @db.Decimal(10, 2)
+  shippingFee     Decimal     @default(0) @map("shipping_fee") @db.Decimal(10, 2)
   currency        String      @db.VarChar(3)
   status          OrderStatus @default(placed)
+  idempotencyKey  String?     @unique @map("idempotency_key")
+  submissionHash  String?     @map("submission_hash")
+  subtotal        Decimal?    @db.Decimal(10, 2)
+  codAmount       Decimal?    @map("cod_amount") @db.Decimal(10, 2)
+  deliveryPromise String?     @map("delivery_promise")
+  availabilityCertainty String? @map("availability_certainty")
+  guestAccessTokenHash String? @unique @map("guest_access_token_hash")
+  guestAccessExpiresAt DateTime? @map("guest_access_expires_at")
+  guestAccessRevokedAt DateTime? @map("guest_access_revoked_at")
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
   items             OrderItem[]
+  statusEvents      OrderStatusEvent[]
+  checkoutQuote     CheckoutQuote?
   resolutions       OrderResolution[]
   paymentCollection PaymentCollection?
   refundTransactions RefundTransaction[]
 
   @@map("orders")
+  @@schema("ordering")
+}
+
+model OrderStatusEvent {
+  id        String      @id @default(uuid()) @db.Uuid
+  orderId   String      @map("order_id") @db.Uuid
+  status    OrderStatus
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_events")
   @@schema("ordering")
 }
 
@@ -408,6 +572,12 @@ model OrderItem {
   skuId     String   @map("sku_id") @db.Uuid
   quantity  Int
   price     Decimal  @db.Decimal(10, 2)
+  productId String?  @map("product_id") @db.Uuid
+  productName String? @map("product_name")
+  skuCode   String?  @map("sku_code")
+  variantName String? @map("variant_name")
+  discountAmount Decimal? @map("discount_amount") @db.Decimal(10, 2)
+  lineTotal Decimal? @map("line_total") @db.Decimal(10, 2)
   currency  String   @db.VarChar(3)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1084,6 +1254,25 @@ model Session {
   @@index([customerId])
   @@index([token])
   @@map("sessions")
+  @@schema("accounts")
+}
+
+model OtpChallenge {
+  id          String   @id @default(uuid()) @db.Uuid
+  phoneNumber String   @map("phone_number")
+  code        String
+  purpose     String   @default("LOGIN")
+  expiresAt   DateTime @map("expires_at")
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(3) @map("max_attempts")
+  isUsed      Boolean  @default(false) @map("is_used")
+  isRevoked     Boolean  @default(false) @map("is_revoked")
+  pendingIntent String?  @map("pending_intent") // Stores returnTo or action intent
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([phoneNumber])
+  @@map("otp_challenges")
   @@schema("accounts")
 }
 

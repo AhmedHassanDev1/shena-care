@@ -225,6 +225,7 @@ ProductViewService.getProductViews(filters?)
 See [docs/architecture/](docs/architecture/) for Architecture Decision Records (ADRs).
 
 ### Key Documentation
+- [Customer order tracking OpenAPI](apps/api/openapi/order-tracking.yaml) - Secure read and guest tracking contract
 - [Linear and Stitch MCP connections](docs/project/MCP_INTEGRATIONS.md) - Codex project setup and verification
 - [ADR Index](docs/architecture/README.md) - All architecture decisions
 - [ER Model](docs/architecture/ER_MODEL.md) - Complete data model

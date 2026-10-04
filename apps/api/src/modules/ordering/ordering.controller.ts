@@ -1,8 +1,8 @@
-import { Controller, Post, Body, Get, Param, Delete, UseGuards, ForbiddenException, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Patch } from '@nestjs/common';
 import { OrderingService } from './services/ordering.service';
 import { CartService } from './services/cart.service';
-import { AddToCartDto, RemoveFromCartDto, UpdateCartItemQuantityDto } from './dto/cart.dto';
-import { CheckoutDto } from './dto/order.dto';
+import { OrderTrackingService } from './services/order-tracking.service';
+import { OrderLookupParamsDto } from './dto/order-tracking.dto';
 import { CreateResolutionDto, UpdateResolutionStatusDto, CreateSettlementBatchDto } from './dto/reconciliation.dto';
 import { ReconciliationService } from './services/reconciliation.service';
 import { AuthGuard } from '../accounts/guards/auth.guard';
@@ -18,54 +18,19 @@ export class OrderingController {
     private readonly orderingService: OrderingService,
     private readonly cartService: CartService,
     private readonly reconciliationService: ReconciliationService,
+    private readonly orderTrackingService: OrderTrackingService,
   ) {}
 
-  @Get('cart')
-  async getCart(@CurrentUser() customer: any) {
-    return this.cartService.getCart(customer.id);
-  }
 
-  @Post('cart/add')
-  async addToCart(@CurrentUser() customer: any, @Body() dto: AddToCartDto) {
-    const payload: AddToCartDto & { sessionId: string } = { ...dto, sessionId: customer.id };
-    return this.cartService.addToCart(payload);
-  }
-
-  @Post('cart/remove')
-  async removeFromCart(@CurrentUser() customer: any, @Body() dto: RemoveFromCartDto) {
-    const payload: RemoveFromCartDto & { sessionId: string } = { ...dto, sessionId: customer.id };
-    return this.cartService.removeFromCart(payload);
-  }
-
-  @Patch('cart/quantity')
-  async updateQuantity(@CurrentUser() customer: any, @Body() dto: UpdateCartItemQuantityDto) {
-    const payload: UpdateCartItemQuantityDto & { sessionId: string } = { ...dto, sessionId: customer.id };
-    return this.cartService.updateQuantity(payload);
-  }
-
-  @Delete('cart')
-  async clearCart(@CurrentUser() customer: any) {
-    return this.cartService.clearCart(customer.id);
-  }
-
-  @Post('checkout')
-  async checkout(@CurrentUser() customer: any, @Body() dto: CheckoutDto) {
-    if (dto.sessionId && dto.sessionId !== customer.id) {
-      throw new ForbiddenException('Cannot checkout another customer cart');
-    }
-    const payload: CheckoutDto & { sessionId: string } = {
-      ...dto,
-      sessionId: customer.id,
-    };
-    return this.orderingService.checkout(payload);
-  }
 
   @Get('orders/:idOrOrderNumber')
-  async getOrder(@CurrentUser() user: any, @Param('idOrOrderNumber') id: string) {
-    // Determine if the user is an internal operator (e.g. Admin or Hub Operator) who has order.read permission
-    // For MVP, we check if they have the 'ADMIN' or 'HUB_OPERATOR' roles
-    const isInternal = user.roles?.some((r: string) => ['ADMIN', 'HUB_OPERATOR'].includes(r));
-    return this.orderingService.getOrder(id, isInternal ? undefined : user.id);
+  async getOrder(@CurrentUser() user: any, @Param() params: OrderLookupParamsDto) {
+    return this.orderTrackingService.forCustomer(params.idOrOrderNumber, user.id);
+  }
+
+  @Get('orders/:idOrOrderNumber/tracking')
+  async trackOrder(@CurrentUser() user: any, @Param() params: OrderLookupParamsDto) {
+    return this.orderTrackingService.forCustomer(params.idOrOrderNumber, user.id);
   }
 
   // --- GLO-127: Order Resolutions ---

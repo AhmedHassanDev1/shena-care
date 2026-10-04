@@ -86,6 +86,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     expect(regRes.status).toBe(201);
 
     authToken = `Bearer ${regRes.body.token}`;
+    await prisma.customer.update({ where: { email }, data: { roles: ['ADMIN'] } });
 
     // Get customer ID — required by AddToCartDto (sessionId field)
     const meRes = await request(app.getHttpServer())
@@ -96,7 +97,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     // ── Create fulfillment location ──────────────────────────────────────────
     const locRes = await request(app.getHttpServer())
-      .post('/fulfillment/locations')
+      .post('/fulfillment/locations').set('Authorization', authToken)
       .send({ name: `Hub-${Date.now()}`, address: '1 Warehouse St' })
       .expect(201);
     locationId = locRes.body.id;
@@ -105,8 +106,11 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     await request(app.getHttpServer())
       .post('/ordering/cart/add')
       .set('Authorization', authToken)
-      .send({ sessionId: customerId, skuId, quantity: 2 })
+      .send({ skuId, quantity: 2 })
       .expect(201);
+
+    const quote1 = await request(app.getHttpServer()).post('/ordering/checkout/quote')
+      .set('Authorization', authToken).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
 
     const checkoutRes = await request(app.getHttpServer())
       .post('/ordering/checkout')
@@ -116,6 +120,11 @@ describe('Fulfillment Lifecycle (e2e)', () => {
         customerName: 'Fulfill Tester',
         customerPhone: '+201001234567',
         shippingAddress: '10 Test Street, Cairo',
+        governorate: 'Cairo',
+        area: 'Maadi',
+        quoteVersion: quote1.body.quoteVersion,
+        cartRevision: quote1.body.revision,
+        idempotencyKey: `fulfillment-1-${Date.now()}`,
       })
       .expect(201);
 
@@ -124,7 +133,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     // allocateShipment checks: status must be 'placed' or 'confirmed'
     // 'placed' is what checkout produces — that satisfies the guard already.
     const allocRes = await request(app.getHttpServer())
-      .post('/fulfillment/shipments/allocate')
+      .post('/fulfillment/shipments/allocate').set('Authorization', authToken)
       .send({ orderId, locationId })
       .expect(201);
 
@@ -134,8 +143,11 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     await request(app.getHttpServer())
       .post('/ordering/cart/add')
       .set('Authorization', authToken)
-      .send({ sessionId: customerId, skuId, quantity: 1 })
+      .send({ skuId, quantity: 1 })
       .expect(201);
+
+    const quote2 = await request(app.getHttpServer()).post('/ordering/checkout/quote')
+      .set('Authorization', authToken).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
 
     const co2 = await request(app.getHttpServer())
       .post('/ordering/checkout')
@@ -145,11 +157,16 @@ describe('Fulfillment Lifecycle (e2e)', () => {
         customerName: 'Fulfill Tester',
         customerPhone: '+201001234567',
         shippingAddress: '10 Test Street, Cairo',
+        governorate: 'Cairo',
+        area: 'Maadi',
+        quoteVersion: quote2.body.quoteVersion,
+        cartRevision: quote2.body.revision,
+        idempotencyKey: `fulfillment-2-${Date.now()}`,
       })
       .expect(201);
 
     const alloc2 = await request(app.getHttpServer())
-      .post('/fulfillment/shipments/allocate')
+      .post('/fulfillment/shipments/allocate').set('Authorization', authToken)
       .send({ orderId: co2.body.id, locationId })
       .expect(201);
 
@@ -167,14 +184,14 @@ describe('Fulfillment Lifecycle (e2e)', () => {
   describe('GLO-150: Order Preparation', () => {
     it('should reject label generation while in pending status (pre-check)', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/shipments/${shipmentId}/label`)
+        .post(`/fulfillment/shipments/${shipmentId}/label`).set('Authorization', authToken)
         .expect(400);
       expect(res.body.message).toMatch(/Cannot generate label for shipment in status/);
     });
 
     it('should start a preparation session', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/shipments/${shipmentId}/preparation`)
+        .post(`/fulfillment/shipments/${shipmentId}/preparation`).set('Authorization', authToken)
         .send({ operatorId: 'op-1' })
         .expect(201);
 
@@ -189,10 +206,10 @@ describe('Fulfillment Lifecycle (e2e)', () => {
       // The updateMany guard prevents creating a duplicate session.
       const [r1, r2] = await Promise.all([
         request(app.getHttpServer())
-          .post(`/fulfillment/shipments/${shipmentId}/preparation`)
+          .post(`/fulfillment/shipments/${shipmentId}/preparation`).set('Authorization', authToken)
           .send({ operatorId: 'op-1' }),
         request(app.getHttpServer())
-          .post(`/fulfillment/shipments/${shipmentId}/preparation`)
+          .post(`/fulfillment/shipments/${shipmentId}/preparation`).set('Authorization', authToken)
           .send({ operatorId: 'op-2' }),
       ]);
 
@@ -217,7 +234,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should accept a valid barcode scan (isSuccessful=true)', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`)
+        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`).set('Authorization', authToken)
         .send({ barcodeScanned: skuCode })
         .expect(201);
 
@@ -227,7 +244,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should record wrong SKU scan as unsuccessful (WRONG_ITEM)', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`)
+        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`).set('Authorization', authToken)
         .send({ barcodeScanned: 'UNKNOWN-BARCODE-XYZ' })
         .expect(201);
 
@@ -238,7 +255,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     it('should reject completion when not all items are scanned', async () => {
       // Only 1 of 2 units scanned so far
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/preparation-sessions/${sessionId}/complete`)
+        .post(`/fulfillment/preparation-sessions/${sessionId}/complete`).set('Authorization', authToken)
         .expect(400);
 
       expect(res.body.message).toMatch(/Cannot complete preparation/);
@@ -246,7 +263,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should record the second valid scan (completing quantity=2)', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`)
+        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`).set('Authorization', authToken)
         .send({ barcodeScanned: skuCode })
         .expect(201);
 
@@ -256,7 +273,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     it('should record excess scan as unsuccessful (EXCESS_QUANTITY)', async () => {
       // Third scan of same item — quantity is 2, already scanned 2 successfully
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`)
+        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`).set('Authorization', authToken)
         .send({ barcodeScanned: skuCode })
         .expect(201);
 
@@ -266,7 +283,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should complete preparation when exactly all items are scanned', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/preparation-sessions/${sessionId}/complete`)
+        .post(`/fulfillment/preparation-sessions/${sessionId}/complete`).set('Authorization', authToken)
         .expect(201);
 
       expect(res.body.success).toBe(true);
@@ -274,7 +291,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should reject scanning after session is completed', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`)
+        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`).set('Authorization', authToken)
         .send({ barcodeScanned: skuCode })
         .expect(400);
 
@@ -283,7 +300,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should reject repeated completion of the same session', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/preparation-sessions/${sessionId}/complete`)
+        .post(`/fulfillment/preparation-sessions/${sessionId}/complete`).set('Authorization', authToken)
         .expect(400);
 
       expect(res.body.message).toBe('Session is not in progress');
@@ -297,7 +314,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
   describe('GLO-147: Shipment Label & Driver Handoff', () => {
     it('should reject label generation for shipment still in pending (second shipment)', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/shipments/${secondShipmentId}/label`)
+        .post(`/fulfillment/shipments/${secondShipmentId}/label`).set('Authorization', authToken)
         .expect(400);
 
       expect(res.body.message).toMatch(/Cannot generate label for shipment in status/);
@@ -305,7 +322,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should generate label now that primary shipment is prepared', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/shipments/${shipmentId}/label`)
+        .post(`/fulfillment/shipments/${shipmentId}/label`).set('Authorization', authToken)
         .expect(201);
 
       expect(res.body.barcode).toBeDefined();
@@ -316,7 +333,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should reject handoff event when not yet packed', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/shipments/${shipmentId}/events`)
+        .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
         .send({ type: 'HANDOFF_SCANNED', actorId: 'driver-1' })
         .expect(400);
 
@@ -325,7 +342,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should allow PACKED event in prepared state', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/shipments/${shipmentId}/events`)
+        .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
         .send({ type: 'PACKED', actorId: 'op-1' })
         .expect(201);
 
@@ -335,7 +352,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should allow HANDOFF_SCANNED after packing', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/shipments/${shipmentId}/events`)
+        .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
         .send({ type: 'HANDOFF_SCANNED', actorId: 'driver-1' })
         .expect(201);
 
@@ -344,7 +361,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should allow OUT_FOR_DELIVERY event after handoff (dispatched state)', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/shipments/${shipmentId}/events`)
+        .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
         .send({ type: 'OUT_FOR_DELIVERY', actorId: 'driver-1' })
         .expect(201);
 
@@ -353,7 +370,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should reject UUID-invalid shipment ID (opaque ID safety)', async () => {
       const res = await request(app.getHttpServer())
-        .post('/fulfillment/shipments/not-a-uuid/label')
+        .post('/fulfillment/shipments/not-a-uuid/label').set('Authorization', authToken)
         .expect(400);
 
       expect(res.body.message).toBe('Invalid shipment ID');
@@ -361,7 +378,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should reject UUID-invalid shipment ID for events', async () => {
       const res = await request(app.getHttpServer())
-        .post('/fulfillment/shipments/not-a-uuid/events')
+        .post('/fulfillment/shipments/not-a-uuid/events').set('Authorization', authToken)
         .send({ type: 'PACKED', actorId: 'op-1' })
         .expect(400);
 
@@ -375,12 +392,12 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     it('should get eligible shipments for batching', async () => {
       // Revert the shipment status back to packed for batch planning tests
       await request(app.getHttpServer())
-        .patch(`/fulfillment/shipments/${shipmentId}/status`)
+        .patch(`/fulfillment/shipments/${shipmentId}/status`).set('Authorization', authToken)
         .send({ status: 'packed' })
         .expect(200);
 
       const res = await request(app.getHttpServer())
-        .get(`/fulfillment/locations/${locationId}/eligible-shipments`)
+        .get(`/fulfillment/locations/${locationId}/eligible-shipments`).set('Authorization', authToken)
         .expect(200);
 
       expect(Array.isArray(res.body)).toBe(true);
@@ -389,7 +406,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should create a delivery batch', async () => {
       const res = await request(app.getHttpServer())
-        .post('/fulfillment/delivery-batches')
+        .post('/fulfillment/delivery-batches').set('Authorization', authToken)
         .send({ hubId: locationId, name: 'Morning Run A' })
         .expect(201);
 
@@ -400,7 +417,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should add stops to batch', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/delivery-batches/${batchId}/stops`)
+        .post(`/fulfillment/delivery-batches/${batchId}/stops`).set('Authorization', authToken)
         .send({
           stops: [{ shipmentId, sequence: 1 }]
         })
@@ -412,7 +429,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should prevent duplicate shipment assignment', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/delivery-batches/${batchId}/stops`)
+        .post(`/fulfillment/delivery-batches/${batchId}/stops`).set('Authorization', authToken)
         .send({
           stops: [{ shipmentId, sequence: 2 }]
         })
@@ -423,7 +440,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should allow manual stop ordering', async () => {
       const res = await request(app.getHttpServer())
-        .patch(`/fulfillment/delivery-batches/${batchId}/stops/sequence`)
+        .patch(`/fulfillment/delivery-batches/${batchId}/stops/sequence`).set('Authorization', authToken)
         .send({
           stops: [{ shipmentId, sequence: 10 }]
         })
@@ -434,7 +451,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should dispatch the batch', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/fulfillment/delivery-batches/${batchId}/dispatch`)
+        .post(`/fulfillment/delivery-batches/${batchId}/dispatch`).set('Authorization', authToken)
         .expect(201);
 
       expect(res.body.status).toBe('dispatched');
@@ -442,7 +459,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     it('should reject modifications after dispatch', async () => {
       const res = await request(app.getHttpServer())
-        .delete(`/fulfillment/delivery-batches/${batchId}/stops/${shipmentId}`)
+        .delete(`/fulfillment/delivery-batches/${batchId}/stops/${shipmentId}`).set('Authorization', authToken)
         .expect(400);
 
       expect(res.body.message).toMatch(/Cannot modify/);

@@ -20,12 +20,12 @@ export class AccountsController {
 
   @Post('otp/send')
   sendOtp(@Body() dto: SendOtpDto) {
-    return this.accountsService.sendOtp(dto.phoneNumber);
+    return this.accountsService.sendOtp(dto.phoneNumber, dto.pendingIntent);
   }
 
   @Post('otp/verify')
   verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.accountsService.verifyOtp(dto.phoneNumber, dto.code);
+    return this.accountsService.verifyOtp(dto.phoneNumber, dto.code, dto.guestId);
   }
 
   @Post('logout')

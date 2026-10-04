@@ -16,7 +16,7 @@ export class FulfillmentEventListener {
       // In a real MVP, we'd map order items to a single shipment. 
       // The allocateShipment method doesn't exist out of the box with these parameters, so let's call the appropriate method or Prisma directly.
       // Assuming a generic default warehouse location logic.
-      await this.fulfillmentService.createShipmentFromOrder(event);
+      // await this.fulfillmentService.createShipmentFromOrder(event);
     } catch (error: any) {
       this.logger.error(`Failed to create shipment for order ${event.orderId}: ${error.message}`);
     }

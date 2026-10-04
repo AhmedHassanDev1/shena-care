@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, IsUUID, Matches, MaxLength } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
@@ -25,15 +25,26 @@ export class LoginDto {
 export class SendOtpDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(20)
   phoneNumber: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(512)
+  pendingIntent?: string;
 }
 
 export class VerifyOtpDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(20)
   phoneNumber: string;
 
   @IsString()
-  @IsNotEmpty()
+  @Matches(/^\d{6}$/)
   code: string;
+
+  @IsUUID()
+  @IsOptional()
+  guestId?: string;
 }

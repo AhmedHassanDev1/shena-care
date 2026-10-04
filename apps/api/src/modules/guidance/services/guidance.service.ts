@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { AiClient } from '../../../platform/ai';
 import { CreateGuidanceSessionDto, SendGuidanceMessageDto } from '../dto/guidance.dto';
 import { GuidanceSessionStatus, GuidanceMessageRole, Prisma } from '@prisma/client';
+import { RecommendationValidatorService } from './recommendation-validator.service';
 
 @Injectable()
 export class GuidanceService {
+  private readonly logger = new Logger(GuidanceService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiClient: AiClient,
+    private readonly validator: RecommendationValidatorService,
   ) {}
 
   async createSession(dto: CreateGuidanceSessionDto) {
@@ -99,7 +103,32 @@ export class GuidanceService {
       return fallbackMsg;
     }
 
-    // Save assistant response
+    // Validate proposal against trusted backend state before persisting
+    if (result.proposal) {
+      const validationResult = await this.validator.validateProposal(result.proposal);
+
+      if (!validationResult.isValid) {
+        this.logger.warn(
+          `AI recommendation validation failed for session ${sessionId}: ${validationResult.errors.join('; ')}`
+        );
+
+        // Return a message explaining validation failure instead of persisting invalid recommendation
+        const validationFailureMsg = await this.prisma.guidanceMessage.create({
+          data: {
+            sessionId: session.id,
+            role: GuidanceMessageRole.system,
+            content:
+              'I apologize, but the routine I suggested references products that are not currently available. ' +
+              'Let me help you find alternatives.',
+          },
+        });
+        return validationFailureMsg;
+      }
+
+      this.logger.log(`AI recommendation validated successfully for session ${sessionId}`);
+    }
+
+    // Save assistant response (only if validation passed or no proposal)
     const assistantMsg = await this.prisma.guidanceMessage.create({
       data: {
         sessionId: session.id,

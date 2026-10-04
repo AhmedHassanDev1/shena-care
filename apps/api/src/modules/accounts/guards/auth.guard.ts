@@ -19,6 +19,10 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Authentication token missing');
     }
 
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
     const session = await this.prisma.session.findUnique({
       where: { token },
       include: { customer: true }

@@ -220,24 +220,19 @@ export class FulfillmentService {
       return activeSession;
     }
 
-    const updateResult = await this.prisma.shipment.updateMany({
-      where: { 
-        id: shipmentId, 
-        status: { in: ['pending', 'ready_to_prepare'] }
-      },
-      data: { status: 'preparing' }
-    });
-
-    if (updateResult.count === 0) {
-      throw new BadRequestException(`Cannot start preparation for shipment in status ${shipment.status}. Concurrency conflict or invalid state.`);
-    }
-
-    return this.prisma.shipmentPreparationSession.create({
-      data: {
-        shipmentId,
-        operatorId: dto.operatorId,
-        status: PreparationSessionStatus.in_progress
+    return this.prisma.$transaction(async tx => {
+      const updateResult = await tx.shipment.updateMany({
+        where: { id: shipmentId, status: { in: ['pending', 'ready_to_prepare'] } },
+        data: { status: 'preparing' }
+      });
+      if (updateResult.count === 0) {
+        throw new BadRequestException(`Cannot start preparation for shipment in status ${shipment.status}. Concurrency conflict or invalid state.`);
       }
+      const session = await tx.shipmentPreparationSession.create({
+        data: { shipmentId, operatorId: dto.operatorId, status: PreparationSessionStatus.in_progress }
+      });
+      await tx.shipmentEvent.create({ data: { shipmentId, type: 'PREPARATION_STARTED' } });
+      return session;
     });
   }
 

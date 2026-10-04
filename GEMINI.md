@@ -108,3 +108,52 @@ Logging must help incident investigation without leaking secrets.
 - supplier credentials
 
 Prefer identifiers and redacted metadata.
+
+# STUCK WORK / TIMEBOX RULE
+
+Do not spend excessive time on one small issue, edge case, or non-blocking problem.
+
+If a task is taking disproportionately long compared with its value:
+
+1. Determine whether it is a TRUE BLOCKER for the next Linear issues.
+
+2. If it is NOT a blocker:
+   - document the exact remaining problem,
+   - keep the current working implementation intact,
+   - add a concise Linear comment / follow-up note if needed,
+   - do NOT mark unsupported functionality as verified,
+   - move immediately to the next eligible Linear issue.
+
+3. If it IS a blocker:
+   - attempt the smallest safe fix,
+   - avoid broad refactors,
+   - stop only if continuing risks correctness, security, data integrity, or major rework.
+
+Do not spend multiple execution cycles repeatedly trying the same fix.
+
+After 2 reasonable failed approaches on a non-critical problem:
+
+STOP investigating it.
+
+Record:
+- what failed,
+- current impact,
+- what remains,
+- how to reproduce it.
+
+Then continue the backlog.
+
+Do not allow one difficult frontend page, flaky test, styling problem, minor edge case, or environment problem to block unrelated Linear work.
+
+Priority is:
+
+Critical blocker
+→ fix now
+
+Non-critical functional gap
+→ document and continue
+
+UI polish / minor edge case
+→ defer
+
+Always maximize completed independent Linear work instead of getting stuck polishing one issue.

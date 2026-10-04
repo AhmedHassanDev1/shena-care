@@ -57,9 +57,17 @@ describe('Auth & Security (e2e)', () => {
   });
 
   describe('Ordering & Cart Endpoint Security', () => {
-    it('should reject access to cart if missing token', async () => {
+    it('should treat a cart read without token as an anonymous empty cart (guest-first)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/ordering/cart')
+        .expect(200);
+      expect(res.body.items).toEqual([]);
+    });
+
+    it('should reject an invalid bearer token instead of downgrading to guest', async () => {
       return request(app.getHttpServer())
         .get('/ordering/cart')
+        .set('Authorization', 'Bearer not-a-real-token')
         .expect(401);
     });
 

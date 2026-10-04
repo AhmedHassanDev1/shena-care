@@ -97,7 +97,6 @@ describe('Release Candidate Smoke Test (e2e)', () => {
       .post('/ordering/cart/add')
       .set('Authorization', authToken)
       .send({
-        sessionId: customerId,
         skuId: skuId,
         quantity: 2
       })
@@ -107,6 +106,8 @@ describe('Release Candidate Smoke Test (e2e)', () => {
   });
 
   it('4. Checkout -> COD Order', async () => {
+    const quote = await request(app.getHttpServer()).post('/ordering/checkout/quote')
+      .set('Authorization', authToken).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
     const res = await request(app.getHttpServer())
       .post('/ordering/checkout')
       .set('Authorization', authToken)
@@ -115,7 +116,11 @@ describe('Release Candidate Smoke Test (e2e)', () => {
         customerName: 'Smoke Tester',
         customerPhone: '+201000000000',
         shippingAddress: 'Test Address',
-        idempotencyKey: 'smoke-test-idem-1'
+        governorate: 'Cairo',
+        area: 'Maadi',
+        quoteVersion: quote.body.quoteVersion,
+        cartRevision: quote.body.revision,
+        idempotencyKey: `smoke-test-idem-${Date.now()}`
       })
       .expect(201);
       

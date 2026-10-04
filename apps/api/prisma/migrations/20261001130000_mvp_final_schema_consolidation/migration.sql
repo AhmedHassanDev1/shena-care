@@ -1,3 +1,9 @@
+-- CreateSchemas
+CREATE SCHEMA IF NOT EXISTS "operations";
+CREATE SCHEMA IF NOT EXISTS "accounts";
+CREATE SCHEMA IF NOT EXISTS "ordering";
+CREATE SCHEMA IF NOT EXISTS "sourcing";
+
 -- CreateEnum
 CREATE TYPE "sourcing"."PayableStatus" AS ENUM ('open', 'ready_to_pay', 'paid', 'disputed', 'adjusted');
 

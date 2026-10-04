@@ -8,12 +8,14 @@ from app.providers.base import (
     ProviderResponseInvalidError,
     ProviderUnavailableError,
 )
+from app.services.validation import RecommendationValidator, ValidationError
 
 logger = logging.getLogger("shenacare.ai.guidance")
 
 class GuidanceService:
     def __init__(self, guidance_provider: GuidanceProvider) -> None:
         self.provider = guidance_provider
+        self.validator = RecommendationValidator()
 
     async def recommend(
         self, request: GuidanceRecommendationRequest, correlation_id: str | None
@@ -32,6 +34,16 @@ class GuidanceService:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="AI provider returned an invalid response",
+            ) from exc
+
+        # Validate structured output before returning
+        try:
+            self.validator.validate_result(result)
+        except ValidationError as exc:
+            logger.warning(f"AI output validation failed for {request.customerId}: {exc}")
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"AI provider returned invalid structured output: {str(exc)}",
             ) from exc
 
         logger.info(f"guidance success for {request.customerId}")

@@ -1,12 +1,17 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../platform/database/prisma.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RegisterDto, LoginDto } from './dto/accounts.dto';
+import { CUSTOMER_VERIFIED_EVENT, CustomerVerifiedEvent } from './guest-adoption.contract';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AccountsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private eventEmitter: EventEmitter2
+  ) {}
 
   private async hashPassword(password: string): Promise<string> {
     const saltRounds = 12; // Secure default
@@ -69,49 +74,162 @@ export class AccountsService {
     return this.createSession(identity.customerId);
   }
 
-  async sendOtp(phoneNumber: string) {
-    // In a real MVP, we'd send an SMS here.
-    // For now, we just log it and assume the code is always '123456'.
-    console.log(`[OTP SERVICE] Sending OTP to ${phoneNumber}: 123456`);
+  private normalizeEgyptianPhone(phone: string): string {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('01') && cleaned.length === 11) {
+      return `+20${cleaned.substring(1)}`;
+    }
+    if (cleaned.startsWith('201') && cleaned.length === 12) {
+      return `+${cleaned}`;
+    }
+    if (cleaned.startsWith('1') && cleaned.length === 10) {
+      return `+20${cleaned}`;
+    }
+    return phone; // fallback
+  }
+
+  async sendOtp(phoneNumber: string, pendingIntent?: string) {
+    const canonicalPhone = this.normalizeEgyptianPhone(phoneNumber);
+
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+    const recentChallenge = await this.prisma.otpChallenge.findFirst({
+      where: {
+        phoneNumber: canonicalPhone,
+        createdAt: { gte: oneMinuteAgo }
+      }
+    });
+
+    if (recentChallenge) {
+      throw new ConflictException('Please wait before requesting a new OTP');
+    }
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recentChallengesCount = await this.prisma.otpChallenge.count({
+      where: {
+        phoneNumber: canonicalPhone,
+        createdAt: { gte: oneHourAgo }
+      }
+    });
+
+    if (recentChallengesCount >= 5) {
+      throw new ConflictException('Too many requests. Please try again later.');
+    }
+    
+    // Validate pendingIntent to prevent open redirects (must be a local path)
+    let safeIntent = null;
+    if (pendingIntent && pendingIntent.startsWith('/') && !pendingIntent.startsWith('//')) {
+      safeIntent = pendingIntent;
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await this.prisma.otpChallenge.create({
+      data: {
+        phoneNumber: canonicalPhone,
+        code,
+        expiresAt,
+        pendingIntent: safeIntent,
+      }
+    });
+
+    // TODO(delivery): hand the code to the SMS provider; never log the code itself.
+    console.log(`[OTP SERVICE] OTP issued for ${canonicalPhone.slice(0, 5)}*****`);
     return { success: true, message: 'OTP sent successfully' };
   }
 
-  async verifyOtp(phoneNumber: string, code: string) {
-    if (code !== '123456') {
+  async verifyOtp(phoneNumber: string, code: string, guestId?: string) {
+    const canonicalPhone = this.normalizeEgyptianPhone(phoneNumber);
+
+    const challenge = await this.prisma.otpChallenge.findFirst({
+      where: {
+        phoneNumber: canonicalPhone,
+        isUsed: false,
+        isRevoked: false,
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!challenge) {
+      throw new UnauthorizedException('Invalid or expired OTP');
+    }
+
+    if (new Date() > challenge.expiresAt) {
+      await this.prisma.otpChallenge.update({
+        where: { id: challenge.id },
+        data: { isRevoked: true }
+      });
+      throw new UnauthorizedException('OTP has expired');
+    }
+
+    if (challenge.attempts >= challenge.maxAttempts) {
+      await this.prisma.otpChallenge.update({
+        where: { id: challenge.id },
+        data: { isRevoked: true }
+      });
+      throw new UnauthorizedException('Max attempts reached. Please request a new OTP.');
+    }
+
+    if (challenge.code !== code) {
+      const newAttempts = challenge.attempts + 1;
+      await this.prisma.otpChallenge.update({
+        where: { id: challenge.id },
+        data: {
+          attempts: newAttempts,
+          isRevoked: newAttempts >= challenge.maxAttempts
+        }
+      });
       throw new UnauthorizedException('Invalid OTP code');
     }
+
+    await this.prisma.otpChallenge.update({
+      where: { id: challenge.id },
+      data: { isUsed: true }
+    });
 
     let identity = await this.prisma.identity.findUnique({
       where: {
         provider_providerId: {
           provider: 'PHONE',
-          providerId: phoneNumber
+          providerId: canonicalPhone
         }
       },
       include: { customer: true }
     });
 
+    let customerId: string;
     if (!identity) {
       const customer = await this.prisma.customer.create({
         data: {
           name: 'New User',
-          email: `${phoneNumber.replace(/[^0-9]/g, '')}@placeholder.com`, // Email is required by schema
+          email: `${canonicalPhone.replace(/[^0-9]/g, '')}@placeholder.com`,
           roles: ['CUSTOMER'],
           identities: {
             create: {
               provider: 'PHONE',
-              providerId: phoneNumber,
+              providerId: canonicalPhone,
             }
           }
         }
       });
-      return this.createSession(customer.id);
+      customerId = customer.id;
+    } else {
+      customerId = identity.customerId;
     }
 
-    return this.createSession(identity.customerId);
+    if (guestId) {
+      // Guest adoption contract: consumers must be idempotent per (customerId, guestId).
+      const payload: CustomerVerifiedEvent = { customerId, guestId };
+      try {
+        await this.eventEmitter.emitAsync(CUSTOMER_VERIFIED_EVENT, payload);
+      } catch (err) {
+        console.error(`[ACCOUNTS] guest adoption failed for customer ${customerId}: ${(err as Error).message}`);
+      }
+    }
+    return this.createSession(customerId, challenge.pendingIntent);
   }
 
-  private async createSession(customerId: string) {
+  private async createSession(customerId: string, pendingIntent?: string | null) {
     const token = randomUUID();
     // 30 days expiration
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -127,7 +245,8 @@ export class AccountsService {
 
     return {
       token: session.token,
-      expiresAt: session.expiresAt
+      expiresAt: session.expiresAt,
+      ...(pendingIntent ? { returnTo: pendingIntent } : {})
     };
   }
 

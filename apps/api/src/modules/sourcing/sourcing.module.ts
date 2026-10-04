@@ -7,11 +7,13 @@ import { PayablesService } from './services/payables.service';
 import { RankingService } from './services/ranking.service';
 import { SourcingController } from './controllers/sourcing.controller';
 import { SourcingEventListener } from './services/sourcing-event.listener';
+import { SupplyPlanService } from './services/supply-plan.service';
+import { SupplyPlanController } from './controllers/supply-plan.controller';
 
 @Module({
   imports: [DatabaseModule, CatalogModule],
-  controllers: [SourcingController],
-  providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SourcingEventListener],
-  exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService],
+  controllers: [SourcingController, SupplyPlanController],
+  providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener],
+  exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService],
 })
 export class SourcingModule {}

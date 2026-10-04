@@ -89,7 +89,7 @@ export class RankingService {
     }
 
     // Sort by score descending
-    eligibleOffers.sort((a, b) => b.score - a.score);
+    eligibleOffers.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
 
     const decisionLogId = await this.auditRankingDecision(skuId, quantity, eligibleOffers);
 
