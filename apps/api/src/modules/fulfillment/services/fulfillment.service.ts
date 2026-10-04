@@ -6,6 +6,7 @@ import { ShipmentStatus, PreparationSessionStatus, Prisma } from '@prisma/client
 import * as crypto from 'crypto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderDeliveredEvent } from '../../../platform/events/integration.events';
+import { OutboxService } from '../../operations/services/outbox.service';
 
 export interface FulfillmentLocationDetail {
   id: string;
@@ -37,6 +38,7 @@ export class FulfillmentService {
     private readonly prisma: PrismaService,
     private readonly orderingService: OrderingService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly outbox: OutboxService,
   ) {}
 
   private isUuid(val: string): boolean {
@@ -178,6 +180,20 @@ export class FulfillmentService {
     if (dto.status === ShipmentStatus.dispatched && !shipment.dispatchedAt) {
       updateData.dispatchedAt = new Date();
       await this.orderingService.updateOrderStatus(shipment.orderId, 'shipped');
+    } else if (dto.status === ShipmentStatus.out_for_delivery && shipment.status !== ShipmentStatus.out_for_delivery) {
+      const order = await this.orderingService.getOrder(shipment.orderId);
+      if (order) {
+        await this.outbox.enqueue(this.prisma, {
+          eventType: 'shipment.out_for_delivery',
+          aggregateId: shipment.id,
+          aggregateType: 'Shipment',
+          customerId: (order as any).customerId || undefined,
+          payload: { orderId: order.id, orderNumber: order.orderNumber, trackingNumber: shipment.trackingNumber },
+          channelIntent: 'whatsapp',
+          templateId: 'out_for_delivery_v1',
+          deduplicationKey: `shipment.out_for_delivery:${shipment.id}`,
+        });
+      }
     } else if (dto.status === ShipmentStatus.delivered && !shipment.deliveredAt) {
       updateData.deliveredAt = new Date();
       await this.orderingService.updateOrderStatus(shipment.orderId, 'delivered');
@@ -193,9 +209,34 @@ export class FulfillmentService {
             updateData.deliveredAt
           )
         );
+        
+        await this.outbox.enqueue(this.prisma, {
+          eventType: 'shipment.delivered',
+          aggregateId: shipment.id,
+          aggregateType: 'Shipment',
+          customerId: (order as any).customerId || undefined,
+          payload: { orderId: order.id, orderNumber: order.orderNumber },
+          channelIntent: 'whatsapp',
+          templateId: 'delivered_v1',
+          deduplicationKey: `shipment.delivered:${shipment.id}`,
+        });
       }
     } else if (dto.status === ShipmentStatus.failed) {
       await this.orderingService.updateOrderStatus(shipment.orderId, 'cancelled');
+      
+      const order = await this.orderingService.getOrder(shipment.orderId);
+      if (order) {
+        await this.outbox.enqueue(this.prisma, {
+          eventType: 'shipment.failed',
+          aggregateId: shipment.id,
+          aggregateType: 'Shipment',
+          customerId: (order as any).customerId || undefined,
+          payload: { orderId: order.id, orderNumber: order.orderNumber, reason: 'Delivery failed' },
+          channelIntent: 'whatsapp',
+          templateId: 'delivery_failed_v1',
+          deduplicationKey: `shipment.failed:${shipment.id}`,
+        });
+      }
     }
 
     return this.prisma.shipment.update({

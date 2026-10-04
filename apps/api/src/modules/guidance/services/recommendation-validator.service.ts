@@ -20,6 +20,7 @@ export interface StepValidationResult {
     skuId: string;
     isSellable: boolean;
     reason: string;
+    terms?: any;
   };
   errors: string[];
 }
@@ -57,7 +58,7 @@ export class RecommendationValidatorService {
    * 2. Referenced products are sellable (availability + pricing)
    * 3. Basic structural validity (done by AI service)
    */
-  async validateProposal(proposal: RoutineProposal): Promise<ProposalValidationResult> {
+  async validateProposal(proposal: RoutineProposal, options?: { budgetLimit?: number }): Promise<ProposalValidationResult> {
     const errors: string[] = [];
     const stepResults: StepValidationResult[] = [];
 
@@ -66,6 +67,8 @@ export class RecommendationValidatorService {
       return { isValid: false, errors, stepResults };
     }
 
+    let totalPrice = 0;
+
     for (let i = 0; i < proposal.steps.length; i++) {
       const step = proposal.steps[i];
       const stepResult = await this.validateStep(step, i);
@@ -73,7 +76,13 @@ export class RecommendationValidatorService {
 
       if (!stepResult.isValid) {
         errors.push(...stepResult.errors.map(e => `Step ${i} (${step.title}): ${e}`));
+      } else if (stepResult.availabilityCheck?.terms?.price) {
+        totalPrice += stepResult.availabilityCheck.terms.price.amount;
       }
+    }
+
+    if (options?.budgetLimit && totalPrice > options.budgetLimit) {
+      errors.push(`Proposal total price (${totalPrice}) exceeds budget limit (${options.budgetLimit})`);
     }
 
     return {
@@ -134,10 +143,12 @@ export class RecommendationValidatorService {
       const products = await this.catalogService.getPublishedProducts({ limit: 50 });
 
       // Simple name matching for MVP
-      const matchedProduct = products.find(p =>
-        p.name.toLowerCase().includes(normalizedQuery) ||
-        normalizedQuery.includes(p.name.toLowerCase())
-      );
+      const matchedProduct = products.find(p => {
+        const pName = p.name.toLowerCase();
+        const queryParts = normalizedQuery.split(' ');
+        return queryParts.every(part => pName.includes(part)) ||
+               normalizedQuery.includes(pName);
+      });
 
       if (!matchedProduct) {
         return {
@@ -182,6 +193,7 @@ export class RecommendationValidatorService {
     skuId: string;
     isSellable: boolean;
     reason: string;
+    terms?: any;
   }> {
     try {
       const evaluation = await this.commerceService.evaluateSellability(skuId);
@@ -190,6 +202,7 @@ export class RecommendationValidatorService {
         skuId,
         isSellable: evaluation.isSellable,
         reason: evaluation.message,
+        terms: evaluation.terms,
       };
     } catch (error) {
       this.logger.error(`Sellability check failed for SKU ${skuId}: ${error instanceof Error ? error.message : String(error)}`);

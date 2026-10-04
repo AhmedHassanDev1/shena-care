@@ -23,6 +23,7 @@
     "@nestjs/core": "^10.3.0",
     "@nestjs/event-emitter": "^2.1.1",
     "@nestjs/platform-express": "^10.3.0",
+    "@nestjs/swagger": "^7.3.0",
     "@prisma/client": "^5.22.0",
     "@types/multer": "^2.3.0",
     "bcrypt": "^6.0.0",

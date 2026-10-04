@@ -63,10 +63,16 @@ export class FinanceService {
         }
       });
 
-      await this.outbox.enqueue('ACCOUNTING_EXPORT_READY', {
-        jobId,
-        fileUrl: mockFileUrl,
-        summary: { orders, refunds, payables }
+      await this.outbox.enqueue(null, {
+        eventType: 'ACCOUNTING_EXPORT_READY',
+        aggregateId: jobId,
+        aggregateType: 'AccountingExportJob',
+        payload: {
+          jobId,
+          fileUrl: mockFileUrl,
+          summary: { orders, refunds, payables }
+        },
+        deduplicationKey: `finance.export:${jobId}`,
       });
 
     } catch (e: any) {

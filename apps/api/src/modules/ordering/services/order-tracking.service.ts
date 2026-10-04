@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { OrderStatus, Prisma, ShipmentStatus } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { SupplyPlanService, CustomerAvailabilityProjection } from '../../sourcing/public';
+import { AvailabilityResolutionService } from './availability-resolution.service';
 import {
   CustomerOrderTrackingDto, CustomerStage, CustomerTimelineEventDto,
   CustomerResolutionDto, CustomerItemStatus,
@@ -14,7 +15,7 @@ const orderInclude = Prisma.validator<Prisma.OrderInclude>()({
   items: true,
   statusEvents: { orderBy: { createdAt: 'asc' } },
   paymentCollection: true,
-  resolutions: { include: { items: true, events: { orderBy: { createdAt: 'asc' } } }, orderBy: { createdAt: 'asc' } },
+  resolutions: { include: { items: true, events: { orderBy: { createdAt: 'asc' } }, refundTransaction: true }, orderBy: { createdAt: 'asc' } },
 });
 type TrackingOrder = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
 
@@ -57,7 +58,8 @@ function shipmentStage(status: ShipmentStatus): CustomerStage | null {
 
 @Injectable()
 export class OrderTrackingService {
-  constructor(private readonly prisma: PrismaService, private readonly supplyPlan: SupplyPlanService) {}
+  constructor(private readonly prisma: PrismaService, private readonly supplyPlan: SupplyPlanService,
+    private readonly resolution: AvailabilityResolutionService) {}
 
   async forCustomer(idOrOrderNumber: string, customerId: string): Promise<CustomerOrderTrackingDto> {
     const order = await this.prisma.order.findFirst({
@@ -84,6 +86,11 @@ export class OrderTrackingService {
 
   private async project(order: TrackingOrder): Promise<CustomerOrderTrackingDto> {
     const availability = await this.supplyPlan.getCustomerAvailability(order.id);
+    let openDecisions: Awaited<ReturnType<AvailabilityResolutionService['openDecisions']>> = [];
+    if (availability?.status === 'ACTION_REQUIRED') {
+      await this.resolution.ensureDecisions(order.id);
+      openDecisions = (await this.resolution.openDecisions(order.id)).filter(d => d.status === 'pending');
+    }
     const shipment = await this.prisma.shipment.findUnique({
       where: { orderId: order.id },
       include: shipmentInclude,
@@ -109,6 +116,15 @@ export class OrderTrackingService {
         : resolution.status === 'requested' ? 'requested' : 'in_progress',
       affectedItemIds: resolution.items.map(item => item.orderItemId),
       allowedActions: [],
+      refund: resolution.refundTransaction ? {
+        amount: Number(resolution.refundTransaction.amount),
+        currency: resolution.refundTransaction.currency,
+        status: resolution.refundTransaction.status === 'pending' ? 'INITIATED'
+          : resolution.refundTransaction.status === 'processing' ? 'PROCESSING'
+          : resolution.refundTransaction.status === 'succeeded' ? 'COMPLETED'
+          : 'FAILED',
+        paymentProvider: resolution.refundTransaction.paymentProvider
+      } : null,
     }));
     return {
       orderNumber: order.orderNumber,
@@ -123,11 +139,14 @@ export class OrderTrackingService {
       },
       amounts: {
         originalCodAmount, currentCodAmount,
-        subtotal: Number(order.subtotal ?? order.totalAmount.minus(order.shippingFee)),
+        subtotal: order.items.some(item => item.lineState !== 'active')
+          ? order.items.filter(item => item.lineState === 'active')
+            .reduce((sum, item) => sum + Number(item.lineTotal ?? item.price.mul(item.quantity)), 0)
+          : Number(order.subtotal ?? order.totalAmount.minus(order.shippingFee)),
         shippingFee: Number(order.shippingFee), currency: order.currency,
       },
       items: order.items.map(item => {
-        const resolved = order.status === 'cancelled' || order.resolutions.some(resolution =>
+        const resolved = order.status === 'cancelled' || item.lineState !== 'active' || order.resolutions.some(resolution =>
           resolution.status === 'resolved' && resolution.items.some(ri => ri.orderItemId === item.id),
         );
         const sourcingLine = availability?.lines.find(line => line.orderItemId === item.id);
@@ -140,6 +159,7 @@ export class OrderTrackingService {
           unitPrice: Number(item.price), discountAmount: Number(item.discountAmount ?? 0),
           lineTotal: Number(item.lineTotal ?? item.price.mul(item.quantity)),
           currency: item.currency, status,
+          lineState: item.lineState, replacesItemId: item.replacesItemId,
         };
       }),
       timeline: this.timeline(order, shipment, availability),
@@ -151,7 +171,11 @@ export class OrderTrackingService {
         nextUpdateBy: null,
         promise: order.deliveryPromise,
       },
-      actionRequired: availability?.actionRequired ?? null,
+      actionRequired: availability?.actionRequired ? {
+        ...availability.actionRequired,
+        allowedActions: [...new Set(openDecisions.flatMap(d => d.availableActions))],
+        decisions: openDecisions.map(d => ({ id: d.id, orderItemId: d.orderItemId, version: d.version })),
+      } : null,
       resolutions,
     };
   }

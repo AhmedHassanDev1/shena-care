@@ -10,8 +10,10 @@ import { SourcingEventListener } from './services/sourcing-event.listener';
 import { SupplyPlanService } from './services/supply-plan.service';
 import { SupplyPlanController } from './controllers/supply-plan.controller';
 
+import { OperationsModule } from '../operations/operations.module';
+
 @Module({
-  imports: [DatabaseModule, CatalogModule],
+  imports: [DatabaseModule, CatalogModule, OperationsModule],
   controllers: [SourcingController, SupplyPlanController],
   providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener],
   exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService],

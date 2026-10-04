@@ -189,6 +189,40 @@ model SellingPrice {
   @@schema("commerce")
 }
 
+enum BenefitType {
+  item_discount
+  order_discount
+  free_shipping
+
+  @@schema("commerce")
+}
+
+enum DiscountType {
+  percentage
+  fixed_amount
+
+  @@schema("commerce")
+}
+
+model Promotion {
+  id             String        @id @default(uuid()) @db.Uuid
+  campaignName   String        @map("campaign_name")
+  code           String?       @unique // Optional manual coupon code
+  benefitType    BenefitType   @map("benefit_type")
+  discountType   DiscountType? @map("discount_type") // For item/order discounts
+  discountValue  Decimal?      @map("discount_value") @db.Decimal(10, 2) // % or fixed amount
+  minBasketValue Decimal?      @map("min_basket_value") @db.Decimal(10, 2) // e.g. for free shipping threshold
+  isStackable    Boolean       @default(false) @map("is_stackable")
+  isActive       Boolean       @default(true) @map("is_active")
+  validFrom      DateTime      @map("valid_from")
+  validUntil     DateTime?     @map("valid_until")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@map("promotions")
+  @@schema("commerce")
+}
+
 // ---------------------------------------------------------------------------
 // Sourcing schema
 // ---------------------------------------------------------------------------
@@ -222,7 +256,7 @@ model SupplierOffer {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplier          Supplier           @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   sourceAllocations SourceAllocation[]
 
   @@unique([supplierId, skuId])
@@ -253,30 +287,31 @@ enum SourceConfirmationResult {
 }
 
 model SupplyRequest {
-  id        String @id @default(uuid()) @db.Uuid
-  orderId   String @unique @map("order_id") @db.Uuid
+  id        String           @id @default(uuid()) @db.Uuid
+  orderId   String           @unique @map("order_id") @db.Uuid
   status    SupplyPlanStatus @default(CONFIRMING)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
 
   requirements SupplyRequirement[]
-  events SupplyPlanEvent[]
+  events       SupplyPlanEvent[]
 
   @@map("supply_requests")
   @@schema("sourcing")
 }
 
 model SupplyRequirement {
-  id String @id @default(uuid()) @db.Uuid
-  supplyRequestId String @map("supply_request_id") @db.Uuid
-  orderItemId String @unique @map("order_item_id") @db.Uuid
-  skuId String @map("sku_id") @db.Uuid
-  requiredQuantity Int @map("required_quantity")
-  orderSnapshotRef String @map("order_snapshot_ref") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at")
+  id               String    @id @default(uuid()) @db.Uuid
+  supplyRequestId  String    @map("supply_request_id") @db.Uuid
+  orderItemId      String    @unique @map("order_item_id") @db.Uuid
+  skuId            String    @map("sku_id") @db.Uuid
+  requiredQuantity Int       @map("required_quantity")
+  orderSnapshotRef String    @map("order_snapshot_ref") @db.Uuid
+  releasedAt       DateTime? @map("released_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
-  supplyRequest SupplyRequest @relation(fields: [supplyRequestId], references: [id], onDelete: Cascade)
-  allocations SourceAllocation[]
+  supplyRequest     SupplyRequest                  @relation(fields: [supplyRequestId], references: [id], onDelete: Cascade)
+  allocations       SourceAllocation[]
   actionRequirement AvailabilityActionRequirement?
 
   @@index([supplyRequestId])
@@ -285,24 +320,24 @@ model SupplyRequirement {
 }
 
 model SourceAllocation {
-  id String @id @default(uuid()) @db.Uuid
-  requirementId String @map("requirement_id") @db.Uuid
-  supplierOfferId String @map("supplier_offer_id") @db.Uuid
-  requestedQuantity Int @map("requested_quantity")
-  allocatedQuantity Int @map("allocated_quantity")
-  confirmedQuantity Int @default(0) @map("confirmed_quantity")
-  selectedCost Decimal @map("selected_cost") @db.Decimal(10, 2)
-  selectedCurrency String @map("selected_currency") @db.VarChar(3)
-  rankingDecisionId String @map("ranking_decision_id") @db.Uuid
-  result SourceConfirmationResult @default(pending)
-  reportedResult SourceConfirmationResult? @map("reported_result")
-  reportedQuantity Int? @map("reported_quantity")
-  selectedAt DateTime @default(now()) @map("selected_at")
-  confirmedAt DateTime? @map("confirmed_at")
-  evidenceRef String? @map("evidence_ref") @db.VarChar(255)
+  id                String                    @id @default(uuid()) @db.Uuid
+  requirementId     String                    @map("requirement_id") @db.Uuid
+  supplierOfferId   String                    @map("supplier_offer_id") @db.Uuid
+  requestedQuantity Int                       @map("requested_quantity")
+  allocatedQuantity Int                       @map("allocated_quantity")
+  confirmedQuantity Int                       @default(0) @map("confirmed_quantity")
+  selectedCost      Decimal                   @map("selected_cost") @db.Decimal(10, 2)
+  selectedCurrency  String                    @map("selected_currency") @db.VarChar(3)
+  rankingDecisionId String                    @map("ranking_decision_id") @db.Uuid
+  result            SourceConfirmationResult  @default(pending)
+  reportedResult    SourceConfirmationResult? @map("reported_result")
+  reportedQuantity  Int?                      @map("reported_quantity")
+  selectedAt        DateTime                  @default(now()) @map("selected_at")
+  confirmedAt       DateTime?                 @map("confirmed_at")
+  evidenceRef       String?                   @map("evidence_ref") @db.VarChar(255)
 
-  requirement SupplyRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
-  supplierOffer SupplierOffer @relation(fields: [supplierOfferId], references: [id])
+  requirement   SupplyRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  supplierOffer SupplierOffer     @relation(fields: [supplierOfferId], references: [id])
 
   @@unique([requirementId, supplierOfferId])
   @@index([requirementId])
@@ -311,11 +346,11 @@ model SourceAllocation {
 }
 
 model AvailabilityActionRequirement {
-  id String @id @default(uuid()) @db.Uuid
-  requirementId String @unique @map("requirement_id") @db.Uuid
-  category String @db.VarChar(40)
-  unresolvedQuantity Int @map("unresolved_quantity")
-  createdAt DateTime @default(now()) @map("created_at")
+  id                 String   @id @default(uuid()) @db.Uuid
+  requirementId      String   @unique @map("requirement_id") @db.Uuid
+  category           String   @db.VarChar(40)
+  unresolvedQuantity Int      @map("unresolved_quantity")
+  createdAt          DateTime @default(now()) @map("created_at")
 
   requirement SupplyRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
 
@@ -324,10 +359,10 @@ model AvailabilityActionRequirement {
 }
 
 model SupplyPlanEvent {
-  id String @id @default(uuid()) @db.Uuid
-  supplyRequestId String @map("supply_request_id") @db.Uuid
-  status SupplyPlanStatus
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String           @id @default(uuid()) @db.Uuid
+  supplyRequestId String           @map("supply_request_id") @db.Uuid
+  status          SupplyPlanStatus
+  createdAt       DateTime         @default(now()) @map("created_at")
 
   supplyRequest SupplyRequest @relation(fields: [supplyRequestId], references: [id], onDelete: Cascade)
 
@@ -455,7 +490,7 @@ model Cart {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  items CartItem[]
+  items          CartItem[]
   checkoutQuotes CheckoutQuote[]
 
   @@map("carts")
@@ -463,17 +498,17 @@ model Cart {
 }
 
 model CartItem {
-  id              String   @id @default(uuid()) @db.Uuid
-  cartId          String   @map("cart_id") @db.Uuid
-  skuId           String   @map("sku_id") @db.Uuid
+  id              String    @id @default(uuid()) @db.Uuid
+  cartId          String    @map("cart_id") @db.Uuid
+  skuId           String    @map("sku_id") @db.Uuid
   quantity        Int
   // Transparency only: the price the customer saw when adding. Never pricing authority.
-  priceAtAdd      Decimal? @map("price_at_add") @db.Decimal(10, 2)
+  priceAtAdd      Decimal?  @map("price_at_add") @db.Decimal(10, 2)
   priceObservedAt DateTime? @map("price_observed_at")
   // Lightweight provenance from a trusted flow (PDP | ROUTINE | REORDER). No lifecycle coupling.
-  sourceType      String?  @map("source_type")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  sourceType      String?   @map("source_type")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
@@ -514,40 +549,43 @@ enum OrderStatus {
 }
 
 model Order {
-  id              String      @id @default(uuid()) @db.Uuid
-  orderNumber     String      @unique @map("order_number")
-  customerId      String?     @map("customer_id")
-  customerName    String      @map("customer_name")
-  customerPhone   String      @map("customer_phone")
-  governorate     String?
-  area            String?
-  shippingAddress String      @map("shipping_address")
-  notes           String?
-  latitude        Float?
-  longitude       Float?
-  locationSource  String?     @map("location_source")
-  totalAmount     Decimal     @map("total_amount") @db.Decimal(10, 2)
-  shippingFee     Decimal     @default(0) @map("shipping_fee") @db.Decimal(10, 2)
-  currency        String      @db.VarChar(3)
-  status          OrderStatus @default(placed)
-  idempotencyKey  String?     @unique @map("idempotency_key")
-  submissionHash  String?     @map("submission_hash")
-  subtotal        Decimal?    @db.Decimal(10, 2)
-  codAmount       Decimal?    @map("cod_amount") @db.Decimal(10, 2)
-  deliveryPromise String?     @map("delivery_promise")
-  availabilityCertainty String? @map("availability_certainty")
-  guestAccessTokenHash String? @unique @map("guest_access_token_hash")
-  guestAccessExpiresAt DateTime? @map("guest_access_expires_at")
-  guestAccessRevokedAt DateTime? @map("guest_access_revoked_at")
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
+  id                    String      @id @default(uuid()) @db.Uuid
+  orderNumber           String      @unique @map("order_number")
+  customerId            String?     @map("customer_id")
+  customerName          String      @map("customer_name")
+  customerPhone         String      @map("customer_phone")
+  governorate           String?
+  area                  String?
+  shippingAddress       String      @map("shipping_address")
+  notes                 String?
+  latitude              Float?
+  longitude             Float?
+  locationSource        String?     @map("location_source")
+  totalAmount           Decimal     @map("total_amount") @db.Decimal(10, 2)
+  shippingFee           Decimal     @default(0) @map("shipping_fee") @db.Decimal(10, 2)
+  currency              String      @db.VarChar(3)
+  status                OrderStatus @default(placed)
+  idempotencyKey        String?     @unique @map("idempotency_key")
+  submissionHash        String?     @map("submission_hash")
+  subtotal              Decimal?    @db.Decimal(10, 2)
+  codAmount             Decimal?    @map("cod_amount") @db.Decimal(10, 2)
+  deliveryPromise       String?     @map("delivery_promise")
+  availabilityCertainty String?     @map("availability_certainty")
+  guestAccessTokenHash  String?     @unique @map("guest_access_token_hash")
+  guestAccessExpiresAt  DateTime?   @map("guest_access_expires_at")
+  guestAccessRevokedAt  DateTime?   @map("guest_access_revoked_at")
+  appliedPromotions     Json?       @map("applied_promotions") // provenance for discounts/campaigns
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
 
-  items             OrderItem[]
-  statusEvents      OrderStatusEvent[]
-  checkoutQuote     CheckoutQuote?
-  resolutions       OrderResolution[]
-  paymentCollection PaymentCollection?
-  refundTransactions RefundTransaction[]
+  items                 OrderItem[]
+  statusEvents          OrderStatusEvent[]
+  checkoutQuote         CheckoutQuote?
+  resolutions           OrderResolution[]
+  paymentCollection     PaymentCollection?
+  refundTransactions    RefundTransaction[]
+  availabilityDecisions AvailabilityDecision[]
+  amendments            OrderAmendment[]
 
   @@map("orders")
   @@schema("ordering")
@@ -567,20 +605,23 @@ model OrderStatusEvent {
 }
 
 model OrderItem {
-  id        String   @id @default(uuid()) @db.Uuid
-  orderId   String   @map("order_id") @db.Uuid
-  skuId     String   @map("sku_id") @db.Uuid
-  quantity  Int
-  price     Decimal  @db.Decimal(10, 2)
-  productId String?  @map("product_id") @db.Uuid
-  productName String? @map("product_name")
-  skuCode   String?  @map("sku_code")
-  variantName String? @map("variant_name")
-  discountAmount Decimal? @map("discount_amount") @db.Decimal(10, 2)
-  lineTotal Decimal? @map("line_total") @db.Decimal(10, 2)
-  currency  String   @db.VarChar(3)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                String             @id @default(uuid()) @db.Uuid
+  orderId           String             @map("order_id") @db.Uuid
+  skuId             String             @map("sku_id") @db.Uuid
+  quantity          Int
+  price             Decimal            @db.Decimal(10, 2)
+  productId         String?            @map("product_id") @db.Uuid
+  productName       String?            @map("product_name")
+  skuCode           String?            @map("sku_code")
+  variantName       String?            @map("variant_name")
+  discountAmount    Decimal?           @map("discount_amount") @db.Decimal(10, 2)
+  appliedPromotions Json?              @map("applied_promotions") // item-level provenance
+  lineTotal         Decimal?           @map("line_total") @db.Decimal(10, 2)
+  currency          String             @db.VarChar(3)
+  lineState         OrderItemLineState @default(active) @map("line_state")
+  replacesItemId    String?            @map("replaces_item_id") @db.Uuid
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
 
   order       Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
   resolutions OrderResolutionItem[]
@@ -588,6 +629,87 @@ model OrderItem {
   @@index([orderId])
   @@index([skuId])
   @@map("order_items")
+  @@schema("ordering")
+}
+
+enum OrderItemLineState {
+  active
+  removed
+  replaced
+
+  @@schema("ordering")
+}
+
+enum AvailabilityDecisionStatus {
+  pending
+  resolved
+  review_required
+  superseded
+
+  @@schema("ordering")
+}
+
+enum AvailabilityDecisionAction {
+  REPLACE_WITH
+  CONTINUE_WITHOUT_ITEM
+  CANCEL_ORDER
+
+  @@schema("ordering")
+}
+
+/// Ordering-owned customer decision for a Sourcing-reported availability shortage.
+/// One pending decision per order item (partial unique index in migration).
+model AvailabilityDecision {
+  id                 String                      @id @default(uuid()) @db.Uuid
+  orderId            String                      @map("order_id") @db.Uuid
+  orderItemId        String                      @map("order_item_id") @db.Uuid
+  version            Int                         @default(1)
+  status             AvailabilityDecisionStatus  @default(pending)
+  reasonCategory     String                      @map("reason_category") @db.VarChar(40)
+  unresolvedQuantity Int                         @map("unresolved_quantity")
+  originalSnapshot   Json                        @map("original_snapshot")
+  candidates         Json
+  availableActions   Json                        @map("available_actions")
+  stateFingerprint   String                      @map("state_fingerprint")
+  expiresAt          DateTime?                   @map("expires_at")
+  decidedAction      AvailabilityDecisionAction? @map("decided_action")
+  decidedSkuId       String?                     @map("decided_sku_id") @db.Uuid
+  decidedBy          String?                     @map("decided_by")
+  decidedChannel     String?                     @map("decided_channel") @db.VarChar(30)
+  decidedAt          DateTime?                   @map("decided_at")
+  decisionKey        String?                     @unique @map("decision_key")
+  decisionHash       String?                     @map("decision_hash")
+  receipt            Json?
+  createdAt          DateTime                    @default(now()) @map("created_at")
+  updatedAt          DateTime                    @updatedAt @map("updated_at")
+
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amendment OrderAmendment?
+
+  @@unique([orderItemId, version])
+  @@index([orderId, status])
+  @@map("availability_decisions")
+  @@schema("ordering")
+}
+
+/// Append-only audit of an applied decision; the original order snapshot is never overwritten.
+model OrderAmendment {
+  id         String   @id @default(uuid()) @db.Uuid
+  orderId    String   @map("order_id") @db.Uuid
+  decisionId String   @unique @map("decision_id") @db.Uuid
+  type       String   @db.VarChar(40)
+  before     Json
+  after      Json
+  codBefore  Decimal  @map("cod_before") @db.Decimal(10, 2)
+  codAfter   Decimal  @map("cod_after") @db.Decimal(10, 2)
+  currency   String   @db.VarChar(3)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  order    Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  decision AvailabilityDecision @relation(fields: [decisionId], references: [id])
+
+  @@index([orderId])
+  @@map("order_amendments")
   @@schema("ordering")
 }
 
@@ -673,20 +795,20 @@ enum RefundStatus {
 }
 
 model RefundTransaction {
-  id              String         @id @default(uuid()) @db.Uuid
-  resolutionId    String         @unique @map("resolution_id") @db.Uuid
-  orderId         String         @map("order_id") @db.Uuid
-  amount          Decimal        @db.Decimal(10, 2)
-  currency        String         @db.VarChar(3)
-  status          RefundStatus   @default(pending)
-  paymentProvider String?        @map("payment_provider")
-  providerRef     String?        @map("provider_ref")
-  errorReason     String?        @map("error_reason")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
+  id              String       @id @default(uuid()) @db.Uuid
+  resolutionId    String       @unique @map("resolution_id") @db.Uuid
+  orderId         String       @map("order_id") @db.Uuid
+  amount          Decimal      @db.Decimal(10, 2)
+  currency        String       @db.VarChar(3)
+  status          RefundStatus @default(pending)
+  paymentProvider String?      @map("payment_provider")
+  providerRef     String?      @map("provider_ref")
+  errorReason     String?      @map("error_reason")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
 
-  resolution      OrderResolution @relation(fields: [resolutionId], references: [id])
-  order           Order           @relation(fields: [orderId], references: [id])
+  resolution OrderResolution @relation(fields: [resolutionId], references: [id])
+  order      Order           @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
   @@map("refund_transactions")
@@ -1258,14 +1380,14 @@ model Session {
 }
 
 model OtpChallenge {
-  id          String   @id @default(uuid()) @db.Uuid
-  phoneNumber String   @map("phone_number")
-  code        String
-  purpose     String   @default("LOGIN")
-  expiresAt   DateTime @map("expires_at")
-  attempts    Int      @default(0)
-  maxAttempts Int      @default(3) @map("max_attempts")
-  isUsed      Boolean  @default(false) @map("is_used")
+  id            String   @id @default(uuid()) @db.Uuid
+  phoneNumber   String   @map("phone_number")
+  code          String
+  purpose       String   @default("LOGIN")
+  expiresAt     DateTime @map("expires_at")
+  attempts      Int      @default(0)
+  maxAttempts   Int      @default(3) @map("max_attempts")
+  isUsed        Boolean  @default(false) @map("is_used")
   isRevoked     Boolean  @default(false) @map("is_revoked")
   pendingIntent String?  @map("pending_intent") // Stores returnTo or action intent
   createdAt     DateTime @default(now()) @map("created_at")
@@ -1280,27 +1402,38 @@ model OtpChallenge {
 // Operations schema
 // ---------------------------------------------------------------------------
 
-enum OutboxEventStatus {
+enum NotificationStatus {
   pending
   processing
-  completed
+  sent
   failed
 
   @@schema("operations")
 }
 
-model OutboxEvent {
-  id        String            @id @default(uuid()) @db.Uuid
-  type      String
-  payload   Json
-  status    OutboxEventStatus @default(pending)
-  error     String?
-  attempts  Int               @default(0)
-  createdAt DateTime          @default(now()) @map("created_at")
-  updatedAt DateTime          @updatedAt @map("updated_at")
+model NotificationOutbox {
+  id               String             @id @default(uuid()) @db.Uuid
+  eventType        String             @map("event_type")
+  aggregateId      String?            @map("aggregate_id")
+  aggregateType    String?            @map("aggregate_type")
+  customerId       String?            @map("customer_id")
+  payload          Json
+  channelIntent    String?            @map("channel_intent") // whatsapp, email, push
+  templateId       String?            @map("template_id")
+  templateVersion  Int?               @map("template_version")
+  deduplicationKey String             @unique @map("deduplication_key")
+  status           NotificationStatus @default(pending)
+  attempts         Int                @default(0)
+  maxAttempts      Int                @default(3) @map("max_attempts")
+  nextAttemptAt    DateTime?          @map("next_attempt_at")
+  lastError        Json?              @map("last_error")
+  sentAt           DateTime?          @map("sent_at")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
 
-  @@index([status])
-  @@map("outbox_events")
+  @@index([status, nextAttemptAt])
+  @@index([aggregateId, eventType])
+  @@map("notification_outbox")
   @@schema("operations")
 }
 
@@ -1370,15 +1503,15 @@ enum AccountingExportStatus {
 }
 
 model AccountingExportJob {
-  id            String                 @id @default(uuid()) @db.Uuid
-  startDate     DateTime               @map("start_date")
-  endDate       DateTime               @map("end_date")
-  status        AccountingExportStatus @default(pending)
-  fileUrl       String?                @map("file_url")
-  error         String?
-  actorId       String                 @map("actor_id")
-  createdAt     DateTime               @default(now()) @map("created_at")
-  updatedAt     DateTime               @updatedAt @map("updated_at")
+  id        String                 @id @default(uuid()) @db.Uuid
+  startDate DateTime               @map("start_date")
+  endDate   DateTime               @map("end_date")
+  status    AccountingExportStatus @default(pending)
+  fileUrl   String?                @map("file_url")
+  error     String?
+  actorId   String                 @map("actor_id")
+  createdAt DateTime               @default(now()) @map("created_at")
+  updatedAt DateTime               @updatedAt @map("updated_at")
 
   @@map("accounting_export_jobs")
   @@schema("operations")

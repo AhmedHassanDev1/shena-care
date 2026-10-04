@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma, SourceConfirmationResult, SupplyPlanStatus } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { RankingService } from './ranking.service';
+import { OutboxService } from '../../operations/services/outbox.service';
 
 type Tx = Prisma.TransactionClient;
 type Confirmation = Exclude<SourceConfirmationResult, 'pending'>;
@@ -16,7 +17,11 @@ export interface CustomerAvailabilityProjection {
 
 @Injectable()
 export class SupplyPlanService {
-  constructor(private readonly prisma: PrismaService, private readonly ranking: RankingService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ranking: RankingService,
+    private readonly outbox: OutboxService,
+  ) {}
 
   private async lock(tx: Tx, orderId: string) {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(44071, hashtext(${orderId}))::text AS locked`;
@@ -27,7 +32,7 @@ export class SupplyPlanService {
       await this.lock(tx, orderId);
       const existing = await tx.supplyRequest.findUnique({ where: { orderId } });
       if (existing) return;
-      const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
+      const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: { where: { lineState: 'active' } } } });
       if (!order) throw new NotFoundException('Order not found');
       if (!order.items.length) throw new BadRequestException('Order has no items');
       const request = await tx.supplyRequest.create({
@@ -45,7 +50,7 @@ export class SupplyPlanService {
     return this.prisma.$transaction(async tx => {
       await this.lock(tx, orderId);
       const request = await tx.supplyRequest.findUnique({ where: { orderId }, include: {
-        requirements: { include: { allocations: true, actionRequirement: true } },
+        requirements: { where: { releasedAt: null }, include: { allocations: true, actionRequirement: true } },
       } });
       if (!request) throw new NotFoundException('Supply request not found');
 
@@ -97,7 +102,7 @@ export class SupplyPlanService {
       }
 
       const refreshed = await tx.supplyRequest.findUniqueOrThrow({ where: { id: request.id }, include: {
-        requirements: { include: { allocations: true, actionRequirement: true } },
+        requirements: { where: { releasedAt: null }, include: { allocations: true, actionRequirement: true } },
       } });
       const allCovered = refreshed.requirements.every(r =>
         r.allocations.reduce((sum, a) => sum + a.confirmedQuantity, 0) === r.requiredQuantity);
@@ -108,6 +113,22 @@ export class SupplyPlanService {
       if (status !== refreshed.status) {
         await tx.supplyRequest.update({ where: { id: request.id }, data: { status } });
         await tx.supplyPlanEvent.create({ data: { supplyRequestId: request.id, status } });
+
+        if (status === 'COVERED') {
+          const order = await tx.order.findUnique({ where: { id: request.orderId } });
+          if (order) {
+            await this.outbox.enqueue(tx, {
+              eventType: 'availability.confirmed',
+              aggregateId: request.orderId,
+              aggregateType: 'Order',
+              customerId: order.customerId || undefined,
+              payload: { orderId: order.id, orderNumber: order.orderNumber },
+              channelIntent: 'whatsapp',
+              templateId: 'availability_confirmed_v1',
+              deduplicationKey: `availability.confirmed:${request.id}:${refreshed.requirements.map(r => r.id).join('-')}`,
+            });
+          }
+        }
       }
       return this.present(refreshed, status);
     }, { timeout: 30000 });
@@ -160,15 +181,61 @@ export class SupplyPlanService {
 
   async getPlan(orderId: string) {
     const request = await this.prisma.supplyRequest.findUnique({ where: { orderId }, include: {
-      requirements: { include: { allocations: true, actionRequirement: true } },
+      requirements: { where: { releasedAt: null }, include: { allocations: true, actionRequirement: true } },
     } });
     if (!request) throw new NotFoundException('Supply request not found');
     return this.present(request, request.status);
   }
 
+  /**
+   * Owner command used by Ordering after an explicit, applied customer decision. Runs inside the
+   * caller's transaction (the per-order advisory lock is re-entrant within one session). The original
+   * requirement/allocation evidence is kept: a released requirement is only excluded from planning.
+   */
+  async applyAmendment(tx: Tx, orderId: string, change: {
+    releaseOrderItemIds: string[];
+    add?: { orderItemId: string; skuId: string; requiredQuantity: number };
+  }): Promise<void> {
+    await this.lock(tx, orderId);
+    const request = await tx.supplyRequest.findUnique({ where: { orderId } });
+    if (!request) return; // sourcing has not started; nothing to release
+    await tx.supplyRequirement.updateMany({
+      where: { supplyRequestId: request.id, orderItemId: { in: change.releaseOrderItemIds }, releasedAt: null },
+      data: { releasedAt: new Date() },
+    });
+    await tx.availabilityActionRequirement.deleteMany({
+      where: { requirement: { supplyRequestId: request.id, orderItemId: { in: change.releaseOrderItemIds } } },
+    });
+    if (change.add) {
+      await tx.supplyRequirement.create({ data: {
+        supplyRequestId: request.id, orderItemId: change.add.orderItemId, skuId: change.add.skuId,
+        requiredQuantity: change.add.requiredQuantity, orderSnapshotRef: change.add.orderItemId,
+      } });
+    }
+  }
+
+  /** Re-plan after an amendment commit (new requirement gets its own ranked allocation). */
+  async replanAfterAmendment(orderId: string): Promise<void> {
+    const request = await this.prisma.supplyRequest.findUnique({ where: { orderId },
+      include: { requirements: { where: { releasedAt: null }, select: { id: true } } } });
+    if (!request || !request.requirements.length) return;
+    await this.advance(orderId);
+  }
+
+  /** Availability contract for candidate proposals: a ranked eligible source exists for this SKU/quantity. */
+  async canSupply(skuId: string, quantity: number): Promise<boolean> {
+    try {
+      const ranked = await this.ranking.rankOffersForSku(skuId, quantity);
+      return ranked.rankedOffers.length > 0;
+    } catch (error) {
+      if (error instanceof NotFoundException) return false;
+      throw error;
+    }
+  }
+
   async getCustomerAvailability(orderId: string): Promise<CustomerAvailabilityProjection | null> {
     const request = await this.prisma.supplyRequest.findUnique({ where: { orderId }, include: {
-      requirements: { include: { allocations: true, actionRequirement: true } },
+      requirements: { where: { releasedAt: null }, include: { allocations: true, actionRequirement: true } },
       events: { orderBy: { createdAt: 'asc' } },
     } });
     if (!request) return null;

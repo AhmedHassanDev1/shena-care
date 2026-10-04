@@ -1,10 +1,14 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { SettlementStatus, OrderResolutionType, OrderResolutionStatus, Prisma, RefundStatus } from '@prisma/client';
+import { OutboxService } from '../../operations/services/outbox.service';
 
 @Injectable()
 export class ReconciliationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxService,
+  ) {}
 
   private isUuid(id: string) {
     const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
@@ -81,6 +85,22 @@ export class ReconciliationService {
         }
       });
 
+      if (status === 'approved' || status === 'rejected' || status === 'resolved') {
+        const order = await tx.order.findUnique({ where: { id: resolution.orderId } });
+        if (order) {
+          await this.outbox.enqueue(tx, {
+            eventType: 'resolution.updated',
+            aggregateId: resolution.id,
+            aggregateType: 'OrderResolution',
+            customerId: order.customerId || undefined,
+            payload: { orderId: order.id, orderNumber: order.orderNumber, resolutionId: resolution.id, status },
+            channelIntent: 'whatsapp',
+            templateId: 'resolution_update_v1',
+            deduplicationKey: `resolution.updated:${resolution.id}:${status}`,
+          });
+        }
+      }
+
       return resolution;
     });
   }
@@ -118,13 +138,36 @@ export class ReconciliationService {
   async updateRefundStatus(resolutionId: string, status: RefundStatus, providerRef?: string, errorReason?: string) {
     if (!this.isUuid(resolutionId)) throw new BadRequestException('Invalid resolution ID');
 
-    return this.prisma.refundTransaction.update({
-      where: { resolutionId },
-      data: {
-        status,
-        providerRef,
-        errorReason
+    return this.prisma.$transaction(async (tx) => {
+      const refund = await tx.refundTransaction.update({
+        where: { resolutionId },
+        data: {
+          status,
+          providerRef,
+          errorReason
+        },
+        include: { resolution: { include: { order: true } } }
+      });
+
+      if (status === 'succeeded' || status === 'failed') {
+        await this.outbox.enqueue(tx, {
+          eventType: 'refund.updated',
+          aggregateId: refund.id,
+          aggregateType: 'RefundTransaction',
+          customerId: refund.resolution.order.customerId || undefined,
+          payload: { 
+            orderId: refund.orderId, 
+            orderNumber: refund.resolution.order.orderNumber, 
+            refundId: refund.id, 
+            status 
+          },
+          channelIntent: 'email',
+          templateId: 'refund_update_v1',
+          deduplicationKey: `refund.updated:${refund.id}:${status}`,
+        });
       }
+
+      return refund;
     });
   }
 

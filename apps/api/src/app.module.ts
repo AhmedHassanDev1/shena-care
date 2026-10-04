@@ -18,6 +18,7 @@ import { RequestIdMiddleware } from './platform/logger/request-id.middleware';
 
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { HealthController } from './platform/api/health.controller';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     OperationsModule,
     MessagingModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

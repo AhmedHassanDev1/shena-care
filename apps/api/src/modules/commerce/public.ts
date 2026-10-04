@@ -1,5 +1,6 @@
 export { CommerceModule } from './commerce.module';
 export { CommerceService } from './services/commerce.service';
+export { PromotionService } from './services/promotion.service';
 export { CreateListingDto, UpdateListingStatusDto, QueryListingDto } from './dto/listing.dto';
 export { CreateSellingPriceDto, UpdateSellingPriceDto } from './dto/price.dto';
 export type {

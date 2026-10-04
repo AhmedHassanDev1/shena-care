@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RecommendationValidatorService } from '../../src/modules/guidance/services/recommendation-validator.service';
-import { CatalogService } from '../../src/modules/catalog/public';
-import { CommerceService } from '../../src/modules/commerce/public';
-import { RoutineProposal, RoutineStepProposal } from '../../src/platform/ai';
+import { RecommendationValidatorService } from '../../../src/modules/guidance/services/recommendation-validator.service';
+import { CatalogService } from '../../../src/modules/catalog/public';
+import { CommerceService } from '../../../src/modules/commerce/public';
+import { RoutineProposal, RoutineStepProposal } from '../../../src/platform/ai';
 
 describe('RecommendationValidatorService', () => {
   let service: RecommendationValidatorService;
@@ -392,10 +392,59 @@ describe('RecommendationValidatorService', () => {
       };
 
       const result = await service.validateProposal(proposal);
-
+      console.log('Result errors:', result.errors);
       expect(result.isValid).toBe(true);
       expect(result.stepResults[0].productResolution?.resolved).toBe(true);
       expect(result.stepResults[0].productResolution?.productId).toBe('prod-1');
+    });
+    it('should reject when total price exceeds budget limit', async () => {
+      catalogService.getPublishedProducts.mockResolvedValue([
+        {
+          id: 'prod-1',
+          name: 'Expensive Serum',
+          slug: 'expensive-serum',
+          description: '',
+          usage: null,
+          warnings: null,
+          isPublished: true,
+          brand: { id: 'brand-1', name: 'Brand', slug: 'brand' },
+          skus: [
+            { id: 'sku-1', code: 'SKU1', variantName: '50ml', size: 50, sizeUnit: 'ml', barcode: null, isActive: true },
+          ],
+          media: [],
+        },
+      ]);
+
+      commerceService.evaluateSellability.mockResolvedValue({
+        skuId: 'sku-1',
+        isSellable: true,
+        reason: 'SELLABLE',
+        message: 'Sellable',
+        terms: {
+          skuId: 'sku-1',
+          isListed: true,
+          price: { amount: 150.00, currency: 'USD', compareAtAmount: null },
+          canOrder: true,
+        },
+      });
+
+      const proposal: RoutineProposal = {
+        title: 'Routine',
+        careArea: 'skin',
+        steps: [
+          {
+            title: 'Treat',
+            timing: 'pm',
+            isOptional: false,
+            productQuery: 'Expensive Serum',
+          },
+        ],
+      };
+
+      const result = await service.validateProposal(proposal, { budgetLimit: 100 });
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('Proposal total price (150) exceeds budget limit (100)');
     });
   });
 });

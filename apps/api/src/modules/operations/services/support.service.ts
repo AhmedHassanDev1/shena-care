@@ -21,10 +21,16 @@ export class SupportService {
       }
     });
 
-    await this.outbox.enqueue('SUPPORT_CASE_CREATED', {
-      caseId: supportCase.id,
-      title: supportCase.title,
-      priority: supportCase.priority
+    await this.outbox.enqueue(null, {
+      eventType: 'SUPPORT_CASE_CREATED',
+      aggregateId: supportCase.id,
+      aggregateType: 'SupportCase',
+      payload: {
+        caseId: supportCase.id,
+        title: supportCase.title,
+        priority: supportCase.priority
+      },
+      deduplicationKey: `support.created:${supportCase.id}`,
     });
 
     return supportCase;

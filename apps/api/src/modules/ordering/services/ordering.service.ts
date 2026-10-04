@@ -3,10 +3,11 @@ import { createHash, createHmac, randomUUID } from 'crypto';
 import { OrderStatus, Prisma } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { CommerceService } from '../../commerce/public';
+import { CommerceService, PromotionService } from '../../commerce/public';
 import { OrderPlacedEvent } from '../../../platform/events/integration.events';
-import { CartOwner, CartService } from './cart.service';
 import { CheckoutDto, CheckoutQuoteRequestDto } from '../dto/order.dto';
+import { OutboxService } from '../../operations/services/outbox.service';
+import { CartOwner, CartService } from './cart.service';
 
 export interface QuotedItem {
   skuId: string;
@@ -33,6 +34,7 @@ export interface QuoteSnapshot {
   deliveryPromise: string;
   availabilityCertainty: 'not_confirmed';
   items: QuotedItem[];
+  appliedPromotions: any[];
 }
 
 const REVIEW_REQUIRED = { code: 'CHECKOUT_REVIEW_REQUIRED', message: 'Checkout changed or expired. Review a new quote before submitting.' };
@@ -70,7 +72,9 @@ export class OrderingService {
     private readonly prisma: PrismaService,
     private readonly cartService: CartService,
     private readonly commerceService: CommerceService,
+    private readonly promotionService: PromotionService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly outbox: OutboxService,
   ) {}
 
   private reviewRequired(): never {
@@ -105,13 +109,25 @@ export class OrderingService {
     const currency = items[0].currency;
     if (items.some(i => i.currency !== currency)) this.reviewRequired();
     const subtotal = Math.round(items.reduce((sum, item) => sum + item.lineTotal, 0) * 100) / 100;
-    const totalAmount = Math.round((subtotal + SHIPPING_FEE) * 100) / 100;
+
+    const activePromotions = await this.promotionService.getActivePromotions(dto.couponCode ? [dto.couponCode] : []);
+    const evaluation = this.promotionService.evaluatePromotions(activePromotions, {
+      subtotal,
+      items: items.map(i => ({ skuId: i.skuId, price: i.unitPrice, quantity: i.quantity })),
+      customerContext: { governorate: dto.governorate, area: dto.area }
+    });
+
+    const finalSubtotal = Math.max(0, subtotal - evaluation.orderDiscountAmount);
+    const shippingFee = evaluation.freeShippingQualified ? 0 : SHIPPING_FEE;
+    const totalAmount = Math.round((finalSubtotal + shippingFee) * 100) / 100;
+    
     return {
       cartId: cart.id,
       snapshot: {
         governorate: dto.governorate, area: dto.area, cartRevision: cart.revision,
-        subtotal, shippingFee: SHIPPING_FEE, codAmount: totalAmount, totalAmount,
+        subtotal, shippingFee, codAmount: totalAmount, totalAmount,
         currency, deliveryPromise: DELIVERY_PROMISE, availabilityCertainty: 'not_confirmed', items,
+        appliedPromotions: evaluation.appliedPromotions,
       },
     };
   }
@@ -225,7 +241,7 @@ export class OrderingService {
         quote.revision !== dto.cartRevision || cart.revision !== dto.cartRevision) this.reviewRequired();
     const accepted = quote.snapshot as unknown as QuoteSnapshot;
     if (accepted.governorate !== dto.governorate || accepted.area !== dto.area) this.reviewRequired();
-    const current = await this.currentSnapshot(owner, { governorate: dto.governorate, area: dto.area });
+    const current = await this.currentSnapshot(owner, { governorate: dto.governorate, area: dto.area, couponCode: dto.couponCode });
     if (current.cartId !== cart.id || canonical(current.snapshot) !== canonical(accepted)) this.reviewRequired();
 
       const order = await this.prisma.$transaction(async tx => {
@@ -252,6 +268,7 @@ export class OrderingService {
             notes: dto.notes, subtotal: accepted.subtotal, shippingFee: accepted.shippingFee,
             codAmount: accepted.codAmount, totalAmount: accepted.totalAmount, currency: accepted.currency,
             deliveryPromise: accepted.deliveryPromise, availabilityCertainty: accepted.availabilityCertainty,
+            appliedPromotions: accepted.appliedPromotions as Prisma.InputJsonValue,
             status: OrderStatus.placed,
             statusEvents: { create: { status: OrderStatus.placed } },
             items: { create: accepted.items.map(item => ({
@@ -265,6 +282,24 @@ export class OrderingService {
         });
         await tx.checkoutQuote.update({ where: { id: quote.id }, data: { consumedAt: new Date(), orderId: created.id } });
         await tx.cartItem.deleteMany({ where: { cartId: cart.id! } });
+
+        await this.outbox.enqueue(tx, {
+          eventType: 'order.placed',
+          aggregateId: created.id,
+          aggregateType: 'Order',
+          customerId: created.customerId || undefined,
+          payload: {
+            orderId: created.id,
+            orderNumber: created.orderNumber,
+            customerId: created.customerId,
+            items: created.items.map(i => ({ skuId: i.skuId, quantity: i.quantity })),
+            shippingAddress: created.shippingAddress,
+          },
+          channelIntent: 'whatsapp',
+          templateId: 'order_received_v1',
+          deduplicationKey: `order.placed:${created.id}`,
+        });
+
         return created;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       this.logger.log('[AUDIT] Order Submitted: ' + order.orderNumber);
@@ -283,7 +318,7 @@ export class OrderingService {
   async getOrder(idOrOrderNumber: string, customerId?: string): Promise<OrderDetail | null> {
     const order = await this.prisma.order.findFirst({
       where: { OR: [{ id: idOrOrderNumber }, { orderNumber: idOrOrderNumber }], ...(customerId ? { customerId } : {}) },
-      include: { items: true },
+      include: { items: { where: { lineState: 'active' } } },
     });
     return order ? this.present(order) : null;
   }

@@ -47,6 +47,15 @@ export class CustomerOrderItemDto {
   lineTotal: number;
   currency: string;
   status: CustomerItemStatus;
+  lineState?: 'active' | 'removed' | 'replaced';
+  replacesItemId?: string | null;
+}
+
+export class CustomerRefundTrackingDto {
+  amount: number;
+  currency: string;
+  status: 'INITIATED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'NEEDS_ACTION';
+  paymentProvider?: string | null;
 }
 
 export class CustomerResolutionDto {
@@ -54,6 +63,7 @@ export class CustomerResolutionDto {
   status: 'requested' | 'in_progress' | 'resolved' | 'rejected';
   affectedItemIds: string[];
   allowedActions: string[];
+  refund?: CustomerRefundTrackingDto | null;
 }
 
 export class CustomerOrderTrackingDto {
@@ -89,6 +99,7 @@ export class CustomerOrderTrackingDto {
     promise: string | null;
   };
   actionRequired: { category: string; affectedItemIds: string[]; allowedActions: string[];
+    decisions?: Array<{ id: string; orderItemId: string; version: number }>;
     issues: Array<{ orderItemId: string; category: string; unresolvedQuantity: number; occurredAt: Date }> } | null;
   resolutions: CustomerResolutionDto[];
 }

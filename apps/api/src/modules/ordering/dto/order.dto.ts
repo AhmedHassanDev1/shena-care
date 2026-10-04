@@ -57,6 +57,10 @@ export class CheckoutDto {
   @IsInt()
   @Min(0)
   cartRevision: number;
+
+  @IsString()
+  @IsOptional()
+  couponCode?: string;
 }
 
 export class CheckoutQuoteRequestDto {
@@ -67,4 +71,8 @@ export class CheckoutQuoteRequestDto {
   @IsString()
   @IsNotEmpty()
   area: string;
+
+  @IsString()
+  @IsOptional()
+  couponCode?: string;
 }

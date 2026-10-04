@@ -26,9 +26,9 @@ export class DataRetentionService implements OnModuleInit {
 
       // 2. Delete completed outbox events older than 7 days
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const deletedEvents = await this.prisma.outboxEvent.deleteMany({
+      const deletedEvents = await this.prisma.notificationOutbox.deleteMany({
         where: {
-          status: 'completed',
+          status: 'sent',
           createdAt: { lt: sevenDaysAgo }
         }
       });
