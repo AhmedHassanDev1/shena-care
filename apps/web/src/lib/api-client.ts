@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { requireApiUrl } from './config';
 
 export class ApiError extends Error {
   constructor(
@@ -29,7 +29,8 @@ async function fetchApi<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const response = await fetch(`${requireApiUrl()}${endpoint}`, {
+    cache: 'no-store',
     ...fetchOptions,
     headers: {
       ...headers,

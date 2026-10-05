@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, ServiceUnavailableException, BadGatewayException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { AiClient } from '../../../platform/ai';
+import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
 import { CreateGuidanceSessionDto, SendGuidanceMessageDto } from '../dto/guidance.dto';
 import { GuidanceSessionStatus, GuidanceMessageRole, Prisma } from '@prisma/client';
 import { RecommendationValidatorService } from './recommendation-validator.service';
@@ -64,6 +64,23 @@ export class GuidanceService {
       },
     });
 
+    return this.processAiResponse(session);
+  }
+
+  async retryLastMessage(sessionId: string) {
+    const session = await this.getSession(sessionId);
+    
+    const lastMessage = session.messages[session.messages.length - 1];
+    if (!lastMessage || lastMessage.role !== GuidanceMessageRole.user) {
+      throw new BadRequestException('Can only retry if the last message was from the user.');
+    }
+
+    return this.processAiResponse(session);
+  }
+
+  private async processAiResponse(session: any) {
+    const sessionId = session.id;
+
     // Fetch full history & profile for AI
     const history = await this.prisma.guidanceMessage.findMany({
       where: { sessionId: session.id },
@@ -92,15 +109,25 @@ export class GuidanceService {
     try {
       result = await this.aiClient.recommendRoutine(recommendationInput, sessionId);
     } catch (err) {
-      // Return a system fallback message if AI is down
-      const fallbackMsg = await this.prisma.guidanceMessage.create({
-        data: {
-          sessionId: session.id,
-          role: GuidanceMessageRole.system,
-          content: 'Sorry, I am currently unavailable to provide recommendations.',
-        },
-      });
-      return fallbackMsg;
+      if (err instanceof AiClientError) {
+        if (err.kind === AiErrorKind.UNAVAILABLE || err.kind === AiErrorKind.TIMEOUT) {
+          throw new ServiceUnavailableException({
+            message: 'AI recommendation service is temporarily unavailable. Please try again.',
+            reason: err.kind,
+            retryable: true,
+          });
+        }
+        if (err.kind === AiErrorKind.INVALID_RESPONSE || err.kind === AiErrorKind.INCOMPATIBLE_SCHEMA) {
+          this.logger.error(`AI response malformed: ${err.message}`);
+          throw new BadGatewayException({
+            message: 'AI recommendation service returned an invalid response.',
+            reason: err.kind,
+            retryable: false,
+          });
+        }
+      }
+      this.logger.error(`Unknown AI error: ${err}`);
+      throw new InternalServerErrorException('Failed to process AI recommendation.');
     }
 
     // Validate proposal against trusted backend state before persisting

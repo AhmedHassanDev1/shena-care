@@ -1,24 +1,30 @@
 import { ProductView } from '../api/products';
+import Link from 'next/link';
+import { getMessages, type Locale } from '@/lib/i18n/messages';
+import { formatCurrency } from '@/lib/i18n/format';
+import { routes } from '@/lib/routes';
 
 interface ProductCardProps {
   product: ProductView;
+  locale: Locale;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, locale }: ProductCardProps) {
+  const m = getMessages(locale);
   const primaryImage = product.media.find((m) => m.isPrimary) || product.media[0];
   const primarySku = product.skus[0];
   const price = primarySku?.price;
 
   return (
-    <a
-      href={`/products/${product.slug}`}
+    <Link
+      href={routes.product(product.slug)}
       className="product-card"
     >
       <div className="product-image">
         {primaryImage ? (
           <img src={primaryImage.url} alt={primaryImage.altText || product.name} />
         ) : (
-          <div className="no-image">No image</div>
+          <div className="no-image">{m.noImage}</div>
         )}
       </div>
 
@@ -28,17 +34,17 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {price && (
           <div className="price-container">
-            <span className="price">${price.amount.toFixed(2)}</span>
-            {price.compareAtAmount && (
-              <span className="compare-price">${price.compareAtAmount.toFixed(2)}</span>
+            <span className="price">{formatCurrency(price.amount, price.currency, locale)}</span>
+            {price.compareAtAmount != null && (
+              <span className="compare-price">{formatCurrency(price.compareAtAmount, price.currency, locale)}</span>
             )}
           </div>
         )}
 
         {primarySku?.canOrder && (
-          <div className="availability">Available</div>
+          <div className="availability">{m.available}</div>
         )}
       </div>
-    </a>
+    </Link>
   );
 }

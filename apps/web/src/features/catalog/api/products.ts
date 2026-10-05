@@ -1,3 +1,5 @@
+import { apiClient } from '@/lib/api-client';
+
 export interface ProductView {
   id: string;
   name: string;
@@ -32,28 +34,10 @@ export interface ProductView {
   }>;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
 export async function getProducts(): Promise<ProductView[]> {
-  const res = await fetch(`${API_URL}/products`, {
-    cache: 'no-store',
-  });
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch products');
-  }
-
-  return res.json();
+  return apiClient.get<ProductView[]>('/products');
 }
 
 export async function getProduct(slugOrId: string): Promise<ProductView> {
-  const res = await fetch(`${API_URL}/products/${slugOrId}`, {
-    cache: 'no-store',
-  });
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch product');
-  }
-
-  return res.json();
+  return apiClient.get<ProductView>(`/products/${encodeURIComponent(slugOrId)}`);
 }

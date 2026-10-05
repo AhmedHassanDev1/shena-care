@@ -34,4 +34,13 @@ export class GuidanceController {
     }
     return this.guidanceService.sendMessage(sessionId, dto);
   }
+
+  @Post('sessions/:sessionId/retry')
+  async retryMessage(@CurrentUser() customer: any, @Param('sessionId') sessionId: string) {
+    const session = await this.guidanceService.getSession(sessionId);
+    if (!session || session.customerId !== customer.id) {
+      throw new ForbiddenException('Cannot access another customer session');
+    }
+    return this.guidanceService.retryLastMessage(sessionId);
+  }
 }

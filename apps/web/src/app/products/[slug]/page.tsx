@@ -1,6 +1,7 @@
 import { getProduct } from '@/features/catalog/api/products';
 import { ProductDetail } from '@/features/catalog/ui/ProductDetail';
 import { notFound } from 'next/navigation';
+import { ApiError } from '@/lib/api-client';
 
 interface ProductPageProps {
   params: {
@@ -13,6 +14,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     const product = await getProduct(params.slug);
     return <ProductDetail product={product} />;
   } catch (error) {
-    notFound();
+    if (error instanceof ApiError && error.status === 404) notFound();
+    throw error;
   }
 }

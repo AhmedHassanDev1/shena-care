@@ -1,14 +1,16 @@
+import Link from 'next/link';
+import { getMessages } from '@/lib/i18n/messages';
+import { getLocale } from '@/lib/i18n/server';
+import { routes } from '@/lib/routes';
+
 export default function Home() {
+  const m = getMessages(getLocale());
   return (
     <div className="container">
       <div className="hero">
-        <h1 className="hero-title">Welcome to Shena Care</h1>
-        <p className="hero-subtitle">
-          Premium beauty and skincare products curated for your wellness journey
-        </p>
-        <a href="/products" className="cta-button">
-          Browse Products
-        </a>
+        <h1 className="hero-title">{m.homeTitle}</h1>
+        <p className="hero-subtitle">{m.homeDescription}</p>
+        <Link href={routes.products} className="cta-button">{m.browseProducts}</Link>
       </div>
     </div>
   );
