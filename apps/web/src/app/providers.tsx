@@ -2,6 +2,7 @@
 
 import { QueryProvider } from '@/lib/react-query/query-provider';
 import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
+import { AuthProvider } from '@/features/auth/AuthContext';
 
 export function AppProviders({
   children,
@@ -14,7 +15,9 @@ export function AppProviders({
     <QueryProvider>
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <LocaleProvider locale={locale as any}>
-        <>{children}</>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </LocaleProvider>
     </QueryProvider>
   );

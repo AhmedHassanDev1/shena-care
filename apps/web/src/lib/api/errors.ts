@@ -12,6 +12,7 @@ export class ApiError extends Error {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeApiError(error: any): ApiError {
   if (error.response) {
     const status = error.response.status;
