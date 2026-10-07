@@ -1,4 +1,4 @@
-import { ProductView } from '../api/products';
+import { ProductView } from '../types/catalog.types';
 import Link from 'next/link';
 import { getMessages, type Locale } from '@/lib/i18n/messages';
 import { formatCurrency } from '@/lib/i18n/format';

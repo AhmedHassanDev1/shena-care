@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/Header';
-import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
+import { AppProviders } from './providers';
 import { getMessages } from '@/lib/i18n/messages';
 import { getLocale } from '@/lib/i18n/server';
 
@@ -20,13 +20,13 @@ export default function RootLayout({
   return (
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <body>
-        <LocaleProvider locale={locale}>
+        <AppProviders locale={locale}>
           <Header />
           <main id="main-content">{children}</main>
           <footer className="site-footer">
             <div className="container"><p>&copy; {new Date().getFullYear()} {m.footerRights}</p></div>
           </footer>
-        </LocaleProvider>
+        </AppProviders>
       </body>
     </html>
   );

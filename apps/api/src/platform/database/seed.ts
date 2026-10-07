@@ -3,379 +3,292 @@ import { PrismaClient, MediaType, MediaOriginType } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function seed() {
-  console.log('Starting seed process...');
+  console.log('Starting safe seed process...');
 
-  // Clear existing data (respecting FK order)
-  console.log('Clearing existing data...');
-  await prisma.sellingPrice.deleteMany({});
-  await prisma.listing.deleteMany({});
-  await prisma.productMedia.deleteMany({});
-  await prisma.sku.deleteMany({});
-  await prisma.product.deleteMany({});
-  await prisma.productLine.deleteMany({});
-  await prisma.category.deleteMany({ where: { parentId: { not: null } } });
-  await prisma.category.deleteMany({});
-  await prisma.brand.deleteMany({});
-  
-  // Clear Sourcing
-  await prisma.supplierOffer.deleteMany({});
-  await prisma.supplier.deleteMany({});
+  // 1. Brands
+  const eva = await prisma.brand.upsert({
+    where: { slug: 'eva-cosmetics' },
+    update: {},
+    create: { name: 'Eva Cosmetics', slug: 'eva-cosmetics', description: 'Eva Skin Clinic products', websiteUrl: 'https://eva-cosmetics.com', countryOfOrigin: 'Egypt', isActive: true },
+  });
+  const starville = await prisma.brand.upsert({
+    where: { slug: 'starville' },
+    update: {},
+    create: { name: 'StarVille', slug: 'starville', description: 'Dermatological skincare by Parkville', websiteUrl: 'https://parkville.com.eg', countryOfOrigin: 'Egypt', isActive: true },
+  });
+  const hairAddict = await prisma.brand.upsert({
+    where: { slug: 'the-hair-addict' },
+    update: {},
+    create: { name: 'The Hair Addict', slug: 'the-hair-addict', description: 'Natural hair care for curls and frizz', websiteUrl: 'https://thehairaddict.net', countryOfOrigin: 'Egypt', isActive: true },
+  });
+  const bless = await prisma.brand.upsert({
+    where: { slug: 'bless' },
+    update: {},
+    create: { name: 'BLESS', slug: 'bless', description: 'Bless hair care products', websiteUrl: 'https://blessbotanicals.com', countryOfOrigin: 'Egypt', isActive: true },
+  });
 
-  // Create brands
-  console.log('Creating brands...');
-  const cerave = await prisma.brand.create({
-    data: {
-      name: 'CeraVe',
-      slug: 'cerave',
-      description: 'Dermatologist-developed skincare with essential ceramides',
-      logoUrl: 'https://example.com/brands/cerave-logo.png',
-      websiteUrl: 'https://www.cerave.com',
-      countryOfOrigin: 'United States',
-      isActive: true,
+  // 2. Lines
+  const evaVitC = await prisma.productLine.upsert({ where: { slug: 'eva-vitamin-c' }, update: {}, create: { brandId: eva.id, name: 'Vitamin C', slug: 'eva-vitamin-c', isActive: true }});
+  const evaHyaluronic = await prisma.productLine.upsert({ where: { slug: 'eva-hyaluronic-acid' }, update: {}, create: { brandId: eva.id, name: 'Hyaluronic Acid', slug: 'eva-hyaluronic-acid', isActive: true }});
+  const evaAcne = await prisma.productLine.upsert({ where: { slug: 'eva-acne-prone-skin' }, update: {}, create: { brandId: eva.id, name: 'Acne-Prone Skin', slug: 'eva-acne-prone-skin', isActive: true }});
+  const evaCollagen = await prisma.productLine.upsert({ where: { slug: 'eva-collagen' }, update: {}, create: { brandId: eva.id, name: 'Collagen', slug: 'eva-collagen', isActive: true }});
+
+  const svAcne = await prisma.productLine.upsert({ where: { slug: 'starville-acne-prone' }, update: {}, create: { brandId: starville.id, name: 'Acne Prone', slug: 'starville-acne-prone', isActive: true }});
+  const svWhitening = await prisma.productLine.upsert({ where: { slug: 'starville-whitening' }, update: {}, create: { brandId: starville.id, name: 'Whitening', slug: 'starville-whitening', isActive: true }});
+
+  const haFrizzOff = await prisma.productLine.upsert({ where: { slug: 'ha-frizz-off' }, update: {}, create: { brandId: hairAddict.id, name: 'Frizz Off', slug: 'ha-frizz-off', isActive: true }});
+  const haLoveBond = await prisma.productLine.upsert({ where: { slug: 'ha-lovebond' }, update: {}, create: { brandId: hairAddict.id, name: 'LoveBond', slug: 'ha-lovebond', isActive: true }});
+
+  const blessActivator = await prisma.productLine.upsert({ where: { slug: 'bless-activator' }, update: {}, create: { brandId: bless.id, name: 'Activator', slug: 'bless-activator', isActive: true }});
+
+  // 3. Categories
+  const skinCare = await prisma.category.upsert({ where: { slug: 'skin-care' }, update: {}, create: { name: 'Skin Care', slug: 'skin-care', sortOrder: 1, isActive: true }});
+  const hairCare = await prisma.category.upsert({ where: { slug: 'hair-care' }, update: {}, create: { name: 'Hair Care', slug: 'hair-care', sortOrder: 2, isActive: true }});
+
+  const cleansers = await prisma.category.upsert({ where: { slug: 'cleansers' }, update: {}, create: { name: 'Cleansers', slug: 'cleansers', parentId: skinCare.id, sortOrder: 1, isActive: true }});
+  const moisturizers = await prisma.category.upsert({ where: { slug: 'moisturizers' }, update: {}, create: { name: 'Moisturizers', slug: 'moisturizers', parentId: skinCare.id, sortOrder: 2, isActive: true }});
+  const serums = await prisma.category.upsert({ where: { slug: 'serums-treatments' }, update: {}, create: { name: 'Serums & Treatments', slug: 'serums-treatments', parentId: skinCare.id, sortOrder: 3, isActive: true }});
+  const sunscreens = await prisma.category.upsert({ where: { slug: 'sunscreens' }, update: {}, create: { name: 'Sunscreens', slug: 'sunscreens', parentId: skinCare.id, sortOrder: 4, isActive: true }});
+
+  const shampoos = await prisma.category.upsert({ where: { slug: 'shampoos' }, update: {}, create: { name: 'Shampoos', slug: 'shampoos', parentId: hairCare.id, sortOrder: 1, isActive: true }});
+  const conditioners = await prisma.category.upsert({ where: { slug: 'conditioners' }, update: {}, create: { name: 'Conditioners', slug: 'conditioners', parentId: hairCare.id, sortOrder: 2, isActive: true }});
+  const hairTreatments = await prisma.category.upsert({ where: { slug: 'hair-treatments-styling' }, update: {}, create: { name: 'Hair Treatments & Styling', slug: 'hair-treatments-styling', parentId: hairCare.id, sortOrder: 3, isActive: true }});
+
+  // 4. Products Data
+  const defaultSupplier = await prisma.supplier.upsert({ where: { slug: 'official-distributor' }, update: {}, create: { name: 'Official Distributor', slug: 'official-distributor', isActive: true }});
+
+  const productsData = [
+    {
+      brandId: eva.id, lineId: evaVitC.id, catId: cleansers.id,
+      name: 'Eva Skin Clinic Vitamin C Facial Wash And Exfoliator', slug: 'eva-vitc-wash-150', size: 150, unit: 'ml', code: 'EVA-VITC-WASH', barcode: null,
+      price: 130.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/vit_c_wash.jpg',
+      desc: 'Eva Skin Clinic Vitamin C Facial Wash and Exfoliator. Foaming wash for cleansing and exfoliating.'
     },
-  });
-
-  const lrp = await prisma.brand.create({
-    data: {
-      name: 'La Roche-Posay',
-      slug: 'la-roche-posay',
-      description: 'French dermocosmetics brand recommended by dermatologists',
-      logoUrl: 'https://example.com/brands/lrp-logo.png',
-      websiteUrl: 'https://www.laroche-posay.com',
-      countryOfOrigin: 'France',
-      isActive: true,
+    {
+      brandId: eva.id, lineId: evaVitC.id, catId: serums.id,
+      name: 'Eva Skin Clinic Vitamin C Facial Serum', slug: 'eva-vitc-serum-20', size: 20, unit: 'ml', code: 'EVA-VITC-SRM', barcode: null,
+      price: 195.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/vit_c_serum.jpg',
+      desc: 'Eva Skin Clinic Vitamin C Facial Serum. For a brighter complexion.'
     },
-  });
-
-  // Create product lines (Brand lines)
-  console.log('Creating product lines...');
-  const ceraveMoisturizers = await prisma.productLine.create({
-    data: {
-      brandId: cerave.id,
-      name: 'Daily Moisturizers',
-      slug: 'cerave-daily-moisturizers',
-      description: 'Essential ceramide-infused daily hydrating care',
-      isActive: true,
+    {
+      brandId: eva.id, lineId: evaHyaluronic.id, catId: serums.id,
+      name: 'Eva Skin Clinic Hyaluronic Acid Facial Serum', slug: 'eva-ha-serum-30', size: 30, unit: 'ml', code: 'EVA-HA-SRM', barcode: null,
+      price: 220.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/ha_serum.jpg',
+      desc: 'Eva Skin Clinic Hyaluronic Acid Facial Serum for hydration.'
     },
-  });
-
-  const lrpAnthelios = await prisma.productLine.create({
-    data: {
-      brandId: lrp.id,
-      name: 'Anthelios Sun Care',
-      slug: 'lrp-anthelios',
-      description: 'Advanced UV protection formulated for sensitive skin',
-      isActive: true,
+    {
+      brandId: eva.id, lineId: evaHyaluronic.id, catId: moisturizers.id,
+      name: 'Eva Skin Clinic Hyaluronic Acid Day Gel', slug: 'eva-ha-day-gel-45', size: 45, unit: 'ml', code: 'EVA-HA-GEL', barcode: null,
+      price: 165.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/ha_day_gel.jpg',
+      desc: 'Eva Skin Clinic Hyaluronic Acid Day Gel for daily hydration.'
     },
-  });
-  // ---------------------------------------------------------------------------
-  // Create categories (Skin Care + Hair Care root taxonomy)
-  // ---------------------------------------------------------------------------
-  console.log('Creating categories...');
-
-  // Root categories
-  const skinCare = await prisma.category.create({
-    data: {
-      name: 'Skin Care',
-      slug: 'skin-care',
-      description: 'Facial and body dermatological skincare products',
-      sortOrder: 1,
-      isActive: true,
+    {
+      brandId: eva.id, lineId: evaAcne.id, catId: cleansers.id,
+      name: 'Eva Skin Clinic Acne-Prone Skin "Fresh Restart" Facial Wash', slug: 'eva-acne-wash-150', size: 150, unit: 'ml', code: 'EVA-ACNE-WASH', barcode: null,
+      price: 140.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/acne_wash.jpg',
+      desc: 'Eva Skin Clinic Acne-Prone Skin Fresh Restart Facial Wash.'
     },
-  });
-
-  const hairCare = await prisma.category.create({
-    data: {
-      name: 'Hair Care',
-      slug: 'hair-care',
-      description: 'Hair care, cleansing, and conditioning treatments',
-      sortOrder: 2,
-      isActive: true,
+    {
+      brandId: eva.id, lineId: evaAcne.id, catId: sunscreens.id,
+      name: 'Eva Skin Clinic Acne-Prone Skin Sunscreen SPF 50+', slug: 'eva-acne-sunscreen-40', size: 40, unit: 'ml', code: 'EVA-ACNE-SPF', barcode: null,
+      price: 180.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/acne_sunscreen.jpg',
+      desc: 'Eva Skin Clinic Acne-Prone Skin Sunscreen SPF 50+.'
     },
-  });
-
-  // Leaf categories — Skin Care
-  await prisma.category.create({
-    data: {
-      name: 'Cleansers',
-      slug: 'cleansers',
-      parentId: skinCare.id,
-      sortOrder: 1,
-      isActive: true,
+    {
+      brandId: eva.id, lineId: evaCollagen.id, catId: cleansers.id,
+      name: 'Eva Skin Clinic Anti-Ageing Collagen Facial Wash', slug: 'eva-collagen-wash-150', size: 150, unit: 'ml', code: 'EVA-COL-WASH', barcode: null,
+      price: 135.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/collagen_wash.jpg',
+      desc: 'Eva Skin Clinic Anti-Ageing Collagen Facial Wash.'
     },
-  });
-
-  const moisturizers = await prisma.category.create({
-    data: {
-      name: 'Moisturizers',
-      slug: 'moisturizers',
-      parentId: skinCare.id,
-      sortOrder: 2,
-      isActive: true,
+    {
+      brandId: eva.id, lineId: evaCollagen.id, catId: moisturizers.id,
+      name: 'Eva Skin Clinic Anti-Ageing Collagen Fine Lines Filler (+30)', slug: 'eva-collagen-filler-50', size: 50, unit: 'ml', code: 'EVA-COL-FILL', barcode: null,
+      price: 210.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/collagen_filler.jpg',
+      desc: 'Eva Skin Clinic Anti-Ageing Collagen Fine Lines Filler.'
     },
-  });
-
-  await prisma.category.create({
-    data: {
-      name: 'Serums & Treatments',
-      slug: 'serums-treatments',
-      parentId: skinCare.id,
-      sortOrder: 3,
-      isActive: true,
+    // StarVille
+    {
+      brandId: starville.id, lineId: svAcne.id, catId: cleansers.id,
+      name: 'StarVille Acne Prone Skin Facial Cleanser', slug: 'sv-acne-cleanser-200', size: 200, unit: 'ml', code: 'SV-ACNE-WASH', barcode: null,
+      price: 175.00, url: 'https://parkville.com.eg/cdn/shop/files/starville_acne_cleanser.jpg',
+      desc: 'StarVille Acne Prone Skin Facial Cleanser.'
     },
-  });
-
-  const sunscreens = await prisma.category.create({
-    data: {
-      name: 'Sunscreens',
-      slug: 'sunscreens',
-      parentId: skinCare.id,
-      sortOrder: 4,
-      isActive: true,
+    {
+      brandId: starville.id, lineId: svAcne.id, catId: moisturizers.id,
+      name: 'StarVille Acne Prone Skin Cream', slug: 'sv-acne-cream-60', size: 60, unit: 'gm', code: 'SV-ACNE-CRM', barcode: null,
+      price: 120.00, url: 'https://parkville.com.eg/cdn/shop/files/starville_acne_cream.jpg',
+      desc: 'StarVille Acne Prone Skin Cream.'
     },
-  });
-
-  // Leaf categories — Hair Care
-  await prisma.category.create({
-    data: {
-      name: 'Shampoos',
-      slug: 'shampoos',
-      parentId: hairCare.id,
-      sortOrder: 1,
-      isActive: true,
+    {
+      brandId: starville.id, lineId: svWhitening.id, catId: cleansers.id,
+      name: 'StarVille Whitening Cleanser', slug: 'sv-whitening-cleanser-200', size: 200, unit: 'ml', code: 'SV-WHT-WASH', barcode: null,
+      price: 185.00, url: 'https://parkville.com.eg/cdn/shop/files/starville_whitening_cleanser.jpg',
+      desc: 'StarVille Whitening Cleanser.'
     },
-  });
-
-  await prisma.category.create({
-    data: {
-      name: 'Conditioners',
-      slug: 'conditioners',
-      parentId: hairCare.id,
-      sortOrder: 2,
-      isActive: true,
+    {
+      brandId: starville.id, lineId: svWhitening.id, catId: moisturizers.id,
+      name: 'StarVille Whitening Cream', slug: 'sv-whitening-cream-60', size: 60, unit: 'gm', code: 'SV-WHT-CRM', barcode: null,
+      price: 150.00, url: 'https://parkville.com.eg/cdn/shop/files/starville_whitening_cream.jpg',
+      desc: 'StarVille Whitening Cream.'
     },
-  });
-
-  await prisma.category.create({
-    data: {
-      name: 'Hair Treatments',
-      slug: 'hair-treatments',
-      parentId: hairCare.id,
-      sortOrder: 3,
-      isActive: true,
+    // The Hair Addict
+    {
+      brandId: hairAddict.id, lineId: haFrizzOff.id, catId: shampoos.id,
+      name: 'Frizz Off Shampoo', slug: 'ha-frizz-off-shampoo-250', size: 250, unit: 'ml', code: 'HA-FRIZZ-SHMP', barcode: null,
+      price: 250.00, url: 'https://thehairaddict.net/cdn/shop/files/frizz_off_shampoo.jpg',
+      desc: 'Frizz Off Shampoo.'
     },
-  });
-
-  console.log('Categories created ✓');
-
-  // Create products
-  console.log('Creating products...');
-  const moisturizingCream = await prisma.product.create({
-    data: {
-      brandId: cerave.id,
-      productLineId: ceraveMoisturizers.id,
-      categoryId: moisturizers.id,
-      name: 'Moisturizing Cream',
-      slug: 'cerave-moisturizing-cream',
-      description:
-        'A rich, non-greasy cream that provides 24-hour hydration. Developed with dermatologists, it contains 3 essential ceramides and hyaluronic acid.',
-      usage: 'Apply liberally to face and body as needed. For best results, use after cleansing.',
-      warnings:
-        'For external use only. Avoid contact with eyes. If irritation develops, discontinue use.',
-      isPublished: true,
+    {
+      brandId: hairAddict.id, lineId: haFrizzOff.id, catId: conditioners.id,
+      name: 'Frizz Off Conditioner', slug: 'ha-frizz-off-cond-250', size: 250, unit: 'ml', code: 'HA-FRIZZ-COND', barcode: null,
+      price: 250.00, url: 'https://thehairaddict.net/cdn/shop/files/frizz_off_conditioner.jpg',
+      desc: 'Frizz Off Conditioner.'
     },
-  });
-
-  const hydratingSunscreen = await prisma.product.create({
-    data: {
-      brandId: lrp.id,
-      productLineId: lrpAnthelios.id,
-      categoryId: sunscreens.id,
-      name: 'Anthelios Melt-In Milk Sunscreen SPF 60',
-      slug: 'lrp-anthelios-sunscreen-spf60',
-      description:
-        'Fast-absorbing sunscreen with broad spectrum SPF 60 protection. Water-resistant for 80 minutes. Suitable for sensitive skin.',
-      usage:
-        'Apply generously 15 minutes before sun exposure. Reapply at least every 2 hours and after swimming or sweating.',
-      warnings:
-        'For external use only. Keep out of eyes. Discontinue use if signs of irritation appear. Keep out of reach of children.',
-      isPublished: true,
+    {
+      brandId: hairAddict.id, lineId: haFrizzOff.id, catId: hairTreatments.id,
+      name: 'Frizz Off Leave-In Conditioner', slug: 'ha-frizz-off-leavein-250', size: 250, unit: 'ml', code: 'HA-FRIZZ-LEAVEIN', barcode: null,
+      price: 280.00, url: 'https://thehairaddict.net/cdn/shop/files/frizz_off_leavein.jpg',
+      desc: 'Frizz Off Leave-In Conditioner.'
     },
-  });
-
-  // Create SKUs
-  console.log('Creating SKUs...');
-  const ceraveSmall = await prisma.sku.create({
-    data: {
-      productId: moisturizingCream.id,
-      code: 'CRV-MC-177',
-      variantName: '6 oz Jar',
-      size: 177,
-      sizeUnit: 'ml',
-      barcode: '3606000537736',
-      isActive: true,
+    {
+      brandId: hairAddict.id, lineId: haLoveBond.id, catId: shampoos.id,
+      name: 'LoveBond Shampoo', slug: 'ha-lovebond-shampoo-250', size: 250, unit: 'ml', code: 'HA-LB-SHMP', barcode: null,
+      price: 290.00, url: 'https://thehairaddict.net/cdn/shop/files/lovebond_shampoo.jpg',
+      desc: 'LoveBond Shampoo.'
     },
-  });
-
-  const ceraveLarge = await prisma.sku.create({
-    data: {
-      productId: moisturizingCream.id,
-      code: 'CRV-MC-539',
-      variantName: '19 oz Tub',
-      size: 539,
-      sizeUnit: 'ml',
-      barcode: '3606000537743',
-      isActive: true,
+    {
+      brandId: hairAddict.id, lineId: haLoveBond.id, catId: conditioners.id,
+      name: 'LoveBond Conditioner', slug: 'ha-lovebond-cond-250', size: 250, unit: 'ml', code: 'HA-LB-COND', barcode: null,
+      price: 290.00, url: 'https://thehairaddict.net/cdn/shop/files/lovebond_conditioner.jpg',
+      desc: 'LoveBond Conditioner.'
     },
-  });
-
-  const lrpSunscreen = await prisma.sku.create({
-    data: {
-      productId: hydratingSunscreen.id,
-      code: 'LRP-AH-150',
-      variantName: '5 fl oz',
-      size: 150,
-      sizeUnit: 'ml',
-      barcode: '3337875545853',
-      isActive: true,
+    // BLESS
+    {
+      brandId: bless.id, lineId: blessActivator.id, catId: shampoos.id,
+      name: 'Activator Shampoo', slug: 'bless-activator-shampoo-300', size: 300, unit: 'ml', code: 'BLESS-ACT-SHMP', barcode: null,
+      price: 155.00, url: 'https://blessbotanicals.com/cdn/shop/files/activator_shampoo.jpg',
+      desc: 'Activator Shampoo.'
     },
-  });
-
-  // Create product media
-  console.log('Creating product media...');
-  await prisma.productMedia.create({
-    data: {
-      productId: moisturizingCream.id,
-      type: MediaType.image,
-      url: 'https://example.com/products/cerave-moisturizing-cream-front.jpg',
-      altText: 'CeraVe Moisturizing Cream front view',
-      sortOrder: 0,
-      isPrimary: true,
-      originType: MediaOriginType.verified,
+    {
+      brandId: bless.id, lineId: blessActivator.id, catId: conditioners.id,
+      name: 'Activator Conditioner', slug: 'bless-activator-cond-300', size: 300, unit: 'ml', code: 'BLESS-ACT-COND', barcode: null,
+      price: 155.00, url: 'https://blessbotanicals.com/cdn/shop/files/activator_conditioner.jpg',
+      desc: 'Activator Conditioner.'
     },
-  });
-
-  await prisma.productMedia.create({
-    data: {
-      productId: hydratingSunscreen.id,
-      type: MediaType.image,
-      url: 'https://example.com/products/lrp-anthelios-sunscreen-front.jpg',
-      altText: 'La Roche-Posay Anthelios Sunscreen front view',
-      sortOrder: 0,
-      isPrimary: true,
-      originType: MediaOriginType.verified,
-    },
-  });
-
-  // Create listings
-  console.log('Creating listings...');
-  await prisma.listing.create({
-    data: { skuId: ceraveSmall.id, isListed: true, listedAt: new Date() },
-  });
-
-  await prisma.listing.create({
-    data: { skuId: ceraveLarge.id, isListed: true, listedAt: new Date() },
-  });
-
-  await prisma.listing.create({
-    data: { skuId: lrpSunscreen.id, isListed: true, listedAt: new Date() },
-  });
-
-  // Create selling prices
-  console.log('Creating selling prices...');
-  await prisma.sellingPrice.create({
-    data: {
-      skuId: ceraveSmall.id,
-      amount: 15.99,
-      currency: 'USD',
-      compareAtAmount: 19.99,
-      validFrom: new Date(),
-      isActive: true,
-    },
-  });
-
-  await prisma.sellingPrice.create({
-    data: {
-      skuId: ceraveLarge.id,
-      amount: 24.99,
-      currency: 'USD',
-      compareAtAmount: 29.99,
-      validFrom: new Date(),
-      isActive: true,
-    },
-  });
-
-  await prisma.sellingPrice.create({
-    data: {
-      skuId: lrpSunscreen.id,
-      amount: 35.99,
-      currency: 'USD',
-      validFrom: new Date(),
-      isActive: true,
-    },
-  });
-
-  console.log('Creating sourcing data...');
-  const defaultSupplier = await prisma.supplier.create({
-    data: {
-      name: 'Default Test Supplier',
-      slug: 'default-test-supplier',
-      isActive: true,
+    {
+      brandId: bless.id, lineId: blessActivator.id, catId: hairTreatments.id,
+      name: 'Activator Defining Cream', slug: 'bless-activator-cream-250', size: 250, unit: 'ml', code: 'BLESS-ACT-CRM', barcode: null,
+      price: 185.00, url: 'https://blessbotanicals.com/cdn/shop/files/activator_cream.jpg',
+      desc: 'Activator Defining Cream.'
     }
-  });
+  ];
 
-  await prisma.supplierOffer.create({
-    data: {
-      supplierId: defaultSupplier.id,
-      skuId: ceraveSmall.id,
-      costPrice: 10.0,
-      currency: 'USD',
-      isAvailable: true,
-      lastConfirmedAt: new Date()
-    }
-  });
+  for (const pd of productsData) {
+    const prod = await prisma.product.upsert({
+      where: { slug: pd.slug },
+      update: {
+        description: pd.desc
+      },
+      create: {
+        brandId: pd.brandId,
+        productLineId: pd.lineId,
+        categoryId: pd.catId,
+        name: pd.name,
+        slug: pd.slug,
+        description: pd.desc,
+        isPublished: true,
+      }
+    });
 
-  await prisma.supplierOffer.create({
-    data: {
-      supplierId: defaultSupplier.id,
-      skuId: ceraveLarge.id,
-      costPrice: 15.0,
-      currency: 'USD',
-      isAvailable: true,
-      lastConfirmedAt: new Date()
-    }
-  });
+    const sku = await prisma.sku.upsert({
+      where: { code: pd.code },
+      update: {
+        barcode: pd.barcode
+      },
+      create: {
+        productId: prod.id,
+        code: pd.code,
+        variantName: `${pd.size} ${pd.unit}`,
+        size: pd.size,
+        sizeUnit: pd.unit,
+        barcode: pd.barcode,
+        isActive: true,
+      }
+    });
 
-  await prisma.supplierOffer.create({
-    data: {
-      supplierId: defaultSupplier.id,
-      skuId: lrpSunscreen.id,
-      costPrice: 20.0,
-      currency: 'USD',
-      isAvailable: true,
-      lastConfirmedAt: new Date()
+    // Handle media (avoiding duplicates)
+    const existingMedia = await prisma.productMedia.findFirst({
+      where: { productId: prod.id, url: pd.url }
+    });
+    
+    if (!existingMedia) {
+      await prisma.productMedia.create({
+        data: {
+          productId: prod.id,
+          type: MediaType.image,
+          url: pd.url,
+          altText: `${pd.name} front view`,
+          sortOrder: 0,
+          isPrimary: true,
+          originType: MediaOriginType.verified,
+        }
+      });
     }
-  });
+
+    await prisma.listing.upsert({
+      where: { skuId: sku.id },
+      update: {},
+      create: { skuId: sku.id, isListed: true, listedAt: new Date() }
+    });
+
+    // SellingPrice doesn't have a unique constraint on skuId alone, it's just id
+    // We can findFirst and update, or create
+    const existingPrice = await prisma.sellingPrice.findFirst({
+      where: { skuId: sku.id, isActive: true }
+    });
+    
+    if (!existingPrice) {
+      await prisma.sellingPrice.create({
+        data: {
+          skuId: sku.id,
+          amount: pd.price,
+          currency: 'EGP',
+          compareAtAmount: pd.price * 1.2,
+          validFrom: new Date(),
+          isActive: true,
+        }
+      });
+    } else {
+      await prisma.sellingPrice.update({
+        where: { id: existingPrice.id },
+        data: { amount: pd.price }
+      });
+    }
+
+    const existingOffer = await prisma.supplierOffer.findFirst({
+      where: { supplierId: defaultSupplier.id, skuId: sku.id }
+    });
+    
+    if (!existingOffer) {
+      await prisma.supplierOffer.create({
+        data: {
+          supplierId: defaultSupplier.id,
+          skuId: sku.id,
+          costPrice: pd.price * 0.7,
+          currency: 'EGP',
+          isAvailable: true,
+          lastConfirmedAt: new Date()
+        }
+      });
+    } else {
+      await prisma.supplierOffer.update({
+        where: { id: existingOffer.id },
+        data: { costPrice: pd.price * 0.7 }
+      });
+    }
+  }
 
   console.log('Seed completed successfully!');
-  console.log(`
-Created:
-- 2 brands (CeraVe, La Roche-Posay)
-- 2 product lines
-- 2 root categories (Skin Care, Hair Care) + 7 leaf categories
-- 2 products (with leaf categories assigned)
-- 3 SKUs
-- 2 media items (verified origin)
-- 3 listings
-- 3 prices
-
-You can now:
-1. Start the API: cd apps/api && npm run dev
-2. Test endpoints:
-   - GET http://localhost:3001/products
-   - GET http://localhost:3001/products/cerave-moisturizing-cream
-   - GET http://localhost:3001/products/lrp-anthelios-sunscreen-spf60
-  `);
 }
 
 seed()

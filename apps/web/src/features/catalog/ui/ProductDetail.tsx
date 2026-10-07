@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ProductView } from '../api/products';
+import { ProductView } from '../types/catalog.types';
 import { cart } from '@/lib/cart';
 import { auth } from '@/lib/auth';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
