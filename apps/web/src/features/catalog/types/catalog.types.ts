@@ -5,6 +5,12 @@ export interface ProductView {
   description: string | null;
   usage: string | null;
   warnings: string | null;
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | string | null;
+  routineStep?: number | null;
   brand: {
     id: string;
     name: string;

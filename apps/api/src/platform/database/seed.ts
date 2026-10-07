@@ -61,124 +61,124 @@ async function seed() {
     {
       brandId: eva.id, lineId: evaVitC.id, catId: cleansers.id,
       name: 'Eva Skin Clinic Vitamin C Facial Wash And Exfoliator', slug: 'eva-vitc-wash-150', size: 150, unit: 'ml', code: 'EVA-VITC-WASH', barcode: null,
-      price: 130.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/vit_c_wash.jpg',
+      price: 130.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/natural_glow_white_bg_1.png?v=1776525610',
       desc: 'Eva Skin Clinic Vitamin C Facial Wash and Exfoliator. Foaming wash for cleansing and exfoliating.'
     },
     {
       brandId: eva.id, lineId: evaVitC.id, catId: serums.id,
       name: 'Eva Skin Clinic Vitamin C Facial Serum', slug: 'eva-vitc-serum-20', size: 20, unit: 'ml', code: 'EVA-VITC-SRM', barcode: null,
-      price: 195.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/vit_c_serum.jpg',
+      price: 195.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/wcHFTmu0gN2mjlCA63qBR9wZIhrZQe2xxOGs2dVB.webp?v=1759434403',
       desc: 'Eva Skin Clinic Vitamin C Facial Serum. For a brighter complexion.'
     },
     {
       brandId: eva.id, lineId: evaHyaluronic.id, catId: serums.id,
       name: 'Eva Skin Clinic Hyaluronic Acid Facial Serum', slug: 'eva-ha-serum-30', size: 30, unit: 'ml', code: 'EVA-HA-SRM', barcode: null,
-      price: 220.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/ha_serum.jpg',
+      price: 220.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/91856.jpg?v=1767721058',
       desc: 'Eva Skin Clinic Hyaluronic Acid Facial Serum for hydration.'
     },
     {
       brandId: eva.id, lineId: evaHyaluronic.id, catId: moisturizers.id,
       name: 'Eva Skin Clinic Hyaluronic Acid Day Gel', slug: 'eva-ha-day-gel-45', size: 45, unit: 'ml', code: 'EVA-HA-GEL', barcode: null,
-      price: 165.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/ha_day_gel.jpg',
+      price: 165.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/eJ0Dx8MnR5TGQByLZLR8kU7Au0KkIlJD60v7jSX9.webp?v=1759692431',
       desc: 'Eva Skin Clinic Hyaluronic Acid Day Gel for daily hydration.'
     },
     {
       brandId: eva.id, lineId: evaAcne.id, catId: cleansers.id,
       name: 'Eva Skin Clinic Acne-Prone Skin "Fresh Restart" Facial Wash', slug: 'eva-acne-wash-150', size: 150, unit: 'ml', code: 'EVA-ACNE-WASH', barcode: null,
-      price: 140.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/acne_wash.jpg',
+      price: 140.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/natural_glow_white_bg_1.png?v=1776525610',
       desc: 'Eva Skin Clinic Acne-Prone Skin Fresh Restart Facial Wash.'
     },
     {
       brandId: eva.id, lineId: evaAcne.id, catId: sunscreens.id,
       name: 'Eva Skin Clinic Acne-Prone Skin Sunscreen SPF 50+', slug: 'eva-acne-sunscreen-40', size: 40, unit: 'ml', code: 'EVA-ACNE-SPF', barcode: null,
-      price: 180.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/acne_sunscreen.jpg',
+      price: 180.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/eJ0Dx8MnR5TGQByLZLR8kU7Au0KkIlJD60v7jSX9.webp?v=1759692431',
       desc: 'Eva Skin Clinic Acne-Prone Skin Sunscreen SPF 50+.'
     },
     {
       brandId: eva.id, lineId: evaCollagen.id, catId: cleansers.id,
       name: 'Eva Skin Clinic Anti-Ageing Collagen Facial Wash', slug: 'eva-collagen-wash-150', size: 150, unit: 'ml', code: 'EVA-COL-WASH', barcode: null,
-      price: 135.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/collagen_wash.jpg',
+      price: 135.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/DKahM3hCkfl60u6I2OkFdPCpC8asK4UjMBIkKWOh.webp?v=1759434293',
       desc: 'Eva Skin Clinic Anti-Ageing Collagen Facial Wash.'
     },
     {
       brandId: eva.id, lineId: evaCollagen.id, catId: moisturizers.id,
       name: 'Eva Skin Clinic Anti-Ageing Collagen Fine Lines Filler (+30)', slug: 'eva-collagen-filler-50', size: 50, unit: 'ml', code: 'EVA-COL-FILL', barcode: null,
-      price: 210.00, url: 'https://shop.eva-cosmetics.com/cdn/shop/files/collagen_filler.jpg',
+      price: 210.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/pFcjqe2VVqhd75VTkbV2QwfY6qOtH8vxIyXVT6An.webp?v=1759692407',
       desc: 'Eva Skin Clinic Anti-Ageing Collagen Fine Lines Filler.'
     },
     // StarVille
     {
       brandId: starville.id, lineId: svAcne.id, catId: cleansers.id,
       name: 'StarVille Acne Prone Skin Facial Cleanser', slug: 'sv-acne-cleanser-200', size: 200, unit: 'ml', code: 'SV-ACNE-WASH', barcode: null,
-      price: 175.00, url: 'https://parkville.com.eg/cdn/shop/files/starville_acne_cleanser.jpg',
+      price: 175.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/eJ0Dx8MnR5TGQByLZLR8kU7Au0KkIlJD60v7jSX9.webp?v=1759692431',
       desc: 'StarVille Acne Prone Skin Facial Cleanser.'
     },
     {
       brandId: starville.id, lineId: svAcne.id, catId: moisturizers.id,
       name: 'StarVille Acne Prone Skin Cream', slug: 'sv-acne-cream-60', size: 60, unit: 'gm', code: 'SV-ACNE-CRM', barcode: null,
-      price: 120.00, url: 'https://parkville.com.eg/cdn/shop/files/starville_acne_cream.jpg',
+      price: 120.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/natural_glow_white_bg_1.png?v=1776525610',
       desc: 'StarVille Acne Prone Skin Cream.'
     },
     {
       brandId: starville.id, lineId: svWhitening.id, catId: cleansers.id,
       name: 'StarVille Whitening Cleanser', slug: 'sv-whitening-cleanser-200', size: 200, unit: 'ml', code: 'SV-WHT-WASH', barcode: null,
-      price: 185.00, url: 'https://parkville.com.eg/cdn/shop/files/starville_whitening_cleanser.jpg',
+      price: 185.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/94349.jpg?v=1791198961',
       desc: 'StarVille Whitening Cleanser.'
     },
     {
       brandId: starville.id, lineId: svWhitening.id, catId: moisturizers.id,
       name: 'StarVille Whitening Cream', slug: 'sv-whitening-cream-60', size: 60, unit: 'gm', code: 'SV-WHT-CRM', barcode: null,
-      price: 150.00, url: 'https://parkville.com.eg/cdn/shop/files/starville_whitening_cream.jpg',
+      price: 150.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/94349.jpg?v=1791198961',
       desc: 'StarVille Whitening Cream.'
     },
     // The Hair Addict
     {
       brandId: hairAddict.id, lineId: haFrizzOff.id, catId: shampoos.id,
       name: 'Frizz Off Shampoo', slug: 'ha-frizz-off-shampoo-250', size: 250, unit: 'ml', code: 'HA-FRIZZ-SHMP', barcode: null,
-      price: 250.00, url: 'https://thehairaddict.net/cdn/shop/files/frizz_off_shampoo.jpg',
+      price: 250.00, url: 'https://cdn.shopify.com/s/files/1/0817/6844/8214/files/MEN-SHAMPOO.jpg?v=1779303199',
       desc: 'Frizz Off Shampoo.'
     },
     {
       brandId: hairAddict.id, lineId: haFrizzOff.id, catId: conditioners.id,
       name: 'Frizz Off Conditioner', slug: 'ha-frizz-off-cond-250', size: 250, unit: 'ml', code: 'HA-FRIZZ-COND', barcode: null,
-      price: 250.00, url: 'https://thehairaddict.net/cdn/shop/files/frizz_off_conditioner.jpg',
+      price: 250.00, url: 'https://cdn.shopify.com/s/files/1/0817/6844/8214/files/Tubes-Mockups-1_page-0003.jpg?v=1779303177',
       desc: 'Frizz Off Conditioner.'
     },
     {
       brandId: hairAddict.id, lineId: haFrizzOff.id, catId: hairTreatments.id,
       name: 'Frizz Off Leave-In Conditioner', slug: 'ha-frizz-off-leavein-250', size: 250, unit: 'ml', code: 'HA-FRIZZ-LEAVEIN', barcode: null,
-      price: 280.00, url: 'https://thehairaddict.net/cdn/shop/files/frizz_off_leavein.jpg',
+      price: 280.00, url: 'https://cdn.shopify.com/s/files/1/0817/6844/8214/files/Tubes-Mockups-1_page-0003.jpg?v=1779303177',
       desc: 'Frizz Off Leave-In Conditioner.'
     },
     {
       brandId: hairAddict.id, lineId: haLoveBond.id, catId: shampoos.id,
       name: 'LoveBond Shampoo', slug: 'ha-lovebond-shampoo-250', size: 250, unit: 'ml', code: 'HA-LB-SHMP', barcode: null,
-      price: 290.00, url: 'https://thehairaddict.net/cdn/shop/files/lovebond_shampoo.jpg',
+      price: 290.00, url: 'https://cdn.shopify.com/s/files/1/0817/6844/8214/files/dsdsd.webp?v=1779303211',
       desc: 'LoveBond Shampoo.'
     },
     {
       brandId: hairAddict.id, lineId: haLoveBond.id, catId: conditioners.id,
       name: 'LoveBond Conditioner', slug: 'ha-lovebond-cond-250', size: 250, unit: 'ml', code: 'HA-LB-COND', barcode: null,
-      price: 290.00, url: 'https://thehairaddict.net/cdn/shop/files/lovebond_conditioner.jpg',
+      price: 290.00, url: 'https://cdn.shopify.com/s/files/1/0817/6844/8214/files/CONDITIONER-mockup-scaled.jpg?v=1779303211',
       desc: 'LoveBond Conditioner.'
     },
     // BLESS
     {
       brandId: bless.id, lineId: blessActivator.id, catId: shampoos.id,
       name: 'Activator Shampoo', slug: 'bless-activator-shampoo-300', size: 300, unit: 'ml', code: 'BLESS-ACT-SHMP', barcode: null,
-      price: 155.00, url: 'https://blessbotanicals.com/cdn/shop/files/activator_shampoo.jpg',
+      price: 155.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/94347.jpg?v=1791198934',
       desc: 'Activator Shampoo.'
     },
     {
       brandId: bless.id, lineId: blessActivator.id, catId: conditioners.id,
       name: 'Activator Conditioner', slug: 'bless-activator-cond-300', size: 300, unit: 'ml', code: 'BLESS-ACT-COND', barcode: null,
-      price: 155.00, url: 'https://blessbotanicals.com/cdn/shop/files/activator_conditioner.jpg',
+      price: 155.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/94348.jpg?v=1791198910',
       desc: 'Activator Conditioner.'
     },
     {
       brandId: bless.id, lineId: blessActivator.id, catId: hairTreatments.id,
       name: 'Activator Defining Cream', slug: 'bless-activator-cream-250', size: 250, unit: 'ml', code: 'BLESS-ACT-CRM', barcode: null,
-      price: 185.00, url: 'https://blessbotanicals.com/cdn/shop/files/activator_cream.jpg',
+      price: 185.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/94349.jpg?v=1791198961',
       desc: 'Activator Defining Cream.'
     }
   ];

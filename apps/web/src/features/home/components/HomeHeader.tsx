@@ -1,35 +1,67 @@
-import { Menu, Bell, ShoppingBag } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+import {
+  Bell,
+  ChevronDown,
+  Flower2,
+  Menu,
+  Search,
+  ShoppingBag,
+  SlidersHorizontal,
+  Sparkles,
+  UserRound,
+} from 'lucide-react';
+import { routes } from '@/lib/routes';
 
 export function HomeHeader() {
   return (
-    <header className="flex items-center justify-between px-4 py-3 bg-background">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" aria-label="Open menu">
-          <Menu className="w-6 h-6" />
-        </Button>
-        <div>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <span>Hello, Glow Girl!</span>
-            <span>✨</span>
+    <header className="home-header">
+      <div className="home-header-inner">
+        <Link href={routes.home} className="brand-lockup" aria-label="ShenaCare home">
+          <Flower2 aria-hidden="true" />
+          <span>Shena<span>Care</span></span>
+        </Link>
+
+        <nav className="desktop-home-nav" aria-label="Store navigation">
+          <Link href={routes.products}>Shop <ChevronDown aria-hidden="true" /></Link>
+          <Link href={routes.routineBuilder}>Routines</Link>
+          <Link href="/products?view=brands">Brands</Link>
+          <Link href="#concerns">Concerns</Link>
+        </nav>
+
+        <form className="desktop-search" action={routes.products} role="search">
+          <Search aria-hidden="true" />
+          <input name="search" placeholder="Search for products, concerns, routines..." aria-label="Search the store" />
+          <button type="submit" aria-label="Search filters"><SlidersHorizontal aria-hidden="true" /></button>
+        </form>
+
+        <div className="desktop-actions">
+          <button type="button" className="header-icon" aria-label="Notifications">
+            <Bell aria-hidden="true" />
+            <span className="notification-badge">3</span>
+          </button>
+          <Link href={routes.cart} className="header-icon" aria-label="Shopping cart"><ShoppingBag aria-hidden="true" /></Link>
+          <Link href={routes.login} className="profile-link">
+            <span className="profile-avatar"><UserRound aria-hidden="true" /></span>
+            <span>Hello, Sara</span>
+            <ChevronDown aria-hidden="true" />
+          </Link>
+        </div>
+
+        <div className="mobile-home-header">
+          <button type="button" className="mobile-menu" aria-label="Open menu"><Menu aria-hidden="true" /></button>
+          <div className="mobile-greeting">
+            <p>Hello, Glow Girl! <Sparkles aria-hidden="true" /></p>
+            <h1>Discover Beauty</h1>
+            <span>Guidance for your skin &amp; hair</span>
           </div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">Discover Beauty</h1>
-          <p className="text-xs text-muted-foreground">Guidance for your skin & hair</p>
+          <div className="mobile-actions">
+            <button type="button" className="header-icon" aria-label="Notifications">
+              <Bell aria-hidden="true" />
+              <span className="notification-badge">3</span>
+            </button>
+            <Link href={routes.cart} className="header-icon" aria-label="Shopping cart"><ShoppingBag aria-hidden="true" /></Link>
+          </div>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="relative">
-          <Button variant="ghost" size="icon" aria-label="Notifications">
-            <Bell className="w-6 h-6" />
-          </Button>
-          <Badge className="absolute top-1 right-1 w-4 h-4 p-0 flex items-center justify-center text-[10px] bg-destructive text-destructive-foreground">
-            3
-          </Badge>
-        </div>
-        <Button variant="ghost" size="icon" aria-label="Shopping Cart">
-          <ShoppingBag className="w-6 h-6" />
-        </Button>
       </div>
     </header>
   );

@@ -12,8 +12,9 @@ export function AppProviders({
 }) {
   return (
     <QueryProvider>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
       <LocaleProvider locale={locale as any}>
-        {children}
+        <>{children}</>
       </LocaleProvider>
     </QueryProvider>
   );

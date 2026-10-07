@@ -48,6 +48,8 @@ export function Header() {
     router.refresh();
   };
 
+  if (pathname === '/') return null;
+
   return (
     <header className="site-header">
       <div className="container header-inner">
