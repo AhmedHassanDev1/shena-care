@@ -33,34 +33,54 @@ export interface Cart {
   itemCount: number;
 }
 
+const CART_TOKEN_KEY = 'guestCartToken';
+
+function getCartOptions() {
+  const token = auth.getToken();
+  if (token) return { token };
+  
+  // fallback to guest cart
+  if (typeof window !== 'undefined') {
+    const guestToken = localStorage.getItem(CART_TOKEN_KEY);
+    if (guestToken) {
+      return { headers: { 'x-cart-token': guestToken } };
+    }
+  }
+  return {};
+}
+
+function handleCartResponse(cartData: any) {
+  if (cartData.guestCartToken && typeof window !== 'undefined') {
+    localStorage.setItem(CART_TOKEN_KEY, cartData.guestCartToken);
+  }
+  return cartData;
+}
+
 export const cart = {
   async getCart(): Promise<Cart> {
-    const token = auth.getToken();
-    if (!token) throw new Error('Not authenticated');
-    return apiClient.get<Cart>('/ordering/cart', token);
+    const response = await apiClient.get<Cart>('/ordering/cart', getCartOptions());
+    return handleCartResponse(response);
   },
 
   async addToCart(skuId: string, quantity: number = 1): Promise<Cart> {
-    const token = auth.getToken();
-    if (!token) throw new Error('Not authenticated');
-    return apiClient.post<Cart>('/ordering/cart/add', { skuId, quantity }, token);
+    const response = await apiClient.post<Cart>('/ordering/cart/add', { skuId, quantity }, getCartOptions());
+    return handleCartResponse(response);
   },
 
   async updateQuantity(skuId: string, quantity: number): Promise<Cart> {
-    const token = auth.getToken();
-    if (!token) throw new Error('Not authenticated');
-    return apiClient.patch<Cart>('/ordering/cart/quantity', { skuId, quantity }, token);
+    const response = await apiClient.patch<Cart>('/ordering/cart/quantity', { skuId, quantity }, getCartOptions());
+    return handleCartResponse(response);
   },
 
   async removeFromCart(skuId: string): Promise<Cart> {
-    const token = auth.getToken();
-    if (!token) throw new Error('Not authenticated');
-    return apiClient.post<Cart>('/ordering/cart/remove', { skuId }, token);
+    const response = await apiClient.post<Cart>('/ordering/cart/remove', { skuId }, getCartOptions());
+    return handleCartResponse(response);
   },
 
   async clearCart(): Promise<void> {
-    const token = auth.getToken();
-    if (!token) throw new Error('Not authenticated');
-    return apiClient.delete<void>('/ordering/cart', token);
+    await apiClient.delete<void>('/ordering/cart', getCartOptions());
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(CART_TOKEN_KEY);
+    }
   },
 };

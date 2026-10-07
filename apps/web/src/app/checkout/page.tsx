@@ -1,75 +1,89 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { cart as cartApi, type Cart } from '@/lib/cart';
+import { useCart } from '@/features/cart/hooks/useCart';
+import { useCheckoutQuote } from '@/features/checkout/hooks/useCheckoutQuote';
 import { orders } from '@/lib/orders';
 import { auth } from '@/lib/auth';
-
-const GOVERNORATES = [
-  { id: 'cairo', name: 'Cairo', fee: 50 },
-  { id: 'alexandria', name: 'Alexandria', fee: 60 },
-  { id: 'giza', name: 'Giza', fee: 55 },
-  { id: 'other', name: 'Other Governorates', fee: 100 },
-];
+import { v4 as uuidv4 } from 'uuid';
+import { useMessages, useLocale } from '@/lib/i18n/LocaleProvider';
+import { MapPin, CreditCard, ShoppingCart, ShieldCheck, ChevronRight, ChevronLeft, Check, Plus, Edit2 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const [cart, setCart] = useState<Cart | null>(null);
-  const [loading, setLoading] = useState(true);
+  const m = useMessages();
+  const locale = useLocale();
+  const isRtl = locale === 'ar';
+  const BackIcon = isRtl ? ChevronRight : ChevronLeft;
+  const ArrowIcon = isRtl ? ChevronLeft : ChevronRight;
+
+  const { cart, isLoading: cartLoading } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-
+  
+  // Basic address form state for MVP
+  const [isEditingAddress, setIsEditingAddress] = useState(true);
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
     governorate: 'cairo',
+    area: '',
     address: '',
     landmark: '',
   });
 
+  const [idempotencyKey] = useState(() => uuidv4());
   const isGuest = !auth.isAuthenticated();
 
-  useEffect(() => {
-    loadCart();
-  }, []);
+  // Quote covers pricing and availability revalidation
+  const { 
+    data: quote, 
+    isLoading: quoteLoading, 
+    error: quoteError 
+  } = useCheckoutQuote({
+    governorate: formData.governorate,
+    area: formData.area || 'default',
+  });
 
-  const loadCart = async () => {
-    try {
-      // In a real app, cart could be synced from local storage for guests
-      const data = await cartApi.getCart().catch(() => {
-        // Mock fallback for guests without server cart
-        return { items: [], total: 0, itemCount: 0, sessionId: '' } as Cart;
-      });
-      
-      if (data.items.length === 0 && !isGuest) {
-        router.push('/cart');
-        return;
-      }
-      setCart(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load cart');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (cartLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="w-10 h-10 border-4 border-[#E57A73] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
-  const deliveryFee = GOVERNORATES.find(g => g.id === formData.governorate)?.fee || 0;
-  const orderTotal = (cart?.total || 0) + deliveryFee;
+  if (!cart || cart.items.length === 0) {
+    router.push('/cart');
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!quote) {
+      setError('Please wait for shipping quote to calculate.');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      const fullAddress = `${GOVERNORATES.find(g => g.id === formData.governorate)?.name}, ${formData.address}${formData.landmark ? `, Landmark: ${formData.landmark}` : ''}`;
+      const fullAddress = `${formData.address}${formData.landmark ? `, Landmark: ${formData.landmark}` : ''}`;
       
       const order = await orders.checkout({
         customerName: formData.customerName,
         customerPhone: formData.customerPhone,
+        governorate: formData.governorate,
+        area: formData.area,
         shippingAddress: fullAddress,
-      }, isGuest);
+        idempotencyKey,
+        quoteVersion: quote.quoteVersion,
+        cartRevision: cart.sessionId ? 0 : 0, 
+      });
       
       const url = order.guestToken ? `/orders/${order.id}?token=${order.guestToken}` : `/orders/${order.id}`;
       router.push(url);
@@ -79,164 +93,235 @@ export default function CheckoutPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="checkout-container">
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <div className="spinner"></div>
-          <p style={{ marginTop: '1rem', color: 'var(--color-text-light)' }}>Loading checkout...</p>
-        </div>
-      </div>
-    );
-  }
+  const hasUnavailableItems = quote?.items.some((i: any) => !i.sellable);
+
+  const getGovernorateLabel = (val: string) => {
+    if (val === 'cairo') return m.cairo;
+    if (val === 'giza') return m.giza;
+    return m.otherGovernorates;
+  };
 
   return (
-    <div className="checkout-container" style={{ maxWidth: '800px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
-      <h1 className="page-title">Secure Checkout</h1>
-      {isGuest && <p style={{ color: 'var(--color-text-light)', marginBottom: '1rem' }}>Checking out as a Guest.</p>}
+    <div className="min-h-screen bg-[#FFFDF9] pb-32">
+      {/* Header */}
+      <header className="flex items-center justify-between p-4 bg-white sticky top-0 z-40 shadow-sm border-b border-black/5">
+        <button onClick={() => router.back()} className="p-2 -mx-2 text-norya-stone-900" aria-label="Go back">
+          <BackIcon className="w-6 h-6" />
+        </button>
+        <h1 className="text-lg font-bold text-norya-stone-900">{m.checkoutTitle}</h1>
+        <div className="w-6" /> {/* Balance spacer */}
+      </header>
 
-      {error && <div className="error-message" style={{ background: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '0.5rem' }}>{error}</div>}
-
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '2rem', alignItems: 'start' }}>
+      <form onSubmit={handleSubmit} className="max-w-xl mx-auto px-4 pt-6 flex flex-col gap-8">
         
-        {/* Left Column: Delivery & Payment */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
-          <div className="checkout-section" style={{ background: 'var(--color-surface)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>1. Delivery Details</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.customerName}
-                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                  placeholder="Your full name"
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }}
-                />
-              </div>
+        {/* Errors */}
+        {(error || quoteError) && (
+          <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm font-medium">
+            {error || (quoteError as Error)?.message || 'An error occurred'}
+          </div>
+        )}
+        {hasUnavailableItems && (
+          <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm font-medium">
+            Some items are no longer available. Please update your cart.
+          </div>
+        )}
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Mobile Number *</label>
-                <input
-                  type="tel"
-                  required
-                  value={formData.customerPhone}
-                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                  placeholder="01xxxxxxxxx"
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }}
-                />
-              </div>
+        {/* Section 1: Delivery */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="w-5 h-5 text-norya-stone-900" />
+            <h2 className="text-base font-bold text-norya-stone-900">{m.deliveryDetails}</h2>
+          </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Governorate / Area *</label>
-                <select
-                  required
-                  value={formData.governorate}
-                  onChange={(e) => setFormData({ ...formData, governorate: e.target.value })}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-black/5">
+            {/* Governorate Radio Group */}
+            <div className="flex gap-2 mb-5 overflow-x-auto pb-2 scrollbar-hide">
+              {['cairo', 'giza', 'other'].map(gov => (
+                <label 
+                  key={gov} 
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium whitespace-nowrap cursor-pointer transition-colors ${
+                    formData.governorate === gov 
+                    ? 'border-[#E57A73] bg-[#FEF2F2] text-[#E57A73]' 
+                    : 'border-norya-stone-200 text-norya-stone-600 bg-white'
+                  }`}
                 >
-                  {GOVERNORATES.map(g => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
-              </div>
+                  <input 
+                    type="radio" 
+                    name="governorate" 
+                    value={gov} 
+                    checked={formData.governorate === gov}
+                    onChange={(e) => setFormData({ ...formData, governorate: e.target.value })}
+                    className="sr-only" 
+                  />
+                  <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${formData.governorate === gov ? 'border-[#E57A73]' : 'border-norya-stone-300'}`}>
+                    {formData.governorate === gov && <div className="w-2 h-2 rounded-full bg-[#E57A73]" />}
+                  </div>
+                  {getGovernorateLabel(gov)}
+                </label>
+              ))}
+            </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Detailed Address *</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Street name, Building number, Floor, Apartment"
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Landmark (Optional)</label>
+            {isEditingAddress ? (
+              <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-2">
                 <input
-                  type="text"
-                  value={formData.landmark}
-                  onChange={(e) => setFormData({ ...formData, landmark: e.target.value })}
-                  placeholder="e.g. Next to pharmacy"
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }}
+                  type="text" required placeholder="Full Name *"
+                  value={formData.customerName} onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  className="w-full px-4 py-3 bg-norya-stone-50 border border-norya-stone-200 rounded-xl focus:outline-none focus:border-[#E57A73] text-sm"
                 />
+                <input
+                  type="tel" required placeholder="Phone Number (e.g. 010...) *"
+                  value={formData.customerPhone} onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                  className="w-full px-4 py-3 bg-norya-stone-50 border border-norya-stone-200 rounded-xl focus:outline-none focus:border-[#E57A73] text-sm text-left" dir="ltr"
+                />
+                <input
+                  type="text" required placeholder="Area / Neighborhood *"
+                  value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                  className="w-full px-4 py-3 bg-norya-stone-50 border border-norya-stone-200 rounded-xl focus:outline-none focus:border-[#E57A73] text-sm"
+                />
+                <textarea
+                  required rows={2} placeholder="Street, Building, Floor, Apt *"
+                  value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="w-full px-4 py-3 bg-norya-stone-50 border border-norya-stone-200 rounded-xl focus:outline-none focus:border-[#E57A73] text-sm"
+                />
+                <input
+                  type="text" placeholder="Landmark (Optional)"
+                  value={formData.landmark} onChange={(e) => setFormData({ ...formData, landmark: e.target.value })}
+                  className="w-full px-4 py-3 bg-norya-stone-50 border border-norya-stone-200 rounded-xl focus:outline-none focus:border-[#E57A73] text-sm"
+                />
+                
+                <div className="flex justify-end gap-2 mt-2">
+                  <button type="button" onClick={() => setIsEditingAddress(false)} className="px-4 py-2 text-sm font-medium text-norya-stone-600 bg-norya-stone-100 rounded-lg">Done</button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="border border-norya-stone-200 rounded-xl p-4 mb-4 bg-norya-stone-50">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-bold text-norya-stone-900 text-sm mb-1">{formData.customerName || 'Name missing'} - {getGovernorateLabel(formData.governorate)}</div>
+                    <div className="text-xs text-norya-stone-600 leading-relaxed max-w-[80%]">
+                      {formData.address}, {formData.area}
+                      {formData.customerPhone && <div className="mt-1" dir="ltr">{formData.customerPhone}</div>}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setIsEditingAddress(true)} className="text-[#E57A73] text-xs font-bold p-1">
+                    {m.edit}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isEditingAddress && (
+              <button type="button" onClick={() => setIsEditingAddress(true)} className="w-full py-3 flex items-center justify-center gap-2 text-[#E57A73] text-sm font-bold border border-dashed border-[#E57A73] rounded-xl bg-[#FEF2F2]/50">
+                <Plus className="w-4 h-4" />
+                {m.addNewAddress}
+              </button>
+            )}
+          </div>
+        </section>
+
+        {/* Section 2: Payment */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <CreditCard className="w-5 h-5 text-norya-stone-900" />
+            <h2 className="text-base font-bold text-norya-stone-900">{m.paymentMethod}</h2>
           </div>
 
-          <div className="checkout-section" style={{ background: 'var(--color-surface)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>2. Payment Method</h2>
-            <div style={{
-              padding: '1rem',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              borderRadius: '0.5rem',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.75rem'
-            }}>
-              <input type="radio" checked readOnly style={{ marginTop: '0.25rem' }} />
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-black/5 flex flex-col gap-3">
+            {/* COD Option */}
+            <label className="flex items-start gap-3 p-4 rounded-xl border border-[#E57A73] bg-[#FEF2F2]/50 cursor-pointer">
+              <div className="w-4 h-4 rounded-full bg-[#E57A73] text-white flex items-center justify-center mt-0.5 shrink-0">
+                <Check className="w-3 h-3" />
+              </div>
               <div>
-                <div style={{ fontWeight: 600 }}>Cash on Delivery (COD)</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', marginTop: '0.25rem' }}>
-                  Pay securely with cash when your order arrives. Other methods are coming soon.
+                <div className="font-bold text-norya-stone-900 text-sm">{m.cod}</div>
+                <div className="text-xs text-norya-stone-600 mt-1">{m.codDesc}</div>
+              </div>
+            </label>
+
+            {/* Vodafone Cash (Disabled) */}
+            <label className="flex items-start gap-3 p-4 rounded-xl border border-norya-stone-200 bg-norya-stone-50 cursor-not-allowed opacity-60">
+              <div className="w-4 h-4 rounded-full border border-norya-stone-300 mt-0.5 shrink-0" />
+              <div>
+                <div className="font-bold text-norya-stone-900 text-sm">{m.vodafoneCash}</div>
+                <div className="text-xs text-norya-stone-600 mt-1">{m.vodafoneCashDesc}</div>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        {/* Section 3: Summary */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-norya-stone-900" />
+              <h2 className="text-base font-bold text-norya-stone-900">{m.orderSummary}</h2>
+            </div>
+            <Link href="/cart" className="text-[#E57A73] text-xs font-bold hover:underline">
+              {m.viewAndEditCart}
+            </Link>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-black/5">
+            {/* Horizontal Product List */}
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4 border-b border-norya-stone-100">
+              {cart.items.map((item) => (
+                <div key={item.skuId} className="relative shrink-0">
+                  <div className="w-16 h-16 bg-[#F5F5F5] rounded-lg border border-black/5 flex items-center justify-center text-xl">
+                    <span className="opacity-30">📦</span>
+                  </div>
+                  <div className="absolute -top-2 -right-2 bg-norya-stone-900 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
+                    {item.quantity}
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Totals */}
+            <div className="flex flex-col gap-3 text-sm">
+              <div className="flex justify-between text-norya-stone-600">
+                <span>{m.productsTotal.replace('{count}', cart.itemCount.toString())}</span>
+                <span className="font-bold text-norya-stone-900">{quote ? quote.totals.subtotal.toFixed(0) : cart.total.toFixed(0)} ج.م</span>
+              </div>
+              <div className="flex justify-between text-norya-stone-600">
+                <span>{m.shippingFees}</span>
+                <span className="font-bold text-[#2E7D32]">
+                  {quoteLoading ? (
+                    <div className="w-3 h-3 border-2 border-[#2E7D32] border-t-transparent rounded-full animate-spin"></div>
+                  ) : quote && quote.totals.shipping === 0 ? (
+                    m.freeShipping
+                  ) : quote ? (
+                    `${quote.totals.shipping.toFixed(0)} ج.م`
+                  ) : (
+                    '---'
+                  )}
+                </span>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Right Column: Review */}
-        <div className="checkout-section" style={{ background: 'var(--color-surface)', padding: '1.5rem', borderRadius: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', position: 'sticky', top: '2rem' }}>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Order Review</h2>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-            {cart?.items.length === 0 && <p style={{ color: 'var(--color-text-light)', fontSize: '0.9rem' }}>Cart is empty for this guest session demo.</p>}
-            {cart?.items.map((item) => (
-              <div key={item.skuId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', alignItems: 'center' }}>
-                <div style={{ flex: 1, paddingRight: '1rem' }}>
-                  <div style={{ fontWeight: 500 }}>{item.sku.product.name}</div>
-                  <div style={{ color: 'var(--color-text-light)', fontSize: '0.8rem' }}>Variant: {item.sku.variantName} | Qty: {item.quantity}</div>
-                  <div style={{ color: 'var(--color-success)', fontSize: '0.75rem', fontWeight: 600 }}>✓ In Stock (Pending Confirmation)</div>
-                </div>
-                <div style={{ fontWeight: 500 }}>${item.subtotal?.toFixed(2) || '0.00'}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.95rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--color-text-light)' }}>Subtotal</span>
-              <span>${(cart?.total || 0).toFixed(2)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--color-text-light)' }}>Delivery Fee</span>
-              <span>${deliveryFee.toFixed(2)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.2rem', marginTop: '0.5rem' }}>
-              <span>Total to Pay (COD)</span>
-              <span>${orderTotal.toFixed(2)}</span>
+            <div className="flex justify-between items-center mt-5 pt-4 border-t border-dashed border-norya-stone-200">
+              <span className="font-bold text-lg text-norya-stone-900">{m.total}</span>
+              <span className="font-bold text-2xl text-norya-stone-900">{quote ? quote.totals.total.toFixed(0) : '---'} ج.م</span>
             </div>
           </div>
+        </section>
 
-          <button 
-            type="submit" 
-            className="cta-button" 
-            disabled={submitting || (cart?.items.length === 0 && !isGuest)}
-            style={{ width: '100%', marginTop: '2rem', padding: '1rem', fontSize: '1.05rem' }}
-          >
-            {submitting ? 'Placing Order...' : 'Place Order'}
-          </button>
-          
-          <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--color-text-light)', marginTop: '1rem' }}>
-            By placing this order, you agree to our Terms of Service and Delivery Policies.
-          </p>
-        </div>
       </form>
+
+      {/* Mobile Sticky CTA */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur border-t border-norya-stone-200 z-40 pb-safe">
+        <button 
+          onClick={handleSubmit}
+          disabled={submitting || quoteLoading || hasUnavailableItems || !quote || isEditingAddress}
+          className="w-full bg-[#E57A73] hover:bg-[#d66962] disabled:bg-[#f3b5b1] text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+        >
+          {submitting ? 'جارٍ التأكيد...' : m.placeOrder}
+          {!submitting && <ArrowIcon className="w-5 h-5" />}
+        </button>
+        <div className="flex justify-center items-center gap-1.5 mt-2.5 text-[11px] text-norya-stone-500">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>{m.securePaymentDesc}</span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -22,7 +22,7 @@ export function Header() {
     router.refresh();
   };
 
-  if (pathname === '/') return null;
+  if (pathname === '/' || pathname === '/cart' || pathname === '/checkout' || pathname.startsWith('/orders')) return null;
 
   return (
     <header className="site-header">

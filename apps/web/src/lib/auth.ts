@@ -47,9 +47,17 @@ export const auth = {
   },
 
   async verifyOtp(phoneNumber: string, code: string): Promise<{ token: string, expiresAt: Date }> {
-    const response = await apiClient.post<{ token: string, expiresAt: Date }>('/accounts/otp/verify', { phoneNumber, code });
+    const guestId = typeof window !== 'undefined' ? localStorage.getItem('guestCartToken') : undefined;
+    const body: any = { phoneNumber, code };
+    if (guestId) body.guestId = guestId;
+    
+    const response = await apiClient.post<{ token: string, expiresAt: Date }>('/accounts/otp/verify', body);
+    
     if (response.token) {
       localStorage.setItem(TOKEN_KEY, response.token);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('guestCartToken'); // clear after merge
+      }
     }
     return response;
   },
@@ -58,7 +66,7 @@ export const auth = {
     const token = this.getToken();
     if (token) {
       try {
-        await apiClient.post('/accounts/logout', {}, token);
+        await apiClient.post('/accounts/logout', {}, { token });
       } finally {
         localStorage.removeItem(TOKEN_KEY);
       }
@@ -70,7 +78,7 @@ export const auth = {
     if (!token) {
       throw new Error('Not authenticated');
     }
-    return apiClient.get<User>('/accounts/me', token);
+    return apiClient.get<User>('/accounts/me', { token });
   },
 
   getToken(): string | null {
