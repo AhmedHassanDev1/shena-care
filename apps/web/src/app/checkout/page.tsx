@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCart } from '@/features/cart/hooks/useCart';
 import { useCheckoutQuote } from '@/features/checkout/hooks/useCheckoutQuote';
 import { orders } from '@/lib/orders';
 import { auth } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { useMessages, useLocale } from '@/lib/i18n/LocaleProvider';
-import { MapPin, CreditCard, ShoppingCart, ShieldCheck, ChevronRight, ChevronLeft, Check, Plus, Edit2 } from 'lucide-react';
+import { MapPin, CreditCard, ShoppingCart, ShieldCheck, ChevronRight, ChevronLeft, Check, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CheckoutPage() {
@@ -20,6 +21,7 @@ export default function CheckoutPage() {
   const ArrowIcon = isRtl ? ChevronLeft : ChevronRight;
 
   const { cart, isLoading: cartLoading } = useCart();
+  const queryClient = useQueryClient();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   
@@ -35,7 +37,6 @@ export default function CheckoutPage() {
   });
 
   const [idempotencyKey] = useState(() => uuidv4());
-  const isGuest = !auth.isAuthenticated();
 
   // Quote covers pricing and availability revalidation
   const { 
@@ -87,8 +88,14 @@ export default function CheckoutPage() {
       
       const url = order.guestToken ? `/orders/${order.id}?token=${order.guestToken}` : `/orders/${order.id}`;
       router.push(url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Checkout failed');
+    } catch (err: any) {
+      if (err?.type === 'CONFLICT') {
+        setError('Checkout details changed (e.g. price or availability). Please review the updated totals and try again.');
+        queryClient.invalidateQueries({ queryKey: ['checkoutQuote'] });
+        queryClient.invalidateQueries({ queryKey: ['cart'] });
+      } else {
+        setError(err instanceof Error ? err.message : 'Checkout failed');
+      }
       setSubmitting(false);
     }
   };
