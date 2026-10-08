@@ -28,6 +28,7 @@ export interface CartItem {
 
 export interface Cart {
   sessionId: string;
+  revision: number;
   items: CartItem[];
   total: number;
   itemCount: number;

@@ -6,6 +6,6 @@ export const metadata: Metadata = {
   description: 'Sign in to your ShenaCare account',
 };
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({ children }: { children: any }) {
   return <AuthShell>{children}</AuthShell>;
 }
