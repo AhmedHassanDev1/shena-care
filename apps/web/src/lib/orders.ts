@@ -58,14 +58,28 @@ export const orders = {
     return response;
   },
 
-  async getOrder(idOrOrderNumber: string, passedGuestToken?: string): Promise<Order> {
+  async getOrder(idOrOrderNumber: string, passedGuestToken?: string): Promise<any> {
     const token = auth.getToken();
-    const url = passedGuestToken 
-      ? `/ordering/orders/${idOrOrderNumber}?token=${encodeURIComponent(passedGuestToken)}`
-      : `/ordering/orders/${idOrOrderNumber}`;
-
     const options: any = {};
-    if (token) options.token = token;
-    return apiClient.get<Order>(url, options);
+    if (token) {
+      options.token = token;
+      return apiClient.get(`/ordering/orders/${idOrOrderNumber}/tracking`, options);
+    } else {
+      options.headers = { 'x-order-access-token': passedGuestToken };
+      return apiClient.get(`/ordering/guest/orders/${idOrOrderNumber}/tracking`, options);
+    }
   },
+
+  async respondToAvailability(idOrOrderNumber: string, decisionId: string, action: string, version: number, passedGuestToken?: string): Promise<any> {
+    const token = auth.getToken();
+    const options: any = {};
+    const payload = { action, expectedVersion: version };
+    if (token) {
+      options.token = token;
+      return apiClient.post(`/ordering/availability-decisions/${decisionId}/decision`, payload, options);
+    } else {
+      options.headers = { 'x-order-access-token': passedGuestToken };
+      return apiClient.post(`/ordering/guest/orders/${idOrOrderNumber}/availability-decisions/${decisionId}/decision`, payload, options);
+    }
+  }
 };

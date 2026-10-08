@@ -8,7 +8,7 @@ export function AppProviders({
   children,
   locale,
 }: {
-  children: React.ReactNode;
+  children: any;
   locale: string;
 }) {
   return (

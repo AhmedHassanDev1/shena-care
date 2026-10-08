@@ -82,7 +82,7 @@ export default function CheckoutPage() {
         shippingAddress: fullAddress,
         idempotencyKey,
         quoteVersion: quote.quoteVersion,
-        cartRevision: cart.sessionId ? 0 : 0, 
+        cartRevision: cart.revision || 0,
       });
       
       const url = order.guestToken ? `/orders/${order.id}?token=${order.guestToken}` : `/orders/${order.id}`;
