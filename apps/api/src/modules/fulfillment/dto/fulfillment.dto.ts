@@ -1,5 +1,17 @@
-import { IsString, IsNotEmpty, IsBoolean, IsOptional, IsEnum } from 'class-validator';
-import { ShipmentStatus } from '@prisma/client';
+import {
+  ArrayUnique,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import { FulfillmentCapability, ReceivedGoodsCondition, ShipmentStatus } from '@prisma/client';
 
 export class CreateLocationDto {
   @IsString()
@@ -13,6 +25,49 @@ export class CreateLocationDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsEnum(FulfillmentCapability, { each: true })
+  capabilities?: FulfillmentCapability[];
+}
+
+export class AssignLocationOperatorDto {
+  @IsUUID()
+  operatorId: string;
+}
+
+export class ReceiveAllocatedGoodsDto {
+  @IsUUID()
+  locationId: string;
+
+  @IsUUID()
+  allocationId: string;
+
+  @IsUUID()
+  orderId: string;
+
+  @IsUUID()
+  orderItemId: string;
+
+  @IsUUID()
+  skuId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  variantName: string;
+
+  @IsInt()
+  @Min(1)
+  quantity: number;
+
+  @IsEnum(ReceivedGoodsCondition)
+  condition: ReceivedGoodsCondition;
+
+  @IsUUID()
+  idempotencyKey: string;
 }
 
 export class AllocateShipmentDto {

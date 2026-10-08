@@ -1,8 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { OrderingService } from '../../ordering/public';
-import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto } from '../dto/fulfillment.dto';
-import { ShipmentStatus, PreparationSessionStatus, Prisma } from '@prisma/client';
+import { CatalogService } from '../../catalog/public';
+import { SupplyPlanService } from '../../sourcing/public';
+import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto, ReceiveAllocatedGoodsDto, CreateDeliveryBatchDto, DeliveryStopInputDto } from '../dto/fulfillment.dto';
+import { FulfillmentCapability, ShipmentStatus, PreparationSessionStatus, Prisma, Role } from '@prisma/client';
 import * as crypto from 'crypto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderDeliveredEvent } from '../../../platform/events/integration.events';
@@ -13,7 +15,13 @@ export interface FulfillmentLocationDetail {
   name: string;
   address: string;
   isActive: boolean;
+  capabilities: FulfillmentCapability[];
   createdAt: Date;
+}
+
+interface FulfillmentActor {
+  id: string;
+  roles: Role[];
 }
 
 export interface ShipmentDetail {
@@ -37,12 +45,33 @@ export class FulfillmentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly orderingService: OrderingService,
+    private readonly catalogService: CatalogService,
+    private readonly supplyPlanService: SupplyPlanService,
     private readonly eventEmitter: EventEmitter2,
     private readonly outbox: OutboxService,
   ) {}
 
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+  }
+
+  private async getOperationalLocation(locationId: string, capability: FulfillmentCapability) {
+    if (!this.isUuid(locationId)) throw new BadRequestException('Invalid location ID');
+    const location = await this.prisma.fulfillmentLocation.findUnique({ where: { id: locationId } });
+    if (!location || !location.isActive) throw new NotFoundException('Active fulfillment location not found');
+    if (!location.capabilities.includes(capability)) {
+      throw new BadRequestException(`Fulfillment location does not support ${capability}`);
+    }
+    return location;
+  }
+
+  private async assertLocationAccess(locationId: string, actor: FulfillmentActor): Promise<void> {
+    if (actor.roles.includes(Role.ADMIN)) return;
+    if (!actor.roles.includes(Role.HUB_OPERATOR)) throw new ForbiddenException('Hub access is required');
+    const assignment = await this.prisma.fulfillmentLocationOperator.findUnique({
+      where: { locationId_operatorId: { locationId, operatorId: actor.id } },
+    });
+    if (!assignment) throw new ForbiddenException('Operator is not assigned to this fulfillment location');
   }
 
   async createLocation(dto: CreateLocationDto): Promise<FulfillmentLocationDetail> {
@@ -55,7 +84,12 @@ export class FulfillmentService {
     }
 
     return this.prisma.fulfillmentLocation.create({
-      data: dto,
+      data: {
+        name: dto.name,
+        address: dto.address,
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+        ...(dto.capabilities !== undefined ? { capabilities: dto.capabilities } : {}),
+      },
     });
   }
 
@@ -65,9 +99,224 @@ export class FulfillmentService {
     });
   }
 
+  async assignLocationOperator(locationId: string, operatorId: string) {
+    if (!this.isUuid(locationId) || !this.isUuid(operatorId)) throw new BadRequestException('Invalid ID');
+    const location = await this.prisma.fulfillmentLocation.findUnique({ where: { id: locationId } });
+    if (!location) throw new NotFoundException('Fulfillment location not found');
+    return this.prisma.fulfillmentLocationOperator.upsert({
+      where: { locationId_operatorId: { locationId, operatorId } },
+      create: { locationId, operatorId },
+      update: {},
+    });
+  }
+
+  private receiptMatches(receipt: {
+    locationId: string;
+    sourceAllocationId: string;
+    orderId: string;
+    orderItemId: string;
+    skuId: string;
+    variantName: string;
+    quantity: number;
+    condition: string;
+    actorId: string;
+  }, dto: ReceiveAllocatedGoodsDto, actorId: string): boolean {
+    return receipt.locationId === dto.locationId &&
+      receipt.sourceAllocationId === dto.allocationId &&
+      receipt.orderId === dto.orderId &&
+      receipt.orderItemId === dto.orderItemId &&
+      receipt.skuId === dto.skuId &&
+      receipt.variantName === dto.variantName &&
+      receipt.quantity === dto.quantity &&
+      receipt.condition === dto.condition &&
+      receipt.actorId === actorId;
+  }
+
+  private async presentReceipt(receipt: {
+    id: string;
+    sourceAllocationId: string;
+    orderId: string;
+    orderItemId: string;
+    locationId: string;
+    skuId: string;
+    variantName: string;
+    quantity: number;
+    condition: string;
+    idempotencyKey: string;
+    actorId: string;
+    receivedAt: Date;
+  }, confirmedQuantity: number) {
+    const [received, balance, shipment] = await Promise.all([
+      this.prisma.fulfillmentReceipt.aggregate({
+        where: { sourceAllocationId: receipt.sourceAllocationId },
+        _sum: { quantity: true },
+      }),
+      this.prisma.inventoryBalance.findUnique({
+        where: { locationId_skuId: { locationId: receipt.locationId, skuId: receipt.skuId } },
+      }),
+      this.prisma.shipment.findUnique({ where: { orderId: receipt.orderId } }),
+    ]);
+    const receivedQuantity = received._sum.quantity ?? 0;
+    return {
+      receipt,
+      allocation: {
+        id: receipt.sourceAllocationId,
+        confirmedQuantity,
+        receivedQuantity,
+        remainingQuantity: Math.max(confirmedQuantity - receivedQuantity, 0),
+      },
+      inventory: balance,
+      shipment: shipment ? { id: shipment.id, status: shipment.status, locationId: shipment.locationId } : null,
+    };
+  }
+
+  async receiveAllocatedGoods(dto: ReceiveAllocatedGoodsDto, actor: FulfillmentActor) {
+    await this.getOperationalLocation(dto.locationId, FulfillmentCapability.RECEIVE_SUPPLIER_GOODS);
+    await this.assertLocationAccess(dto.locationId, actor);
+
+    const prior = await this.prisma.fulfillmentReceipt.findUnique({ where: { idempotencyKey: dto.idempotencyKey } });
+    if (prior) {
+      if (!this.receiptMatches(prior, dto, actor.id)) {
+        throw new ConflictException('Idempotency key was already used for a different receipt');
+      }
+      const order = await this.orderingService.getOrder(prior.orderId);
+      if (order && (order.status === 'placed' || order.status === 'confirmed')) {
+        await this.orderingService.updateOrderStatus(order.id, 'packing');
+      }
+      return this.presentReceipt(prior, prior.allocationConfirmedQuantity);
+    }
+
+    const allocation = await this.supplyPlanService.getReceivableAllocation(dto.allocationId);
+    if (allocation.orderId !== dto.orderId || allocation.orderItemId !== dto.orderItemId || allocation.skuId !== dto.skuId) {
+      throw new BadRequestException('Receipt does not match the Supply Plan allocation');
+    }
+    if (dto.condition !== 'ACCEPTABLE') {
+      throw new BadRequestException(`Goods in ${dto.condition} condition cannot be allocated to an order`);
+    }
+
+    const [sku, order] = await Promise.all([
+      this.catalogService.getSkuIdentity(dto.skuId),
+      this.orderingService.getOrder(dto.orderId),
+    ]);
+    if (!sku) throw new NotFoundException('SKU not found');
+    if (sku.variantName !== dto.variantName) throw new BadRequestException('Received variant does not match the allocated SKU');
+    if (!order) throw new NotFoundException('Order not found');
+    if (!['placed', 'confirmed', 'packing'].includes(order.status)) {
+      throw new ConflictException(`Order cannot receive goods in status ${order.status}`);
+    }
+    const orderItem = order.items.find(item => item.id === dto.orderItemId);
+    if (!orderItem || orderItem.skuId !== dto.skuId) {
+      throw new BadRequestException('Receipt does not match an active order item');
+    }
+
+    const receipt = await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(44080, hashtext(${dto.idempotencyKey}))::text AS locked`;
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(44081, hashtext(${dto.orderId}))::text AS locked`;
+
+      const replay = await tx.fulfillmentReceipt.findUnique({ where: { idempotencyKey: dto.idempotencyKey } });
+      if (replay) {
+        if (!this.receiptMatches(replay, dto, actor.id)) {
+          throw new ConflictException('Idempotency key was already used for a different receipt');
+        }
+        return replay;
+      }
+
+      const received = await tx.fulfillmentReceipt.aggregate({
+        where: { sourceAllocationId: dto.allocationId },
+        _sum: { quantity: true },
+      });
+      const alreadyReceived = received._sum.quantity ?? 0;
+      if (alreadyReceived + dto.quantity > allocation.confirmedQuantity) {
+        throw new BadRequestException('Receipt quantity exceeds the unreceived confirmed allocation quantity');
+      }
+      const itemReceived = await tx.fulfillmentReceipt.aggregate({
+        where: { orderId: dto.orderId, orderItemId: dto.orderItemId },
+        _sum: { quantity: true },
+      });
+      if ((itemReceived._sum.quantity ?? 0) + dto.quantity > orderItem.quantity) {
+        throw new BadRequestException('Receipt quantity exceeds the remaining order item quantity');
+      }
+
+      let shipment = await tx.shipment.findUnique({ where: { orderId: dto.orderId } });
+      if (shipment && shipment.locationId !== dto.locationId) {
+        throw new ConflictException('Order shipment is allocated to another fulfillment location');
+      }
+      if (shipment && !['pending', 'ready_to_prepare'].includes(shipment.status)) {
+        throw new ConflictException(`Shipment cannot receive goods in status ${shipment.status}`);
+      }
+      if (!shipment) {
+        shipment = await tx.shipment.create({
+          data: {
+            orderId: order.id,
+            locationId: dto.locationId,
+            status: ShipmentStatus.pending,
+            items: { create: order.items.map(item => ({ skuId: item.skuId, quantity: item.quantity })) },
+          },
+        });
+      }
+
+      const balance = await tx.inventoryBalance.upsert({
+        where: { locationId_skuId: { locationId: dto.locationId, skuId: dto.skuId } },
+        create: {
+          locationId: dto.locationId,
+          skuId: dto.skuId,
+          orderAllocatedExternalGoods: dto.quantity,
+          ownedOnHand: 0,
+          reserved: 0,
+          availableToSell: 0,
+        },
+        update: { orderAllocatedExternalGoods: { increment: dto.quantity } },
+      });
+      const inventoryTransaction = await tx.inventoryTransaction.create({
+        data: {
+          balanceId: balance.id,
+          type: 'RECEIVE_ORDER_ALLOCATED',
+          quantity: dto.quantity,
+          reason: 'Received against confirmed Supply Plan allocation',
+          actorId: actor.id,
+          referenceId: dto.allocationId,
+        },
+      });
+      const created = await tx.fulfillmentReceipt.create({
+        data: {
+          locationId: dto.locationId,
+          supplyRequestId: allocation.supplyRequestId,
+          sourceAllocationId: dto.allocationId,
+          orderId: dto.orderId,
+          orderItemId: dto.orderItemId,
+          skuId: dto.skuId,
+          variantName: dto.variantName,
+          quantity: dto.quantity,
+          allocationConfirmedQuantity: allocation.confirmedQuantity,
+          condition: dto.condition,
+          idempotencyKey: dto.idempotencyKey,
+          actorId: actor.id,
+          inventoryTransactionId: inventoryTransaction.id,
+        },
+      });
+
+      const totals = await tx.fulfillmentReceipt.groupBy({
+        by: ['orderItemId'],
+        where: { orderId: dto.orderId },
+        _sum: { quantity: true },
+      });
+      const receivedByItem = new Map(totals.map(total => [total.orderItemId, total._sum.quantity ?? 0]));
+      const orderComplete = order.items.every(item => (receivedByItem.get(item.id) ?? 0) >= item.quantity);
+      if (orderComplete && shipment.status === ShipmentStatus.pending) {
+        await tx.shipment.update({ where: { id: shipment.id }, data: { status: ShipmentStatus.ready_to_prepare } });
+      }
+      return created;
+    }, { timeout: 30000 });
+
+    if (order.status === 'placed' || order.status === 'confirmed') {
+      await this.orderingService.updateOrderStatus(order.id, 'packing');
+    }
+    return this.presentReceipt(receipt, allocation.confirmedQuantity);
+  }
+
   async createShipmentFromOrder(event: import('../../../platform/events/integration.events').OrderPlacedEvent): Promise<ShipmentDetail> {
     const location = await this.prisma.fulfillmentLocation.findFirst({
-      where: { isActive: true }
+      where: { isActive: true, capabilities: { has: FulfillmentCapability.PREPARE_ORDERS } }
     });
 
     if (!location) {
@@ -76,10 +325,11 @@ export class FulfillmentService {
 
     const existingShipment = await this.prisma.shipment.findUnique({
       where: { orderId: event.orderId },
+      include: { items: true },
     });
 
     if (existingShipment) {
-      return existingShipment as any; // already allocated
+      return existingShipment; // already allocated
     }
 
     // Update order status to packing
@@ -91,7 +341,7 @@ export class FulfillmentService {
         locationId: location.id,
         status: ShipmentStatus.pending,
         items: {
-          create: event.items.map((item: any) => ({
+          create: event.items.map((item) => ({
             skuId: item.skuId,
             quantity: item.quantity,
           })),
@@ -104,15 +354,7 @@ export class FulfillmentService {
   }
 
   async allocateShipment(dto: AllocateShipmentDto): Promise<ShipmentDetail> {
-    if (!this.isUuid(dto.locationId)) throw new BadRequestException('Invalid location ID');
-
-    const location = await this.prisma.fulfillmentLocation.findUnique({
-      where: { id: dto.locationId },
-    });
-
-    if (!location || !location.isActive) {
-      throw new NotFoundException('Active fulfillment location not found');
-    }
+    const location = await this.getOperationalLocation(dto.locationId, FulfillmentCapability.PREPARE_ORDERS);
 
     // Verify order exists and is valid for fulfillment
     const order = await this.orderingService.getOrder(dto.orderId);
@@ -187,7 +429,7 @@ export class FulfillmentService {
           eventType: 'shipment.out_for_delivery',
           aggregateId: shipment.id,
           aggregateType: 'Shipment',
-          customerId: (order as any).customerId || undefined,
+          customerId: order.customerId || undefined,
           payload: { orderId: order.id, orderNumber: order.orderNumber, trackingNumber: shipment.trackingNumber },
           channelIntent: 'whatsapp',
           templateId: 'out_for_delivery_v1',
@@ -204,7 +446,7 @@ export class FulfillmentService {
           'order.delivered',
           new OrderDeliveredEvent(
             shipment.orderId,
-            (order as any).customerId || 'unknown',
+            order.customerId || 'unknown',
             shipment.items.map(i => ({ productId: i.skuId })),
             updateData.deliveredAt
           )
@@ -214,7 +456,7 @@ export class FulfillmentService {
           eventType: 'shipment.delivered',
           aggregateId: shipment.id,
           aggregateType: 'Shipment',
-          customerId: (order as any).customerId || undefined,
+          customerId: order.customerId || undefined,
           payload: { orderId: order.id, orderNumber: order.orderNumber },
           channelIntent: 'whatsapp',
           templateId: 'delivered_v1',
@@ -230,7 +472,7 @@ export class FulfillmentService {
           eventType: 'shipment.failed',
           aggregateId: shipment.id,
           aggregateType: 'Shipment',
-          customerId: (order as any).customerId || undefined,
+          customerId: order.customerId || undefined,
           payload: { orderId: order.id, orderNumber: order.orderNumber, reason: 'Delivery failed' },
           channelIntent: 'whatsapp',
           templateId: 'delivery_failed_v1',
@@ -255,6 +497,7 @@ export class FulfillmentService {
     });
 
     if (!shipment) throw new NotFoundException('Shipment not found');
+    await this.getOperationalLocation(shipment.locationId, FulfillmentCapability.PREPARE_ORDERS);
 
     const activeSession = shipment.preparationSessions.find(s => s.status === PreparationSessionStatus.in_progress);
     if (activeSession) {
@@ -507,7 +750,7 @@ export class FulfillmentService {
   // --- Delivery Batch Planning (GLO-149) ---
 
   async getEligibleShipmentsForBatching(locationId: string) {
-    if (!this.isUuid(locationId)) throw new BadRequestException('Invalid location ID');
+    await this.getOperationalLocation(locationId, FulfillmentCapability.DISPATCH_SHIPMENTS);
     // Eligible shipments are packed (ready for dispatch) and not already assigned to a stop
     return this.prisma.shipment.findMany({
       where: {
@@ -519,7 +762,7 @@ export class FulfillmentService {
     });
   }
 
-  async createDeliveryBatch(dto: any) {
+  async createDeliveryBatch(dto: CreateDeliveryBatchDto) {
     if (!this.isUuid(dto.hubId)) throw new BadRequestException('Invalid hub ID');
     return this.prisma.deliveryBatch.create({
       data: {
@@ -533,7 +776,7 @@ export class FulfillmentService {
     });
   }
 
-  async addStopsToBatch(batchId: string, stops: any[]) {
+  async addStopsToBatch(batchId: string, stops: DeliveryStopInputDto[]) {
     if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
     
     return this.prisma.$transaction(async (tx) => {
@@ -576,8 +819,12 @@ export class FulfillmentService {
     });
   }
 
-  async updateBatchStopsSequence(batchId: string, stops: any[]) {
+  async updateBatchStopsSequence(batchId: string, stops: DeliveryStopInputDto[]) {
     if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
+    const sequencedStops = stops.map(stop => {
+      if (stop.sequence === undefined) throw new BadRequestException('Stop sequence is required');
+      return { shipmentId: stop.shipmentId, sequence: stop.sequence };
+    });
 
     return this.prisma.$transaction(async (tx) => {
       const batch = await tx.deliveryBatch.findUnique({ where: { id: batchId } });
@@ -586,20 +833,20 @@ export class FulfillmentService {
         throw new BadRequestException('Cannot modify a dispatched/completed batch');
       }
 
-      const uniqueSequences = new Set(stops.map(s => s.sequence));
-      if (uniqueSequences.size !== stops.length) {
+      const uniqueSequences = new Set(sequencedStops.map(s => s.sequence));
+      if (uniqueSequences.size !== sequencedStops.length) {
         throw new BadRequestException('Duplicate sequences provided');
       }
 
       // Instead of dropping and recreating, we should update sequence values.
       // To avoid unique constraint violation during swap, we can use negative temporary sequences.
-      for (const stop of stops) {
+      for (const stop of sequencedStops) {
         await tx.deliveryStop.updateMany({
           where: { batchId, shipmentId: stop.shipmentId },
           data: { sequence: -stop.sequence } // temporary negative
         });
       }
-      for (const stop of stops) {
+      for (const stop of sequencedStops) {
         await tx.deliveryStop.updateMany({
           where: { batchId, shipmentId: stop.shipmentId },
           data: { sequence: stop.sequence }
@@ -709,6 +956,7 @@ export class FulfillmentService {
     if (!this.isUuid(dto.locationId) || !this.isUuid(dto.skuId)) {
       throw new BadRequestException('Invalid ID');
     }
+    await this.getOperationalLocation(dto.locationId, FulfillmentCapability.MANAGE_OWNED_INVENTORY);
     
     return this.prisma.$transaction(async (tx) => {
       let balance = await tx.inventoryBalance.findUnique({
@@ -730,7 +978,7 @@ export class FulfillmentService {
       }
 
       // Update fields depending on the transaction type
-      const updateData: any = {};
+      const updateData: Prisma.InventoryBalanceUpdateInput = {};
       
       switch (dto.type) {
         case 'RECEIVE_OWNED':

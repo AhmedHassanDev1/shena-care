@@ -15,6 +15,15 @@ export interface CustomerAvailabilityProjection {
   timeline: Array<{ status: 'CONFIRMING_PRODUCTS' | 'CONFIRMED' | 'ACTION_REQUIRED'; occurredAt: Date }>;
 }
 
+export interface ReceivableSupplyAllocation {
+  allocationId: string;
+  supplyRequestId: string;
+  orderId: string;
+  orderItemId: string;
+  skuId: string;
+  confirmedQuantity: number;
+}
+
 @Injectable()
 export class SupplyPlanService {
   constructor(
@@ -185,6 +194,29 @@ export class SupplyPlanService {
     } });
     if (!request) throw new NotFoundException('Supply request not found');
     return this.present(request, request.status);
+  }
+
+  /** Read-only owner contract used by Fulfillment before accepting physical goods. */
+  async getReceivableAllocation(allocationId: string): Promise<ReceivableSupplyAllocation> {
+    const allocation = await this.prisma.sourceAllocation.findUnique({
+      where: { id: allocationId },
+      include: { requirement: { include: { supplyRequest: true } } },
+    });
+    if (!allocation) throw new NotFoundException('Supply allocation not found');
+    if (allocation.requirement.releasedAt) {
+      throw new ConflictException('Supply allocation belongs to a released order requirement');
+    }
+    if (!['confirmed_full', 'confirmed_partial'].includes(allocation.result) || allocation.confirmedQuantity <= 0) {
+      throw new ConflictException('Supply allocation is not confirmed for receiving');
+    }
+    return {
+      allocationId: allocation.id,
+      supplyRequestId: allocation.requirement.supplyRequestId,
+      orderId: allocation.requirement.supplyRequest.orderId,
+      orderItemId: allocation.requirement.orderItemId,
+      skuId: allocation.requirement.skuId,
+      confirmedQuantity: allocation.confirmedQuantity,
+    };
   }
 
   /**

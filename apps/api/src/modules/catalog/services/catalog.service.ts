@@ -337,6 +337,22 @@ export class CatalogService {
     };
   }
 
+  /** Stable identity lookup for internal custody workflows, including inactive catalog items. */
+  async getSkuIdentity(skuId: string): Promise<PublishedSku | null> {
+    if (!this.isUuid(skuId)) return null;
+    const sku = await this.prisma.sku.findUnique({ where: { id: skuId } });
+    if (!sku) return null;
+    return {
+      id: sku.id,
+      code: sku.code,
+      variantName: sku.variantName,
+      size: sku.size ? sku.size.toNumber() : null,
+      sizeUnit: sku.sizeUnit,
+      barcode: sku.barcode,
+      isActive: sku.isActive,
+    };
+  }
+
   async validateSku(skuId: string): Promise<boolean> {
     if (!this.isUuid(skuId)) {
       return false;

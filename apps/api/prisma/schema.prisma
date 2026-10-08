@@ -870,17 +870,43 @@ model CourierSettlementBatch {
 // ---------------------------------------------------------------------------
 
 model FulfillmentLocation {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique
-  address   String
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id           String                  @id @default(uuid()) @db.Uuid
+  name         String                  @unique
+  address      String
+  isActive     Boolean                 @default(true) @map("is_active")
+  capabilities FulfillmentCapability[] @default([RECEIVE_SUPPLIER_GOODS, PREPARE_ORDERS, DISPATCH_SHIPMENTS, MANAGE_OWNED_INVENTORY])
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
 
-  shipments         Shipment[]
-  inventoryBalances InventoryBalance[]
+  shipments           Shipment[]
+  inventoryBalances   InventoryBalance[]
+  operatorAssignments FulfillmentLocationOperator[]
+  receipts            FulfillmentReceipt[]
 
   @@map("fulfillment_locations")
+  @@schema("fulfillment")
+}
+
+enum FulfillmentCapability {
+  RECEIVE_SUPPLIER_GOODS
+  PREPARE_ORDERS
+  DISPATCH_SHIPMENTS
+  MANAGE_OWNED_INVENTORY
+
+  @@schema("fulfillment")
+}
+
+model FulfillmentLocationOperator {
+  id         String   @id @default(uuid()) @db.Uuid
+  locationId String   @map("location_id") @db.Uuid
+  operatorId String   @map("operator_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  location FulfillmentLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, operatorId])
+  @@index([operatorId])
+  @@map("fulfillment_location_operators")
   @@schema("fulfillment")
 }
 
@@ -1017,10 +1043,47 @@ model InventoryTransaction {
   referenceId String?  @map("reference_id") // OrderId, ShipmentId, etc
   createdAt   DateTime @default(now()) @map("created_at")
 
-  balance InventoryBalance @relation(fields: [balanceId], references: [id], onDelete: Cascade)
+  balance InventoryBalance    @relation(fields: [balanceId], references: [id], onDelete: Cascade)
+  receipt FulfillmentReceipt?
 
   @@index([balanceId])
   @@map("inventory_transactions")
+  @@schema("fulfillment")
+}
+
+enum ReceivedGoodsCondition {
+  ACCEPTABLE
+  DAMAGED
+  EXPIRED
+  QUARANTINED
+
+  @@schema("fulfillment")
+}
+
+model FulfillmentReceipt {
+  id                          String                 @id @default(uuid()) @db.Uuid
+  locationId                  String                 @map("location_id") @db.Uuid
+  supplyRequestId             String                 @map("supply_request_id") @db.Uuid
+  sourceAllocationId          String                 @map("source_allocation_id") @db.Uuid
+  orderId                     String                 @map("order_id") @db.Uuid
+  orderItemId                 String                 @map("order_item_id") @db.Uuid
+  skuId                       String                 @map("sku_id") @db.Uuid
+  variantName                 String                 @map("variant_name")
+  quantity                    Int
+  allocationConfirmedQuantity Int                    @map("allocation_confirmed_quantity")
+  condition                   ReceivedGoodsCondition
+  idempotencyKey              String                 @unique @map("idempotency_key") @db.VarChar(128)
+  actorId                     String                 @map("actor_id") @db.Uuid
+  inventoryTransactionId      String                 @unique @map("inventory_transaction_id") @db.Uuid
+  receivedAt                  DateTime               @default(now()) @map("received_at")
+
+  location             FulfillmentLocation  @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  inventoryTransaction InventoryTransaction @relation(fields: [inventoryTransactionId], references: [id], onDelete: Restrict)
+
+  @@index([sourceAllocationId])
+  @@index([orderId, orderItemId])
+  @@index([locationId, skuId])
+  @@map("fulfillment_receipts")
   @@schema("fulfillment")
 }
 

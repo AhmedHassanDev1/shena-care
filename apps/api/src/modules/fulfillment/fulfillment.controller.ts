@@ -1,10 +1,17 @@
 import { Controller, Post, Body, Get, Param, Patch, Delete, UseGuards } from '@nestjs/common';
 import { FulfillmentService } from './services/fulfillment.service';
-import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto } from './dto/fulfillment.dto';
+import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto, AssignLocationOperatorDto, ReceiveAllocatedGoodsDto } from './dto/fulfillment.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
 import { PermissionsGuard, RequirePermissions } from '../../platform/auth';
 import { Roles } from '../accounts/decorators/roles.decorator';
+import { CurrentUser } from '../accounts/decorators/current-user.decorator';
+import { Role } from '@prisma/client';
+
+interface FulfillmentActor {
+  id: string;
+  roles: Role[];
+}
 
 @Controller('fulfillment')
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
@@ -21,6 +28,22 @@ export class FulfillmentController {
   @Roles('ADMIN', 'HUB_OPERATOR')
   async getLocations() {
     return this.fulfillmentService.getLocations();
+  }
+
+  @Post('locations/:id/operators')
+  @Roles('ADMIN')
+  async assignLocationOperator(@Param('id') id: string, @Body() dto: AssignLocationOperatorDto) {
+    return this.fulfillmentService.assignLocationOperator(id, dto.operatorId);
+  }
+
+  @Post('receipts')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.receive')
+  async receiveAllocatedGoods(
+    @Body() dto: ReceiveAllocatedGoodsDto,
+    @CurrentUser() actor: FulfillmentActor,
+  ) {
+    return this.fulfillmentService.receiveAllocatedGoods(dto, actor);
   }
 
   @Post('shipments/allocate')

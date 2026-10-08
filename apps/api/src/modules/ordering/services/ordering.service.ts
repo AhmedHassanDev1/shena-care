@@ -49,6 +49,7 @@ const canonical = (value: unknown): string => JSON.stringify(value, (_key, item)
 export interface OrderDetail {
   id: string;
   orderNumber: string;
+  customerId: string | null;
   customerName: string;
   customerPhone: string;
   shippingAddress: string;
