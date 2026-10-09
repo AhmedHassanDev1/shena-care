@@ -1,10 +1,10 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../platform/database/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RegisterDto, LoginDto } from './dto/accounts.dto';
 import { CUSTOMER_VERIFIED_EVENT, CustomerVerifiedEvent } from './guest-adoption.contract';
 import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomInt } from 'crypto';
 
 @Injectable()
 export class AccountsService {
@@ -121,7 +121,7 @@ export class AccountsService {
       safeIntent = pendingIntent;
     }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await this.prisma.otpChallenge.create({
@@ -133,9 +133,12 @@ export class AccountsService {
       }
     });
 
-    // TODO(delivery): hand the code to the SMS provider; never log the code itself.
-    console.log(`[OTP SERVICE] OTP issued for ${canonicalPhone.slice(0, 5)}*****`);
-    return { success: true, message: 'OTP sent successfully' };
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+      console.log(`[DEV OTP SERVICE] OTP issued for ${canonicalPhone.slice(0, 5)}***** : ${code}`);
+      return { success: true, message: 'OTP sent to console (Dev/Test only)' };
+    }
+
+    throw new ServiceUnavailableException('OTP delivery provider is not configured for this environment');
   }
 
   async verifyOtp(phoneNumber: string, code: string, guestId?: string) {
