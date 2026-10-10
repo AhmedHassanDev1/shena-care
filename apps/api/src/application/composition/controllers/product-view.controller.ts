@@ -19,6 +19,7 @@ import {
 import { ProductViewService } from '../services/product-view.service';
 import { DiscoveryService } from '../services/discovery.service';
 import { DiscoveryQueryDto, ProductListQueryDto } from '../dto/discovery.dto';
+import { ProductDetailService } from '../services/product-detail.service';
 import {
   CatalogService,
   CreateProductDto,
@@ -35,6 +36,7 @@ export class ProductViewController {
     private readonly productViewService: ProductViewService,
     private readonly catalogService: CatalogService,
     private readonly discoveryService: DiscoveryService,
+    private readonly productDetailService: ProductDetailService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -171,9 +173,16 @@ export class ProductViewController {
   // ---------------------------------------------------------------------------
 
   // GET /products/:slugOrId
+  @Get(':slugOrId/detail')
+  async getProductDetail(@Param('slugOrId') slugOrId: string) {
+    const detail = await this.productDetailService.getDetail(slugOrId);
+    if (!detail) throw new NotFoundException('Product not found');
+    return detail;
+  }
+
   @Get(':slugOrId')
   async getProduct(@Param('slugOrId') slugOrId: string) {
-    const productView = await this.productViewService.getProductView(slugOrId);
+    const productView = await this.productDetailService.getDetail(slugOrId);
 
     if (!productView) {
       throw new NotFoundException(`Product not found: ${slugOrId}`);

@@ -126,6 +126,19 @@ export class CatalogService {
     return this.mapToPublishedProduct(product);
   }
 
+  async getReviewedIdentityFacts(productId: string, skuIds: string[]) {
+    const product = await this.prisma.product.findFirst({ where: { id: productId, isPublished: true }, ...productWithRelations });
+    if (!product) return [];
+    return product.media.filter(m => this.isReviewedProductMedia(m, product.skus)).flatMap(m => {
+      const review = requireMediaReview(m.generationMetadata);
+      if (!review.skuId || !skuIds.includes(review.skuId)) return [];
+      return (['barcode', 'size', 'sizeUnit', 'variantName'] as const).map(field => ({
+        skuId: review.skuId!, field, value: review[field], sourceUrl: review.sourceUrl,
+        sourceType: review.sourceType, verifiedAt: review.reviewedAt,
+      }));
+    }).filter((fact, index, all) => all.findIndex(f => f.skuId === fact.skuId && f.field === fact.field) === index);
+  }
+
   async getProduct(slugOrId: string): Promise<PublishedProduct | null> {
     const isId = this.isUuid(slugOrId);
     const product = await this.prisma.product.findFirst({

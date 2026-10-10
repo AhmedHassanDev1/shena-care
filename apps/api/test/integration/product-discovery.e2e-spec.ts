@@ -10,7 +10,7 @@ import { DataRetentionService } from '../../src/modules/operations/services/data
 import { OutboxService } from '../../src/modules/operations/services/outbox.service';
 
 // Synthetic receipts, stock and prices exercise contracts only in the disposable test DB.
-describe('GLO-182 public discovery (PostgreSQL)', () => {
+describe('GLO-182/183 public discovery and detail (PostgreSQL)', () => {
   let app: INestApplication;
   let db: PrismaService;
   let catalog: CatalogService;
@@ -22,6 +22,7 @@ describe('GLO-182 public discovery (PostgreSQL)', () => {
   const prefix = run.slice(0, 24);
   const products: string[] = [];
   const skuIds: string[] = [];
+  const routineIds: string[] = [];
   const id = (n: number) => prefix + String(n).padStart(12, '0');
   let firstSku: string;
 
@@ -64,10 +65,20 @@ describe('GLO-182 public discovery (PostgreSQL)', () => {
     await db.listing.create({ data: { skuId: sibling.id } });
     await db.sellingPrice.create({ data: { skuId: sibling.id, amount: 120, currency: 'SAR', validFrom: new Date('2026-01-01') } });
     await db.supplierOffer.create({ data: { supplierId, skuId: sibling.id, costPrice: 60, currency: 'SAR', lastConfirmedAt: new Date() } });
+    for (const [label, isTemplate, isActive, source] of [
+      ['Public manual', true, true, 'manual'], ['Public expert', true, true, 'expert'],
+      ['Private customer routine', false, true, 'manual'], ['Inactive template', true, false, 'expert'],
+      ['Generated template', true, true, 'ai'],
+    ] as const) {
+      const routine = await db.routine.create({ data: { title: `${label} ${run}`, careArea: 'skin', isTemplate, isActive,
+        steps: { create: { title: 'Moisturize', stepOrder: 1, timing: 'both', recommendations: { create: { productId: id(1), source } } } } } });
+      routineIds.push(routine.id);
+    }
   });
 
   afterAll(async () => {
     if (db) {
+      await db.routine.deleteMany({ where: { id: { in: routineIds } } });
       await db.listing.deleteMany({ where: { skuId: { in: skuIds } } });
       await db.sellingPrice.deleteMany({ where: { skuId: { in: skuIds } } });
       if (supplierId) await db.supplierOffer.deleteMany({ where: { supplierId } });
@@ -123,5 +134,41 @@ describe('GLO-182 public discovery (PostgreSQL)', () => {
     const result = await request(app.getHttpServer()).get('/products/discovery').query({ brand: brandSlug }).expect(200);
     expect(result.body.items.some((p: any) => p.id === id(1))).toBe(false);
     await db.supplierOffer.update({ where: { supplierId_skuId: { supplierId, skuId: firstSku } }, data: { isAvailable: true } });
+  });
+
+  it('composes detail identity, approved media, Commerce price and stock freshness', async () => {
+    for (const path of [`/products/${id(1)}/detail`, `/products/${brandSlug}-1`]) {
+      const result = await request(app.getHttpServer()).get(path).expect(200);
+      expect(result.body.id).toBe(id(1));
+      expect(result.body.skus).toHaveLength(1);
+      expect(result.body.skus[0]).toMatchObject({ id: firstSku, barcode: 'contract-barcode-1', size: 50, sizeUnit: 'ml',
+        price: { amount: 89, currency: 'SAR' }, availability: { isAvailable: true, isFresh: true } });
+      expect(Date.parse(result.body.skus[0].availability.validUntil)).toBeGreaterThan(Date.now());
+      expect(result.body.media[0]).toMatchObject({ skuId: firstSku, originType: 'verified' });
+      expect(result.body.verifiedFacts).toHaveLength(4);
+      expect(result.body.verifiedFacts).toEqual(expect.arrayContaining([expect.objectContaining({ skuId: firstSku, field: 'size', value: 50,
+        sourceUrl: 'https://www.cerave.com/skincare/moisturizers/moisturizing-cream', sourceType: 'OFFICIAL_MANUFACTURER' })]));
+      expect(result.body.factVerification).toEqual({ identity: 'reviewed', content: 'unavailable' });
+      expect(JSON.stringify(result.body)).not.toMatch(/costPrice|supplierId|reviewedBy|customerId|enrichment|session/);
+    }
+  });
+
+  it('returns only manual/expert placements in active public templates', async () => {
+    const result = await request(app.getHttpServer()).get(`/products/${id(1)}/detail`).expect(200);
+    expect(result.body.routinePlacements).toHaveLength(2);
+    expect(result.body.routinePlacements.map((p: any) => p.source).sort()).toEqual(['expert', 'manual']);
+    expect(result.body.routinePlacements[0].step).toMatchObject({ order: 1, title: 'Moisturize', timing: 'both' });
+    expect(JSON.stringify(result.body)).not.toMatch(/Private customer routine|Inactive template|Generated template/);
+    const absent = await request(app.getHttpServer()).get(`/products/${id(7)}/detail`).expect(200);
+    expect(absent.body.routinePlacements).toEqual([]);
+  });
+
+  it('fails closed for incomplete detail and invalidated exact identity review', async () => {
+    for (const n of [2, 3, 4, 5, 6, 8, 9, 10])
+      await request(app.getHttpServer()).get(`/products/${id(n)}/detail`).expect(404);
+    await catalog.updateSku(firstSku, { size: 60 });
+    await request(app.getHttpServer()).get(`/products/${id(1)}/detail`).expect(404);
+    await catalog.updateSku(firstSku, { size: 50 });
+    await request(app.getHttpServer()).get(`/products/${id(1)}/detail`).expect(200);
   });
 });
