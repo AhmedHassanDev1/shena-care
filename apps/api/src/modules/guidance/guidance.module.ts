@@ -10,6 +10,6 @@ import { RecommendationValidatorService } from './services/recommendation-valida
   imports: [AiModule, CatalogModule, CommerceModule],
   controllers: [GuidanceController],
   providers: [GuidanceService, RecommendationValidatorService],
-  exports: [GuidanceService],
+  exports: [GuidanceService, RecommendationValidatorService],
 })
 export class GuidanceModule {}
