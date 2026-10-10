@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Patch, Query, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, Query, Req, HttpCode, HttpStatus, UseGuards, ForbiddenException } from '@nestjs/common';
 import { IngestionService } from './services/ingestion.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from './dto/ingestion.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
@@ -7,6 +7,14 @@ import { PermissionsGuard } from '../../platform/auth';
 import { Roles } from '../accounts/decorators/roles.decorator';
 import { IngestionStatus } from '@prisma/client';
 
+export interface AuthenticatedUserRequest {
+  user?: {
+    id: string;
+    roles?: string[];
+    supplierId?: string;
+  };
+}
+
 @Controller('ingestion')
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 @Roles('ADMIN', 'HUB_OPERATOR')
@@ -14,7 +22,17 @@ export class IngestionController {
   constructor(private readonly ingestionService: IngestionService) {}
 
   @Post('jobs')
-  async createJob(@Body() dto: CreateIngestionJobDto) {
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  async createJob(
+    @Req() req: AuthenticatedUserRequest,
+    @Body() dto: CreateIngestionJobDto,
+  ) {
+    const user = req.user;
+    if (user?.roles?.includes('SUPPLIER') && !user.roles.includes('ADMIN') && !user.roles.includes('HUB_OPERATOR')) {
+      if (user.supplierId && user.supplierId !== dto.supplierId) {
+        throw new ForbiddenException('Cannot submit ingestion job for another supplier');
+      }
+    }
     return this.ingestionService.createJob(dto);
   }
 
@@ -34,7 +52,7 @@ export class IngestionController {
     return this.ingestionService.publishJob(id);
   }
 
-  // ─── GLO-77 Candidate Review & Publish Endpoints ─────────────────────────
+  // ─── GLO-77 Candidate Review & Publish Endpoints (Admin / Operator only) ──
 
   @Get('candidates')
   async getCandidates(@Query('status') status?: IngestionStatus) {
