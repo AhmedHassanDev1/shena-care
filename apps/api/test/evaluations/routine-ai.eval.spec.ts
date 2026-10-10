@@ -169,4 +169,89 @@ describe('GLO-117 AI Evaluation Harness', () => {
     expect(proposal.error.code).toBe(AiErrorKind.TIMEOUT);
     expect(proposal.error.retryable).toBe(true);
   });
+
+  it('7. Validates Hair routines structure', async () => {
+    setupDraft({ careArea: 'hair', primaryConcern: 'frizz' });
+    mockAiClient.recommendRoutine.mockResolvedValue({
+      schemaVersion: '1',
+      message: 'Here is your hair routine',
+      proposal: {
+        title: 'Hair Routine',
+        description: 'For frizz control',
+        careArea: 'hair',
+        steps: [
+          { title: 'Conditioner', productQuery: 'Frizz Conditioner', instructions: 'Apply' }
+        ]
+      }
+    });
+    mockValidator.validateProposal.mockResolvedValue({
+      isValid: true, errors: [], stepResults: [
+        {
+          stepIndex: 0, stepTitle: 'Conditioner', isValid: true,
+          productResolution: { resolved: true, productId: 'prod-hair-1', skuId: 'sku-hair-1' },
+          availabilityCheck: { isSellable: true, skuId: 'sku-hair-1', reason: '', terms: { price: { amount: 15 } } },
+          errors: []
+        }
+      ]
+    });
+
+    const proposal = await proposalService.generateProposal('draft-1');
+    expect(proposal.status).toBe(RoutineProposalStatus.proposed);
+    expect(proposal.totalPrice).toBe(15);
+  });
+
+  it('8. Handles Price changes gracefully if budget strict', async () => {
+    // A price change happens after the AI recommended something that was thought to be within budget
+    // Actually, the validator checks the REAL LIVE CommerceService price!
+    setupDraft({ budget: 30, isBudgetStrict: true });
+    mockAiClient.recommendRoutine.mockResolvedValue({
+      proposal: { steps: [{ title: 'Cream' }] }
+    } as any);
+    // Validator simulates CommerceService returning a new price (35) that exceeds the budget
+    mockValidator.validateProposal.mockResolvedValue({
+      isValid: false,
+      errors: ['Proposal total price (35) exceeds budget limit (30)'],
+      stepResults: []
+    });
+
+    const proposal = await proposalService.generateProposal('draft-1');
+    expect(proposal.status).toBe(RoutineProposalStatus.failed);
+    expect(proposal.error.code).toBe('validation_failed');
+  });
+
+  it('9. Handles Unknown/nonexistent SKU (Catalog miss)', async () => {
+    setupDraft();
+    mockAiClient.recommendRoutine.mockResolvedValue({
+      proposal: { steps: [{ title: 'Fake Product', productQuery: 'Fake Product' }] }
+    } as any);
+    mockValidator.validateProposal.mockResolvedValue({
+      isValid: false,
+      errors: ['Product query did not resolve to a catalog product'],
+      stepResults: [{
+        stepIndex: 0, stepTitle: 'Fake Product', isValid: false,
+        productResolution: { resolved: false, productQuery: 'Fake Product', reason: 'No catalog product found matching' },
+        errors: ['Product query did not resolve to a catalog product']
+      }]
+    });
+
+    const proposal = await proposalService.generateProposal('draft-1');
+    expect(proposal.status).toBe(RoutineProposalStatus.failed);
+  });
+
+  it('10. Handles Conflicting constraints safely', async () => {
+    setupDraft({ budget: 5, isBudgetStrict: true, maxSteps: 10 });
+    // AI might generate a proposal with 10 steps for $5, which is impossible.
+    // The Validator will naturally reject it when computing total price.
+    mockAiClient.recommendRoutine.mockResolvedValue({
+      proposal: { steps: [{ title: 'Cheap item 1' }, { title: 'Cheap item 2' }] }
+    } as any);
+    mockValidator.validateProposal.mockResolvedValue({
+      isValid: false,
+      errors: ['Proposal total price (10) exceeds budget limit (5)'],
+      stepResults: []
+    });
+
+    const proposal = await proposalService.generateProposal('draft-1');
+    expect(proposal.status).toBe(RoutineProposalStatus.failed);
+  });
 });

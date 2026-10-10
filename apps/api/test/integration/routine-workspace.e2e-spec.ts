@@ -247,4 +247,61 @@ describe('Routine Workspace & AI Proposal Lifecycle (e2e)', () => {
 
     expect(retryRes.body.id).toBe(firstAcceptRes.body.id);
   });
+
+  it('7. Handles stale update vs accept races', async () => {
+    // Create draft and proposal
+    const startRes = await request(app.getHttpServer())
+      .post('/care/workspace/drafts')
+      .send({ careArea: 'skin', primaryConcern: 'redness' });
+    const draftId = startRes.body.draft.id;
+    const guestToken = startRes.body.guestToken;
+
+    const proposalRes = await request(app.getHttpServer())
+      .post(`/care/workspace/drafts/${draftId}/proposals`)
+      .set('x-guest-token', guestToken);
+    
+    const proposalId = proposalRes.body.id;
+
+    // Suppose we accept the proposal
+    await request(app.getHttpServer())
+      .post(`/care/workspace/proposals/${proposalId}/accept`)
+      .set('x-guest-token', guestToken)
+      .expect(201);
+
+    // Then a stale modifyProposal request arrives
+    await request(app.getHttpServer())
+      .post(`/care/workspace/drafts/${draftId}/proposals/modify`)
+      .set('x-guest-token', guestToken)
+      .send({ action: 'REMOVE_STEP', payload: { stepId: '1', version: 1 } })
+      .expect(409);
+  });
+
+  it('8. Verify parallel acceptance returns the same saved Routine without duplicate revisions', async () => {
+    // Create draft and proposal
+    const startRes = await request(app.getHttpServer())
+      .post('/care/workspace/drafts')
+      .send({ careArea: 'skin', primaryConcern: 'dryness' });
+    const draftId = startRes.body.draft.id;
+    const guestToken = startRes.body.guestToken;
+
+    const proposalRes = await request(app.getHttpServer())
+      .post(`/care/workspace/drafts/${draftId}/proposals`)
+      .set('x-guest-token', guestToken);
+    
+    const proposalId = proposalRes.body.id;
+
+    // Send two accept requests concurrently
+    const [res1, res2] = await Promise.all([
+      request(app.getHttpServer())
+        .post(`/care/workspace/proposals/${proposalId}/accept`)
+        .set('x-guest-token', guestToken),
+      request(app.getHttpServer())
+        .post(`/care/workspace/proposals/${proposalId}/accept`)
+        .set('x-guest-token', guestToken)
+    ]);
+
+    expect(res1.status).toBe(201);
+    expect(res2.status).toBe(201);
+    expect(res1.body.id).toBe(res2.body.id);
+  });
 });

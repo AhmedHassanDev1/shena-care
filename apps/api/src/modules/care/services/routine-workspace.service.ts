@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { CareArea, Prisma } from '@prisma/client';
+import { CareArea, Prisma, RoutineProposalStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 
 export interface StartDraftDto {
@@ -114,34 +114,41 @@ export class RoutineWorkspaceService {
 
   // Deterministic actions on latest proposal
   async modifyProposal(draftId: string, action: string, payload: any, customerId?: string, guestToken?: string) {
+    if (payload.version === undefined) {
+      throw new ConflictException('Version is required to modify proposal');
+    }
+
     const draft = await this.getDraft(draftId, customerId, guestToken);
     const latestProposal = draft.proposals[0];
 
     if (!latestProposal) throw new NotFoundException('No proposal to modify');
+    if (latestProposal.status !== RoutineProposalStatus.proposed) {
+      throw new ConflictException('Cannot modify a proposal that is not in proposed state');
+    }
 
     let snapshot = latestProposal.snapshot as any;
-    // Implement deterministic modifications to the snapshot
-    // Add/replace product, Remove/restore step, Mark product already owned
 
     if (action === 'REPLACE_PRODUCT') {
       const { stepId, newProductId } = payload;
-      // ... modify snapshot
       snapshot.steps = snapshot.steps.map((s: any) => 
         s.id === stepId ? { ...s, productId: newProductId } : s
       );
     } else if (action === 'REMOVE_STEP') {
       const { stepId } = payload;
       snapshot.steps = snapshot.steps.filter((s: any) => s.id !== stepId);
-    } else if (action === 'MARK_OWNED') {
-       // add to draft ownedProductIds
-       await this.prisma.routineDraft.update({
-         where: { id: draftId },
-         data: {
-           ownedProductIds: { push: payload.productId },
-           version: { increment: 1 }
-         }
-       });
-       // we should recalculate price
+    }
+
+    // Enforce OCC by atomically updating the draft version
+    const updatedDraft = await this.prisma.routineDraft.updateMany({
+      where: { id: draftId, version: payload.version },
+      data: {
+        version: { increment: 1 },
+        ...(action === 'MARK_OWNED' ? { ownedProductIds: { push: payload.productId } } : {})
+      }
+    });
+
+    if (updatedDraft.count === 0) {
+      throw new ConflictException('Draft has been updated by another request');
     }
 
     // Save modified snapshot
