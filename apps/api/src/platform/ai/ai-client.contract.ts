@@ -51,6 +51,7 @@ export interface GuidanceRecommendationRequest {
     role: 'user' | 'assistant' | 'system';
     content: string;
   }>;
+  routineDraft?: any | null;
 }
 
 export interface RoutineStepProposal {
@@ -70,6 +71,7 @@ export interface RoutineProposal {
 
 export interface GuidanceRecommendationResult {
   schemaVersion: '1';
+  type: 'answer' | 'clarification' | 'shortlist' | 'proposal';
   message: string;
   proposal?: RoutineProposal | null;
 }

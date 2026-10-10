@@ -121,6 +121,7 @@ class MockGuidanceProvider:
 
         return GuidanceRecommendationResult(
             schemaVersion="1",
+            type="proposal" if proposal else "answer",
             message="Based on your profile, here is a suggested routine." if proposal else "Could you tell me more about your specific goals?",
             proposal=proposal
         )

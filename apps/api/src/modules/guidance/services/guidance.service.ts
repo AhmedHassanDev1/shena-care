@@ -92,6 +92,11 @@ export class GuidanceService {
       include: { concerns: { include: { concern: true } } },
     });
 
+    const draft = await this.prisma.routineDraft.findFirst({
+      where: { customerId: session.customerId },
+      orderBy: { createdAt: 'desc' },
+    });
+
     const recommendationInput = {
       customerId: session.customerId,
       profile: {
@@ -103,6 +108,7 @@ export class GuidanceService {
         role: h.role as 'user' | 'assistant' | 'system',
         content: h.content,
       })),
+      routineDraft: draft,
     };
 
     let result;
@@ -165,6 +171,6 @@ export class GuidanceService {
       },
     });
 
-    return assistantMsg;
+    return { ...assistantMsg, type: (result as any).type };
   }
 }

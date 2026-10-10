@@ -18,6 +18,7 @@ class GuidanceRecommendationRequest(BaseModel):
     customerId: str = Field(min_length=1, max_length=64)
     profile: UserProfileContext
     chatHistory: list[GuidanceMessageContext] = Field(default_factory=list)
+    routineDraft: dict | None = None
 
 
 class RoutineStepProposal(BaseModel):
@@ -37,5 +38,6 @@ class RoutineProposal(BaseModel):
 
 class GuidanceRecommendationResult(BaseModel):
     schemaVersion: Literal["1"]
+    type: Literal["answer", "clarification", "shortlist", "proposal"] = "answer"
     message: str  # The AI's textual response back to the user
     proposal: RoutineProposal | None = None  # If the AI thinks a routine is ready, it populates this

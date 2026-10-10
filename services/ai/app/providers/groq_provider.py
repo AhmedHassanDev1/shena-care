@@ -105,6 +105,78 @@ Return a JSON object with the following schema:
                 raise
             raise ProviderError(f"Groq enrichment failed: {str(e)}")
 
+    async def recommend(self, request: "GuidanceRecommendationRequest") -> "GuidanceRecommendationResult":
+        system_prompt = """
+You are an expert dermatological and haircare AI assistant for ShenaCare. 
+Respond in concise Egyptian Arabic. You must be nonmedical and evidence-aware. 
+Do NOT invent prices, availability, ingredients, or product claims.
+
+Based on the user profile and chat history, return a JSON response with the following schema:
+{
+  "type": "answer" | "clarification" | "shortlist" | "proposal",
+  "message": "string (your textual response to the user in Egyptian Arabic)",
+  "proposal": {
+    "title": "string",
+    "description": "string",
+    "careArea": "skin or hair",
+    "steps": [
+      {
+        "title": "string",
+        "instructions": "string",
+        "timing": "am, pm, both, or as_needed",
+        "isOptional": boolean,
+        "productQuery": "string (the generic product name or active ingredient)"
+      }
+    ]
+  } // Include proposal only if type is "proposal"
+}
+"""
+        # User prompt using model_dump() if available or converting to dict
+        try:
+            profile_dict = request.profile.model_dump()
+            history_list = [m.model_dump() for m in request.chatHistory]
+            draft_dict = request.routineDraft if request.routineDraft else {}
+        except AttributeError:
+            profile_dict = request.profile.dict()
+            history_list = [m.dict() for m in request.chatHistory]
+            draft_dict = request.routineDraft if request.routineDraft else {}
+            
+        user_prompt = f"Profile: {json.dumps(profile_dict)}\nDraft: {json.dumps(draft_dict)}\nHistory: {json.dumps(history_list)}"
+        
+        try:
+            result_json = await self._call_chat_completions(system_prompt, user_prompt, temperature=0.5)
+            from app.contracts.guidance import GuidanceRecommendationResult, RoutineProposal, RoutineStepProposal
+            
+            proposal_data = result_json.get("proposal")
+            proposal = None
+            if proposal_data:
+                steps = [
+                    RoutineStepProposal(
+                        title=s.get("title", "Step"),
+                        instructions=s.get("instructions"),
+                        timing=s.get("timing", "both"),
+                        isOptional=s.get("isOptional", False),
+                        productQuery=s.get("productQuery")
+                    ) for s in proposal_data.get("steps", [])
+                ]
+                proposal = RoutineProposal(
+                    title=proposal_data.get("title", "Routine"),
+                    description=proposal_data.get("description"),
+                    careArea=proposal_data.get("careArea", "skin"),
+                    steps=steps
+                )
+                
+            return GuidanceRecommendationResult(
+                schemaVersion="1",
+                type=result_json.get("type", "answer"),
+                message=result_json.get("message", "هنا الرد الخاص بك."),
+                proposal=proposal
+            )
+        except Exception as e:
+            if isinstance(e, (ProviderError, ProviderUnavailableError)):
+                raise
+            raise ProviderError(f"Groq guidance failed: {str(e)}")
+
     async def generate_content(self, request: ProductContentGenerationRequest) -> ProductContentGenerationResult:
         system_prompt = """
 You are a bilingual (English and Arabic) product content generator for ShenaCare. 
