@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
 import { RecommendationValidatorService } from '../../guidance/services/recommendation-validator.service';
@@ -149,14 +149,24 @@ export class RoutineProposalService {
     });
 
     if (!proposal) throw new NotFoundException('Proposal not found');
-    if (proposal.status !== RoutineProposalStatus.proposed) {
+    if (proposal.status === RoutineProposalStatus.accepted) {
+      // Idempotent retry
+      this.workspace.verifyOwnership(proposal.draft, customerId, guestToken);
+      const routineId = (proposal.snapshot as any)?.routineId;
+      if (routineId) {
+        const routine = await this.prisma.routine.findUnique({
+          where: { id: routineId },
+          include: { steps: { include: { recommendations: true } } }
+        });
+        if (routine) return routine;
+      }
+      throw new BadRequestException('Proposal already accepted but routine not found');
+    } else if (proposal.status !== RoutineProposalStatus.proposed) {
       throw new BadRequestException(`Cannot accept proposal with status ${proposal.status}`);
     }
 
     // Verify ownership
-    if (proposal.draft.customerId && proposal.draft.customerId !== customerId) {
-      throw new BadRequestException('Not authorized to accept this proposal');
-    }
+    this.workspace.verifyOwnership(proposal.draft, customerId, guestToken);
 
     const snapshot = proposal.snapshot as any;
     if (!snapshot || !snapshot.steps) {
@@ -172,16 +182,6 @@ export class RoutineProposalService {
     // Explicit acceptance -> Saved Routine revision
     // Create new Routine and RoutineSteps
     return this.prisma.$transaction(async (tx: any) => {
-      // Mark proposal accepted (idempotency)
-      const updatedProposal = await tx.routineProposal.updateMany({
-        where: { id: proposalId, status: RoutineProposalStatus.proposed },
-        data: { status: RoutineProposalStatus.accepted }
-      });
-
-      if (updatedProposal.count === 0) {
-         throw new BadRequestException('Proposal already accepted or invalid state');
-      }
-
       const routine = await tx.routine.create({
         data: {
           title: snapshot.title || 'My Routine',
@@ -203,6 +203,20 @@ export class RoutineProposalService {
           }
         }
       });
+
+      // Mark proposal accepted (idempotency)
+      const updatedSnapshot = { ...snapshot, routineId: routine.id };
+      const updatedProposal = await tx.routineProposal.updateMany({
+        where: { id: proposalId, status: RoutineProposalStatus.proposed },
+        data: { 
+          status: RoutineProposalStatus.accepted,
+          snapshot: updatedSnapshot
+        }
+      });
+
+      if (updatedProposal.count === 0) {
+         throw new ConflictException('Proposal already accepted concurrently');
+      }
 
       if (proposal.draft.customerId) {
         await tx.customerCareProfile.upsert({

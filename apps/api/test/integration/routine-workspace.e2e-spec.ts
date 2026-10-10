@@ -234,15 +234,17 @@ describe('Routine Workspace & AI Proposal Lifecycle (e2e)', () => {
     const proposalId = proposalRes.body.id;
 
     // First accept
-    await request(app.getHttpServer())
+    const firstAcceptRes = await request(app.getHttpServer())
       .post(`/care/workspace/proposals/${proposalId}/accept`)
       .set('Authorization', customer1Token)
       .expect(201);
 
-    // Duplicate accept attempt -> Expect 400 Bad Request
-    await request(app.getHttpServer())
+    // Duplicate accept attempt -> Expect 201 and same routine ID
+    const retryRes = await request(app.getHttpServer())
       .post(`/care/workspace/proposals/${proposalId}/accept`)
       .set('Authorization', customer1Token)
-      .expect(400);
+      .expect(201);
+
+    expect(retryRes.body.id).toBe(firstAcceptRes.body.id);
   });
 });
