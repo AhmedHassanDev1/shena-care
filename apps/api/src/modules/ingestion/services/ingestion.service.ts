@@ -1,8 +1,8 @@
 import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { CatalogService } from '../../catalog/public';
+import { CatalogService, BrandService } from '../../catalog/public';
 import { SourcingService } from '../../sourcing/public';
-import { CreateIngestionJobDto, ApproveIngestionItemDto } from '../dto/ingestion.dto';
+import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from '../dto/ingestion.dto';
 import { IngestionStatus, IngestionItemEnrichmentStatus } from '@prisma/client';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
 
@@ -29,12 +29,21 @@ export class IngestionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly catalogService: CatalogService,
+    private readonly brandService: BrandService,
     private readonly sourcingService: SourcingService,
     private readonly aiClient: AiClient,
   ) {}
 
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+  }
+
+  private slugify(str: string): string {
+    return str
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
   }
 
   async createJob(dto: CreateIngestionJobDto): Promise<IngestionJobDetail> {
@@ -66,7 +75,7 @@ export class IngestionService {
 
     return {
       ...job,
-      items: job.items.map(item => ({
+      items: job.items.map((item) => ({
         ...item,
         price: item.price.toNumber(),
       })),
@@ -84,7 +93,7 @@ export class IngestionService {
 
     return {
       ...job,
-      items: job.items.map(item => ({
+      items: job.items.map((item) => ({
         ...item,
         price: item.price.toNumber(),
       })),
@@ -97,13 +106,150 @@ export class IngestionService {
       include: { items: true },
     });
 
-    return jobs.map(job => ({
+    return jobs.map((job) => ({
       ...job,
-      items: job.items.map(item => ({
+      items: job.items.map((item) => ({
         ...item,
         price: item.price.toNumber(),
       })),
     }));
+  }
+
+  // ---------------------------------------------------------------------------
+  // GLO-77 Candidate Review & Fact Operations
+  // ---------------------------------------------------------------------------
+
+  async getCandidates(status?: IngestionStatus): Promise<Array<Record<string, unknown>>> {
+    const items = await this.prisma.ingestionItem.findMany({
+      where: status ? { status } : {},
+      include: { job: { select: { id: true, supplierId: true, status: true, createdAt: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return items.map((item) => ({
+      id: item.id,
+      jobId: item.jobId,
+      supplierId: item.job.supplierId,
+      supplierSkuCode: item.supplierSkuCode,
+      name: item.name,
+      brand: item.brand,
+      barcode: item.barcode,
+      price: item.price.toNumber(),
+      currency: item.currency,
+      status: item.status,
+      matchedSkuId: item.matchedSkuId,
+      enrichmentStatus: item.enrichmentStatus,
+      enrichment: item.enrichment,
+      enrichmentError: item.enrichmentError,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    }));
+  }
+
+  async getCandidateDetail(itemId: string): Promise<Record<string, unknown>> {
+    if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
+    const item = await this.prisma.ingestionItem.findUnique({
+      where: { id: itemId },
+      include: { job: { select: { id: true, supplierId: true, status: true, createdAt: true } } },
+    });
+
+    if (!item) throw new NotFoundException('Candidate item not found');
+
+    let matchedSku = null;
+    if (item.matchedSkuId) {
+      matchedSku = await this.catalogService.getSkuIdentity(item.matchedSkuId);
+    } else if (item.barcode) {
+      matchedSku = await this.catalogService.getSkuByBarcode(item.barcode);
+    }
+
+    const brandMatch = await this.brandService.getBrand(item.brand);
+
+    const conflicts: string[] = [];
+    if (!item.barcode) {
+      conflicts.push('missing_barcode');
+    }
+    if (item.barcode && matchedSku && !item.matchedSkuId) {
+      conflicts.push('unlinked_existing_sku_match');
+    }
+    if (!brandMatch) {
+      conflicts.push('brand_not_found_in_catalog');
+    }
+    if (item.status === IngestionStatus.review_required && conflicts.length === 0) {
+      conflicts.push('requires_manual_identity_verification');
+    }
+
+    return {
+      id: item.id,
+      jobId: item.jobId,
+      supplierId: item.job.supplierId,
+      supplierSkuCode: item.supplierSkuCode,
+      name: item.name,
+      brand: item.brand,
+      barcode: item.barcode,
+      price: item.price.toNumber(),
+      currency: item.currency,
+      status: item.status,
+      matchedSkuId: item.matchedSkuId,
+      evidence: {
+        enrichment: item.enrichment,
+        enrichmentStatus: item.enrichmentStatus,
+        enrichmentError: item.enrichmentError,
+      },
+      conflicts,
+      matchedSku,
+      brandMatch: brandMatch ? { id: brandMatch.id, name: brandMatch.name, slug: brandMatch.slug } : null,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    };
+  }
+
+  async updateCandidate(itemId: string, dto: UpdateCandidateDto): Promise<Record<string, unknown>> {
+    if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
+    const item = await this.prisma.ingestionItem.findUnique({
+      where: { id: itemId },
+      include: { job: true },
+    });
+
+    if (!item) throw new NotFoundException('Candidate item not found');
+    if (item.job.status === IngestionStatus.published || item.status === IngestionStatus.published) {
+      throw new BadRequestException('Cannot modify items of a published job or candidate');
+    }
+
+    const newBarcode = dto.barcode !== undefined ? dto.barcode : item.barcode;
+
+    let matchedSkuId = item.matchedSkuId;
+    let status = item.status;
+
+    if (dto.barcode !== undefined || dto.brand !== undefined) {
+      if (newBarcode) {
+        const sku = await this.catalogService.getSkuByBarcode(newBarcode);
+        if (sku) {
+          matchedSkuId = sku.id;
+          status = IngestionStatus.approved;
+        } else if (matchedSkuId) {
+          matchedSkuId = null;
+          status = IngestionStatus.review_required;
+        }
+      }
+    }
+
+    const updated = await this.prisma.ingestionItem.update({
+      where: { id: itemId },
+      data: {
+        ...(dto.supplierSkuCode !== undefined && { supplierSkuCode: dto.supplierSkuCode }),
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.brand !== undefined && { brand: dto.brand }),
+        ...(dto.barcode !== undefined && { barcode: dto.barcode }),
+        ...(dto.price !== undefined && { price: dto.price }),
+        ...(dto.currency !== undefined && { currency: dto.currency }),
+        matchedSkuId,
+        status,
+      },
+    });
+
+    await this.evaluateJobStatus(item.jobId);
+
+    return this.getCandidateDetail(updated.id);
   }
 
   private async processMatching(jobId: string): Promise<void> {
@@ -127,9 +273,6 @@ export class IngestionService {
         }
       }
 
-      // If no barcode match, manual review is needed.
-      // (Future: NLP/Fuzzy match based on brand + name)
-
       const status = matchedSkuId ? IngestionStatus.approved : IngestionStatus.review_required;
 
       await this.prisma.ingestionItem.update({
@@ -138,16 +281,15 @@ export class IngestionService {
       });
 
       // Trigger AI enrichment asynchronously (best-effort, non-blocking)
-      this.enrichItemAsync(item.id, item.name, item.brand, item.barcode ?? undefined).catch(
-        (err) => console.error(`Enrichment background error for item ${item.id}:`, err),
+      this.enrichItemAsync(item.id, item.name, item.brand, item.barcode ?? undefined).catch((err) =>
+        console.error(`Enrichment background error for item ${item.id}:`, err),
       );
     }
 
-    // Check if all items are approved/rejected, update job status
     await this.evaluateJobStatus(jobId);
   }
 
-  async approveItem(itemId: string, dto: ApproveIngestionItemDto): Promise<void> {
+  async approveItem(itemId: string, dto?: ApproveIngestionItemDto): Promise<void> {
     const item = await this.prisma.ingestionItem.findUnique({
       where: { id: itemId },
       include: { job: true },
@@ -158,16 +300,19 @@ export class IngestionService {
       throw new BadRequestException('Cannot modify items of a published job');
     }
 
-    if (!this.isUuid(dto.matchedSkuId)) throw new BadRequestException('Invalid SKU ID');
-    
-    // Verify SKU exists
-    const isValid = await this.catalogService.validateSku(dto.matchedSkuId);
-    if (!isValid) throw new NotFoundException('SKU not found in catalog or is inactive');
+    let matchedSkuId: string | null = item.matchedSkuId;
+
+    if (dto?.matchedSkuId) {
+      if (!this.isUuid(dto.matchedSkuId)) throw new BadRequestException('Invalid SKU ID');
+      const isValid = await this.catalogService.validateSku(dto.matchedSkuId);
+      if (!isValid) throw new NotFoundException('SKU not found in catalog or is inactive');
+      matchedSkuId = dto.matchedSkuId;
+    }
 
     await this.prisma.ingestionItem.update({
       where: { id: itemId },
       data: {
-        matchedSkuId: dto.matchedSkuId,
+        matchedSkuId,
         status: IngestionStatus.approved,
       },
     });
@@ -201,10 +346,11 @@ export class IngestionService {
     });
     if (!job) return;
 
-    const allProcessed = job.items.every(i => 
-      i.status === IngestionStatus.approved || 
-      i.status === IngestionStatus.rejected || 
-      i.status === IngestionStatus.published
+    const allProcessed = job.items.every(
+      (i) =>
+        i.status === IngestionStatus.approved ||
+        i.status === IngestionStatus.rejected ||
+        i.status === IngestionStatus.published,
     );
 
     if (allProcessed && job.status !== IngestionStatus.published && job.status !== IngestionStatus.approved) {
@@ -219,10 +365,6 @@ export class IngestionService {
   // AI Enrichment
   // ---------------------------------------------------------------------------
 
-  /**
-   * Internal fire-and-forget enrichment. Called automatically after matching.
-   * Errors are swallowed so they don't block the matching flow.
-   */
   private async enrichItemAsync(
     itemId: string,
     rawTitle: string,
@@ -254,21 +396,19 @@ export class IngestionService {
     } catch (err) {
       const isKnownAiError = err instanceof AiClientError;
       const isSoftError =
-        isKnownAiError &&
-        (err.kind === AiErrorKind.UNAVAILABLE || err.kind === AiErrorKind.TIMEOUT);
+        isKnownAiError && (err.kind === AiErrorKind.UNAVAILABLE || err.kind === AiErrorKind.TIMEOUT);
 
-      const errorMessage =
-        isKnownAiError
-          ? `${err.kind}: ${err.message}`
-          : err instanceof Error
-          ? err.message
-          : String(err);
+      const errorMessage = isKnownAiError
+        ? `${err.kind}: ${err.message}`
+        : err instanceof Error
+        ? err.message
+        : String(err);
 
       await this.prisma.ingestionItem.update({
         where: { id: itemId },
         data: {
           enrichmentStatus: isSoftError
-            ? IngestionItemEnrichmentStatus.pending // can retry
+            ? IngestionItemEnrichmentStatus.pending
             : IngestionItemEnrichmentStatus.failed,
           enrichmentError: errorMessage,
         },
@@ -280,10 +420,6 @@ export class IngestionService {
     }
   }
 
-  /**
-   * Manual enrichment trigger via API. Allows retrying enrichment on demand.
-   * Returns the updated item enrichment status and result.
-   */
   async enrichItem(itemId: string): Promise<{
     enrichmentStatus: IngestionItemEnrichmentStatus;
     enrichment: unknown;
@@ -294,7 +430,6 @@ export class IngestionService {
     const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId } });
     if (!item) throw new NotFoundException('Item not found');
 
-    // Run synchronously here (caller awaits result)
     await this.enrichItemAsync(item.id, item.name, item.brand, item.barcode ?? undefined);
 
     const updated = await this.prisma.ingestionItem.findUnique({ where: { id: itemId } });
@@ -302,6 +437,136 @@ export class IngestionService {
       enrichmentStatus: updated!.enrichmentStatus,
       enrichment: updated!.enrichment,
       enrichmentError: updated!.enrichmentError,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // GLO-77 Canonical Product Promotion & Publish Operations
+  // ---------------------------------------------------------------------------
+
+  private async ensureCanonicalSku(item: {
+    id: string;
+    name: string;
+    brand: string;
+    barcode: string | null;
+    supplierSkuCode: string;
+    matchedSkuId: string | null;
+    enrichment?: unknown;
+  }): Promise<string> {
+    if (item.matchedSkuId) {
+      const existing = await this.catalogService.getSkuIdentity(item.matchedSkuId);
+      if (existing) return existing.id;
+    }
+
+    if (item.barcode) {
+      const existingByBarcode = await this.catalogService.getSkuByBarcode(item.barcode);
+      if (existingByBarcode) return existingByBarcode.id;
+    }
+
+    let brandId: string;
+    const existingBrand = await this.brandService.getBrand(item.brand);
+    if (existingBrand) {
+      brandId = existingBrand.id;
+    } else {
+      const createdBrand = await this.brandService.createBrand({ name: item.brand });
+      brandId = createdBrand.id;
+    }
+
+    const brandName = existingBrand ? existingBrand.name : item.brand;
+    const productSlug = this.slugify(`${brandName}-${item.name}`);
+    let product = await this.catalogService.getProduct(productSlug);
+    if (!product) {
+      const enrichmentDesc = (item.enrichment as Record<string, unknown>)?.suggestions
+        ? ((item.enrichment as Record<string, unknown>).suggestions as Record<string, unknown>).description
+        : undefined;
+      product = await this.catalogService.createProduct({
+        brandId,
+        name: item.name,
+        slug: productSlug,
+        description: typeof enrichmentDesc === 'string' ? enrichmentDesc : undefined,
+        isPublished: true,
+      });
+    }
+
+    const skuCode = item.supplierSkuCode || `SKU-${item.id.slice(0, 8).toUpperCase()}`;
+    const existingSkus = await this.catalogService.getSkus(product.id);
+    const existingSku = existingSkus.find(
+      (s) => s.code === skuCode || (item.barcode !== null && s.barcode === item.barcode),
+    );
+    if (existingSku) return existingSku.id;
+
+    const newSku = await this.catalogService.createSku(product.id, {
+      code: skuCode,
+      variantName: 'Default',
+      barcode: item.barcode ?? undefined,
+      isActive: true,
+    });
+
+    return newSku.id;
+  }
+
+  private async ensureSupplierOffer(
+    supplierId: string,
+    skuId: string,
+    costPrice: number,
+    currency: string,
+  ): Promise<void> {
+    try {
+      await this.sourcingService.createSupplierOffer({
+        supplierId,
+        skuId,
+        costPrice,
+        currency,
+        isAvailable: true,
+      });
+    } catch (e) {
+      if (e instanceof ConflictException) {
+        const offers = await this.sourcingService.getSupplierOffers({ supplierId, skuId });
+        if (offers.length > 0) {
+          await this.sourcingService.updateSupplierOffer(offers[0].id, {
+            costPrice,
+            currency,
+            isAvailable: true,
+          });
+        }
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  async publishCandidate(itemId: string): Promise<Record<string, unknown>> {
+    if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
+    const item = await this.prisma.ingestionItem.findUnique({
+      where: { id: itemId },
+      include: { job: true },
+    });
+
+    if (!item) throw new NotFoundException('Candidate item not found');
+    if (item.status === IngestionStatus.published) {
+      throw new BadRequestException('Candidate is already published');
+    }
+
+    if (item.status !== IngestionStatus.approved) {
+      throw new BadRequestException('Candidate item is not approved for publication yet');
+    }
+
+    const skuId = await this.ensureCanonicalSku(item);
+    await this.ensureSupplierOffer(item.job.supplierId, skuId, item.price.toNumber(), item.currency);
+
+    const updated = await this.prisma.ingestionItem.update({
+      where: { id: itemId },
+      data: { status: IngestionStatus.published, matchedSkuId: skuId },
+    });
+
+    await this.evaluateJobStatus(item.jobId);
+
+    const canonicalSku = await this.catalogService.getSkuIdentity(skuId);
+    return {
+      id: updated.id,
+      status: updated.status,
+      matchedSkuId: skuId,
+      canonicalSku,
     };
   }
 
@@ -323,55 +588,30 @@ export class IngestionService {
 
     const errors: string[] = [];
 
-    // Publish approved items to Sourcing
     for (const item of job.items) {
-      if (item.status === IngestionStatus.approved && item.matchedSkuId) {
+      if (item.status === IngestionStatus.approved) {
         try {
-          await this.sourcingService.createSupplierOffer({
-            supplierId: job.supplierId,
-            skuId: item.matchedSkuId,
-            costPrice: item.price.toNumber(),
-            currency: item.currency,
-            isAvailable: true,
-          });
-          
+          const skuId = await this.ensureCanonicalSku(item);
+
+          await this.ensureSupplierOffer(
+            job.supplierId,
+            skuId,
+            item.price.toNumber(),
+            item.currency,
+          );
+
           await this.prisma.ingestionItem.update({
             where: { id: item.id },
-            data: { status: IngestionStatus.published },
+            data: { status: IngestionStatus.published, matchedSkuId: skuId },
           });
         } catch (e) {
-          if (e instanceof ConflictException) {
-            // Offer already exists, update it instead safely
-            try {
-              const offers = await this.sourcingService.getSupplierOffers({
-                supplierId: job.supplierId,
-                skuId: item.matchedSkuId,
-              });
-              if (offers.length > 0) {
-                await this.sourcingService.updateSupplierOffer(offers[0].id, {
-                  costPrice: item.price.toNumber(),
-                  currency: item.currency,
-                  isAvailable: true,
-                });
-                await this.prisma.ingestionItem.update({
-                  where: { id: item.id },
-                  data: { status: IngestionStatus.published },
-                });
-              }
-            } catch (innerErr) {
-              const errorMessage = innerErr instanceof Error ? innerErr.message : String(innerErr);
-              errors.push(`Failed to update existing offer for item ${item.id}: ${errorMessage}`);
-            }
-          } else {
-            const errorMessage = e instanceof Error ? e.message : String(e);
-            errors.push(`Failed to create offer for item ${item.id}: ${errorMessage}`);
-          }
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          errors.push(`Failed to publish item ${item.id}: ${errorMessage}`);
         }
       }
     }
 
     if (errors.length > 0) {
-      // Partial failure: state remains approved (or partially published)
       throw new BadRequestException({
         message: 'Partial publish failure',
         errors,
@@ -386,7 +626,7 @@ export class IngestionService {
 
     return {
       ...updatedJob,
-      items: updatedJob.items.map(item => ({
+      items: updatedJob.items.map((item) => ({
         ...item,
         price: item.price.toNumber(),
       })),

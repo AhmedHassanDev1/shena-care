@@ -39,7 +39,37 @@ export class CreateIngestionJobDto {
 }
 
 export class ApproveIngestionItemDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  matchedSkuId: string;
+  matchedSkuId?: string;
+
+  @IsOptional()
+  createNewProduct?: boolean;
+}
+
+export class UpdateCandidateDto {
+  @IsOptional()
+  @IsString()
+  supplierSkuCode?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  brand?: string;
+
+  @IsOptional()
+  @IsString()
+  barcode?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  price?: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
 }
