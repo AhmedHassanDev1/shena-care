@@ -3,6 +3,7 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService, BrandService } from '../../catalog/public';
 import { SourcingService } from '../../sourcing/public';
 import { ProductIdentityService, MatchClassification } from './product-identity.service';
+import { ProductResearchService } from './product-research.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from '../dto/ingestion.dto';
 import { IngestionStatus, IngestionItemEnrichmentStatus } from '@prisma/client';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
@@ -33,6 +34,7 @@ export class IngestionService {
     private readonly brandService: BrandService,
     private readonly sourcingService: SourcingService,
     private readonly productIdentityService: ProductIdentityService,
+    private readonly productResearchService: ProductResearchService,
     private readonly aiClient: AiClient,
   ) {}
 
@@ -466,6 +468,52 @@ export class IngestionService {
       enrichmentError: updated!.enrichmentError,
     };
   }
+
+  // ---------------------------------------------------------------------------
+  // GLO-121 Product Research Pipeline
+  // ---------------------------------------------------------------------------
+
+  async researchCandidate(itemId: string): Promise<Record<string, unknown>> {
+    if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
+    const item = await this.prisma.ingestionItem.findUnique({
+      where: { id: itemId },
+      include: { job: true },
+    });
+
+    if (!item) throw new NotFoundException('Candidate item not found');
+
+    // Credit Protection & Caching: if candidate already has research evidence saved, return cached evidence
+    const currentEnrichment = (item.enrichment as Record<string, unknown>) || {};
+    if (currentEnrichment.research) {
+      return currentEnrichment.research as Record<string, unknown>;
+    }
+
+    // Execute Product Research Pipeline
+    const researchResult = await this.productResearchService.researchProductCandidate({
+      candidateId: item.id,
+      brand: item.brand,
+      name: item.name,
+      barcode: item.barcode,
+      supplierSkuCode: item.supplierSkuCode,
+      existingEnrichment: item.enrichment,
+    });
+
+    const updatedEnrichment = {
+      ...currentEnrichment,
+      research: researchResult,
+    };
+
+    await this.prisma.ingestionItem.update({
+      where: { id: itemId },
+      data: {
+        enrichment: updatedEnrichment as unknown as import('@prisma/client').Prisma.InputJsonValue,
+        enrichmentStatus: IngestionItemEnrichmentStatus.succeeded,
+      },
+    });
+
+    return researchResult as unknown as Record<string, unknown>;
+  }
+
 
   // ---------------------------------------------------------------------------
   // GLO-77 / GLO-120 Canonical Product Promotion & Publish Operations

@@ -91,6 +91,12 @@ export class IngestionController {
     return this.ingestionService.publishCandidate(id);
   }
 
+  @Post('candidates/:id/research')
+  @HttpCode(HttpStatus.OK)
+  async researchCandidate(@Param('id') id: string) {
+    return this.ingestionService.researchCandidate(id);
+  }
+
   // ─── Item Aliases (Backwards Compatibility) ─────────────────────────────
 
   @Get('items/:id')
@@ -116,4 +122,11 @@ export class IngestionController {
   async enrichItem(@Param('id') id: string) {
     return this.ingestionService.enrichItem(id);
   }
+
+  @Post('items/:id/research')
+  @HttpCode(HttpStatus.OK)
+  async researchItem(@Param('id') id: string) {
+    return this.ingestionService.researchCandidate(id);
+  }
 }
+
