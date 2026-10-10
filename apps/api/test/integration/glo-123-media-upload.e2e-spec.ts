@@ -90,6 +90,7 @@ describe('GLO-123 Product Media Core & Shared Storage (e2e)', () => {
   });
 
   it('should create an ingestion job', async () => {
+    const uniqueSuffix = Date.now().toString();
     const res = await request(app.getHttpServer())
       .post('/ingestion/jobs')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -97,10 +98,10 @@ describe('GLO-123 Product Media Core & Shared Storage (e2e)', () => {
         supplierId,
         items: [
           {
-            supplierSkuCode: 'MEDIA-SKU-1',
-            name: 'Media Test Cream',
+            supplierSkuCode: `MEDIA-SKU-${uniqueSuffix}`,
+            name: `Media Test Cream ${uniqueSuffix}`,
             brand: 'MediaTest',
-            barcode: '123123123123',
+            barcode: `123${uniqueSuffix}`.substring(0, 12),
             price: 50.0,
             currency: 'SAR',
           },
@@ -119,8 +120,8 @@ describe('GLO-123 Product Media Core & Shared Storage (e2e)', () => {
       .attach('file', testImagePath)
       .expect(HttpStatus.CREATED);
 
-    expect(res.body.url).toContain('/storage/candidates/');
-    expect(res.body.originType).toBe('verified');
+    expect(res.body.url).toContain('/storage/private/');
+    expect(res.body.originType).toBe('unverified');
     
     const candidate = await prisma.ingestionItem.findUnique({ where: { id: candidateId } });
     const enrichment = candidate.enrichment as Record<string, any>;
@@ -129,9 +130,14 @@ describe('GLO-123 Product Media Core & Shared Storage (e2e)', () => {
   });
 
   it('should approve the candidate', async () => {
+    const candidate = await prisma.ingestionItem.findUnique({ where: { id: candidateId } });
+    const enrichment = candidate.enrichment as Record<string, any>;
+    const mediaUrl = enrichment.media[0].url;
+
     await request(app.getHttpServer())
       .patch(`/ingestion/candidates/${candidateId}/approve`)
       .set('Authorization', `Bearer ${adminToken}`)
+      .send({ verifiedMediaUrls: [mediaUrl] })
       .expect(HttpStatus.OK);
   });
 
@@ -153,7 +159,7 @@ describe('GLO-123 Product Media Core & Shared Storage (e2e)', () => {
     });
 
     expect(productMedia.length).toBe(1);
-    expect(productMedia[0].url).toContain('/storage/candidates/');
+    expect(productMedia[0].url).toContain('/storage/public/media/');
     expect(productMedia[0].originType).toBe('verified');
   });
 });

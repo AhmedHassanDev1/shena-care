@@ -342,11 +342,25 @@ export class IngestionService {
       );
     }
 
+    const currentEnrichment = (item.enrichment as Record<string, unknown>) || {};
+    const media = Array.isArray(currentEnrichment.media) ? currentEnrichment.media : [];
+
+    if (dto?.verifiedMediaUrls && dto.verifiedMediaUrls.length > 0) {
+      for (const m of media) {
+        if (dto.verifiedMediaUrls.includes(m.url)) {
+          m.originType = 'verified';
+        }
+      }
+    }
+
+    const updatedEnrichment = { ...currentEnrichment, media };
+
     await this.prisma.ingestionItem.update({
       where: { id: itemId },
       data: {
         matchedSkuId,
         status: IngestionStatus.approved,
+        enrichment: updatedEnrichment as unknown as import('@prisma/client').Prisma.InputJsonValue,
       },
     });
 
@@ -525,10 +539,10 @@ export class IngestionService {
 
   async uploadCandidateMedia(itemId: string, file: Express.Multer.File) {
     if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
-    const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId } });
+    const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId }, include: { job: true } });
     if (!item) throw new NotFoundException('Candidate item not found');
 
-    const url = await this.storageService.uploadFile(file, 'candidates');
+    const url = await this.storageService.uploadFile(file, true, 'candidates', item.job.supplierId);
 
     const currentEnrichment = (item.enrichment as Record<string, unknown>) || {};
     const media = Array.isArray(currentEnrichment.media) ? currentEnrichment.media : [];
@@ -536,7 +550,7 @@ export class IngestionService {
     media.push({
       url,
       type: 'image',
-      originType: 'verified'
+      originType: 'unverified'
     });
 
     const updatedEnrichment = { ...currentEnrichment, media };
@@ -548,7 +562,7 @@ export class IngestionService {
       },
     });
 
-    return { url, type: 'image', originType: 'verified' };
+    return { url, type: 'image', originType: 'unverified' };
   }
 
 
@@ -591,7 +605,8 @@ export class IngestionService {
 
     // 3. Resolve or create Brand in Catalog via BrandService
     let brandId: string;
-    const existingBrand = await this.brandService.getBrand(item.brand);
+    const brandSlug = this.slugify(item.brand);
+    const existingBrand = await this.brandService.getBrand(brandSlug);
     if (existingBrand) {
       brandId = existingBrand.id;
     } else {
@@ -621,17 +636,19 @@ export class IngestionService {
     const enrichment = (item.enrichment as Record<string, unknown>) || {};
     const mediaList = Array.isArray(enrichment.media) ? enrichment.media : [];
     for (const m of mediaList) {
-      if (m.url && typeof m.url === 'string') {
+      if (m.url && typeof m.url === 'string' && m.originType === 'verified') {
+        const publicUrl = this.storageService.copyToPublic(m.url);
+        
         const existingMedia = await this.prisma.productMedia.findFirst({
-          where: { productId: product.id, url: m.url },
+          where: { productId: product.id, url: publicUrl },
         });
         if (!existingMedia) {
           await this.prisma.productMedia.create({
             data: {
               productId: product.id,
               type: m.type === 'video' ? 'video' : 'image',
-              url: m.url,
-              originType: m.originType === 'generated' ? 'generated' : 'verified',
+              url: publicUrl,
+              originType: 'verified',
             },
           });
         }

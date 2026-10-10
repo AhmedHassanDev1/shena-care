@@ -15,11 +15,13 @@ export class StorageService {
     }
   }
 
-  async uploadFile(file: Express.Multer.File, folder: string = 'media'): Promise<string> {
+  async uploadFile(file: Express.Multer.File, isPrivate: boolean, folder: string, supplierId?: string): Promise<string> {
     try {
       const ext = path.extname(file.originalname);
       const filename = `${crypto.randomUUID()}${ext}`;
-      const folderPath = path.join(this.storageDir, folder);
+      
+      const logicalFolder = isPrivate && supplierId ? `private/${supplierId}/${folder}` : `public/${folder}`;
+      const folderPath = path.join(this.storageDir, logicalFolder);
       
       if (!fs.existsSync(folderPath)) {
         fs.mkdirSync(folderPath, { recursive: true });
@@ -29,15 +31,39 @@ export class StorageService {
       fs.writeFileSync(filePath, file.buffer);
       
       this.logger.log(`File saved to ${filePath}`);
-      // Use API_URL if defined, else fallback to a relative or local URL
-      return `${this.baseUrl}/storage/${folder}/${filename}`;
+      this.logger.log(`File saved to ${filePath}`);
+      return `${this.baseUrl}/storage/${logicalFolder}/${filename}`;
     } catch (error) {
       this.logger.error('Failed to save file', error);
       throw new InternalServerErrorException('Failed to process file upload');
     }
   }
 
-  getFilePath(folder: string, filename: string): string {
-    return path.join(this.storageDir, folder, filename);
+  getFilePath(logicalPath: string): string {
+    // logicalPath can be something like public/candidates/123.png
+    return path.join(this.storageDir, logicalPath);
+  }
+
+  copyToPublic(privateUrl: string): string {
+    const urlParts = privateUrl.split('/storage/');
+    if (urlParts.length < 2) return privateUrl; // Fallback
+
+    const logicalPath = urlParts[1]; // e.g. private/123/candidates/foo.png
+    const filename = path.basename(logicalPath);
+    const publicFolder = `public/media`;
+    
+    const sourcePath = this.getFilePath(logicalPath);
+    const destFolder = path.join(this.storageDir, publicFolder);
+    const destPath = path.join(destFolder, filename);
+
+    if (!fs.existsSync(destFolder)) {
+      fs.mkdirSync(destFolder, { recursive: true });
+    }
+
+    if (fs.existsSync(sourcePath) && !fs.existsSync(destPath)) {
+      fs.copyFileSync(sourcePath, destPath);
+    }
+
+    return `${this.baseUrl}/storage/${publicFolder}/${filename}`;
   }
 }

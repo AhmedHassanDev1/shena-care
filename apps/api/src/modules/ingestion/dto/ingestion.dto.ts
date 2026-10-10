@@ -45,6 +45,11 @@ export class ApproveIngestionItemDto {
 
   @IsOptional()
   createNewProduct?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  verifiedMediaUrls?: string[];
 }
 
 export class UpdateCandidateDto {
