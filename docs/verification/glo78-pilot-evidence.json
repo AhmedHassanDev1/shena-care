@@ -1,0 +1,940 @@
+{
+  "inspectedAt": "2026-10-10T07:56:00.801Z",
+  "pilotJobId": "b191d313-c2e1-476b-814d-83221c49e748",
+  "pilotStatus": "pending",
+  "priorAttempts": [
+    {
+      "id": "b191d313-c2e1-476b-814d-83221c49e748",
+      "status": "pending",
+      "itemCount": 12
+    },
+    {
+      "id": "c5bc8d96-19bd-42c3-bcf7-a8a2a7981636",
+      "status": "approved",
+      "itemCount": 3
+    },
+    {
+      "id": "e9c70d6d-678b-48cb-ad8a-59a38703d00d",
+      "status": "pending",
+      "itemCount": 3
+    },
+    {
+      "id": "1aeafb81-e441-4141-807e-1159a853505e",
+      "status": "pending",
+      "itemCount": 3
+    },
+    {
+      "id": "e410cc94-aaa2-4296-bf7e-66bbaa116556",
+      "status": "pending",
+      "itemCount": 3
+    }
+  ],
+  "genuineSellableCount": 0,
+  "quarantinedProductIds": [
+    "1ee35726-e02d-4e9e-b5af-dee253de2b33",
+    "a131f5b2-3723-4ad8-a914-dba9758f71a3",
+    "7f6e7c8f-c9f6-41a6-a1a0-c706a3247729",
+    "fed46121-fe43-484c-8b9f-a248407bc1d6",
+    "fa081754-3540-479e-9cf1-3dbcbf0c632b",
+    "f1acdb6c-bf13-4a46-8ee8-32274d39508d",
+    "b037bb9f-0591-4e71-afc3-1eb11663293f",
+    "b1fc0735-ac60-4383-ad04-797773617049",
+    "ce28fadc-6f1b-4c3b-8f36-532eb4a09c21",
+    "cd10459a-7248-45ac-a097-bfc36a6c6496"
+  ],
+  "items": [
+    {
+      "candidateId": "19cda90e-4d55-4a7c-a794-452729093b41",
+      "candidateStatus": "published",
+      "productId": "1ee35726-e02d-4e9e-b5af-dee253de2b33",
+      "canonicalSku": {
+        "id": "c07d7277-72fa-4614-bb7c-a757cac9593f",
+        "code": "AVE-5001",
+        "barcode": "3282779003126",
+        "size": null,
+        "sizeUnit": null,
+        "variantName": "Default"
+      },
+      "supplierSkuCode": "AVE-5001",
+      "brand": "Avene",
+      "name": "Avene Thermal Spring Water",
+      "extractedSize": {
+        "unit": "g",
+        "value": 1
+      },
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "Avene",
+          "sourceUrl": "https://www.avene.co.uk/p/avene-thermal-spring-water-spray-3282779003124-b5405ca4",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "ingredients",
+          "value": [
+            "of natural origin"
+          ],
+          "sourceUrl": "https://www.avene.co.uk/p/avene-thermal-spring-water-spray-3282779003124-b5405ca4",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "size",
+          "value": {
+            "unit": "g",
+            "value": 1
+          },
+          "sourceUrl": "https://www.avene.co.uk/p/avene-thermal-spring-water-spray-3282779003124-b5405ca4",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "usage",
+          "value": [
+            "it to the affected area and spray again"
+          ],
+          "sourceUrl": "https://www.avene.co.uk/p/avene-thermal-spring-water-spray-3282779003124-b5405ca4",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [
+        {
+          "id": "1ab4f0ec-1f27-404d-b4aa-c8daf201d8b9",
+          "url": "http://localhost:3001/storage/public/media/98f76671-dc17-4245-9781-7027a5bbf387.png",
+          "storedOrigin": "verified",
+          "byteLength": 8,
+          "reviewed": false,
+          "actualStatus": "MOCK_INVALID_IMAGE"
+        }
+      ],
+      "sellingPrices": [],
+      "supplierOffers": [
+        {
+          "id": "37b2afe4-6644-437b-b7f8-3d31ebb352d6",
+          "demoCost": "75",
+          "currency": "SAR",
+          "isAvailable": false,
+          "lastConfirmedAt": null
+        }
+      ],
+      "beforePublished": true,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "SKU_INACTIVE",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "35754135-dc5e-41a9-925b-90c629863740",
+      "candidateStatus": "published",
+      "productId": "a131f5b2-3723-4ad8-a914-dba9758f71a3",
+      "canonicalSku": {
+        "id": "b401e76b-5f67-44aa-9140-d4ccd6bd6e34",
+        "code": "AVE-5002",
+        "barcode": "3282770204665",
+        "size": null,
+        "sizeUnit": null,
+        "variantName": "Default"
+      },
+      "supplierSkuCode": "AVE-5002",
+      "brand": "Avene",
+      "name": "Avene Cicalfate+ Cream",
+      "extractedSize": {
+        "unit": "ml",
+        "value": 40
+      },
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "Avene",
+          "sourceUrl": "https://www.aveneusa.com/cicalfateplus-restorative-protective-cream-40ml",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "ingredients",
+          "value": [
+            "![](https://www"
+          ],
+          "sourceUrl": "https://www.aveneusa.com/cicalfateplus-restorative-protective-cream-40ml",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "size",
+          "value": {
+            "unit": "ml",
+            "value": 40
+          },
+          "sourceUrl": "https://www.aveneusa.com/cicalfateplus-restorative-protective-cream-40ml",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "usage",
+          "value": [
+            "twice a day to clean, dry skin"
+          ],
+          "sourceUrl": "https://www.aveneusa.com/cicalfateplus-restorative-protective-cream-40ml",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [
+        {
+          "id": "457d5377-eda6-4ee3-a13c-1cbaebe51a32",
+          "url": "http://localhost:3001/storage/public/media/f392d9a2-21d1-4d25-a294-213dfc4880aa.png",
+          "storedOrigin": "verified",
+          "byteLength": 8,
+          "reviewed": false,
+          "actualStatus": "MOCK_INVALID_IMAGE"
+        }
+      ],
+      "sellingPrices": [],
+      "supplierOffers": [
+        {
+          "id": "dc87484b-f1e4-40c9-a197-7ca0087df271",
+          "demoCost": "85",
+          "currency": "SAR",
+          "isAvailable": false,
+          "lastConfirmedAt": null
+        }
+      ],
+      "beforePublished": true,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "SKU_INACTIVE",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "a83a078d-7a42-489c-8e52-53473572a55e",
+      "candidateStatus": "review_required",
+      "productId": null,
+      "canonicalSku": null,
+      "supplierSkuCode": "BDR-6001",
+      "brand": "Bioderma",
+      "name": "Bioderma Sensibio H2O Micellar Water",
+      "extractedSize": null,
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "Bioderma",
+          "sourceUrl": "internal",
+          "sourceType": "RETAILER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [],
+      "sellingPrices": [],
+      "supplierOffers": [],
+      "beforePublished": false,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "NO_CANONICAL_SKU",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "ecc117f6-c2ad-4f69-b9f1-fc42b0bf4906",
+      "candidateStatus": "published",
+      "productId": "7f6e7c8f-c9f6-41a6-a1a0-c706a3247729",
+      "canonicalSku": {
+        "id": "b2f383b6-ba36-4d29-bf0e-5f5450c1d0ca",
+        "code": "BDR-6002",
+        "barcode": "3401399373466",
+        "size": null,
+        "sizeUnit": null,
+        "variantName": "Default"
+      },
+      "supplierSkuCode": "BDR-6002",
+      "brand": "Bioderma",
+      "name": "Bioderma Atoderm Intensive Baume",
+      "extractedSize": null,
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "Bioderma",
+          "sourceUrl": "https://www.bioderma.fr/p/atoderm-intensive-baume",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [
+        {
+          "id": "1899675a-1f40-4917-a09f-38e819d0a691",
+          "url": "http://localhost:3001/storage/public/media/1e067cd4-0811-49e4-ae50-a2fe33f07369.png",
+          "storedOrigin": "verified",
+          "byteLength": 8,
+          "reviewed": false,
+          "actualStatus": "MOCK_INVALID_IMAGE"
+        }
+      ],
+      "sellingPrices": [],
+      "supplierOffers": [
+        {
+          "id": "23140345-69c9-4cf0-8141-bc9c7a2cea52",
+          "demoCost": "145",
+          "currency": "SAR",
+          "isAvailable": false,
+          "lastConfirmedAt": null
+        }
+      ],
+      "beforePublished": true,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "SKU_INACTIVE",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "905060c2-6546-4c06-9577-0ecff7403a74",
+      "candidateStatus": "published",
+      "productId": "fed46121-fe43-484c-8b9f-a248407bc1d6",
+      "canonicalSku": {
+        "id": "33d13484-dcf3-405b-b469-2685fcf60daf",
+        "code": "CER-1001",
+        "barcode": "3606000537736",
+        "size": null,
+        "sizeUnit": null,
+        "variantName": "Default"
+      },
+      "supplierSkuCode": "CER-1001",
+      "brand": "CeraVe",
+      "name": "CeraVe Moisturizing Cream",
+      "extractedSize": {
+        "unit": "oz",
+        "value": 12
+      },
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "CeraVe",
+          "sourceUrl": "https://www.cerave.com/skincare/moisturizers/moisturizing-cream?GeoRedirectOff=",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "ingredients",
+          "value": [
+            "softer",
+            "and healthier"
+          ],
+          "sourceUrl": "https://www.cerave.com/skincare/moisturizers/moisturizing-cream?GeoRedirectOff=",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "size",
+          "value": {
+            "unit": "oz",
+            "value": 12
+          },
+          "sourceUrl": "https://www.cerave.com/skincare/moisturizers/moisturizing-cream?GeoRedirectOff=",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "usage",
+          "value": [
+            "## How To Steps"
+          ],
+          "sourceUrl": "https://www.cerave.com/skincare/moisturizers/moisturizing-cream?GeoRedirectOff=",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [
+        {
+          "id": "c98aad11-fbf9-4a2b-96ee-dce30febaeef",
+          "url": "http://localhost:3001/storage/public/media/b67f265d-41ae-4495-906c-d402dbef9bd9.png",
+          "storedOrigin": "verified",
+          "byteLength": 8,
+          "reviewed": false,
+          "actualStatus": "MOCK_INVALID_IMAGE"
+        }
+      ],
+      "sellingPrices": [],
+      "supplierOffers": [
+        {
+          "id": "04db0bc1-8d09-4b83-bc2f-ebb43368a1e6",
+          "demoCost": "95",
+          "currency": "SAR",
+          "isAvailable": false,
+          "lastConfirmedAt": null
+        }
+      ],
+      "beforePublished": true,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "SKU_INACTIVE",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "4817cb47-da92-459d-aaf2-2f901dbc78c0",
+      "candidateStatus": "published",
+      "productId": "fa081754-3540-479e-9cf1-3dbcbf0c632b",
+      "canonicalSku": {
+        "id": "628b87b1-8634-41c4-960d-f03896ac3490",
+        "code": "CER-1002",
+        "barcode": "3606000537743",
+        "size": null,
+        "sizeUnit": null,
+        "variantName": "Default"
+      },
+      "supplierSkuCode": "CER-1002",
+      "brand": "CeraVe",
+      "name": "CeraVe Hydrating Facial Cleanser",
+      "extractedSize": {
+        "unit": "l",
+        "value": 2
+      },
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "CeraVe",
+          "sourceUrl": "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "ingredients",
+          "value": [
+            "- ## Ceramides"
+          ],
+          "sourceUrl": "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "size",
+          "value": {
+            "unit": "l",
+            "value": 2
+          },
+          "sourceUrl": "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "usage",
+          "value": [
+            "## How to Steps"
+          ],
+          "sourceUrl": "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [
+        {
+          "id": "a20eb9c1-8a87-48b5-b6f0-b2450e76078f",
+          "url": "http://localhost:3001/storage/public/media/47ad638b-af83-48aa-b42f-d4f5bc09f8e0.png",
+          "storedOrigin": "verified",
+          "byteLength": 8,
+          "reviewed": false,
+          "actualStatus": "MOCK_INVALID_IMAGE"
+        }
+      ],
+      "sellingPrices": [],
+      "supplierOffers": [
+        {
+          "id": "736e528d-cd8c-42d0-83a4-ae519c9cd697",
+          "demoCost": "85",
+          "currency": "SAR",
+          "isAvailable": false,
+          "lastConfirmedAt": null
+        }
+      ],
+      "beforePublished": true,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "SKU_INACTIVE",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "ef318bbf-b471-45f1-935d-9b5d8f30a74f",
+      "candidateStatus": "published",
+      "productId": "f1acdb6c-bf13-4a46-8ee8-32274d39508d",
+      "canonicalSku": {
+        "id": "2438e43a-0b9a-4733-b9a1-754dc22ee856",
+        "code": "EUC-4001",
+        "barcode": "4005800119339",
+        "size": null,
+        "sizeUnit": null,
+        "variantName": "Default"
+      },
+      "supplierSkuCode": "EUC-4001",
+      "brand": "Eucerin",
+      "name": "Eucerin Oil Control Sun Gel-Cream SPF 50+",
+      "extractedSize": {
+        "unit": "ml",
+        "value": 50
+      },
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "Eucerin",
+          "sourceUrl": "https://int.eucerin.com/products/sun-protection/sun-gel-creme-dry-touch-spf-50plus",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "ingredients",
+          "value": [
+            "Licochalcone A",
+            "Glycyrrhetinic Acid",
+            "Carnitine"
+          ],
+          "sourceUrl": "https://int.eucerin.com/products/sun-protection/sun-gel-creme-dry-touch-spf-50plus",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "size",
+          "value": {
+            "unit": "ml",
+            "value": 50
+          },
+          "sourceUrl": "https://int.eucerin.com/products/sun-protection/sun-gel-creme-dry-touch-spf-50plus",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "usage",
+          "value": [
+            "To achieve the best results, apply Eucerin Sun Oil Control SPF 50+ daily in the morning and incorporate it into your skincare routine as follows:"
+          ],
+          "sourceUrl": "https://int.eucerin.com/products/sun-protection/sun-gel-creme-dry-touch-spf-50plus",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [
+        {
+          "id": "f3718156-164a-45b8-90ec-e328616a12a6",
+          "url": "http://localhost:3001/storage/public/media/5eab08bf-3547-44e5-9e25-168e66437ebd.png",
+          "storedOrigin": "verified",
+          "byteLength": 8,
+          "reviewed": false,
+          "actualStatus": "MOCK_INVALID_IMAGE"
+        }
+      ],
+      "sellingPrices": [],
+      "supplierOffers": [
+        {
+          "id": "67169528-771e-4133-921a-b961c49e2820",
+          "demoCost": "115",
+          "currency": "SAR",
+          "isAvailable": false,
+          "lastConfirmedAt": null
+        }
+      ],
+      "beforePublished": true,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "SKU_INACTIVE",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "6e33671f-7237-4ef0-97b0-61dcc775aee9",
+      "candidateStatus": "published",
+      "productId": "b037bb9f-0591-4e71-afc3-1eb11663293f",
+      "canonicalSku": {
+        "id": "0373e2f9-8e4e-49f6-acc5-2f723cfa5f50",
+        "code": "EUC-4002",
+        "barcode": "4005800270054",
+        "size": null,
+        "sizeUnit": null,
+        "variantName": "Default"
+      },
+      "supplierSkuCode": "EUC-4002",
+      "brand": "Eucerin",
+      "name": "Eucerin DermatoCLEAN Cleansing Gel",
+      "extractedSize": null,
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "Eucerin",
+          "sourceUrl": "internal",
+          "sourceType": "RETAILER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [
+        {
+          "id": "9cb73392-450f-4da2-ac1d-80a804b2d2ef",
+          "url": "http://localhost:3001/storage/public/media/861c0129-9376-4350-8e82-766110dec346.png",
+          "storedOrigin": "verified",
+          "byteLength": 8,
+          "reviewed": false,
+          "actualStatus": "MOCK_INVALID_IMAGE"
+        }
+      ],
+      "sellingPrices": [],
+      "supplierOffers": [
+        {
+          "id": "423f855d-bc89-4cda-82af-4b889a2ef640",
+          "demoCost": "90",
+          "currency": "SAR",
+          "isAvailable": false,
+          "lastConfirmedAt": null
+        }
+      ],
+      "beforePublished": true,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "SKU_INACTIVE",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "8194d74e-5e97-44c0-a779-17a29084fd49",
+      "candidateStatus": "published",
+      "productId": "b1fc0735-ac60-4383-ad04-797773617049",
+      "canonicalSku": {
+        "id": "5288f7d5-9a42-456e-a824-a6ab60150a0e",
+        "code": "LRP-2001",
+        "barcode": "3337875797597",
+        "size": null,
+        "sizeUnit": null,
+        "variantName": "Default"
+      },
+      "supplierSkuCode": "LRP-2001",
+      "brand": "La Roche-Posay",
+      "name": "Anthelios UVmune 400 Invisible Fluid SPF50+",
+      "extractedSize": {
+        "unit": "ml",
+        "value": 50
+      },
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "La Roche-Posay",
+          "sourceUrl": "https://www.laroche-posay.co.uk/en_GB/anthelios-uvmune-400-invisible-fluid-spf50-sun-cream-for-sensitive-skin-50ml/LRP_026.html",
+          "sourceType": "RETAILER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "ingredients",
+          "value": [
+            "Expert Advice  Delivery & returns"
+          ],
+          "sourceUrl": "https://www.laroche-posay.co.uk/en_GB/anthelios-uvmune-400-invisible-fluid-spf50-sun-cream-for-sensitive-skin-50ml/LRP_026.html",
+          "sourceType": "RETAILER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "size",
+          "value": {
+            "unit": "ml",
+            "value": 50
+          },
+          "sourceUrl": "https://www.laroche-posay.co.uk/en_GB/anthelios-uvmune-400-invisible-fluid-spf50-sun-cream-for-sensitive-skin-50ml/LRP_026.html",
+          "sourceType": "RETAILER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "usage",
+          "value": [
+            "Ingredients  Expert Advice  Delivery & returns"
+          ],
+          "sourceUrl": "https://www.laroche-posay.co.uk/en_GB/anthelios-uvmune-400-invisible-fluid-spf50-sun-cream-for-sensitive-skin-50ml/LRP_026.html",
+          "sourceType": "RETAILER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [
+        {
+          "id": "38e0b229-5a00-4868-8871-45c369e00941",
+          "url": "http://localhost:3001/storage/public/media/41ace22c-9541-430b-84c9-5e8e4db95176.png",
+          "storedOrigin": "verified",
+          "byteLength": 8,
+          "reviewed": false,
+          "actualStatus": "MOCK_INVALID_IMAGE"
+        }
+      ],
+      "sellingPrices": [],
+      "supplierOffers": [
+        {
+          "id": "5f848b9f-011a-4b1f-8f2a-9803cd0d1f6e",
+          "demoCost": "125",
+          "currency": "SAR",
+          "isAvailable": false,
+          "lastConfirmedAt": null
+        }
+      ],
+      "beforePublished": true,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "SKU_INACTIVE",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "cfb1fdbc-e957-453c-9942-d221523f646c",
+      "candidateStatus": "review_required",
+      "productId": null,
+      "canonicalSku": null,
+      "supplierSkuCode": "LRP-2002",
+      "brand": "La Roche-Posay",
+      "name": "La Roche-Posay Effaclar Purifying Foaming Gel",
+      "extractedSize": {
+        "unit": "ml",
+        "value": 400
+      },
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "La Roche-Posay",
+          "sourceUrl": "https://www.laroche-posay.us/our-products/face/acne-products/effaclar-gel-facial-wash-for-oily-skin-effaclargelcleanser.html",
+          "sourceType": "RETAILER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "ingredients",
+          "value": [
+            "#### KEY INGREDIENTS:"
+          ],
+          "sourceUrl": "https://www.laroche-posay.us/our-products/face/acne-products/effaclar-gel-facial-wash-for-oily-skin-effaclargelcleanser.html",
+          "sourceType": "RETAILER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "size",
+          "value": {
+            "unit": "ml",
+            "value": 400
+          },
+          "sourceUrl": "https://www.laroche-posay.us/our-products/face/acne-products/effaclar-gel-facial-wash-for-oily-skin-effaclargelcleanser.html",
+          "sourceType": "RETAILER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "usage",
+          "value": [
+            "## HOW TO  **APPLY**"
+          ],
+          "sourceUrl": "https://www.laroche-posay.us/our-products/face/acne-products/effaclar-gel-facial-wash-for-oily-skin-effaclargelcleanser.html",
+          "sourceType": "RETAILER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [],
+      "sellingPrices": [],
+      "supplierOffers": [],
+      "beforePublished": false,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "NO_CANONICAL_SKU",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "b784ad47-7459-4165-b6e8-886a9807ffbb",
+      "candidateStatus": "published",
+      "productId": "ce28fadc-6f1b-4c3b-8f36-532eb4a09c21",
+      "canonicalSku": {
+        "id": "7a045fe2-190a-4ea3-8c9e-fcc7f524fff5",
+        "code": "VIC-3001",
+        "barcode": "3337875543248",
+        "size": null,
+        "sizeUnit": null,
+        "variantName": "Default"
+      },
+      "supplierSkuCode": "VIC-3001",
+      "brand": "Vichy",
+      "name": "Minéral 89 Hyaluronic Acid Booster",
+      "extractedSize": {
+        "unit": "l",
+        "value": 4.7
+      },
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "Vichy",
+          "sourceUrl": "https://www.vichy.fr/tous-les-produits/soins-de-la-peau/serums-pour-le-visage/peau-seche/serum-booster-mineral89",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        },
+        {
+          "field": "size",
+          "value": {
+            "unit": "l",
+            "value": 4.7
+          },
+          "sourceUrl": "https://www.vichy.fr/tous-les-produits/soins-de-la-peau/serums-pour-le-visage/peau-seche/serum-booster-mineral89",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [
+        {
+          "id": "ea9d7538-98e3-47c3-94c3-3dd429aa0870",
+          "url": "http://localhost:3001/storage/public/media/0c8f2820-5198-400a-bf00-1cb6a04cf149.png",
+          "storedOrigin": "verified",
+          "byteLength": 8,
+          "reviewed": false,
+          "actualStatus": "MOCK_INVALID_IMAGE"
+        }
+      ],
+      "sellingPrices": [],
+      "supplierOffers": [
+        {
+          "id": "e9a3a566-b3b1-48a1-bc6b-1fd117715e3c",
+          "demoCost": "140",
+          "currency": "SAR",
+          "isAvailable": false,
+          "lastConfirmedAt": null
+        }
+      ],
+      "beforePublished": true,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "SKU_INACTIVE",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    },
+    {
+      "candidateId": "f89f9689-1d10-4781-b233-20cdae837e8e",
+      "candidateStatus": "published",
+      "productId": "cd10459a-7248-45ac-a097-bfc36a6c6496",
+      "canonicalSku": {
+        "id": "a51bb0cf-ac27-4c75-ab92-8e976d832344",
+        "code": "VIC-3002",
+        "barcode": "3337875660617",
+        "size": null,
+        "sizeUnit": null,
+        "variantName": "Default"
+      },
+      "supplierSkuCode": "VIC-3002",
+      "brand": "Vichy",
+      "name": "Vichy Normaderm Phytosolution",
+      "extractedSize": null,
+      "verifiedProductFacts": [],
+      "humanFactsReview": "MISSING",
+      "sourceEvidence": [
+        {
+          "field": "brand",
+          "value": "Vichy",
+          "sourceUrl": "https://www.vichyusa.com/skin-care/normaderm-phytoaction-acne-control-moisturizer-with-salicylic-acid-3337875660617.html",
+          "sourceType": "OFFICIAL_MANUFACTURER",
+          "providerStatus": "SUPPORTED"
+        }
+      ],
+      "media": [
+        {
+          "id": "d7d0a79f-1990-43e5-ac47-9dff3024cf0d",
+          "url": "http://localhost:3001/storage/public/media/a8cfb8a3-7cac-4ac3-890e-1540af8a63d6.png",
+          "storedOrigin": "verified",
+          "byteLength": 8,
+          "reviewed": false,
+          "actualStatus": "MOCK_INVALID_IMAGE"
+        }
+      ],
+      "sellingPrices": [],
+      "supplierOffers": [
+        {
+          "id": "6d6cfc56-3809-4242-90ee-6811282dea41",
+          "demoCost": "135",
+          "currency": "SAR",
+          "isAvailable": false,
+          "lastConfirmedAt": null
+        }
+      ],
+      "beforePublished": true,
+      "afterPublished": false,
+      "customerVisible": false,
+      "commerceReason": "SKU_INACTIVE",
+      "genuineSellable": false,
+      "blockers": [
+        "authenticated supplier price and availability evidence",
+        "human-reviewed exact barcode/size/variant facts",
+        "real licensed source packshot with review receipt",
+        "approved Commerce SellingPrice and listing"
+      ]
+    }
+  ]
+}
