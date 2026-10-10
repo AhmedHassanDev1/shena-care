@@ -6,6 +6,8 @@ import {
   IsBoolean,
   IsInt,
   Min,
+  IsUrl,
+  IsObject,
 } from 'class-validator';
 import { MediaType, MediaOriginType } from '@prisma/client';
 
@@ -14,7 +16,7 @@ export class CreateProductMediaDto {
   @IsNotEmpty()
   type: MediaType;
 
-  @IsString()
+  @IsUrl({ protocols: ['https', 'http'], require_protocol: true, require_tld: false })
   @IsNotEmpty()
   url: string;
 
@@ -36,6 +38,7 @@ export class CreateProductMediaDto {
   originType?: MediaOriginType;
 
   @IsOptional()
+  @IsObject()
   generationMetadata?: Record<string, unknown>;
 }
 
@@ -44,7 +47,7 @@ export class UpdateProductMediaDto {
   @IsOptional()
   type?: MediaType;
 
-  @IsString()
+  @IsUrl({ protocols: ['https', 'http'], require_protocol: true, require_tld: false })
   @IsOptional()
   url?: string;
 
@@ -66,5 +69,6 @@ export class UpdateProductMediaDto {
   originType?: MediaOriginType;
 
   @IsOptional()
+  @IsObject()
   generationMetadata?: Record<string, unknown>;
 }

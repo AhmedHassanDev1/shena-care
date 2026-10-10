@@ -241,6 +241,7 @@ model Supplier {
   purchaseOrders SupplierPurchaseOrder[]
   payables       SupplierPayable[]
   skuAliases     SupplierSkuAlias[]
+  accounts       Customer[]
 
   @@map("suppliers")
   @@schema("sourcing")
@@ -1453,12 +1454,15 @@ model Customer {
   name      String
   email     String   @unique
   roles     Role[]   @default([CUSTOMER])
+  supplierId String? @map("supplier_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   identities Identity[]
   sessions   Session[]
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
+  @@index([supplierId])
   @@map("customers")
   @@schema("accounts")
 }

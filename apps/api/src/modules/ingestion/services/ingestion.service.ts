@@ -9,6 +9,9 @@ import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } fr
 import { IngestionStatus, IngestionItemEnrichmentStatus } from '@prisma/client';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
 import { StorageService } from '../../../platform/storage/storage.service';
+import { requireMediaReview, isTrustedMediaSource } from '../../../platform/security/media-review';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface IngestionJobDetail {
   id: string;
@@ -249,7 +252,7 @@ export class IngestionService {
 
     if (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.matchedSkuId) {
       matchedSkuId = matchAnalysis.matchedSkuId;
-      status = IngestionStatus.approved;
+      status = IngestionStatus.review_required;
     } else if (matchAnalysis.classification === MatchClassification.CONFLICT || matchAnalysis.classification === MatchClassification.LIKELY_MATCH) {
       matchedSkuId = null;
       status = IngestionStatus.review_required;
@@ -265,7 +268,10 @@ export class IngestionService {
         ...(dto.price !== undefined && { price: dto.price }),
         ...(dto.currency !== undefined && { currency: dto.currency }),
         matchedSkuId,
-        status,
+        status: IngestionStatus.review_required,
+        enrichment: { ...((item.enrichment as Record<string, any>) || {}),
+          media: (((item.enrichment as Record<string, any>)?.media) || []).map((m: any) =>
+            ({ ...m, originType: m.isTest ? 'test' : 'unverified', review: null })) },
       },
     });
 
@@ -298,7 +304,7 @@ export class IngestionService {
 
       if (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.matchedSkuId) {
         matchedSkuId = matchAnalysis.matchedSkuId;
-        status = IngestionStatus.approved;
+        status = IngestionStatus.review_required;
       }
 
       await this.prisma.ingestionItem.update({
@@ -315,14 +321,14 @@ export class IngestionService {
     await this.evaluateJobStatus(jobId);
   }
 
-  async approveItem(itemId: string, dto?: ApproveIngestionItemDto): Promise<void> {
+  async approveItem(itemId: string, dto?: ApproveIngestionItemDto, reviewerId?: string): Promise<void> {
     const item = await this.prisma.ingestionItem.findUnique({
       where: { id: itemId },
       include: { job: true },
     });
     if (!item) throw new NotFoundException('Item not found');
 
-    if (item.job.status === IngestionStatus.published) {
+    if (item.job.status === IngestionStatus.published || item.status === IngestionStatus.published) {
       throw new BadRequestException('Cannot modify items of a published job');
     }
 
@@ -330,16 +336,53 @@ export class IngestionService {
 
     if (dto?.matchedSkuId) {
       if (!this.isUuid(dto.matchedSkuId)) throw new BadRequestException('Invalid SKU ID');
-      const isValid = await this.catalogService.validateSku(dto.matchedSkuId);
-      if (!isValid) throw new NotFoundException('SKU not found in catalog or is inactive');
+      const skuIdentity = await this.catalogService.getSkuIdentity(dto.matchedSkuId);
+      if (!skuIdentity?.isActive) throw new NotFoundException('SKU not found in catalog or is inactive');
       matchedSkuId = dto.matchedSkuId;
 
-      // Register Supplier SKU Alias for future imports
-      await this.productIdentityService.createSupplierSkuAlias(
-        item.job.supplierId,
-        item.supplierSkuCode,
-        matchedSkuId,
-      );
+    }
+
+    const currentEnrichment = (item.enrichment as Record<string, unknown>) || {};
+    const media = Array.isArray(currentEnrichment.media) ? currentEnrichment.media : [];
+
+    if (dto?.verifiedMediaUrls?.length && !dto.mediaReviews?.length) {
+      throw new BadRequestException('Media URLs alone are not verification evidence');
+    }
+    if (dto?.mediaReviews?.length) {
+      const reviewer = reviewerId ? await this.prisma.customer.findUnique({ where: { id: reviewerId } }) : null;
+      if (!reviewer?.roles.some(role => role === 'ADMIN' || role === 'HUB_OPERATOR')) {
+        throw new BadRequestException('Authorized media reviewer required');
+      }
+      const research = currentEnrichment.research as Record<string, any> | undefined;
+      for (const review of dto.mediaReviews) {
+        const m = media.find(entry => entry.url === review.url);
+        if (!m || m.originType === 'test' || m.isTest === true) throw new BadRequestException('Test or unknown media cannot be verified');
+        if (review.barcode !== item.barcode || !isTrustedMediaSource(review.sourceUrl)) {
+          throw new BadRequestException('Media evidence does not match candidate identity');
+        }
+        const sizeEvidence = research?.fieldEvidences?.find((e: any) => e.fieldName === 'size' &&
+          e.verificationStatus === 'SUPPORTED' && e.sourceUrl === review.sourceUrl &&
+          e.proposedValue?.value === review.size && e.proposedValue?.unit === review.sizeUnit);
+        if (!sizeEvidence) throw new BadRequestException('Package size requires matching source evidence');
+        if (matchedSkuId) {
+          const sku = await this.catalogService.getSkuIdentity(matchedSkuId);
+          if (!sku || sku.barcode !== review.barcode || sku.size !== review.size ||
+              sku.sizeUnit !== review.sizeUnit || sku.variantName !== review.variantName) {
+            throw new BadRequestException('Reviewed media does not match the canonical SKU variant');
+          }
+        }
+        const filePath = this.storageService.privateObjectPath(m.url, item.job.supplierId);
+        this.storageService.validateFile({ originalname: path.basename(filePath), mimetype: m.mimetype,
+          buffer: fs.readFileSync(filePath) } as Express.Multer.File);
+        m.review = requireMediaReview({ ...review, reviewedBy: reviewer!.id, reviewedAt: new Date().toISOString(),
+          candidateId: item.id, isTest: false });
+        m.originType = 'verified';
+      }
+    }
+
+    const updatedEnrichment = { ...currentEnrichment, media };
+    if (dto?.matchedSkuId && matchedSkuId) {
+      await this.productIdentityService.createSupplierSkuAlias(item.job.supplierId, item.supplierSkuCode, matchedSkuId);
     }
 
     await this.prisma.ingestionItem.update({
@@ -347,6 +390,7 @@ export class IngestionService {
       data: {
         matchedSkuId,
         status: IngestionStatus.approved,
+        enrichment: updatedEnrichment as unknown as import('@prisma/client').Prisma.InputJsonValue,
       },
     });
 
@@ -360,7 +404,7 @@ export class IngestionService {
     });
     if (!item) throw new NotFoundException('Item not found');
 
-    if (item.job.status === IngestionStatus.published) {
+    if (item.job.status === IngestionStatus.published || item.status === IngestionStatus.published) {
       throw new BadRequestException('Cannot modify items of a published job');
     }
 
@@ -386,6 +430,9 @@ export class IngestionService {
         i.status === IngestionStatus.published,
     );
 
+    if (!allProcessed && job.status === IngestionStatus.approved) {
+      await this.prisma.ingestionJob.update({ where: { id: jobId }, data: { status: IngestionStatus.review_required } });
+    }
     if (allProcessed && job.status !== IngestionStatus.published && job.status !== IngestionStatus.approved) {
       await this.prisma.ingestionJob.update({
         where: { id: jobId },
@@ -418,10 +465,12 @@ export class IngestionService {
         barcode: barcode ?? null,
       });
 
+      const latest = await this.prisma.ingestionItem.findUnique({ where: { id: itemId } });
+      const previous = (latest?.enrichment as Record<string, unknown>) || {};
       await this.prisma.ingestionItem.update({
         where: { id: itemId },
         data: {
-          enrichment: result as unknown as import('@prisma/client').Prisma.InputJsonValue,
+          enrichment: { ...result, ...previous } as unknown as import('@prisma/client').Prisma.InputJsonValue,
           enrichmentStatus: IngestionItemEnrichmentStatus.succeeded,
           enrichmentError: null,
         },
@@ -525,10 +574,13 @@ export class IngestionService {
 
   async uploadCandidateMedia(itemId: string, file: Express.Multer.File) {
     if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
-    const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId } });
+    const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId }, include: { job: true } });
     if (!item) throw new NotFoundException('Candidate item not found');
 
-    const url = await this.storageService.uploadFile(file, 'candidates');
+    if (item.status === IngestionStatus.published) throw new BadRequestException('Published candidates are immutable');
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype)) throw new BadRequestException('Only supported images may be uploaded');
+    const url = await this.storageService.uploadFile(file, true, 'candidates', item.job.supplierId);
+    const isTest = /(?:test|mock|dummy)/i.test(file.originalname);
 
     const currentEnrichment = (item.enrichment as Record<string, unknown>) || {};
     const media = Array.isArray(currentEnrichment.media) ? currentEnrichment.media : [];
@@ -536,7 +588,9 @@ export class IngestionService {
     media.push({
       url,
       type: 'image',
-      originType: 'verified'
+      mimetype: file.mimetype,
+      isTest,
+      originType: isTest ? 'test' : 'unverified'
     });
 
     const updatedEnrichment = { ...currentEnrichment, media };
@@ -548,7 +602,7 @@ export class IngestionService {
       },
     });
 
-    return { url, type: 'image', originType: 'verified' };
+    return { url, type: 'image', originType: isTest ? 'test' : 'unverified' };
   }
 
 
@@ -568,10 +622,19 @@ export class IngestionService {
     },
     supplierId: string,
   ): Promise<string> {
+    const enrichment = (item.enrichment as Record<string, any>) || {};
+    const reviewedMedia = (Array.isArray(enrichment.media) ? enrichment.media : []).filter((m: any) => m.originType === 'verified');
+    if (!reviewedMedia.length) throw new BadRequestException('At least one reviewed real image is required');
+    for (const m of reviewedMedia) {
+      const review = requireMediaReview(m.review);
+      if (review.candidateId !== item.id || review.barcode !== item.barcode || m.isTest) {
+        throw new BadRequestException('Media review no longer matches candidate identity');
+      }
+    }
     // 1. Check if item is already matched to existing SKU in Catalog
     if (item.matchedSkuId) {
       const existing = await this.catalogService.getSkuIdentity(item.matchedSkuId);
-      if (existing) return existing.id;
+      if (existing) { await this.publishReviewedMedia(item, existing.id, supplierId); return existing.id; }
     }
 
     // 2. Perform pre-publish Identity Match Check (Deduplication)
@@ -586,12 +649,14 @@ export class IngestionService {
     if (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.matchedSkuId) {
       // Register Supplier SKU Alias for future imports
       await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, matchAnalysis.matchedSkuId);
+      await this.publishReviewedMedia(item, matchAnalysis.matchedSkuId, supplierId);
       return matchAnalysis.matchedSkuId;
     }
 
     // 3. Resolve or create Brand in Catalog via BrandService
     let brandId: string;
-    const existingBrand = await this.brandService.getBrand(item.brand);
+    const brandSlug = this.slugify(item.brand);
+    const existingBrand = await this.brandService.getBrand(brandSlug);
     if (existingBrand) {
       brandId = existingBrand.id;
     } else {
@@ -613,29 +678,8 @@ export class IngestionService {
         name: item.name,
         slug: productSlug,
         description: typeof enrichmentDesc === 'string' ? enrichmentDesc : undefined,
-        isPublished: true,
+        isPublished: false,
       });
-    }
-
-    // 4.5. Publish Media to Product Media Core
-    const enrichment = (item.enrichment as Record<string, unknown>) || {};
-    const mediaList = Array.isArray(enrichment.media) ? enrichment.media : [];
-    for (const m of mediaList) {
-      if (m.url && typeof m.url === 'string') {
-        const existingMedia = await this.prisma.productMedia.findFirst({
-          where: { productId: product.id, url: m.url },
-        });
-        if (!existingMedia) {
-          await this.prisma.productMedia.create({
-            data: {
-              productId: product.id,
-              type: m.type === 'video' ? 'video' : 'image',
-              url: m.url,
-              originType: m.originType === 'generated' ? 'generated' : 'verified',
-            },
-          });
-        }
-      }
     }
 
     // 5. Check if SKU already exists under Product
@@ -647,13 +691,16 @@ export class IngestionService {
 
     if (existingSku) {
       await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, existingSku.id);
+      await this.publishReviewedMedia(item, existingSku.id, supplierId);
       return existingSku.id;
     }
 
     // 6. Create new canonical SKU in Catalog
     const newSku = await this.catalogService.createSku(product.id, {
       code: skuCode,
-      variantName: 'Default',
+      variantName: reviewedMedia[0].review.variantName,
+      size: reviewedMedia[0].review.size,
+      sizeUnit: reviewedMedia[0].review.sizeUnit,
       barcode: item.barcode ?? undefined,
       isActive: true,
     });
@@ -661,7 +708,25 @@ export class IngestionService {
     // 7. Register Supplier SKU Alias
     await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, newSku.id);
 
+    await this.publishReviewedMedia(item, newSku.id, supplierId);
     return newSku.id;
+  }
+
+  private async publishReviewedMedia(item: { id: string; barcode: string | null; enrichment?: unknown }, skuId: string, supplierId: string): Promise<void> {
+    const sku = await this.prisma.sku.findUnique({ where: { id: skuId } });
+    if (!sku) throw new NotFoundException('Canonical SKU not found');
+    const enrichment = item.enrichment as Record<string, any>;
+    for (const m of enrichment.media.filter((entry: any) => entry.originType === 'verified')) {
+      const review = requireMediaReview(m.review);
+      if (sku.barcode !== review.barcode || sku.size?.toNumber() !== review.size ||
+          sku.sizeUnit !== review.sizeUnit || sku.variantName !== review.variantName) {
+        throw new BadRequestException('Approved media does not match canonical SKU');
+      }
+      const url = this.storageService.copyToPublic(m.url, supplierId);
+      await this.catalogService.addMedia(sku.productId, { type: 'image', url, originType: 'verified',
+        generationMetadata: { ...review, skuId } }, review.reviewedBy);
+    }
+    // Catalog publication is a separate authorized operation after commercial inputs exist.
   }
 
   private async ensureSupplierOffer(
@@ -676,18 +741,11 @@ export class IngestionService {
         skuId,
         costPrice,
         currency,
-        isAvailable: true,
+        isAvailable: false,
       });
     } catch (e) {
       if (e instanceof ConflictException) {
-        const offers = await this.sourcingService.getSupplierOffers({ supplierId, skuId });
-        if (offers.length > 0) {
-          await this.sourcingService.updateSupplierOffer(offers[0].id, {
-            costPrice,
-            currency,
-            isAvailable: true,
-          });
-        }
+        // Existing offers are owned by Sourcing; ingestion must not overwrite confirmation.
       } else {
         throw e;
       }
@@ -741,7 +799,8 @@ export class IngestionService {
       throw new BadRequestException('Job is already published');
     }
 
-    if (job.status !== IngestionStatus.approved) {
+    if (job.status !== IngestionStatus.approved || job.items.some(item =>
+        item.status !== IngestionStatus.approved && item.status !== IngestionStatus.rejected && item.status !== IngestionStatus.published)) {
       throw new BadRequestException('Job is not fully approved yet. Resolve pending items first.');
     }
 

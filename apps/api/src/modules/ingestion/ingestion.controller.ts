@@ -7,6 +7,7 @@ import { RolesGuard } from '../accounts/guards/roles.guard';
 import { PermissionsGuard } from '../../platform/auth';
 import { Roles } from '../accounts/decorators/roles.decorator';
 import { IngestionStatus } from '@prisma/client';
+import { multerOptions } from '../../platform/security/upload-validator';
 
 export interface AuthenticatedUserRequest {
   user?: {
@@ -30,7 +31,7 @@ export class IngestionController {
   ) {
     const user = req.user;
     if (user?.roles?.includes('SUPPLIER') && !user.roles.includes('ADMIN') && !user.roles.includes('HUB_OPERATOR')) {
-      if (user.supplierId && user.supplierId !== dto.supplierId) {
+      if (!user.supplierId || user.supplierId !== dto.supplierId) {
         throw new ForbiddenException('Cannot submit ingestion job for another supplier');
       }
     }
@@ -75,10 +76,11 @@ export class IngestionController {
 
   @Patch('candidates/:id/approve')
   async approveCandidate(
+    @Req() req: AuthenticatedUserRequest,
     @Param('id') id: string,
     @Body() dto?: ApproveIngestionItemDto,
   ) {
-    return this.ingestionService.approveItem(id, dto);
+    return this.ingestionService.approveItem(id, dto, req.user?.id);
   }
 
   @Patch('candidates/:id/reject')
@@ -105,7 +107,7 @@ export class IngestionController {
   }
 
   @Post('candidates/:id/media')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', multerOptions))
   async uploadCandidateMedia(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
@@ -129,10 +131,11 @@ export class IngestionController {
 
   @Patch('items/:id/approve')
   async approveItem(
+    @Req() req: AuthenticatedUserRequest,
     @Param('id') id: string,
     @Body() dto?: ApproveIngestionItemDto,
   ) {
-    return this.ingestionService.approveItem(id, dto);
+    return this.ingestionService.approveItem(id, dto, req.user?.id);
   }
 
   @Patch('items/:id/reject')

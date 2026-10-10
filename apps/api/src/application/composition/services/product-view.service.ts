@@ -42,6 +42,7 @@ export interface ProductView {
   }>;
   media: Array<{
     id: string;
+    skuId: string | null;
     type: string;
     url: string;
     altText: string | null;
@@ -69,7 +70,7 @@ export class ProductViewService {
       product.skus.map(async (sku) => {
         const [terms, isAvailable] = await Promise.all([
           this.commerceService.getSellingTerms(sku.id),
-          this.sourcingService.checkAvailability(sku.id),
+          this.sourcingService.checkAvailability(sku.id, true),
         ]);
 
         return {
@@ -85,6 +86,7 @@ export class ProductViewService {
       }),
     );
 
+    if (!product.media.length || !skusWithCommerce.some(sku => sku.canOrder)) return null;
     return {
       id: product.id,
       name: product.name,
@@ -95,8 +97,8 @@ export class ProductViewService {
       brand: product.brand,
       productLine: product.productLine ?? null,
       category: product.category ?? null,
-      skus: skusWithCommerce,
-      media: product.media,
+      skus: skusWithCommerce.filter(sku => sku.canOrder),
+      media: product.media.filter(m => skusWithCommerce.some(sku => sku.id === m.skuId && sku.canOrder)),
     };
   }
 
@@ -117,7 +119,7 @@ export class ProductViewService {
           product.skus.map(async (sku) => {
             const [terms, isAvailable] = await Promise.all([
               this.commerceService.getSellingTerms(sku.id),
-              this.sourcingService.checkAvailability(sku.id),
+              this.sourcingService.checkAvailability(sku.id, true),
             ]);
 
             return {
@@ -143,12 +145,12 @@ export class ProductViewService {
           brand: product.brand,
           productLine: product.productLine ?? null,
           category: product.category ?? null,
-          skus: skusWithCommerce,
-          media: product.media,
+          skus: skusWithCommerce.filter(sku => sku.canOrder),
+          media: product.media.filter(m => skusWithCommerce.some(sku => sku.id === m.skuId && sku.canOrder)),
         };
       }),
     );
 
-    return productViews;
+    return productViews.filter(product => product.media.length > 0 && product.skus.some(sku => sku.canOrder));
   }
 }
