@@ -53,7 +53,7 @@ describe('GLO-123/124 media, tenant storage and publication invariants (PostgreS
     supplierA = (await prisma.supplier.create({ data: { name: `Pipeline A ${fixtureId}`, slug: `pipeline-a-${fixtureId}` } })).id;
     supplierB = (await prisma.supplier.create({ data: { name: `Pipeline B ${fixtureId}`, slug: `pipeline-b-${fixtureId}` } })).id;
     tokens = {};
-    for (const [role, supplierId] of [['ADMIN', null], ['SUPPLIER', supplierA], ['SUPPLIER_B', supplierB], ['CUSTOMER', null], ['UNLINKED', null]] as const) {
+    for (const [role, supplierId] of [['ADMIN', null], ['HUB_OPERATOR', null], ['SUPPLIER', supplierA], ['SUPPLIER_B', supplierB], ['CUSTOMER', null], ['UNLINKED', null]] as const) {
       const user = await prisma.customer.create({ data: { name: role, email: `${role}-${fixtureId}@shenacare.test`,
         roles: [role === 'SUPPLIER_B' || role === 'UNLINKED' ? 'SUPPLIER' : role], supplierId } });
       customers.push(user.id);
@@ -249,6 +249,43 @@ describe('GLO-123/124 media, tenant storage and publication invariants (PostgreS
     await request(app.getHttpServer()).patch(`/products/media/${row.id}`).set(auth())
       .send({ url: 'https://www.cerave.com/changed.png' }).expect(400);
     expect((await prisma.productMedia.findUniqueOrThrow({ where: { id: row.id } })).url).toBe(row.url);
+  });
+
+  it('protects every Commerce command and operational read with persisted role checks', async () => {
+    const item = await candidate();
+    const media = await upload(item.id);
+    await approve(item.id, media.url, item.barcode!);
+    const sku = await publish(item.id);
+    await catalog.updateProduct(sku.productId, { isPublished: true });
+    const price = await request(app.getHttpServer()).post('/commerce/prices').set(auth())
+      .send({ skuId: sku.id, amount: 89, currency: 'SAR' }).expect(201);
+    await request(app.getHttpServer()).post('/commerce/listings').set(auth('HUB_OPERATOR')).send({ skuId: sku.id }).expect(201);
+    const commands: Array<['post' | 'patch' | 'get', string, object]> = [
+      ['post', '/commerce/prices', { skuId: sku.id, amount: 1 }],
+      ['patch', `/commerce/prices/${price.body.id}`, { amount: 1 }],
+      ['patch', `/commerce/prices/${price.body.id}/deactivate`, {}],
+      ['get', `/commerce/prices/skus/${sku.id}/current`, {}],
+      ['get', `/commerce/prices/skus/${sku.id}`, {}],
+      ['post', '/commerce/listings', { skuId: sku.id, isListed: false }],
+      ['patch', `/commerce/listings/${sku.id}`, { isListed: false }],
+      ['patch', `/commerce/listings/${sku.id}/list`, {}],
+      ['patch', `/commerce/listings/${sku.id}/unlist`, {}],
+      ['get', '/commerce/listings', {}], ['get', `/commerce/listings/${sku.id}`, {}],
+    ];
+    for (const [method, url, body] of commands) {
+      await request(app.getHttpServer())[method](url).send(body).expect(401);
+      for (const role of ['CUSTOMER', 'SUPPLIER', 'SUPPLIER_B'])
+        await request(app.getHttpServer())[method](url).set(auth(role)).send(body).expect(403);
+      if (url.startsWith('/commerce/prices'))
+        await request(app.getHttpServer())[method](url).set(auth('HUB_OPERATOR')).send(body).expect(403);
+    }
+    expect((await prisma.sellingPrice.findUniqueOrThrow({ where: { id: price.body.id } })).amount.toNumber()).toBe(89);
+    expect(await prisma.sellingPrice.count({ where: { skuId: sku.id } })).toBe(1);
+    expect(await prisma.listing.findUniqueOrThrow({ where: { skuId: sku.id } })).toMatchObject({ isListed: true });
+    await request(app.getHttpServer()).post('/commerce/prices').set(auth()).send({ skuId: sku.id, amount: -1 }).expect(400);
+    await request(app.getHttpServer()).patch(`/commerce/prices/${price.body.id}`).set(auth()).send({ amount: 90 }).expect(200);
+    await request(app.getHttpServer()).patch(`/commerce/listings/${sku.id}/unlist`).set(auth('HUB_OPERATOR')).expect(200);
+    await request(app.getHttpServer()).patch(`/commerce/prices/${price.body.id}/deactivate`).set(auth()).expect(200);
   });
 
   it('invalidates prior review after candidate identity changes', async () => {
