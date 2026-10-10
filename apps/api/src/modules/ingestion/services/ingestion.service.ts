@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, ConflictException }
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService, BrandService } from '../../catalog/public';
 import { SourcingService } from '../../sourcing/public';
+import { ProductIdentityService, MatchClassification } from './product-identity.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from '../dto/ingestion.dto';
 import { IngestionStatus, IngestionItemEnrichmentStatus } from '@prisma/client';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
@@ -31,6 +32,7 @@ export class IngestionService {
     private readonly catalogService: CatalogService,
     private readonly brandService: BrandService,
     private readonly sourcingService: SourcingService,
+    private readonly productIdentityService: ProductIdentityService,
     private readonly aiClient: AiClient,
   ) {}
 
@@ -116,7 +118,7 @@ export class IngestionService {
   }
 
   // ---------------------------------------------------------------------------
-  // GLO-77 Candidate Review & Fact Operations
+  // GLO-77 / GLO-120 Candidate Review & Fact Operations
   // ---------------------------------------------------------------------------
 
   async getCandidates(status?: IngestionStatus): Promise<Array<Record<string, unknown>>> {
@@ -155,27 +157,30 @@ export class IngestionService {
 
     if (!item) throw new NotFoundException('Candidate item not found');
 
+    const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+      supplierId: item.job.supplierId,
+      supplierSkuCode: item.supplierSkuCode,
+      name: item.name,
+      brand: item.brand,
+      barcode: item.barcode,
+    });
+
     let matchedSku = null;
-    if (item.matchedSkuId) {
-      matchedSku = await this.catalogService.getSkuIdentity(item.matchedSkuId);
+    const effectiveSkuId = item.matchedSkuId || matchAnalysis.matchedSkuId;
+    if (effectiveSkuId) {
+      matchedSku = await this.catalogService.getSkuIdentity(effectiveSkuId);
     } else if (item.barcode) {
       matchedSku = await this.catalogService.getSkuByBarcode(item.barcode);
     }
 
     const brandMatch = await this.brandService.getBrand(item.brand);
 
-    const conflicts: string[] = [];
-    if (!item.barcode) {
+    const conflicts = [...matchAnalysis.conflicts];
+    if (!item.barcode && !conflicts.includes('missing_barcode')) {
       conflicts.push('missing_barcode');
     }
-    if (item.barcode && matchedSku && !item.matchedSkuId) {
-      conflicts.push('unlinked_existing_sku_match');
-    }
-    if (!brandMatch) {
+    if (!brandMatch && !conflicts.includes('brand_not_found_in_catalog')) {
       conflicts.push('brand_not_found_in_catalog');
-    }
-    if (item.status === IngestionStatus.review_required && conflicts.length === 0) {
-      conflicts.push('requires_manual_identity_verification');
     }
 
     return {
@@ -190,6 +195,11 @@ export class IngestionService {
       currency: item.currency,
       status: item.status,
       matchedSkuId: item.matchedSkuId,
+      identity: {
+        fingerprint: matchAnalysis.fingerprint,
+        classification: matchAnalysis.classification,
+        matchReason: matchAnalysis.reason,
+      },
       evidence: {
         enrichment: item.enrichment,
         enrichmentStatus: item.enrichmentStatus,
@@ -215,22 +225,28 @@ export class IngestionService {
       throw new BadRequestException('Cannot modify items of a published job or candidate');
     }
 
+    const newSupplierSkuCode = dto.supplierSkuCode !== undefined ? dto.supplierSkuCode : item.supplierSkuCode;
+    const newName = dto.name !== undefined ? dto.name : item.name;
+    const newBrand = dto.brand !== undefined ? dto.brand : item.brand;
     const newBarcode = dto.barcode !== undefined ? dto.barcode : item.barcode;
+
+    const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+      supplierId: item.job.supplierId,
+      supplierSkuCode: newSupplierSkuCode,
+      name: newName,
+      brand: newBrand,
+      barcode: newBarcode,
+    });
 
     let matchedSkuId = item.matchedSkuId;
     let status = item.status;
 
-    if (dto.barcode !== undefined || dto.brand !== undefined) {
-      if (newBarcode) {
-        const sku = await this.catalogService.getSkuByBarcode(newBarcode);
-        if (sku) {
-          matchedSkuId = sku.id;
-          status = IngestionStatus.approved;
-        } else if (matchedSkuId) {
-          matchedSkuId = null;
-          status = IngestionStatus.review_required;
-        }
-      }
+    if (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.matchedSkuId) {
+      matchedSkuId = matchAnalysis.matchedSkuId;
+      status = IngestionStatus.approved;
+    } else if (matchAnalysis.classification === MatchClassification.CONFLICT || matchAnalysis.classification === MatchClassification.LIKELY_MATCH) {
+      matchedSkuId = null;
+      status = IngestionStatus.review_required;
     }
 
     const updated = await this.prisma.ingestionItem.update({
@@ -263,17 +279,21 @@ export class IngestionService {
     for (const item of job.items) {
       if (item.status !== IngestionStatus.pending) continue;
 
+      const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+        supplierId: job.supplierId,
+        supplierSkuCode: item.supplierSkuCode,
+        name: item.name,
+        brand: item.brand,
+        barcode: item.barcode,
+      });
+
       let matchedSkuId: string | null = null;
+      let status: IngestionStatus = IngestionStatus.review_required;
 
-      // 1. Barcode match
-      if (item.barcode) {
-        const sku = await this.catalogService.getSkuByBarcode(item.barcode);
-        if (sku) {
-          matchedSkuId = sku.id;
-        }
+      if (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.matchedSkuId) {
+        matchedSkuId = matchAnalysis.matchedSkuId;
+        status = IngestionStatus.approved;
       }
-
-      const status = matchedSkuId ? IngestionStatus.approved : IngestionStatus.review_required;
 
       await this.prisma.ingestionItem.update({
         where: { id: item.id },
@@ -307,6 +327,13 @@ export class IngestionService {
       const isValid = await this.catalogService.validateSku(dto.matchedSkuId);
       if (!isValid) throw new NotFoundException('SKU not found in catalog or is inactive');
       matchedSkuId = dto.matchedSkuId;
+
+      // Register Supplier SKU Alias for future imports
+      await this.productIdentityService.createSupplierSkuAlias(
+        item.job.supplierId,
+        item.supplierSkuCode,
+        matchedSkuId,
+      );
     }
 
     await this.prisma.ingestionItem.update({
@@ -441,28 +468,43 @@ export class IngestionService {
   }
 
   // ---------------------------------------------------------------------------
-  // GLO-77 Canonical Product Promotion & Publish Operations
+  // GLO-77 / GLO-120 Canonical Product Promotion & Publish Operations
   // ---------------------------------------------------------------------------
 
-  private async ensureCanonicalSku(item: {
-    id: string;
-    name: string;
-    brand: string;
-    barcode: string | null;
-    supplierSkuCode: string;
-    matchedSkuId: string | null;
-    enrichment?: unknown;
-  }): Promise<string> {
+  private async ensureCanonicalSku(
+    item: {
+      id: string;
+      name: string;
+      brand: string;
+      barcode: string | null;
+      supplierSkuCode: string;
+      matchedSkuId: string | null;
+      enrichment?: unknown;
+    },
+    supplierId: string,
+  ): Promise<string> {
+    // 1. Check if item is already matched to existing SKU in Catalog
     if (item.matchedSkuId) {
       const existing = await this.catalogService.getSkuIdentity(item.matchedSkuId);
       if (existing) return existing.id;
     }
 
-    if (item.barcode) {
-      const existingByBarcode = await this.catalogService.getSkuByBarcode(item.barcode);
-      if (existingByBarcode) return existingByBarcode.id;
+    // 2. Perform pre-publish Identity Match Check (Deduplication)
+    const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+      supplierId,
+      supplierSkuCode: item.supplierSkuCode,
+      name: item.name,
+      brand: item.brand,
+      barcode: item.barcode,
+    });
+
+    if (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.matchedSkuId) {
+      // Register Supplier SKU Alias for future imports
+      await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, matchAnalysis.matchedSkuId);
+      return matchAnalysis.matchedSkuId;
     }
 
+    // 3. Resolve or create Brand in Catalog via BrandService
     let brandId: string;
     const existingBrand = await this.brandService.getBrand(item.brand);
     if (existingBrand) {
@@ -473,6 +515,8 @@ export class IngestionService {
     }
 
     const brandName = existingBrand ? existingBrand.name : item.brand;
+
+    // 4. Resolve or create Product in Catalog via CatalogService
     const productSlug = this.slugify(`${brandName}-${item.name}`);
     let product = await this.catalogService.getProduct(productSlug);
     if (!product) {
@@ -488,19 +532,28 @@ export class IngestionService {
       });
     }
 
+    // 5. Check if SKU already exists under Product
     const skuCode = item.supplierSkuCode || `SKU-${item.id.slice(0, 8).toUpperCase()}`;
     const existingSkus = await this.catalogService.getSkus(product.id);
     const existingSku = existingSkus.find(
       (s) => s.code === skuCode || (item.barcode !== null && s.barcode === item.barcode),
     );
-    if (existingSku) return existingSku.id;
 
+    if (existingSku) {
+      await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, existingSku.id);
+      return existingSku.id;
+    }
+
+    // 6. Create new canonical SKU in Catalog
     const newSku = await this.catalogService.createSku(product.id, {
       code: skuCode,
       variantName: 'Default',
       barcode: item.barcode ?? undefined,
       isActive: true,
     });
+
+    // 7. Register Supplier SKU Alias
+    await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, newSku.id);
 
     return newSku.id;
   }
@@ -551,7 +604,7 @@ export class IngestionService {
       throw new BadRequestException('Candidate item is not approved for publication yet');
     }
 
-    const skuId = await this.ensureCanonicalSku(item);
+    const skuId = await this.ensureCanonicalSku(item, item.job.supplierId);
     await this.ensureSupplierOffer(item.job.supplierId, skuId, item.price.toNumber(), item.currency);
 
     const updated = await this.prisma.ingestionItem.update({
@@ -591,7 +644,7 @@ export class IngestionService {
     for (const item of job.items) {
       if (item.status === IngestionStatus.approved) {
         try {
-          const skuId = await this.ensureCanonicalSku(item);
+          const skuId = await this.ensureCanonicalSku(item, job.supplierId);
 
           await this.ensureSupplierOffer(
             job.supplierId,

@@ -110,7 +110,8 @@ model Sku {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  product Product @relation(fields: [productId], references: [id])
+  product            Product            @relation(fields: [productId], references: [id])
+  supplierSkuAliases SupplierSkuAlias[]
 
   @@index([productId])
   @@index([barcode])
@@ -239,8 +240,27 @@ model Supplier {
   ingestionJobs  IngestionJob[]
   purchaseOrders SupplierPurchaseOrder[]
   payables       SupplierPayable[]
+  skuAliases     SupplierSkuAlias[]
 
   @@map("suppliers")
+  @@schema("sourcing")
+}
+
+model SupplierSkuAlias {
+  id              String   @id @default(uuid()) @db.Uuid
+  supplierId      String   @map("supplier_id") @db.Uuid
+  supplierSkuCode String   @map("supplier_sku_code")
+  skuId           String   @map("sku_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  sku      Sku      @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@unique([supplierId, supplierSkuCode])
+  @@index([supplierId])
+  @@index([skuId])
+  @@map("supplier_sku_aliases")
   @@schema("sourcing")
 }
 
