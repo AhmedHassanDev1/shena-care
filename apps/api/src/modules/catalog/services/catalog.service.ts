@@ -77,6 +77,33 @@ type ProductWithRelations = Prisma.ProductGetPayload<typeof productWithRelations
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Internal keyset scan; composition applies Commerce/availability before pagination. */
+  async scanPublishedProducts(filters: { q?: string; category?: string; brand?: string; productLine?: string }, snapshotAt: Date, afterId?: string) {
+    const products = await this.prisma.product.findMany({
+      where: {
+        isPublished: true, createdAt: { lte: snapshotAt },
+        ...(afterId && { id: { gt: afterId } }),
+        ...(filters.category && { category: { OR: [{ slug: filters.category }, { parent: { slug: filters.category } }] } }),
+        ...(filters.brand && { brand: { slug: filters.brand } }),
+        ...(filters.productLine && { productLine: { slug: filters.productLine } }),
+        ...(filters.q && { OR: [
+          { name: { contains: filters.q, mode: 'insensitive' as const } },
+          { brand: { name: { contains: filters.q, mode: 'insensitive' as const } } },
+          { skus: { some: { isActive: true, OR: [
+            { code: { contains: filters.q, mode: 'insensitive' as const } },
+            { barcode: { contains: filters.q } },
+            { variantName: { contains: filters.q, mode: 'insensitive' as const } },
+          ] } } },
+        ] }),
+      },
+      orderBy: { id: 'asc' }, take: 100, ...productWithRelations,
+    });
+    return {
+      products: products.map(p => this.mapToPublishedProduct(p)).filter(p => p.media.length && p.skus.length),
+      nextAfterId: products.length === 100 ? products[products.length - 1].id : null,
+    };
+  }
+
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
   }

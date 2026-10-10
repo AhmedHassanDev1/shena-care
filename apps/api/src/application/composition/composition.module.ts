@@ -10,6 +10,7 @@ import { PriceController } from './controllers/price.controller';
 import { SupplierController } from './controllers/supplier.controller';
 import { PurchaseOrderController } from './controllers/purchase-order.controller';
 import { ProductViewService } from './services/product-view.service';
+import { DiscoveryService } from './services/discovery.service';
 
 // ─── CompositionModule ────────────────────────────────────────────────────────
 // الـ Composition Layer هي المسؤولة عن الـ HTTP API
@@ -30,7 +31,7 @@ import { ProductViewService } from './services/product-view.service';
     SupplierController,     // /sourcing/suppliers and /sourcing/offers
     PurchaseOrderController,// /purchase-orders
   ],
-  providers: [ProductViewService],
+  providers: [ProductViewService, DiscoveryService],
 })
 export class CompositionModule {}
 

@@ -17,6 +17,8 @@ import {
   Req,
 } from '@nestjs/common';
 import { ProductViewService } from '../services/product-view.service';
+import { DiscoveryService } from '../services/discovery.service';
+import { DiscoveryQueryDto, ProductListQueryDto } from '../dto/discovery.dto';
 import {
   CatalogService,
   CreateProductDto,
@@ -32,6 +34,7 @@ export class ProductViewController {
   constructor(
     private readonly productViewService: ProductViewService,
     private readonly catalogService: CatalogService,
+    private readonly discoveryService: DiscoveryService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -42,22 +45,16 @@ export class ProductViewController {
   // GET /products?category=moisturizers&brand=cerave&productLine=cerave-daily-moisturizers&page=1&limit=20
   @Get()
   async listProducts(
-    @Query('category') categorySlug?: string,
-    @Query('brand') brandSlug?: string,
-    @Query('productLine') productLineSlug?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() query: ProductListQueryDto,
   ) {
-    const pageNum = page ? parseInt(page, 10) : undefined;
-    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    if (query.q || query.cursor) return (await this.discoveryService.discover(query)).items;
+    return this.productViewService.getProductViews({ categorySlug: query.category, brandSlug: query.brand,
+      productLineSlug: query.productLine, page: query.page, limit: query.limit });
+  }
 
-    return this.productViewService.getProductViews({
-      categorySlug,
-      brandSlug,
-      productLineSlug,
-      page: pageNum && !isNaN(pageNum) ? pageNum : undefined,
-      limit: limitNum && !isNaN(limitNum) ? limitNum : undefined,
-    });
+  @Get('discovery')
+  async discover(@Query() query: DiscoveryQueryDto) {
+    return this.discoveryService.discover(query);
   }
 
   // ---------------------------------------------------------------------------

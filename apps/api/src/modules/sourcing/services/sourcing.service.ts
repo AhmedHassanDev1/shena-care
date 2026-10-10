@@ -258,4 +258,21 @@ export class SourcingService {
 
     return !!offer;
   }
+
+  /** Public projection deliberately excludes supplier identity and procurement cost. */
+  async getPublicAvailability(skuId: string, at = new Date()) {
+    const configured = Number(process.env.SUPPLIER_AVAILABILITY_MAX_AGE_HOURS ?? 24);
+    if (!Number.isFinite(configured) || configured <= 0 || configured > 720)
+      throw new Error('Invalid supplier availability freshness configuration');
+    const maxAgeMs = configured * 3600000;
+    const offer = await this.prisma.supplierOffer.findFirst({
+      where: { skuId, isAvailable: true, supplier: { isActive: true }, lastConfirmedAt: { not: null, lte: at } },
+      orderBy: [{ lastConfirmedAt: 'desc' }, { id: 'asc' }],
+      select: { lastConfirmedAt: true, lastObservedAt: true },
+    });
+    const confirmedAt = offer?.lastConfirmedAt ?? null;
+    const validUntil = confirmedAt ? new Date(confirmedAt.getTime() + maxAgeMs) : null;
+    const isFresh = !!validUntil && validUntil > at;
+    return { isAvailable: isFresh, isFresh, confirmedAt, observedAt: offer?.lastObservedAt ?? null, validUntil };
+  }
 }
