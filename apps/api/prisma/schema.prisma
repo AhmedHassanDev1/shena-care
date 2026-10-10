@@ -1202,10 +1202,45 @@ model IngestionItem {
   updatedAt        DateTime                      @updatedAt @map("updated_at")
 
   job IngestionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  contentDraft ProductContentDraft?
 
   @@index([jobId])
   @@index([status])
   @@map("ingestion_items")
+  @@schema("ingestion")
+}
+
+model ProductContentDraft {
+  id               String   @id @default(uuid()) @db.Uuid
+  candidateId      String   @unique @map("candidate_id") @db.Uuid
+  language         String   @db.VarChar(5) // 'ar' or 'en'
+  titleEn          String?
+  titleAr          String?
+  shortDescriptionEn String?
+  shortDescriptionAr String?
+  descriptionEn    String?
+  descriptionAr    String?
+  benefitsEn       String[]
+  benefitsAr       String[]
+  usageEn          String[]
+  usageAr          String[]
+  routineStepEn    String?
+  routineStepAr    String?
+  keywords         String[]
+  seoTitleEn       String?
+  seoTitleAr       String?
+  seoDescriptionEn String?
+  seoDescriptionAr String?
+  evidenceVersion  String?
+  modelVersion     String?
+  isApproved       Boolean  @default(false) @map("is_approved")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  candidate IngestionItem @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("product_content_drafts")
   @@schema("ingestion")
 }
 

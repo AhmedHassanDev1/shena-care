@@ -8,6 +8,8 @@ import {
   ProductEnrichmentResult,
   GuidanceRecommendationRequest,
   GuidanceRecommendationResult,
+  ProductContentGenerationInput,
+  ProductContentGenerationResult,
 } from './ai-client.contract';
 import { validateSafeUrl } from '../security/url-validator';
 
@@ -162,6 +164,71 @@ export class HttpAiClient implements AiClient {
 
     this.logger.log(`AI guidance success latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
     return raw as GuidanceRecommendationResult;
+  }
+
+  async generateContent(input: ProductContentGenerationInput, correlationId?: string): Promise<ProductContentGenerationResult> {
+    const url = `${this.baseUrl.replace(/\/$/, '')}/v1/content/generate`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs * 2); // content gen takes longer
+    const startTime = Date.now();
+    const resolvedCorrelationId = correlationId || require('crypto').randomUUID();
+
+    this.logger.log(`AI content generation attempt candidate=${input.candidateId} correlation=${resolvedCorrelationId}`);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Correlation-ID': resolvedCorrelationId,
+        },
+        body: JSON.stringify(input),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      const latencyMs = Date.now() - startTime;
+      this.logger.error(`AI content generation network failure latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
+      throw this.mapNetworkError(err, input.candidateId);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    const latencyMs = Date.now() - startTime;
+
+    if (response.status === 503) {
+      this.logger.error(`AI content generation provider error latencyMs=${latencyMs} status=${response.status} correlation=${resolvedCorrelationId}`);
+      throw new AiClientError(AiErrorKind.UNAVAILABLE, 'AI service reported provider unavailable', 503);
+    }
+
+    if (!response.ok) {
+      this.logger.error(`AI content generation invalid response latencyMs=${latencyMs} status=${response.status} correlation=${resolvedCorrelationId}`);
+      throw new AiClientError(
+        AiErrorKind.INVALID_RESPONSE,
+        `AI service returned unexpected status ${response.status}`,
+        response.status,
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      this.logger.error(`AI content generation malformed response latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
+      throw new AiClientError(AiErrorKind.INVALID_RESPONSE, 'AI service returned non-JSON body', response.status);
+    }
+
+    const raw = body as any;
+    if (raw.schemaVersion !== '1') {
+      this.logger.error(`AI content generation schema mismatch latencyMs=${latencyMs} version=${raw.schemaVersion} correlation=${resolvedCorrelationId}`);
+      throw new AiClientError(
+        AiErrorKind.INCOMPATIBLE_SCHEMA,
+        `Unsupported AI content generation schemaVersion ${String(raw.schemaVersion)} for ${input.candidateId}`,
+      );
+    }
+
+    this.logger.log(`AI content generation success latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
+    return raw as ProductContentGenerationResult;
   }
 
   private toTransportRequest(input: ProductEnrichmentInput): Record<string, unknown> {

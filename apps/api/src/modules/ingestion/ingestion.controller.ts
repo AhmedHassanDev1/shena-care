@@ -97,6 +97,12 @@ export class IngestionController {
     return this.ingestionService.researchCandidate(id);
   }
 
+  @Post('candidates/:id/content')
+  @HttpCode(HttpStatus.OK)
+  async generateCandidateContent(@Param('id') id: string) {
+    return this.ingestionService.generateCandidateContent(id);
+  }
+
   // ─── Item Aliases (Backwards Compatibility) ─────────────────────────────
 
   @Get('items/:id')

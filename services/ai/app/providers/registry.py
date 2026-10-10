@@ -1,5 +1,5 @@
 from app.providers.base import ProviderUnavailableError
-from app.providers.mock_provider import MockProductEnrichmentProvider, MockGuidanceProvider
+from app.providers.mock_provider import MockProductEnrichmentProvider, MockGuidanceProvider, MockContentGenerationProvider
 
 
 class RealProviderNotConfiguredError(ProviderUnavailableError):
@@ -23,4 +23,11 @@ def get_guidance_provider(provider_name: str):
         return MockGuidanceProvider()
     raise RealProviderNotConfiguredError(
         f"Provider '{provider_name}' is not configured for guidance."
+    )
+
+def get_content_provider(provider_name: str):
+    if provider_name == "mock":
+        return MockContentGenerationProvider()
+    raise RealProviderNotConfiguredError(
+        f"Provider '{provider_name}' is not configured for content generation."
     )

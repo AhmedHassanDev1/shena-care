@@ -4,6 +4,7 @@ import { CatalogService, BrandService } from '../../catalog/public';
 import { SourcingService } from '../../sourcing/public';
 import { ProductIdentityService, MatchClassification } from './product-identity.service';
 import { ProductResearchService } from './product-research.service';
+import { ProductContentService } from './product-content.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from '../dto/ingestion.dto';
 import { IngestionStatus, IngestionItemEnrichmentStatus } from '@prisma/client';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
@@ -35,6 +36,7 @@ export class IngestionService {
     private readonly sourcingService: SourcingService,
     private readonly productIdentityService: ProductIdentityService,
     private readonly productResearchService: ProductResearchService,
+    private readonly contentService: ProductContentService,
     private readonly aiClient: AiClient,
   ) {}
 
@@ -512,6 +514,11 @@ export class IngestionService {
     });
 
     return researchResult as unknown as Record<string, unknown>;
+  }
+
+  async generateCandidateContent(itemId: string) {
+    if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
+    return this.contentService.generateContent(itemId);
   }
 
 

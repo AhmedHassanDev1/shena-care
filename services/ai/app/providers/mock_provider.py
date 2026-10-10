@@ -12,6 +12,11 @@ from app.contracts.guidance import (
     RoutineProposal,
     RoutineStepProposal,
 )
+from app.contracts.content import (
+    ProductContentGenerationRequest,
+    ProductContentGenerationResult,
+    GeneratedContent,
+)
 from app.providers.base import ProviderUnavailableError
 
 
@@ -118,4 +123,36 @@ class MockGuidanceProvider:
             schemaVersion="1",
             message="Based on your profile, here is a suggested routine." if proposal else "Could you tell me more about your specific goals?",
             proposal=proposal
+        )
+
+class MockContentGenerationProvider:
+    name = "mock"
+
+    async def generate_content(self, request: ProductContentGenerationRequest) -> ProductContentGenerationResult:
+        title = request.facts.get("normalizedTitle", "Draft Title")
+        return ProductContentGenerationResult(
+            schemaVersion="1",
+            content=GeneratedContent(
+                titleEn=title,
+                titleAr=f"{title} (Arabic)",
+                descriptionEn=f"A great product: {title}",
+                descriptionAr=f"منتج رائع: {title}",
+                shortDescriptionEn=title,
+                shortDescriptionAr=f"{title} (Arabic)",
+                benefitsEn=["Hydration"],
+                benefitsAr=["ترطيب"],
+                usageInstructionsEn=["Apply daily"],
+                usageInstructionsAr=["يستخدم يوميا"],
+                routineStepEn="Step 1",
+                routineStepAr="الخطوة 1",
+                keywords=["skincare"],
+                seoTitleEn=title,
+                seoTitleAr=f"{title} (Arabic)",
+                seoDescriptionEn="Buy now",
+                seoDescriptionAr="اشتري الآن"
+            ),
+            providerMetadata={
+                "provider": self.name,
+                "model": "mock-model-v1"
+            }
         )
