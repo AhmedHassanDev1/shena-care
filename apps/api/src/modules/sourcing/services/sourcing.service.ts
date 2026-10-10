@@ -123,8 +123,8 @@ export class SourcingService {
     if (!supplier) throw new NotFoundException(`Supplier ${dto.supplierId} not found`);
 
     // Validate SKU in Catalog
-    const isSkuValid = await this.catalogService.validateSku(dto.skuId);
-    if (!isSkuValid) throw new NotFoundException(`SKU ${dto.skuId} not found in catalog`);
+    const skuIdentity = await this.catalogService.getSkuIdentity(dto.skuId);
+    if (!skuIdentity?.isActive) throw new NotFoundException(`SKU ${dto.skuId} not found in catalog`);
 
     // Validate Uniqueness
     const existing = await this.prisma.supplierOffer.findUnique({
@@ -242,13 +242,14 @@ export class SourcingService {
    * Resolves whether a SKU is currently available based on active supplier offers.
    * Returns true if there is at least one available offer from an active supplier.
    */
-  async checkAvailability(skuId: string): Promise<boolean> {
+  async checkAvailability(skuId: string, requireConfirmation = false): Promise<boolean> {
     if (!this.isUuid(skuId)) return false;
 
     const offer = await this.prisma.supplierOffer.findFirst({
       where: {
         skuId,
         isAvailable: true,
+        ...(requireConfirmation && { lastConfirmedAt: { not: null } }),
         supplier: {
           isActive: true,
         },

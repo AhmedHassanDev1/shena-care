@@ -13,6 +13,8 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/test/test-database-guard.ts'],
   testTimeout: 15000,
   moduleNameMapper: {
+    ...(process.env.PIPELINE_PRISMA_CLIENT && process.env.NODE_ENV === 'test'
+      ? { '^@prisma/client$': process.env.PIPELINE_PRISMA_CLIENT } : {}),
     '^@/(.*)$': '<rootDir>/src/$1',
   },
 };

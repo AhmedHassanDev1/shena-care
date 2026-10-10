@@ -5,11 +5,16 @@ import { IngestionService } from '../src/modules/ingestion/services/ingestion.se
 import * as fs from 'fs';
 
 async function bootstrap() {
+  // This historical batch contains synthetic supplier prices and mock images.
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!process.argv.includes('--demo') || !databaseUrl || !new URL(databaseUrl).pathname.endsWith('_test')) {
+    throw new Error('Historical mock pilot is test-only: use --demo with a dedicated *_test database. Use verify-glo78.ts for existing records.');
+  }
   const app = await NestFactory.createApplicationContext(AppModule);
   const prisma = app.get(PrismaService);
   const ingestionService = app.get(IngestionService);
-  
-  // 1. Setup a real supplier
+
+  // 1. Setup a synthetic test supplier
   const supplier = await prisma.supplier.upsert({
     where: { name: 'Loreal Distribution SA' },
     update: {},
@@ -39,12 +44,12 @@ async function bootstrap() {
     items: products
   });
   console.log(`Created Job ID: ${job.id}`);
-  
+
   // Wait for async matching
   await new Promise(r => setTimeout(r, 2000));
 
   const candidates = await ingestionService.getCandidates();
-  
+
   for (const p of products) {
     const candidate = candidates.find(c => c.supplierSkuCode === p.supplierSkuCode);
     if (!candidate) {
@@ -55,31 +60,31 @@ async function bootstrap() {
     try {
       const id = candidate.id as string;
       console.log(`\nProcessing: ${p.name}`);
-      
+
       // 3. Research Evidence
       console.log(`- Fetching research evidence...`);
       await ingestionService.researchCandidate(id);
-      
+
       // 4. Generate Content
       console.log(`- Generating content...`);
       await ingestionService.generateCandidateContent(id);
-      
-      // 5. Upload Verified Media (Mock file)
+
+      // 5. Attempt mock upload (must be rejected or stay TEST)
       console.log(`- Uploading media...`);
       const dummyPath = 'dummy.png';
       fs.writeFileSync(dummyPath, Buffer.from('89504E470D0A1A0A', 'hex'));
       const mockFile = { originalname: 'image.png', buffer: fs.readFileSync(dummyPath), mimetype: 'image/png' } as any;
       const uploaded = await ingestionService.uploadCandidateMedia(id, mockFile);
       fs.unlinkSync(dummyPath);
-      
+
       // 6. Review & Approve
       console.log(`- Approving candidate...`);
       await ingestionService.approveItem(id, { verifiedMediaUrls: [uploaded.url] });
-      
+
       // 7. Publish
       console.log(`- Publishing...`);
       const pubResult = await ingestionService.publishCandidate(id);
-      
+
       console.log(`✅ SUCCESS: ${p.name} published as SKU ${pubResult.matchedSkuId}`);
     } catch (e) {
       console.log(`❌ BLOCKED: ${p.name} - ${(e as Error).message}`);
