@@ -114,6 +114,8 @@ describe('GLO-182/183 public discovery and detail (PostgreSQL)', () => {
     }
     const none = await request(app.getHttpServer()).get('/products/discovery').query({ brand: brandSlug, category: 'missing-category' }).expect(200);
     expect(none.body).toMatchObject({ items: [], total: 0, facets: { brands: [] } });
+    const hiddenVariant = await request(app.getHttpServer()).get('/products/discovery').query({ brand: brandSlug, q: `UNREVIEWED-${run}` }).expect(200);
+    expect(hiddenVariant.body).toMatchObject({ items: [], total: 0 });
     for (const query of [{ limit: 101 }, { limit: -1 }, { limit: 'NaN' }, { cursor: 'garbage' }, { q: 'x'.repeat(121) }, { unknown: 'x' }])
       await request(app.getHttpServer()).get('/products/discovery').query(query).expect(400);
     await request(app.getHttpServer()).get('/products').query({ page: -1 }).expect(400);

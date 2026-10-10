@@ -32,7 +32,10 @@ export class DiscoveryService {
       const batch = await this.catalog.scanPublishedProducts(filters, snapshotAt, scanAfter);
       for (let start = 0; start < batch.products.length; start += 10) {
         const composed = await Promise.all(batch.products.slice(start, start + 10).map(p => this.views.composeProduct(p, evaluatedAt)));
-        visible.push(...composed.filter((p): p is ProductView => p !== null));
+        const search = filters.q?.toLowerCase();
+        visible.push(...composed.filter((p): p is ProductView => p !== null).filter(p => !search ||
+          [p.name, p.brand.name, ...p.skus.flatMap(s => [s.code, s.barcode ?? '', s.variantName])]
+            .some(value => value.toLowerCase().includes(search))));
       }
       scanAfter = batch.nextAfterId ?? undefined;
     } while (scanAfter);

@@ -91,7 +91,7 @@ export class CatalogService {
           { brand: { name: { contains: filters.q, mode: 'insensitive' as const } } },
           { skus: { some: { isActive: true, OR: [
             { code: { contains: filters.q, mode: 'insensitive' as const } },
-            { barcode: { contains: filters.q } },
+            { barcode: { contains: filters.q, mode: 'insensitive' as const } },
             { variantName: { contains: filters.q, mode: 'insensitive' as const } },
           ] } } },
         ] }),

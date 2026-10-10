@@ -3,7 +3,7 @@
 No Linear specification was supplied. This implements the requested backend slice using the existing Catalog, Commerce and Sourcing contracts. No frontend or dependency changes.
 
 - `GET /products/discovery?q=&brand=&category=&productLine=&limit=&cursor=` returns `items`, eligible product `total`, `facets`, and `pageInfo`.
-- Search is case-insensitive substring matching on product/brand names, active SKU code/variant; barcode matching is a substring. No relevance ranking is implied.
+- Search is case-insensitive substring matching on product/brand names and eligible SKU code/barcode/variant. Matching only an incomplete sibling SKU cannot expose the parent. No relevance ranking is implied.
 - Products group their eligible variants. Each visible SKU needs active canonical identity, exact reviewed media, a published parent, a listed Commerce entry, current independent SellingPrice, and available stock confirmed by an active supplier.
 - `SUPPLIER_AVAILABILITY_MAX_AGE_HOURS` defaults to 24, accepts >0 through 720. Future confirmations are ignored. Expired, missing and withdrawn confirmations do not satisfy availability. This window is a provisional business assumption.
 - Facets count products after every selected filter and every eligibility gate (conjunctive facets). Category filtering includes immediate children, following the current Catalog contract.
