@@ -38,6 +38,10 @@ export class RoutineWorkspaceService {
         guestToken = crypto.randomUUID();
       }
       guestTokenHash = this.hashToken(guestToken);
+    } else {
+      await this.prisma.routineDraft.deleteMany({
+        where: { customerId }
+      });
     }
 
     const draft = await this.prisma.routineDraft.create({
@@ -101,8 +105,11 @@ export class RoutineWorkspaceService {
     if (!draft) throw new NotFoundException('Draft not found');
     if (draft.guestTokenHash !== guestTokenHash) throw new ForbiddenException('Invalid guest token');
 
-    // If customer already has a draft, we might need to merge or archive it.
-    // For simplicity, just update the customer ID and clear guest token hash.
+    // Remove any existing draft for this customer first to avoid unique constraint error
+    await this.prisma.routineDraft.deleteMany({
+      where: { customerId }
+    });
+
     return this.prisma.routineDraft.update({
       where: { id: draftId },
       data: {
