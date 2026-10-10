@@ -6,6 +6,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { SupplyPlanService } from '../../src/modules/sourcing/services/supply-plan.service';
 import { SourcingEventListener } from '../../src/modules/sourcing/services/sourcing-event.listener';
 import { OrderPlacedEvent } from '../../src/platform/events/integration.events';
+import { createSellableSku } from '../fixtures/sellable-sku';
 const request = require('supertest');
 
 describe('Availability confirmation and supply plan (e2e)', () => {
@@ -78,7 +79,8 @@ describe('Availability confirmation and supply plan (e2e)', () => {
   afterAll(async () => { await app.close(); });
 
   it('turns a real submitted checkout into one sourcing request', async () => {
-    const product = await http().get('/products/cerave-moisturizing-cream').expect(200);
+    const fixture = await createSellableSku(prisma);
+    const product = await http().get('/products/' + fixture.productSlug).expect(200);
     const skuId = product.body.skus[0].id;
     const cart = await http().post('/ordering/cart/add').send({ skuId, quantity: 2 }).expect(201);
     const token = cart.body.guestCartToken;

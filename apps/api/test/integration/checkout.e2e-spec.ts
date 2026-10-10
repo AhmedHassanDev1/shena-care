@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { createSellableSku } from '../fixtures/sellable-sku';
 const request = require('supertest');
 
 describe('Order submission (e2e)', () => {
@@ -33,7 +34,8 @@ describe('Order submission (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     await app.init();
     prisma = app.get(PrismaService);
-    const product = await http().get('/products/cerave-moisturizing-cream').expect(200);
+    const fixture = await createSellableSku(prisma);
+    const product = await http().get('/products/' + fixture.productSlug).expect(200);
     skuId = product.body.skus[0].id;
   });
   afterAll(async () => { await app.close(); });
