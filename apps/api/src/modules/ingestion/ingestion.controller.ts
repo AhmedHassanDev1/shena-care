@@ -1,4 +1,5 @@
-import { Controller, Post, Body, Get, Param, Patch, Query, Req, HttpCode, HttpStatus, UseGuards, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, Query, Req, HttpCode, HttpStatus, UseGuards, ForbiddenException, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { IngestionService } from './services/ingestion.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from './dto/ingestion.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
@@ -101,6 +102,22 @@ export class IngestionController {
   @HttpCode(HttpStatus.OK)
   async generateCandidateContent(@Param('id') id: string) {
     return this.ingestionService.generateCandidateContent(id);
+  }
+
+  @Post('candidates/:id/media')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadCandidateMedia(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    // Only accept images for now
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Only images are supported');
+    }
+    return this.ingestionService.uploadCandidateMedia(id, file);
   }
 
   // ─── Item Aliases (Backwards Compatibility) ─────────────────────────────

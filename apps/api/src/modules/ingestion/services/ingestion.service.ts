@@ -8,6 +8,7 @@ import { ProductContentService } from './product-content.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from '../dto/ingestion.dto';
 import { IngestionStatus, IngestionItemEnrichmentStatus } from '@prisma/client';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
+import { StorageService } from '../../../platform/storage/storage.service';
 
 export interface IngestionJobDetail {
   id: string;
@@ -38,6 +39,7 @@ export class IngestionService {
     private readonly productResearchService: ProductResearchService,
     private readonly contentService: ProductContentService,
     private readonly aiClient: AiClient,
+    private readonly storageService: StorageService,
   ) {}
 
   private isUuid(val: string): boolean {
@@ -521,6 +523,34 @@ export class IngestionService {
     return this.contentService.generateContent(itemId);
   }
 
+  async uploadCandidateMedia(itemId: string, file: Express.Multer.File) {
+    if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
+    const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId } });
+    if (!item) throw new NotFoundException('Candidate item not found');
+
+    const url = await this.storageService.uploadFile(file, 'candidates');
+
+    const currentEnrichment = (item.enrichment as Record<string, unknown>) || {};
+    const media = Array.isArray(currentEnrichment.media) ? currentEnrichment.media : [];
+    
+    media.push({
+      url,
+      type: 'image',
+      originType: 'verified'
+    });
+
+    const updatedEnrichment = { ...currentEnrichment, media };
+
+    await this.prisma.ingestionItem.update({
+      where: { id: itemId },
+      data: {
+        enrichment: updatedEnrichment as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      },
+    });
+
+    return { url, type: 'image', originType: 'verified' };
+  }
+
 
   // ---------------------------------------------------------------------------
   // GLO-77 / GLO-120 Canonical Product Promotion & Publish Operations
@@ -585,6 +615,27 @@ export class IngestionService {
         description: typeof enrichmentDesc === 'string' ? enrichmentDesc : undefined,
         isPublished: true,
       });
+    }
+
+    // 4.5. Publish Media to Product Media Core
+    const enrichment = (item.enrichment as Record<string, unknown>) || {};
+    const mediaList = Array.isArray(enrichment.media) ? enrichment.media : [];
+    for (const m of mediaList) {
+      if (m.url && typeof m.url === 'string') {
+        const existingMedia = await this.prisma.productMedia.findFirst({
+          where: { productId: product.id, url: m.url },
+        });
+        if (!existingMedia) {
+          await this.prisma.productMedia.create({
+            data: {
+              productId: product.id,
+              type: m.type === 'video' ? 'video' : 'image',
+              url: m.url,
+              originType: m.originType === 'generated' ? 'generated' : 'verified',
+            },
+          });
+        }
+      }
     }
 
     // 5. Check if SKU already exists under Product
