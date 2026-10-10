@@ -10,6 +10,18 @@ export class CareService {
     private readonly catalogService: CatalogService,
   ) {}
 
+  /** Public templates only. Customer profiles and generated recommendations never enter this projection. */
+  async getPublicProductPlacements(productId: string) {
+    const recommendations = await this.prisma.routineStepRecommendation.findMany({
+      where: { productId, source: { in: ['manual', 'expert'] }, step: { routine: { isActive: true, isTemplate: true } } },
+      orderBy: [{ step: { routineId: 'asc' } }, { step: { stepOrder: 'asc' } }, { id: 'asc' }],
+      select: { source: true, step: { select: { title: true, instructions: true, stepOrder: true, timing: true, isOptional: true,
+        routine: { select: { id: true, title: true, careArea: true } } } } },
+    });
+    return recommendations.map(({ source, step }) => ({ routine: step.routine, source,
+      step: { title: step.title, instructions: step.instructions, order: step.stepOrder, timing: step.timing, isOptional: step.isOptional } }));
+  }
+
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
   }

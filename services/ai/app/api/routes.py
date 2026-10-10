@@ -9,10 +9,15 @@ from app.contracts.guidance import (
     GuidanceRecommendationRequest,
     GuidanceRecommendationResult,
 )
+from app.contracts.content import (
+    ProductContentGenerationRequest,
+    ProductContentGenerationResult,
+)
 from app.core.config import get_settings
-from app.providers.registry import get_provider, get_guidance_provider
+from app.providers.registry import get_provider, get_guidance_provider, get_content_provider
 from app.services.enrichment_service import EnrichmentService
 from app.services.guidance_service import GuidanceService
+from app.services.content_service import ContentGenerationService
 
 router = APIRouter()
 
@@ -47,3 +52,15 @@ async def recommend_routine(
 ) -> GuidanceRecommendationResult:
     service = GuidanceService(get_guidance_provider(get_settings().provider))
     return await service.recommend(request, correlation_id=x_correlation_id)
+
+@router.post(
+    "/v1/content/generate",
+    response_model=ProductContentGenerationResult,
+    status_code=status.HTTP_200_OK,
+)
+async def generate_content(
+    request: ProductContentGenerationRequest,
+    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-ID"),
+) -> ProductContentGenerationResult:
+    service = ContentGenerationService(get_content_provider(get_settings().provider))
+    return await service.generate(request, correlation_id=x_correlation_id)

@@ -1,0 +1,1636 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["catalog", "commerce", "sourcing", "ingestion", "ordering", "fulfillment", "care", "accounts", "operations"]
+}
+
+// ---------------------------------------------------------------------------
+// Catalog schema
+// ---------------------------------------------------------------------------
+
+model Brand {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @unique
+  slug            String   @unique
+  description     String?
+  logoUrl         String?  @map("logo_url")
+  websiteUrl      String?  @map("website_url")
+  countryOfOrigin String?  @map("country_of_origin")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  products     Product[]
+  productLines ProductLine[]
+
+  @@map("brands")
+  @@schema("catalog")
+}
+
+model ProductLine {
+  id          String   @id @default(uuid()) @db.Uuid
+  brandId     String   @map("brand_id") @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  brand    Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@index([brandId])
+  @@map("product_lines")
+  @@schema("catalog")
+}
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  parentId    String?  @map("parent_id") @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  products Product[]
+
+  @@index([parentId])
+  @@map("categories")
+  @@schema("catalog")
+}
+
+model Product {
+  id            String   @id @default(uuid()) @db.Uuid
+  brandId       String   @map("brand_id") @db.Uuid
+  productLineId String?  @map("product_line_id") @db.Uuid
+  categoryId    String?  @map("category_id") @db.Uuid
+  name          String
+  slug          String   @unique
+  description   String?
+  usage         String?
+  warnings      String?
+  isPublished   Boolean  @default(true) @map("is_published")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  brand               Brand                       @relation(fields: [brandId], references: [id])
+  productLine         ProductLine?                @relation(fields: [productLineId], references: [id])
+  category            Category?                   @relation(fields: [categoryId], references: [id])
+  skus                Sku[]
+  media               ProductMedia[]
+  careRecommendations RoutineStepRecommendation[]
+
+  @@index([brandId])
+  @@index([productLineId])
+  @@index([categoryId])
+  @@map("products")
+  @@schema("catalog")
+}
+
+model Sku {
+  id          String   @id @default(uuid()) @db.Uuid
+  productId   String   @map("product_id") @db.Uuid
+  code        String   @unique
+  variantName String   @map("variant_name")
+  size        Decimal? @db.Decimal(10, 3)
+  sizeUnit    String?  @map("size_unit")
+  barcode     String?  @unique
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  product            Product            @relation(fields: [productId], references: [id])
+  supplierSkuAliases SupplierSkuAlias[]
+
+  @@index([productId])
+  @@index([barcode])
+  @@map("skus")
+  @@schema("catalog")
+}
+
+enum MediaType {
+  image
+  video
+
+  @@schema("catalog")
+}
+
+enum MediaOriginType {
+  verified // صورة من المورد أو المصنع
+  generated // صورة AI
+  derived // معالجة من verified (crop/bg-remove)
+
+  @@schema("catalog")
+}
+
+model ProductMedia {
+  id                 String          @id @default(uuid()) @db.Uuid
+  productId          String          @map("product_id") @db.Uuid
+  type               MediaType
+  url                String
+  altText            String?         @map("alt_text")
+  sortOrder          Int             @default(0) @map("sort_order")
+  isPrimary          Boolean         @default(false) @map("is_primary")
+  originType         MediaOriginType @default(verified) @map("origin_type")
+  generationMetadata Json?           @map("generation_metadata")
+  createdAt          DateTime        @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([originType])
+  @@map("product_media")
+  @@schema("catalog")
+}
+
+// ---------------------------------------------------------------------------
+// Commerce schema
+// ---------------------------------------------------------------------------
+
+model Listing {
+  id         String    @id @default(uuid()) @db.Uuid
+  skuId      String    @unique @map("sku_id") @db.Uuid
+  isListed   Boolean   @default(true) @map("is_listed")
+  listedAt   DateTime? @map("listed_at")
+  unlistedAt DateTime? @map("unlisted_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@index([skuId])
+  @@map("listings")
+  @@schema("commerce")
+}
+
+model SellingPrice {
+  id              String    @id @default(uuid()) @db.Uuid
+  skuId           String    @map("sku_id") @db.Uuid
+  amount          Decimal   @db.Decimal(10, 2)
+  currency        String    @db.VarChar(3)
+  compareAtAmount Decimal?  @map("compare_at_amount") @db.Decimal(10, 2)
+  validFrom       DateTime  @map("valid_from")
+  validUntil      DateTime? @map("valid_until")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([skuId])
+  @@index([skuId, validFrom])
+  @@map("selling_prices")
+  @@schema("commerce")
+}
+
+enum BenefitType {
+  item_discount
+  order_discount
+  free_shipping
+
+  @@schema("commerce")
+}
+
+enum DiscountType {
+  percentage
+  fixed_amount
+
+  @@schema("commerce")
+}
+
+model Promotion {
+  id             String        @id @default(uuid()) @db.Uuid
+  campaignName   String        @map("campaign_name")
+  code           String?       @unique // Optional manual coupon code
+  benefitType    BenefitType   @map("benefit_type")
+  discountType   DiscountType? @map("discount_type") // For item/order discounts
+  discountValue  Decimal?      @map("discount_value") @db.Decimal(10, 2) // % or fixed amount
+  minBasketValue Decimal?      @map("min_basket_value") @db.Decimal(10, 2) // e.g. for free shipping threshold
+  isStackable    Boolean       @default(false) @map("is_stackable")
+  isActive       Boolean       @default(true) @map("is_active")
+  validFrom      DateTime      @map("valid_from")
+  validUntil     DateTime?     @map("valid_until")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@map("promotions")
+  @@schema("commerce")
+}
+
+// ---------------------------------------------------------------------------
+// Sourcing schema
+// ---------------------------------------------------------------------------
+
+model Supplier {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  slug      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  offers         SupplierOffer[]
+  ingestionJobs  IngestionJob[]
+  purchaseOrders SupplierPurchaseOrder[]
+  payables       SupplierPayable[]
+  skuAliases     SupplierSkuAlias[]
+
+  @@map("suppliers")
+  @@schema("sourcing")
+}
+
+model SupplierSkuAlias {
+  id              String   @id @default(uuid()) @db.Uuid
+  supplierId      String   @map("supplier_id") @db.Uuid
+  supplierSkuCode String   @map("supplier_sku_code")
+  skuId           String   @map("sku_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  sku      Sku      @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@unique([supplierId, supplierSkuCode])
+  @@index([supplierId])
+  @@index([skuId])
+  @@map("supplier_sku_aliases")
+  @@schema("sourcing")
+}
+
+model SupplierOffer {
+  id              String    @id @default(uuid()) @db.Uuid
+  supplierId      String    @map("supplier_id") @db.Uuid
+  skuId           String    @map("sku_id") @db.Uuid
+  costPrice       Decimal   @map("cost_price") @db.Decimal(10, 2)
+  currency        String    @db.VarChar(3)
+  isAvailable     Boolean   @default(true) @map("is_available")
+  lastObservedAt  DateTime  @default(now()) @map("last_observed_at")
+  lastConfirmedAt DateTime? @map("last_confirmed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  supplier          Supplier           @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  sourceAllocations SourceAllocation[]
+
+  @@unique([supplierId, skuId])
+  @@index([supplierId])
+  @@index([skuId])
+  @@map("supplier_offers")
+  @@schema("sourcing")
+}
+
+enum SupplyPlanStatus {
+  CONFIRMING
+  COVERED
+  PARTIALLY_UNAVAILABLE
+  UNAVAILABLE
+
+  @@schema("sourcing")
+}
+
+enum SourceConfirmationResult {
+  pending
+  confirmed_full
+  confirmed_partial
+  unavailable
+  rejected
+  price_changed
+
+  @@schema("sourcing")
+}
+
+model SupplyRequest {
+  id        String           @id @default(uuid()) @db.Uuid
+  orderId   String           @unique @map("order_id") @db.Uuid
+  status    SupplyPlanStatus @default(CONFIRMING)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  requirements SupplyRequirement[]
+  events       SupplyPlanEvent[]
+
+  @@map("supply_requests")
+  @@schema("sourcing")
+}
+
+model SupplyRequirement {
+  id               String    @id @default(uuid()) @db.Uuid
+  supplyRequestId  String    @map("supply_request_id") @db.Uuid
+  orderItemId      String    @unique @map("order_item_id") @db.Uuid
+  skuId            String    @map("sku_id") @db.Uuid
+  requiredQuantity Int       @map("required_quantity")
+  orderSnapshotRef String    @map("order_snapshot_ref") @db.Uuid
+  releasedAt       DateTime? @map("released_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  supplyRequest     SupplyRequest                  @relation(fields: [supplyRequestId], references: [id], onDelete: Cascade)
+  allocations       SourceAllocation[]
+  actionRequirement AvailabilityActionRequirement?
+
+  @@index([supplyRequestId])
+  @@map("supply_requirements")
+  @@schema("sourcing")
+}
+
+model SourceAllocation {
+  id                String                    @id @default(uuid()) @db.Uuid
+  requirementId     String                    @map("requirement_id") @db.Uuid
+  supplierOfferId   String                    @map("supplier_offer_id") @db.Uuid
+  requestedQuantity Int                       @map("requested_quantity")
+  allocatedQuantity Int                       @map("allocated_quantity")
+  confirmedQuantity Int                       @default(0) @map("confirmed_quantity")
+  selectedCost      Decimal                   @map("selected_cost") @db.Decimal(10, 2)
+  selectedCurrency  String                    @map("selected_currency") @db.VarChar(3)
+  rankingDecisionId String                    @map("ranking_decision_id") @db.Uuid
+  result            SourceConfirmationResult  @default(pending)
+  reportedResult    SourceConfirmationResult? @map("reported_result")
+  reportedQuantity  Int?                      @map("reported_quantity")
+  selectedAt        DateTime                  @default(now()) @map("selected_at")
+  confirmedAt       DateTime?                 @map("confirmed_at")
+  evidenceRef       String?                   @map("evidence_ref") @db.VarChar(255)
+
+  requirement   SupplyRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  supplierOffer SupplierOffer     @relation(fields: [supplierOfferId], references: [id])
+
+  @@unique([requirementId, supplierOfferId])
+  @@index([requirementId])
+  @@map("source_allocations")
+  @@schema("sourcing")
+}
+
+model AvailabilityActionRequirement {
+  id                 String   @id @default(uuid()) @db.Uuid
+  requirementId      String   @unique @map("requirement_id") @db.Uuid
+  category           String   @db.VarChar(40)
+  unresolvedQuantity Int      @map("unresolved_quantity")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  requirement SupplyRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@map("availability_action_requirements")
+  @@schema("sourcing")
+}
+
+model SupplyPlanEvent {
+  id              String           @id @default(uuid()) @db.Uuid
+  supplyRequestId String           @map("supply_request_id") @db.Uuid
+  status          SupplyPlanStatus
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  supplyRequest SupplyRequest @relation(fields: [supplyRequestId], references: [id], onDelete: Cascade)
+
+  @@index([supplyRequestId, createdAt])
+  @@map("supply_plan_events")
+  @@schema("sourcing")
+}
+
+enum PurchaseOrderStatus {
+  created
+  sent
+  reviewed
+  confirmed
+  partial
+  ready
+  received_at_hub
+
+  @@schema("sourcing")
+}
+
+enum PurchaseOrderLineStatus {
+  pending
+  confirmed_full
+  confirmed_partial
+  unavailable
+
+  @@schema("sourcing")
+}
+
+model SupplierPurchaseOrder {
+  id         String              @id @default(uuid()) @db.Uuid
+  supplierId String              @map("supplier_id") @db.Uuid
+  status     PurchaseOrderStatus @default(created)
+  notes      String?
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+
+  supplier Supplier            @relation(fields: [supplierId], references: [id])
+  lines    PurchaseOrderLine[]
+  payables SupplierPayable[]
+
+  @@index([supplierId])
+  @@map("supplier_purchase_orders")
+  @@schema("sourcing")
+}
+
+model PurchaseOrderLine {
+  id                String                  @id @default(uuid()) @db.Uuid
+  purchaseOrderId   String                  @map("purchase_order_id") @db.Uuid
+  skuId             String                  @map("sku_id") @db.Uuid
+  requestedQuantity Int                     @map("requested_quantity")
+  confirmedQuantity Int?                    @map("confirmed_quantity")
+  status            PurchaseOrderLineStatus @default(pending)
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+
+  purchaseOrder SupplierPurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+  @@index([skuId])
+  @@map("purchase_order_lines")
+  @@schema("sourcing")
+}
+
+enum PayableStatus {
+  open
+  ready_to_pay
+  paid
+  disputed
+  adjusted
+
+  @@schema("sourcing")
+}
+
+model SupplierPayable {
+  id              String        @id @default(uuid()) @db.Uuid
+  supplierId      String        @map("supplier_id") @db.Uuid
+  purchaseOrderId String        @map("purchase_order_id") @db.Uuid
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @db.VarChar(3)
+  status          PayableStatus @default(open)
+  dueDate         DateTime?     @map("due_date")
+  paidAt          DateTime?     @map("paid_at")
+  paymentRef      String?       @map("payment_ref")
+  notes           String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  supplier      Supplier              @relation(fields: [supplierId], references: [id])
+  purchaseOrder SupplierPurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  adjustments   PayableAdjustment[]
+
+  @@index([supplierId])
+  @@index([purchaseOrderId])
+  @@map("supplier_payables")
+  @@schema("sourcing")
+}
+
+model PayableAdjustment {
+  id        String   @id @default(uuid()) @db.Uuid
+  payableId String   @map("payable_id") @db.Uuid
+  amount    Decimal  @db.Decimal(10, 2)
+  reason    String
+  actorId   String   @map("actor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  payable SupplierPayable @relation(fields: [payableId], references: [id], onDelete: Cascade)
+
+  @@index([payableId])
+  @@map("payable_adjustments")
+  @@schema("sourcing")
+}
+
+// ---------------------------------------------------------------------------
+// Ordering schema
+// ---------------------------------------------------------------------------
+
+model Cart {
+  id             String   @id @default(uuid()) @db.Uuid
+  // Exactly one owner: an authenticated customer, or an anonymous guest identified by an
+  // opaque server-issued token (only its SHA-256 hash is stored; no PII).
+  customerId     String?  @unique @map("customer_id") @db.Uuid
+  guestTokenHash String?  @unique @map("guest_token_hash")
+  revision       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  items          CartItem[]
+  checkoutQuotes CheckoutQuote[]
+
+  @@map("carts")
+  @@schema("ordering")
+}
+
+model CartItem {
+  id              String    @id @default(uuid()) @db.Uuid
+  cartId          String    @map("cart_id") @db.Uuid
+  skuId           String    @map("sku_id") @db.Uuid
+  quantity        Int
+  // Transparency only: the price the customer saw when adding. Never pricing authority.
+  priceAtAdd      Decimal?  @map("price_at_add") @db.Decimal(10, 2)
+  priceObservedAt DateTime? @map("price_observed_at")
+  // Lightweight provenance from a trusted flow (PDP | ROUTINE | REORDER). No lifecycle coupling.
+  sourceType      String?   @map("source_type")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, skuId])
+  @@index([cartId])
+  @@index([skuId])
+  @@map("cart_items")
+  @@schema("ordering")
+}
+
+model CheckoutQuote {
+  id         String    @id @default(uuid()) @db.Uuid
+  cartId     String    @map("cart_id") @db.Uuid
+  revision   Int
+  snapshot   Json
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  orderId    String?   @unique @map("order_id") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  cart  Cart   @relation(fields: [cartId], references: [id], onDelete: Restrict)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([cartId, revision])
+  @@map("checkout_quotes")
+  @@schema("ordering")
+}
+
+enum OrderStatus {
+  placed
+  confirmed
+  packing
+  shipped
+  delivered
+  cancelled
+
+  @@schema("ordering")
+}
+
+model Order {
+  id                    String      @id @default(uuid()) @db.Uuid
+  orderNumber           String      @unique @map("order_number")
+  customerId            String?     @map("customer_id")
+  customerName          String      @map("customer_name")
+  customerPhone         String      @map("customer_phone")
+  governorate           String?
+  area                  String?
+  shippingAddress       String      @map("shipping_address")
+  notes                 String?
+  latitude              Float?
+  longitude             Float?
+  locationSource        String?     @map("location_source")
+  totalAmount           Decimal     @map("total_amount") @db.Decimal(10, 2)
+  shippingFee           Decimal     @default(0) @map("shipping_fee") @db.Decimal(10, 2)
+  currency              String      @db.VarChar(3)
+  status                OrderStatus @default(placed)
+  idempotencyKey        String?     @unique @map("idempotency_key")
+  submissionHash        String?     @map("submission_hash")
+  subtotal              Decimal?    @db.Decimal(10, 2)
+  codAmount             Decimal?    @map("cod_amount") @db.Decimal(10, 2)
+  deliveryPromise       String?     @map("delivery_promise")
+  availabilityCertainty String?     @map("availability_certainty")
+  guestAccessTokenHash  String?     @unique @map("guest_access_token_hash")
+  guestAccessExpiresAt  DateTime?   @map("guest_access_expires_at")
+  guestAccessRevokedAt  DateTime?   @map("guest_access_revoked_at")
+  appliedPromotions     Json?       @map("applied_promotions") // provenance for discounts/campaigns
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
+
+  items                 OrderItem[]
+  statusEvents          OrderStatusEvent[]
+  checkoutQuote         CheckoutQuote?
+  resolutions           OrderResolution[]
+  paymentCollection     PaymentCollection?
+  refundTransactions    RefundTransaction[]
+  availabilityDecisions AvailabilityDecision[]
+  amendments            OrderAmendment[]
+
+  @@map("orders")
+  @@schema("ordering")
+}
+
+model OrderStatusEvent {
+  id        String      @id @default(uuid()) @db.Uuid
+  orderId   String      @map("order_id") @db.Uuid
+  status    OrderStatus
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_events")
+  @@schema("ordering")
+}
+
+model OrderItem {
+  id                String             @id @default(uuid()) @db.Uuid
+  orderId           String             @map("order_id") @db.Uuid
+  skuId             String             @map("sku_id") @db.Uuid
+  quantity          Int
+  price             Decimal            @db.Decimal(10, 2)
+  productId         String?            @map("product_id") @db.Uuid
+  productName       String?            @map("product_name")
+  skuCode           String?            @map("sku_code")
+  variantName       String?            @map("variant_name")
+  discountAmount    Decimal?           @map("discount_amount") @db.Decimal(10, 2)
+  appliedPromotions Json?              @map("applied_promotions") // item-level provenance
+  lineTotal         Decimal?           @map("line_total") @db.Decimal(10, 2)
+  currency          String             @db.VarChar(3)
+  lineState         OrderItemLineState @default(active) @map("line_state")
+  replacesItemId    String?            @map("replaces_item_id") @db.Uuid
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  order       Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  resolutions OrderResolutionItem[]
+
+  @@index([orderId])
+  @@index([skuId])
+  @@map("order_items")
+  @@schema("ordering")
+}
+
+enum OrderItemLineState {
+  active
+  removed
+  replaced
+
+  @@schema("ordering")
+}
+
+enum AvailabilityDecisionStatus {
+  pending
+  resolved
+  review_required
+  superseded
+
+  @@schema("ordering")
+}
+
+enum AvailabilityDecisionAction {
+  REPLACE_WITH
+  CONTINUE_WITHOUT_ITEM
+  CANCEL_ORDER
+
+  @@schema("ordering")
+}
+
+/// Ordering-owned customer decision for a Sourcing-reported availability shortage.
+/// One pending decision per order item (partial unique index in migration).
+model AvailabilityDecision {
+  id                 String                      @id @default(uuid()) @db.Uuid
+  orderId            String                      @map("order_id") @db.Uuid
+  orderItemId        String                      @map("order_item_id") @db.Uuid
+  version            Int                         @default(1)
+  status             AvailabilityDecisionStatus  @default(pending)
+  reasonCategory     String                      @map("reason_category") @db.VarChar(40)
+  unresolvedQuantity Int                         @map("unresolved_quantity")
+  originalSnapshot   Json                        @map("original_snapshot")
+  candidates         Json
+  availableActions   Json                        @map("available_actions")
+  stateFingerprint   String                      @map("state_fingerprint")
+  expiresAt          DateTime?                   @map("expires_at")
+  decidedAction      AvailabilityDecisionAction? @map("decided_action")
+  decidedSkuId       String?                     @map("decided_sku_id") @db.Uuid
+  decidedBy          String?                     @map("decided_by")
+  decidedChannel     String?                     @map("decided_channel") @db.VarChar(30)
+  decidedAt          DateTime?                   @map("decided_at")
+  decisionKey        String?                     @unique @map("decision_key")
+  decisionHash       String?                     @map("decision_hash")
+  receipt            Json?
+  createdAt          DateTime                    @default(now()) @map("created_at")
+  updatedAt          DateTime                    @updatedAt @map("updated_at")
+
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amendment OrderAmendment?
+
+  @@unique([orderItemId, version])
+  @@index([orderId, status])
+  @@map("availability_decisions")
+  @@schema("ordering")
+}
+
+/// Append-only audit of an applied decision; the original order snapshot is never overwritten.
+model OrderAmendment {
+  id         String   @id @default(uuid()) @db.Uuid
+  orderId    String   @map("order_id") @db.Uuid
+  decisionId String   @unique @map("decision_id") @db.Uuid
+  type       String   @db.VarChar(40)
+  before     Json
+  after      Json
+  codBefore  Decimal  @map("cod_before") @db.Decimal(10, 2)
+  codAfter   Decimal  @map("cod_after") @db.Decimal(10, 2)
+  currency   String   @db.VarChar(3)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  order    Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  decision AvailabilityDecision @relation(fields: [decisionId], references: [id])
+
+  @@index([orderId])
+  @@map("order_amendments")
+  @@schema("ordering")
+}
+
+enum OrderResolutionType {
+  cancellation
+  return
+  refund
+  replacement
+  compensation
+
+  @@schema("ordering")
+}
+
+enum OrderResolutionStatus {
+  requested
+  approved
+  rejected
+  in_transit
+  received
+  resolved
+
+  @@schema("ordering")
+}
+
+model OrderResolution {
+  id                String                @id @default(uuid()) @db.Uuid
+  orderId           String                @map("order_id") @db.Uuid
+  type              OrderResolutionType
+  status            OrderResolutionStatus @default(requested)
+  reasonCode        String?               @map("reason_code")
+  notes             String?
+  resolutionDetails Json?                 @map("resolution_details")
+  actorId           String                @map("actor_id")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  order             Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items             OrderResolutionItem[]
+  events            OrderResolutionEvent[]
+  refundTransaction RefundTransaction?
+
+  @@index([orderId])
+  @@map("order_resolutions")
+  @@schema("ordering")
+}
+
+model OrderResolutionItem {
+  id           String @id @default(uuid()) @db.Uuid
+  resolutionId String @map("resolution_id") @db.Uuid
+  orderItemId  String @map("order_item_id") @db.Uuid
+  quantity     Int
+
+  resolution OrderResolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+  orderItem  OrderItem       @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@unique([resolutionId, orderItemId])
+  @@map("order_resolution_items")
+  @@schema("ordering")
+}
+
+model OrderResolutionEvent {
+  id           String                @id @default(uuid()) @db.Uuid
+  resolutionId String                @map("resolution_id") @db.Uuid
+  status       OrderResolutionStatus
+  actorId      String                @map("actor_id")
+  notes        String?
+  createdAt    DateTime              @default(now()) @map("created_at")
+
+  resolution OrderResolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+
+  @@index([resolutionId])
+  @@map("order_resolution_events")
+  @@schema("ordering")
+}
+
+enum RefundStatus {
+  pending
+  processing
+  succeeded
+  failed
+
+  @@schema("ordering")
+}
+
+model RefundTransaction {
+  id              String       @id @default(uuid()) @db.Uuid
+  resolutionId    String       @unique @map("resolution_id") @db.Uuid
+  orderId         String       @map("order_id") @db.Uuid
+  amount          Decimal      @db.Decimal(10, 2)
+  currency        String       @db.VarChar(3)
+  status          RefundStatus @default(pending)
+  paymentProvider String?      @map("payment_provider")
+  providerRef     String?      @map("provider_ref")
+  errorReason     String?      @map("error_reason")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  resolution OrderResolution @relation(fields: [resolutionId], references: [id])
+  order      Order           @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("refund_transactions")
+  @@schema("ordering")
+}
+
+enum SettlementStatus {
+  expected
+  collected
+  settled
+  short
+  over
+  disputed
+
+  @@schema("ordering")
+}
+
+model PaymentCollection {
+  id                String           @id @default(uuid()) @db.Uuid
+  orderId           String           @unique @map("order_id") @db.Uuid
+  expectedAmount    Decimal          @map("expected_amount") @db.Decimal(10, 2)
+  collectedAmount   Decimal?         @map("collected_amount") @db.Decimal(10, 2)
+  currency          String           @db.VarChar(3)
+  status            SettlementStatus @default(expected)
+  courierId         String?          @map("courier_id")
+  settlementBatchId String?          @map("settlement_batch_id") @db.Uuid
+  notes             String?
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  order           Order                   @relation(fields: [orderId], references: [id])
+  settlementBatch CourierSettlementBatch? @relation(fields: [settlementBatchId], references: [id])
+
+  @@map("payment_collections")
+  @@schema("ordering")
+}
+
+model CourierSettlementBatch {
+  id             String   @id @default(uuid()) @db.Uuid
+  reference      String   @unique
+  courierId      String   @map("courier_id")
+  totalExpected  Decimal  @map("total_expected") @db.Decimal(10, 2)
+  totalCollected Decimal  @map("total_collected") @db.Decimal(10, 2)
+  fees           Decimal  @default(0) @db.Decimal(10, 2)
+  netSettled     Decimal  @map("net_settled") @db.Decimal(10, 2)
+  currency       String   @db.VarChar(3)
+  settledAt      DateTime @default(now()) @map("settled_at")
+  actorId        String   @map("actor_id")
+  notes          String?
+
+  collections PaymentCollection[]
+
+  @@map("courier_settlement_batches")
+  @@schema("ordering")
+}
+
+// ---------------------------------------------------------------------------
+// Fulfillment schema
+// ---------------------------------------------------------------------------
+
+model FulfillmentLocation {
+  id           String                  @id @default(uuid()) @db.Uuid
+  name         String                  @unique
+  address      String
+  isActive     Boolean                 @default(true) @map("is_active")
+  capabilities FulfillmentCapability[] @default([RECEIVE_SUPPLIER_GOODS, PREPARE_ORDERS, DISPATCH_SHIPMENTS, MANAGE_OWNED_INVENTORY])
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  shipments           Shipment[]
+  inventoryBalances   InventoryBalance[]
+  operatorAssignments FulfillmentLocationOperator[]
+  receipts            FulfillmentReceipt[]
+
+  @@map("fulfillment_locations")
+  @@schema("fulfillment")
+}
+
+enum FulfillmentCapability {
+  RECEIVE_SUPPLIER_GOODS
+  PREPARE_ORDERS
+  DISPATCH_SHIPMENTS
+  MANAGE_OWNED_INVENTORY
+
+  @@schema("fulfillment")
+}
+
+model FulfillmentLocationOperator {
+  id         String   @id @default(uuid()) @db.Uuid
+  locationId String   @map("location_id") @db.Uuid
+  operatorId String   @map("operator_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  location FulfillmentLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, operatorId])
+  @@index([operatorId])
+  @@map("fulfillment_location_operators")
+  @@schema("fulfillment")
+}
+
+enum ShipmentStatus {
+  pending
+  ready_to_prepare
+  preparing
+  prepared
+  ready_to_pack
+  packing
+  packed
+  dispatched
+  out_for_delivery
+  delivered
+  failed
+  returned
+
+  @@schema("fulfillment")
+}
+
+model Shipment {
+  id             String         @id @default(uuid()) @db.Uuid
+  orderId        String         @unique @map("order_id") @db.Uuid
+  locationId     String         @map("location_id") @db.Uuid
+  status         ShipmentStatus @default(pending)
+  trackingNumber String?        @map("tracking_number")
+  dispatchedAt   DateTime?      @map("dispatched_at")
+  deliveredAt    DateTime?      @map("delivered_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  location            FulfillmentLocation          @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  items               ShipmentItem[]
+  preparationSessions ShipmentPreparationSession[]
+  events              ShipmentEvent[]
+  deliveryStops       DeliveryStop[]
+
+  @@index([locationId])
+  @@map("shipments")
+  @@schema("fulfillment")
+}
+
+model ShipmentItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  shipmentId String   @map("shipment_id") @db.Uuid
+  skuId      String   @map("sku_id") @db.Uuid
+  quantity   Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([skuId])
+  @@map("shipment_items")
+  @@schema("fulfillment")
+}
+
+model DeliveryBatch {
+  id           String    @id @default(uuid()) @db.Uuid
+  status       String    @default("planning") // planning, dispatched, completed
+  driverId     String?   @map("driver_id")
+  plannedAt    DateTime? @default(now()) @map("planned_at")
+  dispatchedAt DateTime? @map("dispatched_at")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  stops DeliveryStop[]
+
+  @@map("delivery_batches")
+  @@schema("fulfillment")
+}
+
+model DeliveryStop {
+  id         String   @id @default(uuid()) @db.Uuid
+  batchId    String   @map("batch_id") @db.Uuid
+  shipmentId String   @unique @map("shipment_id") @db.Uuid
+  sequence   Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  batch    DeliveryBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  shipment Shipment      @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
+
+  @@unique([batchId, sequence])
+  @@map("delivery_stops")
+  @@schema("fulfillment")
+}
+
+model ShipmentEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  shipmentId String   @map("shipment_id") @db.Uuid
+  type       String // e.g. PACKED, LABEL_PRINTED, HANDOFF_SCANNED, OUT_FOR_DELIVERY, DELIVERED, FAILED, RETURNED
+  actorId    String?  @map("actor_id") // ID of hub operator or driver
+  notes      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@map("shipment_events")
+  @@schema("fulfillment")
+}
+
+model InventoryBalance {
+  id                          String   @id @default(uuid()) @db.Uuid
+  locationId                  String   @map("location_id") @db.Uuid
+  skuId                       String   @map("sku_id") @db.Uuid
+  ownedOnHand                 Int      @default(0) @map("owned_on_hand")
+  reserved                    Int      @default(0)
+  availableToSell             Int      @default(0) @map("available_to_sell")
+  orderAllocatedExternalGoods Int      @default(0) @map("order_allocated_external_goods")
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+
+  location     FulfillmentLocation    @relation(fields: [locationId], references: [id])
+  transactions InventoryTransaction[]
+
+  @@unique([locationId, skuId])
+  @@index([locationId])
+  @@index([skuId])
+  @@map("inventory_balances")
+  @@schema("fulfillment")
+}
+
+model InventoryTransaction {
+  id          String   @id @default(uuid()) @db.Uuid
+  balanceId   String   @map("balance_id") @db.Uuid
+  type        String // RECEIVE_OWNED, RESERVE, RELEASE, PICK, ADJUST, DAMAGE, RETURN_TO_STOCK
+  quantity    Int
+  reason      String?
+  actorId     String?  @map("actor_id")
+  referenceId String?  @map("reference_id") // OrderId, ShipmentId, etc
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  balance InventoryBalance    @relation(fields: [balanceId], references: [id], onDelete: Cascade)
+  receipt FulfillmentReceipt?
+
+  @@index([balanceId])
+  @@map("inventory_transactions")
+  @@schema("fulfillment")
+}
+
+enum ReceivedGoodsCondition {
+  ACCEPTABLE
+  DAMAGED
+  EXPIRED
+  QUARANTINED
+
+  @@schema("fulfillment")
+}
+
+model FulfillmentReceipt {
+  id                          String                 @id @default(uuid()) @db.Uuid
+  locationId                  String                 @map("location_id") @db.Uuid
+  supplyRequestId             String                 @map("supply_request_id") @db.Uuid
+  sourceAllocationId          String                 @map("source_allocation_id") @db.Uuid
+  orderId                     String                 @map("order_id") @db.Uuid
+  orderItemId                 String                 @map("order_item_id") @db.Uuid
+  skuId                       String                 @map("sku_id") @db.Uuid
+  variantName                 String                 @map("variant_name")
+  quantity                    Int
+  allocationConfirmedQuantity Int                    @map("allocation_confirmed_quantity")
+  condition                   ReceivedGoodsCondition
+  idempotencyKey              String                 @unique @map("idempotency_key") @db.VarChar(128)
+  actorId                     String                 @map("actor_id") @db.Uuid
+  inventoryTransactionId      String                 @unique @map("inventory_transaction_id") @db.Uuid
+  receivedAt                  DateTime               @default(now()) @map("received_at")
+
+  location             FulfillmentLocation  @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  inventoryTransaction InventoryTransaction @relation(fields: [inventoryTransactionId], references: [id], onDelete: Restrict)
+
+  @@index([sourceAllocationId])
+  @@index([orderId, orderItemId])
+  @@index([locationId, skuId])
+  @@map("fulfillment_receipts")
+  @@schema("fulfillment")
+}
+
+enum PreparationSessionStatus {
+  in_progress
+  completed
+  failed
+
+  @@schema("fulfillment")
+}
+
+model ShipmentPreparationSession {
+  id          String                   @id @default(uuid()) @db.Uuid
+  shipmentId  String                   @map("shipment_id") @db.Uuid
+  operatorId  String                   @map("operator_id") // Optional UUID or username representing the hub operator
+  startedAt   DateTime                 @default(now()) @map("started_at")
+  completedAt DateTime?                @map("completed_at")
+  status      PreparationSessionStatus @default(in_progress)
+
+  shipment   Shipment               @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  scanEvents PreparationScanEvent[]
+
+  @@index([shipmentId])
+  @@map("shipment_preparation_sessions")
+  @@schema("fulfillment")
+}
+
+model PreparationScanEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  sessionId      String   @map("session_id") @db.Uuid
+  skuId          String?  @map("sku_id") @db.Uuid
+  barcodeScanned String?  @map("barcode_scanned")
+  scannedAt      DateTime @default(now()) @map("scanned_at")
+  isSuccessful   Boolean  @default(true) @map("is_successful")
+  errorReason    String?  @map("error_reason")
+
+  session ShipmentPreparationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("preparation_scan_events")
+  @@schema("fulfillment")
+}
+
+// ---------------------------------------------------------------------------
+// Ingestion schema (B6)
+// ---------------------------------------------------------------------------
+
+enum IngestionStatus {
+  pending
+  review_required
+  approved
+  rejected
+  published
+
+  @@schema("ingestion")
+}
+
+model IngestionJob {
+  id         String          @id @default(uuid()) @db.Uuid
+  supplierId String          @map("supplier_id") @db.Uuid
+  status     IngestionStatus @default(pending)
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+
+  items    IngestionItem[]
+  supplier Supplier        @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+  @@map("ingestion_jobs")
+  @@schema("ingestion")
+}
+
+enum IngestionItemEnrichmentStatus {
+  pending
+  succeeded
+  failed
+
+  @@schema("ingestion")
+}
+
+model IngestionItem {
+  id               String                        @id @default(uuid()) @db.Uuid
+  jobId            String                        @map("job_id") @db.Uuid
+  supplierSkuCode  String                        @map("supplier_sku_code")
+  name             String
+  brand            String
+  barcode          String?
+  price            Decimal                       @db.Decimal(10, 2)
+  currency         String                        @db.VarChar(3)
+  status           IngestionStatus               @default(pending)
+  matchedSkuId     String?                       @map("matched_sku_id") @db.Uuid
+  enrichmentStatus IngestionItemEnrichmentStatus @default(pending) @map("enrichment_status")
+  enrichment       Json?
+  enrichmentError  String?                       @map("enrichment_error")
+  createdAt        DateTime                      @default(now()) @map("created_at")
+  updatedAt        DateTime                      @updatedAt @map("updated_at")
+
+  job IngestionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  contentDraft ProductContentDraft?
+
+  @@index([jobId])
+  @@index([status])
+  @@map("ingestion_items")
+  @@schema("ingestion")
+}
+
+model ProductContentDraft {
+  id               String   @id @default(uuid()) @db.Uuid
+  candidateId      String   @unique @map("candidate_id") @db.Uuid
+  language         String   @db.VarChar(5) // 'ar' or 'en'
+  titleEn          String?
+  titleAr          String?
+  shortDescriptionEn String?
+  shortDescriptionAr String?
+  descriptionEn    String?
+  descriptionAr    String?
+  benefitsEn       String[]
+  benefitsAr       String[]
+  usageEn          String[]
+  usageAr          String[]
+  routineStepEn    String?
+  routineStepAr    String?
+  keywords         String[]
+  seoTitleEn       String?
+  seoTitleAr       String?
+  seoDescriptionEn String?
+  seoDescriptionAr String?
+  evidenceVersion  String?
+  modelVersion     String?
+  isApproved       Boolean  @default(false) @map("is_approved")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  candidate IngestionItem @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("product_content_drafts")
+  @@schema("ingestion")
+}
+
+// ---------------------------------------------------------------------------
+// Care schema
+// ---------------------------------------------------------------------------
+
+enum CareArea {
+  skin
+  hair
+
+  @@schema("care")
+}
+
+enum RoutineTiming {
+  am
+  pm
+  both
+  as_needed
+
+  @@schema("care")
+}
+
+model Concern {
+  id          String                       @id @default(uuid()) @db.Uuid
+  careArea    CareArea                     @map("care_area")
+  name        String                       @unique
+  slug        String                       @unique
+  description String?
+  isActive    Boolean                      @default(true) @map("is_active")
+  createdAt   DateTime                     @default(now()) @map("created_at")
+  updatedAt   DateTime                     @updatedAt @map("updated_at")
+  profiles    CustomerCareProfileConcern[]
+
+  @@map("concerns")
+  @@schema("care")
+}
+
+model Routine {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  description String?
+  careArea    CareArea @map("care_area")
+  isTemplate  Boolean  @default(true) @map("is_template")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  steps    RoutineStep[]
+  profiles CustomerCareProfile[]
+
+  @@map("routines")
+  @@schema("care")
+}
+
+model RoutineStep {
+  id           String        @id @default(uuid()) @db.Uuid
+  routineId    String        @map("routine_id") @db.Uuid
+  title        String
+  instructions String?
+  stepOrder    Int           @map("step_order")
+  timing       RoutineTiming
+  isOptional   Boolean       @default(false) @map("is_optional")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  routine         Routine                     @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  recommendations RoutineStepRecommendation[]
+
+  @@unique([routineId, stepOrder])
+  @@index([routineId])
+  @@map("routine_steps")
+  @@schema("care")
+}
+
+enum RecommendationSource {
+  manual
+  rule_engine
+  ai
+  expert
+
+  @@schema("care")
+}
+
+model RoutineStepRecommendation {
+  id        String               @id @default(uuid()) @db.Uuid
+  stepId    String               @map("step_id") @db.Uuid
+  productId String               @map("product_id") @db.Uuid
+  source    RecommendationSource @default(manual)
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+
+  step    RoutineStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([stepId, productId])
+  @@index([stepId])
+  @@index([productId])
+  @@map("routine_step_recommendations")
+  @@schema("care")
+}
+
+enum SkinType {
+  normal
+  dry
+  oily
+  combination
+  sensitive
+
+  @@schema("care")
+}
+
+model CustomerCareProfile {
+  id            String    @id @default(uuid()) @db.Uuid
+  customerId    String    @unique @map("customer_id")
+  skinType      SkinType? @map("skin_type")
+  budget        Decimal?  @db.Decimal(10, 2)
+  currency      String?   @db.VarChar(3)
+  sensitivities String?
+  routineId     String?   @map("routine_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  routine  Routine?                     @relation(fields: [routineId], references: [id])
+  concerns CustomerCareProfileConcern[]
+
+  @@index([routineId])
+  @@map("customer_care_profiles")
+  @@schema("care")
+}
+
+model CustomerCareProfileConcern {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  concernId String   @map("concern_id") @db.Uuid
+  severity  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile CustomerCareProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  concern Concern             @relation(fields: [concernId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, concernId])
+  @@index([profileId])
+  @@index([concernId])
+  @@map("customer_care_profile_concerns")
+  @@schema("care")
+}
+
+enum GuidanceSessionStatus {
+  active
+  completed
+  abandoned
+
+  @@schema("care")
+}
+
+model GuidanceSession {
+  id         String                @id @default(uuid()) @db.Uuid
+  customerId String                @map("customer_id")
+  status     GuidanceSessionStatus @default(active)
+  createdAt  DateTime              @default(now()) @map("created_at")
+  updatedAt  DateTime              @updatedAt @map("updated_at")
+
+  messages GuidanceMessage[]
+
+  @@index([customerId])
+  @@map("guidance_sessions")
+  @@schema("care")
+}
+
+enum GuidanceMessageRole {
+  user
+  assistant
+  system
+
+  @@schema("care")
+}
+
+model GuidanceMessage {
+  id        String              @id @default(uuid()) @db.Uuid
+  sessionId String              @map("session_id") @db.Uuid
+  role      GuidanceMessageRole
+  content   String
+  proposal  Json? // Store structured routine proposal if returned by AI
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  session GuidanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("guidance_messages")
+  @@schema("care")
+}
+
+// ---------------------------------------------------------------------------
+// Accounts schema
+// ---------------------------------------------------------------------------
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  HUB_OPERATOR
+  SUPPLIER
+  DRIVER
+
+  @@schema("accounts")
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String   @unique
+  roles     Role[]   @default([CUSTOMER])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  identities Identity[]
+  sessions   Session[]
+
+  @@map("customers")
+  @@schema("accounts")
+}
+
+model Identity {
+  id           String   @id @default(uuid()) @db.Uuid
+  customerId   String   @map("customer_id") @db.Uuid
+  provider     String // e.g., 'EMAIL', 'GOOGLE'
+  providerId   String   @map("provider_id") // e.g., email address
+  passwordHash String?  @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([customerId])
+  @@map("identities")
+  @@schema("accounts")
+}
+
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  token      String   @unique @db.Uuid
+  isValid    Boolean  @default(true) @map("is_valid")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([token])
+  @@map("sessions")
+  @@schema("accounts")
+}
+
+model OtpChallenge {
+  id            String   @id @default(uuid()) @db.Uuid
+  phoneNumber   String   @map("phone_number")
+  code          String
+  purpose       String   @default("LOGIN")
+  expiresAt     DateTime @map("expires_at")
+  attempts      Int      @default(0)
+  maxAttempts   Int      @default(3) @map("max_attempts")
+  isUsed        Boolean  @default(false) @map("is_used")
+  isRevoked     Boolean  @default(false) @map("is_revoked")
+  pendingIntent String?  @map("pending_intent") // Stores returnTo or action intent
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([phoneNumber])
+  @@map("otp_challenges")
+  @@schema("accounts")
+}
+
+// ---------------------------------------------------------------------------
+// Operations schema
+// ---------------------------------------------------------------------------
+
+enum NotificationStatus {
+  pending
+  processing
+  sent
+  failed
+
+  @@schema("operations")
+}
+
+model NotificationOutbox {
+  id               String             @id @default(uuid()) @db.Uuid
+  eventType        String             @map("event_type")
+  aggregateId      String?            @map("aggregate_id")
+  aggregateType    String?            @map("aggregate_type")
+  customerId       String?            @map("customer_id")
+  payload          Json
+  channelIntent    String?            @map("channel_intent") // whatsapp, email, push
+  templateId       String?            @map("template_id")
+  templateVersion  Int?               @map("template_version")
+  deduplicationKey String             @unique @map("deduplication_key")
+  status           NotificationStatus @default(pending)
+  attempts         Int                @default(0)
+  maxAttempts      Int                @default(3) @map("max_attempts")
+  nextAttemptAt    DateTime?          @map("next_attempt_at")
+  lastError        Json?              @map("last_error")
+  sentAt           DateTime?          @map("sent_at")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  @@index([status, nextAttemptAt])
+  @@index([aggregateId, eventType])
+  @@map("notification_outbox")
+  @@schema("operations")
+}
+
+enum SupportCaseStatus {
+  open
+  in_progress
+  resolved
+  closed
+
+  @@schema("operations")
+}
+
+enum SupportCasePriority {
+  low
+  medium
+  high
+  critical
+
+  @@schema("operations")
+}
+
+enum SupportCaseCategory {
+  payment
+  sourcing
+  delivery
+  damaged_item
+  wrong_item
+  cancellation
+  return
+  supplier_dispute
+  other
+
+  @@schema("operations")
+}
+
+model SupportCase {
+  id          String              @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  category    SupportCaseCategory @default(other)
+  priority    SupportCasePriority @default(medium)
+  status      SupportCaseStatus   @default(open)
+
+  customerId String? @map("customer_id")
+  orderId    String? @map("order_id") @db.Uuid
+  supplierId String? @map("supplier_id") @db.Uuid
+
+  assigneeId    String? @map("assignee_id")
+  internalNotes String? @map("internal_notes")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([assigneeId])
+  @@map("support_cases")
+  @@schema("operations")
+}
+
+enum AccountingExportStatus {
+  pending
+  processing
+  completed
+  failed
+
+  @@schema("operations")
+}
+
+model AccountingExportJob {
+  id        String                 @id @default(uuid()) @db.Uuid
+  startDate DateTime               @map("start_date")
+  endDate   DateTime               @map("end_date")
+  status    AccountingExportStatus @default(pending)
+  fileUrl   String?                @map("file_url")
+  error     String?
+  actorId   String                 @map("actor_id")
+  createdAt DateTime               @default(now()) @map("created_at")
+  updatedAt DateTime               @updatedAt @map("updated_at")
+
+  @@map("accounting_export_jobs")
+  @@schema("operations")
+}

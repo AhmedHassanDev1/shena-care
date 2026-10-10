@@ -123,8 +123,8 @@ export class SourcingService {
     if (!supplier) throw new NotFoundException(`Supplier ${dto.supplierId} not found`);
 
     // Validate SKU in Catalog
-    const isSkuValid = await this.catalogService.validateSku(dto.skuId);
-    if (!isSkuValid) throw new NotFoundException(`SKU ${dto.skuId} not found in catalog`);
+    const skuIdentity = await this.catalogService.getSkuIdentity(dto.skuId);
+    if (!skuIdentity?.isActive) throw new NotFoundException(`SKU ${dto.skuId} not found in catalog`);
 
     // Validate Uniqueness
     const existing = await this.prisma.supplierOffer.findUnique({
@@ -242,13 +242,14 @@ export class SourcingService {
    * Resolves whether a SKU is currently available based on active supplier offers.
    * Returns true if there is at least one available offer from an active supplier.
    */
-  async checkAvailability(skuId: string): Promise<boolean> {
+  async checkAvailability(skuId: string, requireConfirmation = false): Promise<boolean> {
     if (!this.isUuid(skuId)) return false;
 
     const offer = await this.prisma.supplierOffer.findFirst({
       where: {
         skuId,
         isAvailable: true,
+        ...(requireConfirmation && { lastConfirmedAt: { not: null } }),
         supplier: {
           isActive: true,
         },
@@ -256,5 +257,22 @@ export class SourcingService {
     });
 
     return !!offer;
+  }
+
+  /** Public projection deliberately excludes supplier identity and procurement cost. */
+  async getPublicAvailability(skuId: string, at = new Date()) {
+    const configured = Number(process.env.SUPPLIER_AVAILABILITY_MAX_AGE_HOURS ?? 24);
+    if (!Number.isFinite(configured) || configured <= 0 || configured > 720)
+      throw new Error('Invalid supplier availability freshness configuration');
+    const maxAgeMs = configured * 3600000;
+    const offer = await this.prisma.supplierOffer.findFirst({
+      where: { skuId, isAvailable: true, supplier: { isActive: true }, lastConfirmedAt: { not: null, lte: at } },
+      orderBy: [{ lastConfirmedAt: 'desc' }, { id: 'asc' }],
+      select: { lastConfirmedAt: true, lastObservedAt: true },
+    });
+    const confirmedAt = offer?.lastConfirmedAt ?? null;
+    const validUntil = confirmedAt ? new Date(confirmedAt.getTime() + maxAgeMs) : null;
+    const isFresh = !!validUntil && validUntil > at;
+    return { isAvailable: isFresh, isFresh, confirmedAt, observedAt: offer?.lastObservedAt ?? null, validUntil };
   }
 }

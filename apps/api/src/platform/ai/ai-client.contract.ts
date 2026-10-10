@@ -74,6 +74,38 @@ export interface GuidanceRecommendationResult {
   proposal?: RoutineProposal | null;
 }
 
+export interface GeneratedContent {
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+  shortDescriptionEn: string;
+  shortDescriptionAr: string;
+  benefitsEn: string[];
+  benefitsAr: string[];
+  usageInstructionsEn?: string[];
+  usageInstructionsAr?: string[];
+  routineStepEn?: string | null;
+  routineStepAr?: string | null;
+  keywords: string[];
+  seoTitleEn?: string | null;
+  seoTitleAr?: string | null;
+  seoDescriptionEn?: string | null;
+  seoDescriptionAr?: string | null;
+}
+
+export interface ProductContentGenerationInput {
+  candidateId: string;
+  facts: any;
+  researchEvidence?: any;
+}
+
+export interface ProductContentGenerationResult {
+  schemaVersion: '1';
+  content: GeneratedContent;
+  providerMetadata: Record<string, string>;
+}
+
 export const AI_MODULE_OPTIONS = Symbol('AI_MODULE_OPTIONS');
 
 export interface AiModuleOptions {
@@ -107,8 +139,10 @@ export const AI_CLIENT = Symbol('AI_CLIENT');
 export abstract class AiClient implements ProductEnrichmentCaller {
   abstract enrichProduct(input: ProductEnrichmentInput, correlationId?: string): Promise<ProductEnrichmentResult>;
   abstract recommendRoutine(input: GuidanceRecommendationRequest, correlationId?: string): Promise<GuidanceRecommendationResult>;
+  abstract generateContent(input: ProductContentGenerationInput, correlationId?: string): Promise<ProductContentGenerationResult>;
 }
 
 export interface ProductEnrichmentCaller {
   enrichProduct(input: ProductEnrichmentInput, correlationId?: string): Promise<ProductEnrichmentResult>;
+  generateContent(input: ProductContentGenerationInput, correlationId?: string): Promise<ProductContentGenerationResult>;
 }

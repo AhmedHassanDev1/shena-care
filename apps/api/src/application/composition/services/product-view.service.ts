@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CatalogService } from '../../../modules/catalog/public';
+import { CatalogService, PublishedProduct } from '../../../modules/catalog/public';
 import { CommerceService } from '../../../modules/commerce/public';
 import { SourcingService } from '../../../modules/sourcing/public';
 
@@ -29,6 +29,7 @@ export interface ProductView {
   skus: Array<{
     id: string;
     code: string;
+    barcode: string | null;
     variantName: string;
     size: number | null;
     sizeUnit: string | null;
@@ -39,9 +40,11 @@ export interface ProductView {
     } | null;
     isAvailable: boolean;
     canOrder: boolean;
+    availability: Awaited<ReturnType<SourcingService['getPublicAvailability']>>;
   }>;
   media: Array<{
     id: string;
+    skuId: string | null;
     type: string;
     url: string;
     altText: string | null;
@@ -65,26 +68,34 @@ export class ProductViewService {
       return null;
     }
 
+    return this.composeProduct(product);
+  }
+
+  async composeProduct(product: PublishedProduct, at = new Date()): Promise<ProductView | null> {
+
     const skusWithCommerce = await Promise.all(
-      product.skus.map(async (sku) => {
-        const [terms, isAvailable] = await Promise.all([
+      product.skus.filter(sku => product.media.some(media => media.skuId === sku.id)).map(async (sku) => {
+        const [terms, availability] = await Promise.all([
           this.commerceService.getSellingTerms(sku.id),
-          this.sourcingService.checkAvailability(sku.id),
+          this.sourcingService.getPublicAvailability(sku.id, at),
         ]);
 
         return {
           id: sku.id,
           code: sku.code,
+          barcode: sku.barcode,
           variantName: sku.variantName,
           size: sku.size,
           sizeUnit: sku.sizeUnit,
           price: terms?.price ?? null,
-          isAvailable,
-          canOrder: (terms?.canOrder ?? false) && isAvailable,
+          isAvailable: availability.isAvailable,
+          availability,
+          canOrder: (terms?.canOrder ?? false) && availability.isAvailable,
         };
       }),
     );
 
+    if (!product.media.length || !skusWithCommerce.some(sku => sku.canOrder)) return null;
     return {
       id: product.id,
       name: product.name,
@@ -95,8 +106,8 @@ export class ProductViewService {
       brand: product.brand,
       productLine: product.productLine ?? null,
       category: product.category ?? null,
-      skus: skusWithCommerce,
-      media: product.media,
+      skus: skusWithCommerce.filter(sku => sku.canOrder),
+      media: product.media.filter(m => skusWithCommerce.some(sku => sku.id === m.skuId && sku.canOrder)),
     };
   }
 
@@ -109,46 +120,15 @@ export class ProductViewService {
     limit?: number;
   }): Promise<ProductView[]> {
     // بنمرر الـ filters للـ CatalogService اللي هو مسؤول عن الـ DB query
-    const products = await this.catalogService.getPublishedProducts(filters);
+    const products = await this.catalogService.getPublishedProducts({ categorySlug: filters?.categorySlug,
+      brandSlug: filters?.brandSlug, productLineSlug: filters?.productLineSlug });
 
     const productViews = await Promise.all(
-      products.map(async (product) => {
-        const skusWithCommerce = await Promise.all(
-          product.skus.map(async (sku) => {
-            const [terms, isAvailable] = await Promise.all([
-              this.commerceService.getSellingTerms(sku.id),
-              this.sourcingService.checkAvailability(sku.id),
-            ]);
-
-            return {
-              id: sku.id,
-              code: sku.code,
-              variantName: sku.variantName,
-              size: sku.size,
-              sizeUnit: sku.sizeUnit,
-              price: terms?.price ?? null,
-              isAvailable,
-              canOrder: (terms?.canOrder ?? false) && isAvailable,
-            };
-          }),
-        );
-
-        return {
-          id: product.id,
-          name: product.name,
-          slug: product.slug,
-          description: product.description,
-          usage: product.usage,
-          warnings: product.warnings,
-          brand: product.brand,
-          productLine: product.productLine ?? null,
-          category: product.category ?? null,
-          skus: skusWithCommerce,
-          media: product.media,
-        };
-      }),
+      products.sort((a, b) => a.id.localeCompare(b.id)).map(product => this.composeProduct(product)),
     );
 
-    return productViews;
+    const visible = productViews.filter((product): product is ProductView => product !== null);
+    const limit = Math.min(filters?.limit ?? 20, 100);
+    return visible.slice(((filters?.page ?? 1) - 1) * limit, (filters?.page ?? 1) * limit);
   }
 }

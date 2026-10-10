@@ -1,3 +1,6 @@
+import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
+import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
+import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import {
   Controller,
   Get,
@@ -10,8 +13,13 @@ import {
   NotFoundException,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ProductViewService } from '../services/product-view.service';
+import { DiscoveryService } from '../services/discovery.service';
+import { DiscoveryQueryDto, ProductListQueryDto } from '../dto/discovery.dto';
+import { ProductDetailService } from '../services/product-detail.service';
 import {
   CatalogService,
   CreateProductDto,
@@ -27,6 +35,8 @@ export class ProductViewController {
   constructor(
     private readonly productViewService: ProductViewService,
     private readonly catalogService: CatalogService,
+    private readonly discoveryService: DiscoveryService,
+    private readonly productDetailService: ProductDetailService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -37,22 +47,16 @@ export class ProductViewController {
   // GET /products?category=moisturizers&brand=cerave&productLine=cerave-daily-moisturizers&page=1&limit=20
   @Get()
   async listProducts(
-    @Query('category') categorySlug?: string,
-    @Query('brand') brandSlug?: string,
-    @Query('productLine') productLineSlug?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() query: ProductListQueryDto,
   ) {
-    const pageNum = page ? parseInt(page, 10) : undefined;
-    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    if (query.q || query.cursor) return (await this.discoveryService.discover(query)).items;
+    return this.productViewService.getProductViews({ categorySlug: query.category, brandSlug: query.brand,
+      productLineSlug: query.productLine, page: query.page, limit: query.limit });
+  }
 
-    return this.productViewService.getProductViews({
-      categorySlug,
-      brandSlug,
-      productLineSlug,
-      page: pageNum && !isNaN(pageNum) ? pageNum : undefined,
-      limit: limitNum && !isNaN(limitNum) ? limitNum : undefined,
-    });
+  @Get('discovery')
+  async discover(@Query() query: DiscoveryQueryDto) {
+    return this.discoveryService.discover(query);
   }
 
   // ---------------------------------------------------------------------------
@@ -60,6 +64,8 @@ export class ProductViewController {
   // ---------------------------------------------------------------------------
 
   // PATCH /products/skus/:skuId
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Patch('skus/:skuId')
   async updateSku(
     @Param('skuId') skuId: string,
@@ -73,15 +79,20 @@ export class ProductViewController {
   // ---------------------------------------------------------------------------
 
   // PATCH /products/media/:mediaId
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Patch('media/:mediaId')
   async updateMedia(
+    @Req() req: { user: { id: string } },
     @Param('mediaId') mediaId: string,
     @Body() dto: UpdateProductMediaDto,
   ) {
-    return this.catalogService.updateMedia(mediaId, dto);
+    return this.catalogService.updateMedia(mediaId, dto, req.user.id);
   }
 
   // DELETE /products/media/:mediaId
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Delete('media/:mediaId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteMedia(@Param('mediaId') mediaId: string) {
@@ -93,6 +104,8 @@ export class ProductViewController {
   // ---------------------------------------------------------------------------
 
   // POST /products
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createProduct(@Body() dto: CreateProductDto) {
@@ -100,6 +113,8 @@ export class ProductViewController {
   }
 
   // PATCH /products/:id
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Patch(':id')
   async updateProduct(
     @Param('id') id: string,
@@ -115,10 +130,14 @@ export class ProductViewController {
   // GET /products/:productId/skus
   @Get(':productId/skus')
   async listProductSkus(@Param('productId') productId: string) {
-    return this.catalogService.getSkus(productId);
+    const product = await this.productViewService.getProductView(productId);
+    if (!product) throw new NotFoundException('Product not published');
+    return product.skus;
   }
 
   // POST /products/:productId/skus
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Post(':productId/skus')
   @HttpCode(HttpStatus.CREATED)
   async createSku(
@@ -131,17 +150,22 @@ export class ProductViewController {
   // GET /products/:productId/media
   @Get(':productId/media')
   async listProductMedia(@Param('productId') productId: string) {
-    return this.catalogService.getMedia(productId);
+    const product = await this.productViewService.getProductView(productId);
+    if (!product) throw new NotFoundException('Product not published');
+    return product.media;
   }
 
   // POST /products/:productId/media
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Post(':productId/media')
   @HttpCode(HttpStatus.CREATED)
   async addProductMedia(
+    @Req() req: { user: { id: string } },
     @Param('productId') productId: string,
     @Body() dto: CreateProductMediaDto,
   ) {
-    return this.catalogService.addMedia(productId, dto);
+    return this.catalogService.addMedia(productId, dto, req.user.id);
   }
 
   // ---------------------------------------------------------------------------
@@ -149,9 +173,16 @@ export class ProductViewController {
   // ---------------------------------------------------------------------------
 
   // GET /products/:slugOrId
+  @Get(':slugOrId/detail')
+  async getProductDetail(@Param('slugOrId') slugOrId: string) {
+    const detail = await this.productDetailService.getDetail(slugOrId);
+    if (!detail) throw new NotFoundException('Product not found');
+    return detail;
+  }
+
   @Get(':slugOrId')
   async getProduct(@Param('slugOrId') slugOrId: string) {
-    const productView = await this.productViewService.getProductView(slugOrId);
+    const productView = await this.productDetailService.getDetail(slugOrId);
 
     if (!productView) {
       throw new NotFoundException(`Product not found: ${slugOrId}`);

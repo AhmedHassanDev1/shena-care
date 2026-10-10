@@ -7,6 +7,9 @@ postman
 # Testing
 coverage/
 *.log
+jest_output.txt
+.codex/qa-logs/
+*.qa-backup/
 
 # Production
 dist/

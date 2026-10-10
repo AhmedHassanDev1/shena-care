@@ -2,6 +2,7 @@ from typing import Protocol, runtime_checkable
 
 from app.contracts.enrichment import ProductEnrichmentRequest, ProductEnrichmentResult
 from app.contracts.guidance import GuidanceRecommendationRequest, GuidanceRecommendationResult
+from app.contracts.content import ProductContentGenerationRequest, ProductContentGenerationResult
 
 
 @runtime_checkable
@@ -15,6 +16,12 @@ class GuidanceProvider(Protocol):
     name: str
 
     async def recommend(self, request: 'GuidanceRecommendationRequest') -> 'GuidanceRecommendationResult': ...
+
+@runtime_checkable
+class ContentGenerationProvider(Protocol):
+    name: str
+
+    async def generate_content(self, request: ProductContentGenerationRequest) -> ProductContentGenerationResult: ...
 
 
 class ProviderError(Exception):

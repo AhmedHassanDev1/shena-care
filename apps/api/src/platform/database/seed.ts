@@ -27,12 +27,6 @@ async function seed() {
     create: { name: 'BLESS', slug: 'bless', description: 'Bless hair care products', websiteUrl: 'https://blessbotanicals.com', countryOfOrigin: 'Egypt', isActive: true },
   });
 
-  const cerave = await prisma.brand.upsert({
-    where: { slug: 'cerave' },
-    update: {},
-    create: { name: 'CeraVe', slug: 'cerave', description: 'CeraVe Skincare', websiteUrl: 'https://cerave.com', countryOfOrigin: 'USA', isActive: true },
-  });
-
   // 2. Lines
   const evaVitC = await prisma.productLine.upsert({ where: { slug: 'eva-vitamin-c' }, update: {}, create: { brandId: eva.id, name: 'Vitamin C', slug: 'eva-vitamin-c', isActive: true }});
   const evaHyaluronic = await prisma.productLine.upsert({ where: { slug: 'eva-hyaluronic-acid' }, update: {}, create: { brandId: eva.id, name: 'Hyaluronic Acid', slug: 'eva-hyaluronic-acid', isActive: true }});
@@ -46,8 +40,6 @@ async function seed() {
   const haLoveBond = await prisma.productLine.upsert({ where: { slug: 'ha-lovebond' }, update: {}, create: { brandId: hairAddict.id, name: 'LoveBond', slug: 'ha-lovebond', isActive: true }});
 
   const blessActivator = await prisma.productLine.upsert({ where: { slug: 'bless-activator' }, update: {}, create: { brandId: bless.id, name: 'Activator', slug: 'bless-activator', isActive: true }});
-
-  const ceraveMoisturizers = await prisma.productLine.upsert({ where: { slug: 'cerave-daily-moisturizers' }, update: {}, create: { brandId: cerave.id, name: 'Daily Moisturizers', slug: 'cerave-daily-moisturizers', isActive: true }});
 
   // 3. Categories
   const skinCare = await prisma.category.upsert({ where: { slug: 'skin-care' }, update: {}, create: { name: 'Skin Care', slug: 'skin-care', sortOrder: 1, isActive: true }});
@@ -67,20 +59,8 @@ async function seed() {
 
   const productsData = [
     {
-      brandId: cerave.id, lineId: ceraveMoisturizers.id, catId: moisturizers.id,
-      name: 'CeraVe Moisturizing Cream', slug: 'cerave-moisturizing-cream', size: 453, unit: 'gm', code: 'CERAVE-CREAM-453', barcode: '123456789012',
-      price: 450.00, url: 'https://cdn.shopify.com/s/files/1/cerave.png',
-      desc: 'CeraVe Moisturizing Cream for dry skin.'
-    },
-    {
-      brandId: cerave.id, lineId: ceraveMoisturizers.id, catId: moisturizers.id,
-      name: 'CeraVe Hydrating Lotion', slug: 'cerave-hydrating-lotion', size: 236, unit: 'ml', code: 'CERAVE-LOTION-236', barcode: '123456789013',
-      price: 350.00, url: 'https://cdn.shopify.com/s/files/1/cerave-lotion.png',
-      desc: 'CeraVe Hydrating Lotion for dry to very dry skin.'
-    },
-    {
       brandId: eva.id, lineId: evaVitC.id, catId: cleansers.id,
-      name: 'Eva Skin Clinic Vitamin C Facial Wash And Exfoliator', slug: 'eva-vitc-wash-150', size: 150, unit: 'ml', code: 'EVA-VITC-WASH', barcode: '6223004561234',
+      name: 'Eva Skin Clinic Vitamin C Facial Wash And Exfoliator', slug: 'eva-vitc-wash-150', size: 150, unit: 'ml', code: 'EVA-VITC-WASH', barcode: null,
       price: 130.00, url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/natural_glow_white_bg_1.png?v=1776525610',
       desc: 'Eva Skin Clinic Vitamin C Facial Wash and Exfoliator. Foaming wash for cleansing and exfoliating.'
     },

@@ -8,11 +8,6 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-    if (process.env.TEST_BYPASS_AUTH === 'true') {
-      (request as any).user = { id: '343f1cb1-0b53-4876-90e8-07e1bf1f8d42', roles: ['CUSTOMER', 'ADMIN', 'HUB_OPERATOR', 'SUPPLIER'] };
-      (request as any).sessionToken = 'test-token';
-      return true;
-    }
     const token = this.extractTokenFromHeader(request);
     
     if (!token) {

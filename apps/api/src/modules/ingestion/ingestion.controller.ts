@@ -1,19 +1,40 @@
-import { Controller, Post, Body, Get, Param, Patch, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, Query, Req, HttpCode, HttpStatus, UseGuards, ForbiddenException, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { IngestionService } from './services/ingestion.service';
-import { CreateIngestionJobDto, ApproveIngestionItemDto } from './dto/ingestion.dto';
+import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from './dto/ingestion.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
-import { PermissionsGuard, RequirePermissions } from '../../platform/auth';
+import { PermissionsGuard } from '../../platform/auth';
 import { Roles } from '../accounts/decorators/roles.decorator';
+import { IngestionStatus } from '@prisma/client';
+import { multerOptions } from '../../platform/security/upload-validator';
+
+export interface AuthenticatedUserRequest {
+  user?: {
+    id: string;
+    roles?: string[];
+    supplierId?: string;
+  };
+}
 
 @Controller('ingestion')
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
-@Roles('ADMIN', 'HUB_OPERATOR') // Mostly backend operations
+@Roles('ADMIN', 'HUB_OPERATOR')
 export class IngestionController {
   constructor(private readonly ingestionService: IngestionService) {}
 
   @Post('jobs')
-  async createJob(@Body() dto: CreateIngestionJobDto) {
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  async createJob(
+    @Req() req: AuthenticatedUserRequest,
+    @Body() dto: CreateIngestionJobDto,
+  ) {
+    const user = req.user;
+    if (user?.roles?.includes('SUPPLIER') && !user.roles.includes('ADMIN') && !user.roles.includes('HUB_OPERATOR')) {
+      if (!user.supplierId || user.supplierId !== dto.supplierId) {
+        throw new ForbiddenException('Cannot submit ingestion job for another supplier');
+      }
+    }
     return this.ingestionService.createJob(dto);
   }
 
@@ -33,12 +54,88 @@ export class IngestionController {
     return this.ingestionService.publishJob(id);
   }
 
+  // ─── GLO-77 Candidate Review & Publish Endpoints (Admin / Operator only) ──
+
+  @Get('candidates')
+  async getCandidates(@Query('status') status?: IngestionStatus) {
+    return this.ingestionService.getCandidates(status);
+  }
+
+  @Get('candidates/:id')
+  async getCandidateDetail(@Param('id') id: string) {
+    return this.ingestionService.getCandidateDetail(id);
+  }
+
+  @Patch('candidates/:id')
+  async updateCandidate(
+    @Param('id') id: string,
+    @Body() dto: UpdateCandidateDto,
+  ) {
+    return this.ingestionService.updateCandidate(id, dto);
+  }
+
+  @Patch('candidates/:id/approve')
+  async approveCandidate(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id') id: string,
+    @Body() dto?: ApproveIngestionItemDto,
+  ) {
+    return this.ingestionService.approveItem(id, dto, req.user?.id);
+  }
+
+  @Patch('candidates/:id/reject')
+  async rejectCandidate(@Param('id') id: string) {
+    return this.ingestionService.rejectItem(id);
+  }
+
+  @Post('candidates/:id/publish')
+  @HttpCode(HttpStatus.OK)
+  async publishCandidate(@Param('id') id: string) {
+    return this.ingestionService.publishCandidate(id);
+  }
+
+  @Post('candidates/:id/research')
+  @HttpCode(HttpStatus.OK)
+  async researchCandidate(@Param('id') id: string) {
+    return this.ingestionService.researchCandidate(id);
+  }
+
+  @Post('candidates/:id/content')
+  @HttpCode(HttpStatus.OK)
+  async generateCandidateContent(@Param('id') id: string) {
+    return this.ingestionService.generateCandidateContent(id);
+  }
+
+  @Post('candidates/:id/media')
+  @UseInterceptors(FileInterceptor('file', multerOptions))
+  async uploadCandidateMedia(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    // Only accept images for now
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Only images are supported');
+    }
+    return this.ingestionService.uploadCandidateMedia(id, file);
+  }
+
+  // ─── Item Aliases (Backwards Compatibility) ─────────────────────────────
+
+  @Get('items/:id')
+  async getItemDetail(@Param('id') id: string) {
+    return this.ingestionService.getCandidateDetail(id);
+  }
+
   @Patch('items/:id/approve')
   async approveItem(
+    @Req() req: AuthenticatedUserRequest,
     @Param('id') id: string,
-    @Body() dto: ApproveIngestionItemDto,
+    @Body() dto?: ApproveIngestionItemDto,
   ) {
-    return this.ingestionService.approveItem(id, dto);
+    return this.ingestionService.approveItem(id, dto, req.user?.id);
   }
 
   @Patch('items/:id/reject')
@@ -51,4 +148,11 @@ export class IngestionController {
   async enrichItem(@Param('id') id: string) {
     return this.ingestionService.enrichItem(id);
   }
+
+  @Post('items/:id/research')
+  @HttpCode(HttpStatus.OK)
+  async researchItem(@Param('id') id: string) {
+    return this.ingestionService.researchCandidate(id);
+  }
 }
+

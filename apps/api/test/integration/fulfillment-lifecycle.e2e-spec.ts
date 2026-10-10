@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe, Catch, ExceptionFilter, ArgumentsHost
 const request = require('supertest');
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { createSellableSku } from '../fixtures/sellable-sku';
 
 /**
  * Fulfillment Lifecycle E2E Tests — GLO-150 + GLO-147
@@ -70,7 +71,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     prisma = app.get<PrismaService>(PrismaService);
 
     // ── Find a seeded SKU ────────────────────────────────────────────────────
-    const sku = await prisma.sku.findFirst({ where: { barcode: { not: null } } });
+    const sku = await createSellableSku(prisma);
     if (!sku) throw new Error('No SKU with barcode in test DB — seed data missing');
     skuId = sku.id;
     skuCode = sku.barcode!;

@@ -9,7 +9,11 @@ import {
   NotFoundException,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
+import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
+import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import {
   CommerceService,
   CreateListingDto,
@@ -18,6 +22,8 @@ import {
 } from '../../../modules/commerce/public';
 
 @Controller('commerce/listings')
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('ADMIN', 'HUB_OPERATOR')
 export class ListingController {
   constructor(private readonly commerceService: CommerceService) {}
 

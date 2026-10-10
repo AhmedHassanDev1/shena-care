@@ -10,6 +10,7 @@ import { CreateProductDto, UpdateProductDto } from '../dto/product.dto';
 import { CreateSkuDto, UpdateSkuDto } from '../dto/sku.dto';
 import { CreateProductMediaDto, UpdateProductMediaDto } from '../dto/media.dto';
 import { slugify } from '../utils/slug.util';
+import { requireMediaReview } from '../../../platform/security/media-review';
 
 export interface PublishedSku {
   id: string;
@@ -29,6 +30,7 @@ export interface SkuValidationStatus {
 
 export interface PublishedMedia {
   id: string;
+  skuId: string | null;
   type: string;
   url: string;
   altText: string | null;
@@ -75,6 +77,33 @@ type ProductWithRelations = Prisma.ProductGetPayload<typeof productWithRelations
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Internal keyset scan; composition applies Commerce/availability before pagination. */
+  async scanPublishedProducts(filters: { q?: string; category?: string; brand?: string; productLine?: string }, snapshotAt: Date, afterId?: string) {
+    const products = await this.prisma.product.findMany({
+      where: {
+        isPublished: true, createdAt: { lte: snapshotAt },
+        ...(afterId && { id: { gt: afterId } }),
+        ...(filters.category && { category: { OR: [{ slug: filters.category }, { parent: { slug: filters.category } }] } }),
+        ...(filters.brand && { brand: { slug: filters.brand } }),
+        ...(filters.productLine && { productLine: { slug: filters.productLine } }),
+        ...(filters.q && { OR: [
+          { name: { contains: filters.q, mode: 'insensitive' as const } },
+          { brand: { name: { contains: filters.q, mode: 'insensitive' as const } } },
+          { skus: { some: { isActive: true, OR: [
+            { code: { contains: filters.q, mode: 'insensitive' as const } },
+            { barcode: { contains: filters.q, mode: 'insensitive' as const } },
+            { variantName: { contains: filters.q, mode: 'insensitive' as const } },
+          ] } } },
+        ] }),
+      },
+      orderBy: { id: 'asc' }, take: 100, ...productWithRelations,
+    });
+    return {
+      products: products.map(p => this.mapToPublishedProduct(p)).filter(p => p.media.length && p.skus.length),
+      nextAfterId: products.length === 100 ? products[products.length - 1].id : null,
+    };
+  }
+
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
   }
@@ -90,11 +119,24 @@ export class CatalogService {
       ...productWithRelations,
     });
 
-    if (!product || !product.isPublished) {
+    if (!product || !product.isPublished || !this.mapToPublishedProduct(product).media.length) {
       return null;
     }
 
     return this.mapToPublishedProduct(product);
+  }
+
+  async getReviewedIdentityFacts(productId: string, skuIds: string[]) {
+    const product = await this.prisma.product.findFirst({ where: { id: productId, isPublished: true }, ...productWithRelations });
+    if (!product) return [];
+    return product.media.filter(m => this.isReviewedProductMedia(m, product.skus)).flatMap(m => {
+      const review = requireMediaReview(m.generationMetadata);
+      if (!review.skuId || !skuIds.includes(review.skuId)) return [];
+      return (['barcode', 'size', 'sizeUnit', 'variantName'] as const).map(field => ({
+        skuId: review.skuId!, field, value: review[field], sourceUrl: review.sourceUrl,
+        sourceType: review.sourceType, verifiedAt: review.reviewedAt,
+      }));
+    }).filter((fact, index, all) => all.findIndex(f => f.skuId === fact.skuId && f.field === fact.field) === index);
   }
 
   async getProduct(slugOrId: string): Promise<PublishedProduct | null> {
@@ -120,6 +162,7 @@ export class CatalogService {
   }): Promise<PublishedProduct[]> {
     const where = {
       isPublished: true,
+      media: { some: { originType: MediaOriginType.verified, generationMetadata: { path: ['isTest'], equals: false } } },
       ...(filters?.categorySlug && {
         category: {
           OR: [
@@ -144,7 +187,7 @@ export class CatalogService {
       ...productWithRelations,
     });
 
-    return products.map((p) => this.mapToPublishedProduct(p));
+    return products.map((p) => this.mapToPublishedProduct(p)).filter(p => p.media.length > 0 && p.skus.length > 0);
   }
 
   async countPublishedProducts(filters?: {
@@ -154,6 +197,7 @@ export class CatalogService {
   }): Promise<number> {
     const where = {
       isPublished: true,
+      media: { some: { originType: MediaOriginType.verified, generationMetadata: { path: ['isTest'], equals: false } } },
       ...(filters?.categorySlug && {
         category: {
           OR: [
@@ -223,7 +267,7 @@ export class CatalogService {
         description: dto.description ?? null,
         usage: dto.usage ?? null,
         warnings: dto.warnings ?? null,
-        isPublished: dto.isPublished ?? true,
+        isPublished: dto.isPublished ?? false,
       },
       ...productWithRelations,
     });
@@ -394,7 +438,7 @@ export class CatalogService {
 
     const sku = await this.prisma.sku.findUnique({
       where: { id: skuId },
-      include: { product: true },
+      include: { product: { include: { skus: true, media: true } } },
     });
 
     if (!sku) {
@@ -404,7 +448,7 @@ export class CatalogService {
     return {
       exists: true,
       isActive: sku.isActive,
-      isProductPublished: sku.product.isPublished,
+      isProductPublished: sku.product.isPublished && sku.product.media.some(m => this.isReviewedProductMedia(m, [sku])),
     };
   }
 
@@ -534,12 +578,17 @@ export class CatalogService {
   // ProductMedia Operations
   // ---------------------------------------------------------------------------
 
-  async addMedia(productId: string, dto: CreateProductMediaDto): Promise<PublishedMedia> {
+  async addMedia(productId: string, dto: CreateProductMediaDto, reviewerId?: string): Promise<PublishedMedia> {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
     if (!product) {
       throw new NotFoundException(`Product not found with id: ${productId}`);
+    }
+
+    if (!dto.originType) throw new BadRequestException('Explicit media origin required; uploads are not automatically verified');
+    if (dto.originType === MediaOriginType.verified) {
+      await this.validateVerifiedMedia(productId, dto.generationMetadata, reviewerId);
     }
 
     if (dto.isPrimary) {
@@ -549,21 +598,34 @@ export class CatalogService {
       });
     }
 
-    const media = await this.prisma.productMedia.create({
-      data: {
+    const media = await this.prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${productId + ':' + dto.url}))`;
+      const existing = await tx.productMedia.findFirst({ where: { productId, url: dto.url } });
+      if (existing) {
+        if (dto.originType === MediaOriginType.verified) {
+          return tx.productMedia.update({ where: { id: existing.id }, data: {
+            originType: dto.originType, generationMetadata: dto.generationMetadata as Prisma.InputJsonValue,
+          } });
+        }
+        return existing;
+      }
+      return tx.productMedia.create({
+        data: {
         productId,
         type: dto.type,
         url: dto.url,
         altText: dto.altText ?? null,
         sortOrder: dto.sortOrder ?? 0,
         isPrimary: dto.isPrimary ?? false,
-        originType: dto.originType ?? MediaOriginType.verified,
+        originType: dto.originType,
         generationMetadata: (dto.generationMetadata as Prisma.InputJsonValue) ?? undefined,
-      },
+        },
+      });
     });
 
     return {
       id: media.id,
+      skuId: typeof (media.generationMetadata as any)?.skuId === 'string' ? (media.generationMetadata as any).skuId : null,
       type: media.type,
       url: media.url,
       altText: media.altText,
@@ -573,12 +635,19 @@ export class CatalogService {
     };
   }
 
-  async updateMedia(id: string, dto: UpdateProductMediaDto): Promise<PublishedMedia> {
+  async updateMedia(id: string, dto: UpdateProductMediaDto, reviewerId?: string): Promise<PublishedMedia> {
     const media = await this.prisma.productMedia.findUnique({
       where: { id },
     });
     if (!media) {
       throw new NotFoundException(`ProductMedia not found with id: ${id}`);
+    }
+
+    if ((dto.originType ?? media.originType) === MediaOriginType.verified) {
+      if (dto.url !== undefined && dto.url !== media.url && dto.generationMetadata === undefined) {
+        throw new BadRequestException('Changing verified media requires a new review');
+      }
+      await this.validateVerifiedMedia(media.productId, dto.generationMetadata ?? media.generationMetadata, reviewerId);
     }
 
     if (dto.isPrimary) {
@@ -605,6 +674,7 @@ export class CatalogService {
 
     return {
       id: updated.id,
+      skuId: typeof (updated.generationMetadata as any)?.skuId === 'string' ? (updated.generationMetadata as any).skuId : null,
       type: updated.type,
       url: updated.url,
       altText: updated.altText,
@@ -642,6 +712,7 @@ export class CatalogService {
 
     return items.map((m) => ({
       id: m.id,
+      skuId: typeof (m.generationMetadata as any)?.skuId === 'string' ? (m.generationMetadata as any).skuId : null,
       type: m.type,
       url: m.url,
       altText: m.altText,
@@ -649,6 +720,29 @@ export class CatalogService {
       isPrimary: m.isPrimary,
       originType: m.originType,
     }));
+  }
+
+  private isReviewedProductMedia(media: { originType: string; generationMetadata: unknown }, skus: ProductWithRelations['skus']): boolean {
+    try {
+      if (media.originType !== MediaOriginType.verified) return false;
+      const review = requireMediaReview(media.generationMetadata);
+      return skus.some(sku => sku.id === review.skuId && sku.isActive && sku.barcode === review.barcode &&
+        sku.size?.toNumber() === review.size && sku.sizeUnit === review.sizeUnit && sku.variantName === review.variantName);
+    } catch { return false; }
+  }
+
+  private async validateVerifiedMedia(productId: string, metadata: unknown, reviewerId?: string): Promise<void> {
+    const review = requireMediaReview(metadata);
+    if (!reviewerId || reviewerId !== review.reviewedBy) throw new BadRequestException('Authenticated media reviewer required');
+    const reviewer = await this.prisma.customer.findUnique({ where: { id: reviewerId } });
+    if (!reviewer?.roles.some(role => role === 'ADMIN' || role === 'HUB_OPERATOR')) {
+      throw new BadRequestException('Authorized media reviewer required');
+    }
+    const sku = review.skuId ? await this.prisma.sku.findUnique({ where: { id: review.skuId } }) : null;
+    if (!sku || sku.productId !== productId || sku.barcode !== review.barcode || sku.size?.toNumber() !== review.size ||
+        sku.sizeUnit !== review.sizeUnit || sku.variantName !== review.variantName) {
+      throw new BadRequestException('Media review must match the Product/SKU/size/variant');
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -699,9 +793,11 @@ export class CatalogService {
           isActive: sku.isActive,
         })),
       media: product.media
+        .filter(m => includeAll || this.isReviewedProductMedia(m, product.skus))
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((m) => ({
           id: m.id,
+          skuId: typeof (m.generationMetadata as any)?.skuId === 'string' ? (m.generationMetadata as any).skuId : null,
           type: m.type,
           url: m.url,
           altText: m.altText,

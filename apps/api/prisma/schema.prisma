@@ -110,7 +110,8 @@ model Sku {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  product Product @relation(fields: [productId], references: [id])
+  product            Product            @relation(fields: [productId], references: [id])
+  supplierSkuAliases SupplierSkuAlias[]
 
   @@index([productId])
   @@index([barcode])
@@ -239,8 +240,28 @@ model Supplier {
   ingestionJobs  IngestionJob[]
   purchaseOrders SupplierPurchaseOrder[]
   payables       SupplierPayable[]
+  skuAliases     SupplierSkuAlias[]
+  accounts       Customer[]
 
   @@map("suppliers")
+  @@schema("sourcing")
+}
+
+model SupplierSkuAlias {
+  id              String   @id @default(uuid()) @db.Uuid
+  supplierId      String   @map("supplier_id") @db.Uuid
+  supplierSkuCode String   @map("supplier_sku_code")
+  skuId           String   @map("sku_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  sku      Sku      @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@unique([supplierId, supplierSkuCode])
+  @@index([supplierId])
+  @@index([skuId])
+  @@map("supplier_sku_aliases")
   @@schema("sourcing")
 }
 
@@ -1182,10 +1203,45 @@ model IngestionItem {
   updatedAt        DateTime                      @updatedAt @map("updated_at")
 
   job IngestionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  contentDraft ProductContentDraft?
 
   @@index([jobId])
   @@index([status])
   @@map("ingestion_items")
+  @@schema("ingestion")
+}
+
+model ProductContentDraft {
+  id               String   @id @default(uuid()) @db.Uuid
+  candidateId      String   @unique @map("candidate_id") @db.Uuid
+  language         String   @db.VarChar(5) // 'ar' or 'en'
+  titleEn          String?
+  titleAr          String?
+  shortDescriptionEn String?
+  shortDescriptionAr String?
+  descriptionEn    String?
+  descriptionAr    String?
+  benefitsEn       String[]
+  benefitsAr       String[]
+  usageEn          String[]
+  usageAr          String[]
+  routineStepEn    String?
+  routineStepAr    String?
+  keywords         String[]
+  seoTitleEn       String?
+  seoTitleAr       String?
+  seoDescriptionEn String?
+  seoDescriptionAr String?
+  evidenceVersion  String?
+  modelVersion     String?
+  isApproved       Boolean  @default(false) @map("is_approved")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  candidate IngestionItem @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("product_content_drafts")
   @@schema("ingestion")
 }
 
@@ -1356,6 +1412,58 @@ model GuidanceSession {
   @@schema("care")
 }
 
+model RoutineDraft {
+  id              String   @id @default(uuid()) @db.Uuid
+  // Anonymous start with safe session ownership
+  customerId      String?  @unique @map("customer_id")
+  guestTokenHash  String?  @unique @map("guest_token_hash")
+
+  careArea        CareArea @default(skin) @map("care_area")
+  primaryConcern  String?  @map("primary_concern")
+  secondaryGoals  String[] @map("secondary_goals")
+  budget          Decimal? @db.Decimal(10, 2)
+  isBudgetStrict  Boolean  @default(false) @map("is_budget_strict")
+  maxSteps        Int?     @map("max_steps")
+  preferences     Json?    
+  ownedProductIds String[] @map("owned_product_ids")
+
+  version         Int      @default(1)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  proposals       RoutineProposal[]
+  
+  @@map("routine_drafts")
+  @@schema("care")
+}
+
+enum RoutineProposalStatus {
+  proposed
+  accepted
+  rejected
+  failed
+  
+  @@schema("care")
+}
+
+model RoutineProposal {
+  id              String   @id @default(uuid()) @db.Uuid
+  draftId         String   @map("draft_id") @db.Uuid
+  status          RoutineProposalStatus @default(proposed)
+  snapshot        Json
+  totalPrice      Decimal? @map("total_price") @db.Decimal(10, 2)
+  currency        String?  @db.VarChar(3)
+  error           Json?    // Typed recoverable error state
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  draft           RoutineDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@index([draftId])
+  @@map("routine_proposals")
+  @@schema("care")
+}
+
 enum GuidanceMessageRole {
   user
   assistant
@@ -1398,12 +1506,15 @@ model Customer {
   name      String
   email     String   @unique
   roles     Role[]   @default([CUSTOMER])
+  supplierId String? @map("supplier_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   identities Identity[]
   sessions   Session[]
+  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
+  @@index([supplierId])
   @@map("customers")
   @@schema("accounts")
 }

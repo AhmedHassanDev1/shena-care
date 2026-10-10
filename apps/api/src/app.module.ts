@@ -19,6 +19,7 @@ import { RequestIdMiddleware } from './platform/logger/request-id.middleware';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthController } from './platform/api/health.controller';
+import { StorageModule } from './platform/storage/storage.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { HealthController } from './platform/api/health.controller';
     AccountsModule,
     OperationsModule,
     MessagingModule,
+    StorageModule,
   ],
   controllers: [HealthController],
 })

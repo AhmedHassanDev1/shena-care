@@ -8,7 +8,11 @@ import {
   NotFoundException,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
+import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
+import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import {
   CommerceService,
   CreateSellingPriceDto,
@@ -16,6 +20,8 @@ import {
 } from '../../../modules/commerce/public';
 
 @Controller('commerce/prices')
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('ADMIN')
 export class PriceController {
   constructor(private readonly commerceService: CommerceService) {}
 
