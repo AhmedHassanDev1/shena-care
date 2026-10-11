@@ -3,12 +3,16 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { MAX_FILE_SIZE } from '../security/upload-validator';
 import { FILE_STORAGE_PORT, FileStoragePort } from './storage.port';
+import { MEDIA_STORAGE_PORT, MediaStoragePort } from './media-storage.port';
 
 @Injectable()
 export class StorageService {
   private readonly baseUrl = (process.env.API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
-  constructor(@Inject(FILE_STORAGE_PORT) private readonly storagePort: FileStoragePort) {}
+  constructor(
+    @Inject(FILE_STORAGE_PORT) private readonly storagePort: FileStoragePort,
+    @Inject(MEDIA_STORAGE_PORT) private readonly mediaStoragePort: MediaStoragePort,
+  ) {}
 
   validateFile(file: Express.Multer.File): void {
     if (!file?.buffer?.length || file.buffer.length > MAX_FILE_SIZE) {
@@ -40,6 +44,12 @@ export class StorageService {
         (isPrivate && (!supplierId || !/^[a-zA-Z0-9_-]+$/.test(supplierId)))) {
       throw new BadRequestException('Invalid storage owner or folder');
     }
+
+    if (file.mimetype.startsWith('image/')) {
+      const logicalFolder = isPrivate ? `private/${supplierId}/${folder}` : `public/${folder}`;
+      return this.mediaStoragePort.upload(file.buffer, { folder: logicalFolder, isPrivate, mimetype: file.mimetype });
+    }
+
     const filename = `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase()}`;
     const logicalFolder = isPrivate ? `private/${supplierId}/${folder}` : `public/${folder}`;
     const objectKey = `${logicalFolder}/${filename}`;
@@ -54,6 +64,9 @@ export class StorageService {
 
   // Parses a URL and returns the object key if valid
   privateObjectKey(url: string, supplierId: string): string {
+    if (url.startsWith('cloudinary://')) {
+      return url;
+    }
     let parsed: URL;
     try { parsed = new URL(url); } catch { throw new BadRequestException('Invalid media URL'); }
     const base = new URL(this.baseUrl);
@@ -66,6 +79,11 @@ export class StorageService {
 
   async copyToPublic(privateUrl: string, supplierId: string): Promise<string> {
     const objectKey = this.privateObjectKey(privateUrl, supplierId);
+
+    if (objectKey.startsWith('cloudinary://')) {
+      return this.mediaStoragePort.publishMedia(objectKey);
+    }
+
     if (!(await this.storagePort.exists(objectKey))) {
       throw new NotFoundException('Media object missing');
     }
@@ -78,5 +96,14 @@ export class StorageService {
       await this.storagePort.put(destKey, stream);
     }
     return `${this.baseUrl}/storage/${destKey}`;
+  }
+
+  async deleteFile(url: string, supplierId?: string): Promise<void> {
+    if (url.startsWith('cloudinary://')) {
+      await this.mediaStoragePort.delete(url);
+      return;
+    }
+    const objectKey = url.includes('/storage/') ? url.split('/storage/')[1] : url;
+    await this.storagePort.delete(objectKey);
   }
 }

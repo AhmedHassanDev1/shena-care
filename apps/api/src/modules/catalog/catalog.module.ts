@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CatalogService } from './services/catalog.service';
 import { BrandService } from './services/brand.service';
 import { CategoryService } from './services/category.service';
+import { StorageModule } from '../../platform/storage/storage.module';
 
 // ─── CatalogModule ────────────────────────────────────────────────────────────
 // هذا الموديول يمتلك كل ما يخص هوية المنتج:
@@ -13,6 +14,7 @@ import { CategoryService } from './services/category.service';
 // عبر public.ts فقط — مش مسموح بالاستيراد المباشر من برا الموديول
 
 @Module({
+  imports: [StorageModule],
   providers: [CatalogService, BrandService, CategoryService],
   exports: [CatalogService, BrandService, CategoryService],
 })
