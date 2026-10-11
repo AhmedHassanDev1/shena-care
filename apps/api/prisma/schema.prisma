@@ -1163,11 +1163,13 @@ enum IngestionStatus {
 }
 
 model IngestionJob {
-  id         String          @id @default(uuid()) @db.Uuid
-  supplierId String          @map("supplier_id") @db.Uuid
-  status     IngestionStatus @default(pending)
-  createdAt  DateTime        @default(now()) @map("created_at")
-  updatedAt  DateTime        @updatedAt @map("updated_at")
+  id             String          @id @default(uuid()) @db.Uuid
+  supplierId     String          @map("supplier_id") @db.Uuid
+  status         IngestionStatus @default(pending)
+  sourceKey      String?         @map("source_key")
+  sourceChecksum String?         @map("source_checksum")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
 
   items    IngestionItem[]
   supplier Supplier        @relation(fields: [supplierId], references: [id])

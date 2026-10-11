@@ -1,14 +1,16 @@
-import { Controller, Get, Param, Res, NotFoundException, UseGuards, ForbiddenException, Req } from '@nestjs/common';
+import { Controller, Get, Param, Res, NotFoundException, UseGuards, ForbiddenException, Req, Inject } from '@nestjs/common';
 import { Response } from 'express';
-import { StorageService } from './storage.service';
 import { AuthGuard } from '../../modules/accounts/guards/auth.guard';
-import * as fs from 'fs';
 import { PrismaService } from '../database/prisma.service';
 import { requireMediaReview } from '../security/media-review';
+import { FILE_STORAGE_PORT, FileStoragePort } from './storage.port';
 
 @Controller('storage')
 export class StorageController {
-  constructor(private readonly storageService: StorageService, private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(FILE_STORAGE_PORT) private readonly storagePort: FileStoragePort,
+    private readonly prisma: PrismaService
+  ) {}
 
   @Get('public/:folder/:filename')
   async servePublicFile(
@@ -34,17 +36,18 @@ export class StorageController {
       } catch { return false; }
     });
     if (!approved) throw new NotFoundException('Public asset not approved');
-    const filePath = this.storageService.getFilePath(`public/${folder}/${filename}`);
-    if (!fs.existsSync(filePath)) {
+    const objectKey = `public/${folder}/${filename}`;
+    if (!(await this.storagePort.exists(objectKey))) {
       throw new NotFoundException('File not found');
     }
 
-    res.sendFile(filePath);
+    const stream = await this.storagePort.readStream(objectKey);
+    stream.pipe(res);
   }
 
   @Get('private/:supplierId/:folder/:filename')
   @UseGuards(AuthGuard)
-  servePrivateFile(
+  async servePrivateFile(
     @Param('supplierId') supplierId: string,
     @Param('folder') folder: string,
     @Param('filename') filename: string,
@@ -63,11 +66,12 @@ export class StorageController {
       throw new NotFoundException('Invalid file path');
     }
 
-    const filePath = this.storageService.getFilePath(`private/${supplierId}/${folder}/${filename}`);
-    if (!fs.existsSync(filePath)) {
+    const objectKey = `private/${supplierId}/${folder}/${filename}`;
+    if (!(await this.storagePort.exists(objectKey))) {
       throw new NotFoundException('File not found');
     }
 
-    res.sendFile(filePath);
+    const stream = await this.storagePort.readStream(objectKey);
+    stream.pipe(res);
   }
 }

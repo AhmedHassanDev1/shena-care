@@ -11,10 +11,13 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
   'application/pdf',
+  'text/csv',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 ]);
 
 const ALLOWED_EXTENSIONS = new Set([
-  '.jpg', '.jpeg', '.png', '.webp', '.pdf'
+  '.jpg', '.jpeg', '.png', '.webp', '.pdf', '.csv', '.xls', '.xlsx'
 ]);
 
 export const multerOptions: MulterOptions = {

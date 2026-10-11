@@ -18,12 +18,17 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
-    const session = await this.prisma.session.findUnique({
-      where: { token },
-      include: { customer: true }
-    });
+    let session;
+    try {
+      session = await this.prisma.session.findUnique({
+        where: { token },
+        include: { customer: true }
+      });
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
 
-    if (!session || !session.isValid || session.expiresAt < new Date()) {
+    if (!session || !session.customer || !session.isValid || session.expiresAt < new Date()) {
       throw new UnauthorizedException('Invalid or expired token');
     }
 

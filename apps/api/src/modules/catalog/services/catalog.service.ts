@@ -11,6 +11,8 @@ import { CreateSkuDto, UpdateSkuDto } from '../dto/sku.dto';
 import { CreateProductMediaDto, UpdateProductMediaDto } from '../dto/media.dto';
 import { slugify } from '../utils/slug.util';
 import { requireMediaReview } from '../../../platform/security/media-review';
+import { MEDIA_STORAGE_PORT, MediaStoragePort } from '../../../platform/storage/media-storage.port';
+import { Inject } from '@nestjs/common';
 
 export interface PublishedSku {
   id: string;
@@ -75,7 +77,10 @@ type ProductWithRelations = Prisma.ProductGetPayload<typeof productWithRelations
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(MEDIA_STORAGE_PORT) private readonly mediaPort: MediaStoragePort,
+  ) {}
 
   /** Internal keyset scan; composition applies Commerce/availability before pagination. */
   async scanPublishedProducts(filters: { q?: string; category?: string; brand?: string; productLine?: string }, snapshotAt: Date, afterId?: string) {
@@ -627,7 +632,7 @@ export class CatalogService {
       id: media.id,
       skuId: typeof (media.generationMetadata as any)?.skuId === 'string' ? (media.generationMetadata as any).skuId : null,
       type: media.type,
-      url: media.url,
+      url: this.mediaPort.getDeliveryUrl(media.url),
       altText: media.altText,
       sortOrder: media.sortOrder,
       isPrimary: media.isPrimary,
@@ -676,7 +681,7 @@ export class CatalogService {
       id: updated.id,
       skuId: typeof (updated.generationMetadata as any)?.skuId === 'string' ? (updated.generationMetadata as any).skuId : null,
       type: updated.type,
-      url: updated.url,
+      url: this.mediaPort.getDeliveryUrl(updated.url),
       altText: updated.altText,
       sortOrder: updated.sortOrder,
       isPrimary: updated.isPrimary,
@@ -690,6 +695,10 @@ export class CatalogService {
     });
     if (!media) {
       throw new NotFoundException(`ProductMedia not found with id: ${id}`);
+    }
+
+    if (media.url.startsWith('cloudinary://')) {
+      await this.mediaPort.delete(media.url);
     }
 
     await this.prisma.productMedia.delete({
@@ -714,7 +723,7 @@ export class CatalogService {
       id: m.id,
       skuId: typeof (m.generationMetadata as any)?.skuId === 'string' ? (m.generationMetadata as any).skuId : null,
       type: m.type,
-      url: m.url,
+      url: this.mediaPort.getDeliveryUrl(m.url),
       altText: m.altText,
       sortOrder: m.sortOrder,
       isPrimary: m.isPrimary,
@@ -799,7 +808,7 @@ export class CatalogService {
           id: m.id,
           skuId: typeof (m.generationMetadata as any)?.skuId === 'string' ? (m.generationMetadata as any).skuId : null,
           type: m.type,
-          url: m.url,
+          url: this.mediaPort.getDeliveryUrl(m.url),
           altText: m.altText,
           sortOrder: m.sortOrder,
           isPrimary: m.isPrimary,

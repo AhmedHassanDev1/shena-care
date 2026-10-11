@@ -38,6 +38,29 @@ export class IngestionController {
     return this.ingestionService.createJob(dto);
   }
 
+  @Post('jobs/upload')
+  @UseInterceptors(FileInterceptor('file', multerOptions))
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  async uploadSupplierSpreadsheet(
+    @Req() req: AuthenticatedUserRequest,
+    @Body('supplierId') supplierId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    if (!supplierId) {
+      throw new BadRequestException('supplierId is required');
+    }
+    const user = req.user;
+    if (user?.roles?.includes('SUPPLIER') && !user.roles.includes('ADMIN') && !user.roles.includes('HUB_OPERATOR')) {
+      if (!user.supplierId || user.supplierId !== supplierId) {
+        throw new ForbiddenException('Cannot upload ingestion job for another supplier');
+      }
+    }
+    return this.ingestionService.uploadSupplierSpreadsheet(supplierId, file);
+  }
+
   @Get('jobs')
   async getJobs() {
     return this.ingestionService.getJobs();
