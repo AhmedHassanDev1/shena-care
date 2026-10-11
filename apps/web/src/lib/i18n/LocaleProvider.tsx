@@ -3,7 +3,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { getMessages, type Locale } from './messages';
 
-const LocaleContext = createContext<Locale>('en');
+const LocaleContext = createContext<Locale>('ar');
 
 export function LocaleProvider({ locale, children }: { locale: Locale; children: ReactNode }) {
   return <LocaleContext.Provider value={locale}>{children}</LocaleContext.Provider>;

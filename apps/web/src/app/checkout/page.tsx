@@ -1,0 +1,364 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/AuthContext';
+import { useCart } from '@/features/cart/hooks/useCart';
+import { useCheckoutQuote } from '@/features/checkout/hooks/useCheckoutQuote';
+import { orders } from '@/lib/orders';
+import { ApiError } from '@/lib/api-client';
+import { auth } from '@/lib/auth';
+import { createIdempotencyKey } from '@/lib/idempotency';
+import { useMessages, useLocale } from '@/lib/i18n/LocaleProvider';
+import { MapPin, CreditCard, ShoppingCart, ShieldCheck, ChevronRight, ChevronLeft, Check, Plus } from 'lucide-react';
+import Link from 'next/link';
+
+export default function CheckoutPage() {
+  const router = useRouter();
+  const m = useMessages();
+  const locale = useLocale();
+  const isRtl = locale === 'ar';
+  const BackIcon = isRtl ? ChevronRight : ChevronLeft;
+  const ArrowIcon = isRtl ? ChevronLeft : ChevronRight;
+
+  // Product decision: guests may browse, but an account is required to complete checkout.
+  const { user, isLoading: authLoading, requireAuth } = useAuth();
+  const redirectedToSignIn = useRef(false);
+  useEffect(() => {
+    if (authLoading || user || redirectedToSignIn.current) return;
+    redirectedToSignIn.current = true;
+    requireAuth({ returnTo: '/checkout' });
+  }, [authLoading, user, requireAuth]);
+
+  const { cart, isLoading: cartLoading, error: cartError } = useCart();
+  const queryClient = useQueryClient();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  
+  // Basic address form state for MVP
+  const [isEditingAddress, setIsEditingAddress] = useState(true);
+  const [formData, setFormData] = useState({
+    customerName: '',
+    customerPhone: '',
+    governorate: 'cairo',
+    area: '',
+    address: '',
+    landmark: '',
+  });
+
+  const [idempotencyKey] = useState(() => createIdempotencyKey());
+
+  // Quote covers pricing and availability revalidation
+  const { 
+    data: quote, 
+    isLoading: quoteLoading, 
+    error: quoteError 
+  } = useCheckoutQuote({
+    governorate: formData.governorate,
+    area: formData.area || 'default',
+  });
+
+  if (authLoading || !user) {
+    return (
+      <div role="status" className="flex min-h-[50vh] flex-col items-center justify-center gap-3 px-4 text-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-support text-muted-foreground">{authLoading ? m.loading : m.redirectingToSignIn}</p>
+      </div>
+    );
+  }
+
+  if (cartLoading || (!cart && !cartError)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (cartError && !cart) {
+    return (
+      <div role="alert" className="mx-auto mt-24 max-w-md px-4 text-center">
+        <h2 className="mb-2 text-h3 text-foreground">{m.unexpectedError}</h2>
+        <p className="mb-6 text-support text-muted-foreground">{cartError instanceof ApiError ? cartError.message : m.unexpectedErrorDescription}</p>
+        <Link href="/cart" className="font-medium text-primary hover:underline">{m.viewAndEditCart}</Link>
+      </div>
+    );
+  }
+
+  if (!cart || cart.items.length === 0) {
+    router.push('/cart');
+    return null;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!quote) {
+      setError('Please wait for shipping quote to calculate.');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const fullAddress = `${formData.address}${formData.landmark ? `, Landmark: ${formData.landmark}` : ''}`;
+      
+      const order = await orders.checkout({
+        customerName: formData.customerName,
+        customerPhone: formData.customerPhone,
+        governorate: formData.governorate,
+        area: formData.area,
+        shippingAddress: fullAddress,
+        idempotencyKey,
+        quoteVersion: quote.quoteVersion,
+        cartRevision: cart.revision || 0,
+      });
+      
+      const url = order.guestToken ? `/orders/${order.id}?token=${order.guestToken}` : `/orders/${order.id}`;
+      router.push(url);
+    } catch (err: any) {
+      if (err?.type === 'CONFLICT') {
+        setError('Checkout details changed (e.g. price or availability). Please review the updated totals and try again.');
+        queryClient.invalidateQueries({ queryKey: ['checkoutQuote'] });
+        queryClient.invalidateQueries({ queryKey: ['cart'] });
+      } else {
+        setError(err instanceof Error ? err.message : 'Checkout failed');
+      }
+      setSubmitting(false);
+    }
+  };
+
+  const hasUnavailableItems = (quote?.invalidItems.length ?? 0) > 0;
+
+  const getGovernorateLabel = (val: string) => {
+    if (val === 'cairo') return m.cairo;
+    if (val === 'giza') return m.giza;
+    return m.otherGovernorates;
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-32">
+      {/* Header */}
+      <header className="flex items-center justify-between p-4 bg-card sticky top-0 z-40 shadow-sm border-b border-black/5">
+        <button onClick={() => router.back()} className="p-2 -mx-2 text-foreground" aria-label="Go back">
+          <BackIcon className="w-6 h-6" />
+        </button>
+        <h1 className="text-lg font-bold text-foreground">{m.checkoutTitle}</h1>
+        <div className="w-6" /> {/* Balance spacer */}
+      </header>
+
+      <form onSubmit={handleSubmit} className="max-w-xl mx-auto px-4 pt-6 flex flex-col gap-8">
+        
+        {/* Errors */}
+        {(error || quoteError) && (
+          <div className="bg-destructive-subtle text-destructive p-4 rounded-xl text-sm font-medium">
+            {error || (quoteError as Error)?.message || 'An error occurred'}
+          </div>
+        )}
+        {hasUnavailableItems && (
+          <div className="bg-warning-subtle text-warning p-4 rounded-xl text-sm font-medium">
+            Some items are no longer available. Please update your cart.
+          </div>
+        )}
+
+        {/* Section 1: Delivery */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="w-5 h-5 text-foreground" />
+            <h2 className="text-base font-bold text-foreground">{m.deliveryDetails}</h2>
+          </div>
+
+          <div className="bg-card p-5 rounded-2xl shadow-sm border border-black/5">
+            {/* Governorate Radio Group */}
+            <div className="flex gap-2 mb-5 overflow-x-auto pb-2 scrollbar-hide">
+              {['cairo', 'giza', 'other'].map(gov => (
+                <label 
+                  key={gov} 
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium whitespace-nowrap cursor-pointer transition-colors ${
+                    formData.governorate === gov 
+                    ? 'border-primary bg-primary-subtle text-primary' 
+                    : 'border-border text-muted-foreground bg-card'
+                  }`}
+                >
+                  <input 
+                    type="radio" 
+                    name="governorate" 
+                    value={gov} 
+                    checked={formData.governorate === gov}
+                    onChange={(e) => setFormData({ ...formData, governorate: e.target.value })}
+                    className="sr-only" 
+                  />
+                  <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${formData.governorate === gov ? 'border-primary' : 'border-input'}`}>
+                    {formData.governorate === gov && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+                  {getGovernorateLabel(gov)}
+                </label>
+              ))}
+            </div>
+
+            {isEditingAddress ? (
+              <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-2">
+                <input
+                  type="text" required placeholder="Full Name *"
+                  value={formData.customerName} onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:outline-none focus:border-ring text-sm"
+                />
+                <input
+                  type="tel" required placeholder="Phone Number (e.g. 010...) *"
+                  value={formData.customerPhone} onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                  className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:outline-none focus:border-ring text-sm text-left" dir="ltr"
+                />
+                <input
+                  type="text" required placeholder="Area / Neighborhood *"
+                  value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                  className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:outline-none focus:border-ring text-sm"
+                />
+                <textarea
+                  required rows={2} placeholder="Street, Building, Floor, Apt *"
+                  value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:outline-none focus:border-ring text-sm"
+                />
+                <input
+                  type="text" placeholder="Landmark (Optional)"
+                  value={formData.landmark} onChange={(e) => setFormData({ ...formData, landmark: e.target.value })}
+                  className="w-full px-4 py-3 bg-muted border border-border rounded-xl focus:outline-none focus:border-ring text-sm"
+                />
+                
+                <div className="flex justify-end gap-2 mt-2">
+                  <button type="button" onClick={() => setIsEditingAddress(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground bg-secondary rounded-lg">Done</button>
+                </div>
+              </div>
+            ) : (
+              <div className="border border-border rounded-xl p-4 mb-4 bg-muted">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-bold text-foreground text-sm mb-1">{formData.customerName || 'Name missing'} - {getGovernorateLabel(formData.governorate)}</div>
+                    <div className="text-xs text-muted-foreground leading-relaxed max-w-[80%]">
+                      {formData.address}, {formData.area}
+                      {formData.customerPhone && <div className="mt-1" dir="ltr">{formData.customerPhone}</div>}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setIsEditingAddress(true)} className="text-primary text-xs font-bold p-1">
+                    {m.edit}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isEditingAddress && (
+              <button type="button" onClick={() => setIsEditingAddress(true)} className="w-full py-3 flex items-center justify-center gap-2 text-primary text-sm font-bold border border-dashed border-primary rounded-xl bg-primary-subtle/50">
+                <Plus className="w-4 h-4" />
+                {m.addNewAddress}
+              </button>
+            )}
+          </div>
+        </section>
+
+        {/* Section 2: Payment */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <CreditCard className="w-5 h-5 text-foreground" />
+            <h2 className="text-base font-bold text-foreground">{m.paymentMethod}</h2>
+          </div>
+
+          <div className="bg-card p-5 rounded-2xl shadow-sm border border-black/5 flex flex-col gap-3">
+            {/* COD Option */}
+            <label className="flex items-start gap-3 p-4 rounded-xl border border-primary bg-primary-subtle/50 cursor-pointer">
+              <div className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center mt-0.5 shrink-0">
+                <Check className="w-3 h-3" />
+              </div>
+              <div>
+                <div className="font-bold text-foreground text-sm">{m.cod}</div>
+                <div className="text-xs text-muted-foreground mt-1">{m.codDesc}</div>
+              </div>
+            </label>
+
+            {/* Vodafone Cash (Disabled) */}
+            <label className="flex items-start gap-3 p-4 rounded-xl border border-border bg-muted cursor-not-allowed opacity-60">
+              <div className="w-4 h-4 rounded-full border border-input mt-0.5 shrink-0" />
+              <div>
+                <div className="font-bold text-foreground text-sm">{m.vodafoneCash}</div>
+                <div className="text-xs text-muted-foreground mt-1">{m.vodafoneCashDesc}</div>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        {/* Section 3: Summary */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-foreground" />
+              <h2 className="text-base font-bold text-foreground">{m.orderSummary}</h2>
+            </div>
+            <Link href="/cart" className="text-primary text-xs font-bold hover:underline">
+              {m.viewAndEditCart}
+            </Link>
+          </div>
+
+          <div className="bg-card p-5 rounded-2xl shadow-sm border border-black/5">
+            {/* Horizontal Product List */}
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide mb-4 border-b border-secondary">
+              {cart.items.map((item) => (
+                <div key={item.skuId} className="relative shrink-0">
+                  <div className="w-16 h-16 bg-secondary rounded-lg border border-black/5 flex items-center justify-center text-xl">
+                    <span className="opacity-30">📦</span>
+                  </div>
+                  <div className="absolute -top-2 -right-2 bg-foreground text-background text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-card">
+                    {item.quantity}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Totals */}
+            <div className="flex flex-col gap-3 text-sm">
+              <div className="flex justify-between text-muted-foreground">
+                <span>{m.productsTotal.replace('{count}', cart.itemCount.toString())}</span>
+                <span className="font-bold text-foreground">{quote ? quote.subtotal.toFixed(0) : cart.total.toFixed(0)} ج.م</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>{m.shippingFees}</span>
+                <span className="font-bold text-success">
+                  {quoteLoading ? (
+                    <div className="w-3 h-3 border-2 border-success border-t-transparent rounded-full animate-spin"></div>
+                  ) : quote && quote.shippingFee === 0 ? (
+                    m.freeShipping
+                  ) : quote ? (
+                    `${quote.shippingFee.toFixed(0)} ج.م`
+                  ) : (
+                    '---'
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center mt-5 pt-4 border-t border-dashed border-border">
+              <span className="font-bold text-lg text-foreground">{m.total}</span>
+              <span className="font-bold text-2xl text-foreground">{quote ? quote.totalAmount.toFixed(0) : '---'} ج.م</span>
+            </div>
+          </div>
+        </section>
+
+      </form>
+
+      {/* Mobile Sticky CTA */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-card/95 backdrop-blur border-t border-border z-40 pb-safe">
+        <button 
+          onClick={handleSubmit}
+          disabled={submitting || quoteLoading || hasUnavailableItems || !quote || isEditingAddress}
+          className="w-full bg-primary hover:bg-primary-hover disabled:bg-disabled disabled:text-disabled-foreground text-primary-foreground font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+        >
+          {submitting ? 'جارٍ التأكيد...' : m.placeOrder}
+          {!submitting && <ArrowIcon className="w-5 h-5" />}
+        </button>
+        <div className="flex justify-center items-center gap-1.5 mt-2.5 text-[11px] text-muted-foreground">
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>{m.securePaymentDesc}</span>
+        </div>
+      </div>
+    </div>
+  );
+}

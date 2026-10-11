@@ -1,4 +1,5 @@
 import { apiClient } from './api-client';
+import { SESSION_TOKEN_KEY } from './session-token';
 
 export interface User {
   id: string;
@@ -23,7 +24,7 @@ export interface LoginData {
   password: string;
 }
 
-const TOKEN_KEY = 'sessionToken';
+const TOKEN_KEY = SESSION_TOKEN_KEY;
 
 export const auth = {
   async register(data: RegisterData): Promise<AuthResponse> {
