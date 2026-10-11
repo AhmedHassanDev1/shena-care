@@ -36,6 +36,10 @@ export const messages = {
     unexpectedErrorDescription: 'We encountered an unexpected issue. Please try again.',
     errorId: 'Error ID',
     tryAgain: 'Try again',
+    close: 'Close',
+    stepStatusComplete: 'Completed',
+    stepStatusCurrent: 'Current step',
+    stepStatusUpcoming: 'Upcoming',
 
     // Product Page additions
     assistantQuestion: 'Not sure if this is right for you?',
@@ -153,6 +157,10 @@ export const messages = {
     unexpectedErrorDescription: 'واجهنا مشكلة غير متوقعة. يرجى المحاولة مرة ثانية.',
     errorId: 'معرّف الخطأ',
     tryAgain: 'حاول تاني',
+    close: 'إغلاق',
+    stepStatusComplete: 'تمت',
+    stepStatusCurrent: 'الخطوة الحالية',
+    stepStatusUpcoming: 'لسه ما بدأتش',
 
     // Product Page additions
     assistantQuestion: 'مش متأكد إنه مناسب ليك؟',

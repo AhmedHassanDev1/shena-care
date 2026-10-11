@@ -1,0 +1,141 @@
+/*
+ * Shena Care — Design tokens v0.1
+ *
+ * Layer A (primitives) describes values. Layer B (semantic roles) describes usage.
+ * Feature code must use semantic roles through Tailwind (bg-primary, text-muted-foreground…),
+ * never primitives or hex values. Colors are stored as space-separated RGB channels so
+ * Tailwind can apply opacity: rgb(var(--primary) / <alpha-value>).
+ *
+ * STATUS: "Olive Blush" is a TEMPORARY development theme. It is not the approved brand palette.
+ * Swap the theme by redefining the semantic block below (or adding another [data-theme]).
+ * Contrast for every semantic pair is verified by `npm run check:design` (scripts/check-design-system.mjs).
+ */
+
+:root {
+  /* ── Layer A: primitives ─────────────────────────────────────────── */
+
+  /* Warm grey — low chroma on purpose, so multi-brand packaging carries the color, not the chrome. */
+  --neutral-0: 255 255 255;
+  --neutral-25: 251 250 248;
+  --neutral-50: 245 243 240;
+  --neutral-100: 236 233 228;
+  --neutral-200: 220 215 208;
+  --neutral-300: 196 190 181;
+  --neutral-400: 162 155 145;
+  --neutral-500: 125 118 109;
+  --neutral-600: 99 93 85;
+  --neutral-700: 75 70 64;
+  --neutral-800: 52 48 44;
+  --neutral-900: 34 31 28;
+  --neutral-950: 21 19 17;
+
+  /* Olive — provisional primary. */
+  --olive-50: 244 246 236;
+  --olive-100: 230 235 211;
+  --olive-200: 205 214 170;
+  --olive-300: 174 187 124;
+  --olive-400: 142 157 85;
+  --olive-500: 113 128 58;
+  --olive-600: 90 103 44;
+  --olive-700: 71 82 36;
+  --olive-800: 56 65 30;
+  --olive-900: 42 49 23;
+  --olive-950: 26 31 14;
+
+  /* Blush — provisional accent. Use sparingly; never as a page or card surface. */
+  --blush-50: 252 243 241;
+  --blush-100: 248 228 224;
+  --blush-200: 241 201 193;
+  --blush-300: 230 168 156;
+  --blush-400: 216 134 118;
+  --blush-500: 196 104 90;
+  --blush-600: 166 82 70;
+  --blush-700: 135 66 56;
+  --blush-800: 103 51 44;
+  --blush-900: 74 37 32;
+
+  /* Status hues. Success leans teal so it never reads as the olive primary. */
+  --green-50: 235 246 241;
+  --green-700: 23 105 76;
+  --amber-50: 255 245 219;
+  --amber-800: 122 77 0;
+  --red-50: 253 240 238;
+  --red-700: 180 35 24;
+  --blue-50: 238 244 252;
+  --blue-700: 36 87 166;
+
+  /* ── Shape, elevation, motion (theme-independent) ─────────────────── */
+  --radius-sm: 4px; /* inputs, chips, badges */
+  --radius-md: 8px; /* buttons, cards, media */
+  --radius-lg: 12px; /* dialogs, sheets */
+  /* Circles (rounded-full) are reserved for step markers and avatars. */
+
+  --shadow-raised: 0 1px 2px rgb(var(--neutral-950) / 0.06), 0 1px 3px rgb(var(--neutral-950) / 0.04);
+  --shadow-overlay: 0 12px 32px rgb(var(--neutral-950) / 0.14), 0 2px 6px rgb(var(--neutral-950) / 0.06);
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── Typography ───────────────────────────────────────────────────── */
+  /* --font-sans-provisional is injected by next/font in the root layout (src/lib/fonts.ts). */
+  --font-sans: var(--font-sans-provisional, system-ui), system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  --leading-heading: 1.25;
+  --leading-body: 1.6;
+}
+
+/* Arabic needs more vertical room for dots, diacritics and descenders. */
+:root:lang(ar) {
+  --leading-heading: 1.4;
+  --leading-body: 1.8;
+}
+
+/* ── Layer B: semantic roles — TEMPORARY "Olive Blush" theme ────────── */
+:root,
+[data-theme='olive-provisional'] {
+  --background: var(--neutral-25);
+  --foreground: var(--neutral-900);
+
+  --card: var(--neutral-0);
+  --card-foreground: var(--neutral-900);
+  --popover: var(--neutral-0);
+  --popover-foreground: var(--neutral-900);
+
+  --muted: var(--neutral-50);
+  --muted-foreground: var(--neutral-600);
+
+  --primary: var(--olive-700);
+  --primary-hover: var(--olive-800);
+  --primary-foreground: var(--neutral-0);
+  --primary-subtle: var(--olive-100);
+
+  --secondary: var(--neutral-100);
+  --secondary-hover: var(--neutral-200);
+  --secondary-foreground: var(--neutral-900);
+
+  --accent: var(--blush-100);
+  --accent-foreground: var(--blush-800);
+
+  /* border = decorative dividers; input = boundaries of interactive controls (≥ 3:1). */
+  --border: var(--neutral-200);
+  --border-subtle: var(--neutral-100);
+  --input: var(--neutral-500);
+  --ring: var(--olive-600);
+
+  --destructive: var(--red-700);
+  --destructive-foreground: var(--neutral-0);
+  --destructive-subtle: var(--red-50);
+  --success: var(--green-700);
+  --success-foreground: var(--neutral-0);
+  --success-subtle: var(--green-50);
+  --warning: var(--amber-800);
+  --warning-foreground: var(--neutral-0);
+  --warning-subtle: var(--amber-50);
+  --info: var(--blue-700);
+  --info-foreground: var(--neutral-0);
+  --info-subtle: var(--blue-50);
+
+  --disabled: var(--neutral-100);
+  --disabled-foreground: var(--neutral-500);
+  --overlay: var(--neutral-950);
+}
