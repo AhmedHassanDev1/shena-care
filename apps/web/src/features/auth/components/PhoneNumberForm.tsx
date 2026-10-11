@@ -1,19 +1,21 @@
-// @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
-import { useMessages } from '@/lib/i18n/LocaleProvider';
+import { useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { auth } from '@/lib/auth';
-import { BrandLogo } from './BrandLogo';
-import { ChevronDown } from 'lucide-react';
-import Link from 'next/link';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import { cn } from '@/lib/utils';
+import { normalizeEgyptianMobile, otpErrorMessage } from '../lib/auth-helpers';
 
 export function PhoneNumberForm() {
   const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,109 +23,98 @@ export function PhoneNumberForm() {
   const returnTo = searchParams.get('returnTo') || '';
   const intent = searchParams.get('intent') || '';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     setError('');
-    
-    // Basic validation
-    const digitsOnly = phoneNumber.replace(/\D/g, '');
-    if (digitsOnly.length < 8) {
-      setError('Please enter a valid phone number');
+
+    const national = normalizeEgyptianMobile(phoneNumber);
+    if (!national) {
+      setError(m.authPhoneInvalid);
       return;
     }
-
-    // Format with +20 for Egypt for now
-    // Later this should be dynamic based on selected country
-    const formattedPhone = `+20${digitsOnly}`;
+    // Egypt only for now; the country prefix is fixed until the backend supports others.
+    const formattedPhone = `+20${national}`;
 
     setIsLoading(true);
     try {
       await auth.sendOtp(formattedPhone);
-      
+
       const params = new URLSearchParams();
       params.set('phone', formattedPhone);
       if (returnTo) params.set('returnTo', returnTo);
       if (intent) params.set('intent', intent);
-      
+
       router.push(`/auth/verify?${params.toString()}`);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to send verification code. Please try again.');
-    } finally {
+    } catch (err) {
+      setError(otpErrorMessage(err, m, m.authSendFailed));
       setIsLoading(false);
     }
   };
 
+  const describedBy = error ? 'phone-error' : 'phone-hint';
+
   return (
-    <div className="flex flex-col items-center w-full">
-      <div className="mb-8 hidden md:block">
-        <BrandLogo />
-      </div>
-      
-      <h2 className="text-3xl font-serif text-foreground mb-2 text-center tracking-tight">
-        {m.authWelcome}
-      </h2>
-      <p className="text-[15px] text-muted-foreground mb-10 text-center">
-        {m.authSubtitle}
-      </p>
+    <div>
+      <h1 className="text-h1 font-bold text-foreground">{m.authWelcome}</h1>
+      <p className="mt-2 text-body text-muted-foreground">{m.authSubtitle}</p>
 
-      <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="phone" className="text-sm font-medium text-foreground">
-            {m.authPhoneLabel}
-          </label>
-          
-          <div className="flex flex-row items-center border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all bg-card h-14 overflow-hidden relative">
-            
-            {/* Country Selector (Static for MVP) */}
-            <div className="flex items-center gap-2 px-4 border-l border-border h-full bg-muted/30 shrink-0 select-none cursor-default" dir="ltr">
-              <span className="text-xl leading-none">🇪🇬</span>
-              <span className="text-foreground font-medium">+20</span>
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            </div>
-
+      <form onSubmit={handleSubmit} noValidate className="mt-8 flex flex-col gap-6">
+        <div>
+          <Label htmlFor="phone">{m.authPhoneLabel}</Label>
+          {/* Phone numbers are always written left-to-right, also on Arabic pages. */}
+          <div
+            dir="ltr"
+            className={cn(
+              'mt-2 flex h-12 overflow-hidden rounded-sm border bg-card transition-colors duration-fast ease-standard',
+              'focus-within:ring-1',
+              error
+                ? 'border-destructive focus-within:border-destructive focus-within:ring-destructive'
+                : 'border-input focus-within:border-ring focus-within:ring-ring'
+            )}
+          >
+            <span className="flex shrink-0 items-center border-e border-border bg-muted px-3 text-body font-medium text-foreground">
+              <span className="sr-only">{m.authCountryName} </span>+20
+            </span>
             <input
               id="phone"
+              name="phone"
               type="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
               value={phoneNumber}
-              onChange={(e) => {
-                const val = e.target.value.replace(/[^\d\s-]/g, '');
-                setPhoneNumber(val);
+              onChange={(event) => {
+                setPhoneNumber(event.target.value.replace(/[^\d٠-٩۰-۹\s+-]/g, ''));
                 if (error) setError('');
               }}
               placeholder={m.authPhonePlaceholder}
-              className="flex-1 h-full px-4 outline-none text-lg text-foreground placeholder:text-muted-foreground"
-              dir="ltr"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={describedBy}
+              className="min-w-0 flex-1 bg-transparent px-3 text-body-lg text-foreground placeholder:text-muted-foreground focus:outline-none"
               autoFocus
-              required
             />
           </div>
-          
-          {error && (
-            <p className="text-sm text-destructive mt-1 font-medium">{error}</p>
-          )}
-          {!error && (
-            <p className="text-[13px] text-muted-foreground mt-1">
+          {error ? (
+            <p id="phone-error" role="alert" className="mt-2 flex items-start gap-1.5 text-support text-destructive">
+              <AlertCircle aria-hidden="true" className="mt-1 size-4 shrink-0" />
+              {error}
+            </p>
+          ) : (
+            <p id="phone-hint" className="mt-2 text-support text-muted-foreground">
               {m.authPhoneInfo}
             </p>
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={isLoading || !phoneNumber}
-          className="w-full h-14 bg-primary hover:bg-primary-hover text-primary-foreground rounded-xl font-medium text-lg transition-colors flex items-center justify-center disabled:opacity-50"
-        >
-          {isLoading ? (
-            <div className="w-5 h-5 border-2 border-card border-t-transparent rounded-full animate-spin" />
-          ) : (
-            m.authContinue
-          )}
-        </button>
+        <Button type="submit" size="lg" loading={isLoading} className="w-full">
+          {m.authContinue}
+        </Button>
 
-        <div className="mt-6 text-center text-[13px] text-muted-foreground">
-          {m.authTermsAgreement} <br />
-          <Link href="/terms" className="text-primary hover:underline font-medium">{m.termsOfService}</Link> {m.and} <Link href="/privacy" className="text-primary hover:underline font-medium">{m.privacyPolicy}</Link>
-        </div>
+        <p className="text-center text-caption text-muted-foreground">
+          {m.authTermsAgreement}{' '}
+          <span className="font-medium text-foreground">{m.termsOfService}</span> {m.and}
+          {locale === 'ar' ? '' : ' '}
+          <span className="font-medium text-foreground">{m.privacyPolicy}</span>
+        </p>
       </form>
     </div>
   );

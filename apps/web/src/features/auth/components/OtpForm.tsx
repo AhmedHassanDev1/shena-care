@@ -1,11 +1,22 @@
 'use client';
 
 import React, { useState, useRef, useEffect, Suspense } from 'react';
-import { useMessages, useLocale } from '@/lib/i18n/LocaleProvider';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ApiError } from '@/lib/api-client';
 import { auth } from '@/lib/auth';
+import { formatNumber } from '@/lib/i18n/format';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import { fillMessage } from '@/lib/i18n/messages';
+import { cn } from '@/lib/utils';
 import { useAuth } from '../AuthContext';
-import { BrandLogo } from './BrandLogo';
+import { otpErrorMessage, safeReturnTo, toLatinDigits } from '../lib/auth-helpers';
+
+const CODE_LENGTH = 6;
+const RESEND_SECONDS = 30;
+const emptyCode = () => Array<string>(CODE_LENGTH).fill('');
 
 function OtpFormContent() {
   const m = useMessages();
@@ -13,14 +24,14 @@ function OtpFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
-  
+
   const phoneNumber = searchParams.get('phone');
-  const returnTo = searchParams.get('returnTo') || '/';
-  
-  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const returnTo = safeReturnTo(searchParams.get('returnTo'));
+
+  const [code, setCode] = useState(emptyCode);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(RESEND_SECONDS);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -38,168 +49,175 @@ function OtpFormContent() {
 
   if (!phoneNumber) return null;
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !code[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    
-    const newCode = [...code];
-    newCode[index] = value.substring(value.length - 1);
-    setCode(newCode);
-    setError('');
-
-    // Move to next input
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-    
-    // Auto submit when 6 digits are entered
-    if (value && index === 5 && newCode.every(d => d !== '')) {
-      handleSubmit(newCode.join(''));
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (!pastedData) return;
-    
-    const newCode = [...code];
-    for (let i = 0; i < pastedData.length; i++) {
-      newCode[i] = pastedData[i];
-    }
-    setCode(newCode);
-    
-    const focusIndex = Math.min(pastedData.length, 5);
-    inputRefs.current[focusIndex]?.focus();
-    
-    if (pastedData.length === 6) {
-      handleSubmit(pastedData);
-    }
-  };
+  // Back to the phone step, keeping where the customer was going.
+  const changeNumberParams = new URLSearchParams();
+  const rawReturnTo = searchParams.get('returnTo');
+  const intent = searchParams.get('intent');
+  if (rawReturnTo) changeNumberParams.set('returnTo', rawReturnTo);
+  if (intent) changeNumberParams.set('intent', intent);
+  const changeNumberQuery = changeNumberParams.toString();
+  const changeNumberHref = changeNumberQuery ? `/auth?${changeNumberQuery}` : '/auth';
 
   const handleSubmit = async (submittedCode: string) => {
-    if (submittedCode.length !== 6) return;
-    
+    if (submittedCode.length !== CODE_LENGTH || isLoading) return;
+
     setIsLoading(true);
     setError('');
-    
+
     try {
       await auth.verifyOtp(phoneNumber, submittedCode);
       await refreshUser();
-      
-      // Verification successful, redirect
       router.push(returnTo);
-    } catch (err: any) {
-      setError(err?.message || 'Invalid verification code');
-      // Clear inputs on error
-      setCode(['', '', '', '', '', '']);
+    } catch (err) {
+      const invalid = err instanceof ApiError && (err.type === 'VALIDATION' || err.type === 'UNAUTHENTICATED');
+      setError(invalid ? m.authCodeInvalid : otpErrorMessage(err, m, m.authVerifyFailed));
+      setCode(emptyCode());
       inputRefs.current[0]?.focus();
-    } finally {
       setIsLoading(false);
     }
   };
 
+  const handleKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Backspace' && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  /** Writes digits from `start` onwards; a full code (SMS autofill, paste, fast typing) fills every box. */
+  const fillFrom = (start: number, digits: string) => {
+    const next = [...code];
+    const count = Math.min(digits.length, CODE_LENGTH - start);
+    for (let i = 0; i < count; i++) next[start + i] = digits[i];
+    setCode(next);
+    setError('');
+
+    inputRefs.current[Math.min(start + count, CODE_LENGTH - 1)]?.focus();
+    if (next.every((digit) => digit !== '')) handleSubmit(next.join(''));
+  };
+
+  const handleChange = (index: number, raw: string) => {
+    const digits = toLatinDigits(raw).replace(/\D/g, '');
+    if (!digits) {
+      if (raw === '') {
+        const next = [...code];
+        next[index] = '';
+        setCode(next);
+      }
+      return;
+    }
+    fillFrom(index, digits);
+  };
+
+  const handlePaste = (index: number, event: React.ClipboardEvent) => {
+    event.preventDefault();
+    const pasted = toLatinDigits(event.clipboardData.getData('text')).replace(/\D/g, '');
+    if (pasted) fillFrom(pasted.length >= CODE_LENGTH ? 0 : index, pasted);
+  };
+
   const handleResend = async () => {
-    if (countdown > 0) return;
-    
+    if (countdown > 0 || isLoading) return;
+
     setIsLoading(true);
     setError('');
     try {
       await auth.sendOtp(phoneNumber);
-      setCountdown(30);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to resend code');
+      setCountdown(RESEND_SECONDS);
+    } catch (err) {
+      setError(otpErrorMessage(err, m, m.authResendFailed));
     } finally {
       setIsLoading(false);
     }
   };
 
   const codeString = code.join('');
+  // Plain seconds: an "0:29" clock reorders under RTL bidi.
+  const remaining = formatNumber(countdown, locale);
 
   return (
-    <div className="flex flex-col items-center w-full">
-      <div className="mb-8 hidden md:block">
-        <BrandLogo />
-      </div>
-      
-      <h2 className="text-3xl font-serif text-foreground mb-2 text-center tracking-tight">
-        {m.authVerifyTitle}
-      </h2>
-      <p className="text-[15px] text-muted-foreground mb-10 text-center flex flex-col items-center">
-        <span>{m.authVerifySubtitle}</span>
-        <span className="font-medium text-foreground mt-1" dir="ltr">{phoneNumber}</span>
-        <button 
-          onClick={() => router.back()}
-          className="text-primary hover:underline text-sm font-medium mt-2"
-        >
-          {m.authChangePhone}
-        </button>
+    <div>
+      <h1 className="text-h1 font-bold text-foreground">{m.authVerifyTitle}</h1>
+      <p className="mt-2 text-body text-muted-foreground">
+        {m.authVerifySubtitle}{' '}
+        <bdi dir="ltr" className="font-semibold text-foreground">
+          {phoneNumber}
+        </bdi>
       </p>
-
-      <form 
-        onSubmit={(e) => { 
-          e.preventDefault(); 
-          handleSubmit(codeString); 
-        }} 
-        className="w-full flex flex-col gap-8"
+      <Link
+        href={changeNumberHref}
+        className="mt-1 inline-flex min-h-11 items-center text-support font-semibold text-primary underline-offset-4 hover:underline"
       >
-        <div className="flex flex-col gap-2">
-          <div className="flex justify-center gap-2 md:gap-3 w-full" dir="ltr">
+        {m.authChangePhone}
+      </Link>
+
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSubmit(codeString);
+        }}
+        className="mt-6 flex flex-col gap-6"
+      >
+        <div>
+          <div role="group" aria-label={m.authCodeGroup} dir="ltr" className="flex justify-between gap-2">
             {code.map((digit, index) => (
               <input
                 key={index}
-                ref={(el) => { inputRefs.current[index] = el; }}
+                ref={(element) => {
+                  inputRefs.current[index] = element;
+                }}
                 type="text"
                 inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={1}
+                autoComplete={index === 0 ? 'one-time-code' : 'off'}
                 value={digit}
-                onChange={(e) => handleChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                onPaste={index === 0 ? handlePaste : undefined}
-                className={`w-12 h-14 md:w-14 md:h-16 text-center text-2xl font-medium rounded-xl border focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-card outline-none ${
-                  error ? 'border-destructive text-destructive' : 'border-border text-foreground'
-                }`}
+                onFocus={(event) => event.target.select()}
+                onChange={(event) => handleChange(index, event.target.value)}
+                onKeyDown={(event) => handleKeyDown(index, event)}
+                onPaste={(event) => handlePaste(index, event)}
+                aria-label={fillMessage(m.authCodeDigit, { n: index + 1 })}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'otp-error' : undefined}
+                // readOnly, not disabled: a disabled box cannot take focus back after a failed attempt.
+                readOnly={isLoading}
+                className={cn(
+                  'h-14 w-full min-w-0 max-w-14 rounded-sm border bg-card text-center text-h3 font-semibold text-foreground',
+                  'transition-colors duration-fast ease-standard focus-visible:outline-none focus-visible:ring-1',
+                  'read-only:bg-muted',
+                  error
+                    ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive'
+                    : 'border-input focus-visible:border-ring focus-visible:ring-ring'
+                )}
                 autoFocus={index === 0}
               />
             ))}
           </div>
-          
-          {error && (
-            <p className="text-sm text-destructive mt-2 font-medium text-center">{error}</p>
-          )}
+          {error ? (
+            <p id="otp-error" role="alert" className="mt-3 flex items-start gap-1.5 text-support text-destructive">
+              <AlertCircle aria-hidden="true" className="mt-1 size-4 shrink-0" />
+              {error}
+            </p>
+          ) : null}
         </div>
 
-        <button
-          type="submit"
-          disabled={isLoading || codeString.length !== 6}
-          className="w-full h-14 bg-primary hover:bg-primary-hover text-primary-foreground rounded-xl font-medium text-lg transition-colors flex items-center justify-center disabled:opacity-50"
-        >
-          {isLoading ? (
-            <div className="w-5 h-5 border-2 border-card border-t-transparent rounded-full animate-spin" />
-          ) : (
-            m.authVerifyCode
-          )}
-        </button>
+        <Button type="submit" size="lg" loading={isLoading} className="w-full">
+          {m.authVerifyCode}
+        </Button>
 
-        <div className="text-center text-[14px]">
+        <p className="text-center text-support">
           <span className="text-muted-foreground">{m.authCodeNotReceived}</span>{' '}
-          <button
-            type="button"
-            disabled={countdown > 0 || isLoading}
-            onClick={handleResend}
-            className="font-medium disabled:opacity-50 text-primary hover:underline"
-          >
-            {countdown > 0 
-              ? m.authResendIn.replace('{time}', `0:${countdown.toString().padStart(2, '0')}`) 
-              : m.authResendNow}
-          </button>
-        </div>
+          {countdown > 0 ? (
+            <span className="font-medium text-muted-foreground" aria-live="off">
+              {fillMessage(m.authResendIn, { time: remaining })}
+            </span>
+          ) : (
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={handleResend}
+              className="inline-flex min-h-11 items-center font-semibold text-primary underline-offset-4 hover:underline disabled:text-disabled-foreground"
+            >
+              {m.authResendNow}
+            </button>
+          )}
+        </p>
       </form>
     </div>
   );
@@ -207,7 +225,13 @@ function OtpFormContent() {
 
 export function OtpForm() {
   return (
-    <Suspense fallback={<div className="h-[400px] flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex h-80 items-center justify-center">
+          <Loader2 aria-hidden="true" className="size-6 text-primary motion-safe:animate-spin" />
+        </div>
+      }
+    >
       <OtpFormContent />
     </Suspense>
   );

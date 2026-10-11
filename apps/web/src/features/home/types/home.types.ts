@@ -1,25 +1,22 @@
-export interface RoutineSnippet {
+import type { LucideIcon } from 'lucide-react';
+import type { MessageKey } from '@/lib/i18n/messages';
+
+export interface ConcernLink {
   id: string;
-  name: string;
-  description: string;
-  concern: string;
-  stepCount: number;
-  timeOfDay: 'AM' | 'PM' | 'AM & PM';
-  imageUrl: string;
+  labelKey: MessageKey;
+  icon: LucideIcon;
 }
 
-export interface ConcernCategory {
-  id: string;
-  label: string;
-  icon: string; // or an image url/icon name
+export interface RoutineTrack {
+  id: 'skin' | 'hair';
+  titleKey: MessageKey;
+  /** Questions the routine builder asks, in order. */
+  questionKeys: MessageKey[];
+  href: string;
 }
 
-export interface HeroSlide {
-  id: string;
-  subtitle: string;
-  title: string;
-  description: string;
-  ctaText: string;
-  ctaUrl: string;
-  imageUrl: string;
+export interface SkinCareSequence {
+  id: 'morning' | 'evening';
+  labelKey: MessageKey;
+  stepKeys: MessageKey[];
 }

@@ -1,65 +1,77 @@
+'use client';
+
 import Link from 'next/link';
-import {
-  Bell,
-  ChevronDown,
-  Flower2,
-  Menu,
-  Search,
-  ShoppingBag,
-  SlidersHorizontal,
-  Sparkles,
-  UserRound,
-} from 'lucide-react';
+import { ShoppingBag, UserRound } from 'lucide-react';
+import { BrandLogo } from '@/components/BrandLogo';
+import { LocaleSwitch } from '@/components/LocaleSwitch';
+import { useAuth } from '@/features/auth/AuthContext';
+import { useCart } from '@/features/cart/hooks/useCart';
+import { formatNumber } from '@/lib/i18n/format';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
+import { HomeSearch } from './HomeSearch';
+
+const iconButton =
+  'relative inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-md px-2.5 text-support font-medium text-foreground transition-colors duration-fast ease-standard hover:bg-secondary';
 
 export function HomeHeader() {
-  return (
-    <header className="home-header">
-      <div className="home-header-inner">
-        <Link href={routes.home} className="brand-lockup" aria-label="Shena Care home">
-          <Flower2 aria-hidden="true" />
-          <span>Shena <span>Care</span></span>
-        </Link>
+  const m = useMessages();
+  const locale = useLocale();
+  const { user, isLoading } = useAuth();
+  const { cart } = useCart();
+  const count = cart?.itemCount ?? 0;
 
-        <nav className="desktop-home-nav" aria-label="Store navigation">
-          <Link href={routes.products}>Shop <ChevronDown aria-hidden="true" /></Link>
-          <Link href={routes.routineBuilder}>Routines</Link>
-          <Link href="/products?view=brands">Brands</Link>
-          <Link href="#concerns">Concerns</Link>
+  return (
+    <header className="sticky top-0 z-chrome border-b border-border bg-background/95 backdrop-blur-sm">
+      <div className="mx-auto flex w-full max-w-[75rem] items-center gap-2 px-4 py-2 md:gap-6 md:px-8 md:py-3">
+        <BrandLogo />
+
+        <nav aria-label={m.navigation} className="hidden items-center gap-1 lg:flex">
+          <Link href={routes.products} className="rounded-md px-3 py-2 text-support font-medium text-foreground hover:bg-secondary">
+            {m.navProducts}
+          </Link>
+          <Link href={routes.routineBuilder} className="rounded-md px-3 py-2 text-support font-medium text-foreground hover:bg-secondary">
+            {m.navRoutine}
+          </Link>
+          <Link href="#concerns" className="rounded-md px-3 py-2 text-support font-medium text-foreground hover:bg-secondary">
+            {m.navConcerns}
+          </Link>
         </nav>
 
-        <form className="desktop-search" action={routes.products} role="search">
-          <Search aria-hidden="true" />
-          <input name="search" placeholder="Search for products, concerns, routines..." aria-label="Search the store" />
-          <button type="submit" aria-label="Search filters"><SlidersHorizontal aria-hidden="true" /></button>
-        </form>
+        <HomeSearch className="hidden max-w-md flex-1 md:block" />
 
-        <div className="desktop-actions">
-          <button type="button" className="header-icon" aria-label="Notifications">
-            <Bell aria-hidden="true" />
-          </button>
-          <Link href={routes.cart} className="header-icon" aria-label="Shopping cart"><ShoppingBag aria-hidden="true" /></Link>
-          <Link href={routes.login} className="profile-link">
-            <span className="profile-avatar"><UserRound aria-hidden="true" /></span>
-            <span>Hello, Sara</span>
-            <ChevronDown aria-hidden="true" />
+        <div className="ms-auto flex items-center gap-0.5">
+          <LocaleSwitch />
+          {/* Account state is unknown until the session check finishes; keep the slot empty, not wrong. */}
+          {isLoading ? (
+            <span aria-hidden="true" className="size-11" />
+          ) : (
+            <Link href={user ? '/account' : routes.login} className={iconButton}>
+              <UserRound aria-hidden="true" className="size-5" strokeWidth={1.75} />
+              <span className="hidden md:inline">{user ? m.account : m.login}</span>
+              <span className="sr-only md:hidden">{user ? m.account : m.login}</span>
+            </Link>
+          )}
+          <Link
+            href={routes.cart}
+            className={iconButton}
+            aria-label={count > 0 ? fillMessage(m.cartLabelWithCount, { count: formatNumber(count, locale) }) : m.cartLabel}
+          >
+            <ShoppingBag aria-hidden="true" className="size-5" strokeWidth={1.75} />
+            {count > 0 ? (
+              <span
+                aria-hidden="true"
+                className="absolute end-0.5 top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-caption font-semibold leading-none text-primary-foreground"
+              >
+                {formatNumber(count, locale)}
+              </span>
+            ) : null}
           </Link>
         </div>
-
-        <div className="mobile-home-header">
-          <button type="button" className="mobile-menu" aria-label="Open menu"><Menu aria-hidden="true" /></button>
-          <div className="mobile-greeting">
-            <p>Hello, Glow Girl! <Sparkles aria-hidden="true" /></p>
-            <h1>Discover Beauty</h1>
-            <span>Guidance for your skin &amp; hair</span>
-          </div>
-          <div className="mobile-actions">
-            <button type="button" className="header-icon" aria-label="Notifications">
-              <Bell aria-hidden="true" />
-            </button>
-            <Link href={routes.cart} className="header-icon" aria-label="Shopping cart"><ShoppingBag aria-hidden="true" /></Link>
-          </div>
-        </div>
+      </div>
+      <div className="px-4 pb-3 md:hidden">
+        <HomeSearch />
       </div>
     </header>
   );

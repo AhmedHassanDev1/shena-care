@@ -6,6 +6,7 @@ import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { isLocale } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { useAuth } from '@/features/auth/AuthContext';
+import { BrandLogo } from './BrandLogo';
 
 export function Header() {
   const router = useRouter();
@@ -22,19 +23,21 @@ export function Header() {
     router.refresh();
   };
 
-  if (pathname === '/' || pathname === '/cart' || pathname === '/checkout' || pathname.startsWith('/orders')) return null;
+  // These screens render their own chrome (home header, auth shell, checkout/order headers).
+  if (
+    pathname === '/' ||
+    pathname === '/cart' ||
+    pathname === '/checkout' ||
+    pathname.startsWith('/orders') ||
+    pathname.startsWith('/auth')
+  ) {
+    return null;
+  }
 
   return (
     <header className="site-header">
       <div className="container header-inner">
-        <Link href={routes.home} className="logo">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-accent-foreground/20 flex items-center justify-center">
-              <div className="w-3 h-3 bg-accent-foreground rounded-full opacity-60" />
-            </div>
-            Shena Care
-          </div>
-        </Link>
+        <BrandLogo />
         <nav className="nav" aria-label={m.navigation}>
           <Link href={routes.products}>{m.products}</Link>
           {!isLoading && (

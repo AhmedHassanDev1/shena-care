@@ -1,70 +1,39 @@
-import { HeroSlide, ConcernCategory, RoutineSnippet } from '../types/home.types';
+import { CircleDot, Droplet, Flame, ShieldCheck, Sun, Waves } from 'lucide-react';
+import { routes } from '@/lib/routes';
+import type { ConcernLink, RoutineTrack, SkinCareSequence } from '../types/home.types';
 
-export const HERO_SLIDES: HeroSlide[] = [
+/** Concern shortcuts. Ids are the existing `/products?concern=` values; labels come from i18n. */
+export const CONCERNS: ConcernLink[] = [
+  { id: 'acne', labelKey: 'concernAcne', icon: CircleDot },
+  { id: 'dryness', labelKey: 'concernDryness', icon: Droplet },
+  { id: 'dark-spots', labelKey: 'concernDarkSpots', icon: Sun },
+  { id: 'redness', labelKey: 'concernRedness', icon: Flame },
+  { id: 'hair-fall', labelKey: 'concernHairFall', icon: Waves },
+  { id: 'sensitive', labelKey: 'concernSensitive', icon: ShieldCheck },
+];
+
+/**
+ * Routine entry points. The backend has no published routine catalog yet (care routines are created per
+ * customer), so the home page shows no ready-made routines, step counts or benefits. Each track lists the
+ * questions the routine builder actually asks, in its actual order.
+ */
+export const ROUTINE_TRACKS: RoutineTrack[] = [
   {
-    id: 'slide-1',
-    subtitle: 'SKINCARE ROUTINE · 4 STEPS',
-    title: 'Healthy, Radiant\nSkin Starts Here',
-    description: 'Gentle, effective care for your unique skin.',
-    ctaText: 'Explore Routine',
-    ctaUrl: '/routine/builder',
-    imageUrl: '/assets/home/hero-skincare.webp',
+    id: 'skin',
+    titleKey: 'routineSkinTitle',
+    questionKeys: ['routineQGoal', 'routineQSkinType', 'routineQConstraints', 'routineQBudget'],
+    href: routes.routineBuilder,
   },
   {
-    id: 'slide-2',
-    subtitle: 'GLOW-BOOSTING ESSENTIALS',
-    title: 'A Brighter Ritual,\nMade for You',
-    description: 'Simple daily steps selected around your beauty goals.',
-    ctaText: 'Shop Essentials',
-    ctaUrl: '/products',
-    imageUrl: '/assets/home/skincare-still-life.webp',
+    id: 'hair',
+    titleKey: 'routineHairTitle',
+    questionKeys: ['routineQGoal', 'routineQHairType', 'routineQConstraints', 'routineQBudget'],
+    href: routes.routineBuilder,
   },
 ];
 
-export const CONCERNS: ConcernCategory[] = [
-  { id: 'acne', label: 'Acne', icon: 'Sparkles' },
-  { id: 'dryness', label: 'Dryness', icon: 'Droplet' },
-  { id: 'dark-spots', label: 'Dark Spots', icon: 'Sun' },
-  { id: 'redness', label: 'Redness', icon: 'Wind' },
-  { id: 'hair-fall', label: 'Hair Fall', icon: 'Scissors' }, // Using lucide icons mapped to these later
-  { id: 'sensitive', label: 'Sensitive Skin', icon: 'Shield' }
-];
-
-export const RECOMMENDED_ROUTINES: RoutineSnippet[] = [
-  {
-    id: 'clear-skin',
-    name: 'Clear Skin Routine',
-    description: 'Soothes breakouts & repairs barrier',
-    concern: 'Acne',
-    stepCount: 4,
-    timeOfDay: 'AM & PM',
-    imageUrl: '/assets/home/skincare-still-life.webp',
-  },
-  {
-    id: 'hydration-glow',
-    name: 'Hydration Glow Routine',
-    description: 'Restores deep moisture & healthy glow',
-    concern: 'Dryness',
-    stepCount: 4,
-    timeOfDay: 'AM & PM',
-    imageUrl: '/assets/home/skincare-still-life.webp',
-  },
-  {
-    id: 'even-tone',
-    name: 'Even Tone Routine',
-    description: 'Visibly reduces dark spots & evens skin tone',
-    concern: 'Dark Spots',
-    stepCount: 4,
-    timeOfDay: 'AM & PM',
-    imageUrl: '/assets/home/skincare-still-life.webp',
-  },
-  {
-    id: 'calming',
-    name: 'Calming Routine',
-    description: 'Helps soothe reactive, redness-prone skin',
-    concern: 'Redness',
-    stepCount: 4,
-    timeOfDay: 'AM & PM',
-    imageUrl: '/assets/home/skincare-still-life.webp',
-  }
+/** General educational order of daily skin care. The page labels it as general, not as a recommendation. */
+export const SKIN_CARE_ORDER: SkinCareSequence[] = [
+  { id: 'morning', labelKey: 'guidanceMorning', stepKeys: ['stepCleanse', 'stepTreat', 'stepMoisturize', 'stepProtect'] },
+  { id: 'evening', labelKey: 'guidanceEvening', stepKeys: ['stepCleanse', 'stepTreat', 'stepMoisturize'] },
 ];

@@ -1,42 +1,31 @@
+import { getMessages } from '@/lib/i18n/messages';
+import { getLocale } from '@/lib/i18n/server';
 import { HomeHeader } from './HomeHeader';
-import { HomeSearch } from './HomeSearch';
-import { HeroCarousel } from './HeroCarousel';
+import { HomeHero } from './HomeHero';
 import { ConcernStrip } from './ConcernStrip';
-import { RoutineBuilderBanner } from './RoutineBuilderBanner';
 import { RecommendedRoutines } from './RecommendedRoutines';
 import { PopularSolutions } from './PopularSolutions';
 import { CategoryPromo } from './CategoryPromo';
-import { RoutineMadeSimple } from './RoutineMadeSimple';
-import { AskAssistantButton } from './AskAssistantButton';
+import { RoutineGuidance } from './RoutineGuidance';
+import { AssistantEntry } from './AssistantEntry';
 import { MobileBottomNav } from './MobileBottomNav';
 
 export function HomePage() {
+  const locale = getLocale();
+  const m = getMessages(locale);
+
   return (
-    <div className="home-page min-h-screen bg-background pb-24 lg:pb-8">
-      <style>{`
-        .site-footer { display: none !important; }
-      `}</style>
+    <div className="home-page min-h-screen bg-background pb-24 md:pb-0">
       <HomeHeader />
-      <div className="sticky top-0 z-40 bg-background/95 pb-1 backdrop-blur md:hidden">
-        <HomeSearch />
-      </div>
-      <main className="home-shell">
-        <div className="home-hero-layout">
-          <HeroCarousel />
-          <div className="hidden md:block">
-            <RoutineBuilderBanner compact />
-          </div>
-        </div>
-        <ConcernStrip />
-        <div className="md:hidden">
-          <RoutineBuilderBanner />
-        </div>
-        <RecommendedRoutines />
+      <div className="mx-auto w-full max-w-[75rem] px-4 md:px-8">
+        <HomeHero m={m} />
+        <ConcernStrip m={m} />
+        <RecommendedRoutines m={m} locale={locale} />
         <PopularSolutions />
-        <CategoryPromo />
-        <RoutineMadeSimple />
-      </main>
-      <AskAssistantButton />
+        <CategoryPromo m={m} />
+        <RoutineGuidance m={m} locale={locale} />
+        <AssistantEntry m={m} />
+      </div>
       <MobileBottomNav />
     </div>
   );

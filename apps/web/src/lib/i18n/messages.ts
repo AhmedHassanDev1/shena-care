@@ -66,7 +66,7 @@ export const messages = {
     authWelcome: 'Welcome to Shena Care',
     authSubtitle: 'Sign in or create your account to continue.',
     authPhoneLabel: 'Phone number',
-    authPhonePlaceholder: '10 1234 5678',
+    authPhonePlaceholder: '010 1234 5678',
     authPhoneInfo: 'We\'ll send you a verification code to confirm your number.',
     authContinue: 'Continue',
     authVerifyTitle: 'Verify your number',
@@ -74,12 +74,104 @@ export const messages = {
     authChangePhone: 'Change number',
     authVerifyCode: 'Verify code',
     authCodeNotReceived: 'Didn\'t receive the code?',
-    authResendIn: 'Resend in {time}',
+    authResendIn: 'Resend in {time}s',
     authResendNow: 'Resend now',
     authTermsAgreement: 'By continuing, you agree to our',
     termsOfService: 'Terms of Service',
     and: 'and',
     privacyPolicy: 'Privacy Policy',
+    authMetaTitle: 'Sign in | Shena Care',
+    authPanelTitle: 'Your care starts with understanding your needs',
+    authPanelBody: 'Your account keeps your routine and orders in one place.',
+    authCountryName: 'Egypt',
+    authPhoneInvalid: 'Enter a valid Egyptian mobile number: 11 digits starting with 01.',
+    authSendFailed: 'We could not send the code. Please try again shortly.',
+    authTooMany: 'Too many attempts. Please wait a moment and try again.',
+    authNetwork: 'Cannot reach the server. Check your connection and try again.',
+    authCodeInvalid: 'The code is incorrect or has expired. Please try again.',
+    authVerifyFailed: 'We could not verify the code. Please try again.',
+    authResendFailed: 'We could not resend the code. Please try again shortly.',
+    authCodeGroup: 'Verification code',
+    authCodeDigit: 'Digit {n} of 6',
+    authBackHome: 'Back to home',
+
+    // Brand & storefront chrome
+    brandName: 'Shena Care',
+    navRoutine: 'Build a routine',
+    navConcerns: 'Concerns',
+    account: 'My account',
+    searchPlaceholder: 'Search products, concerns, routines',
+    searchLabel: 'Search the store',
+    searchSubmit: 'Search',
+    cartLabel: 'Cart',
+    cartLabelWithCount: 'Cart, {count} items',
+    switchLanguage: 'Switch language',
+    navHome: 'Home',
+    navProducts: 'Products',
+    navPrimary: 'Primary navigation',
+
+    // Home — hero
+    heroEyebrow: 'Your skin & hair care companion',
+    heroTitle: 'We help you choose your care with confidence',
+    heroBody: 'Answer a few short questions about your skin and hair to start a routine that fits you. Or shop products from multiple brands directly.',
+    heroPrimaryCta: 'Start care guidance',
+    heroSecondaryCta: 'Shop products',
+
+    // Home — concerns
+    concernsTitle: 'Shop by concern',
+    concernAcne: 'Acne',
+    concernDryness: 'Dryness',
+    concernDarkSpots: 'Dark spots',
+    concernRedness: 'Redness',
+    concernHairFall: 'Hair fall',
+    concernSensitive: 'Sensitive skin',
+
+    // Home — routines
+    routinesTitle: 'A routine made for you',
+    routinesSubtitle: 'Your routine is built from your answers, not from ready-made templates.',
+    routineSkinTitle: 'Skin routine',
+    routineHairTitle: 'Hair routine',
+    routineAsk: 'We will ask about',
+    routineQGoal: 'Your main goal',
+    routineQSkinType: 'Your skin type',
+    routineQHairType: 'Your hair type',
+    routineQConstraints: 'Any sensitivities or constraints',
+    routineQBudget: 'Your budget',
+    routineCta: 'Answer the questions',
+
+    // Home — products
+    catalogTitle: 'From our catalog',
+    catalogSubtitle: 'Multiple brands in one place.',
+    viewAll: 'View all',
+    productsLoadError: 'We could not load products right now.',
+    browseCatalog: 'Browse the full catalog',
+    noPublishedProducts: 'No published products yet.',
+    quickAdd: 'Add to cart',
+    quickAddLabel: 'Add {name} to cart',
+    quickAddedShort: 'Added',
+    quickAddFailedShort: 'Not added, try again',
+
+    // Home — categories
+    categoriesTitle: 'Shop by category',
+    categorySkinTitle: 'Skin care',
+    categorySkinCopy: 'Products to care for your skin, day by day.',
+    categoryHairTitle: 'Hair care',
+    categoryHairCopy: 'Products to care for your hair and scalp.',
+    categoryCta: 'Browse',
+
+    // Home — routine guidance
+    guidanceTitle: 'The order of skin care in your day',
+    guidanceSubtitle: 'A general order to help you understand the steps. Your actual routine depends on your answers.',
+    guidanceMorning: 'Morning',
+    guidanceEvening: 'Evening',
+    stepCleanse: 'Cleanse',
+    stepTreat: 'Serum or treatment',
+    stepMoisturize: 'Moisturize',
+    stepProtect: 'Sunscreen (SPF)',
+
+    // Home — assistant
+    assistantBandTitle: 'Not sure what to choose?',
+    assistantBandBody: 'The care assistant helps you understand your needs before you choose. You can also browse and buy without using it.',
 
     // Cart
     cartTitle: 'Your Cart',
@@ -189,7 +281,7 @@ export const messages = {
     authWelcome: 'أهلاً بيك',
     authSubtitle: 'سجّل دخولك أو اعمل حساب عشان تكمل',
     authPhoneLabel: 'رقم الموبايل',
-    authPhonePlaceholder: '10 1234 5678',
+    authPhonePlaceholder: '010 1234 5678',
     authPhoneInfo: 'هنبعتلك كود تأكيد على الرقم ده',
     authContinue: 'كمّل',
     authVerifyTitle: 'تأكيد رقمك',
@@ -197,12 +289,104 @@ export const messages = {
     authChangePhone: 'غيّر الرقم',
     authVerifyCode: 'تأكيد الكود',
     authCodeNotReceived: 'الكود موصلش؟',
-    authResendIn: 'إعادة الإرسال خلال {time}',
+    authResendIn: 'إعادة الإرسال خلال {time} ثانية',
     authResendNow: 'ابعت الكود تاني',
     authTermsAgreement: 'بمتابعتك، أنت توافق على',
     termsOfService: 'شروط الخدمة',
     and: 'و',
     privacyPolicy: 'سياسة الخصوصية',
+    authMetaTitle: 'تسجيل الدخول | شينا كير',
+    authPanelTitle: 'عنايتك بتبدأ بفهم احتياجك',
+    authPanelBody: 'حسابك بيحفظ روتينك وطلباتك في مكان واحد.',
+    authCountryName: 'مصر',
+    authPhoneInvalid: 'اكتب رقم موبايل مصري صحيح: 11 رقم بيبدأ بـ 01.',
+    authSendFailed: 'مقدرناش نبعت الكود. جرّب تاني بعد شوية.',
+    authTooMany: 'محاولات كتير. استنى شوية وجرّب تاني.',
+    authNetwork: 'مفيش اتصال بالخادم. اتأكد من النت وجرّب تاني.',
+    authCodeInvalid: 'الكود مش صحيح أو انتهت صلاحيته. جرّب تاني.',
+    authVerifyFailed: 'مقدرناش نأكد الكود. جرّب تاني.',
+    authResendFailed: 'مقدرناش نبعت الكود تاني. جرّب بعد شوية.',
+    authCodeGroup: 'كود التأكيد',
+    authCodeDigit: 'الرقم {n} من 6',
+    authBackHome: 'العودة للرئيسية',
+
+    // Brand & storefront chrome
+    brandName: 'شينا كير',
+    navRoutine: 'ابنِ روتينك',
+    navConcerns: 'اهتماماتك',
+    account: 'حسابي',
+    searchPlaceholder: 'دوّر على منتج أو اهتمام أو روتين',
+    searchLabel: 'بحث في المتجر',
+    searchSubmit: 'بحث',
+    cartLabel: 'السلة',
+    cartLabelWithCount: 'السلة، {count} منتج',
+    switchLanguage: 'تغيير اللغة',
+    navHome: 'الرئيسية',
+    navProducts: 'المنتجات',
+    navPrimary: 'التنقل الرئيسي',
+
+    // Home — hero
+    heroEyebrow: 'مرافقك في العناية بالبشرة والشعر',
+    heroTitle: 'نساعدك تختار عنايتك بثقة',
+    heroBody: 'جاوب على كام سؤال قصير عن بشرتك وشعرك، وابدأ روتين مناسب ليك. أو تسوّق منتجات من علامات متعددة مباشرة.',
+    heroPrimaryCta: 'ابدأ إرشاد العناية',
+    heroSecondaryCta: 'تسوّق المنتجات',
+
+    // Home — concerns
+    concernsTitle: 'تسوّق حسب اهتمامك',
+    concernAcne: 'حب الشباب',
+    concernDryness: 'الجفاف',
+    concernDarkSpots: 'البقع الداكنة',
+    concernRedness: 'الاحمرار',
+    concernHairFall: 'تساقط الشعر',
+    concernSensitive: 'البشرة الحساسة',
+
+    // Home — routines
+    routinesTitle: 'روتين على مقاسك',
+    routinesSubtitle: 'الروتين بيتبني من إجاباتك، مش من قوالب جاهزة.',
+    routineSkinTitle: 'روتين البشرة',
+    routineHairTitle: 'روتين الشعر',
+    routineAsk: 'هنسألك عن',
+    routineQGoal: 'هدفك من العناية',
+    routineQSkinType: 'نوع بشرتك',
+    routineQHairType: 'نوع شعرك',
+    routineQConstraints: 'أي حساسية أو قيود',
+    routineQBudget: 'ميزانيتك',
+    routineCta: 'جاوب على الأسئلة',
+
+    // Home — products
+    catalogTitle: 'من كتالوجنا',
+    catalogSubtitle: 'علامات متعددة في مكان واحد.',
+    viewAll: 'عرض الكل',
+    productsLoadError: 'مقدرناش نحمّل المنتجات دلوقتي.',
+    browseCatalog: 'تصفّح كل المنتجات',
+    noPublishedProducts: 'مفيش منتجات منشورة لسه.',
+    quickAdd: 'ضيف للسلة',
+    quickAddLabel: 'ضيف {name} للسلة',
+    quickAddedShort: 'اتضاف',
+    quickAddFailedShort: 'ماتضافش، جرّب تاني',
+
+    // Home — categories
+    categoriesTitle: 'تسوّق حسب الفئة',
+    categorySkinTitle: 'العناية بالبشرة',
+    categorySkinCopy: 'منتجات للعناية ببشرتك يوم بيوم.',
+    categoryHairTitle: 'العناية بالشعر',
+    categoryHairCopy: 'منتجات للعناية بشعرك وفروة راسك.',
+    categoryCta: 'تصفّح',
+
+    // Home — routine guidance
+    guidanceTitle: 'ترتيب العناية بالبشرة في يومك',
+    guidanceSubtitle: 'ترتيب عام يساعدك تفهم الخطوات. روتينك الفعلي بيتحدد حسب إجاباتك.',
+    guidanceMorning: 'الصبح',
+    guidanceEvening: 'بالليل',
+    stepCleanse: 'تنظيف',
+    stepTreat: 'سيروم أو علاج',
+    stepMoisturize: 'ترطيب',
+    stepProtect: 'واقي الشمس (SPF)',
+
+    // Home — assistant
+    assistantBandTitle: 'مش متأكد تختار إيه؟',
+    assistantBandBody: 'مساعد العناية بيساعدك تفهم احتياجك قبل ما تختار. وتقدر تتصفح وتشتري من غير ما تستخدمه.',
 
     // Cart
     cartTitle: 'سلتك',
@@ -250,6 +434,14 @@ export const messages = {
 export type Locale = keyof typeof messages;
 export type MessageKey = keyof typeof messages.en;
 
+/** Cookie holding the chosen locale; read on the server (./server.ts) and written by the language switch. */
+export const LOCALE_COOKIE_NAME = 'shena-locale';
+
+/** Replaces `{name}` placeholders in a message. */
+export function fillMessage(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? String(values[key]) : match));
+}
+
 export function isLocale(value: string | undefined): value is Locale {
   return value === 'en' || value === 'ar';
 }
@@ -257,3 +449,5 @@ export function isLocale(value: string | undefined): value is Locale {
 export function getMessages(locale: Locale) {
   return messages[locale];
 }
+
+export type Messages = ReturnType<typeof getMessages>;

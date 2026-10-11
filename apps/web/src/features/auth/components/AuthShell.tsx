@@ -1,108 +1,45 @@
-// @ts-nocheck
 'use client';
 
-import React from 'react';
-import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
-import { BrandLogo } from './BrandLogo';
-import { Globe } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import type { ReactNode } from 'react';
+import Image from 'next/image';
+import { BrandLogo } from '@/components/BrandLogo';
+import { LocaleSwitch } from '@/components/LocaleSwitch';
+import { useMessages } from '@/lib/i18n/LocaleProvider';
 
-export function AuthShell({ children }: { children: React.ReactNode }) {
-  const locale = useLocale();
+/**
+ * Sign-in frame. The form is the focus; one lockup, one language switch. On large screens a restrained
+ * editorial panel carries a single sentence about what the account is for. It is not rendered on mobile.
+ */
+export function AuthShell({ children }: { children: ReactNode }) {
   const m = useMessages();
-  const router = useRouter();
-  const pathname = usePathname();
-  
-  // Basic language toggle for auth shell
-  const nextLocale = locale === 'en' ? 'ar' : 'en';
-
-  const changeLocale = () => {
-    document.cookie = `shena-locale=${nextLocale}; Path=/; Max-Age=31536000; SameSite=Lax`;
-    document.documentElement.lang = nextLocale;
-    document.documentElement.dir = nextLocale === 'ar' ? 'rtl' : 'ltr';
-    router.refresh();
-  };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row text-foreground">
-      
-      {/* Mobile Header / Desktop Left Panel */}
-      <div className="relative w-full md:w-1/2 lg:w-[45%] h-[40vh] md:h-screen flex-shrink-0 bg-muted overflow-hidden">
-        {/* We use a temporary solid color / gradient since we don't have final assets */}
-        <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted" />
-        
-        {/* Placeholder image representation - we use CSS rather than hardcoding a screenshot */}
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=1000&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-multiply" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background md:bg-none" />
-
-        <div className="relative z-10 p-6 md:p-12 h-full flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <Link href="/" className="hover:opacity-80 transition-opacity">
-              <BrandLogo />
-            </Link>
-            
-            {/* Language Switcher - Mobile only (Desktop is in the right card) */}
-            <div className="md:hidden">
-              <button 
-                type="button"
-                onClick={changeLocale}
-                className="flex items-center gap-1.5 text-sm font-medium bg-card/50 backdrop-blur-md px-3 py-1.5 rounded-full"
-              >
-                {locale === 'en' ? 'AR' : 'EN'}
-              </button>
-            </div>
-          </div>
-
-          <div className="hidden md:block max-w-md mt-auto pb-12">
-             <h1 className="text-4xl lg:text-5xl font-serif text-foreground mb-4 leading-tight">
-               Care that stays with you.
-             </h1>
-             <p className="text-lg text-muted-foreground mb-8">
-               Your routine, products, and care progress — all in one place.
-             </p>
-             
-             <div className="space-y-6">
-               <div className="flex items-start gap-4">
-                 <div className="w-10 h-10 rounded-full bg-primary-subtle flex items-center justify-center shrink-0">
-                    <span className="text-primary font-bold text-xl">1</span>
-                 </div>
-                 <div>
-                   <h3 className="font-medium text-foreground">Personalized recommendations</h3>
-                 </div>
-               </div>
-               <div className="flex items-start gap-4">
-                 <div className="w-10 h-10 rounded-full bg-primary-subtle flex items-center justify-center shrink-0">
-                    <span className="text-primary font-bold text-xl">2</span>
-                 </div>
-                 <div>
-                   <h3 className="font-medium text-foreground">Save your favorites and reorder easily</h3>
-                 </div>
-               </div>
-             </div>
-          </div>
+    <div className="auth-shell min-h-screen bg-background text-foreground lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+      <div className="flex min-h-screen flex-col">
+        <div className="flex items-center justify-between gap-4 px-5 py-4 md:px-10 md:py-6">
+          <BrandLogo />
+          <LocaleSwitch />
+        </div>
+        <div className="flex flex-1 justify-center px-5 pb-12 pt-6 md:items-center md:pb-24 md:pt-0">
+          <div className="w-full max-w-[26rem]">{children}</div>
         </div>
       </div>
 
-      {/* Right Card / Mobile Bottom Sheet */}
-      <div className="relative flex-1 w-full bg-background md:bg-card flex flex-col min-h-[60vh] -mt-6 md:mt-0 rounded-t-[32px] md:rounded-none z-20 overflow-hidden">
-        <div className="absolute top-6 right-8 hidden md:block">
-           {/* Desktop Language Switcher */}
-           <button 
-             type="button"
-             onClick={changeLocale}
-             className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-           >
-             <Globe className="w-4 h-4" />
-             {locale === 'en' ? 'العربية' : 'English'}
-           </button>
+      <aside className="relative hidden overflow-hidden lg:sticky lg:top-0 lg:m-4 lg:block lg:h-[calc(100vh-2rem)] lg:rounded-lg lg:bg-secondary">
+        <Image
+          src="/assets/home/haircare-still-life.webp"
+          alt=""
+          fill
+          priority
+          sizes="45vw"
+          className="object-cover object-[78%_50%]"
+        />
+        <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-overlay/80 via-overlay/25 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-10 xl:p-12">
+          <p className="max-w-[28rem] text-balance text-h1 font-semibold text-primary-foreground">{m.authPanelTitle}</p>
+          <p className="mt-3 max-w-[28rem] text-body-lg text-primary-foreground/90">{m.authPanelBody}</p>
         </div>
-
-        <div className="flex-1 flex flex-col justify-center max-w-[440px] mx-auto w-full p-6 md:p-12">
-          {children}
-        </div>
-      </div>
-
+      </aside>
     </div>
   );
 }
