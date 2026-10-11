@@ -45,9 +45,9 @@ export class StorageService {
       throw new BadRequestException('Invalid storage owner or folder');
     }
 
-    if (file.mimetype.startsWith('image/')) {
-      const logicalFolder = isPrivate ? `private/${supplierId}/${folder}` : `public/${folder}`;
-      return this.mediaStoragePort.upload(file.buffer, { folder: logicalFolder, isPrivate, mimetype: file.mimetype });
+    if (!isPrivate && file.mimetype.startsWith('image/') && process.env.MEDIA_STORAGE_PROVIDER === 'cloudinary') {
+      const logicalFolder = `public/${folder}`;
+      return this.mediaStoragePort.upload(file.buffer, { folder: logicalFolder, isPrivate: false, mimetype: file.mimetype });
     }
 
     const filename = `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase()}`;
@@ -60,6 +60,16 @@ export class StorageService {
     });
     
     return `${this.baseUrl}/storage/${objectKey}`;
+  }
+
+  getFilePath(logicalPath: string): string {
+    if (!/^(public\/[a-zA-Z0-9_-]+|private\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+)\/[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+$/.test(logicalPath)) {
+      throw new BadRequestException('Invalid storage path');
+    }
+    const storageDir = path.resolve(process.env.STORAGE_LOCAL_PATH || path.join(process.cwd(), 'uploads'));
+    const resolved = path.resolve(storageDir, logicalPath);
+    if (!resolved.startsWith(storageDir + path.sep)) throw new BadRequestException('Invalid storage path');
+    return resolved;
   }
 
   // Parses a URL and returns the object key if valid
@@ -87,6 +97,15 @@ export class StorageService {
     if (!(await this.storagePort.exists(objectKey))) {
       throw new NotFoundException('Media object missing');
     }
+
+    if (process.env.MEDIA_STORAGE_PROVIDER === 'cloudinary') {
+      const stream = await this.storagePort.readStream(objectKey);
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+      const buffer = Buffer.concat(chunks);
+      return this.mediaStoragePort.upload(buffer, { folder: 'shena-care/products', isPrivate: false });
+    }
+
     const filename = path.basename(objectKey);
     const destKey = `public/media/${filename}`;
     

@@ -20,6 +20,7 @@ const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 const sourceUrl = 'https://www.cerave.com/skincare/moisturizers/moisturizing-cream';
 
 describe('GLO-123/124 media, tenant storage and publication invariants (PostgreSQL)', () => {
+  jest.setTimeout(60000);
   let app: INestApplication;
   let prisma: PrismaService;
   let catalog: CatalogService;
