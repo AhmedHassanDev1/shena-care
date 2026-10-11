@@ -16,7 +16,7 @@ import { CloudinaryStorageAdapter } from './cloudinary-storage.adapter';
       useFactory: () => {
         const provider = process.env.FILE_STORAGE_PROVIDER;
         if (provider === 's3') {
-          return new S3CompatibleStorageAdapter();
+          throw new Error('S3 storage provider is currently unsupported and explicitly blocked');
         }
         return new LocalStorageAdapter();
       },

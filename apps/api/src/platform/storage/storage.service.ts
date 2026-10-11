@@ -98,6 +98,10 @@ export class StorageService {
     return `${this.baseUrl}/storage/${destKey}`;
   }
 
+  async exists(objectKey: string): Promise<boolean> {
+    return this.storagePort.exists(objectKey);
+  }
+
   async deleteFile(url: string, supplierId?: string): Promise<void> {
     if (url.startsWith('cloudinary://')) {
       await this.mediaStoragePort.delete(url);

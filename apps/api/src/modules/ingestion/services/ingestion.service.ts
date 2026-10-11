@@ -398,9 +398,12 @@ export class IngestionService {
             throw new BadRequestException('Reviewed media does not match the canonical SKU variant');
           }
         }
-        const filePath = this.storageService.privateObjectPath(m.url, item.job.supplierId);
-        this.storageService.validateFile({ originalname: path.basename(filePath), mimetype: m.mimetype,
-          buffer: fs.readFileSync(filePath) } as Express.Multer.File);
+        if (!m.url.startsWith('cloudinary://')) {
+          const objectKey = this.storageService.privateObjectKey(m.url, item.job.supplierId);
+          if (!(await this.storageService.exists(objectKey))) {
+            throw new NotFoundException('Candidate media object not found');
+          }
+        }
         m.review = requireMediaReview({ ...review, reviewedBy: reviewer!.id, reviewedAt: new Date().toISOString(),
           candidateId: item.id, isTest: false });
         m.originType = 'verified';
@@ -749,7 +752,7 @@ export class IngestionService {
           sku.sizeUnit !== review.sizeUnit || sku.variantName !== review.variantName) {
         throw new BadRequestException('Approved media does not match canonical SKU');
       }
-      const url = this.storageService.copyToPublic(m.url, supplierId);
+      const url = await this.storageService.copyToPublic(m.url, supplierId);
       await this.catalogService.addMedia(sku.productId, { type: 'image', url, originType: 'verified',
         generationMetadata: { ...review, skuId } }, review.reviewedBy);
     }
