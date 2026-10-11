@@ -34,8 +34,14 @@ export interface ProductView {
   }>;
 }
 
+/**
+ * GET /products is paginated (default 20, backend maximum 100). Ask for the maximum so the listing is not
+ * silently cut at 20; a catalog beyond 100 products needs real pagination in the UI.
+ */
+export const PRODUCT_PAGE_LIMIT = 100;
+
 export async function getProducts(): Promise<ProductView[]> {
-  return apiClient.get<ProductView[]>('/products');
+  return apiClient.get<ProductView[]>(`/products?limit=${PRODUCT_PAGE_LIMIT}`);
 }
 
 export async function getProduct(slugOrId: string): Promise<ProductView> {

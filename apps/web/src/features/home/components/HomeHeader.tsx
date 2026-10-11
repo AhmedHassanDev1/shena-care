@@ -37,7 +37,6 @@ export function HomeHeader() {
         <div className="desktop-actions">
           <button type="button" className="header-icon" aria-label="Notifications">
             <Bell aria-hidden="true" />
-            <span className="notification-badge">3</span>
           </button>
           <Link href={routes.cart} className="header-icon" aria-label="Shopping cart"><ShoppingBag aria-hidden="true" /></Link>
           <Link href={routes.login} className="profile-link">
@@ -57,7 +56,6 @@ export function HomeHeader() {
           <div className="mobile-actions">
             <button type="button" className="header-icon" aria-label="Notifications">
               <Bell aria-hidden="true" />
-              <span className="notification-badge">3</span>
             </button>
             <Link href={routes.cart} className="header-icon" aria-label="Shopping cart"><ShoppingBag aria-hidden="true" /></Link>
           </div>

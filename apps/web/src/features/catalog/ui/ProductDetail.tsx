@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProductView } from '../types/catalog.types';
+import { useQueryClient } from '@tanstack/react-query';
 import { cart } from '@/lib/cart';
+import { useCart, CART_QUERY_KEY } from '@/features/cart/hooks/useCart';
 import { auth } from '@/lib/auth';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { formatCurrency, formatNumber } from '@/lib/i18n/format';
@@ -29,6 +31,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState<boolean>(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const queryClient = useQueryClient();
+  const { cart: cartState } = useCart();
+  const cartCount = cartState?.itemCount ?? 0;
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showStickyBar, setShowStickyBar] = useState(false);
 
@@ -55,6 +60,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
     try {
       await cart.addToCart(skuId, quantity);
+      queryClient.invalidateQueries({ queryKey: CART_QUERY_KEY });
       setMessage({ type: 'success', text: m.addedToCart });
       setTimeout(() => setMessage(null), 3000);
     } catch (err) {
@@ -85,10 +91,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
           <button className="p-2 text-foreground"><Heart className="w-6 h-6" /></button>
           <button className="p-2 text-foreground relative">
             <ShoppingBag className="w-6 h-6" />
-            {/* Hardcoded badge for UI fidelity with screenshot, ideally dynamic */}
-            <span className="absolute top-1.5 right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-card">
-              3
-            </span>
+            {cartCount > 0 ? (
+              <span className="absolute top-1.5 right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-card">
+                {formatNumber(cartCount, locale)}
+              </span>
+            ) : null}
           </button>
         </div>
       </header>

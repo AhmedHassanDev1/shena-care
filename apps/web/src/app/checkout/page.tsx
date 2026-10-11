@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useCart } from '@/features/cart/hooks/useCart';
 import { useCheckoutQuote } from '@/features/checkout/hooks/useCheckoutQuote';
 import { orders } from '@/lib/orders';
+import { ApiError } from '@/lib/api-client';
 import { auth } from '@/lib/auth';
 import { createIdempotencyKey } from '@/lib/idempotency';
 import { useMessages, useLocale } from '@/lib/i18n/LocaleProvider';
@@ -20,7 +22,16 @@ export default function CheckoutPage() {
   const BackIcon = isRtl ? ChevronRight : ChevronLeft;
   const ArrowIcon = isRtl ? ChevronLeft : ChevronRight;
 
-  const { cart, isLoading: cartLoading } = useCart();
+  // Product decision: guests may browse, but an account is required to complete checkout.
+  const { user, isLoading: authLoading, requireAuth } = useAuth();
+  const redirectedToSignIn = useRef(false);
+  useEffect(() => {
+    if (authLoading || user || redirectedToSignIn.current) return;
+    redirectedToSignIn.current = true;
+    requireAuth({ returnTo: '/checkout' });
+  }, [authLoading, user, requireAuth]);
+
+  const { cart, isLoading: cartLoading, error: cartError } = useCart();
   const queryClient = useQueryClient();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -48,10 +59,29 @@ export default function CheckoutPage() {
     area: formData.area || 'default',
   });
 
-  if (cartLoading) {
+  if (authLoading || !user) {
+    return (
+      <div role="status" className="flex min-h-[50vh] flex-col items-center justify-center gap-3 px-4 text-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-support text-muted-foreground">{authLoading ? m.loading : m.redirectingToSignIn}</p>
+      </div>
+    );
+  }
+
+  if (cartLoading || (!cart && !cartError)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (cartError && !cart) {
+    return (
+      <div role="alert" className="mx-auto mt-24 max-w-md px-4 text-center">
+        <h2 className="mb-2 text-h3 text-foreground">{m.unexpectedError}</h2>
+        <p className="mb-6 text-support text-muted-foreground">{cartError instanceof ApiError ? cartError.message : m.unexpectedErrorDescription}</p>
+        <Link href="/cart" className="font-medium text-primary hover:underline">{m.viewAndEditCart}</Link>
       </div>
     );
   }
@@ -100,7 +130,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const hasUnavailableItems = quote?.items.some((i: any) => !i.sellable);
+  const hasUnavailableItems = (quote?.invalidItems.length ?? 0) > 0;
 
   const getGovernorateLabel = (val: string) => {
     if (val === 'cairo') return m.cairo;
@@ -287,17 +317,17 @@ export default function CheckoutPage() {
             <div className="flex flex-col gap-3 text-sm">
               <div className="flex justify-between text-muted-foreground">
                 <span>{m.productsTotal.replace('{count}', cart.itemCount.toString())}</span>
-                <span className="font-bold text-foreground">{quote ? quote.totals.subtotal.toFixed(0) : cart.total.toFixed(0)} ج.م</span>
+                <span className="font-bold text-foreground">{quote ? quote.subtotal.toFixed(0) : cart.total.toFixed(0)} ج.م</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>{m.shippingFees}</span>
                 <span className="font-bold text-success">
                   {quoteLoading ? (
                     <div className="w-3 h-3 border-2 border-success border-t-transparent rounded-full animate-spin"></div>
-                  ) : quote && quote.totals.shipping === 0 ? (
+                  ) : quote && quote.shippingFee === 0 ? (
                     m.freeShipping
                   ) : quote ? (
-                    `${quote.totals.shipping.toFixed(0)} ج.م`
+                    `${quote.shippingFee.toFixed(0)} ج.م`
                   ) : (
                     '---'
                   )}
@@ -307,7 +337,7 @@ export default function CheckoutPage() {
 
             <div className="flex justify-between items-center mt-5 pt-4 border-t border-dashed border-border">
               <span className="font-bold text-lg text-foreground">{m.total}</span>
-              <span className="font-bold text-2xl text-foreground">{quote ? quote.totals.total.toFixed(0) : '---'} ج.م</span>
+              <span className="font-bold text-2xl text-foreground">{quote ? quote.totalAmount.toFixed(0) : '---'} ج.م</span>
             </div>
           </div>
         </section>

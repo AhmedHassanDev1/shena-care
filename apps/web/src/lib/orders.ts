@@ -8,6 +8,38 @@ export interface CheckoutData {
   idempotencyKey?: string;
 }
 
+/**
+ * Checkout quote exactly as `POST /ordering/checkout/quote` returns it
+ * (apps/api ordering.service.ts: `{ quoteVersion, expiresAt, revision, ...QuoteSnapshot, invalidItems }`).
+ * Amounts are numbers in `currency`; `quoteVersion` must be echoed back on checkout.
+ */
+export interface CheckoutQuote {
+  quoteVersion: string;
+  expiresAt: string;
+  revision: number;
+  governorate: string;
+  area: string;
+  cartRevision: number;
+  subtotal: number;
+  shippingFee: number;
+  codAmount: number;
+  totalAmount: number;
+  currency: string;
+  deliveryPromise: string;
+  availabilityCertainty: string;
+  items: Array<{
+    skuId: string;
+    productName: string;
+    variantName: string | null;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+    currency: string;
+  }>;
+  /** Lines the backend cannot sell right now. */
+  invalidItems: unknown[];
+}
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -34,14 +66,14 @@ export interface Order {
 }
 
 export const orders = {
-  async getQuote(data: { governorate: string; area: string; couponCode?: string }): Promise<any> {
+  async getQuote(data: { governorate: string; area: string; couponCode?: string }): Promise<CheckoutQuote> {
     const token = auth.getToken();
     const guestToken = typeof window !== 'undefined' ? localStorage.getItem('guestCartToken') : undefined;
     const options: any = {};
     if (token) options.token = token;
     else if (guestToken) options.headers = { 'x-cart-token': guestToken };
     
-    return apiClient.post('/ordering/checkout/quote', data, options);
+    return apiClient.post<CheckoutQuote>('/ordering/checkout/quote', data, options);
   },
 
   async checkout(data: any): Promise<Order & { guestToken?: string }> {

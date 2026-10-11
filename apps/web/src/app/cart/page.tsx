@@ -1,27 +1,57 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { useCart } from '@/features/cart/hooks/useCart';
+import { ApiError } from '@/lib/api-client';
 import { Minus, Plus, Search, Heart, ShoppingCart, Trash2, MapPin, Truck, CheckCircle2, ShieldCheck, ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/BrandLogo';
 import { MobileBottomNav } from '@/features/home/components/MobileBottomNav';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 
+/** Backend limit per cart line (UpdateCartItemQuantityDto @Max(20)). */
+const MAX_LINE_QUANTITY = 20;
+
 export default function CartPage() {
   const router = useRouter();
   const m = useMessages();
   const locale = useLocale();
-  const { cart, isLoading, error, updateItem, removeItem } = useCart();
+  const { cart, isLoading, error, updateItem, removeItem, invalidate } = useCart();
+  const [actionError, setActionError] = useState('');
+  // Mutation failures (stale cart, quantity limit, expired session) must be shown, not swallowed.
+  const run = (action: Promise<unknown>) => {
+    setActionError('');
+    action.catch((err: unknown) => setActionError(err instanceof Error ? err.message : m.unexpectedError));
+  };
   const isRtl = locale === 'ar';
   const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
 
-  if (isLoading) {
+  // No cart object and no error yet also means "not loaded" (e.g. a paused retry), never "empty".
+  if (isLoading || (!cart && !error)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
         <p className="mt-4 text-muted-foreground">{m.loading}</p>
+      </div>
+    );
+  }
+
+  // A failed load is not an empty cart: show the error and a retry.
+  if (error && !cart) {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <div role="alert" className="mx-auto mt-24 max-w-md px-4 text-center">
+          <h2 className="mb-2 text-h3 text-foreground">{m.unexpectedError}</h2>
+          <p className="mb-6 text-support text-muted-foreground">{error instanceof ApiError ? error.message : m.unexpectedErrorDescription}</p>
+          <button
+            onClick={invalidate}
+            className="h-11 rounded-md bg-primary px-6 font-medium text-primary-foreground hover:bg-primary-hover"
+          >
+            {m.tryAgain}
+          </button>
+        </div>
       </div>
     );
   }
@@ -85,9 +115,9 @@ export default function CartPage() {
           <p className="text-muted-foreground text-sm">{m.cartSubtitle}</p>
         </div>
 
-        {error && (
-          <div className="bg-destructive-subtle text-destructive p-4 rounded-xl mb-6 font-medium text-sm">
-            {error.message || 'Failed to load cart'}
+        {(error || actionError) && (
+          <div role="alert" className="bg-destructive-subtle text-destructive p-4 rounded-xl mb-6 font-medium text-sm">
+            {actionError || error?.message || m.unexpectedError}
           </div>
         )}
 
@@ -109,9 +139,9 @@ export default function CartPage() {
                     {/* Top right actions (in RTL, it's top left) */}
                     <div className="absolute top-4 rtl:left-4 ltr:right-4 flex items-center gap-3">
                       <button 
-                        onClick={() => updateItem({ skuId: item.skuId, quantity: 0 })} // using updateItem with 0 to remove or removeItem
+                        onClick={() => run(removeItem(item.skuId))}
                         className="text-muted-foreground hover:text-destructive transition-colors"
-                        aria-label="Remove item"
+                        aria-label={m.removeItem}
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -128,34 +158,42 @@ export default function CartPage() {
                       {/* Product Details */}
                       <div className="flex-1 flex flex-col pt-1">
                         <div className="pr-2 rtl:pl-10 ltr:pr-10">
-                          <div className="text-xs font-bold text-foreground">{item.sku.product.brand?.name || 'Brand'}</div>
+                          {item.sku.product.brand.name ? <div className="text-xs font-bold text-foreground">{item.sku.product.brand.name}</div> : null}
                           <Link href={`/products/${item.sku.product.slug}`} className="text-sm font-medium text-foreground leading-tight block mt-0.5 mb-1 hover:underline">
-                            {item.sku.product.name}
+                            {item.sku.product.name || m.unavailable}
                           </Link>
                           <div className="text-xs text-muted-foreground mb-2">
                             {item.sku.size ? `${item.sku.size}${item.sku.sizeUnit}` : item.sku.variantName}
                           </div>
 
                           {/* Availability Badge */}
-                          <div className="inline-flex items-center gap-1 bg-success-subtle text-success px-2 py-0.5 rounded text-[10px] font-medium mb-3">
-                            <CheckCircle2 className="w-3 h-3" />
-                            {m.cartAvailableToOrder}
-                          </div>
+                          {item.canOrder ? (
+                            <div className="inline-flex items-center gap-1 bg-success-subtle text-success px-2 py-0.5 rounded text-[10px] font-medium mb-3">
+                              <CheckCircle2 className="w-3 h-3" />
+                              {m.cartAvailableToOrder}
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-1 bg-warning-subtle text-warning px-2 py-0.5 rounded text-[10px] font-medium mb-3">
+                              {m.unavailable}
+                            </div>
+                          )}
                         </div>
 
                         {/* Price and Quantity */}
                         <div className="flex justify-between items-center mt-auto">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-base text-foreground">
-                              {item.price?.amount || item.subtotal} ج.م
+                              {item.price ? `${item.price.amount} ج.م` : null}
                             </span>
                             {/* If backend gave a discount, we would show it here. Mocked for screenshot fidelity but removed hardcoding. */}
                           </div>
 
                           <div className="flex items-center border border-border rounded-lg h-8 bg-card">
                             <button 
-                              onClick={() => updateItem({ skuId: item.skuId, quantity: item.quantity + 1 })}
-                              className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground"
+                              onClick={() => run(updateItem({ skuId: item.skuId, quantity: item.quantity + 1 }))}
+                              disabled={item.quantity >= MAX_LINE_QUANTITY}
+                              aria-label={m.increaseQuantity}
+                              className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground disabled:text-disabled-foreground"
                             >
                               <Plus className="w-4 h-4" />
                             </button>
@@ -164,10 +202,11 @@ export default function CartPage() {
                             </span>
                             <button 
                               onClick={() => {
-                                if (item.quantity > 1) updateItem({ skuId: item.skuId, quantity: item.quantity - 1 });
+                                if (item.quantity > 1) run(updateItem({ skuId: item.skuId, quantity: item.quantity - 1 }));
                               }}
                               disabled={item.quantity <= 1}
-                              className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-50"
+                              aria-label={m.decreaseQuantity}
+                              className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground disabled:text-disabled-foreground"
                             >
                               <Minus className="w-4 h-4" />
                             </button>

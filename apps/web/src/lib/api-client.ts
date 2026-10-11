@@ -1,4 +1,5 @@
 import { requireApiUrl } from './config';
+import { SESSION_TOKEN_KEY } from './session-token';
 
 export type ApiErrorType = 
   | 'VALIDATION' 
@@ -26,8 +27,41 @@ export class ApiError extends Error {
   }
 }
 
-function normalizeError(status: number, data: any): ApiErrorType {
-  const code = data?.code || data?.error;
+/**
+ * The API wraps every HttpException as `{ statusCode, timestamp, path, message }` where `message` is the
+ * exception response: a string, or `{ message: string | string[], error?, code? }` (apps/api
+ * all-exceptions.filter.ts). Never assume `message` is a string; `message` is therefore typed loosely here.
+ */
+interface ErrorBody {
+  code?: string;
+  error?: string;
+  message?: unknown;
+}
+
+interface NestResponse {
+  message?: unknown;
+  code?: string;
+  error?: string;
+}
+
+function nested(data: ErrorBody | undefined): NestResponse | undefined {
+  const outer = data?.message;
+  return outer && typeof outer === 'object' && !Array.isArray(outer) ? (outer as NestResponse) : undefined;
+}
+
+function errorMessage(data: ErrorBody | undefined): string | undefined {
+  const inner = nested(data)?.message ?? data?.message;
+  if (Array.isArray(inner)) return inner.join(', ');
+  return typeof inner === 'string' && inner ? inner : undefined;
+}
+
+function errorCode(data: ErrorBody | undefined): string | undefined {
+  const inner = nested(data);
+  return data?.code || inner?.code || data?.error || inner?.error;
+}
+
+function normalizeError(status: number, data: ErrorBody | undefined): ApiErrorType {
+  const code = errorCode(data);
   if (status === 400) {
     if (code === 'STALE_REVISION') return 'STALE_REVISION';
     if (code === 'PRICE_CHANGED') return 'PRICE_CHANGED';
@@ -71,14 +105,18 @@ async function fetchApi<T>(
   });
 
   if (!response.ok) {
-    let errorData;
+    let errorData: ErrorBody;
     try {
       errorData = await response.json();
     } catch {
       errorData = { message: response.statusText };
     }
+    // A rejected session must not linger: drop it so the app falls back to signed-out instead of failing every request.
+    if (response.status === 401 && token && typeof window !== 'undefined') {
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+    }
     throw new ApiError(
-      errorData.message || 'Request failed',
+      errorMessage(errorData) || 'Request failed',
       normalizeError(response.status, errorData),
       response.status,
       errorData

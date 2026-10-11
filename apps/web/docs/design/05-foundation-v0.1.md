@@ -49,6 +49,14 @@ Review it live: run `npm run dev` in `apps/web` and open `/design-lab` (developm
 
 `apps/web` imported `uuid` without declaring it; it only resolved through `apps/api`'s hoisted copy. Fix on this branch: a 15-line `createIdempotencyKey()` (`crypto.randomUUID()` with a `getRandomValues` fallback for non-secure contexts), no new dependency and no manifest or lockfile change. If the team prefers the package, the alternative is `npm install uuid@^14.0.2 -w web`, which edits the root lockfile and needs approval.
 
+## Backend contract notes (verified against the running API)
+
+- **Cart** lines carry only `skuId`, money and `canOrder`; product names come from the catalog (`lib/cart.ts` joins them). Total is `totalAmount`. Remove uses `POST /ordering/cart/remove`, not quantity 0.
+- **Quote** is flat (`subtotal`, `shippingFee`, `totalAmount`, `invalidItems`); typed as `CheckoutQuote` in `lib/orders.ts`. A stale or unsellable cart returns 409 `CHECKOUT_REVIEW_REQUIRED`.
+- **Errors** are `{ statusCode, timestamp, path, message }` where `message` is a string or an object holding the real message/code (`lib/api-client.ts`).
+- **Catalog** `GET /products` is paginated (default 20, max 100); the listing asks for 100. Beyond that it needs real pagination in the UI.
+- **Account required to complete checkout** is enforced in the web app only; the backend still accepts guest checkout with an `x-cart-token`.
+
 ## Known legacy debt (reported by `npm run check:design`, not failed)
 
 - `src/app/globals.css` still holds ~40 decorative hex literals (home hero gradients, per-concern pastel chips) and some 8–11px text — scheduled for the home/screen redesign.
