@@ -12,6 +12,7 @@ import { StorageService } from '../../../platform/storage/storage.service';
 import { requireMediaReview, isTrustedMediaSource } from '../../../platform/security/media-review';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 
 export interface IngestionJobDetail {
   id: string;
@@ -55,6 +56,27 @@ export class IngestionService {
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)+/g, '');
+  }
+
+  async uploadSupplierSpreadsheet(supplierId: string, file: Express.Multer.File): Promise<{ jobId: string, sourceKey: string }> {
+    const supplier = await this.prisma.supplier.findUnique({ where: { id: supplierId } });
+    if (!supplier) throw new BadRequestException('Supplier not found');
+
+    const fileUrl = await this.storageService.uploadFile(file, true, 'ingestion', supplierId);
+    // Parse objectKey from url or just use the storage layout known:
+    const objectKey = fileUrl.split('/storage/')[1];
+    const checksum = crypto.createHash('sha256').update(file.buffer).digest('hex');
+
+    const job = await this.prisma.ingestionJob.create({
+      data: {
+        supplierId,
+        status: 'pending',
+        sourceKey: objectKey,
+        sourceChecksum: checksum,
+      }
+    });
+
+    return { jobId: job.id, sourceKey: objectKey };
   }
 
   async createJob(dto: CreateIngestionJobDto): Promise<IngestionJobDetail> {
@@ -334,12 +356,17 @@ export class IngestionService {
 
     let matchedSkuId: string | null = item.matchedSkuId;
 
-    if (dto?.matchedSkuId) {
+    if (dto?.createNewProduct && dto?.matchedSkuId) {
+      throw new BadRequestException('Cannot set both createNewProduct and matchedSkuId');
+    }
+
+    if (dto?.createNewProduct) {
+      matchedSkuId = null;
+    } else if (dto?.matchedSkuId) {
       if (!this.isUuid(dto.matchedSkuId)) throw new BadRequestException('Invalid SKU ID');
       const skuIdentity = await this.catalogService.getSkuIdentity(dto.matchedSkuId);
       if (!skuIdentity?.isActive) throw new NotFoundException('SKU not found in catalog or is inactive');
       matchedSkuId = dto.matchedSkuId;
-
     }
 
     const currentEnrichment = (item.enrichment as Record<string, unknown>) || {};

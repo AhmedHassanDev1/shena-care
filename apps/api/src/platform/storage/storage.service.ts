@@ -1,15 +1,14 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import * as fs from 'fs';
+import { Injectable, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { MAX_FILE_SIZE } from '../security/upload-validator';
+import { FILE_STORAGE_PORT, FileStoragePort } from './storage.port';
 
 @Injectable()
 export class StorageService {
-  private readonly storageDir = path.resolve(process.env.STORAGE_LOCAL_PATH || path.join(process.cwd(), 'uploads'));
   private readonly baseUrl = (process.env.API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
-  constructor() { fs.mkdirSync(this.storageDir, { recursive: true }); }
+  constructor(@Inject(FILE_STORAGE_PORT) private readonly storagePort: FileStoragePort) {}
 
   validateFile(file: Express.Multer.File): void {
     if (!file?.buffer?.length || file.buffer.length > MAX_FILE_SIZE) {
@@ -28,7 +27,10 @@ export class StorageService {
         b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP' &&
         b.readUInt32LE(4) + 8 === b.length) ||
       (file.mimetype === 'application/pdf' && ext === '.pdf' && b.length > 10 &&
-        b.toString('ascii', 0, 5) === '%PDF-' && b.subarray(-1024).includes(Buffer.from('%%EOF')));
+        b.toString('ascii', 0, 5) === '%PDF-' && b.subarray(-1024).includes(Buffer.from('%%EOF'))) ||
+      (file.mimetype === 'text/csv' && ext === '.csv') ||
+      (file.mimetype === 'application/vnd.ms-excel' && ext === '.xls') ||
+      (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && ext === '.xlsx');
     if (!valid) throw new BadRequestException('Unsupported or malformed file content');
   }
 
@@ -40,29 +42,18 @@ export class StorageService {
     }
     const filename = `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase()}`;
     const logicalFolder = isPrivate ? `private/${supplierId}/${folder}` : `public/${folder}`;
-    const filePath = this.getFilePath(`${logicalFolder}/${filename}`);
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    // Validate the now-existing parent against symlink/junction escapes.
-    if (!fs.realpathSync(path.dirname(filePath)).startsWith(fs.realpathSync(this.storageDir) + path.sep)) {
-      throw new BadRequestException('Invalid storage path');
-    }
-    fs.writeFileSync(filePath, file.buffer, { flag: 'wx' });
-    return `${this.baseUrl}/storage/${logicalFolder}/${filename}`;
+    const objectKey = `${logicalFolder}/${filename}`;
+    
+    await this.storagePort.put(objectKey, file.buffer, {
+      size: file.buffer.length,
+      mimeType: file.mimetype,
+    });
+    
+    return `${this.baseUrl}/storage/${objectKey}`;
   }
 
-  getFilePath(logicalPath: string): string {
-    if (!/^(public\/[a-zA-Z0-9_-]+|private\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+)\/[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+$/.test(logicalPath)) {
-      throw new BadRequestException('Invalid storage path');
-    }
-    const resolved = path.resolve(this.storageDir, logicalPath);
-    if (!resolved.startsWith(this.storageDir + path.sep)) throw new BadRequestException('Invalid storage path');
-    if (fs.existsSync(resolved) && !fs.realpathSync(resolved).startsWith(fs.realpathSync(this.storageDir) + path.sep)) {
-      throw new BadRequestException('Invalid storage path');
-    }
-    return resolved;
-  }
-
-  privateObjectPath(url: string, supplierId: string): string {
+  // Parses a URL and returns the object key if valid
+  privateObjectKey(url: string, supplierId: string): string {
     let parsed: URL;
     try { parsed = new URL(url); } catch { throw new BadRequestException('Invalid media URL'); }
     const base = new URL(this.baseUrl);
@@ -70,22 +61,22 @@ export class StorageService {
     if (parsed.origin !== base.origin || !parsed.pathname.startsWith(prefix) || parsed.search || parsed.hash) {
       throw new BadRequestException('Media is not owned by this candidate supplier');
     }
-    return this.getFilePath(parsed.pathname.slice('/storage/'.length));
+    return parsed.pathname.slice('/storage/'.length);
   }
 
-  copyToPublic(privateUrl: string, supplierId: string): string {
-    const sourcePath = this.privateObjectPath(privateUrl, supplierId);
-    if (!fs.existsSync(sourcePath)) throw new NotFoundException('Media object missing');
-    const filename = path.basename(sourcePath);
-    const destPath = this.getFilePath(`public/media/${filename}`);
-    fs.mkdirSync(path.dirname(destPath), { recursive: true });
-    if (!fs.realpathSync(path.dirname(destPath)).startsWith(fs.realpathSync(this.storageDir) + path.sep)) {
-      throw new BadRequestException('Invalid storage path');
+  async copyToPublic(privateUrl: string, supplierId: string): Promise<string> {
+    const objectKey = this.privateObjectKey(privateUrl, supplierId);
+    if (!(await this.storagePort.exists(objectKey))) {
+      throw new NotFoundException('Media object missing');
     }
-    if (!fs.existsSync(destPath)) {
-      try { fs.copyFileSync(sourcePath, destPath, fs.constants.COPYFILE_EXCL); }
-      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
+    const filename = path.basename(objectKey);
+    const destKey = `public/media/${filename}`;
+    
+    if (!(await this.storagePort.exists(destKey))) {
+      // Stream copy via read/put
+      const stream = await this.storagePort.readStream(objectKey);
+      await this.storagePort.put(destKey, stream);
     }
-    return `${this.baseUrl}/storage/public/media/${filename}`;
+    return `${this.baseUrl}/storage/${destKey}`;
   }
 }
