@@ -59,26 +59,26 @@ export function PhoneNumberForm() {
         <BrandLogo />
       </div>
       
-      <h2 className="text-3xl font-serif text-norya-stone-900 mb-2 text-center tracking-tight">
+      <h2 className="text-3xl font-serif text-foreground mb-2 text-center tracking-tight">
         {m.authWelcome}
       </h2>
-      <p className="text-[15px] text-norya-stone-600 mb-10 text-center">
+      <p className="text-[15px] text-muted-foreground mb-10 text-center">
         {m.authSubtitle}
       </p>
 
       <form onSubmit={handleSubmit} className="w-full flex flex-col gap-6">
         <div className="flex flex-col gap-2">
-          <label htmlFor="phone" className="text-sm font-medium text-norya-stone-900">
+          <label htmlFor="phone" className="text-sm font-medium text-foreground">
             {m.authPhoneLabel}
           </label>
           
-          <div className="flex flex-row items-center border border-norya-border rounded-xl focus-within:ring-2 focus-within:ring-norya-primary focus-within:border-norya-primary transition-all bg-white h-14 overflow-hidden relative">
+          <div className="flex flex-row items-center border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all bg-card h-14 overflow-hidden relative">
             
             {/* Country Selector (Static for MVP) */}
-            <div className="flex items-center gap-2 px-4 border-l border-norya-border h-full bg-norya-muted/30 shrink-0 select-none cursor-default" dir="ltr">
+            <div className="flex items-center gap-2 px-4 border-l border-border h-full bg-muted/30 shrink-0 select-none cursor-default" dir="ltr">
               <span className="text-xl leading-none">🇪🇬</span>
-              <span className="text-norya-stone-900 font-medium">+20</span>
-              <ChevronDown className="w-4 h-4 text-norya-stone-400" />
+              <span className="text-foreground font-medium">+20</span>
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
             </div>
 
             <input
@@ -91,7 +91,7 @@ export function PhoneNumberForm() {
                 if (error) setError('');
               }}
               placeholder={m.authPhonePlaceholder}
-              className="flex-1 h-full px-4 outline-none text-lg text-norya-stone-900 placeholder:text-norya-stone-400"
+              className="flex-1 h-full px-4 outline-none text-lg text-foreground placeholder:text-muted-foreground"
               dir="ltr"
               autoFocus
               required
@@ -102,7 +102,7 @@ export function PhoneNumberForm() {
             <p className="text-sm text-destructive mt-1 font-medium">{error}</p>
           )}
           {!error && (
-            <p className="text-[13px] text-norya-stone-600 mt-1">
+            <p className="text-[13px] text-muted-foreground mt-1">
               {m.authPhoneInfo}
             </p>
           )}
@@ -111,16 +111,16 @@ export function PhoneNumberForm() {
         <button
           type="submit"
           disabled={isLoading || !phoneNumber}
-          className="w-full h-14 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium text-lg transition-colors flex items-center justify-center disabled:opacity-50"
+          className="w-full h-14 bg-primary hover:bg-primary-hover text-primary-foreground rounded-xl font-medium text-lg transition-colors flex items-center justify-center disabled:opacity-50"
         >
           {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-card border-t-transparent rounded-full animate-spin" />
           ) : (
             m.authContinue
           )}
         </button>
 
-        <div className="mt-6 text-center text-[13px] text-norya-stone-600">
+        <div className="mt-6 text-center text-[13px] text-muted-foreground">
           {m.authTermsAgreement} <br />
           <Link href="/terms" className="text-primary hover:underline font-medium">{m.termsOfService}</Link> {m.and} <Link href="/privacy" className="text-primary hover:underline font-medium">{m.privacyPolicy}</Link>
         </div>

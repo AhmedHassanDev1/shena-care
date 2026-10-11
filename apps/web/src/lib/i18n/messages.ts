@@ -51,9 +51,6 @@ export const messages = {
     trustOriginal: 'Authentic products',
     trustDelivery: 'Cairo & Giza delivery',
     trustReturns: 'Damaged-item returns',
-    routineFit: 'This product fits in your routine',
-    routineStep: 'Step',
-    morningAndEvening: 'Morning & Evening',
     viewInRoutine: 'View in routine',
     ingredientsTitle: 'Key ingredients',
     fullIngredients: 'Full ingredients (INCI)',
@@ -61,7 +58,7 @@ export const messages = {
     size: 'Size',
 
     // Auth
-    authWelcome: 'Welcome to Norya',
+    authWelcome: 'Welcome to Shena Care',
     authSubtitle: 'Sign in or create your account to continue.',
     authPhoneLabel: 'Phone number',
     authPhonePlaceholder: '10 1234 5678',
@@ -172,9 +169,6 @@ export const messages = {
     trustOriginal: 'منتجات أصلية',
     trustDelivery: 'توصيل القاهرة والجيزة',
     trustReturns: 'إرجاع التالف',
-    routineFit: 'مناسب لروتينك',
-    routineStep: 'الخطوة',
-    morningAndEvening: 'صباحًا ومساءً',
     viewInRoutine: 'شوفه في روتينك',
     ingredientsTitle: 'المكونات الرئيسية',
     fullIngredients: 'كل المكونات (INCI)',

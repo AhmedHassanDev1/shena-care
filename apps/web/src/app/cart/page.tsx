@@ -21,7 +21,7 @@ export default function CartPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-norya-stone-600">{m.loading}</p>
+        <p className="mt-4 text-muted-foreground">{m.loading}</p>
       </div>
     );
   }
@@ -33,22 +33,22 @@ export default function CartPage() {
         <header className="flex justify-between items-center py-4 px-4 bg-transparent" dir="ltr">
           <BrandLogo />
           <div className="flex gap-4 items-center">
-            <Search className="w-6 h-6 text-norya-stone-900" />
-            <Heart className="w-6 h-6 text-norya-stone-900" />
+            <Search className="w-6 h-6 text-foreground" />
+            <Heart className="w-6 h-6 text-foreground" />
             <div className="relative">
-              <ShoppingCart className="w-6 h-6 text-norya-stone-900" />
+              <ShoppingCart className="w-6 h-6 text-foreground" />
             </div>
           </div>
         </header>
         
         <div className="text-center py-24 max-w-md mx-auto px-4">
           <div className="text-5xl mb-4">🛒</div>
-          <h2 className="text-2xl font-serif text-norya-stone-900 mb-2">
+          <h2 className="text-2xl font-serif text-foreground mb-2">
             {m.cartEmpty}
           </h2>
           <button 
             onClick={() => router.push('/products')} 
-            className="w-full mt-8 bg-primary hover:bg-primary-hover text-white font-medium py-4 rounded-xl transition-colors"
+            className="w-full mt-8 bg-primary hover:bg-primary-hover text-primary-foreground font-medium py-4 rounded-xl transition-colors"
           >
             {m.startShopping}
           </button>
@@ -67,11 +67,11 @@ export default function CartPage() {
       <header className="flex justify-between items-center py-4 px-4 bg-transparent lg:hidden" dir="ltr">
         <BrandLogo />
         <div className="flex gap-4 items-center">
-          <Search className="w-6 h-6 text-norya-stone-900" />
-          <Heart className="w-6 h-6 text-norya-stone-900" />
+          <Search className="w-6 h-6 text-foreground" />
+          <Heart className="w-6 h-6 text-foreground" />
           <div className="relative">
-            <ShoppingCart className="w-6 h-6 text-norya-stone-900" />
-            <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+            <ShoppingCart className="w-6 h-6 text-foreground" />
+            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
               {cart.itemCount}
             </span>
           </div>
@@ -81,12 +81,12 @@ export default function CartPage() {
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 pt-2 lg:py-12">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-norya-stone-900 mb-1">{m.cartTitle}</h1>
-          <p className="text-norya-stone-600 text-sm">{m.cartSubtitle}</p>
+          <h1 className="text-3xl font-bold text-foreground mb-1">{m.cartTitle}</h1>
+          <p className="text-muted-foreground text-sm">{m.cartSubtitle}</p>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 font-medium text-sm">
+          <div className="bg-destructive-subtle text-destructive p-4 rounded-xl mb-6 font-medium text-sm">
             {error.message || 'Failed to load cart'}
           </div>
         )}
@@ -98,20 +98,19 @@ export default function CartPage() {
             
             {/* Items Section */}
             <section>
-              <h2 className="text-base font-bold text-norya-stone-900 mb-1">
+              <h2 className="text-base font-bold text-foreground mb-3">
                 {m.cartOtherItems.replace('{count}', cart.itemCount.toString())}
               </h2>
-              <p className="text-xs text-norya-stone-500 mb-3">منتجات خارج روتينك الحالي.</p>
               
               <div className="flex flex-col gap-4">
                 {cartItems.map((item) => (
-                  <div key={item.skuId} className="bg-white p-4 rounded-2xl shadow-sm border border-black/5 relative">
+                  <div key={item.skuId} className="bg-card p-4 rounded-2xl shadow-sm border border-black/5 relative">
                     
                     {/* Top right actions (in RTL, it's top left) */}
                     <div className="absolute top-4 rtl:left-4 ltr:right-4 flex items-center gap-3">
                       <button 
                         onClick={() => updateItem({ skuId: item.skuId, quantity: 0 })} // using updateItem with 0 to remove or removeItem
-                        className="text-norya-stone-400 hover:text-red-500 transition-colors"
+                        className="text-muted-foreground hover:text-destructive transition-colors"
                         aria-label="Remove item"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -129,11 +128,11 @@ export default function CartPage() {
                       {/* Product Details */}
                       <div className="flex-1 flex flex-col pt-1">
                         <div className="pr-2 rtl:pl-10 ltr:pr-10">
-                          <div className="text-xs font-bold text-norya-stone-900">{item.sku.product.brand?.name || 'Brand'}</div>
-                          <Link href={`/products/${item.sku.product.slug}`} className="text-sm font-medium text-norya-stone-800 leading-tight block mt-0.5 mb-1 hover:underline">
+                          <div className="text-xs font-bold text-foreground">{item.sku.product.brand?.name || 'Brand'}</div>
+                          <Link href={`/products/${item.sku.product.slug}`} className="text-sm font-medium text-foreground leading-tight block mt-0.5 mb-1 hover:underline">
                             {item.sku.product.name}
                           </Link>
-                          <div className="text-xs text-norya-stone-500 mb-2">
+                          <div className="text-xs text-muted-foreground mb-2">
                             {item.sku.size ? `${item.sku.size}${item.sku.sizeUnit}` : item.sku.variantName}
                           </div>
 
@@ -147,20 +146,20 @@ export default function CartPage() {
                         {/* Price and Quantity */}
                         <div className="flex justify-between items-center mt-auto">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-base text-norya-stone-900">
+                            <span className="font-bold text-base text-foreground">
                               {item.price?.amount || item.subtotal} ج.م
                             </span>
                             {/* If backend gave a discount, we would show it here. Mocked for screenshot fidelity but removed hardcoding. */}
                           </div>
 
-                          <div className="flex items-center border border-norya-stone-200 rounded-lg h-8 bg-white">
+                          <div className="flex items-center border border-border rounded-lg h-8 bg-card">
                             <button 
                               onClick={() => updateItem({ skuId: item.skuId, quantity: item.quantity + 1 })}
-                              className="w-8 h-full flex items-center justify-center text-norya-stone-600 hover:text-norya-stone-900"
+                              className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground"
                             >
                               <Plus className="w-4 h-4" />
                             </button>
-                            <span className="text-sm font-medium w-6 text-center text-norya-stone-900">
+                            <span className="text-sm font-medium w-6 text-center text-foreground">
                               {item.quantity}
                             </span>
                             <button 
@@ -168,7 +167,7 @@ export default function CartPage() {
                                 if (item.quantity > 1) updateItem({ skuId: item.skuId, quantity: item.quantity - 1 });
                               }}
                               disabled={item.quantity <= 1}
-                              className="w-8 h-full flex items-center justify-center text-norya-stone-600 hover:text-norya-stone-900 disabled:opacity-50"
+                              className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-50"
                             >
                               <Minus className="w-4 h-4" />
                             </button>
@@ -182,14 +181,14 @@ export default function CartPage() {
             </section>
 
             {/* Availability & Delivery Section */}
-            <section className="bg-white p-5 rounded-2xl shadow-sm border border-black/5 mt-2">
+            <section className="bg-card p-5 rounded-2xl shadow-sm border border-black/5 mt-2">
               <div className="flex items-center gap-2 mb-4">
-                <Truck className="w-5 h-5 text-norya-stone-900" />
-                <h3 className="font-bold text-norya-stone-900">{m.availabilityAndDelivery}</h3>
+                <Truck className="w-5 h-5 text-foreground" />
+                <h3 className="font-bold text-foreground">{m.availabilityAndDelivery}</h3>
               </div>
               
               <div className="bg-success-subtle p-4 rounded-xl flex items-start gap-3 mb-4">
-                <div className="mt-0.5 bg-success text-white rounded-full p-0.5">
+                <div className="mt-0.5 bg-success text-success-foreground rounded-full p-0.5">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
                 <div>
@@ -200,34 +199,34 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border border-norya-stone-200 rounded-xl p-3">
+              <div className="flex items-center justify-between border border-border rounded-xl p-3">
                 <div className="flex items-center gap-3">
-                  <div className="bg-norya-stone-50 p-2 rounded-full">
-                    <MapPin className="w-4 h-4 text-norya-stone-600" />
+                  <div className="bg-muted p-2 rounded-full">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-norya-stone-900">{m.deliveryTo}</div>
-                    <div className="text-xs text-norya-stone-500">{m.deliveryTime}</div>
+                    <div className="text-sm font-bold text-foreground">{m.deliveryTo}</div>
+                    <div className="text-xs text-muted-foreground">{m.deliveryTime}</div>
                   </div>
                 </div>
-                <ArrowIcon className="w-4 h-4 text-norya-stone-400" />
+                <ArrowIcon className="w-4 h-4 text-muted-foreground" />
               </div>
             </section>
           </div>
 
           {/* Right Column: Sticky Summary */}
-          <div className="w-full lg:w-[380px] bg-white p-5 rounded-2xl shadow-sm border border-black/5 lg:sticky lg:top-8 mt-2 lg:mt-0 mb-6 lg:mb-0">
+          <div className="w-full lg:w-[380px] bg-card p-5 rounded-2xl shadow-sm border border-black/5 lg:sticky lg:top-8 mt-2 lg:mt-0 mb-6 lg:mb-0">
             <div className="flex items-center gap-2 mb-5">
-              <ShoppingCart className="w-5 h-5 text-norya-stone-900" />
-              <h2 className="text-base font-bold text-norya-stone-900">{m.orderSummary}</h2>
+              <ShoppingCart className="w-5 h-5 text-foreground" />
+              <h2 className="text-base font-bold text-foreground">{m.orderSummary}</h2>
             </div>
             
             <div className="flex flex-col gap-3 mb-4 text-sm">
-              <div className="flex justify-between text-norya-stone-600">
+              <div className="flex justify-between text-muted-foreground">
                 <span>{m.productsCount.replace('{count}', cart.itemCount.toString())}</span>
-                <span className="font-medium text-norya-stone-900">{cart.total.toFixed(0)} ج.م</span>
+                <span className="font-medium text-foreground">{cart.total.toFixed(0)} ج.م</span>
               </div>
-              <div className="flex justify-between text-norya-stone-600">
+              <div className="flex justify-between text-muted-foreground">
                 <span>{m.deliveryTo}</span>
                 <span className="font-medium text-success">{m.freeShipping}</span>
               </div>
@@ -239,20 +238,20 @@ export default function CartPage() {
             </div>
 
             <div className="flex justify-between items-center mb-6">
-              <span className="font-bold text-lg text-norya-stone-900">{m.total}</span>
-              <span className="font-bold text-2xl text-norya-stone-900">{cart.total.toFixed(0)} ج.م</span>
+              <span className="font-bold text-lg text-foreground">{m.total}</span>
+              <span className="font-bold text-2xl text-foreground">{cart.total.toFixed(0)} ج.م</span>
             </div>
 
             {/* Desktop CTA (hidden on mobile, sticky on mobile) */}
             <div className="hidden lg:block">
               <button 
                 onClick={() => router.push('/checkout')} 
-                className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-primary hover:bg-primary-hover text-primary-foreground font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
                 {m.checkoutSecurely}
                 <ArrowIcon className="w-5 h-5" />
               </button>
-              <div className="flex justify-center items-center gap-1.5 mt-4 text-xs text-norya-stone-500">
+              <div className="flex justify-center items-center gap-1.5 mt-4 text-xs text-muted-foreground">
                 <ShieldCheck className="w-4 h-4" />
                 <span>{m.securePaymentDesc}</span>
               </div>
@@ -262,15 +261,15 @@ export default function CartPage() {
       </main>
 
       {/* Mobile Sticky CTA */}
-      <div className="lg:hidden fixed bottom-[60px] left-0 right-0 p-4 bg-white/95 backdrop-blur border-t border-norya-stone-200 z-40 pb-6">
+      <div className="lg:hidden fixed bottom-[60px] left-0 right-0 p-4 bg-card/95 backdrop-blur border-t border-border z-40 pb-6">
         <button 
           onClick={() => router.push('/checkout')} 
-          className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+          className="w-full bg-primary hover:bg-primary-hover text-primary-foreground font-bold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
         >
           {m.checkoutSecurely}
           <ArrowIcon className="w-5 h-5" />
         </button>
-        <div className="flex justify-center items-center gap-1.5 mt-2.5 text-[11px] text-norya-stone-500">
+        <div className="flex justify-center items-center gap-1.5 mt-2.5 text-[11px] text-muted-foreground">
           <ShieldCheck className="w-3.5 h-3.5" />
           <span>{m.securePaymentDesc}</span>
         </div>

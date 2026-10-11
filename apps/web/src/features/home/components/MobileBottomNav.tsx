@@ -33,7 +33,7 @@ export function MobileBottomNav() {
             <span className="relative">
               <Icon aria-hidden="true" />
               {hasBadge && cart && cart.itemCount > 0 ? (
-                <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
                   {cart.itemCount}
                 </span>
               ) : null}

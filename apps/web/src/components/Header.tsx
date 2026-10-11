@@ -29,10 +29,10 @@ export function Header() {
       <div className="container header-inner">
         <Link href={routes.home} className="logo">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-norya-gold/20 flex items-center justify-center">
-              <div className="w-3 h-3 bg-norya-gold rounded-full opacity-60" />
+            <div className="w-6 h-6 rounded-full bg-accent-foreground/20 flex items-center justify-center">
+              <div className="w-3 h-3 bg-accent-foreground rounded-full opacity-60" />
             </div>
-            ShenaCare
+            Shena Care
           </div>
         </Link>
         <nav className="nav" aria-label={m.navigation}>

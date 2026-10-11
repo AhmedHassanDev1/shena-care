@@ -19,7 +19,7 @@ Review it live: run `npm run dev` in `apps/web` and open `/design-lab` (developm
 
 ## Rules for feature code
 
-1. Use semantic classes only (`bg-primary`, `text-muted-foreground`, `border-input`…). No hex, no primitives (`--olive-700`) in features. `npm run check:design` fails on hex in TS/TSX.
+1. Use semantic classes only (raw palette utilities such as `bg-white`, `text-red-700` also fail the check) (`bg-primary`, `text-muted-foreground`, `border-input`…). No hex, no primitives (`--olive-700`) in features. `npm run check:design` fails on hex in TS/TSX.
 2. `border` is for decorative dividers (below 3:1 by design); `input` is for interactive control boundaries (≥ 3:1).
 3. Use the type tokens (`text-display`, `text-h1`–`text-h3`, `text-body-lg`, `text-body`, `text-support`, `text-caption`). Nothing below 13px. Line height comes from the token and is taller for Arabic automatically.
 4. Radii: `rounded-sm` (4px) controls/badges, `rounded-md` (8px) buttons/cards/media, `rounded-lg` (12px) overlays. `rounded-full` only for step markers and avatars. Legacy `rounded-xl/2xl` resolve to 12px.
@@ -34,13 +34,20 @@ Review it live: run `npm run dev` in `apps/web` and open `/design-lab` (developm
 |---|---|---|
 | Olive Blush as development theme | PROPOSED / temporary | Neutrals are low-chroma warm grey (not beige); olive = primary, blush = sparing accent; success leans teal so it never reads as primary. All 31 required pairs pass WCAG AA. |
 | IBM Plex Sans Arabic as provisional app font | PROPOSED | Chosen as the neutral default while Readex Pro and Alexandria are compared in the lab. One family covers Arabic + Latin; no Inter added. |
-| `norya.*` Tailwind palette | Deprecated alias | Maps onto semantic roles so legacy screens follow the theme; migrate screen by screen, then delete. |
+| Legacy `norya.*` palette | Removed | All 231 uses were migrated to semantic roles and the alias was deleted. "Norya" no longer appears anywhere in `apps/web`; the brand is written "Shena Care". |
+| Default locale | Arabic | `DEFAULT_LOCALE = "ar"` in `src/lib/i18n/server.ts`; English is opt-in through the language switch (cookie `shena-locale`). |
+| Idempotency key | Own helper | `src/lib/idempotency.ts` replaces the undeclared `uuid` import (see below). |
 | Step sequence (`Steps`) | Built | Only for real backend sequences (e.g. `CUSTOMER_STAGES` order tracking). |
 
 ## Deferred (needs backend contracts or owner decisions)
 
+- Category-derived guidance was removed, not hidden: ProductCard no longer shows invented concern/step chips (brand name only), the product page no longer renders a "routine fit" block, and the cart no longer claims items are "outside your current routine".
 - Reason note ("why this suits you"), routine role on products, product-fit indicators — no backend contract (GLO-183). Must not be inferred in the UI.
 - Final palette, final fonts, logo/motif, digit system for Arabic (Arabic-Indic vs Latin — both shown in the lab), default locale (currently `en`), dark mode.
+
+## Dependency note: `uuid`
+
+`apps/web` imported `uuid` without declaring it; it only resolved through `apps/api`'s hoisted copy. Fix on this branch: a 15-line `createIdempotencyKey()` (`crypto.randomUUID()` with a `getRandomValues` fallback for non-secure contexts), no new dependency and no manifest or lockfile change. If the team prefers the package, the alternative is `npm install uuid@^14.0.2 -w web`, which edits the root lockfile and needs approval.
 
 ## Known legacy debt (reported by `npm run check:design`, not failed)
 

@@ -13,23 +13,11 @@ interface ProductCardProps {
   variant?: 'default' | 'home';
 }
 
-const stepByCategory: Record<string, { step: number; label: string; concern: string }> = {
-  cleansers: { step: 1, label: 'Cleanse', concern: 'Fresh Start' },
-  shampoos: { step: 1, label: 'Cleanse', concern: 'Hair Care' },
-  'serums-treatments': { step: 2, label: 'Treat', concern: 'Dark Spots' },
-  'hair-treatments-styling': { step: 2, label: 'Treat', concern: 'Hair Fall' },
-  moisturizers: { step: 3, label: 'Moisturize', concern: 'Dryness' },
-  conditioners: { step: 3, label: 'Condition', concern: 'Dryness' },
-  sunscreens: { step: 4, label: 'Protect', concern: 'Sensitive Skin' },
-};
-
 export function ProductCard({ product, locale, variant = 'default' }: ProductCardProps) {
   const m = getMessages(locale);
   const primaryImage = product.media.find((media) => media.isPrimary) || product.media[0];
   const primarySku = product.skus.find((sku) => sku.canOrder) || product.skus[0];
   const price = primarySku?.price;
-  const categorySlug = typeof product.category === 'object' ? product.category?.slug : '';
-  const step = stepByCategory[categorySlug || ''] || { step: 2, label: 'Treat', concern: product.brand.name };
 
   return (
     <article className={cn('commerce-product-card', variant === 'home' && 'is-home-card')}>
@@ -48,9 +36,10 @@ export function ProductCard({ product, locale, variant = 'default' }: ProductCar
       <span className="wishlist-mark" aria-hidden="true"><Heart /></span>
 
       <div className="product-card-copy">
+        {/* Only backend data here. Concern and routine-step chips need a product contract that
+            provides them (GLO-183); they must not be inferred from the category. */}
         <div className="product-chips">
-          <span>{step.concern}</span>
-          <span>Step {step.step} · {step.label}</span>
+          <span><bdi>{product.brand.name}</bdi></span>
         </div>
         <Link href={routes.product(product.slug)}>
           <h3>{product.name}</h3>

@@ -44,35 +44,6 @@ const config: Config = {
         border: { DEFAULT: role('border'), subtle: role('border-subtle') },
         input: role('input'),
         ring: role('ring'),
-
-        /**
-         * @deprecated Legacy prototype palette. Kept only as aliases onto semantic roles so existing
-         * screens follow the active theme. Do not use in new code; migrate screen by screen.
-         */
-        norya: {
-          canvas: role('background'),
-          surface: role('card'),
-          warm: role('muted'),
-          muted: role('muted'),
-          primary: role('primary'),
-          'primary-hover': role('primary-hover'),
-          'primary-light': role('primary-subtle'),
-          border: role('border'),
-          'border-subtle': role('border-subtle'),
-          gold: role('accent-foreground'),
-          stone: {
-            50: role('muted'),
-            100: role('secondary'),
-            200: role('border'),
-            300: role('input'),
-            400: role('muted-foreground'),
-            500: role('muted-foreground'),
-            600: role('muted-foreground'),
-            700: role('foreground'),
-            800: role('foreground'),
-            900: role('foreground'),
-          },
-        },
       },
       fontFamily: {
         sans: ['var(--font-sans)'],

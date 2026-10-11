@@ -16,9 +16,9 @@ export function HomeHeader() {
   return (
     <header className="home-header">
       <div className="home-header-inner">
-        <Link href={routes.home} className="brand-lockup" aria-label="ShenaCare home">
+        <Link href={routes.home} className="brand-lockup" aria-label="Shena Care home">
           <Flower2 aria-hidden="true" />
-          <span>Shena<span>Care</span></span>
+          <span>Shena <span>Care</span></span>
         </Link>
 
         <nav className="desktop-home-nav" aria-label="Store navigation">

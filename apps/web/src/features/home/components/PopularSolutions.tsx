@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useProducts } from '@/features/catalog/queries/catalog.queries';
 import { ProductCard } from '@/features/catalog/ui/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 
 export function PopularSolutions() {
+  const locale = useLocale();
   const { data: products, isLoading, isError } = useProducts();
 
   const displayProducts = products?.filter((product) => product.skus.some((sku) => sku.price)).slice(0, 5) || [];
@@ -37,7 +39,7 @@ export function PopularSolutions() {
           <div className="product-state">No published products are available yet.</div>
         ) : (
           displayProducts.map((product) => (
-            <ProductCard key={product.id} product={product} locale="en" variant="home" />
+            <ProductCard key={product.id} product={product} locale={locale} variant="home" />
           ))
         )}
       </div>

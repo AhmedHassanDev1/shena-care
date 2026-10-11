@@ -127,12 +127,12 @@ function OtpFormContent() {
         <BrandLogo />
       </div>
       
-      <h2 className="text-3xl font-serif text-norya-stone-900 mb-2 text-center tracking-tight">
+      <h2 className="text-3xl font-serif text-foreground mb-2 text-center tracking-tight">
         {m.authVerifyTitle}
       </h2>
-      <p className="text-[15px] text-norya-stone-600 mb-10 text-center flex flex-col items-center">
+      <p className="text-[15px] text-muted-foreground mb-10 text-center flex flex-col items-center">
         <span>{m.authVerifySubtitle}</span>
-        <span className="font-medium text-norya-stone-900 mt-1" dir="ltr">{phoneNumber}</span>
+        <span className="font-medium text-foreground mt-1" dir="ltr">{phoneNumber}</span>
         <button 
           onClick={() => router.back()}
           className="text-primary hover:underline text-sm font-medium mt-2"
@@ -162,8 +162,8 @@ function OtpFormContent() {
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={index === 0 ? handlePaste : undefined}
-                className={`w-12 h-14 md:w-14 md:h-16 text-center text-2xl font-medium rounded-xl border focus:ring-2 focus:ring-norya-primary focus:border-norya-primary transition-all bg-white outline-none ${
-                  error ? 'border-destructive text-destructive' : 'border-norya-border text-norya-stone-900'
+                className={`w-12 h-14 md:w-14 md:h-16 text-center text-2xl font-medium rounded-xl border focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-card outline-none ${
+                  error ? 'border-destructive text-destructive' : 'border-border text-foreground'
                 }`}
                 autoFocus={index === 0}
               />
@@ -178,17 +178,17 @@ function OtpFormContent() {
         <button
           type="submit"
           disabled={isLoading || codeString.length !== 6}
-          className="w-full h-14 bg-primary hover:bg-primary-hover text-white rounded-xl font-medium text-lg transition-colors flex items-center justify-center disabled:opacity-50"
+          className="w-full h-14 bg-primary hover:bg-primary-hover text-primary-foreground rounded-xl font-medium text-lg transition-colors flex items-center justify-center disabled:opacity-50"
         >
           {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-card border-t-transparent rounded-full animate-spin" />
           ) : (
             m.authVerifyCode
           )}
         </button>
 
         <div className="text-center text-[14px]">
-          <span className="text-norya-stone-600">{m.authCodeNotReceived}</span>{' '}
+          <span className="text-muted-foreground">{m.authCodeNotReceived}</span>{' '}
           <button
             type="button"
             disabled={countdown > 0 || isLoading}
