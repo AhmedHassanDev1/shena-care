@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Layers, ListChecks, PackageCheck, ShoppingBag, Sparkles, Target } from 'lucide-react';
+import { ArrowLeft, Layers, ListChecks, PackageCheck, Sparkles, Target } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { getMessages } from '@/lib/i18n/messages';
@@ -16,7 +16,6 @@ const ICONS: Record<DiscoveryIcon, LucideIcon> = {
   target: Target,
   checklist: ListChecks,
   layers: Layers,
-  cart: ShoppingBag,
 };
 
 /** Rotating tints keep the three icon tiles distinct without a color per meaning. */
@@ -24,7 +23,8 @@ const TINTS = ['bg-primary-subtle text-primary', 'bg-secondary text-secondary-fo
 
 /**
  * One coherent discovery zone: the "build your routine" banner with the three-step explanation
- * attached beneath it. What it promises follows what exists (see `ROUTINE_BUILDER_AVAILABLE`).
+ * attached beneath it. The design is always shown; the question cards illustrate the journey and are not
+ * real questions (see docs/home-api-integration-gaps.md).
  */
 export function RoutineDiscoveryZone() {
   const m = getMessages(getLocale());
@@ -61,7 +61,7 @@ export function RoutineDiscoveryZone() {
           </ul>
         </div>
 
-        <div className="relative h-44 sm:h-56 lg:h-auto">
+        <div className="relative h-64 lg:h-auto">
           <Image
             src="/assets/home/routine-builder.webp"
             alt=""
@@ -71,15 +71,16 @@ export function RoutineDiscoveryZone() {
             className="object-cover object-right rtl:-scale-x-100"
           />
           {content.questions.length > 0 ? (
-            <ol aria-hidden="true" className="absolute inset-y-6 start-6 hidden items-center xl:flex">
+            // One readable card below xl, the full overlapping stack from xl up.
+            <ol aria-hidden="true" className="absolute inset-y-4 start-4 flex items-center xl:inset-y-6 xl:start-6">
               {content.questions.map((question, index) => (
                 <li
                   key={question.title}
                   className={cn(
                     'relative flex w-[8.75rem] shrink-0 flex-col gap-2 rounded-md border border-border bg-card p-3 shadow-overlay',
                     index === 0 && 'z-30 -rotate-3',
-                    index === 1 && '-ms-2 z-20 mt-6 rotate-1',
-                    index === 2 && '-ms-2 z-10 -rotate-2',
+                    index === 1 && 'hidden -ms-2 z-20 mt-6 rotate-1 xl:flex',
+                    index === 2 && 'hidden -ms-2 z-10 -rotate-2 xl:flex',
                   )}
                 >
                   <span className="flex size-6 items-center justify-center rounded-full bg-primary-subtle text-caption font-semibold text-primary">

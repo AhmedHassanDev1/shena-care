@@ -1,26 +1,32 @@
 import { getMessages } from '@/lib/i18n/messages';
-import { getDiscoveryContent, ROUTINE_BUILDER_AVAILABLE } from './discovery';
+import { PREVIEW_ROUTINES } from '../mocks/routines';
+import { getDiscoveryContent } from './discovery';
+import { HERO_MAX_SLIDES, RECOMMENDED_MAX, splitRoutines } from './routines';
 
 const ar = getMessages('ar');
 
 describe('getDiscoveryContent', () => {
-  it('does not promise a questionnaire while the builder is not available', () => {
-    expect(ROUTINE_BUILDER_AVAILABLE).toBe(false);
+  it('always carries the approved routine-builder copy, whatever the backend state', () => {
     const content = getDiscoveryContent(ar);
-    expect(content.guided).toBe(false);
-    expect(content.questions).toEqual([]);
-    expect(content.cta.href).toContain('/products');
-    expect(content.steps).toHaveLength(3);
-  });
-
-  it('uses the approved copy and the builder route once it is available', () => {
-    const content = getDiscoveryContent(ar, true);
-    expect(content.guided).toBe(true);
     expect(content.title).toBe('ابني روتينك بسهولة');
+    expect(content.description).toBe('جاوب على شوية أسئلة بسيطة تساعدك تكتشف روتين مناسب لاحتياجاتك.');
     expect(content.cta).toEqual({ label: 'ابدأ الآن', href: '/routine/builder' });
     expect(content.stepsTitle).toBe('روتينك في 3 خطوات بسيطة');
     expect(content.steps.map((s) => s.title)).toEqual(['حدّد احتياجك', 'جاوب على الأسئلة', 'اكتشف روتينك']);
-    expect(content.benefits).toHaveLength(3);
+    expect(content.benefits.map((b) => b.label)).toEqual([
+      'منتجات مناسبة لاحتياجاتك',
+      'روتين واضح وسهل التطبيق',
+      'اختيارات أسهل من المنتجات المتاحة',
+    ]);
     expect(content.questions).toHaveLength(3);
+  });
+});
+
+describe('preview routine fixtures', () => {
+  it('fill the hero swiper and the suggested row without repeating a routine', () => {
+    const { hero, recommended } = splitRoutines(PREVIEW_ROUTINES);
+    expect(hero).toHaveLength(HERO_MAX_SLIDES);
+    expect(recommended).toHaveLength(RECOMMENDED_MAX);
+    expect(new Set([...hero, ...recommended].map((r) => r.id)).size).toBe(HERO_MAX_SLIDES + RECOMMENDED_MAX);
   });
 });

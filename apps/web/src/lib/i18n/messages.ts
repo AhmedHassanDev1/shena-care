@@ -101,7 +101,7 @@ export const messages = {
     footerShop: 'Shop',
     footerAccount: 'Your account',
 
-    // Routine discovery zone — guided builder available
+    // Routine discovery zone
     ctaBenefit1: 'Products that suit your needs',
     ctaBenefit2: 'A clear, easy-to-follow routine',
     ctaBenefit3: 'Easier choices from what is available',
@@ -125,20 +125,6 @@ export const messages = {
     question3OptionB: 'Even tone',
     question3OptionC: 'Smoother texture',
 
-    // Routine discovery zone — what works today: browse the catalog by care area
-    browseTitle: 'Start your care with ease',
-    browseDescription: 'Pick skin care or hair care and browse the products available to order, from multiple brands.',
-    browseBenefit1: 'Products you can order right now',
-    browseBenefit2: 'Multiple brands in one place',
-    browseBenefit3: 'Easy browsing by care area',
-    browseCta: 'Browse products',
-    browseStepsTitle: 'Your care in 3 simple steps',
-    browseStep1Title: 'Choose a care area',
-    browseStep1Description: 'Skin care or hair care.',
-    browseStep2Title: 'Browse the products',
-    browseStep2Description: 'See what is available from multiple brands.',
-    browseStep3Title: 'Add to your cart',
-    browseStep3Description: 'Add what suits you and complete your order.',
     footerRights: '© {year} ShinaCare',
   },
   ar: {
@@ -243,7 +229,7 @@ export const messages = {
     footerShop: 'تسوّق',
     footerAccount: 'حسابك',
 
-    // Routine discovery zone — guided builder available
+    // Routine discovery zone
     ctaBenefit1: 'منتجات مناسبة لاحتياجاتك',
     ctaBenefit2: 'روتين واضح وسهل التطبيق',
     ctaBenefit3: 'اختيارات أسهل من المنتجات المتاحة',
@@ -267,20 +253,6 @@ export const messages = {
     question3OptionB: 'توحيد اللون',
     question3OptionC: 'تحسين الملمس',
 
-    // Routine discovery zone — what works today: browse the catalog by care area
-    browseTitle: 'ابدأ عنايتك بسهولة',
-    browseDescription: 'اختار العناية بالبشرة أو الشعر وتصفّح المنتجات المتاحة للطلب من ماركات متعددة.',
-    browseBenefit1: 'منتجات متاحة للطلب دلوقتي',
-    browseBenefit2: 'ماركات متعددة في مكان واحد',
-    browseBenefit3: 'تصفّح سهل حسب القسم',
-    browseCta: 'تصفّح المنتجات',
-    browseStepsTitle: 'عنايتك في 3 خطوات بسيطة',
-    browseStep1Title: 'اختار القسم',
-    browseStep1Description: 'العناية بالبشرة أو الشعر.',
-    browseStep2Title: 'تصفّح المنتجات',
-    browseStep2Description: 'شوف المتاح من ماركات متعددة.',
-    browseStep3Title: 'أضف للسلة',
-    browseStep3Description: 'ضيف اللي يناسبك وكمّل طلبك.',
     footerRights: '© {year} ShinaCare',
   },
 } as const;

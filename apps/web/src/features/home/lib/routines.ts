@@ -14,7 +14,7 @@ export interface RoutineSummary {
   imageSrc: string | null;
 }
 
-export const HERO_MAX_SLIDES = 5;
+export const HERO_MAX_SLIDES = 3;
 export const RECOMMENDED_MAX = 3;
 
 /** Hero routines first; the recommended list never repeats one of them (matched by id, never by title). */

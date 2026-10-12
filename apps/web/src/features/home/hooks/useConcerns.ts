@@ -4,19 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { auth } from '@/lib/auth';
 import { useAuth } from '@/features/auth/AuthContext';
+import type { Concern } from '../lib/concerns';
+import { isHomePreview } from '../lib/preview';
+import { PREVIEW_CONCERNS } from '../mocks/concerns';
 
-export interface Concern {
-  id: string;
-  name: string;
-  slug: string;
-  careArea: 'skin' | 'hair';
-  description: string | null;
-  isActive: boolean;
-}
+export type { Concern } from '../lib/concerns';
 
 /**
  * Care concerns. `GET /care/concerns` requires a signed-in customer (the whole care controller is
- * guarded), so guests get none and the section is omitted rather than filled with invented items.
+ * guarded), so guests get none. Real concerns always win; only in design preview do fixtures fill in
+ * when there are none, and outside preview the section is omitted.
+ * TODO(API): Use a public concerns endpoint when one exists.
  */
 export function useConcerns() {
   const { isAuthenticated } = useAuth();
@@ -29,6 +27,11 @@ export function useConcerns() {
       return concerns.filter((concern) => concern.isActive);
     },
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
-  return { concerns: query.data ?? [], isLoading: isAuthenticated && query.isLoading };
+
+  const real = query.data ?? [];
+  const isLoading = isAuthenticated && query.isLoading;
+  const concerns = real.length > 0 || isLoading ? real : isHomePreview() ? PREVIEW_CONCERNS : [];
+  return { concerns, isLoading };
 }
