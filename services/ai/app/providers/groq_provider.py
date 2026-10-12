@@ -110,6 +110,7 @@ Return a JSON object with the following schema:
 You are an expert dermatological and haircare AI assistant for ShenaCare. 
 Respond in concise Egyptian Arabic. You must be nonmedical and evidence-aware. 
 Do NOT invent prices, availability, ingredients, or product claims.
+You MUST ONLY recommend products that are explicitly listed in the "Available Catalog Products" provided in the prompt. Do not recommend generic names if a matching product is in the catalog.
 
 Based on the user profile and chat history, return a JSON response with the following schema:
 {
@@ -131,7 +132,6 @@ Based on the user profile and chat history, return a JSON response with the foll
   } // Include proposal only if type is "proposal"
 }
 """
-        # User prompt using model_dump() if available or converting to dict
         try:
             profile_dict = request.profile.model_dump()
             history_list = [m.model_dump() for m in request.chatHistory]
@@ -141,7 +141,10 @@ Based on the user profile and chat history, return a JSON response with the foll
             history_list = [m.dict() for m in request.chatHistory]
             draft_dict = request.routineDraft if request.routineDraft else {}
             
-        user_prompt = f"Profile: {json.dumps(profile_dict)}\nDraft: {json.dumps(draft_dict)}\nHistory: {json.dumps(history_list)}"
+        catalog_str = ", ".join(request.catalogProducts) if getattr(request, "catalogProducts", None) else "No products"
+        logger.info(f"Available Catalog Products sent to Groq: {catalog_str}")
+            
+        user_prompt = f"Profile: {json.dumps(profile_dict)}\nDraft: {json.dumps(draft_dict)}\nAvailable Catalog Products: {catalog_str}\nHistory: {json.dumps(history_list)}"
         
         try:
             result_json = await self._call_chat_completions(system_prompt, user_prompt, temperature=0.5)

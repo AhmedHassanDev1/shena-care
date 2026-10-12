@@ -19,6 +19,7 @@ class GuidanceRecommendationRequest(BaseModel):
     profile: UserProfileContext
     chatHistory: list[GuidanceMessageContext] = Field(default_factory=list)
     routineDraft: dict | None = None
+    catalogProducts: list[str] = Field(default_factory=list)
 
 
 class RoutineStepProposal(BaseModel):

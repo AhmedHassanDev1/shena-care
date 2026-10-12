@@ -52,6 +52,7 @@ export interface GuidanceRecommendationRequest {
     content: string;
   }>;
   routineDraft?: any | null;
+  catalogProducts?: string[];
 }
 
 export interface RoutineStepProposal {
