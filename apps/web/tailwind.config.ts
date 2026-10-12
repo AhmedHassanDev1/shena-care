@@ -41,6 +41,8 @@ const config: Config = {
         info: { DEFAULT: role('info'), foreground: role('info-foreground'), subtle: role('info-subtle') },
         disabled: { DEFAULT: role('disabled'), foreground: role('disabled-foreground') },
         overlay: role('overlay'),
+        'brand-mark': role('brand-mark'),
+        ambient: role('ambient'),
         border: { DEFAULT: role('border'), subtle: role('border-subtle') },
         input: role('input'),
         ring: role('ring'),
@@ -80,6 +82,7 @@ const config: Config = {
         overlay: 'var(--shadow-overlay)',
         card: 'var(--shadow-raised)',
         floating: 'var(--shadow-overlay)',
+        cta: 'var(--shadow-cta)',
       },
       /* Stacking layers: sticky page chrome stays below anything modal. */
       zIndex: {

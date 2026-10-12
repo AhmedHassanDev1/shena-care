@@ -24,6 +24,13 @@ export interface LoginData {
   password: string;
 }
 
+/** POST /accounts/otp/verify. `returnTo` echoes a safe local path sent as `pendingIntent` with the code request. */
+export interface VerifyOtpResponse {
+  token: string;
+  expiresAt: string;
+  returnTo?: string;
+}
+
 const TOKEN_KEY = SESSION_TOKEN_KEY;
 
 export const auth = {
@@ -47,11 +54,11 @@ export const auth = {
     await apiClient.post('/accounts/otp/send', { phoneNumber });
   },
 
-  async verifyOtp(phoneNumber: string, code: string): Promise<{ token: string, expiresAt: Date }> {
+  async verifyOtp(phoneNumber: string, code: string): Promise<VerifyOtpResponse> {
     const guestId = typeof window !== 'undefined' ? localStorage.getItem('guestCartToken') : undefined;
     const body = { phoneNumber, code, ...(guestId ? { guestId } : {}) };
     
-    const response = await apiClient.post<{ token: string, expiresAt: Date }>('/accounts/otp/verify', body);
+    const response = await apiClient.post<VerifyOtpResponse>('/accounts/otp/verify', body);
     
     if (response.token) {
       localStorage.setItem(TOKEN_KEY, response.token);

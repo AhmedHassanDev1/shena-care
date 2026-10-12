@@ -1,13 +1,13 @@
 /*
- * Shena Care — Design tokens v0.1
+ * Shena Care — Design tokens v0.2
  *
  * Layer A (primitives) describes values. Layer B (semantic roles) describes usage.
  * Feature code must use semantic roles through Tailwind (bg-primary, text-muted-foreground…),
  * never primitives or hex values. Colors are stored as space-separated RGB channels so
  * Tailwind can apply opacity: rgb(var(--primary) / <alpha-value>).
  *
- * STATUS: "Olive Blush" is a TEMPORARY development theme. It is not the approved brand palette.
- * Swap the theme by redefining the semantic block below (or adding another [data-theme]).
+ * THEME: "Modern Beauty Discovery" — powder blue grounds, dusty rose primary, blush and muted
+ * lilac accents on warm alabaster surfaces. It replaces the temporary "Olive Blush" theme.
  * Contrast for every semantic pair is verified by `npm run check:design` (scripts/check-design-system.mjs).
  */
 
@@ -29,20 +29,30 @@
   --neutral-900: 34 31 28;
   --neutral-950: 21 19 17;
 
-  /* Olive — provisional primary. */
-  --olive-50: 244 246 236;
-  --olive-100: 230 235 211;
-  --olive-200: 205 214 170;
-  --olive-300: 174 187 124;
-  --olive-400: 142 157 85;
-  --olive-500: 113 128 58;
-  --olive-600: 90 103 44;
-  --olive-700: 71 82 36;
-  --olive-800: 56 65 30;
-  --olive-900: 42 49 23;
-  --olive-950: 26 31 14;
+  /* Warm mauve grey — control boundaries that must reach 3:1 without reading as heavy rules. */
+  --mauve-400: 154 138 141;
 
-  /* Blush — provisional accent. Use sparingly; never as a page or card surface. */
+  /* Dusty rose — primary. 400 is the decorative rose; 600+ carry text and filled controls. */
+  --rose-50: 252 243 245;
+  --rose-100: 248 228 233;
+  --rose-200: 240 198 209;
+  --rose-400: 196 107 130;
+  --rose-600: 145 66 88;
+  --rose-700: 119 45 67;
+  --rose-800: 92 34 52;
+
+  /* Powder blue — ambient grounds and secondary surfaces. */
+  --powder-50: 243 248 251;
+  --powder-100: 232 241 245;
+  --powder-200: 214 229 238;
+  --powder-300: 168 197 218;
+
+  /* Muted lilac — expressive accent. */
+  --lilac-100: 239 234 245;
+  --lilac-300: 184 169 201;
+  --lilac-700: 88 74 108;
+
+  /* Blush — warm accent. Use sparingly; never as a page or card surface. */
   --blush-50: 252 243 241;
   --blush-100: 248 228 224;
   --blush-200: 241 201 193;
@@ -65,21 +75,24 @@
   --blue-700: 36 87 166;
 
   /* ── Shape, elevation, motion (theme-independent) ─────────────────── */
-  --radius-sm: 4px; /* inputs, chips, badges */
-  --radius-md: 8px; /* buttons, cards, media */
-  --radius-lg: 12px; /* dialogs, sheets */
-  /* Circles (rounded-full) are reserved for step markers and avatars. */
+  --radius-sm: 8px; /* chips, badges, small media */
+  --radius-md: 14px; /* inputs, buttons, cards */
+  --radius-lg: 28px; /* dialogs, sheets, floating panels */
+  /* Circles (rounded-full) are reserved for pills, step markers and avatars. */
 
-  --shadow-raised: 0 1px 2px rgb(var(--neutral-950) / 0.06), 0 1px 3px rgb(var(--neutral-950) / 0.04);
-  --shadow-overlay: 0 12px 32px rgb(var(--neutral-950) / 0.14), 0 2px 6px rgb(var(--neutral-950) / 0.06);
+  /* Ambient elevation: powder-blue air with a faint charcoal contact shadow, never a hard drop. */
+  --shadow-raised: 0 4px 20px -2px rgb(var(--rose-400) / 0.06), 0 2px 8px -1px rgb(var(--neutral-950) / 0.04);
+  --shadow-overlay: 0 16px 48px -4px rgb(var(--powder-300) / 0.35), 0 6px 16px -2px rgb(var(--neutral-950) / 0.06);
+  /* Primary call to action: a soft rose glow under the filled button. */
+  --shadow-cta: 0 8px 20px -6px rgb(var(--rose-600) / 0.45);
 
   --duration-fast: 120ms;
   --duration-base: 200ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   /* ── Typography ───────────────────────────────────────────────────── */
-  /* Alexandria is the Arabic-first target; the system stack keeps builds independent of remote font downloads. */
-  --font-sans: 'Alexandria', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  /* Alexandria is self-hosted by next/font (src/lib/fonts.ts → --font-alexandria); the system stack covers loading and failure. */
+  --font-sans: var(--font-alexandria, 'Alexandria'), system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
   --leading-heading: 1.25;
   --leading-body: 1.6;
 }
@@ -90,9 +103,9 @@
   --leading-body: 1.8;
 }
 
-/* ── Layer B: semantic roles — TEMPORARY "Olive Blush" theme ────────── */
+/* ── Layer B: semantic roles — "Modern Beauty Discovery" theme ──────── */
 :root,
-[data-theme='olive-provisional'] {
+[data-theme='discovery'] {
   --background: var(--neutral-25);
   --foreground: var(--neutral-900);
 
@@ -104,23 +117,28 @@
   --muted: var(--neutral-50);
   --muted-foreground: var(--neutral-600);
 
-  --primary: var(--olive-700);
-  --primary-hover: var(--olive-800);
+  --primary: var(--rose-600);
+  --primary-hover: var(--rose-700);
   --primary-foreground: var(--neutral-0);
-  --primary-subtle: var(--olive-100);
+  --primary-subtle: var(--rose-50);
 
-  --secondary: var(--neutral-100);
-  --secondary-hover: var(--neutral-200);
+  --secondary: var(--powder-100);
+  --secondary-hover: var(--powder-200);
   --secondary-foreground: var(--neutral-900);
 
-  --accent: var(--blush-100);
-  --accent-foreground: var(--blush-800);
+  --accent: var(--lilac-100);
+  --accent-foreground: var(--lilac-700);
+
+  /* Decorative brand rose (rules, marks, artwork edges). Never text: it is below 4.5:1. */
+  --brand-mark: var(--rose-400);
+  /* Ambient powder-blue ground behind artwork while it loads or if it fails. */
+  --ambient: var(--powder-200);
 
   /* border = decorative dividers; input = boundaries of interactive controls (≥ 3:1). */
   --border: var(--neutral-200);
   --border-subtle: var(--neutral-100);
-  --input: var(--neutral-500);
-  --ring: var(--olive-600);
+  --input: var(--mauve-400);
+  --ring: var(--rose-400);
 
   --destructive: var(--red-700);
   --destructive-foreground: var(--neutral-0);

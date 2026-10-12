@@ -42,8 +42,6 @@ This reset deliberately keeps route contracts and non-visual capabilities while 
 - `/products/[slug]`
 - `/cart`
 - `/checkout`
-- `/auth`
-- `/auth/verify`
 - `/account`
 - `/account/profile`
 - `/account/routine`
@@ -52,6 +50,13 @@ This reset deliberately keeps route contracts and non-visual capabilities while 
 
 These routes are intentionally unavailable as customer journeys. The supporting services and contracts remain in source for their future implementations.
 
+## Rebuilt routes
+
+- `/auth` — phone sign-in, "Modern Beauty Discovery" design (`src/features/auth/components/`).
+- `/auth/verify` — verification code step of the same flow.
+
+Account setup (name, optional email) is not part of the flow: the accounts API creates the customer during code verification and exposes no endpoint to update name or email.
+
 ## Guardrail
 
-Run `npm run check:ui-reset --workspace=web` to verify that all preserved paths return an Arabic-first RTL document and explicitly expose the redesign-pending state.
+Run `npm run check:ui-reset --workspace=web` to verify that all preserved paths return an Arabic-first RTL document and explicitly expose the redesign-pending state, and that rebuilt routes keep the RTL contract without the scaffold.

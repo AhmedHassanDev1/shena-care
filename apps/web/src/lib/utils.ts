@@ -9,7 +9,7 @@ const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
       "font-size": [{ text: ["display", "h1", "h2", "h3", "body-lg", "body", "support", "caption"] }],
-      shadow: [{ shadow: ["raised", "overlay", "card", "floating"] }],
+      shadow: [{ shadow: ["raised", "overlay", "card", "floating", "cta"] }],
       duration: [{ duration: ["fast", "base"] }],
       ease: [{ ease: ["standard"] }],
       z: [{ z: ["chrome", "overlay"] }],

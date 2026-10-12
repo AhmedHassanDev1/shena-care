@@ -3,6 +3,7 @@ import '@/styles/tokens.css';
 import './globals.css';
 import { AppProviders } from './providers';
 import { getLocale } from '@/lib/i18n/server';
+import { fontSans } from '@/lib/fonts';
 
 export function generateMetadata(): Metadata {
   return {
@@ -18,7 +19,7 @@ export default function RootLayout({
 }) {
   const locale = getLocale();
   return (
-    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} className={fontSans.variable}>
       <body>
         <AppProviders locale={locale}>
           <a href="#main-content" className="sr-only focus:not-sr-only">

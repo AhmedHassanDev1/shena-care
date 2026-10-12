@@ -1,5 +1,10 @@
-import { RedesignPlaceholder } from '@/components/redesign-placeholder';
+import { Suspense } from 'react';
+import { OtpVerificationForm } from '@/features/auth/components/OtpVerificationForm';
 
 export default function VerifyPage() {
-  return <RedesignPlaceholder route="/auth/verify" />;
+  return (
+    <Suspense>
+      <OtpVerificationForm />
+    </Suspense>
+  );
 }
