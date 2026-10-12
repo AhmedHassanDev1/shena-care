@@ -1,11 +1,15 @@
-import { apiClient } from './api-client';
+import { apiClient, type RequestOptions } from './api-client';
 import { auth } from './auth';
 
 export interface CheckoutData {
   customerName: string;
   customerPhone: string;
   shippingAddress: string;
+  governorate: string;
+  area: string;
   idempotencyKey?: string;
+  quoteVersion: string;
+  cartRevision: number;
 }
 
 /**
@@ -69,17 +73,17 @@ export const orders = {
   async getQuote(data: { governorate: string; area: string; couponCode?: string }): Promise<CheckoutQuote> {
     const token = auth.getToken();
     const guestToken = typeof window !== 'undefined' ? localStorage.getItem('guestCartToken') : undefined;
-    const options: any = {};
+    const options: RequestOptions = {};
     if (token) options.token = token;
     else if (guestToken) options.headers = { 'x-cart-token': guestToken };
     
     return apiClient.post<CheckoutQuote>('/ordering/checkout/quote', data, options);
   },
 
-  async checkout(data: any): Promise<Order & { guestToken?: string }> {
+  async checkout(data: CheckoutData): Promise<Order & { guestToken?: string }> {
     const token = auth.getToken();
     const guestToken = typeof window !== 'undefined' ? localStorage.getItem('guestCartToken') : undefined;
-    const options: any = {};
+    const options: RequestOptions = {};
     if (token) options.token = token;
     else if (guestToken) options.headers = { 'x-cart-token': guestToken };
     
@@ -90,28 +94,28 @@ export const orders = {
     return response;
   },
 
-  async getOrder(idOrOrderNumber: string, passedGuestToken?: string): Promise<any> {
+  async getOrder(idOrOrderNumber: string, passedGuestToken?: string): Promise<unknown> {
     const token = auth.getToken();
-    const options: any = {};
+    const options: RequestOptions = {};
     if (token) {
       options.token = token;
-      return apiClient.get(`/ordering/orders/${idOrOrderNumber}/tracking`, options);
+      return apiClient.get<unknown>(`/ordering/orders/${idOrOrderNumber}/tracking`, options);
     } else {
-      options.headers = { 'x-order-access-token': passedGuestToken };
-      return apiClient.get(`/ordering/guest/orders/${idOrOrderNumber}/tracking`, options);
+      if (passedGuestToken) options.headers = { 'x-order-access-token': passedGuestToken };
+      return apiClient.get<unknown>(`/ordering/guest/orders/${idOrOrderNumber}/tracking`, options);
     }
   },
 
-  async respondToAvailability(idOrOrderNumber: string, decisionId: string, action: string, version: number, passedGuestToken?: string): Promise<any> {
+  async respondToAvailability(idOrOrderNumber: string, decisionId: string, action: string, version: number, passedGuestToken?: string): Promise<unknown> {
     const token = auth.getToken();
-    const options: any = {};
+    const options: RequestOptions = {};
     const payload = { action, expectedVersion: version };
     if (token) {
       options.token = token;
-      return apiClient.post(`/ordering/availability-decisions/${decisionId}/decision`, payload, options);
+      return apiClient.post<unknown>(`/ordering/availability-decisions/${decisionId}/decision`, payload, options);
     } else {
-      options.headers = { 'x-order-access-token': passedGuestToken };
-      return apiClient.post(`/ordering/guest/orders/${idOrOrderNumber}/availability-decisions/${decisionId}/decision`, payload, options);
+      if (passedGuestToken) options.headers = { 'x-order-access-token': passedGuestToken };
+      return apiClient.post<unknown>(`/ordering/guest/orders/${idOrOrderNumber}/availability-decisions/${decisionId}/decision`, payload, options);
     }
   }
 };

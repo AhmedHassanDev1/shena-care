@@ -1,20 +1,21 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { QueryProvider } from '@/lib/react-query/query-provider';
 import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
+import type { Locale } from '@/lib/i18n/messages';
 import { AuthProvider } from '@/features/auth/AuthContext';
 
 export function AppProviders({
   children,
   locale,
 }: {
-  children: any;
-  locale: string;
+  children: ReactNode;
+  locale: Locale;
 }) {
   return (
     <QueryProvider>
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <LocaleProvider locale={locale as any}>
+      <LocaleProvider locale={locale}>
         <AuthProvider>
           {children}
         </AuthProvider>

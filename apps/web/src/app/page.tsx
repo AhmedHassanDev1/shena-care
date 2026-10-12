@@ -1,6 +1,5 @@
-import { HomePage } from '@/features/home';
+import { RedesignPlaceholder } from '@/components/redesign-placeholder';
 
-export default function Home() {
-  return <HomePage />;
+export default function HomePage() {
+  return <RedesignPlaceholder route="/" />;
 }
-

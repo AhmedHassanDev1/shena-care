@@ -1,10 +1,5 @@
-import { PhoneNumberForm } from '@/features/auth/components/PhoneNumberForm';
-import { Suspense } from 'react';
+import { RedesignPlaceholder } from '@/components/redesign-placeholder';
 
 export default function AuthPage() {
-  return (
-    <Suspense>
-      <PhoneNumberForm />
-    </Suspense>
-  );
+  return <RedesignPlaceholder route="/auth" />;
 }

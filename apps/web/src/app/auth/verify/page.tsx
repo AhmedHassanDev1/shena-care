@@ -1,5 +1,5 @@
-import { OtpForm } from '@/features/auth/components/OtpForm';
+import { RedesignPlaceholder } from '@/components/redesign-placeholder';
 
 export default function VerifyPage() {
-  return <OtpForm />;
+  return <RedesignPlaceholder route="/auth/verify" />;
 }

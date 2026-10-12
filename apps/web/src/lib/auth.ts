@@ -49,8 +49,7 @@ export const auth = {
 
   async verifyOtp(phoneNumber: string, code: string): Promise<{ token: string, expiresAt: Date }> {
     const guestId = typeof window !== 'undefined' ? localStorage.getItem('guestCartToken') : undefined;
-    const body: any = { phoneNumber, code };
-    if (guestId) body.guestId = guestId;
+    const body = { phoneNumber, code, ...(guestId ? { guestId } : {}) };
     
     const response = await apiClient.post<{ token: string, expiresAt: Date }>('/accounts/otp/verify', body);
     

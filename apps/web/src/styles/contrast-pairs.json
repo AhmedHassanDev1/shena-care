@@ -1,5 +1,5 @@
 {
-  "$comment": "Semantic token pairs that must meet WCAG 2.x contrast. Single source for scripts/check-design-system.mjs and the /design-lab contrast table. min 4.5 = text (1.4.3), 3 = UI boundaries and focus indicators (1.4.11), null = informational only.",
+  "$comment": "Semantic token pairs that must meet WCAG 2.x contrast. Consumed by scripts/check-design-system.mjs. min 4.5 = text (1.4.3), 3 = UI boundaries and focus indicators (1.4.11), null = informational only.",
   "pairs": [
     { "fg": "foreground", "bg": "background", "min": 4.5 },
     { "fg": "foreground", "bg": "card", "min": 4.5 },

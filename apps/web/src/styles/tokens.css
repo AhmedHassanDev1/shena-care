@@ -78,8 +78,8 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   /* ── Typography ───────────────────────────────────────────────────── */
-  /* --font-sans-provisional is injected by next/font in the root layout (src/lib/fonts.ts). */
-  --font-sans: var(--font-sans-provisional, system-ui), system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+  /* Alexandria is the Arabic-first target; the system stack keeps builds independent of remote font downloads. */
+  --font-sans: 'Alexandria', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
   --leading-heading: 1.25;
   --leading-body: 1.6;
 }

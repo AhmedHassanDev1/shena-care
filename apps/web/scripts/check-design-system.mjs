@@ -52,7 +52,7 @@ const contrast = (a, b) => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
-// Same pair list the /design-lab contrast table renders. min: 4.5 text, 3 UI, null informational.
+// Shared semantic pair list. min: 4.5 text, 3 UI, null informational.
 const { pairs } = JSON.parse(readFileSync(join(src, 'styles', 'contrast-pairs.json'), 'utf8'));
 for (const { fg, bg, min, note } of pairs) {
   const ratio = contrast(resolve(fg), resolve(bg));
@@ -88,7 +88,7 @@ report.hex.forEach((h) => failures.push(`hardcoded color ${h}`));
 const RAW_PALETTE =
   /(?<![\w-])(?:[a-z0-9-]+:)*(?:bg|text|border|ring|from|via|to|fill|stroke|divide|outline|placeholder)-(?:(?:red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-\d{2,3}|white)(?![\w-])/g;
 report.rawPalette = [];
-for (const file of files.filter((f) => extname(f) === '.tsx' && !/design-lab/.test(f))) {
+for (const file of files.filter((f) => extname(f) === '.tsx')) {
   readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
     for (const match of line.matchAll(RAW_PALETTE)) report.rawPalette.push(`${rel(file)}:${i + 1} ${match[0]}`);
   });
@@ -96,7 +96,7 @@ for (const file of files.filter((f) => extname(f) === '.tsx' && !/design-lab/.te
 report.rawPalette.forEach((h) => failures.push(`raw palette color ${h}`));
 
 const PHYSICAL = /(?<![\w-])(?:[a-z0-9-]+:)*(?:ml|mr|pl|pr|left|right|border-l|border-r|rounded-l|rounded-r|text-left|text-right)(?:-[\w./[\]%-]+)?(?=[\s"'`])/g;
-const strict = (f) => /src[\\/](components[\\/]ui|app[\\/]design-lab)[\\/]/.test(f);
+const strict = (f) => /src[\\/]components[\\/]ui[\\/]/.test(f);
 for (const file of files.filter((f) => extname(f) === '.tsx')) {
   const text = readFileSync(file, 'utf8');
   const hits = [...text.matchAll(/className=(?:"[^"]*"|{`[^`]*`}|{cn\([\s\S]*?\)})|cva\([\s\S]*?\n\)/g)]
