@@ -1417,7 +1417,7 @@ model GuidanceSession {
 model RoutineDraft {
   id              String   @id @default(uuid()) @db.Uuid
   // Anonymous start with safe session ownership
-  customerId      String?  @unique @map("customer_id")
+  customerId      String?  @map("customer_id")
   guestTokenHash  String?  @unique @map("guest_token_hash")
 
   careArea        CareArea @default(skin) @map("care_area")
@@ -1454,10 +1454,8 @@ model RoutineProposal {
   status          RoutineProposalStatus @default(proposed)
   snapshot        Json
   totalPrice      Decimal? @map("total_price") @db.Decimal(10, 2)
-  currency        String?  @db.VarChar(3)
   error           Json?    // Typed recoverable error state
   createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
 
   draft           RoutineDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
 

@@ -200,10 +200,11 @@ async function seed() {
       }
     });
 
+    const skuBarcode = pd.barcode || `TEST-BARCODE-${pd.code}`;
     const sku = await prisma.sku.upsert({
       where: { code: pd.code },
       update: {
-        barcode: pd.barcode
+        barcode: skuBarcode
       },
       create: {
         productId: prod.id,
@@ -211,7 +212,7 @@ async function seed() {
         variantName: `${pd.size} ${pd.unit}`,
         size: pd.size,
         sizeUnit: pd.unit,
-        barcode: pd.barcode,
+        barcode: skuBarcode,
         isActive: true,
       }
     });
@@ -231,6 +232,18 @@ async function seed() {
           sortOrder: 0,
           isPrimary: true,
           originType: MediaOriginType.verified,
+          generationMetadata: {
+            isTest: false,
+            reviewedBy: '11111111-1111-1111-1111-111111111111',
+            reviewedAt: new Date().toISOString(),
+            skuId: sku.id,
+            barcode: skuBarcode,
+            size: pd.size,
+            sizeUnit: pd.unit,
+            variantName: `${pd.size} ${pd.unit}`,
+            sourceType: 'OFFICIAL_MANUFACTURER',
+            sourceUrl: 'https://cerave.com/image.png'
+          }
         }
       });
     }

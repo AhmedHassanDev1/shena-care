@@ -121,6 +121,7 @@ export class HttpAiClient implements AiClient {
         body: JSON.stringify(input),
         signal: controller.signal,
       });
+      this.logger.log(`Sending catalogProducts: ${JSON.stringify(input.catalogProducts)}`);
     } catch (err) {
       const latencyMs = Date.now() - startTime;
       this.logger.error(`AI guidance network failure latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);

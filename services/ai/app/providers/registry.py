@@ -24,6 +24,8 @@ def get_provider(provider_name: str):
 def get_guidance_provider(provider_name: str):
     if provider_name == "mock":
         return MockGuidanceProvider()
+    if provider_name == "groq":
+        return GroqProvider()
     raise RealProviderNotConfiguredError(
         f"Provider '{provider_name}' is not configured for guidance."
     )
