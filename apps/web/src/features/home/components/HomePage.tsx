@@ -13,11 +13,11 @@ import type { HeroSlide } from './FeaturedRoutineHero';
 import { HomeHeader } from './HomeHeader';
 import { MobileBottomNavigation } from './MobileBottomNavigation';
 import { RecommendedRoutines } from './RecommendedRoutines';
-import { RoutineDiscoveryCTA } from './RoutineDiscoveryCTA';
+import { RoutineDiscoveryZone } from './RoutineDiscoveryZone';
 
 /**
  * Home, in the approved order: header + search, featured routines, concerns, products,
- * suggested routines, categories, routine discovery, then footer / bottom navigation.
+ * suggested routines, categories, routine discovery zone (banner + three steps), then footer / bottom navigation.
  */
 export async function HomePage() {
   const m = getMessages(getLocale());
@@ -61,7 +61,7 @@ export async function HomePage() {
           </Suspense>
           <RecommendedRoutines routines={recommended} />
           <CategorySection />
-          <RoutineDiscoveryCTA />
+          <RoutineDiscoveryZone />
         </div>
         <DesktopFooter />
       </div>

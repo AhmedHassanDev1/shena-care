@@ -17,9 +17,9 @@ export function RecommendedRoutines({ routines }: { routines: RoutineSummary[] }
     <section aria-labelledby="home-routines">
       <SectionHeader id="home-routines" title={m.routinesTitle} subtitle={m.routinesSubtitle} />
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
-        {routines.map((routine) => (
+        {routines.map((routine, index) => (
           <li key={routine.id} className="flex">
-            <RoutineCard routine={routine} ctaLabel={m.routineCta} locale={locale} />
+            <RoutineCard routine={routine} ctaLabel={m.routineCta} locale={locale} index={index} />
           </li>
         ))}
       </ul>

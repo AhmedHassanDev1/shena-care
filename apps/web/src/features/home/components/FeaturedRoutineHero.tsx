@@ -161,6 +161,9 @@ export function FeaturedRoutineHero({ slides }: { slides: HeroSlide[] }) {
               </button>
             ))}
           </div>
+          <span aria-hidden="true" className="px-2 text-caption font-medium tabular-nums text-foreground" dir="ltr">
+            {active + 1} / {count}
+          </span>
           <button
             type="button"
             onClick={() => goTo(active + 1)}
