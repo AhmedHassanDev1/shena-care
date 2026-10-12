@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "jest --runInBand",
     "check:design": "node scripts/check-design-system.mjs",
     "check:ui-reset": "node scripts/check-ui-reset.mjs"
   },

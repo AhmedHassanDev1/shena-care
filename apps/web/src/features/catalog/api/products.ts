@@ -40,8 +40,8 @@ export interface ProductView {
  */
 export const PRODUCT_PAGE_LIMIT = 100;
 
-export async function getProducts(): Promise<ProductView[]> {
-  return apiClient.get<ProductView[]>(`/products?limit=${PRODUCT_PAGE_LIMIT}`);
+export async function getProducts(limit: number = PRODUCT_PAGE_LIMIT): Promise<ProductView[]> {
+  return apiClient.get<ProductView[]>(`/products?limit=${limit}`);
 }
 
 export async function getProduct(slugOrId: string): Promise<ProductView> {

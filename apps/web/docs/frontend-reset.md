@@ -37,7 +37,6 @@ This reset deliberately keeps route contracts and non-visual capabilities while 
 
 ## Incomplete routes
 
-- `/`
 - `/products`
 - `/products/[slug]`
 - `/cart`
@@ -54,6 +53,7 @@ These routes are intentionally unavailable as customer journeys. The supporting 
 
 - `/auth` — phone sign-in, "Modern Beauty Discovery" design (`src/features/auth/components/`).
 - `/auth/verify` — verification code step of the same flow.
+- `/` — Home (`src/features/home/`): header and search, featured-routine hero, concerns, products, suggested routines, categories, routine discovery, phone bottom navigation and desktop footer. Products, cart and prices come from the real catalog and cart APIs. Two sections wait on backend capabilities and render nothing / a catalog fallback until they exist: published routines (no public listing endpoint — see `src/features/home/data/routines.ts`) and care concerns (`GET /care/concerns` needs a signed-in customer, and the product listing has no concern filter).
 
 Account setup (name, optional email) is not part of the flow: the accounts API creates the customer during code verification and exposes no endpoint to update name or email.
 
