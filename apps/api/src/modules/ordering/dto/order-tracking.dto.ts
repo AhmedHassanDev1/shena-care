@@ -66,6 +66,27 @@ export class CustomerResolutionDto {
   refund?: CustomerRefundTrackingDto | null;
 }
 
+export class CustomerActionDecisionDto {
+  id: string;
+  orderItemId: string;
+  version: number;
+}
+
+export class CustomerActionIssueDto {
+  orderItemId: string;
+  category: string;
+  unresolvedQuantity: number;
+  occurredAt: Date;
+}
+
+export class CustomerActionRequiredDto {
+  category: string;
+  affectedItemIds: string[];
+  allowedActions: string[];
+  decisions?: CustomerActionDecisionDto[];
+  issues: CustomerActionIssueDto[];
+}
+
 export class CustomerOrderTrackingDto {
   orderNumber: string;
   createdAt: Date;
@@ -98,8 +119,6 @@ export class CustomerOrderTrackingDto {
     nextUpdateBy: Date | null;
     promise: string | null;
   };
-  actionRequired: { category: string; affectedItemIds: string[]; allowedActions: string[];
-    decisions?: Array<{ id: string; orderItemId: string; version: number }>;
-    issues: Array<{ orderItemId: string; category: string; unresolvedQuantity: number; occurredAt: Date }> } | null;
+  actionRequired: CustomerActionRequiredDto | null;
   resolutions: CustomerResolutionDto[];
 }
