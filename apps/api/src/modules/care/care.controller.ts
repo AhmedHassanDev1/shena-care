@@ -23,11 +23,6 @@ export class CareController {
     return this.careService.createConcern(dto);
   }
 
-  @Get('concerns')
-  async getConcerns() {
-    return this.careService.getConcerns();
-  }
-
   @Post('routines')
   @Roles('ADMIN')
   @RequirePermissions('catalog.manage')

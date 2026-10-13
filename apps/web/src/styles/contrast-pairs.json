@@ -520,6 +520,66 @@
       "fg": "on-malachite",
       "bg": "malachite-deep",
       "min": 4.5
+    },
+    {
+      "fg": "kohl",
+      "bg": "malachite-on-kohl",
+      "min": 4.5,
+      "note": "Home routine-builder action: kohl label on the malachite-on-kohl pill"
+    },
+    {
+      "fg": "ink",
+      "bg": "saffron-soft",
+      "min": 4.5,
+      "note": "concern chip label on saffron surface"
+    },
+    {
+      "fg": "ink",
+      "bg": "malachite-soft",
+      "min": 4.5,
+      "note": "concern chip label on malachite surface"
+    },
+    {
+      "fg": "saffron-ink",
+      "bg": "paper-raised",
+      "min": 4.5,
+      "note": "concern glyph / routine badge on a card disc"
+    },
+    {
+      "fg": "malachite-deep",
+      "bg": "paper-raised",
+      "min": 4.5,
+      "note": "concern glyph / routine badge on a card disc"
+    },
+    {
+      "fg": "ink",
+      "bg": "peach-wash",
+      "min": 4.5,
+      "note": "hero copy on the peach scrim"
+    },
+    {
+      "fg": "ink-soft",
+      "bg": "peach-wash",
+      "min": 4.5,
+      "note": "hero body on the peach scrim"
+    },
+    {
+      "fg": "ink-soft",
+      "bg": "rose-wash",
+      "min": 4.5,
+      "note": "hero / category body on the rose scrim"
+    },
+    {
+      "fg": "ink-soft",
+      "bg": "lilac-wash",
+      "min": 4.5,
+      "note": "hero body on the lilac scrim"
+    },
+    {
+      "fg": "ink-soft",
+      "bg": "saffron-wash",
+      "min": 4.5,
+      "note": "category body on the saffron scrim"
     }
   ]
 }

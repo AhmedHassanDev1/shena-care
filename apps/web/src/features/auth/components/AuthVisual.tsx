@@ -1,50 +1,42 @@
-import { ConcernGlyph } from '@/components/ui/concern-glyph';
+import Image from 'next/image';
 import { Icon } from '@/components/ui/icon';
-import { ProductArt } from '@/components/ui/product-art';
 import { cn } from '@/lib/utils';
 
-/** Soft blurred color fields: the "atmosphere" behind the composition. Decorative. */
-function Fields() {
-  return (
-    <>
-      <span className="absolute -start-24 -top-24 size-80 rounded-pill bg-rose/30 blur-3xl" />
-      <span className="absolute -bottom-28 end-[-5rem] size-96 rounded-pill bg-lilac/35 blur-3xl" />
-      <span className="absolute start-1/3 top-1/3 size-64 rounded-pill bg-peach/40 blur-3xl" />
-    </>
-  );
-}
+/**
+ * Sign-in shares Home's campaign photography (unbranded, editorial), so moving between the storefront and
+ * sign-in feels like one product. Composed with the subject on the right; mirrored in RTL so she sits on the
+ * end side, away from the wordmark and copy.
+ */
+const PHOTO = '/assets/home/routine-builder.webp';
 
 /**
- * Compact introduction for phones: a short blush-lilac-peach band with an arch and two silhouettes peeking in,
- * so the form stays the first thing the eye lands on. Decorative.
+ * Compact introduction for phones: a short photographic band under the brand and language switch, washed from
+ * the start side so the wordmark always reads, keeping the form the first thing the eye lands on. Decorative.
  */
 export function AuthBand({ className }: { className?: string }) {
   return (
-    <div
-      aria-hidden="true"
-      className={cn('relative isolate h-36 overflow-hidden rounded-b-[2rem] bg-gradient-to-br from-rose-soft via-lilac-soft to-peach-soft', className)}
-    >
-      <Fields />
-      <span className="absolute bottom-0 end-8 h-[78%] w-24 shape-arch bg-card/55" />
-      <ProductArt shape="dropper" tint="malachite" size={64} className="absolute bottom-0 end-11 h-auto w-14" />
-      <ProductArt shape="jar" tint="henna" size={64} className="absolute -bottom-1 end-28 h-auto w-12" />
+    <div aria-hidden="true" data-atmosphere="rose" className={cn('relative isolate h-40 overflow-hidden rounded-b-[2rem] bg-atm-surface', className)}>
+      <Image src={PHOTO} alt="" fill priority sizes="100vw" className="-z-10 object-cover object-right rtl:-scale-x-100" />
+      <span className="absolute inset-0 -z-10 from-atm-wash from-25% via-atm-wash/60 via-45% to-transparent to-70% ltr:bg-gradient-to-r rtl:bg-gradient-to-l" />
     </div>
   );
 }
 
 /**
- * Editorial panel for desktop: layered color fields, a large translucent arch holding three cosmetic
- * silhouettes (never shown as real products), floating concern glyphs, and the three reasons to sign up.
+ * Editorial panel for desktop: the campaign portrait fills its upper two thirds and the three reasons to sign up sit on a
+ * solid atmosphere scrim rising from the bottom, so their contrast never depends on the photograph.
  */
 export function AuthPanel({ title, benefits }: { title: string; benefits: string[] }) {
   return (
-    <aside className="relative isolate hidden overflow-hidden rounded-lg bg-gradient-to-br from-rose-soft via-lilac-wash to-peach-soft lg:block">
-      <div aria-hidden="true" className="absolute inset-0 -z-10">
-        <Fields />
+    <aside data-atmosphere="rose" className="relative isolate hidden overflow-hidden rounded-lg bg-atm-surface lg:flex lg:flex-col lg:justify-end">
+      {/* The upper two thirds: a tall panel would otherwise blow the 3:1 portrait up to a face close-up. */}
+      <div className="absolute inset-x-0 top-0 -z-10 h-[64%]">
+        <Image src={PHOTO} alt="" fill sizes="(min-width: 1024px) 55vw, 0px" className="object-cover object-[90%_30%] rtl:-scale-x-100" />
       </div>
+      <span aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-atm-wash from-35% via-atm-wash/80 via-45% to-transparent to-60%" />
 
-      <div className="relative z-10 grid gap-4 p-10 xl:p-14">
-        <p className="text-label text-lilac-ink">{title}</p>
+      <div className="grid gap-4 p-10 xl:p-14">
+        <p className="text-label text-atm-ink">{title}</p>
         <ul className="grid gap-3">
           {benefits.map((benefit) => (
             <li key={benefit} className="flex items-center gap-3 text-body-l text-foreground">
@@ -55,33 +47,6 @@ export function AuthPanel({ title, benefits }: { title: string; benefits: string
             </li>
           ))}
         </ul>
-      </div>
-
-      <div aria-hidden="true" className="absolute inset-x-[12%] bottom-0 top-[40%]">
-        <div className="absolute inset-0 shape-arch-l bg-card/45" />
-        <div className="absolute inset-x-[14%] bottom-0 top-[16%] shape-arch-l bg-card/55" />
-        <div className="absolute inset-x-[10%] bottom-[7%] flex items-end justify-center gap-[5%]">
-          <ProductArt shape="jar" tint="henna" size={100} className="h-auto w-[24%] drop-shadow-[0_14px_18px_rgb(var(--ink-rgb)/0.14)]" />
-          <ProductArt shape="dropper" tint="malachite" size={140} className="h-auto w-[34%] drop-shadow-[0_18px_22px_rgb(var(--ink-rgb)/0.16)]" />
-          <ProductArt shape="pump" tint="saffron" size={120} className="h-auto w-[28%] drop-shadow-[0_14px_18px_rgb(var(--ink-rgb)/0.14)]" />
-        </div>
-      </div>
-
-      {/* Floating concern glyphs: abstract, decorative. */}
-      <div aria-hidden="true">
-        {[
-          { glyph: 'oily', x: '8%', y: '48%', size: 'size-14' },
-          { glyph: 'acne', x: '78%', y: '44%', size: 'size-16' },
-          { glyph: 'sensitive', x: '70%', y: '30%', size: 'size-12' },
-        ].map(({ glyph, x, y, size }) => (
-          <span
-            key={glyph}
-            style={{ insetInlineStart: x, insetBlockStart: y }}
-            className={cn('absolute grid place-items-center rounded-pill bg-card text-lilac-ink shadow-float', size)}
-          >
-            <ConcernGlyph name={glyph as 'oily' | 'acne' | 'sensitive'} size={26} />
-          </span>
-        ))}
       </div>
     </aside>
   );

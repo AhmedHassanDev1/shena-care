@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ConcernGlyph } from '@/components/ui/concern-glyph';
-import { Icon } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
@@ -14,90 +15,79 @@ import { concernAtmosphere, concernGlyph } from '../lib/concerns';
 import type { Concern } from '../lib/concerns';
 import { useConcerns } from '../hooks/useConcerns';
 
-const tile =
-  'group relative flex min-h-[8.5rem] flex-col justify-between gap-3 rounded-md border p-4 transition-[border-color,transform] duration-quick ease-out hover:border-foreground active:scale-[0.98] active:duration-instant';
+/** Pressable → pill. 44px tall (the touch minimum); the glyph sits in its own small disc at the start. */
+const chip =
+  'inline-flex h-control-m items-center gap-2 rounded-pill border-[1.5px] ps-1.5 pe-4 text-label transition-[border-color,transform] duration-quick ease-out active:scale-[0.97] active:duration-instant';
 
-function ConcernTile({ concern }: { concern: Concern }) {
+function ConcernChip({ concern }: { concern: Concern }) {
   const m = useMessages();
   return (
     <Link
       href={routes.productsByConcern(concern.slug)}
       data-atmosphere={concernAtmosphere(concern)}
       aria-label={fillMessage(m.concernCardLabel, { name: concern.name })}
-      className={cn(tile, 'border-border bg-card')}
+      className={cn(chip, 'border-transparent bg-atm-surface text-foreground hover:border-atm-ink')}
     >
-      <span className="grid size-12 place-items-center rounded-pill bg-atm-surface text-atm-ink transition-colors duration-quick group-hover:bg-atm-accent group-hover:text-foreground">
-        <ConcernGlyph name={concernGlyph(concern)} />
+      <span className="grid size-8 shrink-0 place-items-center rounded-pill bg-card text-atm-ink">
+        <ConcernGlyph name={concernGlyph(concern)} size={20} />
       </span>
-      <span className="grid gap-1">
-        <span className="line-clamp-2 text-heading text-foreground">{concern.name}</span>
-        <span className="flex items-center justify-between text-caption text-ink-subtle">
-          {concern.careArea === 'hair' ? m.careAreaHair : m.careAreaSkin}
-          <Icon name="chevron-forward" size={16} className="text-ink-soft transition-transform duration-quick group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0 ltr:group-hover:translate-x-0.5" />
-        </span>
-      </span>
-    </Link>
-  );
-}
-
-/** Closing cell: the way out for people whose concern is not listed. */
-function AllProductsTile() {
-  const m = useMessages();
-  return (
-    <Link href={routes.products} data-atmosphere="malachite" className={cn(tile, 'border-transparent bg-atm-surface')}>
-      <span className="grid size-12 place-items-center rounded-pill bg-primary text-primary-foreground">
-        <Icon name="shelf" />
-      </span>
-      <span className="grid gap-1">
-        <span className="text-heading text-foreground">{m.concernAllProducts}</span>
-        <span className="flex items-center justify-between text-caption text-atm-ink">
-          {m.concernAllProductsHint}
-          <Icon name="chevron-forward" size={16} />
-        </span>
-      </span>
+      {concern.name}
     </Link>
   );
 }
 
 /**
- * Shop by concern. A responsive GRID rather than a rail: the set is small (7 today), every option should be
- * visible without hidden horizontal scrolling, and a 2-up phone grid keeps 164px tiles (≥44px targets) with
- * equal heights. Real concerns win; in design preview fixtures fill in (and are labelled), otherwise the
- * section is omitted. Labels are shopping aids, not diagnoses.
+ * Shop by concern: a compact set of colored chips (label + glyph, so color is never the only cue) that wraps
+ * on every width — the whole set stays visible without a hidden scroll, in a fraction of the height cards
+ * took.
+ *
+ * Loading, a failed request and an empty taxonomy are distinct: a failure says so and offers a retry; an empty
+ * taxonomy omits the section (preview fixtures fill in only in design preview, labelled).
+ * Labels are shopping aids, not diagnoses.
  */
 export function ConcernSection() {
   const m = useMessages();
-  const { concerns, isLoading } = useConcerns();
+  const state = useConcerns();
 
-  if (isLoading) {
-    return (
-      <section aria-busy="true" aria-label={m.concernLoading}>
-        <Skeleton shape="pill" className="mb-4 h-7 w-40" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 4 }, (_, index) => (
-            <Skeleton key={index} className="h-[8.5rem]" />
-          ))}
-        </div>
-      </section>
-    );
-  }
-  if (concerns.length === 0) return null;
-  const isPreview = concerns.some((concern) => concern.id.startsWith('preview-'));
+  if (state.status === 'ready' && state.concerns.length === 0) return null;
 
   return (
-    <section id="home-concerns-section" aria-labelledby="home-concerns" className="scroll-mt-24">
-      <SectionHeader id="home-concerns" title={m.concernTitle} subtitle={m.concernSubtitle} />
-      {isPreview ? <Badge variant="guide" className="mb-3">{m.previewTag}</Badge> : null}
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-        {concerns.map((concern) => (
-          <li key={concern.id} className="flex [&>a]:w-full">
-            <ConcernTile concern={concern} />
-          </li>
-        ))}
-        <li className="flex [&>a]:w-full">
-          <AllProductsTile />
-        </li>
-      </ul>
+    <section id="home-concerns-section" aria-labelledby="home-concerns" aria-busy={state.status === 'loading'} className="scroll-mt-24">
+      {/* The way out for people whose concern is not listed: the header's "all products" link (as on the product shelf). */}
+      <SectionHeader
+        id="home-concerns"
+        title={m.concernTitle}
+        subtitle={m.concernSubtitle}
+        href={routes.products}
+        linkLabel={m.concernAllProducts}
+        className="mb-3 lg:mb-4"
+      />
+
+      {state.status === 'loading' ? (
+        <div role="status" aria-label={m.concernLoading} className="flex flex-wrap gap-2">
+          {['w-28', 'w-24', 'w-32', 'w-44', 'w-36', 'w-32'].map((width, index) => (
+            <Skeleton key={index} shape="pill" className={cn('h-control-m', width)} />
+          ))}
+        </div>
+      ) : state.status === 'error' ? (
+        <Alert variant="warning" className="items-center">
+          <p className="flex-1 text-body-s text-foreground">{m.concernError}</p>
+          <Button type="button" size="sm" variant="secondary" loading={state.retrying} onClick={state.retry}>
+            {m.tryAgain}
+          </Button>
+        </Alert>
+      ) : (
+        <>
+          {state.isPreview ? <Badge variant="guide" className="mb-3">{m.previewTag}</Badge> : null}
+          <ul className="flex flex-wrap gap-2 lg:gap-3">
+            {state.concerns.map((concern) => (
+              <li key={concern.id}>
+                <ConcernChip concern={concern} />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }

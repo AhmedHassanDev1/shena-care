@@ -3,6 +3,16 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
 import { CreateConcernDto, CreateRoutineDto, CreateRoutineStepDto } from '../dto/care.dto';
 
+/** A concern as the public taxonomy exposes it (`GET /care/concerns`). */
+export interface PublicConcern {
+  id: string;
+  name: string;
+  slug: string;
+  careArea: 'skin' | 'hair';
+  description: string | null;
+  isActive: boolean;
+}
+
 @Injectable()
 export class CareService {
   constructor(
@@ -48,9 +58,15 @@ export class CareService {
     });
   }
 
-  async getConcerns() {
+  /**
+   * Public concern taxonomy for discovery (guests included): active concerns only, in a fixed projection.
+   * It is reference data, so nothing customer-specific (profiles, profile links) is ever selected.
+   */
+  async getPublicConcerns(): Promise<PublicConcern[]> {
     return this.prisma.concern.findMany({
-      orderBy: { createdAt: 'desc' },
+      where: { isActive: true },
+      orderBy: [{ careArea: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true, name: true, slug: true, careArea: true, description: true, isActive: true },
     });
   }
 

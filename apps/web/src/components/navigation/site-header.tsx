@@ -51,7 +51,8 @@ export function SiteHeader({ links, labels, cart }: SiteHeaderProps) {
       {/* Phone / tablet */}
       <PageContainer className="flex flex-col gap-3 pb-3 pt-2 lg:hidden">
         <div className="flex items-center justify-between gap-2">
-          <WordmarkLink label={labels.home} size="m" />
+          {/* Under 360px the Latin sub-name gives way so language + cart still fit (the link's name is unchanged). */}
+          <WordmarkLink label={labels.home} size="m" className="max-[359px]:[&_[data-lat]]:hidden" />
           <div className="flex items-center gap-1">
             <LocaleSwitch />
             {cart}

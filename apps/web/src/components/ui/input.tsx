@@ -76,7 +76,8 @@ const GroupInput = React.forwardRef<HTMLInputElement, InputProps>(({ className, 
   <input
     ref={ref}
     className={cn(
-      "h-full min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-ink-subtle focus-visible:shadow-none disabled:cursor-not-allowed",
+      // w-0: the input grows from zero, so its intrinsic (size-based) width never widens the group on narrow screens.
+      "h-full w-0 min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-ink-subtle focus-visible:shadow-none disabled:cursor-not-allowed",
       className
     )}
     {...props}

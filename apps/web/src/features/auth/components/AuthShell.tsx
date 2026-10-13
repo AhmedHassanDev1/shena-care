@@ -8,10 +8,10 @@ import { AuthBand, AuthPanel } from './AuthVisual';
 /**
  * Sign-in frame shared by every step, composed per form factor.
  *
- * Phones / tablets: a compact colored band (brand + language over a small arch composition), then the form at
+ * Phones / tablets: a compact photographic band (brand + language over Home's campaign portrait), then the form at
  * its mobile width — the form is the first thing the eye lands on.
  * Desktop (lg+): the form on a calm light panel at the start side; the end side is an editorial panel with the
- * three reasons to sign up and a composed cosmetic scene. The visuals are decorative: every step works without them.
+ * campaign portrait and the three reasons to sign up. The visuals are decorative: every step works without them.
  */
 export function AuthShell({ children }: { children: ReactNode }) {
   const m = getMessages(getLocale());
@@ -23,7 +23,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
           <AuthBand />
           <header className="absolute inset-x-0 top-0 flex items-center justify-between gap-4 px-4 pt-2 sm:px-6">
             <WordmarkLink label={m.authHome} size="m" />
-            <LocaleSwitch />
+            {/* Sits over the photograph: a light pill keeps it legible. */}
+            <LocaleSwitch className="bg-card/85 hover:bg-card" />
           </header>
         </div>
 

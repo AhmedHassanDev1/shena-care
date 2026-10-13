@@ -6,8 +6,11 @@ import type { RoutineSummary } from '../lib/routines';
 import { RoutineCard } from './RoutineCard';
 
 /**
- * Editorially selected routines (not personalised, hence "suggested" rather than "for you"). A swipeable rail
- * on phones and tablets (browsing set), a three-column grid from desktop. Omitted when there is nothing real to show.
+ * Editorially selected routines (not personalised, hence "suggested" rather than "for you").
+ *
+ * Phones: one dominant card per view with a deliberate peek of the next (a fixed 2.5rem, never a random
+ * slice), snapping card by card to the page gutter. Tablet: two per view. Desktop: a three-column grid.
+ * Omitted when there is nothing real to show.
  */
 export function RecommendedRoutines({ routines }: { routines: RoutineSummary[] }) {
   if (routines.length === 0) return null;
@@ -17,9 +20,9 @@ export function RecommendedRoutines({ routines }: { routines: RoutineSummary[] }
   return (
     <section aria-labelledby="home-routines">
       <SectionHeader id="home-routines" title={m.routinesTitle} subtitle={m.routinesSubtitle} />
-      <Rail className="lg:grid lg:grid-cols-3 lg:gap-4">
+      <Rail className="snap-mandatory scroll-px-4 sm:scroll-px-6 lg:grid lg:grid-cols-3 lg:gap-4">
         {routines.map((routine) => (
-          <div key={routine.id} className="flex w-[82%] shrink-0 snap-start sm:w-[46%] lg:w-auto">
+          <div key={routine.id} className="flex w-[calc(100%-2.5rem)] shrink-0 snap-start sm:w-[calc(50%-1.5rem)] lg:w-auto">
             <RoutineCard routine={routine} ctaLabel={m.routineStart} locale={locale} />
           </div>
         ))}

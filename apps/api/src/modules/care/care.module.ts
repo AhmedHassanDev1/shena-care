@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CareService } from './services/care.service';
 import { CareProfileService } from './services/care-profile.service';
 import { CareController } from './care.controller';
+import { CareTaxonomyController } from './care-taxonomy.controller';
 import { CatalogModule } from '../catalog/public';
 import { GuidanceModule } from '../guidance/guidance.module';
 import { AiModule } from '../../platform/ai/ai.module';
@@ -19,7 +20,7 @@ import { RoutineWorkspaceController } from './routine-workspace.controller';
 
 @Module({
   imports: [CatalogModule, MessagingModule, GuidanceModule, AiModule],
-  controllers: [CareController, RoutineWorkspaceController],
+  controllers: [CareTaxonomyController, CareController, RoutineWorkspaceController],
   providers: [
     CareService, CareProfileService, CareReminderOrchestrator, 
     ReplenishmentEstimatorService, AdaptiveCheckinService, LifecycleTriggerService, 

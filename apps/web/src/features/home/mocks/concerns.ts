@@ -14,7 +14,7 @@ const concern = (slug: string, name: string, careArea: Concern['careArea']): Con
 });
 
 export const PREVIEW_CONCERNS: Concern[] = [
-  concern('acne', 'حبوب البشرة', 'skin'),
+  concern('acne', 'حب الشباب', 'skin'),
   concern('dryness', 'الجفاف', 'skin'),
   concern('pigmentation', 'التصبغات', 'skin'),
   concern('fine-lines', 'التجاعيد والخطوط الدقيقة', 'skin'),

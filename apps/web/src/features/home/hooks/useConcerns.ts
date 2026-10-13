@@ -2,36 +2,31 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
-import { auth } from '@/lib/auth';
-import { useAuth } from '@/features/auth/AuthContext';
-import type { Concern } from '../lib/concerns';
+import { resolveConcernsView } from '../lib/concerns';
+import type { Concern, ConcernsView } from '../lib/concerns';
 import { isHomePreview } from '../lib/preview';
 import { PREVIEW_CONCERNS } from '../mocks/concerns';
 
 export type { Concern } from '../lib/concerns';
 
+export type ConcernsState =
+  | Exclude<ConcernsView, { status: 'error' }>
+  | { status: 'error'; retry: () => void; retrying: boolean };
+
 /**
- * Care concerns. `GET /care/concerns` requires a signed-in customer (the whole care controller is
- * guarded), so guests get none. Real concerns always win; only in design preview do fixtures fill in
- * when there are none, and outside preview the section is omitted.
- * TODO(API): Use a public concerns endpoint when one exists.
+ * Care concerns from the public taxonomy (`GET /care/concerns`: active concerns only, no profile data), so
+ * guests and customers see the same discovery options. See resolveConcernsView for how request states map to
+ * what the section shows (a failure is never presented as an empty list).
  */
-export function useConcerns() {
-  const { isAuthenticated } = useAuth();
+export function useConcerns(): ConcernsState {
   const query = useQuery({
-    queryKey: ['care', 'concerns'],
-    enabled: isAuthenticated,
-    queryFn: async () => {
-      const token = auth.getToken() ?? undefined;
-      const concerns = await apiClient.get<Concern[]>('/care/concerns', { token });
-      return concerns.filter((concern) => concern.isActive);
-    },
+    queryKey: ['care', 'concerns', 'public'],
+    queryFn: () => apiClient.get<Concern[]>('/care/concerns'),
     staleTime: 5 * 60 * 1000,
-    retry: false,
+    retry: 1,
   });
 
-  const real = query.data ?? [];
-  const isLoading = isAuthenticated && query.isLoading;
-  const concerns = real.length > 0 || isLoading ? real : isHomePreview() ? PREVIEW_CONCERNS : [];
-  return { concerns, isLoading };
+  const view = resolveConcernsView(query, { enabled: isHomePreview(), fixtures: PREVIEW_CONCERNS });
+  if (view.status === 'error') return { status: 'error', retry: () => void query.refetch(), retrying: query.isFetching };
+  return view;
 }

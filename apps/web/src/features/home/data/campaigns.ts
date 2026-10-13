@@ -13,16 +13,20 @@ export interface Campaign {
   cta: string;
   href: string;
   /** Photography, or `concerns` for the vector concern-constellation artwork (no photo needed). */
-  art: { kind: 'photo'; src: string; mobilePosition: string; desktopPosition: string } | { kind: 'concerns' };
+  art: { kind: 'photo'; src: string; position: string } | { kind: 'concerns' };
 }
 
 /**
  * Hero campaigns: curated editorial entry points, not catalog data. Every link leads to a route that
- * exists today (routine builder, the two category listings, the concerns section on this page); none of
- * them advertises a discount, price or stock level. Each campaign has its own photograph and atmosphere.
+ * exists today (routine builder, the skin-care listing, the concerns section on this page); none of them
+ * advertises a discount, price or stock level.
  *
- * Positions are `object-position` values for the unmirrored photo (the image is flipped in RTL so the
- * subject sits on the end side, away from the copy).
+ * Photography budget: Home owns four photographs and shows each exactly once — the two portraits here,
+ * the two still lifes in "Shop by category". The third slide is deliberately graphic so the set never looks
+ * like three versions of one picture.
+ *
+ * `position` is the `object-position` of the unmirrored photo, chosen to centre the face in its frame. Photos are composed with the subject on the
+ * right and are flipped in RTL, so the subject always sits on the end side, away from the copy.
  */
 export function getCampaigns(m: Messages): Campaign[] {
   return [
@@ -34,7 +38,7 @@ export function getCampaigns(m: Messages): Campaign[] {
       body: m.campaign1Body,
       cta: m.campaign1Cta,
       href: routes.routineBuilder,
-      art: { kind: 'photo', src: '/assets/home/hero-skincare.webp', mobilePosition: '88% 30%', desktopPosition: '78% 30%' },
+      art: { kind: 'photo', src: '/assets/home/hero-skincare.webp', position: '92% 20%' },
     },
     {
       id: 'skin',
@@ -44,17 +48,7 @@ export function getCampaigns(m: Messages): Campaign[] {
       body: m.campaign2Body,
       cta: m.campaign2Cta,
       href: routes.productsByCategory(mainCategorySlugs.skin),
-      art: { kind: 'photo', src: '/assets/home/skincare-still-life.webp', mobilePosition: '76% 55%', desktopPosition: '82% 60%' },
-    },
-    {
-      id: 'hair',
-      atmosphere: 'saffron',
-      eyebrow: m.campaign3Eyebrow,
-      title: m.campaign3Title,
-      body: m.campaign3Body,
-      cta: m.campaign3Cta,
-      href: routes.productsByCategory(mainCategorySlugs.hair),
-      art: { kind: 'photo', src: '/assets/home/haircare-still-life.webp', mobilePosition: '84% 55%', desktopPosition: '86% 55%' },
+      art: { kind: 'photo', src: '/assets/home/routine-builder.webp', position: '88% 20%' },
     },
     {
       id: 'concerns',

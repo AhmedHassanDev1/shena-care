@@ -28,7 +28,8 @@ export function ConcernConstellation({ className }: { className?: string }) {
         <span
           key={glyph}
           style={{ insetInlineStart: `${x}%`, insetBlockStart: `${y}%` }}
-          className={cn('absolute grid place-items-center rounded-pill shadow-float', size, tone)}
+          // On phones the copy rises into the lower half of the frame, so only the upper cluster is drawn there.
+          className={cn('absolute grid place-items-center rounded-pill shadow-float', size, tone, y > 55 && 'max-sm:hidden')}
         >
           <ConcernGlyph name={glyph} size={28} />
         </span>

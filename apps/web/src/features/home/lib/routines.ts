@@ -14,6 +14,8 @@ export interface RoutineSummary {
   imageSrc: string | null;
   /** When in the day the routine is meant for — only when the source provides it. */
   timeOfDay?: 'am' | 'pm' | 'any';
+  /** Display name of the concern the routine targets — only when the source provides it. */
+  concern?: string | null;
 }
 
 export const SUGGESTED_MAX = 3;

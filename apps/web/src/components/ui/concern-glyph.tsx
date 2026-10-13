@@ -16,6 +16,10 @@ const GLYPHS = {
     '<path d="M3.5 10c2.1-2.4 4.2-2.4 6.3 0s4.2 2.4 6.3 0 3.1-1.6 4.4-.6M3.5 15c2.1-2.4 4.2-2.4 6.3 0s4.2 2.4 6.3 0 3.1-1.6 4.4-.6"/>',
   frizz: '<path d="M6 20c0-4 3-4 3-8s-3-4-3-8M12 20c0-4 3-4 3-8s-3-4-3-8M18 20c0-4 2-4 2-8"/>',
   hairfall: '<path d="M8 3v8c0 3 2 4 2 7M13 3v6M17 3v10"/><path d="M16 18.5c.8.5 1.4 1.2 1.6 2"/>',
+  /** Radiance (dullness): a four-point glint and a small companion. */
+  glow: '<path d="M11 4l1.5 4.5L17 10l-4.5 1.5L11 16l-1.5-4.5L5 10l4.5-1.5z"/><path d="M18 14.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/>',
+  /** Flakes over the scalp line (dandruff). */
+  flakes: '<path d="M4 19c2.5-3 5.3-4.5 8-4.5s5.5 1.5 8 4.5"/><path d="M8 6.5l1.2.8M15.5 5l-.6 1.3M12 9.2l1.3-.4M6.5 11.2l1.1.6M17.6 9.8l-1.2.4"/>',
 } as const
 
 export type ConcernGlyphName = keyof typeof GLYPHS

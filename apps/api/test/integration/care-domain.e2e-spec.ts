@@ -55,7 +55,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
     await prisma.routine.deleteMany({
       where: { title: { in: ['Basic Acne Routine', 'Delete Test Routine', 'Custom Profile Routine'] } },
     });
-    await prisma.concern.deleteMany({ where: { name: { in: ['Acne', 'Frizz'] } } });
+    await prisma.concern.deleteMany({ where: { name: { in: ['Acne', 'Frizz', 'Retired Concern'] } } });
     const product = await prisma.product.findUnique({ where: { slug: 'care-cleanser' } });
     if (product) {
       await prisma.productMedia.deleteMany({ where: { productId: product.id } });
@@ -278,5 +278,33 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
     expect(getProfileRes.body.routine).toBeDefined();
     expect(getProfileRes.body.routine.title).toBe('Custom Profile Routine');
+  });
+
+  it('serves the active concern taxonomy publicly, without profile data, and keeps profiles guarded', async () => {
+    await request(app.getHttpServer()).post('/care/concerns').set(admin.auth).send({ name: 'Acne', careArea: 'skin' }).expect(201);
+    await request(app.getHttpServer())
+      .post('/care/concerns').set(admin.auth)
+      .send({ name: 'Retired Concern', careArea: 'hair', isActive: false })
+      .expect(201);
+    // A customer profile links to Acne; none of it may leak through the public taxonomy.
+    const acne = await prisma.concern.findUniqueOrThrow({ where: { slug: 'acne' } });
+    await request(app.getHttpServer())
+      .post('/care/profiles').set('Authorization', authToken)
+      .send({ customerId, skinType: 'oily', concerns: [{ concernId: acne.id, severity: 3 }] })
+      .expect(201);
+
+    // Guests: no Authorization header at all.
+    const res = await request(app.getHttpServer()).get('/care/concerns').expect(200);
+    const slugs = res.body.map((concern: { slug: string }) => concern.slug);
+    expect(slugs).toContain('acne');
+    expect(slugs).not.toContain('retired-concern');
+    for (const concern of res.body) {
+      expect(Object.keys(concern).sort()).toEqual(['careArea', 'description', 'id', 'isActive', 'name', 'slug']);
+      expect(concern.isActive).toBe(true);
+    }
+
+    // The rest of the care API stays private.
+    await request(app.getHttpServer()).get('/care/profiles').expect(401);
+    await request(app.getHttpServer()).post('/care/concerns').send({ name: 'Anon', careArea: 'skin' }).expect(401);
   });
 });

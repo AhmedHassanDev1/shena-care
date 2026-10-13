@@ -68,11 +68,10 @@ export const messages = {
     heroRoutineCta: 'Explore the routine',
     heroCarouselLabel: 'Campaigns and highlights',
     heroSlideLabel: 'Slide {n} of {total}',
-    heroPrevious: 'Previous slide',
-    heroNext: 'Next slide',
     heroGoTo: 'Go to slide {n}',
     concernTitle: 'Shop by concern',
     concernLoading: 'Loading concerns…',
+    concernError: "We couldn't load concerns right now.",
     productsTitle: 'Available now',
     productsSubtitle: 'Care products from a range of brands',
     productsEmpty: 'No products are available right now. Please check back soon.',
@@ -126,9 +125,6 @@ export const messages = {
     question3OptionC: 'Smoother texture',
 
     // Campaign hero
-    campaignRegion: 'Campaigns and highlights',
-    heroPause: 'Pause automatic slide change',
-    heroPlay: 'Resume automatic slide change',
     campaign1Eyebrow: 'A routine made for you',
     campaign1Title: 'Build a care routine, step by step',
     campaign1Body: 'Answer a few simple questions and see an ordered set of steps for your skin or hair.',
@@ -137,10 +133,6 @@ export const messages = {
     campaign2Title: 'Everyday care for comfortable skin',
     campaign2Body: 'Browse skin-care products from a range of brands in one place.',
     campaign2Cta: 'Shop skin care',
-    campaign3Eyebrow: 'Hair care',
-    campaign3Title: 'Care from roots to ends',
-    campaign3Body: 'Products for hair and scalp care from a range of brands.',
-    campaign3Cta: 'Shop hair care',
     campaign4Eyebrow: 'By concern',
     campaign4Title: 'Start from what you want to look after',
     campaign4Body: 'Pick a concern, from breakouts and dryness to pigmentation and hair loss, and continue from there.',
@@ -149,7 +141,6 @@ export const messages = {
     // Concerns
     concernSubtitle: 'Pick what you want to look after',
     concernAllProducts: 'All products',
-    concernAllProductsHint: 'Browse the whole store',
     concernCardLabel: 'Browse products for {name}',
     careAreaSkin: 'Skin',
     careAreaHair: 'Hair',
@@ -159,6 +150,7 @@ export const messages = {
     routineEvening: 'Evening',
     routineAnytime: 'Any time',
     routineStart: 'Start this routine',
+    routineConcern: 'Concern: {concern}',
     previewTag: 'Design preview',
 
     // Products fallback
@@ -256,11 +248,10 @@ export const messages = {
     heroRoutineCta: 'اكتشف الروتين',
     heroCarouselLabel: 'حملات ومقترحات',
     heroSlideLabel: 'الشريحة {n} من {total}',
-    heroPrevious: 'الشريحة السابقة',
-    heroNext: 'الشريحة التالية',
     heroGoTo: 'انتقل إلى الشريحة {n}',
     concernTitle: 'تسوّق حسب الاهتمام',
     concernLoading: 'جارٍ تحميل الاهتمامات…',
+    concernError: 'مقدرناش نحمّل الاهتمامات دلوقتي.',
     productsTitle: 'منتجات متاحة الآن',
     productsSubtitle: 'منتجات عناية من ماركات متنوعة',
     productsEmpty: 'مفيش منتجات متاحة دلوقتي. تفقّد المتجر بعد شوية.',
@@ -314,9 +305,6 @@ export const messages = {
     question3OptionC: 'تحسين الملمس',
 
     // Campaign hero
-    campaignRegion: 'حملات ومقترحات',
-    heroPause: 'إيقاف التنقل التلقائي بين الشرائح',
-    heroPlay: 'تشغيل التنقل التلقائي بين الشرائح',
     campaign1Eyebrow: 'روتين على مقاسك',
     campaign1Title: 'ابني روتين عناية خطوة بخطوة',
     campaign1Body: 'جاوب على أسئلة بسيطة وشوف خطوات مرتبة لبشرتك أو شعرك.',
@@ -325,10 +313,6 @@ export const messages = {
     campaign2Title: 'عناية يومية لبشرة مرتاحة',
     campaign2Body: 'تصفّح منتجات العناية بالبشرة من ماركات متعددة في مكان واحد.',
     campaign2Cta: 'تسوّق البشرة',
-    campaign3Eyebrow: 'العناية بالشعر',
-    campaign3Title: 'عناية من الجذور للأطراف',
-    campaign3Body: 'منتجات للعناية بالشعر وفروة الرأس من ماركات متنوعة.',
-    campaign3Cta: 'تسوّق الشعر',
     campaign4Eyebrow: 'حسب اهتمامك',
     campaign4Title: 'ابدأ من اللي محتاج تهتم بيه',
     campaign4Body: 'اختار اهتمامك، من الحبوب والجفاف للتصبغات وتساقط الشعر، وكمّل من هناك.',
@@ -337,7 +321,6 @@ export const messages = {
     // Concerns
     concernSubtitle: 'اختار اللي محتاج تهتم بيه',
     concernAllProducts: 'كل المنتجات',
-    concernAllProductsHint: 'تصفّح المتجر كله',
     concernCardLabel: 'تصفّح منتجات {name}',
     careAreaSkin: 'بشرة',
     careAreaHair: 'شعر',
@@ -347,6 +330,7 @@ export const messages = {
     routineEvening: 'مساءً',
     routineAnytime: 'في أي وقت',
     routineStart: 'ابدأ الروتين ده',
+    routineConcern: 'الاهتمام: {concern}',
     previewTag: 'عرض تجريبي',
 
     // Products fallback
