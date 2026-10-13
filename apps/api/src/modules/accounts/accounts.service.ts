@@ -123,6 +123,8 @@ export class AccountsService {
 
     const code = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    // Dev-only: no SMS delivery yet, so the code is printed to the server log. Never in production.
+    if (process.env.NODE_ENV !== 'production') console.log('phone code:', code);
 
     await this.prisma.otpChallenge.create({
       data: {
