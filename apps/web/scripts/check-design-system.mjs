@@ -2,27 +2,32 @@
 /**
  * Design-system guardrails (no dependencies).
  *
- * 1. Contrast: resolves semantic tokens from src/styles/tokens.css and checks WCAG 2.x ratios.
- * 2. Hardcoded colors: fails on hex colors in TS/TSX under src/ (CSS files are reported, not failed).
- * 3. Direction: fails on physical left/right utilities in shared UI and the design lab.
+ * 0. Sync: src/styles/tokens.generated.css and design-scales.generated.ts must match design-system/tokens.json.
+ * 1. Contrast: resolves tokens from the generated CSS and checks WCAG 2.x ratios (src/styles/contrast-pairs.json).
+ * 2. Hardcoded colors: fails on hex colors / raw Tailwind palette classes in TS/TSX under src/.
+ * 3. Direction: fails on physical left/right utilities in shared UI, navigation, Home and Auth.
+ * 4. One icon set: fails on lucide-react imports (the design-system Icon is the only icon source).
  *
  * Usage: node scripts/check-design-system.mjs [--json]
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { join, relative, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const src = join(root, 'src');
 const failures = [];
-const report = { contrast: [], hex: [], direction: [], legacy: {} };
+const report = { contrast: [], hex: [], direction: [], icons: [], legacy: {} };
+
+// ── 0. Generated tokens are in sync with the canonical tokens.json ───────
+const sync = spawnSync(process.execPath, [join(root, 'scripts', 'build-tokens.mjs'), '--check'], { encoding: 'utf8' });
+if (sync.status !== 0) failures.push((sync.stderr || sync.stdout).trim());
 
 // ── 1. Contrast ──────────────────────────────────────────────────────────
-const css = readFileSync(join(src, 'styles', 'tokens.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+const css = readFileSync(join(src, 'styles', 'tokens.generated.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 const vars = {};
 for (const [, name, value] of css.matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+);/g)) {
-  // Last declaration wins, matching the cascade for the default theme. The :lang(ar) block only
-  // redefines typography tokens, which are never resolved as colors.
   vars[name] = value.trim();
 }
 
@@ -33,11 +38,9 @@ function resolve(name, seen = new Set()) {
   if (value === undefined) throw new Error(`Unknown token: --${name}`);
   const ref = value.match(/^var\(--([a-z0-9-]+)\)$/);
   if (ref) return resolve(ref[1], seen);
-  const channels = value.split(/\s+/).map(Number);
-  if (channels.length !== 3 || channels.some((c) => Number.isNaN(c) || c < 0 || c > 255)) {
-    throw new Error(`--${name} is not an RGB channel triple: "${value}"`);
-  }
-  return channels;
+  const hex = value.match(/^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/i);
+  if (!hex) throw new Error(`--${name} is not a hex color: "${value}"`);
+  return [0, 2, 4].map((i) => parseInt(hex[1].slice(i, i + 2), 16));
 }
 
 const luminance = (rgb) => {
@@ -96,7 +99,7 @@ for (const file of files.filter((f) => extname(f) === '.tsx')) {
 report.rawPalette.forEach((h) => failures.push(`raw palette color ${h}`));
 
 const PHYSICAL = /(?<![\w-])(?:[a-z0-9-]+:)*(?:ml|mr|pl|pr|left|right|border-l|border-r|rounded-l|rounded-r|text-left|text-right)(?:-[\w./[\]%-]+)?(?=[\s"'`])/g;
-const strict = (f) => /src[\\/]components[\\/]ui[\\/]/.test(f);
+const strict = (f) => /src[\\/](components[\\/](ui|navigation|layout)|features[\\/](home|auth))[\\/]/.test(f);
 for (const file of files.filter((f) => extname(f) === '.tsx')) {
   const text = readFileSync(file, 'utf8');
   const hits = [...text.matchAll(/className=(?:"[^"]*"|{`[^`]*`}|{cn\([\s\S]*?\)})|cva\([\s\S]*?\n\)/g)]
@@ -109,6 +112,12 @@ for (const file of files.filter((f) => extname(f) === '.tsx')) {
     failures.push(`physical direction in ${rel(file)}: ${hits.join(', ')}`);
   } else {
     report.legacy[rel(file)] = hits.length;
+  }
+}
+for (const file of files.filter((f) => ['.ts', '.tsx'].includes(extname(f)))) {
+  if (/from\s+['"]lucide-react['"]/.test(readFileSync(file, 'utf8'))) {
+    report.icons.push(rel(file));
+    failures.push(`lucide-react import in ${rel(file)} (use components/ui/icon)`);
   }
 }
 const legacyCssHex = (readFileSync(join(src, 'app', 'globals.css'), 'utf8').match(HEX) ?? []).length;
@@ -126,7 +135,9 @@ if (process.argv.includes('--json')) {
   report.hex.forEach((h) => console.log(`  ${h}`));
   console.log(`Raw palette colors in TSX: ${report.rawPalette.length}`);
   report.rawPalette.forEach((h) => console.log(`  ${h}`));
-  console.log(`Physical-direction classes in shared UI / design lab: ${report.direction.length}`);
+  console.log(`Icon-library imports outside the design-system Icon: ${report.icons.length}`);
+  report.icons.forEach((d) => console.log(`  ${d}`));
+  console.log(`Physical-direction classes in shared UI / navigation / Home / Auth: ${report.direction.length}`);
   report.direction.forEach((d) => console.log(`  ${d}`));
   const legacyTotal = Object.values(report.legacy).reduce((a, b) => a + b, 0);
   console.log(`Legacy (reported, not failed): ${legacyTotal} physical-direction classes in ${Object.keys(report.legacy).length} feature files; ${legacyCssHex} hex literals in app/globals.css`);

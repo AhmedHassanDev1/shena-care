@@ -2,9 +2,8 @@
 
 import { forwardRef, useState, type CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
-import { toLatinDigits } from '../lib/auth-helpers';
 
-interface OtpInputProps {
+export interface OtpInputProps {
   id: string;
   value: string;
   length: number;
@@ -16,17 +15,22 @@ interface OtpInputProps {
   readOnly?: boolean;
   describedBy?: string;
   autoFocus?: boolean;
+  /** Raw typed/pasted/autofilled text → digits (e.g. convert Arabic-Indic numerals). Defaults to stripping non-digits. */
+  normalize?: (raw: string) => string;
 }
+
+const digitsOnly = (raw: string) => raw.replace(/\D/g, '');
 
 /**
  * Segmented verification code.
  *
  * One real input carries the value, so SMS autofill (autocomplete="one-time-code"), full-code paste,
  * backspace and screen readers all behave natively. It sits transparently over the boxes, which only
- * draw the digits; the "focus" moves with the caret position (the next empty box).
+ * draw the digits; the "focus" moves with the caret position (the next empty box). Digits run
+ * left-to-right even in RTL, as they appear in the SMS.
  */
 export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function OtpInput(
-  { id, value, length, onChange, invalid = false, disabled = false, readOnly = false, describedBy, autoFocus },
+  { id, value, length, onChange, invalid = false, disabled = false, readOnly = false, describedBy, autoFocus, normalize = digitsOnly },
   ref
 ) {
   const [isFocused, setIsFocused] = useState(false);
@@ -52,21 +56,21 @@ export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function Otp
             key={index}
             aria-hidden="true"
             className={cn(
-              'flex h-14 items-center justify-center rounded-md border text-[1.5rem] font-semibold tabular-nums text-foreground',
-              'transition-[border-color,background-color,box-shadow] duration-fast ease-standard',
+              'flex h-control-l items-center justify-center rounded-sm border-[1.5px] text-price-l tabular-nums text-foreground',
+              'transition-[border-color,box-shadow] duration-quick ease-out',
               disabled
                 ? 'border-border bg-disabled text-disabled-foreground'
                 : invalid
-                  ? cn('border-destructive bg-card', isActive && 'ring-1 ring-destructive')
+                  ? cn('border-destructive bg-card', isActive && 'shadow-[0_0_0_1px_rgb(var(--danger-rgb))]')
                   : isActive
-                    ? 'border-ring bg-card ring-1 ring-ring'
+                    ? 'border-primary bg-card shadow-[0_0_0_1px_rgb(var(--malachite-rgb))]'
                     : digit
-                      ? 'border-input bg-card'
-                      : 'border-input bg-muted'
+                      ? 'border-foreground bg-card'
+                      : 'border-input bg-card'
             )}
           >
             {digit}
-            {isActive && !digit && !readOnly ? <span className="h-6 w-0.5 rounded-full bg-ring" /> : null}
+            {isActive && !digit && !readOnly ? <span className="h-6 w-0.5 rounded-pill bg-primary" /> : null}
           </div>
         );
       })}
@@ -82,7 +86,7 @@ export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function Otp
         autoCorrect="off"
         spellCheck={false}
         value={value}
-        onChange={(event) => onChange(toLatinDigits(event.target.value).replace(/\D/g, '').slice(0, length))}
+        onChange={(event) => onChange(normalize(event.target.value).slice(0, length))}
         onFocus={(event) => {
           setIsFocused(true);
           keepCaretAtEnd(event.currentTarget);
@@ -96,8 +100,8 @@ export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function Otp
         autoFocus={autoFocus}
         // 16px text stops iOS from zooming; the value itself is drawn by the boxes.
         className={cn(
-          'absolute inset-0 size-full cursor-text appearance-none rounded-md border-0 bg-transparent text-base',
-          'text-transparent caret-transparent outline-none selection:bg-transparent focus-visible:outline-none',
+          'absolute inset-0 size-full cursor-text appearance-none rounded-sm border-0 bg-transparent text-base',
+          'text-transparent caret-transparent outline-none selection:bg-transparent focus-visible:shadow-none',
           'disabled:cursor-not-allowed'
         )}
       />

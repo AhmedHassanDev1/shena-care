@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Check, ShoppingBag } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { useCart } from '@/features/cart/hooks/useCart';
 import { ApiError } from '@/lib/api-client';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
@@ -15,9 +15,10 @@ import type { ProductCardModel } from '../lib/products';
 type Status = 'idle' | 'pending' | 'added' | 'unavailable' | 'failed';
 
 /**
- * Compact overlay anchored inside the lower part of the product image. A single-variant product is
- * added directly (guest or signed-in cart, as the cart client decides); a product with variants sends
- * the shopper to its page instead of picking one for them.
+ * Add control for the buy row of a product card. A single-variant product is added directly (guest or
+ * signed-in cart, as the cart client decides); a product with variants sends the shopper to its page
+ * instead of picking one for them. Idle is the design system's filled "+", pending keeps its size while
+ * the beads load, and the outcome (added / failed / unavailable) is always stated in words.
  */
 export function QuickAdd({ product }: { product: ProductCardModel }) {
   const m = useMessages();
@@ -30,14 +31,12 @@ export function QuickAdd({ product }: { product: ProductCardModel }) {
   const { action } = product;
   if (action.kind === 'unavailable') return null;
 
-  const overlay = 'absolute inset-x-2 bottom-2 z-10 h-11 w-[calc(100%-1rem)] text-support shadow-raised';
-
   if (action.kind === 'choose') {
     return (
       <Link
         href={routes.product(product.slug)}
         aria-label={fillMessage(m.quickChooseLabel, { name: product.name })}
-        className={cn(buttonVariants({ variant: 'outline' }), overlay)}
+        className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'relative z-10')}
       >
         {m.quickChoose}
       </Link>
@@ -63,18 +62,29 @@ export function QuickAdd({ product }: { product: ProductCardModel }) {
 
   return (
     <>
-      <Button
-        type="button"
-        variant={status === 'added' ? 'secondary' : failed ? 'outline' : 'default'}
-        loading={status === 'pending'}
-        onClick={add}
-        aria-label={status === 'idle' ? fillMessage(m.quickAddLabel, { name: product.name }) : undefined}
-        className={cn(overlay, failed && 'border-destructive text-destructive')}
-      >
-        {status === 'idle' ? <ShoppingBag aria-hidden="true" /> : null}
-        {status === 'added' ? <Check aria-hidden="true" /> : null}
-        <span className="truncate">{status === 'unavailable' ? m.quickUnavailable : label}</span>
-      </Button>
+      {status === 'idle' || status === 'pending' ? (
+        <Button
+          type="button"
+          size="icon"
+          loading={status === 'pending'}
+          onClick={add}
+          aria-label={status === 'pending' ? label : fillMessage(m.quickAddLabel, { name: product.name })}
+          className="relative z-10"
+        >
+          <Icon name="plus" />
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          size="sm"
+          variant={status === 'added' ? 'tonal' : 'secondary'}
+          onClick={status === 'added' ? undefined : add}
+          className={cn('relative z-10', failed && 'border-destructive text-destructive')}
+        >
+          <Icon name={status === 'added' ? 'check' : 'alert'} size={18} />
+          <span className="truncate">{status === 'unavailable' ? m.quickUnavailable : label}</span>
+        </Button>
+      )}
       <p role="status" className="sr-only">
         {status === 'added' ? `${m.quickAdded}: ${product.name}` : failed ? (status === 'unavailable' ? m.quickUnavailable : m.quickFailed) : ''}
       </p>

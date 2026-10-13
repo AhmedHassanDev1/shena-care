@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ProductNiche } from '@/components/ui/product-niche';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { formatEgp, formatPackSize } from '@/lib/i18n/format';
@@ -9,7 +10,10 @@ import type { ProductCardModel } from '../lib/products';
 import { ProductImage } from './ProductImage';
 import { QuickAdd } from './QuickAdd';
 
-/** One product: image with Quick Add, brand, name, pack size and the catalog price in EGP. */
+/**
+ * One product, in the design system's browsing order: arch niche → brand → name → size → price + add.
+ * The name's link stretches over the whole card; Quick Add sits above it.
+ */
 export function ProductCard({ product, priority = false }: { product: ProductCardModel; priority?: boolean }) {
   const m = useMessages();
   const locale = useLocale();
@@ -18,40 +22,35 @@ export function ProductCard({ product, priority = false }: { product: ProductCar
   const size = formatPackSize(product.size, product.sizeUnit, locale);
 
   return (
-    <article className="relative flex w-full flex-col overflow-hidden rounded-md border border-border bg-card shadow-raised">
-      <div className="relative aspect-[4/5]">
-        {/* Bottom inset leaves room for the Quick Add overlay so it never covers the packshot. */}
-        <div className="absolute inset-x-3 bottom-14 top-3">
-          <ProductImage src={product.imageUrl} alt={product.imageAlt} priority={priority} />
-        </div>
-        {product.action.kind === 'unavailable' ? (
-          <p className="absolute inset-x-2 bottom-2 flex h-11 items-center justify-center rounded-md bg-muted text-support text-muted-foreground">
-            {m.productUnavailable}
-          </p>
-        ) : null}
-        <QuickAdd product={product} />
-      </div>
+    <article className="group relative flex w-full min-w-0 flex-col gap-2">
+      <ProductNiche className="group-hover:bg-sand-deep">
+        <ProductImage src={product.imageUrl} alt={product.imageAlt} priority={priority} />
+      </ProductNiche>
 
-      <div className="flex flex-1 flex-col gap-0.5 px-3 pb-3 pt-1">
-        <p className="truncate text-caption text-muted-foreground">
+      <div className="flex flex-1 flex-col gap-0.5 px-0.5">
+        <p className="truncate text-caption text-ink-soft">
           <bdi>{product.brandName}</bdi>
         </p>
         <h3
           dir="auto"
           // dir=auto lets a Latin name wrap and clamp as LTR text; match-parent keeps it on the same edge as the Arabic ones.
-          className="line-clamp-2 min-h-[3.6em] text-support font-semibold text-foreground [text-align:match-parent]"
+          className="line-clamp-2 min-h-12 text-body text-foreground [text-align:match-parent]"
         >
-          {/* The link stretches over the whole card; Quick Add sits above it (z-10). */}
-          <Link href={routes.product(product.slug)} className="after:absolute after:inset-0 focus-visible:outline-offset-[-3px]">
+          <Link href={routes.product(product.slug)} className="stretched-link">
             {product.name}
           </Link>
         </h3>
-        <p className="min-h-[1.5em] text-caption text-muted-foreground">{size ? <bdi>{size}</bdi> : null}</p>
-        <p className="mt-auto pt-1 text-body font-semibold tabular-nums text-foreground">
-          {priceText ?? (
-            <span className="text-support font-normal text-muted-foreground">{m.productPriceUnavailable}</span>
+        <p className="min-h-5 text-body-s text-ink-subtle">{size ? <bdi>{size}</bdi> : null}</p>
+        <div className="mt-auto flex min-h-control-m flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-1">
+          <p className="text-price tabular-nums text-foreground">
+            {priceText ?? <span className="text-body-s font-normal text-ink-subtle">{m.productPriceUnavailable}</span>}
+          </p>
+          {product.action.kind === 'unavailable' ? (
+            <p className="text-body-s text-ink-subtle">{m.productUnavailable}</p>
+          ) : (
+            <QuickAdd product={product} />
           )}
-        </p>
+        </div>
       </div>
     </article>
   );

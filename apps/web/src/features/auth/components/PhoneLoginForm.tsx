@@ -2,13 +2,12 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, LockKeyhole, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { PhoneField } from '@/components/ui/field';
+import { Icon } from '@/components/ui/icon';
 import { auth } from '@/lib/auth';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { routes } from '@/lib/routes';
-import { cn } from '@/lib/utils';
 import { useAuth } from '../AuthContext';
 import {
   isResendCooldown,
@@ -18,7 +17,7 @@ import {
   toLocalMobile,
 } from '../lib/auth-helpers';
 import { readOtpChallenge, saveOtpChallenge } from '../lib/otp-challenge';
-import { AuthHeader, AuthHelper, FieldError, authControlClass, authSubmitClass } from './auth-ui';
+import { AuthHeader, AuthHelper } from './auth-ui';
 
 export function PhoneLoginForm() {
   const m = useMessages();
@@ -96,42 +95,32 @@ export function PhoneLoginForm() {
       <AuthHeader title={m.authPhoneTitle} description={m.authPhoneDescription} />
 
       <form onSubmit={handleSubmit} noValidate className="mt-7">
-        <Label htmlFor="phone" className="font-semibold">
-          {m.authPhoneLabel}
-        </Label>
-        <div className={cn('mt-2 flex h-[3.25rem] items-center gap-3 px-4', authControlClass({ invalid: !!error }))}>
-          <Smartphone aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
-          {/* Phone numbers are always written left to right, also inside the Arabic layout. */}
-          <input
-            ref={inputRef}
-            id="phone"
-            name="phone"
-            type="tel"
-            dir="ltr"
-            inputMode="numeric"
-            autoComplete="tel-national"
-            maxLength={16}
-            value={phone}
-            onChange={(event) => {
-              setPhone(event.target.value.replace(/[^\d٠-٩۰-۹\s+-]/g, ''));
-              if (error) setError('');
-            }}
-            placeholder={m.authPhonePlaceholder}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? 'phone-error' : undefined}
-            readOnly={isSubmitting}
-            className="h-full min-w-0 flex-1 bg-transparent text-body-lg font-medium tabular-nums text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:outline-none"
-          />
-        </div>
-        {error ? <FieldError id="phone-error">{error}</FieldError> : null}
+        {/* Phone numbers are always written left to right, also inside the Arabic layout (PhoneField isolates them). */}
+        <PhoneField
+          ref={inputRef}
+          id="phone"
+          name="phone"
+          label={m.authPhoneLabel}
+          error={error || undefined}
+          inputMode="numeric"
+          autoComplete="tel-national"
+          maxLength={16}
+          value={phone}
+          onChange={(event) => {
+            setPhone(event.target.value.replace(/[^\d٠-٩۰-۹\s+-]/g, ''));
+            if (error) setError('');
+          }}
+          placeholder={m.authPhonePlaceholder}
+          readOnly={isSubmitting}
+        />
 
-        <Button type="submit" size="lg" loading={isSubmitting} className={cn('mt-6', authSubmitClass)}>
+        <Button type="submit" size="lg" loading={isSubmitting} className="mt-6 w-full">
           {m.authContinue}
-          {isSubmitting ? null : <ArrowRight aria-hidden="true" className="rtl-mirror" />}
+          {isSubmitting ? null : <Icon name="arrow-forward" size={20} />}
         </Button>
       </form>
 
-      <AuthHelper icon={LockKeyhole} className="mt-6">
+      <AuthHelper icon="shield" className="mt-6">
         {m.authPhoneHelper}
       </AuthHelper>
     </>

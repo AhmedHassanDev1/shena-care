@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { PageContainer } from '@/components/layout/page-container';
 import { getMessages } from '@/lib/i18n/messages';
 import { getLocale } from '@/lib/i18n/server';
 import { routes } from '@/lib/routes';
@@ -51,9 +52,10 @@ export async function HomePage() {
     <>
       <HomeHeader />
       {/* Bottom padding keeps the last section clear of the fixed phone navigation. */}
-      <div className="pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+      <div className="pb-nav-safe">
         <h1 className="sr-only">{m.homeMetaTitle}</h1>
-        <div className="mx-auto max-w-7xl space-y-9 px-4 pt-2 sm:px-6 lg:space-y-14 lg:px-8 lg:pt-6">
+        {/* Section rhythm from the layout tokens: space-6 on phones, space-8 on tablet, space-10 from desktop. */}
+        <PageContainer className="space-y-6 pt-2 sm:space-y-8 lg:space-y-10 lg:pt-6">
           <FeaturedRoutineHero slides={slides} />
           <ConcernSection />
           <Suspense fallback={<FeaturedProductsSkeleton />}>
@@ -62,7 +64,7 @@ export async function HomePage() {
           <RecommendedRoutines routines={recommended} />
           <CategorySection />
           <RoutineDiscoveryZone />
-        </div>
+        </PageContainer>
         <DesktopFooter />
       </div>
       <MobileBottomNavigation />

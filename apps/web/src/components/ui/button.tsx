@@ -3,9 +3,9 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { type VariantProps } from "class-variance-authority"
-import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { BeadLoader } from "./bead-loader"
 import { buttonVariants } from "./button-variants"
 
 export interface ButtonProps
@@ -13,8 +13,9 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
   /**
-   * Shows a spinner and blocks activation while keeping the button focusable and in its normal
-   * color, so keyboard and screen-reader users keep their place. Not supported with `asChild`.
+   * Hides the label behind a bead loader while keeping the button's width, focus and color, and blocks
+   * activation (including form submission). The button stays focusable so keyboard and screen-reader
+   * users keep their place. Not supported with `asChild`.
    */
   loading?: boolean
 }
@@ -47,8 +48,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           onClick?.(event)
         }}
       >
-        {loading ? <Loader2 aria-hidden="true" className="motion-safe:animate-spin" /> : null}
-        {children}
+        {/* Same flex rhythm as the button itself, so hiding the content never changes the width. */}
+        <span className={cn("inline-flex items-center justify-center gap-2", loading && "invisible")}>{children}</span>
+        {loading ? (
+          <span className="absolute inset-0 grid place-items-center">
+            <BeadLoader />
+          </span>
+        ) : null}
       </button>
     )
   }

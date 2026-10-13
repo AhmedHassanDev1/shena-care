@@ -3,17 +3,23 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, Clock, LoaderCircle, PencilLine, Smartphone } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { BeadLoader } from '@/components/ui/bead-loader';
 import { Button } from '@/components/ui/button';
+import { FieldMessage } from '@/components/ui/field';
+import { Icon } from '@/components/ui/icon';
+import { Label } from '@/components/ui/label';
+import { OtpInput } from '@/components/ui/otp-input';
 import { auth } from '@/lib/auth';
 import { formatNumber } from '@/lib/i18n/format';
-import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../AuthContext';
 import {
   OTP_LENGTH,
+  toLatinDigits,
   classifyVerifyFailure,
   isResendCooldown,
   maskMobile,
@@ -28,15 +34,13 @@ import {
   secondsUntilResend,
   type OtpChallenge,
 } from '../lib/otp-challenge';
-import { AuthHeader, FieldError, authSubmitClass } from './auth-ui';
-import { OtpInput } from './OtpInput';
+import { AuthHeader } from './auth-ui';
 
 /** invalid / incomplete: fix the code. expired: a new code is needed. other: retry as is. */
 type Failure = { kind: 'invalid' | 'incomplete' | 'expired' | 'other'; message: string };
 
 export function OtpVerificationForm() {
   const m = useMessages();
-  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
@@ -80,7 +84,7 @@ export function OtpVerificationForm() {
   const verify = async (submitted: string) => {
     if (!challenge || verifyingRef.current || isExpired) return;
     if (submitted.length !== OTP_LENGTH) {
-      setFailure({ kind: 'incomplete', message: fillMessage(m.authCodeIncomplete, { n: formatNumber(OTP_LENGTH, locale) }) });
+      setFailure({ kind: 'incomplete', message: fillMessage(m.authCodeIncomplete, { n: formatNumber(OTP_LENGTH) }) });
       focusCode();
       return;
     }
@@ -140,9 +144,8 @@ export function OtpVerificationForm() {
 
   if (!challenge) {
     return (
-      <div className="flex h-72 items-center justify-center">
-        <LoaderCircle aria-hidden="true" className="size-6 text-primary motion-safe:animate-spin" />
-        <span className="sr-only">{m.loading}</span>
+      <div className="flex h-72 items-center justify-center text-primary">
+        <BeadLoader label={m.loading} />
       </div>
     );
   }
@@ -153,21 +156,20 @@ export function OtpVerificationForm() {
     <>
       <AuthHeader title={m.authOtpTitle} description={m.authOtpDescription} />
 
-      <div className="mt-6 flex min-h-14 items-center gap-3 rounded-md bg-secondary pe-2 ps-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-card text-primary">
-          <Smartphone aria-hidden="true" className="size-[1.125rem]" />
+      <div className="mt-6 flex min-h-14 items-center gap-3 rounded-md bg-sand pe-3 ps-3">
+        <span className="grid size-control-s shrink-0 place-items-center rounded-pill bg-card text-ink-soft">
+          <Icon name="phone" size={20} />
         </span>
         <p className="min-w-0 flex-1">
           <span className="sr-only">{m.authOtpSentTo} </span>
-          <bdi dir="ltr" className="text-body-lg font-semibold tabular-nums text-foreground">
+          <bdi dir="ltr" className="text-body-l font-semibold tabular-nums text-foreground">
             {maskMobile(challenge.phoneNumber)}
           </bdi>
         </p>
         <Link
           href={changeNumberHref}
-          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-md px-2 text-support font-semibold text-primary underline-offset-4 hover:underline"
+          className="inline-flex min-h-control-m shrink-0 items-center rounded-pill px-2 text-label text-primary underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-quick hover:decoration-current"
         >
-          <PencilLine aria-hidden="true" className="size-4" />
           {m.authChangeNumber}
         </Link>
       </div>
@@ -181,11 +183,9 @@ export function OtpVerificationForm() {
         }}
       >
         <div className="mb-2 flex items-baseline justify-between gap-3">
-          <label htmlFor="otp" className="text-support font-semibold text-foreground">
-            {m.authOtpLabel}
-          </label>
-          <span id="otp-length" className="text-caption text-muted-foreground">
-            {fillMessage(m.authOtpLengthHint, { n: formatNumber(OTP_LENGTH, locale) })}
+          <Label htmlFor="otp">{m.authOtpLabel}</Label>
+          <span id="otp-length" className="text-body-s text-ink-subtle">
+            {fillMessage(m.authOtpLengthHint, { n: formatNumber(OTP_LENGTH) })}
           </span>
         </div>
 
@@ -200,6 +200,7 @@ export function OtpVerificationForm() {
             // A complete code (typed, pasted or autofilled) is submitted straight away.
             if (next.length === OTP_LENGTH && next !== code) verify(next);
           }}
+          normalize={(raw) => toLatinDigits(raw).replace(/\D/g, '')}
           invalid={codeInvalid}
           disabled={isExpired}
           readOnly={isVerifying}
@@ -207,8 +208,12 @@ export function OtpVerificationForm() {
           autoFocus
         />
 
-        {failure ? <FieldError id="otp-error">{failure.message}</FieldError> : null}
-        <p role="status" className={cn('text-support text-success', notice ? 'mt-2' : 'sr-only')}>
+        {failure ? (
+          <FieldMessage id="otp-error" tone="error" className="mt-2">
+            {failure.message}
+          </FieldMessage>
+        ) : null}
+        <p role="status" className={cn('text-body-s text-success', notice ? 'mt-2' : 'sr-only')}>
           {notice}
         </p>
 
@@ -217,33 +222,33 @@ export function OtpVerificationForm() {
           size="lg"
           loading={isVerifying}
           disabled={isExpired}
-          className={cn('mt-6', authSubmitClass)}
+          className="mt-6 w-full"
         >
           {m.authVerifyCta}
-          {isVerifying ? null : <ArrowRight aria-hidden="true" className="rtl-mirror" />}
+          {isVerifying ? null : <Icon name="arrow-forward" size={20} />}
         </Button>
       </form>
 
       <div className="mt-6 flex flex-col items-center gap-2 text-center">
-        <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-support">
-          <span className="text-muted-foreground">{m.authCodeNotReceived}</span>
+        <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-body-s">
+          <span className="text-ink-soft">{m.authCodeNotReceived}</span>
           <Button
             type="button"
             variant="link"
             loading={isResending}
             disabled={resendIn > 0}
             onClick={resend}
-            className={cn('min-h-11 px-1 text-support font-semibold', isExpired && resendIn === 0 && 'underline')}
+            className={cn('min-h-control-m px-1', isExpired && resendIn === 0 && 'decoration-current')}
           >
             {m.authResend}
           </Button>
         </p>
         {resendIn > 0 ? (
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-caption text-muted-foreground">
-            <Clock aria-hidden="true" className="size-3.5" />
+          <Badge variant="neutral" className="text-ink-soft">
+            <Icon name="clock" size={16} />
             {/* Not a live region: a per-second announcement would drown the form. */}
-            {fillMessage(m.authResendIn, { time: formatNumber(resendIn, locale) })}
-          </p>
+            {fillMessage(m.authResendIn, { time: formatNumber(resendIn) })}
+          </Badge>
         ) : null}
       </div>
     </>

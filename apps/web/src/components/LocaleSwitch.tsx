@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Languages } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { LOCALE_COOKIE_NAME } from '@/lib/i18n/messages';
 import { cn } from '@/lib/utils';
@@ -21,16 +21,7 @@ export function LocaleSwitch({ className }: { className?: string }) {
   };
 
   return (
-    <button
-      type="button"
-      onClick={switchLocale}
-      className={cn(
-        'inline-flex h-11 items-center gap-1.5 rounded-md px-2.5 text-support font-medium text-foreground',
-        'transition-colors duration-fast ease-standard hover:bg-secondary',
-        className
-      )}
-    >
-      <Languages aria-hidden="true" className="size-[18px] text-muted-foreground" />
+    <button type="button" onClick={switchLocale} className={cn(buttonVariants({ variant: 'ghost' }), className)}>
       {/* Visible text stays part of the accessible name (WCAG 2.5.3). */}
       <span className="sr-only">{m.switchLanguage}: </span>
       <span lang={next}>{next === 'ar' ? m.arabic : m.english}</span>

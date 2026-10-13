@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import { buttonVariants } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button-variants';
+import { Icon } from '@/components/ui/icon';
+import { iconButtonVariants } from '@/components/ui/icon-button';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { cn } from '@/lib/utils';
@@ -84,7 +86,7 @@ export function FeaturedRoutineHero({ slides }: { slides: HeroSlide[] }) {
     >
       <ul
         ref={trackRef}
-        className="flex h-[22rem] snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-lg bg-ambient [-ms-overflow-style:none] [scrollbar-width:none] lg:h-[26rem] [&::-webkit-scrollbar]:hidden"
+        className="flex h-[22rem] snap-x snap-mandatory overflow-x-auto overscroll-x-contain rounded-md bg-sand [-ms-overflow-style:none] [scrollbar-width:none] lg:h-[26rem] [&::-webkit-scrollbar]:hidden"
       >
         {slides.map((slide, index) => (
           <li
@@ -112,19 +114,17 @@ export function FeaturedRoutineHero({ slides }: { slides: HeroSlide[] }) {
               className="object-cover object-right rtl:-scale-x-100"
             />
 
-            <div className="absolute inset-x-3 bottom-3 rounded-md bg-card p-4 shadow-raised md:inset-x-auto md:bottom-4 md:start-4 md:w-[24rem] lg:inset-x-auto lg:bottom-auto lg:start-8 lg:top-1/2 lg:w-[26rem] lg:-translate-y-1/2 lg:p-6">
+            <div className="absolute inset-x-3 bottom-3 rounded-md bg-card p-4 md:inset-x-auto md:bottom-4 md:start-4 md:w-[24rem] lg:inset-x-auto lg:bottom-auto lg:start-8 lg:top-1/2 lg:w-[26rem] lg:-translate-y-1/2 lg:p-6">
               {slide.badge ? (
-                <span className="inline-flex rounded-sm bg-primary-subtle px-2.5 py-0.5 text-caption font-medium text-primary">
-                  {slide.badge}
-                </span>
+                <Badge>{slide.badge}</Badge>
               ) : null}
-              <h2 className={cn('text-h3 text-foreground lg:text-h2', slide.badge && 'mt-2')}>{slide.title}</h2>
+              <h2 className={cn('text-title text-foreground lg:text-display-m', slide.badge && 'mt-2')}>{slide.title}</h2>
               {slide.description ? (
-                <p className="mt-1.5 line-clamp-2 text-support text-muted-foreground">{slide.description}</p>
+                <p className="mt-1.5 line-clamp-2 text-body-s text-muted-foreground">{slide.description}</p>
               ) : null}
               <Link href={slide.href} className={cn(buttonVariants(), 'mt-3 lg:mt-4')}>
                 {slide.ctaLabel}
-                <ArrowLeft aria-hidden="true" className="ltr:rotate-180" />
+                <Icon name="arrow-forward" size={20} />
               </Link>
             </div>
           </li>
@@ -132,15 +132,15 @@ export function FeaturedRoutineHero({ slides }: { slides: HeroSlide[] }) {
       </ul>
 
       {multiple ? (
-        <div className="absolute end-3 top-3 flex items-center rounded-full bg-card shadow-raised lg:bottom-4 lg:end-4 lg:top-auto">
+        <div className="absolute end-3 top-3 flex items-center rounded-pill bg-card lg:bottom-4 lg:end-4 lg:top-auto">
           <button
             type="button"
             onClick={() => goTo(active - 1)}
             disabled={active === 0}
             aria-label={m.heroPrevious}
-            className="hidden size-11 items-center justify-center rounded-full text-foreground hover:bg-secondary disabled:text-disabled-foreground disabled:hover:bg-transparent lg:flex"
+            className={cn(iconButtonVariants(), 'hidden lg:grid')}
           >
-            <ChevronLeft aria-hidden="true" className="size-5 rtl:rotate-180" />
+            <Icon name="chevron-back" size={20} />
           </button>
           <div className="flex items-center px-1">
             {slides.map((slide, index) => (
@@ -150,18 +150,18 @@ export function FeaturedRoutineHero({ slides }: { slides: HeroSlide[] }) {
                 onClick={() => goTo(index)}
                 aria-label={fillMessage(m.heroGoTo, { n: index + 1 })}
                 aria-current={index === active ? 'true' : undefined}
-                className="group flex h-11 w-7 items-center justify-center rounded-full"
+                className="group flex h-control-m w-7 items-center justify-center rounded-pill"
               >
                 <span
                   className={cn(
-                    'h-2 rounded-full transition-all duration-base ease-standard',
+                    'h-2 rounded-pill transition-all duration-settle ease-out',
                     index === active ? 'w-5 bg-primary' : 'w-2 bg-input group-hover:bg-primary',
                   )}
                 />
               </button>
             ))}
           </div>
-          <span aria-hidden="true" className="px-2 text-caption font-medium tabular-nums text-foreground" dir="ltr">
+          <span aria-hidden="true" className="px-2 text-caption tabular-nums text-foreground" dir="ltr">
             {active + 1} / {count}
           </span>
           <button
@@ -169,9 +169,9 @@ export function FeaturedRoutineHero({ slides }: { slides: HeroSlide[] }) {
             onClick={() => goTo(active + 1)}
             disabled={active === count - 1}
             aria-label={m.heroNext}
-            className="hidden size-11 items-center justify-center rounded-full text-foreground hover:bg-secondary disabled:text-disabled-foreground disabled:hover:bg-transparent lg:flex"
+            className={cn(iconButtonVariants(), 'hidden lg:grid')}
           >
-            <ChevronRight aria-hidden="true" className="size-5 rtl:rotate-180" />
+            <Icon name="chevron-forward" size={20} />
           </button>
           <p aria-live="polite" className="sr-only">
             {fillMessage(m.heroSlideLabel, { n: active + 1, total: count })}

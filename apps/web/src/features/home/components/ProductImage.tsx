@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { ImageOff } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { canOptimizeImage } from '../lib/images';
 
@@ -13,12 +13,8 @@ export function ProductImage({ src, alt, priority = false }: { src: string | nul
 
   if (!src || failed) {
     return (
-      <div
-        role="img"
-        aria-label={m.productNoImage}
-        className="flex size-full items-center justify-center rounded-sm bg-muted text-muted-foreground"
-      >
-        <ImageOff aria-hidden="true" className="size-8" />
+      <div role="img" aria-label={m.productNoImage} className="flex size-full items-center justify-center text-ink-subtle">
+        <Icon name="box" size={32} />
       </div>
     );
   }
@@ -32,7 +28,7 @@ export function ProductImage({ src, alt, priority = false }: { src: string | nul
       unoptimized={!canOptimizeImage(src)}
       sizes="(min-width: 1280px) 280px, (min-width: 768px) 30vw, 46vw"
       onError={() => setFailed(true)}
-      className="object-contain"
+      className="object-contain mix-blend-multiply"
     />
   );
 }

@@ -1,13 +1,15 @@
 import Link from 'next/link';
-import { User } from 'lucide-react';
+import { PageContainer } from '@/components/layout/page-container';
 import { LocaleSwitch } from '@/components/LocaleSwitch';
+import { WordmarkLink } from '@/components/navigation/wordmark-link';
+import { Icon } from '@/components/ui/icon';
+import { iconButtonVariants } from '@/components/ui/icon-button';
 import { getMessages } from '@/lib/i18n/messages';
 import { getLocale } from '@/lib/i18n/server';
 import { mainCategorySlugs, routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { CartLink } from './CartLink';
 import { SearchBar } from './SearchBar';
-import { Wordmark } from './Wordmark';
 
 /**
  * Mobile: wordmark, language switch and the search field — cart and account live in the bottom
@@ -24,9 +26,9 @@ export function HomeHeader() {
   ];
 
   return (
-    <header className="bg-background lg:sticky lg:top-0 lg:z-chrome lg:border-b lg:border-border">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-1 px-4 pb-3 pt-2 sm:px-6 lg:flex-nowrap lg:px-8 lg:py-3">
-        <Wordmark label={m.authHome} className="me-auto lg:me-0" />
+    <header className="bg-background lg:sticky lg:top-0 lg:z-nav lg:border-b lg:border-border">
+      <PageContainer className="flex flex-wrap items-center gap-x-4 gap-y-1 pb-3 pt-2 lg:flex-nowrap lg:py-3">
+        <WordmarkLink label={m.authHome} size="responsive" className="me-auto lg:me-0" />
 
         <nav aria-label={m.homeNavLabel} className="hidden items-center gap-1 lg:flex">
           {links.map((link) => (
@@ -34,7 +36,7 @@ export function HomeHeader() {
               key={link.href}
               href={link.href}
               className={cn(
-                'whitespace-nowrap rounded-md px-3 py-2 text-support font-medium text-foreground transition-colors duration-fast ease-standard hover:bg-secondary',
+                'whitespace-nowrap rounded-pill px-4 py-2 text-label text-ink-soft transition-colors duration-quick ease-out hover:bg-sand hover:text-foreground',
                 link.extra && 'hidden xl:block',
               )}
             >
@@ -43,22 +45,18 @@ export function HomeHeader() {
           ))}
         </nav>
 
-        <SearchBar className="order-last w-full lg:order-none lg:ms-auto lg:w-48 xl:w-72" />
+        <SearchBar size="m" className="order-last w-full lg:order-none lg:ms-auto lg:w-52 xl:w-72" />
 
         <div className="flex items-center gap-1">
           <LocaleSwitch />
           <div className="hidden items-center gap-1 lg:flex">
             <CartLink />
-            <Link
-              href={routes.account}
-              aria-label={m.homeNavAccount}
-              className="flex size-11 items-center justify-center rounded-md text-foreground transition-colors duration-fast ease-standard hover:bg-secondary"
-            >
-              <User aria-hidden="true" className="size-[22px]" />
+            <Link href={routes.account} aria-label={m.homeNavAccount} className={iconButtonVariants()}>
+              <Icon name="user" />
             </Link>
           </div>
         </div>
-      </div>
+      </PageContainer>
     </header>
   );
 }

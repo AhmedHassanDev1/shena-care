@@ -1,41 +1,309 @@
 {
-  "$comment": "Semantic token pairs that must meet WCAG 2.x contrast. Consumed by scripts/check-design-system.mjs. min 4.5 = text (1.4.3), 3 = UI boundaries and focus indicators (1.4.11), null = informational only.",
+  "$comment": "Semantic token pairs that must meet WCAG 2.x contrast. Consumed by scripts/check-design-system.mjs. Names resolve against src/styles/tokens.generated.css (design tokens and semantic roles alike). min 4.5 = text (1.4.3), 3 = UI boundaries and focus indicators (1.4.11), null = informational only.",
   "pairs": [
-    { "fg": "foreground", "bg": "background", "min": 4.5 },
-    { "fg": "foreground", "bg": "card", "min": 4.5 },
-    { "fg": "foreground", "bg": "muted", "min": 4.5 },
-    { "fg": "card-foreground", "bg": "card", "min": 4.5 },
-    { "fg": "popover-foreground", "bg": "popover", "min": 4.5 },
-    { "fg": "muted-foreground", "bg": "background", "min": 4.5 },
-    { "fg": "muted-foreground", "bg": "card", "min": 4.5 },
-    { "fg": "muted-foreground", "bg": "muted", "min": 4.5 },
-    { "fg": "muted-foreground", "bg": "secondary", "min": 4.5 },
-    { "fg": "primary-foreground", "bg": "primary", "min": 4.5 },
-    { "fg": "primary-foreground", "bg": "primary-hover", "min": 4.5 },
-    { "fg": "primary", "bg": "background", "min": 4.5 },
-    { "fg": "primary", "bg": "card", "min": 4.5 },
-    { "fg": "primary", "bg": "primary-subtle", "min": 4.5 },
-    { "fg": "primary", "bg": "secondary", "min": 4.5, "note": "links on powder-blue rows" },
-    { "fg": "success", "bg": "card", "min": 4.5 },
-    { "fg": "secondary-foreground", "bg": "secondary", "min": 4.5 },
-    { "fg": "secondary-foreground", "bg": "secondary-hover", "min": 4.5 },
-    { "fg": "accent-foreground", "bg": "accent", "min": 4.5 },
-    { "fg": "destructive-foreground", "bg": "destructive", "min": 4.5 },
-    { "fg": "destructive", "bg": "destructive-subtle", "min": 4.5 },
-    { "fg": "destructive", "bg": "card", "min": 4.5 },
-    { "fg": "success-foreground", "bg": "success", "min": 4.5 },
-    { "fg": "success", "bg": "success-subtle", "min": 4.5 },
-    { "fg": "warning-foreground", "bg": "warning", "min": 4.5 },
-    { "fg": "warning", "bg": "warning-subtle", "min": 4.5 },
-    { "fg": "info-foreground", "bg": "info", "min": 4.5 },
-    { "fg": "info", "bg": "info-subtle", "min": 4.5 },
-    { "fg": "input", "bg": "card", "min": 3 },
-    { "fg": "input", "bg": "background", "min": 3 },
-    { "fg": "ring", "bg": "background", "min": 3 },
-    { "fg": "ring", "bg": "card", "min": 3 },
-    { "fg": "primary", "bg": "background", "min": 3, "note": "filled control vs page" },
-    { "fg": "disabled-foreground", "bg": "disabled", "min": null, "note": "disabled controls are exempt" },
-    { "fg": "border", "bg": "background", "min": null, "note": "decorative divider" },
-    { "fg": "border", "bg": "card", "min": null, "note": "decorative divider" }
+    {
+      "fg": "foreground",
+      "bg": "background",
+      "min": 4.5
+    },
+    {
+      "fg": "foreground",
+      "bg": "card",
+      "min": 4.5
+    },
+    {
+      "fg": "foreground",
+      "bg": "muted",
+      "min": 4.5
+    },
+    {
+      "fg": "card-foreground",
+      "bg": "card",
+      "min": 4.5
+    },
+    {
+      "fg": "popover-foreground",
+      "bg": "popover",
+      "min": 4.5
+    },
+    {
+      "fg": "muted-foreground",
+      "bg": "background",
+      "min": 4.5
+    },
+    {
+      "fg": "muted-foreground",
+      "bg": "card",
+      "min": 4.5
+    },
+    {
+      "fg": "muted-foreground",
+      "bg": "muted",
+      "min": 4.5
+    },
+    {
+      "fg": "muted-foreground",
+      "bg": "secondary",
+      "min": 4.5
+    },
+    {
+      "fg": "primary-foreground",
+      "bg": "primary",
+      "min": 4.5
+    },
+    {
+      "fg": "primary-foreground",
+      "bg": "primary-hover",
+      "min": 4.5
+    },
+    {
+      "fg": "primary",
+      "bg": "background",
+      "min": 4.5
+    },
+    {
+      "fg": "primary",
+      "bg": "card",
+      "min": 4.5
+    },
+    {
+      "fg": "primary",
+      "bg": "primary-subtle",
+      "min": 4.5
+    },
+    {
+      "fg": "primary",
+      "bg": "secondary",
+      "min": 4.5,
+      "note": "links on powder-blue rows"
+    },
+    {
+      "fg": "success",
+      "bg": "card",
+      "min": 4.5
+    },
+    {
+      "fg": "secondary-foreground",
+      "bg": "secondary",
+      "min": 4.5
+    },
+    {
+      "fg": "secondary-foreground",
+      "bg": "secondary-hover",
+      "min": 4.5
+    },
+    {
+      "fg": "accent-foreground",
+      "bg": "accent",
+      "min": 4.5
+    },
+    {
+      "fg": "destructive-foreground",
+      "bg": "destructive",
+      "min": 4.5
+    },
+    {
+      "fg": "destructive",
+      "bg": "destructive-subtle",
+      "min": 4.5
+    },
+    {
+      "fg": "destructive",
+      "bg": "card",
+      "min": 4.5
+    },
+    {
+      "fg": "success-foreground",
+      "bg": "success",
+      "min": 4.5
+    },
+    {
+      "fg": "success",
+      "bg": "success-subtle",
+      "min": 4.5
+    },
+    {
+      "fg": "warning-foreground",
+      "bg": "warning",
+      "min": 4.5
+    },
+    {
+      "fg": "warning",
+      "bg": "warning-subtle",
+      "min": 4.5
+    },
+    {
+      "fg": "info-foreground",
+      "bg": "info",
+      "min": 4.5
+    },
+    {
+      "fg": "info",
+      "bg": "info-subtle",
+      "min": 4.5
+    },
+    {
+      "fg": "input",
+      "bg": "card",
+      "min": 3
+    },
+    {
+      "fg": "input",
+      "bg": "background",
+      "min": 3
+    },
+    {
+      "fg": "ring",
+      "bg": "background",
+      "min": 3
+    },
+    {
+      "fg": "ring",
+      "bg": "card",
+      "min": 3
+    },
+    {
+      "fg": "primary",
+      "bg": "background",
+      "min": 3,
+      "note": "filled control vs page"
+    },
+    {
+      "fg": "disabled-foreground",
+      "bg": "disabled",
+      "min": null,
+      "note": "disabled controls are exempt"
+    },
+    {
+      "fg": "border",
+      "bg": "background",
+      "min": null,
+      "note": "decorative divider"
+    },
+    {
+      "fg": "border",
+      "bg": "card",
+      "min": null,
+      "note": "decorative divider"
+    },
+    {
+      "fg": "ink",
+      "bg": "sand",
+      "min": 4.5
+    },
+    {
+      "fg": "ink-soft",
+      "bg": "sand",
+      "min": 4.5
+    },
+    {
+      "fg": "ink-subtle",
+      "bg": "paper",
+      "min": 4.5
+    },
+    {
+      "fg": "ink-subtle",
+      "bg": "paper-raised",
+      "min": 4.5
+    },
+    {
+      "fg": "ink-subtle",
+      "bg": "sand",
+      "min": 4.5,
+      "note": "tertiary text on the niche ground"
+    },
+    {
+      "fg": "malachite",
+      "bg": "malachite-soft",
+      "min": 4.5
+    },
+    {
+      "fg": "henna",
+      "bg": "paper",
+      "min": 4.5,
+      "note": "sale price"
+    },
+    {
+      "fg": "henna",
+      "bg": "henna-soft",
+      "min": 4.5
+    },
+    {
+      "fg": "on-henna",
+      "bg": "henna",
+      "min": 4.5,
+      "note": "discount stamp / cart count"
+    },
+    {
+      "fg": "saffron-ink",
+      "bg": "saffron-soft",
+      "min": 4.5
+    },
+    {
+      "fg": "saffron-ink",
+      "bg": "paper",
+      "min": 4.5
+    },
+    {
+      "fg": "ink",
+      "bg": "saffron",
+      "min": 4.5,
+      "note": "text on a saffron fill"
+    },
+    {
+      "fg": "guide",
+      "bg": "guide-surface",
+      "min": 4.5,
+      "note": "assistant text"
+    },
+    {
+      "fg": "on-kohl",
+      "bg": "kohl",
+      "min": 4.5
+    },
+    {
+      "fg": "on-kohl-soft",
+      "bg": "kohl",
+      "min": 4.5
+    },
+    {
+      "fg": "malachite-on-kohl",
+      "bg": "kohl",
+      "min": 4.5
+    },
+    {
+      "fg": "line-field",
+      "bg": "paper",
+      "min": 3,
+      "note": "control edge"
+    },
+    {
+      "fg": "line-field",
+      "bg": "paper-raised",
+      "min": 3,
+      "note": "control edge"
+    },
+    {
+      "fg": "line-field",
+      "bg": "sand",
+      "min": 3,
+      "note": "control edge"
+    },
+    {
+      "fg": "focus",
+      "bg": "paper",
+      "min": 3,
+      "note": "focus ring"
+    },
+    {
+      "fg": "danger",
+      "bg": "danger-soft",
+      "min": 4.5
+    },
+    {
+      "fg": "on-danger",
+      "bg": "danger",
+      "min": 4.5
+    }
   ]
 }

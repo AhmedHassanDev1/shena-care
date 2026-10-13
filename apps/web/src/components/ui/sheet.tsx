@@ -3,9 +3,10 @@
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { cva, type VariantProps } from "class-variance-authority"
-import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { Icon } from "./icon"
+import { iconButtonVariants } from "./icon-button"
 
 const Sheet = SheetPrimitive.Root
 const SheetTrigger = SheetPrimitive.Trigger
@@ -17,7 +18,7 @@ const SheetOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
-    className={cn("fixed inset-0 z-overlay bg-overlay/60 motion-safe:data-[state=open]:animate-fade-in", className)}
+    className={cn("fixed inset-0 z-overlay bg-scrim motion-safe:data-[state=open]:animate-fade-in", className)}
     {...props}
     ref={ref}
   />
@@ -29,7 +30,7 @@ SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
  * right in Arabic (RTL) and from the left in English (LTR) for `start`, and the reverse for `end`.
  */
 const sheetVariants = cva(
-  "fixed z-overlay flex flex-col gap-4 bg-popover p-6 text-popover-foreground shadow-overlay",
+  "fixed z-overlay flex flex-col gap-4 bg-popover p-6 text-popover-foreground shadow-sheet",
   {
     variants: {
       side: {
@@ -66,8 +67,8 @@ const SheetContent = React.forwardRef<
       {...props}
     >
       {children}
-      <SheetPrimitive.Close className="absolute end-3 top-3 inline-flex size-9 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <X className="size-4" aria-hidden="true" />
+      <SheetPrimitive.Close className={cn(iconButtonVariants({ size: "s" }), "absolute end-3 top-3 text-muted-foreground")}>
+        <Icon name="close" size={20} />
         <span className="sr-only">{closeLabel}</span>
       </SheetPrimitive.Close>
     </SheetPrimitive.Content>
@@ -95,7 +96,7 @@ const SheetTitle = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
 >(({ className, ...props }, ref) => (
-  <SheetPrimitive.Title ref={ref} className={cn("text-h3 text-foreground", className)} {...props} />
+  <SheetPrimitive.Title ref={ref} className={cn("text-title text-foreground", className)} {...props} />
 ))
 SheetTitle.displayName = SheetPrimitive.Title.displayName
 
@@ -105,7 +106,7 @@ const SheetDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Description
     ref={ref}
-    className={cn("text-support text-muted-foreground", className)}
+    className={cn("text-body-s text-muted-foreground", className)}
     {...props}
   />
 ))

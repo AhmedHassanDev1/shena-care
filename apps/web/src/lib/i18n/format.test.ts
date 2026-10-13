@@ -1,4 +1,4 @@
-import { formatEgp, formatPackSize } from './format';
+import { formatEgp, formatNumber, formatPackSize } from './format';
 
 describe('formatEgp', () => {
   it('formats Egyptian pounds consistently with Latin digits', () => {
@@ -24,5 +24,13 @@ describe('formatPackSize', () => {
   it('returns null without a usable size', () => {
     expect(formatPackSize(null, 'ml', 'ar')).toBeNull();
     expect(formatPackSize(0, 'ml', 'ar')).toBeNull();
+  });
+});
+
+describe('formatNumber', () => {
+  it('uses Western digits with a thousands comma, whatever the interface language', () => {
+    expect(formatNumber(6)).toBe('6');
+    expect(formatNumber(37)).toBe('37');
+    expect(formatNumber(1250)).toBe('1,250');
   });
 });

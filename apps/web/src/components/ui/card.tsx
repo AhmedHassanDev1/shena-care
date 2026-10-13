@@ -3,14 +3,14 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * Bordered content container. Flat by default: separation comes from the border, not a shadow.
- * Add `shadow-raised` only when the card genuinely floats above other content.
+ * Content card: a rectangle you read (radius-s) separated from the page by a `line` hairline, never a
+ * shadow. Use `rounded-md` for routine-style cards; product images use the arch niche instead.
  */
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("rounded-md border border-border bg-card text-card-foreground", className)}
+      className={cn("rounded-sm border border-border bg-card text-card-foreground", className)}
       {...props}
     />
   )
@@ -26,14 +26,14 @@ CardHeader.displayName = "CardHeader"
 
 const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h3 ref={ref} className={cn("text-h3 text-foreground", className)} {...props} />
+    <h3 ref={ref} className={cn("text-title text-foreground", className)} {...props} />
   )
 )
 CardTitle.displayName = "CardTitle"
 
 const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
   ({ className, ...props }, ref) => (
-    <p ref={ref} className={cn("text-support text-muted-foreground", className)} {...props} />
+    <p ref={ref} className={cn("text-body-s text-muted-foreground", className)} {...props} />
   )
 )
 CardDescription.displayName = "CardDescription"

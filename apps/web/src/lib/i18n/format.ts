@@ -1,7 +1,11 @@
 import type { Locale } from './messages';
 
-export function formatNumber(value: number, locale: Locale): string {
-  return new Intl.NumberFormat(locale === 'ar' ? 'ar-EG' : 'en-EG').format(value);
+/**
+ * Plain number for UI copy (counts, timers, code lengths). Western digits with a comma for thousands in
+ * both languages: the design system never mixes Arabic-Indic digits into prices, sizes, codes or quantities.
+ */
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat('en-US').format(value);
 }
 
 export function formatCurrency(amount: number, currency: string, locale: Locale): string {
@@ -11,7 +15,7 @@ export function formatCurrency(amount: number, currency: string, locale: Locale)
       currency,
     }).format(amount);
   } catch {
-    return `${formatNumber(amount, locale)} ${currency}`;
+    return `${formatNumber(amount)} ${currency}`;
   }
 }
 

@@ -1,5 +1,7 @@
 # Shena Care — Design Foundations v0.1
 
+> **Superseded in part:** the palette, typography, radii and component styling described below were replaced by the ShinaCare design system (`apps/web/design-system/`, see CLAUDE.md §4). The principles (guidance-led commerce, Arabic-first, accessibility, no unsupported certainty) still apply; the concrete visual values do not.
+
 **Status:** Foundation specification — partially approved  
 **Project:** Shena Care  
 **Purpose:** Establish a consistent, scalable design foundation before frontend visual implementation.

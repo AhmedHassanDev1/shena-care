@@ -1,7 +1,7 @@
 import * as React from "react"
-import { Check } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { Icon } from "./icon"
 
 export type StepStatus = "complete" | "current" | "upcoming"
 
@@ -43,7 +43,7 @@ function Steps({ items, statusLabels, formatIndex = String, className, ...props 
               <span
                 aria-hidden="true"
                 className={cn(
-                  "absolute bottom-0 start-[15px] top-8 w-0.5",
+                  "absolute bottom-0 start-[13px] top-bead w-0.5",
                   item.status === "complete" ? "bg-primary" : "bg-border"
                 )}
               />
@@ -51,18 +51,18 @@ function Steps({ items, statusLabels, formatIndex = String, className, ...props 
             <span
               aria-hidden="true"
               className={cn(
-                "relative flex size-8 shrink-0 items-center justify-center rounded-full text-caption font-semibold",
+                "relative flex size-bead shrink-0 items-center justify-center rounded-full text-caption font-semibold",
                 item.status === "complete" && "bg-primary text-primary-foreground",
                 item.status === "current" && "border-2 border-primary bg-card text-primary",
                 item.status === "upcoming" && "border border-input bg-card text-muted-foreground"
               )}
             >
-              {item.status === "complete" ? <Check className="size-4" strokeWidth={2.5} /> : formatIndex(index + 1)}
+              {item.status === "complete" ? <Icon name="check" size={16} strokeWidth={2.5} /> : formatIndex(index + 1)}
             </span>
             <div className="min-w-0 pt-1">
               <p
                 className={cn(
-                  "text-support",
+                  "text-body-s",
                   item.status === "current" ? "font-semibold text-foreground" : "font-medium",
                   item.status === "upcoming" ? "text-muted-foreground" : "text-foreground"
                 )}

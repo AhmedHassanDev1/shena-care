@@ -31,14 +31,14 @@ export function RedesignPlaceholder({ route }: RedesignPlaceholderProps) {
       aria-labelledby="redesign-pending-title"
       className="mx-auto flex min-h-[70vh] max-w-2xl flex-col justify-center px-6 py-16"
     >
-      <p className="text-support font-semibold text-primary">{content.eyebrow}</p>
-      <h1 id="redesign-pending-title" className="mt-3 text-h1 font-semibold text-foreground">
+      <p className="text-label text-primary">{content.eyebrow}</p>
+      <h1 id="redesign-pending-title" className="mt-3 text-display-l text-foreground">
         {content.title}
       </h1>
       <p className="mt-4 text-body text-muted-foreground">{content.description}</p>
       <dl className="mt-8 border-s-2 border-border ps-4">
         <dt className="text-caption text-muted-foreground">{content.route}</dt>
-        <dd className="mt-1 font-mono text-support text-foreground" dir="ltr">
+        <dd className="mt-1 font-mono text-body-s text-foreground" dir="ltr">
           {route}
         </dd>
       </dl>

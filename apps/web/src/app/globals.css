@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Global foundations only. Every value is a design token (src/styles/tokens.generated.css, generated from
+ * design-system/tokens.json); component styling belongs to the shared components in src/components.
+ */
+
 *,
 *::before,
 *::after {
@@ -10,24 +15,38 @@
 
 html {
   min-width: 320px;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   min-height: 100vh;
   margin: 0;
-  background: rgb(var(--background));
-  color: rgb(var(--foreground));
-  font-family: var(--font-sans);
-  line-height: var(--leading-body);
+  @apply bg-background font-text text-body text-foreground;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-:focus-visible {
-  outline: 2px solid rgb(var(--ring));
-  outline-offset: 3px;
+/* Isolate Latin runs and numbers inside Arabic text so punctuation never jumps. */
+bdi {
+  unicode-bidi: isolate;
 }
 
+/*
+ * Keyboard focus: a 2px paper gap then a 2px ink ring, drawn as box-shadow so it follows pills and arches.
+ * :where() keeps specificity at zero, so a component may restyle its own focus (e.g. a field's focus-within).
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--focus-ring);
+}
+
+/* Evening (kohl) surfaces switch the ring colors. */
+:where(.on-kohl) :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  box-shadow: var(--focus-ring-on-kohl);
+}
+
+/* Arabic is never letter-spaced. */
 :lang(ar) {
   letter-spacing: normal !important;
 }

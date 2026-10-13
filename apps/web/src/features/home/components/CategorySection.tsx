@@ -1,10 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import { fillMessage, getMessages } from '@/lib/i18n/messages';
 import { getLocale } from '@/lib/i18n/server';
 import { mainCategorySlugs, routes } from '@/lib/routes';
-import { SectionHeader } from './SectionHeader';
+import { SectionHeader } from '@/components/ui/section-header';
 
 /** The two MVP entry points. The label sits on a solid surface, never inside the artwork. */
 export function CategorySection() {
@@ -23,18 +23,18 @@ export function CategorySection() {
             <Link
               href={routes.productsByCategory(category.slug)}
               aria-label={fillMessage(m.categoryShopLabel, { name: category.label })}
-              className="group relative block h-36 overflow-hidden rounded-lg bg-ambient sm:h-48 lg:h-60"
+              className="group relative block h-36 overflow-hidden rounded-md bg-sand sm:h-48 lg:h-60"
             >
               <Image
                 src={category.image}
                 alt=""
                 fill
                 sizes="(min-width: 1280px) 600px, 50vw"
-                className="object-cover object-right transition-transform duration-base ease-standard motion-safe:group-hover:scale-[1.03]"
+                className="object-cover object-right transition-transform duration-settle ease-out motion-safe:group-hover:scale-[1.03]"
               />
-              <span className="absolute inset-x-2 bottom-2 flex items-center justify-between gap-2 rounded-md bg-card px-3 py-2.5 text-support font-semibold text-foreground shadow-raised lg:inset-x-auto lg:bottom-4 lg:start-4 lg:w-fit lg:gap-8 lg:px-4 lg:text-body">
+              <span className="absolute inset-x-2 bottom-2 flex min-h-control-m items-center justify-between gap-2 rounded-pill bg-card px-4 text-label text-foreground lg:inset-x-auto lg:bottom-4 lg:start-4 lg:w-fit lg:gap-8">
                 {category.label}
-                <ArrowLeft aria-hidden="true" className="size-4 shrink-0 text-primary ltr:rotate-180" />
+                <Icon name="chevron-forward" size={18} className="text-primary" />
               </span>
             </Link>
           </li>

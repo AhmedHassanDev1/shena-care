@@ -1,48 +1,37 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { Icon } from '@/components/ui/icon';
 import type { Locale } from '@/lib/i18n/messages';
-import { cn } from '@/lib/utils';
 import { defaultRoutineArtwork, formatStepCount } from '../lib/routines';
 import type { RoutineSummary } from '../lib/routines';
 
-/** Pastel grounds in rotation (blush, powder blue, warm neutral), as in the approved editorial row. */
-const GROUNDS = ['bg-primary-subtle', 'bg-secondary', 'bg-muted'] as const;
-
 /**
- * A multi-step routine as an editorial card: copy on a pastel ground, artwork on the opposite side.
- * Deliberately unlike a product card (no price, no cart).
+ * A multi-step routine as an editorial card (radius-m): copy on `paper-raised`, artwork on the opposite
+ * side. Deliberately unlike a product card (no arch, no price, no cart). The design system grounds a
+ * routine in its time of day (saffron morning, kohl evening); the catalog does not carry that yet, so
+ * every card uses the neutral ground.
  */
 export function RoutineCard({
   routine,
   ctaLabel,
   locale,
-  index = 0,
 }: {
   routine: RoutineSummary;
   ctaLabel: string;
   locale: Locale;
-  index?: number;
 }) {
   return (
-    <article
-      className={cn(
-        'relative flex min-h-[11rem] w-full overflow-hidden rounded-md border border-border',
-        GROUNDS[index % GROUNDS.length],
-      )}
-    >
-      <div className="flex flex-1 flex-col gap-1.5 p-4">
-        <h3 className="text-h3 text-foreground">{routine.title}</h3>
-        {routine.description ? (
-          <p className="line-clamp-2 text-support text-secondary-foreground">{routine.description}</p>
-        ) : null}
-        <p className="text-caption font-medium text-secondary-foreground">{formatStepCount(routine.stepCount, locale)}</p>
+    <article className="relative flex min-h-[11rem] w-full overflow-hidden rounded-md border border-border bg-card">
+      <div className="flex flex-1 flex-col gap-1.5 p-5">
+        <h3 className="text-title text-foreground">{routine.title}</h3>
+        {routine.description ? <p className="line-clamp-2 text-body-s text-ink-soft">{routine.description}</p> : null}
+        <p className="text-caption text-ink-soft">{formatStepCount(routine.stepCount, locale)}</p>
         <Link
           href={routine.href}
-          className="mt-auto inline-flex min-h-11 items-center gap-1 text-support font-semibold text-primary after:absolute after:inset-0 hover:text-primary-hover focus-visible:outline-offset-[-3px]"
+          className="mt-auto inline-flex min-h-control-m items-center gap-1 rounded-pill text-label text-primary [--stretched-link-radius:var(--radius-m)] stretched-link hover:text-primary-hover"
         >
           {ctaLabel}
-          <ArrowLeft aria-hidden="true" className="size-4 ltr:rotate-180" />
+          <Icon name="chevron-forward" size={18} />
         </Link>
       </div>
       <div aria-hidden="true" className="relative w-2/5 shrink-0">

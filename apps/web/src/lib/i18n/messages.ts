@@ -147,7 +147,7 @@ export const messages = {
     authPhoneDescription: 'اكتب رقم موبايلك علشان نكمل مع بعض.',
     authPhoneLabel: 'رقم الموبايل',
     authPhonePlaceholder: '01xxxxxxxxx',
-    authPhoneInvalid: 'اكتب رقم موبايل مصري صحيح من ١١ رقم يبدأ بـ 01.',
+    authPhoneInvalid: 'اكتب رقم موبايل مصري صحيح من 11 رقم يبدأ بـ 01.',
     authContinue: 'متابعة',
     authPhoneHelper: 'هنستخدم رقمك علشان نتحقق من حسابك.',
     authSendFailed: 'مقدرناش نبعت رمز التحقق دلوقتي. حاول تاني بعد شوية.',

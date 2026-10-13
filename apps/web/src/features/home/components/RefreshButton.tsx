@@ -10,7 +10,7 @@ export function RefreshButton({ label }: { label: string }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <Button type="button" variant="outline" loading={pending} onClick={() => startTransition(() => router.refresh())}>
+    <Button type="button" variant="secondary" loading={pending} onClick={() => startTransition(() => router.refresh())}>
       {label}
     </Button>
   );
