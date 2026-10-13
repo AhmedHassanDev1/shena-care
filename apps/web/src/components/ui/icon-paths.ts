@@ -36,7 +36,10 @@ export const ICON_PATHS = {
   pin: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
   menu: '<path d="M4 7h16M4 12h16M10 17h10"/>',
   refresh: '<path d="M5 12a7 7 0 1 0 2.05-4.95"/><path d="M5 4.2V8h3.8"/>',
-  compare: '<path d="M17 7H5l3-3M7 17h12l-3 3"/>'
+  compare: '<path d="M17 7H5l3-3M7 17h12l-3 3"/>',
+  // ShinaCare additions (same 24px grid / 1.75 stroke): carousel autoplay controls.
+  pause: '<path d="M9 6.5v11M15 6.5v11"/>',
+  play: '<path d="M8.5 5.8v12.4L18.2 12z"/>'
 } as const;
 export type IconName = keyof typeof ICON_PATHS;
 export const DIRECTIONAL_ICONS: readonly IconName[] = ['chevron-forward', 'chevron-back', 'arrow-forward', 'arrow-back', 'truck', 'menu', 'routine', 'tag'];

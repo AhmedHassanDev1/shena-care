@@ -83,6 +83,36 @@
   --focus-rgb: var(--ink-rgb);
   --scrim: #1b22208c;
   --scrim-rgb: 27 34 32;
+  --rose: #c0395f;
+  --rose-rgb: 192 57 95;
+  --rose-soft: #fbe3ea;
+  --rose-soft-rgb: 251 227 234;
+  --rose-wash: #fff2f5;
+  --rose-wash-rgb: 255 242 245;
+  --rose-ink: #8a1d43;
+  --rose-ink-rgb: 138 29 67;
+  --on-rose: #fffdf9;
+  --on-rose-rgb: 255 253 249;
+  --peach: #f4a27d;
+  --peach-rgb: 244 162 125;
+  --peach-soft: #fde7da;
+  --peach-soft-rgb: 253 231 218;
+  --peach-wash: #fff4ec;
+  --peach-wash-rgb: 255 244 236;
+  --peach-ink: #8a3e14;
+  --peach-ink-rgb: 138 62 20;
+  --lilac: #8f7ad6;
+  --lilac-rgb: 143 122 214;
+  --lilac-soft: #ebe6f9;
+  --lilac-soft-rgb: 235 230 249;
+  --lilac-wash: #f6f3fd;
+  --lilac-wash-rgb: 246 243 253;
+  --lilac-ink: #4a3a8f;
+  --lilac-ink-rgb: 74 58 143;
+  --saffron-wash: #fff8e8;
+  --saffron-wash-rgb: 255 248 232;
+  --malachite-wash: #eef7f2;
+  --malachite-wash-rgb: 238 247 242;
 
   /* Semantic roles used by the app's utilities (bg-primary, text-muted-foreground…). */
   --background: var(--paper);
@@ -156,10 +186,72 @@
   --ring: var(--focus);
   --ring-rgb: var(--focus-rgb);
 
+  /* Atmosphere defaults (neutral); data-atmosphere overrides them below. */
+  --atm-surface: var(--sand);
+  --atm-surface-rgb: var(--sand-rgb);
+  --atm-wash: var(--paper-raised);
+  --atm-wash-rgb: var(--paper-raised-rgb);
+  --atm-accent: var(--malachite);
+  --atm-accent-rgb: var(--malachite-rgb);
+  --atm-ink: var(--ink);
+  --atm-ink-rgb: var(--ink-rgb);
+
   --shadow-float: 0 1px 2px #1b22201a, 0 8px 24px -8px #1b222033;
   --shadow-sheet: 0 -12px 40px -8px #1b222040;
   --focus-ring: 0 0 0 2px #f6f1e9, 0 0 0 4px #1b2220;
   --focus-ring-on-kohl: 0 0 0 2px #1f2826, 0 0 0 4px #f3eee5;
+}
+
+/* Campaign atmospheres: bg-atm-wash / bg-atm-surface / text-atm-ink / bg-atm-accent follow the nearest data-atmosphere. */
+[data-atmosphere='rose'] {
+  --atm-surface: var(--rose-soft);
+  --atm-surface-rgb: var(--rose-soft-rgb);
+  --atm-wash: var(--rose-wash);
+  --atm-wash-rgb: var(--rose-wash-rgb);
+  --atm-accent: var(--rose);
+  --atm-accent-rgb: var(--rose-rgb);
+  --atm-ink: var(--rose-ink);
+  --atm-ink-rgb: var(--rose-ink-rgb);
+}
+[data-atmosphere='peach'] {
+  --atm-surface: var(--peach-soft);
+  --atm-surface-rgb: var(--peach-soft-rgb);
+  --atm-wash: var(--peach-wash);
+  --atm-wash-rgb: var(--peach-wash-rgb);
+  --atm-accent: var(--peach);
+  --atm-accent-rgb: var(--peach-rgb);
+  --atm-ink: var(--peach-ink);
+  --atm-ink-rgb: var(--peach-ink-rgb);
+}
+[data-atmosphere='lilac'] {
+  --atm-surface: var(--lilac-soft);
+  --atm-surface-rgb: var(--lilac-soft-rgb);
+  --atm-wash: var(--lilac-wash);
+  --atm-wash-rgb: var(--lilac-wash-rgb);
+  --atm-accent: var(--lilac);
+  --atm-accent-rgb: var(--lilac-rgb);
+  --atm-ink: var(--lilac-ink);
+  --atm-ink-rgb: var(--lilac-ink-rgb);
+}
+[data-atmosphere='saffron'] {
+  --atm-surface: var(--saffron-soft);
+  --atm-surface-rgb: var(--saffron-soft-rgb);
+  --atm-wash: var(--saffron-wash);
+  --atm-wash-rgb: var(--saffron-wash-rgb);
+  --atm-accent: var(--saffron);
+  --atm-accent-rgb: var(--saffron-rgb);
+  --atm-ink: var(--saffron-ink);
+  --atm-ink-rgb: var(--saffron-ink-rgb);
+}
+[data-atmosphere='malachite'] {
+  --atm-surface: var(--malachite-soft);
+  --atm-surface-rgb: var(--malachite-soft-rgb);
+  --atm-wash: var(--malachite-wash);
+  --atm-wash-rgb: var(--malachite-wash-rgb);
+  --atm-accent: var(--malachite);
+  --atm-accent-rgb: var(--malachite-rgb);
+  --atm-ink: var(--malachite-deep);
+  --atm-ink-rgb: var(--malachite-deep-rgb);
 }
 
 :root {

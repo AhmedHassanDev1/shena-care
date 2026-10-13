@@ -152,6 +152,8 @@ TextField.displayName = "TextField"
 export interface PhoneFieldProps extends Omit<TextFieldProps, "prefix" | "suffix" | "dir" | "type"> {
   /** Fixed country-code chip shown before the number (e.g. "+20"). Omit when the field accepts the full local format. */
   countryCode?: string
+  /** Spoken name of the country-code chip (e.g. "Egypt country code +20"). */
+  countryCodeLabel?: string
 }
 
 /**
@@ -159,7 +161,7 @@ export interface PhoneFieldProps extends Omit<TextFieldProps, "prefix" | "suffix
  * isolated as LTR; the label and message keep the page direction.
  */
 const PhoneField = React.forwardRef<HTMLInputElement, PhoneFieldProps>(
-  ({ label, optionalLabel, hint, error, success, id, disabled, countryCode, wrapperClassName, className, ...rest }, ref) => {
+  ({ label, optionalLabel, hint, error, success, id, disabled, countryCode, countryCodeLabel, wrapperClassName, className, ...rest }, ref) => {
     const auto = React.useId()
     const fid = id ?? auto
     const { messageId } = resolveMessage(fid, { hint, error, success })
@@ -182,7 +184,8 @@ const PhoneField = React.forwardRef<HTMLInputElement, PhoneFieldProps>(
         >
           {countryCode ? (
             <span className="grid h-full place-items-center border-e-[1.5px] border-border px-4 text-label tabular-nums text-foreground">
-              {countryCode}
+              {countryCodeLabel ? <span className="sr-only">{countryCodeLabel}</span> : null}
+              <span aria-hidden={countryCodeLabel ? true : undefined}>{countryCode}</span>
             </span>
           ) : null}
           <GroupInput

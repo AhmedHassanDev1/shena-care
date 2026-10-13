@@ -1,0 +1,39 @@
+{
+  "name": "ShinaCare — campaign palette",
+  "version": 1,
+  "meta": {
+    "source": "Extension of the supplied 'Kohl & Malachite' tokens.json (kept verbatim). Adds a controlled secondary palette for campaign and discovery surfaces; base tokens are never overridden."
+  },
+  "color": {
+    "note": "Each hue ships four partners — <hue>-wash (lightest ground), <hue>-soft (surface), <hue> (fill / decoration), <hue>-ink (text on the wash or soft surface). Text never sits on a hue fill except on-rose. Malachite stays the ONLY action color: buttons, links and active states never take these hues.",
+    "tokens": [
+      { "name": "rose", "value": "#c0395f", "usage": "Blush-rose accent fill: decorative shapes, campaign accents, rose badges. White text on it is 5.2:1 (on-rose). Never an action or error color." },
+      { "name": "rose-soft", "value": "#fbe3ea", "usage": "Blush surface: the rose atmosphere ground, rose badges, concern chips." },
+      { "name": "rose-wash", "value": "#fff2f5", "usage": "Lightest blush ground; the light end of rose gradients." },
+      { "name": "rose-ink", "value": "#8a1d43", "usage": "Text and glyphs on rose-wash, rose-soft, paper and paper-raised (≥7.4:1)." },
+      { "name": "on-rose", "value": "#fffdf9", "usage": "Text on a rose fill (5.2:1)." },
+
+      { "name": "peach", "value": "#f4a27d", "usage": "Warm coral/peach fill: decorative shapes and campaign light. Text on it is ink (8:1); it is never used as text." },
+      { "name": "peach-soft", "value": "#fde7da", "usage": "Peach surface: the peach atmosphere ground, peach badges." },
+      { "name": "peach-wash", "value": "#fff4ec", "usage": "Lightest peach ground; the light end of peach gradients." },
+      { "name": "peach-ink", "value": "#8a3e14", "usage": "Text and glyphs on peach-wash, peach-soft and paper (≥6.3:1). Distinct from henna, which stays reserved for offers." },
+
+      { "name": "lilac", "value": "#8f7ad6", "usage": "Soft lilac fill: decorative shapes and campaign depth. Text on it is ink (4.6:1) — prefer no text." },
+      { "name": "lilac-soft", "value": "#ebe6f9", "usage": "Lilac surface: the lilac atmosphere ground, lilac badges." },
+      { "name": "lilac-wash", "value": "#f6f3fd", "usage": "Lightest lilac ground; the light end of lilac gradients." },
+      { "name": "lilac-ink", "value": "#4a3a8f", "usage": "Text and glyphs on lilac-wash, lilac-soft and paper (≥7.5:1)." },
+
+      { "name": "saffron-wash", "value": "#fff8e8", "usage": "Lightest saffron ground (partner of the existing saffron / saffron-soft / saffron-ink)." },
+      { "name": "malachite-wash", "value": "#eef7f2", "usage": "Lightest malachite ground (partner of malachite / malachite-soft / malachite-deep)." }
+    ]
+  },
+  "atmosphere": {
+    "note": "An atmosphere is a campaign mood. Put data-atmosphere=\"rose|peach|lilac|saffron|malachite\" on a section or card and use bg-atm-wash / bg-atm-surface / text-atm-ink / bg-atm-accent. Navigation, typography, actions and feedback never change with the atmosphere. Without the attribute the neutral default applies.",
+    "default": { "surface": "sand", "wash": "paper-raised", "accent": "malachite", "ink": "ink" },
+    "rose": { "surface": "rose-soft", "wash": "rose-wash", "accent": "rose", "ink": "rose-ink" },
+    "peach": { "surface": "peach-soft", "wash": "peach-wash", "accent": "peach", "ink": "peach-ink" },
+    "lilac": { "surface": "lilac-soft", "wash": "lilac-wash", "accent": "lilac", "ink": "lilac-ink" },
+    "saffron": { "surface": "saffron-soft", "wash": "saffron-wash", "accent": "saffron", "ink": "saffron-ink" },
+    "malachite": { "surface": "malachite-soft", "wash": "malachite-wash", "accent": "malachite", "ink": "malachite-deep" }
+  }
+}

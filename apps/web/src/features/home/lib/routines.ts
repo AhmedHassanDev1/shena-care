@@ -10,21 +10,17 @@ export interface RoutineSummary {
   careArea: CareArea;
   stepCount: number;
   href: string;
-  /** Editorial artwork for the hero; the care-area default is used when absent. */
+  /** Editorial artwork; the card is graphic by design, so this is optional and currently unused by Home. */
   imageSrc: string | null;
+  /** When in the day the routine is meant for — only when the source provides it. */
+  timeOfDay?: 'am' | 'pm' | 'any';
 }
 
-export const HERO_MAX_SLIDES = 3;
-export const RECOMMENDED_MAX = 3;
+export const SUGGESTED_MAX = 3;
 
-/** Hero routines first; the recommended list never repeats one of them (matched by id, never by title). */
-export function splitRoutines(
-  routines: RoutineSummary[],
-): { hero: RoutineSummary[]; recommended: RoutineSummary[] } {
-  const unique = [...new Map(routines.map((routine) => [routine.id, routine])).values()];
-  const hero = unique.slice(0, HERO_MAX_SLIDES);
-  const heroIds = new Set(hero.map((routine) => routine.id));
-  return { hero, recommended: unique.filter((routine) => !heroIds.has(routine.id)).slice(0, RECOMMENDED_MAX) };
+/** The routines Home suggests: unique by id (never by title), at most SUGGESTED_MAX. */
+export function selectSuggestedRoutines(routines: RoutineSummary[]): RoutineSummary[] {
+  return [...new Map(routines.map((routine) => [routine.id, routine])).values()].slice(0, SUGGESTED_MAX);
 }
 
 export function defaultRoutineArtwork(careArea: CareArea): string {

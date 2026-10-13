@@ -18,8 +18,8 @@ export const messages = {
     authPhoneTitle: 'Your care starts here',
     authPhoneDescription: 'Enter your mobile number so we can continue together.',
     authPhoneLabel: 'Mobile number',
-    authPhonePlaceholder: '01xxxxxxxxx',
-    authPhoneInvalid: 'Enter a valid 11-digit Egyptian mobile number starting with 01.',
+    authPhonePlaceholder: '10 1234 5678',
+    authPhoneInvalid: 'Enter a valid Egyptian mobile number (10 digits after the country code).',
     authContinue: 'Continue',
     authPhoneHelper: 'We use your number to verify your account.',
     authSendFailed: "We couldn't send the verification code right now. Please try again shortly.",
@@ -66,7 +66,7 @@ export const messages = {
     heroFallbackCta: 'Browse products',
     heroRoutineBadge: 'Routine',
     heroRoutineCta: 'Explore the routine',
-    heroCarouselLabel: 'Featured routines',
+    heroCarouselLabel: 'Campaigns and highlights',
     heroSlideLabel: 'Slide {n} of {total}',
     heroPrevious: 'Previous slide',
     heroNext: 'Next slide',
@@ -125,6 +125,66 @@ export const messages = {
     question3OptionB: 'Even tone',
     question3OptionC: 'Smoother texture',
 
+    // Campaign hero
+    campaignRegion: 'Campaigns and highlights',
+    heroPause: 'Pause automatic slide change',
+    heroPlay: 'Resume automatic slide change',
+    campaign1Eyebrow: 'A routine made for you',
+    campaign1Title: 'Build a care routine, step by step',
+    campaign1Body: 'Answer a few simple questions and see an ordered set of steps for your skin or hair.',
+    campaign1Cta: 'Start your routine',
+    campaign2Eyebrow: 'Skin care',
+    campaign2Title: 'Everyday care for comfortable skin',
+    campaign2Body: 'Browse skin-care products from a range of brands in one place.',
+    campaign2Cta: 'Shop skin care',
+    campaign3Eyebrow: 'Hair care',
+    campaign3Title: 'Care from roots to ends',
+    campaign3Body: 'Products for hair and scalp care from a range of brands.',
+    campaign3Cta: 'Shop hair care',
+    campaign4Eyebrow: 'By concern',
+    campaign4Title: 'Start from what you want to look after',
+    campaign4Body: 'Pick a concern, from breakouts and dryness to pigmentation and hair loss, and continue from there.',
+    campaign4Cta: 'Choose a concern',
+
+    // Concerns
+    concernSubtitle: 'Pick what you want to look after',
+    concernAllProducts: 'All products',
+    concernAllProductsHint: 'Browse the whole store',
+    concernCardLabel: 'Browse products for {name}',
+    careAreaSkin: 'Skin',
+    careAreaHair: 'Hair',
+
+    // Routines
+    routineMorning: 'Morning',
+    routineEvening: 'Evening',
+    routineAnytime: 'Any time',
+    routineStart: 'Start this routine',
+    previewTag: 'Design preview',
+
+    // Products fallback
+    productsEmptyTitle: 'The catalog is being prepared',
+    productsEmptyBody: 'No products are available to order right now. Build a routine or browse the store, and products will appear here as soon as they are available.',
+    productsEmptyBrowse: 'Browse the store',
+    productsEmptyRoutine: 'Build a routine',
+    productsPreviewNotice: 'Design preview with illustrative items. These are not real products, prices or stock.',
+
+    // Categories
+    categorySkinDescription: 'Daily skin-care products',
+    categoryHairDescription: 'Hair and scalp care products',
+
+    // Assistant entry
+    guideEntryLabel: 'Not sure where to start?',
+    guideEntryHint: 'Answer a few simple questions and get suggested care steps',
+
+    // Footer
+    footerHelp: 'Explore',
+    footerRoutines: 'Routines',
+
+    // Auth
+    authPhoneHint: 'An Egyptian mobile number, for example',
+    authCountryCode: 'Egypt country code +20',
+    authVisualBenefitsLabel: 'Why ShinaCare',
+
     footerRights: '© {year} ShinaCare',
   },
   ar: {
@@ -146,8 +206,8 @@ export const messages = {
     authPhoneTitle: 'عنايتك تبدأ من هنا',
     authPhoneDescription: 'اكتب رقم موبايلك علشان نكمل مع بعض.',
     authPhoneLabel: 'رقم الموبايل',
-    authPhonePlaceholder: '01xxxxxxxxx',
-    authPhoneInvalid: 'اكتب رقم موبايل مصري صحيح من 11 رقم يبدأ بـ 01.',
+    authPhonePlaceholder: '10 1234 5678',
+    authPhoneInvalid: 'اكتب رقم موبايل مصري صحيح (10 أرقام بعد كود مصر).',
     authContinue: 'متابعة',
     authPhoneHelper: 'هنستخدم رقمك علشان نتحقق من حسابك.',
     authSendFailed: 'مقدرناش نبعت رمز التحقق دلوقتي. حاول تاني بعد شوية.',
@@ -194,7 +254,7 @@ export const messages = {
     heroFallbackCta: 'تصفّح المنتجات',
     heroRoutineBadge: 'روتين',
     heroRoutineCta: 'اكتشف الروتين',
-    heroCarouselLabel: 'روتينات مميزة',
+    heroCarouselLabel: 'حملات ومقترحات',
     heroSlideLabel: 'الشريحة {n} من {total}',
     heroPrevious: 'الشريحة السابقة',
     heroNext: 'الشريحة التالية',
@@ -252,6 +312,66 @@ export const messages = {
     question3OptionA: 'ترطيب',
     question3OptionB: 'توحيد اللون',
     question3OptionC: 'تحسين الملمس',
+
+    // Campaign hero
+    campaignRegion: 'حملات ومقترحات',
+    heroPause: 'إيقاف التنقل التلقائي بين الشرائح',
+    heroPlay: 'تشغيل التنقل التلقائي بين الشرائح',
+    campaign1Eyebrow: 'روتين على مقاسك',
+    campaign1Title: 'ابني روتين عناية خطوة بخطوة',
+    campaign1Body: 'جاوب على أسئلة بسيطة وشوف خطوات مرتبة لبشرتك أو شعرك.',
+    campaign1Cta: 'ابدأ الروتين',
+    campaign2Eyebrow: 'العناية بالبشرة',
+    campaign2Title: 'عناية يومية لبشرة مرتاحة',
+    campaign2Body: 'تصفّح منتجات العناية بالبشرة من ماركات متعددة في مكان واحد.',
+    campaign2Cta: 'تسوّق البشرة',
+    campaign3Eyebrow: 'العناية بالشعر',
+    campaign3Title: 'عناية من الجذور للأطراف',
+    campaign3Body: 'منتجات للعناية بالشعر وفروة الرأس من ماركات متنوعة.',
+    campaign3Cta: 'تسوّق الشعر',
+    campaign4Eyebrow: 'حسب اهتمامك',
+    campaign4Title: 'ابدأ من اللي محتاج تهتم بيه',
+    campaign4Body: 'اختار اهتمامك، من الحبوب والجفاف للتصبغات وتساقط الشعر، وكمّل من هناك.',
+    campaign4Cta: 'اختار اهتمامك',
+
+    // Concerns
+    concernSubtitle: 'اختار اللي محتاج تهتم بيه',
+    concernAllProducts: 'كل المنتجات',
+    concernAllProductsHint: 'تصفّح المتجر كله',
+    concernCardLabel: 'تصفّح منتجات {name}',
+    careAreaSkin: 'بشرة',
+    careAreaHair: 'شعر',
+
+    // Routines
+    routineMorning: 'صباحًا',
+    routineEvening: 'مساءً',
+    routineAnytime: 'في أي وقت',
+    routineStart: 'ابدأ الروتين ده',
+    previewTag: 'عرض تجريبي',
+
+    // Products fallback
+    productsEmptyTitle: 'الكتالوج لسه بيتجهّز',
+    productsEmptyBody: 'مفيش منتجات متاحة للطلب دلوقتي. ابني روتينك أو تصفّح المتجر، والمنتجات هتظهر هنا أول ما تتاح.',
+    productsEmptyBrowse: 'تصفّح المتجر',
+    productsEmptyRoutine: 'ابني روتينك',
+    productsPreviewNotice: 'عرض تجريبي لعناصر توضيحية. دي مش منتجات أو أسعار أو مخزون حقيقي.',
+
+    // Categories
+    categorySkinDescription: 'منتجات العناية اليومية بالبشرة',
+    categoryHairDescription: 'منتجات العناية بالشعر وفروة الرأس',
+
+    // Assistant entry
+    guideEntryLabel: 'مش متأكد تبدأ منين؟',
+    guideEntryHint: 'جاوب على أسئلة بسيطة وهنقترح عليك خطوات عناية',
+
+    // Footer
+    footerHelp: 'استكشف',
+    footerRoutines: 'الروتينات',
+
+    // Auth
+    authPhoneHint: 'رقم موبايل مصري، مثال',
+    authCountryCode: 'كود مصر +20',
+    authVisualBenefitsLabel: 'ليه ShinaCare',
 
     footerRights: '© {year} ShinaCare',
   },

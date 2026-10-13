@@ -14,6 +14,7 @@ const preview = (
   careArea: RoutineSummary['careArea'],
   stepCount: number,
   imageSrc: string,
+  timeOfDay: RoutineSummary['timeOfDay'],
 ): RoutineSummary => ({
   id: `preview-${id}`,
   title,
@@ -21,14 +22,15 @@ const preview = (
   careArea,
   stepCount,
   imageSrc,
+  timeOfDay,
   href: routes.routineBuilder,
 });
 
 export const PREVIEW_ROUTINES: RoutineSummary[] = [
-  preview('summer', 'روتين العناية في الصيف', 'خطوات بسيطة تساعدك تهتم ببشرتك في أيام الحرارة.', 'skin', 4, '/assets/home/skincare-still-life.webp'),
-  preview('daily-hydration', 'روتين الترطيب اليومي', 'ترطيب أساسي لبشرتك كل يوم في خطوات قليلة.', 'skin', 3, '/assets/home/hero-skincare.webp'),
-  preview('hair-care', 'روتين العناية بالشعر', 'غسل وترطيب وتغذية لشعرك بخطوات واضحة.', 'hair', 4, '/assets/home/haircare-still-life.webp'),
-  preview('pigmentation', 'روتين التصبغات', 'عناية يومية مناسبة للبشرة اللي بتظهر عليها تصبغات.', 'skin', 4, '/assets/home/skincare-still-life.webp'),
-  preview('deep-hydration', 'روتين الترطيب العميق', 'ترطيب مضاعف لبشرة ناعمة ومرتاحة.', 'skin', 3, '/assets/home/hero-skincare.webp'),
-  preview('dry-hair', 'روتين الشعر الجاف', 'عناية لطيفة بالشعر الجاف من الجذور للأطراف.', 'hair', 3, '/assets/home/haircare-still-life.webp'),
+  preview('summer', 'روتين العناية في الصيف', 'خطوات بسيطة تساعدك تهتم ببشرتك في أيام الحرارة.', 'skin', 4, '/assets/home/skincare-still-life.webp', 'am'),
+  preview('daily-hydration', 'روتين الترطيب اليومي', 'ترطيب أساسي لبشرتك كل يوم في خطوات قليلة.', 'skin', 3, '/assets/home/hero-skincare.webp', 'pm'),
+  preview('hair-care', 'روتين العناية بالشعر', 'غسل وترطيب وتغذية لشعرك بخطوات واضحة.', 'hair', 4, '/assets/home/haircare-still-life.webp', 'any'),
+  preview('pigmentation', 'روتين التصبغات', 'عناية يومية مناسبة للبشرة اللي بتظهر عليها تصبغات.', 'skin', 4, '/assets/home/skincare-still-life.webp', 'am'),
+  preview('deep-hydration', 'روتين الترطيب العميق', 'ترطيب مضاعف لبشرة ناعمة ومرتاحة.', 'skin', 3, '/assets/home/hero-skincare.webp', 'pm'),
+  preview('dry-hair', 'روتين الشعر الجاف', 'عناية لطيفة بالشعر الجاف من الجذور للأطراف.', 'hair', 3, '/assets/home/haircare-still-life.webp', 'any'),
 ];

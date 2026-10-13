@@ -29,7 +29,7 @@ export function QuickAdd({ product }: { product: ProductCardModel }) {
   useEffect(() => () => clearTimeout(resetTimer.current), []);
 
   const { action } = product;
-  if (action.kind === 'unavailable') return null;
+  if (action.kind === 'unavailable' || action.kind === 'preview') return null;
 
   if (action.kind === 'choose') {
     return (

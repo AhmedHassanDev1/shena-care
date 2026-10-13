@@ -101,6 +101,13 @@ export function PhoneLoginForm() {
           id="phone"
           name="phone"
           label={m.authPhoneLabel}
+          hint={
+            <>
+              {m.authPhoneHint} <bdi dir="ltr">{m.authPhonePlaceholder}</bdi>
+            </>
+          }
+          countryCode="+20"
+          countryCodeLabel={m.authCountryCode}
           error={error || undefined}
           inputMode="numeric"
           autoComplete="tel-national"

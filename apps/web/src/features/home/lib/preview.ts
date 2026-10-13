@@ -13,3 +13,11 @@ export function isHomePreview(): boolean {
   if (flag === 'false') return false;
   return process.env.NODE_ENV === 'development';
 }
+
+/**
+ * Illustrative product cards for an EMPTY catalog: development only AND explicitly requested with
+ * `?preview=products`. Never on by default, never in production builds.
+ */
+export function isProductPreview(searchParam: string | string[] | undefined): boolean {
+  return process.env.NODE_ENV === 'development' && searchParam === 'products';
+}

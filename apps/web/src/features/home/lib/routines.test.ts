@@ -1,6 +1,6 @@
 import { clampIndex } from './carousel';
 import { canOptimizeImage } from './images';
-import { defaultRoutineArtwork, formatStepCount, HERO_MAX_SLIDES, RECOMMENDED_MAX, splitRoutines } from './routines';
+import { defaultRoutineArtwork, formatStepCount, selectSuggestedRoutines, SUGGESTED_MAX } from './routines';
 import type { RoutineSummary } from './routines';
 
 const routine = (id: string, title = `Routine ${id}`): RoutineSummary => ({
@@ -13,29 +13,19 @@ const routine = (id: string, title = `Routine ${id}`): RoutineSummary => ({
   imageSrc: null,
 });
 
-describe('splitRoutines', () => {
+describe('selectSuggestedRoutines', () => {
   it('returns nothing for no routines', () => {
-    expect(splitRoutines([])).toEqual({ hero: [], recommended: [] });
+    expect(selectSuggestedRoutines([])).toEqual([]);
   });
 
-  it('never repeats a hero routine in the recommended list', () => {
+  it('caps the list', () => {
     const all = Array.from({ length: 9 }, (_, i) => routine(String(i)));
-    const { hero, recommended } = splitRoutines(all);
-    expect(hero).toHaveLength(HERO_MAX_SLIDES);
-    expect(recommended).toHaveLength(RECOMMENDED_MAX);
-    const heroIds = new Set(hero.map((r) => r.id));
-    expect(recommended.some((r) => heroIds.has(r.id))).toBe(false);
+    expect(selectSuggestedRoutines(all)).toHaveLength(SUGGESTED_MAX);
   });
 
   it('de-duplicates by id, not by title', () => {
-    const { hero } = splitRoutines([routine('1', 'Summer'), routine('1', 'Summer again'), routine('2', 'Summer')]);
-    expect(hero.map((r) => r.id)).toEqual(['1', '2']);
-  });
-
-  it('puts everything in the hero when there are few routines', () => {
-    const { hero, recommended } = splitRoutines([routine('1'), routine('2')]);
-    expect(hero).toHaveLength(2);
-    expect(recommended).toEqual([]);
+    const picked = selectSuggestedRoutines([routine('1', 'Summer'), routine('1', 'Summer again'), routine('2', 'Summer')]);
+    expect(picked.map((r) => r.id)).toEqual(['1', '2']);
   });
 });
 

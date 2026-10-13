@@ -5,7 +5,9 @@ export type QuickAddAction =
   | { kind: 'add'; skuId: string }
   /** More than one variant: the shopper must pick, so the card links to the product page. */
   | { kind: 'choose' }
-  | { kind: 'unavailable' };
+  | { kind: 'unavailable' }
+  /** Design-preview fixtures only (see mocks/products.ts): never purchasable, never real inventory. */
+  | { kind: 'preview' };
 
 export interface ProductCardModel {
   id: string;
@@ -21,6 +23,8 @@ export interface ProductCardModel {
   /** True when variants differ in price, so the card reads "from …". */
   priceIsFrom: boolean;
   action: QuickAddAction;
+  /** Illustrative silhouette for preview fixtures, which have no photograph. */
+  art?: { shape: 'bottle' | 'dropper' | 'tube' | 'jar' | 'pump'; tint: 'malachite' | 'henna' | 'saffron' | 'kohl' | 'sand' };
 }
 
 type Sku = ProductView['skus'][number];

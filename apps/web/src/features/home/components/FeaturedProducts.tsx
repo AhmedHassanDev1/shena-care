@@ -9,6 +9,8 @@ import { selectFeaturedProducts } from '../lib/products';
 import { ProductGrid } from './ProductGrid';
 import { RefreshButton } from './RefreshButton';
 import { SectionHeader } from '@/components/ui/section-header';
+import { CatalogEmpty } from './CatalogEmpty';
+import { PREVIEW_PRODUCTS } from '../mocks/products';
 
 /** Eight cards fill two desktop rows of four and four phone rows of two. */
 const FEATURED_COUNT = 8;
@@ -17,7 +19,7 @@ const FEATURED_COUNT = 8;
  * Real catalog products. GET /products only returns published products that have media and at least
  * one orderable, priced SKU, so everything shown here can actually be bought.
  */
-export async function FeaturedProducts() {
+export async function FeaturedProducts({ preview = false }: { preview?: boolean }) {
   const m = getMessages(getLocale());
 
   let products: ProductView[] | null = null;
@@ -25,6 +27,15 @@ export async function FeaturedProducts() {
     products = await getProducts(FEATURED_COUNT);
   } catch (error) {
     console.error('Home: failed to load products', error);
+  }
+
+  // An empty catalog gets its own compact module: a header reading "Available now" over nothing would mislead.
+  if (products !== null && products.length === 0 && !preview) {
+    return (
+      <section aria-label={m.productsEmptyTitle}>
+        <CatalogEmpty />
+      </section>
+    );
   }
 
   return (
@@ -42,9 +53,14 @@ export async function FeaturedProducts() {
           <RefreshButton label={m.tryAgain} />
         </Alert>
       ) : products.length === 0 ? (
-        <Alert variant="info" icon={null}>
-          <p className="text-body text-muted-foreground">{m.productsEmpty}</p>
-        </Alert>
+        (
+          <>
+            <Alert variant="warning" className="mb-4">
+              <p className="text-body-s text-foreground">{m.productsPreviewNotice}</p>
+            </Alert>
+            <ProductGrid products={PREVIEW_PRODUCTS} />
+          </>
+        )
       ) : (
         <ProductGrid products={selectFeaturedProducts(products, FEATURED_COUNT)} />
       )}

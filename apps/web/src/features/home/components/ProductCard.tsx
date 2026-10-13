@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 import { ProductNiche } from '@/components/ui/product-niche';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
@@ -24,7 +25,7 @@ export function ProductCard({ product, priority = false }: { product: ProductCar
   return (
     <article className="group relative flex w-full min-w-0 flex-col gap-2">
       <ProductNiche className="group-hover:bg-sand-deep">
-        <ProductImage src={product.imageUrl} alt={product.imageAlt} priority={priority} />
+        <ProductImage src={product.imageUrl} alt={product.imageAlt} priority={priority} art={product.art} />
       </ProductNiche>
 
       <div className="flex flex-1 flex-col gap-0.5 px-0.5">
@@ -36,16 +37,22 @@ export function ProductCard({ product, priority = false }: { product: ProductCar
           // dir=auto lets a Latin name wrap and clamp as LTR text; match-parent keeps it on the same edge as the Arabic ones.
           className="line-clamp-2 min-h-12 text-body text-foreground [text-align:match-parent]"
         >
-          <Link href={routes.product(product.slug)} className="stretched-link">
-            {product.name}
-          </Link>
+          {product.action.kind === 'preview' ? (
+            product.name
+          ) : (
+            <Link href={routes.product(product.slug)} className="stretched-link">
+              {product.name}
+            </Link>
+          )}
         </h3>
         <p className="min-h-5 text-body-s text-ink-subtle">{size ? <bdi>{size}</bdi> : null}</p>
         <div className="mt-auto flex min-h-control-m flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-1">
           <p className="text-price tabular-nums text-foreground">
             {priceText ?? <span className="text-body-s font-normal text-ink-subtle">{m.productPriceUnavailable}</span>}
           </p>
-          {product.action.kind === 'unavailable' ? (
+          {product.action.kind === 'preview' ? (
+            <Badge variant="guide">{m.previewTag}</Badge>
+          ) : product.action.kind === 'unavailable' ? (
             <p className="text-body-s text-ink-subtle">{m.productUnavailable}</p>
           ) : (
             <QuickAdd product={product} />

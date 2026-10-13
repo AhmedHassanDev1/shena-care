@@ -1,4 +1,5 @@
 import type { ConcernGlyphName } from '@/components/ui/concern-glyph';
+import type { Atmosphere } from '../data/campaigns';
 
 /** A care concern as `GET /care/concerns` returns it. */
 export interface Concern {
@@ -23,4 +24,19 @@ const BY_SLUG: Record<string, ConcernGlyphName> = {
 
 export function concernGlyph(concern: Pick<Concern, 'slug' | 'careArea'>): ConcernGlyphName {
   return BY_SLUG[concern.slug] ?? (concern.careArea === 'hair' ? 'frizz' : 'oily');
+}
+
+/** Subtle secondary color per concern (glyph chip only — cards stay neutral). Unknown slugs follow their care area. */
+const ATMOSPHERE_BY_SLUG: Record<string, Atmosphere> = {
+  acne: 'rose',
+  dryness: 'peach',
+  pigmentation: 'saffron',
+  'fine-lines': 'lilac',
+  dullness: 'rose',
+  'hair-loss': 'malachite',
+  dandruff: 'lilac',
+};
+
+export function concernAtmosphere(concern: Pick<Concern, 'slug' | 'careArea'>): Atmosphere {
+  return ATMOSPHERE_BY_SLUG[concern.slug] ?? (concern.careArea === 'hair' ? 'malachite' : 'rose');
 }

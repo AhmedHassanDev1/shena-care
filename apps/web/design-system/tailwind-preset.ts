@@ -2,6 +2,7 @@ import plugin from 'tailwindcss/plugin';
 import type { Config } from 'tailwindcss';
 import tokens from './tokens.json';
 import roles from './roles.json';
+import extensions from './tokens.extensions.json';
 
 /**
  * Tailwind view of the ShinaCare design system.
@@ -25,9 +26,13 @@ const color = (token: Named) =>
 /** A color token named like a type style (`price`) would make `text-price` ambiguous: it stays a CSS variable only. */
 const typeNames = new Set(tokens.type.groups.flatMap((g) => g.styles.map((s) => s.name.replace(/^t-/, ''))));
 
+const atmosphereRoles = ['surface', 'wash', 'accent', 'ink'] as const;
+
 const colors: Record<string, string> = {
-  ...Object.fromEntries(tokens.color.tokens.filter((t) => !typeNames.has(t.name)).map((t) => [t.name, color(t)])),
+  ...Object.fromEntries([...tokens.color.tokens, ...extensions.color.tokens].filter((t) => !typeNames.has(t.name)).map((t) => [t.name, color(t)])),
   ...Object.fromEntries(Object.keys(without(roles.colorRoles)).map((r) => [r, `rgb(var(--${r}-rgb) / <alpha-value>)`])),
+  // Campaign atmosphere (follows the nearest data-atmosphere attribute): bg-atm-wash, bg-atm-surface, text-atm-ink, bg-atm-accent.
+  ...Object.fromEntries(atmosphereRoles.map((r) => [`atm-${r}`, `rgb(var(--atm-${r}-rgb) / <alpha-value>)`])),
 };
 
 const typeStyles = tokens.type.groups.flatMap((g) => g.styles);

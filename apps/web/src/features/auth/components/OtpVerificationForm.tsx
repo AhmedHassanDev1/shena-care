@@ -213,9 +213,9 @@ export function OtpVerificationForm() {
             {failure.message}
           </FieldMessage>
         ) : null}
-        <p role="status" className={cn('text-body-s text-success', notice ? 'mt-2' : 'sr-only')}>
-          {notice}
-        </p>
+        <div role="status" className={notice ? 'mt-2' : 'sr-only'}>
+          {notice ? <FieldMessage tone="success">{notice}</FieldMessage> : null}
+        </div>
 
         <Button
           type="submit"

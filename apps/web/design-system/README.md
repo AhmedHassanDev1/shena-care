@@ -4,6 +4,7 @@ Direction: **Kohl & Malachite** (limestone `paper`, kohl `ink`, one green for ac
 
 ```
 design-system/
+  tokens.extensions.json  campaign palette (rose / peach / lilac + washes) and `data-atmosphere` moods; appended to tokens.json, never overriding it
   tokens.json           CANONICAL values (verbatim from the supplied package: colors, type, spacing, radius, shadow, layout, size, motion, z-index)
   roles.json            NO values — maps app semantic roles (bg-primary, text-muted-foreground…) and legacy scale names onto tokens
   tailwind-preset.ts    builds Tailwind colors/radii/shadows/type/screens/sizes from the NAMES in the two files above
@@ -39,3 +40,7 @@ npm run check:design    # contrast pairs (WCAG), no hex / raw palette / lucide /
 npm run typecheck && npm run lint && npm test
 npm run check:ui-reset  # route contract (starts its own dev server)
 ```
+
+## Campaign palette and atmospheres
+
+`tokens.extensions.json` adds rose, peach and lilac (each `-wash` / `-soft` / base / `-ink`) plus `saffron-wash` and `malachite-wash`. Put `data-atmosphere="rose|peach|lilac|saffron|malachite"` on a section or card and use `bg-atm-wash`, `bg-atm-surface`, `bg-atm-accent`, `text-atm-ink` (or the gradient `from-atm-wash to-atm-surface`). Malachite stays the only action color; navigation, typography and feedback never change with the atmosphere. Do not color every card: use an atmosphere for one hero/campaign/journey surface or a small accent chip.

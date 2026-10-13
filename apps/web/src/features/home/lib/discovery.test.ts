@@ -1,7 +1,7 @@
 import { getMessages } from '@/lib/i18n/messages';
 import { PREVIEW_ROUTINES } from '../mocks/routines';
 import { getDiscoveryContent } from './discovery';
-import { HERO_MAX_SLIDES, RECOMMENDED_MAX, splitRoutines } from './routines';
+import { selectSuggestedRoutines, SUGGESTED_MAX } from './routines';
 
 const ar = getMessages('ar');
 
@@ -23,10 +23,10 @@ describe('getDiscoveryContent', () => {
 });
 
 describe('preview routine fixtures', () => {
-  it('fill the hero swiper and the suggested row without repeating a routine', () => {
-    const { hero, recommended } = splitRoutines(PREVIEW_ROUTINES);
-    expect(hero).toHaveLength(HERO_MAX_SLIDES);
-    expect(recommended).toHaveLength(RECOMMENDED_MAX);
-    expect(new Set([...hero, ...recommended].map((r) => r.id)).size).toBe(HERO_MAX_SLIDES + RECOMMENDED_MAX);
+  it('fill the suggested row with unique routines that carry a time of day', () => {
+    const suggested = selectSuggestedRoutines(PREVIEW_ROUTINES);
+    expect(suggested).toHaveLength(SUGGESTED_MAX);
+    expect(new Set(suggested.map((r) => r.id)).size).toBe(SUGGESTED_MAX);
+    expect(suggested.every((r) => r.timeOfDay !== undefined)).toBe(true);
   });
 });
