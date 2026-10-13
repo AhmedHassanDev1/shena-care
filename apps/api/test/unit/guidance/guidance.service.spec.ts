@@ -25,6 +25,9 @@ describe('GuidanceService Error Isolation', () => {
       customerCareProfile: {
         findUnique: jest.fn().mockResolvedValue(null),
       },
+      routineDraft: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
       guidanceMessage: {
         create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'msg-id', ...data })),
         findMany: jest.fn().mockResolvedValue([]),

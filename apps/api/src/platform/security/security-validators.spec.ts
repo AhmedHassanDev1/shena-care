@@ -2,11 +2,10 @@ import { validateSafeUrl } from './url-validator';
 import { sanitizeCsvField } from './csv-sanitizer';
 import { MagicByteValidationPipe } from './magic-byte.pipe';
 import { BadRequestException } from '@nestjs/common';
-import * as fileType from 'file-type';
 
-jest.mock('file-type', () => ({
-  fileTypeFromBuffer: jest.fn(),
-}));
+// 1x1 PNG with valid IHDR/IEND chunks.
+const upload = (originalname: string, mimetype: string, buffer: Buffer) => ({ originalname, mimetype, buffer }) as Express.Multer.File;
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a/bkAAAAASUVORK5CYII=', 'base64');
 
 describe('Security Validators', () => {
   describe('SSRF / URL Validator', () => {
@@ -49,34 +48,30 @@ describe('Security Validators', () => {
 
     beforeEach(() => {
       pipe = new MagicByteValidationPipe();
-      jest.clearAllMocks();
     });
 
     it('should reject file if magic bytes do not match mime type', async () => {
-      (fileType.fileTypeFromBuffer as jest.Mock).mockResolvedValue({
-        ext: 'exe',
-        mime: 'application/x-msdownload',
-      });
-
       const mockFile = {
         originalname: 'image.png',
         mimetype: 'image/png',
-        buffer: Buffer.from('mock-exe-data'),
+        buffer: Buffer.concat([Buffer.from('MZ'), Buffer.alloc(80)]), // PE executable header
       } as any;
 
       await expect(pipe.transform(mockFile)).rejects.toThrow(BadRequestException);
     });
 
-    it('should allow file if magic bytes match mime type', async () => {
-      (fileType.fileTypeFromBuffer as jest.Mock).mockResolvedValue({
-        ext: 'png',
-        mime: 'image/png',
-      });
+    it('should reject real image bytes declared as another type or extension', async () => {
+      await expect(pipe.transform(upload('image.jpg', 'image/jpeg', PNG))).rejects.toThrow(BadRequestException);
+      await expect(pipe.transform(upload('image.exe', 'image/png', PNG))).rejects.toThrow(BadRequestException);
+      await expect(pipe.transform([upload('a.png', 'image/png', PNG), upload('b.png', 'image/png', PNG.subarray(0, 40))]))
+        .rejects.toThrow(BadRequestException);
+    });
 
+    it('should allow file if magic bytes match mime type', async () => {
       const mockFile = {
         originalname: 'real-image.png',
         mimetype: 'image/png',
-        buffer: Buffer.from('mock-png-data'),
+        buffer: PNG,
       } as any;
 
       const result = await pipe.transform(mockFile);

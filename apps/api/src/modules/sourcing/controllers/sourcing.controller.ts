@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Query, UseGuards, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Query, UseGuards, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { SourcingService } from '../services/sourcing.service';
 import { CreateSupplierDto, UpdateSupplierDto } from '../dto/supplier.dto';
 import { CreateSupplierOfferDto, UpdateSupplierOfferDto } from '../dto/supplier-offer.dto';
@@ -10,6 +10,8 @@ import { RolesGuard } from '../../accounts/guards/roles.guard';
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
 import { Roles } from '../../accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../accounts/decorators/current-user.decorator';
+
+type TenantUser = { roles?: string[]; supplierId?: string | null };
 
 export class ConfirmAvailabilityDto {
   @IsBoolean()
@@ -34,6 +36,14 @@ export class SourcingController {
         throw new ForbiddenException('Cannot access other supplier data');
       }
     }
+  }
+
+  /** Loads an offer and applies the same tenant isolation as supplierId-scoped routes. */
+  private async ownedOffer(user: TenantUser, id: string) {
+    const offer = await this.sourcingService.getSupplierOffer(id);
+    if (!offer) throw new NotFoundException(`Supplier offer ${id} not found`);
+    this.checkTenantIsolation(user, offer.supplierId);
+    return offer;
   }
 
   @Post('suppliers')
@@ -81,21 +91,21 @@ export class SourcingController {
 
   @Get('offers/:id')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
-  async getSupplierOffer(@CurrentUser() user: any, @Param('id') id: string) {
-    // Assuming offer is retrieved to check ownership. For simplicity, skipped in MVP controller
-    // but would be done in service.
-    return this.sourcingService.getSupplierOffer(id);
+  async getSupplierOffer(@CurrentUser() user: TenantUser, @Param('id') id: string) {
+    return this.ownedOffer(user, id);
   }
 
   @Patch('offers/:id')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
-  async updateSupplierOffer(@Param('id') id: string, @Body() dto: UpdateSupplierOfferDto) {
+  async updateSupplierOffer(@CurrentUser() user: TenantUser, @Param('id') id: string, @Body() dto: UpdateSupplierOfferDto) {
+    await this.ownedOffer(user, id);
     return this.sourcingService.updateSupplierOffer(id, dto);
   }
 
   @Post('offers/:id/confirm-availability')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
-  async confirmAvailability(@Param('id') id: string, @Body() dto: ConfirmAvailabilityDto) {
+  async confirmAvailability(@CurrentUser() user: TenantUser, @Param('id') id: string, @Body() dto: ConfirmAvailabilityDto) {
+    await this.ownedOffer(user, id);
     return this.sourcingService.confirmSupplierOfferAvailability(id, dto.isAvailable);
   }
 

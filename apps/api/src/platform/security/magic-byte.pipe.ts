@@ -1,5 +1,5 @@
 import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
-import { fileTypeFromBuffer } from 'file-type';
+import { hasValidFileSignature } from './file-signature';
 
 @Injectable()
 export class MagicByteValidationPipe implements PipeTransform {
@@ -15,16 +15,9 @@ export class MagicByteValidationPipe implements PipeTransform {
         continue;
       }
 
-      // Check magic bytes
-      const fileType = await fileTypeFromBuffer(file.buffer);
-      if (!fileType) {
-        throw new BadRequestException(`Could not determine file type for ${file.originalname}`);
-      }
-
-      if (fileType.mime !== file.mimetype) {
-        throw new BadRequestException(
-          `File type mismatch for ${file.originalname}. Expected ${file.mimetype}, got ${fileType.mime}`
-        );
+      // Declared type, extension and content bytes must agree
+      if (!hasValidFileSignature(file)) {
+        throw new BadRequestException(`File type mismatch for ${file.originalname}`);
       }
     }
 

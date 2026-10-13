@@ -2,6 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 const request = require('supertest');
 import { AppModule } from '../../src/app.module';
+import { ensureLegacyCatalog } from '../fixtures/legacy-catalog';
+import { PrismaService } from '../../src/platform/database/prisma.service';
+import { AiClient } from '../../src/platform/ai';
+import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 
 describe('Release Candidate Smoke Test (e2e)', () => {
   let app: INestApplication;
@@ -11,7 +15,7 @@ describe('Release Candidate Smoke Test (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    }).overrideProvider(AiClient).useValue(new DeterministicAiClient()).compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
@@ -22,6 +26,7 @@ describe('Release Candidate Smoke Test (e2e)', () => {
       }),
     );
     await app.init();
+    await ensureLegacyCatalog(app.get(PrismaService));
     
     // Register to get a token
     const testEmail = `smoke-${Date.now()}@example.com`;

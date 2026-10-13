@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 const request = require('supertest');
+import { ensureLegacyCatalog } from '../fixtures/legacy-catalog';
 
 describe('Promotions & Price Integrity (e2e)', () => {
   let app: INestApplication;
@@ -32,6 +33,7 @@ describe('Promotions & Price Integrity (e2e)', () => {
     app = module.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     await app.init();
+    await ensureLegacyCatalog(app.get(PrismaService));
     prisma = app.get(PrismaService);
     const product = await http().get('/products/cerave-moisturizing-cream').expect(200);
     skuId = product.body.skus[0].id;

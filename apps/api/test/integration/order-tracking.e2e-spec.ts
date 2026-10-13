@@ -7,6 +7,7 @@ import { OrderingService } from '../../src/modules/ordering/services/ordering.se
 import { ReconciliationService } from '../../src/modules/ordering/services/reconciliation.service';
 import { FulfillmentService } from '../../src/modules/fulfillment/services/fulfillment.service';
 const request = require('supertest');
+import { ensureLegacyCatalog } from '../fixtures/legacy-catalog';
 
 describe('Customer order read and tracking (e2e)', () => {
   let app: INestApplication;
@@ -54,6 +55,7 @@ describe('Customer order read and tracking (e2e)', () => {
     app = module.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     await app.init();
+    await ensureLegacyCatalog(app.get(PrismaService));
     prisma = app.get(PrismaService);
     ordering = app.get(OrderingService);
     reconciliation = app.get(ReconciliationService);

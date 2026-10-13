@@ -3,8 +3,11 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { createActor, Actor } from '../fixtures/actors';
+import { reviewCandidateMedia } from '../fixtures/candidate-review';
 
 describe('GLO-77 Candidate Review & Publish (e2e)', () => {
+  let admin: Actor;
   let app: INestApplication;
   let prisma: PrismaService;
   let supplierId: string;
@@ -17,6 +20,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    admin = await createActor(app.get(PrismaService), 'ADMIN');
 
     prisma = app.get<PrismaService>(PrismaService);
   });
@@ -35,6 +39,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
     }
     const product = await prisma.product.findUnique({ where: { slug: 'glo77-brand-glo77-new-serum' } });
     if (product) {
+      await prisma.productMedia.deleteMany({ where: { productId: product.id } });
       await prisma.sku.deleteMany({ where: { productId: product.id } });
       await prisma.product.delete({ where: { id: product.id } });
     }
@@ -55,7 +60,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
   it('completes the full GLO-77 candidate lifecycle: list, view evidence/conflicts, correct, approve, publish to canonical catalog, and verify retry idempotency', async () => {
     // 1. Create Ingestion Job with an unknown product candidate (missing barcode)
     const createRes = await request(app.getHttpServer())
-      .post('/ingestion/jobs')
+      .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId,
         items: [
@@ -78,7 +83,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
 
     // 2. List candidates for review
     const listRes = await request(app.getHttpServer())
-      .get('/ingestion/candidates?status=review_required')
+      .get('/ingestion/candidates?status=review_required').set(admin.auth)
       .expect(200);
 
     expect(Array.isArray(listRes.body)).toBe(true);
@@ -88,7 +93,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
 
     // 3. Read candidate facts, evidence, and conflict analysis
     const detailRes = await request(app.getHttpServer())
-      .get(`/ingestion/candidates/${itemId}`)
+      .get(`/ingestion/candidates/${itemId}`).set(admin.auth)
       .expect(200);
 
     expect(detailRes.body.id).toBe(itemId);
@@ -98,26 +103,37 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
 
     // 4. Correct candidate data (adding barcode)
     const updateRes = await request(app.getHttpServer())
-      .patch(`/ingestion/candidates/${itemId}`)
+      .patch(`/ingestion/candidates/${itemId}`).set(admin.auth)
       .send({ barcode: '6220001112223' })
       .expect(200);
 
     expect(updateRes.body.barcode).toBe('6220001112223');
 
-    // 5. Approve candidate for publication
+    // 5. Approval without a reviewed real image cannot be published (GLO-183)
     await request(app.getHttpServer())
-      .patch(`/ingestion/candidates/${itemId}/approve`)
+      .patch(`/ingestion/candidates/${itemId}/approve`).set(admin.auth)
       .send({})
+      .expect(200);
+    const unreviewed = await request(app.getHttpServer())
+      .post(`/ingestion/candidates/${itemId}/publish`).set(admin.auth)
+      .expect(400);
+    expect(unreviewed.body.message).toContain('reviewed real image');
+
+    // Human evidence + media review, then approve for publication
+    const mediaReviews = await reviewCandidateMedia(app, admin.auth, itemId, '6220001112223');
+    await request(app.getHttpServer())
+      .patch(`/ingestion/candidates/${itemId}/approve`).set(admin.auth)
+      .send({ mediaReviews })
       .expect(200);
 
     const approvedDetail = await request(app.getHttpServer())
-      .get(`/ingestion/candidates/${itemId}`)
+      .get(`/ingestion/candidates/${itemId}`).set(admin.auth)
       .expect(200);
     expect(approvedDetail.body.status).toBe('approved');
 
     // 6. Publish candidate into canonical Catalog domain
     const publishRes = await request(app.getHttpServer())
-      .post(`/ingestion/candidates/${itemId}/publish`)
+      .post(`/ingestion/candidates/${itemId}/publish`).set(admin.auth)
       .expect(200);
 
     expect(publishRes.body.status).toBe('published');
@@ -135,7 +151,9 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
     expect(createdSku!.barcode).toBe('6220001112223');
     expect(createdSku!.product.name).toBe('GLO77 New Serum');
     expect(createdSku!.product.brand.name).toBe('GLO77 Brand');
-    expect(createdSku!.product.isPublished).toBe(true);
+    // Customer publication is a separate authorized operation once commercial inputs exist.
+    expect(createdSku!.product.isPublished).toBe(false);
+    await request(app.getHttpServer()).get(`/products/${createdSku!.product.slug}`).expect(404);
 
     // 8. Verify Sourcing SupplierOffer was created
     const offer = await prisma.supplierOffer.findFirst({
@@ -146,7 +164,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
 
     // 9. Idempotency test: Retry publishing candidate should be safe and return existing canonical SKU without duplicates
     const retryPublishRes = await request(app.getHttpServer())
-      .post(`/ingestion/candidates/${itemId}/publish`)
+      .post(`/ingestion/candidates/${itemId}/publish`).set(admin.auth)
       .expect(400); // Already published
 
     expect(retryPublishRes.body.message).toContain('already published');

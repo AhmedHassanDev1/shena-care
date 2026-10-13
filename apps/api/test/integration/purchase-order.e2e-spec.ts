@@ -4,8 +4,10 @@ const request = require('supertest');
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { PurchaseOrderStatus, PurchaseOrderLineStatus } from '@prisma/client';
+import { createActor, Actor } from '../fixtures/actors';
 
 describe('Purchase Order Flow (e2e)', () => {
+  let admin: Actor;
   let app: INestApplication;
   let prisma: PrismaService;
   let supplierId: string;
@@ -22,6 +24,7 @@ describe('Purchase Order Flow (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     prisma = app.get<PrismaService>(PrismaService);
+    admin = await createActor(prisma, 'HUB_OPERATOR');
 
     // Seed data
     const supplier = await prisma.supplier.create({
@@ -53,7 +56,7 @@ describe('Purchase Order Flow (e2e)', () => {
 
   it('should create a grouped purchase order for a supplier', async () => {
     const response = await request(app.getHttpServer())
-      .post('/purchase-orders')
+      .post('/purchase-orders').set(admin.auth)
       .send({
         supplierId,
         lines: [
@@ -73,7 +76,7 @@ describe('Purchase Order Flow (e2e)', () => {
 
   it('should confirm the purchase order with partial quantity', async () => {
     const response = await request(app.getHttpServer())
-      .post(`/purchase-orders/${purchaseOrderId}/confirm`)
+      .post(`/purchase-orders/${purchaseOrderId}/confirm`).set(admin.auth)
       .send({
         lines: [
           {

@@ -3,8 +3,10 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { createActor, Actor } from '../fixtures/actors';
 
 describe('GLO-121 Product Research Pipeline (e2e)', () => {
+  let admin: Actor;
   let app: INestApplication;
   let prisma: PrismaService;
   let supplierId: string;
@@ -17,6 +19,7 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    admin = await createActor(app.get(PrismaService), 'ADMIN');
 
     prisma = app.get<PrismaService>(PrismaService);
   });
@@ -48,7 +51,7 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
   it('runs research pipeline on a product candidate, extracts field-level evidence, and caches results to protect credits', async () => {
     // 1. Create a candidate job for a real skincare product (CeraVe Moisturizing Cream)
     const jobRes = await request(app.getHttpServer())
-      .post('/ingestion/jobs')
+      .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId,
         items: [
@@ -67,7 +70,7 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
 
     // 2. Trigger Product Research via POST /ingestion/candidates/:id/research
     const researchRes = await request(app.getHttpServer())
-      .post(`/ingestion/candidates/${itemId}/research`)
+      .post(`/ingestion/candidates/${itemId}/research`).set(admin.auth)
       .expect(200);
 
     expect(researchRes.body.candidateId).toBe(itemId);
@@ -83,7 +86,7 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
 
     // 3. Verify persistence: refetch candidate to ensure research evidence is stored in database
     const detailRes = await request(app.getHttpServer())
-      .get(`/ingestion/candidates/${itemId}`)
+      .get(`/ingestion/candidates/${itemId}`).set(admin.auth)
       .expect(200);
 
     expect(detailRes.body.id).toBe(itemId);
@@ -91,7 +94,7 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
 
     // 4. Verify Credit Caching: Repeating research returns cached evidence without re-querying external APIs
     const cachedResearchRes = await request(app.getHttpServer())
-      .post(`/ingestion/candidates/${itemId}/research`)
+      .post(`/ingestion/candidates/${itemId}/research`).set(admin.auth)
       .expect(200);
 
     expect(cachedResearchRes.body.researchedAt).toBe(researchRes.body.researchedAt);
@@ -100,7 +103,7 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
   it('handles incomplete product information and safely keeps candidates reviewable', async () => {
     // Candidate with missing size and minimal facts
     const jobRes = await request(app.getHttpServer())
-      .post('/ingestion/jobs')
+      .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId,
         items: [
@@ -118,7 +121,7 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
     const itemId = jobRes.body.items[0].id;
 
     const researchRes = await request(app.getHttpServer())
-      .post(`/ingestion/candidates/${itemId}/research`)
+      .post(`/ingestion/candidates/${itemId}/research`).set(admin.auth)
       .expect(200);
 
     expect(researchRes.body.candidateId).toBe(itemId);
@@ -126,7 +129,7 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
 
     // Candidate must remain in reviewable state
     const detailRes = await request(app.getHttpServer())
-      .get(`/ingestion/candidates/${itemId}`)
+      .get(`/ingestion/candidates/${itemId}`).set(admin.auth)
       .expect(200);
 
     expect(detailRes.body.status).toBe('review_required');

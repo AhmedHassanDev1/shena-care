@@ -7,6 +7,8 @@ import { CompositionModule } from '../../src/application/composition/composition
 import { ProductViewController } from '../../src/application/composition/controllers/product-view.controller';
 import { CategoryController } from '../../src/application/composition/controllers/category.controller';
 import { BrandController } from '../../src/application/composition/controllers/brand.controller';
+import { ensureLegacyCatalog } from '../fixtures/legacy-catalog';
+import { PrismaService } from '../../src/platform/database/prisma.service';
 
 describe('Catalog Read APIs & Filtering (GLO-99 e2e)', () => {
   let app: INestApplication;
@@ -33,6 +35,7 @@ describe('Catalog Read APIs & Filtering (GLO-99 e2e)', () => {
     brandController = moduleFixture.get<BrandController>(BrandController);
 
     await app.init();
+    await ensureLegacyCatalog(app.get(PrismaService));
   });
 
   afterAll(async () => {
@@ -41,7 +44,7 @@ describe('Catalog Read APIs & Filtering (GLO-99 e2e)', () => {
 
   describe('Product Filtering APIs', () => {
     it('should filter products by leaf category slug', async () => {
-      const results = await productViewController.listProducts('moisturizers');
+      const results = await productViewController.listProducts({ category: 'moisturizers' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((p) => {
@@ -50,7 +53,7 @@ describe('Catalog Read APIs & Filtering (GLO-99 e2e)', () => {
     });
 
     it('should filter products by root category slug (including products in child leaf categories)', async () => {
-      const results = await productViewController.listProducts('skin-care');
+      const results = await productViewController.listProducts({ category: 'skin-care' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((p) => {
@@ -60,7 +63,7 @@ describe('Catalog Read APIs & Filtering (GLO-99 e2e)', () => {
     });
 
     it('should filter products by brand slug', async () => {
-      const results = await productViewController.listProducts(undefined, 'cerave');
+      const results = await productViewController.listProducts({ brand: 'cerave' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((p) => {
@@ -69,11 +72,7 @@ describe('Catalog Read APIs & Filtering (GLO-99 e2e)', () => {
     });
 
     it('should filter products by product line slug', async () => {
-      const results = await productViewController.listProducts(
-        undefined,
-        undefined,
-        'cerave-daily-moisturizers',
-      );
+      const results = await productViewController.listProducts({ productLine: 'cerave-daily-moisturizers' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((p) => {
@@ -82,7 +81,7 @@ describe('Catalog Read APIs & Filtering (GLO-99 e2e)', () => {
     });
 
     it('should filter products by combining category and brand', async () => {
-      const results = await productViewController.listProducts('moisturizers', 'cerave');
+      const results = await productViewController.listProducts({ category: 'moisturizers', brand: 'cerave' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((p) => {
@@ -92,30 +91,18 @@ describe('Catalog Read APIs & Filtering (GLO-99 e2e)', () => {
     });
 
     it('should return empty array for non-matching filters', async () => {
-      const results = await productViewController.listProducts('shampoos', 'cerave');
+      const results = await productViewController.listProducts({ category: 'shampoos', brand: 'cerave' });
       expect(results).toEqual([]);
     });
 
     it('should support pagination limit and page', async () => {
-      const allProducts = await productViewController.listProducts();
+      const allProducts = await productViewController.listProducts({});
       expect(allProducts.length).toBeGreaterThanOrEqual(2);
 
-      const page1 = await productViewController.listProducts(
-        undefined,
-        undefined,
-        undefined,
-        '1',
-        '1',
-      );
+      const page1 = await productViewController.listProducts({ page: 1, limit: 1 });
       expect(page1.length).toBe(1);
 
-      const page2 = await productViewController.listProducts(
-        undefined,
-        undefined,
-        undefined,
-        '2',
-        '1',
-      );
+      const page2 = await productViewController.listProducts({ page: 2, limit: 1 });
       expect(page2.length).toBe(1);
 
       // Verify page 1 and page 2 returned different products

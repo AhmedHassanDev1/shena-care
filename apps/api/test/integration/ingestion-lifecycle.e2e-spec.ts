@@ -3,8 +3,11 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { createActor, Actor } from '../fixtures/actors';
+import { reviewCandidateMedia } from '../fixtures/candidate-review';
 
 describe('Ingestion Lifecycle (e2e)', () => {
+  let admin: Actor;
   let app: INestApplication;
   let prisma: PrismaService;
 
@@ -20,7 +23,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
   async function waitForJob(jobId: string, ready: (job: JobBody) => boolean): Promise<JobBody> {
     const deadline = Date.now() + 5000;
     do {
-      const response = await request(app.getHttpServer()).get(`/ingestion/jobs/${jobId}`).expect(200);
+      const response = await request(app.getHttpServer()).get(`/ingestion/jobs/${jobId}`).set(admin.auth).expect(200);
       const job = response.body as JobBody;
       if (ready(job)) return job;
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -36,6 +39,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    admin = await createActor(app.get(PrismaService), 'ADMIN');
 
     prisma = app.get<PrismaService>(PrismaService);
   });
@@ -54,6 +58,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
     }
     const product = await prisma.product.findUnique({ where: { slug: 'ingest-product' } });
     if (product) {
+      await prisma.productMedia.deleteMany({ where: { productId: product.id } });
       await prisma.sku.deleteMany({ where: { productId: product.id } });
       await prisma.product.delete({ where: { id: product.id } });
     }
@@ -82,7 +87,9 @@ describe('Ingestion Lifecycle (e2e)', () => {
       data: {
         productId: product.id,
         code: 'INGEST-SKU',
-        variantName: 'Default',
+        variantName: '50 ml',
+        size: 50,
+        sizeUnit: 'ml',
         barcode: '1234567890123',
         isActive: true,
       },
@@ -100,7 +107,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
   it('verifies the ingestion lifecycle with matching and publishing', async () => {
     // 1. Create Ingestion Job
     const createJobRes = await request(app.getHttpServer())
-      .post('/ingestion/jobs')
+      .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId,
         items: [
@@ -134,9 +141,9 @@ describe('Ingestion Lifecycle (e2e)', () => {
     const items = job.items;
     expect(items.length).toBe(2);
 
-    // 2. barcode automatically matches existing SKU
+    // 2. barcode automatically pre-links the existing SKU but still needs human review
     const matchedItem = items.find((i) => i.barcode === '1234567890123');
-    expect(matchedItem.status).toBe('approved');
+    expect(matchedItem.status).toBe('review_required');
     expect(matchedItem.matchedSkuId).toBe(skuId);
 
     // 3. unknown barcode remains unresolved
@@ -146,46 +153,57 @@ describe('Ingestion Lifecycle (e2e)', () => {
 
     // 9. invalid lifecycle transition fails (publish before all approved)
     await request(app.getHttpServer())
-      .post(`/ingestion/jobs/${jobId}/publish`)
+      .post(`/ingestion/jobs/${jobId}/publish`).set(admin.auth)
       .expect(400);
 
     // 5. invalid SKU approval fails
     await request(app.getHttpServer())
-      .patch(`/ingestion/items/${unresolvedItem.id}/approve`)
+      .patch(`/ingestion/items/${unresolvedItem.id}/approve`).set(admin.auth)
       .send({ matchedSkuId: '00000000-0000-0000-0000-000000000000' })
       .expect(404);
 
-    // 4. manual approval links correct SKU
+    // 4. an item whose barcode differs from the SKU cannot be reviewed onto it
+    const mismatched = await reviewCandidateMedia(app, admin.auth, unresolvedItem.id, '0000000000000');
     await request(app.getHttpServer())
-      .patch(`/ingestion/items/${unresolvedItem.id}/approve`)
-      .send({ matchedSkuId: skuId }) // mapping second item to same SKU for test
+      .patch(`/ingestion/items/${unresolvedItem.id}/approve`).set(admin.auth)
+      .send({ matchedSkuId: skuId, mediaReviews: mismatched })
+      .expect(400);
+    await request(app.getHttpServer())
+      .patch(`/ingestion/items/${unresolvedItem.id}/reject`).set(admin.auth)
+      .expect(200);
+
+    // manual approval of the pre-linked item after media review
+    const reviews = await reviewCandidateMedia(app, admin.auth, matchedItem.id, '1234567890123');
+    await request(app.getHttpServer())
+      .patch(`/ingestion/items/${matchedItem.id}/approve`).set(admin.auth)
+      .send({ matchedSkuId: skuId, mediaReviews: reviews })
       .expect(200);
 
     // Refresh Job
     const jobRes2 = await request(app.getHttpServer())
-      .get(`/ingestion/jobs/${jobId}`)
+      .get(`/ingestion/jobs/${jobId}`).set(admin.auth)
       .expect(200);
 
     expect(jobRes2.body.status).toBe('approved');
 
     // 6. publishing creates expected SupplierOffer
     await request(app.getHttpServer())
-      .post(`/ingestion/jobs/${jobId}/publish`)
+      .post(`/ingestion/jobs/${jobId}/publish`).set(admin.auth)
       .expect(201);
 
     const offers = await prisma.supplierOffer.findMany({ where: { supplierId } });
-    expect(offers.length).toBe(1); // both mapped to same SKU, second one updates it
+    expect(offers.length).toBe(1); // the rejected item is not published
     expect(offers[0].skuId).toBe(skuId);
-    expect(offers[0].costPrice.toNumber()).toBe(200); // the latter item was 200
+    expect(offers[0].costPrice.toNumber()).toBe(150.5);
 
     // 7. duplicate publish is safe (fails with 400 Job is already published)
     await request(app.getHttpServer())
-      .post(`/ingestion/jobs/${jobId}/publish`)
+      .post(`/ingestion/jobs/${jobId}/publish`).set(admin.auth)
       .expect(400);
 
     // 8. duplicate import does not corrupt offers
     const createJobRes2 = await request(app.getHttpServer())
-      .post('/ingestion/jobs')
+      .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId,
         items: [
@@ -201,16 +219,24 @@ describe('Ingestion Lifecycle (e2e)', () => {
       })
       .expect(201);
 
-    await waitForJob(createJobRes2.body.id, (current) => current.status === 'approved');
+    const job2 = await waitForJob(createJobRes2.body.id, (current) => current.items.every((item) => item.status !== 'pending'));
+    const reviews2 = await reviewCandidateMedia(app, admin.auth, job2.items[0].id, '1234567890123');
+    await request(app.getHttpServer())
+      .patch(`/ingestion/items/${job2.items[0].id}/approve`).set(admin.auth)
+      .send({ mediaReviews: reviews2 })
+      .expect(200);
 
     // publish the duplicate
     await request(app.getHttpServer())
-      .post(`/ingestion/jobs/${createJobRes2.body.id}/publish`)
+      .post(`/ingestion/jobs/${createJobRes2.body.id}/publish`).set(admin.auth)
       .expect(201);
 
-    // offer should be updated, not duplicated
+    // offer is not duplicated, and a re-import never overwrites the Sourcing-owned offer
+    // (cost or availability); changes go through Sourcing.
     const offersAfter = await prisma.supplierOffer.findMany({ where: { supplierId } });
     expect(offersAfter.length).toBe(1);
-    expect(offersAfter[0].costPrice.toNumber()).toBe(180);
+    expect(offersAfter[0].costPrice.toNumber()).toBe(150.5);
+    expect(offersAfter[0].isAvailable).toBe(false);
+    expect(offersAfter[0].lastConfirmedAt).toBeNull();
   });
 });

@@ -4,8 +4,10 @@ import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { AiClient } from '../../src/platform/ai';
+import { createActor, Actor } from '../fixtures/actors';
 
 describe('Ingestion Enrichment (e2e)', () => {
+  let admin: Actor;
   let app: INestApplication;
   let prisma: PrismaService;
   let supplierId: string;
@@ -40,6 +42,7 @@ describe('Ingestion Enrichment (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    admin = await createActor(app.get(PrismaService), 'ADMIN');
 
     prisma = app.get<PrismaService>(PrismaService);
   });
@@ -86,7 +89,7 @@ describe('Ingestion Enrichment (e2e)', () => {
   it('triggers enrichment via POST /ingestion/items/:id/enrich and stores result', async () => {
     // 1. Create a job with an item
     const createJobRes = await request(app.getHttpServer())
-      .post('/ingestion/jobs')
+      .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId,
         items: [
@@ -107,7 +110,7 @@ describe('Ingestion Enrichment (e2e)', () => {
 
     // 2. Trigger enrichment manually
     const enrichRes = await request(app.getHttpServer())
-      .post(`/ingestion/items/${itemId}/enrich`)
+      .post(`/ingestion/items/${itemId}/enrich`).set(admin.auth)
       .expect(200);
 
     expect(enrichRes.body.enrichmentStatus).toBe('succeeded');
@@ -118,18 +121,18 @@ describe('Ingestion Enrichment (e2e)', () => {
     expect(enrichRes.body.enrichmentError).toBeNull();
 
     // 3. Verify persistence: refetch job to confirm field is stored
-    const jobRes = await request(app.getHttpServer()).get(`/ingestion/jobs/${jobId}`).expect(200);
+    const jobRes = await request(app.getHttpServer()).get(`/ingestion/jobs/${jobId}`).set(admin.auth).expect(200);
     // Job still present
     expect(jobRes.body.id).toBe(jobId);
 
     // 4. Invalid item ID returns 400
     await request(app.getHttpServer())
-      .post('/ingestion/items/not-a-uuid/enrich')
+      .post('/ingestion/items/not-a-uuid/enrich').set(admin.auth)
       .expect(400);
 
     // 5. Non-existent item returns 404
     await request(app.getHttpServer())
-      .post('/ingestion/items/00000000-0000-0000-0000-000000000000/enrich')
+      .post('/ingestion/items/00000000-0000-0000-0000-000000000000/enrich').set(admin.auth)
       .expect(404);
   });
 
@@ -137,12 +140,14 @@ describe('Ingestion Enrichment (e2e)', () => {
     // Override mock for this test to simulate unavailability
     const aiClient = app.get<AiClient>(AiClient);
     const { AiClientError, AiErrorKind } = await import('../../src/platform/ai');
-    jest.spyOn(aiClient, 'enrichProduct').mockRejectedValueOnce(
+    // The outage lasts for the whole test: job creation also fires a background enrichment,
+    // which would otherwise consume a one-shot rejection before the explicit retry below.
+    const outage = jest.spyOn(aiClient, 'enrichProduct').mockRejectedValue(
       new AiClientError(AiErrorKind.UNAVAILABLE, 'AI service unreachable'),
     );
 
     const createJobRes = await request(app.getHttpServer())
-      .post('/ingestion/jobs')
+      .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId,
         items: [
@@ -160,11 +165,12 @@ describe('Ingestion Enrichment (e2e)', () => {
     const itemId = createJobRes.body.items[0].id;
 
     const enrichRes = await request(app.getHttpServer())
-      .post(`/ingestion/items/${itemId}/enrich`)
+      .post(`/ingestion/items/${itemId}/enrich`).set(admin.auth)
       .expect(200);
 
     // Soft error: enrichmentStatus stays pending (can retry)
     expect(enrichRes.body.enrichmentStatus).toBe('pending');
     expect(enrichRes.body.enrichmentError).toContain('ai_unavailable');
+    outage.mockRestore();
   });
 });

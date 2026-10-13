@@ -3,6 +3,8 @@ import { Reflector } from '@nestjs/core';
 import { PermissionsGuard } from './permissions.guard';
 import { PERMISSIONS_KEY } from './permissions.decorator';
 import { Permission } from './permissions';
+import { isAuthBypassEnabled } from './auth-bypass';
+import { RolesGuard } from '../../modules/accounts/guards/roles.guard';
 
 describe('PermissionsGuard', () => {
   let guard: PermissionsGuard;
@@ -70,4 +72,31 @@ describe('PermissionsGuard', () => {
     const context = createMockContext({ roles: ['SUPPLIER'] }, ['hub.pack']);
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
+
+  describe('test-only auth bypass', () => {
+    const nodeEnv = process.env.NODE_ENV;
+    afterEach(() => { process.env.NODE_ENV = nodeEnv; delete process.env.TEST_BYPASS_AUTH; });
+
+    it.each(['production', 'development', 'staging', undefined])('is ignored when NODE_ENV=%s', (env) => {
+      if (env === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = env;
+      process.env.TEST_BYPASS_AUTH = 'true';
+      expect(isAuthBypassEnabled()).toBe(false);
+      expect(() => guard.canActivate(createMockContext({ roles: ['CUSTOMER'] }, ['catalog.manage']))).toThrow(ForbiddenException);
+      expect(() => new RolesGuard(rolesReflector(['ADMIN'])).canActivate(createMockContext({ roles: ['CUSTOMER'] })))
+        .toThrow(ForbiddenException);
+    });
+
+    it('is honoured only inside the test environment', () => {
+      process.env.NODE_ENV = 'test';
+      process.env.TEST_BYPASS_AUTH = 'true';
+      expect(isAuthBypassEnabled()).toBe(true);
+      expect(guard.canActivate(createMockContext({ roles: ['CUSTOMER'] }, ['catalog.manage']))).toBe(true);
+    });
+  });
 });
+
+function rolesReflector(roles: string[]) {
+  const reflector = new Reflector();
+  jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(roles);
+  return reflector;
+}

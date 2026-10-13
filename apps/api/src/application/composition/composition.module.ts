@@ -7,7 +7,6 @@ import { BrandController } from './controllers/brand.controller';
 import { CategoryController } from './controllers/category.controller';
 import { ListingController } from './controllers/listing.controller';
 import { PriceController } from './controllers/price.controller';
-import { SupplierController } from './controllers/supplier.controller';
 import { PurchaseOrderController } from './controllers/purchase-order.controller';
 import { ProductViewService } from './services/product-view.service';
 import { DiscoveryService } from './services/discovery.service';
@@ -31,7 +30,7 @@ import { IngestionModule } from '../../modules/ingestion/public';
     CategoryController,     // GET /categories, GET /categories/:slug
     ListingController,      // /commerce/listings
     PriceController,        // /commerce/prices
-    SupplierController,     // /sourcing/suppliers and /sourcing/offers
+    // /sourcing/* is served by the guarded SourcingController in the Sourcing module
     PurchaseOrderController,// /purchase-orders
   ],
   providers: [ProductViewService, DiscoveryService, ProductDetailService],

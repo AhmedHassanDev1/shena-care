@@ -1,9 +1,10 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { SupplyPlanService } from '../../src/modules/sourcing/services/supply-plan.service';
+import { attachReviewedMedia } from '../fixtures/sellable-sku';
 const request = require('supertest');
 
 describe('Customer availability resolution + order amendment (e2e)', () => {
@@ -30,6 +31,7 @@ describe('Customer availability resolution + order amendment (e2e)', () => {
     } });
     const mk = async (code: string, variantName: string, price: number, supplied: boolean) => {
       const sku = await prisma.sku.create({ data: { productId: product.id, code: code + suffix, variantName } });
+      await attachReviewedMedia(prisma, sku.id);
       await prisma.listing.create({ data: { skuId: sku.id, isListed: true } });
       await prisma.sellingPrice.create({ data: { skuId: sku.id, amount: price, currency: 'EGP', validFrom: new Date(Date.now() - 1000), isActive: true } });
       let offerId: string | undefined;
@@ -190,7 +192,7 @@ describe('Customer availability resolution + order amendment (e2e)', () => {
   });
 
   it('cancels the order through the canonical cancellation lifecycle (guest, token-scoped)', async () => {
-    const guestToken = 'G'.repeat(43);
+    const guestToken = randomBytes(32).toString('base64url'); // 43 chars, unique per run
     const { product, original } = await makeProduct();
     const order = await makeOrder(null, [{ skuId: original.id, quantity: 1, productId: product.id }], { token: guestToken });
     await exhaust(order.id, original.offerId!);

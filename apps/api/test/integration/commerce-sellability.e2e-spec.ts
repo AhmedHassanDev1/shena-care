@@ -4,6 +4,8 @@ import { DatabaseModule } from '../../src/platform/database/database.module';
 import { CatalogModule, CatalogService } from '../../src/modules/catalog/public';
 import { CommerceModule, CommerceService } from '../../src/modules/commerce/public';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { ensureLegacyCatalog } from '../fixtures/legacy-catalog';
+import { attachReviewedMedia } from '../fixtures/sellable-sku';
 
 describe('Commerce Sellability Evaluation (GLO-101 e2e)', () => {
   let app: INestApplication;
@@ -26,6 +28,7 @@ describe('Commerce Sellability Evaluation (GLO-101 e2e)', () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
     await app.init();
+    await ensureLegacyCatalog(app.get(PrismaService));
   });
 
   afterAll(async () => {
@@ -205,6 +208,7 @@ describe('Commerce Sellability Evaluation (GLO-101 e2e)', () => {
         },
       });
       createdSkuIds.push(sku.id);
+      await attachReviewedMedia(prisma, sku.id); // catalog-eligible, so the commerce rule under test is reached
 
       const evaluation = await commerceService.evaluateSellability(sku.id);
 
@@ -234,6 +238,7 @@ describe('Commerce Sellability Evaluation (GLO-101 e2e)', () => {
         },
       });
       createdSkuIds.push(sku.id);
+      await attachReviewedMedia(prisma, sku.id); // catalog-eligible, so the commerce rule under test is reached
 
       // Create unlisted listing + valid price
       await prisma.listing.create({
@@ -285,6 +290,7 @@ describe('Commerce Sellability Evaluation (GLO-101 e2e)', () => {
         },
       });
       createdSkuIds.push(sku.id);
+      await attachReviewedMedia(prisma, sku.id); // catalog-eligible, so the commerce rule under test is reached
       priceTestSkuId = sku.id;
 
       // Create active listing

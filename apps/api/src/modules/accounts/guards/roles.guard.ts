@@ -2,6 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core';
 import { Role } from '@prisma/client';
 import { ROLES_KEY } from '../decorators/roles.decorator';
+import { isAuthBypassEnabled } from '../../../platform/auth/auth-bypass';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -18,7 +19,7 @@ export class RolesGuard implements CanActivate {
     }
     const { user } = context.switchToHttp().getRequest();
     
-    if (process.env.TEST_BYPASS_AUTH === 'true') {
+    if (isAuthBypassEnabled()) {
       return true;
     }
     

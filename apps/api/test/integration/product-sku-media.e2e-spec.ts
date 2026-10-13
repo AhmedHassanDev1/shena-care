@@ -7,17 +7,22 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { DatabaseModule } from '../../src/platform/database/database.module';
-import { CatalogModule } from '../../src/modules/catalog/public';
+import { CatalogModule, CatalogService } from '../../src/modules/catalog/public';
 import { CommerceModule } from '../../src/modules/commerce/public';
 import { CompositionModule } from '../../src/application/composition/composition.module';
 import { ProductViewController } from '../../src/application/composition/controllers/product-view.controller';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { MediaType, MediaOriginType } from '@prisma/client';
+import { ensureLegacyCatalog } from '../fixtures/legacy-catalog';
+import { reviewedMediaMetadata } from '../fixtures/sellable-sku';
 
 describe('Product, SKU & Media Management (e2e)', () => {
   let app: INestApplication;
   let productViewController: ProductViewController;
+  let catalogService: CatalogService;
   let prisma: PrismaService;
+  let reviewer: { user: { id: string } };
+  let customer: { user: { id: string } };
 
   let ceraveBrandId: string;
   let ceraveProductLineId: string;
@@ -42,7 +47,16 @@ describe('Product, SKU & Media Management (e2e)', () => {
     productViewController = moduleFixture.get<ProductViewController>(ProductViewController);
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
+    catalogService = moduleFixture.get<CatalogService>(CatalogService);
+
     await app.init();
+    const legacy = await ensureLegacyCatalog(app.get(PrismaService));
+    reviewer = { user: { id: legacy.reviewer.id } };
+    const plain = await prisma.customer.upsert({
+      where: { email: 'product-sku-media-customer@fixtures.test' }, update: { roles: ['CUSTOMER'] },
+      create: { name: 'Plain Customer', email: 'product-sku-media-customer@fixtures.test', roles: ['CUSTOMER'] },
+    });
+    customer = { user: { id: plain.id } };
 
     // Fetch existing seeded dependencies
     const cerave = await prisma.brand.findFirst({ where: { slug: 'cerave' } });
@@ -220,10 +234,13 @@ describe('Product, SKU & Media Management (e2e)', () => {
     });
 
     it('should list SKUs belonging to a product', async () => {
-      const skus = await productViewController.listProductSkus(productId);
+      // Owner-side read sees the unpublished product's SKUs ...
+      const owned = await catalogService.getProduct(productId);
+      expect(owned!.skus.length).toBeGreaterThan(0);
+      expect(owned!.skus.some((s) => s.id === createdSkuId)).toBe(true);
 
-      expect(skus.length).toBeGreaterThan(0);
-      expect(skus.some((s) => s.id === createdSkuId)).toBe(true);
+      // ... while the public SKU listing never exposes an unpublished product.
+      await expect(productViewController.listProductSkus(productId)).rejects.toThrow(NotFoundException);
     });
 
     it('should update SKU variant name and size', async () => {
@@ -249,20 +266,37 @@ describe('Product, SKU & Media Management (e2e)', () => {
     let productId: string;
     let firstMediaId: string;
     let secondMediaId: string;
+    let review: Record<string, unknown>;
 
     beforeAll(async () => {
       const p = await prisma.product.findFirst({ where: { slug: 'updated-lotion-slug' } });
       productId = p!.id;
+      const sku = await prisma.sku.findUniqueOrThrow({ where: { code: 'TEST-SKU-236' } });
+      review = reviewedMediaMetadata({ id: sku.id, barcode: sku.barcode!, size: sku.size!.toNumber(),
+        sizeUnit: sku.sizeUnit!, variantName: sku.variantName }, reviewer.user.id);
+    });
+
+    const ownedMedia = async () => (await catalogService.getProduct(productId))!.media;
+
+    it('should reject verified media without an identity review or by a non-reviewer', async () => {
+      const dto = { type: MediaType.image, url: 'https://example.com/lotion-unreviewed.jpg', originType: MediaOriginType.verified };
+      await expect(productViewController.addProductMedia(reviewer, productId, dto)).rejects.toThrow(BadRequestException);
+      await expect(productViewController.addProductMedia(customer, productId, { ...dto, generationMetadata: { ...review, reviewedBy: customer.user.id } }))
+        .rejects.toThrow(BadRequestException);
+      await expect(productViewController.addProductMedia(customer, productId, { ...dto, generationMetadata: review }))
+        .rejects.toThrow(BadRequestException);
+      expect((await ownedMedia()).some((m) => m.url.endsWith('lotion-unreviewed.jpg'))).toBe(false);
     });
 
     it('should add primary media with verified origin to a product', async () => {
-      const media = await productViewController.addProductMedia(productId, {
+      const media = await productViewController.addProductMedia(reviewer, productId, {
         type: MediaType.image,
         url: 'https://example.com/lotion-front.jpg',
         altText: 'Front bottle shot',
         sortOrder: 1,
         isPrimary: true,
         originType: MediaOriginType.verified,
+        generationMetadata: review,
       });
 
       expect(media).toBeDefined();
@@ -275,20 +309,21 @@ describe('Product, SKU & Media Management (e2e)', () => {
     });
 
     it('should add second media and reset primary status when second is marked primary', async () => {
-      const media2 = await productViewController.addProductMedia(productId, {
+      const media2 = await productViewController.addProductMedia(reviewer, productId, {
         type: MediaType.image,
         url: 'https://example.com/lotion-back.jpg',
         altText: 'Back label shot',
         sortOrder: 2,
         isPrimary: true,
         originType: MediaOriginType.verified,
+        generationMetadata: review,
       });
 
       expect(media2.isPrimary).toBe(true);
       secondMediaId = media2.id;
 
       // Verify that the first media is no longer primary
-      const allMedia = await productViewController.listProductMedia(productId);
+      const allMedia = await ownedMedia();
       const first = allMedia.find((m) => m.id === firstMediaId);
       const second = allMedia.find((m) => m.id === secondMediaId);
 
@@ -297,7 +332,7 @@ describe('Product, SKU & Media Management (e2e)', () => {
     });
 
     it('should update media metadata and sort order', async () => {
-      const updated = await productViewController.updateMedia(firstMediaId, {
+      const updated = await productViewController.updateMedia(reviewer, firstMediaId, {
         altText: 'Updated front bottle shot',
         sortOrder: 0,
       });
@@ -306,10 +341,21 @@ describe('Product, SKU & Media Management (e2e)', () => {
       expect(updated.sortOrder).toBe(0);
     });
 
+    it('should not let a non-reviewer re-point verified media to a new image', async () => {
+      await expect(productViewController.updateMedia(customer, firstMediaId, { url: 'https://example.com/swapped.jpg' }))
+        .rejects.toThrow(BadRequestException);
+      await expect(productViewController.updateMedia(customer, firstMediaId, { altText: 'x' }))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('should keep media of an unpublished product out of the public media listing', async () => {
+      await expect(productViewController.listProductMedia(productId)).rejects.toThrow(NotFoundException);
+    });
+
     it('should delete a media item and return no content', async () => {
       await productViewController.deleteMedia(secondMediaId);
 
-      const allMedia = await productViewController.listProductMedia(productId);
+      const allMedia = await ownedMedia();
       expect(allMedia.some((m) => m.id === secondMediaId)).toBe(false);
     });
 

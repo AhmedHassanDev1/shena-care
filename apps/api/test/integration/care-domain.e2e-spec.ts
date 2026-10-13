@@ -3,8 +3,10 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { createActor, Actor } from '../fixtures/actors';
 
 describe('Care Domain Lifecycle (e2e)', () => {
+  let admin: Actor;
   let app: INestApplication;
   let prisma: PrismaService;
 
@@ -23,6 +25,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
     await app.init();
 
     prisma = app.get<PrismaService>(PrismaService);
+    admin = await createActor(prisma, 'ADMIN');
 
     // Get Auth Token
     const testEmail = `care-${Date.now()}@example.com`;
@@ -83,9 +86,13 @@ describe('Care Domain Lifecycle (e2e)', () => {
   afterEach(cleanFixture);
 
   it('verifies the care domain lifecycle: concerns, routines, steps, and catalog references', async () => {
-    // 1. Create a Concern
+    // 1. Create a Concern (catalog administration: customers are refused)
+    await request(app.getHttpServer())
+      .post('/care/concerns').set('Authorization', authToken)
+      .send({ name: 'Acne', careArea: 'skin' })
+      .expect(403);
     const createConcernRes = await request(app.getHttpServer())
-      .post('/care/concerns')
+      .post('/care/concerns').set(admin.auth)
       .send({
         name: 'Acne',
         careArea: 'skin',
@@ -98,7 +105,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
     // 2. Different care areas can coexist (Create Hair concern)
     const createHairConcernRes = await request(app.getHttpServer())
-      .post('/care/concerns')
+      .post('/care/concerns').set(admin.auth)
       .send({
         name: 'Frizz',
         careArea: 'hair',
@@ -109,7 +116,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
     // 3. Routine creation
     const createRoutineRes = await request(app.getHttpServer())
-      .post('/care/routines')
+      .post('/care/routines').set(admin.auth)
       .send({
         title: 'Basic Acne Routine',
         careArea: 'skin',
@@ -121,7 +128,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
     // 5. Invalid catalog reference is rejected
     await request(app.getHttpServer())
-      .post(`/care/routines/${routineId}/steps`)
+      .post(`/care/routines/${routineId}/steps`).set(admin.auth)
       .send({
         title: 'Cleansing',
         stepOrder: 1,
@@ -134,7 +141,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
     // 4 & 6. Ordered routine steps with timing
     await request(app.getHttpServer())
-      .post(`/care/routines/${routineId}/steps`)
+      .post(`/care/routines/${routineId}/steps`).set(admin.auth)
       .send({
         title: 'Cleansing',
         stepOrder: 1,
@@ -147,7 +154,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
       .expect(201);
 
     await request(app.getHttpServer())
-      .post(`/care/routines/${routineId}/steps`)
+      .post(`/care/routines/${routineId}/steps`).set(admin.auth)
       .send({
         title: 'Treatment',
         stepOrder: 2,
@@ -158,7 +165,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
     // 7. Duplicate step ordering behavior fails
     await request(app.getHttpServer())
-      .post(`/care/routines/${routineId}/steps`)
+      .post(`/care/routines/${routineId}/steps`).set(admin.auth)
       .send({
         title: 'Another Treatment',
         stepOrder: 2,
@@ -168,7 +175,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
     // Verify retrieval of Routine
     const getRoutineRes = await request(app.getHttpServer())
-      .get(`/care/routines/${routineId}`)
+      .get(`/care/routines/${routineId}`).set(admin.auth)
       .expect(200);
 
     expect(getRoutineRes.body.steps.length).toBe(2);
@@ -223,7 +230,7 @@ describe('Care Domain Lifecycle (e2e)', () => {
 
     // 2. Create custom routine
     const customRoutineRes = await request(app.getHttpServer())
-      .post('/care/routines')
+      .post('/care/routines').set(admin.auth)
       .send({
         title: 'Custom Profile Routine',
         careArea: 'skin',

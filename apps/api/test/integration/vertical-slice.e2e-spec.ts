@@ -5,6 +5,8 @@ import { CatalogModule, CatalogService, BrandService, CategoryService } from '..
 import { CommerceModule, CommerceService } from '../../src/modules/commerce/public';
 import { CompositionModule } from '../../src/application/composition/composition.module';
 import { ProductViewService } from '../../src/application/composition/services/product-view.service';
+import { ensureLegacyCatalog } from '../fixtures/legacy-catalog';
+import { PrismaService } from '../../src/platform/database/prisma.service';
 
 describe('First Vertical Slice (e2e)', () => {
   let app: INestApplication;
@@ -35,6 +37,7 @@ describe('First Vertical Slice (e2e)', () => {
     categoryService = moduleFixture.get<CategoryService>(CategoryService);
 
     await app.init();
+    await ensureLegacyCatalog(app.get(PrismaService));
   });
 
   afterAll(async () => {

@@ -9,7 +9,11 @@ import {
   NotFoundException,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
+import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
+import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import {
   BrandService,
   CreateBrandDto,
@@ -38,6 +42,8 @@ export class BrandController {
 
   // POST /brands
   // إنشاء ماركة جديدة
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createBrand(@Body() dto: CreateBrandDto) {
@@ -57,6 +63,8 @@ export class BrandController {
 
   // PATCH /brands/product-lines/:id
   // تحديث بيانات خط إنتاج
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Patch('product-lines/:id')
   async updateProductLine(
     @Param('id') id: string,
@@ -74,6 +82,8 @@ export class BrandController {
 
   // POST /brands/:brandId/product-lines
   // إنشاء خط إنتاج جديد وربطه بالماركة
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Post(':brandId/product-lines')
   @HttpCode(HttpStatus.CREATED)
   async createProductLine(
@@ -96,6 +106,8 @@ export class BrandController {
 
   // PATCH /brands/:id
   // تحديث بيانات الماركة
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @Patch(':id')
   async updateBrand(
     @Param('id') id: string,

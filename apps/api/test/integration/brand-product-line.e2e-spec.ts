@@ -6,6 +6,7 @@ import { CommerceModule } from '../../src/modules/commerce/public';
 import { CompositionModule } from '../../src/application/composition/composition.module';
 import { BrandController } from '../../src/application/composition/controllers/brand.controller';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { ensureLegacyCatalog } from '../fixtures/legacy-catalog';
 
 describe('Brand & ProductLine Management (e2e)', () => {
   let app: INestApplication;
@@ -30,6 +31,7 @@ describe('Brand & ProductLine Management (e2e)', () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
 
     await app.init();
+    await ensureLegacyCatalog(app.get(PrismaService));
   });
 
   afterAll(async () => {

@@ -4,8 +4,11 @@ import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { ProductIdentityService, MatchClassification } from '../../src/modules/ingestion/services/product-identity.service';
+import { createActor, Actor } from '../fixtures/actors';
+import { reviewCandidateMedia } from '../fixtures/candidate-review';
 
 describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
+  let admin: Actor;
   let app: INestApplication;
   let prisma: PrismaService;
   let identityService: ProductIdentityService;
@@ -20,6 +23,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    admin = await createActor(app.get(PrismaService), 'ADMIN');
 
     prisma = app.get<PrismaService>(PrismaService);
     identityService = app.get<ProductIdentityService>(ProductIdentityService);
@@ -51,6 +55,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       where: { brand: { slug: { in: ['glo120-brand-a', 'glo120-brand-b'] } } },
     });
     for (const p of products) {
+      await prisma.productMedia.deleteMany({ where: { productId: p.id } });
       await prisma.sku.deleteMany({ where: { productId: p.id } });
       await prisma.product.delete({ where: { id: p.id } });
     }
@@ -129,7 +134,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
   it('allows two separate suppliers to sell the same canonical SKU with independent SupplierOffers', async () => {
     // 1. Supplier 1 imports and publishes candidate
     const createJob1 = await request(app.getHttpServer())
-      .post('/ingestion/jobs')
+      .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId: supplier1Id,
         items: [{ supplierSkuCode: 'SUP1-SKU', name: 'Shared Lotion', brand: 'GLO120 Brand A', barcode: '6228888888888', price: 200, currency: 'EGP' }],
@@ -137,15 +142,16 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       .expect(201);
 
     const itemId1 = createJob1.body.items[0].id;
-    await request(app.getHttpServer()).patch(`/ingestion/candidates/${itemId1}/approve`).send({}).expect(200);
-    const pub1 = await request(app.getHttpServer()).post(`/ingestion/candidates/${itemId1}/publish`).expect(200);
+    const reviews1 = await reviewCandidateMedia(app, admin.auth, itemId1, '6228888888888');
+    await request(app.getHttpServer()).patch(`/ingestion/candidates/${itemId1}/approve`).set(admin.auth).send({ mediaReviews: reviews1 }).expect(200);
+    const pub1 = await request(app.getHttpServer()).post(`/ingestion/candidates/${itemId1}/publish`).set(admin.auth).expect(200);
 
     const canonicalSkuId = pub1.body.matchedSkuId;
     expect(canonicalSkuId).toBeDefined();
 
     // 2. Supplier 2 imports the same product with same barcode
     const createJob2 = await request(app.getHttpServer())
-      .post('/ingestion/jobs')
+      .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId: supplier2Id,
         items: [{ supplierSkuCode: 'SUP2-SKU', name: 'Shared Lotion', brand: 'GLO120 Brand A', barcode: '6228888888888', price: 220, currency: 'EGP' }],
@@ -155,13 +161,15 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
     const itemId2 = createJob2.body.items[0].id;
     await new Promise((r) => setTimeout(r, 100));
 
-    // Supplier 2 candidate should EXACT_MATCH the same canonical SKU
-    const detail2 = await request(app.getHttpServer()).get(`/ingestion/candidates/${itemId2}`).expect(200);
+    // Supplier 2 candidate should EXACT_MATCH the same canonical SKU, pending human review
+    const detail2 = await request(app.getHttpServer()).get(`/ingestion/candidates/${itemId2}`).set(admin.auth).expect(200);
     expect(detail2.body.matchedSkuId).toBe(canonicalSkuId);
-    expect(detail2.body.status).toBe('approved');
+    expect(detail2.body.status).toBe('review_required');
 
-    // Supplier 2 publishes
-    await request(app.getHttpServer()).post(`/ingestion/candidates/${itemId2}/publish`).expect(200);
+    // Supplier 2 publishes after its own media review against the canonical variant
+    const reviews2 = await reviewCandidateMedia(app, admin.auth, itemId2, '6228888888888');
+    await request(app.getHttpServer()).patch(`/ingestion/candidates/${itemId2}/approve`).set(admin.auth).send({ mediaReviews: reviews2 }).expect(200);
+    await request(app.getHttpServer()).post(`/ingestion/candidates/${itemId2}/publish`).set(admin.auth).expect(200);
 
     // 3. Assert persisted database records: exactly 1 canonical SKU, but 2 separate SupplierOffers!
     const skuCount = await prisma.sku.count({ where: { barcode: '6228888888888' } });

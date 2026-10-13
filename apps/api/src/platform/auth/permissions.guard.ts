@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Role } from '@prisma/client';
 import { Permission, ROLE_PERMISSIONS } from './permissions';
 import { PERMISSIONS_KEY } from './permissions.decorator';
+import { isAuthBypassEnabled } from './auth-bypass';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -20,7 +21,7 @@ export class PermissionsGuard implements CanActivate {
     
     const { user } = context.switchToHttp().getRequest();
     
-    if (process.env.TEST_BYPASS_AUTH === 'true') {
+    if (isAuthBypassEnabled()) {
       return true;
     }
     

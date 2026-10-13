@@ -1435,6 +1435,7 @@ model RoutineDraft {
 
   proposals       RoutineProposal[]
   
+  @@index([customerId])
   @@map("routine_drafts")
   @@schema("care")
 }
