@@ -1,7 +1,9 @@
 import { Controller, Post, Body, Get, Param, Patch, Query, Req, HttpCode, HttpStatus, UseGuards, ForbiddenException, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { IngestionService } from './services/ingestion.service';
-import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from './dto/ingestion.dto';
+import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto, SupplierSourceUploadDto, ReviewCandidateContentDto, RecordCandidateEvidenceDto } from './dto/ingestion.dto';
+import { ProductContentService } from './services/product-content.service';
+import { ParseUUIDPipe } from '@nestjs/common';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
 import { PermissionsGuard } from '../../platform/auth';
@@ -21,7 +23,7 @@ export interface AuthenticatedUserRequest {
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 @Roles('ADMIN', 'HUB_OPERATOR')
 export class IngestionController {
-  constructor(private readonly ingestionService: IngestionService) {}
+  constructor(private readonly ingestionService: IngestionService, private readonly contentService: ProductContentService) {}
 
   @Post('jobs')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
@@ -43,9 +45,10 @@ export class IngestionController {
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
   async uploadSupplierSpreadsheet(
     @Req() req: AuthenticatedUserRequest,
-    @Body('supplierId') supplierId: string,
+    @Body() dto: SupplierSourceUploadDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    const supplierId = dto.supplierId;
     if (!file) {
       throw new BadRequestException('File is required');
     }
@@ -127,6 +130,16 @@ export class IngestionController {
   @HttpCode(HttpStatus.OK)
   async generateCandidateContent(@Param('id') id: string) {
     return this.ingestionService.generateCandidateContent(id);
+  }
+
+  @Patch('candidates/:id/content/review')
+  async reviewContent(@Req() req: AuthenticatedUserRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: ReviewCandidateContentDto) {
+    return this.contentService.reviewContent(id, dto, req.user!.id);
+  }
+
+  @Patch('candidates/:id/evidence')
+  async recordEvidence(@Req() req: AuthenticatedUserRequest, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RecordCandidateEvidenceDto) {
+    return this.contentService.recordSourceEvidence(id, dto, req.user!.id);
   }
 
   @Post('candidates/:id/media')

@@ -13,6 +13,7 @@ import { ProductViewService } from './services/product-view.service';
 import { DiscoveryService } from './services/discovery.service';
 import { ProductDetailService } from './services/product-detail.service';
 import { CareModule } from '../../modules/care/public';
+import { IngestionModule } from '../../modules/ingestion/public';
 
 // ─── CompositionModule ────────────────────────────────────────────────────────
 // الـ Composition Layer هي المسؤولة عن الـ HTTP API
@@ -23,7 +24,7 @@ import { CareModule } from '../../modules/care/public';
 // القاعدة: الـ Controllers هنا بس — مش جوا الـ Business Modules
 
 @Module({
-  imports: [CatalogModule, CommerceModule, SourcingModule, CareModule],
+  imports: [CatalogModule, CommerceModule, SourcingModule, CareModule, IngestionModule],
   controllers: [
     ProductViewController,  // GET /products, GET /products/:slug
     BrandController,        // GET /brands, GET /brands/:slug

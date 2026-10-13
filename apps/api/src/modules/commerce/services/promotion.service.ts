@@ -41,6 +41,17 @@ export class PromotionService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Contextual automatic order discounts, using the same evaluator as checkout. */
+  async getProductPreview(skuId: string, price: { amount: number; currency: string }, promotions?: Promotion[]) {
+    const active = promotions ?? await this.getActivePromotions();
+    const evaluation = this.evaluatePromotions(active.filter(p => p.benefitType === 'order_discount'), {
+      subtotal: price.amount, items: [{ skuId, price: price.amount, quantity: 1 }],
+    });
+    return { context: 'single_item_order_preview' as const, quantity: 1, currency: price.currency,
+      appliedPromotions: evaluation.appliedPromotions, orderDiscountAmount: evaluation.orderDiscountAmount,
+      subtotalAfterDiscount: Math.max(0, price.amount - evaluation.orderDiscountAmount), requiresCheckoutConfirmation: true };
+  }
+
   async createPromotion(dto: PromotionDto) {
     if (dto.code) {
       const existing = await this.prisma.promotion.findUnique({ where: { code: dto.code } });

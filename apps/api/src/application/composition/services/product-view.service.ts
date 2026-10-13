@@ -49,6 +49,7 @@ export interface ProductView {
     url: string;
     altText: string | null;
     isPrimary: boolean;
+    sortOrder: number;
     originType: string;
   }>;
 }
@@ -74,7 +75,7 @@ export class ProductViewService {
   async composeProduct(product: PublishedProduct, at = new Date()): Promise<ProductView | null> {
 
     const skusWithCommerce = await Promise.all(
-      product.skus.filter(sku => product.media.some(media => media.skuId === sku.id)).map(async (sku) => {
+      product.skus.filter(sku => product.media.some(media => media.skuId === sku.id)).sort((a, b) => a.id.localeCompare(b.id)).map(async (sku) => {
         const [terms, availability] = await Promise.all([
           this.commerceService.getSellingTerms(sku.id),
           this.sourcingService.getPublicAvailability(sku.id, at),

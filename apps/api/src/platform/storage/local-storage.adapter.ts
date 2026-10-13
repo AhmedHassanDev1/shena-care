@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Readable } from 'stream';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { pipeline } from 'stream/promises';
+import { randomUUID } from 'crypto';
 
 export class LocalStorageAdapter implements FileStoragePort {
   private readonly storageDir = path.resolve(process.env.STORAGE_LOCAL_PATH || path.join(process.cwd(), 'uploads'));
@@ -27,15 +29,19 @@ export class LocalStorageAdapter implements FileStoragePort {
       throw new BadRequestException('Invalid storage path');
     }
 
-    if (Buffer.isBuffer(data)) {
-      fs.writeFileSync(filePath, data);
-    } else {
-      const writeStream = fs.createWriteStream(filePath);
-      data.pipe(writeStream);
-      await new Promise<void>((resolve, reject) => {
-        writeStream.on('finish', () => resolve());
-        writeStream.on('error', reject);
-      });
+    const temporary = `${filePath}.${randomUUID()}.partial`;
+    let destination: fs.WriteStream | undefined;
+    try {
+      if (Buffer.isBuffer(data)) fs.writeFileSync(temporary, data);
+      else {
+        destination = fs.createWriteStream(temporary, { flags: 'wx' });
+        await pipeline(data, destination);
+      }
+      fs.renameSync(temporary, filePath);
+    } catch (error) {
+      if (destination && !destination.closed) await new Promise<void>(resolve => destination!.once('close', resolve));
+      if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
+      throw error;
     }
     
     if (metadata) {

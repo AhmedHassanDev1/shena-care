@@ -20,6 +20,8 @@ import { ProductViewService } from '../services/product-view.service';
 import { DiscoveryService } from '../services/discovery.service';
 import { DiscoveryQueryDto, ProductListQueryDto } from '../dto/discovery.dto';
 import { ProductDetailService } from '../services/product-detail.service';
+import { ApiOkResponse, ApiNotFoundResponse, ApiBadRequestResponse, ApiTags } from '@nestjs/swagger';
+import { ProductDetailQueryDto, ProductDetailResponseDto } from '../dto/product-detail.dto';
 import {
   CatalogService,
   CreateProductDto,
@@ -31,6 +33,7 @@ import {
 } from '../../../modules/catalog/public';
 
 @Controller('products')
+@ApiTags('Products')
 export class ProductViewController {
   constructor(
     private readonly productViewService: ProductViewService,
@@ -174,15 +177,21 @@ export class ProductViewController {
 
   // GET /products/:slugOrId
   @Get(':slugOrId/detail')
-  async getProductDetail(@Param('slugOrId') slugOrId: string) {
-    const detail = await this.productDetailService.getDetail(slugOrId);
+  @ApiOkResponse({ type: ProductDetailResponseDto })
+  @ApiNotFoundResponse({ description: 'Product or selected variant is not publicly eligible' })
+  @ApiBadRequestResponse({ description: 'Invalid query' })
+  async getProductDetail(@Param('slugOrId') slugOrId: string, @Query() query: ProductDetailQueryDto) {
+    const detail = await this.productDetailService.getDetail(slugOrId, query.skuId);
     if (!detail) throw new NotFoundException('Product not found');
     return detail;
   }
 
   @Get(':slugOrId')
-  async getProduct(@Param('slugOrId') slugOrId: string) {
-    const productView = await this.productDetailService.getDetail(slugOrId);
+  @ApiOkResponse({ type: ProductDetailResponseDto })
+  @ApiNotFoundResponse({ description: 'Product or selected variant is not publicly eligible' })
+  @ApiBadRequestResponse({ description: 'Invalid query' })
+  async getProduct(@Param('slugOrId') slugOrId: string, @Query() query: ProductDetailQueryDto) {
+    const productView = await this.productDetailService.getDetail(slugOrId, query.skuId);
 
     if (!productView) {
       throw new NotFoundException(`Product not found: ${slugOrId}`);

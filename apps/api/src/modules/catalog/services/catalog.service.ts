@@ -766,9 +766,9 @@ export class CatalogService {
       id: product.id,
       name: product.name,
       slug: product.slug,
-      description: product.description,
-      usage: product.usage,
-      warnings: product.warnings,
+      description: includeAll ? product.description : null,
+      usage: includeAll ? product.usage : null,
+      warnings: includeAll ? product.warnings : null,
       isPublished: product.isPublished,
       brand: {
         id: product.brand.id,

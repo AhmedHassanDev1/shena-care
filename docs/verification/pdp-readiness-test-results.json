@@ -1,0 +1,867 @@
+{
+  "date": "2026-10-13",
+  "isolatedDatabases": [
+    "shina_readiness_baseline_test",
+    "shina_readiness_final_v2_test"
+  ],
+  "baselineCommit": "1f18de8d0566e266ae188a56c05d7ed4ab3806fe",
+  "baseline": {
+    "totalSuites": 42,
+    "passedSuites": 18,
+    "failedSuites": 24,
+    "totalTests": 307,
+    "passedTests": 168,
+    "failedTests": 139,
+    "success": false
+  },
+  "final": {
+    "totalSuites": 44,
+    "passedSuites": 20,
+    "failedSuites": 24,
+    "totalTests": 322,
+    "passedTests": 183,
+    "failedTests": 139,
+    "success": false
+  },
+  "addedFailures": [],
+  "removedFailures": [],
+  "focused": {
+    "suites": 4,
+    "tests": 35,
+    "passed": 35,
+    "failed": 0
+  },
+  "syntheticPilot": {
+    "products": 12,
+    "verifiedThroughPublicPdp": 12,
+    "realProductAcceptance": "pending"
+  },
+  "liveAudit": {
+    "readOnly": true,
+    "inspectedAt": "2026-10-13T08:27:42.012Z",
+    "existingPilotRows": 0,
+    "existingPilotStatus": "absent",
+    "publishedCandidates": 0,
+    "nonFixtureApprovedArabicContentCandidates": 0,
+    "publishedMediaWithReviewReceipts": 0,
+    "candidateStates": [],
+    "retainedOriginalJobs": 0
+  },
+  "failureInventory": [
+    {
+      "file": "test/integration/availability-resolution.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Customer availability resolution + order amendment (e2e) replaces a short item with an explicit, priced candidate; replay is idempotent; original snapshot is kept",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toEqual(expected) // deep equality"
+        },
+        {
+          "name": "Customer availability resolution + order amendment (e2e) treats a same-SKU internal supplier fallback as no customer action, and rejects a candidate whose price changed",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 409 \"Conflict\", got 400 \"Bad Request\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/supply-plan.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Availability confirmation and supply plan (e2e) turns a real submitted checkout into one sourcing request",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/routine-workspace.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Routine Workspace & AI Proposal Lifecycle (e2e) 3. Enforces cross-user authorization (Customer 2 cannot access Customer 1 draft)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 500 \"Internal Server Error\""
+        },
+        {
+          "name": "Routine Workspace & AI Proposal Lifecycle (e2e) 4. Handles optimistic concurrency conflict on draft updates (Stale Version 409)",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading 'id')"
+        },
+        {
+          "name": "Routine Workspace & AI Proposal Lifecycle (e2e) 5. Full Lifecycle: Draft → Proposal → Accept → Saved Routine in PostgreSQL",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 403 \"Forbidden\""
+        },
+        {
+          "name": "Routine Workspace & AI Proposal Lifecycle (e2e) 6. Idempotent acceptance: duplicate accept throws error",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 500 \"Internal Server Error\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/glo-77-candidate-review-publish.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "GLO-77 Candidate Review & Publish (e2e) completes the full GLO-77 candidate lifecycle: list, view evidence/conflicts, correct, approve, publish to canonical catalog, and verify retry idempotency",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 401 \"Unauthorized\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/sourcing.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Sourcing Management (e2e) Supplier Offer Management should create a supplier offer",
+          "alsoFailsAtBaseline": true,
+          "reason": "BadRequestException: Invalid SKU ID"
+        },
+        {
+          "name": "Sourcing Management (e2e) Supplier Offer Management should get supplier offers by skuId",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBeDefined()"
+        },
+        {
+          "name": "Sourcing Management (e2e) Supplier Offer Management should update supplier offer cost",
+          "alsoFailsAtBaseline": true,
+          "reason": "BadRequestException: Invalid offer ID"
+        },
+        {
+          "name": "Sourcing Management (e2e) Supplier Offer Management should confirm offer availability",
+          "alsoFailsAtBaseline": true,
+          "reason": "BadRequestException: Invalid offer ID"
+        },
+        {
+          "name": "Sourcing Management (e2e) Supplier Offer Management should update confirmedAt on true availability",
+          "alsoFailsAtBaseline": true,
+          "reason": "BadRequestException: Invalid offer ID"
+        }
+      ]
+    },
+    {
+      "file": "test/integration/fulfillment-lifecycle.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation should reject label generation while in pending status (pre-check)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation should start a preparation session",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation concurrent start returns same session (idempotent)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation should accept a valid barcode scan (isSuccessful=true)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation should record wrong SKU scan as unsuccessful (WRONG_ITEM)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation should reject completion when not all items are scanned",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation should record the second valid scan (completing quantity=2)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation should record excess scan as unsuccessful (EXCESS_QUANTITY)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation should complete preparation when exactly all items are scanned",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation should reject scanning after session is completed",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-150: Order Preparation should reject repeated completion of the same session",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-147: Shipment Label & Driver Handoff should reject label generation for shipment still in pending (second shipment)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-147: Shipment Label & Driver Handoff should generate label now that primary shipment is prepared",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-147: Shipment Label & Driver Handoff should reject handoff event when not yet packed",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-147: Shipment Label & Driver Handoff should allow PACKED event in prepared state",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-147: Shipment Label & Driver Handoff should allow HANDOFF_SCANNED after packing",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-147: Shipment Label & Driver Handoff should allow OUT_FOR_DELIVERY event after handoff (dispatched state)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-147: Shipment Label & Driver Handoff should reject UUID-invalid shipment ID (opaque ID safety)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-147: Shipment Label & Driver Handoff should reject UUID-invalid shipment ID for events",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-149: Delivery Batch Planning should get eligible shipments for batching",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-149: Delivery Batch Planning should create a delivery batch",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-149: Delivery Batch Planning should add stops to batch",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-149: Delivery Batch Planning should prevent duplicate shipment assignment",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-149: Delivery Batch Planning should allow manual stop ordering",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-149: Delivery Batch Planning should dispatch the batch",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        },
+        {
+          "name": "Fulfillment Lifecycle (e2e) GLO-149: Delivery Batch Planning should reject modifications after dispatch",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/cart.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Cart APIs (e2e) authenticated cart returns an empty cart initially",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) authenticated cart adds, merges same SKU into one line, updates and removes",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) authenticated cart enforces quantity limits and input validation",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) authenticated cart rejects unknown / unsellable SKUs",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) authenticated cart rejects stale revisions with 409 and accepts the fresh one",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) authenticated cart clear empties the cart",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) authenticated cart isolates carts between customers",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) guest cart GET without owner returns an empty projection and persists nothing",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) guest cart creates a guest cart on first add, returns an opaque token, and resumes with it",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) guest cart rejects malformed and unknown cart tokens; mutations without a cart",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) guest cart an authenticated session takes precedence over a guest token",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) guest -> account adoption re-owns the guest cart when the customer has none, and a replay is a no-op",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) guest -> account adoption merges into an existing customer cart: same SKU sums (clamped), different SKU appended",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) guest -> account adoption does not let one customer adopt a cart that already belongs to another",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) price + availability projection flags price changed since add, with backend price remaining the truth",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) price + availability projection projects an unlisted line as unavailable and excludes it from the total",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        },
+        {
+          "name": "Cart APIs (e2e) checkout integration checkout consumes the customer cart and bumps its revision",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading '0')"
+        }
+      ]
+    },
+    {
+      "file": "test/integration/brand-product-line.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Brand & ProductLine Management (e2e) ProductLine Management APIs should create a product line under a brand",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Brand & ProductLine Management (e2e) ProductLine Management APIs should reject creating a product line under non-existent brand",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Brand & ProductLine Management (e2e) ProductLine Management APIs should reject product line with duplicate slug",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Brand & ProductLine Management (e2e) ProductLine Management APIs should list product lines for a given brand",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Brand & ProductLine Management (e2e) ProductLine Management APIs should retrieve a single product line by id",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Brand & ProductLine Management (e2e) ProductLine Management APIs should update a product line",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Brand & ProductLine Management (e2e) ProductLine Management APIs should throw NotFoundException for non-existent product line",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        }
+      ]
+    },
+    {
+      "file": "test/integration/care-domain.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Care Domain Lifecycle (e2e) verifies the care domain lifecycle: concerns, routines, steps, and catalog references",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 401 \"Unauthorized\""
+        },
+        {
+          "name": "Care Domain Lifecycle (e2e) verifies CustomerCareProfile lifecycle: creation, routine linkage, and update",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 401 \"Unauthorized\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/glo-120-product-identity.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "GLO-120 Product Identity & Deduplication (e2e) allows two separate suppliers to sell the same canonical SKU with independent SupplierOffers",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 401 \"Unauthorized\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/guidance-assistant.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "GLO-88 Guidance Assistant (e2e) should create a guidance session, chat, and handle mock recommendations",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 503 \"Service Unavailable\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/ingestion-enrichment.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Ingestion Enrichment (e2e) triggers enrichment via POST /ingestion/items/:id/enrich and stores result",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 401 \"Unauthorized\""
+        },
+        {
+          "name": "Ingestion Enrichment (e2e) handles AI service unavailability gracefully (soft error — status stays pending)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 401 \"Unauthorized\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/rc-smoke.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Release Candidate Smoke Test (e2e) 1. Browse Product (Composition View)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Release Candidate Smoke Test (e2e) 2. Care Profile & AI Recommendation",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 503 \"Service Unavailable\""
+        },
+        {
+          "name": "Release Candidate Smoke Test (e2e) 3. Add to Cart",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Release Candidate Smoke Test (e2e) 4. Checkout -> COD Order",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 400 \"Bad Request\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/order-tracking.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Customer order read and tracking (e2e) lets only the authenticated owner read details and tracking, with no operational fields",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Customer order read and tracking (e2e) scopes guest access to one order and rejects absent, invalid, expired, and revoked tokens",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Customer order read and tracking (e2e) projects confirmed, preparation, dispatch, and delivery from persisted state without invented history",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Customer order read and tracking (e2e) shows cancellation requested until final, and uses collection expectation for current COD",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/checkout.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Order submission (e2e) submits one order, snapshots accepted terms, clears the cart, and replays after a lost response",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Order submission (e2e) creates only one order when the same submission is sent concurrently",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Order submission (e2e) rejects a changed commercial quote with typed review-required conflict",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Order submission (e2e) rejects a stale cart revision and leaves the quote unconsumed",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Order submission (e2e) rolls back the cart claim when order creation fails",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Order submission (e2e) rejects key reuse with a different request and rejects another cart owner",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/ingestion-lifecycle.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Ingestion Lifecycle (e2e) verifies the ingestion lifecycle with matching and publishing",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 401 \"Unauthorized\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/promotion.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Promotions & Price Integrity (e2e) evaluates and applies free shipping automatically if threshold met",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Promotions & Price Integrity (e2e) evaluates and applies order-level discount with manual coupon code",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        },
+        {
+          "name": "Promotions & Price Integrity (e2e) rejects submission if promotion expires before checkout",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 200 \"OK\", got 404 \"Not Found\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/glo-121-product-research.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "GLO-121 Product Research Pipeline (e2e) runs research pipeline on a product candidate, extracts field-level evidence, and caches results to protect credits",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 401 \"Unauthorized\""
+        },
+        {
+          "name": "GLO-121 Product Research Pipeline (e2e) handles incomplete product information and safely keeps candidates reviewable",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expected 201 \"Created\", got 401 \"Unauthorized\""
+        }
+      ]
+    },
+    {
+      "file": "test/integration/product-sku-media.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Product, SKU & Media Management (e2e) Product Management APIs should create a new product linked to brand, product line, and category",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) Product Management APIs should reject creating product when brand does not exist",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) Product Management APIs should reject product creation when productLine does not belong to the brand",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) Product Management APIs should reject product creation when category does not exist",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) Product Management APIs should reject product creation with duplicate slug",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) Product Management APIs should update product details and maintain data integrity",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) Product Management APIs should throw NotFoundException when updating non-existent product",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) SKU Management APIs should create a SKU for a product with valid code and barcode",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) SKU Management APIs should reject SKU creation with duplicate code",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) SKU Management APIs should reject SKU creation with duplicate barcode",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) SKU Management APIs should list SKUs belonging to a product",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) SKU Management APIs should update SKU variant name and size",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) SKU Management APIs should throw NotFoundException for non-existent SKU update",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) ProductMedia Management APIs should add primary media with verified origin to a product",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) ProductMedia Management APIs should add second media and reset primary status when second is marked primary",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) ProductMedia Management APIs should update media metadata and sort order",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) ProductMedia Management APIs should delete a media item and return no content",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Product, SKU & Media Management (e2e) ProductMedia Management APIs should throw NotFoundException when deleting non-existent media",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        }
+      ]
+    },
+    {
+      "file": "test/integration/commerce-sellability.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Positive Path: Active & Sellable SKU should evaluate seeded active SKU as SELLABLE with active price and listed state",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'skus')"
+        },
+        {
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Catalog Boundary: SKU Existence & State should return SKU_INACTIVE when SKU is marked inactive in Catalog",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Catalog Boundary: SKU Existence & State should return SKU_INACTIVE when parent Product is not published",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of null (reading 'id')"
+        },
+        {
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce Listing State should return LISTING_NOT_FOUND when SKU has no listing record",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce Listing State should return NOT_LISTED when SKU listing has isListed = false",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce SellingPrice Rules should return PRICE_NOT_FOUND when no selling prices exist for SKU",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce SellingPrice Rules should return PRICE_EXPIRED when price validUntil is in the past",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce SellingPrice Rules should return PRICE_EXPIRED when price validFrom is in the future",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce SellingPrice Rules should return PRICE_INACTIVE when selling price isActive = false",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce SellingPrice Rules should resolve current active price when historical expired price also exists",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        }
+      ]
+    },
+    {
+      "file": "test/integration/catalog-read-filters.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "Catalog Read APIs & Filtering (GLO-99 e2e) Product Filtering APIs should filter products by leaf category slug",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBeGreaterThan(expected)"
+        },
+        {
+          "name": "Catalog Read APIs & Filtering (GLO-99 e2e) Product Filtering APIs should filter products by root category slug (including products in child leaf categories)",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBeGreaterThan(expected)"
+        },
+        {
+          "name": "Catalog Read APIs & Filtering (GLO-99 e2e) Product Filtering APIs should filter products by brand slug",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading 'q')"
+        },
+        {
+          "name": "Catalog Read APIs & Filtering (GLO-99 e2e) Product Filtering APIs should filter products by product line slug",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading 'q')"
+        },
+        {
+          "name": "Catalog Read APIs & Filtering (GLO-99 e2e) Product Filtering APIs should filter products by combining category and brand",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBeGreaterThan(expected)"
+        },
+        {
+          "name": "Catalog Read APIs & Filtering (GLO-99 e2e) Product Filtering APIs should support pagination limit and page",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading 'q')"
+        },
+        {
+          "name": "Catalog Read APIs & Filtering (GLO-99 e2e) Category & Brand Read APIs should retrieve category by UUID as well as slug",
+          "alsoFailsAtBaseline": true,
+          "reason": "NotFoundException: Category not found: moisturizers"
+        },
+        {
+          "name": "Catalog Read APIs & Filtering (GLO-99 e2e) Category & Brand Read APIs should retrieve brand by UUID as well as slug",
+          "alsoFailsAtBaseline": true,
+          "reason": "NotFoundException: Brand not found: cerave"
+        },
+        {
+          "name": "Catalog Read APIs & Filtering (GLO-99 e2e) Category & Brand Read APIs should list category hierarchy tree with children",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        }
+      ]
+    },
+    {
+      "file": "test/integration/vertical-slice.e2e-spec.ts",
+      "failedTests": [
+        {
+          "name": "First Vertical Slice (e2e) Product View Composition should compose product data from Catalog and Commerce",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "First Vertical Slice (e2e) Product View Composition should list all published products with commerce data",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBeGreaterThan(expected)"
+        },
+        {
+          "name": "First Vertical Slice (e2e) Module Boundaries should allow Catalog to operate independently",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "First Vertical Slice (e2e) Module Boundaries should allow Commerce to operate independently",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBeDefined()"
+        },
+        {
+          "name": "First Vertical Slice (e2e) Module Boundaries should validate SKU existence through Catalog",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "First Vertical Slice (e2e) Sellability Logic should mark SKU as orderable when listed and priced",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "First Vertical Slice (e2e) Category Hierarchy & Taxonomy (GLO-94 & GLO-95) should return root categories with child leaf categories",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "First Vertical Slice (e2e) Category Hierarchy & Taxonomy (GLO-94 & GLO-95) should return category with its associated published products",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        },
+        {
+          "name": "First Vertical Slice (e2e) Brand & ProductLine Operations (GLO-97 Read Side) should list all active brands with their product lines",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBeDefined()"
+        },
+        {
+          "name": "First Vertical Slice (e2e) Brand & ProductLine Operations (GLO-97 Read Side) should return brand detail with products by slug",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).toBe(expected) // Object.is equality"
+        }
+      ]
+    },
+    {
+      "file": "test/unit/guidance/guidance.service.spec.ts",
+      "failedTests": [
+        {
+          "name": "GuidanceService Error Isolation should throw ServiceUnavailableException on AI timeout, exposing retry state",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).rejects.toThrow(expected)"
+        },
+        {
+          "name": "GuidanceService Error Isolation should throw BadGatewayException on malformed AI response",
+          "alsoFailsAtBaseline": true,
+          "reason": "Error: expect(received).rejects.toThrow(expected)"
+        },
+        {
+          "name": "GuidanceService Error Isolation should not duplicate RoutineProposal on retry success",
+          "alsoFailsAtBaseline": true,
+          "reason": "TypeError: Cannot read properties of undefined (reading 'findFirst')"
+        }
+      ]
+    },
+    {
+      "file": "src/platform/security/security-validators.spec.ts",
+      "failedTests": [],
+      "loadFailure": "Cannot find module 'file-type'; identical baseline failure"
+    }
+  ]
+}

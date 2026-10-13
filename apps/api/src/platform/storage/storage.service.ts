@@ -121,6 +121,14 @@ export class StorageService {
     return this.storagePort.exists(objectKey);
   }
 
+  /** Restore original bytes at a persisted private key without changing provenance URLs. */
+  async restorePrivateFile(objectKey: string, file: Express.Multer.File, supplierId: string): Promise<void> {
+    this.validateFile(file);
+    this.getFilePath(objectKey);
+    if (!objectKey.startsWith(`private/${supplierId}/`)) throw new BadRequestException('Storage object belongs to another supplier');
+    await this.storagePort.put(objectKey, file.buffer, { size: file.buffer.length, mimeType: file.mimetype });
+  }
+
   async deleteFile(url: string, supplierId?: string): Promise<void> {
     if (url.startsWith('cloudinary://')) {
       await this.mediaStoragePort.delete(url);

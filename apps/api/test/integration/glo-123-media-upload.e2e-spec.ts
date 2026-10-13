@@ -180,7 +180,8 @@ describe('GLO-123/124 media, tenant storage and publication invariants (PostgreS
 
   it('rejects supplier job submission without a linked tenant and across tenants', async () => {
     for (const [role, supplierId] of [['UNLINKED', supplierA], ['SUPPLIER', supplierB]]) {
-      await request(app.getHttpServer()).post('/ingestion/jobs').set(auth(role)).send({ supplierId, items: [] }).expect(403);
+      await request(app.getHttpServer()).post('/ingestion/jobs').set(auth(role)).send({ supplierId,
+        items: [{ supplierSkuCode: 'TENANT-CHECK', name: 'Tenant check', brand: 'Fixture', price: 1, currency: 'EGP' }] }).expect(403);
     }
   });
 
