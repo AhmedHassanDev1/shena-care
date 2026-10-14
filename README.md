@@ -8,22 +8,31 @@ This application is built as a **modular monolith** with clear business boundari
 
 ### Business Contexts
 
-- **Catalog** - Product identity, SKUs, brand information, and product knowledge ✅ **IMPLEMENTED**
-- **Commerce** - Listings, pricing, cart, orders, and payment records ✅ **IMPLEMENTED** (Listing/Pricing only)
-- **Ingestion** - Product workflow: intake, normalization, deduplication, enrichment 🚧 **PHASE 1**
-- **Sourcing** - Supplier relationships, offers, and supply planning 🚧 **PHASE 1**
-- **Fulfillment** - Inventory, reservations, and order fulfillment (future)
-- **Care** - Customer care profiles and routine management (future)
-- **Guidance** - AI-powered recommendations and conversations (future)
-- **Accounts** - Identity, authentication, and access control (future)
+The registered NestJS modules are listed in `apps/api/src/app.module.ts`:
+
+- **Catalog** - Product identity, SKUs, taxonomy and merchandising.
+- **Commerce** - Listings, pricing, promotions, carts and checkout readiness.
+- **Ordering** - Order submission, tracking, delivery and COD reconciliation.
+- **Ingestion** - Intake, matching, enrichment and review/publish gates.
+- **Sourcing** - Supplier offers, availability evidence and supply planning.
+- **Fulfillment** - Receiving, stock allocation, custody and hub operations.
+- **Care / Guidance** - Care profiles, routines and advisory recommendations.
+- **Accounts** - OTP authentication, sessions, roles and supplier membership.
+- **Operations / Messaging** - Operational workflows and event-driven notifications.
+
+Registration does not imply that every planned feature is complete. Consult the relevant
+domain code, tests and `docs/project/` contracts for implemented behavior.
 
 ### Database Strategy
 
 Single PostgreSQL database with logical schemas per business context:
-- `catalog.*` - Product, SKU, Brand, Category, ProductMedia ✅ **IMPLEMENTED**
-- `commerce.*` - Listing, SellingPrice, Cart, Order (future) ✅ **IMPLEMENTED** (Listing/Pricing only)
-- `sourcing.*` - Supplier, SupplierOffer 🚧 **PHASE 1** (schema ready)
-- `ingestion.*` - Product workflow entities 🚧 **PHASE 1** (schema ready)
+- `catalog.*` - Product identity, taxonomy and media.
+- `commerce.*` - Listings, prices, carts, checkout and promotions.
+- `ordering.*` - Orders, delivery and reconciliation.
+- `sourcing.*` - Suppliers, offers and supply planning.
+- `fulfillment.*` - Inventory, receiving and custody.
+- `ingestion.*`, `care.*`, `accounts.*`, `operations.*`
+  - Their respective domain records. The source of truth is `apps/api/prisma/schema.prisma`.
 
 Cross-context foreign keys are allowed selectively where both modules are co-located and the relationship is structurally important, but:
 - No cross-context ORM navigation
@@ -39,16 +48,20 @@ shena-care/
 │   ├── api/                    # NestJS backend
 │   │   └── src/
 │   │       ├── modules/        # Business modules
-│   │       │   ├── catalog/    # Product catalog
-│   │       │   └── commerce/   # Commerce & pricing
+│   │       │   ├── catalog/    # Product identity
+│   │       │   ├── commerce/   # Pricing & checkout
+│   │       │   └── ...         # Registered domain modules
 │   │       ├── application/    # Cross-cutting concerns
 │   │       │   └── composition/ # Product views
 │   │       └── platform/       # Infrastructure
 │   │           └── database/   # DB config & migrations
-│   └── web/                    # Next.js frontend
+│   ├── business/               # Separate Business Workspace foundation
+│   └── web/                    # Customer storefront
 │       └── src/
 │           ├── app/            # Next.js app router
 │           └── features/       # Feature-oriented modules
+├── services/ai/                # FastAPI advisory service; separate Python environment
+├── .agents/skills/             # On-demand project workflows
 └── docs/
     └── architecture/           # Architecture decisions
 ```
@@ -93,6 +106,11 @@ pnpm seed
 ```
 
 ### Development
+
+`pnpm-workspace.yaml` defines the workspace. Root scripts currently delegate to npm;
+package-specific pnpm filters avoid ambiguous workspace-wide commands. Both npm and
+pnpm lockfiles are tracked; package-manager consolidation is a separate maintenance task.
+`apps/business` uses a separate Next/React/Tailwind stack from the storefront.
 
 Run both backend and frontend:
 ```bash
@@ -231,21 +249,16 @@ See [docs/architecture/](docs/architecture/) for Architecture Decision Records (
 - [ER Model](docs/architecture/ER_MODEL.md) - Complete data model
 - [Product Workflow](docs/architecture/006-product-workflow-architecture.md) - Controlled product intake pipeline
 - [AI Integration](docs/architecture/007-ai-integration-strategy.md) - FastAPI + NestJS coordination
-- [Phase 0 Plan](docs/architecture/PHASE_0_PLAN.md) - Current implementation phase
+- [Phase 0 Plan](docs/architecture/PHASE_0_PLAN.md) - Historical foundation plan
+- [Codex working guide](AGENTS.md) - Repository safety and on-demand workflows
 
 ### Implementation Status
 
-**Phase 0** (Current): ER Model Stabilization 🚧
-- Add Category entity to Catalog
-- Extend ProductMedia with origin tracking
-- Create Sourcing and Ingestion schemas
-- Update seed data
-
-**Phase 1** (Next): Product Workflow with 10-20 Real Products
-- Implement Sourcing module (Supplier, SupplierOffer)
-- Implement Ingestion module (simplified workflow)
-- Build supplier intake and review UI
-- Deploy FastAPI service for AI enrichment
+The phase plans above are historical references. The current repository includes
+backend commerce, sourcing, ordering and fulfillment flows, a customer storefront,
+an advisory FastAPI service and a separate Business Workspace foundation. A module
+or route being present does not certify release readiness; use its current contracts
+and regression tests to assess behavior. Project planning remains owner-managed.
 
 ## License
 

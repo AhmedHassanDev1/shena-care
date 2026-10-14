@@ -34,6 +34,12 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 
+# Python runtime and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
 # Database
 *.db
 *.sqlite
