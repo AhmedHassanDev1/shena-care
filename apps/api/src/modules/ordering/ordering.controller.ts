@@ -3,7 +3,7 @@ import { OrderingService } from './services/ordering.service';
 import { CartService } from './services/cart.service';
 import { OrderTrackingService } from './services/order-tracking.service';
 import { OrderLookupParamsDto } from './dto/order-tracking.dto';
-import { CreateResolutionDto, UpdateResolutionStatusDto, CreateSettlementBatchDto } from './dto/reconciliation.dto';
+import { CreateResolutionDto, UpdateResolutionStatusDto, CreateSettlementBatchDto, InitializePaymentCollectionDto } from './dto/reconciliation.dto';
 import { ReconciliationService } from './services/reconciliation.service';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -76,13 +76,11 @@ export class OrderingController {
 
   // --- GLO-128: COD Settlement Reconciliation ---
 
+  // Drivers record deliveries; they never set expected cash or settle it (GLO-206 GAP-09).
   @Post('settlements/initialize')
-  @Roles('ADMIN', 'DRIVER', 'HUB_OPERATOR')
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @RequirePermissions('cod.reconcile')
-  async initializePaymentCollection(
-    @CurrentUser() admin: any,
-    @Body() dto: { orderId: string, amount: number, currency: string }
-  ) {
+  async initializePaymentCollection(@Body() dto: InitializePaymentCollectionDto) {
     return this.reconciliationService.initializePaymentCollection(dto.orderId, dto.amount, dto.currency);
   }
 

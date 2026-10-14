@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { SettlementStatus, OrderResolutionType, OrderResolutionStatus, Prisma, RefundStatus } from '@prisma/client';
 import { OutboxService } from '../../operations/services/outbox.service';
@@ -173,19 +173,38 @@ export class ReconciliationService {
 
   // --- GLO-128: COD Settlement Reconciliation ---
 
+  /**
+   * Expected COD cash comes from the order, never from the caller, and this endpoint never rewrites
+   * it: an existing collection (possibly revised by an availability amendment) is returned as-is,
+   * and a caller whose figure disagrees gets a conflict instead of an overwrite.
+   */
   async initializePaymentCollection(orderId: string, amount: Prisma.Decimal | number, currency: string) {
     if (!this.isUuid(orderId)) throw new BadRequestException('Invalid order ID');
-    
-    return this.prisma.paymentCollection.upsert({
-      where: { orderId },
-      update: { expectedAmount: amount, currency },
-      create: {
-        orderId,
-        expectedAmount: amount,
-        currency,
-        status: 'expected'
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const existing = await this.prisma.paymentCollection.findUnique({ where: { orderId } });
+    if (existing) {
+      if (!existing.expectedAmount.equals(amount) || existing.currency !== currency) {
+        throw new ConflictException('Payment collection already recorded with a different amount');
       }
-    });
+      return existing;
+    }
+    if (order.status === 'cancelled') throw new BadRequestException('Cancelled orders have no COD collection');
+    const expected = order.codAmount ?? order.totalAmount;
+    if (!expected.equals(amount) || currency !== order.currency) {
+      throw new BadRequestException('COD amount and currency must equal the order COD amount');
+    }
+    try {
+      return await this.prisma.paymentCollection.create({
+        data: { orderId, expectedAmount: expected, currency: order.currency, status: 'expected' },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return this.prisma.paymentCollection.findUniqueOrThrow({ where: { orderId } });
+      }
+      throw error;
+    }
   }
 
   async createSettlementBatch(dto: {
@@ -198,19 +217,26 @@ export class ReconciliationService {
     notes?: string;
     collections: { orderId: string; collectedAmount: number }[];
   }) {
-    const fees = dto.fees || 0;
-    
+    // Money is exact Decimal arithmetic; the declared total must match the line items.
+    const fees = new Prisma.Decimal(dto.fees ?? 0);
+    const totalCollected = new Prisma.Decimal(dto.totalCollected);
+    const orderIds = dto.collections.map(c => c.orderId);
+    if (new Set(orderIds).size !== orderIds.length) throw new BadRequestException('Each order may appear only once per settlement');
+    const lineTotal = dto.collections.reduce((sum, c) => sum.plus(c.collectedAmount), new Prisma.Decimal(0));
+    if (!lineTotal.equals(totalCollected)) throw new BadRequestException('totalCollected must equal the sum of collected amounts');
+    if (fees.greaterThan(totalCollected)) throw new BadRequestException('Fees cannot exceed the collected total');
+
     return this.prisma.$transaction(async (tx) => {
-      let totalExpected = 0;
-      
+      let totalExpected = new Prisma.Decimal(0);
+
       const batch = await tx.courierSettlementBatch.create({
         data: {
           reference: dto.reference,
           courierId: dto.courierId,
           totalExpected: 0, // Computed below
-          totalCollected: dto.totalCollected,
+          totalCollected,
           fees,
-          netSettled: dto.totalCollected - fees,
+          netSettled: totalCollected.minus(fees),
           currency: dto.currency,
           actorId: dto.actorId,
           notes: dto.notes
@@ -227,24 +253,29 @@ export class ReconciliationService {
         if (!collection) {
           throw new NotFoundException(`Payment collection for order ${colDto.orderId} not found`);
         }
+        if (collection.currency !== dto.currency) {
+          throw new BadRequestException(`Payment collection for order ${colDto.orderId} is in ${collection.currency}`);
+        }
 
-        totalExpected += Number(collection.expectedAmount);
-        
+        totalExpected = totalExpected.plus(collection.expectedAmount);
+
+        const collected = new Prisma.Decimal(colDto.collectedAmount);
         let status: SettlementStatus = 'settled';
-        const expected = Number(collection.expectedAmount);
-        const collected = colDto.collectedAmount;
+        if (collected.lessThan(collection.expectedAmount)) status = 'short';
+        if (collected.greaterThan(collection.expectedAmount)) status = 'over';
 
-        if (collected < expected) status = 'short';
-        if (collected > expected) status = 'over';
-
-        await tx.paymentCollection.update({
-          where: { id: collection.id },
+        // Conditional update: a collection is settled at most once, even under concurrent batches.
+        const settled = await tx.paymentCollection.updateMany({
+          where: { id: collection.id, status: 'expected', settlementBatchId: null },
           data: {
             collectedAmount: collected,
             status,
             settlementBatchId: batch.id
           }
         });
+        if (settled.count !== 1) {
+          throw new ConflictException(`Payment collection for order ${colDto.orderId} is already settled`);
+        }
       }
 
       const updatedBatch = await tx.courierSettlementBatch.update({

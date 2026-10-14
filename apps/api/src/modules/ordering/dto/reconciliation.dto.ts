@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray, IsNumber, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray, IsNumber, ValidateNested, IsUUID, Length, Min, ArrayNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderResolutionType, OrderResolutionStatus } from '@prisma/client';
 
@@ -56,8 +56,23 @@ export class CollectionItemDto {
   @IsNotEmpty()
   orderId: string;
 
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   collectedAmount: number;
+}
+
+export class InitializePaymentCollectionDto {
+  @IsUUID()
+  orderId: string;
+
+  /** Must equal the order total; the server never accepts a client-chosen COD amount. */
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  amount: number;
+
+  @IsString()
+  @Length(3, 3)
+  currency: string;
 }
 
 export class CreateSettlementBatchDto {
@@ -69,26 +84,30 @@ export class CreateSettlementBatchDto {
   @IsNotEmpty()
   reference: string;
 
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   totalCollected: number;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
   fees?: number;
 
   @IsString()
   @IsNotEmpty()
   currency: string;
 
+  /** Ignored: the settling actor is always the authenticated user. Kept for client compatibility. */
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  actorId: string;
+  actorId?: string;
 
   @IsOptional()
   @IsString()
   notes?: string;
 
   @IsArray()
+  @ArrayNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => CollectionItemDto)
   collections: CollectionItemDto[];

@@ -38,7 +38,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'sourcing.read' // limited by PO ownership
   ],
   DRIVER: [
-    'delivery.plan', 'delivery.handoff', 'delivery.complete',
-    'cod.read', 'cod.reconcile'
+    'delivery.handoff', 'delivery.complete',
+    'cod.read'
   ]
 };
