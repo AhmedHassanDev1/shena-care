@@ -3,6 +3,7 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { ReturnEligibilityProjectionDto, ReturnReason, SubmitReturnDto } from '../dto/return.dto';
 import { OrderResolutionType, OrderResolutionStatus, OrderStatus } from '@prisma/client';
 import { OutboxService } from '../../operations/services/outbox.service';
+import { assertClaimableQuantity } from './resolution-claims';
 
 @Injectable()
 export class ReturnEligibilityService {
@@ -118,9 +119,6 @@ export class ReturnEligibilityService {
     guestTokenHash?: string
   ) {
     const eligibility = await this.getEligibility(idOrOrderNumber, orderItemId, customerId, guestTokenHash);
-    const orderId = eligibility.orderItemId; // Wait, I need the actual orderId. 
-    // I should return orderId from getEligibility, or look it up here.
-    // Actually, if customerAction is true, let's just resolve orderId here.
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const order = await this.prisma.order.findFirst({
       where: { 
@@ -140,6 +138,7 @@ export class ReturnEligibilityService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await assertClaimableQuantity(tx, order.id, orderItemId, dto.quantity);
       const resolutionDetails = {
         description: dto.description,
         mediaRefs: dto.mediaRefs,

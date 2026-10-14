@@ -2,6 +2,23 @@ import { Injectable, BadRequestException, ConflictException, NotFoundException }
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { SettlementStatus, OrderResolutionType, OrderResolutionStatus, Prisma, RefundStatus } from '@prisma/client';
 import { OutboxService } from '../../operations/services/outbox.service';
+import { assertClaimableQuantity } from './resolution-claims';
+
+// Resolution and refund lifecycles only move forward; rejected/resolved/succeeded/failed are final.
+const RESOLUTION_TRANSITIONS: Record<OrderResolutionStatus, OrderResolutionStatus[]> = {
+  requested: ['approved', 'rejected'],
+  approved: ['in_transit', 'received', 'resolved', 'rejected'],
+  in_transit: ['received'],
+  received: ['resolved'],
+  rejected: [],
+  resolved: [],
+};
+const REFUND_TRANSITIONS: Record<RefundStatus, RefundStatus[]> = {
+  pending: ['processing', 'succeeded', 'failed'],
+  processing: ['succeeded', 'failed'],
+  succeeded: [],
+  failed: [],
+};
 
 @Injectable()
 export class ReconciliationService {
@@ -34,6 +51,11 @@ export class ReconciliationService {
       });
 
       if (!order) throw new NotFoundException('Order not found');
+      const itemIds = (dto.items ?? []).map(i => i.orderItemId);
+      if (new Set(itemIds).size !== itemIds.length) throw new BadRequestException('Each order item may appear only once');
+      for (const item of dto.items ?? []) {
+        await assertClaimableQuantity(tx, order.id, item.orderItemId, item.quantity);
+      }
 
       // Create resolution
       const resolution = await tx.orderResolution.create({
@@ -71,10 +93,15 @@ export class ReconciliationService {
     if (!this.isUuid(resolutionId)) throw new BadRequestException('Invalid resolution ID');
 
     return this.prisma.$transaction(async (tx) => {
-      const resolution = await tx.orderResolution.update({
-        where: { id: resolutionId },
-        data: { status }
-      });
+      const current = await tx.orderResolution.findUnique({ where: { id: resolutionId } });
+      if (!current) throw new NotFoundException('Resolution not found');
+      if (current.status === status) return current;
+      if (!RESOLUTION_TRANSITIONS[current.status].includes(status)) {
+        throw new ConflictException(`Resolution cannot move from ${current.status} to ${status}`);
+      }
+      const claimed = await tx.orderResolution.updateMany({ where: { id: resolutionId, status: current.status }, data: { status } });
+      if (claimed.count !== 1) throw new ConflictException('Resolution changed concurrently; retry');
+      const resolution = await tx.orderResolution.findUniqueOrThrow({ where: { id: resolutionId } });
 
       await tx.orderResolutionEvent.create({
         data: {
@@ -113,14 +140,30 @@ export class ReconciliationService {
     return this.prisma.$transaction(async (tx) => {
       const resolution = await tx.orderResolution.findUnique({
         where: { id: resolutionId },
+        include: { order: true },
       });
 
       if (!resolution) throw new NotFoundException('Resolution not found');
-      
+      if (resolution.status === 'requested' || resolution.status === 'rejected') {
+        throw new BadRequestException(`Cannot refund a ${resolution.status} resolution`);
+      }
+
       const existingRefund = await tx.refundTransaction.findUnique({
         where: { resolutionId }
       });
       if (existingRefund) throw new BadRequestException('Refund already initiated for this resolution');
+
+      // A refund is in the order currency and, with every other live refund, never exceeds the order total.
+      const requested = new Prisma.Decimal(amount);
+      if (!requested.greaterThan(0)) throw new BadRequestException('Refund amount must be positive');
+      if (currency !== resolution.order.currency) throw new BadRequestException(`Refunds for this order are in ${resolution.order.currency}`);
+      const others = await tx.refundTransaction.aggregate({
+        where: { orderId: resolution.orderId, status: { not: 'failed' } }, _sum: { amount: true },
+      });
+      const refundable = resolution.order.totalAmount.minus(others._sum.amount ?? 0);
+      if (requested.greaterThan(refundable)) {
+        throw new BadRequestException(`Refund exceeds the refundable balance of ${refundable.toFixed(2)} ${resolution.order.currency}`);
+      }
 
       return tx.refundTransaction.create({
         data: {
@@ -139,6 +182,13 @@ export class ReconciliationService {
     if (!this.isUuid(resolutionId)) throw new BadRequestException('Invalid resolution ID');
 
     return this.prisma.$transaction(async (tx) => {
+      const current = await tx.refundTransaction.findUnique({ where: { resolutionId } });
+      if (!current) throw new NotFoundException('Refund not found');
+      if (current.status !== status && !REFUND_TRANSITIONS[current.status].includes(status)) {
+        throw new ConflictException(`Refund cannot move from ${current.status} to ${status}`);
+      }
+      const claimed = await tx.refundTransaction.updateMany({ where: { resolutionId, status: current.status }, data: { status } });
+      if (claimed.count !== 1) throw new ConflictException('Refund changed concurrently; retry');
       const refund = await tx.refundTransaction.update({
         where: { resolutionId },
         data: {
@@ -149,7 +199,7 @@ export class ReconciliationService {
         include: { resolution: { include: { order: true } } }
       });
 
-      if (status === 'succeeded' || status === 'failed') {
+      if (current.status !== status && (status === 'succeeded' || status === 'failed')) {
         await this.outbox.enqueue(tx, {
           eventType: 'refund.updated',
           aggregateId: refund.id,
