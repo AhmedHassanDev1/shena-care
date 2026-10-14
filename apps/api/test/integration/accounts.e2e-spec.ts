@@ -22,11 +22,24 @@ describe('Accounts (e2e)', () => {
     );
 
     await app.init();
+    await clearFixturePhoneChallenges();
   });
 
   afterAll(async () => {
+    await clearFixturePhoneChallenges();
     await app.close();
   });
+
+  /**
+   * The suite reuses fixed phone numbers; without this, repeated runs against the same test
+   * database hit the real per-phone OTP rate limit (5/hour) and fail with 409.
+   */
+  const clearFixturePhoneChallenges = async () => {
+    const { PrismaService } = require('../../src/platform/database/prisma.service');
+    await app.get(PrismaService).otpChallenge.deleteMany({ where: { phoneNumber: { in: [
+      '+201155555555', '+201166666666', '+201177777777', '+201188888888', '+201199999999', '+201211111111', '+201511111111',
+    ] } } });
+  };
 
   const testEmail = `test-${Date.now()}@example.com`;
   let token: string;
