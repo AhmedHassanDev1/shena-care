@@ -639,30 +639,31 @@ export class FulfillmentService {
       });
     }
 
-    const alreadyScannedCount = session.scanEvents.filter(
-      event => event.skuId === skuId && event.isSuccessful
-    ).length;
-
-    if (alreadyScannedCount >= expectedItem.quantity) {
-      return this.prisma.preparationScanEvent.create({
+    // Count and record under a session lock so concurrent or retried scans cannot over-count (GLO-209).
+    const countedSkuId = skuId;
+    return this.prisma.$transaction(async tx => {
+      await this.lockPreparationSession(tx, sessionId);
+      const alreadyScannedCount = await tx.preparationScanEvent.count({
+        where: { sessionId, skuId: countedSkuId, isSuccessful: true },
+      });
+      const excess = alreadyScannedCount >= expectedItem.quantity;
+      return tx.preparationScanEvent.create({
         data: {
           sessionId,
-          skuId,
+          skuId: countedSkuId,
           barcodeScanned: dto.barcodeScanned,
-          isSuccessful: false,
-          errorReason: 'EXCESS_QUANTITY'
+          isSuccessful: !excess,
+          ...(excess ? { errorReason: 'EXCESS_QUANTITY' } : {}),
         }
       });
-    }
-
-    return this.prisma.preparationScanEvent.create({
-      data: {
-        sessionId,
-        skuId,
-        barcodeScanned: dto.barcodeScanned,
-        isSuccessful: true
-      }
     });
+  }
+
+  /** Row lock on an in-progress preparation session; scans and completion serialize on it. */
+  private async lockPreparationSession(tx: Prisma.TransactionClient, sessionId: string) {
+    const rows = await tx.$queryRaw<Array<{ status: string }>>`
+      SELECT status::text AS status FROM "fulfillment"."shipment_preparation_sessions" WHERE id = ${sessionId}::uuid FOR UPDATE`;
+    if (rows[0]?.status !== PreparationSessionStatus.in_progress) throw new BadRequestException('Session is not in progress');
   }
 
   async completePreparationSession(sessionId: string, actor: FulfillmentActor) {
@@ -682,36 +683,36 @@ export class FulfillmentService {
       throw new BadRequestException('Session is not in progress');
     }
 
-    const missingItems = [];
-    for (const item of session.shipment.items) {
-      const scannedCount = session.scanEvents.filter(
-        event => event.skuId === item.skuId && event.isSuccessful
-      ).length;
-      if (scannedCount !== item.quantity) {
-        missingItems.push({ skuId: item.skuId, expected: item.quantity, scanned: scannedCount });
+    await this.prisma.$transaction(async tx => {
+      await this.lockPreparationSession(tx, sessionId);
+      const scans = await tx.preparationScanEvent.findMany({ where: { sessionId, isSuccessful: true } });
+      const missingItems = [];
+      for (const item of session.shipment.items) {
+        const scannedCount = scans.filter(event => event.skuId === item.skuId).length;
+        if (scannedCount !== item.quantity) {
+          missingItems.push({ skuId: item.skuId, expected: item.quantity, scanned: scannedCount });
+        }
       }
-    }
 
-    if (missingItems.length > 0) {
-      throw new BadRequestException({
-        message: 'Cannot complete preparation, items do not match exactly',
-        missingItems
-      });
-    }
+      if (missingItems.length > 0) {
+        throw new BadRequestException({
+          message: 'Cannot complete preparation, items do not match exactly',
+          missingItems
+        });
+      }
 
-    await this.prisma.$transaction([
-      this.prisma.shipmentPreparationSession.updateMany({
-        where: { id: sessionId, status: PreparationSessionStatus.in_progress },
+      await tx.shipmentPreparationSession.update({
+        where: { id: sessionId },
         data: {
           status: PreparationSessionStatus.completed,
           completedAt: new Date()
         }
-      }),
-      this.prisma.shipment.update({
+      });
+      await tx.shipment.update({
         where: { id: session.shipmentId },
         data: { status: 'prepared' }
-      })
-    ]);
+      });
+    });
 
     return { success: true };
   }
