@@ -145,7 +145,40 @@ export const orders = {
       access ? { headers: { 'x-order-access-token': access } } : {},
     );
   },
+
+  /** What the customer may report on one line right now (GLO-191); reasons come from the server. */
+  async getItemEligibility(orderNumber: string, itemId: string): Promise<ItemEligibility> {
+    return apiClient.get<ItemEligibility>(...orderPath(orderNumber, `/items/${encodeURIComponent(itemId)}/eligibility`));
+  },
+
+  /** Reports a problem with one line; the server re-checks eligibility and quantity (GLO-215/216). */
+  async reportItemProblem(orderNumber: string, itemId: string, body: ItemProblemReport): Promise<{ id: string; status: string }> {
+    const [path, options] = orderPath(orderNumber, `/items/${encodeURIComponent(itemId)}/returns`);
+    return apiClient.post<{ id: string; status: string }>(path, body, options);
+  },
 };
+
+export type ProblemReason =
+  | 'WRONG_ITEM' | 'MISSING_ITEM' | 'DAMAGED_OR_LEAKING' | 'DEFECT_OR_QUALITY_CONCERN'
+  | 'CHANGE_OF_MIND' | 'DELIVERY_PROBLEM' | 'POSSIBLE_ADVERSE_EVENT' | 'OTHER';
+
+/** Exactly the API's ReturnEligibilityProjectionDto (apps/api ordering/dto/return.dto.ts). */
+export interface ItemEligibility {
+  orderItemId: string;
+  isEligible: boolean;
+  normalWindowEndsAt: string | null;
+  defectWindowEndsAt: string | null;
+  allowedReasons: ProblemReason[];
+  policyReviewRequired: boolean;
+  conditionReviewRequired: boolean;
+}
+
+export interface ItemProblemReport {
+  reasonCode: ProblemReason;
+  quantity: number;
+  description?: string;
+  batchOrLot?: string;
+}
 
 
 /** Owner route when signed in; otherwise the guest route with this device's order access token. */

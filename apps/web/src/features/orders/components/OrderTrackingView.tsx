@@ -18,6 +18,7 @@ import { fillMessage, type Messages } from '@/lib/i18n/messages';
 import { orders, type AvailabilityAction, type AvailabilityDecision, type OrderTracking } from '@/lib/orders';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import { ReportProblem } from './ReportProblem';
 
 /** Backend default; any other promise string is shown as the generic confirmation note too. */
 const STAGE_KEY = (stage: OrderTracking['status']) => `orderStage${stage}` as keyof Messages;
@@ -75,6 +76,7 @@ function Tracking({ order, placed }: { order: OrderTracking; placed: boolean }) 
   const locale = useLocale();
   // Kept here, not in the decision panel: the panel disappears once the API reports no action required.
   const [receipt, setReceipt] = useState<AvailabilityDecision['receipt']>(null);
+  const [problemSent, setProblemSent] = useState(false);
   const money = (value: number) => formatEgp(value, order.amounts.currency, locale) ?? '';
   const { delivery } = order;
 
@@ -116,12 +118,18 @@ function Tracking({ order, placed }: { order: OrderTracking; placed: boolean }) 
 
       {receipt ? (
         <Alert variant="success">
-          <p role="status" className="text-body-s">
+          <p className="text-body-s">
             {fillMessage(m.decisionReceipt, {
               before: formatEgp(receipt.amounts.codBefore, receipt.amounts.currency, locale) ?? '',
               after: formatEgp(receipt.amounts.codAfter, receipt.amounts.currency, locale) ?? '',
             })}
           </p>
+        </Alert>
+      ) : null}
+
+      {problemSent ? (
+        <Alert variant="success">
+          <p className="text-body-s">{m.problemSent}</p>
         </Alert>
       ) : null}
 
@@ -132,18 +140,28 @@ function Tracking({ order, placed }: { order: OrderTracking; placed: boolean }) 
           {order.items.map((item) => {
             const gone = item.lineState === 'removed' || item.lineState === 'replaced';
             return (
-              <li key={item.id} className="flex items-start justify-between gap-3 py-3 text-body-s">
-                <div className="min-w-0 space-y-1">
-                  <p dir="auto" className={cn('text-foreground [text-align:match-parent]', gone && 'text-ink-subtle line-through')}>
-                    {item.productName}
-                    {item.variantName ? <span className="text-ink-subtle"> · <bdi>{item.variantName}</bdi></span> : null}
-                    <span className="text-ink-subtle"> × <bdi>{item.quantity}</bdi></span>
-                  </p>
-                  <Badge variant={item.status === 'action-required' ? 'warning' : item.status === 'confirmed' ? 'success' : 'neutral'}>
-                    {gone ? (item.lineState === 'removed' ? m.orderItemRemoved : m.orderItemReplaced) : (m[ITEM_KEY[item.status]] as string)}
-                  </Badge>
+              <li key={item.id} className="py-3 text-body-s">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p dir="auto" className={cn('text-foreground [text-align:match-parent]', gone && 'text-ink-subtle line-through')}>
+                      {item.productName}
+                      {item.variantName ? <span className="text-ink-subtle"> · <bdi>{item.variantName}</bdi></span> : null}
+                      <span className="text-ink-subtle"> × <bdi>{item.quantity}</bdi></span>
+                    </p>
+                    <Badge variant={item.status === 'action-required' ? 'warning' : item.status === 'confirmed' ? 'success' : 'neutral'}>
+                      {gone ? (item.lineState === 'removed' ? m.orderItemRemoved : m.orderItemReplaced) : (m[ITEM_KEY[item.status]] as string)}
+                    </Badge>
+                  </div>
+                  <bdi className={cn('shrink-0 tabular-nums text-foreground', gone && 'text-ink-subtle line-through')}>{money(item.lineTotal)}</bdi>
                 </div>
-                <bdi className={cn('shrink-0 tabular-nums text-foreground', gone && 'text-ink-subtle line-through')}>{money(item.lineTotal)}</bdi>
+                {gone ? null : (
+                  <ReportProblem
+                    orderNumber={order.orderNumber}
+                    itemId={item.id}
+                    maxQuantity={item.quantity}
+                    onSent={() => setProblemSent(true)}
+                  />
+                )}
               </li>
             );
           })}

@@ -147,6 +147,46 @@ const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
 )
 TextField.displayName = "TextField"
 
+/* ── TextAreaField ─────────────────────────────────────────────────────── */
+
+export interface TextAreaFieldProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: React.ReactNode
+  optionalLabel?: string
+  hint?: React.ReactNode
+  error?: React.ReactNode
+  wrapperClassName?: string
+}
+
+/** Multi-line `TextField`: same frame, focus ring and error wiring, for free-text descriptions. */
+const TextAreaField = React.forwardRef<HTMLTextAreaElement, TextAreaFieldProps>(
+  ({ label, optionalLabel, hint, error, id, wrapperClassName, className, rows = 4, ...rest }, ref) => {
+    const auto = React.useId()
+    const fid = id ?? auto
+    const { messageId } = resolveMessage(fid, { hint, error })
+    return (
+      <FieldShell id={fid} label={label} optionalLabel={optionalLabel} hint={hint} error={error} className={wrapperClassName}>
+        <textarea
+          ref={ref}
+          id={fid}
+          rows={rows}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={[rest["aria-describedby"], messageId].filter(Boolean).join(" ") || undefined}
+          className={cn(
+            "w-full rounded-sm border-[1.5px] border-input bg-card px-4 py-3 text-body text-foreground placeholder:text-ink-subtle",
+            "transition-[border-color,box-shadow] duration-quick ease-out",
+            "focus-visible:border-foreground focus-visible:shadow-[0_0_0_1px_rgb(var(--ink-rgb))] focus-visible:outline-none",
+            "aria-[invalid=true]:border-destructive",
+            "disabled:cursor-not-allowed disabled:border-border disabled:bg-disabled disabled:text-disabled-foreground",
+            className
+          )}
+          {...rest}
+        />
+      </FieldShell>
+    )
+  }
+)
+TextAreaField.displayName = "TextAreaField"
+
 /* ── PhoneField ────────────────────────────────────────────────────────── */
 
 export interface PhoneFieldProps extends Omit<TextFieldProps, "prefix" | "suffix" | "dir" | "type"> {
@@ -209,4 +249,4 @@ const PhoneField = React.forwardRef<HTMLInputElement, PhoneFieldProps>(
 )
 PhoneField.displayName = "PhoneField"
 
-export { TextField, PhoneField }
+export { TextField, TextAreaField, PhoneField }
