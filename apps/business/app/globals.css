@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+@import '../design/tokens.css';
 
 :root { --navy:#0d1627; --navy-2:#111827; --navy-3:#18243a; --ink:#e8eef8; --muted:#91a0b7; --line:rgba(255,255,255,.08); --surface:#111827; --bg:#070b14; --indigo:#5b7cfa; --green:#2dd4a0; --amber:#f0b35b; --red:#f0717d; --blue:#5c9dff; }
 @theme inline { --color-background:var(--bg); --color-foreground:var(--ink); --color-card:#fff; --color-card-foreground:var(--ink); --color-primary:var(--indigo); --color-primary-foreground:#fff; --color-secondary:#eef1f6; --color-secondary-foreground:var(--ink); --color-muted:#eef1f6; --color-muted-foreground:var(--muted); --color-border:var(--line); --color-input:var(--line); --color-ring:var(--indigo); --radius-sm:.4rem; --radius-md:.55rem; --radius-lg:.7rem; }

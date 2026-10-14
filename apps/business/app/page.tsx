@@ -6,7 +6,7 @@ import {
   AlertTriangle, Archive, ArrowLeft, ArrowRight, Barcode, Bell, Box, ChevronDown,
   ClipboardList, Clock3, DollarSign, ExternalLink, HelpCircle, LayoutDashboard,
   LogOut, Menu, PackageCheck, PackageSearch, Plus, RefreshCw, Search, Settings2, Truck,
-  UserRound, Users, X, Check, CircleDot, ScanLine, ShieldAlert, MapPin, MoreHorizontal,
+  UserRound, Users, X, Check, CircleDot, ScanLine, ShieldAlert, MapPin, MoreHorizontal, FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
