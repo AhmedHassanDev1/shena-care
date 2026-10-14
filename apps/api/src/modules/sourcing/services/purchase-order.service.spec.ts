@@ -65,7 +65,10 @@ describe('PurchaseOrderService', () => {
       prismaService.$transaction.mockImplementation(async (callback: any) => {
         const tx = {
           purchaseOrderLine: { update: jest.fn() },
-          supplierPurchaseOrder: { update: jest.fn().mockResolvedValue({ status: PurchaseOrderStatus.partial }) }
+          supplierPurchaseOrder: {
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+            update: jest.fn().mockResolvedValue({ status: PurchaseOrderStatus.partial }),
+          }
         };
         // Run the callback and return the expected custom result map
         await callback(tx);
@@ -99,6 +102,39 @@ describe('PurchaseOrderService', () => {
           })
         })
       );
+    });
+  });
+
+  describe('Confirmation integrity (GLO-206)', () => {
+    const order = {
+      id: 'po-1', supplierId: 'sup-1', status: PurchaseOrderStatus.sent,
+      lines: [{ id: 'line-1', skuId: 'sku-1', requestedQuantity: 10, status: PurchaseOrderLineStatus.pending }],
+    };
+    beforeEach(() => prismaService.supplierPurchaseOrder.findUnique.mockResolvedValue(order));
+
+    it.each([
+      ['a line from another order', [{ id: 'line-1', status: 'confirmed_full' }, { id: 'foreign-line', status: 'unavailable' }]],
+      ['a duplicated line', [{ id: 'line-1', status: 'confirmed_full' }, { id: 'line-1', status: 'unavailable' }]],
+      ['a full confirmation with a different quantity', [{ id: 'line-1', status: 'confirmed_full', confirmedQuantity: 99 }]],
+      ['a partial confirmation above the request', [{ id: 'line-1', status: 'confirmed_partial', confirmedQuantity: 10 }]],
+      ['a partial confirmation of nothing', [{ id: 'line-1', status: 'confirmed_partial', confirmedQuantity: 0 }]],
+      ['a negative partial quantity', [{ id: 'line-1', status: 'confirmed_partial', confirmedQuantity: -3 }]],
+      ['an unavailable line with stock', [{ id: 'line-1', status: 'unavailable', confirmedQuantity: 4 }]],
+      ['a pending status', [{ id: 'line-1', status: 'pending' }]],
+    ])('rejects %s without writing', async (_label, lines) => {
+      await expect(service.confirmPurchaseOrder('po-1', { lines: lines as any })).rejects.toThrow();
+      expect(prismaService.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects a replay that loses the status claim', async () => {
+      const lineUpdate = jest.fn();
+      prismaService.$transaction.mockImplementation(async (callback: any) => callback({
+        purchaseOrderLine: { update: lineUpdate },
+        supplierPurchaseOrder: { updateMany: jest.fn().mockResolvedValue({ count: 0 }), update: jest.fn() },
+      }));
+      await expect(service.confirmPurchaseOrder('po-1', { lines: [{ id: 'line-1', status: PurchaseOrderLineStatus.confirmed_full }] }))
+        .rejects.toThrow('already confirmed');
+      expect(lineUpdate).not.toHaveBeenCalled();
     });
   });
 });

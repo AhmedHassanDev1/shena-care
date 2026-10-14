@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CreatePurchaseOrderDto, ConfirmPurchaseOrderDto } from '../dto/purchase-order.dto';
 import { PurchaseOrderStatus, PurchaseOrderLineStatus } from '@prisma/client';
@@ -67,31 +67,36 @@ export class PurchaseOrderService {
     if (missingLines.length > 0) {
       throw new BadRequestException(`Missing confirmation for lines: ${missingLines.join(', ')}`);
     }
+    // Only this order's lines, each once: a confirmation must never write another order's line.
+    if (dtoLineIds.length !== lineIds.length || new Set(dtoLineIds).size !== dtoLineIds.length) {
+      throw new BadRequestException('Confirmation must list each line of this purchase order exactly once');
+    }
+    const confirmations = dto.lines.map(line => {
+      const original = order.lines.find(l => l.id === line.id)!;
+      return { original, status: line.status, quantity: this.confirmedQuantityFor(original.requestedQuantity, line) };
+    });
 
     const result = await this.prisma.$transaction(async (tx: any) => {
       let isPartial = false;
       const shortages: { skuId: string; missingQty: number }[] = [];
 
-      for (const line of dto.lines) {
-        if (line.status !== PurchaseOrderLineStatus.confirmed_full) {
+      // Claim the order first so a replayed or concurrent confirmation cannot apply twice.
+      const claimed = await tx.supplierPurchaseOrder.updateMany({
+        where: { id, status: { in: [PurchaseOrderStatus.created, PurchaseOrderStatus.sent, PurchaseOrderStatus.reviewed] } },
+        data: { status: PurchaseOrderStatus.confirmed },
+      });
+      if (claimed.count !== 1) throw new ConflictException('PurchaseOrder was already confirmed');
+
+      for (const { original, status, quantity } of confirmations) {
+        if (status !== PurchaseOrderLineStatus.confirmed_full) {
           isPartial = true;
-          
-          const originalLine = order.lines.find(l => l.id === line.id);
-          if (originalLine) {
-            const confirmedQty = line.confirmedQuantity ?? 0;
-            const missing = originalLine.requestedQuantity - confirmedQty;
-            if (missing > 0) {
-              shortages.push({ skuId: originalLine.skuId, missingQty: missing });
-            }
-          }
+          const missing = original.requestedQuantity - quantity;
+          if (missing > 0) shortages.push({ skuId: original.skuId, missingQty: missing });
         }
 
         await tx.purchaseOrderLine.update({
-          where: { id: line.id },
-          data: {
-            status: line.status,
-            confirmedQuantity: line.confirmedQuantity,
-          },
+          where: { id: original.id },
+          data: { status, confirmedQuantity: quantity },
         });
       }
 
@@ -119,6 +124,26 @@ export class PurchaseOrderService {
     }
 
     return result.updatedOrder;
+  }
+
+  /** The confirmed quantity must agree with the line status and never exceed what was requested. */
+  private confirmedQuantityFor(requested: number, line: { status: PurchaseOrderLineStatus; confirmedQuantity?: number }): number {
+    const quantity = line.confirmedQuantity;
+    switch (line.status) {
+      case PurchaseOrderLineStatus.confirmed_full:
+        if (quantity !== undefined && quantity !== requested) throw new BadRequestException('A fully confirmed line must confirm the requested quantity');
+        return requested;
+      case PurchaseOrderLineStatus.confirmed_partial:
+        if (quantity === undefined || quantity <= 0 || quantity >= requested) {
+          throw new BadRequestException('A partially confirmed line needs a quantity between 1 and the requested quantity');
+        }
+        return quantity;
+      case PurchaseOrderLineStatus.unavailable:
+        if (quantity !== undefined && quantity !== 0) throw new BadRequestException('An unavailable line confirms no quantity');
+        return 0;
+      default:
+        throw new BadRequestException(`Line status ${line.status} is not a confirmation`);
+    }
   }
 
   async autoSourceDemand(skuId: string, quantity: number, excludedSupplierIds: string[] = [], loopCount: number = 0) {

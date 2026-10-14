@@ -119,6 +119,26 @@ describe('GLO-205 security regressions (e2e)', () => {
     await http().get(`/purchase-orders/${poB}`).set(supplierB.auth).expect(200);
   });
 
+  it('GLO-206: A cannot rewrite B lines by smuggling them into its own confirmation', async () => {
+    const own = await prisma.purchaseOrderLine.findFirstOrThrow({ where: { purchaseOrderId: poA } });
+    const foreign = await prisma.purchaseOrderLine.findFirstOrThrow({ where: { purchaseOrderId: poB } });
+    await http().post(`/purchase-orders/${poA}/confirm`).set(supplierA.auth).send({ lines: [
+      { id: own.id, status: 'confirmed_full' },
+      { id: foreign.id, status: 'unavailable' },
+    ] }).expect(400);
+    await http().post(`/purchase-orders/${poA}/confirm`).set(supplierA.auth)
+      .send({ lines: [{ id: own.id, status: 'confirmed_partial', confirmedQuantity: 50 }] }).expect(400);
+    expect((await prisma.purchaseOrderLine.findUniqueOrThrow({ where: { id: foreign.id } })).status).toBe('pending');
+    expect((await prisma.purchaseOrderLine.findUniqueOrThrow({ where: { id: own.id } })).status).toBe('pending');
+
+    const confirmed = await http().post(`/purchase-orders/${poA}/confirm`).set(supplierA.auth)
+      .send({ lines: [{ id: own.id, status: 'confirmed_full' }] }).expect(201);
+    expect(confirmed.body.lines[0].confirmedQuantity).toBe(own.requestedQuantity);
+    await http().post(`/purchase-orders/${poA}/confirm`).set(supplierA.auth)
+      .send({ lines: [{ id: own.id, status: 'unavailable' }] }).expect(400); // already confirmed
+    expect((await prisma.purchaseOrderLine.findUniqueOrThrow({ where: { id: own.id } })).status).toBe('confirmed_full');
+  });
+
   it('keeps admin-only actions away from hub operators', async () => {
     await http().patch(`/sourcing/payables/${randomUUID()}/mark-paid`).set(hub.auth).send({}).expect(403);
     await http().post('/commerce/prices').set(hub.auth).send({ skuId, amount: 1, currency: 'EGP' }).expect(403);
