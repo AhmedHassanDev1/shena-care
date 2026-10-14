@@ -6,12 +6,7 @@ import { RolesGuard } from '../accounts/guards/roles.guard';
 import { PermissionsGuard, RequirePermissions } from '../../platform/auth';
 import { Roles } from '../accounts/decorators/roles.decorator';
 import { CurrentUser } from '../accounts/decorators/current-user.decorator';
-import { Role } from '@prisma/client';
-
-interface FulfillmentActor {
-  id: string;
-  roles: Role[];
-}
+import { FulfillmentActor } from './services/fulfillment.service';
 
 @Controller('fulfillment')
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
@@ -48,20 +43,20 @@ export class FulfillmentController {
 
   @Post('shipments/allocate')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async allocateShipment(@Body() dto: AllocateShipmentDto) {
-    return this.fulfillmentService.allocateShipment(dto);
+  async allocateShipment(@Body() dto: AllocateShipmentDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.allocateShipment(dto, actor);
   }
 
   @Get('shipments/:id')
   @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
-  async getShipment(@Param('id') id: string) {
-    return this.fulfillmentService.getShipment(id);
+  async getShipment(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.getShipmentForActor(id, actor);
   }
 
   @Get('orders/:orderId/shipment')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async getShipmentByOrder(@Param('orderId') orderId: string) {
-    return this.fulfillmentService.getShipmentByOrder(orderId);
+  async getShipmentByOrder(@Param('orderId') orderId: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.getShipmentByOrder(orderId, actor);
   }
 
   @Patch('shipments/:id/status')
@@ -69,8 +64,9 @@ export class FulfillmentController {
   async updateShipmentStatus(
     @Param('id') id: string,
     @Body() dto: UpdateShipmentStatusDto,
+    @CurrentUser() actor: FulfillmentActor,
   ) {
-    return this.fulfillmentService.updateShipmentStatus(id, dto);
+    return this.fulfillmentService.updateShipmentStatusAsActor(id, dto, actor);
   }
 
   @Post('shipments/:id/preparation')
@@ -78,8 +74,9 @@ export class FulfillmentController {
   async startPreparationSession(
     @Param('id') id: string,
     @Body() dto: StartPreparationDto,
+    @CurrentUser() actor: FulfillmentActor,
   ) {
-    return this.fulfillmentService.startPreparationSession(id, dto);
+    return this.fulfillmentService.startPreparationSession(id, dto, actor);
   }
 
   @Post('preparation-sessions/:sessionId/scan')
@@ -87,20 +84,21 @@ export class FulfillmentController {
   async scanItem(
     @Param('sessionId') sessionId: string,
     @Body() dto: ScanItemDto,
+    @CurrentUser() actor: FulfillmentActor,
   ) {
-    return this.fulfillmentService.scanItem(sessionId, dto);
+    return this.fulfillmentService.scanItem(sessionId, dto, actor);
   }
 
   @Post('preparation-sessions/:sessionId/complete')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async completePreparationSession(@Param('sessionId') sessionId: string) {
-    return this.fulfillmentService.completePreparationSession(sessionId);
+  async completePreparationSession(@Param('sessionId') sessionId: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.completePreparationSession(sessionId, actor);
   }
 
   @Post('shipments/:id/label')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async generateShipmentLabel(@Param('id') id: string) {
-    return this.fulfillmentService.generateShipmentLabel(id);
+  async generateShipmentLabel(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.generateShipmentLabel(id, actor);
   }
 
   @Post('shipments/:id/events')
@@ -108,65 +106,66 @@ export class FulfillmentController {
   async recordShipmentEvent(
     @Param('id') id: string,
     @Body() dto: RecordShipmentEventDto,
+    @CurrentUser() actor: FulfillmentActor,
   ) {
-    return this.fulfillmentService.recordShipmentEvent(id, dto);
+    return this.fulfillmentService.recordShipmentEvent(id, dto, actor);
   }
 
   // --- Delivery Batch Planning ---
 
   @Get('locations/:id/eligible-shipments')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async getEligibleShipmentsForBatching(@Param('id') locationId: string) {
-    return this.fulfillmentService.getEligibleShipmentsForBatching(locationId);
+  async getEligibleShipmentsForBatching(@Param('id') locationId: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.getEligibleShipmentsForBatching(locationId, actor);
   }
 
   @Post('delivery-batches')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async createDeliveryBatch(@Body() dto: CreateDeliveryBatchDto) {
-    return this.fulfillmentService.createDeliveryBatch(dto);
+  async createDeliveryBatch(@Body() dto: CreateDeliveryBatchDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.createDeliveryBatch(dto, actor);
   }
 
   @Post('delivery-batches/:id/stops')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async addStopsToBatch(@Param('id') id: string, @Body() dto: AddStopsToBatchDto) {
-    return this.fulfillmentService.addStopsToBatch(id, dto.stops);
+  async addStopsToBatch(@Param('id') id: string, @Body() dto: AddStopsToBatchDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.addStopsToBatch(id, dto.stops, actor);
   }
 
   @Patch('delivery-batches/:id/stops/sequence')
   @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
-  async updateBatchStopsSequence(@Param('id') id: string, @Body() dto: UpdateStopSequenceDto) {
-    return this.fulfillmentService.updateBatchStopsSequence(id, dto.stops);
+  async updateBatchStopsSequence(@Param('id') id: string, @Body() dto: UpdateStopSequenceDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.updateBatchStopsSequence(id, dto.stops, actor);
   }
 
   @Delete('delivery-batches/:id/stops/:shipmentId')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async removeStopFromBatch(@Param('id') id: string, @Param('shipmentId') shipmentId: string) {
-    return this.fulfillmentService.removeStopFromBatch(id, shipmentId);
+  async removeStopFromBatch(@Param('id') id: string, @Param('shipmentId') shipmentId: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.removeStopFromBatch(id, shipmentId, actor);
   }
 
   @Post('delivery-batches/:id/dispatch')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async dispatchBatch(@Param('id') id: string) {
-    return this.fulfillmentService.dispatchBatch(id);
+  async dispatchBatch(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.dispatchBatch(id, actor);
   }
 
   @Post('delivery-batches/:id/complete')
   @Roles('ADMIN', 'DRIVER')
-  async completeBatch(@Param('id') id: string) {
-    return this.fulfillmentService.completeBatch(id);
+  async completeBatch(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.completeBatch(id, actor);
   }
 
   // --- Inventory Management (GLO-151) ---
 
   @Get('locations/:id/inventory')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async getInventoryBalances(@Param('id') locationId: string) {
-    return this.fulfillmentService.getInventoryBalances(locationId);
+  async getInventoryBalances(@Param('id') locationId: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.getInventoryBalances(locationId, actor);
   }
 
   @Post('inventory/adjust')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async adjustInventory(@Body() dto: AdjustInventoryDto) {
-    return this.fulfillmentService.adjustInventory(dto);
+  async adjustInventory(@Body() dto: AdjustInventoryDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.adjustInventory(dto, actor);
   }
 }

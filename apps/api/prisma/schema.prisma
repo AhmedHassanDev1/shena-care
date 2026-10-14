@@ -903,6 +903,7 @@ model FulfillmentLocation {
   inventoryBalances   InventoryBalance[]
   operatorAssignments FulfillmentLocationOperator[]
   receipts            FulfillmentReceipt[]
+  deliveryBatches     DeliveryBatch[]
 
   @@map("fulfillment_locations")
   @@schema("fulfillment")
@@ -990,14 +991,19 @@ model DeliveryBatch {
   id           String    @id @default(uuid()) @db.Uuid
   status       String    @default("planning") // planning, dispatched, completed
   driverId     String?   @map("driver_id")
+  /// Dispatching hub; null only on batches created before GLO-206 (admin-only access).
+  locationId   String?   @map("location_id") @db.Uuid
   plannedAt    DateTime? @default(now()) @map("planned_at")
   dispatchedAt DateTime? @map("dispatched_at")
   completedAt  DateTime? @map("completed_at")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  stops DeliveryStop[]
+  location FulfillmentLocation? @relation(fields: [locationId], references: [id])
+  stops    DeliveryStop[]
 
+  @@index([locationId])
+  @@index([driverId])
   @@map("delivery_batches")
   @@schema("fulfillment")
 }

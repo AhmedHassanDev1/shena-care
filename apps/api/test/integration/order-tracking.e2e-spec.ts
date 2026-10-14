@@ -144,7 +144,7 @@ describe('Customer order read and tracking (e2e)', () => {
     } });
     read = await http().get(path).set('Authorization', owner.auth).expect(200);
     expect(read.body.status).toBe('CONFIRMED');
-    await fulfillment.startPreparationSession(shipment.id, { operatorId: owner.id });
+    await fulfillment.startPreparationSession(shipment.id, {}, { id: owner.id, roles: ['ADMIN'] });
     read = await http().get(path).set('Authorization', owner.auth).expect(200);
     expect(read.body.status).toBe('PREPARING');
     expect(read.body.delivery.certainty).toBe('unknown');

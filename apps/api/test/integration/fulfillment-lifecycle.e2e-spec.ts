@@ -55,6 +55,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
   let sessionId: string;
   let locationId: string;
   let secondShipmentId: string; // for GLO-147 invalid-state tests
+  let labelBarcode: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -330,12 +331,13 @@ describe('Fulfillment Lifecycle (e2e)', () => {
       // Barcode must be opaque — must not contain raw PII
       expect(res.body.barcode).not.toContain('@');
       expect(res.body.shipmentId).toBe(shipmentId);
+      labelBarcode = res.body.barcode;
     });
 
     it('should reject handoff event when not yet packed', async () => {
       const res = await request(app.getHttpServer())
         .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
-        .send({ type: 'HANDOFF_SCANNED', actorId: 'driver-1' })
+        .send({ type: 'HANDOFF_SCANNED', barcode: labelBarcode })
         .expect(400);
 
       expect(res.body.message).toMatch(/Shipment must be packed before dispatch/);
@@ -351,13 +353,24 @@ describe('Fulfillment Lifecycle (e2e)', () => {
       expect(res.body.shipmentId).toBe(shipmentId);
     });
 
-    it('should allow HANDOFF_SCANNED after packing', async () => {
+    it('should reject HANDOFF_SCANNED without the matching label barcode (GLO-206 GAP-06)', async () => {
+      for (const barcode of [undefined, 'SHP-00000000-0000000000000000', `${labelBarcode}X`]) {
+        const res = await request(app.getHttpServer())
+          .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
+          .send({ type: 'HANDOFF_SCANNED', ...(barcode ? { barcode } : {}) })
+          .expect(400);
+        expect(res.body.message).toMatch(/barcode does not match/);
+      }
+    });
+
+    it('should allow HANDOFF_SCANNED after packing and attribute it to the session user', async () => {
       const res = await request(app.getHttpServer())
         .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
-        .send({ type: 'HANDOFF_SCANNED', actorId: 'driver-1' })
+        .send({ type: 'HANDOFF_SCANNED', actorId: 'spoofed-driver', barcode: labelBarcode })
         .expect(201);
 
       expect(res.body.type).toBe('HANDOFF_SCANNED');
+      expect(res.body.actorId).not.toBe('spoofed-driver');
     });
 
     it('should allow OUT_FOR_DELIVERY event after handoff (dispatched state)', async () => {

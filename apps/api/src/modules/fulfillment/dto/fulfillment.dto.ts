@@ -90,9 +90,10 @@ export class UpdateShipmentStatusDto {
 }
 
 export class StartPreparationDto {
+  /** Ignored: the session operator is always the authenticated user. Kept for client compatibility. */
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  operatorId: string;
+  operatorId?: string;
 }
 
 export class ScanItemDto {
@@ -110,6 +111,7 @@ export class RecordShipmentEventDto {
   @IsNotEmpty()
   type: string;
 
+  /** Ignored: the event actor is always the authenticated user. Kept for client compatibility. */
   @IsOptional()
   @IsString()
   actorId?: string;
@@ -117,6 +119,12 @@ export class RecordShipmentEventDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  /** Label barcode scanned at handoff; required for HANDOFF_SCANNED. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  barcode?: string;
 }
 
 export class CreateDeliveryBatchDto {

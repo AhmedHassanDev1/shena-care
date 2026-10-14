@@ -6,6 +6,7 @@ import { SupplyPlanService } from '../../sourcing/public';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto, ReceiveAllocatedGoodsDto, CreateDeliveryBatchDto, DeliveryStopInputDto } from '../dto/fulfillment.dto';
 import { FulfillmentCapability, ShipmentStatus, PreparationSessionStatus, Prisma, Role } from '@prisma/client';
 import * as crypto from 'crypto';
+import { isValidShipmentBarcode, signShipmentBarcode } from './shipment-label';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderDeliveredEvent } from '../../../platform/events/integration.events';
 import { OutboxService } from '../../operations/services/outbox.service';
@@ -19,10 +20,14 @@ export interface FulfillmentLocationDetail {
   createdAt: Date;
 }
 
-interface FulfillmentActor {
+export interface FulfillmentActor {
   id: string;
   roles: Role[];
 }
+
+// Drivers act only at the delivery stage of shipments on their own run.
+const DRIVER_EVENT_TYPES = ['HANDOFF_SCANNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED'];
+const DRIVER_STATUSES: ShipmentStatus[] = [ShipmentStatus.out_for_delivery, ShipmentStatus.delivered, ShipmentStatus.failed];
 
 export interface ShipmentDetail {
   id: string;
@@ -72,6 +77,48 @@ export class FulfillmentService {
       where: { locationId_operatorId: { locationId, operatorId: actor.id } },
     });
     if (!assignment) throw new ForbiddenException('Operator is not assigned to this fulfillment location');
+  }
+
+  private async isAssignedOperator(locationId: string, actor: FulfillmentActor): Promise<boolean> {
+    if (!actor.roles.includes(Role.HUB_OPERATOR)) return false;
+    return !!(await this.prisma.fulfillmentLocationOperator.findUnique({
+      where: { locationId_operatorId: { locationId, operatorId: actor.id } },
+    }));
+  }
+
+  /**
+   * Object-level scope for a shipment (GLO-206 GAP-05): admins see everything, hub operators only
+   * their assigned locations, drivers only shipments on a run assigned to them. Unassigned drivers
+   * get 404 so shipment IDs cannot be probed.
+   */
+  private async resolveShipmentScope(shipment: { id: string; locationId: string }, actor: FulfillmentActor) {
+    if (actor.roles.includes(Role.ADMIN)) return { as: 'admin' as const };
+    if (await this.isAssignedOperator(shipment.locationId, actor)) return { as: 'hub' as const };
+    if (actor.roles.includes(Role.DRIVER)) {
+      const stop = await this.prisma.deliveryStop.findUnique({ where: { shipmentId: shipment.id }, include: { batch: true } });
+      if (stop && stop.batch.driverId === actor.id) return { as: 'driver' as const, batch: stop.batch };
+      throw new NotFoundException('Shipment not found');
+    }
+    throw new ForbiddenException('Operator is not assigned to this fulfillment location');
+  }
+
+  private async assertHubShipmentAccess(shipment: { id: string; locationId: string }, actor: FulfillmentActor) {
+    const scope = await this.resolveShipmentScope(shipment, actor);
+    if (scope.as === 'driver') throw new ForbiddenException('Hub access is required');
+  }
+
+  private async resolveBatchScope(batch: { locationId: string | null; driverId: string | null }, actor: FulfillmentActor) {
+    if (actor.roles.includes(Role.ADMIN)) return 'admin' as const;
+    if (batch.locationId && await this.isAssignedOperator(batch.locationId, actor)) return 'hub' as const;
+    if (actor.roles.includes(Role.DRIVER) && batch.driverId === actor.id) return 'driver' as const;
+    throw new NotFoundException('Batch not found');
+  }
+
+  private async findShipmentForActor(id: string, actor: FulfillmentActor) {
+    if (!this.isUuid(id)) throw new BadRequestException('Invalid shipment ID');
+    const shipment = await this.prisma.shipment.findUnique({ where: { id }, include: { items: true } });
+    if (!shipment) throw new NotFoundException('Shipment not found');
+    return { shipment, scope: await this.resolveShipmentScope(shipment, actor) };
   }
 
   async createLocation(dto: CreateLocationDto): Promise<FulfillmentLocationDetail> {
@@ -353,8 +400,9 @@ export class FulfillmentService {
     }) as unknown as ShipmentDetail;
   }
 
-  async allocateShipment(dto: AllocateShipmentDto): Promise<ShipmentDetail> {
+  async allocateShipment(dto: AllocateShipmentDto, actor: FulfillmentActor): Promise<ShipmentDetail> {
     const location = await this.getOperationalLocation(dto.locationId, FulfillmentCapability.PREPARE_ORDERS);
+    await this.assertLocationAccess(location.id, actor);
 
     // Verify order exists and is valid for fulfillment
     const order = await this.orderingService.getOrder(dto.orderId);
@@ -402,12 +450,27 @@ export class FulfillmentService {
     });
   }
 
-  async getShipmentByOrder(orderId: string): Promise<ShipmentDetail | null> {
+  async getShipmentForActor(id: string, actor: FulfillmentActor): Promise<ShipmentDetail> {
+    return (await this.findShipmentForActor(id, actor)).shipment;
+  }
+
+  async getShipmentByOrder(orderId: string, actor: FulfillmentActor): Promise<ShipmentDetail | null> {
     if (!this.isUuid(orderId)) return null;
-    return this.prisma.shipment.findUnique({
+    const shipment = await this.prisma.shipment.findUnique({
       where: { orderId },
       include: { items: true },
     });
+    if (shipment) await this.assertHubShipmentAccess(shipment, actor);
+    return shipment;
+  }
+
+  async updateShipmentStatusAsActor(id: string, dto: UpdateShipmentStatusDto, actor: FulfillmentActor): Promise<ShipmentDetail> {
+    const { scope } = await this.findShipmentForActor(id, actor);
+    if (scope.as === 'driver') {
+      if (!DRIVER_STATUSES.includes(dto.status)) throw new ForbiddenException(`Drivers cannot set shipment status ${dto.status}`);
+      if (scope.batch.status !== 'dispatched') throw new BadRequestException('Delivery run has not been dispatched');
+    }
+    return this.updateShipmentStatus(id, dto);
   }
 
   async updateShipmentStatus(id: string, dto: UpdateShipmentStatusDto): Promise<ShipmentDetail> {
@@ -488,7 +551,7 @@ export class FulfillmentService {
     });
   }
 
-  async startPreparationSession(shipmentId: string, dto: StartPreparationDto) {
+  async startPreparationSession(shipmentId: string, dto: StartPreparationDto, actor: FulfillmentActor) {
     if (!this.isUuid(shipmentId)) throw new BadRequestException('Invalid shipment ID');
     
     const shipment = await this.prisma.shipment.findUnique({
@@ -497,6 +560,7 @@ export class FulfillmentService {
     });
 
     if (!shipment) throw new NotFoundException('Shipment not found');
+    await this.assertHubShipmentAccess(shipment, actor);
     await this.getOperationalLocation(shipment.locationId, FulfillmentCapability.PREPARE_ORDERS);
 
     const activeSession = shipment.preparationSessions.find(s => s.status === PreparationSessionStatus.in_progress);
@@ -513,14 +577,14 @@ export class FulfillmentService {
         throw new BadRequestException(`Cannot start preparation for shipment in status ${shipment.status}. Concurrency conflict or invalid state.`);
       }
       const session = await tx.shipmentPreparationSession.create({
-        data: { shipmentId, operatorId: dto.operatorId, status: PreparationSessionStatus.in_progress }
+        data: { shipmentId, operatorId: actor.id, status: PreparationSessionStatus.in_progress }
       });
-      await tx.shipmentEvent.create({ data: { shipmentId, type: 'PREPARATION_STARTED' } });
+      await tx.shipmentEvent.create({ data: { shipmentId, type: 'PREPARATION_STARTED', actorId: actor.id } });
       return session;
     });
   }
 
-  async scanItem(sessionId: string, dto: ScanItemDto) {
+  async scanItem(sessionId: string, dto: ScanItemDto, actor: FulfillmentActor) {
     if (!this.isUuid(sessionId)) throw new BadRequestException('Invalid session ID');
     
     const session = await this.prisma.shipmentPreparationSession.findUnique({
@@ -534,6 +598,7 @@ export class FulfillmentService {
     });
 
     if (!session) throw new NotFoundException('Preparation session not found');
+    await this.assertHubShipmentAccess(session.shipment, actor);
     if (session.status !== PreparationSessionStatus.in_progress) {
       throw new BadRequestException('Session is not in progress');
     }
@@ -600,7 +665,7 @@ export class FulfillmentService {
     });
   }
 
-  async completePreparationSession(sessionId: string) {
+  async completePreparationSession(sessionId: string, actor: FulfillmentActor) {
     if (!this.isUuid(sessionId)) throw new BadRequestException('Invalid session ID');
     
     const session = await this.prisma.shipmentPreparationSession.findUnique({
@@ -612,6 +677,7 @@ export class FulfillmentService {
     });
 
     if (!session) throw new NotFoundException('Preparation session not found');
+    await this.assertHubShipmentAccess(session.shipment, actor);
     if (session.status !== PreparationSessionStatus.in_progress) {
       throw new BadRequestException('Session is not in progress');
     }
@@ -650,7 +716,7 @@ export class FulfillmentService {
     return { success: true };
   }
 
-  async generateShipmentLabel(shipmentId: string) {
+  async generateShipmentLabel(shipmentId: string, actor: FulfillmentActor) {
     if (!this.isUuid(shipmentId)) throw new BadRequestException('Invalid shipment ID');
     
     const shipment = await this.prisma.shipment.findUnique({
@@ -661,6 +727,7 @@ export class FulfillmentService {
     });
 
     if (!shipment) throw new NotFoundException('Shipment not found');
+    await this.assertHubShipmentAccess(shipment, actor);
 
     if (shipment.status !== 'prepared' && shipment.status !== 'ready_to_pack' && shipment.status !== 'packed') {
       throw new BadRequestException(`Cannot generate label for shipment in status ${shipment.status}`);
@@ -669,18 +736,10 @@ export class FulfillmentService {
     const order = await this.orderingService.getOrder(shipment.orderId);
     if (!order) throw new NotFoundException('Order not found');
 
-    // Create an opaque token/barcode data for the shipment
-    const signature = crypto.createHmac('sha256', process.env.SECRET_KEY || 'default-secret-key')
-      .update(shipment.id)
-      .digest('hex')
-      .substring(0, 16);
-      
-    const barcode = `SHP-${shipment.id.substring(0, 8).toUpperCase()}-${signature.toUpperCase()}`;
+    const barcode = signShipmentBarcode(shipment.id);
 
-    // Record the LABEL_PRINTED event
-    await this.recordShipmentEvent(shipmentId, {
-      type: 'LABEL_PRINTED',
-      notes: 'Generated shipment label with barcode',
+    await this.prisma.shipmentEvent.create({
+      data: { shipmentId, type: 'LABEL_PRINTED', actorId: actor.id, notes: 'Generated shipment label with barcode' },
     });
 
     return {
@@ -696,14 +755,18 @@ export class FulfillmentService {
     };
   }
 
-  async recordShipmentEvent(shipmentId: string, dto: RecordShipmentEventDto) {
-    if (!this.isUuid(shipmentId)) throw new BadRequestException('Invalid shipment ID');
-
-    const shipment = await this.prisma.shipment.findUnique({
-      where: { id: shipmentId }
-    });
-
-    if (!shipment) throw new NotFoundException('Shipment not found');
+  async recordShipmentEvent(shipmentId: string, dto: RecordShipmentEventDto, actor: FulfillmentActor) {
+    const { shipment, scope } = await this.findShipmentForActor(shipmentId, actor);
+    if (scope.as === 'driver') {
+      if (!DRIVER_EVENT_TYPES.includes(dto.type)) throw new ForbiddenException(`Drivers cannot record ${dto.type} events`);
+      if (dto.type !== 'HANDOFF_SCANNED' && scope.batch.status !== 'dispatched') {
+        throw new BadRequestException('Delivery run has not been dispatched');
+      }
+    }
+    // Custody changes hands only against the physical label (GLO-206 GAP-06).
+    if (dto.type === 'HANDOFF_SCANNED' && (!dto.barcode || !isValidShipmentBarcode(shipment.id, dto.barcode))) {
+      throw new BadRequestException('Scanned barcode does not match this shipment');
+    }
 
     if (dto.type === 'OUT_FOR_DELIVERY' || dto.type === 'HANDOFF_SCANNED') {
       if (shipment.status !== 'packed' && shipment.status !== 'dispatched') {
@@ -715,7 +778,7 @@ export class FulfillmentService {
       data: {
         shipmentId,
         type: dto.type,
-        actorId: dto.actorId,
+        actorId: actor.id,
         notes: dto.notes,
       }
     });
@@ -749,8 +812,9 @@ export class FulfillmentService {
 
   // --- Delivery Batch Planning (GLO-149) ---
 
-  async getEligibleShipmentsForBatching(locationId: string) {
+  async getEligibleShipmentsForBatching(locationId: string, actor: FulfillmentActor) {
     await this.getOperationalLocation(locationId, FulfillmentCapability.DISPATCH_SHIPMENTS);
+    await this.assertLocationAccess(locationId, actor);
     // Eligible shipments are packed (ready for dispatch) and not already assigned to a stop
     return this.prisma.shipment.findMany({
       where: {
@@ -762,12 +826,20 @@ export class FulfillmentService {
     });
   }
 
-  async createDeliveryBatch(dto: CreateDeliveryBatchDto) {
+  async createDeliveryBatch(dto: CreateDeliveryBatchDto, actor: FulfillmentActor) {
     if (!this.isUuid(dto.hubId)) throw new BadRequestException('Invalid hub ID');
+    const location = await this.prisma.fulfillmentLocation.findUnique({ where: { id: dto.hubId } });
+    if (!location || !location.isActive) throw new NotFoundException('Active fulfillment location not found');
+    await this.assertLocationAccess(location.id, actor);
+    if (dto.driverId) {
+      const driver = this.isUuid(dto.driverId) ? await this.prisma.customer.findUnique({ where: { id: dto.driverId } }) : null;
+      if (!driver || !driver.roles.includes(Role.DRIVER)) throw new BadRequestException('driverId must reference a driver account');
+    }
     return this.prisma.deliveryBatch.create({
       data: {
         id: crypto.randomUUID(),
         status: 'planning',
+        locationId: location.id,
         driverId: dto.driverId,
         stops: {
           create: []
@@ -776,12 +848,13 @@ export class FulfillmentService {
     });
   }
 
-  async addStopsToBatch(batchId: string, stops: DeliveryStopInputDto[]) {
+  async addStopsToBatch(batchId: string, stops: DeliveryStopInputDto[], actor: FulfillmentActor) {
     if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
     
     return this.prisma.$transaction(async (tx) => {
       const batch = await tx.deliveryBatch.findUnique({ where: { id: batchId }, include: { stops: true } });
       if (!batch) throw new NotFoundException('Batch not found');
+      if (await this.resolveBatchScope(batch, actor) === 'driver') throw new ForbiddenException('Hub access is required');
       if (batch.status !== 'planning') {
         throw new BadRequestException('Cannot add stops to a dispatched/completed batch');
       }
@@ -794,6 +867,9 @@ export class FulfillmentService {
         // Ensure shipment exists and is eligible
         const shipment = await tx.shipment.findUnique({ where: { id: stop.shipmentId }, include: { deliveryStops: true } });
         if (!shipment) throw new NotFoundException(`Shipment ${stop.shipmentId} not found`);
+        if (batch.locationId && shipment.locationId !== batch.locationId) {
+          throw new BadRequestException(`Shipment ${stop.shipmentId} belongs to a different hub`);
+        }
         if (shipment.status !== 'packed') {
           throw new BadRequestException(`Shipment ${stop.shipmentId} must be packed`);
         }
@@ -819,7 +895,7 @@ export class FulfillmentService {
     });
   }
 
-  async updateBatchStopsSequence(batchId: string, stops: DeliveryStopInputDto[]) {
+  async updateBatchStopsSequence(batchId: string, stops: DeliveryStopInputDto[], actor: FulfillmentActor) {
     if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
     const sequencedStops = stops.map(stop => {
       if (stop.sequence === undefined) throw new BadRequestException('Stop sequence is required');
@@ -829,6 +905,7 @@ export class FulfillmentService {
     return this.prisma.$transaction(async (tx) => {
       const batch = await tx.deliveryBatch.findUnique({ where: { id: batchId } });
       if (!batch) throw new NotFoundException('Batch not found');
+      await this.resolveBatchScope(batch, actor);
       if (batch.status !== 'planning') {
         throw new BadRequestException('Cannot modify a dispatched/completed batch');
       }
@@ -860,25 +937,26 @@ export class FulfillmentService {
     });
   }
 
-  async removeStopFromBatch(batchId: string, shipmentId: string) {
+  async removeStopFromBatch(batchId: string, shipmentId: string, actor: FulfillmentActor) {
     if (!this.isUuid(batchId) || !this.isUuid(shipmentId)) throw new BadRequestException('Invalid ID');
 
     return this.prisma.$transaction(async (tx) => {
       const batch = await tx.deliveryBatch.findUnique({ where: { id: batchId } });
       if (!batch) throw new NotFoundException('Batch not found');
+      if (await this.resolveBatchScope(batch, actor) === 'driver') throw new ForbiddenException('Hub access is required');
       if (batch.status !== 'planning') {
         throw new BadRequestException('Cannot modify a dispatched/completed batch');
       }
 
-      await tx.deliveryStop.delete({
-        where: { shipmentId } // Using unique constraint on shipmentId
-      });
+      // Scoped to this batch: a stop on another run must not be removable through this one.
+      const removed = await tx.deliveryStop.deleteMany({ where: { batchId, shipmentId } });
+      if (removed.count === 0) throw new NotFoundException('Stop not found in this batch');
 
       return { success: true };
     });
   }
 
-  async dispatchBatch(batchId: string) {
+  async dispatchBatch(batchId: string, actor: FulfillmentActor) {
     if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
 
     return this.prisma.$transaction(async (tx) => {
@@ -887,6 +965,7 @@ export class FulfillmentService {
         include: { stops: true }
       });
       if (!batch) throw new NotFoundException('Batch not found');
+      if (await this.resolveBatchScope(batch, actor) === 'driver') throw new ForbiddenException('Hub access is required');
       if (batch.status !== 'planning') throw new BadRequestException('Batch is already dispatched/completed');
       if (batch.stops.length === 0) throw new BadRequestException('Cannot dispatch an empty batch');
 
@@ -913,7 +992,7 @@ export class FulfillmentService {
     });
   }
 
-  async completeBatch(batchId: string) {
+  async completeBatch(batchId: string, actor: FulfillmentActor) {
     if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
 
     return this.prisma.$transaction(async (tx) => {
@@ -922,6 +1001,7 @@ export class FulfillmentService {
         include: { stops: { include: { shipment: true } } }
       });
       if (!batch) throw new NotFoundException('Batch not found');
+      await this.resolveBatchScope(batch, actor);
       if (batch.status !== 'dispatched') throw new BadRequestException('Batch must be dispatched to complete');
 
       // Check if all shipments are in a terminal state
@@ -944,19 +1024,21 @@ export class FulfillmentService {
 
   // --- Inventory Management (GLO-151) ---
 
-  async getInventoryBalances(locationId: string) {
+  async getInventoryBalances(locationId: string, actor: FulfillmentActor) {
     if (!this.isUuid(locationId)) throw new BadRequestException('Invalid location ID');
+    await this.assertLocationAccess(locationId, actor);
     return this.prisma.inventoryBalance.findMany({
       where: { locationId },
       orderBy: { createdAt: 'desc' }
     });
   }
 
-  async adjustInventory(dto: AdjustInventoryDto) {
+  async adjustInventory(dto: AdjustInventoryDto, actor: FulfillmentActor) {
     if (!this.isUuid(dto.locationId) || !this.isUuid(dto.skuId)) {
       throw new BadRequestException('Invalid ID');
     }
     await this.getOperationalLocation(dto.locationId, FulfillmentCapability.MANAGE_OWNED_INVENTORY);
+    await this.assertLocationAccess(dto.locationId, actor);
     
     return this.prisma.$transaction(async (tx) => {
       let balance = await tx.inventoryBalance.findUnique({
