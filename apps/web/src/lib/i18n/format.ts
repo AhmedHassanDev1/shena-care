@@ -41,8 +41,9 @@ export function formatPackSize(size: number | null, unit: string | null, locale:
   return `${value} ${locale === 'ar' ? SIZE_UNITS_AR[normalized] ?? unit : unit}`;
 }
 
+/** Medium date in the active language, always with Western digits (design-system numeral rule). */
 export function formatDate(value: string | Date, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-EG', {
     dateStyle: 'medium',
   }).format(new Date(value));
 }

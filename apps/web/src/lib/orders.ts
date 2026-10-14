@@ -124,28 +124,111 @@ export const orders = {
     return response;
   },
 
-  async getOrder(idOrOrderNumber: string, passedGuestToken?: string): Promise<unknown> {
-    const token = auth.getToken();
-    const options: RequestOptions = {};
-    if (token) {
-      options.token = token;
-      return apiClient.get<unknown>(`/ordering/orders/${idOrOrderNumber}/tracking`, options);
-    } else {
-      if (passedGuestToken) options.headers = { 'x-order-access-token': passedGuestToken };
-      return apiClient.get<unknown>(`/ordering/guest/orders/${idOrOrderNumber}/tracking`, options);
-    }
+  /** Customer-safe tracking (GLO-74): signed-in owner, or the guest token stored on this device. */
+  async getTracking(orderNumber: string): Promise<OrderTracking> {
+    return apiClient.get<OrderTracking>(...orderPath(orderNumber, '/tracking'));
   },
 
-  async respondToAvailability(idOrOrderNumber: string, decisionId: string, action: string, version: number, passedGuestToken?: string): Promise<unknown> {
+  async listDecisions(orderNumber: string): Promise<AvailabilityDecision[]> {
+    return apiClient.get<AvailabilityDecision[]>(...orderPath(orderNumber, '/availability-decisions'));
+  },
+
+  /** Submits a customer availability decision (GLO-190); `version` is the one the customer saw. */
+  async decide(orderNumber: string, decisionId: string, body: DecisionSubmission): Promise<AvailabilityDecision> {
     const token = auth.getToken();
-    const options: RequestOptions = {};
-    const payload = { action, expectedVersion: version };
-    if (token) {
-      options.token = token;
-      return apiClient.post<unknown>(`/ordering/availability-decisions/${decisionId}/decision`, payload, options);
-    } else {
-      if (passedGuestToken) options.headers = { 'x-order-access-token': passedGuestToken };
-      return apiClient.post<unknown>(`/ordering/guest/orders/${idOrOrderNumber}/availability-decisions/${decisionId}/decision`, payload, options);
-    }
-  }
+    const payload = { ...body, channel: 'web' as const };
+    if (token) return apiClient.post<AvailabilityDecision>(`/ordering/availability-decisions/${decisionId}/decision`, payload, { token });
+    const access = recallOrderAccess(orderNumber);
+    return apiClient.post<AvailabilityDecision>(
+      `/ordering/guest/orders/${encodeURIComponent(orderNumber)}/availability-decisions/${decisionId}/decision`,
+      payload,
+      access ? { headers: { 'x-order-access-token': access } } : {},
+    );
+  },
 };
+
+
+/** Owner route when signed in; otherwise the guest route with this device's order access token. */
+function orderPath(orderNumber: string, suffix: string): [string, RequestOptions] {
+  const token = auth.getToken();
+  if (token) return [`/ordering/orders/${encodeURIComponent(orderNumber)}${suffix}`, { token }];
+  const access = recallOrderAccess(orderNumber);
+  return [
+    `/ordering/guest/orders/${encodeURIComponent(orderNumber)}${suffix}`,
+    access ? { headers: { 'x-order-access-token': access } } : {},
+  ];
+}
+
+export type CustomerStage =
+  | 'RECEIVED' | 'CONFIRMING_PRODUCTS' | 'CONFIRMED' | 'PREPARING' | 'OUT_FOR_DELIVERY' | 'DELIVERED'
+  | 'ACTION_REQUIRED' | 'CANCELLATION_REQUESTED' | 'CANCELLED' | 'DELIVERY_ISSUE';
+
+/** Exactly the API's CustomerOrderTrackingDto (apps/api ordering/dto/order-tracking.dto.ts). */
+export interface OrderTracking {
+  orderNumber: string;
+  createdAt: string;
+  status: CustomerStage;
+  orderReceived: boolean;
+  availabilityConfirmed: boolean;
+  customerName: string;
+  deliveryAddress: { governorate: string | null; area: string | null; address: string };
+  amounts: { originalCodAmount: number; currentCodAmount: number; subtotal: number; shippingFee: number; currency: string };
+  items: Array<{
+    id: string;
+    skuId: string;
+    productName: string | null;
+    variantName: string | null;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+    currency: string;
+    status: 'checking' | 'confirmed' | 'action-required' | 'resolved';
+    lineState?: 'active' | 'removed' | 'replaced';
+  }>;
+  timeline: Array<{ status: CustomerStage; occurredAt: string }>;
+  delivery: {
+    certainty: 'unknown' | 'estimated' | 'confirmed';
+    estimatedDate: string | null;
+    deliveredAt: string | null;
+    nextUpdateBy: string | null;
+    promise: string | null;
+  };
+  actionRequired: { category: string; affectedItemIds: string[]; allowedActions: string[] } | null;
+  resolutions: Array<{
+    category: string;
+    status: 'requested' | 'in_progress' | 'resolved' | 'rejected';
+    refund?: { amount: number; currency: string; status: string } | null;
+  }>;
+}
+
+export type AvailabilityAction = 'REPLACE_WITH' | 'CONTINUE_WITHOUT_ITEM' | 'CANCEL_ORDER';
+
+/** Exactly the API's AvailabilityDecisionDto: every money figure is server-computed. */
+export interface AvailabilityDecision {
+  id: string;
+  orderItemId: string;
+  version: number;
+  status: 'pending' | 'resolved' | 'review_required' | 'superseded';
+  unresolvedQuantity: number;
+  original: { productName: string | null; variantName: string | null; quantity: number; unitPrice: number; lineTotal: number; currency: string };
+  availableActions: AvailabilityAction[];
+  candidates: Array<{
+    skuId: string;
+    variantName: string;
+    size: number | null;
+    sizeUnit: string | null;
+    unitPrice: number;
+    lineTotal: number;
+    currency: string;
+    preview: { codBefore: number; codAfter: number; priceDelta: number };
+  }>;
+  previews: { continueWithoutItem: { codBefore: number; codAfter: number } | null; cancelOrder: { codBefore: number; codAfter: number } };
+  receipt: { amounts: { codBefore: number; codAfter: number; delta: number; currency: string } } | null;
+}
+
+export interface DecisionSubmission {
+  action: AvailabilityAction;
+  candidateSkuId?: string;
+  version: number;
+  idempotencyKey: string;
+}

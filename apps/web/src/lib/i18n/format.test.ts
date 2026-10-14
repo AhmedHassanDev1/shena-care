@@ -1,4 +1,4 @@
-import { formatEgp, formatNumber, formatPackSize } from './format';
+import { formatDate, formatEgp, formatNumber, formatPackSize } from './format';
 
 describe('formatEgp', () => {
   it('formats Egyptian pounds consistently with Latin digits', () => {
@@ -32,5 +32,13 @@ describe('formatNumber', () => {
     expect(formatNumber(6)).toBe('6');
     expect(formatNumber(37)).toBe('37');
     expect(formatNumber(1250)).toBe('1,250');
+  });
+});
+
+describe('formatDate', () => {
+  it('uses Western digits in Arabic', () => {
+    const text = formatDate('2026-10-14T10:00:00Z', 'ar');
+    expect(text).toMatch(/2026/);
+    expect(text).not.toMatch(/[٠-٩]/);
   });
 });
