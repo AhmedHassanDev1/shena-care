@@ -7,9 +7,38 @@ export interface CheckoutData {
   shippingAddress: string;
   governorate: string;
   area: string;
-  idempotencyKey?: string;
+  /** Landmark / delivery notes (optional). */
+  notes?: string;
+  idempotencyKey: string;
   quoteVersion: string;
   cartRevision: number;
+}
+
+/** The accepted order as `POST /ordering/checkout` returns it (apps/api ordering.service.ts `OrderDetail`). */
+export interface PlacedOrder {
+  id: string;
+  orderNumber: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  orderReceived: true;
+  availabilityConfirmed: false;
+  createdAt: string;
+  /** Guest orders only: opaque per-order access token for tracking (never put it in a URL). */
+  guestAccessToken?: string;
+  guestAccessExpiresAt?: string;
+}
+
+const ORDER_ACCESS_PREFIX = 'orderAccess:';
+
+/** Keeps a guest order's access token on this device so tracking works without signing in. */
+export function rememberOrderAccess(orderNumber: string, token: string) {
+  if (typeof window !== 'undefined') localStorage.setItem(ORDER_ACCESS_PREFIX + orderNumber, token);
+}
+
+export function recallOrderAccess(orderNumber: string): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return localStorage.getItem(ORDER_ACCESS_PREFIX + orderNumber) ?? undefined;
 }
 
 /**
@@ -80,14 +109,15 @@ export const orders = {
     return apiClient.post<CheckoutQuote>('/ordering/checkout/quote', data, options);
   },
 
-  async checkout(data: CheckoutData): Promise<Order & { guestToken?: string }> {
+  async checkout(data: CheckoutData): Promise<PlacedOrder> {
     const token = auth.getToken();
     const guestToken = typeof window !== 'undefined' ? localStorage.getItem('guestCartToken') : undefined;
     const options: RequestOptions = {};
     if (token) options.token = token;
     else if (guestToken) options.headers = { 'x-cart-token': guestToken };
     
-    const response = await apiClient.post<Order & { guestToken?: string }>('/ordering/checkout', data, options);
+    const response = await apiClient.post<PlacedOrder>('/ordering/checkout', data, options);
+    if (response.guestAccessToken) rememberOrderAccess(response.orderNumber, response.guestAccessToken);
     if (typeof window !== 'undefined' && guestToken) {
       localStorage.removeItem('guestCartToken'); // Order placed, cart consumed
     }
