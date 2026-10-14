@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Get, Param, Patch, UseGuards, Query } from '@nestjs/common';
-import { SupportService } from '../services/support.service';
+import { SupportActor, SupportService } from '../services/support.service';
 import { DashboardService } from '../services/dashboard.service';
 import { FinanceService } from '../services/finance.service';
 import { CreateSupportCaseDto, UpdateSupportCaseDto } from '../dto/operations.dto';
@@ -43,11 +43,8 @@ export class OperationsController {
 
   @Post('support/cases')
   // Customers can create, admins can create
-  async createSupportCase(@Body() dto: CreateSupportCaseDto, @CurrentUser() user: any) {
-    if (user.roles.includes('CUSTOMER') && !user.roles.includes('ADMIN')) {
-      dto.customerId = user.id; // Force customer ID for self-service
-    }
-    return this.supportService.createCase(dto);
+  async createSupportCase(@Body() dto: CreateSupportCaseDto, @CurrentUser() user: SupportActor) {
+    return this.supportService.createCaseAs(dto, user);
   }
 
   @Get('support/cases')

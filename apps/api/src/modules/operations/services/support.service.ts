@@ -1,12 +1,36 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { CreateSupportCaseDto, UpdateSupportCaseDto } from '../dto/operations.dto';
 import { OutboxService } from './outbox.service';
+import { PrismaService } from '../../../platform/database/prisma.service';
+
+export interface SupportActor { id: string; roles: Role[]; supplierId?: string | null }
 
 @Injectable()
 export class SupportService {
-  private readonly prisma = new PrismaClient();
-  constructor(private readonly outbox: OutboxService) {}
+  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService) {}
+
+  /**
+   * Who a case is about comes from the session, not the body (GLO-206 W24 F-06): staff may file on
+   * anyone's behalf; customers only for themselves and their own orders; suppliers only for their
+   * own supplier; other roles cannot attach a customer, order or supplier.
+   */
+  async createCaseAs(dto: CreateSupportCaseDto, actor: SupportActor) {
+    if (actor.roles.some(role => role === Role.ADMIN || role === Role.HUB_OPERATOR)) return this.createCase(dto);
+    const isCustomer = actor.roles.includes(Role.CUSTOMER);
+    const ownSupplier = actor.roles.includes(Role.SUPPLIER) ? actor.supplierId ?? undefined : undefined;
+    if (dto.customerId && (!isCustomer || dto.customerId !== actor.id)) {
+      throw new ForbiddenException('Cannot open a case on behalf of another customer');
+    }
+    if (dto.supplierId && dto.supplierId !== ownSupplier) {
+      throw new ForbiddenException('Cannot open a case on behalf of another supplier');
+    }
+    if (dto.orderId) {
+      const own = isCustomer && await this.prisma.order.findFirst({ where: { id: dto.orderId, customerId: actor.id }, select: { id: true } });
+      if (!own) throw new NotFoundException('Order not found');
+    }
+    return this.createCase({ ...dto, customerId: isCustomer ? actor.id : undefined, supplierId: ownSupplier });
+  }
 
   async createCase(dto: CreateSupportCaseDto) {
     const supportCase = await this.prisma.supportCase.create({

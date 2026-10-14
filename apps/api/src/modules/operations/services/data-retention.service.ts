@@ -1,16 +1,24 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { PrismaService } from '../../../platform/database/prisma.service';
 
 @Injectable()
-export class DataRetentionService implements OnModuleInit {
+export class DataRetentionService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DataRetentionService.name);
-  private readonly prisma = new PrismaClient();
+  private timers: NodeJS.Timeout[] = [];
+
+  constructor(private readonly prisma: PrismaService) {}
 
   onModuleInit() {
-    // Run cleanup once a day
-    setInterval(() => this.runCleanup(), 24 * 60 * 60 * 1000);
-    // Also run immediately on startup after a delay
-    setTimeout(() => this.runCleanup(), 10000);
+    // Run cleanup once a day, and once shortly after startup.
+    this.timers = [
+      setInterval(() => this.runCleanup(), 24 * 60 * 60 * 1000),
+      setTimeout(() => this.runCleanup(), 10000),
+    ];
+  }
+
+  onModuleDestroy() {
+    for (const timer of this.timers) clearTimeout(timer);
+    this.timers = [];
   }
 
   async runCleanup() {

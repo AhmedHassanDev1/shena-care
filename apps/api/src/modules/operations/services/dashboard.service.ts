@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../../../platform/database/prisma.service';
 
 @Injectable()
 export class DashboardService {
-  private readonly prisma = new PrismaClient();
+  constructor(private readonly prisma: PrismaService) {}
 
   async getKpis() {
     const today = new Date();

@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient, AccountingExportStatus } from '@prisma/client';
+import { AccountingExportStatus } from '@prisma/client';
+import { PrismaService } from '../../../platform/database/prisma.service';
 import { OutboxService } from './outbox.service';
 
 @Injectable()
 export class FinanceService {
-  private readonly prisma = new PrismaClient();
-  constructor(private readonly outbox: OutboxService) {}
+  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService) {}
 
   async requestAccountingExport(startDate: Date, endDate: Date, actorId: string) {
     const job = await this.prisma.accountingExportJob.create({
