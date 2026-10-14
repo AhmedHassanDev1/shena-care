@@ -3,11 +3,16 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { ReturnEligibilityProjectionDto, ReturnReason, SubmitReturnDto } from '../dto/return.dto';
 import { OrderResolutionType, OrderResolutionStatus, OrderStatus } from '@prisma/client';
 import { OutboxService } from '../../operations/services/outbox.service';
+import { SupportService } from '../../operations/services/support.service';
 import { assertClaimableQuantity } from './resolution-claims';
 
 @Injectable()
 export class ReturnEligibilityService {
-  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly outbox: OutboxService,
+    private readonly support: SupportService,
+  ) {}
 
   async getEligibility(idOrOrderNumber: string, orderItemId: string, customerId?: string, guestTokenHash?: string): Promise<ReturnEligibilityProjectionDto> {
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -175,6 +180,19 @@ export class ReturnEligibilityService {
             : 'Customer initiated return/cancellation'
         }
       });
+
+      if (dto.reasonCode === ReturnReason.POSSIBLE_ADVERSE_EVENT) {
+        const item = await tx.orderItem.findUniqueOrThrow({ where: { id: orderItemId } });
+        const safetyCase = await this.support.openSafetyCase(tx, {
+          orderId: order.id, orderNumber: order.orderNumber, customerId: order.customerId, resolutionId: resolution.id,
+          product: [item.productName ?? item.skuCode ?? item.skuId, item.variantName].filter(Boolean).join(' — '),
+          description: dto.description, batchOrLot: dto.batchOrLot, expiry: dto.expiry,
+        });
+        await tx.orderResolution.update({
+          where: { id: resolution.id },
+          data: { resolutionDetails: { ...resolutionDetails, supportCaseId: safetyCase.id } },
+        });
+      }
 
       await this.outbox.enqueue(tx, {
         eventType: 'resolution.submitted',

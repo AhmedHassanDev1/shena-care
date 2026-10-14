@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { CreateSupportCaseDto, UpdateSupportCaseDto } from '../dto/operations.dto';
 import { OutboxService } from './outbox.service';
 import { PrismaService } from '../../../platform/database/prisma.service';
@@ -60,10 +60,50 @@ export class SupportService {
     return supportCase;
   }
 
+  /**
+   * A reported possible adverse reaction (GLO-216 / GLO-215 F-03) becomes a critical human safety case
+   * plus a staff notification, inside the caller's transaction so a report can never exist without its
+   * case. Nothing here judges the reaction; triage, owner and any regulatory step are human decisions.
+   */
+  async openSafetyCase(tx: Prisma.TransactionClient, input: {
+    orderId: string; orderNumber: string; customerId: string | null; resolutionId: string;
+    product: string; description?: string; batchOrLot?: string; expiry?: string;
+  }) {
+    const details = [
+      `Product: ${input.product}`,
+      input.batchOrLot ? `Batch/lot: ${input.batchOrLot}` : null,
+      input.expiry ? `Expiry: ${input.expiry}` : null,
+      `Customer report: ${input.description?.trim() || '(no description given)'}`,
+      `Return/resolution: ${input.resolutionId}`,
+    ].filter(Boolean).join('\n');
+    const supportCase = await tx.supportCase.create({
+      data: {
+        title: `Possible adverse reaction — ${input.orderNumber}`,
+        description: details,
+        category: 'safety_concern',
+        priority: 'critical',
+        customerId: input.customerId,
+        orderId: input.orderId,
+        internalNotes: 'Requires human safety review. Do not close without a recorded decision.',
+      },
+    });
+    await this.outbox.enqueue(tx, {
+      eventType: 'safety.escalated',
+      aggregateId: supportCase.id,
+      aggregateType: 'SupportCase',
+      payload: { caseId: supportCase.id, orderNumber: input.orderNumber, resolutionId: input.resolutionId },
+      channelIntent: 'internal',
+      templateId: 'safety_escalation_v1',
+      deduplicationKey: `safety.escalated:${input.resolutionId}`,
+    });
+    return supportCase;
+  }
+
   async getCases(status?: string) {
     return this.prisma.supportCase.findMany({
       where: status ? { status: status as any } : undefined,
-      orderBy: { createdAt: 'desc' }
+      // Critical cases (safety) lead the queue; enum order is low < medium < high < critical.
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
     });
   }
 

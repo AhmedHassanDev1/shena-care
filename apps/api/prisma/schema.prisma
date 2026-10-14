@@ -1648,6 +1648,7 @@ enum SupportCaseCategory {
   cancellation
   return
   supplier_dispute
+  safety_concern
   other
 
   @@schema("operations")

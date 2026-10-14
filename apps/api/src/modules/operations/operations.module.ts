@@ -9,6 +9,6 @@ import { DataRetentionService } from './services/data-retention.service';
 @Module({
   controllers: [OperationsController],
   providers: [SupportService, OutboxService, DashboardService, FinanceService, DataRetentionService],
-  exports: [OutboxService] // exported for other modules to enqueue notifications
+  exports: [OutboxService, SupportService] // exported for other modules to enqueue notifications
 })
 export class OperationsModule {}
