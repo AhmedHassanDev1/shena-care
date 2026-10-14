@@ -527,8 +527,8 @@ export class FulfillmentService {
         });
       }
     } else if (dto.status === ShipmentStatus.failed) {
-      await this.orderingService.updateOrderStatus(shipment.orderId, 'cancelled');
-      
+      // A failed attempt is a delivery issue, not a cancellation: the order stays open until an
+      // explicit retry/return/cancel decision (retry policy pending GLO-139).
       const order = await this.orderingService.getOrder(shipment.orderId);
       if (order) {
         await this.outbox.enqueue(this.prisma, {
@@ -959,23 +959,31 @@ export class FulfillmentService {
   async dispatchBatch(batchId: string, actor: FulfillmentActor) {
     if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
 
-    return this.prisma.$transaction(async (tx) => {
+    const dispatched = await this.prisma.$transaction(async (tx) => {
       const batch = await tx.deliveryBatch.findUnique({
         where: { id: batchId },
-        include: { stops: true }
+        include: { stops: { include: { shipment: true } } }
       });
       if (!batch) throw new NotFoundException('Batch not found');
       if (await this.resolveBatchScope(batch, actor) === 'driver') throw new ForbiddenException('Hub access is required');
       if (batch.status !== 'planning') throw new BadRequestException('Batch is already dispatched/completed');
       if (batch.stops.length === 0) throw new BadRequestException('Cannot dispatch an empty batch');
+      for (const stop of batch.stops) {
+        const order = await this.orderingService.getOrder(stop.shipment.orderId);
+        if (order?.status === 'cancelled') {
+          throw new BadRequestException(`Order ${order.orderNumber} was cancelled; remove its stop before dispatch`);
+        }
+      }
 
-      const updated = await tx.deliveryBatch.update({
-        where: { id: batchId },
+      const claimed = await tx.deliveryBatch.updateMany({
+        where: { id: batchId, status: 'planning' },
         data: {
           status: 'dispatched',
           dispatchedAt: new Date()
         }
       });
+      if (claimed.count !== 1) throw new ConflictException('Batch was dispatched concurrently');
+      const updated = await tx.deliveryBatch.findUniqueOrThrow({ where: { id: batchId } });
 
       // Update all associated shipments
       for (const stop of batch.stops) {
@@ -988,8 +996,14 @@ export class FulfillmentService {
         });
       }
 
-      return updated;
+      return { updated, orderIds: batch.stops.map(stop => stop.shipment.orderId) };
     });
+
+    // The customer order follows its shipment out of the hub (GLO-212 dispatch convergence).
+    for (const orderId of dispatched.orderIds) {
+      await this.orderingService.updateOrderStatus(orderId, 'shipped');
+    }
+    return dispatched.updated;
   }
 
   async completeBatch(batchId: string, actor: FulfillmentActor) {

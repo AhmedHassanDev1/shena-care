@@ -324,11 +324,29 @@ export class OrderingService {
     return order ? this.present(order) : null;
   }
 
+  /**
+   * Canonical order progression (GLO-206 GAP-08): forward only, `delivered` and `cancelled` are
+   * terminal, cancellation only before delivery. Repeating the current status is a no-op.
+   */
+  private static readonly PROGRESSION: OrderStatus[] = ['placed', 'confirmed', 'packing', 'shipped', 'delivered'];
+
+  private static assertTransition(from: OrderStatus, to: OrderStatus): void {
+    if (from === to) return;
+    const order = OrderingService.PROGRESSION;
+    const allowed = from !== 'delivered' && from !== 'cancelled' &&
+      (to === 'cancelled' || order.indexOf(to) > order.indexOf(from));
+    if (!allowed) throw new ConflictException(`Order cannot move from ${from} to ${to}`);
+  }
+
   async updateOrderStatus(id: string, status: OrderStatus): Promise<OrderDetail> {
     const { updated, oldStatus } = await this.prisma.$transaction(async tx => {
       const order = await tx.order.findUnique({ where: { id } });
       if (!order) throw new NotFoundException('Order ' + id + ' not found.');
-      const changed = await tx.order.update({ where: { id }, data: { status }, include: { items: true } });
+      OrderingService.assertTransition(order.status, status);
+      // Conditional on the status just read, so a concurrent transition cannot be overwritten.
+      const claimed = await tx.order.updateMany({ where: { id, status: order.status }, data: { status } });
+      if (claimed.count !== 1) throw new ConflictException('Order status changed concurrently; retry');
+      const changed = await tx.order.findUniqueOrThrow({ where: { id }, include: { items: true } });
       if (order.status !== status) await tx.orderStatusEvent.create({ data: { orderId: id, status } });
       return { updated: changed, oldStatus: order.status };
     });
