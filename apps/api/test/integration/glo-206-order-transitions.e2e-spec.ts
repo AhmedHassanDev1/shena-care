@@ -59,6 +59,7 @@ describe('GLO-206 order transitions and delivery convergence (e2e)', () => {
       await prisma.shipment.deleteMany({ where: { id: { in: shipmentIds } } });
       await prisma.notificationOutbox.deleteMany({ where: { aggregateId: { in: shipmentIds } } });
       await prisma.orderStatusEvent.deleteMany({ where: { orderId: { in: orderIds } } });
+      await prisma.paymentCollection.deleteMany({ where: { orderId: { in: orderIds } } }); // created at dispatch (GLO-214)
       await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
       await prisma.fulfillmentLocation.deleteMany({ where: { id: locationId } });
     }

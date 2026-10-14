@@ -257,6 +257,65 @@ export class ReconciliationService {
     }
   }
 
+  /**
+   * The expected COD cash for an order leaving the hub (GLO-214): created once from the order's own
+   * COD figure, never from a caller. Returns null for cancelled or fully prepaid orders.
+   */
+  async ensureExpectedCollection(orderId: string) {
+    const existing = await this.prisma.paymentCollection.findUnique({ where: { orderId } });
+    if (existing) return existing;
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order || order.status === 'cancelled') return null;
+    const expected = order.codAmount ?? order.totalAmount;
+    if (expected.lessThanOrEqualTo(0)) return null;
+    try {
+      return await this.prisma.paymentCollection.create({
+        data: { orderId, expectedAmount: expected, currency: order.currency, status: 'expected' },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return this.prisma.paymentCollection.findUniqueOrThrow({ where: { orderId } });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * The delivering driver's cash declaration at the door: custody, not settlement (GLO-214). Recorded
+   * once — a replay with the same amount by the same driver returns it, anything else conflicts. The
+   * hub-counted collectedAmount and short/over status are set only at settlement; tolerance is policy.
+   */
+  async recordDriverDeclaration(orderId: string, driverId: string, amount: number) {
+    const collection = await this.ensureExpectedCollection(orderId);
+    if (!collection) throw new BadRequestException('This order has no cash to collect');
+    const declared = new Prisma.Decimal(amount);
+    const isReplay = (c: { declaredAmount: Prisma.Decimal | null; courierId: string | null }) =>
+      c.declaredAmount !== null && c.declaredAmount.equals(declared) && c.courierId === driverId;
+
+    if (collection.declaredAmount !== null) {
+      if (isReplay(collection)) return collection;
+      throw new ConflictException('Collected cash was already declared for this order');
+    }
+    const claimed = await this.prisma.paymentCollection.updateMany({
+      where: { id: collection.id, declaredAmount: null, status: 'expected', settlementBatchId: null },
+      data: { declaredAmount: declared, declaredAt: new Date(), courierId: driverId, status: 'collected' },
+    });
+    const current = await this.prisma.paymentCollection.findUniqueOrThrow({ where: { id: collection.id } });
+    if (claimed.count !== 1 && !isReplay(current)) {
+      throw new ConflictException('Collected cash was already declared or settled for this order');
+    }
+    return current;
+  }
+
+  /** Driver-declared cash per order, for the driver's own custody view. */
+  async getDeclaredCash(orderIds: string[]): Promise<Map<string, number>> {
+    const rows = await this.prisma.paymentCollection.findMany({
+      where: { orderId: { in: orderIds }, declaredAmount: { not: null } },
+      select: { orderId: true, declaredAmount: true },
+    });
+    return new Map(rows.map((r) => [r.orderId, Number(r.declaredAmount)]));
+  }
+
   async createSettlementBatch(dto: {
     courierId: string;
     reference: string;
@@ -316,7 +375,8 @@ export class ReconciliationService {
 
         // Conditional update: a collection is settled at most once, even under concurrent batches.
         const settled = await tx.paymentCollection.updateMany({
-          where: { id: collection.id, status: 'expected', settlementBatchId: null },
+          // Hub count settles both undeclared (expected) and driver-declared (collected) cash.
+          where: { id: collection.id, status: { in: ['expected', 'collected'] }, settlementBatchId: null },
           data: {
             collectedAmount: collected,
             status,

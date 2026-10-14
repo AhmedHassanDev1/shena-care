@@ -88,7 +88,7 @@ describe('GLO-212 driver run manifest and handoff replay (e2e)', () => {
       sequence: 2, shipmentId: first.shipmentId, status: 'out_for_delivery', handedOver: false,
       orderNumber: first.orderNumber, recipientName: 'Mariam H.', recipientPhone: '01098765432',
       governorate: 'Giza', area: 'Dokki', address: '14 Mossadak St', deliveryNotes: 'Ring twice',
-      codDue: 1050, currency: 'EGP', itemCount: 3,
+      codDue: 1050, cashDeclared: null, currency: 'EGP', itemCount: 3,
     });
     expect(JSON.stringify(res.body)).not.toMatch(/Secret Serum|333\.33|Someone Else|Old Stop/);
   });

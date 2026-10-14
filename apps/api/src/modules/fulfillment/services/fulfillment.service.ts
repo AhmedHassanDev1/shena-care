@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { OrderingService } from '../../ordering/public';
+import { OrderingService, ReconciliationService } from '../../ordering/public';
 import { CatalogService } from '../../catalog/public';
 import { SupplyPlanService } from '../../sourcing/public';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto, ReceiveAllocatedGoodsDto, CreateDeliveryBatchDto, DeliveryStopInputDto } from '../dto/fulfillment.dto';
@@ -98,7 +98,28 @@ export class FulfillmentService {
     private readonly supplyPlanService: SupplyPlanService,
     private readonly eventEmitter: EventEmitter2,
     private readonly outbox: OutboxService,
+    private readonly reconciliation: ReconciliationService,
   ) {}
+
+  /**
+   * A driver completing a cash-on-delivery stop declares the cash received (custody). Hub/admin
+   * corrections never carry a declaration; counting and settlement happen at the hub (GLO-214).
+   */
+  private async declareDeliveryCash(orderId: string, as: 'admin' | 'hub' | 'driver', actor: FulfillmentActor, amount?: number) {
+    if (as !== 'driver') {
+      if (amount !== undefined) throw new BadRequestException('Only the delivering driver declares collected cash');
+      return;
+    }
+    const collection = await this.reconciliation.ensureExpectedCollection(orderId);
+    if (!collection) {
+      if (amount) throw new BadRequestException('This order has no cash to collect');
+      return;
+    }
+    if (amount === undefined) {
+      throw new BadRequestException('Declare the cash collected (collectedAmount) to complete a cash-on-delivery stop');
+    }
+    await this.reconciliation.recordDriverDeclaration(orderId, actor.id, amount);
+  }
 
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -520,12 +541,18 @@ export class FulfillmentService {
   }
 
   async updateShipmentStatusAsActor(id: string, dto: UpdateShipmentStatusDto, actor: FulfillmentActor): Promise<ShipmentDetail> {
-    const { scope } = await this.findShipmentForActor(id, actor);
+    const { shipment, scope } = await this.findShipmentForActor(id, actor);
     if (scope.as === 'driver') {
       if (!DRIVER_STATUSES.includes(dto.status)) throw new ForbiddenException(`Drivers cannot set shipment status ${dto.status}`);
       if (scope.batch.status !== 'dispatched') throw new BadRequestException('Delivery run has not been dispatched');
     }
-    return this.updateShipmentStatus(id, dto);
+    if (dto.status === ShipmentStatus.delivered) {
+      assertShipmentTransition(shipment.status, dto.status);
+      await this.declareDeliveryCash(shipment.orderId, scope.as, actor, dto.collectedAmount);
+    } else if (dto.collectedAmount !== undefined) {
+      throw new BadRequestException('collectedAmount is only recorded with a delivery');
+    }
+    return this.updateShipmentStatus(id, { status: dto.status, trackingNumber: dto.trackingNumber });
   }
 
   async updateShipmentStatus(id: string, dto: UpdateShipmentStatusDto): Promise<ShipmentDetail> {
@@ -910,6 +937,11 @@ export class FulfillmentService {
     const newStatus = EVENT_STATUS[dto.type];
     // Reject an illegal transition before the event is persisted, so the audit trail stays truthful.
     if (newStatus) assertShipmentTransition(shipment.status, newStatus);
+    if (dto.type === 'DELIVERED') {
+      await this.declareDeliveryCash(shipment.orderId, scope.as, actor, dto.collectedAmount);
+    } else if (dto.collectedAmount !== undefined) {
+      throw new BadRequestException('collectedAmount is only recorded with a delivery');
+    }
 
     const event = await this.prisma.shipmentEvent.create({
       data: {
@@ -945,6 +977,9 @@ export class FulfillmentService {
       },
     });
 
+    const declared = await this.reconciliation.getDeclaredCash(
+      batches.flatMap((batch) => batch.stops.map((stop) => stop.shipment.orderId)));
+
     return Promise.all(batches.map(async (batch) => ({
       id: batch.id,
       status: batch.status,
@@ -965,6 +1000,7 @@ export class FulfillmentService {
           address: order.shippingAddress,
           deliveryNotes: order.notes ?? null,
           codDue: order.codAmount ?? order.totalAmount,
+          cashDeclared: declared.get(order.id) ?? null,
           currency: order.currency,
           itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
         };
@@ -1164,6 +1200,8 @@ export class FulfillmentService {
     // The customer order follows its shipment out of the hub (GLO-212 dispatch convergence).
     for (const orderId of dispatched.orderIds) {
       await this.orderingService.updateOrderStatus(orderId, 'shipped');
+      // The cash each stop should bring back is fixed when the run leaves the hub (GLO-214).
+      await this.reconciliation.ensureExpectedCollection(orderId);
     }
     return dispatched.updated;
   }

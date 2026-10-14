@@ -852,6 +852,9 @@ model PaymentCollection {
   orderId           String           @unique @map("order_id") @db.Uuid
   expectedAmount    Decimal          @map("expected_amount") @db.Decimal(10, 2)
   collectedAmount   Decimal?         @map("collected_amount") @db.Decimal(10, 2)
+  /// Cash the delivering driver declared at the door (custody). Separate from the hub-counted collectedAmount.
+  declaredAmount    Decimal?         @map("declared_amount") @db.Decimal(10, 2)
+  declaredAt        DateTime?        @map("declared_at")
   currency          String           @db.VarChar(3)
   status            SettlementStatus @default(expected)
   courierId         String?          @map("courier_id")

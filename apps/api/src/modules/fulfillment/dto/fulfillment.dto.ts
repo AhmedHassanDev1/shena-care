@@ -6,6 +6,7 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -88,6 +89,11 @@ export class UpdateShipmentStatusDto {
   @IsOptional()
   @IsString()
   trackingNumber?: string;
+  /** Cash the driver actually received at the door; required when a driver delivers a COD order (GLO-214). */
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  collectedAmount?: number;
 }
 
 export class StartPreparationDto {
@@ -136,6 +142,11 @@ export class RecordShipmentEventDto {
   @IsString()
   @MaxLength(64)
   barcode?: string;
+  /** Cash the driver actually received at the door; required when a driver delivers a COD order (GLO-214). */
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  collectedAmount?: number;
 }
 
 export class CreateDeliveryBatchDto {
