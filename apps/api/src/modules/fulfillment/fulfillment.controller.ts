@@ -101,6 +101,13 @@ export class FulfillmentController {
     return this.fulfillmentService.generateShipmentLabel(id, actor);
   }
 
+  /** Inside customer receipt + outside shipping slip for thermal printing (GLO-210). Read-only, repeatable. */
+  @Get('shipments/:id/documents')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async getShipmentDocuments(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.getShipmentDocuments(id, actor);
+  }
+
   @Post('shipments/:id/events')
   @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
   async recordShipmentEvent(

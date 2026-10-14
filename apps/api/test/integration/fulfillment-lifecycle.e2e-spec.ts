@@ -404,11 +404,8 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     let batchId: string;
 
     it('should get eligible shipments for batching', async () => {
-      // Revert the shipment status back to packed for batch planning tests
-      await request(app.getHttpServer())
-        .patch(`/fulfillment/shipments/${shipmentId}/status`).set('Authorization', authToken)
-        .send({ status: 'packed' })
-        .expect(200);
+      // Shipments only move forward through the API (GLO-210), so reset to packed directly for the batch tests.
+      await prisma.shipment.update({ where: { id: shipmentId }, data: { status: 'packed' } });
 
       const res = await request(app.getHttpServer())
         .get(`/fulfillment/locations/${locationId}/eligible-shipments`).set('Authorization', authToken)

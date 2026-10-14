@@ -53,14 +53,25 @@ export interface OrderDetail {
   customerName: string;
   customerPhone: string;
   shippingAddress: string;
+  governorate?: string | null;
+  area?: string | null;
+  notes?: string | null;
+  subtotal?: number | null;
+  shippingFee?: number;
   totalAmount: number;
+  codAmount?: number | null;
   currency: string;
   status: OrderStatus;
   orderReceived: true;
   availabilityConfirmed: false;
   createdAt: Date;
   updatedAt: Date;
-  items: Array<{ id: string; skuId: string; quantity: number; price: number; currency: string }>;
+  /** Active lines with the name/price snapshot taken at order time (and amendments). */
+  items: Array<{
+    id: string; skuId: string; quantity: number; price: number; currency: string;
+    productName?: string | null; variantName?: string | null; skuCode?: string | null;
+    discountAmount?: number | null; lineTotal?: number | null;
+  }>;
   guestAccessToken?: string;
   guestAccessExpiresAt?: Date;
 }

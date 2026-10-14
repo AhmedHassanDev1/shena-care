@@ -3,6 +3,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -106,9 +107,18 @@ export class ScanItemDto {
   barcodeScanned?: string;
 }
 
+/**
+ * Events a client may record. LABEL_GENERATED is server-only (written when label data is produced);
+ * LABEL_PRINTED / RECEIPT_PRINTED / PRINT_FAILED are the operator's confirmation of the paper outcome.
+ */
+export const SHIPMENT_EVENT_TYPES = [
+  'PACKED', 'LABEL_PRINTED', 'RECEIPT_PRINTED', 'PRINT_FAILED',
+  'HANDOFF_SCANNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED', 'RETURNED',
+] as const;
+
 export class RecordShipmentEventDto {
   @IsString()
-  @IsNotEmpty()
+  @IsIn(SHIPMENT_EVENT_TYPES)
   type: string;
 
   /** Ignored: the event actor is always the authenticated user. Kept for client compatibility. */
@@ -118,6 +128,7 @@ export class RecordShipmentEventDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   notes?: string;
 
   /** Label barcode scanned at handoff; required for HANDOFF_SCANNED. */

@@ -29,6 +29,50 @@ export interface FulfillmentActor {
 const DRIVER_EVENT_TYPES = ['HANDOFF_SCANNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED'];
 const DRIVER_STATUSES: ShipmentStatus[] = [ShipmentStatus.out_for_delivery, ShipmentStatus.delivered, ShipmentStatus.failed];
 
+/**
+ * Forward-only shipment flow (GLO-210). `preparing` and `prepared` are entered only through the
+ * preparation session (scan-verified), never through a status patch or event, so an unverified
+ * order cannot be packed. Repeating the current status is a no-op.
+ */
+const SHIPMENT_TRANSITIONS: Record<ShipmentStatus, ShipmentStatus[]> = {
+  pending: [ShipmentStatus.ready_to_prepare],
+  ready_to_prepare: [],
+  preparing: [],
+  prepared: [ShipmentStatus.ready_to_pack, ShipmentStatus.packing, ShipmentStatus.packed],
+  ready_to_pack: [ShipmentStatus.packing, ShipmentStatus.packed],
+  packing: [ShipmentStatus.packed],
+  packed: [ShipmentStatus.dispatched, ShipmentStatus.out_for_delivery],
+  dispatched: [ShipmentStatus.out_for_delivery],
+  out_for_delivery: [ShipmentStatus.delivered, ShipmentStatus.failed],
+  failed: [ShipmentStatus.out_for_delivery, ShipmentStatus.returned],
+  delivered: [ShipmentStatus.returned],
+  returned: [],
+};
+
+function assertShipmentTransition(from: ShipmentStatus, to: ShipmentStatus): void {
+  if (from !== to && !SHIPMENT_TRANSITIONS[from].includes(to)) {
+    throw new ConflictException(`Shipment cannot move from ${from} to ${to}`);
+  }
+}
+
+// Documents can be (re)printed from verified preparation until the package leaves the hub.
+const PRINTABLE_STATUSES: ShipmentStatus[] = [
+  ShipmentStatus.prepared, ShipmentStatus.ready_to_pack, ShipmentStatus.packing, ShipmentStatus.packed, ShipmentStatus.dispatched,
+];
+// Operator-confirmed print outcomes; the server never infers that paper was printed.
+const PRINT_EVENT_TYPES = ['LABEL_PRINTED', 'RECEIPT_PRINTED', 'PRINT_FAILED'];
+
+const EVENT_STATUS: Record<string, ShipmentStatus | undefined> = {
+  PACKED: ShipmentStatus.packed,
+  OUT_FOR_DELIVERY: ShipmentStatus.out_for_delivery,
+  DELIVERED: ShipmentStatus.delivered,
+  RETURNED: ShipmentStatus.returned,
+  FAILED: ShipmentStatus.failed,
+};
+
+const isUniqueViolation = (error: unknown) =>
+  error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+
 export interface ShipmentDetail {
   id: string;
   orderId: string;
@@ -382,22 +426,28 @@ export class FulfillmentService {
     // Update order status to packing
     await this.orderingService.updateOrderStatus(event.orderId, 'packing');
 
-    return this.prisma.shipment.create({
-      data: {
-        orderId: event.orderId,
-        locationId: location.id,
-        status: ShipmentStatus.pending,
-        items: {
-          create: event.items.map((item) => ({
-            skuId: item.skuId,
-            quantity: item.quantity,
-          })),
+    try {
+      return await this.prisma.shipment.create({
+        data: {
+          orderId: event.orderId,
+          locationId: location.id,
+          status: ShipmentStatus.pending,
+          items: {
+            create: event.items.map((item) => ({
+              skuId: item.skuId,
+              quantity: item.quantity,
+            })),
+          },
         },
-      },
-      include: {
-        items: true,
-      },
-    }) as unknown as ShipmentDetail;
+        include: {
+          items: true,
+        },
+      });
+    } catch (error) {
+      // One order → one shipment (unique orderId): a concurrent creator already made it.
+      if (!isUniqueViolation(error)) throw error;
+      return this.prisma.shipment.findUniqueOrThrow({ where: { orderId: event.orderId }, include: { items: true } });
+    }
   }
 
   async allocateShipment(dto: AllocateShipmentDto, actor: FulfillmentActor): Promise<ShipmentDetail> {
@@ -426,20 +476,25 @@ export class FulfillmentService {
     // Update order status to packing
     await this.orderingService.updateOrderStatus(order.id, 'packing');
 
-    return this.prisma.shipment.create({
-      data: {
-        orderId: order.id,
-        locationId: location.id,
-        status: ShipmentStatus.pending,
-        items: {
-          create: order.items.map((item) => ({
-            skuId: item.skuId,
-            quantity: item.quantity,
-          })),
+    try {
+      return await this.prisma.shipment.create({
+        data: {
+          orderId: order.id,
+          locationId: location.id,
+          status: ShipmentStatus.pending,
+          items: {
+            create: order.items.map((item) => ({
+              skuId: item.skuId,
+              quantity: item.quantity,
+            })),
+          },
         },
-      },
-      include: { items: true },
-    });
+        include: { items: true },
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) throw new ConflictException('Order is already allocated to a shipment');
+      throw error;
+    }
   }
 
   async getShipment(id: string): Promise<ShipmentDetail | null> {
@@ -478,8 +533,9 @@ export class FulfillmentService {
     if (!shipment) {
       throw new NotFoundException('Shipment not found');
     }
+    assertShipmentTransition(shipment.status, dto.status);
 
-    const updateData: Prisma.ShipmentUpdateInput = { status: dto.status };
+    const updateData: Prisma.ShipmentUpdateManyMutationInput = { status: dto.status };
     if (dto.trackingNumber !== undefined) updateData.trackingNumber = dto.trackingNumber;
 
     if (dto.status === ShipmentStatus.dispatched && !shipment.dispatchedAt) {
@@ -544,11 +600,10 @@ export class FulfillmentService {
       }
     }
 
-    return this.prisma.shipment.update({
-      where: { id },
-      data: updateData,
-      include: { items: true },
-    });
+    // Conditional on the status just read, so a concurrent transition is not overwritten.
+    const claimed = await this.prisma.shipment.updateMany({ where: { id, status: shipment.status }, data: updateData });
+    if (claimed.count !== 1) throw new ConflictException('Shipment status changed concurrently; retry');
+    return this.prisma.shipment.findUniqueOrThrow({ where: { id }, include: { items: true } });
   }
 
   async startPreparationSession(shipmentId: string, dto: StartPreparationDto, actor: FulfillmentActor) {
@@ -717,30 +772,32 @@ export class FulfillmentService {
     return { success: true };
   }
 
-  async generateShipmentLabel(shipmentId: string, actor: FulfillmentActor) {
+  /** Hub-scoped shipment + canonical order for printing; refuses non-printable or cancelled orders. */
+  private async loadPrintable(shipmentId: string, actor: FulfillmentActor) {
     if (!this.isUuid(shipmentId)) throw new BadRequestException('Invalid shipment ID');
-    
-    const shipment = await this.prisma.shipment.findUnique({
-      where: { id: shipmentId },
-      include: {
-        items: true,
-      }
-    });
-
+    const shipment = await this.prisma.shipment.findUnique({ where: { id: shipmentId }, include: { items: true } });
     if (!shipment) throw new NotFoundException('Shipment not found');
     await this.assertHubShipmentAccess(shipment, actor);
-
-    if (shipment.status !== 'prepared' && shipment.status !== 'ready_to_pack' && shipment.status !== 'packed') {
+    if (!PRINTABLE_STATUSES.includes(shipment.status)) {
       throw new BadRequestException(`Cannot generate label for shipment in status ${shipment.status}`);
     }
-
     const order = await this.orderingService.getOrder(shipment.orderId);
     if (!order) throw new NotFoundException('Order not found');
+    if (order.status === 'cancelled') throw new ConflictException('Order was cancelled; do not print or pack it');
+    return { shipment, order };
+  }
 
+  /**
+   * Label data for the external slip. Records LABEL_GENERATED only: whether paper actually printed
+   * is confirmed separately (LABEL_PRINTED / PRINT_FAILED). The barcode is derived from the shipment
+   * ID, so every reprint carries the same identity and never creates a new shipment (GLO-210).
+   */
+  async generateShipmentLabel(shipmentId: string, actor: FulfillmentActor) {
+    const { shipment, order } = await this.loadPrintable(shipmentId, actor);
     const barcode = signShipmentBarcode(shipment.id);
 
     await this.prisma.shipmentEvent.create({
-      data: { shipmentId, type: 'LABEL_PRINTED', actorId: actor.id, notes: 'Generated shipment label with barcode' },
+      data: { shipmentId, type: 'LABEL_GENERATED', actorId: actor.id, notes: 'Label data generated; paper print not confirmed' },
     });
 
     return {
@@ -753,6 +810,61 @@ export class FulfillmentService {
       currency: order.currency,
       packageCount: 1, // Defaulting to 1 for MVP
       barcode,
+    };
+  }
+
+  /**
+   * The two thermal documents for one order (GLO-210), read-only and repeatable:
+   *  - customerReceipt goes inside the package: priced lines from the order snapshot, fees, discounts, COD due;
+   *  - shippingSlip goes outside: shipment barcode, recipient and COD due, no item names or prices.
+   * Not a tax invoice. Nothing here is recorded as printed.
+   */
+  async getShipmentDocuments(shipmentId: string, actor: FulfillmentActor) {
+    const { shipment, order } = await this.loadPrintable(shipmentId, actor);
+    const money = (n: number) => Math.round(n * 100) / 100;
+    const lines = order.items.map((item) => {
+      const discount = item.discountAmount && item.discountAmount > 0 ? item.discountAmount : null;
+      return {
+        name: item.productName ?? null,
+        variant: item.variantName ?? null,
+        skuCode: item.skuCode ?? null,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        discount,
+        lineTotal: item.lineTotal ?? money(item.price * item.quantity),
+      };
+    });
+    const discountTotal = money(lines.reduce((sum, line) => sum + (line.discount ?? 0), 0));
+    const codDue = order.codAmount ?? order.totalAmount;
+    const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
+
+    return {
+      shipmentId: shipment.id,
+      orderNumber: order.orderNumber,
+      currency: order.currency,
+      customerReceipt: {
+        orderNumber: order.orderNumber,
+        orderedAt: order.createdAt,
+        lines,
+        subtotal: order.subtotal ?? money(lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0)),
+        discountTotal: discountTotal > 0 ? discountTotal : null,
+        shippingFee: order.shippingFee ?? 0,
+        total: order.totalAmount,
+        codDue,
+      },
+      shippingSlip: {
+        barcode: signShipmentBarcode(shipment.id),
+        orderNumber: order.orderNumber,
+        recipientName: order.customerName,
+        recipientPhone: order.customerPhone,
+        governorate: order.governorate ?? null,
+        area: order.area ?? null,
+        address: order.shippingAddress,
+        deliveryNotes: order.notes ?? null,
+        codDue,
+        packageCount: 1,
+        itemCount,
+      },
     };
   }
 
@@ -774,6 +886,25 @@ export class FulfillmentService {
         throw new BadRequestException(`Shipment must be packed before dispatch. Current status: ${shipment.status}`);
       }
     }
+    if (PRINT_EVENT_TYPES.includes(dto.type)) {
+      if (scope.as === 'driver') throw new ForbiddenException(`Drivers cannot record ${dto.type} events`);
+      if (!PRINTABLE_STATUSES.includes(shipment.status)) {
+        throw new BadRequestException(`Cannot record printing for shipment in status ${shipment.status}`);
+      }
+      if (dto.type === 'LABEL_PRINTED') {
+        const generated = await this.prisma.shipmentEvent.count({ where: { shipmentId, type: 'LABEL_GENERATED' } });
+        if (!generated) throw new BadRequestException('Generate the shipment label before confirming it printed');
+      }
+    }
+
+    if (dto.type === 'PACKED') {
+      const order = await this.orderingService.getOrder(shipment.orderId);
+      if (order?.status === 'cancelled') throw new ConflictException('Order was cancelled; do not print or pack it');
+    }
+
+    const newStatus = EVENT_STATUS[dto.type];
+    // Reject an illegal transition before the event is persisted, so the audit trail stays truthful.
+    if (newStatus) assertShipmentTransition(shipment.status, newStatus);
 
     const event = await this.prisma.shipmentEvent.create({
       data: {
@@ -783,26 +914,6 @@ export class FulfillmentService {
         notes: dto.notes,
       }
     });
-
-    // Handle status changes based on event type
-    let newStatus: ShipmentStatus | undefined;
-    switch (dto.type) {
-      case 'PACKED':
-        newStatus = 'packed';
-        break;
-      case 'OUT_FOR_DELIVERY':
-        newStatus = 'out_for_delivery';
-        break;
-      case 'DELIVERED':
-        newStatus = 'delivered';
-        break;
-      case 'RETURNED':
-        newStatus = 'returned';
-        break;
-      case 'FAILED':
-        newStatus = 'failed';
-        break;
-    }
 
     if (newStatus && shipment.status !== newStatus) {
       await this.updateShipmentStatus(shipmentId, { status: newStatus });
