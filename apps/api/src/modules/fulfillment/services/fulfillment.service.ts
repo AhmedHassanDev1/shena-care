@@ -881,6 +881,11 @@ export class FulfillmentService {
       throw new BadRequestException('Scanned barcode does not match this shipment');
     }
 
+    if (dto.type === 'HANDOFF_SCANNED') {
+      // Custody is taken once; a replayed scan (retry, double tap, flaky network) returns the original record.
+      const existing = await this.prisma.shipmentEvent.findFirst({ where: { shipmentId, type: 'HANDOFF_SCANNED' }, orderBy: { createdAt: 'asc' } });
+      if (existing) return existing;
+    }
     if (dto.type === 'OUT_FOR_DELIVERY' || dto.type === 'HANDOFF_SCANNED') {
       if (shipment.status !== 'packed' && shipment.status !== 'dispatched') {
         throw new BadRequestException(`Shipment must be packed before dispatch. Current status: ${shipment.status}`);
@@ -920,6 +925,51 @@ export class FulfillmentService {
     }
 
     return event;
+  }
+
+  /**
+   * The driver's own active runs (planning or dispatched), stops in sequence, with only what a stop
+   * needs: recipient, address, COD due and item count — no item names, prices or other drivers' stops
+   * (GLO-212 / GLO-220). `handedOver` means the label was scanned into the driver's custody.
+   */
+  async getDriverManifest(actor: FulfillmentActor) {
+    if (!actor.roles.includes(Role.DRIVER)) throw new ForbiddenException('Driver access is required');
+    const batches = await this.prisma.deliveryBatch.findMany({
+      where: { driverId: actor.id, status: { in: ['planning', 'dispatched'] } },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        stops: {
+          orderBy: { sequence: 'asc' },
+          include: { shipment: { include: { events: { where: { type: 'HANDOFF_SCANNED' }, select: { id: true } } } } },
+        },
+      },
+    });
+
+    return Promise.all(batches.map(async (batch) => ({
+      id: batch.id,
+      status: batch.status,
+      dispatchedAt: batch.dispatchedAt,
+      stops: await Promise.all(batch.stops.map(async (stop) => {
+        const order = await this.orderingService.getOrder(stop.shipment.orderId);
+        if (!order) throw new NotFoundException('Order not found');
+        return {
+          sequence: stop.sequence,
+          shipmentId: stop.shipmentId,
+          status: stop.shipment.status,
+          handedOver: stop.shipment.events.length > 0,
+          orderNumber: order.orderNumber,
+          recipientName: order.customerName,
+          recipientPhone: order.customerPhone,
+          governorate: order.governorate ?? null,
+          area: order.area ?? null,
+          address: order.shippingAddress,
+          deliveryNotes: order.notes ?? null,
+          codDue: order.codAmount ?? order.totalAmount,
+          currency: order.currency,
+          itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
+        };
+      })),
+    })));
   }
 
   // --- Delivery Batch Planning (GLO-149) ---

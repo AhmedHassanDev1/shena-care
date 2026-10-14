@@ -120,6 +120,13 @@ export class FulfillmentController {
 
   // --- Delivery Batch Planning ---
 
+  /** The signed-in driver's active runs and stops (GLO-212). */
+  @Get('driver/runs')
+  @Roles('DRIVER')
+  async getDriverManifest(@CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.getDriverManifest(actor);
+  }
+
   @Get('locations/:id/eligible-shipments')
   @Roles('ADMIN', 'HUB_OPERATOR')
   async getEligibleShipmentsForBatching(@Param('id') locationId: string, @CurrentUser() actor: FulfillmentActor) {
