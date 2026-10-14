@@ -2,12 +2,16 @@ export const routes = {
   home: '/',
   products: '/products',
   cart: '/cart',
+  checkout: '/checkout',
   account: '/account',
   login: '/auth',
   register: '/auth',
   verify: '/auth/verify',
   routineBuilder: '/routine/builder',
   product: (slug: string) => `/products/${encodeURIComponent(slug)}`,
+  /** Product page with a specific variant selected. */
+  productVariant: (slug: string, skuId: string) => `/products/${encodeURIComponent(slug)}?sku=${encodeURIComponent(skuId)}`,
+  order: (idOrNumber: string) => `/orders/${encodeURIComponent(idOrNumber)}`,
   /** Catalog listing narrowed by a category slug (GET /products?category=). */
   productsByCategory: (slug: string) => `/products?category=${encodeURIComponent(slug)}`,
   /** Catalog search over product, brand and SKU (GET /products?q=). */

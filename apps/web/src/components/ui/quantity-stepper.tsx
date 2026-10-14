@@ -25,6 +25,8 @@ export function QuantityStepper({ value, min = 1, max, onChange, labels, disable
     <div
       role="group"
       aria-label={labels.group}
+      // Numeric control: always "− n +" left to right, like the phone and OTP fields.
+      dir="ltr"
       className={cn("inline-flex h-control-l items-center rounded-pill border-[1.5px] border-input bg-card px-1", className)}
     >
       <IconButton

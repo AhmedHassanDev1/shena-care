@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 const port = 3127;
 const origin = `http://127.0.0.1:${port}`;
 const routes = [
-  '/cart',
   '/checkout',
   '/account',
   '/account/profile',
@@ -15,7 +14,7 @@ const routes = [
   '/orders/reset-check',
 ];
 // Rebuilt in the approved design: must keep the RTL document contract and must not regress to the scaffold.
-const implementedRoutes = ['/', '/auth', '/auth/verify', '/products', '/products/reset-check'];
+const implementedRoutes = ['/', '/auth', '/auth/verify', '/products', '/products/reset-check', '/cart'];
 
 const appRoot = fileURLToPath(new URL('../', import.meta.url));
 const nextBin = createRequire(import.meta.url).resolve('next/dist/bin/next');

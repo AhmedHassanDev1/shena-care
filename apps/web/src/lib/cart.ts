@@ -8,6 +8,9 @@ export interface CartItem {
   quantity: number;
   /** Backend verdict for this line right now (sellable and available). */
   canOrder: boolean;
+  /** Price when the line was added, and whether the current backend price differs (change receipt). */
+  priceAtAdd: number | null;
+  priceChangedSinceAdd: boolean;
   sku: {
     id: string;
     code: string;
@@ -22,6 +25,8 @@ export interface CartItem {
         name: string;
       };
     };
+    /** Primary catalog image for display; null when the catalog has none. */
+    image: { url: string; alt: string } | null;
   };
   price: {
     amount: number;
@@ -48,6 +53,8 @@ interface BackendCartItem {
   skuId: string;
   quantity: number;
   price: number | null;
+  priceAtAdd: number | null;
+  priceChangedSinceAdd: boolean;
   canOrder: boolean;
   availability: 'available' | 'unavailable';
   lineTotal: number;
@@ -95,10 +102,14 @@ export function toCart(raw: BackendCart, catalog: ProductView[]): Cart {
 
   const items: CartItem[] = raw.items.map((line) => {
     const found = bySku.get(line.skuId);
+    const images = found?.product.media.filter((item) => item.type === 'image' && item.url) ?? [];
+    const image = images.find((item) => item.isPrimary) ?? images[0] ?? null;
     return {
       skuId: line.skuId,
       quantity: line.quantity,
       canOrder: line.canOrder,
+      priceAtAdd: line.priceAtAdd ?? null,
+      priceChangedSinceAdd: !!line.priceChangedSinceAdd,
       sku: {
         id: line.skuId,
         code: found?.sku.code ?? '',
@@ -111,6 +122,7 @@ export function toCart(raw: BackendCart, catalog: ProductView[]): Cart {
           slug: found?.product.slug ?? '',
           brand: { name: found?.product.brand.name ?? '' },
         },
+        image: image ? { url: image.url, alt: image.altText?.trim() || found?.product.name || '' } : null,
       },
       price:
         line.price === null
