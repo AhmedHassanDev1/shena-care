@@ -1,9 +1,22 @@
-import Link from 'next/link'
+import Link from 'next/link';
 import {
-  Banknote, ClipboardCheck, FileText, Gauge, History, LogOut, PackageOpen, Printer, Route, ScanLine,
-  ShoppingBag, Store, Truck, UserRound, Wallet,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+  Banknote,
+  ClipboardCheck,
+  FileText,
+  Gauge,
+  History,
+  LogOut,
+  PackageOpen,
+  Printer,
+  Route,
+  ScanLine,
+  ShoppingBag,
+  Store,
+  Truck,
+  UserRound,
+  Wallet,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /*
  * One navigation vocabulary for all four roles (GLO-230, wired in C0). Each role sees only its own
@@ -14,9 +27,9 @@ import { cn } from '@/lib/utils'
  *   task    → hub scanner station: kohl bar with the task name and an explicit exit, no other navigation
  */
 
-export type Role = 'admin' | 'supplier' | 'hub' | 'driver'
+export type Role = 'admin' | 'supplier' | 'hub' | 'driver';
 
-type NavItem = { id: string; label: string; icon: React.ElementType; href: string }
+type NavItem = { id: string; label: string; icon: React.ElementType; href: string };
 
 const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   admin: {
@@ -53,24 +66,36 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'account', label: 'حسابي', icon: UserRound, href: '/driver/profile' },
     ],
   },
-}
+};
 
 function Wordmark({ onKohl }: { onKohl?: boolean }) {
   return (
-    <span className={cn('font-bw-display text-bw-heading font-semibold', onKohl ? 'text-bw-on-kohl' : 'text-bw-ink')}>
+    <span
+      className={cn(
+        'font-bw-display text-bw-heading font-semibold',
+        onKohl ? 'text-bw-on-kohl' : 'text-bw-ink',
+      )}
+    >
       شينا كير
-      <span className={cn('ms-2 text-bw-small font-normal', onKohl ? 'text-bw-on-kohl-soft' : 'text-bw-ink-soft')}>أعمال</span>
+      <span
+        className={cn(
+          'ms-2 text-bw-small font-normal',
+          onKohl ? 'text-bw-on-kohl-soft' : 'text-bw-ink-soft',
+        )}
+      >
+        أعمال
+      </span>
     </span>
-  )
+  );
 }
 
 function Count({ value }: { value?: number }) {
-  if (!value) return null
+  if (!value) return null;
   return (
     <span className="rounded-full bg-bw-danger px-2 text-bw-small font-semibold text-bw-on-action">
       <bdi className="bw-code">{value}</bdi>
     </span>
-  )
+  );
 }
 
 export function WorkspaceFrame({
@@ -82,26 +107,48 @@ export function WorkspaceFrame({
   counts,
   exitHref = '/design',
   onLogout,
+  overview,
   children,
 }: {
-  role: Role
-  active: string
-  mode: 'desktop' | 'mobile' | 'task'
-  operator: string
-  task?: string
+  overview?: boolean;
+  role: Role;
+  active: string;
+  mode: 'desktop' | 'mobile' | 'task';
+  operator: string;
+  task?: string;
   /** Live counts from the API per nav id; never shown when absent. */
-  counts?: Record<string, number | undefined>
-  exitHref?: string
-  onLogout?: () => void
-  children: React.ReactNode
+  counts?: Record<string, number | undefined>;
+  exitHref?: string;
+  onLogout?: () => void;
+  children: React.ReactNode;
 }) {
-  const nav = roleNav[role]
+  const nav =
+    overview && role === 'admin'
+      ? {
+          title: 'الإدارة',
+          items: roleNav.admin.items.map((item) => ({
+            ...item,
+            label: (
+              {
+                attention: 'نظرة عامة',
+                orders: 'الطلبات',
+                sourcing: 'الموردين',
+                cod: 'المالية والتحصيل',
+              } as Record<string, string>
+            )[item.id],
+          })),
+        }
+      : roleNav[role];
   const logout = onLogout ? (
-    <button type="button" onClick={onLogout} className="inline-flex items-center gap-1 text-bw-small text-bw-ink-soft hover:text-bw-ink">
+    <button
+      type="button"
+      onClick={onLogout}
+      className="inline-flex items-center gap-1 text-bw-small text-bw-ink-soft hover:text-bw-ink"
+    >
       <LogOut className="size-4" aria-hidden />
       خروج
     </button>
-  ) : null
+  ) : null;
 
   if (mode === 'task') {
     return (
@@ -115,7 +162,10 @@ export function WorkspaceFrame({
           </div>
           <div className="flex items-center gap-3 text-bw-small text-bw-on-kohl-soft">
             <span>{operator}</span>
-            <Link href={exitHref} className="inline-flex h-bw-control items-center gap-2 rounded-full border-[1.5px] border-bw-on-kohl-soft px-4 text-bw-on-kohl">
+            <Link
+              href={exitHref}
+              className="inline-flex h-bw-control items-center gap-2 rounded-full border-[1.5px] border-bw-on-kohl-soft px-4 text-bw-on-kohl"
+            >
               <LogOut className="size-4" aria-hidden />
               خروج من المهمة
             </Link>
@@ -123,7 +173,7 @@ export function WorkspaceFrame({
         </header>
         <main className="flex-1">{children}</main>
       </div>
-    )
+    );
   }
 
   if (mode === 'mobile') {
@@ -139,7 +189,10 @@ export function WorkspaceFrame({
           </span>
         </header>
         <main className="flex-1 pb-4">{children}</main>
-        <nav aria-label={nav.title} className="sticky bottom-0 grid grid-flow-col border-t border-bw-line bg-bw-surface">
+        <nav
+          aria-label={nav.title}
+          className="sticky bottom-0 grid grid-flow-col border-t border-bw-line bg-bw-surface"
+        >
           {nav.items.map((item) => (
             <Link
               key={item.id}
@@ -159,7 +212,7 @@ export function WorkspaceFrame({
           ))}
         </nav>
       </div>
-    )
+    );
   }
 
   return (
@@ -168,7 +221,10 @@ export function WorkspaceFrame({
         <div className="flex items-center justify-between px-4 py-4">
           <Wordmark />
         </div>
-        <nav aria-label={nav.title} className="flex gap-1 overflow-x-auto px-2 pb-2 lg:flex-col lg:overflow-visible">
+        <nav
+          aria-label={nav.title}
+          className="flex gap-1 overflow-x-auto px-2 pb-2 lg:flex-col lg:overflow-visible"
+        >
           {nav.items.map((item) => (
             <Link
               key={item.id}
@@ -176,7 +232,9 @@ export function WorkspaceFrame({
               aria-current={item.id === active ? 'page' : undefined}
               className={cn(
                 'flex h-bw-control shrink-0 items-center gap-2 rounded-full px-3 text-bw-small',
-                item.id === active ? 'bg-bw-action-soft font-semibold text-bw-action-ink' : 'text-bw-ink-soft hover:bg-bw-sunken',
+                item.id === active
+                  ? 'bg-bw-action-soft font-semibold text-bw-action-ink'
+                  : 'text-bw-ink-soft hover:bg-bw-sunken',
               )}
             >
               <item.icon className="size-4" aria-hidden />
@@ -185,15 +243,37 @@ export function WorkspaceFrame({
             </Link>
           ))}
         </nav>
-        <div className="flex items-center justify-between gap-2 border-t border-bw-line px-4 py-3 text-bw-small text-bw-ink-soft">
-          <span className="flex items-center gap-2">
-            <ClipboardCheck className="size-4" aria-hidden />
-            {operator}
-          </span>
-          {logout}
-        </div>
+        {overview ? (
+          <div className="ao-account">
+            <p className="ao-unavailable">
+              <PackageOpen size={16} aria-hidden />
+              المنتجات <small>غير متاحة حاليًا</small>
+            </p>
+            <details>
+              <summary>
+                <UserRound size={18} aria-hidden />
+                <span>
+                  {operator}
+                  <small>حساب الإدارة</small>
+                </span>
+              </summary>
+              <div className="ao-account-menu">
+                <p>الإعدادات غير متاحة حاليًا</p>
+                {logout}
+              </div>
+            </details>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2 border-t border-bw-line px-4 py-3 text-bw-small text-bw-ink-soft">
+            <span className="flex items-center gap-2">
+              <ClipboardCheck className="size-4" aria-hidden />
+              {operator}
+            </span>
+            {logout}
+          </div>
+        )}
       </aside>
       <main className="min-w-0 flex-1">{children}</main>
     </div>
-  )
+  );
 }
