@@ -54,6 +54,7 @@ export function deliveryFee(raw = process.env.DELIVERY_FEE_EGP): number {
   }
   return fee;
 }
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const canonical = (value: unknown): string => JSON.stringify(value, (_key, item) =>
   item && typeof item === 'object' && !Array.isArray(item)
     ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)))
@@ -374,7 +375,8 @@ export class OrderingService {
 
   async getOrder(idOrOrderNumber: string, customerId?: string): Promise<OrderDetail | null> {
     const order = await this.prisma.order.findFirst({
-      where: { OR: [{ id: idOrOrderNumber }, { orderNumber: idOrOrderNumber }], ...(customerId ? { customerId } : {}) },
+      // An order number is not a UUID; comparing it to the uuid `id` column makes PostgreSQL throw.
+      where: { OR: [...(UUID.test(idOrOrderNumber) ? [{ id: idOrOrderNumber }] : []), { orderNumber: idOrOrderNumber }], ...(customerId ? { customerId } : {}) },
       include: { items: { where: { lineState: 'active' } } },
     });
     return order ? this.present(order) : null;
@@ -414,6 +416,45 @@ export class OrderingService {
   }
 
   /** Order numbers and status only — no customer PII — for operational lists (GLO-239). */
+  /** Admin order list (C0 W2): newest first, filter by status or order number / customer name / phone. */
+  async listOrdersForStaff(filter: { status?: OrderStatus; q?: string; take: number; skip: number }) {
+    const q = filter.q?.trim();
+    const where: Prisma.OrderWhereInput = {
+      ...(filter.status ? { status: filter.status } : {}),
+      ...(q ? { OR: [
+        { orderNumber: { contains: q, mode: 'insensitive' } },
+        { customerName: { contains: q, mode: 'insensitive' } },
+        { customerPhone: { contains: q } },
+      ] } : {}),
+    };
+    const [total, rows] = await Promise.all([
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({
+        where, orderBy: { createdAt: 'desc' }, take: filter.take, skip: filter.skip,
+        include: { items: { where: { lineState: 'active' }, select: { quantity: true } } },
+      }),
+    ]);
+    return { total, items: rows.map(order => ({
+      id: order.id, orderNumber: order.orderNumber, status: order.status, customerName: order.customerName,
+      governorate: order.governorate, area: order.area, paymentMethod: order.paymentMethod,
+      totalAmount: Number(order.totalAmount), codAmount: order.codAmount === null ? null : Number(order.codAmount),
+      currency: order.currency, itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
+      hasPin: order.latitude !== null && order.longitude !== null, createdAt: order.createdAt,
+    })) };
+  }
+
+  /** Order status history and operator delivery instructions, oldest first. */
+  async getStaffTimeline(orderId: string) {
+    const [statusEvents, instructions] = await Promise.all([
+      this.prisma.orderStatusEvent.findMany({ where: { orderId }, orderBy: { createdAt: 'asc' } }),
+      this.prisma.deliveryInstruction.findMany({ where: { orderId }, orderBy: { createdAt: 'asc' } }),
+    ]);
+    return {
+      statusEvents: statusEvents.map(e => ({ status: e.status, at: e.createdAt })),
+      deliveryInstructions: instructions.map(i => ({ id: i.id, note: i.note, reason: i.reason, latitude: i.latitude, longitude: i.longitude, actorId: i.actorId, at: i.createdAt })),
+    };
+  }
+
   async getOrderSummaries(ids: string[]): Promise<Map<string, { id: string; orderNumber: string; status: OrderStatus; governorate: string | null; area: string | null }>> {
     if (!ids.length) return new Map();
     const rows = await this.prisma.order.findMany({ where: { id: { in: [...new Set(ids)] } },

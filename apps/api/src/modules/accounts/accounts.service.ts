@@ -1,3 +1,4 @@
+import { Role } from '@prisma/client';
 import { Injectable, UnauthorizedException, ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../platform/database/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -279,6 +280,26 @@ export class AccountsService {
     }
     
     return customer;
+  }
+
+  /** Business Workspace identity: roles and supplier scope (hub scope is composed from Fulfillment). */
+  async getWorkspaceIdentity(accountId: string) {
+    const account = await this.prisma.customer.findUnique({
+      where: { id: accountId },
+      select: { id: true, name: true, email: true, roles: true, supplierId: true, supplier: { select: { name: true } } },
+    });
+    if (!account) throw new UnauthorizedException('Account not found');
+    return {
+      id: account.id, name: account.name, email: account.email, roles: account.roles,
+      supplierId: account.supplierId, supplierName: account.supplier?.name ?? null,
+    };
+  }
+
+  /** Staff directory for assignment pickers: ids and names only (no email/phone). */
+  async listAccountsWithRole(role: Role) {
+    return this.prisma.customer.findMany({
+      where: { roles: { has: role } }, select: { id: true, name: true }, orderBy: { name: 'asc' },
+    });
   }
 
   async exportCustomerData(customerId: string) {

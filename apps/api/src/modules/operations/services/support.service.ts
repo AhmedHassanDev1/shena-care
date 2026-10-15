@@ -123,12 +123,13 @@ export class SupportService {
     return supportCase;
   }
 
-  async getCases(status?: string, filter: { category?: SupportCaseCategory; priority?: SupportCasePriority; take?: number; skip?: number } = {}) {
+  async getCases(status?: string, filter: { category?: SupportCaseCategory; priority?: SupportCasePriority; orderId?: string; take?: number; skip?: number } = {}) {
     return this.prisma.supportCase.findMany({
       where: {
         ...(status ? { status: status as SupportCaseStatus } : {}),
         ...(filter.category ? { category: filter.category } : {}),
         ...(filter.priority ? { priority: filter.priority } : {}),
+        ...(filter.orderId ? { orderId: filter.orderId } : {}),
       },
       // Critical cases (safety) lead the queue; enum order is low < medium < high < critical.
       orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],

@@ -725,6 +725,32 @@ export class FulfillmentService {
     });
   }
 
+  /** Picking screen state: the active (or latest) session and each expected line with server-confirmed scans. */
+  async getPreparationState(shipmentId: string, actor: FulfillmentActor) {
+    if (!this.isUuid(shipmentId)) throw new BadRequestException('Invalid shipment ID');
+    const shipment = await this.prisma.shipment.findUnique({
+      where: { id: shipmentId },
+      include: { items: true, preparationSessions: { orderBy: { startedAt: 'desc' }, take: 1, include: { scanEvents: { orderBy: { scannedAt: 'asc' } } } } },
+    });
+    if (!shipment) throw new NotFoundException('Shipment not found');
+    await this.assertHubShipmentAccess(shipment, actor);
+    const [order, labels] = await Promise.all([
+      this.orderingService.getOrderSummaries([shipment.orderId]),
+      this.catalogService.getSkuLabels(shipment.items.map(item => item.skuId)),
+    ]);
+    const session = shipment.preparationSessions[0] ?? null;
+    const scans = session?.scanEvents ?? [];
+    return {
+      shipmentId: shipment.id, status: shipment.status, orderNumber: order.get(shipment.orderId)?.orderNumber ?? null,
+      session: session ? { id: session.id, status: session.status, startedAt: session.startedAt, completedAt: session.completedAt } : null,
+      lines: shipment.items.map(item => ({
+        skuId: item.skuId, quantity: item.quantity, sku: labels.get(item.skuId) ?? null,
+        scanned: scans.filter(scan => scan.skuId === item.skuId && scan.isSuccessful).length,
+      })),
+      rejectedScans: scans.filter(scan => !scan.isSuccessful).map(scan => ({ barcode: scan.barcodeScanned, errorReason: scan.errorReason, at: scan.scannedAt })),
+    };
+  }
+
   async scanItem(sessionId: string, dto: ScanItemDto, actor: FulfillmentActor) {
     if (!this.isUuid(sessionId)) throw new BadRequestException('Invalid session ID');
     
@@ -1457,6 +1483,80 @@ export class FulfillmentService {
       shipmentId: row.id, orderId: row.orderId, locationId: row.locationId,
       reasonCode: row.events[0]?.reasonCode ?? null, failedAt: row.events[0]?.createdAt ?? row.updatedAt,
     })) };
+  }
+
+  // --- Business Workspace reads (C0) ---
+
+  /** Hubs an operator is assigned to (admin sees every active hub). */
+  async listOperatorLocations(actor: FulfillmentActor) {
+    const scope = await this.operatorLocationIds(actor);
+    if (scope !== 'all' && scope.length === 0) return [];
+    return this.prisma.fulfillmentLocation.findMany({
+      where: { isActive: true, ...(scope === 'all' ? {} : { id: { in: scope } }) },
+      select: { id: true, name: true, address: true }, orderBy: { name: 'asc' },
+    });
+  }
+
+  /** The assigned driver's closed attempts: outcome, reason and declared cash only, no customer contact. */
+  async getDriverHistory(actor: FulfillmentActor, paging: { take: number; skip: number }) {
+    if (!actor.roles.includes(Role.DRIVER)) throw new ForbiddenException('Driver access is required');
+    const where = { status: { in: ['delivered', 'failed', 'returned'] }, batch: { driverId: actor.id } };
+    const [total, stops] = await Promise.all([
+      this.prisma.deliveryStop.count({ where }),
+      this.prisma.deliveryStop.findMany({
+        where, orderBy: { closedAt: 'desc' }, take: paging.take, skip: paging.skip,
+        include: { shipment: { include: { events: { where: { type: { in: ['DELIVERED', 'FAILED'] } }, orderBy: { createdAt: 'desc' } } } } },
+      }),
+    ]);
+    const orderIds = stops.map(stop => stop.shipment.orderId);
+    const [orders, declared] = await Promise.all([
+      this.orderingService.getOrderSummaries(orderIds),
+      this.reconciliation.getDeclaredCash(orderIds),
+    ]);
+    return { total, items: stops.map(stop => {
+      const event = stop.shipment.events.find(e => e.createdAt >= stop.createdAt);
+      return {
+        stopId: stop.id, batchId: stop.batchId, shipmentId: stop.shipmentId, outcome: stop.status, closedAt: stop.closedAt,
+        orderNumber: orders.get(stop.shipment.orderId)?.orderNumber ?? null, area: orders.get(stop.shipment.orderId)?.area ?? null,
+        reasonCode: stop.status === 'failed' ? event?.reasonCode ?? null : null,
+        cashDeclared: stop.status === 'delivered' ? declared.get(stop.shipment.orderId) ?? null : null,
+      };
+    }) };
+  }
+
+  /** Staff view of one order's physical trail: shipment, events, delivery attempts and hub receipts. */
+  async getOrderFulfillmentTrail(orderId: string, actor: FulfillmentActor) {
+    if (!this.isUuid(orderId)) throw new BadRequestException('Invalid order ID');
+    const [shipment, receipts] = await Promise.all([
+      this.prisma.shipment.findUnique({
+        where: { orderId },
+        include: {
+          items: true, location: { select: { id: true, name: true } },
+          events: { orderBy: { createdAt: 'asc' } },
+          deliveryStops: { orderBy: { createdAt: 'asc' }, include: { batch: { select: { id: true, status: true, driverId: true, dispatchedAt: true } } } },
+          preparationSessions: { orderBy: { startedAt: 'asc' }, select: { id: true, status: true, startedAt: true, completedAt: true } },
+        },
+      }),
+      this.prisma.fulfillmentReceipt.findMany({ where: { orderId }, orderBy: { receivedAt: 'asc' } }),
+    ]);
+    if (shipment) await this.assertHubShipmentAccess(shipment, actor);
+    return {
+      shipment: shipment ? {
+        id: shipment.id, status: shipment.status, trackingNumber: shipment.trackingNumber, location: shipment.location,
+        dispatchedAt: shipment.dispatchedAt, deliveredAt: shipment.deliveredAt, createdAt: shipment.createdAt,
+        items: shipment.items.map(item => ({ skuId: item.skuId, quantity: item.quantity })),
+        events: shipment.events.map(e => ({ id: e.id, type: e.type, reasonCode: e.reasonCode, actorId: e.actorId, notes: e.notes, createdAt: e.createdAt })),
+        attempts: shipment.deliveryStops.map(stop => ({
+          stopId: stop.id, batchId: stop.batchId, runStatus: stop.batch.status, driverId: stop.batch.driverId,
+          dispatchedAt: stop.batch.dispatchedAt, outcome: stop.status, closedAt: stop.closedAt,
+        })),
+        preparationSessions: shipment.preparationSessions,
+      } : null,
+      receipts: receipts.map(r => ({
+        id: r.id, skuId: r.skuId, quantity: r.quantity, condition: r.condition, identityMethod: r.identityMethod,
+        lotNumber: r.lotNumber, expiryDate: r.expiryDate, receivedAt: r.receivedAt, locationId: r.locationId,
+      })),
+    };
   }
 
   // --- Inventory Management (GLO-151) ---

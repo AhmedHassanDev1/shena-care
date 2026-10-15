@@ -7,6 +7,7 @@ import { PermissionsGuard, RequirePermissions } from '../../platform/auth';
 import { Roles } from '../accounts/decorators/roles.decorator';
 import { CurrentUser } from '../accounts/decorators/current-user.decorator';
 import { FulfillmentActor } from './services/fulfillment.service';
+import { PageQueryDto, page } from '../../platform/api/paging.dto';
 
 @Controller('fulfillment')
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
@@ -79,6 +80,12 @@ export class FulfillmentController {
     return this.fulfillmentService.startPreparationSession(id, dto, actor);
   }
 
+  @Get('shipments/:id/preparation')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async getPreparationState(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.getPreparationState(id, actor);
+  }
+
   @Post('preparation-sessions/:sessionId/scan')
   @Roles('ADMIN', 'HUB_OPERATOR')
   async scanItem(
@@ -125,6 +132,12 @@ export class FulfillmentController {
   @Roles('DRIVER')
   async getDriverManifest(@CurrentUser() actor: FulfillmentActor) {
     return this.fulfillmentService.getDriverManifest(actor);
+  }
+
+  @Get('driver/history')
+  @Roles('DRIVER')
+  async getDriverHistory(@CurrentUser() actor: FulfillmentActor, @Query() query: PageQueryDto) {
+    return this.fulfillmentService.getDriverHistory(actor, page(query));
   }
 
   @Get('locations/:id/eligible-shipments')

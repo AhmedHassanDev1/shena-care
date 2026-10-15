@@ -75,6 +75,10 @@ const productWithRelations = Prisma.validator<Prisma.ProductDefaultArgs>()({
 
 type ProductWithRelations = Prisma.ProductGetPayload<typeof productWithRelations>;
 
+export interface SkuLabel {
+  skuId: string; productName: string; brandName: string | null; variantName: string; skuCode: string; barcode: string | null;
+}
+
 @Injectable()
 export class CatalogService {
   constructor(
@@ -384,6 +388,18 @@ export class CatalogService {
       barcode: sku.barcode,
       isActive: sku.isActive,
     };
+  }
+
+  /** Human labels for operational screens (PO lines, picking): product/brand/variant/code/barcode, never prices. */
+  async getSkuLabels(skuIds: string[]): Promise<Map<string, SkuLabel>> {
+    const ids = [...new Set(skuIds)].filter(id => this.isUuid(id));
+    const rows = ids.length ? await this.prisma.sku.findMany({
+      where: { id: { in: ids } }, include: { product: { include: { brand: true } } },
+    }) : [];
+    return new Map(rows.map(sku => [sku.id, {
+      skuId: sku.id, productName: sku.product.name, brandName: sku.product.brand?.name ?? null,
+      variantName: sku.variantName, skuCode: sku.code, barcode: sku.barcode,
+    }]));
   }
 
   /** Stable identity lookup for internal custody workflows, including inactive catalog items. */

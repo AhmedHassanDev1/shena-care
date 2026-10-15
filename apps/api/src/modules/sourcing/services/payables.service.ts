@@ -103,6 +103,22 @@ export class PayablesService {
   }
 
   /** Audited signed adjustment in exact Decimal; never below zero, never after payment. */
+  /** Admin payables ledger: newest first, optional status / purchase-order filter. */
+  async listPayables(filter: { status?: PayableStatus; purchaseOrderIds?: string[]; take: number; skip: number }) {
+    const where: Prisma.SupplierPayableWhereInput = {
+      ...(filter.status ? { status: filter.status } : {}),
+      ...(filter.purchaseOrderIds ? { purchaseOrderId: { in: filter.purchaseOrderIds } } : {}),
+    };
+    const [total, rows] = await Promise.all([
+      this.prisma.supplierPayable.count({ where }),
+      this.prisma.supplierPayable.findMany({ where, orderBy: { createdAt: 'desc' }, take: filter.take, skip: filter.skip, include: { supplier: { select: { name: true } } } }),
+    ]);
+    return { total, items: rows.map(p => ({
+      id: p.id, supplierId: p.supplierId, supplierName: p.supplier.name, purchaseOrderId: p.purchaseOrderId,
+      amount: Number(p.amount), currency: p.currency, status: p.status, paidAt: p.paidAt, paymentRef: p.paymentRef, createdAt: p.createdAt,
+    })) };
+  }
+
   async adjustPayable(payableId: string, dto: {
     amount: number;
     reason: string;

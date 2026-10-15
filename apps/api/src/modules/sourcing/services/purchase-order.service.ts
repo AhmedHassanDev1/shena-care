@@ -21,6 +21,7 @@ export interface SupplierPurchaseOrderView {
   lines: Array<{
     id: string; skuId: string; requestedQuantity: number; confirmedQuantity: number | null;
     status: PurchaseOrderLineStatus; unitCost: number | null; currency: string | null;
+    exceptionCode: string | null; exceptionNote: string | null; proposedQuantity: number | null; proposedUnitCost: number | null;
   }>;
 }
 
@@ -185,6 +186,9 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       lines: order.lines.map(line => ({
         id: line.id, skuId: line.skuId, requestedQuantity: line.requestedQuantity, confirmedQuantity: line.confirmedQuantity,
         status: line.status, unitCost: line.unitCost === null ? null : Number(line.unitCost), currency: line.currency,
+        // The supplier's own reported exception (MOQ/pack/price) so its inbox shows what it answered.
+        exceptionCode: line.exceptionCode, exceptionNote: line.exceptionNote, proposedQuantity: line.proposedQuantity,
+        proposedUnitCost: line.proposedUnitCost === null ? null : Number(line.proposedUnitCost),
       })),
     };
   }
@@ -362,6 +366,24 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Admin queue: shared partial confirmations waiting for an explicit distribution (GLO-239). */
+  /** Staff: every PO line linked to one customer order, with the order's own quantities on it. */
+  async listLinesForOrder(orderId: string) {
+    const links = await this.prisma.purchaseOrderLineAllocation.findMany({
+      where: { orderId }, orderBy: { createdAt: 'asc' },
+      include: { shortfalls: true, line: { include: { purchaseOrder: { select: { id: true, status: true, supplierId: true, batchRef: true, readyAt: true, receivedAt: true } } } } },
+    });
+    return links.map(link => ({
+      purchaseOrderId: link.line.purchaseOrder.id, purchaseOrderStatus: link.line.purchaseOrder.status,
+      supplierId: link.line.purchaseOrder.supplierId, batchRef: link.line.purchaseOrder.batchRef,
+      readyAt: link.line.purchaseOrder.readyAt, lineId: link.line.id, lineStatus: link.line.status, skuId: link.line.skuId,
+      orderItemId: link.orderItemId, quantity: link.quantity, confirmedQuantity: link.confirmedQuantity,
+      receivedQuantity: link.receivedQuantity, shortQuantity: link.shortQuantity,
+      unitCost: link.line.unitCost === null ? null : Number(link.line.unitCost),
+      exceptionCode: link.line.exceptionCode, distributionRequired: link.line.distributionRequired,
+      shortfalls: link.shortfalls.map(s => ({ quantity: s.quantity, reasonCode: s.reasonCode, createdAt: s.createdAt })),
+    }));
+  }
+
   async listDistributionRequired(paging: { take: number; skip: number }) {
     const where = { distributionRequired: true };
     const [total, rows] = await Promise.all([

@@ -5,6 +5,7 @@ import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
 import { PurchaseOrderService } from '../../../modules/sourcing/public';
+import { CatalogService } from '../../../modules/catalog/public';
 import {
   CreatePurchaseOrderDto, ConfirmPurchaseOrderDto, DistributePurchaseOrderLineDto, FlushProcurementBatchDto, ListPurchaseOrdersQueryDto, RecordShortfallDto,
 } from '../../../modules/sourcing/public';
@@ -14,7 +15,7 @@ type RequestUser = { id: string; roles?: string[]; supplierId?: string | null };
 @Controller('purchase-orders')
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 export class PurchaseOrderController {
-  constructor(private readonly purchaseOrderService: PurchaseOrderService) {}
+  constructor(private readonly purchaseOrderService: PurchaseOrderService, private readonly catalog: CatalogService) {}
 
   private isStaff(user: RequestUser) {
     return !!user.roles?.some(role => role === 'ADMIN' || role === 'HUB_OPERATOR');
@@ -30,8 +31,17 @@ export class PurchaseOrderController {
   }
 
   /** Suppliers never see order/customer lineage; staff get the full PO-line → allocation ledger. */
-  private present(user: RequestUser, order: Awaited<ReturnType<PurchaseOrderService['getPurchaseOrder']>>) {
-    return this.isStaff(user) ? order : this.purchaseOrderService.toSupplierView(order);
+  private async present(user: RequestUser, order: Awaited<ReturnType<PurchaseOrderService['getPurchaseOrder']>>) {
+    return (await this.presentMany(user, [order]))[0];
+  }
+
+  /** Lines carry catalog labels (product, brand, variant, code, barcode) so people can act on them; no prices. */
+  private async presentMany(user: RequestUser, orders: Array<Awaited<ReturnType<PurchaseOrderService['getPurchaseOrder']>>>) {
+    const labels = await this.catalog.getSkuLabels(orders.flatMap(order => order.lines.map(line => line.skuId)));
+    return orders.map(order => {
+      const view = this.isStaff(user) ? order : this.purchaseOrderService.toSupplierView(order);
+      return { ...view, lines: view.lines.map(line => ({ ...line, sku: labels.get(line.skuId) ?? null })) };
+    });
   }
 
   @Post()
@@ -54,7 +64,7 @@ export class PurchaseOrderController {
   async listPurchaseOrders(@CurrentUser() user: RequestUser, @Query() query: ListPurchaseOrdersQueryDto) {
     if (!this.isStaff(user) && !user.supplierId) throw new ForbiddenException('Supplier account is not linked to a supplier');
     const result = await this.purchaseOrderService.listPurchaseOrders(query, this.isStaff(user) ? undefined : user.supplierId!);
-    return { total: result.total, items: result.items.map(order => this.present(user, order)) };
+    return { total: result.total, items: await this.presentMany(user, result.items) };
   }
 
   @Get(':id')

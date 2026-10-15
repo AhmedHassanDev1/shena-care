@@ -16,7 +16,8 @@
     "migration:run": "prisma migrate deploy",
     "migration:revert": "prisma migrate reset",
     "seed": "ts-node src/platform/database/seed.ts",
-    "events:dispatch": "ts-node scripts/dispatch-domain-events.ts"
+    "events:dispatch": "ts-node scripts/dispatch-domain-events.ts",
+    "staff:provision": "ts-node scripts/provision-staff.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

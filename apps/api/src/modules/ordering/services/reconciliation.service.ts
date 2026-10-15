@@ -463,6 +463,37 @@ export class ReconciliationService {
    * Cashier/admin queue of COD collections by hub (GLO-239): expected, declared and counted cash
    * side by side, with the variance; `locationIds` is the caller's hub scope ('all' for admins).
    */
+  /** Expected / declared / counted / settled cash plus resolutions and refunds for one order (staff). */
+  async getOrderMoney(orderId: string) {
+    const [collection, resolutions] = await Promise.all([
+      this.prisma.paymentCollection.findUnique({ where: { orderId }, include: { settlementBatch: true } }),
+      this.prisma.orderResolution.findMany({
+        where: { orderId }, orderBy: { createdAt: 'asc' }, include: { items: true, refundTransaction: true },
+      }),
+    ]);
+    const money = (value: Prisma.Decimal | null | undefined) => (value === null || value === undefined ? null : Number(value));
+    return {
+      collection: collection ? {
+        id: collection.id, status: collection.status, currency: collection.currency,
+        expectedAmount: money(collection.expectedAmount), declaredAmount: money(collection.declaredAmount),
+        countedAmount: collection.settlementBatchId ? money(collection.collectedAmount) : null,
+        declaredAt: collection.declaredAt, courierId: collection.courierId, locationId: collection.locationId,
+        settlement: collection.settlementBatch ? {
+          id: collection.settlementBatch.id, reference: collection.settlementBatch.reference,
+          settledAt: collection.settlementBatch.settledAt, actorId: collection.settlementBatch.actorId,
+        } : null,
+      } : null,
+      resolutions: resolutions.map(r => ({
+        id: r.id, type: r.type, status: r.status, reasonCode: r.reasonCode, createdAt: r.createdAt,
+        items: r.items.map(i => ({ orderItemId: i.orderItemId, quantity: i.quantity })),
+        refund: r.refundTransaction ? {
+          id: r.refundTransaction.id, amount: money(r.refundTransaction.amount), status: r.refundTransaction.status,
+          providerRef: r.refundTransaction.providerRef, paymentProvider: r.refundTransaction.paymentProvider,
+        } : null,
+      })),
+    };
+  }
+
   async listCollections(filter: { locationIds: string[] | 'all'; locationId?: string; status?: SettlementStatus; courierId?: string; take: number; skip: number }) {
     if (filter.locationIds !== 'all' && filter.locationId && !filter.locationIds.includes(filter.locationId)) {
       throw new ForbiddenException('Operator is not assigned to this hub');

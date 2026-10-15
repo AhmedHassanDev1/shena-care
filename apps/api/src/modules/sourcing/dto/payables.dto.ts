@@ -1,4 +1,6 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, MaxLength } from 'class-validator';
+import { PayableStatus } from '@prisma/client';
+import { PageQueryDto } from '../../../platform/api/paging.dto';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, MaxLength, IsEnum } from 'class-validator';
 
 export class AdjustPayableDto {
   /** Signed EGP adjustment, two decimals at most; the result can never go below zero. */
@@ -22,4 +24,11 @@ export class MarkAsPaidDto {
   @IsNotEmpty()
   @MaxLength(200)
   paymentRef: string;
+}
+
+/** GET /sourcing/payables (admin ledger). */
+export class PayableQueryDto extends PageQueryDto {
+  @IsOptional()
+  @IsEnum(PayableStatus)
+  status?: PayableStatus;
 }

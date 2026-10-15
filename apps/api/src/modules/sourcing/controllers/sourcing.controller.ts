@@ -2,7 +2,8 @@ import { Controller, Get, Post, Body, Param, Patch, Query, UseGuards, ForbiddenE
 import { SourcingService } from '../services/sourcing.service';
 import { CreateSupplierDto, UpdateSupplierDto } from '../dto/supplier.dto';
 import { CreateSupplierOfferDto, UpdateSupplierOfferDto } from '../dto/supplier-offer.dto';
-import { AdjustPayableDto, MarkAsPaidDto } from '../dto/payables.dto';
+import { AdjustPayableDto, MarkAsPaidDto, PayableQueryDto } from '../dto/payables.dto';
+import { page } from '../../../platform/api/paging.dto';
 import { IsBoolean, IsNotEmpty } from 'class-validator';
 import { PayablesService } from '../services/payables.service';
 import { AuthGuard } from '../../accounts/guards/auth.guard';
@@ -115,6 +116,12 @@ export class SourcingController {
   @Roles('ADMIN', 'HUB_OPERATOR')
   async createPayableFromPO(@Param('id') id: string) {
     return this.payablesService.createPayableFromPO(id);
+  }
+
+  @Get('payables')
+  @Roles('ADMIN')
+  async listPayables(@Query() query: PayableQueryDto) {
+    return this.payablesService.listPayables({ status: query.status, ...page(query) });
   }
 
   @Patch('payables/:id/adjust')

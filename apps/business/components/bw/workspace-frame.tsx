@@ -1,57 +1,56 @@
 import Link from 'next/link'
 import {
-  Banknote, Boxes, ClipboardCheck, FileText, Gauge, LogOut, PackageOpen, Printer, ReceiptText, Route, ScanLine,
-  ShoppingBag, Store, Tags, Truck, UserRound,
+  Banknote, ClipboardCheck, FileText, Gauge, History, LogOut, PackageOpen, Printer, Route, ScanLine,
+  ShoppingBag, Store, Truck, UserRound, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /*
- * One navigation vocabulary for all four roles (GLO-230). Each role sees only its own sections;
- * this is presentation only — the API's role guards and object ownership remain the security boundary.
- *   desktop → admin operator: sidebar on the inline-start edge
+ * One navigation vocabulary for all four roles (GLO-230, wired in C0). Each role sees only its own
+ * sections; this is presentation only — the API's role guards and object ownership remain the
+ * security boundary.
+ *   desktop → admin operator and hub desk: sidebar on the inline-start edge
  *   mobile  → supplier, driver: compact top bar + bottom tabs (52px touch targets)
  *   task    → hub scanner station: kohl bar with the task name and an explicit exit, no other navigation
  */
 
 export type Role = 'admin' | 'supplier' | 'hub' | 'driver'
 
-type NavItem = { id: string; label: string; icon: React.ElementType; count?: number }
+type NavItem = { id: string; label: string; icon: React.ElementType; href: string }
 
 const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   admin: {
     title: 'الإدارة',
     items: [
-      { id: 'attention', label: 'محتاج تدخل', icon: Gauge, count: 7 },
-      { id: 'orders', label: 'الطلبات', icon: ShoppingBag },
-      { id: 'catalog', label: 'المنتجات والأسعار', icon: Tags },
-      { id: 'sourcing', label: 'الموردين وأوامر الشراء', icon: Store },
-      { id: 'hub', label: 'المخزن', icon: Boxes },
-      { id: 'cod', label: 'التحصيل والتسويات', icon: Banknote },
+      { id: 'attention', label: 'محتاج تدخل', icon: Gauge, href: '/admin' },
+      { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
+      { id: 'sourcing', label: 'الموردين وأوامر الشراء', icon: Store, href: '/admin/sourcing' },
+      { id: 'cod', label: 'التحصيل والتسويات', icon: Banknote, href: '/admin/cash' },
     ],
   },
   supplier: {
     title: 'بوابة المورد',
     items: [
-      { id: 'pos', label: 'أوامر الشراء', icon: FileText, count: 2 },
-      { id: 'offers', label: 'عروضي', icon: Tags },
-      { id: 'account', label: 'حسابي', icon: UserRound },
+      { id: 'pos', label: 'أوامر الشراء', icon: FileText, href: '/supplier' },
+      { id: 'account', label: 'حسابي', icon: UserRound, href: '/supplier/account' },
     ],
   },
   hub: {
     title: 'المخزن',
     items: [
-      { id: 'receive', label: 'الاستلام', icon: PackageOpen },
-      { id: 'pick', label: 'التجهيز', icon: ScanLine },
-      { id: 'pack', label: 'التغليف والطباعة', icon: Printer },
-      { id: 'handoff', label: 'التسليم للمندوب', icon: Truck },
+      { id: 'receive', label: 'الاستلام', icon: PackageOpen, href: '/hub/receive' },
+      { id: 'pick', label: 'التجهيز', icon: ScanLine, href: '/hub/prepare' },
+      { id: 'pack', label: 'التغليف والطباعة', icon: Printer, href: '/hub/pack' },
+      { id: 'handoff', label: 'التسليم للمندوب', icon: Truck, href: '/hub/dispatch' },
+      { id: 'cash', label: 'عدّ النقدية', icon: Wallet, href: '/hub/cash' },
     ],
   },
   driver: {
     title: 'المندوب',
     items: [
-      { id: 'run', label: 'مشواري', icon: Route, count: 6 },
-      { id: 'custody', label: 'عهدتي', icon: ReceiptText },
-      { id: 'account', label: 'حسابي', icon: UserRound },
+      { id: 'run', label: 'مشواري', icon: Route, href: '/driver' },
+      { id: 'history', label: 'السجل', icon: History, href: '/driver/history' },
+      { id: 'account', label: 'حسابي', icon: UserRound, href: '/driver/profile' },
     ],
   },
 }
@@ -65,12 +64,24 @@ function Wordmark({ onKohl }: { onKohl?: boolean }) {
   )
 }
 
+function Count({ value }: { value?: number }) {
+  if (!value) return null
+  return (
+    <span className="rounded-full bg-bw-danger px-2 text-bw-small font-semibold text-bw-on-action">
+      <bdi className="bw-code">{value}</bdi>
+    </span>
+  )
+}
+
 export function WorkspaceFrame({
   role,
   active,
   mode,
   operator,
   task,
+  counts,
+  exitHref = '/design',
+  onLogout,
   children,
 }: {
   role: Role
@@ -78,9 +89,19 @@ export function WorkspaceFrame({
   mode: 'desktop' | 'mobile' | 'task'
   operator: string
   task?: string
+  /** Live counts from the API per nav id; never shown when absent. */
+  counts?: Record<string, number | undefined>
+  exitHref?: string
+  onLogout?: () => void
   children: React.ReactNode
 }) {
   const nav = roleNav[role]
+  const logout = onLogout ? (
+    <button type="button" onClick={onLogout} className="inline-flex items-center gap-1 text-bw-small text-bw-ink-soft hover:text-bw-ink">
+      <LogOut className="size-4" aria-hidden />
+      خروج
+    </button>
+  ) : null
 
   if (mode === 'task') {
     return (
@@ -94,7 +115,7 @@ export function WorkspaceFrame({
           </div>
           <div className="flex items-center gap-3 text-bw-small text-bw-on-kohl-soft">
             <span>{operator}</span>
-            <Link href="/design" className="inline-flex h-bw-control items-center gap-2 rounded-full border-[1.5px] border-bw-on-kohl-soft px-4 text-bw-on-kohl">
+            <Link href={exitHref} className="inline-flex h-bw-control items-center gap-2 rounded-full border-[1.5px] border-bw-on-kohl-soft px-4 text-bw-on-kohl">
               <LogOut className="size-4" aria-hidden />
               خروج من المهمة
             </Link>
@@ -108,18 +129,21 @@ export function WorkspaceFrame({
   if (mode === 'mobile') {
     return (
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-bw-page shadow-sm ring-1 ring-bw-line">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-bw-line bg-bw-surface px-4 py-3">
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-bw-line bg-bw-surface px-4 py-3">
           <Wordmark />
-          <span className="text-bw-small text-bw-ink-soft">
-            {nav.title} · {operator}
+          <span className="flex items-center gap-3 text-bw-small text-bw-ink-soft">
+            <span>
+              {nav.title} · {operator}
+            </span>
+            {logout}
           </span>
         </header>
         <main className="flex-1 pb-4">{children}</main>
         <nav aria-label={nav.title} className="sticky bottom-0 grid grid-flow-col border-t border-bw-line bg-bw-surface">
           {nav.items.map((item) => (
-            <a
+            <Link
               key={item.id}
-              href="#"
+              href={item.href}
               aria-current={item.id === active ? 'page' : undefined}
               className={cn(
                 'flex h-bw-touch flex-col items-center justify-center text-bw-small',
@@ -127,8 +151,11 @@ export function WorkspaceFrame({
               )}
             >
               <item.icon className="size-5" aria-hidden />
-              {item.label}
-            </a>
+              <span className="flex items-center gap-1">
+                {item.label}
+                <Count value={counts?.[item.id]} />
+              </span>
+            </Link>
           ))}
         </nav>
       </div>
@@ -143,9 +170,9 @@ export function WorkspaceFrame({
         </div>
         <nav aria-label={nav.title} className="flex gap-1 overflow-x-auto px-2 pb-2 lg:flex-col lg:overflow-visible">
           {nav.items.map((item) => (
-            <a
+            <Link
               key={item.id}
-              href="#"
+              href={item.href}
               aria-current={item.id === active ? 'page' : undefined}
               className={cn(
                 'flex h-bw-control shrink-0 items-center gap-2 rounded-full px-3 text-bw-small',
@@ -154,17 +181,16 @@ export function WorkspaceFrame({
             >
               <item.icon className="size-4" aria-hidden />
               <span className="flex-1">{item.label}</span>
-              {item.count ? (
-                <span className="rounded-full bg-bw-danger px-2 text-bw-small font-semibold text-bw-on-action">
-                  <bdi className="bw-code">{item.count}</bdi>
-                </span>
-              ) : null}
-            </a>
+              <Count value={counts?.[item.id]} />
+            </Link>
           ))}
         </nav>
-        <div className="hidden items-center gap-2 border-t border-bw-line px-4 py-3 text-bw-small text-bw-ink-soft lg:flex">
-          <ClipboardCheck className="size-4" aria-hidden />
-          {operator}
+        <div className="flex items-center justify-between gap-2 border-t border-bw-line px-4 py-3 text-bw-small text-bw-ink-soft">
+          <span className="flex items-center gap-2">
+            <ClipboardCheck className="size-4" aria-hidden />
+            {operator}
+          </span>
+          {logout}
         </div>
       </aside>
       <main className="min-w-0 flex-1">{children}</main>
