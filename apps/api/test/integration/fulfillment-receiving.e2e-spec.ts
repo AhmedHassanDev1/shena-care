@@ -43,6 +43,7 @@ describe('Fulfillment supplier receiving and order allocation (e2e)', () => {
       productId: product.id,
       code: `RCV-${suffix}`,
       variantName: 'Sensitive 200ml',
+      barcode: `RCV-BAR-${suffix}`,
     } });
     const supplier = await prisma.supplier.create({ data: { name: `Receive ${suffix}`, slug: `receive-${suffix}` } });
     await prisma.supplierOffer.create({ data: {
@@ -133,7 +134,7 @@ describe('Fulfillment supplier receiving and order allocation (e2e)', () => {
       orderId: fixture.order.id,
       orderItemId: fixture.orderItemId,
       skuId: fixture.sku.id,
-      variantName: fixture.sku.variantName,
+      variantName: fixture.sku.variantName, barcodeScanned: fixture.sku.barcode!,
       quantity: 1,
       condition: 'ACCEPTABLE',
       idempotencyKey: randomUUID(),
@@ -153,7 +154,7 @@ describe('Fulfillment supplier receiving and order allocation (e2e)', () => {
       orderId: fixture.order.id,
       orderItemId: fixture.orderItemId,
       skuId: fixture.sku.id,
-      variantName: fixture.sku.variantName,
+      variantName: fixture.sku.variantName, barcodeScanned: fixture.sku.barcode!,
       quantity: 1,
       condition: 'ACCEPTABLE',
       idempotencyKey: randomUUID(),
@@ -186,7 +187,7 @@ describe('Fulfillment supplier receiving and order allocation (e2e)', () => {
       orderId: pending.order.id,
       orderItemId: pending.orderItemId,
       skuId: pending.sku.id,
-      variantName: pending.sku.variantName,
+      variantName: pending.sku.variantName, barcodeScanned: pending.sku.barcode!,
       idempotencyKey: randomUUID(),
     }).expect(409);
   });
@@ -200,7 +201,7 @@ describe('Fulfillment supplier receiving and order allocation (e2e)', () => {
       orderId: fixture.order.id,
       orderItemId: fixture.orderItemId,
       skuId: fixture.sku.id,
-      variantName: fixture.sku.variantName,
+      variantName: fixture.sku.variantName, barcodeScanned: fixture.sku.barcode!,
       quantity: 1,
       condition: 'ACCEPTABLE',
       idempotencyKey: firstKey,

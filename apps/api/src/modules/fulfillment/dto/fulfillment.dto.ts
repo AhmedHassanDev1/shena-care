@@ -42,6 +42,9 @@ export class AssignLocationOperatorDto {
   operatorId: string;
 }
 
+/** The four things a person checks when no reviewed barcode identifies the unit (GLO-242). */
+export const MANUAL_IDENTITY_CHECKS = ['brand', 'variant', 'size', 'pack'] as const;
+
 export class ReceiveAllocatedGoodsDto {
   @IsUUID()
   locationId: string;
@@ -72,6 +75,23 @@ export class ReceiveAllocatedGoodsDto {
 
   @IsUUID()
   idempotencyKey: string;
+
+  /** Physical identity evidence (GLO-242): the scanned manufacturer barcode … */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  barcodeScanned?: string;
+
+  /** … or a manual verification with a reason and every identity check performed. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  manualReason?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(MANUAL_IDENTITY_CHECKS, { each: true })
+  manualChecks?: string[];
 }
 
 export class AllocateShipmentDto {
@@ -117,13 +137,26 @@ export class StartPreparationDto {
 }
 
 export class ScanItemDto {
+  /** Manufacturer barcode as scanned; resolved through the SKU's primary code or a reviewed alias. */
   @IsOptional()
   @IsString()
+  @MaxLength(64)
+  barcodeScanned?: string;
+
+  /** Manual identity verification of ONE unit: the SKU the operator checked by hand. */
+  @IsOptional()
+  @IsUUID()
   skuId?: string;
 
   @IsOptional()
   @IsString()
-  barcodeScanned?: string;
+  @MaxLength(500)
+  manualReason?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsIn(MANUAL_IDENTITY_CHECKS, { each: true })
+  manualChecks?: string[];
 }
 
 /**

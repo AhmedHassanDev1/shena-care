@@ -253,7 +253,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
         .expect(201);
 
       expect(res.body.isSuccessful).toBe(false);
-      expect(res.body.errorReason).toBe('BARCODE_NOT_FOUND');
+      expect(res.body.errorReason).toBe('PRODUCT_IDENTITY_REVIEW_REQUIRED'); // GLO-242: unknown code needs review
     });
 
     it('should reject completion when not all items are scanned', async () => {

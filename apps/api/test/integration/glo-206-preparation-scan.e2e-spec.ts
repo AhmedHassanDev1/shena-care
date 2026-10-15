@@ -43,13 +43,13 @@ describe('GLO-206 preparation scan concurrency (e2e)', () => {
     const session = await http().post(`/fulfillment/shipments/${shipmentId}/preparation`).set(admin.auth).send({}).expect(201);
     expect(session.body.operatorId).toBe(admin.id);
     const scans = await Promise.all(Array.from({ length: 6 }, () =>
-      http().post(`/fulfillment/preparation-sessions/${session.body.id}/scan`).set(admin.auth).send({ skuId })));
+      http().post(`/fulfillment/preparation-sessions/${session.body.id}/scan`).set(admin.auth).send({ skuId, manualReason: 'Label unreadable; brand, variant, size and pack checked by hand', manualChecks: ['brand', 'variant', 'size', 'pack'] })));
     expect(scans.every(res => res.status === 201)).toBe(true);
     expect(scans.filter(res => res.body.isSuccessful).length).toBe(2);
     expect(scans.filter(res => res.body.errorReason === 'EXCESS_QUANTITY').length).toBe(4);
 
     await http().post(`/fulfillment/preparation-sessions/${session.body.id}/complete`).set(admin.auth).expect(201);
     expect((await prisma.shipment.findUniqueOrThrow({ where: { id: shipmentId } })).status).toBe('prepared');
-    await http().post(`/fulfillment/preparation-sessions/${session.body.id}/scan`).set(admin.auth).send({ skuId }).expect(400);
+    await http().post(`/fulfillment/preparation-sessions/${session.body.id}/scan`).set(admin.auth).send({ skuId, manualReason: 'Label unreadable; brand, variant, size and pack checked by hand', manualChecks: ['brand', 'variant', 'size', 'pack'] }).expect(400);
   });
 });

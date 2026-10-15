@@ -13,6 +13,8 @@ export { CatalogModule } from './catalog.module';
 export { CatalogService } from './services/catalog.service';
 export { BrandService } from './services/brand.service';
 export { CategoryService } from './services/category.service';
+export { ProductIdentityService, BARCODE_ALIAS_SOURCES } from './services/product-identity.service';
+export type { BarcodeResolution } from './services/product-identity.service';
 
 // DTOs
 export { CreateBrandDto, UpdateBrandDto } from './dto/brand.dto';

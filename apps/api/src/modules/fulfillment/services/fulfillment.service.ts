@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { OrderingService, PaymentsService, ReconciliationService, navigationUrl } from '../../ordering/public';
-import { CatalogService } from '../../catalog/public';
+import { CatalogService, ProductIdentityService } from '../../catalog/public';
 import { PurchaseOrderService, SupplyPlanService } from '../../sourcing/public';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto, ReceiveAllocatedGoodsDto, CreateDeliveryBatchDto, DeliveryStopInputDto } from '../dto/fulfillment.dto';
 import { FulfillmentCapability, ShipmentStatus, PreparationSessionStatus, Prisma, Role } from '@prisma/client';
@@ -117,7 +117,32 @@ export class FulfillmentService {
     private readonly purchaseOrders: PurchaseOrderService,
     private readonly support: SupportService,
     private readonly payments: PaymentsService,
+    private readonly identity: ProductIdentityService,
   ) {}
+
+  /**
+   * Physical identity evidence for one unit/line (GLO-242): a scanned manufacturer barcode resolved
+   * through the SKU's primary code or a reviewed alias, or an explicit manual verification with a
+   * reason and every identity check. Unknown/retired codes need review; codes naming two SKUs are
+   * ambiguous; nothing here mutates the catalog.
+   */
+  private async checkUnitIdentity(input: { barcodeScanned?: string; skuId?: string; manualReason?: string; manualChecks?: string[] }):
+    Promise<{ ok: true; skuId: string; method: 'primary_barcode' | 'barcode_alias' | 'manual' } | { ok: false; code: 'PRODUCT_IDENTITY_REVIEW_REQUIRED' | 'PRODUCT_IDENTITY_AMBIGUOUS' }> {
+    const manual = input.manualReason !== undefined || input.manualChecks !== undefined;
+    if (input.barcodeScanned && manual) throw new BadRequestException('Use either a barcode scan or a manual verification, not both');
+    if (input.barcodeScanned) {
+      const resolved = await this.identity.resolveBarcode(input.barcodeScanned);
+      if (resolved.status === 'unknown') return { ok: false, code: 'PRODUCT_IDENTITY_REVIEW_REQUIRED' };
+      if (resolved.status === 'ambiguous') return { ok: false, code: 'PRODUCT_IDENTITY_AMBIGUOUS' };
+      return { ok: true, skuId: resolved.skuId, method: resolved.via };
+    }
+    if (!manual || !input.skuId) throw new BadRequestException('Scan the product barcode or record a manual identity verification');
+    const checks = new Set(input.manualChecks ?? []);
+    if (!input.manualReason?.trim() || !['brand', 'variant', 'size', 'pack'].every(check => checks.has(check))) {
+      throw new BadRequestException('A manual identity verification needs a reason and all checks: brand, variant, size, pack');
+    }
+    return { ok: true, skuId: input.skuId, method: 'manual' };
+  }
 
   /**
    * A driver completing a cash-on-delivery stop declares the cash received (custody). Hub/admin
@@ -331,7 +356,19 @@ export class FulfillmentService {
       throw new BadRequestException('Receipt does not match the Supply Plan allocation');
     }
     if (dto.condition !== 'ACCEPTABLE') {
-      throw new BadRequestException(`Goods in ${dto.condition} condition cannot be allocated to an order`);
+      // Held, not received: the physical fact is recorded as a receiving exception for a human decision.
+      const supportCase = await this.prisma.$transaction(tx => this.support.openOperationalException(tx, {
+        dedupKey: `receiving:${dto.idempotencyKey}`, category: 'sourcing', priority: 'high', orderId: dto.orderId,
+        title: `Receiving exception — ${dto.condition} goods`,
+        description: `${dto.quantity} unit(s) of SKU ${dto.skuId} arrived ${dto.condition} for allocation ${dto.allocationId}. Not received; decide return/replacement with the supplier.`,
+      }));
+      throw new BadRequestException({ code: 'RECEIVING_EXCEPTION', caseId: supportCase.id,
+        message: `Goods in ${dto.condition} condition cannot be allocated to an order` });
+    }
+    const unit = await this.checkUnitIdentity({ ...dto, skuId: dto.barcodeScanned ? undefined : dto.skuId });
+    if (!unit.ok) throw new ConflictException({ code: unit.code, message: 'The scanned code does not identify a reviewed product; verify it manually or ask catalog review' });
+    if (unit.skuId !== dto.skuId) {
+      throw new ConflictException({ code: 'PRODUCT_IDENTITY_MISMATCH', message: 'The scanned product is not the allocated SKU' });
     }
 
     const [sku, order] = await Promise.all([
@@ -430,6 +467,9 @@ export class FulfillmentService {
           allocationConfirmedQuantity: allocation.confirmedQuantity,
           condition: dto.condition,
           idempotencyKey: dto.idempotencyKey,
+          identityMethod: unit.method,
+          barcodeScanned: dto.barcodeScanned ?? null,
+          identityNote: unit.method === 'manual' ? dto.manualReason : null,
           actorId: actor.id,
           inventoryTransactionId: inventoryTransaction.id,
         },
@@ -699,36 +739,24 @@ export class FulfillmentService {
       throw new BadRequestException('Session is not in progress');
     }
 
-    let skuId = dto.skuId;
-    if (!skuId && dto.barcodeScanned) {
-      const sku = await this.prisma.sku.findUnique({
-        where: { barcode: dto.barcodeScanned }
-      });
-      if (!sku) {
-        return this.prisma.preparationScanEvent.create({
-          data: {
-            sessionId,
-            barcodeScanned: dto.barcodeScanned,
-            isSuccessful: false,
-            errorReason: 'BARCODE_NOT_FOUND'
-          }
-        });
-      }
-      skuId = sku.id;
+    // Identity first (GLO-242): reviewed barcode or audited manual check; unknown/ambiguous is recorded, never guessed.
+    const unit = await this.checkUnitIdentity(dto);
+    const evidence = { barcodeScanned: dto.barcodeScanned, operatorId: actor.id,
+      manualReason: dto.barcodeScanned ? null : dto.manualReason ?? null };
+    if (!unit.ok) {
+      return this.prisma.preparationScanEvent.create({ data: { sessionId, ...evidence, isSuccessful: false, errorReason: unit.code } });
     }
-
-    if (!skuId) {
-      throw new BadRequestException('Either skuId or barcodeScanned is required');
-    }
+    const skuId = unit.skuId;
 
     const expectedItem = session.shipment.items.find(item => item.skuId === skuId);
-    
+
     if (!expectedItem) {
       return this.prisma.preparationScanEvent.create({
         data: {
           sessionId,
           skuId,
-          barcodeScanned: dto.barcodeScanned,
+          ...evidence,
+          verificationMethod: unit.method,
           isSuccessful: false,
           errorReason: 'WRONG_ITEM'
         }
@@ -747,7 +775,8 @@ export class FulfillmentService {
         data: {
           sessionId,
           skuId: countedSkuId,
-          barcodeScanned: dto.barcodeScanned,
+          ...evidence,
+          verificationMethod: unit.method,
           isSuccessful: !excess,
           ...(excess ? { errorReason: 'EXCESS_QUANTITY' } : {}),
         }
@@ -1131,7 +1160,16 @@ export class FulfillmentService {
 
   async addStopsToBatch(batchId: string, stops: DeliveryStopInputDto[], actor: FulfillmentActor) {
     if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
-    
+    try {
+      return await this.addStopsInTx(batchId, stops, actor);
+    } catch (error) {
+      // Two runs racing for one parcel: the partial unique index keeps one active attempt (GLO-240).
+      if (isUniqueViolation(error)) throw new BadRequestException('Shipment is already assigned to a batch');
+      throw error;
+    }
+  }
+
+  private async addStopsInTx(batchId: string, stops: DeliveryStopInputDto[], actor: FulfillmentActor) {
     return this.prisma.$transaction(async (tx) => {
       const batch = await tx.deliveryBatch.findUnique({ where: { id: batchId }, include: { stops: true } });
       if (!batch) throw new NotFoundException('Batch not found');

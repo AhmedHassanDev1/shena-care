@@ -187,12 +187,12 @@ describe('GLO-238 COD settlement and supplier payable integrity (e2e)', () => {
       const flushed = await http().post('/purchase-orders/batches').set(admin.auth).send({ supplierId: sku.supplierId }).expect(201);
       return { sku, supplier, orders, po: flushed.body.purchaseOrders[0] };
     };
-    const receiveAll = async (sku: { id: string; variantName: string }, po: { lines: Array<{ allocations: Array<{ sourceAllocationId: string; orderId: string; orderItemId: string; quantity: number }> }> }, received?: number[]) => {
+    const receiveAll = async (sku: { id: string; variantName: string; barcode: string | null }, po: { lines: Array<{ allocations: Array<{ sourceAllocationId: string; orderId: string; orderItemId: string; quantity: number }> }> }, received?: number[]) => {
       let i = 0;
       for (const link of po.lines[0].allocations) {
         await http().post('/fulfillment/receipts').set(hubA.auth).send({
           locationId: hubAId, allocationId: link.sourceAllocationId, orderId: link.orderId, orderItemId: link.orderItemId,
-          skuId: sku.id, variantName: sku.variantName, quantity: received?.[i++] ?? link.quantity, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(),
+          skuId: sku.id, variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: received?.[i++] ?? link.quantity, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(),
         }).expect(201);
       }
     };

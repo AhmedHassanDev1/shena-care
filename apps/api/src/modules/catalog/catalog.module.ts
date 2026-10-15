@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CatalogService } from './services/catalog.service';
 import { BrandService } from './services/brand.service';
 import { CategoryService } from './services/category.service';
+import { ProductIdentityService } from './services/product-identity.service';
 import { StorageModule } from '../../platform/storage/storage.module';
 
 // ─── CatalogModule ────────────────────────────────────────────────────────────
@@ -15,7 +16,7 @@ import { StorageModule } from '../../platform/storage/storage.module';
 
 @Module({
   imports: [StorageModule],
-  providers: [CatalogService, BrandService, CategoryService],
-  exports: [CatalogService, BrandService, CategoryService],
+  providers: [CatalogService, BrandService, CategoryService, ProductIdentityService],
+  exports: [CatalogService, BrandService, CategoryService, ProductIdentityService],
 })
 export class CatalogModule {}

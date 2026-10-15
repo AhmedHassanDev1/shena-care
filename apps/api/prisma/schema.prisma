@@ -112,10 +112,43 @@ model Sku {
 
   product            Product            @relation(fields: [productId], references: [id])
   supplierSkuAliases SupplierSkuAlias[]
+  barcodeAliases     SkuBarcodeAlias[]
 
   @@index([productId])
   @@index([barcode])
   @@map("skus")
+  @@schema("catalog")
+}
+
+enum BarcodeAliasStatus {
+  approved
+  retired
+
+  @@schema("catalog")
+}
+
+/// A reviewed additional manufacturer barcode for the SAME canonical SKU (packaging revision,
+/// legacy stock), GLO-242. Approved only by a catalog reviewer with evidence; never inferred from a
+/// scan or a supplier. One code resolving to two SKUs is ambiguous and blocks scanning.
+model SkuBarcodeAlias {
+  id          String             @id @default(uuid()) @db.Uuid
+  barcode     String             @db.VarChar(64)
+  skuId       String             @map("sku_id") @db.Uuid
+  status      BarcodeAliasStatus @default(approved)
+  /// packaging_revision | legacy_stock | manufacturer_list | other
+  source      String             @db.VarChar(40)
+  evidenceRef String?            @map("evidence_ref") @db.VarChar(255)
+  reason      String
+  approvedBy  String             @map("approved_by")
+  approvedAt  DateTime           @default(now()) @map("approved_at")
+  retiredBy   String?            @map("retired_by")
+  retiredAt   DateTime?          @map("retired_at")
+
+  sku Sku @relation(fields: [skuId], references: [id], onDelete: Restrict)
+
+  @@unique([barcode, skuId])
+  @@index([barcode])
+  @@map("sku_barcode_aliases")
   @@schema("catalog")
 }
 
@@ -1232,6 +1265,10 @@ model FulfillmentReceipt {
   allocationConfirmedQuantity Int                    @map("allocation_confirmed_quantity")
   condition                   ReceivedGoodsCondition
   idempotencyKey              String                 @unique @map("idempotency_key") @db.VarChar(128)
+  /// How the physical unit's identity was checked (GLO-242): primary_barcode | barcode_alias | manual
+  identityMethod              String                 @default("unverified") @map("identity_method") @db.VarChar(20)
+  barcodeScanned              String?                @map("barcode_scanned") @db.VarChar(64)
+  identityNote                String?                @map("identity_note")
   actorId                     String                 @map("actor_id") @db.Uuid
   inventoryTransactionId      String                 @unique @map("inventory_transaction_id") @db.Uuid
   receivedAt                  DateTime               @default(now()) @map("received_at")
@@ -1278,6 +1315,10 @@ model PreparationScanEvent {
   scannedAt      DateTime @default(now()) @map("scanned_at")
   isSuccessful   Boolean  @default(true) @map("is_successful")
   errorReason    String?  @map("error_reason")
+  /// primary_barcode | barcode_alias | manual (GLO-242)
+  verificationMethod String? @map("verification_method") @db.VarChar(20)
+  operatorId     String?  @map("operator_id")
+  manualReason   String?  @map("manual_reason")
 
   session ShipmentPreparationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 

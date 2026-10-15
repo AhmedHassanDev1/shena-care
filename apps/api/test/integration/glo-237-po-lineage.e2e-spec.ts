@@ -22,7 +22,7 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
   let prisma: PrismaService;
   let events: DomainEventsService;
   let admin: Actor; let hub: Actor; let supplierA: Actor; let supplierB: Actor;
-  let skuId: string; let skuVariant: string; let supplierAId: string; let supplierBId: string;
+  let skuId: string; let skuVariant: string; let skuBarcode: string; let supplierAId: string; let supplierBId: string;
   let locationId: string;
   const http = () => request(app.getHttpServer());
 
@@ -55,7 +55,7 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
     prisma = app.get(PrismaService);
     events = app.get(DomainEventsService);
     const sku = await createSellableSku(prisma); // its own supplier offer at cost 50 = supplier A
-    skuId = sku.id; skuVariant = sku.variantName; supplierAId = sku.supplierId;
+    skuId = sku.id; skuVariant = sku.variantName; skuBarcode = sku.barcode!; supplierAId = sku.supplierId;
     supplierBId = (await prisma.supplier.create({ data: { name: 'Fallback B ' + randomUUID(), slug: 'fallback-b-' + randomUUID() } })).id;
     await prisma.supplierOffer.create({ data: {
       supplierId: supplierBId, skuId, costPrice: 60, currency: 'EGP', lastObservedAt: new Date(), lastConfirmedAt: new Date(),
@@ -160,7 +160,7 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
 
     // Hub receives physical quantities against the confirmed lineage; over-receipt is blocked.
     const receive = (order: PlacedOrder, allocationId: string, quantity: number) => http().post('/fulfillment/receipts').set(hub.auth).send({
-      locationId, allocationId, orderId: order.id, orderItemId: order.items[0].id, skuId, variantName: skuVariant,
+      locationId, allocationId, orderId: order.id, orderItemId: order.items[0].id, skuId, variantName: skuVariant, barcodeScanned: skuBarcode,
       quantity, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(),
     });
     await receive(second, a2, 2).expect(400);

@@ -188,7 +188,7 @@ describe('GLO-240 failed delivery retry, return to sender and cancellation (e2e)
       const link = po.lines[0].allocations[0];
       const receive = (quantity: number) => http().post('/fulfillment/receipts').set(hub.auth).send({
         locationId, allocationId: link.sourceAllocationId, orderId: order.id, orderItemId: link.orderItemId,
-        skuId: sku.id, variantName: sku.variantName, quantity, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(),
+        skuId: sku.id, variantName: sku.variantName, barcodeScanned: sku.barcode, quantity, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(),
       });
       await receive(2).expect(201); // 1 unit still with the supplier
       const shipment = await prisma.shipment.findUniqueOrThrow({ where: { orderId: order.id } });

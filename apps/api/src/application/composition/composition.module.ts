@@ -8,6 +8,7 @@ import { CategoryController } from './controllers/category.controller';
 import { ListingController } from './controllers/listing.controller';
 import { PriceController } from './controllers/price.controller';
 import { PurchaseOrderController } from './controllers/purchase-order.controller';
+import { BarcodeAliasController } from './controllers/barcode-alias.controller';
 import { ProductViewService } from './services/product-view.service';
 import { DiscoveryService } from './services/discovery.service';
 import { ProductDetailService } from './services/product-detail.service';
@@ -32,6 +33,7 @@ import { IngestionModule } from '../../modules/ingestion/public';
     PriceController,        // /commerce/prices
     // /sourcing/* is served by the guarded SourcingController in the Sourcing module
     PurchaseOrderController,// /purchase-orders
+    BarcodeAliasController, // /catalog/barcode-aliases (GLO-242)
   ],
   providers: [ProductViewService, DiscoveryService, ProductDetailService],
 })
