@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   ArrowUpLeft,
@@ -25,6 +24,7 @@ import {
 import { Egp, Status } from '@/components/workspace/kit';
 import { RoleShell } from '@/components/workspace/role-shell';
 import { AttentionQueues } from '@/components/workspace/overview/attention-queues';
+import { OverviewLink } from '@/components/workspace/overview/overview-link';
 import type { Attention } from '@/components/workspace/overview/types';
 import {
   attentionCounts,
@@ -33,7 +33,9 @@ import {
   type OrderBucket,
 } from '@/lib/admin-overview';
 import { ORDER_STATUS, formatDateTime } from '@/lib/labels';
-import { useApi } from '@/lib/use-api';
+import { useOverviewApi } from '@/lib/use-overview-api';
+import { MOCK_OVERVIEW } from '@/lib/overview-source';
+import type { MockOverviewState } from '@/lib/mock/overview-mock-api';
 import type { ApiError } from '@/lib/api';
 import './overview.css';
 
@@ -130,14 +132,49 @@ function OrdersChart({ buckets }: { buckets: OrderBucket[] }) {
   );
 }
 
-function Overview() {
-  const attention = useApi<Attention>('/operations/queues/attention', { pollMs: 30000 });
-  const kpis = useApi<{ ordersToday: number; totalOrders: number }>('/operations/dashboard/kpis', {
+const DEMO_STATES: Array<[MockOverviewState, string]> = [
+  ['live', 'بيانات'],
+  ['loading', 'تحميل'],
+  ['empty', 'فارغ'],
+  ['error', 'خطأ'],
+  ['forbidden', 'غير مصرح'],
+];
+
+/** Development-only: the "demo data" marker plus on-demand loading / empty / error screens. */
+function DemoBar({ state, onState }: { state: MockOverviewState; onState: (s: MockOverviewState) => void }) {
+  return (
+    <div className="ao-demo-bar" role="status">
+      <span className="ao-demo-badge">بيانات تجريبية</span>
+      <span>معاينة فقط — لا تُرسل أي عملية إلى الخادم.</span>
+      <div className="ao-tabs" aria-label="حالة الشاشة التجريبية">
+        {DEMO_STATES.map(([value, label]) => (
+          <button key={value} type="button" aria-pressed={state === value} onClick={() => onState(value)}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Overview({
+  mockState,
+  onMockState,
+}: {
+  mockState: MockOverviewState;
+  onMockState: (state: MockOverviewState) => void;
+}) {
+  const attention = useOverviewApi<Attention>('/operations/queues/attention', {
     pollMs: 30000,
+    mockState,
   });
-  const orders = useApi<{ total: number; items: OverviewOrder[] }>(
+  const kpis = useOverviewApi<{ ordersToday: number; totalOrders: number }>(
+    '/operations/dashboard/kpis',
+    { pollMs: 30000, mockState },
+  );
+  const orders = useOverviewApi<{ total: number; items: OverviewOrder[] }>(
     '/admin/orders?take=100&skip=0',
-    { pollMs: 30000 },
+    { pollMs: 30000, mockState },
   );
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
@@ -168,6 +205,7 @@ function Overview() {
           تحديث تلقائي كل <Code>30</Code> ثانية
         </span>
       </div>
+      {MOCK_OVERVIEW ? <DemoBar state={mockState} onState={onMockState} /> : null}
       <div className="ao-page">
         <PageHeader
           eyebrow="SHINACARE / OPERATIONS"
@@ -251,9 +289,9 @@ function Overview() {
             ) : (
               <Skeleton className="h-28" />
             )}
-            <Link href="/admin/orders" className="ao-kpi-footer">
+            <OverviewLink href="/admin/orders" className="ao-kpi-footer">
               متابعة جميع الطلبات <ArrowLeft size={16} aria-hidden />
-            </Link>
+            </OverviewLink>
           </section>
           <section className="ao-kpi" aria-labelledby="cash-title">
             <div className="ao-kpi-top">
@@ -290,9 +328,9 @@ function Overview() {
             ) : (
               <Skeleton className="h-28" />
             )}
-            <Link href="/admin/cash" className="ao-kpi-footer">
+            <OverviewLink href="/admin/cash" className="ao-kpi-footer">
               مراجعة النقدية والتسويات <ArrowLeft size={16} aria-hidden />
-            </Link>
+            </OverviewLink>
           </section>
         </div>
         <div className="ao-main-grid">
@@ -371,9 +409,9 @@ function Overview() {
         <Section
           title="أحدث الطلبات"
           aside={
-            <Link href="/admin/orders" className="ao-text-link">
+            <OverviewLink href="/admin/orders" className="ao-text-link">
               جميع الطلبات <ArrowUpLeft size={15} aria-hidden />
-            </Link>
+            </OverviewLink>
           }
           className="ao-recent"
         >
@@ -413,9 +451,9 @@ function Overview() {
               kind="empty"
               title="لا توجد طلبات مطابقة في العينة"
               action={
-                <Link href="/admin/orders" className="ao-text-link">
+                <OverviewLink href="/admin/orders" className="ao-text-link">
                   البحث في جميع الطلبات ←
-                </Link>
+                </OverviewLink>
               }
             />
           ) : (
@@ -434,9 +472,9 @@ function Overview() {
               {filtered.slice(0, 6).map((o) => (
                 <tr key={o.id}>
                   <td>
-                    <Link href={`/admin/orders/${o.id}`} className="ao-order-id">
+                    <OverviewLink href={`/admin/orders/${o.id}`} className="ao-order-id">
                       <Code>{o.orderNumber}</Code>
-                    </Link>
+                    </OverviewLink>
                   </td>
                   <td>
                     <strong>{o.customerName}</strong>
@@ -464,13 +502,13 @@ function Overview() {
                   </td>
                   <td className="ao-date">{formatDateTime(o.createdAt)}</td>
                   <td>
-                    <Link
+                    <OverviewLink
                       href={`/admin/orders/${o.id}`}
                       className="ao-detail-link"
                       aria-label={`عرض الطلب ${o.orderNumber}`}
                     >
                       <ArrowUpLeft size={17} aria-hidden />
-                    </Link>
+                    </OverviewLink>
                   </td>
                 </tr>
               ))}
@@ -484,7 +522,9 @@ function Overview() {
           <span>
             ShinaCare <span>Business</span>
           </span>
-          <span>بيانات تشغيلية من مصادرها الأصلية</span>
+          <span>
+            {MOCK_OVERVIEW ? 'بيانات تجريبية — لا تمثل عمليات حقيقية' : 'بيانات تشغيلية من مصادرها الأصلية'}
+          </span>
         </footer>
       </div>
     </div>
@@ -492,10 +532,26 @@ function Overview() {
 }
 
 export default function AdminHome() {
+  // Demo screen state only exists in development demo mode; real mode always renders `live`.
+  const [mockState, setMockState] = useState<MockOverviewState>('live');
+  useEffect(() => {
+    if (!MOCK_OVERVIEW) return;
+    const requested = new URLSearchParams(window.location.search).get('state');
+    const known = DEMO_STATES.find(([value]) => value === requested);
+    if (known) setMockState(known[0]);
+  }, []);
+  const changeMockState = (next: MockOverviewState) => {
+    setMockState(next);
+    const url = new URL(window.location.href);
+    if (next === 'live') url.searchParams.delete('state');
+    else url.searchParams.set('state', next);
+    window.history.replaceState(null, '', url);
+  };
   return (
-    <div className="bw-admin-overview">
+    <div className="bw-admin-overview" data-source={MOCK_OVERVIEW ? 'mock' : 'api'}>
       <RoleShell overview role="admin" active="attention" mode="desktop">
-        <Overview />
+        {/* A new key remounts the reads so each demo screen starts from its real loading state. */}
+        <Overview key={mockState} mockState={mockState} onMockState={changeMockState} />
       </RoleShell>
     </div>
   );

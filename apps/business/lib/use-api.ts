@@ -3,8 +3,15 @@
 import * as React from 'react'
 import { api, ApiError } from '@/lib/api'
 
-/** Server read with loading / error / reload; `path = null` waits (e.g. until a hub is chosen). */
-export function useApi<T>(path: string | null, options: { pollMs?: number } = {}) {
+export type ApiFetcher = <T>(path: string, signal: AbortSignal) => Promise<T>
+
+/**
+ * Server read with loading / error / reload; `path = null` waits (e.g. until a hub is chosen).
+ * `fetcher` replaces the transport only (used by the development-only Admin Overview demo data).
+ */
+export function useApi<T>(path: string | null, options: { pollMs?: number; fetcher?: ApiFetcher } = {}) {
+  const fetcherRef = React.useRef(options.fetcher)
+  fetcherRef.current = options.fetcher
   const [data, setData] = React.useState<T | undefined>(undefined)
   const [error, setError] = React.useState<ApiError | null>(null)
   const [loading, setLoading] = React.useState(path !== null)
@@ -14,7 +21,10 @@ export function useApi<T>(path: string | null, options: { pollMs?: number } = {}
     if (path === null) return
     const controller = new AbortController()
     setLoading(true)
-    api<T>(path, { signal: controller.signal })
+    const read = fetcherRef.current
+      ? fetcherRef.current<T>(path, controller.signal)
+      : api<T>(path, { signal: controller.signal })
+    read
       .then((result) => {
         setData(result)
         setError(null)

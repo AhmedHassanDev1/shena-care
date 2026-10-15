@@ -5,9 +5,11 @@
   "packageManager": "pnpm@12.3.4",
   "scripts": {
     "dev": "next dev",
+    "dev:demo": "node scripts/dev-demo.mjs",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test": "node --test tests/",
     "check:contrast": "node scripts/check-contrast.mjs"
   },
   "dependencies": {

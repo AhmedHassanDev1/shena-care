@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { api, ApiError, getToken, onUnauthorized, setToken } from '@/lib/api'
+import { MOCK_OVERVIEW } from '@/lib/overview-source'
 
 export type StaffRole = 'ADMIN' | 'HUB_OPERATOR' | 'SUPPLIER' | 'DRIVER' | 'CUSTOMER'
 
@@ -41,6 +42,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<SessionState>({ status: 'loading' })
 
   const load = React.useCallback(async () => {
+    if (MOCK_OVERVIEW) {
+      // Explicit development-only demo mode (see overview-source.ts): a labelled local identity so the
+      // Admin Overview renders without a backend. No token exists, so every real API call still 401s.
+      return setState({
+        status: 'ready',
+        me: { id: 'demo-admin', name: 'مدير تجريبي', email: 'demo@shinacare.invalid', roles: ['ADMIN'], supplierId: null, supplierName: null, hubLocations: [] },
+      })
+    }
     if (!getToken()) return setState({ status: 'anonymous' })
     try {
       setState({ status: 'ready', me: await api<WorkspaceMe>('/workspace/me') })

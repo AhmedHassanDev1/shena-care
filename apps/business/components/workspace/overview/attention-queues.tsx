@@ -1,14 +1,14 @@
 'use client';
-import Link from 'next/link';
 import { Code, QueueRow, Section } from '@/components/bw/primitives';
+import { OverviewLink } from './overview-link';
 import { Egp } from '@/components/workspace/kit';
 import { FAILURE_REASONS, formatDateTime, shortId } from '@/lib/labels';
 import type { Attention } from './types';
 const orderLink = (orderId: string, orderNumber: string | null) => (
-  <Link href={`/admin/orders/${orderId}`} className="font-semibold text-bw-action-ink underline">
+  <OverviewLink href={`/admin/orders/${orderId}`} className="font-semibold text-bw-action-ink underline">
     <Code>{orderNumber ?? shortId(orderId)}</Code>
     <span className="ms-2">عرض الطلب ←</span>
-  </Link>
+  </OverviewLink>
 );
 export function AttentionQueues({ a }: { a: Attention }) {
   return (
@@ -55,12 +55,12 @@ export function AttentionQueues({ a }: { a: Attention }) {
         <Section
           title={`توزيع كمية جزئية على أكتر من طلب (${a.distributionRequired.total})`}
           aside={
-            <Link
+            <OverviewLink
               className="text-bw-small font-semibold text-bw-action-ink underline"
               href="/admin/sourcing"
             >
               أوامر الشراء
-            </Link>
+            </OverviewLink>
           }
         >
           <ul>
@@ -122,12 +122,12 @@ export function AttentionQueues({ a }: { a: Attention }) {
         <Section
           title={`كاش اتحصّل ولسه ماتعدّش (${a.deliveredUnsettled.total})`}
           aside={
-            <Link
+            <OverviewLink
               className="text-bw-small font-semibold text-bw-action-ink underline"
               href="/admin/cash"
             >
               التحصيل
-            </Link>
+            </OverviewLink>
           }
         >
           <ul>
