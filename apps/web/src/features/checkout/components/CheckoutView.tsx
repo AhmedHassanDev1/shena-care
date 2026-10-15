@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { PhoneField, TextField } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
@@ -18,6 +19,12 @@ import { fillMessage } from '@/lib/i18n/messages';
 import { orders, type CheckoutQuote } from '@/lib/orders';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import {
+  DeliveryLocationPicker,
+  type LocationPin,
+  isInsideServiceArea,
+  isDefaultCentre,
+} from './DeliveryLocationPicker';
 
 interface Delivery {
   customerName: string;
@@ -40,15 +47,18 @@ type Problem = 'quote' | 'submit' | 'validation' | null;
  * no payment step). The backend quote is the only source of totals; the idempotency key is created once
  * per reviewed quote, so retries after a lost response replay the same order instead of duplicating it.
  * A changed quote (409 CHECKOUT_REVIEW_REQUIRED) is re-fetched and shown as a change receipt; delivery
- * input is never cleared on any error.
+ * input and confirmed location pins are never cleared on any error.
  */
 export function CheckoutView() {
   const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { cart, isLoading } = useCart();
   const [step, setStep] = useState<'delivery' | 'review'>('delivery');
   const [delivery, setDelivery] = useState<Delivery>(EMPTY);
+  const [location, setLocation] = useState<LocationPin | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Partial<Record<keyof Delivery, string>>>({});
   const [quote, setQuote] = useState<CheckoutQuote | null>(null);
   const [changedFrom, setChangedFrom] = useState<number | null>(null);
@@ -71,8 +81,28 @@ export function CheckoutView() {
     for (const key of REQUIRED) if (!delivery[key].trim()) next[key] = m.checkoutRequired;
     const phone = delivery.customerPhone.replace(/\s+/g, '');
     if (phone && !EGYPT_MOBILE.test(phone)) next.customerPhone = m.checkoutPhoneInvalid;
+
+    // Validate service area for governorate (Cairo/Giza)
+    const gov = delivery.governorate.trim().toLowerCase();
+    if (gov && gov !== 'cairo' && gov !== 'giza' && gov !== 'القاهرة' && gov !== 'الجيزة') {
+      next.governorate = m.checkoutMapOutOfService;
+    }
     setErrors(next);
-    return Object.keys(next).length === 0;
+
+    // Validate mandatory customer-confirmed delivery pin
+    let locErr: string | null = null;
+    if (!location) {
+      locErr = m.checkoutMapPinRequired;
+    } else if (!location.confirmed) {
+      locErr = m.checkoutMapConfirmRequired;
+    } else if (!isInsideServiceArea(location.latitude, location.longitude)) {
+      locErr = m.checkoutMapOutOfService;
+    } else if (isDefaultCentre(location.latitude, location.longitude)) {
+      locErr = m.checkoutMapImprobablePin;
+    }
+    setLocationError(locErr);
+
+    return Object.keys(next).length === 0 && !locErr;
   };
 
   const requestQuote = async () => {
@@ -90,15 +120,20 @@ export function CheckoutView() {
     try {
       await requestQuote();
       setStep('review');
-    } catch {
-      setProblem('quote');
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 422) {
+        setErrors((prev) => ({ ...prev, governorate: m.checkoutQuoteOutOfArea }));
+        setProblem('validation');
+      } else {
+        setProblem('quote');
+      }
     } finally {
       setPending(false);
     }
   };
 
   const placeOrder = async () => {
-    if (!quote || !idempotencyKey.current) return;
+    if (!quote || !idempotencyKey.current || !location || !location.confirmed) return;
     setPending(true);
     setProblem(null);
     try {
@@ -109,6 +144,11 @@ export function CheckoutView() {
         area: delivery.area.trim(),
         shippingAddress: delivery.shippingAddress.trim(),
         ...(delivery.notes.trim() ? { notes: delivery.notes.trim() } : {}),
+        latitude: location.latitude,
+        longitude: location.longitude,
+        locationSource: location.locationSource,
+        locationConfirmed: true,
+        paymentMethod: 'COD',
         quoteVersion: quote.quoteVersion,
         cartRevision: quote.cartRevision,
         idempotencyKey: idempotencyKey.current,
@@ -125,7 +165,18 @@ export function CheckoutView() {
         } catch {
           setProblem('quote');
         }
-      } else if (error instanceof ApiError && error.type === 'VALIDATION') {
+      } else if (error instanceof ApiError && (error.type === 'VALIDATION' || error.status === 422)) {
+        if (error.status === 422) {
+          const errData = error.data as { code?: string; message?: { code?: string } } | undefined;
+          const code = errData?.code || errData?.message?.code;
+          if (code === 'OUT_OF_SERVICE_AREA') {
+            setLocationError(m.checkoutMapOutOfService);
+          } else if (code === 'LOCATION_PIN_IMPROBABLE') {
+            setLocationError(m.checkoutMapImprobablePin);
+          } else {
+            setLocationError(error.message);
+          }
+        }
         setProblem('validation');
         setStep('delivery');
       } else {
@@ -177,10 +228,49 @@ export function CheckoutView() {
             required
             {...field('customerPhone')}
           />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField label={m.checkoutGovernorate} autoComplete="address-level1" required {...field('governorate')} />
-            <TextField label={m.checkoutArea} autoComplete="address-level2" required {...field('area')} />
+          <div className="space-y-2">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField label={m.checkoutGovernorate} autoComplete="address-level1" required {...field('governorate')} />
+              <TextField label={m.checkoutArea} autoComplete="address-level2" required {...field('area')} />
+            </div>
+            {/* Quick Governorate Buttons (Cairo / Giza) */}
+            <div className="flex items-center gap-2">
+              <span className="text-caption text-ink-subtle">{m.checkoutGovernorate}:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const val = locale === 'ar' ? 'القاهرة' : 'Cairo';
+                  setDelivery((prev) => ({ ...prev, governorate: val }));
+                  if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
+                }}
+                className={cn(
+                  'rounded-pill border px-2.5 py-1 text-caption transition-colors',
+                  delivery.governorate.toLowerCase() === 'cairo' || delivery.governorate === 'القاهرة'
+                    ? 'border-primary bg-primary-subtle text-primary'
+                    : 'border-border bg-card text-ink-soft hover:bg-sand',
+                )}
+              >
+                <bdi>{locale === 'ar' ? 'القاهرة' : 'Cairo'}</bdi>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const val = locale === 'ar' ? 'الجيزة' : 'Giza';
+                  setDelivery((prev) => ({ ...prev, governorate: val }));
+                  if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
+                }}
+                className={cn(
+                  'rounded-pill border px-2.5 py-1 text-caption transition-colors',
+                  delivery.governorate.toLowerCase() === 'giza' || delivery.governorate === 'الجيزة'
+                    ? 'border-primary bg-primary-subtle text-primary'
+                    : 'border-border bg-card text-ink-soft hover:bg-sand',
+                )}
+              >
+                <bdi>{locale === 'ar' ? 'الجيزة' : 'Giza'}</bdi>
+              </button>
+            </div>
           </div>
+
           <TextField
             label={m.checkoutAddress}
             hint={errors.shippingAddress ? undefined : m.checkoutAddressHint}
@@ -188,7 +278,19 @@ export function CheckoutView() {
             required
             {...field('shippingAddress')}
           />
+
+          {/* Mandatory Map Location Picker with Customer Confirmation */}
+          <DeliveryLocationPicker
+            value={location}
+            onChange={(next) => {
+              setLocation(next);
+              if (next?.confirmed) setLocationError(null);
+            }}
+            error={locationError ?? undefined}
+          />
+
           <TextField label={m.checkoutNotes} optionalLabel={m.checkoutOptional} {...field('notes')} />
+
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between">
             <Link href={routes.cart} className={buttonVariants({ variant: 'ghost' })}>
               {m.checkoutBackToCart}
@@ -202,6 +304,7 @@ export function CheckoutView() {
         <Review
           quote={quote}
           delivery={delivery}
+          location={location}
           changedFrom={changedFrom}
           pending={pending}
           onEditDelivery={() => setStep('delivery')}
@@ -215,6 +318,7 @@ export function CheckoutView() {
 function Review({
   quote,
   delivery,
+  location,
   changedFrom,
   pending,
   onEditDelivery,
@@ -222,6 +326,7 @@ function Review({
 }: {
   quote: CheckoutQuote;
   delivery: Delivery;
+  location: LocationPin | null;
   changedFrom: number | null;
   pending: boolean;
   onEditDelivery: () => void;
@@ -270,6 +375,18 @@ function Review({
         <p className="text-body-s text-ink-soft">
           {[delivery.shippingAddress, delivery.area, delivery.governorate].filter(Boolean).join('، ')}
         </p>
+        {location ? (
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-caption text-ink-soft">
+            <Icon name="pin" size={16} className="text-primary" />
+            <span>{m.orderConfirmedLocation}:</span>
+            <bdi>
+              {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+            </bdi>
+            <Badge variant="success" className="px-1.5 py-0 text-caption">
+              {m.checkoutMapConfirmed}
+            </Badge>
+          </div>
+        ) : null}
         {delivery.notes ? <p className="text-body-s text-ink-subtle">{delivery.notes}</p> : null}
       </ReviewGroup>
 

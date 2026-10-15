@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { createHash, createHmac, randomUUID } from 'crypto';
 import { OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
@@ -40,7 +40,20 @@ export interface QuoteSnapshot {
 
 const REVIEW_REQUIRED = { code: 'CHECKOUT_REVIEW_REQUIRED', message: 'Checkout changed or expired. Review a new quote before submitting.' };
 const DELIVERY_PROMISE = 'Delivery timing will be confirmed after sourcing.';
-const SHIPPING_FEE = 50;
+/**
+ * Customer-facing delivery fee (EGP). Owner policy (C0 directive): the fee is configured, not hardcoded,
+ * and there is no approved unconditional free-shipping threshold — free delivery only comes from an
+ * explicitly configured promotion. DELIVERY_FEE_EGP overrides the provisional 50 EGP; an invalid value
+ * fails closed (no quote) rather than silently charging a guessed amount.
+ */
+export function deliveryFee(raw = process.env.DELIVERY_FEE_EGP): number {
+  if (raw === undefined || raw.trim() === '') return 50;
+  const fee = Number(raw);
+  if (!Number.isFinite(fee) || fee < 0 || Math.round(fee * 100) !== fee * 100) {
+    throw new ServiceUnavailableException({ code: 'DELIVERY_FEE_NOT_CONFIGURED', message: 'Delivery pricing is not configured.' });
+  }
+  return fee;
+}
 const canonical = (value: unknown): string => JSON.stringify(value, (_key, item) =>
   item && typeof item === 'object' && !Array.isArray(item)
     ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)))
@@ -138,7 +151,7 @@ export class OrderingService {
     });
 
     const finalSubtotal = Math.max(0, subtotal - evaluation.orderDiscountAmount);
-    const shippingFee = evaluation.freeShippingQualified ? 0 : SHIPPING_FEE;
+    const shippingFee = evaluation.freeShippingQualified ? 0 : deliveryFee();
     const totalAmount = Math.round((finalSubtotal + shippingFee) * 100) / 100;
     
     return {

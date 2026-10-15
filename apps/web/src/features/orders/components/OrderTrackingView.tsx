@@ -195,6 +195,18 @@ function Tracking({ order, placed }: { order: OrderTracking; placed: boolean }) 
         <p className="text-body-s text-ink-soft">
           {[order.deliveryAddress.address, order.deliveryAddress.area, order.deliveryAddress.governorate].filter(Boolean).join('، ')}
         </p>
+        {order.deliveryAddress.latitude && order.deliveryAddress.longitude ? (
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-caption text-ink-soft">
+            <Icon name="pin" size={16} className="text-primary" />
+            <span>{m.orderConfirmedLocation}:</span>
+            <bdi>
+              {order.deliveryAddress.latitude.toFixed(4)}, {order.deliveryAddress.longitude.toFixed(4)}
+            </bdi>
+            <Badge variant="success" className="px-1.5 py-0 text-caption">
+              {m.checkoutMapConfirmed}
+            </Badge>
+          </div>
+        ) : null}
       </Section>
 
       {order.resolutions.length ? (

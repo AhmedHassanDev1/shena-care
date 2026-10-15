@@ -9,6 +9,12 @@ export interface CheckoutData {
   area: string;
   /** Landmark / delivery notes (optional). */
   notes?: string;
+  latitude: number;
+  longitude: number;
+  locationSource: 'map_pin' | 'current_location';
+  locationConfirmed: true;
+  couponCode?: string;
+  paymentMethod?: 'COD';
   idempotencyKey: string;
   quoteVersion: string;
   cartRevision: number;
@@ -204,7 +210,14 @@ export interface OrderTracking {
   orderReceived: boolean;
   availabilityConfirmed: boolean;
   customerName: string;
-  deliveryAddress: { governorate: string | null; area: string | null; address: string };
+  deliveryAddress: {
+    governorate: string | null;
+    area: string | null;
+    address: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    locationSource?: string | null;
+  };
   amounts: { originalCodAmount: number; currentCodAmount: number; subtotal: number; shippingFee: number; currency: string };
   items: Array<{
     id: string;
