@@ -99,6 +99,30 @@ export class SupportService {
     return supportCase;
   }
 
+  /**
+   * An operational exception that needs a human owner (returned parcel, cancelled order with goods
+   * or supplier commitments in flight), opened inside the caller's transaction and deduplicated per
+   * cause. Support records the decision; it never mutates orders, stock or money itself (GLO-240).
+   */
+  async openOperationalException(tx: Prisma.TransactionClient, input: {
+    dedupKey: string; title: string; description: string;
+    category: 'delivery' | 'cancellation' | 'sourcing' | 'return' | 'payment';
+    priority: 'medium' | 'high' | 'critical'; orderId?: string; supplierId?: string;
+  }) {
+    const notice = await this.outbox.enqueue(tx, {
+      eventType: 'operations.exception_opened', aggregateType: 'SupportCase', payload: { title: input.title, orderId: input.orderId ?? null },
+      channelIntent: 'internal', templateId: 'operational_exception_v1', deduplicationKey: `operations.exception:${input.dedupKey}`,
+    });
+    if (notice.aggregateId) return tx.supportCase.findUniqueOrThrow({ where: { id: notice.aggregateId } });
+    const supportCase = await tx.supportCase.create({ data: {
+      title: input.title, description: input.description, category: input.category, priority: input.priority,
+      orderId: input.orderId, supplierId: input.supplierId,
+      internalNotes: 'Operational exception: record the decision here; canonical state changes go through the owning workflow.',
+    } });
+    await tx.notificationOutbox.update({ where: { id: notice.id }, data: { aggregateId: supportCase.id } });
+    return supportCase;
+  }
+
   async getCases(status?: string) {
     return this.prisma.supportCase.findMany({
       where: status ? { status: status as any } : undefined,

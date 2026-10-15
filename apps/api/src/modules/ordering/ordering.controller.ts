@@ -4,7 +4,7 @@ import { CartService } from './services/cart.service';
 import { OrderTrackingService } from './services/order-tracking.service';
 import { OrderLookupParamsDto } from './dto/order-tracking.dto';
 import { CorrectDeliveryLocationDto } from './dto/order.dto';
-import { CreateResolutionDto, UpdateResolutionStatusDto, InitializePaymentCollectionDto } from './dto/reconciliation.dto';
+import { CreateResolutionDto, UpdateResolutionStatusDto, InitializePaymentCollectionDto, InitiateRefundDto, UpdateRefundStatusDto } from './dto/reconciliation.dto';
 import { ReconciliationService } from './services/reconciliation.service';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -68,7 +68,7 @@ export class OrderingController {
   @RequirePermissions('return.manage')
   async initiateRefund(
     @Param('id') id: string,
-    @Body() dto: { amount: number, currency: string, paymentProvider?: string }
+    @Body() dto: InitiateRefundDto
   ) {
     return this.reconciliationService.initiateRefund(id, dto.amount, dto.currency, dto.paymentProvider);
   }
@@ -78,9 +78,9 @@ export class OrderingController {
   @RequirePermissions('return.manage')
   async updateRefundStatus(
     @Param('id') id: string,
-    @Body() dto: { status: 'succeeded' | 'failed' | 'processing', providerRef?: string, errorReason?: string }
+    @Body() dto: UpdateRefundStatusDto
   ) {
-    return this.reconciliationService.updateRefundStatus(id, dto.status as any, dto.providerRef, dto.errorReason);
+    return this.reconciliationService.updateRefundStatus(id, dto.status, dto.providerRef, dto.errorReason);
   }
 
   // --- GLO-128: COD Settlement Reconciliation ---

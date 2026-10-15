@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray, IsNumber, ValidateNested, IsUUID, Length, Min, ArrayNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray, IsNumber, ValidateNested, IsUUID, Length, Min, ArrayNotEmpty, IsIn, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderResolutionType, OrderResolutionStatus } from '@prisma/client';
 
@@ -115,4 +115,47 @@ export class CreateSettlementBatchDto {
   @ValidateNested({ each: true })
   @Type(() => CollectionItemDto)
   collections: CollectionItemDto[];
+}
+
+/** Manual refund obligation; method is how the operator will pay it back (no gateway). */
+export class InitiateRefundDto {
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  amount: number;
+
+  @IsString()
+  @Length(3, 3)
+  currency: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['cash', 'bank_transfer', 'vodafone_cash', 'instapay'])
+  paymentProvider?: string;
+}
+
+export class UpdateRefundStatusDto {
+  @IsIn(['processing', 'succeeded', 'failed'])
+  status: 'processing' | 'succeeded' | 'failed';
+
+  /** Operator proof of payout (voucher/transfer reference); required for `succeeded`. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  providerRef?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  errorReason?: string;
+}
+
+export class CancelOrderDto {
+  @IsString()
+  @IsIn(['CUSTOMER_REQUEST', 'DUPLICATE_ORDER', 'FRAUD_SUSPECTED', 'UNSERVICEABLE_LOCATION', 'SUPPLY_UNAVAILABLE', 'OTHER'])
+  reasonCode: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string;
 }

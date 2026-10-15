@@ -82,6 +82,12 @@ export class AllocateShipmentDto {
   locationId: string;
 }
 
+/** Why a delivery attempt failed (GLO-240 / GLO-231 red team); recorded, never auto-cancels. */
+export const DELIVERY_FAILURE_REASONS = [
+  'CUSTOMER_UNREACHABLE', 'CUSTOMER_REFUSED', 'ADDRESS_NOT_FOUND', 'PIN_MISMATCH',
+  'NOT_SERVICEABLE', 'RESCHEDULE_REQUESTED', 'PACKAGE_DAMAGED', 'OTHER',
+] as const;
+
 export class UpdateShipmentStatusDto {
   @IsEnum(ShipmentStatus)
   status: ShipmentStatus;
@@ -89,6 +95,11 @@ export class UpdateShipmentStatusDto {
   @IsOptional()
   @IsString()
   trackingNumber?: string;
+
+  /** Typed reason; required when setting `failed` (GLO-240). */
+  @IsOptional()
+  @IsIn(DELIVERY_FAILURE_REASONS)
+  reasonCode?: string;
   /** Cash the driver actually received at the door; required when a driver delivers a COD order (GLO-214). */
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -119,8 +130,9 @@ export class ScanItemDto {
  */
 export const SHIPMENT_EVENT_TYPES = [
   'PACKED', 'LABEL_PRINTED', 'RECEIPT_PRINTED', 'PRINT_FAILED',
-  'HANDOFF_SCANNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED', 'RETURNED',
+  'HANDOFF_SCANNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED', 'RETURNED', 'RECEIVED_BACK',
 ] as const;
+
 
 export class RecordShipmentEventDto {
   @IsString()
@@ -137,7 +149,12 @@ export class RecordShipmentEventDto {
   @MaxLength(500)
   notes?: string;
 
-  /** Label barcode scanned at handoff; required for HANDOFF_SCANNED. */
+  /** Typed reason; required for FAILED. */
+  @IsOptional()
+  @IsIn(DELIVERY_FAILURE_REASONS)
+  reasonCode?: string;
+
+  /** Label barcode scanned at handoff; required for HANDOFF_SCANNED, RECEIVED_BACK and RETURNED. */
   @IsOptional()
   @IsString()
   @MaxLength(64)

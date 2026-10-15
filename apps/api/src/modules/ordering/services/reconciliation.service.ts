@@ -153,14 +153,24 @@ export class ReconciliationService {
       });
       if (existingRefund) throw new BadRequestException('Refund already initiated for this resolution');
 
-      // A refund is in the order currency and, with every other live refund, never exceeds the order total.
+      // A refund is in the order currency and, with every other live refund, never exceeds the money
+      // actually received: for COD that is the cash counted at the hub (or declared, before counting),
+      // never the order total of an unpaid order (GLO-240).
       const requested = new Prisma.Decimal(amount);
       if (!requested.greaterThan(0)) throw new BadRequestException('Refund amount must be positive');
       if (currency !== resolution.order.currency) throw new BadRequestException(`Refunds for this order are in ${resolution.order.currency}`);
+      await tx.$queryRaw`SELECT id FROM "ordering"."orders" WHERE id = ${resolution.orderId}::uuid FOR UPDATE`;
+      const collection = await tx.paymentCollection.findUnique({ where: { orderId: resolution.orderId } });
+      const received = !collection ? null
+        : collection.settlementBatchId && collection.collectedAmount ? collection.collectedAmount
+        : collection.status === 'collected' ? collection.declaredAmount : null;
+      if (!received || !received.greaterThan(0)) {
+        throw new ConflictException({ code: 'NO_CASH_RECEIVED', message: 'No customer cash was received for this order; nothing to refund' });
+      }
       const others = await tx.refundTransaction.aggregate({
         where: { orderId: resolution.orderId, status: { not: 'failed' } }, _sum: { amount: true },
       });
-      const refundable = resolution.order.totalAmount.minus(others._sum.amount ?? 0);
+      const refundable = Prisma.Decimal.min(received, resolution.order.totalAmount).minus(others._sum.amount ?? 0);
       if (requested.greaterThan(refundable)) {
         throw new BadRequestException(`Refund exceeds the refundable balance of ${refundable.toFixed(2)} ${resolution.order.currency}`);
       }
@@ -184,6 +194,12 @@ export class ReconciliationService {
     return this.prisma.$transaction(async (tx) => {
       const current = await tx.refundTransaction.findUnique({ where: { resolutionId } });
       if (!current) throw new NotFoundException('Refund not found');
+      // Manual COD refunds: "paid" needs the operator's proof (voucher/transfer reference), a failure its reason.
+      if (status === 'succeeded' && !(providerRef ?? current.providerRef)?.trim()) {
+        throw new BadRequestException({ code: 'REFUND_PROOF_REQUIRED', message: 'Record the payout reference to mark a refund paid' });
+      }
+      if (status === 'failed' && !errorReason?.trim()) throw new BadRequestException('Record why the refund failed');
+      if (current.status === status) return tx.refundTransaction.findUniqueOrThrow({ where: { resolutionId }, include: { resolution: { include: { order: true } } } });
       if (current.status !== status && !REFUND_TRANSITIONS[current.status].includes(status)) {
         throw new ConflictException(`Refund cannot move from ${current.status} to ${status}`);
       }
@@ -193,8 +209,8 @@ export class ReconciliationService {
         where: { resolutionId },
         data: {
           status,
-          providerRef,
-          errorReason
+          ...(providerRef !== undefined ? { providerRef } : {}),
+          ...(errorReason !== undefined ? { errorReason } : {}),
         },
         include: { resolution: { include: { order: true } } }
       });
@@ -310,6 +326,21 @@ export class ReconciliationService {
       throw new ConflictException('Collected cash was already declared or settled for this order');
     }
     return current;
+  }
+
+  /**
+   * The order will not be paid at the door any more (cancelled before custody, or returned
+   * undelivered): an undeclared expectation is voided, never deleted. Declared or counted cash is a
+   * fact that cannot be voided here (GLO-240).
+   */
+  async voidExpectedCollection(tx: Prisma.TransactionClient, orderId: string) {
+    const collection = await tx.paymentCollection.findUnique({ where: { orderId } });
+    if (!collection || collection.status === 'voided') return collection;
+    if (collection.status !== 'expected' || collection.declaredAmount !== null) {
+      throw new ConflictException({ code: 'CASH_ALREADY_COLLECTED', message: 'Cash was already declared for this order' });
+    }
+    await tx.paymentCollection.update({ where: { id: collection.id }, data: { status: 'voided' } });
+    return tx.paymentCollection.findUniqueOrThrow({ where: { orderId } });
   }
 
   /** Driver-declared cash per order, for the driver's own custody view. */

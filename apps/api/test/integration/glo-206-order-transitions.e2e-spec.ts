@@ -92,7 +92,8 @@ describe('GLO-206 order transitions and delivery convergence (e2e)', () => {
   it('keeps the order open when a delivery attempt fails', async () => {
     const orderId = await makeOrder('shipped');
     const shipmentId = await makeShipment(orderId, 'out_for_delivery');
-    await http().patch(`/fulfillment/shipments/${shipmentId}/status`).set(admin.auth).send({ status: 'failed' }).expect(200);
+    await http().patch(`/fulfillment/shipments/${shipmentId}/status`).set(admin.auth).send({ status: 'failed' }).expect(400); // a failed attempt needs a typed reason (GLO-240)
+    await http().patch(`/fulfillment/shipments/${shipmentId}/status`).set(admin.auth).send({ status: 'failed', reasonCode: 'CUSTOMER_UNREACHABLE' }).expect(200);
     expect(await statusOf(orderId)).toBe('shipped');
     const notice = await prisma.notificationOutbox.findFirst({ where: { aggregateId: shipmentId, eventType: 'shipment.failed' } });
     expect(notice).not.toBeNull();

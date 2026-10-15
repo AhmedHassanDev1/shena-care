@@ -128,7 +128,7 @@ describe('GLO-238 COD settlement and supplier payable integrity (e2e)', () => {
       expect((await settle(hubA, { totalCollected: 200, collections: [{ orderId: onRoad.orderId, collectedAmount: 200 }] }).expect(409)).body.code)
         .toBe('ORDER_NOT_DELIVERED');
       const failed = await dispatched(200);
-      await http().post(`/fulfillment/shipments/${failed.shipmentId}/events`).set(driver.auth).send({ type: 'FAILED' }).expect(201);
+      await http().post(`/fulfillment/shipments/${failed.shipmentId}/events`).set(driver.auth).send({ type: 'FAILED', reasonCode: 'CUSTOMER_UNREACHABLE' }).expect(201);
       expect((await settle(hubA, { totalCollected: 200, collections: [{ orderId: failed.orderId, collectedAmount: 200 }] }).expect(409)).body.code)
         .toBe('ORDER_NOT_DELIVERED');
       // Staff cannot turn a COD stop into "delivered" without the driver's declaration.

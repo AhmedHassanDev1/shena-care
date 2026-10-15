@@ -85,7 +85,7 @@ describe('GLO-212 driver run manifest and handoff replay (e2e)', () => {
     const stops = res.body[0].stops;
     expect(stops.map((s: { orderNumber: string }) => s.orderNumber)).toEqual([second.orderNumber, first.orderNumber]);
     expect(stops[1]).toEqual({
-      sequence: 2, shipmentId: first.shipmentId, status: 'out_for_delivery', handedOver: false,
+      sequence: 2, shipmentId: first.shipmentId, status: 'out_for_delivery', attemptStatus: 'active', handedOver: false,
       orderNumber: first.orderNumber, recipientName: 'Mariam H.', recipientPhone: '01098765432',
       governorate: 'Giza', area: 'Dokki', address: '14 Mossadak St', deliveryNotes: 'Ring twice',
       location: { latitude: 30.0386, longitude: 31.2122, source: 'map_pin',

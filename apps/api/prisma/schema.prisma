@@ -608,6 +608,8 @@ enum OrderStatus {
   shipped
   delivered
   cancelled
+  /// Left the hub but was never delivered and came back to sender (terminal, GLO-240).
+  returned
 
   @@schema("ordering")
 }
@@ -890,6 +892,8 @@ enum SettlementStatus {
   short
   over
   disputed
+  /// No cash is due any more (order cancelled or returned undelivered); the expectation is kept as a fact.
+  voided
 
   @@schema("ordering")
 }
@@ -999,6 +1003,8 @@ enum ShipmentStatus {
   delivered
   failed
   returned
+  /// The order was cancelled before the package left the hub (GLO-240).
+  cancelled
 
   @@schema("fulfillment")
 }
@@ -1062,18 +1068,24 @@ model DeliveryBatch {
   @@schema("fulfillment")
 }
 
+/// One delivery attempt of a shipment on a run. History is kept: a failed stop is closed and the
+/// shipment can join a later run; at most one `active` stop per shipment (partial unique index).
 model DeliveryStop {
-  id         String   @id @default(uuid()) @db.Uuid
-  batchId    String   @map("batch_id") @db.Uuid
-  shipmentId String   @unique @map("shipment_id") @db.Uuid
+  id         String    @id @default(uuid()) @db.Uuid
+  batchId    String    @map("batch_id") @db.Uuid
+  shipmentId String    @map("shipment_id") @db.Uuid
   sequence   Int
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  /// active | delivered | failed | returned
+  status     String    @default("active") @db.VarChar(20)
+  closedAt   DateTime? @map("closed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
 
   batch    DeliveryBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
   shipment Shipment      @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
 
   @@unique([batchId, sequence])
+  @@index([shipmentId])
   @@map("delivery_stops")
   @@schema("fulfillment")
 }
@@ -1083,6 +1095,8 @@ model ShipmentEvent {
   shipmentId String   @map("shipment_id") @db.Uuid
   type       String // e.g. PACKED, LABEL_PRINTED, HANDOFF_SCANNED, OUT_FOR_DELIVERY, DELIVERED, FAILED, RETURNED
   actorId    String?  @map("actor_id") // ID of hub operator or driver
+  /// Typed outcome reason, e.g. a failed attempt's cause (GLO-240).
+  reasonCode String?  @map("reason_code") @db.VarChar(40)
   notes      String?
   createdAt  DateTime @default(now()) @map("created_at")
 

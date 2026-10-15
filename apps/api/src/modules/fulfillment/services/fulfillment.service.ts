@@ -10,6 +10,7 @@ import { isValidShipmentBarcode, signShipmentBarcode } from './shipment-label';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderDeliveredEvent } from '../../../platform/events/integration.events';
 import { OutboxService } from '../../operations/services/outbox.service';
+import { SupportService } from '../../operations/services/support.service';
 
 export interface FulfillmentLocationDetail {
   id: string;
@@ -27,6 +28,8 @@ export interface FulfillmentActor {
 
 // Drivers act only at the delivery stage of shipments on their own run.
 const DRIVER_EVENT_TYPES = ['HANDOFF_SCANNED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED'];
+// Events that prove the physical parcel is in the scanner's hands (GLO-206 GAP-06, GLO-240).
+const BARCODE_EVENT_TYPES = ['HANDOFF_SCANNED', 'RECEIVED_BACK', 'RETURNED'];
 const DRIVER_STATUSES: ShipmentStatus[] = [ShipmentStatus.out_for_delivery, ShipmentStatus.delivered, ShipmentStatus.failed];
 
 /**
@@ -44,10 +47,21 @@ const SHIPMENT_TRANSITIONS: Record<ShipmentStatus, ShipmentStatus[]> = {
   packed: [ShipmentStatus.dispatched, ShipmentStatus.out_for_delivery],
   dispatched: [ShipmentStatus.out_for_delivery],
   out_for_delivery: [ShipmentStatus.delivered, ShipmentStatus.failed],
-  failed: [ShipmentStatus.out_for_delivery, ShipmentStatus.returned],
+  // failed → packed only via RECEIVED_BACK (scanned back into the hub for a later run).
+  failed: [ShipmentStatus.out_for_delivery, ShipmentStatus.returned, ShipmentStatus.packed],
   delivered: [ShipmentStatus.returned],
   returned: [],
+  cancelled: [],
 };
+
+// Reached only through their own commands, never through a status patch.
+const COMMAND_ONLY: Array<[ShipmentStatus | '*', ShipmentStatus]> = [
+  ['*', ShipmentStatus.cancelled], [ShipmentStatus.failed, ShipmentStatus.packed],
+];
+const CANCELLABLE: ShipmentStatus[] = [
+  ShipmentStatus.pending, ShipmentStatus.ready_to_prepare, ShipmentStatus.preparing, ShipmentStatus.prepared,
+  ShipmentStatus.ready_to_pack, ShipmentStatus.packing, ShipmentStatus.packed,
+];
 
 function assertShipmentTransition(from: ShipmentStatus, to: ShipmentStatus): void {
   if (from !== to && !SHIPMENT_TRANSITIONS[from].includes(to)) {
@@ -68,6 +82,7 @@ const EVENT_STATUS: Record<string, ShipmentStatus | undefined> = {
   DELIVERED: ShipmentStatus.delivered,
   RETURNED: ShipmentStatus.returned,
   FAILED: ShipmentStatus.failed,
+  RECEIVED_BACK: ShipmentStatus.packed,
 };
 
 const isUniqueViolation = (error: unknown) =>
@@ -100,6 +115,7 @@ export class FulfillmentService {
     private readonly outbox: OutboxService,
     private readonly reconciliation: ReconciliationService,
     private readonly purchaseOrders: PurchaseOrderService,
+    private readonly support: SupportService,
   ) {}
 
   /**
@@ -170,8 +186,9 @@ export class FulfillmentService {
     if (actor.roles.includes(Role.ADMIN)) return { as: 'admin' as const };
     if (await this.isAssignedOperator(shipment.locationId, actor)) return { as: 'hub' as const };
     if (actor.roles.includes(Role.DRIVER)) {
-      const stop = await this.prisma.deliveryStop.findUnique({ where: { shipmentId: shipment.id }, include: { batch: true } });
-      if (stop && stop.batch.driverId === actor.id) return { as: 'driver' as const, batch: stop.batch };
+      // The shipment's latest attempt decides: a later run of another driver ends this driver's access.
+      const stop = await this.prisma.deliveryStop.findFirst({ where: { shipmentId: shipment.id }, orderBy: { createdAt: 'desc' }, include: { batch: true } });
+      if (stop && stop.batch.driverId === actor.id) return { as: 'driver' as const, batch: stop.batch, stop };
       throw new NotFoundException('Shipment not found');
     }
     throw new ForbiddenException('Operator is not assigned to this fulfillment location');
@@ -517,13 +534,29 @@ export class FulfillmentService {
     if (scope.as === 'driver') {
       if (!DRIVER_STATUSES.includes(dto.status)) throw new ForbiddenException(`Drivers cannot set shipment status ${dto.status}`);
       if (scope.batch.status !== 'dispatched') throw new BadRequestException('Delivery run has not been dispatched');
+      if (scope.stop.status !== 'active' && dto.status !== shipment.status) {
+        throw new ConflictException('This delivery attempt has ended; only the hub can act on the parcel now');
+      }
     }
     if (dto.status !== ShipmentStatus.delivered && dto.collectedAmount !== undefined) {
       throw new BadRequestException('collectedAmount is only recorded with a delivery');
     }
+    if (COMMAND_ONLY.some(([from, to]) => to === dto.status && (from === '*' || from === shipment.status) && shipment.status !== dto.status)) {
+      throw new ConflictException(dto.status === ShipmentStatus.cancelled
+        ? 'Cancel the order instead; its shipment is cancelled with it'
+        : 'Scan the parcel back into the hub (RECEIVED_BACK) to make it available for another run');
+    }
+    if (dto.status === ShipmentStatus.returned && shipment.status !== dto.status) {
+      throw new BadRequestException('Record RETURNED as a shipment event with the parcel barcode');
+    }
+    if (dto.status === ShipmentStatus.failed && shipment.status !== dto.status && !dto.reasonCode) {
+      throw new BadRequestException('A failed delivery needs a reasonCode');
+    }
+    if (dto.reasonCode && dto.status !== ShipmentStatus.failed) throw new BadRequestException('reasonCode is only recorded with a failed delivery');
     assertShipmentTransition(shipment.status, dto.status);
     return this.updateShipmentStatus(id, { status: dto.status, trackingNumber: dto.trackingNumber },
-      { as: scope.as, actor, collectedAmount: dto.collectedAmount });
+      { as: scope.as, actor, collectedAmount: dto.collectedAmount,
+        ...(dto.status === ShipmentStatus.failed ? { event: { type: 'FAILED', reasonCode: dto.reasonCode } } : {}) });
   }
 
   /**
@@ -532,7 +565,8 @@ export class FulfillmentService {
    * event and notifications commit with it — a losing concurrent writer changes nothing.
    */
   async updateShipmentStatus(id: string, dto: UpdateShipmentStatusDto, context?: {
-    as: 'admin' | 'hub' | 'driver'; actor: FulfillmentActor; collectedAmount?: number; event?: { type: string; notes?: string };
+    as: 'admin' | 'hub' | 'driver'; actor: FulfillmentActor; collectedAmount?: number;
+    event?: { type: string; notes?: string; reasonCode?: string };
   }): Promise<ShipmentDetail> {
     const result = await this.prisma.$transaction(async tx => {
       const shipment = await tx.shipment.findUnique({ where: { id }, include: { items: true } });
@@ -550,7 +584,9 @@ export class FulfillmentService {
       if (claimed.count !== 1) throw new ConflictException('Shipment status changed concurrently; retry');
 
       if (context?.event) {
-        await tx.shipmentEvent.create({ data: { shipmentId: id, type: context.event.type, actorId: context.actor.id, notes: context.event.notes } });
+        await tx.shipmentEvent.create({ data: {
+          shipmentId: id, type: context.event.type, actorId: context.actor.id, notes: context.event.notes, reasonCode: context.event.reasonCode,
+        } });
       }
       let delivered: OrderDeliveredEvent | null = null;
       if (entering) {
@@ -580,10 +616,26 @@ export class FulfillmentService {
           await notify('shipment.delivered', 'delivered_v1', {});
           delivered = new OrderDeliveredEvent(order.id, order.customerId || 'unknown',
             shipment.items.map(i => ({ productId: i.skuId })), shipment.deliveredAt ?? now);
+          await this.closeActiveStop(tx, id, 'delivered');
         } else if (dto.status === ShipmentStatus.failed) {
           // A failed attempt is a delivery issue, not a cancellation: the order stays open until an
-          // explicit retry/return/cancel decision (retry policy pending GLO-139).
-          await notify('shipment.failed', 'delivery_failed_v1', { reason: 'Delivery failed' });
+          // explicit retry/return/cancel decision (retry count policy pending GLO-139).
+          await notify('shipment.failed', 'delivery_failed_v1', { reason: context?.event?.reasonCode ?? 'OTHER' });
+        } else if (dto.status === ShipmentStatus.packed && shipment.status === ShipmentStatus.failed) {
+          // Back in the hub's hands: this attempt is history; the parcel can join a later run.
+          await this.closeActiveStop(tx, id, 'failed');
+        } else if (dto.status === ShipmentStatus.returned && shipment.status === ShipmentStatus.failed) {
+          // Never delivered and given up: the order ends as returned, no cash is due, and what to do
+          // with the goods (restock / back to supplier) is a recorded human decision.
+          await this.closeActiveStop(tx, id, 'returned');
+          await this.orderingService.transitionInTx(tx, shipment.orderId, 'returned');
+          await this.reconciliation.voidExpectedCollection(tx, shipment.orderId);
+          await this.support.openOperationalException(tx, {
+            dedupKey: `returned:${id}`, category: 'delivery', priority: 'high', orderId: order.id,
+            title: `Returned undelivered — ${order.orderNumber}`,
+            description: 'Parcel came back to the hub undelivered. Decide stock disposition (restock / return to supplier) and customer follow-up.',
+          });
+          await notify('shipment.returned', 'returned_to_sender_v1', {});
         }
       }
       return { shipment: await tx.shipment.findUniqueOrThrow({ where: { id }, include: { items: true } }), delivered };
@@ -860,18 +912,31 @@ export class FulfillmentService {
     const { shipment, scope } = await this.findShipmentForActor(shipmentId, actor);
     if (scope.as === 'driver') {
       if (!DRIVER_EVENT_TYPES.includes(dto.type)) throw new ForbiddenException(`Drivers cannot record ${dto.type} events`);
+      if (scope.stop.status !== 'active' && EVENT_STATUS[dto.type] !== shipment.status) {
+        throw new ConflictException('This delivery attempt has ended; only the hub can act on the parcel now');
+      }
       if (dto.type !== 'HANDOFF_SCANNED' && scope.batch.status !== 'dispatched') {
         throw new BadRequestException('Delivery run has not been dispatched');
       }
     }
-    // Custody changes hands only against the physical label (GLO-206 GAP-06).
-    if (dto.type === 'HANDOFF_SCANNED' && (!dto.barcode || !isValidShipmentBarcode(shipment.id, dto.barcode))) {
+    // Custody changes hands only against the physical label (GLO-206 GAP-06, GLO-240).
+    if (BARCODE_EVENT_TYPES.includes(dto.type) && (!dto.barcode || !isValidShipmentBarcode(shipment.id, dto.barcode))) {
       throw new BadRequestException('Scanned barcode does not match this shipment');
+    }
+    if (dto.type === 'FAILED' && !dto.reasonCode) throw new BadRequestException('A failed delivery needs a reasonCode');
+    if (dto.reasonCode && dto.type !== 'FAILED') throw new BadRequestException('reasonCode is only recorded with a failed delivery');
+    if ((dto.type === 'RECEIVED_BACK' || dto.type === 'RETURNED') && scope.as === 'driver') {
+      throw new ForbiddenException(`Only the hub records ${dto.type}`);
     }
 
     if (dto.type === 'HANDOFF_SCANNED') {
-      // Custody is taken once; a replayed scan (retry, double tap, flaky network) returns the original record.
-      const existing = await this.prisma.shipmentEvent.findFirst({ where: { shipmentId, type: 'HANDOFF_SCANNED' }, orderBy: { createdAt: 'asc' } });
+      // Custody is taken once per delivery attempt; a replayed scan (retry, double tap, flaky
+      // network) returns the original record of this attempt.
+      const attempt = await this.prisma.deliveryStop.findFirst({ where: { shipmentId, status: 'active' } });
+      const existing = await this.prisma.shipmentEvent.findFirst({
+        where: { shipmentId, type: 'HANDOFF_SCANNED', ...(attempt ? { createdAt: { gte: attempt.createdAt } } : {}) },
+        orderBy: { createdAt: 'asc' },
+      });
       if (existing) return existing;
     }
     if (dto.type === 'OUT_FOR_DELIVERY' || dto.type === 'HANDOFF_SCANNED') {
@@ -914,7 +979,7 @@ export class FulfillmentService {
 
     if (newStatus && shipment.status !== newStatus) {
       await this.updateShipmentStatus(shipmentId, { status: newStatus },
-        { as: scope.as, actor, collectedAmount: dto.collectedAmount, event: { type: dto.type, notes: dto.notes } });
+        { as: scope.as, actor, collectedAmount: dto.collectedAmount, event: { type: dto.type, notes: dto.notes, reasonCode: dto.reasonCode } });
       return this.prisma.shipmentEvent.findFirstOrThrow({ where: { shipmentId, type: dto.type }, orderBy: { createdAt: 'desc' } });
     }
 
@@ -941,7 +1006,7 @@ export class FulfillmentService {
       include: {
         stops: {
           orderBy: { sequence: 'asc' },
-          include: { shipment: { include: { events: { where: { type: 'HANDOFF_SCANNED' }, select: { id: true } } } } },
+          include: { shipment: { include: { events: { where: { type: 'HANDOFF_SCANNED' }, select: { createdAt: true } } } } },
         },
       },
     });
@@ -960,7 +1025,8 @@ export class FulfillmentService {
           sequence: stop.sequence,
           shipmentId: stop.shipmentId,
           status: stop.shipment.status,
-          handedOver: stop.shipment.events.length > 0,
+          attemptStatus: stop.status,
+          handedOver: stop.shipment.events.some(event => event.createdAt >= stop.createdAt),
           orderNumber: order.orderNumber,
           recipientName: order.customerName,
           recipientPhone: order.customerPhone,
@@ -980,6 +1046,30 @@ export class FulfillmentService {
         };
       })),
     })));
+  }
+
+  private async closeActiveStop(tx: Prisma.TransactionClient, shipmentId: string, status: 'delivered' | 'failed' | 'returned') {
+    await tx.deliveryStop.updateMany({ where: { shipmentId, status: 'active' }, data: { status, closedAt: new Date() } });
+  }
+
+  /**
+   * Owner command inside the composed order-cancellation transaction (GLO-240): a shipment that has
+   * not left the hub is cancelled (with its planning stop removed); one in a driver's custody or on a
+   * dispatched run refuses. Returns whether goods were already received for the order.
+   */
+  async cancelShipmentForOrder(tx: Prisma.TransactionClient, orderId: string, actorId: string): Promise<{ goodsReceived: boolean }> {
+    const shipment = await tx.shipment.findUnique({ where: { orderId }, include: { deliveryStops: { where: { status: 'active' }, include: { batch: true } } } });
+    const receipts = await tx.fulfillmentReceipt.count({ where: { orderId } });
+    if (!shipment) return { goodsReceived: receipts > 0 };
+    if (!CANCELLABLE.includes(shipment.status) || shipment.deliveryStops.some(stop => stop.batch.status !== 'planning')) {
+      throw new ConflictException({ code: 'CANCELLATION_TOO_LATE', message: `The parcel is already ${shipment.status}; use the delivery return flow` });
+    }
+    await tx.deliveryStop.deleteMany({ where: { shipmentId: shipment.id, status: 'active', batch: { status: 'planning' } } });
+    const claimed = await tx.shipment.updateMany({ where: { id: shipment.id, status: shipment.status }, data: { status: ShipmentStatus.cancelled } });
+    if (claimed.count !== 1) throw new ConflictException('Shipment changed concurrently; retry');
+    await tx.shipmentPreparationSession.updateMany({ where: { shipmentId: shipment.id, status: PreparationSessionStatus.in_progress }, data: { status: PreparationSessionStatus.failed, completedAt: new Date() } });
+    await tx.shipmentEvent.create({ data: { shipmentId: shipment.id, type: 'ORDER_CANCELLED', actorId } });
+    return { goodsReceived: receipts > 0 };
   }
 
   /** A run only carries stops a driver can navigate to: the order's confirmed pin (GLO-231). */
@@ -1004,7 +1094,7 @@ export class FulfillmentService {
       where: {
         locationId,
         status: 'packed',
-        deliveryStops: { none: {} }
+        deliveryStops: { none: { status: 'active' } }
       },
       include: { items: true }
     });
@@ -1048,8 +1138,8 @@ export class FulfillmentService {
       for (const stop of stops) {
         if (!this.isUuid(stop.shipmentId)) throw new BadRequestException('Invalid shipment ID');
         
-        // Ensure shipment exists and is eligible
-        const shipment = await tx.shipment.findUnique({ where: { id: stop.shipmentId }, include: { deliveryStops: true } });
+        // Ensure shipment exists and is eligible (packed, no active attempt on any run)
+        const shipment = await tx.shipment.findUnique({ where: { id: stop.shipmentId }, include: { deliveryStops: { where: { status: 'active' } } } });
         if (!shipment) throw new NotFoundException(`Shipment ${stop.shipmentId} not found`);
         if (batch.locationId && shipment.locationId !== batch.locationId) {
           throw new BadRequestException(`Shipment ${stop.shipmentId} belongs to a different hub`);
@@ -1202,9 +1292,9 @@ export class FulfillmentService {
       await this.resolveBatchScope(batch, actor);
       if (batch.status !== 'dispatched') throw new BadRequestException('Batch must be dispatched to complete');
 
-      // Check if all shipments are in a terminal state
+      // Every attempt on the run ended: closed (delivered / back at hub / returned) or failed in hand.
       const terminalStates = ['delivered', 'failed', 'returned'];
-      const incomplete = batch.stops.filter(s => !terminalStates.includes(s.shipment.status));
+      const incomplete = batch.stops.filter(s => s.status === 'active' && !terminalStates.includes(s.shipment.status));
 
       if (incomplete.length > 0) {
         throw new BadRequestException('Cannot complete batch until all shipments are in a terminal state (delivered, failed, returned)');

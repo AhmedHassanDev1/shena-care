@@ -386,9 +386,38 @@ export class OrderingService {
   private static assertTransition(from: OrderStatus, to: OrderStatus): void {
     if (from === to) return;
     const order = OrderingService.PROGRESSION;
-    const allowed = from !== 'delivered' && from !== 'cancelled' &&
-      (to === 'cancelled' || order.indexOf(to) > order.indexOf(from));
+    const terminal = from === 'delivered' || from === 'cancelled' || from === 'returned';
+    // `returned`: the parcel left the hub and came back undelivered (GLO-240).
+    const allowed = !terminal && (to === 'returned' ? from === 'shipped'
+      : to === 'cancelled' || (order.includes(to) && order.indexOf(to) > order.indexOf(from)));
     if (!allowed) throw new ConflictException(`Order cannot move from ${from} to ${to}`);
+  }
+
+  /**
+   * Staff cancellation inside the composed cancellation transaction (GLO-240): only before the
+   * parcel is in a driver's custody, recorded as a resolved cancellation resolution with actor and
+   * reason; nothing is deleted. Returns the order snapshot for the caller's follow-up effects.
+   */
+  async cancelInTx(tx: Prisma.TransactionClient, id: string, input: { actorId: string; reasonCode: string; notes?: string }) {
+    await tx.$queryRaw`SELECT id FROM "ordering"."orders" WHERE id = ${id}::uuid FOR UPDATE`;
+    const order = await tx.order.findUnique({ where: { id }, include: { items: { where: { lineState: 'active' } } } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (!['placed', 'confirmed', 'packing'].includes(order.status)) {
+      throw new ConflictException({ code: 'CANCELLATION_TOO_LATE',
+        message: `An order in status ${order.status} can no longer be cancelled; use the delivery return or customer return flow` });
+    }
+    await this.transitionInTx(tx, id, 'cancelled');
+    const resolution = await tx.orderResolution.create({ data: {
+      orderId: id, type: 'cancellation', status: 'resolved', actorId: input.actorId, reasonCode: input.reasonCode,
+      notes: input.notes, items: { create: order.items.map(item => ({ orderItemId: item.id, quantity: item.quantity })) },
+    } });
+    await tx.orderResolutionEvent.create({ data: { resolutionId: resolution.id, status: 'resolved', actorId: input.actorId, notes: input.notes ?? input.reasonCode } });
+    await this.outbox.enqueue(tx, {
+      eventType: 'order.cancelled', aggregateId: id, aggregateType: 'Order', customerId: order.customerId || undefined,
+      payload: { orderId: id, orderNumber: order.orderNumber, reasonCode: input.reasonCode },
+      channelIntent: 'whatsapp', templateId: 'order_cancelled_v1', deduplicationKey: `order.cancelled:${id}`,
+    });
+    return { order, resolutionId: resolution.id };
   }
 
   async updateOrderStatus(id: string, status: OrderStatus): Promise<OrderDetail> {

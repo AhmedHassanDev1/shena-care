@@ -32,6 +32,8 @@ function orderStage(status: OrderStatus): CustomerStage {
     case 'shipped': return 'OUT_FOR_DELIVERY';
     case 'delivered': return 'DELIVERED';
     case 'cancelled': return 'CANCELLED';
+    // Customer contract unchanged (frontend frozen): an undelivered parcel that came back is a delivery issue.
+    case 'returned': return 'DELIVERY_ISSUE';
   }
 }
 
@@ -51,6 +53,8 @@ function shipmentStage(status: ShipmentStatus): CustomerStage | null {
     case 'failed':
     case 'returned':
       return 'DELIVERY_ISSUE';
+    case 'cancelled':
+      return 'CANCELLED';
     default:
       return null;
   }
@@ -183,6 +187,8 @@ export class OrderTrackingService {
   private currentStage(order: TrackingOrder, shipment: TrackingShipment | null, cancellationRequested: boolean): CustomerStage {
     if (order.status === 'cancelled') return 'CANCELLED';
     if (cancellationRequested) return 'CANCELLATION_REQUESTED';
+    // Back at the hub after a failed attempt, waiting for the next run: still a delivery issue.
+    if (order.status === 'shipped' && shipment?.status === 'packed') return 'DELIVERY_ISSUE';
     const shipmentStatus = shipment ? shipmentStage(shipment.status) : null;
     if (shipment) {
       if (shipmentStatus) return shipmentStatus;

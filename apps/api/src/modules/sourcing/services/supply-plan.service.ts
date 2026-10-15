@@ -281,6 +281,23 @@ export class SupplyPlanService {
     }
   }
 
+  /**
+   * Owner command inside the cancellation transaction (GLO-240): every open requirement is released
+   * (kept as history) so nothing new is batched or received for it. Supplier commitments already
+   * made on purchase orders are reported back for a human decision, never silently undone.
+   */
+  async releaseForCancelledOrder(tx: Tx, orderId: string): Promise<{ supplierCommitments: Array<{ purchaseOrderId: string; quantity: number; confirmed: number | null }> }> {
+    await this.lock(tx, orderId);
+    const request = await tx.supplyRequest.findUnique({ where: { orderId } });
+    if (!request) return { supplierCommitments: [] };
+    await tx.supplyRequirement.updateMany({ where: { supplyRequestId: request.id, releasedAt: null }, data: { releasedAt: new Date() } });
+    await tx.availabilityActionRequirement.deleteMany({ where: { requirement: { supplyRequestId: request.id } } });
+    const links = await tx.purchaseOrderLineAllocation.findMany({ where: { orderId }, include: { line: true } });
+    return { supplierCommitments: links
+      .filter(link => link.confirmedQuantity === null || link.confirmedQuantity > link.receivedQuantity)
+      .map(link => ({ purchaseOrderId: link.line.purchaseOrderId, quantity: link.quantity, confirmed: link.confirmedQuantity })) };
+  }
+
   /** Re-plan after an amendment commit (new requirement gets its own ranked allocation). */
   async replanAfterAmendment(orderId: string): Promise<void> {
     const request = await this.prisma.supplyRequest.findUnique({ where: { orderId },

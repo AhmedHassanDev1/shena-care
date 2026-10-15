@@ -55,6 +55,7 @@ describe('GLO-206 return and refund integrity (e2e)', () => {
   afterAll(async () => {
     if (prisma) {
       await prisma.refundTransaction.deleteMany({ where: { orderId: { in: orderIds } } });
+      await prisma.paymentCollection.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.orderResolution.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
     }
@@ -100,23 +101,34 @@ describe('GLO-206 return and refund integrity (e2e)', () => {
     await setStatus(claim.body.id, 'approved').expect(409);
   });
 
-  it('refunds only eligible resolutions, in currency, within the order total, once', async () => {
+  it('refunds only eligible resolutions, in currency, within the cash received, once, with proof', async () => {
     const { order, itemId } = await deliveredOrder(2); // total 250 EGP
     const claim = await submit(order.orderNumber, itemId, 1).expect(201);
+    // COD refunds are bounded by cash actually received (GLO-240): first none, then 250 counted at the hub.
+    await setStatus(claim.body.id, 'approved').expect(200);
+    expect((await http().post(`/ordering/resolutions/${claim.body.id}/refund`).set(admin.auth).send({ amount: 100, currency: 'EGP' }).expect(409)).body.code)
+      .toBe('NO_CASH_RECEIVED');
+    const settledBatch = await prisma.courierSettlementBatch.create({ data: {
+      reference: 'REF-' + randomUUID(), courierId: randomUUID(), totalExpected: 250, totalCollected: 250, netSettled: 250, currency: 'EGP', actorId: admin.id,
+    } });
+    await prisma.paymentCollection.create({ data: {
+      orderId: order.id, expectedAmount: 250, declaredAmount: 250, collectedAmount: 250, currency: 'EGP', status: 'settled', settlementBatchId: settledBatch.id,
+    } });
     const refund = (amount: number, currency = 'EGP') =>
       http().post(`/ordering/resolutions/${claim.body.id}/refund`).set(admin.auth).send({ amount, currency });
-    await refund(100).expect(400); // still requested
-    await setStatus(claim.body.id, 'approved').expect(200);
     await refund(100, 'USD').expect(400);
     await refund(-5).expect(400);
     await refund(251).expect(400);
     await refund(100).expect(201);
     await refund(100).expect(400); // one refund per resolution
 
-    const status = (s: string) => http().patch(`/ordering/resolutions/${claim.body.id}/refund/status`).set(admin.auth).send({ status: s });
-    await status('succeeded').expect(200);
-    await status('pending').expect(409);
-    await status('failed').expect(409);
+    const status = (s: string, extra: Record<string, string> = {}) =>
+      http().patch(`/ordering/resolutions/${claim.body.id}/refund/status`).set(admin.auth).send({ status: s, ...extra });
+    expect((await status('succeeded').expect(400)).body.code).toBe('REFUND_PROOF_REQUIRED'); // never "paid" without proof
+    await status('succeeded', { providerRef: 'CASH-VOUCHER-17' }).expect(200);
+    await status('succeeded', { providerRef: 'CASH-VOUCHER-17' }).expect(200); // replay
+    await status('pending').expect(400);
+    await status('failed', { errorReason: 'late' }).expect(409);
     const stored = await prisma.refundTransaction.findUniqueOrThrow({ where: { resolutionId: claim.body.id } });
     expect(stored.status).toBe('succeeded');
   });
