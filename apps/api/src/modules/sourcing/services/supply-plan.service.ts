@@ -239,6 +239,24 @@ export class SupplyPlanService {
     })) };
   }
 
+  /**
+   * Owner command inside the shortfall transaction (GLO-243): confirmed units that will not arrive
+   * stop counting as coverage, so the plan re-sources the gap (fallback or customer decision).
+   */
+  async reduceForShortfall(tx: Tx, allocationId: string, quantity: number): Promise<string> {
+    const allocation = await tx.sourceAllocation.findUniqueOrThrow({ where: { id: allocationId },
+      include: { requirement: { include: { supplyRequest: true } } } });
+    const orderId = allocation.requirement.supplyRequest.orderId;
+    await this.lock(tx, orderId);
+    const current = await tx.sourceAllocation.findUniqueOrThrow({ where: { id: allocationId } });
+    const remaining = current.confirmedQuantity - quantity;
+    if (remaining < 0) throw new BadRequestException('Shortfall exceeds the confirmed quantity');
+    await tx.sourceAllocation.update({ where: { id: allocationId }, data: {
+      confirmedQuantity: remaining, result: remaining === 0 ? 'unavailable' : 'confirmed_partial',
+    } });
+    return orderId;
+  }
+
   async getPlan(orderId: string) {
     const request = await this.prisma.supplyRequest.findUnique({ where: { orderId }, include: {
       requirements: { where: { releasedAt: null }, include: { allocations: true, actionRequirement: true } },

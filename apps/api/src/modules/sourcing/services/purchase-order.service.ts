@@ -2,7 +2,8 @@ import { Injectable, NotFoundException, BadRequestException, ConflictException, 
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { DomainEventsService } from '../../../platform/events/domain-events.service';
-import { CreatePurchaseOrderDto, ConfirmPurchaseOrderDto, DistributePurchaseOrderLineDto, ListPurchaseOrdersQueryDto } from '../dto/purchase-order.dto';
+import { CreatePurchaseOrderDto, ConfirmPurchaseOrderDto, DistributePurchaseOrderLineDto, ListPurchaseOrdersQueryDto, RecordShortfallDto } from '../dto/purchase-order.dto';
+import { SupportService } from '../../operations/services/support.service';
 import { PurchaseOrderStatus, PurchaseOrderLineStatus, Prisma } from '@prisma/client';
 import { RankingService } from './ranking.service';
 import { SupplyPlanService } from './supply-plan.service';
@@ -36,6 +37,7 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     private readonly rankingService: RankingService,
     private readonly supplyPlan: SupplyPlanService,
     private readonly events: DomainEventsService,
+    private readonly support: SupportService,
   ) {}
 
   /**
@@ -217,7 +219,8 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     }
     const confirmations = dto.lines.map(line => {
       const original = order.lines.find(l => l.id === line.id)!;
-      return { original, status: line.status, quantity: this.confirmedQuantityFor(original.requestedQuantity, line) };
+      return { original, line, status: line.status, quantity: this.confirmedQuantityFor(original.requestedQuantity, line),
+        exception: this.lineException(original.requestedQuantity, line) };
     });
 
     if (!OPEN_FOR_CONFIRMATION.includes(order.status)) {
@@ -239,7 +242,7 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       });
       if (claimed.count !== 1) throw new ConflictException('PurchaseOrder was already confirmed');
 
-      for (const { original, status, quantity } of confirmations) {
+      for (const { original, status, quantity, exception } of confirmations) {
         if (status !== PurchaseOrderLineStatus.confirmed_full) {
           isPartial = true;
           const missing = original.requestedQuantity - quantity;
@@ -249,8 +252,20 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
         const needsDistribution = status === PurchaseOrderLineStatus.confirmed_partial && original.allocations.length > 1;
         await tx.purchaseOrderLine.update({
           where: { id: original.id },
-          data: { status, confirmedQuantity: quantity, distributionRequired: needsDistribution },
+          data: { status, confirmedQuantity: quantity, distributionRequired: needsDistribution, ...(exception ?? {}) },
         });
+        if (exception) {
+          // Never silently accepted: impossible packs/MOQs and new prices become a procurement decision,
+          // while the order is re-planned from the remaining sources (customer price never changes).
+          await this.support.openOperationalException(tx, {
+            dedupKey: `po-line-exception:${original.id}`, category: 'sourcing', priority: 'medium', supplierId: order.supplierId,
+            title: `Supplier exception ${exception.exceptionCode} on PO ${order.id.slice(0, 8)}`,
+            description: [`Line ${original.id}: requested ${original.requestedQuantity}, confirmed ${quantity}.`,
+              exception.proposedQuantity ? `Supplier proposes quantity ${exception.proposedQuantity}.` : null,
+              exception.proposedUnitCost ? `Supplier proposes unit cost ${exception.proposedUnitCost} (PO cost ${original.unitCost?.toFixed(2) ?? 'n/a'}).` : null,
+              exception.exceptionNote ?? null].filter(Boolean).join(' '),
+          });
+        }
         if (!needsDistribution) {
           for (const orderId of await this.applyToAllocations(tx, order.id, original.allocations, status, quantity)) touchedOrders.add(orderId);
         }
@@ -376,10 +391,10 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       orderBy: { createdAt: 'asc' },
       take: 500,
     });
-    return links.filter(link => link.receivedQuantity < (link.confirmedQuantity ?? 0)).map(link => ({
+    return links.filter(link => link.receivedQuantity + link.shortQuantity < (link.confirmedQuantity ?? 0)).map(link => ({
       allocationId: link.sourceAllocationId, orderId: link.orderId, orderItemId: link.orderItemId, skuId: link.line.skuId,
-      confirmedQuantity: link.confirmedQuantity ?? 0, receivedQuantity: link.receivedQuantity,
-      remainingQuantity: (link.confirmedQuantity ?? 0) - link.receivedQuantity,
+      confirmedQuantity: link.confirmedQuantity ?? 0, receivedQuantity: link.receivedQuantity, shortQuantity: link.shortQuantity,
+      remainingQuantity: (link.confirmedQuantity ?? 0) - link.receivedQuantity - link.shortQuantity,
       purchaseOrderId: link.line.purchaseOrderId, purchaseOrderStatus: link.line.purchaseOrder.status,
       supplierName: link.line.purchaseOrder.supplier.name, readyAt: link.line.purchaseOrder.readyAt,
     }));
@@ -412,14 +427,69 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     const updated = await tx.purchaseOrderLineAllocation.update({
       where: { id: link.id }, data: { receivedQuantity: { increment: quantity } },
     });
-    if (updated.confirmedQuantity !== null && updated.receivedQuantity > updated.confirmedQuantity) {
+    if (updated.confirmedQuantity !== null && updated.receivedQuantity + updated.shortQuantity > updated.confirmedQuantity) {
       throw new ConflictException('Received quantity exceeds the supplier-confirmed quantity');
     }
-    const links = await tx.purchaseOrderLineAllocation.findMany({ where: { line: { purchaseOrderId: link.line.purchaseOrderId } } });
-    const complete = links.every(l => l.receivedQuantity >= (l.confirmedQuantity ?? 0)) && links.some(l => (l.confirmedQuantity ?? 0) > 0);
-    if (complete) {
+    await this.completeIfAllArrived(tx, link.line.purchaseOrderId);
+  }
+
+  /** A supplier exception must explain a non-full answer consistently; it is recorded, never applied. */
+  private lineException(requested: number, line: { status: PurchaseOrderLineStatus; exceptionCode?: string; exceptionNote?: string;
+    proposedQuantity?: number; proposedUnitCost?: number }) {
+    const code = line.exceptionCode ?? (line.status === PurchaseOrderLineStatus.price_changed ? 'PRICE_CHANGED' : undefined);
+    if (!code) {
+      if (line.proposedQuantity !== undefined || line.proposedUnitCost !== undefined) throw new BadRequestException('Proposals need an exceptionCode');
+      return null;
+    }
+    if (line.status === PurchaseOrderLineStatus.confirmed_full) throw new BadRequestException('A fully confirmed line has no exception');
+    if ((code === 'MIN_ORDER_QUANTITY' || code === 'PACK_SIZE') && !(line.proposedQuantity && line.proposedQuantity > requested)) {
+      throw new BadRequestException(`${code} needs the supplier's proposedQuantity above the requested ${requested}`);
+    }
+    if (code === 'PRICE_CHANGED' && line.status !== PurchaseOrderLineStatus.price_changed) {
+      throw new BadRequestException('A price change is answered with status price_changed');
+    }
+    return { exceptionCode: code, exceptionNote: line.exceptionNote ?? null, proposedQuantity: line.proposedQuantity ?? null,
+      proposedUnitCost: line.proposedUnitCost ?? null };
+  }
+
+  /**
+   * Hub records confirmed units that did not arrive and where they were lost (GLO-243: e.g. 8 ready,
+   * 7 handed over, 6 received → 1 NOT_HANDED_OVER + 1 LOST_IN_TRANSIT). The units stop counting as
+   * coverage (the order is re-planned), the PO can complete and is paid only for what arrived, and
+   * a sourcing exception records the discrepancy. Never invents received stock.
+   */
+  async recordShortfall(purchaseOrderId: string, dto: RecordShortfallDto, actorId: string) {
+    const outcome = await this.prisma.$transaction(async tx => {
+      const link = await tx.purchaseOrderLineAllocation.findUnique({ where: { sourceAllocationId: dto.sourceAllocationId }, include: { line: true } });
+      if (!link || link.line.purchaseOrderId !== purchaseOrderId) throw new NotFoundException('Allocation is not on this purchase order');
+      await tx.$queryRaw`SELECT id FROM "sourcing"."purchase_order_line_allocations" WHERE id = ${link.id}::uuid FOR UPDATE`;
+      const current = await tx.purchaseOrderLineAllocation.findUniqueOrThrow({ where: { id: link.id } });
+      const outstanding = (current.confirmedQuantity ?? 0) - current.receivedQuantity - current.shortQuantity;
+      if (dto.quantity > outstanding) throw new BadRequestException(`Only ${Math.max(outstanding, 0)} confirmed unit(s) are still outstanding`);
+      const shortfall = await tx.receivingShortfall.create({ data: {
+        linkId: link.id, quantity: dto.quantity, reasonCode: dto.reasonCode, notes: dto.notes, actorId,
+      } });
+      await tx.purchaseOrderLineAllocation.update({ where: { id: link.id }, data: { shortQuantity: { increment: dto.quantity } } });
+      const orderId = await this.supplyPlan.reduceForShortfall(tx, dto.sourceAllocationId, dto.quantity);
+      await this.completeIfAllArrived(tx, purchaseOrderId);
+      await this.support.openOperationalException(tx, {
+        dedupKey: `shortfall:${shortfall.id}`, category: 'sourcing', priority: 'high', orderId,
+        title: `Receiving shortfall ${dto.reasonCode} on PO ${purchaseOrderId.slice(0, 8)}`,
+        description: `${dto.quantity} confirmed unit(s) for allocation ${dto.sourceAllocationId} did not arrive (${dto.reasonCode}). ${dto.notes ?? ''}`.trim(),
+      });
+      await this.recordAdvance(tx, 'purchase_order.shortfall', shortfall.id, [orderId]);
+      return shortfall;
+    }, { timeout: 30000 });
+    this.events.dispatchSoon(outcome.id);
+    return outcome;
+  }
+
+  private async completeIfAllArrived(tx: Tx, purchaseOrderId: string) {
+    const links = await tx.purchaseOrderLineAllocation.findMany({ where: { line: { purchaseOrderId } } });
+    const settled = links.every(l => l.receivedQuantity + l.shortQuantity >= (l.confirmedQuantity ?? 0));
+    if (settled && links.some(l => l.receivedQuantity > 0)) {
       await tx.supplierPurchaseOrder.updateMany({
-        where: { id: link.line.purchaseOrderId, status: { in: [PurchaseOrderStatus.confirmed, PurchaseOrderStatus.partial, PurchaseOrderStatus.ready] } },
+        where: { id: purchaseOrderId, status: { in: [PurchaseOrderStatus.confirmed, PurchaseOrderStatus.partial, PurchaseOrderStatus.ready] } },
         data: { status: PurchaseOrderStatus.received_at_hub, receivedAt: new Date() },
       });
     }

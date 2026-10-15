@@ -473,6 +473,24 @@ model SupplierPurchaseOrder {
   @@schema("sourcing")
 }
 
+/// Supplier-confirmed units that did not reach the Hub, with where they were lost (GLO-243). Immutable.
+model ReceivingShortfall {
+  id         String   @id @default(uuid()) @db.Uuid
+  linkId     String   @map("link_id") @db.Uuid
+  quantity   Int
+  /// NOT_HANDED_OVER (at supplier pickup) | LOST_IN_TRANSIT | SHORT_SHIPPED | DAMAGED_IN_TRANSIT
+  reasonCode String   @map("reason_code") @db.VarChar(40)
+  notes      String?
+  actorId    String   @map("actor_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  link PurchaseOrderLineAllocation @relation(fields: [linkId], references: [id], onDelete: Restrict)
+
+  @@index([linkId])
+  @@map("receiving_shortfalls")
+  @@schema("sourcing")
+}
+
 /// Quantity-aware N:1 lineage: each order-item allocation is supplied through exactly one PO line.
 model PurchaseOrderLineAllocation {
   id                  String    @id @default(uuid()) @db.Uuid
@@ -483,11 +501,14 @@ model PurchaseOrderLineAllocation {
   quantity            Int
   confirmedQuantity   Int?      @map("confirmed_quantity")
   receivedQuantity    Int       @default(0) @map("received_quantity")
+  /// Confirmed units that will not arrive (recorded shortfalls; GLO-243).
+  shortQuantity       Int       @default(0) @map("short_quantity")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  line             PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
-  sourceAllocation SourceAllocation  @relation(fields: [sourceAllocationId], references: [id], onDelete: Restrict)
+  line             PurchaseOrderLine    @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
+  sourceAllocation SourceAllocation     @relation(fields: [sourceAllocationId], references: [id], onDelete: Restrict)
+  shortfalls       ReceivingShortfall[]
 
   @@index([purchaseOrderLineId])
   @@index([orderId])
@@ -511,6 +532,12 @@ model PurchaseOrderLine {
   distributedBy     String?                 @map("distributed_by")
   distributedAt     DateTime?               @map("distributed_at")
   distributionReason String?                @map("distribution_reason")
+  /// Supplier's typed reason when a line cannot be supplied as ordered (GLO-237 red team):
+  /// MIN_ORDER_QUANTITY | PACK_SIZE | PRICE_CHANGED | OUT_OF_STOCK | DISCONTINUED
+  exceptionCode      String?                 @map("exception_code") @db.VarChar(40)
+  exceptionNote      String?                 @map("exception_note")
+  proposedQuantity   Int?                    @map("proposed_quantity")
+  proposedUnitCost   Decimal?                @map("proposed_unit_cost") @db.Decimal(10, 2)
   createdAt         DateTime                @default(now()) @map("created_at")
   updatedAt         DateTime                @updatedAt @map("updated_at")
 

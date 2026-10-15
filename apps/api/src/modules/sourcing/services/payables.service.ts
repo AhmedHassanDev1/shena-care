@@ -67,7 +67,7 @@ export class PayablesService {
       const linked = line.allocations.length > 0;
       const confirmed = line.confirmedQuantity ?? 0;
       if (linked) {
-        const awaited = line.allocations.some(link => link.receivedQuantity < (link.confirmedQuantity ?? 0));
+        const awaited = line.allocations.some(link => link.receivedQuantity + link.shortQuantity < (link.confirmedQuantity ?? 0));
         if (awaited) {
           throw new ConflictException({ code: 'GOODS_NOT_RECEIVED',
             message: 'Confirmed goods on this purchase order have not all been received at the Hub' });

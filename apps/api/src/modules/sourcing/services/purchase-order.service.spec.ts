@@ -28,7 +28,7 @@ describe('PurchaseOrderService', () => {
 
     const supplyPlan: any = { confirmFromPurchaseOrder: jest.fn(), advance: jest.fn() };
     const events: any = { registerHandler: jest.fn(), record: jest.fn(), dispatchSoon: jest.fn() };
-    service = new PurchaseOrderService(prismaService, rankingService, supplyPlan, events);
+    service = new PurchaseOrderService(prismaService, rankingService, supplyPlan, events, { openOperationalException: jest.fn() } as any);
   });
 
   describe('Manual Override', () => {

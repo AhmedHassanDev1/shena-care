@@ -6,7 +6,7 @@ import { CurrentUser } from '../../../modules/accounts/decorators/current-user.d
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
 import { PurchaseOrderService } from '../../../modules/sourcing/public';
 import {
-  CreatePurchaseOrderDto, ConfirmPurchaseOrderDto, DistributePurchaseOrderLineDto, FlushProcurementBatchDto, ListPurchaseOrdersQueryDto,
+  CreatePurchaseOrderDto, ConfirmPurchaseOrderDto, DistributePurchaseOrderLineDto, FlushProcurementBatchDto, ListPurchaseOrdersQueryDto, RecordShortfallDto,
 } from '../../../modules/sourcing/public';
 
 type RequestUser = { id: string; roles?: string[]; supplierId?: string | null };
@@ -80,6 +80,14 @@ export class PurchaseOrderController {
   async markReady(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.ownedPurchaseOrder(user, id);
     return this.present(user, await this.purchaseOrderService.markReady(id));
+  }
+
+  /** Hub: confirmed units that did not arrive, with where they were lost (GLO-243). */
+  @Post(':id/shortfalls')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.receive')
+  async recordShortfall(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RecordShortfallDto) {
+    return this.purchaseOrderService.recordShortfall(id, dto, user.id);
   }
 
   /** Admin decision: split a partial confirmation shared by several orders (scarce-stock priority). */
