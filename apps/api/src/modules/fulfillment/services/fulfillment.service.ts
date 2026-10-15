@@ -1442,7 +1442,10 @@ export class FulfillmentService {
     const [total, rows] = await Promise.all([
       this.prisma.shipment.count({ where }),
       this.prisma.shipment.findMany({ where, orderBy: { updatedAt: 'asc' }, take: filter.take, skip: filter.skip,
-        include: { items: true, deliveryStops: { where: { status: 'active' }, select: { batchId: true, sequence: true } } } }),
+        include: {
+          items: true, deliveryStops: { where: { status: 'active' }, select: { batchId: true, sequence: true } },
+          events: { where: { type: { in: ['LABEL_GENERATED', 'LABEL_PRINTED', 'RECEIPT_PRINTED', 'PRINT_FAILED'] } }, select: { type: true, createdAt: true } },
+        } }),
     ]);
     const orders = await this.orderingService.getOrderSummaries(rows.map(r => r.orderId));
     return { total, items: rows.map(row => ({
@@ -1451,6 +1454,8 @@ export class FulfillmentService {
       area: orders.get(row.orderId)?.area ?? null, status: row.status,
       itemCount: row.items.reduce((sum, item) => sum + item.quantity, 0),
       activeRun: row.deliveryStops[0] ?? null, updatedAt: row.updatedAt,
+      // Paper outcomes the operator confirmed (a preview is never a print).
+      printEvents: [...new Set(row.events.map(event => event.type))],
     })) };
   }
 
@@ -1555,6 +1560,27 @@ export class FulfillmentService {
       receipts: receipts.map(r => ({
         id: r.id, skuId: r.skuId, quantity: r.quantity, condition: r.condition, identityMethod: r.identityMethod,
         lotNumber: r.lotNumber, expiryDate: r.expiryDate, receivedAt: r.receivedAt, locationId: r.locationId,
+      })),
+    };
+  }
+
+  /** One run for the hub desk: stops in sequence with custody (handoff) state; admin, own hub or its driver. */
+  async getDeliveryRun(batchId: string, actor: FulfillmentActor) {
+    if (!this.isUuid(batchId)) throw new NotFoundException('Batch not found');
+    const batch = await this.prisma.deliveryBatch.findUnique({
+      where: { id: batchId },
+      include: { stops: { orderBy: { sequence: 'asc' }, include: { shipment: { include: { events: { where: { type: 'HANDOFF_SCANNED' }, select: { createdAt: true } } } } } } },
+    });
+    if (!batch) throw new NotFoundException('Batch not found');
+    await this.resolveBatchScope(batch, actor);
+    const orders = await this.orderingService.getOrderSummaries(batch.stops.map(stop => stop.shipment.orderId));
+    return {
+      id: batch.id, status: batch.status, driverId: batch.driverId, locationId: batch.locationId,
+      plannedAt: batch.plannedAt, dispatchedAt: batch.dispatchedAt, completedAt: batch.completedAt,
+      stops: batch.stops.map(stop => ({
+        sequence: stop.sequence, shipmentId: stop.shipmentId, attemptStatus: stop.status, shipmentStatus: stop.shipment.status,
+        orderNumber: orders.get(stop.shipment.orderId)?.orderNumber ?? null, area: orders.get(stop.shipment.orderId)?.area ?? null,
+        handedOver: stop.shipment.events.some(event => event.createdAt >= stop.createdAt),
       })),
     };
   }

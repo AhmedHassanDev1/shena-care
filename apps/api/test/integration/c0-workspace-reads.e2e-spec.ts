@@ -112,6 +112,17 @@ describe('C0 Business Workspace reads', () => {
     await http().get('/fulfillment/driver/history').set(hub.auth).expect(403);
   });
 
+  it('run detail is visible to its hub, its driver and admin only', async () => {
+    const run = (await http().post('/fulfillment/delivery-batches').set(hub.auth).send({ hubId, name: 'C0 run', driverId: driver.id }).expect(201)).body;
+    expect((await http().get(`/fulfillment/delivery-batches/${run.id}`).set(hub.auth).expect(200)).body).toMatchObject({ id: run.id, driverId: driver.id, stops: [] });
+    await http().get(`/fulfillment/delivery-batches/${run.id}`).set(driver.auth).expect(200);
+    await http().get(`/fulfillment/delivery-batches/${run.id}`).set(admin.auth).expect(200);
+    const otherDriver = await createActor(prisma, 'DRIVER');
+    await http().get(`/fulfillment/delivery-batches/${run.id}`).set(hubB.auth).expect(404);
+    await http().get(`/fulfillment/delivery-batches/${run.id}`).set(otherDriver.auth).expect(404);
+    await http().get(`/fulfillment/delivery-batches/${run.id}`).set(supplier.auth).expect(403);
+  });
+
   it('picking state is hub-scoped', async () => {
     await http().get(`/fulfillment/shipments/${randomUUID()}/preparation`).set(hub.auth).expect(404);
     await http().get(`/fulfillment/shipments/${randomUUID()}/preparation`).set(driver.auth).expect(403);

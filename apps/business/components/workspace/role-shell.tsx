@@ -30,12 +30,17 @@ export function RoleShell({
   active,
   mode,
   counts,
+  task,
+  exitHref,
   children,
 }: {
   role: Role
   active: string
-  mode: 'desktop' | 'mobile'
+  mode: 'desktop' | 'mobile' | 'task'
   counts?: Record<string, number | undefined>
+  /** Task mode (scanner station): the task name and where "exit task" returns. */
+  task?: string
+  exitHref?: string
   children: React.ReactNode
 }) {
   const { state, logout } = useSession()
@@ -73,6 +78,8 @@ export function RoleShell({
         mode={mode}
         operator={operator}
         counts={counts}
+        task={task}
+        exitHref={exitHref}
         onLogout={async () => {
           await logout()
           router.replace('/login')

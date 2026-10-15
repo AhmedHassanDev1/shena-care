@@ -152,6 +152,12 @@ export class FulfillmentController {
     return this.fulfillmentService.createDeliveryBatch(dto, actor);
   }
 
+  @Get('delivery-batches/:id')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
+  async getDeliveryRun(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.getDeliveryRun(id, actor);
+  }
+
   @Post('delivery-batches/:id/stops')
   @Roles('ADMIN', 'HUB_OPERATOR')
   async addStopsToBatch(@Param('id') id: string, @Body() dto: AddStopsToBatchDto, @CurrentUser() actor: FulfillmentActor) {
