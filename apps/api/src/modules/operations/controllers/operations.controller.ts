@@ -2,7 +2,7 @@ import { Controller, Post, Body, Get, Param, Patch, UseGuards, Query } from '@ne
 import { SupportActor, SupportService } from '../services/support.service';
 import { DashboardService } from '../services/dashboard.service';
 import { FinanceService } from '../services/finance.service';
-import { CreateSupportCaseDto, UpdateSupportCaseDto } from '../dto/operations.dto';
+import { CreateSupportCaseDto, SupportCaseQueryDto, UpdateSupportCaseDto } from '../dto/operations.dto';
 import { AuthGuard } from '../../accounts/guards/auth.guard';
 import { RolesGuard } from '../../accounts/guards/roles.guard';
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
@@ -50,8 +50,8 @@ export class OperationsController {
   @Get('support/cases')
   @Roles('ADMIN', 'HUB_OPERATOR')
   @RequirePermissions('support.read')
-  async getSupportCases(@Query('status') status?: string) {
-    return this.supportService.getCases(status);
+  async getSupportCases(@Query() query: SupportCaseQueryDto) {
+    return this.supportService.getCases(query.status, query);
   }
 
   @Get('support/cases/:id')

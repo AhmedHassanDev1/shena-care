@@ -346,6 +346,45 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     return outcome;
   }
 
+  /** Admin queue: shared partial confirmations waiting for an explicit distribution (GLO-239). */
+  async listDistributionRequired(paging: { take: number; skip: number }) {
+    const where = { distributionRequired: true };
+    const [total, rows] = await Promise.all([
+      this.prisma.purchaseOrderLine.count({ where }),
+      this.prisma.purchaseOrderLine.findMany({ where, orderBy: { updatedAt: 'asc' }, take: paging.take, skip: paging.skip,
+        include: { purchaseOrder: true, allocations: true } }),
+    ]);
+    return { total, items: rows.map(line => ({
+      purchaseOrderId: line.purchaseOrderId, lineId: line.id, supplierId: line.purchaseOrder.supplierId, skuId: line.skuId,
+      requestedQuantity: line.requestedQuantity, confirmedQuantity: line.confirmedQuantity, orderAllocations: line.allocations.length,
+      since: line.updatedAt,
+    })) };
+  }
+
+  /**
+   * Confirmed, not-yet-fully-received order lineage for Hub receiving (GLO-239): only allocations
+   * whose order demand is still open. Order/customer details are resolved by the caller's scope.
+   */
+  async listReceivableLinks() {
+    const links = await this.prisma.purchaseOrderLineAllocation.findMany({
+      where: {
+        confirmedQuantity: { gt: 0 },
+        line: { purchaseOrder: { status: { in: [PurchaseOrderStatus.confirmed, PurchaseOrderStatus.partial, PurchaseOrderStatus.ready] } } },
+        sourceAllocation: { requirement: { releasedAt: null } },
+      },
+      include: { line: { include: { purchaseOrder: { include: { supplier: true } } } } },
+      orderBy: { createdAt: 'asc' },
+      take: 500,
+    });
+    return links.filter(link => link.receivedQuantity < (link.confirmedQuantity ?? 0)).map(link => ({
+      allocationId: link.sourceAllocationId, orderId: link.orderId, orderItemId: link.orderItemId, skuId: link.line.skuId,
+      confirmedQuantity: link.confirmedQuantity ?? 0, receivedQuantity: link.receivedQuantity,
+      remainingQuantity: (link.confirmedQuantity ?? 0) - link.receivedQuantity,
+      purchaseOrderId: link.line.purchaseOrderId, purchaseOrderStatus: link.line.purchaseOrder.status,
+      supplierName: link.line.purchaseOrder.supplier.name, readyAt: link.line.purchaseOrder.readyAt,
+    }));
+  }
+
   /** Supplier says confirmed goods are ready for pickup/delivery. Not a receipt: only the Hub receives. */
   async markReady(id: string) {
     const order = await this.getPurchaseOrder(id);

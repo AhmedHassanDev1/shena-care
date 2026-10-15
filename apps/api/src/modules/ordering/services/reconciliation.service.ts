@@ -455,6 +455,47 @@ export class ReconciliationService {
     return this.getSettlementBatch(batchId);
   }
 
+  /**
+   * Cashier/admin queue of COD collections by hub (GLO-239): expected, declared and counted cash
+   * side by side, with the variance; `locationIds` is the caller's hub scope ('all' for admins).
+   */
+  async listCollections(filter: { locationIds: string[] | 'all'; locationId?: string; status?: SettlementStatus; courierId?: string; take: number; skip: number }) {
+    if (filter.locationIds !== 'all' && filter.locationId && !filter.locationIds.includes(filter.locationId)) {
+      throw new ForbiddenException('Operator is not assigned to this hub');
+    }
+    const where: Prisma.PaymentCollectionWhereInput = {
+      ...(filter.locationId ? { locationId: filter.locationId } : filter.locationIds !== 'all' ? { locationId: { in: filter.locationIds } } : {}),
+      ...(filter.status ? { status: filter.status } : {}),
+      ...(filter.courierId ? { courierId: filter.courierId } : {}),
+    };
+    const [total, rows] = await Promise.all([
+      this.prisma.paymentCollection.count({ where }),
+      this.prisma.paymentCollection.findMany({ where, orderBy: { updatedAt: 'desc' }, take: filter.take, skip: filter.skip,
+        include: { order: { select: { orderNumber: true, status: true } } } }),
+    ]);
+    return { total, items: rows.map(c => ({
+      orderId: c.orderId, orderNumber: c.order.orderNumber, orderStatus: c.order.status, locationId: c.locationId,
+      courierId: c.courierId, status: c.status, currency: c.currency, settlementBatchId: c.settlementBatchId,
+      expectedAmount: c.expectedAmount.toFixed(2), declaredAmount: c.declaredAmount?.toFixed(2) ?? null,
+      countedAmount: c.collectedAmount?.toFixed(2) ?? null,
+      variance: c.collectedAmount ? c.collectedAmount.minus(c.expectedAmount).toFixed(2) : null,
+      declaredAt: c.declaredAt, updatedAt: c.updatedAt,
+    })) };
+  }
+
+  async listSettlementBatches(filter: { locationIds: string[] | 'all'; locationId?: string; take: number; skip: number }) {
+    if (filter.locationIds !== 'all' && filter.locationId && !filter.locationIds.includes(filter.locationId)) {
+      throw new ForbiddenException('Operator is not assigned to this hub');
+    }
+    const where: Prisma.CourierSettlementBatchWhereInput = filter.locationId ? { locationId: filter.locationId }
+      : filter.locationIds !== 'all' ? { locationId: { in: filter.locationIds } } : {};
+    const [total, items] = await Promise.all([
+      this.prisma.courierSettlementBatch.count({ where }),
+      this.prisma.courierSettlementBatch.findMany({ where, orderBy: { settledAt: 'desc' }, take: filter.take, skip: filter.skip }),
+    ]);
+    return { total, items };
+  }
+
   /** A settlement with every line's expected, driver-declared and counted cash and their variances. */
   async getSettlementBatch(id: string) {
     const batch = await this.prisma.courierSettlementBatch.findUnique({

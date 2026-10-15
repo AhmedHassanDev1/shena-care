@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, Role } from '@prisma/client';
+import { Prisma, Role, SupportCaseCategory, SupportCasePriority, SupportCaseStatus } from '@prisma/client';
 import { CreateSupportCaseDto, UpdateSupportCaseDto } from '../dto/operations.dto';
 import { OutboxService } from './outbox.service';
 import { PrismaService } from '../../../platform/database/prisma.service';
@@ -123,12 +123,29 @@ export class SupportService {
     return supportCase;
   }
 
-  async getCases(status?: string) {
+  async getCases(status?: string, filter: { category?: SupportCaseCategory; priority?: SupportCasePriority; take?: number; skip?: number } = {}) {
     return this.prisma.supportCase.findMany({
-      where: status ? { status: status as any } : undefined,
+      where: {
+        ...(status ? { status: status as SupportCaseStatus } : {}),
+        ...(filter.category ? { category: filter.category } : {}),
+        ...(filter.priority ? { priority: filter.priority } : {}),
+      },
       // Critical cases (safety) lead the queue; enum order is low < medium < high < critical.
       orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+      take: Math.min(filter.take ?? 50, 200),
+      skip: filter.skip ?? 0,
     });
+  }
+
+  /** Open operational exceptions/cases count and the oldest few, for the admin attention queue. */
+  async openCaseSummary(take: number) {
+    const where = { status: { in: ['open', 'in_progress'] as SupportCaseStatus[] } };
+    const [total, items] = await Promise.all([
+      this.prisma.supportCase.count({ where }),
+      this.prisma.supportCase.findMany({ where, orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }], take,
+        select: { id: true, title: true, category: true, priority: true, status: true, orderId: true, createdAt: true } }),
+    ]);
+    return { total, items };
   }
 
   async getCaseById(id: string, customerId?: string) {

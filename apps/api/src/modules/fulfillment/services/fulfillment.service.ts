@@ -1310,6 +1310,82 @@ export class FulfillmentService {
     });
   }
 
+  // --- Hub work queues (GLO-239): read-only, scoped to an assigned hub, no customer PII ---
+
+  /** Confirmed supplier lineage still to arrive, for orders this hub can receive (no shipment elsewhere). */
+  async getReceivables(locationId: string, actor: FulfillmentActor) {
+    await this.getOperationalLocation(locationId, FulfillmentCapability.RECEIVE_SUPPLIER_GOODS);
+    await this.assertLocationAccess(locationId, actor);
+    const links = await this.purchaseOrders.listReceivableLinks();
+    const shipments = await this.prisma.shipment.findMany({ where: { orderId: { in: links.map(l => l.orderId) } }, select: { orderId: true, locationId: true, status: true } });
+    const elsewhere = new Set(shipments.filter(s => s.locationId !== locationId || !['pending', 'ready_to_prepare'].includes(s.status)).map(s => s.orderId));
+    const mine = links.filter(link => !elsewhere.has(link.orderId));
+    const [orders, skus] = await Promise.all([
+      this.orderingService.getOrderSummaries(mine.map(l => l.orderId)),
+      Promise.all([...new Set(mine.map(l => l.skuId))].map(id => this.catalogService.getSkuIdentity(id))),
+    ]);
+    const skuById = new Map(skus.filter(Boolean).map(sku => [sku!.id, sku!]));
+    return mine.filter(link => { const o = orders.get(link.orderId); return o && ['placed', 'confirmed', 'packing'].includes(o.status); })
+      .map(link => ({
+        ...link,
+        orderNumber: orders.get(link.orderId)!.orderNumber,
+        skuCode: skuById.get(link.skuId)?.code ?? null,
+        variantName: skuById.get(link.skuId)?.variantName ?? null,
+        barcode: skuById.get(link.skuId)?.barcode ?? null,
+      }));
+  }
+
+  /** Preparation / packing / dispatch queue of one hub, with the active delivery attempt if any. */
+  async listHubShipments(locationId: string, actor: FulfillmentActor, filter: { statuses?: ShipmentStatus[]; take: number; skip: number }) {
+    if (!this.isUuid(locationId)) throw new BadRequestException('Invalid location ID');
+    await this.assertLocationAccess(locationId, actor);
+    const where: Prisma.ShipmentWhereInput = { locationId, ...(filter.statuses?.length ? { status: { in: filter.statuses } } : {}) };
+    const [total, rows] = await Promise.all([
+      this.prisma.shipment.count({ where }),
+      this.prisma.shipment.findMany({ where, orderBy: { updatedAt: 'asc' }, take: filter.take, skip: filter.skip,
+        include: { items: true, deliveryStops: { where: { status: 'active' }, select: { batchId: true, sequence: true } } } }),
+    ]);
+    const orders = await this.orderingService.getOrderSummaries(rows.map(r => r.orderId));
+    return { total, items: rows.map(row => ({
+      shipmentId: row.id, orderId: row.orderId, orderNumber: orders.get(row.orderId)?.orderNumber ?? null,
+      orderStatus: orders.get(row.orderId)?.status ?? null, governorate: orders.get(row.orderId)?.governorate ?? null,
+      area: orders.get(row.orderId)?.area ?? null, status: row.status,
+      itemCount: row.items.reduce((sum, item) => sum + item.quantity, 0),
+      activeRun: row.deliveryStops[0] ?? null, updatedAt: row.updatedAt,
+    })) };
+  }
+
+  /** Delivery runs of one hub (planning / dispatched / completed) with attempt counts. */
+  async listHubRuns(locationId: string, actor: FulfillmentActor, filter: { statuses?: string[]; take: number; skip: number }) {
+    if (!this.isUuid(locationId)) throw new BadRequestException('Invalid location ID');
+    await this.assertLocationAccess(locationId, actor);
+    const where: Prisma.DeliveryBatchWhereInput = { locationId, ...(filter.statuses?.length ? { status: { in: filter.statuses } } : {}) };
+    const [total, rows] = await Promise.all([
+      this.prisma.deliveryBatch.count({ where }),
+      this.prisma.deliveryBatch.findMany({ where, orderBy: { createdAt: 'desc' }, take: filter.take, skip: filter.skip,
+        include: { stops: { select: { status: true } } } }),
+    ]);
+    return { total, items: rows.map(run => ({
+      id: run.id, status: run.status, driverId: run.driverId, plannedAt: run.plannedAt, dispatchedAt: run.dispatchedAt, completedAt: run.completedAt,
+      stops: run.stops.length,
+      attempts: run.stops.reduce<Record<string, number>>((acc, stop) => ({ ...acc, [stop.status]: (acc[stop.status] ?? 0) + 1 }), {}),
+    })) };
+  }
+
+  /** Failed delivery attempts awaiting the hub (admin attention queue). */
+  async listFailedDeliveries(paging: { take: number; skip: number }) {
+    const where = { status: ShipmentStatus.failed };
+    const [total, rows] = await Promise.all([
+      this.prisma.shipment.count({ where }),
+      this.prisma.shipment.findMany({ where, orderBy: { updatedAt: 'asc' }, take: paging.take, skip: paging.skip,
+        include: { events: { where: { type: 'FAILED' }, orderBy: { createdAt: 'desc' }, take: 1 } } }),
+    ]);
+    return { total, items: rows.map(row => ({
+      shipmentId: row.id, orderId: row.orderId, locationId: row.locationId,
+      reasonCode: row.events[0]?.reasonCode ?? null, failedAt: row.events[0]?.createdAt ?? row.updatedAt,
+    })) };
+  }
+
   // --- Inventory Management (GLO-151) ---
 
   async getInventoryBalances(locationId: string, actor: FulfillmentActor) {

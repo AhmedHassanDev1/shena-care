@@ -1,4 +1,7 @@
-import { Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { IsIn, IsOptional, IsUUID } from 'class-validator';
+import { SettlementStatus } from '@prisma/client';
+import { PageQueryDto, page } from '../../../platform/api/paging.dto';
 import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
 import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
 import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
@@ -6,6 +9,22 @@ import { CurrentUser } from '../../../modules/accounts/decorators/current-user.d
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
 import { CreateSettlementBatchDto, ReconciliationService } from '../../../modules/ordering/public';
 import { FulfillmentActor, FulfillmentService } from '../../../modules/fulfillment/public';
+
+export class CollectionQueryDto extends PageQueryDto {
+  @IsOptional() @IsUUID()
+  locationId?: string;
+
+  @IsOptional() @IsIn(['expected', 'collected', 'settled', 'short', 'over', 'disputed', 'voided'])
+  status?: SettlementStatus;
+
+  @IsOptional() @IsUUID()
+  courierId?: string;
+}
+
+export class BatchQueryDto extends PageQueryDto {
+  @IsOptional() @IsUUID()
+  locationId?: string;
+}
 
 /**
  * Cash counting at a hub (GLO-238). Composition owns the cross-module scope check: Fulfillment knows
@@ -22,6 +41,19 @@ export class CashSettlementController {
   async createSettlementBatch(@CurrentUser() actor: FulfillmentActor, @Body() dto: CreateSettlementBatchDto) {
     const allowed = await this.fulfillment.operatorLocationIds(actor);
     return this.reconciliation.createSettlementBatch({ ...dto, actorId: actor.id }, allowed);
+  }
+
+  /** Cashier queue (GLO-239): expected / declared / counted cash per order, own hubs only. */
+  @Get('collections')
+  async listCollections(@CurrentUser() actor: FulfillmentActor, @Query() query: CollectionQueryDto) {
+    const allowed = await this.fulfillment.operatorLocationIds(actor);
+    return this.reconciliation.listCollections({ locationIds: allowed, locationId: query.locationId, status: query.status, courierId: query.courierId, ...page(query) });
+  }
+
+  @Get('batches')
+  async listBatches(@CurrentUser() actor: FulfillmentActor, @Query() query: BatchQueryDto) {
+    const allowed = await this.fulfillment.operatorLocationIds(actor);
+    return this.reconciliation.listSettlementBatches({ locationIds: allowed, locationId: query.locationId, ...page(query) });
   }
 
   @Get('batches/:id')

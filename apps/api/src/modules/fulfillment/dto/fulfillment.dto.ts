@@ -10,9 +10,11 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 import { FulfillmentCapability, ReceivedGoodsCondition, ShipmentStatus } from '@prisma/client';
 
 export class CreateLocationDto {
@@ -226,4 +228,31 @@ export class AdjustInventoryDto {
   @IsOptional()
   @IsString()
   referenceId?: string;
+}
+
+/** Hub shipment queue filters (GLO-239). */
+export class HubShipmentQueryDto {
+  @IsOptional()
+  @IsIn(['pending', 'ready_to_prepare', 'preparing', 'prepared', 'ready_to_pack', 'packing', 'packed', 'dispatched', 'out_for_delivery', 'delivered', 'failed', 'returned', 'cancelled'], { each: true })
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.split(',') : value))
+  status?: ShipmentStatus[];
+
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100)
+  take?: number;
+
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0)
+  skip?: number;
+}
+
+export class HubRunQueryDto {
+  @IsOptional()
+  @IsIn(['planning', 'dispatched', 'completed'], { each: true })
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.split(',') : value))
+  status?: string[];
+
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100)
+  take?: number;
+
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0)
+  skip?: number;
 }

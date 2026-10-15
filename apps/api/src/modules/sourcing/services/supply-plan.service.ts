@@ -223,6 +223,22 @@ export class SupplyPlanService {
     return orderId;
   }
 
+  /** Admin queue: order items no supplier can currently cover (GLO-239). */
+  async listOpenActionRequirements(paging: { take: number; skip: number }) {
+    const where = { requirement: { releasedAt: null } };
+    const [total, rows] = await Promise.all([
+      this.prisma.availabilityActionRequirement.count({ where }),
+      this.prisma.availabilityActionRequirement.findMany({
+        where, orderBy: { createdAt: 'asc' }, take: paging.take, skip: paging.skip,
+        include: { requirement: { include: { supplyRequest: true } } },
+      }),
+    ]);
+    return { total, items: rows.map(r => ({
+      orderId: r.requirement.supplyRequest.orderId, orderItemId: r.requirement.orderItemId, skuId: r.requirement.skuId,
+      category: r.category, unresolvedQuantity: r.unresolvedQuantity, since: r.createdAt,
+    })) };
+  }
+
   async getPlan(orderId: string) {
     const request = await this.prisma.supplyRequest.findUnique({ where: { orderId }, include: {
       requirements: { where: { releasedAt: null }, include: { allocations: true, actionRequirement: true } },

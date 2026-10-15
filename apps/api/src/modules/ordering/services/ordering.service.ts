@@ -347,6 +347,28 @@ export class OrderingService {
     return order ? this.present(order) : null;
   }
 
+  /** Order numbers and status only — no customer PII — for operational lists (GLO-239). */
+  async getOrderSummaries(ids: string[]): Promise<Map<string, { id: string; orderNumber: string; status: OrderStatus; governorate: string | null; area: string | null }>> {
+    if (!ids.length) return new Map();
+    const rows = await this.prisma.order.findMany({ where: { id: { in: [...new Set(ids)] } },
+      select: { id: true, orderNumber: true, status: true, governorate: true, area: true } });
+    return new Map(rows.map(row => [row.id, row]));
+  }
+
+  /** Admin queue: availability decisions the customer has not answered yet. */
+  async listPendingDecisions(paging: { take: number; skip: number }) {
+    const where = { status: 'pending' as const };
+    const [total, rows] = await Promise.all([
+      this.prisma.availabilityDecision.count({ where }),
+      this.prisma.availabilityDecision.findMany({ where, orderBy: { createdAt: 'asc' }, take: paging.take, skip: paging.skip,
+        include: { order: { select: { orderNumber: true } } } }),
+    ]);
+    return { total, items: rows.map(d => ({
+      decisionId: d.id, orderId: d.orderId, orderNumber: d.order.orderNumber, orderItemId: d.orderItemId,
+      reason: d.reasonCategory, unresolvedQuantity: d.unresolvedQuantity, expiresAt: d.expiresAt, since: d.createdAt,
+    })) };
+  }
+
   /**
    * Operator pin for an order that has none (placed before pins were mandatory). A customer pin is
    * never overwritten, and a package already with a driver is not re-routed here (GLO-231).

@@ -5,6 +5,7 @@ import { SourcingModule } from '../../modules/sourcing/public';
 import { OperationsModule } from '../../modules/operations/operations.module';
 import { CashSettlementController } from './controllers/cash-settlement.controller';
 import { OrderCancellationController } from './controllers/order-cancellation.controller';
+import { OperationsQueueController } from './controllers/operations-queue.controller';
 import { OrderCancellationService } from './services/order-cancellation.service';
 
 /**
@@ -13,7 +14,7 @@ import { OrderCancellationService } from './services/order-cancellation.service'
  */
 @Module({
   imports: [OrderingModule, FulfillmentModule, SourcingModule, OperationsModule],
-  controllers: [CashSettlementController, OrderCancellationController],
+  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController],
   providers: [OrderCancellationService],
 })
 export class OperationsCompositionModule {}

@@ -1,6 +1,6 @@
-import { Controller, Post, Body, Get, Param, Patch, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, Delete, UseGuards, Query } from '@nestjs/common';
 import { FulfillmentService } from './services/fulfillment.service';
-import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto, AssignLocationOperatorDto, ReceiveAllocatedGoodsDto } from './dto/fulfillment.dto';
+import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto, AssignLocationOperatorDto, ReceiveAllocatedGoodsDto, HubShipmentQueryDto, HubRunQueryDto } from './dto/fulfillment.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
 import { PermissionsGuard, RequirePermissions } from '../../platform/auth';
@@ -167,6 +167,29 @@ export class FulfillmentController {
   @Roles('ADMIN', 'DRIVER')
   async completeBatch(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
     return this.fulfillmentService.completeBatch(id, actor);
+  }
+
+  // --- Hub work queues (GLO-239) ---
+
+  @Get('locations/:id/receivables')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.receive')
+  async getReceivables(@Param('id') locationId: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.getReceivables(locationId, actor);
+  }
+
+  @Get('locations/:id/shipments')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.prepare')
+  async listHubShipments(@Param('id') locationId: string, @Query() query: HubShipmentQueryDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.listHubShipments(locationId, actor, { statuses: query.status, take: query.take ?? 20, skip: query.skip ?? 0 });
+  }
+
+  @Get('locations/:id/runs')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('delivery.plan')
+  async listHubRuns(@Param('id') locationId: string, @Query() query: HubRunQueryDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.listHubRuns(locationId, actor, { statuses: query.status, take: query.take ?? 20, skip: query.skip ?? 0 });
   }
 
   // --- Inventory Management (GLO-151) ---
