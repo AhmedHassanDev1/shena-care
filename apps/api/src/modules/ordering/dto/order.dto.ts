@@ -63,6 +63,17 @@ export class CheckoutDto {
   @IsString()
   @IsOptional()
   couponCode?: string;
+
+  /** COD by default. CARD / MOBILE_WALLET only when a real provider is connected (GLO-241). */
+  @IsOptional()
+  @IsIn(['COD', 'CARD', 'MOBILE_WALLET'])
+  paymentMethod?: 'COD' | 'CARD' | 'MOBILE_WALLET';
+
+  /** Wallet/product subtype, e.g. 'vodafone_cash'; must match a connected provider. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  paymentProvider?: string;
 }
 
 export class CheckoutQuoteRequestDto {

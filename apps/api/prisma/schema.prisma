@@ -645,6 +645,10 @@ model Order {
   guestAccessExpiresAt  DateTime?   @map("guest_access_expires_at")
   guestAccessRevokedAt  DateTime?   @map("guest_access_revoked_at")
   appliedPromotions     Json?       @map("applied_promotions") // provenance for discounts/campaigns
+  /// How the customer pays (GLO-241). Only COD creates driver cash; online methods need provider confirmation.
+  paymentMethod         PaymentMethod @default(COD) @map("payment_method")
+  /// Provider/product for online methods, e.g. a card PSP or 'vodafone_cash'.
+  paymentProvider       String?     @map("payment_provider") @db.VarChar(40)
   createdAt             DateTime    @default(now()) @map("created_at")
   updatedAt             DateTime    @updatedAt @map("updated_at")
 
@@ -656,6 +660,7 @@ model Order {
   refundTransactions    RefundTransaction[]
   availabilityDecisions AvailabilityDecision[]
   amendments            OrderAmendment[]
+  paymentAttempts       PaymentAttempt[]
 
   @@map("orders")
   @@schema("ordering")
@@ -882,6 +887,65 @@ model RefundTransaction {
 
   @@index([orderId])
   @@map("refund_transactions")
+  @@schema("ordering")
+}
+
+enum PaymentMethod {
+  COD
+  CARD
+  MOBILE_WALLET
+
+  @@schema("ordering")
+}
+
+enum PaymentAttemptStatus {
+  pending
+  confirmed
+  failed
+
+  @@schema("ordering")
+}
+
+/// An online payment attempt (GLO-241). Becomes `confirmed` only from a verified provider event;
+/// at most one confirmed attempt per order (partial unique index). Card data is never stored.
+model PaymentAttempt {
+  id                    String               @id @default(uuid()) @db.Uuid
+  orderId               String               @map("order_id") @db.Uuid
+  method                PaymentMethod
+  provider              String               @db.VarChar(40)
+  /// Merchant reference sent to the provider; provider events refer to it.
+  reference             String               @unique @db.VarChar(64)
+  amount                Decimal              @db.Decimal(10, 2)
+  currency              String               @db.VarChar(3)
+  status                PaymentAttemptStatus @default(pending)
+  providerTransactionId String?              @map("provider_transaction_id") @db.VarChar(128)
+  failureReason         String?              @map("failure_reason")
+  confirmedAt           DateTime?            @map("confirmed_at")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@map("payment_attempts")
+  @@schema("ordering")
+}
+
+/// Every provider callback as received, deduplicated per provider event id (replays are harmless).
+model PaymentProviderEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  provider        String   @db.VarChar(40)
+  providerEventId String   @map("provider_event_id") @db.VarChar(128)
+  type            String   @db.VarChar(40)
+  reference       String?  @db.VarChar(64)
+  /// applied | duplicate | ignored | rejected
+  outcome         String   @db.VarChar(20)
+  detail          String?
+  payload         Json
+  receivedAt      DateTime @default(now()) @map("received_at")
+
+  @@unique([provider, providerEventId])
+  @@map("payment_provider_events")
   @@schema("ordering")
 }
 

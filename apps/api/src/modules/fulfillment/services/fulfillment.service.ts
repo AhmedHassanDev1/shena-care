@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { OrderingService, ReconciliationService, navigationUrl } from '../../ordering/public';
+import { OrderingService, PaymentsService, ReconciliationService, navigationUrl } from '../../ordering/public';
 import { CatalogService } from '../../catalog/public';
 import { PurchaseOrderService, SupplyPlanService } from '../../sourcing/public';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto, ReceiveAllocatedGoodsDto, CreateDeliveryBatchDto, DeliveryStopInputDto } from '../dto/fulfillment.dto';
@@ -116,6 +116,7 @@ export class FulfillmentService {
     private readonly reconciliation: ReconciliationService,
     private readonly purchaseOrders: PurchaseOrderService,
     private readonly support: SupportService,
+    private readonly payments: PaymentsService,
   ) {}
 
   /**
@@ -1072,10 +1073,16 @@ export class FulfillmentService {
     return { goodsReceived: receipts > 0 };
   }
 
-  /** A run only carries stops a driver can navigate to: the order's confirmed pin (GLO-231). */
+  /**
+   * A run only carries stops a driver can navigate to (confirmed pin, GLO-231) and that are paid or
+   * cash on delivery: an unconfirmed card/wallet payment never leaves the hub (GLO-241).
+   */
   private async assertDeliveryPin(orderId: string) {
     const order = await this.orderingService.getOrder(orderId);
     if (!order) throw new NotFoundException('Order not found');
+    if (!(await this.payments.isPaymentSatisfied(orderId))) {
+      throw new ConflictException({ code: 'PAYMENT_NOT_CONFIRMED', message: `Order ${order.orderNumber} is not paid yet` });
+    }
     if (order.latitude === null || order.latitude === undefined || order.longitude === null || order.longitude === undefined) {
       throw new ConflictException({
         code: 'LOCATION_REQUIRED',

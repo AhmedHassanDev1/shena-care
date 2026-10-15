@@ -1,9 +1,10 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { createHash, createHmac, randomUUID } from 'crypto';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CommerceService, PromotionService } from '../../commerce/public';
 import { DomainEventsService } from '../../../platform/events/domain-events.service';
+import { PaymentsService } from './payments.service';
 import { CheckoutDto, CheckoutQuoteRequestDto, CorrectDeliveryLocationDto } from '../dto/order.dto';
 import { assertDeliverablePin, serviceGovernorate } from './service-area';
 import { OutboxService } from '../../operations/services/outbox.service';
@@ -78,6 +79,8 @@ export interface OrderDetail {
   }>;
   guestAccessToken?: string;
   guestAccessExpiresAt?: Date;
+  paymentMethod?: PaymentMethod;
+  payment?: { method: PaymentMethod; provider: string; reference: string; status: string; amount: number; currency: string } | null;
 }
 
 @Injectable()
@@ -91,6 +94,7 @@ export class OrderingService {
     private readonly promotionService: PromotionService,
     private readonly outbox: OutboxService,
     private readonly events: DomainEventsService,
+    private readonly payments: PaymentsService,
   ) {}
 
   private reviewRequired(): never {
@@ -218,6 +222,11 @@ export class OrderingService {
 
   private async presentSubmission(order: any, owner: CartOwner): Promise<OrderDetail> {
     const detail = this.present(order);
+    if (order.paymentMethod && order.paymentMethod !== 'COD') {
+      const attempt = await this.prisma.paymentAttempt.findFirst({ where: { orderId: order.id }, orderBy: { createdAt: 'desc' } });
+      detail.payment = attempt ? { method: attempt.method, provider: attempt.provider, reference: attempt.reference, status: attempt.status,
+        amount: Number(attempt.amount), currency: attempt.currency } : null;
+    }
     if ('guestToken' in owner) {
       const token = this.guestTokenForOrder(owner.guestToken, order.id);
       if (!order.guestAccessTokenHash) {
@@ -255,6 +264,9 @@ export class OrderingService {
     // Serviceability and a customer-confirmed pin are owner rules, enforced here (GLO-231).
     serviceGovernorate(dto.governorate);
     assertDeliverablePin(dto);
+    const paymentMethod = (dto.paymentMethod ?? 'COD') as PaymentMethod;
+    const paymentProvider = this.payments.resolveProvider(paymentMethod, dto.paymentProvider);
+    const online = PaymentsService.isOnline(paymentMethod);
 
     try {
     const quote = await this.prisma.checkoutQuote.findUnique({ where: { id: dto.quoteVersion } });
@@ -288,7 +300,9 @@ export class OrderingService {
             latitude: dto.latitude, longitude: dto.longitude, locationSource: dto.locationSource,
             locationConfirmedAt: new Date(), locationConfirmedBy: 'customer',
             notes: dto.notes, subtotal: accepted.subtotal, shippingFee: accepted.shippingFee,
-            codAmount: accepted.codAmount, totalAmount: accepted.totalAmount, currency: accepted.currency,
+            // Only cash on delivery creates money the driver collects (GLO-241).
+            codAmount: online ? 0 : accepted.codAmount, totalAmount: accepted.totalAmount, currency: accepted.currency,
+            paymentMethod, paymentProvider,
             deliveryPromise: accepted.deliveryPromise, availabilityCertainty: accepted.availabilityCertainty,
             appliedPromotions: accepted.appliedPromotions as Prisma.InputJsonValue,
             status: OrderStatus.placed,
@@ -321,11 +335,17 @@ export class OrderingService {
           templateId: 'order_received_v1',
           deduplicationKey: `order.placed:${created.id}`,
         });
-        // Durable handoff to Sourcing in the same transaction as the order (GLO-236).
-        await this.events.record(tx, {
-          eventType: 'order.placed', aggregateType: 'Order', aggregateId: created.id,
-          payload: { orderId: created.id, orderNumber: created.orderNumber },
-        });
+        if (online) {
+          // Paid online: sourcing starts only after a verified provider confirmation (PaymentsService).
+          await this.payments.createAttempt(tx, { orderId: created.id, method: paymentMethod, provider: paymentProvider!,
+            amount: accepted.totalAmount, currency: accepted.currency });
+        } else {
+          // Durable handoff to Sourcing in the same transaction as the order (GLO-236).
+          await this.events.record(tx, {
+            eventType: 'order.placed', aggregateType: 'Order', aggregateId: created.id,
+            payload: { orderId: created.id, orderNumber: created.orderNumber },
+          });
+        }
 
         return created;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

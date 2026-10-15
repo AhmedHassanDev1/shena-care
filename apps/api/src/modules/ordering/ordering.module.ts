@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 import { OrderingService } from './services/ordering.service';
 import { CartService } from './services/cart.service';
 import { ReconciliationService } from './services/reconciliation.service';
+import { PaymentsService } from './services/payments.service';
+import { PaymentWebhookController } from './payment-webhook.controller';
 import { CommerceModule } from '../commerce/public';
 import { SourcingModule } from '../sourcing/public';
 import { OrderingController } from './ordering.controller';
@@ -22,8 +24,8 @@ import { OperationsModule } from '../operations/operations.module';
   imports: [DomainEventsModule, CommerceModule, SourcingModule, CatalogModule, OperationsModule],
   controllers: [OrderingController, CartController, CheckoutController, GuestOrderTrackingController,
     AvailabilityDecisionController, GuestAvailabilityDecisionController,
-    CustomerReturnsController, GuestReturnsController],
-  providers: [OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, ReturnEligibilityService],
-  exports: [OrderingService, CartService, ReconciliationService],
+    CustomerReturnsController, GuestReturnsController, PaymentWebhookController],
+  providers: [OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, ReturnEligibilityService, PaymentsService],
+  exports: [OrderingService, CartService, ReconciliationService, PaymentsService],
 })
 export class OrderingModule {}

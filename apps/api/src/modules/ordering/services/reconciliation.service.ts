@@ -161,7 +161,10 @@ export class ReconciliationService {
       if (currency !== resolution.order.currency) throw new BadRequestException(`Refunds for this order are in ${resolution.order.currency}`);
       await tx.$queryRaw`SELECT id FROM "ordering"."orders" WHERE id = ${resolution.orderId}::uuid FOR UPDATE`;
       const collection = await tx.paymentCollection.findUnique({ where: { orderId: resolution.orderId } });
-      const received = !collection ? null
+      const onlinePaid = resolution.order.paymentMethod !== 'COD'
+        ? (await tx.paymentAttempt.findFirst({ where: { orderId: resolution.orderId, status: 'confirmed' } }))?.amount ?? null : null;
+      // The refund follows the capture channel: online-confirmed amount, or COD cash actually received.
+      const received = resolution.order.paymentMethod !== 'COD' ? onlinePaid : !collection ? null
         : collection.settlementBatchId && collection.collectedAmount ? collection.collectedAmount
         : collection.status === 'collected' ? collection.declaredAmount : null;
       if (!received || !received.greaterThan(0)) {
@@ -290,6 +293,7 @@ export class ReconciliationService {
     }
     const order = await db.order.findUnique({ where: { id: orderId } });
     if (!order || order.status === 'cancelled') return null;
+    if (order.paymentMethod !== 'COD') return null; // card/wallet orders never create driver cash (GLO-241)
     const expected = order.codAmount ?? order.totalAmount;
     if (expected.lessThanOrEqualTo(0)) return null;
     // ON CONFLICT: safe for concurrent creators and never aborts the caller's transaction.
