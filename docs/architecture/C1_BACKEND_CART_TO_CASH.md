@@ -37,8 +37,8 @@ The canonical automated run is `apps/api/test/integration/c2c-backend-acceptance
 | `POST /ordering/checkout` | requires `latitude`, `longitude`, `locationSource` (`map_pin`\|`current_location`), `locationConfirmed: true`; 422 `OUT_OF_SERVICE_AREA` / `LOCATION_PIN_IMPROBABLE`; optional `paymentMethod` (`COD` default; `CARD`/`MOBILE_WALLET` → 422 `PAYMENT_METHOD_UNAVAILABLE` until a provider is connected) |
 | `POST /ordering/checkout/quote` | 422 `OUT_OF_SERVICE_AREA` outside Cairo/Giza |
 | `POST /ordering/settlements/batch` | now in the composition layer; requires `locationId` and a driver `courierId` (UUID); returns per-line expected/declared/counted/variance |
-| `POST /fulfillment/receipts` | requires `barcodeScanned` **or** `manualReason` + `manualChecks: [brand, variant, size, pack]` |
-| `POST /fulfillment/preparation-sessions/:id/scan` | a bare `skuId` is a manual verification and needs `manualReason` + all `manualChecks` |
+| `POST /fulfillment/receipts` | requires `barcodeScanned` **or** `manualReason` + `manualChecks: [brand, variant, size, pack]`; optional `lotNumber`, `expiryDate` (expired → `RECEIVING_EXCEPTION`) |
+| `POST /fulfillment/preparation-sessions/:id/scan` | a bare `skuId` is a manual verification and needs `manualReason` + all `manualChecks`; optional `clientScanId` makes retries idempotent |
 | `POST /fulfillment/shipments/:id/events` | `FAILED` needs `reasonCode`; new `RECEIVED_BACK` (hub, barcode); `RETURNED` needs the barcode |
 | `PATCH /fulfillment/shipments/:id/status` | `failed` needs `reasonCode`; `cancelled`, `returned` and failed→`packed` are command-only; staff cannot set a COD shipment `delivered` (409 `COD_DELIVERY_REQUIRES_DRIVER`) |
 | `POST /purchase-orders/:id/confirm` | late identical answer is idempotent, different → 409; optional `exceptionCode`, `exceptionNote`, `proposedQuantity`, `proposedUnitCost`; status `price_changed` |
@@ -55,6 +55,7 @@ The canonical automated run is `apps/api/test/integration/c2c-backend-acceptance
 | `POST /purchase-orders/:id/lines/:lineId/distribute` | ADMIN (`sourcing.manage`) | scarce-stock decision, audited |
 | `POST /purchase-orders/:id/shortfalls` | ADMIN, HUB (`hub.receive`) | `NOT_HANDED_OVER` \| `LOST_IN_TRANSIT` \| `SHORT_SHIPPED` \| `DAMAGED_IN_TRANSIT` |
 | `PATCH /ordering/orders/:id/delivery-location` | ADMIN, HUB (`delivery.plan`) | only for orders without a pin |
+| `POST /ordering/orders/:id/delivery-instructions` | ADMIN, HUB (`delivery.plan`) | append-only note / corrected meeting point; customer pin preserved |
 | `POST /ordering/orders/:id/cancel` | ADMIN (`order.manage`) | before custody only |
 | `GET /ordering/settlements/collections`, `/batches`, `/batches/:id` | ADMIN, HUB (`cod.reconcile`) | own hubs only |
 | `GET /fulfillment/locations/:id/receivables`, `/shipments`, `/runs` | ADMIN, assigned HUB | bounded, no customer phone/address |

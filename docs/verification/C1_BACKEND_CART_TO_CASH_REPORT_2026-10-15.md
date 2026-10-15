@@ -12,18 +12,21 @@ decisions in §7 left fail-closed (not invented). Commits are on local `main`, *
 ## Environment and evidence
 
 - Disposable PostgreSQL 16 cluster created with `initdb` (127.0.0.1:55432, trust auth), database
-  `shenacare_test`, recreated from empty; `prisma migrate deploy` → **42 migrations** applied.
+  `shenacare_test`, recreated from empty; `prisma migrate deploy` → **42 migrations** applied (a 43rd,
+  `20261015180000_rt_…`, was added by the red-team slice and applied on top).
   `DATABASE_URL` overridden in-process; the API `.env` (Neon) was never used.
 - Baseline at `7e8855e`: 58 suites / 408 tests passed.
-- Final run (code at `6a0fa22` + the acceptance suite and docs commit):
+- Final run at `b8c2cb5`:
   `DATABASE_URL="postgresql://postgres@127.0.0.1:55432/shenacare_test?connection_limit=5&connect_timeout=30" NODE_ENV=test npx jest --runInBand --forceExit`
-  → **68 suites, 467 tests passed, 0 failed, 0 skipped**. `npm run typecheck` clean. ESLint 264
-  errors repo-wide (W0 baseline 274; none in files added by C1).
+  → **69 suites, 470 tests passed, 0 failed, 0 skipped**. `npm run typecheck` clean. ESLint 264
+  errors repo-wide (W0 baseline 274; none in files added by C1). The previous full run at
+  `4d3adb0` on a freshly recreated database (42 migrations) was 68/68 suites, 467/467.
 - Canonical run: `test/integration/c2c-backend-acceptance.e2e-spec.ts` — 12 ordered steps, 12/12,
   repeatable on the same database.
-- Known environment flake (pre-existing, recorded in W0): `product-discovery` can hit
-  `Can't reach database server` at full-suite start on this Windows host; it passed in the final run
-  and 4/4 in isolation; it is not related to C1 code.
+- Known environment flakes (not C1 logic): `product-discovery` can hit `Can't reach database server`
+  at full-suite start on this Windows host (pre-existing, recorded in W0; passes in isolation), and
+  during antivirus CPU spikes individual suites can exceed the 15 s per-test timeout (a run where
+  suites took ~190 s failed this way; the rerun passed 69/69).
 
 ## Commits
 
@@ -38,7 +41,8 @@ decisions in §7 left fail-closed (not invented). Commits are on local `main`, *
 | `eaa4420` | GLO-241 | payment-method-aware orders, fail-closed online payments (METHOD-READY, not live) |
 | `34db9b0` | GLO-242 | reviewed barcode aliases, identity evidence at receiving and preparation |
 | `6a0fa22` | GLO-237 red team, GLO-243 | typed supplier exceptions (MOQ/pack/price), attributable receiving shortfalls |
-| (this commit) | GLO-235 | canonical C2C acceptance suite, contracts/runbook, this report |
+| `4d3adb0` | GLO-235 | canonical C2C acceptance suite, contracts/runbook, this report |
+| `b8c2cb5` | GLO-235 red team | RT14 idempotent scans, RT08 operator instructions beside the customer pin, RT04 lot/expiry evidence |
 
 ## Workflow status (backend)
 
@@ -57,6 +61,19 @@ decisions in §7 left fail-closed (not invented). Commits are on local `main`, *
 | 11 | Role-scoped operational read APIs | PASS | glo-239 |
 | 12 | Cross-domain automated E2E | PASS | c2c-backend-acceptance |
 | — | Payment methods (cards, Vodafone Cash) | METHOD-READY only — no provider | glo-241 |
+
+## Red-team register coverage (owner document, 20 hypotheses)
+
+| RT | Coverage |
+|---|---|
+| RT01, RT02, RT06, RT07, RT11, RT15, RT19, RT20 | implemented and tested (GLO-236/237/238/240/241, git hygiene, c2c suite) |
+| RT03, RT04 | reviewed aliases, typed review/ambiguity, audited manual check, condition/expired hold, lot/expiry evidence; physical QC remains a human gate |
+| RT05 | shortfall attribution (`NOT_HANDED_OVER`, `LOST_IN_TRANSIT`, …); pickup manifest = owner decision |
+| RT08 | immutable customer pin, typed failure reasons (`PIN_MISMATCH`, `ADDRESS_NOT_FOUND`, `NOT_SERVICEABLE`), append-only operator instructions |
+| RT09, RT10 | fail-closed online payments; MOQ/pack/price exceptions recorded, never applied; approval/negative-margin policy = owner |
+| RT12 | cancellation fences batching/receiving/dispatch; refunds bounded and proof-backed |
+| RT14 | receipt idempotency keys, scan session lock, client scan ids, handoff/delivery replays |
+| RT13, RT16, RT17, RT18 | owner policy / operational tests (returns law table, ERP correlation, proof of delivery, promise windows) — not invented |
 
 ## Security and financial integrity results
 
