@@ -107,3 +107,26 @@ export class CorrectDeliveryLocationDto {
   @MaxLength(500)
   reason: string;
 }
+
+/** Append-only operator instruction; never replaces the customer's confirmed pin (RT08). */
+export class AddDeliveryInstructionDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  note: string;
+
+  @IsIn(['ADDRESS_CLARIFICATION', 'PIN_CORRECTION', 'CUSTOMER_REQUEST', 'ACCESS_INSTRUCTIONS'])
+  reason: string;
+
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(-90)
+  @Max(90)
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(-180)
+  @Max(180)
+  longitude?: number;
+}

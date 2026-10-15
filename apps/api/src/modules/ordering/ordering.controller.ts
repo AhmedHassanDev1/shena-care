@@ -3,7 +3,7 @@ import { OrderingService } from './services/ordering.service';
 import { CartService } from './services/cart.service';
 import { OrderTrackingService } from './services/order-tracking.service';
 import { OrderLookupParamsDto } from './dto/order-tracking.dto';
-import { CorrectDeliveryLocationDto } from './dto/order.dto';
+import { AddDeliveryInstructionDto, CorrectDeliveryLocationDto } from './dto/order.dto';
 import { CreateResolutionDto, UpdateResolutionStatusDto, InitializePaymentCollectionDto, InitiateRefundDto, UpdateRefundStatusDto } from './dto/reconciliation.dto';
 import { ReconciliationService } from './services/reconciliation.service';
 import { AuthGuard } from '../accounts/guards/auth.guard';
@@ -40,6 +40,14 @@ export class OrderingController {
   @RequirePermissions('delivery.plan')
   async correctDeliveryLocation(@CurrentUser() actor: any, @Param('id', ParseUUIDPipe) id: string, @Body() dto: CorrectDeliveryLocationDto) {
     return this.orderingService.correctDeliveryLocation(id, dto, actor.id);
+  }
+
+  /** Operator clarification or corrected meeting point; the customer's pin is preserved (RT08). */
+  @Post('orders/:id/delivery-instructions')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('delivery.plan')
+  async addDeliveryInstruction(@CurrentUser() actor: any, @Param('id', ParseUUIDPipe) id: string, @Body() dto: AddDeliveryInstructionDto) {
+    return this.orderingService.addDeliveryInstruction(id, dto, actor.id);
   }
 
   // --- GLO-127: Order Resolutions ---

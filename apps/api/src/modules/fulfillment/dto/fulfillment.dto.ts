@@ -2,6 +2,7 @@ import {
   ArrayUnique,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsIn,
   IsInt,
@@ -92,6 +93,17 @@ export class ReceiveAllocatedGoodsDto {
   @IsArray()
   @IsIn(MANUAL_IDENTITY_CHECKS, { each: true })
   manualChecks?: string[];
+
+  /** Printed lot/batch, when visible on the pack (RT04). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  lotNumber?: string;
+
+  /** Printed expiry (YYYY-MM-DD), when visible. An already-expired unit is never received. */
+  @IsOptional()
+  @IsDateString({ strict: true })
+  expiryDate?: string;
 }
 
 export class AllocateShipmentDto {
@@ -157,6 +169,12 @@ export class ScanItemDto {
   @IsArray()
   @IsIn(MANUAL_IDENTITY_CHECKS, { each: true })
   manualChecks?: string[];
+
+  /** Client-generated id of this physical scan; a retry after a timeout returns the original (RT14). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  clientScanId?: string;
 }
 
 /**

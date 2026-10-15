@@ -721,8 +721,28 @@ model Order {
   availabilityDecisions AvailabilityDecision[]
   amendments            OrderAmendment[]
   paymentAttempts       PaymentAttempt[]
+  deliveryInstructions  DeliveryInstruction[]
 
   @@map("orders")
+  @@schema("ordering")
+}
+
+/// Operator delivery instruction or corrected meeting point (RT08). Append-only: the customer's
+/// confirmed pin and address on the order are never overwritten; drivers see both.
+model DeliveryInstruction {
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @map("order_id") @db.Uuid
+  note      String
+  latitude  Float?
+  longitude Float?
+  reason    String   @db.VarChar(40)
+  actorId   String   @map("actor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("delivery_instructions")
   @@schema("ordering")
 }
 
@@ -1296,6 +1316,9 @@ model FulfillmentReceipt {
   identityMethod              String                 @default("unverified") @map("identity_method") @db.VarChar(20)
   barcodeScanned              String?                @map("barcode_scanned") @db.VarChar(64)
   identityNote                String?                @map("identity_note")
+  /// Printed lot/batch and expiry when visible on the pack (evidence for later complaints; RT04).
+  lotNumber                   String?                @map("lot_number") @db.VarChar(64)
+  expiryDate                  DateTime?              @map("expiry_date") @db.Date
   actorId                     String                 @map("actor_id") @db.Uuid
   inventoryTransactionId      String                 @unique @map("inventory_transaction_id") @db.Uuid
   receivedAt                  DateTime               @default(now()) @map("received_at")
@@ -1346,9 +1369,12 @@ model PreparationScanEvent {
   verificationMethod String? @map("verification_method") @db.VarChar(20)
   operatorId     String?  @map("operator_id")
   manualReason   String?  @map("manual_reason")
+  /// Client-generated id of one physical scan: a retried request returns the original (RT14).
+  clientScanId   String?  @map("client_scan_id") @db.VarChar(64)
 
   session ShipmentPreparationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
+  @@unique([sessionId, clientScanId])
   @@index([sessionId])
   @@map("preparation_scan_events")
   @@schema("fulfillment")

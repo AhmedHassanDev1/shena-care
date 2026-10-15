@@ -5,8 +5,8 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { CommerceService, PromotionService } from '../../commerce/public';
 import { DomainEventsService } from '../../../platform/events/domain-events.service';
 import { PaymentsService } from './payments.service';
-import { CheckoutDto, CheckoutQuoteRequestDto, CorrectDeliveryLocationDto } from '../dto/order.dto';
-import { assertDeliverablePin, serviceGovernorate } from './service-area';
+import { AddDeliveryInstructionDto, CheckoutDto, CheckoutQuoteRequestDto, CorrectDeliveryLocationDto } from '../dto/order.dto';
+import { assertDeliverablePin, navigationUrl, serviceGovernorate } from './service-area';
 import { OutboxService } from '../../operations/services/outbox.service';
 import { CartOwner, CartService } from './cart.service';
 
@@ -365,6 +365,39 @@ export class OrderingService {
       include: { items: { where: { lineState: 'active' } } },
     });
     return order ? this.present(order) : null;
+  }
+
+  /**
+   * Operator delivery instruction / corrected meeting point (RT08): appended, audited, and shown to
+   * the assigned driver next to — never instead of — the customer's confirmed pin and address.
+   */
+  async addDeliveryInstruction(id: string, dto: AddDeliveryInstructionDto, actorId: string) {
+    if ((dto.latitude === undefined) !== (dto.longitude === undefined)) {
+      throw new BadRequestException('Give both latitude and longitude, or neither');
+    }
+    if (dto.latitude !== undefined) assertDeliverablePin(dto);
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (['delivered', 'cancelled', 'returned'].includes(order.status)) {
+      throw new ConflictException(`Delivery instructions cannot change in status ${order.status}`);
+    }
+    return this.prisma.deliveryInstruction.create({ data: {
+      orderId: id, note: dto.note, reason: dto.reason, latitude: dto.latitude ?? null, longitude: dto.longitude ?? null, actorId,
+    } });
+  }
+
+  async getLatestDeliveryInstructions(orderIds: string[]) {
+    const rows = orderIds.length ? await this.prisma.deliveryInstruction.findMany({
+      where: { orderId: { in: orderIds } }, orderBy: { createdAt: 'desc' },
+    }) : [];
+    const latest = new Map<string, { note: string; reason: string; at: Date; location: { latitude: number; longitude: number; navigationUrl: string } | null }>();
+    for (const row of rows) {
+      if (latest.has(row.orderId)) continue;
+      latest.set(row.orderId, { note: row.note, reason: row.reason, at: row.createdAt,
+        location: row.latitude !== null && row.longitude !== null
+          ? { latitude: row.latitude, longitude: row.longitude, navigationUrl: navigationUrl(row.latitude, row.longitude) } : null });
+    }
+    return latest;
   }
 
   /** Order numbers and status only — no customer PII — for operational lists (GLO-239). */

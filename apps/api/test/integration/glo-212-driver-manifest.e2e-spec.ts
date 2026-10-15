@@ -90,6 +90,7 @@ describe('GLO-212 driver run manifest and handoff replay (e2e)', () => {
       governorate: 'Giza', area: 'Dokki', address: '14 Mossadak St', deliveryNotes: 'Ring twice',
       location: { latitude: 30.0386, longitude: 31.2122, source: 'map_pin',
         navigationUrl: 'https://www.google.com/maps/dir/?api=1&destination=30.0386,31.2122' },
+      operatorInstruction: null,
       codDue: 1050, cashDeclared: null, currency: 'EGP', itemCount: 3,
     });
     expect(JSON.stringify(res.body)).not.toMatch(/Secret Serum|333\.33|Someone Else|Old Stop/);

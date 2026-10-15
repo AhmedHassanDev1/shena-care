@@ -355,15 +355,18 @@ export class FulfillmentService {
     if (allocation.orderId !== dto.orderId || allocation.orderItemId !== dto.orderItemId || allocation.skuId !== dto.skuId) {
       throw new BadRequestException('Receipt does not match the Supply Plan allocation');
     }
-    if (dto.condition !== 'ACCEPTABLE') {
+    // An already-expired pack is treated like any other unacceptable condition (near-expiry is owner policy).
+    const expired = dto.expiryDate !== undefined && dto.expiryDate < new Date().toISOString().slice(0, 10);
+    if (dto.condition !== 'ACCEPTABLE' || expired) {
+      const condition = dto.condition !== 'ACCEPTABLE' ? dto.condition : 'EXPIRED';
       // Held, not received: the physical fact is recorded as a receiving exception for a human decision.
       const supportCase = await this.prisma.$transaction(tx => this.support.openOperationalException(tx, {
         dedupKey: `receiving:${dto.idempotencyKey}`, category: 'sourcing', priority: 'high', orderId: dto.orderId,
-        title: `Receiving exception — ${dto.condition} goods`,
-        description: `${dto.quantity} unit(s) of SKU ${dto.skuId} arrived ${dto.condition} for allocation ${dto.allocationId}. Not received; decide return/replacement with the supplier.`,
+        title: `Receiving exception — ${condition} goods`,
+        description: `${dto.quantity} unit(s) of SKU ${dto.skuId} arrived ${condition}${dto.lotNumber ? ` (lot ${dto.lotNumber})` : ''}${dto.expiryDate ? ` (expiry ${dto.expiryDate})` : ''} for allocation ${dto.allocationId}. Not received; decide return/replacement with the supplier.`,
       }));
       throw new BadRequestException({ code: 'RECEIVING_EXCEPTION', caseId: supportCase.id,
-        message: `Goods in ${dto.condition} condition cannot be allocated to an order` });
+        message: `Goods in ${condition} condition cannot be allocated to an order` });
     }
     const unit = await this.checkUnitIdentity({ ...dto, skuId: dto.barcodeScanned ? undefined : dto.skuId });
     if (!unit.ok) throw new ConflictException({ code: unit.code, message: 'The scanned code does not identify a reviewed product; verify it manually or ask catalog review' });
@@ -470,6 +473,8 @@ export class FulfillmentService {
           identityMethod: unit.method,
           barcodeScanned: dto.barcodeScanned ?? null,
           identityNote: unit.method === 'manual' ? dto.manualReason : null,
+          lotNumber: dto.lotNumber ?? null,
+          expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null,
           actorId: actor.id,
           inventoryTransactionId: inventoryTransaction.id,
         },
@@ -739,10 +744,28 @@ export class FulfillmentService {
       throw new BadRequestException('Session is not in progress');
     }
 
+    // A retried request for the same physical scan returns the original outcome (RT14).
+    const replayed = () => dto.clientScanId
+      ? this.prisma.preparationScanEvent.findUnique({ where: { sessionId_clientScanId: { sessionId, clientScanId: dto.clientScanId } } })
+      : Promise.resolve(null);
+    const prior = await replayed();
+    if (prior) return prior;
+    try {
+      return await this.recordScan(sessionId, session, dto, actor);
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        const raced = await replayed();
+        if (raced) return raced;
+      }
+      throw error;
+    }
+  }
+
+  private async recordScan(sessionId: string, session: { shipment: { items: Array<{ skuId: string; quantity: number }> } }, dto: ScanItemDto, actor: FulfillmentActor) {
     // Identity first (GLO-242): reviewed barcode or audited manual check; unknown/ambiguous is recorded, never guessed.
     const unit = await this.checkUnitIdentity(dto);
     const evidence = { barcodeScanned: dto.barcodeScanned, operatorId: actor.id,
-      manualReason: dto.barcodeScanned ? null : dto.manualReason ?? null };
+      manualReason: dto.barcodeScanned ? null : dto.manualReason ?? null, clientScanId: dto.clientScanId ?? null };
     if (!unit.ok) {
       return this.prisma.preparationScanEvent.create({ data: { sessionId, ...evidence, isSuccessful: false, errorReason: unit.code } });
     }
@@ -1041,8 +1064,11 @@ export class FulfillmentService {
       },
     });
 
-    const declared = await this.reconciliation.getDeclaredCash(
-      batches.flatMap((batch) => batch.stops.map((stop) => stop.shipment.orderId)));
+    const orderIds = batches.flatMap((batch) => batch.stops.map((stop) => stop.shipment.orderId));
+    const [declared, instructions] = await Promise.all([
+      this.reconciliation.getDeclaredCash(orderIds),
+      this.orderingService.getLatestDeliveryInstructions(orderIds),
+    ]);
 
     return Promise.all(batches.map(async (batch) => ({
       id: batch.id,
@@ -1069,6 +1095,8 @@ export class FulfillmentService {
             latitude: order.latitude, longitude: order.longitude, source: order.locationSource ?? null,
             navigationUrl: navigationUrl(order.latitude, order.longitude),
           } : null,
+          // Operator clarification/corrected meeting point; the customer's pin above stays the original (RT08).
+          operatorInstruction: instructions.get(order.id) ?? null,
           codDue: order.codAmount ?? order.totalAmount,
           cashDeclared: declared.get(order.id) ?? null,
           currency: order.currency,
