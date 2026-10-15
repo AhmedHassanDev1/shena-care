@@ -1,3 +1,5 @@
+import { CUSTOMER_PHONE_VERIFIED_EVENT, CustomerPhoneVerifiedEvent } from '../../accounts/public';
+import { OnEvent } from '@nestjs/event-emitter';
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { createHash, createHmac, randomUUID } from 'crypto';
 import { OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
@@ -453,6 +455,51 @@ export class OrderingService {
       statusEvents: statusEvents.map(e => ({ status: e.status, at: e.createdAt })),
       deliveryInstructions: instructions.map(i => ({ id: i.id, note: i.note, reason: i.reason, latitude: i.latitude, longitude: i.longitude, actorId: i.actorId, at: i.createdAt })),
     };
+  }
+
+  /**
+   * The order this customer may act on: the signed-in owner, or the bearer of the order's own guest
+   * access token. An order number alone never proves ownership.
+   */
+  async findOwnedOrder(owner: { customerId: string } | { guestToken: string }, idOrOrderNumber: string) {
+    const where: Prisma.OrderWhereInput = {
+      OR: [...(UUID.test(idOrOrderNumber) ? [{ id: idOrOrderNumber }] : []), { orderNumber: idOrOrderNumber }],
+      // Guest tokens act only on unowned orders, as on every other guest route: once an order belongs to
+      // an account (e.g. adopted by a verified phone), the account is the way in.
+      ...('customerId' in owner ? { customerId: owner.customerId } : {
+        customerId: null,
+        guestAccessTokenHash: createHash('sha256').update(owner.guestToken).digest('hex'),
+        guestAccessExpiresAt: { gt: new Date() }, guestAccessRevokedAt: null,
+      }),
+    };
+    const order = await this.prisma.order.findFirst({ where, select: { id: true, orderNumber: true, status: true, customerId: true } });
+    if (!order) throw new NotFoundException('Order not found');
+    return order;
+  }
+
+  /** A signed-in customer's own orders, newest first (summary only). */
+  async listOrdersForCustomer(customerId: string, paging: { take: number; skip: number }) {
+    const where = { customerId };
+    const [total, rows] = await Promise.all([
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({ where, orderBy: { createdAt: 'desc' }, take: paging.take, skip: paging.skip,
+        select: { id: true, orderNumber: true, status: true, totalAmount: true, codAmount: true, currency: true, createdAt: true } }),
+    ]);
+    return { total, items: rows.map(o => ({ ...o, totalAmount: Number(o.totalAmount), codAmount: o.codAmount === null ? null : Number(o.codAmount) })) };
+  }
+
+  /**
+   * Phone OTP proves control of the number the guest checked out with, so their guest orders join the
+   * account (C0 W6 cross-device access). Only unowned orders move; from then on the account (not the
+   * device's guest link) is the way to the order, like every other owned order.
+   */
+  @OnEvent(CUSTOMER_PHONE_VERIFIED_EVENT)
+  async adoptGuestOrdersByPhone(event: CustomerPhoneVerifiedEvent) {
+    const national = event.phoneNumber.replace(/\D/g, '').replace(/^20/, '').replace(/^0/, '');
+    if (national.length !== 10) return;
+    const variants = [`0${national}`, `+20${national}`, `20${national}`, national];
+    const adopted = await this.prisma.order.updateMany({ where: { customerId: null, customerPhone: { in: variants } }, data: { customerId: event.customerId } });
+    if (adopted.count) this.logger.log(`Adopted ${adopted.count} guest order(s) for customer ${event.customerId}`);
   }
 
   async getOrderSummaries(ids: string[]): Promise<Map<string, { id: string; orderNumber: string; status: OrderStatus; governorate: string | null; area: string | null }>> {

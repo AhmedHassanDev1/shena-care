@@ -1585,6 +1585,15 @@ export class FulfillmentService {
     };
   }
 
+  /** Whether anything physical exists for an order: hub receipts and the shipment status. */
+  async physicalState(orderId: string) {
+    const [shipment, received] = await Promise.all([
+      this.prisma.shipment.findUnique({ where: { orderId }, select: { status: true } }),
+      this.prisma.fulfillmentReceipt.aggregate({ where: { orderId }, _sum: { quantity: true } }),
+    ]);
+    return { shipmentStatus: shipment?.status ?? null, receivedUnits: received._sum.quantity ?? 0 };
+  }
+
   // --- Inventory Management (GLO-151) ---
 
   async getInventoryBalances(locationId: string, actor: FulfillmentActor) {

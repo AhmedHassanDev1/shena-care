@@ -7,6 +7,7 @@ import { AccountsModule } from '../../modules/accounts/public';
 import { CatalogModule } from '../../modules/catalog/public';
 import { WorkspaceController } from './controllers/workspace.controller';
 import { AdminOrdersController } from './controllers/admin-orders.controller';
+import { CustomerOrderActionsController } from './controllers/customer-order-actions.controller';
 import { CashSettlementController } from './controllers/cash-settlement.controller';
 import { OrderCancellationController } from './controllers/order-cancellation.controller';
 import { OperationsQueueController } from './controllers/operations-queue.controller';
@@ -18,7 +19,7 @@ import { OrderCancellationService } from './services/order-cancellation.service'
  */
 @Module({
   imports: [OrderingModule, FulfillmentModule, SourcingModule, OperationsModule, AccountsModule, CatalogModule],
-  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController],
+  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController],
   providers: [OrderCancellationService],
 })
 export class OperationsCompositionModule {}

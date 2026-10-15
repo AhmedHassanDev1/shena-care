@@ -18,6 +18,7 @@ import { fillMessage, type Messages } from '@/lib/i18n/messages';
 import { orders, type AvailabilityAction, type AvailabilityDecision, type OrderTracking } from '@/lib/orders';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import { OrderActions } from './OrderActions';
 import { ReportProblem } from './ReportProblem';
 
 /** Backend default; any other promise string is shown as the generic confirmation note too. */
@@ -228,6 +229,8 @@ function Tracking({ order, placed }: { order: OrderTracking; placed: boolean }) 
           </ul>
         </Section>
       ) : null}
+
+      <OrderActions order={order} />
     </div>
   );
 }

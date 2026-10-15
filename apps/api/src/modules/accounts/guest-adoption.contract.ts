@@ -14,6 +14,14 @@
  * - An order number alone never proves ownership.
  */
 export const CUSTOMER_VERIFIED_EVENT = 'customer.verified';
+/** Emitted after every successful phone OTP verification (C0 W6): the account controls this number. */
+export const CUSTOMER_PHONE_VERIFIED_EVENT = 'customer.phone_verified';
+
+export interface CustomerPhoneVerifiedEvent {
+  customerId: string;
+  /** Canonical +20 form. */
+  phoneNumber: string;
+}
 
 export interface CustomerVerifiedEvent {
   customerId: string;

@@ -7,3 +7,5 @@ export * from './dto/cart.dto';
 export * from './dto/order.dto';
 export * from './dto/reconciliation.dto';
 export { navigationUrl, serviceGovernorate, assertDeliverablePin } from './services/service-area';
+export { customerMayCancel } from './services/customer-cancellation';
+export { OrderLookupParamsDto, GuestOrderLookupParamsDto, GuestOrderAccessHeaderDto } from './dto/order-tracking.dto';

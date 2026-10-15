@@ -152,6 +152,25 @@ export const orders = {
     );
   },
 
+  /** Self-cancellation while nothing physical has happened (C0 W6); 409 CANCELLATION_REQUIRES_SUPPORT otherwise. */
+  async cancel(orderNumber: string): Promise<{ orderNumber: string; status: string; alreadyCancelled: boolean }> {
+    const token = auth.getToken();
+    if (token) return apiClient.post(`/ordering/orders/${encodeURIComponent(orderNumber)}/customer-cancel`, {}, { token });
+    const access = recallOrderAccess(orderNumber);
+    return apiClient.post(`/ordering/guest/orders/${encodeURIComponent(orderNumber)}/cancel`, {}, access ? { headers: { 'x-order-access-token': access } } : {});
+  },
+
+  /** Order-linked support request; staff see it on the order (C0 W6). */
+  async requestSupport(orderNumber: string, body: { message: string; topic?: SupportTopic }): Promise<{ caseId: string; status: string }> {
+    const [path, options] = orderPath(orderNumber, '/support');
+    return apiClient.post(path, body, options);
+  },
+
+  /** The signed-in customer's own orders (guest orders join once the checkout phone is verified). */
+  async listMine(): Promise<{ total: number; items: MyOrder[] }> {
+    return apiClient.get('/ordering/orders?take=50', { token: auth.getToken() ?? undefined });
+  },
+
   /** What the customer may report on one line right now (GLO-191); reasons come from the server. */
   async getItemEligibility(orderNumber: string, itemId: string): Promise<ItemEligibility> {
     return apiClient.get<ItemEligibility>(...orderPath(orderNumber, `/items/${encodeURIComponent(itemId)}/eligibility`));
@@ -219,6 +238,8 @@ export interface OrderTracking {
     locationSource?: string | null;
   };
   amounts: { originalCodAmount: number; currentCodAmount: number; subtotal: number; shippingFee: number; currency: string };
+  /** The customer may cancel on their own right now (server-decided; re-checked on submit). */
+  canCancel?: boolean;
   items: Array<{
     id: string;
     skuId: string;
@@ -277,4 +298,17 @@ export interface DecisionSubmission {
   candidateSkuId?: string;
   version: number;
   idempotencyKey: string;
+}
+
+export const SUPPORT_TOPICS = ['delivery', 'cancellation', 'return', 'damaged_item', 'wrong_item', 'payment', 'other'] as const;
+export type SupportTopic = (typeof SUPPORT_TOPICS)[number];
+
+export interface MyOrder {
+  id: string;
+  orderNumber: string;
+  status: string;
+  totalAmount: number;
+  codAmount: number | null;
+  currency: string;
+  createdAt: string;
 }

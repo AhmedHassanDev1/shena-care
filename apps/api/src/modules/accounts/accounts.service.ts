@@ -3,7 +3,7 @@ import { Injectable, UnauthorizedException, ConflictException, ServiceUnavailabl
 import { PrismaService } from '../../platform/database/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RegisterDto, LoginDto } from './dto/accounts.dto';
-import { CUSTOMER_VERIFIED_EVENT, CustomerVerifiedEvent } from './guest-adoption.contract';
+import { CUSTOMER_PHONE_VERIFIED_EVENT, CUSTOMER_VERIFIED_EVENT, CustomerPhoneVerifiedEvent, CustomerVerifiedEvent } from './guest-adoption.contract';
 import * as bcrypt from 'bcrypt';
 import { randomUUID, randomInt } from 'crypto';
 
@@ -221,6 +221,14 @@ export class AccountsService {
       customerId = customer.id;
     } else {
       customerId = identity.customerId;
+    }
+
+    // The account now controls this number: guest orders placed with it can join the account.
+    const verified: CustomerPhoneVerifiedEvent = { customerId, phoneNumber: canonicalPhone };
+    try {
+      await this.eventEmitter.emitAsync(CUSTOMER_PHONE_VERIFIED_EVENT, verified);
+    } catch (err) {
+      console.error(`[ACCOUNTS] guest order adoption failed for customer ${customerId}: ${(err as Error).message}`);
     }
 
     if (guestId) {

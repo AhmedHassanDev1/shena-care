@@ -121,4 +121,6 @@ export class CustomerOrderTrackingDto {
   };
   actionRequired: CustomerActionRequiredDto | null;
   resolutions: CustomerResolutionDto[];
+  /** The customer may cancel on their own right now (still sourcing, nothing physical yet). */
+  canCancel: boolean;
 }

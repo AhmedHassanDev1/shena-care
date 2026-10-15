@@ -11,6 +11,7 @@ export const routes = {
   product: (slug: string) => `/products/${encodeURIComponent(slug)}`,
   /** Product page with a specific variant selected. */
   productVariant: (slug: string, skuId: string) => `/products/${encodeURIComponent(slug)}?sku=${encodeURIComponent(skuId)}`,
+  myOrders: '/orders',
   order: (idOrNumber: string) => `/orders/${encodeURIComponent(idOrNumber)}`,
   /** Catalog listing narrowed by a category slug (GET /products?category=). */
   productsByCategory: (slug: string) => `/products?category=${encodeURIComponent(slug)}`,

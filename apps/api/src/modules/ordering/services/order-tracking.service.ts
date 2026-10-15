@@ -1,3 +1,4 @@
+import { customerMayCancel } from './customer-cancellation';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { OrderStatus, Prisma, ShipmentStatus } from '@prisma/client';
@@ -181,6 +182,11 @@ export class OrderTrackingService {
         decisions: openDecisions.map(d => ({ id: d.id, orderItemId: d.orderItemId, version: d.version })),
       } : null,
       resolutions,
+      // Self-service options right now; the API re-checks every action (C0 W6).
+      canCancel: customerMayCancel({
+        orderStatus: order.status, shipmentStatus: shipment?.status ?? null,
+        receivedUnits: (await this.prisma.fulfillmentReceipt.aggregate({ where: { orderId: order.id }, _sum: { quantity: true } }))._sum.quantity ?? 0,
+      }) && !activeCancellation,
     };
   }
 
