@@ -32,12 +32,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.logger.error(`[${request.method}] ${request.url} - ${exception}`);
     }
 
+    // A deliberate, contract-bearing error (an HttpException that names its own `code`, such as
+    // OTP_UNAVAILABLE) is not an internal failure: the client needs the code to tell the person the truth.
+    const declared =
+      exception instanceof HttpException &&
+      typeof message === 'object' &&
+      message !== null &&
+      typeof (message as { code?: unknown }).code === 'string';
+
     // Never leak stack traces to the client
     response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
-      message: status >= 500 ? 'Internal server error' : message,
+      message: status >= 500 && !declared ? 'Internal server error' : message,
     });
   }
 }

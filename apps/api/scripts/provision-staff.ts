@@ -7,12 +7,15 @@
  *   STAFF_PASSWORD='…' npm run staff:provision -- --email sup@… --name "Supplier" --role SUPPLIER --supplier official-distributor
  *   STAFF_PASSWORD='…' npm run staff:provision -- --email drv@… --name "Driver" --role DRIVER
  *
+ *   … --phone 01012345678   also lets the account sign in with a phone code (an Egyptian mobile number)
+ *
  * The password is read from STAFF_PASSWORD (never argv, so it stays out of shell history and process
  * lists). `--hub` assigns the operator to a hub by name, creating the hub with `--hub-address` if
  * missing. Refuses non-local databases unless `--allow-remote` is given.
  */
 import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { normalizeEgyptianMobile } from '../src/modules/accounts/phone';
 
 const ROLES: Role[] = ['ADMIN', 'HUB_OPERATOR', 'SUPPLIER', 'DRIVER'];
 
@@ -41,6 +44,10 @@ async function main() {
     fail(`refusing to write to remote database host ${host} without --allow-remote`);
   }
 
+  const phoneArg = arg('phone');
+  const phone = phoneArg ? normalizeEgyptianMobile(phoneArg) : null;
+  if (phoneArg && !phone) fail('--phone must be an Egyptian mobile number (010/011/012/015…)');
+
   const prisma = new PrismaClient();
   try {
     const supplierSlug = arg('supplier');
@@ -62,6 +69,13 @@ async function main() {
         identities: { create: { provider: 'EMAIL', providerId: email, passwordHash } },
       } });
     });
+
+    if (phone) {
+      const holder = await prisma.identity.findUnique({ where: { provider_providerId: { provider: 'PHONE', providerId: phone } } });
+      if (holder && holder.customerId !== account.id) fail('that phone number already belongs to another account');
+      if (!holder) await prisma.identity.create({ data: { customerId: account.id, provider: 'PHONE', providerId: phone } });
+      console.log(`phone sign-in enabled for ${phone.slice(0, 5)}*****`);
+    }
 
     const hubName = arg('hub');
     if (hubName) {

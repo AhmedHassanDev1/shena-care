@@ -48,3 +48,21 @@ export class VerifyOtpDto {
   @IsOptional()
   guestId?: string;
 }
+
+export class StaffOtpSendDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(32)
+  phoneNumber: string;
+}
+
+export class StaffOtpVerifyDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(32)
+  phoneNumber: string;
+
+  @IsString()
+  @Matches(/^\d{6}$/)
+  code: string;
+}

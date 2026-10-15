@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton, StateBlock } from '@/components/bw/primitives';
 import { type Role, WorkspaceFrame } from '@/components/bw/workspace-frame';
 import { type StaffRole, type WorkspaceMe, homeFor, useSession } from '@/lib/session';
@@ -45,12 +45,14 @@ export function RoleShell({
   exitHref?: string;
   children: React.ReactNode;
 }) {
-  const { state, logout } = useSession();
+  const { state, logout, endedBy } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   React.useEffect(() => {
-    if (state.status === 'anonymous') router.replace('/login');
-  }, [state, router]);
+    // `next` is only a hint: the login page re-validates it against the roles the API grants.
+    if (state.status === 'anonymous') router.replace(endedBy === 'logout' ? '/login' : `/login?next=${encodeURIComponent(pathname)}`);
+  }, [state, router, pathname, endedBy]);
 
   if (state.status !== 'ready') {
     return (

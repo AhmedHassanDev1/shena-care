@@ -1,0 +1,662 @@
+/*
+ * Business sign-in — Obsidian Amber. Scoped to .bwa so nothing leaks into the operational workspaces.
+ * Colours are the canonical Obsidian Amber set; every text/field pair is checked by
+ * tests/auth-flow.test.cjs (text ≥ 4.5:1, field borders and focus ≥ 3:1). Logical properties only:
+ * the page is Arabic RTL, with LTR islands for email, phone, password and the code cells.
+ */
+.bwa {
+  --bwa-canvas: #0a0a0b;
+  --bwa-surface: #121214;
+  --bwa-elevated: #18181b;
+  --bwa-border: #27272a;
+  --bwa-field-border: #6b6b73;
+  --bwa-field-border-hover: #8b8b94;
+  --bwa-primary: #f97316;
+  --bwa-primary-hover: #ea580c;
+  --bwa-on-primary: #0a0a0b;
+  --bwa-text: #fafafa;
+  --bwa-text-2: #a1a1aa;
+  --bwa-placeholder: #8b8b94;
+  --bwa-link: #fdba74;
+  --bwa-ok: #6ee7b7;
+  --bwa-ok-soft: #102b24;
+  --bwa-danger: #fda4af;
+  --bwa-danger-soft: #361b24;
+  --bwa-warn: #fcd34d;
+  --bwa-warn-soft: #332815;
+  --bwa-focus: #fb923c;
+  --bwa-font: var(--font-geist), var(--font-plex-sans-arabic), system-ui, sans-serif;
+
+  min-height: 100dvh;
+  background: var(--bwa-canvas);
+  color: var(--bwa-text);
+  color-scheme: dark;
+  font-family: var(--bwa-font);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  display: grid;
+  align-items: center;
+}
+
+.bwa *,
+.bwa *::before,
+.bwa *::after {
+  box-sizing: border-box;
+}
+
+/* ── Stage ────────────────────────────────────────────────────────────── */
+
+.bwa-stage {
+  width: 100%;
+  max-width: 1240px;
+  margin-inline: auto;
+  padding: 12px 16px 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 960px) {
+  .bwa-stage {
+    padding: 24px;
+    gap: 24px;
+    grid-template-columns: minmax(440px, 520px) minmax(0, 1.1fr);
+    min-height: min(820px, 100dvh);
+  }
+  /* RTL: the form (first in the DOM) sits on the right, the image on the left. */
+}
+
+/* ── Visual ───────────────────────────────────────────────────────────── */
+
+.bwa-visual {
+  position: relative;
+  order: -1;
+  height: 108px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bwa-surface);
+  border: 1px solid var(--bwa-border);
+  isolation: isolate;
+}
+@media (min-width: 960px) {
+  .bwa-visual {
+    order: 0;
+    height: auto;
+    min-height: 100%;
+    border-radius: 20px;
+  }
+}
+
+.bwa-visual > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 62% 50%;
+  z-index: -2;
+}
+.bwa-visual::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(to bottom, rgb(10 10 11 / 0.35), transparent 35%, rgb(10 10 11 / 0.7)),
+    linear-gradient(to left, transparent 55%, rgb(18 18 20 / 0.55));
+}
+
+/* No photo supplied: a restrained amber atmosphere, nothing that pretends to be a photograph. */
+.bwa-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(60% 42% at 50% 100%, rgb(249 115 22 / 0.34), transparent 70%),
+    radial-gradient(38% 55% at 66% 58%, rgb(249 115 22 / 0.16), transparent 72%),
+    linear-gradient(180deg, #0f0e10 0%, #130e0a 62%, #1a0f07 100%);
+}
+.bwa-atmosphere::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 28%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgb(249 115 22 / 0.55), transparent);
+}
+.bwa-atmosphere::after {
+  content: '';
+  position: absolute;
+  inset-inline: 22% 22%;
+  top: 12%;
+  bottom: 28%;
+  border: 1px solid rgb(249 115 22 / 0.28);
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 0 60px rgb(249 115 22 / 0.18);
+}
+@media (max-width: 959px) {
+  .bwa-atmosphere::after {
+    inset-inline: 30% 30%;
+    top: 18%;
+  }
+}
+
+/* ── Panel ────────────────────────────────────────────────────────────── */
+
+.bwa-panel {
+  position: relative;
+  background: var(--bwa-surface);
+  border: 1px solid var(--bwa-border);
+  border-radius: 20px;
+  padding: 24px 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.6);
+  overflow: hidden;
+}
+.bwa-panel::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 140px;
+  background: radial-gradient(70% 100% at 100% 0%, rgb(249 115 22 / 0.09), transparent 70%);
+  pointer-events: none;
+}
+@media (min-width: 960px) {
+  .bwa-panel {
+    padding: 36px 40px 30px;
+    justify-content: center;
+    gap: 24px;
+  }
+}
+
+.bwa-brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bwa-brand-mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--bwa-elevated);
+  border: 1px solid var(--bwa-border);
+  color: var(--bwa-primary);
+  flex: none;
+}
+.bwa-brand-name {
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  direction: ltr;
+  text-align: start;
+}
+.bwa-brand-name span {
+  color: var(--bwa-link);
+  font-weight: 500;
+}
+.bwa-brand-sub {
+  font-size: 12px;
+  color: var(--bwa-text-2);
+  line-height: 1.4;
+}
+
+/* ── Step ─────────────────────────────────────────────────────────────── */
+
+.bwa-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: bwa-enter 260ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.bwa-step[data-dir='back'] {
+  animation-name: bwa-enter-back;
+}
+@keyframes bwa-enter {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes bwa-enter-back {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.bwa-title {
+  font-size: clamp(26px, 4.2vw, 32px);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.bwa-lead {
+  margin: 6px 0 0;
+  color: var(--bwa-text-2);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* ── Fields ───────────────────────────────────────────────────────────── */
+
+.bwa-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bwa-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.bwa-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  direction: ltr;
+  min-height: 52px;
+  background: var(--bwa-elevated);
+  border: 1px solid var(--bwa-field-border);
+  border-radius: 12px;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+.bwa-control:hover {
+  border-color: var(--bwa-field-border-hover);
+}
+.bwa-control:focus-within {
+  border-color: var(--bwa-primary);
+  box-shadow: 0 0 0 3px rgb(249 115 22 / 0.22);
+}
+.bwa-control[data-invalid='true'] {
+  border-color: var(--bwa-danger);
+}
+.bwa-control[data-invalid='true']:focus-within {
+  box-shadow: 0 0 0 3px rgb(253 164 175 / 0.22);
+}
+.bwa-control > .bwa-lead-icon {
+  margin-inline-start: 14px;
+  color: var(--bwa-text-2);
+  flex: none;
+  transition: color 150ms ease;
+}
+.bwa-control:focus-within > .bwa-lead-icon {
+  color: var(--bwa-primary);
+}
+.bwa-input {
+  flex: 1;
+  min-width: 0;
+  height: 50px;
+  padding-inline: 12px;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--bwa-text);
+  font: inherit;
+  font-size: 16px; /* 16px stops iOS zooming on focus */
+  text-align: left;
+  direction: ltr;
+}
+.bwa-input::placeholder {
+  color: var(--bwa-placeholder);
+}
+.bwa-prefix {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  padding-inline: 14px;
+  border-inline-end: 1px solid var(--bwa-border);
+  color: var(--bwa-text);
+  font-weight: 600;
+  font-size: 15px;
+  background: rgb(255 255 255 / 0.02);
+  border-start-start-radius: 11px;
+  border-end-start-radius: 11px;
+}
+.bwa-toggle {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-inline-end: 3px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--bwa-text-2);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.bwa-toggle:hover {
+  color: var(--bwa-text);
+  background: rgb(255 255 255 / 0.05);
+}
+.bwa-toggle svg {
+  animation: bwa-swap 160ms ease both;
+}
+@keyframes bwa-swap {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: none; }
+}
+.bwa-help {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--bwa-text-2);
+}
+.bwa-help[data-tone='danger'] {
+  color: var(--bwa-danger);
+}
+.bwa-help svg {
+  flex: none;
+  margin-block-start: 3px;
+}
+.bwa-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ── Buttons & links ──────────────────────────────────────────────────── */
+
+.bwa-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding-inline: 20px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 90ms ease, box-shadow 150ms ease, opacity 150ms ease;
+}
+.bwa-btn:active:not(:disabled) {
+  transform: scale(0.985);
+}
+.bwa-btn:disabled,
+.bwa-btn[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.bwa-btn-primary {
+  background: var(--bwa-primary);
+  color: var(--bwa-on-primary);
+  box-shadow: 0 8px 20px -10px rgb(249 115 22 / 0.7);
+}
+.bwa-btn-primary:hover:not(:disabled) {
+  background: var(--bwa-primary-hover);
+}
+.bwa-btn-primary:disabled:not([aria-busy='true']) {
+  background: #2a1b11;
+  color: #b8977c;
+  box-shadow: none;
+  opacity: 1;
+}
+.bwa-btn-primary[aria-busy='true']:disabled {
+  background: var(--bwa-primary-hover);
+  opacity: 1;
+  cursor: progress;
+}
+.bwa-btn-secondary {
+  background: var(--bwa-elevated);
+  color: var(--bwa-text);
+  border-color: var(--bwa-field-border);
+  font-weight: 600;
+}
+.bwa-btn-secondary:hover:not(:disabled):not([aria-disabled='true']) {
+  border-color: var(--bwa-field-border-hover);
+  background: #1f1f23;
+}
+.bwa-btn svg {
+  flex: none;
+}
+.bwa :is(button, a, input):focus-visible {
+  outline: 2px solid var(--bwa-focus);
+  outline-offset: 2px;
+}
+.bwa-control .bwa-input:focus-visible {
+  outline: 0; /* the control shows focus as a whole */
+}
+.bwa-link {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bwa-link);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+}
+.bwa-link:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.bwa-link:disabled {
+  color: var(--bwa-text-2);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.bwa-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--bwa-text-2);
+  font-size: 13px;
+}
+.bwa-divider::before,
+.bwa-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--bwa-border);
+}
+
+/* ── Feedback ─────────────────────────────────────────────────────────── */
+
+.bwa-notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  border: 1px solid transparent;
+  animation: bwa-notice 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.bwa-notice svg {
+  flex: none;
+  margin-block-start: 3px;
+}
+.bwa-notice[data-tone='danger'] {
+  background: var(--bwa-danger-soft);
+  color: var(--bwa-danger);
+  border-color: rgb(253 164 175 / 0.25);
+}
+.bwa-notice[data-tone='warn'] {
+  background: var(--bwa-warn-soft);
+  color: var(--bwa-warn);
+  border-color: rgb(252 211 77 / 0.25);
+}
+.bwa-notice[data-tone='ok'] {
+  background: var(--bwa-ok-soft);
+  color: var(--bwa-ok);
+  border-color: rgb(110 231 183 / 0.25);
+}
+@keyframes bwa-notice {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.bwa-note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--bwa-canvas);
+  border: 1px solid var(--bwa-border);
+  color: var(--bwa-text-2);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.bwa-note svg {
+  flex: none;
+  color: var(--bwa-link);
+  margin-block-start: 2px;
+}
+
+/* ── One-time code ────────────────────────────────────────────────────── */
+
+.bwa-otp {
+  position: relative;
+  direction: ltr;
+}
+.bwa-otp-cells {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+.bwa-otp-cell {
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--bwa-field-border);
+  background: var(--bwa-elevated);
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+.bwa-otp-cell[data-filled='true'] > span {
+  animation: bwa-pop 140ms ease both;
+}
+.bwa-otp-cell[data-active='true'] {
+  border-color: var(--bwa-primary);
+  box-shadow: 0 0 0 3px rgb(249 115 22 / 0.22);
+}
+.bwa-otp-cell[data-active='true'][data-filled='false']::after {
+  content: '';
+  width: 2px;
+  height: 24px;
+  background: var(--bwa-primary);
+  animation: bwa-caret 1s steps(1) infinite;
+}
+.bwa-otp[data-state='error'] .bwa-otp-cell {
+  border-color: var(--bwa-danger);
+}
+.bwa-otp[data-state='error'] .bwa-otp-cells {
+  animation: bwa-shake 320ms ease both;
+}
+.bwa-otp[data-state='success'] .bwa-otp-cell {
+  border-color: var(--bwa-ok);
+  background: var(--bwa-ok-soft);
+  color: var(--bwa-ok);
+}
+/* The real input sits over the cells: autofill, paste and the mobile numeric keypad all just work. */
+.bwa-otp-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+  letter-spacing: 0.6em;
+  cursor: text;
+}
+.bwa-otp-input:focus-visible {
+  outline: 0;
+}
+.bwa-otp-cells:has(~ .bwa-otp-input:focus-visible) .bwa-otp-cell[data-active='false'] {
+  box-shadow: none;
+}
+@keyframes bwa-pop {
+  from { transform: scale(0.7); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes bwa-caret {
+  50% { opacity: 0; }
+}
+@keyframes bwa-shake {
+  20% { transform: translateX(-6px); }
+  45% { transform: translateX(5px); }
+  70% { transform: translateX(-3px); }
+  100% { transform: none; }
+}
+
+.bwa-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--bwa-text-2);
+  min-height: 32px;
+}
+.bwa-meta bdi {
+  color: var(--bwa-text);
+  font-weight: 600;
+  direction: ltr;
+}
+
+.bwa-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.bwa-spin {
+  animation: bwa-rotate 800ms linear infinite;
+}
+@keyframes bwa-rotate {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bwa *,
+  .bwa *::before,
+  .bwa *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .bwa-spin {
+    animation: none;
+  }
+}
+
+/* The page edge (overscroll, safe areas) matches the canvas instead of the workspace paper. */
+body:has(.bwa) {
+  background: #0a0a0b;
+}

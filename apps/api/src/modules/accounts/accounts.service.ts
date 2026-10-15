@@ -96,6 +96,7 @@ export class AccountsService {
     const recentChallenge = await this.prisma.otpChallenge.findFirst({
       where: {
         phoneNumber: canonicalPhone,
+        purpose: 'LOGIN',
         createdAt: { gte: oneMinuteAgo }
       }
     });
@@ -108,6 +109,7 @@ export class AccountsService {
     const recentChallengesCount = await this.prisma.otpChallenge.count({
       where: {
         phoneNumber: canonicalPhone,
+        purpose: 'LOGIN',
         createdAt: { gte: oneHourAgo }
       }
     });
@@ -150,6 +152,7 @@ export class AccountsService {
     const challenge = await this.prisma.otpChallenge.findFirst({
       where: {
         phoneNumber: canonicalPhone,
+        purpose: 'LOGIN',
         isUsed: false,
         isRevoked: false,
       },
@@ -243,7 +246,8 @@ export class AccountsService {
     return this.createSession(customerId, challenge.pendingIntent);
   }
 
-  private async createSession(customerId: string, pendingIntent?: string | null) {
+  /** Opens a 30-day session. Public so staff phone sign-in reuses the same session store. */
+  async createSession(customerId: string, pendingIntent?: string | null) {
     const token = randomUUID();
     // 30 days expiration
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);

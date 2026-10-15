@@ -13,6 +13,8 @@ export class ApiError extends Error {
     message: string,
     public status: number,
     public code?: string,
+    /** The API's error body, for typed extras such as `retryAfterSeconds` or `attemptsRemaining`. */
+    public details?: Record<string, unknown>,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -38,11 +40,11 @@ export function setToken(token: string | null) {
 
 type Envelope = { message?: unknown; code?: string; error?: string }
 
-function describe(body: Envelope | undefined, status: number): { message: string; code?: string } {
+function describe(body: Envelope | undefined, status: number): { message: string; code?: string; details?: Record<string, unknown> } {
   const inner = body?.message && typeof body.message === 'object' && !Array.isArray(body.message) ? (body.message as Envelope) : undefined
   const raw = inner?.message ?? body?.message
   const message = Array.isArray(raw) ? raw.join('، ') : typeof raw === 'string' && raw ? raw : `HTTP ${status}`
-  return { message, code: body?.code ?? inner?.code }
+  return { message, code: body?.code ?? inner?.code, details: (inner ?? body) as Record<string, unknown> | undefined }
 }
 
 /** Listeners told when the API rejects the session (401), so the shell can return to login. */
@@ -54,8 +56,9 @@ export function onUnauthorized(listener: () => void): () => void {
   }
 }
 
-export async function api<T>(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
-  const token = getToken()
+export async function api<T>(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal; public?: boolean } = {}): Promise<T> {
+  // `public` calls (sign-in) carry no session, so a 401 from them means "wrong credentials", not "session expired".
+  const token = init.public ? null : getToken()
   let response: Response
   try {
     response = await fetch(`${API_URL}${path}`, {
@@ -73,11 +76,17 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     throw new ApiError('تعذر الاتصال بالخادم. تأكد من الإنترنت وحاول تاني.', 0, 'NETWORK')
   }
   const text = await response.text()
-  const body = text ? (JSON.parse(text) as unknown) : undefined
+  // Proxies and rate limiters can answer in plain text or HTML; that must still surface as a typed error.
+  let body: unknown
+  try {
+    body = text ? (JSON.parse(text) as unknown) : undefined
+  } catch {
+    body = undefined
+  }
   if (!response.ok) {
-    const { message, code } = describe(body as Envelope | undefined, response.status)
-    if (response.status === 401) unauthorizedListeners.forEach((listener) => listener())
-    throw new ApiError(message, response.status, code)
+    const { message, code, details } = describe(body as Envelope | undefined, response.status)
+    if (response.status === 401 && token) unauthorizedListeners.forEach((listener) => listener())
+    throw new ApiError(message, response.status, code, details)
   }
   return body as T
 }

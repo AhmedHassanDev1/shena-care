@@ -1,4 +1,4 @@
-import { Alexandria, IBM_Plex_Sans_Arabic } from 'next/font/google'
+import { Alexandria, Geist, IBM_Plex_Sans_Arabic } from 'next/font/google'
 
 /*
  * Same typefaces as the storefront (apps/web/src/lib/fonts.ts) so both apps read as one brand.
@@ -12,4 +12,7 @@ const text = IBM_Plex_Sans_Arabic({
   variable: '--font-plex-sans-arabic',
 })
 
-export const bwFontVariables = `${display.variable} ${text.variable}`
+/* Geist carries Latin runs (brand, email, digits) on the sign-in screen; Arabic falls through to Plex. */
+const geist = Geist({ subsets: ['latin'], display: 'swap', variable: '--font-geist' })
+
+export const bwFontVariables = `${display.variable} ${text.variable} ${geist.variable}`

@@ -1,12 +1,16 @@
 import { Controller, Post, Body, Get, UseGuards, Req, Delete } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
-import { RegisterDto, LoginDto, SendOtpDto, VerifyOtpDto } from './dto/accounts.dto';
+import { RegisterDto, LoginDto, SendOtpDto, VerifyOtpDto, StaffOtpSendDto, StaffOtpVerifyDto } from './dto/accounts.dto';
+import { StaffAuthService } from './staff-auth.service';
 import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
 @Controller('accounts')
 export class AccountsController {
-  constructor(private readonly accountsService: AccountsService) {}
+  constructor(
+    private readonly accountsService: AccountsService,
+    private readonly staffAuth: StaffAuthService,
+  ) {}
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
@@ -26,6 +30,23 @@ export class AccountsController {
   @Post('otp/verify')
   verifyOtp(@Body() dto: VerifyOtpDto) {
     return this.accountsService.verifyOtp(dto.phoneNumber, dto.code, dto.guestId);
+  }
+
+  /** What the Business sign-in screen may offer (password always; phone only with a real delivery channel). */
+  @Get('staff/auth-options')
+  staffAuthOptions() {
+    return this.staffAuth.authOptions();
+  }
+
+  /** Staff phone sign-in: authenticates a number the owner provisioned; never creates accounts. */
+  @Post('staff/otp/send')
+  sendStaffOtp(@Body() dto: StaffOtpSendDto) {
+    return this.staffAuth.sendCode(dto.phoneNumber);
+  }
+
+  @Post('staff/otp/verify')
+  verifyStaffOtp(@Body() dto: StaffOtpVerifyDto) {
+    return this.staffAuth.verifyCode(dto.phoneNumber, dto.code);
   }
 
   @Post('logout')
