@@ -137,6 +137,14 @@ export class FulfillmentService {
     return location;
   }
 
+  /** Hubs an operator works at; admins are unrestricted ('all'). Used to scope cash counts. */
+  async operatorLocationIds(actor: FulfillmentActor): Promise<string[] | 'all'> {
+    if (actor.roles.includes(Role.ADMIN)) return 'all';
+    if (!actor.roles.includes(Role.HUB_OPERATOR)) return [];
+    const rows = await this.prisma.fulfillmentLocationOperator.findMany({ where: { operatorId: actor.id }, select: { locationId: true } });
+    return rows.map(row => row.locationId);
+  }
+
   private async assertLocationAccess(locationId: string, actor: FulfillmentActor): Promise<void> {
     if (actor.roles.includes(Role.ADMIN)) return;
     if (!actor.roles.includes(Role.HUB_OPERATOR)) throw new ForbiddenException('Hub access is required');
@@ -560,6 +568,12 @@ export class FulfillmentService {
         } else if (dto.status === ShipmentStatus.out_for_delivery) {
           await notify('shipment.out_for_delivery', 'out_for_delivery_v1', { trackingNumber: shipment.trackingNumber });
         } else if (dto.status === ShipmentStatus.delivered) {
+          // Delivery of a cash-on-delivery order is recorded only with the driver's door-cash
+          // declaration; a staff status change can never make cash look collected (GLO-238 F4).
+          if ((context?.as ?? 'admin') !== 'driver' && (order.codAmount ?? order.totalAmount).greaterThan(0)) {
+            throw new ConflictException({ code: 'COD_DELIVERY_REQUIRES_DRIVER',
+              message: 'A cash-on-delivery order is delivered only by its assigned driver with the declared cash' });
+          }
           await this.declareDeliveryCash(tx, shipment.orderId, context?.as ?? 'admin',
             context?.actor ?? { id: 'system', roles: [] }, context?.collectedAmount);
           await this.orderingService.transitionInTx(tx, shipment.orderId, 'delivered');
@@ -1167,7 +1181,7 @@ export class FulfillmentService {
         // The customer order follows its shipment out of the hub (GLO-212 dispatch convergence).
         await this.orderingService.transitionInTx(tx, stop.shipment.orderId, 'shipped');
         // The cash each stop should bring back is fixed when the run leaves the hub (GLO-214).
-        await this.reconciliation.ensureExpectedCollection(stop.shipment.orderId, tx);
+        await this.reconciliation.ensureExpectedCollection(stop.shipment.orderId, tx, batch.locationId);
       }
 
       return updated;

@@ -52,8 +52,7 @@ export class UpdateResolutionStatusDto {
 }
 
 export class CollectionItemDto {
-  @IsString()
-  @IsNotEmpty()
+  @IsUUID()
   orderId: string;
 
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -76,12 +75,17 @@ export class InitializePaymentCollectionDto {
 }
 
 export class CreateSettlementBatchDto {
-  @IsString()
-  @IsNotEmpty()
+  /** The driver account whose declared cash is being counted. */
+  @IsUUID()
   courierId: string;
+
+  /** Hub where the cash is physically counted; every collection must belong to its runs. */
+  @IsUUID()
+  locationId: string;
 
   @IsString()
   @IsNotEmpty()
+  @Length(1, 120)
   reference: string;
 
   @IsNumber({ maxDecimalPlaces: 2 })

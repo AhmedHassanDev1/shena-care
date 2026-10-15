@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { SettlementStatus, OrderResolutionType, OrderResolutionStatus, Prisma, RefundStatus } from '@prisma/client';
 import { OutboxService } from '../../operations/services/outbox.service';
@@ -261,18 +261,25 @@ export class ReconciliationService {
    * The expected COD cash for an order leaving the hub (GLO-214): created once from the order's own
    * COD figure, never from a caller. Returns null for cancelled or fully prepaid orders.
    */
-  async ensureExpectedCollection(orderId: string, tx?: Prisma.TransactionClient) {
+  async ensureExpectedCollection(orderId: string, tx?: Prisma.TransactionClient, locationId?: string | null) {
     const db = tx ?? this.prisma;
     const existing = await db.paymentCollection.findUnique({ where: { orderId } });
-    if (existing) return existing;
+    if (existing) {
+      // The dispatching hub is recorded once, the first time cash leaves with a run.
+      if (locationId && !existing.locationId) {
+        await db.paymentCollection.updateMany({ where: { id: existing.id, locationId: null }, data: { locationId } });
+        return db.paymentCollection.findUniqueOrThrow({ where: { orderId } });
+      }
+      return existing;
+    }
     const order = await db.order.findUnique({ where: { id: orderId } });
     if (!order || order.status === 'cancelled') return null;
     const expected = order.codAmount ?? order.totalAmount;
     if (expected.lessThanOrEqualTo(0)) return null;
     // ON CONFLICT: safe for concurrent creators and never aborts the caller's transaction.
     await db.$executeRaw`
-      INSERT INTO "ordering"."payment_collections" (id, order_id, expected_amount, currency, status, created_at, updated_at)
-      VALUES (gen_random_uuid(), ${orderId}::uuid, ${expected}, ${order.currency}, 'expected', NOW(), NOW())
+      INSERT INTO "ordering"."payment_collections" (id, order_id, expected_amount, currency, status, location_id, created_at, updated_at)
+      VALUES (gen_random_uuid(), ${orderId}::uuid, ${expected}, ${order.currency}, 'expected', ${locationId ?? null}::uuid, NOW(), NOW())
       ON CONFLICT (order_id) DO NOTHING`;
     return db.paymentCollection.findUniqueOrThrow({ where: { orderId } });
   }
@@ -314,8 +321,15 @@ export class ReconciliationService {
     return new Map(rows.map((r) => [r.orderId, Number(r.declaredAmount)]));
   }
 
+  /**
+   * The cashier's physical count of one driver's declared cash at one hub (GLO-238). Every line must
+   * be a delivered order whose cash that same driver declared on a run of that hub; counted amounts
+   * are exact Decimal and the variance against expected is explicit (short/over). A reference is
+   * idempotent: the same submission returns the original batch, anything else conflicts.
+   */
   async createSettlementBatch(dto: {
     courierId: string;
+    locationId: string;
     reference: string;
     totalCollected: number;
     fees?: number;
@@ -323,7 +337,10 @@ export class ReconciliationService {
     actorId: string;
     notes?: string;
     collections: { orderId: string; collectedAmount: number }[];
-  }) {
+  }, allowedLocationIds: string[] | 'all') {
+    if (allowedLocationIds !== 'all' && !allowedLocationIds.includes(dto.locationId)) {
+      throw new ForbiddenException('Operator is not assigned to this hub');
+    }
     // Money is exact Decimal arithmetic; the declared total must match the line items.
     const fees = new Prisma.Decimal(dto.fees ?? 0);
     const totalCollected = new Prisma.Decimal(dto.totalCollected);
@@ -333,65 +350,99 @@ export class ReconciliationService {
     if (!lineTotal.equals(totalCollected)) throw new BadRequestException('totalCollected must equal the sum of collected amounts');
     if (fees.greaterThan(totalCollected)) throw new BadRequestException('Fees cannot exceed the collected total');
 
-    return this.prisma.$transaction(async (tx) => {
-      let totalExpected = new Prisma.Decimal(0);
+    const replay = async () => {
+      const prior = await this.prisma.courierSettlementBatch.findUnique({ where: { reference: dto.reference }, include: { collections: true } });
+      if (!prior) return null;
+      const counted = new Map(prior.collections.map(c => [c.orderId, c.collectedAmount]));
+      const same = prior.courierId === dto.courierId && prior.locationId === dto.locationId && prior.currency === dto.currency &&
+        prior.totalCollected.equals(totalCollected) && prior.fees.equals(fees) && prior.collections.length === dto.collections.length &&
+        dto.collections.every(c => counted.get(c.orderId)?.equals(c.collectedAmount));
+      if (!same) throw new ConflictException({ code: 'SETTLEMENT_REFERENCE_REUSED', message: 'Settlement reference was used for a different count' });
+      return this.getSettlementBatch(prior.id);
+    };
+    const prior = await replay();
+    if (prior) return prior;
 
-      const batch = await tx.courierSettlementBatch.create({
-        data: {
-          reference: dto.reference,
-          courierId: dto.courierId,
-          totalExpected: 0, // Computed below
-          totalCollected,
-          fees,
-          netSettled: totalCollected.minus(fees),
-          currency: dto.currency,
-          actorId: dto.actorId,
-          notes: dto.notes
-        }
-      });
-
-      for (const colDto of dto.collections) {
-        if (!this.isUuid(colDto.orderId)) throw new BadRequestException(`Invalid order ID: ${colDto.orderId}`);
-        
-        const collection = await tx.paymentCollection.findUnique({
-          where: { orderId: colDto.orderId }
-        });
-
-        if (!collection) {
-          throw new NotFoundException(`Payment collection for order ${colDto.orderId} not found`);
-        }
-        if (collection.currency !== dto.currency) {
-          throw new BadRequestException(`Payment collection for order ${colDto.orderId} is in ${collection.currency}`);
-        }
-
-        totalExpected = totalExpected.plus(collection.expectedAmount);
-
-        const collected = new Prisma.Decimal(colDto.collectedAmount);
-        let status: SettlementStatus = 'settled';
-        if (collected.lessThan(collection.expectedAmount)) status = 'short';
-        if (collected.greaterThan(collection.expectedAmount)) status = 'over';
-
-        // Conditional update: a collection is settled at most once, even under concurrent batches.
-        const settled = await tx.paymentCollection.updateMany({
-          // Hub count settles both undeclared (expected) and driver-declared (collected) cash.
-          where: { id: collection.id, status: { in: ['expected', 'collected'] }, settlementBatchId: null },
+    let batchId: string;
+    try {
+      batchId = await this.prisma.$transaction(async (tx) => {
+        let totalExpected = new Prisma.Decimal(0);
+        const batch = await tx.courierSettlementBatch.create({
           data: {
-            collectedAmount: collected,
-            status,
-            settlementBatchId: batch.id
+            reference: dto.reference,
+            courierId: dto.courierId,
+            locationId: dto.locationId,
+            totalExpected: 0, // Computed below
+            totalCollected,
+            fees,
+            netSettled: totalCollected.minus(fees),
+            currency: dto.currency,
+            actorId: dto.actorId,
+            notes: dto.notes
           }
         });
-        if (settled.count !== 1) {
-          throw new ConflictException(`Payment collection for order ${colDto.orderId} is already settled`);
+
+        for (const colDto of dto.collections) {
+          const collection = await tx.paymentCollection.findUnique({ where: { orderId: colDto.orderId }, include: { order: true } });
+          if (!collection) throw new NotFoundException(`Payment collection for order ${colDto.orderId} not found`);
+          if (collection.currency !== dto.currency) {
+            throw new BadRequestException(`Payment collection for order ${colDto.orderId} is in ${collection.currency}`);
+          }
+          if (collection.settlementBatchId) throw new ConflictException(`Payment collection for order ${colDto.orderId} is already settled`);
+          const refuse = (code: string, message: string): never => { throw new ConflictException({ code, message, orderId: colDto.orderId }); };
+          if (collection.order.status !== 'delivered') refuse('ORDER_NOT_DELIVERED', `Order ${collection.order.orderNumber} was not delivered; there is no cash to settle`);
+          if (collection.status !== 'collected' || collection.declaredAmount === null) {
+            refuse('CASH_NOT_DECLARED', `No driver declared cash for order ${collection.order.orderNumber}`);
+          }
+          if (collection.courierId !== dto.courierId) refuse('COURIER_MISMATCH', `Cash for order ${collection.order.orderNumber} was declared by another driver`);
+          if (collection.locationId !== dto.locationId) refuse('COLLECTION_FROM_ANOTHER_HUB', `Cash for order ${collection.order.orderNumber} belongs to another hub`);
+
+          totalExpected = totalExpected.plus(collection.expectedAmount);
+          const collected = new Prisma.Decimal(colDto.collectedAmount);
+          let status: SettlementStatus = 'settled';
+          if (collected.lessThan(collection.expectedAmount)) status = 'short';
+          if (collected.greaterThan(collection.expectedAmount)) status = 'over';
+
+          // Conditional update: a collection is settled at most once, even under concurrent batches.
+          const settled = await tx.paymentCollection.updateMany({
+            where: { id: collection.id, status: 'collected', settlementBatchId: null },
+            data: { collectedAmount: collected, status, settlementBatchId: batch.id },
+          });
+          if (settled.count !== 1) throw new ConflictException(`Payment collection for order ${colDto.orderId} is already settled`);
         }
-      }
 
-      const updatedBatch = await tx.courierSettlementBatch.update({
-        where: { id: batch.id },
-        data: { totalExpected }
+        await tx.courierSettlementBatch.update({ where: { id: batch.id }, data: { totalExpected } });
+        return batch.id;
       });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const raced = await replay();
+        if (raced) return raced;
+      }
+      throw error;
+    }
+    return this.getSettlementBatch(batchId);
+  }
 
-      return updatedBatch;
+  /** A settlement with every line's expected, driver-declared and counted cash and their variances. */
+  async getSettlementBatch(id: string) {
+    const batch = await this.prisma.courierSettlementBatch.findUnique({
+      where: { id }, include: { collections: { include: { order: { select: { orderNumber: true } } } } },
     });
+    if (!batch) throw new NotFoundException('Settlement batch not found');
+    const { collections, ...header } = batch;
+    return {
+      ...header,
+      lines: collections.map(c => ({
+        orderId: c.orderId,
+        orderNumber: c.order.orderNumber,
+        status: c.status,
+        expectedAmount: c.expectedAmount.toFixed(2),
+        declaredAmount: c.declaredAmount?.toFixed(2) ?? null,
+        countedAmount: c.collectedAmount?.toFixed(2) ?? null,
+        variance: c.collectedAmount ? c.collectedAmount.minus(c.expectedAmount).toFixed(2) : null,
+        countVersusDeclared: c.collectedAmount && c.declaredAmount ? c.collectedAmount.minus(c.declaredAmount).toFixed(2) : null,
+      })),
+    };
   }
 }

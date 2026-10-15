@@ -503,8 +503,10 @@ enum PayableStatus {
 model SupplierPayable {
   id              String        @id @default(uuid()) @db.Uuid
   supplierId      String        @map("supplier_id") @db.Uuid
-  purchaseOrderId String        @map("purchase_order_id") @db.Uuid
+  purchaseOrderId String        @unique @map("purchase_order_id") @db.Uuid
   amount          Decimal       @db.Decimal(10, 2)
+  /// Per-line quantity × approved unit cost snapshot the amount was computed from (GLO-238).
+  basis           Json?
   currency        String        @db.VarChar(3)
   status          PayableStatus @default(open)
   dueDate         DateTime?     @map("due_date")
@@ -519,7 +521,6 @@ model SupplierPayable {
   adjustments   PayableAdjustment[]
 
   @@index([supplierId])
-  @@index([purchaseOrderId])
   @@map("supplier_payables")
   @@schema("sourcing")
 }
@@ -904,6 +905,8 @@ model PaymentCollection {
   currency          String           @db.VarChar(3)
   status            SettlementStatus @default(expected)
   courierId         String?          @map("courier_id")
+  /// Hub whose run carried the cash (set at dispatch); settlement is counted at that hub (GLO-238).
+  locationId        String?          @map("location_id") @db.Uuid
   settlementBatchId String?          @map("settlement_batch_id") @db.Uuid
   notes             String?
   createdAt         DateTime         @default(now()) @map("created_at")
@@ -920,6 +923,8 @@ model CourierSettlementBatch {
   id             String   @id @default(uuid()) @db.Uuid
   reference      String   @unique
   courierId      String   @map("courier_id")
+  /// Hub where the cash was physically counted.
+  locationId     String?  @map("location_id") @db.Uuid
   totalExpected  Decimal  @map("total_expected") @db.Decimal(10, 2)
   totalCollected Decimal  @map("total_collected") @db.Decimal(10, 2)
   fees           Decimal  @default(0) @db.Decimal(10, 2)

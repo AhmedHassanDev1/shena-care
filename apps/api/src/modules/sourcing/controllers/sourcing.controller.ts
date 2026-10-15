@@ -120,10 +120,11 @@ export class SourcingController {
   @Patch('payables/:id/adjust')
   @Roles('ADMIN', 'HUB_OPERATOR')
   async adjustPayable(
+    @CurrentUser() user: { id: string },
     @Param('id') id: string,
     @Body() dto: AdjustPayableDto
   ) {
-    return this.payablesService.adjustPayable(id, dto);
+    return this.payablesService.adjustPayable(id, { amount: dto.amount, reason: dto.reason, actorId: user.id });
   }
 
   @Patch('payables/:id/mark-paid')

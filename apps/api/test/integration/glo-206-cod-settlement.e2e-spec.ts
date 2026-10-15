@@ -16,10 +16,11 @@ describe('GLO-206 COD collection and settlement integrity (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let admin: Actor; let hub: Actor; let driver: Actor;
+  let locationId: string;
   const orderIds: string[] = []; const batchRefs: string[] = [];
   const http = () => request(app.getHttpServer());
 
-  const makeOrder = async (codAmount: number, status: 'placed' | 'cancelled' = 'placed') => {
+  const makeOrder = async (codAmount: number, status: 'placed' | 'cancelled' | 'delivered' = 'placed') => {
     const order = await prisma.order.create({ data: {
       orderNumber: 'ORD-' + randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase(),
       customerName: 'COD Customer', customerPhone: '01012345678', shippingAddress: '1 Cash Street',
@@ -33,7 +34,17 @@ describe('GLO-206 COD collection and settlement integrity (e2e)', () => {
   const settle = (auth: Actor, body: Record<string, unknown>) => {
     const reference = 'SET-' + randomUUID();
     batchRefs.push(reference);
-    return http().post('/ordering/settlements/batch').set(auth.auth).send({ courierId: 'courier-1', reference, currency: 'EGP', ...body });
+    return http().post('/ordering/settlements/batch').set(auth.auth)
+      .send({ courierId: driver.id, locationId, reference, currency: 'EGP', ...body });
+  };
+  /** A delivered order whose cash the driver declared at the door on a run of `locationId` (GLO-214 path). */
+  const declaredDelivery = async (codAmount: number, declared = codAmount) => {
+    const orderId = await makeOrder(codAmount, 'delivered');
+    await prisma.paymentCollection.create({ data: {
+      orderId, expectedAmount: codAmount, declaredAmount: declared, declaredAt: new Date(), courierId: driver.id,
+      locationId, currency: 'EGP', status: 'collected',
+    } });
+    return orderId;
   };
 
   beforeAll(async () => {
@@ -47,6 +58,8 @@ describe('GLO-206 COD collection and settlement integrity (e2e)', () => {
     admin = await createActor(prisma, 'ADMIN');
     hub = await createActor(prisma, 'HUB_OPERATOR');
     driver = await createActor(prisma, 'DRIVER');
+    locationId = (await prisma.fulfillmentLocation.create({ data: { name: 'COD Hub ' + randomUUID(), address: 'Cairo' } })).id;
+    await prisma.fulfillmentLocationOperator.create({ data: { locationId, operatorId: hub.id } });
   });
 
   afterAll(async () => {
@@ -87,10 +100,8 @@ describe('GLO-206 COD collection and settlement integrity (e2e)', () => {
   });
 
   it('settles each collection once with exact totals', async () => {
-    const a = await makeOrder(250.1);
-    const b = await makeOrder(99.9);
-    await init(admin, a, 250.1).expect(201);
-    await init(admin, b, 99.9).expect(201);
+    const a = await declaredDelivery(250.1);
+    const b = await declaredDelivery(99.9, 89.9);
 
     await settle(admin, { totalCollected: 999, collections: [{ orderId: a, collectedAmount: 250.1 }] }).expect(400);
     await settle(admin, { totalCollected: 500.2, collections: [{ orderId: a, collectedAmount: 250.1 }, { orderId: a, collectedAmount: 250.1 }] }).expect(400);
@@ -103,6 +114,9 @@ describe('GLO-206 COD collection and settlement integrity (e2e)', () => {
     expect(Number(batch.body.totalCollected)).toBe(340);
     expect(Number(batch.body.netSettled)).toBe(335);
     expect(batch.body.actorId).toBe(hub.id);
+    expect(batch.body.lines).toEqual(expect.arrayContaining([
+      expect.objectContaining({ orderId: b, expectedAmount: '99.90', declaredAmount: '89.90', countedAmount: '89.90', variance: '-10.00', status: 'short' }),
+    ]));
     const [ca, cb] = await Promise.all([a, b].map(orderId => prisma.paymentCollection.findUniqueOrThrow({ where: { orderId } })));
     expect(ca.status).toBe('settled');
     expect(cb.status).toBe('short');

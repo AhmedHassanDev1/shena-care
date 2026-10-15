@@ -4,7 +4,7 @@ import { CartService } from './services/cart.service';
 import { OrderTrackingService } from './services/order-tracking.service';
 import { OrderLookupParamsDto } from './dto/order-tracking.dto';
 import { CorrectDeliveryLocationDto } from './dto/order.dto';
-import { CreateResolutionDto, UpdateResolutionStatusDto, CreateSettlementBatchDto, InitializePaymentCollectionDto } from './dto/reconciliation.dto';
+import { CreateResolutionDto, UpdateResolutionStatusDto, InitializePaymentCollectionDto } from './dto/reconciliation.dto';
 import { ReconciliationService } from './services/reconciliation.service';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -93,10 +93,4 @@ export class OrderingController {
     return this.reconciliationService.initializePaymentCollection(dto.orderId, dto.amount, dto.currency);
   }
 
-  @Post('settlements/batch')
-  @Roles('ADMIN', 'HUB_OPERATOR')
-  @RequirePermissions('cod.reconcile')
-  async createSettlementBatch(@CurrentUser() admin: any, @Body() dto: CreateSettlementBatchDto) {
-    return this.reconciliationService.createSettlementBatch({ ...dto, actorId: admin.id });
-  }
 }

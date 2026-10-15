@@ -116,13 +116,15 @@ describe('GLO-214 driver COD declaration (e2e)', () => {
 
   it('never lets hub or admin declare door cash, and settlement keeps both figures', async () => {
     const { orderId, shipmentId } = await dispatchedStop(300);
-    await deliver(shipmentId, admin, { collectedAmount: 300 }).expect(400);
+    // Staff can neither declare door cash nor mark a COD stop delivered without the driver (GLO-238 F4).
+    expect((await deliver(shipmentId, admin, { collectedAmount: 300 }).expect(409)).body.code).toBe('COD_DELIVERY_REQUIRES_DRIVER');
+    expect((await deliver(shipmentId, admin, {}).expect(409)).body.code).toBe('COD_DELIVERY_REQUIRES_DRIVER');
     await deliver(shipmentId, driver, { collectedAmount: 300 }).expect(201);
 
     const reference = 'W22-' + randomUUID();
     settlementRefs.push(reference);
     await http().post('/ordering/settlements/batch').set(admin.auth).send({
-      courierId: driver.id, reference, currency: 'EGP', totalCollected: 290,
+      courierId: driver.id, locationId, reference, currency: 'EGP', totalCollected: 290,
       collections: [{ orderId, collectedAmount: 290 }],
     }).expect(201);
     const settled = await collection(orderId);
