@@ -135,7 +135,7 @@ describe('GLO-205 security regressions (e2e)', () => {
       .send({ lines: [{ id: own.id, status: 'confirmed_full' }] }).expect(201);
     expect(confirmed.body.lines[0].confirmedQuantity).toBe(own.requestedQuantity);
     await http().post(`/purchase-orders/${poA}/confirm`).set(supplierA.auth)
-      .send({ lines: [{ id: own.id, status: 'unavailable' }] }).expect(400); // already confirmed
+      .send({ lines: [{ id: own.id, status: 'unavailable' }] }).expect(409); // already confirmed: a different late answer conflicts
     expect((await prisma.purchaseOrderLine.findUniqueOrThrow({ where: { id: own.id } })).status).toBe('confirmed_full');
   });
 

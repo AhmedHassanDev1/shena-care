@@ -59,7 +59,7 @@ export class SupplyPlanService {
     return this.prisma.$transaction(async tx => {
       await this.lock(tx, orderId);
       const request = await tx.supplyRequest.findUnique({ where: { orderId }, include: {
-        requirements: { where: { releasedAt: null }, include: { allocations: true, actionRequirement: true } },
+        requirements: { where: { releasedAt: null }, include: { allocations: { include: { poLink: true } }, actionRequirement: true } },
       } });
       if (!request) throw new NotFoundException('Supply request not found');
 
@@ -68,6 +68,8 @@ export class SupplyPlanService {
         const remaining = requirement.requiredQuantity - confirmed;
         if (remaining <= 0) continue;
         const pending = requirement.allocations.find(a => a.result === 'pending');
+        // Issued on a purchase order: the supplier answers through the PO at its approved cost (GLO-237).
+        if (pending?.poLink) continue;
         if (pending) {
           const offer = await tx.supplierOffer.findUnique({ where: { id: pending.supplierOfferId }, include: { supplier: true } });
           const stale = !offer || Date.now() - offer.lastObservedAt.getTime() > 7 * 24 * 3600 * 1000;
@@ -147,8 +149,12 @@ export class SupplyPlanService {
     result: Confirmation; confirmedQuantity: number; evidenceRef?: string;
   }) {
     const initial = await this.prisma.sourceAllocation.findUnique({ where: { id: allocationId },
-      include: { requirement: { include: { supplyRequest: true } } } });
+      include: { requirement: { include: { supplyRequest: true } }, poLink: true } });
     if (!initial) throw new NotFoundException('Allocation not found');
+    if (initial.poLink) {
+      throw new ConflictException({ code: 'ALLOCATION_ON_PURCHASE_ORDER',
+        message: 'This allocation was issued on a purchase order; the supplier confirms it through the PO' });
+    }
     const orderId = initial.requirement.supplyRequest.orderId;
     await this.prisma.$transaction(async tx => {
       await this.lock(tx, orderId);
@@ -186,6 +192,35 @@ export class SupplyPlanService {
       } });
     }, { timeout: 30000 });
     return this.advance(orderId);
+  }
+
+  /**
+   * Owner command used by the purchase-order flow, inside its transaction: the supplier's PO answer
+   * becomes the allocation's confirmation at the PO's approved cost (no live-offer re-check — the PO
+   * is the commitment). Only a pending allocation can be answered; replays must match.
+   */
+  async confirmFromPurchaseOrder(tx: Tx, allocationId: string, input: {
+    result: 'confirmed_full' | 'confirmed_partial' | 'unavailable' | 'price_changed'; confirmedQuantity: number; evidenceRef: string;
+  }): Promise<string> {
+    const allocation = await tx.sourceAllocation.findUniqueOrThrow({ where: { id: allocationId },
+      include: { requirement: { include: { supplyRequest: true } } } });
+    const orderId = allocation.requirement.supplyRequest.orderId;
+    await this.lock(tx, orderId);
+    const current = await tx.sourceAllocation.findUniqueOrThrow({ where: { id: allocationId } });
+    if (current.result !== 'pending') {
+      if (current.result === input.result && current.confirmedQuantity === input.confirmedQuantity) return orderId;
+      throw new ConflictException(`Allocation ${allocationId} was already answered (${current.result})`);
+    }
+    const q = input.confirmedQuantity;
+    const valid = Number.isSafeInteger(q) && q >= 0 && q <= current.allocatedQuantity &&
+      (input.result === 'confirmed_full' ? q === current.allocatedQuantity
+        : input.result === 'confirmed_partial' ? q > 0 && q < current.allocatedQuantity : q === 0);
+    if (!valid) throw new BadRequestException('Confirmation quantity does not match the result or allocation');
+    await tx.sourceAllocation.update({ where: { id: allocationId }, data: {
+      result: input.result, reportedResult: input.result, reportedQuantity: q,
+      confirmedQuantity: q, confirmedAt: new Date(), evidenceRef: input.evidenceRef,
+    } });
+    return orderId;
   }
 
   async getPlan(orderId: string) {

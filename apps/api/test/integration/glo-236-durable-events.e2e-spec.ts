@@ -226,7 +226,13 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
       const internal = await outbox.enqueue(null, {
         eventType: 'test.internal', aggregateId: randomUUID(), payload: {}, deduplicationKey: 'glo-236-internal-' + randomUUID(),
       });
-      await outbox.processOutbox();
+      const drain = async () => {
+        for (let pass = 0; pass < 200; pass++) {
+          const run = await outbox.processOutbox();
+          if (run.sent + run.held + run.failed === 0) return;
+        }
+      };
+      await drain();
       expect(await prisma.notificationOutbox.findUniqueOrThrow({ where: { id: held.id } }))
         .toMatchObject({ status: 'held', sentAt: null, lastError: { code: 'PROVIDER_NOT_CONNECTED', channel: 'whatsapp' } });
       expect(await prisma.notificationOutbox.findUniqueOrThrow({ where: { id: internal.id } }))
@@ -240,7 +246,7 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
         eventType: 'test.notice', aggregateId: randomUUID(), payload: {}, channelIntent: channel,
         deduplicationKey: 'glo-236-sent-' + randomUUID(),
       });
-      await outbox.processOutbox();
+      await drain();
       expect(sent).toContain(delivered.id);
       expect((await prisma.notificationOutbox.findUniqueOrThrow({ where: { id: delivered.id } })).status).toBe('sent');
     });

@@ -11,6 +11,9 @@ type Tx = Prisma.TransactionClient;
  */
 export const DOMAIN_EVENT_SUBSCRIPTIONS: Record<string, string[]> = {
   'order.placed': ['sourcing.supply-plan'],
+  // Supplier PO answers re-plan the affected orders (fallback supplier or customer decision).
+  'purchase_order.confirmed': ['sourcing.supply-plan-advance'],
+  'purchase_order_line.distributed': ['sourcing.supply-plan-advance'],
 };
 
 export interface DomainEventInput {

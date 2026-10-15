@@ -74,6 +74,7 @@ export class OutboxService implements OnModuleInit, OnModuleDestroy {
             { status: 'failed', attempts: { lt: 3 }, OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] },
           ],
         },
+        orderBy: { createdAt: 'asc' },
         take: 50,
       });
 

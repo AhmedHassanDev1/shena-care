@@ -357,8 +357,9 @@ model SourceAllocation {
   confirmedAt       DateTime?                 @map("confirmed_at")
   evidenceRef       String?                   @map("evidence_ref") @db.VarChar(255)
 
-  requirement   SupplyRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
-  supplierOffer SupplierOffer     @relation(fields: [supplierOfferId], references: [id])
+  requirement   SupplyRequirement            @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  supplierOffer SupplierOffer                @relation(fields: [supplierOfferId], references: [id])
+  poLink        PurchaseOrderLineAllocation?
 
   @@unique([requirementId, supplierOfferId])
   @@index([requirementId])
@@ -409,6 +410,8 @@ enum PurchaseOrderLineStatus {
   confirmed_full
   confirmed_partial
   unavailable
+  /// The supplier cannot supply at the PO's approved unit cost (no quantity committed).
+  price_changed
 
   @@schema("sourcing")
 }
@@ -418,6 +421,12 @@ model SupplierPurchaseOrder {
   supplierId String              @map("supplier_id") @db.Uuid
   status     PurchaseOrderStatus @default(created)
   notes      String?
+  /// Procurement batch run that consolidated this PO (GLO-237); null for manual POs.
+  batchRef   String?             @map("batch_ref") @db.VarChar(64)
+  issuedAt   DateTime?           @map("issued_at")
+  confirmedAt DateTime?          @map("confirmed_at")
+  readyAt    DateTime?           @map("ready_at")
+  receivedAt DateTime?           @map("received_at")
   createdAt  DateTime            @default(now()) @map("created_at")
   updatedAt  DateTime            @updatedAt @map("updated_at")
 
@@ -426,7 +435,30 @@ model SupplierPurchaseOrder {
   payables SupplierPayable[]
 
   @@index([supplierId])
+  @@index([batchRef])
   @@map("supplier_purchase_orders")
+  @@schema("sourcing")
+}
+
+/// Quantity-aware N:1 lineage: each order-item allocation is supplied through exactly one PO line.
+model PurchaseOrderLineAllocation {
+  id                  String    @id @default(uuid()) @db.Uuid
+  purchaseOrderLineId String    @map("purchase_order_line_id") @db.Uuid
+  sourceAllocationId  String    @unique @map("source_allocation_id") @db.Uuid
+  orderId             String    @map("order_id") @db.Uuid
+  orderItemId         String    @map("order_item_id") @db.Uuid
+  quantity            Int
+  confirmedQuantity   Int?      @map("confirmed_quantity")
+  receivedQuantity    Int       @default(0) @map("received_quantity")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  line             PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
+  sourceAllocation SourceAllocation  @relation(fields: [sourceAllocationId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseOrderLineId])
+  @@index([orderId])
+  @@map("purchase_order_line_allocations")
   @@schema("sourcing")
 }
 
@@ -437,10 +469,20 @@ model PurchaseOrderLine {
   requestedQuantity Int                     @map("requested_quantity")
   confirmedQuantity Int?                    @map("confirmed_quantity")
   status            PurchaseOrderLineStatus @default(pending)
+  /// Approved unit cost snapshot sent to the supplier; payables use this, never the live offer.
+  unitCost          Decimal?                @map("unit_cost") @db.Decimal(10, 2)
+  currency          String?                 @db.VarChar(3)
+  supplierOfferId   String?                 @map("supplier_offer_id") @db.Uuid
+  /// A partial confirmation shared by several orders waits for an explicit, audited distribution.
+  distributionRequired Boolean              @default(false) @map("distribution_required")
+  distributedBy     String?                 @map("distributed_by")
+  distributedAt     DateTime?               @map("distributed_at")
+  distributionReason String?                @map("distribution_reason")
   createdAt         DateTime                @default(now()) @map("created_at")
   updatedAt         DateTime                @updatedAt @map("updated_at")
 
-  purchaseOrder SupplierPurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrder SupplierPurchaseOrder         @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  allocations   PurchaseOrderLineAllocation[]
 
   @@index([purchaseOrderId])
   @@index([skuId])

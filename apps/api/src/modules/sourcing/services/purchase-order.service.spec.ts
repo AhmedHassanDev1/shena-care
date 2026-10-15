@@ -18,6 +18,7 @@ describe('PurchaseOrderService', () => {
       supplier: {
         findUnique: jest.fn(),
       },
+      supplierOffer: { findMany: jest.fn().mockResolvedValue([]) },
       $transaction: jest.fn(),
     };
 
@@ -25,7 +26,9 @@ describe('PurchaseOrderService', () => {
       rankOffersForSku: jest.fn(),
     };
 
-    service = new PurchaseOrderService(prismaService, rankingService);
+    const supplyPlan: any = { confirmFromPurchaseOrder: jest.fn(), advance: jest.fn() };
+    const events: any = { registerHandler: jest.fn(), record: jest.fn(), dispatchSoon: jest.fn() };
+    service = new PurchaseOrderService(prismaService, rankingService, supplyPlan, events);
   });
 
   describe('Manual Override', () => {
@@ -57,7 +60,7 @@ describe('PurchaseOrderService', () => {
         supplierId: 'sup-1',
         status: PurchaseOrderStatus.sent,
         lines: [
-          { id: 'line-1', skuId: 'sku-1', requestedQuantity: 10, status: PurchaseOrderLineStatus.pending }
+          { id: 'line-1', skuId: 'sku-1', requestedQuantity: 10, status: PurchaseOrderLineStatus.pending, allocations: [] }
         ]
       });
 
@@ -108,7 +111,7 @@ describe('PurchaseOrderService', () => {
   describe('Confirmation integrity (GLO-206)', () => {
     const order = {
       id: 'po-1', supplierId: 'sup-1', status: PurchaseOrderStatus.sent,
-      lines: [{ id: 'line-1', skuId: 'sku-1', requestedQuantity: 10, status: PurchaseOrderLineStatus.pending }],
+      lines: [{ id: 'line-1', skuId: 'sku-1', requestedQuantity: 10, status: PurchaseOrderLineStatus.pending, allocations: [] }],
     };
     beforeEach(() => prismaService.supplierPurchaseOrder.findUnique.mockResolvedValue(order));
 

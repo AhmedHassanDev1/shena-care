@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, ConflictException, ForbiddenException,
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { OrderingService, ReconciliationService, navigationUrl } from '../../ordering/public';
 import { CatalogService } from '../../catalog/public';
-import { SupplyPlanService } from '../../sourcing/public';
+import { PurchaseOrderService, SupplyPlanService } from '../../sourcing/public';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto, ReceiveAllocatedGoodsDto, CreateDeliveryBatchDto, DeliveryStopInputDto } from '../dto/fulfillment.dto';
 import { FulfillmentCapability, ShipmentStatus, PreparationSessionStatus, Prisma, Role } from '@prisma/client';
 import * as crypto from 'crypto';
@@ -99,6 +99,7 @@ export class FulfillmentService {
     private readonly eventEmitter: EventEmitter2,
     private readonly outbox: OutboxService,
     private readonly reconciliation: ReconciliationService,
+    private readonly purchaseOrders: PurchaseOrderService,
   ) {}
 
   /**
@@ -407,6 +408,8 @@ export class FulfillmentService {
           inventoryTransactionId: inventoryTransaction.id,
         },
       });
+      // Physical arrival is counted on the supplier PO line lineage (GLO-237); only the Hub receives.
+      await this.purchaseOrders.recordAllocationReceipt(tx, dto.allocationId, dto.quantity);
 
       const totals = await tx.fulfillmentReceipt.groupBy({
         by: ['orderItemId'],
