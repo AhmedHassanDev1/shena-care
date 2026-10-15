@@ -582,6 +582,10 @@ model Order {
   latitude              Float?
   longitude             Float?
   locationSource        String?     @map("location_source")
+  /// When the pin was confirmed (customer at checkout, or operator correction for legacy orders).
+  locationConfirmedAt   DateTime?   @map("location_confirmed_at")
+  /// 'customer' or the correcting operator's account id.
+  locationConfirmedBy   String?     @map("location_confirmed_by")
   totalAmount           Decimal     @map("total_amount") @db.Decimal(10, 2)
   shippingFee           Decimal     @default(0) @map("shipping_fee") @db.Decimal(10, 2)
   currency              String      @db.VarChar(3)

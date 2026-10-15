@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty, IsOptional, Matches, IsNumber, IsIn, Min, Max, IsInt, IsUUID, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, Matches, IsNumber, IsIn, Min, Max, IsInt, IsUUID, MaxLength, Equals } from 'class-validator';
+import { CONFIRMED_PIN_SOURCES } from '../services/service-area';
 
 export class CheckoutDto {
   @IsString()
@@ -29,22 +30,23 @@ export class CheckoutDto {
   @IsOptional()
   notes?: string;
 
-  @IsOptional()
-  @IsNumber()
+  /** Customer-placed and confirmed delivery pin (GLO-231): required, never defaulted by the server. */
+  @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(-90)
   @Max(90)
-  latitude?: number;
+  latitude: number;
 
-  @IsOptional()
-  @IsNumber()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(-180)
   @Max(180)
-  longitude?: number;
+  longitude: number;
 
   @IsString()
-  @IsOptional()
-  @IsIn(['map_pin', 'current_location', 'geocoded_address'])
-  locationSource?: string;
+  @IsIn([...CONFIRMED_PIN_SOURCES])
+  locationSource: string;
+
+  @Equals(true, { message: 'The customer must confirm the delivery pin' })
+  locationConfirmed: boolean;
 
   @IsString()
   @IsNotEmpty()
@@ -75,4 +77,22 @@ export class CheckoutQuoteRequestDto {
   @IsString()
   @IsOptional()
   couponCode?: string;
+}
+
+/** Operator pin for an order placed before pins were mandatory (GLO-231); never overwrites a customer pin. */
+export class CorrectDeliveryLocationDto {
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(-90)
+  @Max(90)
+  latitude: number;
+
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(-180)
+  @Max(180)
+  longitude: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  reason: string;
 }

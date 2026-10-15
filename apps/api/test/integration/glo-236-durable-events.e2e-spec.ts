@@ -35,7 +35,7 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
   const packedStop = async (codAmount: number, status: 'packing' | 'delivered' = 'packing') => {
     const order = await prisma.order.create({ data: {
       orderNumber: 'ORD-' + randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase(),
-      customerName: 'Atomic Customer', customerPhone: '01011112222', shippingAddress: '3 Atomic St',
+      customerName: 'Atomic Customer', customerPhone: '01011112222', shippingAddress: '3 Atomic St', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin',
       subtotal: codAmount, shippingFee: 0, totalAmount: codAmount, codAmount, currency: 'EGP', status,
     } });
     const shipment = await prisma.shipment.create({ data: { orderId: order.id, locationId, status: 'packed' } });
@@ -148,7 +148,7 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
       try {
         await http().post('/ordering/checkout').set('x-cart-token', added.body.guestCartToken).send({
           governorate: 'Cairo', area: 'Maadi', customerName: 'Rollback', customerPhone: '01012345678',
-          shippingAddress: '1 Rollback St', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin',
+          shippingAddress: '1 Rollback St', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true,
           quoteVersion: quote.body.quoteVersion, cartRevision: quote.body.revision, idempotencyKey,
         }).expect(500);
       } finally {

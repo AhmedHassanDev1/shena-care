@@ -88,7 +88,7 @@ describe('Storefront contract (GLO-199)', () => {
     expectShape(quote.items[0], { skuId: 'string', productName: 'string', variantName: 'string', quantity: 'number', lineTotal: 'number' }, 'quote.item');
     const placed = (await http().post('/ordering/checkout').set('x-cart-token', cartToken).send({
       customerName: 'Contract Customer', customerPhone: '01012345678', governorate: 'Cairo', area: 'Maadi',
-      shippingAddress: '1 Contract Street', notes: 'Gate 2', quoteVersion: quote.quoteVersion, cartRevision: quote.cartRevision,
+      shippingAddress: '1 Contract Street', notes: 'Gate 2', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true, quoteVersion: quote.quoteVersion, cartRevision: quote.cartRevision,
       idempotencyKey: 'contract-' + quote.quoteVersion,
     }).expect(201)).body;
     expectShape(placed, { id: 'string', orderNumber: 'string', totalAmount: 'number', currency: 'string', guestAccessToken: 'string' }, 'order');

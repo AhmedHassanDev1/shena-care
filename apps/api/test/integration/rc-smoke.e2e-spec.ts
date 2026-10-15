@@ -121,6 +121,7 @@ describe('Release Candidate Smoke Test (e2e)', () => {
         customerName: 'Smoke Tester',
         customerPhone: '+201000000000',
         shippingAddress: 'Test Address',
+        latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true,
         governorate: 'Cairo',
         area: 'Maadi',
         quoteVersion: quote.body.quoteVersion,

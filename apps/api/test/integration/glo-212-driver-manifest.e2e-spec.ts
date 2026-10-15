@@ -26,7 +26,7 @@ describe('GLO-212 driver run manifest and handoff replay (e2e)', () => {
     const order = await prisma.order.create({ data: {
       orderNumber: 'ORD-' + randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase(),
       customerName, customerPhone: '01098765432', governorate: 'Giza', area: 'Dokki',
-      shippingAddress: '14 Mossadak St', notes: 'Ring twice', subtotal: 1000, shippingFee: 50,
+      shippingAddress: '14 Mossadak St', notes: 'Ring twice', latitude: 30.0386, longitude: 31.2122, locationSource: 'map_pin', subtotal: 1000, shippingFee: 50,
       totalAmount: 1050, codAmount: 1050, currency: 'EGP', status: 'shipped',
       items: { create: [{ skuId: randomUUID(), quantity: 3, price: 333.33, currency: 'EGP', productName: 'Secret Serum' }] },
     } });
@@ -88,6 +88,8 @@ describe('GLO-212 driver run manifest and handoff replay (e2e)', () => {
       sequence: 2, shipmentId: first.shipmentId, status: 'out_for_delivery', handedOver: false,
       orderNumber: first.orderNumber, recipientName: 'Mariam H.', recipientPhone: '01098765432',
       governorate: 'Giza', area: 'Dokki', address: '14 Mossadak St', deliveryNotes: 'Ring twice',
+      location: { latitude: 30.0386, longitude: 31.2122, source: 'map_pin',
+        navigationUrl: 'https://www.google.com/maps/dir/?api=1&destination=30.0386,31.2122' },
       codDue: 1050, cashDeclared: null, currency: 'EGP', itemCount: 3,
     });
     expect(JSON.stringify(res.body)).not.toMatch(/Secret Serum|333\.33|Someone Else|Old Stop/);

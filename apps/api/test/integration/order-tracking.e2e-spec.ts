@@ -38,7 +38,7 @@ describe('Customer order read and tracking (e2e)', () => {
     const quote = await quoteRequest.send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
     const body = {
       customerName: 'Tracking Customer', customerPhone: '01012345678',
-      governorate: 'Cairo', area: 'Maadi', shippingAddress: '1 Tracking Street',
+      governorate: 'Cairo', area: 'Maadi', shippingAddress: '1 Tracking Street', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true,
       quoteVersion: quote.body.quoteVersion, cartRevision: quote.body.revision,
       idempotencyKey: randomUUID(),
     };

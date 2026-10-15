@@ -25,7 +25,7 @@ describe('GLO-214 driver COD declaration (e2e)', () => {
   const dispatchedStop = async (codAmount: number) => {
     const order = await prisma.order.create({ data: {
       orderNumber: 'ORD-' + randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase(),
-      customerName: 'Cash Customer', customerPhone: '01011112222', shippingAddress: '3 Cash St',
+      customerName: 'Cash Customer', customerPhone: '01011112222', shippingAddress: '3 Cash St', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin',
       subtotal: codAmount, shippingFee: 0, totalAmount: codAmount, codAmount, currency: 'EGP', status: 'packing',
     } });
     orderIds.push(order.id);

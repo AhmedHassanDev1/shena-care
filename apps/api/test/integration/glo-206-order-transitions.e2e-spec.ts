@@ -26,7 +26,7 @@ describe('GLO-206 order transitions and delivery convergence (e2e)', () => {
   const makeOrder = async (status: OrderStatus) => {
     const order = await prisma.order.create({ data: {
       orderNumber: 'ORD-' + randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase(),
-      customerName: 'Transition Customer', customerPhone: '01012345678', shippingAddress: '1 Route Street',
+      customerName: 'Transition Customer', customerPhone: '01012345678', shippingAddress: '1 Route Street', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin',
       totalAmount: 100, codAmount: 100, subtotal: 50, shippingFee: 50, currency: 'EGP', status,
     } });
     orderIds.push(order.id);

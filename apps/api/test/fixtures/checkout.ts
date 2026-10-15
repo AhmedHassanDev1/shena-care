@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import request from 'supertest';
 
 /** A customer-confirmed delivery pin inside the Cairo service area (Maadi). */
-export const CAIRO_PIN = { latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin' };
+export const CAIRO_PIN = { latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true };
 
 export interface PlacedOrder {
   id: string;

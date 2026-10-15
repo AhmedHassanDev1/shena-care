@@ -21,7 +21,7 @@ describe('Order submission (e2e)', () => {
     (await http().post('/ordering/checkout/quote').set('x-cart-token', token).send(quoteAddress).expect(201)).body;
   const submission = (q: any, overrides: Record<string, unknown> = {}) => ({
     ...quoteAddress, customerName: 'Order Tester', customerPhone: '01012345678',
-    shippingAddress: '123 Test Street', quoteVersion: q.quoteVersion,
+    shippingAddress: '123 Test Street', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true, quoteVersion: q.quoteVersion,
     cartRevision: q.revision, idempotencyKey: randomUUID(), ...overrides,
   });
   const submit = (token: string, body: any) =>
@@ -45,7 +45,7 @@ describe('Order submission (e2e)', () => {
     const q = await quote(token);
     expect(q.revision).toBe(revision);
     expect(q.items).toHaveLength(1);
-    const body = submission(q, { latitude: 30.0444, longitude: 31.2357, locationSource: 'map_pin' });
+    const body = submission(q, { latitude: 30.0561, longitude: 31.3301, locationSource: 'current_location' });
     const first = await submit(token, body).expect(201);
     expect(first.body).toMatchObject({
       totalAmount: q.totalAmount, subtotal: q.subtotal, shippingFee: q.shippingFee,

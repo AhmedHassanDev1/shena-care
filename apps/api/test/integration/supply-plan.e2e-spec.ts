@@ -80,7 +80,7 @@ describe('Availability confirmation and supply plan (e2e)', () => {
       .send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
     const submitted = await http().post('/ordering/checkout').set('x-cart-token', token).send({
       customerName: 'Supply Customer', customerPhone: '01012345678', shippingAddress: '1 Supply Street',
-      governorate: 'Cairo', area: 'Maadi', quoteVersion: quote.body.quoteVersion,
+      latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true, governorate: 'Cairo', area: 'Maadi', quoteVersion: quote.body.quoteVersion,
       cartRevision: quote.body.revision, idempotencyKey: randomUUID(),
     }).expect(201);
     let count = 0;

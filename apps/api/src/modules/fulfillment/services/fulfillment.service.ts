@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { OrderingService, ReconciliationService } from '../../ordering/public';
+import { OrderingService, ReconciliationService, navigationUrl } from '../../ordering/public';
 import { CatalogService } from '../../catalog/public';
 import { SupplyPlanService } from '../../sourcing/public';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto, ReceiveAllocatedGoodsDto, CreateDeliveryBatchDto, DeliveryStopInputDto } from '../dto/fulfillment.dto';
@@ -951,6 +951,11 @@ export class FulfillmentService {
           area: order.area ?? null,
           address: order.shippingAddress,
           deliveryNotes: order.notes ?? null,
+          // Only the assigned driver's own stops reach this view (GLO-231 secured coordinates).
+          location: order.latitude != null && order.longitude != null ? {
+            latitude: order.latitude, longitude: order.longitude, source: order.locationSource ?? null,
+            navigationUrl: navigationUrl(order.latitude, order.longitude),
+          } : null,
           codDue: order.codAmount ?? order.totalAmount,
           cashDeclared: declared.get(order.id) ?? null,
           currency: order.currency,
@@ -958,6 +963,18 @@ export class FulfillmentService {
         };
       })),
     })));
+  }
+
+  /** A run only carries stops a driver can navigate to: the order's confirmed pin (GLO-231). */
+  private async assertDeliveryPin(orderId: string) {
+    const order = await this.orderingService.getOrder(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.latitude === null || order.latitude === undefined || order.longitude === null || order.longitude === undefined) {
+      throw new ConflictException({
+        code: 'LOCATION_REQUIRED',
+        message: `Order ${order.orderNumber} has no confirmed delivery pin; correct its delivery location first`,
+      });
+    }
   }
 
   // --- Delivery Batch Planning (GLO-149) ---
@@ -1026,6 +1043,7 @@ export class FulfillmentService {
         if (shipment.deliveryStops.length > 0) {
           throw new BadRequestException(`Shipment ${stop.shipmentId} is already assigned to a batch`);
         }
+        await this.assertDeliveryPin(shipment.orderId);
 
         const seq = stop.sequence !== undefined ? stop.sequence : ++currentMaxSeq;
         
@@ -1123,6 +1141,7 @@ export class FulfillmentService {
         if (order?.status === 'cancelled') {
           throw new BadRequestException(`Order ${order.orderNumber} was cancelled; remove its stop before dispatch`);
         }
+        await this.assertDeliveryPin(stop.shipment.orderId);
       }
 
       const claimed = await tx.deliveryBatch.updateMany({

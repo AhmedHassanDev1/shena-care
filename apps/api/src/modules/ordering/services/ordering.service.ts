@@ -4,7 +4,8 @@ import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CommerceService, PromotionService } from '../../commerce/public';
 import { DomainEventsService } from '../../../platform/events/domain-events.service';
-import { CheckoutDto, CheckoutQuoteRequestDto } from '../dto/order.dto';
+import { CheckoutDto, CheckoutQuoteRequestDto, CorrectDeliveryLocationDto } from '../dto/order.dto';
+import { assertDeliverablePin, serviceGovernorate } from './service-area';
 import { OutboxService } from '../../operations/services/outbox.service';
 import { CartOwner, CartService } from './cart.service';
 
@@ -54,6 +55,10 @@ export interface OrderDetail {
   shippingAddress: string;
   governorate?: string | null;
   area?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationSource?: string | null;
+  locationConfirmedAt?: Date | null;
   notes?: string | null;
   subtotal?: number | null;
   shippingFee?: number;
@@ -144,6 +149,7 @@ export class OrderingService {
   }
 
   async getCheckoutQuote(owner: CartOwner, dto: CheckoutQuoteRequestDto) {
+    serviceGovernorate(dto.governorate);
     const { cartId, snapshot } = await this.currentSnapshot(owner, dto);
     const expiresAt = new Date(Date.now() + 15 * 60_000);
     const quote = await this.prisma.$transaction(async tx => {
@@ -246,6 +252,10 @@ export class OrderingService {
       return this.presentSubmission(prior, owner);
     }
 
+    // Serviceability and a customer-confirmed pin are owner rules, enforced here (GLO-231).
+    serviceGovernorate(dto.governorate);
+    assertDeliverablePin(dto);
+
     try {
     const quote = await this.prisma.checkoutQuote.findUnique({ where: { id: dto.quoteVersion } });
     if (!quote || quote.cartId !== cart.id || quote.consumedAt || quote.expiresAt <= new Date() ||
@@ -276,6 +286,7 @@ export class OrderingService {
             customerName: dto.customerName, customerPhone: dto.customerPhone,
             shippingAddress: dto.shippingAddress, governorate: dto.governorate, area: dto.area,
             latitude: dto.latitude, longitude: dto.longitude, locationSource: dto.locationSource,
+            locationConfirmedAt: new Date(), locationConfirmedBy: 'customer',
             notes: dto.notes, subtotal: accepted.subtotal, shippingFee: accepted.shippingFee,
             codAmount: accepted.codAmount, totalAmount: accepted.totalAmount, currency: accepted.currency,
             deliveryPromise: accepted.deliveryPromise, availabilityCertainty: accepted.availabilityCertainty,
@@ -334,6 +345,36 @@ export class OrderingService {
       include: { items: { where: { lineState: 'active' } } },
     });
     return order ? this.present(order) : null;
+  }
+
+  /**
+   * Operator pin for an order that has none (placed before pins were mandatory). A customer pin is
+   * never overwritten, and a package already with a driver is not re-routed here (GLO-231).
+   */
+  async correctDeliveryLocation(id: string, dto: CorrectDeliveryLocationDto, actorId: string) {
+    assertDeliverablePin(dto);
+    const order = await this.prisma.$transaction(async tx => {
+      const current = await tx.order.findUnique({ where: { id } });
+      if (!current) throw new NotFoundException('Order not found');
+      if (current.latitude !== null && current.longitude !== null) {
+        throw new ConflictException({ code: 'LOCATION_ALREADY_CONFIRMED', message: 'This order already has a delivery pin' });
+      }
+      if (!['placed', 'confirmed', 'packing'].includes(current.status)) {
+        throw new ConflictException(`Delivery location cannot change in status ${current.status}`);
+      }
+      const claimed = await tx.order.updateMany({ where: { id, latitude: null }, data: {
+        latitude: dto.latitude, longitude: dto.longitude, locationSource: 'operator_corrected',
+        locationConfirmedAt: new Date(), locationConfirmedBy: actorId,
+      } });
+      if (claimed.count !== 1) throw new ConflictException('Delivery location changed concurrently; retry');
+      await this.outbox.enqueue(tx, {
+        eventType: 'order.location_corrected', aggregateId: id, aggregateType: 'Order',
+        payload: { orderId: id, actorId, reason: dto.reason, latitude: dto.latitude, longitude: dto.longitude },
+        deduplicationKey: `order.location_corrected:${id}`,
+      });
+      return tx.order.findUniqueOrThrow({ where: { id }, include: { items: true } });
+    });
+    return this.present(order);
   }
 
   /**

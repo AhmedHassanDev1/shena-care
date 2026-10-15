@@ -301,7 +301,7 @@ describe('Cart APIs (e2e)', () => {
       const quote = await http().post('/ordering/checkout/quote').set('Authorization', customer.auth)
         .send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
       const order = await http().post('/ordering/checkout').set('Authorization', customer.auth)
-        .send({ customerName: 'Cart Tester', customerPhone: '+201000000000', shippingAddress: '1 Test St, Cairo', governorate: 'Cairo', area: 'Maadi', quoteVersion: quote.body.quoteVersion, cartRevision: quote.body.revision, idempotencyKey: `cart-${Date.now()}` });
+        .send({ customerName: 'Cart Tester', customerPhone: '+201000000000', shippingAddress: '1 Test St, Cairo', governorate: 'Cairo', area: 'Maadi', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true, quoteVersion: quote.body.quoteVersion, cartRevision: quote.body.revision, idempotencyKey: `cart-${Date.now()}` });
       expect(order.status).toBe(201);
       const cart = await http().get('/ordering/cart').set('Authorization', customer.auth).expect(200);
       expect(cart.body.items).toHaveLength(0);

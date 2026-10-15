@@ -23,7 +23,7 @@ describe('Promotions & Price Integrity (e2e)', () => {
   const submit = (token: string, q: any, overrides: Record<string, unknown> = {}) =>
     http().post('/ordering/checkout').set('x-cart-token', token).send({
       ...quoteAddress, customerName: 'Promo Tester', customerPhone: '01012345678',
-      shippingAddress: '123 Promo St', quoteVersion: q.quoteVersion,
+      shippingAddress: '123 Promo St', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true, quoteVersion: q.quoteVersion,
       cartRevision: q.revision, idempotencyKey: randomUUID(), ...overrides,
     });
 

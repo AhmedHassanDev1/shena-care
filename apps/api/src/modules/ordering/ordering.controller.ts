@@ -1,8 +1,9 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Patch, ParseUUIDPipe } from '@nestjs/common';
 import { OrderingService } from './services/ordering.service';
 import { CartService } from './services/cart.service';
 import { OrderTrackingService } from './services/order-tracking.service';
 import { OrderLookupParamsDto } from './dto/order-tracking.dto';
+import { CorrectDeliveryLocationDto } from './dto/order.dto';
 import { CreateResolutionDto, UpdateResolutionStatusDto, CreateSettlementBatchDto, InitializePaymentCollectionDto } from './dto/reconciliation.dto';
 import { ReconciliationService } from './services/reconciliation.service';
 import { AuthGuard } from '../accounts/guards/auth.guard';
@@ -31,6 +32,14 @@ export class OrderingController {
   @Get('orders/:idOrOrderNumber/tracking')
   async trackOrder(@CurrentUser() user: any, @Param() params: OrderLookupParamsDto) {
     return this.orderTrackingService.forCustomer(params.idOrOrderNumber, user.id);
+  }
+
+  /** Pin for a legacy order without one; dispatch refuses orders without a confirmed pin (GLO-231). */
+  @Patch('orders/:id/delivery-location')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('delivery.plan')
+  async correctDeliveryLocation(@CurrentUser() actor: any, @Param('id', ParseUUIDPipe) id: string, @Body() dto: CorrectDeliveryLocationDto) {
+    return this.orderingService.correctDeliveryLocation(id, dto, actor.id);
   }
 
   // --- GLO-127: Order Resolutions ---
