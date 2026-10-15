@@ -20,6 +20,7 @@ import { MessagingModule } from './modules/messaging/messaging.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthController } from './platform/api/health.controller';
 import { StorageModule } from './platform/storage/storage.module';
+import { DomainEventsModule } from './platform/events/domain-events.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { StorageModule } from './platform/storage/storage.module';
       envFilePath: '.env',
     }),
     DatabaseModule,
+    DomainEventsModule,
     AiModule,
     CatalogModule,
     CommerceModule,

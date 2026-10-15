@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { AccountingExportStatus } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { OutboxService } from './outbox.service';
 
 @Injectable()
 export class FinanceService {
-  constructor(private readonly prisma: PrismaService, private readonly outbox: OutboxService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async requestAccountingExport(startDate: Date, endDate: Date, actorId: string) {
     const job = await this.prisma.accountingExportJob.create({
@@ -17,11 +15,8 @@ export class FinanceService {
       }
     });
 
-    // In a real app, this would trigger an async worker via queue
-    // For MVP, we will mock the background generation by directly completing it here async
-    this.processExport(job.id, startDate, endDate).catch(console.error);
-
-    return job;
+    await this.processExport(job.id);
+    return this.prisma.accountingExportJob.findUniqueOrThrow({ where: { id: job.id } });
   }
 
   async getExportJobs() {
@@ -31,58 +26,14 @@ export class FinanceService {
     });
   }
 
-  private async processExport(jobId: string, startDate: Date, endDate: Date) {
-    try {
-      await this.prisma.accountingExportJob.update({
-        where: { id: jobId },
-        data: { status: 'processing' }
-      });
-
-      // Mock gathering data: Orders, Refunds, Supplier Payables
-      const orders = await this.prisma.order.count({
-        where: { createdAt: { gte: startDate, lte: endDate } }
-      });
-      const refunds = await this.prisma.refundTransaction.count({
-        where: { createdAt: { gte: startDate, lte: endDate } }
-      });
-      const payables = await this.prisma.supplierPayable.count({
-        where: { createdAt: { gte: startDate, lte: endDate } }
-      });
-
-      // Mock generating a CSV file
-      const mockFileUrl = `https://storage.shenacare.com/exports/accounting_${jobId}.csv`;
-
-      // Wait a moment to mock long process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      await this.prisma.accountingExportJob.update({
-        where: { id: jobId },
-        data: { 
-          status: 'completed',
-          fileUrl: mockFileUrl
-        }
-      });
-
-      await this.outbox.enqueue(null, {
-        eventType: 'ACCOUNTING_EXPORT_READY',
-        aggregateId: jobId,
-        aggregateType: 'AccountingExportJob',
-        payload: {
-          jobId,
-          fileUrl: mockFileUrl,
-          summary: { orders, refunds, payables }
-        },
-        deduplicationKey: `finance.export:${jobId}`,
-      });
-
-    } catch (e: any) {
-      await this.prisma.accountingExportJob.update({
-        where: { id: jobId },
-        data: { 
-          status: 'failed',
-          error: e.message
-        }
-      });
-    }
+  /**
+   * No accounting export destination (file storage/ERP) is connected yet, so the job fails with an
+   * explicit reason instead of reporting a fabricated file URL as completed (GLO-236).
+   */
+  private async processExport(jobId: string) {
+    await this.prisma.accountingExportJob.update({
+      where: { id: jobId },
+      data: { status: 'failed', error: 'ACCOUNTING_EXPORT_DESTINATION_NOT_CONFIGURED' },
+    });
   }
 }

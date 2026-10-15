@@ -1591,7 +1591,46 @@ enum NotificationStatus {
   processing
   sent
   failed
+  /// No delivery provider is connected for the channel: kept, never reported as sent (GLO-236).
+  held
 
+  @@schema("operations")
+}
+
+enum DomainEventStatus {
+  pending
+  processing
+  delivered
+  failed
+  dead
+
+  @@schema("operations")
+}
+
+/// Durable cross-module event delivery (transactional outbox/inbox, GLO-236). One row per
+/// (event, aggregate, consumer), written in the producer's transaction; a dispatcher delivers it
+/// with retries and the consumer handler must be idempotent.
+model DomainEvent {
+  id            String            @id @default(uuid()) @db.Uuid
+  eventType     String            @map("event_type") @db.VarChar(80)
+  aggregateType String            @map("aggregate_type") @db.VarChar(80)
+  aggregateId   String            @map("aggregate_id") @db.Uuid
+  consumer      String            @db.VarChar(80)
+  payload       Json
+  status        DomainEventStatus @default(pending)
+  attempts      Int               @default(0)
+  maxAttempts   Int               @default(8) @map("max_attempts")
+  nextAttemptAt DateTime          @default(now()) @map("next_attempt_at")
+  lockedUntil   DateTime?         @map("locked_until")
+  lastError     String?           @map("last_error")
+  deliveredAt   DateTime?         @map("delivered_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  @@unique([eventType, aggregateId, consumer])
+  @@index([status, nextAttemptAt])
+  @@index([aggregateId])
+  @@map("domain_events")
   @@schema("operations")
 }
 

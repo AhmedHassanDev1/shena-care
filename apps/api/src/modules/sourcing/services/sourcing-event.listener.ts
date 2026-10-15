@@ -1,21 +1,21 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { OrderPlacedEvent } from '../../../platform/events/integration.events';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { DomainEventsService } from '../../../platform/events/domain-events.service';
 import { SupplyPlanService } from './supply-plan.service';
 
+export const SUPPLY_PLAN_CONSUMER = 'sourcing.supply-plan';
+
+/**
+ * Durable consumer of `order.placed` (GLO-236): the supply plan is created exactly once per order
+ * (unique supply request + per-order lock), so redelivery after a crash or retry is harmless. A
+ * failure is rethrown so the row is retried instead of being logged and lost.
+ */
 @Injectable()
-export class SourcingEventListener {
-  private readonly logger = new Logger(SourcingEventListener.name);
+export class SourcingEventListener implements OnModuleInit {
+  constructor(private readonly supplyPlan: SupplyPlanService, private readonly events: DomainEventsService) {}
 
-  constructor(private readonly supplyPlan: SupplyPlanService) {}
-
-  @OnEvent('order.placed', { async: true })
-  async handleOrderPlacedEvent(event: OrderPlacedEvent) {
-    this.logger.log(`Received order.placed for Order ${event.orderNumber}. Evaluating sourcing needs...`);
-    try {
-      await this.supplyPlan.initiateForOrder(event.orderId);
-    } catch (error: any) {
-      this.logger.error(`Failed to process sourcing for order ${event.orderId}: ${error.message}`);
-    }
+  onModuleInit() {
+    this.events.registerHandler(SUPPLY_PLAN_CONSUMER, async event => {
+      await this.supplyPlan.initiateForOrder(event.aggregateId);
+    });
   }
 }

@@ -104,13 +104,14 @@ export class FulfillmentService {
   /**
    * A driver completing a cash-on-delivery stop declares the cash received (custody). Hub/admin
    * corrections never carry a declaration; counting and settlement happen at the hub (GLO-214).
+   * Runs inside the delivery transaction, after the shipment claim (GLO-236 D-1).
    */
-  private async declareDeliveryCash(orderId: string, as: 'admin' | 'hub' | 'driver', actor: FulfillmentActor, amount?: number) {
+  private async declareDeliveryCash(tx: Prisma.TransactionClient, orderId: string, as: 'admin' | 'hub' | 'driver', actor: FulfillmentActor, amount?: number) {
     if (as !== 'driver') {
       if (amount !== undefined) throw new BadRequestException('Only the delivering driver declares collected cash');
       return;
     }
-    const collection = await this.reconciliation.ensureExpectedCollection(orderId);
+    const collection = await this.reconciliation.ensureExpectedCollection(orderId, tx);
     if (!collection) {
       if (amount) throw new BadRequestException('This order has no cash to collect');
       return;
@@ -118,7 +119,7 @@ export class FulfillmentService {
     if (amount === undefined) {
       throw new BadRequestException('Declare the cash collected (collectedAmount) to complete a cash-on-delivery stop');
     }
-    await this.reconciliation.recordDriverDeclaration(orderId, actor.id, amount);
+    await this.reconciliation.recordDriverDeclaration(orderId, actor.id, amount, tx);
   }
 
   private isUuid(val: string): boolean {
@@ -417,58 +418,17 @@ export class FulfillmentService {
       if (orderComplete && shipment.status === ShipmentStatus.pending) {
         await tx.shipment.update({ where: { id: shipment.id }, data: { status: ShipmentStatus.ready_to_prepare } });
       }
+      // The order is being prepared from the first physical receipt, in the same transaction.
+      const current = await tx.order.findUniqueOrThrow({ where: { id: order.id } });
+      if (current.status === 'placed' || current.status === 'confirmed') {
+        await this.orderingService.transitionInTx(tx, order.id, 'packing');
+      } else if (current.status !== 'packing') {
+        throw new ConflictException(`Order cannot receive goods in status ${current.status}`);
+      }
       return created;
     }, { timeout: 30000 });
 
-    if (order.status === 'placed' || order.status === 'confirmed') {
-      await this.orderingService.updateOrderStatus(order.id, 'packing');
-    }
     return this.presentReceipt(receipt, allocation.confirmedQuantity);
-  }
-
-  async createShipmentFromOrder(event: import('../../../platform/events/integration.events').OrderPlacedEvent): Promise<ShipmentDetail> {
-    const location = await this.prisma.fulfillmentLocation.findFirst({
-      where: { isActive: true, capabilities: { has: FulfillmentCapability.PREPARE_ORDERS } }
-    });
-
-    if (!location) {
-      throw new BadRequestException('No active fulfillment location available to route order.');
-    }
-
-    const existingShipment = await this.prisma.shipment.findUnique({
-      where: { orderId: event.orderId },
-      include: { items: true },
-    });
-
-    if (existingShipment) {
-      return existingShipment; // already allocated
-    }
-
-    // Update order status to packing
-    await this.orderingService.updateOrderStatus(event.orderId, 'packing');
-
-    try {
-      return await this.prisma.shipment.create({
-        data: {
-          orderId: event.orderId,
-          locationId: location.id,
-          status: ShipmentStatus.pending,
-          items: {
-            create: event.items.map((item) => ({
-              skuId: item.skuId,
-              quantity: item.quantity,
-            })),
-          },
-        },
-        include: {
-          items: true,
-        },
-      });
-    } catch (error) {
-      // One order → one shipment (unique orderId): a concurrent creator already made it.
-      if (!isUniqueViolation(error)) throw error;
-      return this.prisma.shipment.findUniqueOrThrow({ where: { orderId: event.orderId }, include: { items: true } });
-    }
   }
 
   async allocateShipment(dto: AllocateShipmentDto, actor: FulfillmentActor): Promise<ShipmentDetail> {
@@ -494,23 +454,24 @@ export class FulfillmentService {
       throw new BadRequestException('Order is already allocated to a shipment');
     }
 
-    // Update order status to packing
-    await this.orderingService.updateOrderStatus(order.id, 'packing');
-
     try {
-      return await this.prisma.shipment.create({
-        data: {
-          orderId: order.id,
-          locationId: location.id,
-          status: ShipmentStatus.pending,
-          items: {
-            create: order.items.map((item) => ({
-              skuId: item.skuId,
-              quantity: item.quantity,
-            })),
+      return await this.prisma.$transaction(async tx => {
+        const shipment = await tx.shipment.create({
+          data: {
+            orderId: order.id,
+            locationId: location.id,
+            status: ShipmentStatus.pending,
+            items: {
+              create: order.items.map((item) => ({
+                skuId: item.skuId,
+                quantity: item.quantity,
+              })),
+            },
           },
-        },
-        include: { items: true },
+          include: { items: true },
+        });
+        await this.orderingService.transitionInTx(tx, order.id, 'packing');
+        return shipment;
       });
     } catch (error) {
       if (isUniqueViolation(error)) throw new ConflictException('Order is already allocated to a shipment');
@@ -546,91 +507,74 @@ export class FulfillmentService {
       if (!DRIVER_STATUSES.includes(dto.status)) throw new ForbiddenException(`Drivers cannot set shipment status ${dto.status}`);
       if (scope.batch.status !== 'dispatched') throw new BadRequestException('Delivery run has not been dispatched');
     }
-    if (dto.status === ShipmentStatus.delivered) {
-      assertShipmentTransition(shipment.status, dto.status);
-      await this.declareDeliveryCash(shipment.orderId, scope.as, actor, dto.collectedAmount);
-    } else if (dto.collectedAmount !== undefined) {
+    if (dto.status !== ShipmentStatus.delivered && dto.collectedAmount !== undefined) {
       throw new BadRequestException('collectedAmount is only recorded with a delivery');
     }
-    return this.updateShipmentStatus(id, { status: dto.status, trackingNumber: dto.trackingNumber });
+    assertShipmentTransition(shipment.status, dto.status);
+    return this.updateShipmentStatus(id, { status: dto.status, trackingNumber: dto.trackingNumber },
+      { as: scope.as, actor, collectedAmount: dto.collectedAmount });
   }
 
-  async updateShipmentStatus(id: string, dto: UpdateShipmentStatusDto): Promise<ShipmentDetail> {
-    const shipment = await this.getShipment(id);
-    if (!shipment) {
-      throw new NotFoundException('Shipment not found');
-    }
-    assertShipmentTransition(shipment.status, dto.status);
+  /**
+   * One transaction per transition (GLO-236 D-1): the shipment is claimed conditionally on the
+   * status just read *before* any effect, then the order transition, cash declaration, shipment
+   * event and notifications commit with it — a losing concurrent writer changes nothing.
+   */
+  async updateShipmentStatus(id: string, dto: UpdateShipmentStatusDto, context?: {
+    as: 'admin' | 'hub' | 'driver'; actor: FulfillmentActor; collectedAmount?: number; event?: { type: string; notes?: string };
+  }): Promise<ShipmentDetail> {
+    const result = await this.prisma.$transaction(async tx => {
+      const shipment = await tx.shipment.findUnique({ where: { id }, include: { items: true } });
+      if (!shipment) throw new NotFoundException('Shipment not found');
+      assertShipmentTransition(shipment.status, dto.status);
 
-    const updateData: Prisma.ShipmentUpdateManyMutationInput = { status: dto.status };
-    if (dto.trackingNumber !== undefined) updateData.trackingNumber = dto.trackingNumber;
+      const updateData: Prisma.ShipmentUpdateManyMutationInput = { status: dto.status };
+      if (dto.trackingNumber !== undefined) updateData.trackingNumber = dto.trackingNumber;
+      const entering = shipment.status !== dto.status;
+      const now = new Date();
+      if (dto.status === ShipmentStatus.dispatched && !shipment.dispatchedAt) updateData.dispatchedAt = now;
+      if (dto.status === ShipmentStatus.delivered && !shipment.deliveredAt) updateData.deliveredAt = now;
 
-    if (dto.status === ShipmentStatus.dispatched && !shipment.dispatchedAt) {
-      updateData.dispatchedAt = new Date();
-      await this.orderingService.updateOrderStatus(shipment.orderId, 'shipped');
-    } else if (dto.status === ShipmentStatus.out_for_delivery && shipment.status !== ShipmentStatus.out_for_delivery) {
-      const order = await this.orderingService.getOrder(shipment.orderId);
-      if (order) {
-        await this.outbox.enqueue(this.prisma, {
-          eventType: 'shipment.out_for_delivery',
-          aggregateId: shipment.id,
-          aggregateType: 'Shipment',
-          customerId: order.customerId || undefined,
-          payload: { orderId: order.id, orderNumber: order.orderNumber, trackingNumber: shipment.trackingNumber },
-          channelIntent: 'whatsapp',
-          templateId: 'out_for_delivery_v1',
-          deduplicationKey: `shipment.out_for_delivery:${shipment.id}`,
-        });
-      }
-    } else if (dto.status === ShipmentStatus.delivered && !shipment.deliveredAt) {
-      updateData.deliveredAt = new Date();
-      await this.orderingService.updateOrderStatus(shipment.orderId, 'delivered');
-      
-      const order = await this.orderingService.getOrder(shipment.orderId);
-      if (order) {
-        this.eventEmitter.emit(
-          'order.delivered',
-          new OrderDeliveredEvent(
-            shipment.orderId,
-            order.customerId || 'unknown',
-            shipment.items.map(i => ({ productId: i.skuId })),
-            updateData.deliveredAt
-          )
-        );
-        
-        await this.outbox.enqueue(this.prisma, {
-          eventType: 'shipment.delivered',
-          aggregateId: shipment.id,
-          aggregateType: 'Shipment',
-          customerId: order.customerId || undefined,
-          payload: { orderId: order.id, orderNumber: order.orderNumber },
-          channelIntent: 'whatsapp',
-          templateId: 'delivered_v1',
-          deduplicationKey: `shipment.delivered:${shipment.id}`,
-        });
-      }
-    } else if (dto.status === ShipmentStatus.failed) {
-      // A failed attempt is a delivery issue, not a cancellation: the order stays open until an
-      // explicit retry/return/cancel decision (retry policy pending GLO-139).
-      const order = await this.orderingService.getOrder(shipment.orderId);
-      if (order) {
-        await this.outbox.enqueue(this.prisma, {
-          eventType: 'shipment.failed',
-          aggregateId: shipment.id,
-          aggregateType: 'Shipment',
-          customerId: order.customerId || undefined,
-          payload: { orderId: order.id, orderNumber: order.orderNumber, reason: 'Delivery failed' },
-          channelIntent: 'whatsapp',
-          templateId: 'delivery_failed_v1',
-          deduplicationKey: `shipment.failed:${shipment.id}`,
-        });
-      }
-    }
+      const claimed = await tx.shipment.updateMany({ where: { id, status: shipment.status }, data: updateData });
+      if (claimed.count !== 1) throw new ConflictException('Shipment status changed concurrently; retry');
 
-    // Conditional on the status just read, so a concurrent transition is not overwritten.
-    const claimed = await this.prisma.shipment.updateMany({ where: { id, status: shipment.status }, data: updateData });
-    if (claimed.count !== 1) throw new ConflictException('Shipment status changed concurrently; retry');
-    return this.prisma.shipment.findUniqueOrThrow({ where: { id }, include: { items: true } });
+      if (context?.event) {
+        await tx.shipmentEvent.create({ data: { shipmentId: id, type: context.event.type, actorId: context.actor.id, notes: context.event.notes } });
+      }
+      let delivered: OrderDeliveredEvent | null = null;
+      if (entering) {
+        const order = await tx.order.findUnique({ where: { id: shipment.orderId } });
+        if (!order) throw new NotFoundException('Order not found');
+        const notify = (eventType: string, templateId: string, payload: Record<string, unknown>) =>
+          this.outbox.enqueue(tx, {
+            eventType, aggregateId: shipment.id, aggregateType: 'Shipment', customerId: order.customerId || undefined,
+            payload: { orderId: order.id, orderNumber: order.orderNumber, ...payload }, channelIntent: 'whatsapp', templateId,
+            deduplicationKey: `${eventType}:${shipment.id}:${shipment.updatedAt.getTime()}`,
+          });
+
+        if (dto.status === ShipmentStatus.dispatched) {
+          await this.orderingService.transitionInTx(tx, shipment.orderId, 'shipped');
+        } else if (dto.status === ShipmentStatus.out_for_delivery) {
+          await notify('shipment.out_for_delivery', 'out_for_delivery_v1', { trackingNumber: shipment.trackingNumber });
+        } else if (dto.status === ShipmentStatus.delivered) {
+          await this.declareDeliveryCash(tx, shipment.orderId, context?.as ?? 'admin',
+            context?.actor ?? { id: 'system', roles: [] }, context?.collectedAmount);
+          await this.orderingService.transitionInTx(tx, shipment.orderId, 'delivered');
+          await notify('shipment.delivered', 'delivered_v1', {});
+          delivered = new OrderDeliveredEvent(order.id, order.customerId || 'unknown',
+            shipment.items.map(i => ({ productId: i.skuId })), shipment.deliveredAt ?? now);
+        } else if (dto.status === ShipmentStatus.failed) {
+          // A failed attempt is a delivery issue, not a cancellation: the order stays open until an
+          // explicit retry/return/cancel decision (retry policy pending GLO-139).
+          await notify('shipment.failed', 'delivery_failed_v1', { reason: 'Delivery failed' });
+        }
+      }
+      return { shipment: await tx.shipment.findUniqueOrThrow({ where: { id }, include: { items: true } }), delivered };
+    });
+
+    // Advisory, in-process only (Care lifecycle); emitted after commit so it never reports a rolled-back delivery.
+    if (result.delivered) this.eventEmitter.emit('order.delivered', result.delivered);
+    return result.shipment;
   }
 
   async startPreparationSession(shipmentId: string, dto: StartPreparationDto, actor: FulfillmentActor) {
@@ -935,15 +879,29 @@ export class FulfillmentService {
     }
 
     const newStatus = EVENT_STATUS[dto.type];
-    // Reject an illegal transition before the event is persisted, so the audit trail stays truthful.
+    // Reject an illegal transition before anything is persisted, so the audit trail stays truthful.
     if (newStatus) assertShipmentTransition(shipment.status, newStatus);
-    if (dto.type === 'DELIVERED') {
-      await this.declareDeliveryCash(shipment.orderId, scope.as, actor, dto.collectedAmount);
-    } else if (dto.collectedAmount !== undefined) {
+    if (dto.type !== 'DELIVERED' && dto.collectedAmount !== undefined) {
       throw new BadRequestException('collectedAmount is only recorded with a delivery');
     }
 
-    const event = await this.prisma.shipmentEvent.create({
+    if (newStatus && shipment.status === newStatus) {
+      // Replay of an already-applied outcome (retry, double tap): no second event or effect. A
+      // delivery replay must repeat the same declaration, otherwise it is a conflicting rewrite.
+      if (dto.type === 'DELIVERED' && scope.as === 'driver') {
+        await this.prisma.$transaction(tx => this.declareDeliveryCash(tx, shipment.orderId, scope.as, actor, dto.collectedAmount));
+      }
+      const prior = await this.prisma.shipmentEvent.findFirst({ where: { shipmentId, type: dto.type }, orderBy: { createdAt: 'desc' } });
+      if (prior) return prior;
+    }
+
+    if (newStatus && shipment.status !== newStatus) {
+      await this.updateShipmentStatus(shipmentId, { status: newStatus },
+        { as: scope.as, actor, collectedAmount: dto.collectedAmount, event: { type: dto.type, notes: dto.notes } });
+      return this.prisma.shipmentEvent.findFirstOrThrow({ where: { shipmentId, type: dto.type }, orderBy: { createdAt: 'desc' } });
+    }
+
+    return this.prisma.shipmentEvent.create({
       data: {
         shipmentId,
         type: dto.type,
@@ -951,12 +909,6 @@ export class FulfillmentService {
         notes: dto.notes,
       }
     });
-
-    if (newStatus && shipment.status !== newStatus) {
-      await this.updateShipmentStatus(shipmentId, { status: newStatus });
-    }
-
-    return event;
   }
 
   /**
@@ -1183,27 +1135,23 @@ export class FulfillmentService {
       if (claimed.count !== 1) throw new ConflictException('Batch was dispatched concurrently');
       const updated = await tx.deliveryBatch.findUniqueOrThrow({ where: { id: batchId } });
 
-      // Update all associated shipments
+      // Shipments, orders and expected cash leave the hub together or not at all (GLO-236 D-2).
       for (const stop of batch.stops) {
-        await tx.shipment.update({
-          where: { id: stop.shipmentId },
-          data: {
-            status: 'out_for_delivery',
-            dispatchedAt: new Date()
-          }
+        const moved = await tx.shipment.updateMany({
+          where: { id: stop.shipmentId, status: 'packed' },
+          data: { status: 'out_for_delivery', dispatchedAt: new Date() },
         });
+        if (moved.count !== 1) throw new ConflictException(`Shipment ${stop.shipmentId} is no longer packed; re-plan the run`);
+        // The customer order follows its shipment out of the hub (GLO-212 dispatch convergence).
+        await this.orderingService.transitionInTx(tx, stop.shipment.orderId, 'shipped');
+        // The cash each stop should bring back is fixed when the run leaves the hub (GLO-214).
+        await this.reconciliation.ensureExpectedCollection(stop.shipment.orderId, tx);
       }
 
-      return { updated, orderIds: batch.stops.map(stop => stop.shipment.orderId) };
-    });
+      return updated;
+    }, { timeout: 30000 });
 
-    // The customer order follows its shipment out of the hub (GLO-212 dispatch convergence).
-    for (const orderId of dispatched.orderIds) {
-      await this.orderingService.updateOrderStatus(orderId, 'shipped');
-      // The cash each stop should bring back is fixed when the run leaves the hub (GLO-214).
-      await this.reconciliation.ensureExpectedCollection(orderId);
-    }
-    return dispatched.updated;
+    return dispatched;
   }
 
   async completeBatch(batchId: string, actor: FulfillmentActor) {

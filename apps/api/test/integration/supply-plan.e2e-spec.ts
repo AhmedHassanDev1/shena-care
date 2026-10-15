@@ -4,8 +4,6 @@ import { randomUUID } from 'crypto';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { SupplyPlanService } from '../../src/modules/sourcing/services/supply-plan.service';
-import { SourcingEventListener } from '../../src/modules/sourcing/services/sourcing-event.listener';
-import { OrderPlacedEvent } from '../../src/platform/events/integration.events';
 import { createSellableSku } from '../fixtures/sellable-sku';
 const request = require('supertest');
 
@@ -13,7 +11,6 @@ describe('Availability confirmation and supply plan (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let plans: SupplyPlanService;
-  let listener: SourcingEventListener;
   let customerId: string;
   let customerAuth: string;
   let adminAuth: string;
@@ -51,10 +48,6 @@ describe('Availability confirmation and supply plan (e2e)', () => {
     return order;
   };
 
-  const eventFor = (order: Awaited<ReturnType<typeof makeOrder>>) =>
-    new OrderPlacedEvent(order.id, order.orderNumber, customerId,
-      order.items.map(item => ({ skuId: item.skuId, quantity: item.quantity })), order.shippingAddress);
-
   beforeAll(async () => {
     process.env.TEST_BYPASS_AUTH = 'false';
     const module = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -63,7 +56,6 @@ describe('Availability confirmation and supply plan (e2e)', () => {
     await app.init();
     prisma = app.get(PrismaService);
     plans = app.get(SupplyPlanService);
-    listener = app.get(SourcingEventListener);
     const customer = await http().post('/accounts/register').send({
       name: 'Supply Customer', email: 'supply-customer-' + randomUUID() + '@example.com', password: 'password123',
     }).expect(201);
@@ -112,7 +104,7 @@ describe('Availability confirmation and supply plan (e2e)', () => {
     const expensive = await makeOffer(skuId, 100);
     const cheaper = await makeOffer(skuId, 50);
     const order = await makeOrder(skuId);
-    await listener.handleOrderPlacedEvent(eventFor(order));
+    await plans.initiateForOrder(order.id);
     const first = await plans.getPlan(order.id);
     expect(first.status).toBe('CONFIRMING');
     expect(first.lines[0].allocations).toHaveLength(1);

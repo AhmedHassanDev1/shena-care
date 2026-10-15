@@ -1,3 +1,4 @@
+import { DomainEventsModule } from '../../platform/events/domain-events.module';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../platform/database/database.module';
 import { CatalogModule } from '../catalog/public';
@@ -13,7 +14,7 @@ import { SupplyPlanController } from './controllers/supply-plan.controller';
 import { OperationsModule } from '../operations/operations.module';
 
 @Module({
-  imports: [DatabaseModule, CatalogModule, OperationsModule],
+  imports: [DomainEventsModule, DatabaseModule, CatalogModule, OperationsModule],
   controllers: [SourcingController, SupplyPlanController],
   providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener],
   exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService],

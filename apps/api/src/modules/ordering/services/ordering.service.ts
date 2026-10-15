@@ -1,10 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { createHash, createHmac, randomUUID } from 'crypto';
 import { OrderStatus, Prisma } from '@prisma/client';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CommerceService, PromotionService } from '../../commerce/public';
-import { OrderPlacedEvent } from '../../../platform/events/integration.events';
+import { DomainEventsService } from '../../../platform/events/domain-events.service';
 import { CheckoutDto, CheckoutQuoteRequestDto } from '../dto/order.dto';
 import { OutboxService } from '../../operations/services/outbox.service';
 import { CartOwner, CartService } from './cart.service';
@@ -85,8 +84,8 @@ export class OrderingService {
     private readonly cartService: CartService,
     private readonly commerceService: CommerceService,
     private readonly promotionService: PromotionService,
-    private readonly eventEmitter: EventEmitter2,
     private readonly outbox: OutboxService,
+    private readonly events: DomainEventsService,
   ) {}
 
   private reviewRequired(): never {
@@ -311,14 +310,16 @@ export class OrderingService {
           templateId: 'order_received_v1',
           deduplicationKey: `order.placed:${created.id}`,
         });
+        // Durable handoff to Sourcing in the same transaction as the order (GLO-236).
+        await this.events.record(tx, {
+          eventType: 'order.placed', aggregateType: 'Order', aggregateId: created.id,
+          payload: { orderId: created.id, orderNumber: created.orderNumber },
+        });
 
         return created;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       this.logger.log('[AUDIT] Order Submitted: ' + order.orderNumber);
-      this.eventEmitter.emit('order.placed', new OrderPlacedEvent(
-        order.id, order.orderNumber, order.customerId || '',
-        order.items.map(i => ({ skuId: i.skuId, quantity: i.quantity })), order.shippingAddress,
-      ));
+      this.events.dispatchSoon(order.id);
       return this.presentSubmission(order, owner);
     } catch (error) {
       const committed = await this.prisma.order.findUnique({ where: { idempotencyKey: dto.idempotencyKey }, include: { items: true, checkoutQuote: true } });
@@ -351,17 +352,26 @@ export class OrderingService {
 
   async updateOrderStatus(id: string, status: OrderStatus): Promise<OrderDetail> {
     const { updated, oldStatus } = await this.prisma.$transaction(async tx => {
-      const order = await tx.order.findUnique({ where: { id } });
-      if (!order) throw new NotFoundException('Order ' + id + ' not found.');
-      OrderingService.assertTransition(order.status, status);
-      // Conditional on the status just read, so a concurrent transition cannot be overwritten.
-      const claimed = await tx.order.updateMany({ where: { id, status: order.status }, data: { status } });
-      if (claimed.count !== 1) throw new ConflictException('Order status changed concurrently; retry');
-      const changed = await tx.order.findUniqueOrThrow({ where: { id }, include: { items: true } });
-      if (order.status !== status) await tx.orderStatusEvent.create({ data: { orderId: id, status } });
-      return { updated: changed, oldStatus: order.status };
+      const oldStatus = await this.transitionInTx(tx, id, status);
+      return { updated: await tx.order.findUniqueOrThrow({ where: { id }, include: { items: true } }), oldStatus };
     });
     this.logger.log('[AUDIT] Order Status Changed: ' + JSON.stringify({ orderId: id, oldStatus, newStatus: status }));
     return this.present(updated);
+  }
+
+  /**
+   * Owner command for a transition inside the caller's transaction, so a shipment and its order move
+   * together or not at all (GLO-236 D-1/D-2). Returns the previous status; same status is a no-op.
+   */
+  async transitionInTx(tx: Prisma.TransactionClient, id: string, status: OrderStatus): Promise<OrderStatus> {
+    const order = await tx.order.findUnique({ where: { id } });
+    if (!order) throw new NotFoundException('Order ' + id + ' not found.');
+    OrderingService.assertTransition(order.status, status);
+    if (order.status === status) return order.status;
+    // Conditional on the status just read, so a concurrent transition cannot be overwritten.
+    const claimed = await tx.order.updateMany({ where: { id, status: order.status }, data: { status } });
+    if (claimed.count !== 1) throw new ConflictException('Order status changed concurrently; retry');
+    await tx.orderStatusEvent.create({ data: { orderId: id, status } });
+    return order.status;
   }
 }

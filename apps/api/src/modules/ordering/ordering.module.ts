@@ -1,3 +1,4 @@
+import { DomainEventsModule } from '../../platform/events/domain-events.module';
 import { Module } from '@nestjs/common';
 import { OrderingService } from './services/ordering.service';
 import { CartService } from './services/cart.service';
@@ -18,7 +19,7 @@ import { GuestReturnsController } from './guest-returns.controller';
 import { ReturnEligibilityService } from './services/return-eligibility.service';
 import { OperationsModule } from '../operations/operations.module';
 @Module({
-  imports: [CommerceModule, SourcingModule, CatalogModule, OperationsModule],
+  imports: [DomainEventsModule, CommerceModule, SourcingModule, CatalogModule, OperationsModule],
   controllers: [OrderingController, CartController, CheckoutController, GuestOrderTrackingController,
     AvailabilityDecisionController, GuestAvailabilityDecisionController,
     CustomerReturnsController, GuestReturnsController],
