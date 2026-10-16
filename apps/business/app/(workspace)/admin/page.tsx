@@ -18,6 +18,7 @@ import {
   Package,
   Search,
   ShoppingBag,
+  SlidersHorizontal,
   Square,
   TrendingDown,
   TrendingUp,
@@ -271,6 +272,323 @@ function CardMiniLine({
   )
 }
 
+/* ── Rich Operations Area Chart matching Reference Image ─────────── */
+function OperationsAreaChart() {
+  const [activeIdx, setActiveIdx] = React.useState<number>(8) // Default to 4:00 PM peak
+  const [activeTab, setActiveTab] = React.useState<string>('all')
+
+  const filterTabs = [
+    { id: 'all', label: 'الكل' },
+    { id: 'new', label: 'طلبات جديدة' },
+    { id: 'prep', label: 'قيد التجهيز' },
+    { id: 'courier', label: 'مع المندوب' },
+    { id: 'done', label: 'مكتملة' },
+  ]
+
+  const dataPoints = [
+    { time: '08:00 ص', label: '8 ص', actual: 12, target: 10, high: 15, low: 9, change: '+5.4%' },
+    { time: '09:00 ص', label: '', actual: 14, target: 12, high: 17, low: 11, change: '+7.1%' },
+    { time: '10:00 ص', label: '10 ص', actual: 17, target: 14, high: 20, low: 13, change: '+10.8%' },
+    { time: '11:00 ص', label: '', actual: 21, target: 17, high: 23, low: 15, change: '+14.2%' },
+    { time: '12:00 م', label: '12 م', actual: 26, target: 20, high: 28, low: 18, change: '+18.5%' },
+    { time: '01:00 م', label: '', actual: 23, target: 19, high: 25, low: 17, change: '+12.0%' },
+    { time: '02:00 م', label: '2 م', actual: 20, target: 18, high: 23, low: 16, change: '+8.3%' },
+    { time: '03:00 م', label: '', actual: 27, target: 22, high: 30, low: 20, change: '+16.7%' },
+    { time: '04:00 م', label: '4 م', actual: 34, target: 26, high: 36, low: 25, change: '+24.6%', isPeak: true },
+    { time: '05:00 م', label: '', actual: 30, target: 24, high: 33, low: 22, change: '+19.0%' },
+    { time: '06:00 م', label: '6 م', actual: 27, target: 21, high: 30, low: 19, change: '+15.2%' },
+    { time: '07:00 م', label: '', actual: 31, target: 23, high: 34, low: 22, change: '+17.9%' },
+    { time: '08:00 م', label: '8 م', actual: 28, target: 22, high: 32, low: 20, change: '+12.4%' },
+  ]
+
+  // Chart coordinate mapping
+  const width = 520
+  const height = 240
+  const plotLeft = 38
+  const plotRight = 505
+  const plotTop = 15
+  const plotBottom = 195
+  const plotWidth = plotRight - plotLeft
+  const plotHeight = plotBottom - plotTop
+  const maxY = 40
+
+  const points = dataPoints.map((d, i) => {
+    const x = plotLeft + (i / (dataPoints.length - 1)) * plotWidth
+    const y = plotBottom - (d.actual / maxY) * plotHeight
+    return { x, y }
+  })
+
+  const targetPoints = dataPoints.map((d, i) => {
+    const x = plotLeft + (i / (dataPoints.length - 1)) * plotWidth
+    const y = plotBottom - (d.target / maxY) * plotHeight
+    return { x, y }
+  })
+
+  function getBezier(pts: Array<{ x: number; y: number }>) {
+    if (pts.length === 0) return ''
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i === 0 ? 0 : i - 1]
+      const p1 = pts[i]
+      const p2 = pts[i + 1]
+      const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1]
+
+      const cp1x = p1.x + (p2.x - p0.x) / 6
+      const cp1y = p1.y + (p2.y - p0.y) / 6
+      const cp2x = p2.x - (p3.x - p1.x) / 6
+      const cp2y = p2.y - (p3.y - p1.y) / 6
+
+      d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+    }
+    return d
+  }
+
+  const lineD = getBezier(points)
+  const areaD = `${lineD} L ${points[points.length - 1].x.toFixed(1)} ${plotBottom} L ${points[0].x.toFixed(1)} ${plotBottom} Z`
+  const targetD = getBezier(targetPoints)
+
+  const activeData = dataPoints[activeIdx] || dataPoints[8]
+  const activePt = points[activeIdx] || points[8]
+
+  // Y-axis grid markers
+  const yTicks = [
+    { val: 40, y: plotBottom - (40 / maxY) * plotHeight },
+    { val: 30, y: plotBottom - (30 / maxY) * plotHeight },
+    { val: 20, y: plotBottom - (20 / maxY) * plotHeight },
+    { val: 10, y: plotBottom - (10 / maxY) * plotHeight },
+    { val: 0, y: plotBottom },
+  ]
+
+  return (
+    <div className="flex flex-col justify-between h-full">
+      {/* Top Section: Title & Controls matching reference */}
+      <div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-bw-display text-sm font-bold text-bw-ink">تدفق الطلبات ومعدل العمليات</h2>
+            <p className="text-[11px] text-bw-ink-subtle mt-0.5">حركة الطلبات اللحظية على مدار اليوم</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 rounded-full bg-bw-sunken px-2.5 py-1 text-xs text-bw-ink-soft border border-bw-line/70">
+              <span className="font-semibold text-bw-ink">اليوم</span>
+              <ChevronDown className="size-3 text-bw-ink-subtle" />
+            </div>
+            <button
+              type="button"
+              className="flex size-7 items-center justify-center rounded-full bg-bw-sunken border border-bw-line/70 text-bw-ink-subtle hover:text-bw-ink transition-colors"
+              title="تخصيص العرض"
+            >
+              <SlidersHorizontal className="size-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Tabs matching reference (USD/EUR, USD/GBP etc.) */}
+        <div className="mt-3.5 flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
+          {filterTabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setActiveTab(t.id)}
+              className={cn(
+                'whitespace-nowrap px-3 py-1 rounded-full transition-all duration-200 text-xs',
+                activeTab === t.id
+                  ? 'border border-[#ff783d] text-[#ff783d] bg-[#ff783d]/15 font-bold shadow-sm'
+                  : 'text-bw-ink-soft hover:text-bw-ink hover:bg-white/5',
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Chart Canvas with SVG Area Curve & Interactive Tooltip */}
+      <div className="relative mt-2 select-none">
+        {/* Floating Tooltip Card matching the Reference Image */}
+        <div
+          className="absolute z-20 pointer-events-none transition-all duration-200 ease-out"
+          style={{
+            top: '6px',
+            left: `${Math.max(8, Math.min((activePt.x / width) * 100 - 18, 58))}%`,
+          }}
+        >
+          <div className="rounded-xl border border-white/10 bg-[#12141c]/95 p-3.5 shadow-2xl backdrop-blur-md min-w-[170px] text-right">
+            <div className="text-[10px] text-zinc-400 font-medium">
+              16 أكتوبر 2026 - {activeData.time}
+            </div>
+            <div className="mt-1 flex items-baseline justify-between gap-3">
+              <div className="font-bw-display text-2xl font-black text-white">
+                {activeData.actual} <span className="text-xs font-normal text-zinc-400">طلب</span>
+              </div>
+              <div className="text-xs font-bold text-[#ff783d]">
+                {activeData.change}
+              </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-white/10 space-y-1 text-[10px] text-zinc-300">
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400">الأعلى:</span>
+                <span className="font-semibold text-white">{activeData.high} طلب</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400">الأدنى:</span>
+                <span className="font-semibold text-white">{activeData.low} طلب</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400">المستهدف:</span>
+                <span className="font-semibold text-[#ff783d]">{activeData.target} طلب</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* SVG Drawing Canvas */}
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
+          <defs>
+            {/* Rich Orange Gradient underneath main line */}
+            <linearGradient id="operations-flow-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ff783d" stopOpacity="0.45" />
+              <stop offset="70%" stopColor="#ff783d" stopOpacity="0.10" />
+              <stop offset="100%" stopColor="#ff783d" stopOpacity="0.0" />
+            </linearGradient>
+
+            {/* Glowing filter for active point */}
+            <filter id="orange-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#ff783d" floodOpacity="0.8" />
+            </filter>
+          </defs>
+
+          {/* Dotted Horizontal Y-Gridlines & Labels */}
+          {yTicks.map((tick, i) => (
+            <g key={i}>
+              <line
+                x1={plotLeft}
+                y1={tick.y}
+                x2={plotRight}
+                y2={tick.y}
+                stroke="rgba(255,255,255,0.08)"
+                strokeDasharray="3 3"
+              />
+              <text
+                x={plotLeft - 8}
+                y={tick.y + 3.5}
+                textAnchor="end"
+                fill="rgba(255,255,255,0.35)"
+                fontSize="10"
+                fontFamily="inherit"
+              >
+                {tick.val}
+              </text>
+            </g>
+          ))}
+
+          {/* Area Gradient Path */}
+          <path d={areaD} fill="url(#operations-flow-grad)" />
+
+          {/* Secondary Dashed Target Curve (Hedged Rate style) */}
+          <path
+            d={targetD}
+            fill="none"
+            stroke="#ff9800"
+            strokeDasharray="4 4"
+            strokeOpacity="0.45"
+            strokeWidth="1.5"
+          />
+
+          {/* Primary Solid Orange Curve */}
+          <path
+            d={lineD}
+            fill="none"
+            stroke="#ff783d"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {/* Vertical Dashed Guideline at active point */}
+          <line
+            x1={activePt.x}
+            y1={activePt.y}
+            x2={activePt.x}
+            y2={plotBottom}
+            stroke="#ff783d"
+            strokeDasharray="3 3"
+            strokeWidth="1.5"
+          />
+
+          {/* Active Glowing Point Marker */}
+          <circle
+            cx={activePt.x}
+            cy={activePt.y}
+            r="8"
+            fill="#ff783d"
+            fillOpacity="0.3"
+            className="animate-ping"
+          />
+          <circle
+            cx={activePt.x}
+            cy={activePt.y}
+            r="4.5"
+            fill="#ff783d"
+            stroke="#ffffff"
+            strokeWidth="2"
+            filter="url(#orange-glow)"
+          />
+
+          {/* Interactive Hover Hitboxes for each hour */}
+          {dataPoints.map((d, i) => {
+            const pt = points[i]
+            return (
+              <circle
+                key={i}
+                cx={pt.x}
+                cy={pt.y}
+                r="12"
+                fill="transparent"
+                className="cursor-pointer"
+                onMouseEnter={() => setActiveIdx(i)}
+                onClick={() => setActiveIdx(i)}
+              />
+            )
+          })}
+
+          {/* X-Axis Hour Labels */}
+          {dataPoints.map((d, i) => {
+            if (!d.label) return null
+            const pt = points[i]
+            return (
+              <text
+                key={i}
+                x={pt.x}
+                y={plotBottom + 18}
+                textAnchor="middle"
+                fill={i === activeIdx ? '#ff783d' : 'rgba(255,255,255,0.45)'}
+                fontWeight={i === activeIdx ? 'bold' : 'normal'}
+                fontSize="11"
+              >
+                {d.label}
+              </text>
+            )
+          })}
+        </svg>
+      </div>
+
+      {/* Bottom Chart Legend matching reference (Market Rate & Hedged Rate) */}
+      <div className="flex items-center justify-center gap-6 text-xs text-bw-ink-soft mt-3 pt-2.5 border-t border-bw-line/40">
+        <div className="flex items-center gap-2">
+          <span className="h-0.5 w-4 rounded-full bg-[#ff783d]" />
+          <span className="text-[11px] font-medium text-bw-ink">التدفق الفعلي للطلبات</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-0.5 w-4 border-b border-dashed border-[#ff9800]" />
+          <span className="text-[11px] text-bw-ink-subtle">المستهدف التشغيلي</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── Circular Donut Chart matching Image 2 ────────────────────────── */
 function DonutPipelineChart({
   total = 142,
@@ -378,17 +696,6 @@ function AdminOperationsCenter() {
       attention.data.openCases.total
     : 12
   const codCollectedAmount = isDbPopulated && kpis.data?.revenueToday ? kpis.data.revenueToday : 32450
-
-  // Middle Bar Chart Hours (matching Image 2)
-  const inflowChartData = [
-    { label: '8 ص', newOrders: 10, completed: 8 },
-    { label: '10 ص', newOrders: 14, completed: 11 },
-    { label: '12 م', newOrders: 20, completed: 15 },
-    { label: '2 م', newOrders: 18, completed: 14 },
-    { label: '4 م', newOrders: 30, completed: 24, isPeak: true },
-    { label: '6 م', newOrders: 26, completed: 20 },
-    { label: '8 م', newOrders: 32, completed: 25 },
-  ]
 
   // Pipeline Donut Segments (matching Image 2)
   const pipelineSegments = [
@@ -675,79 +982,9 @@ function AdminOperationsCenter() {
 
       {/* ── Middle 3-Column Operations Row (Matching Image 2 Layout) ───── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 mt-4 items-stretch">
-        {/* Panel 1 (Left in RTL): تدفق الطلبات اليوم (Bar Chart) — 5 cols */}
+        {/* Panel 1 (Left in RTL): تدفق الطلبات ومعدل العمليات (Area Chart matching reference) — 5 cols */}
         <div className="lg:col-span-5 rounded-2xl border border-bw-line/70 bg-bw-surface/90 p-5 shadow-bw-card flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-[#ff783d]" />
-                <h2 className="font-bw-display text-sm font-bold text-bw-ink">تدفق الطلبات اليوم</h2>
-              </div>
-              <div className="flex items-center gap-1 rounded bg-bw-sunken px-2 py-0.5 text-[11px] text-bw-ink-soft border border-bw-line/60">
-                <span>اليوم</span>
-                <ChevronDown className="size-3 text-bw-ink-subtle" />
-              </div>
-            </div>
-            <p className="text-[11px] text-bw-ink-subtle mt-0.5">عدد الطلبات المنشأة حسب كل ساعة</p>
-          </div>
-
-          {/* Bar Chart Canvas with Tooltip */}
-          <div className="relative mt-6 pt-8 pb-2">
-            {/* Tooltip on 4 PM bar */}
-            <div className="absolute top-0 left-[35%] -translate-x-1/2 rounded-lg bg-bw-page px-3 py-1.5 text-xs shadow-xl ring-1 ring-bw-line border border-bw-line/80 z-20">
-              <div className="flex items-center gap-2 font-bold text-bw-ink pb-0.5 border-b border-bw-line/50">
-                <span>4 م</span>
-              </div>
-              <div className="mt-1 space-y-0.5 text-[11px]">
-                <div className="flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-full bg-[#ff783d]" />
-                  <span className="text-bw-ink-soft">طلب جديد:</span>
-                  <span className="font-semibold text-bw-ink">24</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-full bg-blue-500" />
-                  <span className="text-bw-ink-soft">طلب مكتمل:</span>
-                  <span className="font-semibold text-bw-ink">18</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Bars Container */}
-            <div className="flex h-40 items-end justify-between gap-3 px-2 border-b border-bw-line/60">
-              {inflowChartData.map((d, idx) => (
-                <div key={idx} className="flex flex-col items-center flex-1 h-full justify-end">
-                  <div className="flex items-end gap-1 w-full justify-center h-full">
-                    {/* Orange Bar (New Orders) */}
-                    <div
-                      style={{ height: `${(d.newOrders / 35) * 100}%` }}
-                      className={cn(
-                        'w-2.5 rounded-t-sm transition-all duration-300',
-                        d.isPeak ? 'bg-[#ff783d] shadow-sm ring-1 ring-[#ff783d]' : 'bg-[#ff783d]/85 hover:bg-[#ff783d]',
-                      )}
-                    />
-                    {/* Blue Bar (Completed Orders) */}
-                    <div
-                      style={{ height: `${(d.completed / 35) * 100}%` }}
-                      className="w-2.5 rounded-t-sm bg-blue-500/80 hover:bg-blue-500 transition-all duration-300"
-                    />
-                  </div>
-                  <span className="mt-2 text-[10px] text-bw-ink-subtle">{d.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Chart Legend */}
-          <div className="flex items-center gap-4 text-xs text-bw-ink-soft mt-3 pt-2 border-t border-bw-line/40">
-            <div className="flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-[#ff783d]" />
-              <span className="text-[11px]">طلبات جديدة</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-blue-500" />
-              <span className="text-[11px]">طلبات مكتملة</span>
-            </div>
-          </div>
+          <OperationsAreaChart />
         </div>
 
         {/* Panel 2 (Center in RTL): حالة دورة الطلبات (Donut Chart) — 4 cols */}
