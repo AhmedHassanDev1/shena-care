@@ -116,9 +116,39 @@ describe('GLO-182/183 public discovery and detail (PostgreSQL)', () => {
     expect(none.body).toMatchObject({ items: [], total: 0, facets: { brands: [] } });
     const hiddenVariant = await request(app.getHttpServer()).get('/products/discovery').query({ brand: brandSlug, q: `UNREVIEWED-${run}` }).expect(200);
     expect(hiddenVariant.body).toMatchObject({ items: [], total: 0 });
+    const wildcard = await request(app.getHttpServer()).get('/products/discovery').query({ brand: brandSlug, q: '%' }).expect(200);
+    expect(wildcard.body).toMatchObject({ items: [], total: 0 });
     for (const query of [{ limit: 101 }, { limit: -1 }, { limit: 'NaN' }, { cursor: 'garbage' }, { q: 'x'.repeat(121) }, { unknown: 'x' }])
       await request(app.getHttpServer()).get('/products/discovery').query(query).expect(400);
     await request(app.getHttpServer()).get('/products').query({ page: -1 }).expect(400);
+  });
+
+  it('normalizes Arabic, ranks exact names, finds curated concerns and suggests only sellable products', async () => {
+    const concernSlug = `acne-${prefix}`;
+    await db.concern.create({ data: { name: `حب الشباب ${prefix}`, slug: concernSlug, careArea: 'skin' } });
+    await db.product.update({ where: { id: id(7) }, data: { name: 'سِيروم مُرطّب', concerns: [concernSlug] } });
+    try {
+      const arabic = await request(app.getHttpServer()).get('/products/discovery').query({ brand: brandSlug, q: 'سيروم مرطب' }).expect(200);
+      expect(arabic.body.items.map((p: { id: string }) => p.id)).toEqual([id(7)]);
+      const byConcern = await request(app.getHttpServer()).get('/products/discovery').query({ brand: brandSlug, q: `حب الشباب ${prefix}` }).expect(200);
+      expect(byConcern.body.items.map((p: { id: string }) => p.id)).toEqual([id(7)]);
+      const filtered = await request(app.getHttpServer()).get('/products/discovery').query({ brand: brandSlug, concern: concernSlug }).expect(200);
+      expect(filtered.body.items.map((p: { id: string }) => p.id)).toEqual([id(7)]);
+      const suggestions = await request(app.getHttpServer()).get('/products/suggestions').query({ brand: brandSlug, q: 'سيروم' }).expect(200);
+      expect(suggestions.body.items).toEqual([expect.objectContaining({ id: id(7), slug: `${brandSlug}-7` })]);
+      expect(JSON.stringify(suggestions.body)).not.toMatch(/costPrice|supplierId|reviewedBy|availability/);
+      await request(app.getHttpServer()).get('/products/suggestions').query({ q: 'x' }).expect(400);
+      await request(app.getHttpServer()).get('/products/suggestions').query({ q: '   ' }).expect(400);
+      await request(app.getHttpServer()).get('/products/suggestions').query({ q: 'x'.repeat(121) }).expect(400);
+      await db.product.update({ where: { id: id(1) }, data: { name: 'Contract Cream' } });
+      await db.product.update({ where: { id: id(7) }, data: { name: 'Contract Cream 7' } });
+      const ranked = await request(app.getHttpServer()).get('/products/discovery').query({ brand: brandSlug, q: 'Contract Cream' }).expect(200);
+      expect(ranked.body.items.map((p: { id: string }) => p.id)).toEqual([id(1), id(7)]);
+    } finally {
+      await db.product.update({ where: { id: id(1) }, data: { name: 'Contract Cream 1' } });
+      await db.product.update({ where: { id: id(7) }, data: { name: 'Contract Cream 7', concerns: [] } });
+      await db.concern.delete({ where: { slug: concernSlug } });
+    }
   });
 
   it('keeps the insertion watermark and rejects cursor reuse with changed filters', async () => {

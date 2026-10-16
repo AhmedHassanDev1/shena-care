@@ -15,9 +15,9 @@ export const routes = {
   order: (idOrNumber: string) => `/orders/${encodeURIComponent(idOrNumber)}`,
   /** Catalog listing narrowed by a category slug (GET /products?category=). */
   productsByCategory: (slug: string) => `/products?category=${encodeURIComponent(slug)}`,
-  /** Catalog search over product, brand and SKU (GET /products?q=). */
+  /** Ranked catalog search over products, brands, concerns and SKUs. */
   productsSearch: (query: string) => `/products?q=${encodeURIComponent(query)}`,
-  /** Catalog listing narrowed by a care concern slug. The listing endpoint has no concern filter yet. */
+  /** Catalog listing narrowed by a curated care concern slug. */
   productsByConcern: (slug: string) => `/products?concern=${encodeURIComponent(slug)}`,
   routine: (id: string) => `/routines/${encodeURIComponent(id)}`,
 } as const;

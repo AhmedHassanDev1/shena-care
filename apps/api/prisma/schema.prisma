@@ -80,6 +80,7 @@ model Product {
   description   String?
   usage         String?
   warnings      String?
+  concerns      String[] @default([])
   isPublished   Boolean  @default(true) @map("is_published")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")

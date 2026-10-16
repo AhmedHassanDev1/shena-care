@@ -18,6 +18,7 @@ export interface DiscoveryFilters {
   brand?: string;
   category?: string;
   productLine?: string;
+  concern?: string;
 }
 
 export interface DiscoveryPage {
@@ -42,6 +43,7 @@ export function sanitizeFilters(raw: Record<string, string | undefined>): Discov
     const value = raw[key];
     if (value && SLUG.test(value)) filters[key] = value;
   }
+  if (raw.concern && SLUG.test(raw.concern)) filters.concern = raw.concern;
   return filters;
 }
 
@@ -51,6 +53,18 @@ export async function discoverProducts(filters: DiscoveryFilters, cursor?: strin
   params.set('limit', String(limit));
   if (cursor) params.set('cursor', cursor);
   return apiClient.get<DiscoveryPage>(`/products/discovery?${params.toString()}`);
+}
+
+export interface ProductSuggestion {
+  id: string;
+  name: string;
+  slug: string;
+  brand: { name: string; slug: string };
+}
+
+export async function suggestProducts(q: string, limit = 8, signal?: AbortSignal): Promise<{ items: ProductSuggestion[]; query: string }> {
+  const params = new URLSearchParams({ q: q.trim().slice(0, 120), limit: String(limit) });
+  return apiClient.get(`/products/suggestions?${params.toString()}`, { signal });
 }
 
 export interface PublicPrice {

@@ -6,6 +6,10 @@ import {
   Matches,
   IsBoolean,
   IsUUID,
+  IsArray,
+  ArrayUnique,
+  ArrayMaxSize,
+  MaxLength,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -44,6 +48,10 @@ export class CreateProductDto {
   @IsString()
   @IsOptional()
   warnings?: string;
+
+  @IsOptional() @IsArray() @ArrayUnique() @ArrayMaxSize(20) @IsString({ each: true })
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { each: true }) @MaxLength(160, { each: true })
+  concerns?: string[];
 
   @IsBoolean()
   @IsOptional()
@@ -86,6 +94,10 @@ export class UpdateProductDto {
   @IsString()
   @IsOptional()
   warnings?: string;
+
+  @IsOptional() @IsArray() @ArrayUnique() @ArrayMaxSize(20) @IsString({ each: true })
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { each: true }) @MaxLength(160, { each: true })
+  concerns?: string[];
 
   @IsBoolean()
   @IsOptional()

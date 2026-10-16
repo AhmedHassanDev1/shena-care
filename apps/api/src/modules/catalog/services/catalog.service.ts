@@ -48,6 +48,7 @@ export interface PublishedProduct {
   description: string | null;
   usage: string | null;
   warnings: string | null;
+  concerns: string[];
   isPublished: boolean;
   brand: {
     id: string;
@@ -111,6 +112,15 @@ export class CatalogService {
       products: products.map(p => this.mapToPublishedProduct(p)).filter(p => p.media.length && p.skus.length),
       nextAfterId: products.length === 100 ? products[products.length - 1].id : null,
     };
+  }
+
+  /** Batch hydrate ranked provider identities without crossing the Catalog boundary. */
+  async getPublishedProductsByIds(ids: string[]): Promise<PublishedProduct[]> {
+    if (!ids.length) return [];
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: ids }, isPublished: true }, ...productWithRelations,
+    });
+    return products.map(p => this.mapToPublishedProduct(p)).filter(p => p.media.length && p.skus.length);
   }
 
   private isUuid(val: string): boolean {
@@ -276,6 +286,7 @@ export class CatalogService {
         description: dto.description ?? null,
         usage: dto.usage ?? null,
         warnings: dto.warnings ?? null,
+        concerns: dto.concerns ?? [],
         isPublished: dto.isPublished ?? false,
       },
       ...productWithRelations,
@@ -353,6 +364,7 @@ export class CatalogService {
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.usage !== undefined && { usage: dto.usage }),
         ...(dto.warnings !== undefined && { warnings: dto.warnings }),
+        ...(dto.concerns !== undefined && { concerns: dto.concerns }),
         ...(dto.isPublished !== undefined && { isPublished: dto.isPublished }),
       },
       ...productWithRelations,
@@ -785,6 +797,7 @@ export class CatalogService {
       description: includeAll ? product.description : null,
       usage: includeAll ? product.usage : null,
       warnings: includeAll ? product.warnings : null,
+      concerns: product.concerns,
       isPublished: product.isPublished,
       brand: {
         id: product.brand.id,

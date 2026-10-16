@@ -5,7 +5,7 @@ import { PageContainer } from '@/components/layout/page-container';
 import { LocaleSwitch } from '@/components/LocaleSwitch';
 import { Icon } from '@/components/ui/icon';
 import { iconButtonVariants } from '@/components/ui/icon-button';
-import { SearchField } from '@/components/ui/search-field';
+import { ProductSearch } from '@/features/catalog/components/ProductSearch';
 import { routes } from '@/lib/routes';
 import { HeaderNav, type HeaderNavLink } from './header-nav';
 import { WordmarkLink } from './wordmark-link';
@@ -35,14 +35,12 @@ export interface SiteHeaderProps {
 export function SiteHeader({ links, labels, cart }: SiteHeaderProps) {
   // Two compositions are rendered (one is display:none per breakpoint), so each needs its own ids.
   const search = (id: string, size: 's' | 'm') => (
-    <SearchField
+    <ProductSearch
       id={id}
       size={size}
-      action={routes.products}
       label={labels.searchLabel}
       submitLabel={labels.searchSubmit}
       placeholder={labels.searchPlaceholder}
-      maxLength={120}
     />
   );
 

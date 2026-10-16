@@ -1,15 +1,61 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
-import { CatalogService } from '../../../modules/catalog/public';
-import { DiscoveryQueryDto } from '../dto/discovery.dto';
+import { CatalogService, PublishedProduct, SEARCH_PROVIDER, SearchProvider, SearchFilters, normalizeSearchText } from '../../../modules/catalog/public';
+import { CareService } from '../../../modules/care/public';
+import { DiscoveryQueryDto, SuggestQueryDto } from '../dto/discovery.dto';
 import { ProductView, ProductViewService } from './product-view.service';
 
 @Injectable()
 export class DiscoveryService {
-  constructor(private readonly catalog: CatalogService, private readonly views: ProductViewService) {}
+  constructor(private readonly catalog: CatalogService, private readonly views: ProductViewService,
+    @Inject(SEARCH_PROVIDER) private readonly searchProvider: SearchProvider,
+    private readonly care: CareService) {}
+
+  private async searchFilters(query: DiscoveryQueryDto, snapshotAt: Date): Promise<SearchFilters> {
+    const q = query.q?.trim() ?? '';
+    const concerns = q ? await this.care.getPublicConcerns() : [];
+    const matched = concerns.find(c => normalizeSearchText(c.name) === normalizeSearchText(q) || c.slug === q);
+    return { q, category: query.category, brand: query.brand, productLine: query.productLine,
+      concern: query.concern, matchedConcern: matched?.slug, snapshotAt };
+  }
+
+  private matchesVisible(product: PublishedProduct, visible: ProductView, filters: SearchFilters): boolean {
+    const q = normalizeSearchText(filters.q);
+    if (!q) return true;
+    if (filters.matchedConcern && product.concerns.includes(filters.matchedConcern)) return true;
+    return [visible.name, visible.brand.name,
+      ...visible.skus.flatMap(s => [s.code, s.barcode ?? '', s.variantName])]
+      .some(value => normalizeSearchText(value).includes(q));
+  }
+
+  async suggest(query: SuggestQueryDto) {
+    const snapshotAt = new Date();
+    const filters = await this.searchFilters(query, snapshotAt);
+    const ids = await this.searchProvider.suggest(filters, 100);
+    const items: Array<{ id: string; name: string; slug: string; brand: { name: string; slug: string } }> = [];
+    for (let start = 0; start < ids.length && items.length < (query.limit ?? 8); start += 50) {
+      const batch = await this.catalog.getPublishedProductsByIds(ids.slice(start, start + 50));
+      const byId = new Map(batch.map(p => [p.id, p]));
+      for (let i = start; i < Math.min(start + 50, ids.length) && items.length < (query.limit ?? 8); i += 10) {
+        const visible = await Promise.all(ids.slice(i, i + 10).map(async id => {
+          const product = byId.get(id);
+          if (!product) return null;
+          const view = await this.views.composeProduct(product);
+          return view && this.matchesVisible(product, view, filters) ? view : null;
+        }));
+        for (const view of visible) {
+          if (view) items.push({ id: view.id, name: view.name, slug: view.slug,
+            brand: { name: view.brand.name, slug: view.brand.slug } });
+          if (items.length >= (query.limit ?? 8)) break;
+        }
+      }
+    }
+    return { items, query: filters.q };
+  }
 
   async discover(query: DiscoveryQueryDto) {
-    const filters = { q: query.q?.trim() || undefined, category: query.category, brand: query.brand, productLine: query.productLine };
+    const filters = { q: query.q?.trim() || undefined, category: query.category, brand: query.brand,
+      productLine: query.productLine, concern: query.concern };
     const fingerprint = createHash('sha256').update(JSON.stringify(filters)).digest('hex');
     let snapshotAt = new Date();
     let afterId: string | undefined;
@@ -23,22 +69,36 @@ export class DiscoveryService {
         afterId = cursor.id;
       } catch { throw new BadRequestException('Invalid discovery cursor or changed filters'); }
     }
-    // Full eligibility evaluation is necessary for honest facets/totals in this MVP.
-    // Bound database batches and concurrent composition; no pre-filter pagination.
+    // Full eligibility evaluation is necessary for honest facets/totals.
     const visible: ProductView[] = [];
     const evaluatedAt = new Date();
-    let scanAfter: string | undefined;
-    do {
-      const batch = await this.catalog.scanPublishedProducts(filters, snapshotAt, scanAfter);
-      for (let start = 0; start < batch.products.length; start += 10) {
-        const composed = await Promise.all(batch.products.slice(start, start + 10).map(p => this.views.composeProduct(p, evaluatedAt)));
-        const search = filters.q?.toLowerCase();
-        visible.push(...composed.filter((p): p is ProductView => p !== null).filter(p => !search ||
-          [p.name, p.brand.name, ...p.skus.flatMap(s => [s.code, s.barcode ?? '', s.variantName])]
-            .some(value => value.toLowerCase().includes(search))));
+    if (filters.q || filters.concern) {
+      const searchFilters = await this.searchFilters(query, snapshotAt);
+      const ids = await this.searchProvider.search(searchFilters);
+      for (let start = 0; start < ids.length; start += 100) {
+        const batch = await this.catalog.getPublishedProductsByIds(ids.slice(start, start + 100));
+        const byId = new Map(batch.map(p => [p.id, p]));
+        for (let i = start; i < Math.min(start + 100, ids.length); i += 10) {
+          const composed = await Promise.all(ids.slice(i, i + 10).map(async id => {
+            const product = byId.get(id);
+            if (!product) return null;
+            const view = await this.views.composeProduct(product, evaluatedAt);
+            return view && this.matchesVisible(product, view, searchFilters) ? view : null;
+          }));
+          visible.push(...composed.filter((p): p is ProductView => p !== null));
+        }
       }
-      scanAfter = batch.nextAfterId ?? undefined;
-    } while (scanAfter);
+    } else {
+      let scanAfter: string | undefined;
+      do {
+        const batch = await this.catalog.scanPublishedProducts(filters, snapshotAt, scanAfter);
+        for (let start = 0; start < batch.products.length; start += 10) {
+          const composed = await Promise.all(batch.products.slice(start, start + 10).map(p => this.views.composeProduct(p, evaluatedAt)));
+          visible.push(...composed.filter((p): p is ProductView => p !== null));
+        }
+        scanAfter = batch.nextAfterId ?? undefined;
+      } while (scanAfter);
+    }
     const facets = (key: 'brand' | 'category' | 'productLine') => {
       const counts = new Map<string, { slug: string; name: string; count: number }>();
       for (const product of visible) {
@@ -50,7 +110,9 @@ export class DiscoveryService {
       return [...counts.values()].sort((a, b) => a.slug.localeCompare(b.slug));
     };
     const limit = query.limit ?? 20;
-    const remaining = visible.filter(p => !afterId || p.id > afterId);
+    const afterIndex = afterId && filters.q ? visible.findIndex(p => p.id === afterId) : -1;
+    if (afterId && filters.q && afterIndex < 0) throw new BadRequestException('Invalid discovery cursor or changed results');
+    const remaining = filters.q ? visible.slice(afterIndex + 1) : visible.filter(p => !afterId || p.id > afterId);
     const items = remaining.slice(0, limit);
     const hasNextPage = remaining.length > limit;
     const nextCursor = hasNextPage ? Buffer.from(JSON.stringify({ v: 1, f: fingerprint, t: snapshotAt.toISOString(), id: items[items.length - 1].id })).toString('base64url') : null;

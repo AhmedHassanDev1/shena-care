@@ -9,6 +9,7 @@ import {
   Delete,
   Param,
   Query,
+  BadRequestException,
   Body,
   NotFoundException,
   HttpCode,
@@ -18,7 +19,8 @@ import {
 } from '@nestjs/common';
 import { ProductViewService } from '../services/product-view.service';
 import { DiscoveryService } from '../services/discovery.service';
-import { DiscoveryQueryDto, ProductListQueryDto } from '../dto/discovery.dto';
+import { DiscoveryQueryDto, ProductListQueryDto, SuggestQueryDto } from '../dto/discovery.dto';
+import { CareService } from '../../../modules/care/public';
 import { ProductDetailService } from '../services/product-detail.service';
 import { ApiOkResponse, ApiNotFoundResponse, ApiBadRequestResponse, ApiTags } from '@nestjs/swagger';
 import { ProductDetailQueryDto, ProductDetailResponseDto } from '../dto/product-detail.dto';
@@ -40,6 +42,7 @@ export class ProductViewController {
     private readonly catalogService: CatalogService,
     private readonly discoveryService: DiscoveryService,
     private readonly productDetailService: ProductDetailService,
+    private readonly careService: CareService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -52,7 +55,7 @@ export class ProductViewController {
   async listProducts(
     @Query() query: ProductListQueryDto,
   ) {
-    if (query.q || query.cursor) return (await this.discoveryService.discover(query)).items;
+    if (query.q || query.concern || query.cursor) return (await this.discoveryService.discover(query)).items;
     return this.productViewService.getProductViews({ categorySlug: query.category, brandSlug: query.brand,
       productLineSlug: query.productLine, page: query.page, limit: query.limit });
   }
@@ -60,6 +63,17 @@ export class ProductViewController {
   @Get('discovery')
   async discover(@Query() query: DiscoveryQueryDto) {
     return this.discoveryService.discover(query);
+  }
+
+  @Get('suggestions')
+  async suggestions(@Query() query: SuggestQueryDto) {
+    return this.discoveryService.suggest(query);
+  }
+
+  private async validateConcerns(slugs?: string[]) {
+    if (!slugs?.length) return;
+    const known = new Set((await this.careService.getPublicConcerns()).map(c => c.slug));
+    if (slugs.some(slug => !known.has(slug))) throw new BadRequestException('Unknown or inactive concern');
   }
 
   // ---------------------------------------------------------------------------
@@ -112,6 +126,7 @@ export class ProductViewController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createProduct(@Body() dto: CreateProductDto) {
+    await this.validateConcerns(dto.concerns);
     return this.catalogService.createProduct(dto);
   }
 
@@ -123,6 +138,7 @@ export class ProductViewController {
     @Param('id') id: string,
     @Body() dto: UpdateProductDto,
   ) {
+    await this.validateConcerns(dto.concerns);
     return this.catalogService.updateProduct(id, dto);
   }
 

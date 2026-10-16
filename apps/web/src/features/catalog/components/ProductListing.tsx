@@ -13,6 +13,8 @@ import { ProductGrid } from '@/features/home/components/ProductGrid';
 import { toProductCardModel } from '@/features/home/lib/products';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
+import { apiClient } from '@/lib/api-client';
+import type { Concern } from '@/features/home/lib/concerns';
 import {
   discoverProducts,
   FILTER_KEYS,
@@ -30,18 +32,16 @@ const FACET_OF: Record<FilterKey, keyof DiscoveryPage['facets']> = {
   productLine: 'productLines',
 };
 
-function useFilters(): { filters: DiscoveryFilters; concernRequested: boolean } {
+function useFilters(): DiscoveryFilters {
   const params = useSearchParams();
   return useMemo(
-    () => ({
-      filters: sanitizeFilters({
+    () => sanitizeFilters({
         q: params.get('q') ?? undefined,
         brand: params.get('brand') ?? undefined,
         category: params.get('category') ?? undefined,
         productLine: params.get('productLine') ?? undefined,
+        concern: params.get('concern') ?? undefined,
       }),
-      concernRequested: params.has('concern'),
-    }),
     [params],
   );
 }
@@ -62,7 +62,10 @@ export function ProductListing() {
   const m = useMessages();
   const router = useRouter();
   const pathname = usePathname();
-  const { filters, concernRequested } = useFilters();
+  const filters = useFilters();
+  const concerns = useQuery({ queryKey: ['care', 'concerns', 'public'],
+    queryFn: () => apiClient.get<Concern[]>('/care/concerns'), enabled: Boolean(filters.concern), staleTime: 5 * 60 * 1000 });
+  const concernName = concerns.data?.find(concern => concern.slug === filters.concern)?.name ?? filters.concern ?? '';
   const filterKey = toQueryString(filters);
 
   const query = useInfiniteQuery({
@@ -88,14 +91,14 @@ export function ProductListing() {
         {filters.q ? fillMessage(m.listingResultsFor, { q: filters.q }) : m.listingTitle}
       </h1>
 
-      {concernRequested ? (
-        <Alert variant="info">
-          <p className="text-body-s">{m.listingConcernUnsupported}</p>
-        </Alert>
-      ) : null}
-
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
-        <FilterSheet filters={filters} facets={first?.facets} onApply={navigate} appliedCount={applied.length} />
+        <FilterSheet filters={filters} facets={first?.facets} onApply={navigate} appliedCount={applied.length + (filters.concern ? 1 : 0)} />
+        {filters.concern ? (
+          <Chip removable aria-label={fillMessage(m.listingRemoveFilter, { name: concernName })}
+            onClick={() => navigate({ ...filters, concern: undefined })}>
+            <bdi>{concernName}</bdi>
+          </Chip>
+        ) : null}
         {applied.map((key) => {
           const name = facetName(key, filters[key]!);
           return (
