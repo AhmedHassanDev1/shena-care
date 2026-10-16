@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import { bwFontVariables } from '@/lib/fonts'
 
 export const metadata: Metadata = {
@@ -6,8 +7,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-/* Design-lab scope (GLO-230): Arabic RTL first; every screen here renders synthetic data only. */
+/* Legacy reference screens are development-only; live role routes remain separate. */
 export default function DesignLayout({ children }: { children: React.ReactNode }) {
+  if (process.env.NODE_ENV !== 'development') notFound()
   return (
     <div lang="ar" dir="rtl" className={`bw ${bwFontVariables}`}>
       {children}

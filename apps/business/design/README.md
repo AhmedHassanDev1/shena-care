@@ -1,63 +1,32 @@
-# Business Workspace design system v0.1 (GLO-230)
+# Business Design System v1 — Antigravity handoff
 
-Small foundation for the one Business app and its four role experiences (`/admin`, `/supplier`, `/hub`, `/driver`).
-It is **not** a second storefront design system and not a component library: it holds only what the four
-reference screens use. Status: **v0.1 — waiting for owner review** (gate for GLO-125).
+Scope: `apps/business` only. The live `/admin`, `/hub`, `/supplier`, and `/driver` routes keep their API calls, authorization, and business rules. The storefront design system is independent.
 
-## See it
+## See and verify
 
-`npm run dev -- -p 3020` in `apps/business`, then open:
+- `npm run dev --workspace=my-project -- --port 3020` → `/design-system` in development. The route returns 404 in production. It shows component states, role shell variants, Arabic RTL, an English LTR sample, and responsive layouts with no operational records or commands.
+- The earlier `/design/*` reference screens are also development-only. They are legacy design examples with synthetic workflows; use `/design-system` for v1 decisions.
+- `npm run test --workspace=my-project`, `npm run check:contrast --workspace=my-project`, `npm run typecheck --workspace=my-project`, `npm run lint --workspace=my-project`, and `npm run build --workspace=my-project` are the Business package gates. The package scripts invoke its own Next.js and TypeScript versions in this mixed-version workspace.
 
-| Route | Role · device | States (`?state=`) |
-|---|---|---|
-| `/design` | Foundations: colours, type, controls, status, bidi, empty/loading/error/forbidden, LTR sample | — |
-| `/design/admin` | Admin · desktop — Attention Center + today's orders, detail drawer | `loading` `empty` `error` `forbidden` |
-| `/design/supplier` | Supplier · mobile — PO confirmation: confirm-all, partial/zero qty, cost change, final confirm, receipt | `partial` `confirmed` `empty` `forbidden` |
-| `/design/hub` | Hub · scanner station/tablet — one active order, scan, mismatch, pending vs server-confirmed, thermal label | `mismatch` `complete` `error` |
-| `/design/driver` | Driver · mobile — assigned stop, package match, delivered + COD, failed attempt, custody ≠ settlement | `delivered` `failed` `empty` |
+## Tokens and component usage
 
-Every screen uses **synthetic data** (banner on top) and simulates server confirmation with a timer.
-Nothing here calls the API; wiring happens in GLO-125 / GLO-108 / GLO-114 / GLO-83 / GLO-220.
+`design/tokens.css` is the source of truth for `bw-*` surfaces, text, borders, action and state colours, type, spacing, radii, shadows, and motion. Existing Tailwind classes such as `bg-bw-surface`, `text-bw-ink`, and `h-bw-touch` now resolve to v1 values. `app/globals.css` maps the existing shadcn semantic aliases onto these values; the older console CSS remains scoped to its legacy selectors. Do not copy storefront tokens into Business.
 
-## Files
+Use `components/bw/primitives.tsx` for the operational Button, Field, StatusLabel, Notice, Section, DataTable, Dialog, Code/Money, and loading/empty/error states. These APIs are already consumed by live pages. The two `components/ui` shadcn/Base UI files remain low-level scaffolding; avoid adding a second operational button or input API. Prefer native form controls and the existing native dialog unless an interaction needs more.
 
-- `design/tokens.css` — `bw-*` tokens (Tailwind v4 `@theme`), `.bw` base, focus ring, `.bw-code`, reduced motion.
-- `components/bw/primitives.tsx` — Button, Code, Money, StatusLabel, Notice, PageHeader, Section, Field, Stepper,
-  QueueRow, DataTable, Dialog (`dialog` / `drawer` / `sheet`), LabelPreview, StateBlock, Skeleton (+ lab-only helpers).
-- `components/bw/workspace-frame.tsx` — the one navigation model: `desktop` (admin sidebar), `mobile`
-  (supplier/driver top bar + bottom tabs), `task` (hub kohl bar with explicit exit).
-- `lib/fonts.ts` — Alexandria + IBM Plex Sans Arabic (same as `apps/web`).
-- `scripts/check-contrast.mjs` — `npm run check:contrast`.
+`components/workspace/role-shell.tsx` owns session and role gating through `lib/session.tsx`. `components/bw/workspace-frame.tsx` owns navigation and desktop, mobile, and task shells. Pass the real role, active nav ID, live count where available, and task exit href from the page. Navigation visibility is presentation; the API remains the authorization boundary. Never put fake counts or sample business entities in live pages.
 
-## Rules
+Use Arabic `dir="rtl"`, logical spacing (`ms`, `me`, `ps`, `pe`, `start`, `end`), and `<Code>` for identifiers, phones, quantities, times, and English numerals. Use `<bdi>` for mixed Latin product names. Preserve the `52px` touch control for supplier, driver, and scanner tasks. Status must include words and an icon, never colour alone. Printing stays black on white.
 
-1. **One action colour** (malachite `bw-action`). Saffron/danger only for feedback, and feedback is always icon + words.
-2. **Shape:** pressable → pill; card/section → 10px; input → 8px. Flat: hairline border, no shadow except sticky bars.
-3. **Density by role:** controls 44px (`h-bw-control`) on desktop; 52px (`h-bw-touch`) for supplier, driver and hub.
-4. **Logical CSS only** (`ms/me/ps/pe/start/end`); RTL is the default, the `/design` LTR block proves the same primitives flip.
-5. **Bidi:** every code, barcode, SKU, phone, quantity, time and amount goes in `<Code>` / `<Money>` (bdi + LTR + tabular
-   Western digits). Keep a whole fraction (`2/3`) or size (`100×150`) in **one** `<Code>`. Product names that may
-   contain Latin (`SPF 50`) go in `<bdi>`.
-6. **Pending ≠ confirmed:** a scan/confirmation shows a pending state until the server answers; completion and printing
-   unlock only on server confirmation.
-7. **Visibility is presentation, not security:** nav and content are role-scoped, but API role guards and object
-   ownership stay the boundary. Supplier sees only its PO lines and its own offer cost (no selling price, margin,
-   customer or other suppliers). Driver sees only stops on its assigned run.
-8. Native `<dialog>` for dialog/drawer/sheet (focus trap, Esc, inert page). After submit, focus moves to the receipt.
+## Migration pattern
 
-## No-duplication map
+1. Keep the route, hook, API payload, and permission gate as-is.
+2. Compose the existing `RoleShell` and `bw` primitives. Replace page-local colours with semantic tokens when that page is touched for product work.
+3. Verify loading, empty, error, forbidden, pending, and confirmed states. Do not turn a pending command into a success display before the API confirms it.
+4. Check 375px, 768px, and desktop widths in RTL; keep LTR islands isolated; run the Business gates above.
 
-| Need | Use | Not |
-|---|---|---|
-| Buttons, fields, status | `components/bw/primitives` | `components/ui/button`, `components/ui/input` (v0 shadcn, legacy console `app/page.tsx` only) |
-| Colours, type | `bw-*` tokens | legacy navy vars in `app/globals.css` (legacy console only) |
-| Storefront components | — | `apps/web` components are customer-facing (arch niches, product art); not imported here |
+## Remaining work
 
-The legacy `/` console stays untouched until GLO-125 replaces it.
-
-## Open questions (owner)
-
-- Priority order between exception types on the Attention Center, and what counts as "urgent" per type.
-- Can a supplier edit after confirming? PO response window (GAP-04).
-- Driver: attempt limit / return policy (GLO-139), proof of delivery (photo/signature), COD difference tolerance.
-- Hub: scanner sound/vibration on error; real thermal printer label size.
+- Migrate page-local legacy styles gradually as each operational screen is updated. Do not mass-rewrite business pages in v1.
+- Decide whether the older `/design/*` synthetic reference screens are still useful, then retire them separately.
+- Add automated browser coverage for role navigation and viewport regressions once a Business UI test harness exists. No new dependency was added for v1.

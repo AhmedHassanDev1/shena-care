@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ExternalLink, MapPin } from 'lucide-react'
 import { Button, Code, DataTable, Field, Notice, PageHeader, Section, Skeleton, StatusLabel } from '@/components/bw/primitives'
-import { CommandError, Egp, KeyValues, Page, Select, Status, TextArea } from '@/components/workspace/kit'
+import { CommandError, Egp, KeyValues, Page, Select, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
 import {

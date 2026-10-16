@@ -18,10 +18,10 @@ type ButtonSize = 'md' | 'touch'
 
 const buttonClass: Record<ButtonVariant, string> = {
   primary: 'bg-bw-action text-bw-on-action hover:bg-bw-action-hover disabled:bg-bw-sunken disabled:text-bw-ink-subtle',
-  secondary: 'border-[1.5px] border-bw-line-field bg-bw-surface text-bw-ink hover:border-bw-ink disabled:text-bw-ink-subtle',
-  danger: 'border-[1.5px] border-bw-danger bg-bw-surface text-bw-danger hover:bg-bw-danger-soft',
+  secondary: 'border border-bw-line-field bg-bw-surface text-bw-ink hover:bg-bw-sunken disabled:text-bw-ink-subtle',
+  danger: 'border border-bw-danger bg-bw-danger-soft text-bw-danger hover:brightness-110',
   ghost: 'text-bw-ink hover:bg-bw-sunken',
-  onKohl: 'bg-bw-on-kohl-action text-bw-kohl hover:brightness-110 disabled:opacity-60',
+  onKohl: 'bg-bw-on-kohl-action text-bw-on-action hover:brightness-110 disabled:opacity-60',
 }
 
 export interface BwButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -38,7 +38,7 @@ export function Button({ variant = 'primary', size = 'md', loading, className, c
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-full px-5 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 rounded-bw-field px-4 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed',
         size === 'touch' ? 'h-bw-touch text-bw-body' : 'h-bw-control text-bw-small',
         buttonClass[variant],
         className,
@@ -59,17 +59,18 @@ export function Code({ children, className }: { children: React.ReactNode; class
 
 /* ── Status label: icon + words ──────────────────────────────────────── */
 
-export type Tone = 'ok' | 'warn' | 'danger' | 'neutral' | 'pending'
+export type Tone = 'ok' | 'warn' | 'danger' | 'info' | 'neutral' | 'pending'
 
 const toneClass: Record<Tone, string> = {
   ok: 'bg-bw-ok-soft text-bw-ok',
   warn: 'bg-bw-warn-soft text-bw-warn',
   danger: 'bg-bw-danger-soft text-bw-danger',
+  info: 'bg-bw-info-soft text-bw-info',
   neutral: 'bg-bw-sunken text-bw-ink',
   pending: 'bg-bw-sunken text-bw-ink-soft',
 }
 const toneIcon: Record<Tone, React.ElementType> = {
-  ok: CheckCircle2, warn: AlertTriangle, danger: XCircle, neutral: Info, pending: CircleDashed,
+  ok: CheckCircle2, warn: AlertTriangle, danger: XCircle, info: Info, neutral: Info, pending: CircleDashed,
 }
 
 export function StatusLabel({ tone, children }: { tone: Tone; children: React.ReactNode }) {
@@ -125,7 +126,7 @@ export function PageHeader({ eyebrow, title, meta, actions }: { eyebrow?: string
 
 export function Section({ title, aside, children, className }: { title?: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn('rounded-bw-card border border-bw-line bg-bw-surface', className)}>
+    <section className={cn('bw-panel', className)}>
       {title ? (
         <div className="flex items-center justify-between gap-3 border-b border-bw-line px-4 py-3">
           <h2 className="text-bw-heading font-semibold">{title}</h2>
@@ -160,7 +161,7 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={message ? `${id}-msg` : undefined}
         className={cn(
-          'h-bw-control w-full rounded-bw-field border-[1.5px] bg-bw-surface px-3 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle',
+          'h-bw-control w-full rounded-bw-field border bg-bw-surface px-3 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle',
           ltr && 'bw-code text-start',
           error ? 'border-bw-danger' : 'border-bw-line-field',
         )}
@@ -321,7 +322,7 @@ export function Dialog({
       aria-labelledby={titleId}
       onClose={onClose}
       className={cn(
-        'bw-dialog bg-bw-surface text-bw-ink backdrop:bg-bw-ink/40',
+        'bw-dialog border border-bw-line bg-bw-surface text-bw-ink shadow-bw-overlay backdrop:bg-black/70',
         variant === 'dialog' && 'm-auto w-[min(32rem,calc(100%-2rem))] rounded-bw-card',
         variant === 'drawer' && 'ms-auto me-0 h-dvh max-h-dvh w-[min(28rem,100%)] max-w-full',
         variant === 'sheet' && 'mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-md rounded-t-bw-card',

@@ -80,7 +80,7 @@ export function WorkspaceFrame({
   operator,
   task,
   counts,
-  exitHref = '/design',
+  exitHref = '/hub',
   onLogout,
   children,
 }: {
@@ -106,7 +106,7 @@ export function WorkspaceFrame({
   if (mode === 'task') {
     return (
       <div className="bw-kohl flex min-h-dvh flex-col bg-bw-kohl text-bw-on-kohl">
-        <header className="flex items-center justify-between gap-3 border-b border-bw-kohl-raised px-4 py-3">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-bw-line px-4 py-3">
           <div className="flex items-center gap-3">
             <Wordmark onKohl />
             <span className="text-bw-small text-bw-on-kohl-soft">
@@ -115,7 +115,7 @@ export function WorkspaceFrame({
           </div>
           <div className="flex items-center gap-3 text-bw-small text-bw-on-kohl-soft">
             <span>{operator}</span>
-            <Link href={exitHref} className="inline-flex h-bw-control items-center gap-2 rounded-full border-[1.5px] border-bw-on-kohl-soft px-4 text-bw-on-kohl">
+            <Link href={exitHref} className="inline-flex h-bw-control items-center gap-2 rounded-bw-field border border-bw-line-field px-4 text-bw-on-kohl hover:bg-bw-kohl-raised">
               <LogOut className="size-4" aria-hidden />
               خروج من المهمة
             </Link>
@@ -128,8 +128,8 @@ export function WorkspaceFrame({
 
   if (mode === 'mobile') {
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-bw-page shadow-sm ring-1 ring-bw-line">
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-bw-line bg-bw-surface px-4 py-3">
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-bw-page ring-1 ring-bw-line">
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-bw-line bg-bw-surface/95 px-4 py-3 backdrop-blur-sm">
           <Wordmark />
           <span className="flex items-center gap-3 text-bw-small text-bw-ink-soft">
             <span>
@@ -139,15 +139,15 @@ export function WorkspaceFrame({
           </span>
         </header>
         <main className="flex-1 pb-4">{children}</main>
-        <nav aria-label={nav.title} className="sticky bottom-0 grid grid-flow-col border-t border-bw-line bg-bw-surface">
+        <nav aria-label={nav.title} className="sticky bottom-0 z-10 grid grid-flow-col border-t border-bw-line bg-bw-surface/95 backdrop-blur-sm">
           {nav.items.map((item) => (
             <Link
               key={item.id}
               href={item.href}
               aria-current={item.id === active ? 'page' : undefined}
               className={cn(
-                'flex h-bw-touch flex-col items-center justify-center text-bw-small',
-                item.id === active ? 'font-semibold text-bw-action-ink' : 'text-bw-ink-soft',
+                'flex h-bw-touch flex-col items-center justify-center border-t-2 text-bw-small',
+                item.id === active ? 'border-bw-action bg-bw-action-soft font-semibold text-bw-action-ink' : 'border-transparent text-bw-ink-soft hover:text-bw-ink',
               )}
             >
               <item.icon className="size-5" aria-hidden />
@@ -163,20 +163,21 @@ export function WorkspaceFrame({
   }
 
   return (
-    <div className="flex min-h-dvh flex-col lg:flex-row">
-      <aside className="border-b border-bw-line bg-bw-surface lg:w-60 lg:shrink-0 lg:border-b-0 lg:border-e">
-        <div className="flex items-center justify-between px-4 py-4">
+    <div className="flex min-h-dvh flex-col bg-bw-page lg:flex-row">
+      <aside className="border-b border-bw-line bg-bw-kohl lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-64 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-e">
+        <div className="flex items-center justify-between border-b border-bw-line px-4 py-5">
           <Wordmark />
         </div>
-        <nav aria-label={nav.title} className="flex gap-1 overflow-x-auto px-2 pb-2 lg:flex-col lg:overflow-visible">
+        <div className="hidden px-5 pb-2 pt-6 text-bw-small font-semibold text-bw-ink-subtle lg:block">{nav.title}</div>
+        <nav aria-label={nav.title} className="flex gap-1 overflow-x-auto px-2 py-2 lg:flex-1 lg:flex-col lg:overflow-visible lg:px-3">
           {nav.items.map((item) => (
             <Link
               key={item.id}
               href={item.href}
               aria-current={item.id === active ? 'page' : undefined}
               className={cn(
-                'flex h-bw-control shrink-0 items-center gap-2 rounded-full px-3 text-bw-small',
-                item.id === active ? 'bg-bw-action-soft font-semibold text-bw-action-ink' : 'text-bw-ink-soft hover:bg-bw-sunken',
+                'flex h-bw-control shrink-0 items-center gap-3 rounded-bw-field border border-transparent px-3 text-bw-small',
+                item.id === active ? 'border-bw-action/40 bg-bw-action-soft font-semibold text-bw-action-ink' : 'text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink',
               )}
             >
               <item.icon className="size-4" aria-hidden />
@@ -185,7 +186,7 @@ export function WorkspaceFrame({
             </Link>
           ))}
         </nav>
-        <div className="flex items-center justify-between gap-2 border-t border-bw-line px-4 py-3 text-bw-small text-bw-ink-soft">
+        <div className="flex items-center justify-between gap-2 border-t border-bw-line px-4 py-4 text-bw-small text-bw-ink-soft">
           <span className="flex items-center gap-2">
             <ClipboardCheck className="size-4" aria-hidden />
             {operator}

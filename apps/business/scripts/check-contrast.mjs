@@ -27,6 +27,7 @@ const pairs = [
   ...text('bw-ok', 'bw-ok-soft', 'bw-surface'),
   ...text('bw-warn', 'bw-warn-soft', 'bw-surface'),
   ...text('bw-danger', 'bw-danger-soft', 'bw-surface'),
+  ...text('bw-info', 'bw-info-soft', 'bw-surface'),
   ...text('bw-on-kohl', 'bw-kohl', 'bw-kohl-raised'),
   ...text('bw-on-kohl-soft', 'bw-kohl', 'bw-kohl-raised'),
   ...text('bw-on-kohl-action', 'bw-kohl', 'bw-kohl-raised'),
@@ -40,6 +41,16 @@ const pairs = [
 ]
 
 let failed = 0
+if (!tokens['bw-page'] || luminance(tokens['bw-page']) > 0.03) {
+  console.error('FAIL bw-page must be a dark canvas')
+  failed++
+}
+if (!tokens['bw-action'] ||
+  Number.parseInt(tokens['bw-action'].slice(1, 3), 16) <= Number.parseInt(tokens['bw-action'].slice(3, 5), 16) ||
+  Number.parseInt(tokens['bw-action'].slice(3, 5), 16) <= Number.parseInt(tokens['bw-action'].slice(5, 7), 16)) {
+  console.error('FAIL bw-action must retain an orange primary hue')
+  failed++
+}
 for (const [fg, bg, min] of pairs) {
   if (!tokens[fg] || !tokens[bg]) {
     console.error(`missing token: ${tokens[fg] ? bg : fg}`)
@@ -52,5 +63,6 @@ for (const [fg, bg, min] of pairs) {
     failed++
   }
 }
-console.log(`${pairs.length - failed}/${pairs.length} contrast pairs pass`)
+const total = pairs.length + 2
+console.log(`${total - failed}/${total} design token checks pass`)
 process.exit(failed ? 1 : 0)

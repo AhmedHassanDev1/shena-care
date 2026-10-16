@@ -1,83 +1,70 @@
-/*
- * ShinaCare Business Workspace — design tokens v0.1 (GLO-230).
- *
- * Values are inherited from the storefront's Kohl & Malachite palette (apps/web/design-system/tokens.json)
- * but tuned for dense operational work: paper page, raised white-ish surfaces, ink text, malachite as the
- * ONLY action colour, saffron/danger strictly for feedback. Kohl is used locally for the hub scan surface.
- * Names are `bw-*` so they never collide with the legacy console theme in app/globals.css.
- * Contrast pairs are enforced by scripts/check-contrast.mjs (text ≥ 4.5:1, field borders and focus ≥ 3:1).
- */
-/*
- * Fonts are `inline` because next/font defines --font-alexandria / --font-plex-sans-arabic on the .bw
- * wrapper, not on :root — a :root token referencing them would resolve to nothing.
- * Alexandria: headings and figures. IBM Plex Sans Arabic: UI text.
- */
+/* Business Design System v1. Semantic values for live role workspaces and the design playground. */
 @theme inline {
   --font-bw-display: var(--font-alexandria), var(--font-plex-sans-arabic), system-ui, sans-serif;
   --font-bw-text: var(--font-plex-sans-arabic), system-ui, sans-serif;
 }
 
 @theme {
-  /* surfaces */
-  --color-bw-page: #f6f1e9;          /* paper */
-  --color-bw-surface: #fffdf9;       /* paper-raised: cards, tables, sheets */
-  --color-bw-sunken: #ece4d6;        /* sand: table headers, quiet wells */
-  --color-bw-kohl: #1f2826;          /* scan task surface */
-  --color-bw-kohl-raised: #2a3431;
+  /* Surfaces and readable text: dark first, with separation from restrained borders. */
+  --color-bw-page: #0b0d10;
+  --color-bw-surface: #15191e;
+  --color-bw-sunken: #20252c;
+  --color-bw-kohl: #090b0e;
+  --color-bw-kohl-raised: #1b2026;
+  --color-bw-ink: #f3f5f7;
+  --color-bw-ink-soft: #bac2cc;
+  --color-bw-ink-subtle: #a9b2bd;
+  --color-bw-on-kohl: #f3f5f7;
+  --color-bw-on-kohl-soft: #bac2cc;
+  --color-bw-line: #363d47;
+  --color-bw-line-field: #929ba7;
 
-  /* text */
-  --color-bw-ink: #1b2220;
-  --color-bw-ink-soft: #4e5652;
-  --color-bw-ink-subtle: #616863;
-  --color-bw-on-kohl: #f6f1e9;
-  --color-bw-on-kohl-soft: #c9c2b6;
+  /* Actions use orange; semantic colours communicate state with text and icon. */
+  --color-bw-action: #ff783d;
+  --color-bw-action-hover: #ff9463;
+  --color-bw-action-soft: #43291d;
+  --color-bw-action-ink: #ffb18c;
+  --color-bw-on-action: #20120b;
+  --color-bw-on-kohl-action: #ffae86;
+  --color-bw-on-kohl-warn: #ffd486;
+  --color-bw-on-kohl-danger: #ff9eaa;
+  --color-bw-ok: #79dfb3;
+  --color-bw-ok-soft: #193b30;
+  --color-bw-warn: #ffd486;
+  --color-bw-warn-soft: #42341d;
+  --color-bw-danger: #ff9eaa;
+  --color-bw-danger-soft: #46262d;
+  --color-bw-info: #9bc1ff;
+  --color-bw-info-soft: #203149;
+  --color-bw-focus: #ffae86;
 
-  /* lines */
-  --color-bw-line: #dcd2c2;
-  --color-bw-line-field: #8a7f6e;    /* input borders: 3:1 against surface */
-
-  /* action (the only filled colour) */
-  --color-bw-action: #0c6b50;
-  --color-bw-action-hover: #084c39;
-  --color-bw-action-soft: #ddeee5;
-  --color-bw-action-ink: #084c39;
-  --color-bw-on-action: #fffdf9;
-  --color-bw-on-kohl-action: #6cc8a6;
-  --color-bw-on-kohl-warn: #f2c66d;   /* scan feedback on the kohl task surface */
-  --color-bw-on-kohl-danger: #ff9cab;
-
-  /* feedback: always paired with an icon and words */
-  --color-bw-ok: #084c39;
-  --color-bw-ok-soft: #ddeee5;
-  --color-bw-warn: #7a4d05;
-  --color-bw-warn-soft: #fbefd6;
-  --color-bw-danger: #b0243f;
-  --color-bw-danger-soft: #f9e0e5;
-  --color-bw-focus: #1b2220;
-
-  /* type scale */
-  --text-bw-title: 1.5rem;     --text-bw-title--line-height: 1.3;
+  /* Enterprise density. Touch roles retain larger targets. */
+  --text-bw-title: 1.5rem;       --text-bw-title--line-height: 1.3;
   --text-bw-heading: 1.0625rem; --text-bw-heading--line-height: 1.45;
-  --text-bw-body: 0.9375rem;   --text-bw-body--line-height: 1.6;
-  --text-bw-small: 0.8125rem;  --text-bw-small--line-height: 1.5;
-  --text-bw-figure: 1.75rem;   --text-bw-figure--line-height: 1.15;
-
-  /* shape: pressable → pill, cards → 10px, inputs → 8px */
-  --radius-bw-field: 0.5rem;
-  --radius-bw-card: 0.625rem;
-
-  /* control heights: 44 desktop default, 52 for touch-first roles */
+  --text-bw-body: 0.9375rem;     --text-bw-body--line-height: 1.55;
+  --text-bw-small: 0.8125rem;    --text-bw-small--line-height: 1.5;
+  --text-bw-figure: 1.75rem;     --text-bw-figure--line-height: 1.15;
   --spacing-bw-control: 2.75rem;
   --spacing-bw-touch: 3.25rem;
+  --spacing-bw-page: 1.5rem;
+  --spacing-bw-section: 1rem;
+  --radius-bw-field: 0.5rem;
+  --radius-bw-card: 0.75rem;
+  --radius-bw-pill: 9999px;
+  --shadow-bw-card: 0 2px 12px rgb(0 0 0 / 0.12);
+  --shadow-bw-overlay: 0 20px 60px rgb(0 0 0 / 0.34);
+  --ease-bw-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-bw-fast: 140ms;
+  --duration-bw-normal: 220ms;
 }
 
 .bw {
-  color-scheme: light; /* native controls must not follow the legacy console's dark meta */
+  color-scheme: dark;
   background: var(--color-bw-page);
   color: var(--color-bw-ink);
   font-family: var(--font-plex-sans-arabic), system-ui, sans-serif;
   font-size: var(--text-bw-body);
-  line-height: 1.6;
+  line-height: 1.55;
   min-height: 100dvh;
 }
 
@@ -86,15 +73,6 @@
   outline-offset: 2px;
 }
 
-.bw .bw-kohl {
-  color-scheme: dark;
-}
-
-.bw .bw-kohl :focus-visible {
-  outline-color: var(--color-bw-on-kohl-action);
-}
-
-/* Latin codes, barcodes, phone numbers and quantities never reorder inside Arabic text. */
 .bw .bw-code {
   direction: ltr;
   unicode-bidi: isolate;
@@ -102,10 +80,15 @@
   letter-spacing: 0.02em;
 }
 
+.bw .bw-panel {
+  border: 1px solid var(--color-bw-line);
+  border-radius: var(--radius-bw-card);
+  background: var(--color-bw-surface);
+  box-shadow: var(--shadow-bw-card);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .bw *,
-  .bw *::before,
-  .bw *::after {
+  .bw *, .bw *::before, .bw *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
