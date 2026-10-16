@@ -122,6 +122,7 @@ describe('GLO-240 failed delivery retry, return to sender and cancellation (e2e)
     const parcel = await packed(450);
     const runId = await run(driverA);
     await addStop(runId, parcel.shipmentId).expect(201);
+    await event(driverA, parcel.shipmentId, { type: 'HANDOFF_SCANNED', barcode: parcel.barcode }).expect(201);
     await http().post(`/fulfillment/delivery-batches/${runId}/dispatch`).set(hub.auth).expect(201);
     await event(driverA, parcel.shipmentId, { type: 'FAILED', reasonCode: 'CUSTOMER_REFUSED' }).expect(201);
     await event(driverA, parcel.shipmentId, { type: 'RETURNED', barcode: parcel.barcode }).expect(403);
@@ -213,6 +214,7 @@ describe('GLO-240 failed delivery retry, return to sender and cancellation (e2e)
       await http().patch(`/fulfillment/shipments/${parcel.shipmentId}/status`).set(hub.auth).send({ status: 'cancelled' }).expect(409);
       const runId = await run(driverA);
       await addStop(runId, parcel.shipmentId).expect(201);
+      await event(driverA, parcel.shipmentId, { type: 'HANDOFF_SCANNED', barcode: parcel.barcode }).expect(201);
       await http().post(`/fulfillment/delivery-batches/${runId}/dispatch`).set(hub.auth).expect(201);
       const late = await http().post(`/ordering/orders/${parcel.orderId}/cancel`).set(admin.auth).send({ reasonCode: 'CUSTOMER_REQUEST' }).expect(409);
       expect(late.body.code).toBe('CANCELLATION_TOO_LATE');

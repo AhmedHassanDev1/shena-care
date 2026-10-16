@@ -165,6 +165,33 @@ export class FulfillmentService {
     await this.reconciliation.recordDriverDeclaration(orderId, actor.id, amount, tx);
   }
 
+  /**
+   * Custody (F1): a parcel leaves the hub and is delivered only on the attempt its run's assigned
+   * driver took into custody — a HANDOFF_SCANNED of this shipment's label by that driver after the
+   * attempt (its delivery stop) began. Enforced server-side at dispatch and at delivery.
+   */
+  private async findCustodyScan(tx: Prisma.TransactionClient, shipmentId: string, stop: { createdAt: Date }, driverId: string | null) {
+    if (!driverId) return null;
+    return tx.shipmentEvent.findFirst({
+      where: { shipmentId, type: 'HANDOFF_SCANNED', actorId: driverId, createdAt: { gte: stop.createdAt } },
+      select: { id: true },
+    });
+  }
+
+  /** Delivery is recorded only for an attempt on a dispatched run whose driver holds the parcel. */
+  private async assertDeliveryCustody(tx: Prisma.TransactionClient, shipmentId: string, context?: { as: 'admin' | 'hub' | 'driver'; actor: FulfillmentActor }) {
+    const stop = await tx.deliveryStop.findFirst({
+      where: { shipmentId, status: 'active' }, orderBy: { createdAt: 'desc' }, include: { batch: true },
+    });
+    if (!stop || stop.batch.status !== 'dispatched') {
+      throw new ConflictException({ code: 'RUN_DISPATCH_REQUIRED', message: 'A parcel is delivered only on a dispatched delivery run' });
+    }
+    if (context?.as === 'driver' && stop.batch.driverId !== context.actor.id) throw new NotFoundException('Shipment not found');
+    if (!(await this.findCustodyScan(tx, shipmentId, stop, stop.batch.driverId))) {
+      throw new ConflictException({ code: 'CUSTODY_SCAN_REQUIRED', message: 'The assigned driver has not scanned this parcel into custody' });
+    }
+  }
+
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
   }
@@ -592,6 +619,9 @@ export class FulfillmentService {
         ? 'Cancel the order instead; its shipment is cancelled with it'
         : 'Scan the parcel back into the hub (RECEIVED_BACK) to make it available for another run');
     }
+    if (shipment.status === ShipmentStatus.packed && (dto.status === ShipmentStatus.dispatched || dto.status === ShipmentStatus.out_for_delivery)) {
+      throw new ConflictException({ code: 'RUN_DISPATCH_REQUIRED', message: 'A packed parcel leaves the hub only by dispatching its delivery run' });
+    }
     if (dto.status === ShipmentStatus.returned && shipment.status !== dto.status) {
       throw new BadRequestException('Record RETURNED as a shipment event with the parcel barcode');
     }
@@ -656,6 +686,8 @@ export class FulfillmentService {
             throw new ConflictException({ code: 'COD_DELIVERY_REQUIRES_DRIVER',
               message: 'A cash-on-delivery order is delivered only by its assigned driver with the declared cash' });
           }
+          // No delivery, and so no cash declaration, without the driver's custody of this attempt (F1).
+          await this.assertDeliveryCustody(tx, id, context);
           await this.declareDeliveryCash(tx, shipment.orderId, context?.as ?? 'admin',
             context?.actor ?? { id: 'system', roles: [] }, context?.collectedAmount);
           await this.orderingService.transitionInTx(tx, shipment.orderId, 'delivered');
@@ -1009,14 +1041,25 @@ export class FulfillmentService {
     }
 
     if (dto.type === 'HANDOFF_SCANNED') {
+      // Custody is the assigned driver's own scan (F1): staff holding the label cannot record it.
+      if (scope.as !== 'driver') {
+        throw new ForbiddenException({ code: 'CUSTODY_SCAN_DRIVER_ONLY', message: "Only the run's assigned driver scans a parcel into custody" });
+      }
       // Custody is taken once per delivery attempt; a replayed scan (retry, double tap, flaky
       // network) returns the original record of this attempt.
       const attempt = await this.prisma.deliveryStop.findFirst({ where: { shipmentId, status: 'active' } });
       const existing = await this.prisma.shipmentEvent.findFirst({
-        where: { shipmentId, type: 'HANDOFF_SCANNED', ...(attempt ? { createdAt: { gte: attempt.createdAt } } : {}) },
+        where: { shipmentId, type: 'HANDOFF_SCANNED', actorId: actor.id, ...(attempt ? { createdAt: { gte: attempt.createdAt } } : {}) },
         orderBy: { createdAt: 'asc' },
       });
       if (existing) return existing;
+      // A first scan is taken at the hub, on an open attempt of a run that has not left yet.
+      if (scope.stop.status !== 'active' || scope.batch.status !== 'planning') {
+        throw new ConflictException({ code: 'CUSTODY_SCAN_NOT_OPEN', message: 'Custody is taken at the hub before the run is dispatched' });
+      }
+    }
+    if (dto.type === 'OUT_FOR_DELIVERY' && shipment.status === ShipmentStatus.packed) {
+      throw new ConflictException({ code: 'RUN_DISPATCH_REQUIRED', message: 'A packed parcel leaves the hub only by dispatching its delivery run' });
     }
     if (dto.type === 'OUT_FOR_DELIVERY' || dto.type === 'HANDOFF_SCANNED') {
       if (shipment.status !== 'packed' && shipment.status !== 'dispatched') {
@@ -1342,12 +1385,20 @@ export class FulfillmentService {
       if (await this.resolveBatchScope(batch, actor) === 'driver') throw new ForbiddenException('Hub access is required');
       if (batch.status !== 'planning') throw new BadRequestException('Batch is already dispatched/completed');
       if (batch.stops.length === 0) throw new BadRequestException('Cannot dispatch an empty batch');
+      if (!batch.driverId) {
+        throw new ConflictException({ code: 'RUN_DRIVER_REQUIRED', message: 'Assign a driver to the run before dispatch' });
+      }
       for (const stop of batch.stops) {
         const order = await this.orderingService.getOrder(stop.shipment.orderId);
         if (order?.status === 'cancelled') {
           throw new BadRequestException(`Order ${order.orderNumber} was cancelled; remove its stop before dispatch`);
         }
         await this.assertDeliveryPin(stop.shipment.orderId);
+        // Nothing leaves the hub until the run's driver has scanned it into custody (F1).
+        if (stop.status !== 'active' || !(await this.findCustodyScan(tx, stop.shipmentId, stop, batch.driverId))) {
+          throw new ConflictException({ code: 'CUSTODY_SCAN_REQUIRED',
+            message: `The driver has not scanned order ${order?.orderNumber ?? stop.shipment.orderId} into custody` });
+        }
       }
 
       const claimed = await tx.deliveryBatch.updateMany({
@@ -1367,6 +1418,7 @@ export class FulfillmentService {
           data: { status: 'out_for_delivery', dispatchedAt: new Date() },
         });
         if (moved.count !== 1) throw new ConflictException(`Shipment ${stop.shipmentId} is no longer packed; re-plan the run`);
+        await tx.shipmentEvent.create({ data: { shipmentId: stop.shipmentId, type: 'OUT_FOR_DELIVERY', actorId: actor.id } });
         // The customer order follows its shipment out of the hub (GLO-212 dispatch convergence).
         await this.orderingService.transitionInTx(tx, stop.shipment.orderId, 'shipped');
         // The cash each stop should bring back is fixed when the run leaves the hub (GLO-214).

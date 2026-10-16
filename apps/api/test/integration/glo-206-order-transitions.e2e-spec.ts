@@ -8,6 +8,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
+import { scanIntoCustody } from '../fixtures/custody';
 import { OrderingService } from '../../src/modules/ordering/services/ordering.service';
 
 /**
@@ -18,7 +19,7 @@ describe('GLO-206 order transitions and delivery convergence (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let ordering: OrderingService;
-  let admin: Actor;
+  let admin: Actor; let driver: Actor;
   let locationId: string;
   const orderIds: string[] = []; const shipmentIds: string[] = []; const batchIds: string[] = [];
   const http = () => request(app.getHttpServer());
@@ -49,6 +50,7 @@ describe('GLO-206 order transitions and delivery convergence (e2e)', () => {
     prisma = app.get(PrismaService);
     ordering = app.get(OrderingService);
     admin = await createActor(prisma, 'ADMIN');
+    driver = await createActor(prisma, 'DRIVER');
     locationId = (await prisma.fulfillmentLocation.create({ data: { name: 'Transition Hub ' + randomUUID(), address: 'T' } })).id;
   });
 
@@ -102,16 +104,17 @@ describe('GLO-206 order transitions and delivery convergence (e2e)', () => {
   it('moves orders to shipped when their run is dispatched, and refuses cancelled orders', async () => {
     const orderId = await makeOrder('packing');
     const shipmentId = await makeShipment(orderId, 'packed');
-    const batch = await http().post('/fulfillment/delivery-batches').set(admin.auth).send({ hubId: locationId, name: 'Converge' }).expect(201);
+    const batch = await http().post('/fulfillment/delivery-batches').set(admin.auth).send({ hubId: locationId, name: 'Converge', driverId: driver.id }).expect(201);
     batchIds.push(batch.body.id);
     await http().post(`/fulfillment/delivery-batches/${batch.body.id}/stops`).set(admin.auth).send({ stops: [{ shipmentId }] }).expect(201);
+    await scanIntoCustody(app, driver, shipmentId);
     await http().post(`/fulfillment/delivery-batches/${batch.body.id}/dispatch`).set(admin.auth).expect(201);
     expect(await statusOf(orderId)).toBe('shipped');
     await http().post(`/fulfillment/delivery-batches/${batch.body.id}/dispatch`).set(admin.auth).expect(400);
 
     const cancelledOrder = await makeOrder('cancelled');
     const cancelledShipment = await makeShipment(cancelledOrder, 'packed');
-    const run = await http().post('/fulfillment/delivery-batches').set(admin.auth).send({ hubId: locationId, name: 'Stale' }).expect(201);
+    const run = await http().post('/fulfillment/delivery-batches').set(admin.auth).send({ hubId: locationId, name: 'Stale', driverId: driver.id }).expect(201);
     batchIds.push(run.body.id);
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/stops`).set(admin.auth).send({ stops: [{ shipmentId: cancelledShipment }] }).expect(201);
     const refused = await http().post(`/fulfillment/delivery-batches/${run.body.id}/dispatch`).set(admin.auth).expect(400);

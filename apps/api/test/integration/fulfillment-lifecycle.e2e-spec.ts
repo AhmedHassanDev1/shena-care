@@ -4,6 +4,8 @@ const request = require('supertest');
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { createSellableSku } from '../fixtures/sellable-sku';
+import { createActor, Actor } from '../fixtures/actors';
+import { scanIntoCustody } from '../fixtures/custody';
 
 /**
  * Fulfillment Lifecycle E2E Tests — GLO-150 + GLO-147
@@ -56,6 +58,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
   let locationId: string;
   let secondShipmentId: string; // for GLO-147 invalid-state tests
   let labelBarcode: string;
+  let driver: Actor;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -336,13 +339,11 @@ describe('Fulfillment Lifecycle (e2e)', () => {
       labelBarcode = res.body.barcode;
     });
 
-    it('should reject handoff event when not yet packed', async () => {
-      const res = await request(app.getHttpServer())
+    it('should refuse a staff custody scan even with the real label (driver-only, F1)', async () => {
+      await request(app.getHttpServer())
         .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
         .send({ type: 'HANDOFF_SCANNED', barcode: labelBarcode })
-        .expect(400);
-
-      expect(res.body.message).toMatch(/Shipment must be packed before dispatch/);
+        .expect(403);
     });
 
     it('should allow PACKED event in prepared state', async () => {
@@ -365,23 +366,27 @@ describe('Fulfillment Lifecycle (e2e)', () => {
       }
     });
 
-    it('should allow HANDOFF_SCANNED after packing and attribute it to the session user', async () => {
+    it('should refuse staff custody after packing; custody is the run driver\'s own scan (F1)', async () => {
       const res = await request(app.getHttpServer())
         .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
-        .send({ type: 'HANDOFF_SCANNED', actorId: 'spoofed-driver', barcode: labelBarcode })
-        .expect(201);
+        .send({ type: 'HANDOFF_SCANNED', barcode: labelBarcode })
+        .expect(403);
 
-      expect(res.body.type).toBe('HANDOFF_SCANNED');
-      expect(res.body.actorId).not.toBe('spoofed-driver');
+      expect(res.body.message).toMatch(/assigned driver scans a parcel into custody/);
+      expect(await prisma.shipmentEvent.count({ where: { shipmentId, type: 'HANDOFF_SCANNED' } })).toBe(0);
     });
 
-    it('should allow OUT_FOR_DELIVERY event after handoff (dispatched state)', async () => {
-      const res = await request(app.getHttpServer())
+    it('should refuse OUT_FOR_DELIVERY outside a dispatched run (F1)', async () => {
+      await request(app.getHttpServer())
         .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
-        .send({ type: 'OUT_FOR_DELIVERY', actorId: 'driver-1' })
-        .expect(201);
+        .send({ type: 'OUT_FOR_DELIVERY' })
+        .expect(409);
+      await request(app.getHttpServer())
+        .patch(`/fulfillment/shipments/${shipmentId}/status`).set('Authorization', authToken)
+        .send({ status: 'out_for_delivery' })
+        .expect(409);
 
-      expect(res.body.type).toBe('OUT_FOR_DELIVERY');
+      expect((await prisma.shipment.findUniqueOrThrow({ where: { id: shipmentId } })).status).toBe('packed');
     });
 
     it('should reject UUID-invalid shipment ID (opaque ID safety)', async () => {
@@ -418,9 +423,10 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     });
 
     it('should create a delivery batch', async () => {
+      driver = await createActor(prisma, 'DRIVER');
       const res = await request(app.getHttpServer())
         .post('/fulfillment/delivery-batches').set('Authorization', authToken)
-        .send({ hubId: locationId, name: 'Morning Run A' })
+        .send({ hubId: locationId, name: 'Morning Run A', driverId: driver.id })
         .expect(201);
 
       expect(res.body.id).toBeDefined();
@@ -462,7 +468,11 @@ describe('Fulfillment Lifecycle (e2e)', () => {
       expect(res.body.stops[0].sequence).toBe(10);
     });
 
-    it('should dispatch the batch', async () => {
+    it('should dispatch the batch once its driver holds every parcel', async () => {
+      await request(app.getHttpServer())
+        .post(`/fulfillment/delivery-batches/${batchId}/dispatch`).set('Authorization', authToken)
+        .expect(409);
+      await scanIntoCustody(app, driver, shipmentId);
       const res = await request(app.getHttpServer())
         .post(`/fulfillment/delivery-batches/${batchId}/dispatch`).set('Authorization', authToken)
         .expect(201);

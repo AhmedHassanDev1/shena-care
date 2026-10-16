@@ -7,6 +7,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
+import { scanIntoCustody } from '../fixtures/custody';
 
 /**
  * GLO-214 (W22): the cash a stop should bring back is fixed at dispatch; the driver declares what was
@@ -34,6 +35,7 @@ describe('GLO-214 driver COD declaration (e2e)', () => {
     const batch = await prisma.deliveryBatch.create({ data: { locationId, driverId: driver.id, status: 'planning',
       stops: { create: [{ shipmentId: shipment.id, sequence: 1 }] } } });
     batchIds.push(batch.id);
+    await scanIntoCustody(app, driver, shipment.id);
     await http().post(`/fulfillment/delivery-batches/${batch.id}/dispatch`).set(hub.auth).expect(201);
     return { orderId: order.id, shipmentId: shipment.id };
   };

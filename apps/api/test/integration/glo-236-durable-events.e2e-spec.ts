@@ -10,6 +10,7 @@ import { OutboxService } from '../../src/modules/operations/services/outbox.serv
 import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
+import { scanIntoCustody } from '../fixtures/custody';
 import { createSellableSku } from '../fixtures/sellable-sku';
 import { placeGuestOrder } from '../fixtures/checkout';
 
@@ -41,10 +42,15 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
     const shipment = await prisma.shipment.create({ data: { orderId: order.id, locationId, status: 'packed' } });
     return { orderId: order.id, shipmentId: shipment.id };
   };
-  const runOf = async (...shipmentIds: string[]) => prisma.deliveryBatch.create({ data: {
-    locationId, driverId: driver.id, status: 'planning',
-    stops: { create: shipmentIds.map((shipmentId, index) => ({ shipmentId, sequence: index + 1 })) },
-  } });
+  /** A planning run of `driver` holding these parcels, each scanned into the driver's custody. */
+  const runOf = async (...shipmentIds: string[]) => {
+    const run = await prisma.deliveryBatch.create({ data: {
+      locationId, driverId: driver.id, status: 'planning',
+      stops: { create: shipmentIds.map((shipmentId, index) => ({ shipmentId, sequence: index + 1 })) },
+    } });
+    await scanIntoCustody(app, driver, ...shipmentIds);
+    return run;
+  };
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({ imports: [AppModule] })
@@ -210,6 +216,7 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
       for (const stop of [good, bad]) {
         expect((await prisma.shipment.findUniqueOrThrow({ where: { id: stop.shipmentId } })).status).toBe('packed');
         expect(await prisma.paymentCollection.count({ where: { orderId: stop.orderId } })).toBe(0);
+        expect(await prisma.shipmentEvent.count({ where: { shipmentId: stop.shipmentId, type: 'OUT_FOR_DELIVERY' } })).toBe(0);
       }
       expect((await prisma.order.findUniqueOrThrow({ where: { id: good.orderId } })).status).toBe('packing');
       expect(await prisma.orderStatusEvent.count({ where: { orderId: good.orderId, status: 'shipped' } })).toBe(0);

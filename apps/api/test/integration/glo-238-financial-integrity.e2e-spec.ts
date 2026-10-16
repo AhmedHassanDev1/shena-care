@@ -8,6 +8,7 @@ import { DomainEventsService } from '../../src/platform/events/domain-events.ser
 import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
+import { scanIntoCustody } from '../fixtures/custody';
 import { createSellableSku } from '../fixtures/sellable-sku';
 import { placeGuestOrder } from '../fixtures/checkout';
 
@@ -37,6 +38,7 @@ describe('GLO-238 COD settlement and supplier payable integrity (e2e)', () => {
     const shipment = await prisma.shipment.create({ data: { orderId: order.id, locationId: hubAId, status: 'packed' } });
     const run = await http().post('/fulfillment/delivery-batches').set(hubA.auth).send({ hubId: hubAId, name: 'Cash run', driverId: runDriver.id }).expect(201);
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/stops`).set(hubA.auth).send({ stops: [{ shipmentId: shipment.id }] }).expect(201);
+    await scanIntoCustody(app, runDriver, shipment.id);
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/dispatch`).set(hubA.auth).expect(201);
     return { orderId: order.id, shipmentId: shipment.id };
   };

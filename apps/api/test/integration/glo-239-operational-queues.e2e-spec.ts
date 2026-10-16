@@ -8,6 +8,7 @@ import { DomainEventsService } from '../../src/platform/events/domain-events.ser
 import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
+import { scanIntoCustody } from '../fixtures/custody';
 import { createSellableSku } from '../fixtures/sellable-sku';
 import { placeGuestOrder } from '../fixtures/checkout';
 
@@ -42,6 +43,7 @@ describe('GLO-239 role-scoped operational queues (e2e)', () => {
     const shipment = await prisma.shipment.create({ data: { orderId: order.id, locationId: hubAId, status: 'packed' } });
     const run = await http().post('/fulfillment/delivery-batches').set(hubA.auth).send({ hubId: hubAId, name: 'Q run', driverId: driverA.id }).expect(201);
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/stops`).set(hubA.auth).send({ stops: [{ shipmentId: shipment.id }] }).expect(201);
+    await scanIntoCustody(app, driverA, shipment.id);
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/dispatch`).set(hubA.auth).expect(201);
     if (declared >= 0) {
       await http().post(`/fulfillment/shipments/${shipment.id}/events`).set(driverA.auth).send({ type: 'DELIVERED', collectedAmount: declared }).expect(201);
