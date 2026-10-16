@@ -17,11 +17,11 @@ type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'onKohl'
 type ButtonSize = 'md' | 'touch'
 
 const buttonClass: Record<ButtonVariant, string> = {
-  primary: 'bg-bw-action text-bw-on-action hover:bg-bw-action-hover disabled:bg-bw-sunken disabled:text-bw-ink-subtle',
-  secondary: 'border border-bw-line-field bg-bw-surface text-bw-ink hover:bg-bw-sunken disabled:text-bw-ink-subtle',
-  danger: 'border border-bw-danger bg-bw-danger-soft text-bw-danger hover:brightness-110',
-  ghost: 'text-bw-ink hover:bg-bw-sunken',
-  onKohl: 'bg-bw-on-kohl-action text-bw-on-action hover:brightness-110 disabled:opacity-60',
+  primary: 'bg-bw-action text-bw-on-action hover:bg-bw-action-hover shadow-[0_2px_12px_rgba(255,120,61,0.25)] hover:shadow-[0_4px_16px_rgba(255,120,61,0.35)] active:scale-[0.98] disabled:bg-bw-sunken disabled:text-bw-ink-subtle disabled:shadow-none',
+  secondary: 'border border-bw-line-field/70 bg-bw-surface text-bw-ink hover:bg-bw-sunken hover:border-bw-line-field active:scale-[0.98] disabled:text-bw-ink-subtle',
+  danger: 'border border-bw-danger/40 bg-bw-danger-soft/60 text-bw-danger hover:bg-bw-danger-soft hover:brightness-110 active:scale-[0.98]',
+  ghost: 'text-bw-ink-soft hover:text-bw-ink hover:bg-white/[0.04] active:scale-[0.98]',
+  onKohl: 'bg-bw-on-kohl-action text-bw-on-action hover:brightness-110 shadow-sm active:scale-[0.98] disabled:opacity-60',
 }
 
 export interface BwButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -38,7 +38,7 @@ export function Button({ variant = 'primary', size = 'md', loading, className, c
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-bw-field px-4 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 rounded-bw-field px-4 font-semibold whitespace-nowrap transition-all duration-150 disabled:cursor-not-allowed',
         size === 'touch' ? 'h-bw-touch text-bw-body' : 'h-bw-control text-bw-small',
         buttonClass[variant],
         className,
@@ -62,12 +62,12 @@ export function Code({ children, className }: { children: React.ReactNode; class
 export type Tone = 'ok' | 'warn' | 'danger' | 'info' | 'neutral' | 'pending'
 
 const toneClass: Record<Tone, string> = {
-  ok: 'bg-bw-ok-soft text-bw-ok',
-  warn: 'bg-bw-warn-soft text-bw-warn',
-  danger: 'bg-bw-danger-soft text-bw-danger',
-  info: 'bg-bw-info-soft text-bw-info',
-  neutral: 'bg-bw-sunken text-bw-ink',
-  pending: 'bg-bw-sunken text-bw-ink-soft',
+  ok: 'bg-emerald-500/10 text-[#79dfb3] border border-emerald-500/25',
+  warn: 'bg-amber-500/10 text-[#ffd486] border border-amber-500/25',
+  danger: 'bg-red-500/10 text-[#ff9eaa] border border-red-500/25',
+  info: 'bg-blue-500/10 text-[#9bc1ff] border border-blue-500/25',
+  neutral: 'bg-bw-sunken text-bw-ink border border-bw-line/70',
+  pending: 'bg-bw-sunken text-bw-ink-soft border border-bw-line/70',
 }
 const toneIcon: Record<Tone, React.ElementType> = {
   ok: CheckCircle2, warn: AlertTriangle, danger: XCircle, info: Info, neutral: Info, pending: CircleDashed,
@@ -76,8 +76,8 @@ const toneIcon: Record<Tone, React.ElementType> = {
 export function StatusLabel({ tone, children }: { tone: Tone; children: React.ReactNode }) {
   const Icon = toneIcon[tone]
   return (
-    <span className={cn('inline-flex shrink-0 items-center gap-1 rounded px-2 py-0.5 text-bw-small font-medium whitespace-nowrap', toneClass[tone])}>
-      <Icon className="size-3.5 shrink-0" aria-hidden />
+    <span className={cn('inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap', toneClass[tone])}>
+      <Icon className="size-3 shrink-0" aria-hidden />
       {children}
     </span>
   )
@@ -126,14 +126,14 @@ export function PageHeader({ eyebrow, title, meta, actions }: { eyebrow?: string
 
 export function Section({ title, aside, children, className }: { title?: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn('bw-panel', className)}>
+    <section className={cn('seven-card', className)}>
       {title ? (
-        <div className="flex items-center justify-between gap-3 border-b border-bw-line px-4 py-3">
-          <h2 className="text-bw-heading font-semibold">{title}</h2>
+        <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-5 py-4">
+          <h2 className="text-bw-heading font-bold text-bw-ink">{title}</h2>
           {aside}
         </div>
       ) : null}
-      <div className="p-4">{children}</div>
+      <div className="p-5">{children}</div>
     </section>
   )
 }
@@ -151,7 +151,7 @@ export function Field({
   const id = React.useId()
   const message = error ?? hint
   return (
-    <div className={cn('space-y-1', className)}>
+    <div className={cn('space-y-1.5', className)}>
       <label htmlFor={id} className="block text-bw-small font-semibold text-bw-ink">
         {label}
       </label>
@@ -161,9 +161,10 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={message ? `${id}-msg` : undefined}
         className={cn(
-          'h-bw-control w-full rounded-bw-field border bg-bw-surface px-3 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle',
+          'h-bw-control w-full rounded-bw-field border bg-bw-surface/90 px-3.5 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle shadow-inner transition-all',
+          'focus:border-bw-action focus:ring-1 focus:ring-bw-action/30 focus:outline-none',
           ltr && 'bw-code text-start',
-          error ? 'border-bw-danger' : 'border-bw-line-field',
+          error ? 'border-bw-danger focus:border-bw-danger focus:ring-bw-danger/30' : 'border-white/[0.08] hover:border-white/[0.15]',
         )}
         {...input}
       />
@@ -354,18 +355,18 @@ export function Dialog({
 export function DataTable({ caption, head, children }: { caption: string; head: React.ReactNode[]; children: React.ReactNode }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[44rem] border-collapse text-start">
+      <table className="w-full min-w-[44rem] border-collapse text-start text-xs">
         <caption className="sr-only">{caption}</caption>
-        <thead className="bg-bw-sunken text-bw-small text-bw-ink-soft">
+        <thead className="border-b border-white/[0.06] bg-bw-sunken/40 text-bw-small text-bw-ink-subtle">
           <tr>
             {head.map((h, i) => (
-              <th key={i} scope="col" className="px-3 py-2 text-start font-semibold">
+              <th key={i} scope="col" className="px-4 py-3 text-start font-semibold">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="[&_td]:border-b [&_td]:border-bw-line [&_td]:px-3 [&_td]:py-2.5">{children}</tbody>
+        <tbody className="divide-y divide-white/[0.04] [&_td]:px-4 [&_td]:py-3.5 [&_tr]:transition-colors [&_tr:hover]:bg-white/[0.02]">{children}</tbody>
       </table>
     </div>
   )

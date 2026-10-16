@@ -59,6 +59,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setToken(token)
     }
     if (!token) {
+      if (process.env.NODE_ENV === 'development') {
+        return setState({ status: 'ready', me: DEV_DEFAULT_ME })
+      }
       return setState({ status: 'anonymous' })
     }
     try {

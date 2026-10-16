@@ -18,7 +18,6 @@ import {
   Search,
   ShoppingBag,
   Square,
-  TrendingDown,
   TrendingUp,
   Truck,
   Wallet,
@@ -191,7 +190,7 @@ const MOCK_ORDERS_IMAGE_2: OrderRow[] = [
   },
 ]
 
-/* ── Mini Sparkline Line Chart for KPI Cards ─────────────────────── */
+/* ── Mini Sparkline Line Chart for KPI Cards (SevenTeen Luminous Spline) ── */
 function CardMiniLine({
   color = '#ff783d',
   data = [30, 40, 35, 50, 45, 60, 55, 75, 70, 85, 80, 95],
@@ -201,10 +200,10 @@ function CardMiniLine({
   data?: number[]
   gradientId?: string
 }) {
-  const width = 100
-  const height = 32
-  const paddingY = 4
-  const paddingX = 3
+  const width = 110
+  const height = 40
+  const paddingY = 6
+  const paddingX = 4
 
   const min = Math.min(...data)
   const max = Math.max(...data)
@@ -236,7 +235,7 @@ function CardMiniLine({
   const areaD = `${pathD} L ${lastPoint.x.toFixed(1)} ${height} L ${points[0].x.toFixed(1)} ${height} Z`
 
   return (
-    <div className="relative h-8 w-24 shrink-0 overflow-hidden">
+    <div className="relative h-10 w-28 shrink-0 overflow-visible">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="size-full overflow-visible"
@@ -247,32 +246,45 @@ function CardMiniLine({
             <stop offset="0%" stopColor={color} stopOpacity="0.35" />
             <stop offset="100%" stopColor={color} stopOpacity="0.0" />
           </linearGradient>
+          <filter id={`${gradientId}-glow`} x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="0" stdDeviation="2.8" floodColor={color} floodOpacity="0.55" />
+          </filter>
         </defs>
         <path d={areaD} fill={`url(#${gradientId})`} />
         <path
           d={pathD}
           fill="none"
           stroke={color}
-          strokeWidth="2"
+          strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          filter={`url(#${gradientId}-glow)`}
         />
         {/* Glowing end point */}
         <circle
           cx={lastPoint.x}
           cy={lastPoint.y}
-          r="2.5"
+          r="4.5"
           fill={color}
-          className="animate-pulse"
+          fillOpacity="0.3"
+          className="animate-ping"
+        />
+        <circle
+          cx={lastPoint.x}
+          cy={lastPoint.y}
+          r="2.5"
+          fill="#ffffff"
+          stroke={color}
+          strokeWidth="1.5"
         />
       </svg>
     </div>
   )
 }
 
-/* ── Interactive Order Analytics Chart (Requirement 5 & Area Toggle) ── */
+/* ── Interactive Order Analytics Chart (SevenTeen Spline Reference) ── */
 function OrderAnalyticsChart() {
-  const [chartMode, setChartMode] = React.useState<'bar' | 'area'>('bar') // Defaults to interactive Bar Chart
+  const [chartMode, setChartMode] = React.useState<'bar' | 'area'>('area') // SevenTeen Area Spline default
   const [activeIdx, setActiveIdx] = React.useState<number>(4) // 4 PM default
   const [activeTab, setActiveTab] = React.useState<string>('all')
 
@@ -490,33 +502,61 @@ function OrderAnalyticsChart() {
             </div>
           </div>
         ) : (
-          /* Mode 2: Area Curve Chart */
+          /* Mode 2: Area Curve Chart (SevenTeen Auto Trades Chart Aesthetic) */
           <div className="pt-2">
             <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
               <defs>
                 <linearGradient id="order-flow-grad-bar" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ff783d" stopOpacity="0.45" />
+                  <stop offset="0%" stopColor="#ff783d" stopOpacity="0.4" />
+                  <stop offset="60%" stopColor="#ff783d" stopOpacity="0.08" />
                   <stop offset="100%" stopColor="#ff783d" stopOpacity="0.0" />
                 </linearGradient>
+                <filter id="order-flow-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="3.5" floodColor="#ff783d" floodOpacity="0.6" />
+                </filter>
+                <filter id="capsule-shadow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000000" floodOpacity="0.7" />
+                </filter>
               </defs>
+              {/* Subtle Gridlines */}
+              <line x1={plotLeft} y1={plotTop + plotHeight * 0.25} x2={plotRight} y2={plotTop + plotHeight * 0.25} stroke="rgba(255,255,255,0.04)" strokeDasharray="2 4" />
+              <line x1={plotLeft} y1={plotTop + plotHeight * 0.5} x2={plotRight} y2={plotTop + plotHeight * 0.5} stroke="rgba(255,255,255,0.04)" strokeDasharray="2 4" />
+              <line x1={plotLeft} y1={plotTop + plotHeight * 0.75} x2={plotRight} y2={plotTop + plotHeight * 0.75} stroke="rgba(255,255,255,0.04)" strokeDasharray="2 4" />
+
               <path d={areaD} fill="url(#order-flow-grad-bar)" />
-              <path d={targetD} fill="none" stroke="#3b82f6" strokeDasharray="3 3" strokeWidth="1.5" />
-              <path d={lineD} fill="none" stroke="#ff783d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1={activePt.x} y1={activePt.y} x2={activePt.x} y2={plotBottom} stroke="#ff783d" strokeDasharray="3 3" strokeWidth="1.5" />
-              <circle cx={activePt.x} cy={activePt.y} r="8" fill="#ff783d" fillOpacity="0.3" className="animate-ping" />
+              <path d={targetD} fill="none" stroke="#60a5fa" strokeDasharray="3 3" strokeWidth="1.5" strokeOpacity="0.5" />
+              <path d={lineD} fill="none" stroke="#ff783d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" filter="url(#order-flow-glow)" />
+
+              {/* Active vertical guide line */}
+              <line x1={activePt.x} y1={activePt.y} x2={activePt.x} y2={plotBottom} stroke="#ff783d" strokeDasharray="2 3" strokeWidth="1.2" strokeOpacity="0.7" />
+
+              {/* Glowing active node point */}
+              <circle cx={activePt.x} cy={activePt.y} r="8" fill="#ff783d" fillOpacity="0.25" className="animate-ping" />
               <circle cx={activePt.x} cy={activePt.y} r="4.5" fill="#ff783d" stroke="#ffffff" strokeWidth="2" />
+
+              {/* Floating SevenTeen-style Micro-Capsule Tooltip Badge */}
+              <g transform={`translate(${Math.max(48, Math.min(activePt.x, width - 48))}, ${Math.max(22, activePt.y - 16)})`}>
+                <rect x="-42" y="-18" width="84" height="22" rx="6" fill="#14171d" stroke="rgba(255,255,255,0.15)" strokeWidth="1" filter="url(#capsule-shadow)" />
+                <text x="0" y="-4" textAnchor="middle" fill="#f4f6f8" fontSize="11" fontWeight="700">
+                  {activeData.newOrders} طلب
+                </text>
+              </g>
+
+              {/* Click/Hover interactive circles */}
               {hourlyData.map((d, i) => (
                 <circle
                   key={i}
                   cx={points[i].x}
                   cy={points[i].y}
-                  r="12"
+                  r="14"
                   fill="transparent"
                   className="cursor-pointer"
                   onMouseEnter={() => setActiveIdx(i)}
                   onClick={() => setActiveIdx(i)}
                 />
               ))}
+
+              {/* X-Axis labels */}
               {hourlyData.map((d, i) => (
                 <text
                   key={i}
@@ -535,15 +575,24 @@ function OrderAnalyticsChart() {
         )}
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-6 text-xs text-bw-ink-soft mt-3 pt-2.5 border-t border-bw-line/40">
-        <div className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-xs bg-[#ff783d]" />
-          <span className="text-[11px] font-medium text-bw-ink">طلبات جديدة</span>
+      {/* SevenTeen-style Chart Footer with AVG & Date range */}
+      <div className="flex items-center justify-between text-xs text-bw-ink-subtle mt-3 pt-3 border-t border-white/[0.06]">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-bw-ink-subtle uppercase tracking-wider font-semibold">AVG</span>
+          <span className="text-xs font-bold text-emerald-400 font-mono">+22.4%</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-xs bg-blue-500" />
-          <span className="text-[11px] font-medium text-bw-ink">طلبات مكتملة</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-[11px]">
+            <span className="size-2 rounded-full bg-[#ff783d]" />
+            <span className="text-bw-ink">طلبات جديدة</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px]">
+            <span className="size-2 rounded-full bg-blue-400" />
+            <span className="text-bw-ink-soft">مكتملة</span>
+          </div>
+        </div>
+        <div className="text-[11px] font-mono text-bw-ink-subtle">
+          08:00 ص — 08:00 م
         </div>
       </div>
     </div>
@@ -887,199 +936,209 @@ function AdminOperationsCenter() {
 
   return (
     <Page>
-      {/* ── Top Command Bar Header (Simplified per Requirement 9) ─── */}
-      <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between border-b border-bw-line/70">
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2">
-            <h1 className="font-bw-display text-2xl font-bold tracking-tight text-bw-ink flex items-center gap-1.5">
-              <span>صباح الخير، {me.name?.split(' ')[0] ?? 'أحمد'}</span>
-              <span className="text-xl" aria-hidden>👋</span>
-            </h1>
-            <span className="ms-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-400">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              مباشر · 10:45 ص
-            </span>
+      {/* ── Top Header Hierarchy (SevenTeen Reference Architecture) ─── */}
+      <div className="flex flex-col gap-4 pb-2 border-b border-white/[0.06]">
+        {/* Top Breadcrumb & Status */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#ff783d]/25 to-[#ff783d]/10 text-[#ff783d] ring-1 ring-[#ff783d]/30 shadow-[0_0_12px_rgba(255,120,61,0.2)]">
+              <ShoppingBag className="size-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bw-display text-base font-bold text-bw-ink">لوحة العمليات</span>
+                <span className="text-xs text-bw-ink-subtle">({me.name ?? 'مدير العمليات'})</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400">
+                  <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                  مباشر · 10:45 ص
+                </span>
+              </div>
+              <p className="text-xs text-bw-ink-subtle">
+                متابعة حركة الطلبات، خط التجهيز، والتحصيل الميداني اللحظي
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-bw-ink-subtle">
-            مركز التحكم الميداني وعمليات شينا كير
-          </p>
-        </div>
 
-        {/* Search & Date Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Quick Search */}
           <div className="relative">
             <input
               ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="البحث السريع..."
-              className="h-9 w-44 sm:w-60 rounded-xl border border-bw-line/70 bg-bw-surface/90 ps-8 pe-14 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-[#ff783d] focus:outline-none focus:ring-1 focus:ring-[#ff783d] transition-all shadow-inner"
+              placeholder="البحث السريع في النظام..."
+              className="h-9 w-48 sm:w-64 rounded-xl border border-white/[0.07] bg-bw-surface/80 ps-8.5 pe-14 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-[#ff783d] focus:outline-none focus:ring-1 focus:ring-[#ff783d]/30 transition-all shadow-inner"
             />
             <Search className="absolute start-2.5 top-2.5 size-3.5 text-bw-ink-subtle pointer-events-none" />
-            <kbd className="absolute end-2.5 top-2 rounded bg-bw-sunken px-1.5 py-0.5 text-[9px] font-mono text-bw-ink-subtle border border-bw-line/70 pointer-events-none">
+            <kbd className="absolute end-2.5 top-2 rounded bg-bw-sunken px-1.5 py-0.5 text-[9px] font-mono text-bw-ink-subtle border border-white/[0.08] pointer-events-none">
               Ctrl K
             </kbd>
           </div>
+        </div>
 
-          <div className="flex items-center rounded-xl border border-bw-line/70 bg-bw-surface/90 p-0.5 text-xs shadow-sm">
+        {/* Section Heading: نظرة عامة with Timeframe Pill like SevenTeen's "Overview 7 days" */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-3">
+            <h1 className="font-bw-display text-2xl font-black tracking-tight text-bw-ink">
+              نظرة عامة
+            </h1>
+            <div className="flex items-center rounded-xl border border-white/[0.07] bg-bw-surface/80 p-0.5 text-xs shadow-sm">
+              <button
+                type="button"
+                onClick={() => setDateFilter('today')}
+                className={cn(
+                  'rounded-lg px-3 py-1 font-semibold transition-all text-xs',
+                  dateFilter === 'today'
+                    ? 'bg-bw-sunken text-bw-ink shadow-xs border border-white/[0.08]'
+                    : 'text-bw-ink-subtle hover:text-bw-ink',
+                )}
+              >
+                اليوم
+              </button>
+              <button
+                type="button"
+                onClick={() => setDateFilter('7d')}
+                className={cn(
+                  'rounded-lg px-2.5 py-1 font-semibold transition-all text-xs',
+                  dateFilter === '7d'
+                    ? 'bg-bw-sunken text-bw-ink shadow-xs border border-white/[0.08]'
+                    : 'text-bw-ink-subtle hover:text-bw-ink',
+                )}
+              >
+                7 أيام
+              </button>
+              <button
+                type="button"
+                onClick={() => setDateFilter('30d')}
+                className={cn(
+                  'rounded-lg px-2.5 py-1 font-semibold transition-all text-xs',
+                  dateFilter === '30d'
+                    ? 'bg-bw-sunken text-bw-ink shadow-xs border border-white/[0.08]'
+                    : 'text-bw-ink-subtle hover:text-bw-ink',
+                )}
+              >
+                30 يوم
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setDateFilter('today')}
-              className={cn(
-                'rounded-lg px-3 py-1 font-semibold transition-all text-xs',
-                dateFilter === 'today'
-                  ? 'bg-[#ff783d] text-white shadow-xs'
-                  : 'text-bw-ink-soft hover:text-bw-ink',
-              )}
+              className="flex size-8 items-center justify-center rounded-lg border border-white/[0.07] bg-bw-surface text-bw-ink-subtle hover:text-bw-ink hover:bg-white/[0.04] transition-colors"
+              title="تحديث البيانات"
             >
-              اليوم
-            </button>
-            <button
-              type="button"
-              onClick={() => setDateFilter('7d')}
-              className={cn(
-                'rounded-lg px-2.5 py-1 transition-all text-xs',
-                dateFilter === '7d'
-                  ? 'bg-[#ff783d] text-white font-semibold shadow-xs'
-                  : 'text-bw-ink-soft hover:text-bw-ink',
-              )}
-            >
-              7 أيام
-            </button>
-            <button
-              type="button"
-              onClick={() => setDateFilter('30d')}
-              className={cn(
-                'rounded-lg px-2.5 py-1 transition-all text-xs',
-                dateFilter === '30d'
-                  ? 'bg-[#ff783d] text-white font-semibold shadow-xs'
-                  : 'text-bw-ink-soft hover:text-bw-ink',
-              )}
-            >
-              30 يوم
+              <Clock className="size-3.5" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── Top 4 KPI Cards (Matching Image 2 Layout) ──────────────────── */}
+      {/* ── Top 4 KPI Cards (SevenTeen Minimalist Cards with Luminous Splines) ──── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-2">
         {/* Card 1: إجمالي الطلبات اليوم */}
-        <div className="rounded-2xl border border-bw-line/70 bg-bw-surface/90 p-4 shadow-bw-card transition-all duration-200 hover:border-bw-line-field">
-          <div className="flex items-center justify-between text-bw-ink-soft">
-            <span className="text-xs font-medium text-bw-ink-soft">إجمالي الطلبات اليوم</span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-orange-500/15 text-orange-400">
-              <ShoppingBag className="size-4" />
-            </div>
+        <div className="seven-card p-5 group transition-all duration-200 hover:border-white/[0.14] flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-bw-ink">إجمالي الطلبات اليوم</h3>
+            <p className="text-[11px] text-bw-ink-subtle mt-0.5">معدل إنشاء واستلام الطلبات</p>
           </div>
 
-          <div className="mt-3 flex items-baseline justify-between">
-            <div className="font-bw-display text-3xl font-extrabold text-bw-ink">
-              <Code>{totalOrdersToday}</Code>
+          <div className="mt-4 flex items-end justify-between gap-2">
+            <div>
+              <div className="font-bw-display text-3xl font-black text-bw-ink tracking-tight">
+                <Code>{totalOrdersToday}</Code>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5 text-xs">
+                <span className="font-bold text-emerald-400 font-mono">+24%</span>
+                <span className="text-bw-ink-subtle text-[11px]">عن 114 طلب أمس</span>
+              </div>
             </div>
-            <div className="flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
-              <TrendingUp className="size-3" />
-              <span>+24%</span>
-            </div>
-          </div>
 
-          <div className="mt-3 flex items-end justify-between pt-2 border-t border-bw-line/40">
-            <span className="text-[11px] text-bw-ink-subtle">من 114 طلب أمس</span>
-            <CardMiniLine color="#ff783d" gradientId="spark-orders" data={[25, 35, 30, 48, 42, 60, 52, 70, 65, 82, 78, 95]} />
+            <CardMiniLine color="#79dfb3" gradientId="spark-orders" data={[25, 35, 30, 48, 42, 60, 52, 70, 65, 82, 78, 95]} />
           </div>
         </div>
 
         {/* Card 2: قيد التنفيذ */}
-        <div className="rounded-2xl border border-bw-line/70 bg-bw-surface/90 p-4 shadow-bw-card transition-all duration-200 hover:border-bw-line-field">
-          <div className="flex items-center justify-between text-bw-ink-soft">
-            <span className="text-xs font-medium text-bw-ink-soft">قيد التنفيذ</span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400">
-              <Package className="size-4" />
-            </div>
+        <div className="seven-card p-5 group transition-all duration-200 hover:border-white/[0.14] flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-bw-ink">قيد التنفيذ والمتابعة</h3>
+            <p className="text-[11px] text-bw-ink-subtle mt-0.5">شحنات بين التجهيز والتوصيل</p>
           </div>
 
-          <div className="mt-3 flex items-baseline justify-between">
-            <div className="font-bw-display text-3xl font-extrabold text-bw-ink">
-              <Code>{inFlightCount}</Code>
+          <div className="mt-4 flex items-end justify-between gap-2">
+            <div>
+              <div className="font-bw-display text-3xl font-black text-bw-ink tracking-tight">
+                <Code>{inFlightCount}</Code>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5 text-xs">
+                <span className="font-bold text-[#ff783d] font-mono">-18%</span>
+                <span className="text-bw-ink-subtle text-[11px]">من 59 طلب أمس</span>
+              </div>
             </div>
-            <div className="flex items-center gap-0.5 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-400">
-              <TrendingDown className="size-3" />
-              <span>-18%</span>
-            </div>
-          </div>
 
-          <div className="mt-3 flex items-end justify-between pt-2 border-t border-bw-line/40">
-            <span className="text-[11px] text-bw-ink-subtle">من 59 طلب</span>
-            <CardMiniLine color="#3b82f6" gradientId="spark-fulfillment" data={[85, 78, 82, 70, 75, 65, 60, 58, 62, 54, 50, 48]} />
+            <CardMiniLine color="#ff783d" gradientId="spark-fulfillment" data={[85, 78, 82, 70, 75, 65, 60, 58, 62, 54, 50, 48]} />
           </div>
         </div>
 
         {/* Card 3: تحتاج تدخل */}
-        <div className="rounded-2xl border border-bw-line/70 bg-bw-surface/90 p-4 shadow-bw-card transition-all duration-200 hover:border-bw-line-field">
-          <div className="flex items-center justify-between text-bw-ink-soft">
-            <span className="text-xs font-medium text-bw-ink-soft">تحتاج تدخل</span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400">
-              <AlertTriangle className="size-4" />
-            </div>
+        <div className="seven-card p-5 group transition-all duration-200 hover:border-white/[0.14] flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-bw-ink">تحتاج تدخلاً</h3>
+            <p className="text-[11px] text-bw-ink-subtle mt-0.5">تنبيهات ونواقص تحتاج إجراء</p>
           </div>
 
-          <div className="mt-3 flex items-baseline justify-between">
-            <div className="font-bw-display text-3xl font-extrabold text-bw-ink">
-              <Code>{attentionCount}</Code>
+          <div className="mt-4 flex items-end justify-between gap-2">
+            <div>
+              <div className="font-bw-display text-3xl font-black text-bw-ink tracking-tight">
+                <Code>{attentionCount}</Code>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5 text-xs">
+                <span className="font-bold text-amber-400 font-mono">-3</span>
+                <span className="text-bw-ink-subtle text-[11px]">معالجة فورية</span>
+              </div>
             </div>
-            <div className="flex items-center gap-0.5 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-400">
-              <TrendingDown className="size-3" />
-              <span>-3</span>
-            </div>
-          </div>
 
-          <div className="mt-3 flex items-end justify-between pt-2 border-t border-bw-line/40">
-            <span className="text-[11px] text-bw-ink-subtle">طلبات مع مشكلة حالياً</span>
-            <CardMiniLine color="#eab308" gradientId="spark-attention" data={[65, 70, 58, 62, 45, 50, 38, 42, 30, 25, 20, 15]} />
+            <CardMiniLine color="#ffd486" gradientId="spark-attention" data={[65, 70, 58, 62, 45, 50, 38, 42, 30, 25, 20, 15]} />
           </div>
         </div>
 
         {/* Card 4: التحصيل النقدي (COD) */}
-        <div className="rounded-2xl border border-bw-line/70 bg-bw-surface/90 p-4 shadow-bw-card transition-all duration-200 hover:border-bw-line-field">
-          <div className="flex items-center justify-between text-bw-ink-soft">
-            <span className="text-xs font-medium text-bw-ink-soft">التحصيل النقدي (COD)</span>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
-              <Wallet className="size-4" />
-            </div>
+        <div className="seven-card p-5 group transition-all duration-200 hover:border-white/[0.14] flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-bw-ink">التحصيل النقدي (COD)</h3>
+            <p className="text-[11px] text-bw-ink-subtle mt-0.5">المبالغ المسلمة لليوم</p>
           </div>
 
-          <div className="mt-3 flex items-baseline justify-between">
-            <div className="font-bw-display text-2xl font-extrabold text-bw-ink">
-              <Code>{codCollectedAmount.toLocaleString('en-US')}</Code> <span className="text-xs font-normal text-bw-ink-soft">ج.م</span>
+          <div className="mt-4 flex items-end justify-between gap-2">
+            <div>
+              <div className="font-bw-display text-2xl font-black text-bw-ink tracking-tight">
+                <Code>{codCollectedAmount.toLocaleString('en-US')}</Code> <span className="text-xs font-normal text-bw-ink-subtle">ج.م</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5 text-xs">
+                <span className="font-bold text-emerald-400 font-mono">+12%</span>
+                <span className="text-bw-ink-subtle text-[11px]">من 28,900 أمس</span>
+              </div>
             </div>
-            <div className="flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
-              <TrendingUp className="size-3" />
-              <span>+12%</span>
-            </div>
-          </div>
 
-          <div className="mt-3 flex items-end justify-between pt-2 border-t border-bw-line/40">
-            <span className="text-[11px] text-bw-ink-subtle">من 28,900 ج.م أمس</span>
-            <CardMiniLine color="#22c55e" gradientId="spark-cash" data={[30, 42, 38, 55, 60, 52, 68, 75, 72, 85, 90, 96]} />
+            <CardMiniLine color="#79dfb3" gradientId="spark-cash" data={[30, 42, 38, 55, 60, 52, 68, 75, 72, 85, 90, 96]} />
           </div>
         </div>
       </div>
 
       {/* ── Middle 3-Column Operations Row ────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 mt-4 items-stretch">
-        {/* Panel 1 (Left in RTL): تدفق الطلبات بالساعات (Interactive Bar Chart - Requirement 5) — 5 cols */}
-        <div className="lg:col-span-5 rounded-2xl border border-bw-line/70 bg-bw-surface/90 p-5 shadow-bw-card flex flex-col justify-between transition-all duration-200 hover:border-bw-line-field">
+        {/* Panel 1: تدفق الطلبات بالساعات (SevenTeen Spline Chart) — 5 cols */}
+        <div className="lg:col-span-5 seven-card p-5 flex flex-col justify-between">
           <OrderAnalyticsChart />
         </div>
 
-        {/* Panel 2 (Center in RTL): مسار تجهيز وشحن الطلبات (Fulfillment Pipeline - Requirement 6) — 4 cols */}
-        <div className="lg:col-span-4 rounded-2xl border border-bw-line/70 bg-bw-surface/90 p-5 shadow-bw-card flex flex-col justify-between transition-all duration-200 hover:border-bw-line-field">
+        {/* Panel 2: مسار تجهيز وشحن الطلبات (SevenTeen Assets Style Pipeline) — 4 cols */}
+        <div className="lg:col-span-4 seven-card p-5 flex flex-col justify-between">
           <OperationalFulfillmentPipeline totalOrders={totalOrdersToday} stages={pipelineStages} />
         </div>
 
-        {/* Panel 3 (Right in RTL): يحتاج تدخلك الآن (Expanded & Prioritized - Requirement 7) — 3 cols */}
-        <div className="lg:col-span-3 rounded-2xl border border-bw-line/70 bg-bw-surface/90 p-5 shadow-bw-card flex flex-col justify-between transition-all duration-200 hover:border-bw-line-field">
+        {/* Panel 3: يحتاج تدخلك الآن (Prioritized Action Stack) — 3 cols */}
+        <div className="lg:col-span-3 seven-card p-5 flex flex-col justify-between">
           <ActionRequiredPanel items={actionItems} totalCount={attentionCount} />
         </div>
       </div>
@@ -1087,46 +1146,46 @@ function AdminOperationsCenter() {
       {/* ── Bottom Operations Row: Orders Table & Financial Summary ────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 mt-4 items-start">
         {/* Left Column (8 cols): أحدث الطلبات Table */}
-        <div className="lg:col-span-8 rounded-2xl border border-bw-line/70 bg-bw-surface/90 p-5 shadow-bw-card">
+        <div className="lg:col-span-8 seven-card p-5 space-y-3">
           {/* Table Header */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-bw-line/40 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-[#ff783d]" />
+                <span className="size-2 rounded-full bg-[#ff783d] shadow-[0_0_8px_rgba(255,120,61,0.6)]" />
                 <h2 className="font-bw-display text-sm font-bold text-bw-ink">أحدث الطلبات</h2>
               </div>
-              <p className="text-[11px] text-bw-ink-subtle mt-0.5">آخر الطلبات المسجلة في النظام</p>
+              <p className="text-[11px] text-bw-ink-subtle mt-0.5">سجل تدفق العمليات المسجلة في النظام</p>
             </div>
             <Link
               href="/admin/orders"
-              className="flex items-center gap-1 text-xs font-medium text-[#ff783d] hover:underline"
+              className="flex items-center gap-1 text-xs font-semibold text-[#ff783d] hover:underline"
             >
-              <span>عرض الكل</span>
+              <span>عرض كافة الطلبات</span>
               <ArrowLeft className="size-3.5" />
             </Link>
           </div>
 
           {/* Table Filter Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 my-3">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 py-1">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute start-2.5 top-2.5 size-3.5 text-bw-ink-subtle" />
+              <Search className="absolute start-2.5 top-2.5 size-3.5 text-bw-ink-subtle pointer-events-none" />
               <input
                 type="text"
                 placeholder="البحث في الطلبات..."
-                className="h-8 w-full rounded-lg border border-bw-line bg-bw-sunken/60 ps-8 pe-3 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-action focus:outline-none"
+                className="h-8.5 w-full rounded-xl border border-white/[0.07] bg-bw-sunken/60 ps-8 pe-3 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-[#ff783d] focus:outline-none focus:ring-1 focus:ring-[#ff783d]/30 transition-all shadow-inner"
               />
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 rounded-lg border border-bw-line bg-bw-sunken/60 px-2.5 py-1 text-xs text-bw-ink-soft">
+              <div className="flex items-center gap-1 rounded-xl border border-white/[0.07] bg-bw-sunken/60 px-2.5 py-1.5 text-xs text-bw-ink-soft">
                 <span>كل العملات</span>
                 <ChevronDown className="size-3 text-bw-ink-subtle" />
               </div>
-              <div className="flex items-center gap-1 rounded-lg border border-bw-line bg-bw-sunken/60 px-2.5 py-1 text-xs text-bw-ink-soft">
+              <div className="flex items-center gap-1 rounded-xl border border-white/[0.07] bg-bw-sunken/60 px-2.5 py-1.5 text-xs text-bw-ink-soft">
                 <span>كل العملاء</span>
                 <ChevronDown className="size-3 text-bw-ink-subtle" />
               </div>
-              <button type="button" className="flex size-8 items-center justify-center rounded-lg border border-bw-line bg-bw-sunken/60 text-bw-ink-soft hover:text-bw-ink">
+              <button type="button" className="flex size-8 items-center justify-center rounded-xl border border-white/[0.07] bg-bw-sunken/60 text-bw-ink-soft hover:text-bw-ink transition-colors">
                 <Filter className="size-3.5" />
               </button>
             </div>
@@ -1136,9 +1195,9 @@ function AdminOperationsCenter() {
           <div className="overflow-x-auto">
             <table className="w-full text-start text-xs border-collapse">
               <thead>
-                <tr className="border-b border-bw-line/60 text-bw-ink-subtle">
+                <tr className="border-b border-white/[0.06] text-bw-ink-subtle">
                   <th className="py-2.5 pe-2 ps-1 text-start w-6">
-                    <Square className="size-3.5 text-bw-ink-subtle/60" />
+                    <Square className="size-3.5 text-bw-ink-subtle/50" />
                   </th>
                   <th className="py-2.5 px-3 text-start font-semibold">رقم الطلب</th>
                   <th className="py-2.5 px-3 text-start font-semibold">العميل</th>
@@ -1149,11 +1208,11 @@ function AdminOperationsCenter() {
                   <th className="py-2.5 px-3 text-end font-semibold">إجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-bw-line/40">
+              <tbody className="divide-y divide-white/[0.04]">
                 {orderItems.slice(0, 5).map((order) => (
-                  <tr key={order.id} className="hover:bg-bw-sunken/40 transition-colors">
+                  <tr key={order.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="py-3 pe-2 ps-1">
-                      <Square className="size-3.5 text-bw-ink-subtle/60" />
+                      <Square className="size-3.5 text-bw-ink-subtle/50" />
                     </td>
                     <td className="py-3 px-3 font-semibold text-bw-ink">
                       <Link href={`/admin/orders/${order.id}`} className="hover:text-bw-action transition-colors">
@@ -1162,7 +1221,7 @@ function AdminOperationsCenter() {
                     </td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-bw-sunken text-[10px] font-bold text-bw-ink border border-bw-line">
+                        <div className="flex size-6.5 shrink-0 items-center justify-center rounded-full bg-bw-sunken text-[10px] font-bold text-bw-ink border border-white/[0.08]">
                           {order.customerInitials ?? 'C'}
                         </div>
                         <span className="font-medium text-bw-ink truncate max-w-[110px]">{order.customerName}</span>
@@ -1184,7 +1243,7 @@ function AdminOperationsCenter() {
                       <div className="flex items-center justify-end gap-1.5">
                         <Link
                           href={`/admin/orders/${order.id}`}
-                          className="rounded-lg bg-bw-sunken px-2.5 py-1 text-xs font-semibold text-bw-ink hover:bg-bw-line transition-colors"
+                          className="rounded-lg bg-bw-sunken px-2.5 py-1 text-xs font-semibold text-bw-ink hover:bg-white/[0.06] border border-white/[0.06] transition-colors"
                         >
                           عرض
                         </Link>
@@ -1201,17 +1260,17 @@ function AdminOperationsCenter() {
         </div>
 
         {/* Right Column (4 cols): ملخص التحصيل المالي (COD) */}
-        <div className="lg:col-span-4 rounded-2xl border border-bw-line/70 bg-bw-surface/90 p-5 shadow-bw-card space-y-4">
+        <div className="lg:col-span-4 seven-card p-5 space-y-4">
           {/* Financial Header */}
-          <div className="flex items-center justify-between border-b border-bw-line/40 pb-3">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
             <div className="flex items-center gap-2">
-              <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+              <div className="flex size-7.5 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
                 <Wallet className="size-4" />
               </div>
               <h2 className="font-bw-display text-sm font-bold text-bw-ink">ملخص التحصيل المالي</h2>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-1 rounded bg-bw-sunken px-2 py-0.5 text-[11px] text-bw-ink-soft border border-bw-line/60">
+              <div className="flex items-center gap-1 rounded-lg bg-bw-sunken px-2 py-0.5 text-[11px] text-bw-ink-soft border border-white/[0.06]">
                 <span>اليوم</span>
                 <ChevronDown className="size-3 text-bw-ink-subtle" />
               </div>
@@ -1230,7 +1289,7 @@ function AdminOperationsCenter() {
           <div className="space-y-1">
             <span className="text-xs text-bw-ink-subtle">تحصيل اليوم (COD)</span>
             <div className="flex items-baseline justify-between">
-              <div className="font-bw-display text-3xl font-extrabold text-bw-ink">
+              <div className="font-bw-display text-3xl font-black text-bw-ink tracking-tight">
                 {showFinancials ? (
                   <>
                     <bdi className="font-mono">{codCollectedAmount.toLocaleString('en-US')}</bdi>{' '}
@@ -1240,7 +1299,7 @@ function AdminOperationsCenter() {
                   '••••••••'
                 )}
               </div>
-              <div className="flex items-center gap-0.5 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
+              <div className="flex items-center gap-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-xs font-semibold text-emerald-400">
                 <TrendingUp className="size-3" />
                 <bdi>+12%</bdi>
               </div>
@@ -1255,15 +1314,15 @@ function AdminOperationsCenter() {
                 من إجمالي المستحقات <bdi className="font-mono text-bw-ink font-medium">48,300</bdi> ج.م
               </span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-bw-sunken ring-1 ring-bw-line/50">
-              <div style={{ width: '68%' }} className="h-full bg-[#ff783d] rounded-full transition-all duration-500" />
+            <div className="h-2 w-full overflow-hidden rounded-full bg-bw-sunken ring-1 ring-white/[0.06]">
+              <div style={{ width: '68%' }} className="h-full bg-[#ff783d] rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(255,120,61,0.5)]" />
             </div>
           </div>
 
           {/* Two Stat Boxes: Pending with couriers & Overdue */}
           <div className="grid grid-cols-2 gap-2.5 pt-1">
             {/* Box 1: معلق لدى المندوبين */}
-            <div className="rounded-xl border border-bw-line/60 bg-bw-sunken/40 p-3 space-y-1">
+            <div className="rounded-xl border border-white/[0.06] bg-bw-sunken/40 p-3 space-y-1">
               <div className="flex items-center justify-between text-bw-ink-subtle">
                 <span className="text-[10px]">معلق لدى المندوبين</span>
                 <Hourglass className="size-3.5 text-amber-400 shrink-0" />
@@ -1281,7 +1340,7 @@ function AdminOperationsCenter() {
             </div>
 
             {/* Box 2: متأخر عن السداد */}
-            <div className="rounded-xl border border-bw-line/60 bg-bw-sunken/40 p-3 space-y-1">
+            <div className="rounded-xl border border-white/[0.06] bg-bw-sunken/40 p-3 space-y-1">
               <div className="flex items-center justify-between text-bw-ink-subtle">
                 <span className="text-[10px]">متأخر عن السداد</span>
                 <AlertTriangle className="size-3.5 text-red-400 shrink-0" />
@@ -1302,7 +1361,7 @@ function AdminOperationsCenter() {
           {/* Full-width Action Button */}
           <Link
             href="/admin/cash"
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-bw-sunken/80 border border-bw-line/80 px-4 py-2.5 text-xs font-semibold text-[#ff783d] hover:bg-bw-sunken hover:border-bw-action transition-all group"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-bw-sunken/80 border border-white/[0.08] px-4 py-2.5 text-xs font-semibold text-[#ff783d] hover:bg-bw-sunken hover:border-bw-action transition-all group"
           >
             <span>عرض التفاصيل المالية</span>
             <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-1" />

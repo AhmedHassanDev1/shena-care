@@ -6,25 +6,25 @@
 
 @theme {
   /* Surfaces and readable text: dark first, with separation from restrained borders. */
-  --color-bw-page: #0b0d10;
-  --color-bw-surface: #15191e;
-  --color-bw-sunken: #20252c;
-  --color-bw-kohl: #090b0e;
-  --color-bw-kohl-raised: #1b2026;
-  --color-bw-ink: #f3f5f7;
+  --color-bw-page: #090b0e;
+  --color-bw-surface: #14171d;
+  --color-bw-sunken: #1b1f27;
+  --color-bw-kohl: #08090c;
+  --color-bw-kohl-raised: #13161c;
+  --color-bw-ink: #f4f6f8;
   --color-bw-ink-soft: #bac2cc;
-  --color-bw-ink-subtle: #a9b2bd;
-  --color-bw-on-kohl: #f3f5f7;
+  --color-bw-ink-subtle: #98a2b0;
+  --color-bw-on-kohl: #f4f6f8;
   --color-bw-on-kohl-soft: #bac2cc;
-  --color-bw-line: #363d47;
-  --color-bw-line-field: #929ba7;
+  --color-bw-line: #252a34;
+  --color-bw-line-field: #8e97a3;
 
   /* Actions use orange; semantic colours communicate state with text and icon. */
   --color-bw-action: #ff783d;
-  --color-bw-action-hover: #ff9463;
-  --color-bw-action-soft: #43291d;
+  --color-bw-action-hover: #ff905c;
+  --color-bw-action-soft: #3a2217;
   --color-bw-action-ink: #ffb18c;
-  --color-bw-on-action: #20120b;
+  --color-bw-on-action: #1c0d05;
   --color-bw-on-kohl-action: #ffae86;
   --color-bw-on-kohl-warn: #ffd486;
   --color-bw-on-kohl-danger: #ff9eaa;
@@ -38,7 +38,7 @@
   --color-bw-info-soft: #203149;
   --color-bw-focus: #ffae86;
 
-  /* Enterprise density. Touch roles retain larger targets. */
+  /* Enterprise density with refined geometry matching SevenTeen visual reference. */
   --text-bw-title: 1.5rem;       --text-bw-title--line-height: 1.3;
   --text-bw-heading: 1.0625rem; --text-bw-heading--line-height: 1.45;
   --text-bw-body: 0.9375rem;     --text-bw-body--line-height: 1.55;
@@ -48,11 +48,11 @@
   --spacing-bw-touch: 3.25rem;
   --spacing-bw-page: 1.5rem;
   --spacing-bw-section: 1rem;
-  --radius-bw-field: 0.5rem;
-  --radius-bw-card: 0.75rem;
+  --radius-bw-field: 0.625rem;
+  --radius-bw-card: 1rem;
   --radius-bw-pill: 9999px;
-  --shadow-bw-card: 0 2px 12px rgb(0 0 0 / 0.12);
-  --shadow-bw-overlay: 0 20px 60px rgb(0 0 0 / 0.34);
+  --shadow-bw-card: 0 4px 20px -2px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-bw-overlay: 0 20px 60px rgb(0 0 0 / 0.45);
   --ease-bw-standard: cubic-bezier(0.2, 0, 0, 1);
   --duration-bw-fast: 140ms;
   --duration-bw-normal: 220ms;
@@ -81,10 +81,11 @@
 }
 
 .bw .bw-panel {
-  border: 1px solid var(--color-bw-line);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: var(--radius-bw-card);
   background: var(--color-bw-surface);
   box-shadow: var(--shadow-bw-card);
+  box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 @media (prefers-reduced-motion: reduce) {
