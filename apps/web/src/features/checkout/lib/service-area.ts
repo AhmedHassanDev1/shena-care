@@ -12,6 +12,17 @@ export const DEFAULT_MAP_CENTRES: Array<[number, number]> = [
   [26.8206, 30.8025], // Egypt centroid
 ];
 
+/**
+ * ShinaCare fulfillment hub coordinates (route origin for delivery dispatch).
+ * Kept separate from customer delivery coordinates.
+ */
+export const SHINACARE_HUB_COORDINATES = {
+  latitude: 29.997164,
+  longitude: 31.149644,
+  name: 'ShinaCare Main Fulfillment Hub',
+} as const;
+
+
 export const CAIRO_GIZA_AREAS = [
   { nameAr: 'المعادي', nameEn: 'Maadi', lat: 29.9602, lng: 31.2569 },
   { nameAr: 'الدقي', nameEn: 'Dokki', lat: 30.0386, lng: 31.2122 },

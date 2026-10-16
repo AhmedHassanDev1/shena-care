@@ -52,3 +52,24 @@ export function assertDeliverablePin(pin: { latitude?: number | null; longitude?
 export function navigationUrl(latitude: number, longitude: number): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
 }
+
+/**
+ * ShinaCare fulfillment hub coordinates (route origin for future dispatch and delivery runs).
+ * Kept separate from customer delivery locations.
+ */
+export const SHINACARE_HUB_COORDINATES = {
+  latitude: 29.997164,
+  longitude: 31.149644,
+  name: 'ShinaCare Main Fulfillment Hub',
+} as const;
+
+export function getDeliveryHubCoordinates(): { latitude: number; longitude: number; name: string } {
+  const envLat = process.env.DELIVERY_HUB_LAT ? Number(process.env.DELIVERY_HUB_LAT) : NaN;
+  const envLng = process.env.DELIVERY_HUB_LNG ? Number(process.env.DELIVERY_HUB_LNG) : NaN;
+  return {
+    latitude: Number.isFinite(envLat) ? envLat : SHINACARE_HUB_COORDINATES.latitude,
+    longitude: Number.isFinite(envLng) ? envLng : SHINACARE_HUB_COORDINATES.longitude,
+    name: SHINACARE_HUB_COORDINATES.name,
+  };
+}
+

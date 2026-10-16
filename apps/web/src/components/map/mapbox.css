@@ -1,0 +1,72 @@
+@import 'mapbox-gl/dist/mapbox-gl.css';
+
+/* ShinaCare Mapbox GL Custom Integration */
+.mapboxgl-map {
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+}
+
+.mapboxgl-ctrl-group {
+  border-radius: var(--radius-sm, 6px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow-float);
+}
+
+.mapboxgl-ctrl-group button {
+  width: 32px;
+  height: 32px;
+}
+
+.mapboxgl-ctrl-attrib {
+  font-size: 11px;
+  background-color: hsla(0, 0%, 100%, 0.8) !important;
+  color: var(--ink-soft);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs, 4px);
+}
+
+/* Customer delivery pin */
+.shinacare-customer-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25));
+  transition: transform 0.12s ease-out;
+}
+
+.shinacare-customer-pin:active,
+.shinacare-customer-pin.is-dragging {
+  cursor: grabbing;
+  transform: scale(1.1) translateY(-4px);
+}
+
+/* ShinaCare fulfillment hub marker (route origin) */
+.shinacare-hub-marker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18));
+}
+
+.shinacare-map-popup .mapboxgl-popup-content {
+  border-radius: var(--radius-sm, 6px);
+  padding: 8px 12px;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-float);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.shinacare-map-popup .mapboxgl-popup-tip {
+  border-top-color: var(--card);
+}

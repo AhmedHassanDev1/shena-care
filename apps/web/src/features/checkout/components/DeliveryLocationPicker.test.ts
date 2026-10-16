@@ -4,6 +4,9 @@ import {
   SERVICE_AREA_BOUNDS,
   DEFAULT_MAP_CENTRES,
   CAIRO_GIZA_AREAS,
+  SHINACARE_HUB_COORDINATES,
+  projectMercator,
+  unprojectMercator,
 } from '../lib/service-area';
 
 describe('DeliveryLocationPicker bounds and rules', () => {
@@ -65,5 +68,28 @@ describe('DeliveryLocationPicker bounds and rules', () => {
       maxLng: 31.8,
     });
     expect(DEFAULT_MAP_CENTRES).toHaveLength(4);
+  });
+
+  it('configures ShinaCare fulfillment hub as future route origin separate from customer coordinates', () => {
+    expect(SHINACARE_HUB_COORDINATES.latitude).toBe(29.997164);
+    expect(SHINACARE_HUB_COORDINATES.longitude).toBe(31.149644);
+    expect(SHINACARE_HUB_COORDINATES.name).toBe('ShinaCare Main Fulfillment Hub');
+    // Hub is within deliverable bounds
+    expect(isInsideServiceArea(SHINACARE_HUB_COORDINATES.latitude, SHINACARE_HUB_COORDINATES.longitude)).toBe(true);
+    // Hub is not an improbable default center
+    expect(isDefaultCentre(SHINACARE_HUB_COORDINATES.latitude, SHINACARE_HUB_COORDINATES.longitude)).toBe(false);
+  });
+
+  it('preserves accurate projection math for slippy map fallback', () => {
+    const lat = 30.0386;
+    const lng = 31.2122;
+    const zoom = 14;
+    const px = projectMercator(lat, lng, zoom);
+    expect(Number.isFinite(px.x)).toBe(true);
+    expect(Number.isFinite(px.y)).toBe(true);
+
+    const back = unprojectMercator(px.x, px.y, zoom);
+    expect(Math.abs(back.lat - lat)).toBeLessThan(0.0001);
+    expect(Math.abs(back.lng - lng)).toBeLessThan(0.0001);
   });
 });

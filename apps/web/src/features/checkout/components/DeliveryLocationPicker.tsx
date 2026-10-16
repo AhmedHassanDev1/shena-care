@@ -12,16 +12,19 @@ import {
   SERVICE_AREA_BOUNDS,
   DEFAULT_MAP_CENTRES,
   CAIRO_GIZA_AREAS,
+  SHINACARE_HUB_COORDINATES,
   isInsideServiceArea,
   isDefaultCentre,
   projectMercator,
   unprojectMercator,
 } from '../lib/service-area';
+import { MapboxMap } from '@/components/map';
 
 export {
   SERVICE_AREA_BOUNDS,
   DEFAULT_MAP_CENTRES,
   CAIRO_GIZA_AREAS,
+  SHINACARE_HUB_COORDINATES,
   isInsideServiceArea,
   isDefaultCentre,
   projectMercator,
@@ -62,6 +65,13 @@ export function DeliveryLocationPicker({
   const [locating, setLocating] = useState(false);
   const [locatingError, setLocatingError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(!value?.confirmed);
+  const [mapboxFailed, setMapboxFailed] = useState(false);
+
+  const hasMapboxToken =
+    typeof process !== 'undefined' &&
+    Boolean(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN && process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN.trim());
+  const useMapbox = hasMapboxToken && !mapboxFailed;
+
 
   // Dragging state
   const isDragging = useRef(false);
@@ -152,9 +162,17 @@ export function DeliveryLocationPicker({
         setZoom(15);
         placePinAt(latitude, longitude, 'current_location');
       },
-      () => {
+      (err) => {
         setLocating(false);
-        setLocatingError(m.checkoutMapLocateFailed);
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocatingError(
+            locale === 'ar'
+              ? 'تم رفض إذن تحديد الموقع. يمكنك اختيار موقعك يدوياً على الخريطة.'
+              : 'Location permission was denied. You can select your location manually on the map.',
+          );
+        } else {
+          setLocatingError(m.checkoutMapLocateFailed);
+        }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
@@ -326,84 +344,100 @@ export function DeliveryLocationPicker({
             </div>
           </div>
 
-          {/* Slippy Tile Container */}
-          <div
-            ref={containerRef}
-            // Tile and pin offsets are physical pixels from the top-left corner; keep the canvas LTR in Arabic.
-            dir="ltr"
-            tabIndex={0}
-            role="region"
-            aria-label={m.checkoutMapTitle}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            className="relative h-72 w-full cursor-grab select-none overflow-hidden rounded-md border border-border bg-sand active:cursor-grabbing focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            {/* Tile Images */}
-            {tiles.map((t) => (
-              <img
-                key={t.key}
-                src={`https://tile.openstreetmap.org/${zoom}/${t.x}/${t.y}.png`}
-                alt=""
-                loading="lazy"
-                draggable={false}
-                className="pointer-events-none absolute h-64 w-64 select-none opacity-90 transition-opacity"
-                style={{
-                  transform: `translate3d(${t.left}px, ${t.top}px, 0)`,
-                  width: '256px',
-                  height: '256px',
-                }}
-              />
-            ))}
+          {useMapbox ? (
+            <MapboxMap
+              center={center}
+              zoom={zoom}
+              pin={pin ? { latitude: pin.latitude, longitude: pin.longitude } : null}
+              onPinChange={(coords) => placePinAt(coords.latitude, coords.longitude, 'map_pin')}
+              hubLocation={SHINACARE_HUB_COORDINATES}
+              showHub={true}
+              onError={(err) => {
+                console.warn('Mapbox GL initialization failed, switching to fallback tile map:', err.message);
+                setMapboxFailed(true);
+              }}
+              ariaLabel={m.checkoutMapTitle}
+            />
+          ) : (
+            /* Slippy Tile Container (Fallback) */
+            <div
+              ref={containerRef}
+              // Tile and pin offsets are physical pixels from the top-left corner; keep the canvas LTR in Arabic.
+              dir="ltr"
+              tabIndex={0}
+              role="region"
+              aria-label={m.checkoutMapTitle}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              className="relative h-72 w-full cursor-grab select-none overflow-hidden rounded-md border border-border bg-sand active:cursor-grabbing focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {/* Tile Images */}
+              {tiles.map((t) => (
+                <img
+                  key={t.key}
+                  src={`https://tile.openstreetmap.org/${zoom}/${t.x}/${t.y}.png`}
+                  alt=""
+                  loading="lazy"
+                  draggable={false}
+                  className="pointer-events-none absolute h-64 w-64 select-none opacity-90 transition-opacity"
+                  style={{
+                    transform: `translate3d(${t.left}px, ${t.top}px, 0)`,
+                    width: '256px',
+                    height: '256px',
+                  }}
+                />
+              ))}
 
-            {/* Marker Pin */}
-            {pinPos ? (
-              <div
-                className="pointer-events-none absolute -ms-4 -mt-8 flex flex-col items-center transition-transform"
-                style={{
-                  transform: `translate3d(${pinPos.left}px, ${pinPos.top}px, 0)`,
-                }}
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-primary text-primary-foreground shadow-float">
-                  <Icon name="pin" size={18} />
+              {/* Marker Pin */}
+              {pinPos ? (
+                <div
+                  className="pointer-events-none absolute -ms-4 -mt-8 flex flex-col items-center transition-transform"
+                  style={{
+                    transform: `translate3d(${pinPos.left}px, ${pinPos.top}px, 0)`,
+                  }}
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-primary text-primary-foreground shadow-float">
+                    <Icon name="pin" size={18} />
+                  </div>
+                  <div className="h-1.5 w-1.5 rounded-pill bg-foreground" />
                 </div>
-                <div className="h-1.5 w-1.5 rounded-pill bg-foreground" />
+              ) : null}
+
+              {/* Viewport Map Center Crosshair (subtle guide) */}
+              {!pinPos ? (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <div className="h-2 w-2 rounded-pill border border-primary bg-primary/20" />
+                </div>
+              ) : null}
+
+              <p className="pointer-events-auto absolute bottom-0 start-0 bg-card px-1.5 text-caption text-ink-soft">
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+                  © OpenStreetMap
+                </a>
+              </p>
+
+              {/* Zoom Controls */}
+              <div className="absolute bottom-3 end-3 flex flex-col gap-1.5 rounded-sm border border-border bg-card p-1 shadow-float">
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.min(18, z + 1))}
+                  aria-label={m.checkoutMapZoomIn}
+                  className="flex h-8 w-8 items-center justify-center rounded-sm text-foreground transition-colors hover:bg-sand"
+                >
+                  <Icon name="plus" size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.max(10, z - 1))}
+                  aria-label={m.checkoutMapZoomOut}
+                  className="flex h-8 w-8 items-center justify-center rounded-sm text-foreground transition-colors hover:bg-sand"
+                >
+                  <Icon name="minus" size={16} />
+                </button>
               </div>
-            ) : null}
-
-            {/* Viewport Map Center Crosshair (subtle guide) */}
-            {!pinPos ? (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div className="h-2 w-2 rounded-pill border border-primary bg-primary/20" />
-              </div>
-            ) : null}
-
-            <p className="pointer-events-auto absolute bottom-0 start-0 bg-card px-1.5 text-caption text-ink-soft">
-              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
-                © OpenStreetMap
-              </a>
-            </p>
-
-            {/* Zoom Controls */}
-            <div className="absolute bottom-3 end-3 flex flex-col gap-1.5 rounded-sm border border-border bg-card p-1 shadow-float">
-              <button
-                type="button"
-                onClick={() => setZoom((z) => Math.min(18, z + 1))}
-                aria-label={m.checkoutMapZoomIn}
-                className="flex h-8 w-8 items-center justify-center rounded-sm text-foreground transition-colors hover:bg-sand"
-              >
-                <Icon name="plus" size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setZoom((z) => Math.max(10, z - 1))}
-                aria-label={m.checkoutMapZoomOut}
-                className="flex h-8 w-8 items-center justify-center rounded-sm text-foreground transition-colors hover:bg-sand"
-              >
-                <Icon name="minus" size={16} />
-              </button>
             </div>
-          </div>
+          )}
 
           {/* Location Validation and Status Bar */}
           {locatingError ? (
