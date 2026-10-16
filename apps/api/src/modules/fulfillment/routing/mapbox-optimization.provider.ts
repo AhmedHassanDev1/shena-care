@@ -42,10 +42,14 @@ export class MapboxOptimizationProvider implements RouteOptimizationProvider {
       throw new BadRequestException('At least one destination stop is required to optimize a route');
     }
 
+    const isRoundtrip = options?.roundtrip === true;
+
     // Single stop: stop order is trivial, avoid unnecessary third-party API call
     if (destinations.length === 1) {
       return {
         provider: this.providerName,
+        roundtrip: isRoundtrip,
+        fixedFinalStopId: destinations[0].id,
         optimizedStops: [
           {
             originalIndex: 0,
@@ -64,7 +68,46 @@ export class MapboxOptimizationProvider implements RouteOptimizationProvider {
       );
     }
 
-    const allWaypoints = [origin, ...destinations];
+    // Prepare destination ordering for the API request:
+    // In Mapbox Optimization v1:
+    // - roundtrip=true: source=first (loops back to origin; all destinations are intermediate).
+    // - roundtrip=false: REQUIRES source=first and destination=last. The last coordinate is fixed as the final destination.
+    //   Mapbox does NOT support freely floating final destinations for open routes.
+    let arrangedDestinations: Array<{ waypoint: RouteWaypoint; originalIndex: number }>;
+    let fixedFinalStopId: string | undefined = undefined;
+
+    if (isRoundtrip) {
+      arrangedDestinations = destinations.map((waypoint, originalIndex) => ({
+        waypoint,
+        originalIndex,
+      }));
+    } else {
+      // Open route: resolve fixed final destination
+      if (options?.fixedFinalStopId) {
+        const foundIdx = destinations.findIndex((d) => d.id === options.fixedFinalStopId);
+        if (foundIdx === -1) {
+          throw new BadRequestException(
+            `Specified fixed final destination stop ID '${options.fixedFinalStopId}' was not found in batch destinations`,
+          );
+        }
+        fixedFinalStopId = options.fixedFinalStopId;
+        const finalDest = destinations[foundIdx];
+        const others = destinations
+          .map((waypoint, originalIndex) => ({ waypoint, originalIndex }))
+          .filter((_, idx) => idx !== foundIdx);
+        arrangedDestinations = [...others, { waypoint: finalDest, originalIndex: foundIdx }];
+      } else {
+        // Default to the last stop in sequence as the fixed final destination
+        const lastIdx = destinations.length - 1;
+        fixedFinalStopId = destinations[lastIdx].id;
+        arrangedDestinations = destinations.map((waypoint, originalIndex) => ({
+          waypoint,
+          originalIndex,
+        }));
+      }
+    }
+
+    const allWaypoints = [origin, ...arrangedDestinations.map((d) => d.waypoint)];
 
     // Format coordinates as "lng,lat;lng,lat"
     const coordString = allWaypoints
@@ -72,11 +115,26 @@ export class MapboxOptimizationProvider implements RouteOptimizationProvider {
       .join(';');
 
     const profile = options?.profile === 'driving-traffic' ? 'driving-traffic' : 'driving';
-    const roundtrip = options?.roundtrip ? 'true' : 'false';
 
-    const url = `${this.baseUrl}/optimized-trips/v1/mapbox/${profile}/${coordString}?source=first&roundtrip=${roundtrip}&geometries=geojson&overview=full&steps=false&access_token=${encodeURIComponent(
-      this.token,
-    )}`;
+    // Mapbox Optimization v1 supported combinations:
+    // roundtrip=true: source=first
+    // roundtrip=false: source=first&destination=last
+    const queryParams = new URLSearchParams({
+      source: 'first',
+      geometries: 'geojson',
+      overview: 'full',
+      steps: 'false',
+      access_token: this.token,
+    });
+
+    if (isRoundtrip) {
+      queryParams.set('roundtrip', 'true');
+    } else {
+      queryParams.set('roundtrip', 'false');
+      queryParams.set('destination', 'last');
+    }
+
+    const url = `${this.baseUrl}/optimized-trips/v1/mapbox/${profile}/${coordString}?${queryParams.toString()}`;
 
     let response: Response;
     const controller = new AbortController();
@@ -106,7 +164,9 @@ export class MapboxOptimizationProvider implements RouteOptimizationProvider {
       throw new BadGatewayException('Invalid JSON response received from Mapbox Optimization API');
     }
 
-    if (!response.ok || data.code !== 'Ok') {
+    // Mapbox Optimization API returns logical errors (NotImplemented, NoTrips, NoSegment, InvalidInput)
+    // with HTTP 200 OK. We must check data.code !== 'Ok' regardless of response.status!
+    if (!response.ok || (data && data.code && data.code !== 'Ok')) {
       this.handleMapboxError(response.status, data);
     }
 
@@ -117,25 +177,28 @@ export class MapboxOptimizationProvider implements RouteOptimizationProvider {
     }
 
     // Map each destination back to its optimized order
-    // In Mapbox Optimized Trips v1 with source=first & roundtrip=false:
-    // data.waypoints[0] is origin (waypoint_index 0)
-    // data.waypoints[i + 1] corresponds to destinations[i], and waypoint_index is its 1-based trip visit order
-    const mappedStops: OptimizedStopOrder[] = destinations.map((waypoint, originalIndex) => {
-      const wp = data.waypoints[originalIndex + 1];
-      if (!wp || typeof wp.waypoint_index !== 'number') {
-        throw new BadGatewayException(
-          `Missing waypoint_index for destination at index ${originalIndex} in Mapbox Optimization response`,
-        );
-      }
+    // In Mapbox Optimized Trips v1:
+    // data.waypoints[0] corresponds to origin (waypoint_index 0)
+    // data.waypoints[i + 1] corresponds to arrangedDestinations[i]
+    // waypoint_index is its 1-based trip visit order
+    const mappedStops: OptimizedStopOrder[] = arrangedDestinations.map(
+      (arranged, arrangedIndex) => {
+        const wp = data.waypoints[arrangedIndex + 1];
+        if (!wp || typeof wp.waypoint_index !== 'number') {
+          throw new BadGatewayException(
+            `Missing waypoint_index for destination at index ${arrangedIndex} in Mapbox Optimization response`,
+          );
+        }
 
-      const tripPosition = wp.waypoint_index;
-      return {
-        originalIndex,
-        optimizedIndex: tripPosition - 1,
-        sequence: tripPosition,
-        waypoint,
-      };
-    });
+        const tripPosition = wp.waypoint_index;
+        return {
+          originalIndex: arranged.originalIndex,
+          optimizedIndex: tripPosition - 1,
+          sequence: tripPosition,
+          waypoint: arranged.waypoint,
+        };
+      },
+    );
 
     // Guard against corrupted or duplicate indices
     const uniquePositions = new Set(mappedStops.map((s) => s.optimizedIndex));
@@ -160,6 +223,8 @@ export class MapboxOptimizationProvider implements RouteOptimizationProvider {
 
     return {
       provider: this.providerName,
+      roundtrip: isRoundtrip,
+      fixedFinalStopId,
       optimizedStops: sequencedStops,
       distanceMeters: primaryTrip ? Math.round(primaryTrip.distance ?? 0) : undefined,
       durationSeconds: primaryTrip ? Math.round(primaryTrip.duration ?? 0) : undefined,
@@ -171,9 +236,22 @@ export class MapboxOptimizationProvider implements RouteOptimizationProvider {
     const code = data?.code;
     const message = data?.message || 'Route optimization provider error';
 
+    // Mapbox Optimization specific error codes (often returned with HTTP 200)
+    if (code === 'NotImplemented') {
+      throw new BadRequestException(
+        `Mapbox Optimization API configuration not supported: ${message}. Open routes require source=first and destination=last.`,
+      );
+    }
+
     if (code === 'NoTrips') {
       throw new UnprocessableEntityException(
-        'No optimized route could be found for the given stops',
+        `No optimized route could be found for the given stops: ${message}`,
+      );
+    }
+
+    if (code === 'NoSegment') {
+      throw new UnprocessableEntityException(
+        `One or more delivery coordinates cannot be snapped to a navigable road segment: ${message}`,
       );
     }
 

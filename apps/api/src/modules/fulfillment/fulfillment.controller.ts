@@ -3,7 +3,7 @@ import { FulfillmentService } from './services/fulfillment.service';
 import { RoutePlanningService } from './services/route-planning.service';
 import { RouteOptimizationService } from './services/route-optimization.service';
 import { PlanRouteDto } from './dto/routing.dto';
-import { ApplyOptimizationDto } from './dto/optimization.dto';
+import { ApplyOptimizationDto, OptimizationOptionsDto } from './dto/optimization.dto';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto, AssignLocationOperatorDto, ReceiveAllocatedGoodsDto, HubShipmentQueryDto, HubRunQueryDto } from './dto/fulfillment.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -253,22 +253,25 @@ export class FulfillmentController {
   @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
   async previewBatchOptimization(
     @Param('id') id: string,
+    @Query() query: OptimizationOptionsDto,
     @CurrentUser() actor: FulfillmentActor,
   ) {
-    return this.routeOptimizationService.previewBatchOptimization(id, actor);
+    return this.routeOptimizationService.previewBatchOptimization(id, actor, query);
   }
 
   @Get('delivery-batches/:id/optimize')
   @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
   async getBatchOptimizationAlias(
     @Param('id') id: string,
+    @Query() query: OptimizationOptionsDto,
     @CurrentUser() actor: FulfillmentActor,
   ) {
-    return this.routeOptimizationService.previewBatchOptimization(id, actor);
+    return this.routeOptimizationService.previewBatchOptimization(id, actor, query);
   }
 
   @Post('delivery-batches/:id/apply-optimization')
-  @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('delivery.plan')
   async applyBatchOptimization(
     @Param('id') id: string,
     @Body() dto: ApplyOptimizationDto,

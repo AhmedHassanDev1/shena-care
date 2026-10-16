@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
@@ -22,7 +23,7 @@ import {
 } from '../routing/route-optimization.provider';
 import { getDeliveryHubCoordinates } from './hub-location';
 import { FulfillmentActor } from './fulfillment.service';
-import { ApplyOptimizationDto } from '../dto/optimization.dto';
+import { ApplyOptimizationDto, OptimizationOptionsDto } from '../dto/optimization.dto';
 
 export interface BatchStopSummary {
   stopId: string;
@@ -62,6 +63,10 @@ export interface BatchOptimizationPreview {
   applied: boolean;
   isOptimized: boolean;
   provider: string;
+  roundtrip: boolean;
+  fixedFinalStopId?: string;
+  previewToken: string;
+  batchUpdatedAt: string;
   summary: OptimizationMetricsSummary;
   originalStops: BatchStopSummary[];
   optimizedStops: OptimizedBatchStopSummary[];
@@ -76,6 +81,8 @@ export interface BatchOptimizationApplyResult {
   batchStatus: string;
   isOptimized: boolean;
   provider: string;
+  roundtrip: boolean;
+  fixedFinalStopId?: string;
   summary: OptimizationMetricsSummary;
   stops: any[];
   optimizedRoute: PlannedRoute;
@@ -99,6 +106,7 @@ export class RouteOptimizationService {
   async previewBatchOptimization(
     batchId: string,
     actor: FulfillmentActor,
+    options?: OptimizationOptionsDto,
   ): Promise<BatchOptimizationPreview> {
     if (!this.isUuid(batchId)) {
       throw new BadRequestException('Invalid batch ID');
@@ -146,6 +154,7 @@ export class RouteOptimizationService {
       longitude: hub.longitude,
     };
 
+    const isRoundtrip = options?.roundtrip === true;
     const originalStops: BatchStopSummary[] = [];
     const destinations: RouteWaypoint[] = [];
 
@@ -195,7 +204,12 @@ export class RouteOptimizationService {
     }
 
     // Baseline calculation using original sequence
-    const originalRoute = await this.routingProvider.calculateRoute(hubOrigin, destinations);
+    // For roundtrip, append hubOrigin as the return leg destination to reflect the full closed loop
+    const baselineWaypoints = isRoundtrip ? [...destinations, hubOrigin] : destinations;
+    const originalRoute = await this.routingProvider.calculateRoute(hubOrigin, baselineWaypoints);
+
+    const previewToken = this.generateBatchFingerprint(batch);
+    const batchUpdatedAt = batch.updatedAt.toISOString();
 
     // Single stop: stop order is trivial, avoid unnecessary third-party optimization call
     if (batch.stops.length === 1) {
@@ -216,6 +230,10 @@ export class RouteOptimizationService {
         applied: false,
         isOptimized: false,
         provider: this.optimizationProvider.providerName,
+        roundtrip: isRoundtrip,
+        fixedFinalStopId: singleStop.stopId,
+        previewToken,
+        batchUpdatedAt,
         summary: {
           originalDistanceMeters: originalRoute.totalDistanceMeters,
           optimizedDistanceMeters: originalRoute.totalDistanceMeters,
@@ -237,6 +255,11 @@ export class RouteOptimizationService {
     const optimizationResult = await this.optimizationProvider.optimizeRoute(
       hubOrigin,
       destinations,
+      {
+        profile: 'driving',
+        roundtrip: isRoundtrip,
+        fixedFinalStopId: options?.fixedFinalStopId,
+      },
     );
 
     const optimizedStops: OptimizedBatchStopSummary[] = optimizationResult.optimizedStops.map(
@@ -259,9 +282,13 @@ export class RouteOptimizationService {
       const reorderedDestinations = optimizationResult.optimizedStops.map(
         (opt) => destinations[opt.originalIndex],
       );
+      const optimizedWaypoints = isRoundtrip
+        ? [...reorderedDestinations, hubOrigin]
+        : reorderedDestinations;
+
       optimizedRoute = await this.routingProvider.calculateRoute(
         hubOrigin,
-        reorderedDestinations,
+        optimizedWaypoints,
       );
     } else {
       optimizedRoute = originalRoute;
@@ -295,6 +322,10 @@ export class RouteOptimizationService {
       applied: false,
       isOptimized: isSequenceChanged,
       provider: optimizationResult.provider,
+      roundtrip: isRoundtrip,
+      fixedFinalStopId: optimizationResult.fixedFinalStopId,
+      previewToken,
+      batchUpdatedAt,
       summary: {
         originalDistanceMeters: originalRoute.totalDistanceMeters,
         optimizedDistanceMeters: optimizedRoute.totalDistanceMeters,
@@ -314,8 +345,8 @@ export class RouteOptimizationService {
 
   /**
    * Explicitly applies the optimized sequence to an existing batch in 'planning' status.
-   * Persists reordered sequences atomically using a two-phase transaction to avoid
-   * unique constraint collisions on [batch_id, sequence].
+   * Restricts route reordering approval to authorized dispatch operators (Admin and assigned Hub Operators).
+   * Prevents stale optimization previews from overwriting concurrently modified batches.
    */
   async applyBatchOptimization(
     batchId: string,
@@ -326,8 +357,19 @@ export class RouteOptimizationService {
       throw new BadRequestException('Invalid batch ID');
     }
 
+    // Restrict reordering approval to dispatch operators; drivers may not mutate planned routes
+    if (
+      actor.roles.includes(Role.DRIVER) &&
+      !actor.roles.includes(Role.ADMIN) &&
+      !actor.roles.includes(Role.HUB_OPERATOR)
+    ) {
+      throw new ForbiddenException(
+        'Drivers are not permitted to approve or apply route reordering. Hub operator or admin dispatch authorization is required.',
+      );
+    }
+
     // 1. Calculate the preview (includes authorization, batch existence, and status validation)
-    const preview = await this.previewBatchOptimization(batchId, actor);
+    const preview = await this.previewBatchOptimization(batchId, actor, dto);
 
     // 2. Resolve target sequence updates
     let targetUpdates: Array<{ shipmentId: string; sequence: number }>;
@@ -364,14 +406,54 @@ export class RouteOptimizationService {
       }));
     }
 
-    // 3. Persist atomically in a transaction
+    // 3. Persist atomically in a transaction with stale preview protection
     await this.prisma.$transaction(async (tx) => {
-      const currentBatch = await tx.deliveryBatch.findUnique({ where: { id: batchId } });
+      const currentBatch = await tx.deliveryBatch.findUnique({
+        where: { id: batchId },
+        include: { stops: { orderBy: { sequence: 'asc' } } },
+      });
+
       if (!currentBatch) {
         throw new NotFoundException('Delivery batch not found');
       }
+
       if (currentBatch.status !== 'planning') {
         throw new BadRequestException('Cannot modify a dispatched or completed delivery batch');
+      }
+
+      // Check stale preview token if provided
+      if (dto?.previewToken) {
+        const currentToken = this.generateBatchFingerprint(currentBatch);
+        if (currentToken !== dto.previewToken) {
+          throw new ConflictException(
+            'Delivery batch has been modified since the optimization preview was generated. Please refresh the preview before applying.',
+          );
+        }
+      }
+
+      // Check expectedBatchUpdatedAt if provided
+      if (dto?.expectedBatchUpdatedAt) {
+        if (currentBatch.updatedAt.toISOString() !== dto.expectedBatchUpdatedAt) {
+          throw new ConflictException(
+            'Delivery batch was modified concurrently. Please refresh the optimization preview before applying.',
+          );
+        }
+      }
+
+      // Verify that batch stop count and composition haven't changed concurrently
+      if (currentBatch.stops.length !== preview.optimizedStops.length) {
+        throw new ConflictException(
+          'Delivery batch stop count has changed concurrently. Optimization preview is stale.',
+        );
+      }
+
+      const currentShipmentIds = new Set(currentBatch.stops.map((s) => s.shipmentId));
+      for (const update of targetUpdates) {
+        if (!currentShipmentIds.has(update.shipmentId)) {
+          throw new ConflictException(
+            `Shipment ${update.shipmentId} is no longer present in this delivery batch. Optimization preview is stale.`,
+          );
+        }
       }
 
       // Phase 1: Set temporary negative sequences to prevent @@unique([batchId, sequence]) violation
@@ -411,10 +493,23 @@ export class RouteOptimizationService {
       batchStatus: preview.batchStatus,
       isOptimized: preview.isOptimized,
       provider: preview.provider,
+      roundtrip: preview.roundtrip,
+      fixedFinalStopId: preview.fixedFinalStopId,
       summary: preview.summary,
       stops: updatedBatch?.stops ?? [],
       optimizedRoute: preview.optimizedRoute,
     };
+  }
+
+  private generateBatchFingerprint(batch: {
+    id: string;
+    status: string;
+    updatedAt: Date;
+    stops: Array<{ shipmentId: string; sequence: number }>;
+  }): string {
+    const stopsDigest = batch.stops.map((s) => `${s.shipmentId}:${s.sequence}`).join(',');
+    const payload = `${batch.id}|${batch.status}|${batch.updatedAt.getTime()}|${stopsDigest}`;
+    return Buffer.from(payload).toString('base64');
   }
 
   private async assertBatchAccess(

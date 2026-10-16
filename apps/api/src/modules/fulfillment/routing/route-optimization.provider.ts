@@ -32,6 +32,10 @@ export interface OptimizedStopOrder {
 export interface RouteOptimizationResult {
   /** Identifier of the optimizing provider (e.g. 'mapbox') */
   provider: string;
+  /** Whether the optimized route loops back to origin (true) or terminates at a fixed final destination (false) */
+  roundtrip: boolean;
+  /** For open routes (roundtrip=false), the stop ID that was fixed as the final destination */
+  fixedFinalStopId?: string;
   /** Destination stops reordered by optimal visit sequence (ascending) */
   optimizedStops: OptimizedStopOrder[];
   /** Optional driving distance in meters reported by optimizer */
@@ -44,7 +48,19 @@ export interface RouteOptimizationResult {
 
 export interface RouteOptimizationOptions {
   profile?: 'driving' | 'driving-traffic';
+  /**
+   * If true, route starts at origin (Hub), visits all stops, and loops back to origin (source=first, roundtrip=true).
+   * If false, route is an open route starting at origin (Hub), optimizing intermediate stops, and ending
+   * at a fixed final destination (source=first, destination=last, roundtrip=false).
+   * Note: Mapbox Optimization v1 does NOT support freely floating final destinations for open routes.
+   * Default: false (open delivery route).
+   */
   roundtrip?: boolean;
+  /**
+   * For open routes (roundtrip=false), specifies which stop should serve as the fixed final destination.
+   * If omitted, the last stop in the destinations list is anchored as the final destination.
+   */
+  fixedFinalStopId?: string;
   language?: string;
 }
 
