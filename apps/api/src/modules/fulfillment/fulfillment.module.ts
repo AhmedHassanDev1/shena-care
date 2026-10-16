@@ -4,6 +4,7 @@ import { RoutePlanningService } from './services/route-planning.service';
 import { ROUTING_PROVIDER } from './routing/routing.provider';
 import { MapboxDirectionsRoutingProvider } from './routing/mapbox-directions.provider';
 import { RouteOptimizationService } from './services/route-optimization.service';
+import { DispatchPlanningService } from './services/dispatch-planning.service';
 import { ROUTE_OPTIMIZATION_PROVIDER } from './routing/route-optimization.provider';
 import { MapboxOptimizationProvider } from './routing/mapbox-optimization.provider';
 import { FulfillmentController } from './fulfillment.controller';
@@ -19,6 +20,7 @@ import { SourcingModule } from '../sourcing/public';
     FulfillmentService,
     RoutePlanningService,
     RouteOptimizationService,
+    DispatchPlanningService,
     {
       provide: ROUTING_PROVIDER,
       useFactory: () => {
@@ -44,6 +46,7 @@ import { SourcingModule } from '../sourcing/public';
     FulfillmentService,
     RoutePlanningService,
     RouteOptimizationService,
+    DispatchPlanningService,
     ROUTING_PROVIDER,
     ROUTE_OPTIMIZATION_PROVIDER,
   ],

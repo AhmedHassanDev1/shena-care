@@ -2,8 +2,10 @@ import { Controller, Post, Body, Get, Param, Patch, Delete, UseGuards, Query } f
 import { FulfillmentService } from './services/fulfillment.service';
 import { RoutePlanningService } from './services/route-planning.service';
 import { RouteOptimizationService } from './services/route-optimization.service';
+import { DispatchPlanningService } from './services/dispatch-planning.service';
 import { PlanRouteDto } from './dto/routing.dto';
 import { ApplyOptimizationDto, OptimizationOptionsDto } from './dto/optimization.dto';
+import { PlanDispatchDto } from './dto/dispatch-planning.dto';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto, AssignLocationOperatorDto, ReceiveAllocatedGoodsDto, HubShipmentQueryDto, HubRunQueryDto } from './dto/fulfillment.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -20,6 +22,7 @@ export class FulfillmentController {
     private readonly fulfillmentService: FulfillmentService,
     private readonly routePlanningService: RoutePlanningService,
     private readonly routeOptimizationService: RouteOptimizationService,
+    private readonly dispatchPlanningService: DispatchPlanningService,
   ) {}
 
   @Post('locations')
@@ -278,6 +281,29 @@ export class FulfillmentController {
     @CurrentUser() actor: FulfillmentActor,
   ) {
     return this.routeOptimizationService.applyBatchOptimization(id, actor, dto);
+  }
+
+  // --- Adaptive Multi-Driver Dispatch Planner (Maps Phase 3.3A) ---
+
+  @Post('dispatch/plan-preview')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('delivery.plan')
+  async planDispatchPreview(
+    @Body() dto: PlanDispatchDto,
+    @CurrentUser() actor: FulfillmentActor,
+  ) {
+    return this.dispatchPlanningService.planDispatch(dto, actor);
+  }
+
+  @Post('locations/:id/dispatch/plan-preview')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('delivery.plan')
+  async planHubDispatchPreview(
+    @Param('id') id: string,
+    @Body() dto: PlanDispatchDto,
+    @CurrentUser() actor: FulfillmentActor,
+  ) {
+    return this.dispatchPlanningService.planDispatch({ ...dto, hubId: id }, actor);
   }
 }
 
