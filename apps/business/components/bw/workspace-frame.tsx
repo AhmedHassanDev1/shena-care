@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import {
-  BarChart3, FileText, Heart, HelpCircle, History,
-  Home, LogOut, PackageOpen, Printer, Route, ScanLine, Settings,
-  ShoppingBag, Store, Truck, UserRound, Users, Wallet,
+  FileText, Heart, HelpCircle, History,
+  Home, LogOut, PackageOpen, Printer, Route, ScanLine,
+  ShoppingBag, Store, Truck, UserRound, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,9 +29,6 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'hub', label: 'المخزن والتجهيز', icon: PackageOpen, href: '/hub' },
       { id: 'dispatch', label: 'التوصيل والمندوبين', icon: Truck, href: '/hub/dispatch' },
       { id: 'cod', label: 'المالية والتحصيل', icon: Wallet, href: '/admin/cash' },
-      { id: 'reports', label: 'التقارير', icon: BarChart3, href: '/admin' },
-      { id: 'team', label: 'إدارة الفريق', icon: Users, href: '/admin' },
-      { id: 'settings', label: 'الإعدادات', icon: Settings, href: '/admin' },
     ],
   },
   supplier: {
@@ -191,13 +188,13 @@ export function WorkspaceFrame({
               href={item.href}
               aria-current={item.id === active ? 'page' : undefined}
               className={cn(
-                'flex h-bw-control shrink-0 items-center gap-3 rounded-bw-field border px-3 text-bw-small transition-all',
+                'group flex h-bw-control shrink-0 items-center gap-3 rounded-bw-field border px-3 text-bw-small transition-all duration-200',
                 item.id === active
-                  ? 'border-s-2 border-bw-action border-y-transparent border-e-transparent bg-[#ff783d]/15 font-semibold text-[#ff783d] shadow-sm'
-                  : 'border-transparent text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink',
+                  ? 'border-s-2 border-bw-action border-y-transparent border-e-transparent bg-gradient-to-l from-transparent via-[#ff783d]/10 to-[#ff783d]/20 font-semibold text-[#ff783d] shadow-[inset_3px_0_12px_rgba(255,120,61,0.15)]'
+                  : 'border-transparent text-bw-ink-soft hover:bg-white/[0.04] hover:text-bw-ink',
               )}
             >
-              <item.icon className={cn('size-4', item.id === active ? 'text-[#ff783d]' : 'text-bw-ink-subtle')} aria-hidden />
+              <item.icon className={cn('size-4 transition-transform duration-200 group-hover:scale-105', item.id === active ? 'text-[#ff783d] drop-shadow-[0_0_8px_rgba(255,120,61,0.6)]' : 'text-bw-ink-subtle group-hover:text-bw-ink')} aria-hidden />
               <span className="flex-1">{item.label}</span>
               <Count value={counts?.[item.id]} />
             </Link>
