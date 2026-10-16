@@ -47,6 +47,29 @@ export function sanitizeFilters(raw: Record<string, string | undefined>): Discov
   return filters;
 }
 
+/**
+ * The same filters without one facet's own value. Facets computed for these filters list every option of that
+ * facet, so a chosen brand (line, category) can be switched directly instead of being the only option left.
+ */
+export function withoutFacet(filters: DiscoveryFilters, key: FilterKey): DiscoveryFilters {
+  const rest = { ...filters };
+  delete rest[key];
+  return rest;
+}
+
+/**
+ * Display name of an applied facet value. Facets only list values that products carry, so a root category such
+ * as `skin-care` is never among them: `known` names those (e.g. the header's department labels) instead of
+ * showing the raw slug.
+ */
+export function facetDisplayName(
+  slug: string,
+  options: ReadonlyArray<DiscoveryFacet> | undefined,
+  known: Readonly<Record<string, string>> = {},
+): string {
+  return options?.find((facet) => facet.slug === slug)?.name ?? known[slug] ?? slug;
+}
+
 export async function discoverProducts(filters: DiscoveryFilters, cursor?: string, limit = 20): Promise<DiscoveryPage> {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);

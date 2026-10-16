@@ -106,7 +106,7 @@ function Detail({
           <p className="text-label text-ink-soft">
             <bdi>{product.brand.name}</bdi>
           </p>
-          <h1 dir="auto" className="text-display-m text-foreground [text-align:match-parent]">
+          <h1 dir="auto" className="text-display-m text-foreground text-match-parent">
             {name}
           </h1>
         </header>
@@ -147,7 +147,7 @@ function Detail({
                   {section.title}
                   <Icon name="chevron-down" size={20} className="shrink-0 transition-transform duration-quick group-open:rotate-180" />
                 </summary>
-                <p dir="auto" className="whitespace-pre-line pb-4 text-body text-ink-soft [text-align:match-parent]">
+                <p dir="auto" className="whitespace-pre-line pb-4 text-body text-ink-soft text-match-parent">
                   {section.body}
                 </p>
               </details>

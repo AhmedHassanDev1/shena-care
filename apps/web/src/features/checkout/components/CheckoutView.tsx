@@ -566,7 +566,7 @@ function Review({
         <ul className="space-y-2">
           {quote.items.map((item) => (
             <li key={item.skuId} className="flex justify-between gap-3 text-body-s">
-              <span dir="auto" className="min-w-0 [text-align:match-parent]">
+              <span dir="auto" className="min-w-0 text-match-parent">
                 {item.productName}
                 {item.variantName ? <span className="text-ink-subtle"> · <bdi>{item.variantName}</bdi></span> : null}
                 <span className="text-ink-subtle"> × <bdi>{item.quantity}</bdi></span>

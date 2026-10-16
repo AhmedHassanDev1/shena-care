@@ -208,7 +208,7 @@ function CartLine({
         <p className="truncate text-caption text-ink-soft">
           <bdi>{product.brand.name}</bdi>
         </p>
-        <h3 dir="auto" className="text-body text-foreground [text-align:match-parent]">
+        <h3 dir="auto" className="text-body text-foreground text-match-parent">
           {product.slug ? <Link href={routes.productVariant(product.slug, item.skuId)}>{name}</Link> : name}
         </h3>
         <p className="text-body-s text-ink-subtle">

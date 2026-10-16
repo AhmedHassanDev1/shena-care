@@ -35,7 +35,7 @@ export function ProductCard({ product, priority = false }: { product: ProductCar
         <h3
           dir="auto"
           // dir=auto lets a Latin name wrap and clamp as LTR text; match-parent keeps it on the same edge as the Arabic ones.
-          className="line-clamp-2 min-h-12 text-body text-foreground [text-align:match-parent]"
+          className="line-clamp-2 min-h-12 text-body text-foreground text-match-parent"
         >
           {product.action.kind === 'preview' ? (
             product.name

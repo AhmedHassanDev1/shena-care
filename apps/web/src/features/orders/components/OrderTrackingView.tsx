@@ -144,7 +144,7 @@ function Tracking({ order, placed }: { order: OrderTracking; placed: boolean }) 
               <li key={item.id} className="py-3 text-body-s">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 space-y-1">
-                    <p dir="auto" className={cn('text-foreground [text-align:match-parent]', gone && 'text-ink-subtle line-through')}>
+                    <p dir="auto" className={cn('text-foreground text-match-parent', gone && 'text-ink-subtle line-through')}>
                       {item.productName}
                       {item.variantName ? <span className="text-ink-subtle"> · <bdi>{item.variantName}</bdi></span> : null}
                       <span className="text-ink-subtle"> × <bdi>{item.quantity}</bdi></span>

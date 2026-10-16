@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
@@ -14,11 +14,14 @@ import { toProductCardModel } from '@/features/home/lib/products';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { apiClient } from '@/lib/api-client';
+import { mainCategorySlugs } from '@/lib/routes';
 import type { Concern } from '@/features/home/lib/concerns';
 import {
   discoverProducts,
+  facetDisplayName,
   FILTER_KEYS,
   sanitizeFilters,
+  withoutFacet,
   type DiscoveryFacet,
   type DiscoveryFilters,
   type DiscoveryPage,
@@ -80,8 +83,10 @@ export function ProductListing() {
   const products = useMemo(() => query.data?.pages.flatMap((page) => page.items).map(toProductCardModel) ?? [], [query.data]);
 
   const navigate = (next: DiscoveryFilters) => router.push(`${pathname}${toQueryString(next)}`, { scroll: false });
+  // Root categories (the header's skin / hair links) are never facet values, so they take the header's labels.
+  const rootCategoryNames = { [mainCategorySlugs.skin]: m.homeNavSkin, [mainCategorySlugs.hair]: m.homeNavHair };
   const facetName = (key: FilterKey, slug: string) =>
-    first?.facets[FACET_OF[key]].find((facet) => facet.slug === slug)?.name ?? slug;
+    facetDisplayName(slug, first?.facets[FACET_OF[key]], key === 'category' ? rootCategoryNames : undefined);
   const applied = FILTER_KEYS.filter((key) => filters[key]);
 
   return (
@@ -202,11 +207,26 @@ function FilterSheet({
   });
   // Facets for the pending selection, so options stay consistent with what would be shown.
   const shown = (open && preview.data?.facets) || facets;
+  // A facet with a chosen value lists its options from the draft without that value (counts still honour every
+  // other filter), so the choice can be switched directly. Fetched only while the sheet is open and a value is set.
+  const unchosen = useQueries({
+    queries: FILTER_KEYS.map((key) => {
+      const source = withoutFacet(draft, key);
+      return {
+        queryKey: ['discovery-count', toQueryString(source)],
+        queryFn: () => discoverProducts(source, undefined, 1),
+        enabled: open && Boolean(draft[key]),
+        staleTime: 60_000,
+      };
+    }),
+  });
+  const optionsFor = (key: FilterKey): DiscoveryFacet[] =>
+    (draft[key] && unchosen[FILTER_KEYS.indexOf(key)].data?.facets[FACET_OF[key]]) || shown?.[FACET_OF[key]] || [];
 
   const sections: Array<{ key: FilterKey; title: string; options: DiscoveryFacet[] }> = [
-    { key: 'category', title: m.listingCategory, options: shown?.categories ?? [] },
-    { key: 'brand', title: m.listingBrand, options: shown?.brands ?? [] },
-    { key: 'productLine', title: m.listingProductLine, options: shown?.productLines ?? [] },
+    { key: 'category', title: m.listingCategory, options: optionsFor('category') },
+    { key: 'brand', title: m.listingBrand, options: optionsFor('brand') },
+    { key: 'productLine', title: m.listingProductLine, options: optionsFor('productLine') },
   ];
   const visible = sections.filter((section) => section.options.length > 0 || draft[section.key]);
 

@@ -55,6 +55,16 @@ bdi {
   .rtl-mirror:dir(rtl) {
     transform: scaleX(-1);
   }
+
+  /*
+   * For `dir="auto"` text (Latin product names in Arabic UI): keep the bidi order of the text itself but align it
+   * on the parent's edge. Chromium and WebKit only understand the prefixed value; Firefox takes the standard one.
+   * (Tailwind's arbitrary `[text-align:match-parent]` is dropped by Chromium, so it never applied.)
+   */
+  .text-match-parent {
+    text-align: -webkit-match-parent;
+    text-align: match-parent;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
