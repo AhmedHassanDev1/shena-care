@@ -192,27 +192,81 @@ const MOCK_ORDERS_IMAGE_2: OrderRow[] = [
   },
 ]
 
-/* ── Mini Sparkline Bar Chart for Cards ────────────────────────────── */
-function CardMiniBars({
+/* ── Mini Sparkline Line Chart for KPI Cards ─────────────────────── */
+function CardMiniLine({
   color = '#ff783d',
-  heights = [30, 45, 60, 40, 75, 50, 90, 65, 80, 55, 100, 85],
+  data = [30, 40, 35, 50, 45, 60, 55, 75, 70, 85, 80, 95],
+  gradientId = 'spark-line',
 }: {
   color?: string
-  heights?: number[]
+  data?: number[]
+  gradientId?: string
 }) {
+  const width = 100
+  const height = 32
+  const paddingY = 4
+  const paddingX = 3
+
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+
+  const points = data.map((val, idx) => {
+    const x = paddingX + (idx / (data.length - 1)) * (width - paddingX * 2)
+    const y = height - paddingY - ((val - min) / range) * (height - paddingY * 2)
+    return { x, y }
+  })
+
+  // Build smooth bezier path
+  let pathD = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? 0 : i - 1]
+    const p1 = points[i]
+    const p2 = points[i + 1]
+    const p3 = points[i + 2 < points.length ? i + 2 : i + 1]
+
+    const cp1x = p1.x + (p2.x - p0.x) / 6
+    const cp1y = p1.y + (p2.y - p0.y) / 6
+    const cp2x = p2.x - (p3.x - p1.x) / 6
+    const cp2y = p2.y - (p3.y - p1.y) / 6
+
+    pathD += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+  }
+
+  const lastPoint = points[points.length - 1]
+  const areaD = `${pathD} L ${lastPoint.x.toFixed(1)} ${height} L ${points[0].x.toFixed(1)} ${height} Z`
+
   return (
-    <div className="flex h-8 items-end gap-1">
-      {heights.map((h, i) => (
-        <div
-          key={i}
-          style={{
-            height: `${Math.max(h, 15)}%`,
-            backgroundColor: color,
-            opacity: 0.35 + (i / heights.length) * 0.65,
-          }}
-          className="w-1.5 rounded-t-sm transition-all duration-300"
+    <div className="relative h-8 w-24 shrink-0 overflow-hidden">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="size-full overflow-visible"
+        fill="none"
+      >
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+        <path d={areaD} fill={`url(#${gradientId})`} />
+        <path
+          d={pathD}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
-      ))}
+        {/* Glowing end point */}
+        <circle
+          cx={lastPoint.x}
+          cy={lastPoint.y}
+          r="2.5"
+          fill={color}
+          className="animate-pulse"
+        />
+      </svg>
     </div>
   )
 }
@@ -539,7 +593,7 @@ function AdminOperationsCenter() {
 
           <div className="mt-3 flex items-end justify-between pt-2 border-t border-bw-line/40">
             <span className="text-[11px] text-bw-ink-subtle">من 114 طلب أمس</span>
-            <CardMiniBars color="#ff783d" heights={[25, 40, 55, 35, 65, 45, 80, 60, 75, 50, 95, 80]} />
+            <CardMiniLine color="#ff783d" gradientId="spark-orders" data={[25, 35, 30, 48, 42, 60, 52, 70, 65, 82, 78, 95]} />
           </div>
         </div>
 
@@ -564,7 +618,7 @@ function AdminOperationsCenter() {
 
           <div className="mt-3 flex items-end justify-between pt-2 border-t border-bw-line/40">
             <span className="text-[11px] text-bw-ink-subtle">من 59 طلب</span>
-            <CardMiniBars color="#3b82f6" heights={[40, 60, 50, 70, 85, 60, 75, 90, 65, 50, 45, 40]} />
+            <CardMiniLine color="#3b82f6" gradientId="spark-fulfillment" data={[85, 78, 82, 70, 75, 65, 60, 58, 62, 54, 50, 48]} />
           </div>
         </div>
 
@@ -589,7 +643,7 @@ function AdminOperationsCenter() {
 
           <div className="mt-3 flex items-end justify-between pt-2 border-t border-bw-line/40">
             <span className="text-[11px] text-bw-ink-subtle">طلبات مع مشكلة حالياً</span>
-            <CardMiniBars color="#eab308" heights={[30, 40, 60, 50, 70, 80, 60, 55, 40, 35, 30, 25]} />
+            <CardMiniLine color="#eab308" gradientId="spark-attention" data={[65, 70, 58, 62, 45, 50, 38, 42, 30, 25, 20, 15]} />
           </div>
         </div>
 
@@ -614,7 +668,7 @@ function AdminOperationsCenter() {
 
           <div className="mt-3 flex items-end justify-between pt-2 border-t border-bw-line/40">
             <span className="text-[11px] text-bw-ink-subtle">من 28,900 ج.م أمس</span>
-            <CardMiniBars color="#22c55e" heights={[30, 50, 40, 65, 80, 70, 85, 90, 75, 85, 95, 100]} />
+            <CardMiniLine color="#22c55e" gradientId="spark-cash" data={[30, 42, 38, 55, 60, 52, 68, 75, 72, 85, 90, 96]} />
           </div>
         </div>
       </div>
