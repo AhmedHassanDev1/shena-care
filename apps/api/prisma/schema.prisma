@@ -1746,6 +1746,7 @@ model Customer {
 
   identities Identity[]
   sessions   Session[]
+  addresses  CustomerAddress[]
   supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
   @@index([supplierId])
@@ -1803,6 +1804,30 @@ model OtpChallenge {
 
   @@index([phoneNumber])
   @@map("otp_challenges")
+  @@schema("accounts")
+}
+
+model CustomerAddress {
+  id              String   @id @default(uuid()) @db.Uuid
+  customerId      String   @map("customer_id") @db.Uuid
+  label           String?
+  customerName    String   @map("customer_name")
+  customerPhone   String   @map("customer_phone")
+  governorate     String
+  area            String
+  shippingAddress String   @map("shipping_address")
+  notes           String?
+  latitude        Float
+  longitude       Float
+  locationSource  String   @default("map_pin") @map("location_source")
+  isDefault       Boolean  @default(false) @map("is_default")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("customer_addresses")
   @@schema("accounts")
 }
 

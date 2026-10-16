@@ -1,15 +1,17 @@
 import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import { AccountsController } from './accounts.controller';
+import { CustomerAddressesService } from './services/customer-addresses.service';
+import { CustomerAddressesController } from './controllers/customer-addresses.controller';
 import { PrismaService } from '../../platform/database/prisma.service';
 import { AuthGuard } from './guards/auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import rateLimit from 'express-rate-limit';
 
 @Module({
-  controllers: [AccountsController],
-  providers: [AccountsService, PrismaService, AuthGuard, RolesGuard],
-  exports: [AccountsService, AuthGuard, RolesGuard],
+  controllers: [AccountsController, CustomerAddressesController],
+  providers: [AccountsService, CustomerAddressesService, PrismaService, AuthGuard, RolesGuard],
+  exports: [AccountsService, CustomerAddressesService, AuthGuard, RolesGuard],
 })
 export class AccountsModule {
   configure(consumer: MiddlewareConsumer) {

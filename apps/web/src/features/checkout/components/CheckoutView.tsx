@@ -1,9 +1,12 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/AuthContext';
+import { useAddresses } from '@/features/account/hooks/useAddresses';
+import { type CustomerAddress } from '@/lib/addresses';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -65,6 +68,56 @@ export function CheckoutView() {
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<Problem>(null);
   const idempotencyKey = useRef<string | null>(null);
+
+  const { isAuthenticated } = useAuth();
+  const { addresses, defaultAddress, createAddress } = useAddresses();
+  const [selectedAddressId, setSelectedAddressId] = useState<string | 'new' | null>(null);
+  const [saveToBook, setSaveToBook] = useState(false);
+  const [newAddressLabel, setNewAddressLabel] = useState('');
+  const initializedFromSaved = useRef(false);
+
+  const applySavedAddress = (addr: CustomerAddress) => {
+    setDelivery({
+      customerName: addr.customerName,
+      customerPhone: addr.customerPhone,
+      governorate: addr.governorate,
+      area: addr.area,
+      shippingAddress: addr.shippingAddress,
+      notes: addr.notes ?? '',
+    });
+    setLocation({
+      latitude: addr.latitude,
+      longitude: addr.longitude,
+      locationSource: addr.locationSource,
+      confirmed: true,
+    });
+    setLocationError(null);
+    setErrors({});
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && addresses.length > 0 && !initializedFromSaved.current) {
+      const initial = defaultAddress ?? addresses[0];
+      if (initial) {
+        initializedFromSaved.current = true;
+        setSelectedAddressId(initial.id);
+        applySavedAddress(initial);
+      }
+    }
+  }, [isAuthenticated, addresses, defaultAddress]);
+
+  const handleSelectSaved = (addr: CustomerAddress) => {
+    setSelectedAddressId(addr.id);
+    applySavedAddress(addr);
+  };
+
+  const handleSelectNew = () => {
+    setSelectedAddressId('new');
+    setDelivery(EMPTY);
+    setLocation(null);
+    setLocationError(null);
+    setErrors({});
+  };
 
   if (isLoading) return <Skeleton shape="pill" className="h-control-l w-full" />;
   if (!cart || cart.items.length === 0) {
@@ -137,6 +190,25 @@ export function CheckoutView() {
     setPending(true);
     setProblem(null);
     try {
+      if (isAuthenticated && selectedAddressId === 'new' && saveToBook) {
+        try {
+          await createAddress({
+            label: newAddressLabel.trim() || undefined,
+            customerName: delivery.customerName.trim(),
+            customerPhone: delivery.customerPhone.replace(/\s+/g, ''),
+            governorate: delivery.governorate.trim(),
+            area: delivery.area.trim(),
+            shippingAddress: delivery.shippingAddress.trim(),
+            notes: delivery.notes.trim() || undefined,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            locationSource: location.locationSource,
+          });
+        } catch {
+          // Do not block checkout if background address saving encounters an issue
+        }
+      }
+
       const order = await orders.checkout({
         customerName: delivery.customerName.trim(),
         customerPhone: delivery.customerPhone.replace(/\s+/g, ''),
@@ -220,76 +292,214 @@ export function CheckoutView() {
             toReview();
           }}
         >
-          <TextField label={m.checkoutName} autoComplete="name" required {...field('customerName')} />
-          <PhoneField
-            label={m.checkoutPhone}
-            hint={errors.customerPhone ? undefined : m.checkoutPhoneHint}
-            placeholder="01012345678"
-            required
-            {...field('customerPhone')}
-          />
-          <div className="space-y-2">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField label={m.checkoutGovernorate} autoComplete="address-level1" required {...field('governorate')} />
-              <TextField label={m.checkoutArea} autoComplete="address-level2" required {...field('area')} />
+          {/* Saved Addresses Section (when authenticated and has saved addresses) */}
+          {isAuthenticated && addresses.length > 0 && (
+            <div className="space-y-3 rounded-md border border-border bg-card p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Icon name="pin" size={18} className="text-primary" />
+                  <span className="text-heading text-foreground">{m.checkoutUseSavedAddress}</span>
+                </div>
+                <Link
+                  href={routes.accountAddresses}
+                  target="_blank"
+                  className="text-caption text-primary hover:underline"
+                >
+                  {m.addressBookManageInAccount}
+                </Link>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {addresses.map((addr) => {
+                  const isSelected = selectedAddressId === addr.id;
+                  return (
+                    <button
+                      key={addr.id}
+                      type="button"
+                      onClick={() => handleSelectSaved(addr)}
+                      className={cn(
+                        'flex flex-col items-start gap-1.5 rounded-sm border p-3 text-start transition-all',
+                        isSelected
+                          ? 'border-primary bg-primary-subtle/30 shadow-xs ring-1 ring-primary'
+                          : 'border-border bg-card hover:border-ink-subtle/40',
+                      )}
+                    >
+                      <div className="flex w-full items-center justify-between gap-2">
+                        <span className="text-label text-foreground font-medium">
+                          {addr.label || addr.customerName}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {addr.isDefault && (
+                            <Badge variant="outline" className="text-caption py-0 text-primary border-primary">
+                              {m.addressBookDefaultBadge}
+                            </Badge>
+                          )}
+                          {isSelected ? (
+                            <Icon name="check-circle" size={18} className="text-primary" />
+                          ) : (
+                            <span className="h-4 w-4 rounded-full border border-border" />
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-caption text-ink-soft">
+                        {addr.shippingAddress}, {addr.area}, {addr.governorate}
+                      </p>
+                      <p dir="ltr" className="text-caption text-ink-subtle">
+                        <bdi>{addr.customerPhone}</bdi>
+                      </p>
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={handleSelectNew}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-1.5 rounded-sm border border-dashed p-3 text-center transition-all min-h-[90px]',
+                    selectedAddressId === 'new'
+                      ? 'border-primary bg-primary-subtle/30 shadow-xs ring-1 ring-primary'
+                      : 'border-border bg-card hover:border-ink-subtle/40 text-ink-soft',
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 text-label text-foreground">
+                    <Icon name="plus" size={16} />
+                    <span>{m.checkoutUseDifferentAddress}</span>
+                  </div>
+                </button>
+              </div>
             </div>
-            {/* Quick Governorate Buttons (Cairo / Giza) */}
-            <div className="flex items-center gap-2">
-              <span className="text-caption text-ink-subtle">{m.checkoutGovernorate}:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  const val = locale === 'ar' ? 'القاهرة' : 'Cairo';
-                  setDelivery((prev) => ({ ...prev, governorate: val }));
-                  if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
+          )}
+
+          {/* Form fields: shown if selectedAddressId === 'new' or not authenticated or no saved addresses */}
+          {selectedAddressId === 'new' || !isAuthenticated || addresses.length === 0 ? (
+            <>
+              <TextField label={m.checkoutName} autoComplete="name" required {...field('customerName')} />
+              <PhoneField
+                label={m.checkoutPhone}
+                hint={errors.customerPhone ? undefined : m.checkoutPhoneHint}
+                placeholder="01012345678"
+                required
+                {...field('customerPhone')}
+              />
+              <div className="space-y-2">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <TextField label={m.checkoutGovernorate} autoComplete="address-level1" required {...field('governorate')} />
+                  <TextField label={m.checkoutArea} autoComplete="address-level2" required {...field('area')} />
+                </div>
+                {/* Quick Governorate Buttons (Cairo / Giza) */}
+                <div className="flex items-center gap-2">
+                  <span className="text-caption text-ink-subtle">{m.checkoutGovernorate}:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const val = locale === 'ar' ? 'القاهرة' : 'Cairo';
+                      setDelivery((prev) => ({ ...prev, governorate: val }));
+                      if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
+                    }}
+                    className={cn(
+                      'rounded-pill border px-2.5 py-1 text-caption transition-colors',
+                      delivery.governorate.toLowerCase() === 'cairo' || delivery.governorate === 'القاهرة'
+                        ? 'border-primary bg-primary-subtle text-primary'
+                        : 'border-border bg-card text-ink-soft hover:bg-sand',
+                    )}
+                  >
+                    <bdi>{locale === 'ar' ? 'القاهرة' : 'Cairo'}</bdi>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const val = locale === 'ar' ? 'الجيزة' : 'Giza';
+                      setDelivery((prev) => ({ ...prev, governorate: val }));
+                      if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
+                    }}
+                    className={cn(
+                      'rounded-pill border px-2.5 py-1 text-caption transition-colors',
+                      delivery.governorate.toLowerCase() === 'giza' || delivery.governorate === 'الجيزة'
+                        ? 'border-primary bg-primary-subtle text-primary'
+                        : 'border-border bg-card text-ink-soft hover:bg-sand',
+                    )}
+                  >
+                    <bdi>{locale === 'ar' ? 'الجيزة' : 'Giza'}</bdi>
+                  </button>
+                </div>
+              </div>
+
+              <TextField
+                label={m.checkoutAddress}
+                hint={errors.shippingAddress ? undefined : m.checkoutAddressHint}
+                autoComplete="street-address"
+                required
+                {...field('shippingAddress')}
+              />
+
+              {/* Mandatory Map Location Picker with Customer Confirmation */}
+              <DeliveryLocationPicker
+                value={location}
+                onChange={(next) => {
+                  setLocation(next);
+                  if (next?.confirmed) setLocationError(null);
                 }}
-                className={cn(
-                  'rounded-pill border px-2.5 py-1 text-caption transition-colors',
-                  delivery.governorate.toLowerCase() === 'cairo' || delivery.governorate === 'القاهرة'
-                    ? 'border-primary bg-primary-subtle text-primary'
-                    : 'border-border bg-card text-ink-soft hover:bg-sand',
-                )}
-              >
-                <bdi>{locale === 'ar' ? 'القاهرة' : 'Cairo'}</bdi>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const val = locale === 'ar' ? 'الجيزة' : 'Giza';
-                  setDelivery((prev) => ({ ...prev, governorate: val }));
-                  if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
-                }}
-                className={cn(
-                  'rounded-pill border px-2.5 py-1 text-caption transition-colors',
-                  delivery.governorate.toLowerCase() === 'giza' || delivery.governorate === 'الجيزة'
-                    ? 'border-primary bg-primary-subtle text-primary'
-                    : 'border-border bg-card text-ink-soft hover:bg-sand',
-                )}
-              >
-                <bdi>{locale === 'ar' ? 'الجيزة' : 'Giza'}</bdi>
-              </button>
+                error={locationError ?? undefined}
+              />
+
+              <TextField label={m.checkoutNotes} optionalLabel={m.checkoutOptional} {...field('notes')} />
+
+              {/* Save to address book option for authenticated customers */}
+              {isAuthenticated && (
+                <div className="space-y-2 rounded-sm border border-border bg-card p-3">
+                  <label className="flex cursor-pointer items-center gap-2 text-body-s">
+                    <input
+                      type="checkbox"
+                      checked={saveToBook}
+                      onChange={(e) => setSaveToBook(e.target.checked)}
+                      className="rounded border-border text-primary focus:ring-primary"
+                    />
+                    <span>{m.checkoutSaveThisAddress}</span>
+                  </label>
+                  {saveToBook && (
+                    <TextField
+                      label={m.addressBookLabelOptional}
+                      placeholder={locale === 'ar' ? 'مثال: البيت، المكتب' : 'e.g. Home, Office'}
+                      value={newAddressLabel}
+                      onChange={(e) => setNewAddressLabel(e.target.value)}
+                    />
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            /* Selected Saved Address Preview Card */
+            <div className="space-y-3 rounded-md border border-primary/40 bg-card p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-heading text-foreground">
+                  {m.checkoutDeliveryTo}: {delivery.customerName}
+                </span>
+                <Badge variant="outline" className="border-primary text-primary text-caption">
+                  <Icon name="check" size={14} className="me-1" />
+                  {m.checkoutDeliverToThisAddress}
+                </Badge>
+              </div>
+              <p className="text-body-s text-ink-soft">
+                {[delivery.shippingAddress, delivery.area, delivery.governorate].filter(Boolean).join('، ')}
+              </p>
+              <p dir="ltr" className="text-body-s text-ink-soft text-start">
+                <bdi>{delivery.customerPhone}</bdi>
+              </p>
+              {location && (
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-caption text-ink-soft">
+                  <Icon name="pin" size={16} className="text-primary" />
+                  <span>{m.orderConfirmedLocation}:</span>
+                  <bdi>
+                    {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                  </bdi>
+                  <Badge variant="success" className="px-1.5 py-0 text-caption">
+                    {m.checkoutMapConfirmed}
+                  </Badge>
+                </div>
+              )}
+              <TextField label={m.checkoutNotes} optionalLabel={m.checkoutOptional} {...field('notes')} />
             </div>
-          </div>
-
-          <TextField
-            label={m.checkoutAddress}
-            hint={errors.shippingAddress ? undefined : m.checkoutAddressHint}
-            autoComplete="street-address"
-            required
-            {...field('shippingAddress')}
-          />
-
-          {/* Mandatory Map Location Picker with Customer Confirmation */}
-          <DeliveryLocationPicker
-            value={location}
-            onChange={(next) => {
-              setLocation(next);
-              if (next?.confirmed) setLocationError(null);
-            }}
-            error={locationError ?? undefined}
-          />
-
-          <TextField label={m.checkoutNotes} optionalLabel={m.checkoutOptional} {...field('notes')} />
+          )}
 
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between">
             <Link href={routes.cart} className={buttonVariants({ variant: 'ghost' })}>
