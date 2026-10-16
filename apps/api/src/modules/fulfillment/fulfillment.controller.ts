@@ -1,5 +1,7 @@
 import { Controller, Post, Body, Get, Param, Patch, Delete, UseGuards, Query } from '@nestjs/common';
 import { FulfillmentService } from './services/fulfillment.service';
+import { RoutePlanningService } from './services/route-planning.service';
+import { PlanRouteDto } from './dto/routing.dto';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto, AssignLocationOperatorDto, ReceiveAllocatedGoodsDto, HubShipmentQueryDto, HubRunQueryDto } from './dto/fulfillment.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -12,7 +14,10 @@ import { PageQueryDto, page } from '../../platform/api/paging.dto';
 @Controller('fulfillment')
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 export class FulfillmentController {
-  constructor(private readonly fulfillmentService: FulfillmentService) {}
+  constructor(
+    private readonly fulfillmentService: FulfillmentService,
+    private readonly routePlanningService: RoutePlanningService,
+  ) {}
 
   @Post('locations')
   @Roles('ADMIN')
@@ -223,5 +228,19 @@ export class FulfillmentController {
   @Roles('ADMIN', 'HUB_OPERATOR')
   async adjustInventory(@Body() dto: AdjustInventoryDto, @CurrentUser() actor: FulfillmentActor) {
     return this.fulfillmentService.adjustInventory(dto, actor);
+  }
+
+  // --- Route Planning (Maps Phase 3.1) ---
+
+  @Post('routes/plan')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
+  async planRoute(@Body() dto: PlanRouteDto) {
+    return this.routePlanningService.planRoute(dto);
+  }
+
+  @Get('delivery-batches/:id/route')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
+  async getBatchRoute(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.routePlanningService.planBatchRoute(id, actor);
   }
 }
