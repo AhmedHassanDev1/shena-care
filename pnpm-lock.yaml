@@ -4,6 +4,8 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+packageExtensionsChecksum: sha256-inRtSctPeDqFOdKLfc71HzMSfx9itowCU9HghCKzHtA=
+
 importers:
 
   .:
@@ -62,6 +64,9 @@ importers:
       class-validator:
         specifier: ^0.14.0
         version: 0.14.4
+      cloudinary:
+        specifier: ^2.11.0
+        version: 2.11.0
       express-rate-limit:
         specifier: ^8.7.0
         version: 8.7.1(express@5.2.1(supports-color@8.1.1))(supports-color@8.1.1)
@@ -219,7 +224,7 @@ importers:
         version: 0.453.0(react@18.3.1)
       next:
         specifier: ^14.0.4
-        version: 14.2.35(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 14.2.35(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -233,14 +238,17 @@ importers:
       '@tanstack/react-query-devtools':
         specifier: ^5.59.16
         version: 5.104.1(@tanstack/react-query@5.104.1(react@18.3.1))(@types/react@18.3.31)(csstype@3.2.3)(react@18.3.1)
+      '@types/jest':
+        specifier: ^29.5.11
+        version: 29.5.14
       '@types/node':
         specifier: ^20.10.6
         version: 20.19.43
       '@types/react':
-        specifier: ^18.2.46
+        specifier: ^18.3.31
         version: 18.3.31
       '@types/react-dom':
-        specifier: ^18.2.18
+        specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.31)
       autoprefixer:
         specifier: ^10.4.20
@@ -251,12 +259,18 @@ importers:
       eslint-config-next:
         specifier: ^14.0.4
         version: 14.2.35(eslint@8.57.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.7.3)
+      jest:
+        specifier: ^29.7.0
+        version: 29.7.0(@types/node@20.19.43)(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.19.43)(typescript@5.7.3))
       postcss:
         specifier: ^8.4.47
         version: 8.5.29
       tailwindcss:
         specifier: ^3.4.14
         version: 3.4.19
+      ts-jest:
+        specifier: ^29.1.1
+        version: 29.4.14(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@29.7.0(supports-color@8.1.1))(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(jest-util@29.7.0)(jest@29.7.0(@types/node@20.19.43)(supports-color@8.1.1)(ts-node@10.9.2(@types/node@20.19.43)(typescript@5.7.3)))(typescript@5.7.3)
       typescript:
         specifier: ^5.3.3
         version: 5.7.3
@@ -2414,6 +2428,10 @@ packages:
     resolution: {integrity: sha512-JQHZ2QMW6l3aH/j6xCqQThY/9OH4D/9ls34cgkUBiEeocRTU04tHfKPBsUK1PqZCUQM7GiA0IIXJSuXHI64Kbg==}
     engines: {node: '>=0.8'}
 
+  cloudinary@2.11.0:
+    resolution: {integrity: sha512-o2pAkDDqrzPFE/mn9GCfFjBIGQmPs++Ts6rtkFl4vY528DNHiMovKWjH16HBjeGa9iwI7eAad24aWN2emT0aww==}
+    engines: {node: '>=9'}
+
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
@@ -4187,6 +4205,7 @@ packages:
     peerDependencies:
       '@opentelemetry/api': ^1.1.0
       '@playwright/test': ^1.41.2
+      '@types/react': '*'
       react: ^18.2.0
       react-dom: ^18.2.0
       sass: ^1.3.0
@@ -4194,6 +4213,8 @@ packages:
       '@opentelemetry/api':
         optional: true
       '@playwright/test':
+        optional: true
+      '@types/react':
         optional: true
       sass:
         optional: true
@@ -7992,6 +8013,10 @@ snapshots:
 
   clone@1.0.4: {}
 
+  cloudinary@2.11.0:
+    dependencies:
+      lodash: 4.18.1
+
   clsx@2.1.1: {}
 
   cn@0.2.6: {}
@@ -10068,7 +10093,7 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  next@14.2.35(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  next@14.2.35(@babel/core@7.29.7(supports-color@8.1.1))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@next/env': 14.2.35
       '@swc/helpers': 0.5.5
@@ -10089,6 +10114,7 @@ snapshots:
       '@next/swc-win32-arm64-msvc': 14.2.33
       '@next/swc-win32-ia32-msvc': 14.2.33
       '@next/swc-win32-x64-msvc': 14.2.33
+      '@types/react': 18.3.31
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros

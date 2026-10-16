@@ -32,14 +32,17 @@
   },
   "devDependencies": {
     "@tanstack/react-query-devtools": "^5.59.16",
+    "@types/jest": "^29.5.11",
     "@types/node": "^20.10.6",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.56.0",
     "eslint-config-next": "^14.0.4",
+    "jest": "^29.7.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
+    "ts-jest": "^29.1.1",
     "typescript": "^5.3.3"
   }
 }

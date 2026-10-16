@@ -1,3 +1,15 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# apps/web (Next 14, React 18 types) and apps/business (Next 16, React 19 types) share this workspace.
+# Next 14's .d.ts files import React without declaring @types/react, so under pnpm they resolved the
+# hoisted React 19 types and `next build` failed in apps/web. Declaring the optional peer makes each
+# Next resolve the React types of the app that depends on it.
+packageExtensions:
+  next@14:
+    peerDependencies:
+      '@types/react': '*'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
