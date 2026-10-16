@@ -3,6 +3,8 @@
 **Candidate:** `integration/task-00-commerce` @ `dc621cc` (worktree `shena-care-wt/integration-task00`)
 **Result: PASS with 1 High finding.** The full chain Storefront → Admin → Supplier → Hub → Driver → COD → Customer was completed in a browser on production builds. The backend does not enforce driver custody before dispatch (F1).
 
+**Update — F1 fixed in `5016690`:** dispatch now requires an assigned driver and that driver's `HANDOFF_SCANNED` for every stop (409 `CUSTODY_SCAN_REQUIRED`), and delivery requires custody on a dispatched run. Dispatch also records `OUT_FOR_DELIVERY` (F2). The full API suite is 75/75 suites, 526/526 tests on a disposable DB. The browser re-check of steps 6–8 has not been re-run.
+
 ## Environment
 
 - Disposable PostgreSQL 16 cluster (session scratchpad, `127.0.0.1:55462`), DB `shenacare_acceptance_test`: `migrate deploy` (43) + `npm run seed` + `staff:provision` (ADMIN, SUPPLIER→official-distributor, HUB_OPERATOR→"Maadi Pharmacy Hub", DRIVER). The test password lived only in the scratchpad. Neon and `.env` were never touched.
