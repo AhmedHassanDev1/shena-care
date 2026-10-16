@@ -1,11 +1,13 @@
-import { Body, ConflictException, Controller, Get, Headers, Param, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, ConflictException, Controller, Get, Headers, Param, Post, Query, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { validateSync } from 'class-validator';
 import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
 import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { PageQueryDto, page } from '../../../platform/api/paging.dto';
 import {
+  CartService,
   GuestOrderAccessHeaderDto, GuestOrderLookupParamsDto, OrderLookupParamsDto, OrderingService, customerMayCancel,
+  ReorderOrderDto,
 } from '../../../modules/ordering/public';
 import { FulfillmentService } from '../../../modules/fulfillment/public';
 import { SupportService } from '../../../modules/operations/services/support.service';
@@ -44,12 +46,48 @@ export class CustomerOrderActionsController {
     private readonly fulfillment: FulfillmentService,
     private readonly support: SupportService,
     private readonly cancellation: OrderCancellationService,
+    private readonly cart: CartService,
   ) {}
 
   @Get('orders')
   @UseGuards(AuthGuard)
   myOrders(@CurrentUser() user: { id: string }, @Query() query: PageQueryDto) {
     return this.ordering.listOrdersForCustomer(user.id, page(query));
+  }
+
+  @Post('orders/:idOrOrderNumber/reorder')
+  @UseGuards(AuthGuard)
+  async reorderOwn(
+    @CurrentUser() user: { id: string },
+    @Param() params: OrderLookupParamsDto,
+    @Body() dto: ReorderOrderDto,
+  ) {
+    return this.cart.reorderFromOrder(
+      { customerId: user.id },
+      { customerId: user.id, idOrOrderNumber: params.idOrOrderNumber },
+      { skuIds: dto?.skuIds },
+    );
+  }
+
+  @Post('guest/orders/:orderNumber/reorder')
+  async reorderGuest(
+    @Param() params: GuestOrderLookupParamsDto,
+    @Headers('x-order-access-token') orderToken: string | undefined,
+    @Headers('x-cart-token') cartToken: string | undefined,
+    @Body() dto: ReorderOrderDto,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    const owner = guestOwner(orderToken) as { guestToken: string };
+    const cartOwner = cartToken ? { guestToken: cartToken } : null;
+    const result = await this.cart.reorderFromOrder(
+      cartOwner,
+      { guestToken: owner.guestToken, idOrOrderNumber: params.orderNumber },
+      { skuIds: dto?.skuIds },
+    );
+    if (result.cart.guestCartToken) {
+      res.setHeader('x-cart-token', result.cart.guestCartToken);
+    }
+    return result;
   }
 
   @Post('orders/:idOrOrderNumber/customer-cancel')

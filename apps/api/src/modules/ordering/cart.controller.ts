@@ -13,6 +13,7 @@ import {
 import { CartOwner, CartService } from './services/cart.service';
 import {
   AddToCartDto,
+  CartReorderDto,
   ClearCartDto,
   RemoveFromCartDto,
   UpdateCartItemQuantityDto,
@@ -60,6 +61,18 @@ export class CartController {
   async add(@Req() req: any, @Body() dto: AddToCartDto, @Res({ passthrough: true }) res: any) {
     const result = await this.cartService.addToCart(this.resolveOwner(req), dto);
     if (result.guestCartToken) res.setHeader(CART_TOKEN_HEADER, result.guestCartToken);
+    return result;
+  }
+
+  @Post('reorder')
+  async reorder(@Req() req: any, @Body() dto: CartReorderDto, @Res({ passthrough: true }) res: any) {
+    const cartOwner = this.resolveOwner(req);
+    const guestOrderToken = dto.orderAccessToken || req.headers['x-order-access-token'];
+    const orderRef = req.user?.id
+      ? { customerId: req.user.id, idOrOrderNumber: dto.orderIdOrNumber }
+      : { guestToken: guestOrderToken, idOrOrderNumber: dto.orderIdOrNumber };
+    const result = await this.cartService.reorderFromOrder(cartOwner, orderRef, { skuIds: dto.skuIds });
+    if (result.cart.guestCartToken) res.setHeader(CART_TOKEN_HEADER, result.cart.guestCartToken);
     return result;
   }
 

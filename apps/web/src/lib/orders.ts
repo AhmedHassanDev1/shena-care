@@ -1,5 +1,6 @@
 import { apiClient, type RequestOptions } from './api-client';
 import { auth } from './auth';
+import { cart, type ReorderResult, type ReorderItemResult } from './cart';
 
 export interface CheckoutData {
   customerName: string;
@@ -181,7 +182,15 @@ export const orders = {
     const [path, options] = orderPath(orderNumber, `/items/${encodeURIComponent(itemId)}/returns`);
     return apiClient.post<{ id: string; status: string }>(path, body, options);
   },
+
+  /** Buy Again / Reorder: adds eligible items from a previous order into the cart at current prices. */
+  async reorder(orderNumber: string, skuIds?: string[]): Promise<ReorderResult> {
+    const access = recallOrderAccess(orderNumber);
+    return cart.reorder(orderNumber, skuIds, access);
+  },
 };
+
+export type { ReorderResult, ReorderItemResult } from './cart';
 
 export type ProblemReason =
   | 'WRONG_ITEM' | 'MISSING_ITEM' | 'DAMAGED_OR_LEAKING' | 'DEFECT_OR_QUALITY_CONCERN'

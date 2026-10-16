@@ -156,12 +156,15 @@ function Tracking({ order, placed }: { order: OrderTracking; placed: boolean }) 
                   <bdi className={cn('shrink-0 tabular-nums text-foreground', gone && 'text-ink-subtle line-through')}>{money(item.lineTotal)}</bdi>
                 </div>
                 {gone ? null : (
-                  <ReportProblem
-                    orderNumber={order.orderNumber}
-                    itemId={item.id}
-                    maxQuantity={item.quantity}
-                    onSent={() => setProblemSent(true)}
-                  />
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <BuyAgainItemButton orderNumber={order.orderNumber} skuId={item.skuId} />
+                    <ReportProblem
+                      orderNumber={order.orderNumber}
+                      itemId={item.id}
+                      maxQuantity={item.quantity}
+                      onSent={() => setProblemSent(true)}
+                    />
+                  </div>
                 )}
               </li>
             );
@@ -397,3 +400,59 @@ function TrackingSkeleton({ label }: { label: string }) {
     </div>
   );
 }
+
+function BuyAgainItemButton({ orderNumber, skuId }: { orderNumber: string; skuId: string }) {
+  const m = useMessages();
+  const queryClient = useQueryClient();
+  const [state, setState] = useState<'idle' | 'pending' | 'success' | 'unavailable' | 'error'>('idle');
+
+  const handleReorder = async () => {
+    setState('pending');
+    try {
+      const res = await orders.reorder(orderNumber, [skuId]);
+      await queryClient.invalidateQueries({ queryKey: ['cart'] });
+      if (res.summary.totalAdded > 0) {
+        setState('success');
+      } else {
+        setState('unavailable');
+      }
+    } catch {
+      setState('error');
+    }
+  };
+
+  if (state === 'success') {
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant="success">
+          <Icon name="check" size={14} />
+          <span>{m.buyAgainItemAdded}</span>
+        </Badge>
+        <Link href={routes.cart} className={buttonVariants({ size: 'sm', variant: 'ghost' })}>
+          {m.buyAgainViewCart}
+        </Link>
+      </div>
+    );
+  }
+
+  if (state === 'unavailable') {
+    return (
+      <Badge variant="neutral">
+        <span>{m.buyAgainItemUnavailable}</span>
+      </Badge>
+    );
+  }
+
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      loading={state === 'pending'}
+      onClick={handleReorder}
+    >
+      <Icon name="refresh" size={14} />
+      <span>{m.buyAgainItem}</span>
+    </Button>
+  );
+}
+

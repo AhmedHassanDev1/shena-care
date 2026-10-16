@@ -48,7 +48,7 @@ export interface Cart {
  * Cart exactly as `GET/POST /ordering/cart*` returns it (apps/api cart.service.ts `CartDetail`).
  * Lines carry only the SKU id and money; product names and brands come from the catalog.
  */
-interface BackendCartItem {
+export interface BackendCartItem {
   id: string;
   skuId: string;
   quantity: number;
@@ -60,13 +60,46 @@ interface BackendCartItem {
   lineTotal: number;
 }
 
-interface BackendCart {
+export interface BackendCart {
   id: string | null;
   ownerType: 'customer' | 'guest';
   revision: number;
   items: BackendCartItem[];
   totalAmount: number;
   guestCartToken?: string;
+}
+
+export interface ReorderItemResult {
+  skuId: string;
+  productName: string | null;
+  variantName: string | null;
+  requestedQuantity: number;
+  addedQuantity: number;
+  price: number | null;
+  status: 'added' | 'partially_added' | 'unavailable' | 'quantity_limit_reached' | 'cart_full';
+  reason?: string;
+}
+
+export interface ReorderResult {
+  cart: Cart;
+  added: ReorderItemResult[];
+  skipped: ReorderItemResult[];
+  summary: {
+    totalRequested: number;
+    totalAdded: number;
+    totalSkipped: number;
+  };
+}
+
+export interface BackendReorderResult {
+  cart: BackendCart;
+  added: ReorderItemResult[];
+  skipped: ReorderItemResult[];
+  summary: {
+    totalRequested: number;
+    totalAdded: number;
+    totalSkipped: number;
+  };
 }
 
 const CART_TOKEN_KEY = 'guestCartToken';
@@ -169,6 +202,8 @@ async function project(raw: BackendCart): Promise<Cart> {
   return cart;
 }
 
+export { project as projectCart };
+
 export const cart = {
   async getCart(): Promise<Cart> {
     return project(await apiClient.get<BackendCart>('/ordering/cart', getCartOptions()));
@@ -176,6 +211,25 @@ export const cart = {
 
   async addToCart(skuId: string, quantity: number = 1): Promise<Cart> {
     return project(await apiClient.post<BackendCart>('/ordering/cart/add', { skuId, quantity }, getCartOptions()));
+  },
+
+  async reorder(orderIdOrNumber: string, skuIds?: string[], guestOrderToken?: string): Promise<ReorderResult> {
+    const guestAccessToken =
+      guestOrderToken ??
+      (typeof window !== 'undefined' ? localStorage.getItem('orderAccess:' + orderIdOrNumber) ?? undefined : undefined);
+
+    const response = await apiClient.post<BackendReorderResult>(
+      '/ordering/cart/reorder',
+      { orderIdOrNumber, skuIds, orderAccessToken: guestAccessToken },
+      getCartOptions(),
+    );
+    const projectedCart = await project(response.cart);
+    return {
+      cart: projectedCart,
+      added: response.added,
+      skipped: response.skipped,
+      summary: response.summary,
+    };
   },
 
   async updateQuantity(skuId: string, quantity: number): Promise<Cart> {
