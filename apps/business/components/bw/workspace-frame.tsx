@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import {
-  Banknote, ClipboardCheck, FileText, Gauge, History, LogOut, PackageOpen, Printer, Route, ScanLine,
-  ShoppingBag, Store, Truck, UserRound, Wallet,
+  BarChart3, FileText, Heart, HelpCircle, History,
+  Home, LogOut, PackageOpen, Printer, Route, ScanLine, Settings,
+  ShoppingBag, Store, Truck, UserRound, Users, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -22,10 +23,15 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   admin: {
     title: 'الإدارة',
     items: [
-      { id: 'attention', label: 'محتاج تدخل', icon: Gauge, href: '/admin' },
+      { id: 'attention', label: 'نظرة عامة', icon: Home, href: '/admin' },
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
-      { id: 'sourcing', label: 'الموردين وأوامر الشراء', icon: Store, href: '/admin/sourcing' },
-      { id: 'cod', label: 'التحصيل والتسويات', icon: Banknote, href: '/admin/cash' },
+      { id: 'sourcing', label: 'الموردين والشراء', icon: Store, href: '/admin/sourcing' },
+      { id: 'hub', label: 'المخزن والتجهيز', icon: PackageOpen, href: '/hub' },
+      { id: 'dispatch', label: 'التوصيل والمندوبين', icon: Truck, href: '/hub/dispatch' },
+      { id: 'cod', label: 'المالية والتحصيل', icon: Wallet, href: '/admin/cash' },
+      { id: 'reports', label: 'التقارير', icon: BarChart3, href: '/admin' },
+      { id: 'team', label: 'إدارة الفريق', icon: Users, href: '/admin' },
+      { id: 'settings', label: 'الإعدادات', icon: Settings, href: '/admin' },
     ],
   },
   supplier: {
@@ -57,10 +63,19 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
 
 function Wordmark({ onKohl }: { onKohl?: boolean }) {
   return (
-    <span className={cn('font-bw-display text-bw-heading font-semibold', onKohl ? 'text-bw-on-kohl' : 'text-bw-ink')}>
-      شينا كير
-      <span className={cn('ms-2 text-bw-small font-normal', onKohl ? 'text-bw-on-kohl-soft' : 'text-bw-ink-soft')}>أعمال</span>
-    </span>
+    <div className="flex items-center gap-2.5">
+      <div className="flex size-8 items-center justify-center rounded-lg bg-[#ff783d]/15 text-[#ff783d] ring-1 ring-[#ff783d]/30 shadow-sm">
+        <Heart className="size-4 fill-[#ff783d] text-[#ff783d]" />
+      </div>
+      <div className="flex flex-col">
+        <span className={cn('font-bw-display text-base font-bold tracking-tight', onKohl ? 'text-bw-on-kohl' : 'text-bw-ink')}>
+          شينا
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-bw-ink-subtle">
+          SHINACARE
+        </span>
+      </div>
+    </div>
   )
 }
 
@@ -176,22 +191,35 @@ export function WorkspaceFrame({
               href={item.href}
               aria-current={item.id === active ? 'page' : undefined}
               className={cn(
-                'flex h-bw-control shrink-0 items-center gap-3 rounded-bw-field border border-transparent px-3 text-bw-small',
-                item.id === active ? 'border-bw-action/40 bg-bw-action-soft font-semibold text-bw-action-ink' : 'text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink',
+                'flex h-bw-control shrink-0 items-center gap-3 rounded-bw-field border px-3 text-bw-small transition-all',
+                item.id === active
+                  ? 'border-s-2 border-bw-action border-y-transparent border-e-transparent bg-[#ff783d]/15 font-semibold text-[#ff783d] shadow-sm'
+                  : 'border-transparent text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink',
               )}
             >
-              <item.icon className="size-4" aria-hidden />
+              <item.icon className={cn('size-4', item.id === active ? 'text-[#ff783d]' : 'text-bw-ink-subtle')} aria-hidden />
               <span className="flex-1">{item.label}</span>
               <Count value={counts?.[item.id]} />
             </Link>
           ))}
         </nav>
-        <div className="flex items-center justify-between gap-2 border-t border-bw-line px-4 py-4 text-bw-small text-bw-ink-soft">
-          <span className="flex items-center gap-2">
-            <ClipboardCheck className="size-4" aria-hidden />
-            {operator}
-          </span>
-          {logout}
+        <div className="mt-auto border-t border-bw-line p-3 space-y-2">
+          <button type="button" className="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-bw-small text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink transition-colors">
+            <HelpCircle className="size-4 text-bw-ink-subtle" aria-hidden />
+            <span>مركز المساعدة</span>
+          </button>
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-bw-sunken/60 p-2.5 text-bw-small text-bw-ink-soft">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#ff783d]/20 text-[11px] font-bold text-[#ff783d]">
+                {operator.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-bw-ink truncate text-[12px]">{operator}</p>
+                <p className="text-[10px] text-bw-ink-subtle truncate">مدير النظام</p>
+              </div>
+            </div>
+            {logout}
+          </div>
         </div>
       </aside>
       <main className="min-w-0 flex-1">{children}</main>
