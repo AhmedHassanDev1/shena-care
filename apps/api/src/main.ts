@@ -31,7 +31,9 @@ async function bootstrap() {
     }),
   );
 
-  const allowedOrigins = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : ['http://localhost:3000'];
+  const allowedOrigins = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',')
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'];
   
   app.enableCors({
     origin: (origin, callback) => {

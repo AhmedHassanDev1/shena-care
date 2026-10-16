@@ -12,7 +12,6 @@ Next/React/Tailwind stack; do not apply storefront tokens or copy components int
 Trace the route in `src/app/`, feature composition/hooks in `src/features/`, and API
 consumer in `src/lib/api-client.ts` and the domain helpers that use it. Reuse typed backend contracts,
 query keys and shared components rather than reimplementing pricing or sellability.
-Apply the installed `vercel-react-best-practices` skill where relevant.
 
 Preserve loading, empty/error, unauthorized, unavailable and price-change states.
 Keep Arabic-first RTL, logical CSS, English behavior, isolated LTR phone/OTP fields
