@@ -3,8 +3,9 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Role, Prisma } from '@prisma/client';
 import {
   ROUTING_PROVIDER,
   RoutingProvider,
@@ -14,7 +15,10 @@ import {
   ROUTE_OPTIMIZATION_PROVIDER,
   RouteOptimizationProvider,
 } from '../../src/modules/fulfillment/routing/route-optimization.provider';
-import { DispatchPlanningService } from '../../src/modules/fulfillment/services/dispatch-planning.service';
+import {
+  DispatchPlanningService,
+  computeDispatchPlanFingerprint,
+} from '../../src/modules/fulfillment/services/dispatch-planning.service';
 import { getDeliveryHubCoordinates } from '../../src/modules/fulfillment/services/hub-location';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { OrderingService } from '../../src/modules/ordering/public';
@@ -85,6 +89,14 @@ describe('ShinaCare Maps Phase 3.3A — Adaptive Multi-Driver Dispatch Planner',
           name: 'Central Giza Hub',
           isActive: true,
         }),
+        findFirst: jest.fn().mockResolvedValue({
+          id: validHubId,
+          name: 'Central Giza Hub',
+          isActive: true,
+        }),
+      },
+      fulfillmentLocationOperator: {
+        findUnique: jest.fn(),
       },
       shipment: {
         findMany: jest.fn(),
@@ -100,6 +112,15 @@ describe('ShinaCare Maps Phase 3.3A — Adaptive Multi-Driver Dispatch Planner',
         updateMany: jest.fn(),
         deleteMany: jest.fn(),
       },
+      shipmentEvent: {
+        create: jest.fn(),
+      },
+      $transaction: jest.fn().mockImplementation(async (cb) => {
+        if (typeof cb === 'function') {
+          return cb(mockPrisma);
+        }
+        return cb;
+      }),
     };
 
     mockOrderingService = {
@@ -590,6 +611,593 @@ describe('ShinaCare Maps Phase 3.3A — Adaptive Multi-Driver Dispatch Planner',
       expect(mockPrisma.deliveryStop.create).not.toHaveBeenCalled();
       expect(mockPrisma.deliveryStop.updateMany).not.toHaveBeenCalled();
       expect(mockPrisma.deliveryStop.deleteMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Phase 3.3B — Dispatch Plan Approval & Persistence', () => {
+    const validDriverId1 = '11111111-1111-1111-1111-111111111111';
+    const validDriverId2 = '11111111-1111-1111-1111-111111111112';
+    const validShipmentId1 = '22222222-2222-2222-2222-222222222221';
+    const validShipmentId2 = '22222222-2222-2222-2222-222222222222';
+    const validShipmentId3 = '22222222-2222-2222-2222-222222222223';
+    const fixedUpdatedAt = new Date('2026-10-16T10:00:00.000Z');
+
+    const makeEligibleShipments = () => [
+      {
+        id: validShipmentId1,
+        locationId: validHubId,
+        status: 'packed',
+        updatedAt: fixedUpdatedAt,
+        deliveryStops: [],
+      },
+      {
+        id: validShipmentId2,
+        locationId: validHubId,
+        status: 'packed',
+        updatedAt: fixedUpdatedAt,
+        deliveryStops: [],
+      },
+    ];
+
+    describe('Approval Authorization & Permissions', () => {
+      it('rejects approval when actor is a DRIVER with ForbiddenException', async () => {
+        await expect(
+          service.approveDispatchPlan(
+            {
+              planFingerprint: 'fake-fingerprint',
+              hubId: validHubId,
+              trips: [
+                {
+                  driverId: validDriverId1,
+                  stops: [{ shipmentId: validShipmentId1, sequence: 1 }],
+                },
+              ],
+            },
+            mockDriverActor,
+          ),
+        ).rejects.toThrow(ForbiddenException);
+      });
+
+      it('rejects approval when hub operator is not assigned to the hub location', async () => {
+        mockPrisma.fulfillmentLocationOperator.findUnique.mockResolvedValue(null);
+
+        await expect(
+          service.approveDispatchPlan(
+            {
+              planFingerprint: 'fake-fingerprint',
+              hubId: validHubId,
+              trips: [
+                {
+                  driverId: validDriverId1,
+                  stops: [{ shipmentId: validShipmentId1, sequence: 1 }],
+                },
+              ],
+            },
+            mockHubOperatorActor,
+          ),
+        ).rejects.toThrow(ForbiddenException);
+      });
+
+      it('allows assigned hub operator to approve plan', async () => {
+        mockPrisma.fulfillmentLocationOperator.findUnique.mockResolvedValue({
+          locationId: validHubId,
+          operatorId: mockHubOperatorActor.id,
+        });
+        mockPrisma.customer.findMany.mockResolvedValue([
+          { id: validDriverId1, name: 'Driver Ahmed', roles: [Role.DRIVER] },
+        ]);
+        const shipments = makeEligibleShipments();
+        mockPrisma.shipment.findMany.mockResolvedValue(shipments);
+
+        const trips = [
+          {
+            driverId: validDriverId1,
+            tripSequenceForDriver: 1,
+            stops: [
+              { shipmentId: validShipmentId1, sequence: 1 },
+              { shipmentId: validShipmentId2, sequence: 2 },
+            ],
+          },
+        ];
+
+        const fingerprint = computeDispatchPlanFingerprint({
+          hubId: validHubId,
+          trips,
+          shipments,
+        });
+
+        mockPrisma.deliveryBatch.create.mockResolvedValue({ id: 'batch-1' });
+        mockPrisma.deliveryStop.create.mockResolvedValue({ id: 'stop-1' });
+
+        const result = await service.approveDispatchPlan(
+          {
+            planFingerprint: fingerprint,
+            hubId: validHubId,
+            trips,
+          },
+          mockHubOperatorActor,
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.idempotentRetry).toBe(false);
+        expect(result.batches).toHaveLength(1);
+      });
+    });
+
+    describe('Driver Eligibility & Account Validation', () => {
+      it('rejects approval when driver account does not exist', async () => {
+        mockPrisma.customer.findMany.mockResolvedValue([]);
+
+        await expect(
+          service.approveDispatchPlan(
+            {
+              planFingerprint: 'dummy-fp',
+              hubId: validHubId,
+              trips: [
+                {
+                  driverId: validDriverId1,
+                  stops: [{ shipmentId: validShipmentId1, sequence: 1 }],
+                },
+              ],
+            },
+            mockAdminActor,
+          ),
+        ).rejects.toThrow(BadRequestException);
+      });
+
+      it('rejects approval when driver account lacks Role.DRIVER', async () => {
+        mockPrisma.customer.findMany.mockResolvedValue([
+          { id: validDriverId1, name: 'Customer Not Driver', roles: [Role.CUSTOMER] },
+        ]);
+
+        await expect(
+          service.approveDispatchPlan(
+            {
+              planFingerprint: 'dummy-fp',
+              hubId: validHubId,
+              trips: [
+                {
+                  driverId: validDriverId1,
+                  stops: [{ shipmentId: validShipmentId1, sequence: 1 }],
+                },
+              ],
+            },
+            mockAdminActor,
+          ),
+        ).rejects.toThrow(BadRequestException);
+      });
+
+      it('rejects approval when duplicate shipments appear across trips', async () => {
+        await expect(
+          service.approveDispatchPlan(
+            {
+              planFingerprint: 'dummy-fp',
+              hubId: validHubId,
+              trips: [
+                {
+                  driverId: validDriverId1,
+                  stops: [{ shipmentId: validShipmentId1, sequence: 1 }],
+                },
+                {
+                  driverId: validDriverId2,
+                  stops: [{ shipmentId: validShipmentId1, sequence: 1 }], // Duplicate shipmentId
+                },
+              ],
+            },
+            mockAdminActor,
+          ),
+        ).rejects.toThrow(BadRequestException);
+      });
+
+      it('rejects approval when stop sequence is non-positive or duplicate', async () => {
+        await expect(
+          service.approveDispatchPlan(
+            {
+              planFingerprint: 'dummy-fp',
+              hubId: validHubId,
+              trips: [
+                {
+                  driverId: validDriverId1,
+                  stops: [
+                    { shipmentId: validShipmentId1, sequence: 1 },
+                    { shipmentId: validShipmentId2, sequence: 1 }, // Duplicate seq
+                  ],
+                },
+              ],
+            },
+            mockAdminActor,
+          ),
+        ).rejects.toThrow(BadRequestException);
+      });
+    });
+
+    describe('Server-Verifiable Fingerprint & Stale Preview Rejection (HTTP 409)', () => {
+      it('rejects approval with ConflictException (409) if stop sequences were modified', async () => {
+        mockPrisma.customer.findMany.mockResolvedValue([
+          { id: validDriverId1, name: 'Driver Ahmed', roles: [Role.DRIVER] },
+        ]);
+        const shipments = makeEligibleShipments();
+        mockPrisma.shipment.findMany.mockResolvedValue(shipments);
+
+        // Preview generated fingerprint with sequence 1, 2
+        const originalTrips = [
+          {
+            driverId: validDriverId1,
+            tripSequenceForDriver: 1,
+            stops: [
+              { shipmentId: validShipmentId1, sequence: 1 },
+              { shipmentId: validShipmentId2, sequence: 2 },
+            ],
+          },
+        ];
+        const fingerprint = computeDispatchPlanFingerprint({
+          hubId: validHubId,
+          trips: originalTrips,
+          shipments,
+        });
+
+        // Request tampered/swapped stop sequences: 2, 1
+        const tamperedTrips = [
+          {
+            driverId: validDriverId1,
+            tripSequenceForDriver: 1,
+            stops: [
+              { shipmentId: validShipmentId1, sequence: 2 },
+              { shipmentId: validShipmentId2, sequence: 1 },
+            ],
+          },
+        ];
+
+        await expect(
+          service.approveDispatchPlan(
+            {
+              planFingerprint: fingerprint,
+              hubId: validHubId,
+              trips: tamperedTrips,
+            },
+            mockAdminActor,
+          ),
+        ).rejects.toThrow(ConflictException);
+      });
+
+      it('rejects approval with ConflictException (409) if shipment updatedAt changed concurrently', async () => {
+        mockPrisma.customer.findMany.mockResolvedValue([
+          { id: validDriverId1, name: 'Driver Ahmed', roles: [Role.DRIVER] },
+        ]);
+
+        const originalShipments = makeEligibleShipments();
+        const trips = [
+          {
+            driverId: validDriverId1,
+            tripSequenceForDriver: 1,
+            stops: [
+              { shipmentId: validShipmentId1, sequence: 1 },
+              { shipmentId: validShipmentId2, sequence: 2 },
+            ],
+          },
+        ];
+
+        const fingerprint = computeDispatchPlanFingerprint({
+          hubId: validHubId,
+          trips,
+          shipments: originalShipments,
+        });
+
+        // Concurrently modified shipment updatedAt
+        const staleShipments = [
+          {
+            id: validShipmentId1,
+            locationId: validHubId,
+            status: 'packed',
+            updatedAt: new Date('2026-10-16T10:05:00.000Z'), // Modified!
+            deliveryStops: [],
+          },
+          {
+            id: validShipmentId2,
+            locationId: validHubId,
+            status: 'packed',
+            updatedAt: fixedUpdatedAt,
+            deliveryStops: [],
+          },
+        ];
+        mockPrisma.shipment.findMany.mockResolvedValue(staleShipments);
+
+        await expect(
+          service.approveDispatchPlan(
+            {
+              planFingerprint: fingerprint,
+              hubId: validHubId,
+              trips,
+            },
+            mockAdminActor,
+          ),
+        ).rejects.toThrow(ConflictException);
+      });
+
+      it('rejects approval with ConflictException (409) if shipment is no longer packed', async () => {
+        mockPrisma.customer.findMany.mockResolvedValue([
+          { id: validDriverId1, name: 'Driver Ahmed', roles: [Role.DRIVER] },
+        ]);
+
+        const shipments = [
+          {
+            id: validShipmentId1,
+            locationId: validHubId,
+            status: 'cancelled', // Not packed!
+            updatedAt: fixedUpdatedAt,
+            deliveryStops: [],
+          },
+        ];
+        mockPrisma.shipment.findMany.mockResolvedValue(shipments);
+
+        const trips = [
+          {
+            driverId: validDriverId1,
+            stops: [{ shipmentId: validShipmentId1, sequence: 1 }],
+          },
+        ];
+
+        await expect(
+          service.approveDispatchPlan(
+            {
+              planFingerprint: 'any-fp',
+              hubId: validHubId,
+              trips,
+            },
+            mockAdminActor,
+          ),
+        ).rejects.toThrow(ConflictException);
+      });
+    });
+
+    describe('Multi-Trip Driver Support & Sequential Batch Creation', () => {
+      it('supports 1 driver assigned to multiple sequential trips creating separate batches', async () => {
+        mockPrisma.customer.findMany.mockResolvedValue([
+          { id: validDriverId1, name: 'Driver Ahmed', roles: [Role.DRIVER] },
+        ]);
+
+        const allShipments = [
+          {
+            id: validShipmentId1,
+            locationId: validHubId,
+            status: 'packed',
+            updatedAt: fixedUpdatedAt,
+            deliveryStops: [],
+          },
+          {
+            id: validShipmentId2,
+            locationId: validHubId,
+            status: 'packed',
+            updatedAt: fixedUpdatedAt,
+            deliveryStops: [],
+          },
+          {
+            id: validShipmentId3,
+            locationId: validHubId,
+            status: 'packed',
+            updatedAt: fixedUpdatedAt,
+            deliveryStops: [],
+          },
+        ];
+        mockPrisma.shipment.findMany.mockResolvedValue(allShipments);
+
+        // Driver has Trip 1 (Stops 1, 2) and Trip 2 (Stop 3)
+        const trips = [
+          {
+            driverId: validDriverId1,
+            tripSequenceForDriver: 1,
+            stops: [
+              { shipmentId: validShipmentId1, sequence: 1 },
+              { shipmentId: validShipmentId2, sequence: 2 },
+            ],
+          },
+          {
+            driverId: validDriverId1,
+            tripSequenceForDriver: 2,
+            stops: [{ shipmentId: validShipmentId3, sequence: 1 }],
+          },
+        ];
+
+        const fingerprint = computeDispatchPlanFingerprint({
+          hubId: validHubId,
+          trips,
+          shipments: allShipments,
+        });
+
+        mockPrisma.deliveryBatch.create
+          .mockResolvedValueOnce({ id: 'batch-trip-1' })
+          .mockResolvedValueOnce({ id: 'batch-trip-2' });
+
+        mockPrisma.deliveryStop.create.mockResolvedValue({ id: 'stop-created' });
+
+        const result = await service.approveDispatchPlan(
+          {
+            planFingerprint: fingerprint,
+            hubId: validHubId,
+            trips,
+          },
+          mockAdminActor,
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.totalBatchesCreated).toBe(2);
+        expect(result.totalStopsCreated).toBe(3);
+        expect(mockPrisma.deliveryBatch.create).toHaveBeenCalledTimes(2);
+        expect(mockPrisma.deliveryStop.create).toHaveBeenCalledTimes(3);
+        expect(mockPrisma.shipmentEvent.create).toHaveBeenCalledTimes(3);
+
+        // Verify both batches are assigned to the same driver
+        expect(result.batches[0].driverId).toBe(validDriverId1);
+        expect(result.batches[0].stopCount).toBe(2);
+        expect(result.batches[1].driverId).toBe(validDriverId1);
+        expect(result.batches[1].stopCount).toBe(1);
+      });
+    });
+
+    describe('Audit Logging & Shipment Status Preservation', () => {
+      it('creates BATCH_ASSIGNED ShipmentEvent for every stop and leaves shipment status untouched', async () => {
+        mockPrisma.customer.findMany.mockResolvedValue([
+          { id: validDriverId1, name: 'Driver Ahmed', roles: [Role.DRIVER] },
+        ]);
+
+        const shipments = [
+          {
+            id: validShipmentId1,
+            locationId: validHubId,
+            status: 'packed',
+            updatedAt: fixedUpdatedAt,
+            deliveryStops: [],
+          },
+        ];
+        mockPrisma.shipment.findMany.mockResolvedValue(shipments);
+
+        const trips = [
+          {
+            driverId: validDriverId1,
+            stops: [{ shipmentId: validShipmentId1, sequence: 1 }],
+          },
+        ];
+
+        const fingerprint = computeDispatchPlanFingerprint({
+          hubId: validHubId,
+          trips,
+          shipments,
+        });
+
+        mockPrisma.deliveryBatch.create.mockResolvedValue({ id: 'batch-10' });
+        mockPrisma.deliveryStop.create.mockResolvedValue({ id: 'stop-10' });
+
+        await service.approveDispatchPlan(
+          {
+            planFingerprint: fingerprint,
+            hubId: validHubId,
+            trips,
+          },
+          mockAdminActor,
+        );
+
+        // Audit event recorded
+        expect(mockPrisma.shipmentEvent.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            shipmentId: validShipmentId1,
+            type: 'BATCH_ASSIGNED',
+            actorId: mockAdminActor.id,
+            notes: expect.stringContaining('Assigned to delivery batch batch-10 at stop sequence 1'),
+          }),
+        });
+
+        // Batch created with 'planning' status
+        expect(mockPrisma.deliveryBatch.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            status: 'planning',
+            driverId: validDriverId1,
+          }),
+        });
+
+        // Shipment status NOT modified
+        expect(mockPrisma.shipment.update).toBeUndefined();
+      });
+    });
+
+    describe('Idempotency & Concurrent Approval Conflicts', () => {
+      it('returns existing batches with idempotentRetry: true when retried with same plan', async () => {
+        mockPrisma.customer.findMany.mockResolvedValue([
+          { id: validDriverId1, name: 'Driver Ahmed', roles: [Role.DRIVER] },
+        ]);
+
+        const existingBatch = {
+          id: 'existing-batch-uuid',
+          status: 'planning',
+          driverId: validDriverId1,
+          locationId: validHubId,
+        };
+
+        const existingShipmentsWithActiveStops = [
+          {
+            id: validShipmentId1,
+            locationId: validHubId,
+            status: 'packed',
+            updatedAt: fixedUpdatedAt,
+            deliveryStops: [
+              {
+                id: 'existing-stop-1',
+                batchId: existingBatch.id,
+                shipmentId: validShipmentId1,
+                sequence: 1,
+                status: 'active',
+                batch: existingBatch,
+              },
+            ],
+          },
+        ];
+        mockPrisma.shipment.findMany.mockResolvedValue(existingShipmentsWithActiveStops);
+
+        const trips = [
+          {
+            driverId: validDriverId1,
+            stops: [{ shipmentId: validShipmentId1, sequence: 1 }],
+          },
+        ];
+
+        const result = await service.approveDispatchPlan(
+          {
+            planFingerprint: 'any-valid-fingerprint',
+            hubId: validHubId,
+            idempotencyKey: 'idemp-key-1',
+            trips,
+          },
+          mockAdminActor,
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.idempotentRetry).toBe(true);
+        expect(result.batches[0].batchId).toBe('existing-batch-uuid');
+        // No new batch or stop creation in DB
+        expect(mockPrisma.deliveryBatch.create).not.toHaveBeenCalled();
+        expect(mockPrisma.deliveryStop.create).not.toHaveBeenCalled();
+      });
+
+      it('rejects with ConflictException (409) when database encounters P2002 unique violation', async () => {
+        mockPrisma.customer.findMany.mockResolvedValue([
+          { id: validDriverId1, name: 'Driver Ahmed', roles: [Role.DRIVER] },
+        ]);
+        const shipments = makeEligibleShipments();
+        mockPrisma.shipment.findMany.mockResolvedValue(shipments);
+
+        const trips = [
+          {
+            driverId: validDriverId1,
+            stops: [
+              { shipmentId: validShipmentId1, sequence: 1 },
+              { shipmentId: validShipmentId2, sequence: 2 },
+            ],
+          },
+        ];
+
+        const fingerprint = computeDispatchPlanFingerprint({
+          hubId: validHubId,
+          trips,
+          shipments,
+        });
+
+        // Simulate concurrent insertion causing Prisma P2002 unique constraint error
+        const p2002Error = new Prisma.PrismaClientKnownRequestError(
+          'Unique constraint failed on the fields: (`batch_id`,`sequence`)',
+          { code: 'P2002', clientVersion: '5.22.0' },
+        );
+        mockPrisma.deliveryBatch.create.mockRejectedValue(p2002Error);
+
+        await expect(
+          service.approveDispatchPlan(
+            {
+              planFingerprint: fingerprint,
+              hubId: validHubId,
+              trips,
+            },
+            mockAdminActor,
+          ),
+        ).rejects.toThrow(ConflictException);
+      });
     });
   });
 });

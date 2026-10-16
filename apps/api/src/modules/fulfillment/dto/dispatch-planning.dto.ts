@@ -181,7 +181,98 @@ export interface DispatchPlanResult {
   hubName: string;
   hubCoordinates: { latitude: number; longitude: number };
   plannedAt: string;
+  /** Cryptographic server-verifiable fingerprint of this preview plan */
+  planFingerprint: string;
   trips: ProposedTrip[];
   unassignedOrders: UnassignedDispatchOrder[];
   diagnostics: DispatchPlanningDiagnostics;
+}
+
+// --- Plan Approval & Persistence (Phase 3.3B) ---
+
+export class ApproveTripStopDto {
+  @IsString()
+  @IsNotEmpty()
+  shipmentId: string;
+
+  @IsInt()
+  @Min(1)
+  sequence: number;
+}
+
+export class ApproveTripDto {
+  @IsOptional()
+  @IsString()
+  tripId?: string;
+
+  @IsOptional()
+  @IsString()
+  clusterId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  driverId: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  tripSequenceForDriver?: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ApproveTripStopDto)
+  stops: ApproveTripStopDto[];
+}
+
+export class ApproveDispatchPlanDto {
+  /** Server-verifiable fingerprint from the preview plan */
+  @IsString()
+  @IsNotEmpty()
+  planFingerprint: string;
+
+  /** Target fulfillment hub location ID */
+  @IsOptional()
+  @IsString()
+  hubId?: string;
+
+  /** Idempotency key to safely retry approval requests without creating duplicate batches */
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
+
+  /** Approved trips and driver assignments to persist */
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ApproveTripDto)
+  trips: ApproveTripDto[];
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export interface ApprovedBatchSummary {
+  batchId: string;
+  driverId: string;
+  driverName: string | null;
+  status: string; // 'planning'
+  stopCount: number;
+  stops: Array<{
+    stopId: string;
+    shipmentId: string;
+    sequence: number;
+  }>;
+}
+
+export interface DispatchPlanApprovalResult {
+  success: boolean;
+  idempotentRetry: boolean;
+  hubId: string;
+  hubName: string;
+  planFingerprint: string;
+  batches: ApprovedBatchSummary[];
+  totalBatchesCreated: number;
+  totalStopsCreated: number;
+  rejectedAssignments: Array<{ shipmentId: string; reason: string }>;
+  approvedAt: string;
 }

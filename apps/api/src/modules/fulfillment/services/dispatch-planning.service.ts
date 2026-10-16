@@ -4,8 +4,10 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import * as crypto from 'crypto';
+import { Role, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { OrderingService } from '../../ordering/public';
 import { assertDeliverablePin } from '../../ordering/services/service-area';
@@ -30,7 +32,54 @@ import {
   UnassignedDispatchOrder,
   DispatchPlanningDiagnostics,
   DriverAvailabilityDto,
+  ApproveDispatchPlanDto,
+  ApproveTripDto,
+  ApprovedBatchSummary,
+  DispatchPlanApprovalResult,
 } from '../dto/dispatch-planning.dto';
+
+const isUniqueViolation = (error: unknown) =>
+  error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+
+export function computeDispatchPlanFingerprint(params: {
+  hubId: string;
+  trips: Array<{
+    driverId: string | null;
+    tripSequenceForDriver?: number;
+    stops: Array<{ shipmentId: string; sequence: number }>;
+  }>;
+  shipments: Array<{ id: string; status: string; updatedAt: Date | string }>;
+}): string {
+  const canonicalTrips = [...params.trips]
+    .map((t) => ({
+      driverId: t.driverId ?? 'unassigned',
+      tripSeq: t.tripSequenceForDriver ?? 1,
+      stops: [...t.stops]
+        .map((s) => ({ shipmentId: s.shipmentId, sequence: s.sequence }))
+        .sort((a, b) => a.sequence - b.sequence),
+    }))
+    .sort((a, b) => {
+      const dCmp = a.driverId.localeCompare(b.driverId);
+      if (dCmp !== 0) return dCmp;
+      return a.tripSeq - b.tripSeq;
+    });
+
+  const canonicalShipments = [...params.shipments]
+    .map((s) => ({
+      id: s.id,
+      status: s.status,
+      updatedAt: s.updatedAt instanceof Date ? s.updatedAt.toISOString() : String(s.updatedAt),
+    }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  const payload = JSON.stringify({
+    hubId: params.hubId,
+    trips: canonicalTrips,
+    shipments: canonicalShipments,
+  });
+
+  return crypto.createHash('sha256').update(payload).digest('hex');
+}
 
 interface CandidateOrder {
   shipmentId: string;
@@ -116,6 +165,7 @@ export class DispatchPlanningService {
       orderId: string;
       locationId: string;
       status: string;
+      updatedAt: Date;
       deliveryStops: Array<{ status: string }>;
     }> = [];
 
@@ -298,6 +348,11 @@ export class DispatchPlanningService {
         hubName,
         hubCoordinates: { latitude: hubLatitude, longitude: hubLongitude },
         plannedAt: new Date().toISOString(),
+        planFingerprint: computeDispatchPlanFingerprint({
+          hubId: hubLocationId || 'hub-main',
+          trips: [],
+          shipments: [],
+        }),
         trips: [],
         unassignedOrders,
         diagnostics: {
@@ -368,11 +423,29 @@ export class DispatchPlanningService {
 
     const assignedOrdersCount = proposedTrips.reduce((sum, t) => sum + t.stops.length, 0);
 
+    const assignedShipmentIds = new Set(
+      proposedTrips.flatMap((t) => t.stops.map((s) => s.shipmentId)),
+    );
+    const assignedShipmentStates = rawShipments
+      .filter((s) => assignedShipmentIds.has(s.id))
+      .map((s) => ({
+        id: s.id,
+        status: s.status,
+        updatedAt: s.updatedAt,
+      }));
+
+    const planFingerprint = computeDispatchPlanFingerprint({
+      hubId: hubLocationId || 'hub-main',
+      trips: proposedTrips,
+      shipments: assignedShipmentStates,
+    });
+
     return {
       hubId: hubLocationId || 'hub-main',
       hubName,
       hubCoordinates: { latitude: hubLatitude, longitude: hubLongitude },
       plannedAt: new Date().toISOString(),
+      planFingerprint,
       trips: proposedTrips,
       unassignedOrders,
       diagnostics: {
@@ -973,5 +1046,391 @@ export class DispatchPlanningService {
 
   private isUuid(value: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  /**
+   * Authoritatively approves and persists a dispatch plan preview into real DeliveryBatch
+   * and DeliveryStop records.
+   *
+   * Enforces:
+   * 1. Dispatch operator authorization (Admin or assigned Hub Operator)
+   * 2. Server-verifiable cryptographic plan fingerprint (stale preview rejection with HTTP 409)
+   * 3. Driver eligibility and active DRIVER role verification
+   * 4. Multi-trip driver support and atomic batch/stop creation
+   * 5. Idempotent retries without duplicate batch creation
+   * 6. Audit logging via ShipmentEvent
+   * 7. Preservation of shipment 'packed' status (never falsely marked as dispatched)
+   */
+  async approveDispatchPlan(
+    dto: ApproveDispatchPlanDto,
+    actor: FulfillmentActor,
+  ): Promise<DispatchPlanApprovalResult> {
+    this.assertDispatchPermission(actor);
+
+    if (!dto.planFingerprint || typeof dto.planFingerprint !== 'string') {
+      throw new BadRequestException('planFingerprint is required');
+    }
+
+    if (!dto.trips || !Array.isArray(dto.trips) || dto.trips.length === 0) {
+      throw new BadRequestException('Dispatch plan must contain at least one trip');
+    }
+
+    const defaultHub = getDeliveryHubCoordinates();
+    let hubLocationId: string | null = null;
+    let hubName = defaultHub.name;
+    const targetHubId = dto.hubId || 'hub-main';
+
+    if (dto.hubId) {
+      if (!this.isUuid(dto.hubId)) {
+        throw new BadRequestException('Invalid hub ID');
+      }
+      const location = await this.prisma.fulfillmentLocation.findUnique({
+        where: { id: dto.hubId },
+      });
+      if (!location) {
+        throw new NotFoundException(`Fulfillment location '${dto.hubId}' not found`);
+      }
+      hubLocationId = location.id;
+      hubName = location.name;
+
+      // Object-level location access for HUB_OPERATOR
+      if (!actor.roles.includes(Role.ADMIN) && actor.roles.includes(Role.HUB_OPERATOR)) {
+        const isAssigned = await this.prisma.fulfillmentLocationOperator.findUnique({
+          where: {
+            locationId_operatorId: {
+              locationId: hubLocationId,
+              operatorId: actor.id,
+            },
+          },
+        });
+        if (!isAssigned) {
+          throw new ForbiddenException(
+            `Operator is not assigned to fulfillment location '${hubLocationId}'`,
+          );
+        }
+      }
+    } else {
+      const defaultLocation = await this.prisma.fulfillmentLocation.findFirst({
+        where: { isActive: true },
+      });
+      if (defaultLocation) {
+        hubLocationId = defaultLocation.id;
+        hubName = defaultLocation.name;
+      }
+    }
+
+    // 1. Validate Trips & Stops Structure
+    const allShipmentIds: string[] = [];
+    const seenShipmentIds = new Set<string>();
+
+    for (let tIdx = 0; tIdx < dto.trips.length; tIdx++) {
+      const trip = dto.trips[tIdx];
+      if (!trip.driverId) {
+        throw new BadRequestException(`Trip at index ${tIdx} is missing driverId`);
+      }
+      if (!trip.stops || trip.stops.length === 0) {
+        throw new BadRequestException(
+          `Trip for driver '${trip.driverId}' must contain at least one stop`,
+        );
+      }
+
+      const seenSequences = new Set<number>();
+      for (const stop of trip.stops) {
+        if (!this.isUuid(stop.shipmentId)) {
+          throw new BadRequestException(`Invalid shipment ID format '${stop.shipmentId}'`);
+        }
+        if (seenShipmentIds.has(stop.shipmentId)) {
+          throw new BadRequestException(
+            `Duplicate shipment assignment: '${stop.shipmentId}' appears more than once across trips`,
+          );
+        }
+        seenShipmentIds.add(stop.shipmentId);
+        allShipmentIds.push(stop.shipmentId);
+
+        if (stop.sequence < 1 || seenSequences.has(stop.sequence)) {
+          throw new BadRequestException(
+            `Trip for driver '${trip.driverId}' has duplicate or invalid stop sequence ${stop.sequence}`,
+          );
+        }
+        seenSequences.add(stop.sequence);
+      }
+    }
+
+    // 2. Validate Driver Eligibility
+    const uniqueDriverIds = Array.from(new Set(dto.trips.map((t) => t.driverId)));
+    for (const dId of uniqueDriverIds) {
+      if (!this.isUuid(dId)) {
+        throw new BadRequestException(`Invalid driver ID format: '${dId}'`);
+      }
+    }
+
+    const drivers = await this.prisma.customer.findMany({
+      where: { id: { in: uniqueDriverIds } },
+      select: { id: true, name: true, roles: true },
+    });
+    const driverMap = new Map(drivers.map((d) => [d.id, d]));
+
+    for (const dId of uniqueDriverIds) {
+      const driver = driverMap.get(dId);
+      if (!driver) {
+        throw new BadRequestException(`Driver account '${dId}' not found`);
+      }
+      if (!driver.roles.includes(Role.DRIVER)) {
+        throw new BadRequestException(
+          `Account '${dId}' is not eligible for dispatch or lacks DRIVER role`,
+        );
+      }
+    }
+
+    // 3. Load Shipments & Check Idempotent Retry
+    const shipments = await this.prisma.shipment.findMany({
+      where: { id: { in: allShipmentIds } },
+      include: {
+        deliveryStops: {
+          where: { status: 'active' },
+          include: { batch: true },
+        },
+      },
+    });
+
+    if (shipments.length !== allShipmentIds.length) {
+      const foundIds = new Set(shipments.map((s) => s.id));
+      const missing = allShipmentIds.filter((id) => !foundIds.has(id));
+      throw new NotFoundException(`Shipments not found: ${missing.join(', ')}`);
+    }
+
+    // Check for idempotent retry
+    const allHaveActiveStops = shipments.every((s) => s.deliveryStops.length > 0);
+    if (allHaveActiveStops) {
+      const isIdempotentMatch = this.checkIdempotentTripsMatch(dto.trips, shipments);
+      if (isIdempotentMatch) {
+        const existingBatchesSummary = this.buildExistingBatchesSummary(
+          dto.trips,
+          shipments,
+          driverMap,
+        );
+        return {
+          success: true,
+          idempotentRetry: true,
+          hubId: targetHubId,
+          hubName,
+          planFingerprint: dto.planFingerprint,
+          batches: existingBatchesSummary,
+          totalBatchesCreated: existingBatchesSummary.length,
+          totalStopsCreated: existingBatchesSummary.reduce((sum, b) => sum + b.stopCount, 0),
+          rejectedAssignments: [],
+          approvedAt: new Date().toISOString(),
+        };
+      }
+    }
+
+    // 4. Verify Shipment Eligibility & Stale Plan Fingerprint
+    for (const s of shipments) {
+      if (hubLocationId && s.locationId && s.locationId !== hubLocationId) {
+        throw new BadRequestException(
+          `Shipment '${s.id}' belongs to location '${s.locationId}', not target hub '${hubLocationId}'`,
+        );
+      }
+      if (s.status !== 'packed') {
+        throw new ConflictException(
+          `Shipment '${s.id}' is in status '${s.status}', but only 'packed' shipments can be approved for dispatch`,
+        );
+      }
+      if (s.deliveryStops.length > 0) {
+        throw new ConflictException(
+          `Shipment '${s.id}' is already assigned to an active delivery run`,
+        );
+      }
+    }
+
+    const expectedFingerprint = computeDispatchPlanFingerprint({
+      hubId: targetHubId,
+      trips: dto.trips,
+      shipments: shipments.map((s) => ({
+        id: s.id,
+        status: s.status,
+        updatedAt: s.updatedAt,
+      })),
+    });
+
+    if (expectedFingerprint !== dto.planFingerprint) {
+      throw new ConflictException(
+        'Dispatch plan fingerprint mismatch or underlying shipment states have changed concurrently. Please refresh the dispatch plan preview before approving.',
+      );
+    }
+
+    // 5. Atomic Batch and Stop Creation in Transaction
+    try {
+      const createdBatches = await this.prisma.$transaction(async (tx) => {
+        const batches: ApprovedBatchSummary[] = [];
+
+        for (const trip of dto.trips) {
+          const driver = driverMap.get(trip.driverId);
+          const batchId = crypto.randomUUID();
+
+          const batch = await tx.deliveryBatch.create({
+            data: {
+              id: batchId,
+              status: 'planning',
+              locationId: hubLocationId,
+              driverId: trip.driverId,
+              plannedAt: new Date(),
+            },
+          });
+
+          const stops: Array<{ stopId: string; shipmentId: string; sequence: number }> = [];
+
+          for (const stop of trip.stops) {
+            const stopId = crypto.randomUUID();
+            await tx.deliveryStop.create({
+              data: {
+                id: stopId,
+                batchId: batch.id,
+                shipmentId: stop.shipmentId,
+                sequence: stop.sequence,
+                status: 'active',
+              },
+            });
+
+            stops.push({
+              stopId,
+              shipmentId: stop.shipmentId,
+              sequence: stop.sequence,
+            });
+
+            // Audit event for traceability
+            await tx.shipmentEvent.create({
+              data: {
+                id: crypto.randomUUID(),
+                shipmentId: stop.shipmentId,
+                type: 'BATCH_ASSIGNED',
+                actorId: actor.id,
+                notes: `Assigned to delivery batch ${batch.id} at stop sequence ${stop.sequence} (driver: ${driver?.name || trip.driverId})`,
+              },
+            });
+          }
+
+          batches.push({
+            batchId: batch.id,
+            driverId: trip.driverId,
+            driverName: driver?.name ?? null,
+            status: 'planning',
+            stopCount: stops.length,
+            stops,
+          });
+        }
+
+        return batches;
+      });
+
+      return {
+        success: true,
+        idempotentRetry: false,
+        hubId: targetHubId,
+        hubName,
+        planFingerprint: dto.planFingerprint,
+        batches: createdBatches,
+        totalBatchesCreated: createdBatches.length,
+        totalStopsCreated: createdBatches.reduce((sum, b) => sum + b.stopCount, 0),
+        rejectedAssignments: [],
+        approvedAt: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException(
+          'Concurrent dispatch approval conflict: one or more shipments were already assigned or duplicate stop sequence detected',
+        );
+      }
+      throw error;
+    }
+  }
+
+  private checkIdempotentTripsMatch(
+    trips: ApproveTripDto[],
+    shipments: Array<{
+      id: string;
+      locationId: string;
+      deliveryStops: Array<{
+        id: string;
+        batchId: string;
+        sequence: number;
+        status: string;
+        batch: { id: string; status: string; driverId: string | null; locationId: string | null };
+      }>;
+    }>,
+  ): boolean {
+    const shipmentMap = new Map(shipments.map((s) => [s.id, s]));
+
+    for (const trip of trips) {
+      if (!trip.stops || trip.stops.length === 0) return false;
+
+      const firstShipment = shipmentMap.get(trip.stops[0].shipmentId);
+      const firstActiveStop = firstShipment?.deliveryStops.find((st) => st.status === 'active');
+      if (!firstActiveStop) return false;
+
+      const batch = firstActiveStop.batch;
+      if (!batch || batch.status !== 'planning' || batch.driverId !== trip.driverId) {
+        return false;
+      }
+
+      const batchId = batch.id;
+
+      for (const stop of trip.stops) {
+        const sh = shipmentMap.get(stop.shipmentId);
+        if (!sh) return false;
+        const activeStop = sh.deliveryStops.find((st) => st.status === 'active');
+        if (!activeStop) return false;
+        if (activeStop.batchId !== batchId) return false;
+        if (activeStop.sequence !== stop.sequence) return false;
+      }
+    }
+
+    return true;
+  }
+
+  private buildExistingBatchesSummary(
+    trips: ApproveTripDto[],
+    shipments: Array<{
+      id: string;
+      deliveryStops: Array<{
+        id: string;
+        batchId: string;
+        sequence: number;
+        status: string;
+        batch: { id: string; status: string; driverId: string | null; locationId: string | null };
+      }>;
+    }>,
+    driverMap: Map<string, { id: string; name: string }>,
+  ): ApprovedBatchSummary[] {
+    const shipmentMap = new Map(shipments.map((s) => [s.id, s]));
+    const result: ApprovedBatchSummary[] = [];
+
+    for (const trip of trips) {
+      const firstShipment = shipmentMap.get(trip.stops[0].shipmentId)!;
+      const firstActiveStop = firstShipment.deliveryStops.find((st) => st.status === 'active')!;
+      const batchId = firstActiveStop.batchId;
+      const driver = driverMap.get(trip.driverId);
+
+      const stops = trip.stops.map((stop) => {
+        const sh = shipmentMap.get(stop.shipmentId)!;
+        const activeStop = sh.deliveryStops.find((st) => st.status === 'active')!;
+        return {
+          stopId: activeStop.id,
+          shipmentId: stop.shipmentId,
+          sequence: stop.sequence,
+        };
+      });
+
+      result.push({
+        batchId,
+        driverId: trip.driverId,
+        driverName: driver?.name ?? null,
+        status: 'planning',
+        stopCount: stops.length,
+        stops,
+      });
+    }
+
+    return result;
   }
 }

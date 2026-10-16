@@ -5,7 +5,7 @@ import { RouteOptimizationService } from './services/route-optimization.service'
 import { DispatchPlanningService } from './services/dispatch-planning.service';
 import { PlanRouteDto } from './dto/routing.dto';
 import { ApplyOptimizationDto, OptimizationOptionsDto } from './dto/optimization.dto';
-import { PlanDispatchDto } from './dto/dispatch-planning.dto';
+import { PlanDispatchDto, ApproveDispatchPlanDto } from './dto/dispatch-planning.dto';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto, AssignLocationOperatorDto, ReceiveAllocatedGoodsDto, HubShipmentQueryDto, HubRunQueryDto } from './dto/fulfillment.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -304,6 +304,29 @@ export class FulfillmentController {
     @CurrentUser() actor: FulfillmentActor,
   ) {
     return this.dispatchPlanningService.planDispatch({ ...dto, hubId: id }, actor);
+  }
+
+  // --- Dispatch Plan Approval & Persistence (Maps Phase 3.3B) ---
+
+  @Post('dispatch/plan-approve')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('delivery.plan')
+  async approveDispatchPlan(
+    @Body() dto: ApproveDispatchPlanDto,
+    @CurrentUser() actor: FulfillmentActor,
+  ) {
+    return this.dispatchPlanningService.approveDispatchPlan(dto, actor);
+  }
+
+  @Post('locations/:id/dispatch/plan-approve')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('delivery.plan')
+  async approveHubDispatchPlan(
+    @Param('id') id: string,
+    @Body() dto: ApproveDispatchPlanDto,
+    @CurrentUser() actor: FulfillmentActor,
+  ) {
+    return this.dispatchPlanningService.approveDispatchPlan({ ...dto, hubId: id }, actor);
   }
 }
 
