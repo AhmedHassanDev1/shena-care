@@ -153,4 +153,10 @@ export class DomainEventsService implements OnModuleInit, OnModuleDestroy {
       skip: filter.skip ?? 0,
     });
   }
+
+  count(filter: { status?: DomainEvent['status']; aggregateId?: string }) {
+    return this.prisma.domainEvent.count({
+      where: { ...(filter.status ? { status: filter.status } : {}), ...(filter.aggregateId ? { aggregateId: filter.aggregateId } : {}) },
+    });
+  }
 }

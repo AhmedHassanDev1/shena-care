@@ -127,4 +127,66 @@ describe('C0 Business Workspace reads', () => {
     await http().get(`/fulfillment/shipments/${randomUUID()}/preparation`).set(hub.auth).expect(404);
     await http().get(`/fulfillment/shipments/${randomUUID()}/preparation`).set(driver.auth).expect(403);
   });
+
+  it('operations dashboard KPIs: aggregates pipeline, Cairo hourly inflow, and enforces server-side financial RBAC', async () => {
+    // 1. Admin gets 200, operational stats + financial amounts (numbers)
+    const adminRes = await http().get('/operations/dashboard/kpis').set(admin.auth).expect(200);
+    expect(adminRes.body).toMatchObject({
+      ordersToday: expect.any(Number),
+      totalOrders: expect.any(Number),
+      activeFulfillment: expect.any(Number),
+      activeOrders: expect.any(Number),
+      pipeline: {
+        placed: expect.any(Number),
+        confirmed: expect.any(Number),
+        packing: expect.any(Number),
+        shipped: expect.any(Number),
+        delivered: expect.any(Number),
+        terminal: expect.any(Number),
+        total: expect.any(Number),
+      },
+      hourlyInflow: expect.arrayContaining([
+        expect.objectContaining({
+          hour: expect.any(Number),
+          label: expect.any(String),
+          count: expect.any(Number),
+        }),
+      ]),
+      attentionCenter: {
+        openSupportCases: expect.any(Number),
+        unconfirmedPOs: expect.any(Number),
+        pendingIngestions: expect.any(Number),
+      },
+    });
+    expect(adminRes.body.hourlyInflow).toHaveLength(24);
+    expect(typeof adminRes.body.revenueToday).toBe('number');
+    expect(typeof adminRes.body.totalRevenue).toBe('number');
+    expect(typeof adminRes.body.averageOrderValue).toBe('number');
+
+    // 2. Hub operator gets 200, operational stats, BUT financial fields are strictly null server-side
+    const hubRes = await http().get('/operations/dashboard/kpis').set(hub.auth).expect(200);
+    expect(hubRes.body).toMatchObject({
+      ordersToday: expect.any(Number),
+      totalOrders: expect.any(Number),
+      activeFulfillment: expect.any(Number),
+      activeOrders: expect.any(Number),
+      pipeline: expect.any(Object),
+      hourlyInflow: expect.any(Array),
+      attentionCenter: expect.any(Object),
+      revenueToday: null,
+      totalRevenue: null,
+      averageOrderValue: null,
+    });
+    expect(hubRes.body.revenueToday).toBeNull();
+    expect(hubRes.body.totalRevenue).toBeNull();
+    expect(hubRes.body.averageOrderValue).toBeNull();
+
+    // 3. Driver, supplier, customer are forbidden (403)
+    for (const actor of [driver, supplier, customer]) {
+      await http().get('/operations/dashboard/kpis').set(actor.auth).expect(403);
+    }
+
+    // 4. Unauthenticated is unauthorized (401)
+    await http().get('/operations/dashboard/kpis').expect(401);
+  });
 });

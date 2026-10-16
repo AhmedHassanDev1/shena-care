@@ -43,7 +43,7 @@ interface Attention {
   failedDeliveries: Paged<{ orderId: string; orderNumber: string | null; reasonCode: string | null; failedAt: string }>
   cashVariances: { short: Paged<CashRow>; over: Paged<CashRow> }
   deliveredUnsettled: Paged<CashRow>
-  eventFailures: { failed: EventRow[]; dead: EventRow[] }
+  eventFailures: { failed: EventRow[]; dead: EventRow[]; totalFailed?: number; totalDead?: number }
   openCases: Paged<{ id: string; title: string; priority: string; orderId: string | null; createdAt: string }>
 }
 
@@ -66,11 +66,27 @@ type EventRow = {
 }
 
 interface Kpis {
-  revenueToday: number
-  totalRevenue?: number
+  revenueToday: number | null
+  totalRevenue?: number | null
   ordersToday: number
   totalOrders: number
-  averageOrderValue: number
+  activeFulfillment: number
+  activeOrders: number
+  averageOrderValue: number | null
+  pipeline: {
+    placed: number
+    confirmed: number
+    packing: number
+    shipped: number
+    delivered: number
+    terminal: number
+    total: number
+  }
+  hourlyInflow: Array<{
+    hour: number
+    label: string
+    count: number
+  }>
   attentionCenter?: {
     openSupportCases: number
     unconfirmedPOs: number
@@ -165,9 +181,16 @@ function AdminOverviewContent() {
     setLastRefreshedAt(new Date())
   }, [attention, kpis, orders])
 
+  // Update freshness timestamp when any poll completes with new data
+  React.useEffect(() => {
+    if (attention.data || kpis.data || orders.data) {
+      setLastRefreshedAt(new Date())
+    }
+  }, [attention.data, kpis.data, orders.data])
+
   const a = attention.data
 
-  // Real waiting operational count
+  // Real waiting operational count (accurate count without truncation)
   const waitingTotal = a
     ? a.supplyActionRequired.total +
       a.customerDecisionsPending.total +
@@ -175,52 +198,53 @@ function AdminOverviewContent() {
       a.failedDeliveries.total +
       a.cashVariances.short.total +
       a.cashVariances.over.total +
-      a.eventFailures.failed.length +
-      a.eventFailures.dead.length +
+      (a.eventFailures.totalFailed ?? a.eventFailures.failed.length) +
+      (a.eventFailures.totalDead ?? a.eventFailures.dead.length) +
       a.openCases.total
     : undefined
 
-  // Active in-flight fulfillment calculation from recent orders & stages
-  const activeFulfillmentCount = React.useMemo(() => {
-    if (!orders.data) return 0
-    return orders.data.items.filter((o) => ['confirmed', 'packing', 'shipped'].includes(o.status)).length
-  }, [orders.data])
+  // Active in-flight fulfillment: confirmed, packing, shipped (database-wide aggregate)
+  const activeFulfillmentCount = kpis.data?.activeFulfillment ?? 0
 
-  // Pipeline stage counts from real orders fetched
+  // Pipeline stage counts from full database aggregate
   const pipelineStats = React.useMemo(() => {
-    const raw = orders.data?.items ?? []
-    const placed = raw.filter((o) => o.status === 'placed').length
-    const confirmed = raw.filter((o) => o.status === 'confirmed').length
-    const packing = raw.filter((o) => o.status === 'packing').length
-    const shipped = raw.filter((o) => o.status === 'shipped').length
-    const delivered = raw.filter((o) => o.status === 'delivered').length
-    const terminal = raw.filter((o) => ['cancelled', 'returned'].includes(o.status)).length
-    const totalSample = raw.length || 1
-
+    if (kpis.data?.pipeline) {
+      const p = kpis.data.pipeline
+      return {
+        placed: p.placed,
+        confirmed: p.confirmed,
+        packing: p.packing,
+        shipped: p.shipped,
+        delivered: p.delivered,
+        terminal: p.terminal,
+        totalSample: p.total || 1,
+      }
+    }
     return {
-      placed,
-      confirmed,
-      packing,
-      shipped,
-      delivered,
-      terminal,
-      totalSample,
+      placed: 0,
+      confirmed: 0,
+      packing: 0,
+      shipped: 0,
+      delivered: 0,
+      terminal: 0,
+      totalSample: 1,
     }
-  }, [orders.data])
+  }, [kpis.data])
 
-  // Hourly inflow distribution for today from fetched orders
+  // Hourly inflow distribution for today from real database creation timestamps (Cairo timezone)
   const hourlyInflow = React.useMemo(() => {
-    const raw = orders.data?.items ?? []
-    const hours = Array.from({ length: 12 }, (_, i) => ({ hour: 8 + i, count: 0, label: `${8 + i}:00` }))
-    for (const order of raw) {
-      const d = new Date(order.createdAt)
-      const h = d.getHours()
-      const match = hours.find((item) => item.hour === h)
-      if (match) match.count += 1
+    if (kpis.data?.hourlyInflow && kpis.data.hourlyInflow.length > 0) {
+      const hours = kpis.data.hourlyInflow
+      const maxCount = Math.max(...hours.map((h) => h.count), 1)
+      return { hours, maxCount }
     }
-    const maxCount = Math.max(...hours.map((h) => h.count), 1)
-    return { hours, maxCount }
-  }, [orders.data])
+    const hours = Array.from({ length: 24 }, (_, i) => ({
+      hour: i,
+      count: 0,
+      label: `${i.toString().padStart(2, '0')}:00`,
+    }))
+    return { hours, maxCount: 1 }
+  }, [kpis.data])
 
   // Attention queue category filter
   const [queueFilter, setQueueFilter] = React.useState<QueueCategory>('all')
@@ -333,7 +357,7 @@ function AdminOverviewContent() {
             <Truck className="size-4 text-bw-info" aria-hidden />
           </div>
           <p className="mt-2 text-bw-figure font-semibold text-bw-ink">
-            {orders.data ? <Code>{activeFulfillmentCount}</Code> : <Skeleton className="h-8 w-16" />}
+            {kpis.data ? <Code>{activeFulfillmentCount}</Code> : <Skeleton className="h-8 w-16" />}
           </p>
           <div className="mt-1 flex items-center justify-between text-bw-small text-bw-ink-soft">
             <span>تأكيد · تجهيز · مع المندوب</span>
@@ -429,19 +453,43 @@ function AdminOverviewContent() {
               <div className="space-y-1">
                 <span className="text-bw-small text-bw-ink-soft">قيمة طلبات اليوم</span>
                 <p className="text-bw-heading font-semibold text-bw-ink">
-                  {kpis.data ? <Egp value={kpis.data.revenueToday} /> : <Skeleton className="h-6 w-24" />}
+                  {kpis.data ? (
+                    kpis.data.revenueToday !== null ? (
+                      <Egp value={kpis.data.revenueToday} />
+                    ) : (
+                      <span className="text-bw-small text-bw-ink-soft">محجوبة من الخادم (مخصصة للمالك فقط)</span>
+                    )
+                  ) : (
+                    <Skeleton className="h-6 w-24" />
+                  )}
                 </p>
               </div>
               <div className="space-y-1">
                 <span className="text-bw-small text-bw-ink-soft">متوسط قيمة الطلب (AOV)</span>
                 <p className="text-bw-heading font-semibold text-bw-ink">
-                  {kpis.data ? <Egp value={kpis.data.averageOrderValue} /> : <Skeleton className="h-6 w-24" />}
+                  {kpis.data ? (
+                    kpis.data.averageOrderValue !== null ? (
+                      <Egp value={kpis.data.averageOrderValue} />
+                    ) : (
+                      <span className="text-bw-small text-bw-ink-soft">محجوبة من الخادم (مخصصة للمالك فقط)</span>
+                    )
+                  ) : (
+                    <Skeleton className="h-6 w-24" />
+                  )}
                 </p>
               </div>
               <div className="space-y-1">
                 <span className="text-bw-small text-bw-ink-soft">إجمالي المبيعات المؤكدة</span>
                 <p className="text-bw-heading font-semibold text-bw-ink">
-                  {kpis.data ? <Egp value={kpis.data.totalRevenue ?? 0} /> : <Skeleton className="h-6 w-24" />}
+                  {kpis.data ? (
+                    kpis.data.totalRevenue !== null && kpis.data.totalRevenue !== undefined ? (
+                      <Egp value={kpis.data.totalRevenue} />
+                    ) : (
+                      <span className="text-bw-small text-bw-ink-soft">محجوبة من الخادم (مخصصة للمالك فقط)</span>
+                    )
+                  ) : (
+                    <Skeleton className="h-6 w-24" />
+                  )}
                 </p>
               </div>
             </div>
@@ -460,7 +508,7 @@ function AdminOverviewContent() {
           title="مسار تجهيز وشحن الطلبات (Fulfillment Pipeline)"
           aside={
             <span className="text-bw-small text-bw-ink-soft">
-              عينة حديثة (<Code>{pipelineStats.totalSample}</Code> طلب)
+              إجمالي كافة طلبات النظام (<Code>{pipelineStats.totalSample}</Code> طلب)
             </span>
           }
         >
@@ -538,7 +586,7 @@ function AdminOverviewContent() {
           title="تدفق الطلبات اليوم (Order Inflow Trend)"
           aside={
             <span className="text-bw-small text-bw-ink-soft">
-              توزيع أوقات الطلب خلال اليوم
+              توقيت القاهرة (Africa/Cairo) · إجمالي طلبات اليوم
             </span>
           }
         >
@@ -567,8 +615,8 @@ function AdminOverviewContent() {
               })}
             </div>
             <div className="flex items-center justify-between text-bw-small text-bw-ink-soft">
-              <span>الساعات (8:00 ص إلى 8:00 م)</span>
-              <span className="text-bw-ink-subtle">الارتفاع يعكس كثافة تسجيل الطلبات</span>
+              <span>توزيع الساعات (00:00 إلى 23:00)</span>
+              <span className="text-bw-ink-subtle">الارتفاع يعكس كثافة تسجيل الطلبات حسب توقيت القاهرة</span>
             </div>
           </div>
         </Section>
@@ -594,7 +642,7 @@ function AdminOverviewContent() {
               ['delivery', 'توصيل متعثر', a?.failedDeliveries.total ?? 0],
               ['cash', 'فروق نقدية', (a?.cashVariances.short.total ?? 0) + (a?.cashVariances.over.total ?? 0)],
               ['unsettled', 'كاش للتسوية', a?.deliveredUnsettled.total ?? 0],
-              ['events', 'أحداث النظام', (a?.eventFailures.failed.length ?? 0) + (a?.eventFailures.dead.length ?? 0)],
+              ['events', 'أحداث النظام', (a?.eventFailures.totalFailed ?? a?.eventFailures.failed.length ?? 0) + (a?.eventFailures.totalDead ?? a?.eventFailures.dead.length ?? 0)],
               ['support', 'حالات الدعم', a?.openCases.total ?? 0],
             ] as const
           ).map(([key, label, count]) => (
@@ -891,44 +939,51 @@ function AdminOverviewContent() {
 
             {/* Event Failures */}
             {(queueFilter === 'all' || queueFilter === 'events') &&
-              [...a.eventFailures.failed, ...a.eventFailures.dead].map((e) => (
-                <QueueRow
-                  key={`event-${e.id}`}
-                  tone="danger"
-                  title={<>فشل حدث نظام: <Code>{e.eventType}</Code></>}
-                  detail={
-                    <>
-                      المستهلك: {e.consumer} · المحاولات: <Code>{e.attempts}</Code> {e.lastError ? `· ${e.lastError}` : ''}
-                    </>
-                  }
-                  action={
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        inspectException({
-                          id: e.id,
-                          category: 'events',
-                          categoryLabel: 'أخطاء نظام',
-                          title: `فشل حدث ${e.eventType}`,
-                          tone: 'danger',
-                          facts: [
-                            ['نوع الحدث', <Code key="et">{e.eventType}</Code>],
-                            ['المستهلك', e.consumer],
-                            ['المعرف المرتبط', <Code key="ag">{shortId(e.aggregateId)}</Code>],
-                            ['عدد المحاولات', <Code key="at">{e.attempts}</Code>],
-                            ['آخر خطأ مسجل', e.lastError ?? '—'],
-                          ],
-                          nextStep: 'تحقق من صحة المعاملة وسلامة خادم الأحداث لإعادة المحاولة.',
-                          destinationHref: `/admin/orders/${e.aggregateId}`,
-                          destinationLabel: 'فحص الكيان المرتبط',
-                        })
-                      }
-                    >
-                      فحص
-                    </Button>
-                  }
-                />
-              ))}
+              [...a.eventFailures.failed, ...a.eventFailures.dead].map((e) => {
+                const isPO = e.eventType.startsWith('purchase_order')
+                const isOrder = e.eventType.startsWith('order')
+                const destHref = isPO ? '/admin/sourcing' : isOrder ? `/admin/orders/${e.aggregateId}` : '/admin/support'
+                const destLabel = isPO ? 'إدارة التوريد والشراء' : isOrder ? 'فحص تفاصيل الطلب' : 'فحص الكيان المرتبط'
+
+                return (
+                  <QueueRow
+                    key={`event-${e.id}`}
+                    tone="danger"
+                    title={<>فشل حدث نظام: <Code>{e.eventType}</Code></>}
+                    detail={
+                      <>
+                        المستهلك: {e.consumer} · المحاولات: <Code>{e.attempts}</Code> {e.lastError ? `· ${e.lastError}` : ''}
+                      </>
+                    }
+                    action={
+                      <Button
+                        variant="secondary"
+                        onClick={() =>
+                          inspectException({
+                            id: e.id,
+                            category: 'events',
+                            categoryLabel: 'أخطاء نظام',
+                            title: `فشل حدث ${e.eventType}`,
+                            tone: 'danger',
+                            facts: [
+                              ['نوع الحدث', <Code key="et">{e.eventType}</Code>],
+                              ['المستهلك', e.consumer],
+                              ['المعرف المرتبط', <Code key="ag">{shortId(e.aggregateId)}</Code>],
+                              ['عدد المحاولات', <Code key="at">{e.attempts}</Code>],
+                              ['آخر خطأ مسجل', e.lastError ?? '—'],
+                            ],
+                            nextStep: 'تحقق من صحة المعاملة وسلامة خادم الأحداث لإعادة المحاولة.',
+                            destinationHref: destHref,
+                            destinationLabel: destLabel,
+                          })
+                        }
+                      >
+                        فحص
+                      </Button>
+                    }
+                  />
+                )
+              })}
 
             {/* Open Support Cases */}
             {(queueFilter === 'all' || queueFilter === 'support') &&

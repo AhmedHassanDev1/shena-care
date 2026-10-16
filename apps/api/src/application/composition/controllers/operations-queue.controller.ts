@@ -33,7 +33,8 @@ export class OperationsQueueController {
   async attention(@Query() query: PageQueryDto) {
     const paging = page(query, 10);
     const [supplyActionRequired, customerDecisionsPending, distributionRequired, failedDeliveries,
-      shortCash, overCash, deliveredUnsettled, failedEvents, deadEvents, openCases] = await Promise.all([
+      shortCash, overCash, deliveredUnsettled, failedEvents, deadEvents, openCases,
+      totalFailedEvents, totalDeadEvents] = await Promise.all([
       this.supplyPlan.listOpenActionRequirements(paging),
       this.ordering.listPendingDecisions(paging),
       this.purchaseOrders.listDistributionRequired(paging),
@@ -44,6 +45,8 @@ export class OperationsQueueController {
       this.events.list({ status: 'failed', take: paging.take }),
       this.events.list({ status: 'dead', take: paging.take }),
       this.support.openCaseSummary(paging.take),
+      this.events.count({ status: 'failed' }),
+      this.events.count({ status: 'dead' }),
     ]);
     const orders = await this.ordering.getOrderSummaries([
       ...supplyActionRequired.items.map(i => i.orderId), ...failedDeliveries.items.map(i => i.orderId),
@@ -59,7 +62,12 @@ export class OperationsQueueController {
       failedDeliveries: { ...failedDeliveries, items: withNumber(failedDeliveries.items) },
       cashVariances: { short: shortCash, over: overCash },
       deliveredUnsettled,
-      eventFailures: { failed: events(failedEvents), dead: events(deadEvents) },
+      eventFailures: {
+        failed: events(failedEvents),
+        dead: events(deadEvents),
+        totalFailed: totalFailedEvents,
+        totalDead: totalDeadEvents,
+      },
       openCases,
     };
   }

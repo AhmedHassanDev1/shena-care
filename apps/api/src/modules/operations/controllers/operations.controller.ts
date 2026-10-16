@@ -19,10 +19,10 @@ export class OperationsController {
   ) {}
 
   @Get('dashboard/kpis')
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'HUB_OPERATOR')
   @RequirePermissions('dashboard.read')
-  async getDashboardKpis() {
-    return this.dashboardService.getKpis();
+  async getDashboardKpis(@CurrentUser() user: any) {
+    return this.dashboardService.getKpis(user);
   }
 
   // --- Finance / Accounting Export ---
