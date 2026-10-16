@@ -1,7 +1,9 @@
 import { Controller, Post, Body, Get, Param, Patch, Delete, UseGuards, Query } from '@nestjs/common';
 import { FulfillmentService } from './services/fulfillment.service';
 import { RoutePlanningService } from './services/route-planning.service';
+import { RouteOptimizationService } from './services/route-optimization.service';
 import { PlanRouteDto } from './dto/routing.dto';
+import { ApplyOptimizationDto } from './dto/optimization.dto';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto, AssignLocationOperatorDto, ReceiveAllocatedGoodsDto, HubShipmentQueryDto, HubRunQueryDto } from './dto/fulfillment.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -17,6 +19,7 @@ export class FulfillmentController {
   constructor(
     private readonly fulfillmentService: FulfillmentService,
     private readonly routePlanningService: RoutePlanningService,
+    private readonly routeOptimizationService: RouteOptimizationService,
   ) {}
 
   @Post('locations')
@@ -243,4 +246,35 @@ export class FulfillmentController {
   async getBatchRoute(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
     return this.routePlanningService.planBatchRoute(id, actor);
   }
+
+  // --- Route Optimization (Maps Phase 3.2) ---
+
+  @Get('delivery-batches/:id/optimize-preview')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
+  async previewBatchOptimization(
+    @Param('id') id: string,
+    @CurrentUser() actor: FulfillmentActor,
+  ) {
+    return this.routeOptimizationService.previewBatchOptimization(id, actor);
+  }
+
+  @Get('delivery-batches/:id/optimize')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
+  async getBatchOptimizationAlias(
+    @Param('id') id: string,
+    @CurrentUser() actor: FulfillmentActor,
+  ) {
+    return this.routeOptimizationService.previewBatchOptimization(id, actor);
+  }
+
+  @Post('delivery-batches/:id/apply-optimization')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
+  async applyBatchOptimization(
+    @Param('id') id: string,
+    @Body() dto: ApplyOptimizationDto,
+    @CurrentUser() actor: FulfillmentActor,
+  ) {
+    return this.routeOptimizationService.applyBatchOptimization(id, actor, dto);
+  }
 }
+
