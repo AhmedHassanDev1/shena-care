@@ -21,8 +21,15 @@ export class ApiError extends Error {
 
 export function getToken(): string | null {
   try {
-    return window.localStorage.getItem(TOKEN_KEY)
+    const token = window.localStorage.getItem(TOKEN_KEY)
+    if (!token && process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_SESSION_TOKEN) {
+      return process.env.NEXT_PUBLIC_DEV_SESSION_TOKEN
+    }
+    return token
   } catch {
+    if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_SESSION_TOKEN) {
+      return process.env.NEXT_PUBLIC_DEV_SESSION_TOKEN
+    }
     return null
   }
 }

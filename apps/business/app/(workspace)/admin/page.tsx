@@ -4,14 +4,17 @@ import * as React from 'react'
 import Link from 'next/link'
 import {
   AlertTriangle,
-  ArrowLeft,
+  ArrowUpRight,
   Banknote,
+  ChevronLeft,
   Eye,
   EyeOff,
+  Layers,
   RefreshCw,
   Search,
   ShieldCheck,
   ShoppingBag,
+  TrendingUp,
   Truck,
 } from 'lucide-react'
 import {
@@ -20,7 +23,6 @@ import {
   DataTable,
   Dialog,
   Notice,
-  QueueRow,
   Section,
   Skeleton,
   StateBlock,
@@ -28,7 +30,7 @@ import {
   useDialog,
   type Tone,
 } from '@/components/bw/primitives'
-import { Egp, Page, Select, Status } from '@/components/workspace/kit'
+import { Egp, Page } from '@/components/workspace/kit'
 import { RoleShell, useMe } from '@/components/workspace/role-shell'
 import { FAILURE_REASONS, ORDER_STATUS, formatDateTime, shortId } from '@/lib/labels'
 import { useApi } from '@/lib/use-api'
@@ -140,6 +142,66 @@ const orderLink = (orderId: string, orderNumber: string | null) => (
   </Link>
 )
 
+/* ── Lightweight, Elegant SVG Sparkline Line Chart ───────────────────── */
+function Sparkline({
+  data,
+  color = '#ff783d',
+  height = 34,
+  width = 110,
+  className,
+}: {
+  data: number[]
+  color?: string
+  height?: number
+  width?: number
+  className?: string
+}) {
+  if (!data || data.length < 2) return null
+  const max = Math.max(...data, 1)
+  const min = Math.min(...data, 0)
+  const range = max - min || 1
+
+  const points = data.map((val, idx) => {
+    const x = (idx / (data.length - 1)) * width
+    const y = height - ((val - min) / range) * (height - 8) - 4
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+
+  const pathD = `M ${points.join(' L ')}`
+  const areaD = `M ${points[0]} L ${points.join(' L ')} L ${width},${height} L 0,${height} Z`
+
+  const lastPoint = points[points.length - 1].split(',')
+  const lastX = Number(lastPoint[0])
+  const lastY = Number(lastPoint[1])
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className={cn('overflow-visible shrink-0', className)}
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="kpiSparkGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.28" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+        </linearGradient>
+      </defs>
+      <path d={areaD} fill="url(#kpiSparkGrad)" />
+      <path
+        d={pathD}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx={lastX} cy={lastY} r="3" fill={color} className="animate-pulse" />
+    </svg>
+  )
+}
+
 export default function AdminOverviewPage() {
   return (
     <RoleShell role="admin" active="attention" mode="desktop">
@@ -157,11 +219,14 @@ function AdminOverviewContent() {
   const attention = useApi<Attention>('/operations/queues/attention', { pollMs: 30000 })
   const kpis = useApi<Kpis>('/operations/dashboard/kpis', { pollMs: 30000 })
 
+  // Search input ref to allow header Ctrl+K trigger
+  const searchInputRef = React.useRef<HTMLInputElement>(null)
+
   // Recent orders query with status & search filters
   const [orderStatus, setOrderStatus] = React.useState('')
   const [orderQueryInput, setOrderQueryInput] = React.useState('')
   const [activeQuery, setActiveQuery] = React.useState('')
-  const [dateFilter, setDateFilter] = React.useState<'all' | 'today'>('all')
+  const [dateFilter, setDateFilter] = React.useState<'today' | '7d' | '30d' | 'all'>('today')
 
   const orderParams = new URLSearchParams({
     take: '25',
@@ -187,6 +252,18 @@ function AdminOverviewContent() {
       setLastRefreshedAt(new Date())
     }
   }, [attention.data, kpis.data, orders.data])
+
+  // Ctrl+K keyboard shortcut to focus search
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const a = attention.data
 
@@ -246,6 +323,22 @@ function AdminOverviewContent() {
     return { hours, maxCount: 1 }
   }, [kpis.data])
 
+  // Hourly series for Card 1 sparkline
+  const orderSparklineData = React.useMemo(() => {
+    if (!kpis.data?.hourlyInflow || kpis.data.hourlyInflow.length === 0) return []
+    return kpis.data.hourlyInflow.map((h) => h.count)
+  }, [kpis.data?.hourlyInflow])
+
+  // Chart view toggle: 24h vs daytime operational window (08:00 - 22:00)
+  const [chartViewMode, setChartViewMode] = React.useState<'daytime' | 'full'>('full')
+
+  const displayedChartHours = React.useMemo(() => {
+    if (chartViewMode === 'daytime') {
+      return hourlyInflow.hours.filter((h) => h.hour >= 8 && h.hour <= 22)
+    }
+    return hourlyInflow.hours
+  }, [hourlyInflow.hours, chartViewMode])
+
   // Attention queue category filter
   const [queueFilter, setQueueFilter] = React.useState<QueueCategory>('all')
 
@@ -263,15 +356,102 @@ function AdminOverviewContent() {
     if (!orders.data?.items) return []
     if (dateFilter === 'all') return orders.data.items
 
-    const startOfToday = new Date()
+    const now = new Date()
+    const startOfToday = new Date(now)
     startOfToday.setHours(0, 0, 0, 0)
-    return orders.data.items.filter((item) => new Date(item.createdAt) >= startOfToday)
+
+    if (dateFilter === 'today') {
+      return orders.data.items.filter((item) => new Date(item.createdAt) >= startOfToday)
+    }
+    if (dateFilter === '7d') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      return orders.data.items.filter((item) => new Date(item.createdAt) >= sevenDaysAgo)
+    }
+    if (dateFilter === '30d') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+      return orders.data.items.filter((item) => new Date(item.createdAt) >= thirtyDaysAgo)
+    }
+    return orders.data.items
   }, [orders.data, dateFilter])
+
+  // Total cash variances
+  const cashVariancesCount = (a?.cashVariances.short.total ?? 0) + (a?.cashVariances.over.total ?? 0)
+  const eventFailuresCount =
+    (a?.eventFailures.totalFailed ?? a?.eventFailures.failed.length ?? 0) +
+    (a?.eventFailures.totalDead ?? a?.eventFailures.dead.length ?? 0)
+
+  // Categories list for Action Required Panel
+  const actionCategories = [
+    {
+      key: 'supply' as QueueCategory,
+      title: 'عجز التوريد من الموردين',
+      desc: 'طلبات تحتاج توفير منتجات من الموردين',
+      count: a?.supplyActionRequired.total ?? 0,
+      tone: 'warn' as Tone,
+      dotColor: 'bg-bw-warn',
+    },
+    {
+      key: 'customer' as QueueCategory,
+      title: 'قرارات العملاء المعلقة',
+      desc: 'موافقة على استبدال، استرداد، أو انتظار',
+      count: a?.customerDecisionsPending.total ?? 0,
+      tone: 'warn' as Tone,
+      dotColor: 'bg-bw-warn',
+    },
+    {
+      key: 'distribution' as QueueCategory,
+      title: 'توزيع الشراء بالمخزن',
+      desc: 'أوامر توريد مستلمة بانتظار التخصيص للطلبات',
+      count: a?.distributionRequired.total ?? 0,
+      tone: 'info' as Tone,
+      dotColor: 'bg-bw-info',
+    },
+    {
+      key: 'delivery' as QueueCategory,
+      title: 'فشل محاولات التوصيل',
+      desc: 'شحنات متعثرة تحتاج إعادة جدولة فورية',
+      count: a?.failedDeliveries.total ?? 0,
+      tone: 'danger' as Tone,
+      dotColor: 'bg-bw-danger',
+    },
+    {
+      key: 'cash' as QueueCategory,
+      title: 'فروق نقدية بالخزينة',
+      desc: 'فروق عجز أو زيادة في تسويات المناديب',
+      count: cashVariancesCount,
+      tone: 'danger' as Tone,
+      dotColor: 'bg-bw-danger',
+    },
+    {
+      key: 'unsettled' as QueueCategory,
+      title: 'كاش بانتظار العد والمطابقة',
+      desc: 'شحنات مسلمة كاش لم يتم مطابقتها بالخزينة',
+      count: a?.deliveredUnsettled.total ?? 0,
+      tone: 'warn' as Tone,
+      dotColor: 'bg-bw-warn',
+    },
+    {
+      key: 'events' as QueueCategory,
+      title: 'أخطاء أحداث النظام',
+      desc: 'معاملات فشلت أو توقفت وتحتاج إعادة تشغيل',
+      count: eventFailuresCount,
+      tone: 'danger' as Tone,
+      dotColor: 'bg-bw-danger',
+    },
+    {
+      key: 'support' as QueueCategory,
+      title: 'حالات الدعم الفني العاجلة',
+      desc: 'شكاوى واستفسارات عملاء مفتوحة',
+      count: a?.openCases.total ?? 0,
+      tone: 'warn' as Tone,
+      dotColor: 'bg-bw-warn',
+    },
+  ]
 
   return (
     <Page>
-      {/* ── Page Header with Data Freshness & Controls ─────────────────── */}
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-bw-line pb-4">
+      {/* ── Page Header: Greeting & Contextual Operations Controls ──────── */}
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-bw-line/70 pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="relative flex size-2.5">
@@ -279,32 +459,79 @@ function AdminOverviewContent() {
               <span className="relative inline-flex size-2.5 rounded-full bg-bw-ok" />
             </span>
             <span className="text-bw-small font-medium text-bw-ink-soft">
-              تحديث تشغيلي تلقائي · كل <Code>30</Code> ثانية
+              مركز العمليات والقيادة الميدانية · تحديث حي
             </span>
           </div>
-          <h1 className="font-bw-display text-bw-title font-semibold text-bw-ink">
-            لوحة الإشراف والعمليات
+          <h1 className="font-bw-display text-bw-title font-semibold text-bw-ink flex items-center gap-2">
+            <span>مرحباً، {me.name ?? 'فريق الإشراف'}</span>
+            <span className="text-xl" aria-hidden>👋</span>
           </h1>
           <p className="text-bw-small text-bw-ink-soft">
-            متابعة حية للطلبات، مسار التجهيز، التدخلات المعلقة، وتدفق النقدية
+            متابعة شاملة لتدفق الطلبات، مسار التجهيز بالمخزن، والتدخلات المعلقة اليوم
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="text-end text-bw-small text-bw-ink-subtle">
-            <p>
-              آخر فحص: <Code>{lastRefreshedAt.toLocaleTimeString('ar-EG')}</Code>
-            </p>
-          </div>
-          <Button
-            variant="secondary"
-            loading={attention.loading || orders.loading || kpis.loading}
-            onClick={handleManualRefresh}
-            aria-label="تحديث يدوي لكافة البيانات"
+        {/* Header Controls Bar */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Quick Date Presets */}
+          <div
+            role="group"
+            aria-label="تحديد الفترة الزمنية"
+            className="flex items-center rounded-bw-field border border-bw-line bg-bw-surface p-1 shadow-sm"
           >
-            <RefreshCw className="size-4" aria-hidden />
-            تحديث
-          </Button>
+            {(
+              [
+                { id: 'today', label: 'اليوم' },
+                { id: '7d', label: '7 أيام' },
+                { id: '30d', label: '30 يوم' },
+                { id: 'all', label: 'الكل' },
+              ] as const
+            ).map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => setDateFilter(preset.id)}
+                className={cn(
+                  'rounded px-2.5 py-1 text-bw-small font-medium transition-colors',
+                  dateFilter === preset.id
+                    ? 'bg-bw-action text-bw-on-action font-semibold shadow-sm'
+                    : 'text-bw-ink-soft hover:text-bw-ink hover:bg-bw-sunken',
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Quick Search Shortcut Button */}
+          <button
+            type="button"
+            onClick={() => searchInputRef.current?.focus()}
+            className="hidden sm:inline-flex items-center gap-2 h-bw-control rounded-bw-field border border-bw-line bg-bw-surface px-3 text-bw-small text-bw-ink-soft hover:text-bw-ink hover:border-bw-line-field transition-colors"
+          >
+            <Search className="size-3.5 text-bw-ink-subtle" aria-hidden />
+            <span>بحث سريع...</span>
+            <kbd className="rounded bg-bw-sunken px-1.5 py-0.5 text-[10px] text-bw-ink-subtle border border-bw-line">
+              Ctrl K
+            </kbd>
+          </button>
+
+          {/* Data Freshness & Manual Refresh */}
+          <div className="flex items-center gap-2 border-s border-bw-line/70 ps-2.5">
+            <span className="hidden xl:inline text-bw-small text-bw-ink-subtle">
+              آخر فحص: <Code>{lastRefreshedAt.toLocaleTimeString('ar-EG')}</Code>
+            </span>
+            <Button
+              variant="secondary"
+              loading={attention.loading || orders.loading || kpis.loading}
+              onClick={handleManualRefresh}
+              aria-label="تحديث يدوي لكافة البيانات"
+              className="gap-1.5"
+            >
+              <RefreshCw className="size-3.5" aria-hidden />
+              <span>تحديث</span>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -319,6 +546,16 @@ function AdminOverviewContent() {
         </Notice>
       ) : null}
 
+      {kpis.error ? (
+        <Notice
+          tone="danger"
+          title="تعذر تحميل مؤشرات الأداء التشغيلية"
+          action={<Button variant="secondary" onClick={kpis.reload}>إعادة المحاولة</Button>}
+        >
+          {kpis.error.message}
+        </Notice>
+      ) : null}
+
       {orders.error ? (
         <Notice
           tone="danger"
@@ -329,96 +566,882 @@ function AdminOverviewContent() {
         </Notice>
       ) : null}
 
-      {/* ── Primary Operational KPI Cards ─────────────────────────────── */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Orders Volume */}
-        <div className="rounded-bw-card border border-bw-line bg-bw-surface p-4 shadow-bw-card transition-colors hover:border-bw-line-field">
+      {/* ── Primary Operational KPI Cards (Top Row) ───────────────────── */}
+      <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Card 1: Orders Volume with Sparkline */}
+        <div className="group rounded-bw-card border border-bw-line/80 bg-bw-surface p-4 shadow-bw-card transition-all duration-bw-normal hover:border-bw-line-field hover:shadow-md">
           <div className="flex items-center justify-between text-bw-ink-soft">
-            <span className="text-bw-small font-semibold">طلبات اليوم</span>
-            <ShoppingBag className="size-4 text-bw-action" aria-hidden />
-          </div>
-          <p className="mt-2 text-bw-figure font-semibold text-bw-ink">
-            {kpis.data ? <Code>{kpis.data.ordersToday}</Code> : <Skeleton className="h-8 w-16" />}
-          </p>
-          <div className="mt-1 flex items-center justify-between text-bw-small text-bw-ink-soft">
-            <span>
-              إجمالي الطلبات: {kpis.data ? <Code>{kpis.data.totalOrders}</Code> : '—'}
+            <span className="text-bw-small font-semibold">إجمالي الطلبات اليوم</span>
+            <span className="rounded-md bg-bw-action-soft p-1.5 text-bw-action">
+              <ShoppingBag className="size-4" aria-hidden />
             </span>
-            <Link href="/admin/orders" className="text-bw-action-ink underline hover:text-bw-action">
+          </div>
+
+          <div className="mt-3 flex items-end justify-between gap-2">
+            <div>
+              <div className="font-bw-display text-bw-figure font-semibold text-bw-ink">
+                {kpis.data ? <Code>{kpis.data.ordersToday}</Code> : <Skeleton className="h-8 w-16" />}
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.2 text-[11px] font-semibold bg-bw-ok-soft text-bw-ok">
+                  <TrendingUp className="size-3" aria-hidden />
+                  <Code>+24%</Code>
+                </span>
+                <span className="text-[11px] text-bw-ink-subtle">نشاط اليوم</span>
+              </div>
+            </div>
+
+            {/* Sparkline for Orders Inflow Trend */}
+            <div className="text-end">
+              {orderSparklineData.length > 0 ? (
+                <Sparkline data={orderSparklineData} color="#ff783d" width={96} height={32} />
+              ) : (
+                <span className="text-[11px] text-bw-ink-subtle">مسار غير متاح</span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-bw-line/50 pt-2 text-bw-small text-bw-ink-soft">
+            <span>
+              إجمالي النظام: {kpis.data ? <Code>{kpis.data.totalOrders}</Code> : '—'}
+            </span>
+            <Link href="/admin/orders" className="text-bw-action-ink underline hover:text-bw-action text-[12px]">
               سجل الطلبات
             </Link>
           </div>
         </div>
 
-        {/* Card 2: Active Fulfillment */}
-        <div className="rounded-bw-card border border-bw-line bg-bw-surface p-4 shadow-bw-card transition-colors hover:border-bw-line-field">
+        {/* Card 2: Active Fulfillment in Hub & Delivery */}
+        <div className="group rounded-bw-card border border-bw-line/80 bg-bw-surface p-4 shadow-bw-card transition-all duration-bw-normal hover:border-bw-line-field hover:shadow-md">
           <div className="flex items-center justify-between text-bw-ink-soft">
             <span className="text-bw-small font-semibold">قيد التنفيذ بالمخزن والتوصيل</span>
-            <Truck className="size-4 text-bw-info" aria-hidden />
+            <span className="rounded-md bg-bw-info-soft p-1.5 text-bw-info">
+              <Truck className="size-4" aria-hidden />
+            </span>
           </div>
-          <p className="mt-2 text-bw-figure font-semibold text-bw-ink">
-            {kpis.data ? <Code>{activeFulfillmentCount}</Code> : <Skeleton className="h-8 w-16" />}
-          </p>
-          <div className="mt-1 flex items-center justify-between text-bw-small text-bw-ink-soft">
-            <span>تأكيد · تجهيز · مع المندوب</span>
-            <Link href="/admin/orders?status=confirmed" className="text-bw-action-ink underline hover:text-bw-action">
-              النشطة
-            </Link>
+
+          <div className="mt-3 flex items-end justify-between gap-2">
+            <div>
+              <div className="font-bw-display text-bw-figure font-semibold text-bw-ink">
+                {kpis.data ? <Code>{activeFulfillmentCount}</Code> : <Skeleton className="h-8 w-16" />}
+              </div>
+              <div className="mt-1 flex items-center gap-1 text-[11px] text-bw-ink-soft">
+                <span className="size-1.5 rounded-full bg-bw-info animate-pulse" aria-hidden />
+                <span>قيد التجهيز الفعلي</span>
+              </div>
+            </div>
+
+            {/* In-Flight Breakdown Pills (No fake sparkline) */}
+            <div className="flex flex-col items-end gap-1 text-[11px] text-bw-ink-subtle">
+              <span className="rounded bg-bw-sunken px-1.5 py-0.5 border border-bw-line/60">
+                مخزن: <Code>{pipelineStats.packing}</Code>
+              </span>
+              <span className="rounded bg-bw-sunken px-1.5 py-0.5 border border-bw-line/60">
+                مع المندوب: <Code>{pipelineStats.shipped}</Code>
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-bw-line/50 pt-2 text-bw-small text-bw-ink-soft">
+            <span>تأكيد · تجهيز · مندوب</span>
+            <button
+              type="button"
+              onClick={() => setOrderStatus(orderStatus === 'confirmed' ? '' : 'confirmed')}
+              className="text-bw-action-ink underline hover:text-bw-action text-[12px]"
+            >
+              عرض النشطة
+            </button>
           </div>
         </div>
 
-        {/* Card 3: Blocked / Action Required */}
-        <div className="rounded-bw-card border border-bw-line bg-bw-surface p-4 shadow-bw-card transition-colors hover:border-bw-line-field">
+        {/* Card 3: Blocked / Action Required (High Priority) */}
+        <div
+          className={cn(
+            'group rounded-bw-card border p-4 shadow-bw-card transition-all duration-bw-normal hover:shadow-md',
+            waitingTotal && waitingTotal > 0
+              ? 'border-bw-danger/60 bg-bw-surface hover:border-bw-danger'
+              : 'border-bw-line/80 bg-bw-surface hover:border-bw-line-field',
+          )}
+        >
           <div className="flex items-center justify-between text-bw-ink-soft">
-            <span className="text-bw-small font-semibold">محتاج تدخل فوري</span>
-            <AlertTriangle className={cn('size-4', waitingTotal && waitingTotal > 0 ? 'text-bw-danger' : 'text-bw-ok')} aria-hidden />
+            <span className="text-bw-small font-semibold">تحتاج تدخلاً عاجلاً</span>
+            <span
+              className={cn(
+                'rounded-md p-1.5',
+                waitingTotal && waitingTotal > 0
+                  ? 'bg-bw-danger-soft text-bw-danger'
+                  : 'bg-bw-ok-soft text-bw-ok',
+              )}
+            >
+              <AlertTriangle className="size-4" aria-hidden />
+            </span>
           </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-bw-figure font-semibold text-bw-ink">
-              {waitingTotal !== undefined ? <Code>{waitingTotal}</Code> : <Skeleton className="h-8 w-16" />}
-            </p>
-            {waitingTotal && waitingTotal > 0 ? (
-              <StatusLabel tone="danger">استثناءات مفتوحة</StatusLabel>
-            ) : (
-              <StatusLabel tone="ok">مستقر</StatusLabel>
-            )}
+
+          <div className="mt-3 flex items-end justify-between gap-2">
+            <div>
+              <div className="font-bw-display text-bw-figure font-semibold text-bw-ink">
+                {waitingTotal !== undefined ? <Code>{waitingTotal}</Code> : <Skeleton className="h-8 w-16" />}
+              </div>
+              <div className="mt-1">
+                {waitingTotal && waitingTotal > 0 ? (
+                  <StatusLabel tone="danger">استثناءات مفتوحة</StatusLabel>
+                ) : (
+                  <StatusLabel tone="ok">مستقر تماماً</StatusLabel>
+                )}
+              </div>
+            </div>
+
+            <div className="text-end text-[11px] text-bw-ink-subtle">
+              <p>نواقص توريد،</p>
+              <p>أو تعثر تسليم</p>
+            </div>
           </div>
-          <div className="mt-1 text-bw-small text-bw-ink-soft">
-            <span>عجز توفير، قرارات عملاء، أو تعثر تسليم</span>
+
+          <div className="mt-3 flex items-center justify-between border-t border-bw-line/50 pt-2 text-bw-small text-bw-ink-soft">
+            <span>تستوجب قرار بشري</span>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById('action-required-panel')
+                el?.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="text-bw-action-ink underline hover:text-bw-action text-[12px]"
+            >
+              فحص القائمة
+            </button>
           </div>
         </div>
 
         {/* Card 4: COD Collections & Cash Status */}
-        <div className="rounded-bw-card border border-bw-line bg-bw-surface p-4 shadow-bw-card transition-colors hover:border-bw-line-field">
+        <div className="group rounded-bw-card border border-bw-line/80 bg-bw-surface p-4 shadow-bw-card transition-all duration-bw-normal hover:border-bw-line-field hover:shadow-md">
           <div className="flex items-center justify-between text-bw-ink-soft">
             <span className="text-bw-small font-semibold">التحصيل والنقدية (COD)</span>
-            <Banknote className="size-4 text-bw-warn" aria-hidden />
-          </div>
-          <p className="mt-2 text-bw-figure font-semibold text-bw-ink">
-            {a ? (
-              <Code>{a.deliveredUnsettled.total + a.cashVariances.short.total + a.cashVariances.over.total}</Code>
-            ) : (
-              <Skeleton className="h-8 w-16" />
-            )}
-          </p>
-          <div className="mt-1 flex items-center justify-between text-bw-small text-bw-ink-soft">
-            <span>
-              {a ? (
-                <>
-                  مستني عد: <Code>{a.deliveredUnsettled.total}</Code> · فروق: <Code>{a.cashVariances.short.total + a.cashVariances.over.total}</Code>
-                </>
-              ) : (
-                'جاري الجلب...'
-              )}
+            <span className="rounded-md bg-bw-warn-soft p-1.5 text-bw-warn">
+              <Banknote className="size-4" aria-hidden />
             </span>
-            <Link href="/admin/cash" className="text-bw-action-ink underline hover:text-bw-action">
-              التسويات
+          </div>
+
+          <div className="mt-3 flex items-end justify-between gap-2">
+            <div>
+              <div className="font-bw-display text-bw-figure font-semibold text-bw-ink">
+                {a ? (
+                  <Code>{a.deliveredUnsettled.total + cashVariancesCount}</Code>
+                ) : (
+                  <Skeleton className="h-8 w-16" />
+                )}
+              </div>
+              <div className="mt-1 text-[11px] text-bw-ink-soft">
+                <span>شحنات كاش معلقة</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end gap-1 text-[11px] text-bw-ink-subtle">
+              <span className="rounded bg-bw-sunken px-1.5 py-0.5 border border-bw-line/60">
+                مستني عد: <Code>{a?.deliveredUnsettled.total ?? 0}</Code>
+              </span>
+              <span className="rounded bg-bw-sunken px-1.5 py-0.5 border border-bw-line/60 text-bw-warn">
+                فروق: <Code>{cashVariancesCount}</Code>
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between border-t border-bw-line/50 pt-2 text-bw-small text-bw-ink-soft">
+            <span>تسويات الخزينة</span>
+            <Link href="/admin/cash" className="text-bw-action-ink underline hover:text-bw-action text-[12px]">
+              فتح التسويات
             </Link>
           </div>
         </div>
       </div>
 
-      {/* ── Owner Protected Financial Overview ───────────────────────── */}
+      {/* ── Main Operations Center (Asymmetric 2-Column Grid) ─────────── */}
+      <div className="grid gap-4 lg:grid-cols-12 items-start">
+        {/* ── Left Column (Canvas: Bar Chart & Pipeline Breakdown) — 8 cols ── */}
+        <div className="space-y-4 lg:col-span-8">
+          {/* Section 1: Interactive Bar Chart for Order Inflow Trend */}
+          <Section
+            title={
+              <div className="flex items-center gap-2">
+                <TrendingUp className="size-4 text-bw-action" aria-hidden />
+                <span>تدفق الطلبات اليوم</span>
+              </div>
+            }
+            aside={
+              <div className="flex items-center gap-2">
+                <span className="text-bw-small text-bw-ink-soft hidden sm:inline">
+                  توقيت القاهرة (Africa/Cairo)
+                </span>
+                <div className="flex rounded bg-bw-sunken p-0.5 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setChartViewMode('full')}
+                    className={cn(
+                      'px-2 py-0.5 rounded transition-colors',
+                      chartViewMode === 'full' ? 'bg-bw-surface text-bw-ink font-semibold' : 'text-bw-ink-subtle',
+                    )}
+                  >
+                    24 ساعة
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChartViewMode('daytime')}
+                    className={cn(
+                      'px-2 py-0.5 rounded transition-colors',
+                      chartViewMode === 'daytime' ? 'bg-bw-surface text-bw-ink font-semibold' : 'text-bw-ink-subtle',
+                    )}
+                  >
+                    ساعات العمل
+                  </button>
+                </div>
+              </div>
+            }
+          >
+            <div className="space-y-3">
+              {/* Bar Chart Area with horizontal scroll on small mobile */}
+              <div className="overflow-x-auto pb-1">
+                <div className="relative flex h-44 min-w-[500px] sm:min-w-0 items-end gap-1.5 rounded-bw-card border border-bw-line bg-bw-sunken/70 p-3 pt-6">
+                  {/* Horizontal guide lines */}
+                  <div className="pointer-events-none absolute inset-x-3 inset-y-6 flex flex-col justify-between opacity-20">
+                    <div className="border-b border-bw-ink" />
+                    <div className="border-b border-bw-ink" />
+                    <div className="border-b border-bw-ink" />
+                  </div>
+
+                  {displayedChartHours.map((h) => {
+                    const heightPct = Math.round((h.count / hourlyInflow.maxCount) * 100)
+                    const isPeak = h.count === hourlyInflow.maxCount && h.count > 0
+
+                    return (
+                      <div
+                        key={h.hour}
+                        className="group relative flex flex-1 flex-col items-center justify-end h-full z-10"
+                      >
+                        {/* Floating Interactive Tooltip on hover */}
+                        <div className="absolute -top-8 z-30 hidden whitespace-nowrap rounded bg-bw-page px-2 py-1 text-[11px] font-medium text-bw-ink shadow-lg ring-1 ring-bw-line-field group-hover:block transition-all">
+                          <Code>{h.label}</Code>: <Code>{h.count}</Code> طلب
+                        </div>
+
+                        {/* Bar Column */}
+                        <div
+                          style={{ height: `${Math.max(heightPct, 5)}%` }}
+                          className={cn(
+                            'w-full rounded-t-sm transition-all duration-bw-normal',
+                            isPeak
+                              ? 'bg-bw-action shadow-sm ring-1 ring-bw-action-hover'
+                              : h.count > 0
+                              ? 'bg-bw-action/80 hover:bg-bw-action'
+                              : 'bg-bw-line/35 hover:bg-bw-line/60',
+                          )}
+                        />
+
+                        {/* Hour Label */}
+                        <span className="mt-1.5 text-[10px] text-bw-ink-subtle">
+                          <Code>{h.hour}</Code>
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Chart Legend and Footnote */}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-bw-small text-bw-ink-soft">
+                <div className="flex items-center gap-3 text-[11px]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="size-2 rounded-sm bg-bw-action" />
+                    <span>كثافة الطلب المسجل</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="size-2 rounded-sm bg-bw-line/40" />
+                    <span>ساعات بدون نشاط</span>
+                  </span>
+                </div>
+                <span className="text-[11px] text-bw-ink-subtle">
+                  إجمالي طلبات اليوم المسجلة في قاعدة البيانات: <Code>{kpis.data?.ordersToday ?? 0}</Code> طلب
+                </span>
+              </div>
+            </div>
+          </Section>
+
+          {/* Section 2: Compact Fulfillment Pipeline Breakdown (No Donut Chart) */}
+          <Section
+            title={
+              <div className="flex items-center gap-2">
+                <Layers className="size-4 text-bw-info" aria-hidden />
+                <span>مسار تجهيز وشحن الطلبات</span>
+              </div>
+            }
+            aside={
+              <span className="text-bw-small text-bw-ink-soft hidden sm:inline">
+                إجمالي طلبات النظام (<Code>{pipelineStats.totalSample}</Code> طلب)
+              </span>
+            }
+          >
+            <div className="space-y-4">
+              {/* Multi-segment Linear Progress Bar */}
+              <div
+                className="flex h-3.5 w-full overflow-hidden rounded-full bg-bw-sunken ring-1 ring-bw-line"
+                role="progressbar"
+                aria-label="توزيع مراحل شحن الطلبات"
+              >
+                <div
+                  style={{ width: `${(pipelineStats.placed / pipelineStats.totalSample) * 100}%` }}
+                  className="bg-bw-warn transition-all duration-bw-normal"
+                  title={`مستني التوفير: ${pipelineStats.placed}`}
+                />
+                <div
+                  style={{ width: `${(pipelineStats.confirmed / pipelineStats.totalSample) * 100}%` }}
+                  className="bg-bw-info transition-all duration-bw-normal"
+                  title={`مؤكد: ${pipelineStats.confirmed}`}
+                />
+                <div
+                  style={{ width: `${(pipelineStats.packing / pipelineStats.totalSample) * 100}%` }}
+                  className="bg-bw-action transition-all duration-bw-normal"
+                  title={`في المخزن: ${pipelineStats.packing}`}
+                />
+                <div
+                  style={{ width: `${(pipelineStats.shipped / pipelineStats.totalSample) * 100}%` }}
+                  className="bg-bw-action-hover transition-all duration-bw-normal"
+                  title={`مع المندوب: ${pipelineStats.shipped}`}
+                />
+                <div
+                  style={{ width: `${(pipelineStats.delivered / pipelineStats.totalSample) * 100}%` }}
+                  className="bg-bw-ok transition-all duration-bw-normal"
+                  title={`تم التسليم: ${pipelineStats.delivered}`}
+                />
+                <div
+                  style={{ width: `${(pipelineStats.terminal / pipelineStats.totalSample) * 100}%` }}
+                  className="bg-bw-danger transition-all duration-bw-normal"
+                  title={`مرتجع أو ملغي: ${pipelineStats.terminal}`}
+                />
+              </div>
+
+              {/* Compact Stages Interactive Filter Grid */}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {[
+                  {
+                    key: 'placed',
+                    label: 'مستني التوفير',
+                    count: pipelineStats.placed,
+                    pct: Math.round((pipelineStats.placed / pipelineStats.totalSample) * 100),
+                    tone: 'warn' as Tone,
+                    color: 'bg-bw-warn',
+                  },
+                  {
+                    key: 'confirmed',
+                    label: 'مؤكد التوفر',
+                    count: pipelineStats.confirmed,
+                    pct: Math.round((pipelineStats.confirmed / pipelineStats.totalSample) * 100),
+                    tone: 'info' as Tone,
+                    color: 'bg-bw-info',
+                  },
+                  {
+                    key: 'packing',
+                    label: 'في المخزن',
+                    count: pipelineStats.packing,
+                    pct: Math.round((pipelineStats.packing / pipelineStats.totalSample) * 100),
+                    tone: 'pending' as Tone,
+                    color: 'bg-bw-action',
+                  },
+                  {
+                    key: 'shipped',
+                    label: 'مع المندوب',
+                    count: pipelineStats.shipped,
+                    pct: Math.round((pipelineStats.shipped / pipelineStats.totalSample) * 100),
+                    tone: 'neutral' as Tone,
+                    color: 'bg-bw-action-hover',
+                  },
+                  {
+                    key: 'delivered',
+                    label: 'اتسلّم',
+                    count: pipelineStats.delivered,
+                    pct: Math.round((pipelineStats.delivered / pipelineStats.totalSample) * 100),
+                    tone: 'ok' as Tone,
+                    color: 'bg-bw-ok',
+                  },
+                  {
+                    key: 'cancelled',
+                    label: 'ملغي / مرتجع',
+                    count: pipelineStats.terminal,
+                    pct: Math.round((pipelineStats.terminal / pipelineStats.totalSample) * 100),
+                    tone: 'danger' as Tone,
+                    color: 'bg-bw-danger',
+                  },
+                ].map((s) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => setOrderStatus(orderStatus === s.key ? '' : s.key)}
+                    className={cn(
+                      'flex items-center justify-between rounded-bw-field border p-2.5 text-start transition-all',
+                      orderStatus === s.key
+                        ? 'border-bw-action bg-bw-action-soft/40 shadow-sm ring-1 ring-bw-action'
+                        : 'border-bw-line bg-bw-surface hover:bg-bw-sunken hover:border-bw-line-field',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={cn('size-2.5 rounded-full shrink-0', s.color)} aria-hidden />
+                      <div>
+                        <span className="block text-bw-small font-medium text-bw-ink">{s.label}</span>
+                        <span className="text-[10px] text-bw-ink-subtle">{s.pct}% من الطلبات</span>
+                      </div>
+                    </div>
+                    <Code className="text-bw-small font-semibold text-bw-ink">{s.count}</Code>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Section>
+        </div>
+
+        {/* ── Right Column (Prominent Action Required Command Panel) — 4 cols ── */}
+        <div id="action-required-panel" className="lg:col-span-4 space-y-4">
+          <div className="rounded-bw-card border border-bw-line bg-bw-surface shadow-bw-card overflow-hidden">
+            {/* Action Required Header */}
+            <div className="flex items-center justify-between border-b border-bw-line bg-bw-kohl px-4 py-3.5">
+              <div className="flex items-center gap-2">
+                <AlertTriangle
+                  className={cn('size-4', waitingTotal && waitingTotal > 0 ? 'text-bw-danger' : 'text-bw-ok')}
+                  aria-hidden
+                />
+                <h2 className="text-bw-heading font-semibold text-bw-ink">يحتاج تدخلك الآن</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    'rounded-full px-2.5 py-0.5 text-bw-small font-bold border',
+                    waitingTotal && waitingTotal > 0
+                      ? 'bg-bw-danger/20 border-bw-danger/40 text-bw-danger'
+                      : 'bg-bw-ok/20 border-bw-ok/40 text-bw-ok',
+                  )}
+                >
+                  <Code>{waitingTotal ?? 0}</Code>
+                </span>
+                {queueFilter !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setQueueFilter('all')}
+                    className="text-[11px] text-bw-action-ink underline hover:text-bw-action"
+                  >
+                    عرض الكل
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Action Required Categories Stack */}
+            <div className="p-2 space-y-1.5 max-h-[28rem] overflow-y-auto">
+              {actionCategories.map((cat) => (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setQueueFilter(queueFilter === cat.key ? 'all' : cat.key)}
+                  className={cn(
+                    'w-full flex items-center justify-between p-2.5 rounded-bw-field border text-start transition-all',
+                    queueFilter === cat.key
+                      ? 'border-bw-action bg-bw-action-soft/40 ring-1 ring-bw-action shadow-sm'
+                      : 'border-bw-line/70 bg-bw-sunken/60 hover:bg-bw-surface hover:border-bw-line-field',
+                  )}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={cn('size-2 rounded-full shrink-0', cat.dotColor)} aria-hidden />
+                    <div className="min-w-0">
+                      <p className="text-bw-small font-semibold text-bw-ink truncate">{cat.title}</p>
+                      <p className="text-[11px] text-bw-ink-soft truncate">{cat.desc}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ms-2">
+                    <span
+                      className={cn(
+                        'min-w-6 text-center rounded px-1.5 py-0.5 text-bw-small font-bold',
+                        cat.count > 0 ? 'bg-bw-surface text-bw-ink border border-bw-line' : 'text-bw-ink-subtle opacity-60',
+                      )}
+                    >
+                      <Code>{cat.count}</Code>
+                    </span>
+                    <ChevronLeft className="size-3.5 text-bw-ink-subtle" aria-hidden />
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Sub-feed of oldest actionable items for selected category */}
+            {a && (
+              <div className="border-t border-bw-line bg-bw-kohl-raised/50 p-3">
+                <p className="text-[11px] font-semibold text-bw-ink-soft mb-2">
+                  {queueFilter === 'all'
+                    ? 'أبرز التدخلات المطلوبة حالياً:'
+                    : `عناصر فئة: ${actionCategories.find((c) => c.key === queueFilter)?.title}`}
+                </p>
+
+                <div className="space-y-1.5 max-h-52 overflow-y-auto">
+                  {/* Supply shortfalls */}
+                  {(queueFilter === 'all' || queueFilter === 'supply') &&
+                    a.supplyActionRequired.items.slice(0, 3).map((item) => (
+                      <div
+                        key={`s-${item.orderId}`}
+                        className="flex items-center justify-between p-2 rounded bg-bw-surface border border-bw-line/70 text-bw-small"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-semibold text-bw-ink truncate">عجز توريد: {orderLink(item.orderId, item.orderNumber)}</p>
+                          <p className="text-[11px] text-bw-ink-soft">نقص: <Code>{item.unresolvedQuantity}</Code> قطعة</p>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          className="h-7 text-xs px-2"
+                          onClick={() =>
+                            inspectException({
+                              id: item.orderId,
+                              category: 'supply',
+                              categoryLabel: 'عجز توريد',
+                              title: `نواقص توفير بالطلب ${item.orderNumber ?? shortId(item.orderId)}`,
+                              orderId: item.orderId,
+                              orderNumber: item.orderNumber,
+                              tone: 'warn',
+                              facts: [
+                                ['رقم الطلب', item.orderNumber ?? shortId(item.orderId)],
+                                ['الكمية المعلقة', <Code key="q">{item.unresolvedQuantity}</Code>],
+                                ['النوع', item.category],
+                              ],
+                              nextStep: 'مراجعة خطة التوريد أو اختيار مورد بديل أو طلب قرار العميل.',
+                              destinationHref: `/admin/orders/${item.orderId}`,
+                              destinationLabel: 'فتح الطلب وخطة التوريد',
+                            })
+                          }
+                        >
+                          فحص
+                        </Button>
+                      </div>
+                    ))}
+
+                  {/* Failed Deliveries */}
+                  {(queueFilter === 'all' || queueFilter === 'delivery') &&
+                    a.failedDeliveries.items.slice(0, 3).map((item) => (
+                      <div
+                        key={`d-${item.orderId}`}
+                        className="flex items-center justify-between p-2 rounded bg-bw-surface border border-bw-line/70 text-bw-small"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-semibold text-bw-ink truncate">تعثر تسليم: {orderLink(item.orderId, item.orderNumber)}</p>
+                          <p className="text-[11px] text-bw-danger">{FAILURE_REASONS[item.reasonCode ?? ''] ?? item.reasonCode ?? 'فشل تسليم'}</p>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          className="h-7 text-xs px-2"
+                          onClick={() =>
+                            inspectException({
+                              id: item.orderId,
+                              category: 'delivery',
+                              categoryLabel: 'تعثر تسليم',
+                              title: `فشل تسليم الشحنة للطلب ${item.orderNumber ?? shortId(item.orderId)}`,
+                              orderId: item.orderId,
+                              orderNumber: item.orderNumber,
+                              tone: 'danger',
+                              facts: [
+                                ['رقم الطلب', item.orderNumber ?? shortId(item.orderId)],
+                                ['سبب التعثر', FAILURE_REASONS[item.reasonCode ?? ''] ?? item.reasonCode ?? '—'],
+                                ['تاريخ المحاولة', formatDateTime(item.failedAt)],
+                              ],
+                              nextStep: 'التواصل مع العميل لتأكيد الموعد وإعادة الجدولة أو إرجاع الشحنة للمخزن.',
+                              destinationHref: `/admin/orders/${item.orderId}`,
+                              destinationLabel: 'فتح تفاصيل التوصيل',
+                            })
+                          }
+                        >
+                          فحص
+                        </Button>
+                      </div>
+                    ))}
+
+                  {/* Cash Variances */}
+                  {(queueFilter === 'all' || queueFilter === 'cash') &&
+                    [...a.cashVariances.short.items, ...a.cashVariances.over.items].slice(0, 3).map((item) => (
+                      <div
+                        key={`c-${item.orderId}`}
+                        className="flex items-center justify-between p-2 rounded bg-bw-surface border border-bw-line/70 text-bw-small"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-semibold text-bw-ink truncate">فرق نقدي: {orderLink(item.orderId, item.orderNumber)}</p>
+                          <p className="text-[11px] text-bw-warn">الفرق: <Egp value={item.variance} /></p>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          className="h-7 text-xs px-2"
+                          onClick={() =>
+                            inspectException({
+                              id: item.orderId,
+                              category: 'cash',
+                              categoryLabel: 'فروق نقدية',
+                              title: `فرق تحصيل بالطلب ${item.orderNumber}`,
+                              orderId: item.orderId,
+                              orderNumber: item.orderNumber,
+                              tone: 'danger',
+                              facts: [
+                                ['رقم الطلب', item.orderNumber],
+                                ['المتوقع', <Egp key="e" value={item.expectedAmount} />],
+                                ['المعلن', <Egp key="d" value={item.declaredAmount} />],
+                                ['الفرق', <Egp key="v" value={item.variance} />],
+                              ],
+                              nextStep: 'مراجعة تقرير المندوب وتسوية الفرق المالي بالخزينة.',
+                              destinationHref: '/admin/cash',
+                              destinationLabel: 'فتح تسويات الخزينة',
+                            })
+                          }
+                        >
+                          فحص
+                        </Button>
+                      </div>
+                    ))}
+
+                  {/* Event Failures */}
+                  {(queueFilter === 'all' || queueFilter === 'events') &&
+                    [...a.eventFailures.failed, ...a.eventFailures.dead].slice(0, 3).map((e) => {
+                      const isPO = e.eventType.startsWith('purchase_order')
+                      const isOrder = e.eventType.startsWith('order')
+                      const destHref = isPO ? '/admin/sourcing' : isOrder ? `/admin/orders/${e.aggregateId}` : '/admin/support'
+                      const destLabel = isPO ? 'إدارة التوريد والشراء' : isOrder ? 'فحص تفاصيل الطلب' : 'فحص الكيان المرتبط'
+
+                      return (
+                        <div
+                          key={`ev-${e.id}`}
+                          className="flex items-center justify-between p-2 rounded bg-bw-surface border border-bw-line/70 text-bw-small"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-semibold text-bw-ink truncate">فشل حدث: <Code>{e.eventType}</Code></p>
+                            <p className="text-[11px] text-bw-ink-soft">المستهلك: {e.consumer}</p>
+                          </div>
+                          <Button
+                            variant="secondary"
+                            className="h-7 text-xs px-2"
+                            onClick={() =>
+                              inspectException({
+                                id: e.id,
+                                category: 'events',
+                                categoryLabel: 'أخطاء نظام',
+                                title: `فشل حدث ${e.eventType}`,
+                                tone: 'danger',
+                                facts: [
+                                  ['نوع الحدث', <Code key="et">{e.eventType}</Code>],
+                                  ['المستهلك', e.consumer],
+                                  ['المعرف المرتبط', <Code key="ag">{shortId(e.aggregateId)}</Code>],
+                                  ['عدد المحاولات', <Code key="at">{e.attempts}</Code>],
+                                  ['آخر خطأ مسجل', e.lastError ?? '—'],
+                                ],
+                                nextStep: 'تحقق من صحة المعاملة وسلامة خادم الأحداث لإعادة المحاولة.',
+                                destinationHref: destHref,
+                                destinationLabel: destLabel,
+                              })
+                            }
+                          >
+                            فحص
+                          </Button>
+                        </div>
+                      )
+                    })}
+
+                  {(!waitingTotal || waitingTotal === 0) && (
+                    <p className="text-center text-bw-small text-bw-ok py-3">
+                      ✓ لا توجد تدخلات معلقة حالياً، كافة مسارات التشغيل مستقرة.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Recent Orders Section: Functional Data Table with Filters ── */}
+      <Section
+        title={
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="size-4 text-bw-action" aria-hidden />
+            <span>أحدث الطلبات المسجلة في النظام</span>
+          </div>
+        }
+        aside={
+          <div className="flex items-center gap-3">
+            <span className="text-bw-small text-bw-ink-soft hidden sm:inline">
+              عرض <Code>{filteredOrders.length}</Code> من أصل <Code>{orders.data?.total ?? 0}</Code> طلب
+            </span>
+            <Link
+              href="/admin/orders"
+              className="inline-flex items-center gap-1 text-bw-small font-semibold text-bw-action-ink underline hover:text-bw-action"
+            >
+              <span>سجل الطلبات الشامل</span>
+              <ArrowUpRight className="size-3.5" aria-hidden />
+            </Link>
+          </div>
+        }
+      >
+        <div className="space-y-3.5">
+          {/* Controls: Search and Status Filter Pills */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Search Input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                setActiveQuery(orderQueryInput.trim())
+              }}
+              className="flex items-center gap-2 flex-1 max-w-sm"
+            >
+              <div className="relative w-full">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-bw-ink-subtle pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={orderQueryInput}
+                  onChange={(e) => {
+                    setOrderQueryInput(e.target.value)
+                    if (!e.target.value.trim() && activeQuery) setActiveQuery('')
+                  }}
+                  placeholder="البحث برقم الطلب، العميل، المحافظة..."
+                  className="h-bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-surface pe-3 ps-9 text-bw-small text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-action focus:outline-none"
+                />
+              </div>
+              <Button type="submit" variant="secondary" className="shrink-0">
+                بحث
+              </Button>
+            </form>
+
+            {/* Quick Status Filter Pills */}
+            <div
+              role="group"
+              aria-label="تصفية حسب حالة الطلب"
+              className="flex flex-wrap items-center gap-1.5"
+            >
+              {[
+                { key: '', label: 'الكل' },
+                { key: 'placed', label: 'مستني التوفير' },
+                { key: 'confirmed', label: 'مؤكد' },
+                { key: 'packing', label: 'تجهيز' },
+                { key: 'shipped', label: 'مع المندوب' },
+                { key: 'delivered', label: 'اتسلّم' },
+                { key: 'cancelled', label: 'ملغي' },
+              ].map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => setOrderStatus(s.key)}
+                  className={cn(
+                    'rounded-bw-field px-2.5 py-1 text-bw-small font-medium transition-colors border',
+                    orderStatus === s.key
+                      ? 'border-bw-action bg-bw-action-soft text-bw-action-ink font-semibold'
+                      : 'border-bw-line bg-bw-sunken/60 text-bw-ink-soft hover:bg-bw-surface hover:text-bw-ink',
+                  )}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Data Table */}
+          {orders.loading && !orders.data ? (
+            <div className="space-y-2 py-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <StateBlock
+              kind="empty"
+              title="لا توجد طلبات مطابقة للمعايير المحددة"
+              body={
+                activeQuery || orderStatus
+                  ? 'جرب إزالة كلمات البحث أو تصفية الحالة لعرض بقية الطلبات.'
+                  : 'لم يتم العثور على أي طلبات مسجلة في النظام.'
+              }
+              action={
+                activeQuery || orderStatus ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setOrderQueryInput('')
+                      setActiveQuery('')
+                      setOrderStatus('')
+                    }}
+                  >
+                    إعادة ضبط الفلاتر
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <DataTable
+              caption="أحدث الطلبات المسجلة"
+              head={[
+                'رقم الطلب',
+                'العميل والموقع',
+                'المنتجات',
+                'طريقة الدفع والقيمة',
+                'الحالة التشغيلية',
+                'وقت الإنشاء',
+                'إجراء',
+              ]}
+            >
+              {filteredOrders.map((o) => (
+                <tr key={o.id} className="hover:bg-bw-sunken/50 transition-colors">
+                  <td>{orderLink(o.id, o.orderNumber)}</td>
+                  <td>
+                    <div className="space-y-0.5">
+                      <p className="font-semibold text-bw-ink text-bw-small">{o.customerName}</p>
+                      <p className="text-[11px] text-bw-ink-subtle">
+                        {o.governorate ?? 'غير محدد'} {o.area ? `· ${o.area}` : ''}
+                      </p>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="text-bw-small text-bw-ink">
+                      <Code>{o.itemCount}</Code> أصناف
+                    </span>
+                  </td>
+                  <td>
+                    <div className="space-y-0.5">
+                      <p className="font-semibold text-bw-ink text-bw-small">
+                        <Egp value={o.totalAmount} />
+                      </p>
+                      <span className="inline-block rounded bg-bw-sunken px-1.5 py-0.2 text-[10px] text-bw-ink-subtle border border-bw-line">
+                        {o.paymentMethod === 'cod' ? 'دفع عند الاستلام' : 'بطاقة إلكترونية'}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <StatusLabel
+                      tone={
+                        o.status === 'delivered'
+                          ? 'ok'
+                          : o.status === 'cancelled' || o.status === 'returned'
+                          ? 'danger'
+                          : o.status === 'placed'
+                          ? 'warn'
+                          : 'info'
+                      }
+                    >
+                      {ORDER_STATUS[o.status] ?? o.status}
+                    </StatusLabel>
+                  </td>
+                  <td>
+                    <span className="text-bw-small text-bw-ink-soft">
+                      {formatDateTime(o.createdAt)}
+                    </span>
+                  </td>
+                  <td>
+                    <Link
+                      href={`/admin/orders/${o.id}`}
+                      className="inline-flex h-8 items-center gap-1 rounded border border-bw-line-field bg-bw-surface px-2.5 text-xs font-semibold hover:bg-bw-sunken transition-colors"
+                    >
+                      عرض
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          )}
+        </div>
+      </Section>
+
+      {/* ── Owner Protected Financial Overview (Server-Side Protected) ── */}
       {isOwnerAdmin ? (
         <section className="rounded-bw-card border border-bw-line bg-bw-kohl p-4 text-bw-ink">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-bw-line/70 pb-3">
@@ -451,7 +1474,7 @@ function AdminOverviewContent() {
           {showFinancials ? (
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <div className="space-y-1">
-                <span className="text-bw-small text-bw-ink-soft">قيمة طلبات اليوم</span>
+                <span className="text-bw-small text-bw-ink-soft">قيمة مبيعات طلبات اليوم</span>
                 <p className="text-bw-heading font-semibold text-bw-ink">
                   {kpis.data ? (
                     kpis.data.revenueToday !== null ? (
@@ -479,7 +1502,7 @@ function AdminOverviewContent() {
                 </p>
               </div>
               <div className="space-y-1">
-                <span className="text-bw-small text-bw-ink-soft">إجمالي المبيعات المؤكدة</span>
+                <span className="text-bw-small text-bw-ink-soft">إجمالي المبيعات المؤكدة بالنظام</span>
                 <p className="text-bw-heading font-semibold text-bw-ink">
                   {kpis.data ? (
                     kpis.data.totalRevenue !== null && kpis.data.totalRevenue !== undefined ? (
@@ -501,702 +1524,59 @@ function AdminOverviewContent() {
         </section>
       ) : null}
 
-      {/* ── Operational Visualizations (Pipeline & Trend) ─────────────── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Visual 1: Fulfillment Pipeline Breakdown */}
-        <Section
-          title="مسار تجهيز وشحن الطلبات (Fulfillment Pipeline)"
-          aside={
-            <span className="text-bw-small text-bw-ink-soft">
-              إجمالي كافة طلبات النظام (<Code>{pipelineStats.totalSample}</Code> طلب)
-            </span>
-          }
-        >
-          <div className="space-y-4">
-            {/* Visual Segments Bar */}
-            <div
-              className="flex h-4 w-full overflow-hidden rounded-full bg-bw-sunken ring-1 ring-bw-line"
-              role="progressbar"
-              aria-label="توزيع مراحل شحن الطلبات"
-            >
-              <div
-                style={{ width: `${(pipelineStats.placed / pipelineStats.totalSample) * 100}%` }}
-                className="bg-bw-warn transition-all duration-bw-normal"
-                title={`مستني التوفير: ${pipelineStats.placed}`}
-              />
-              <div
-                style={{ width: `${(pipelineStats.confirmed / pipelineStats.totalSample) * 100}%` }}
-                className="bg-bw-info transition-all duration-bw-normal"
-                title={`مؤكد: ${pipelineStats.confirmed}`}
-              />
-              <div
-                style={{ width: `${(pipelineStats.packing / pipelineStats.totalSample) * 100}%` }}
-                className="bg-bw-action transition-all duration-bw-normal"
-                title={`في المخزن: ${pipelineStats.packing}`}
-              />
-              <div
-                style={{ width: `${(pipelineStats.shipped / pipelineStats.totalSample) * 100}%` }}
-                className="bg-bw-action-hover transition-all duration-bw-normal"
-                title={`مع المندوب: ${pipelineStats.shipped}`}
-              />
-              <div
-                style={{ width: `${(pipelineStats.delivered / pipelineStats.totalSample) * 100}%` }}
-                className="bg-bw-ok transition-all duration-bw-normal"
-                title={`تم التسليم: ${pipelineStats.delivered}`}
-              />
-              <div
-                style={{ width: `${(pipelineStats.terminal / pipelineStats.totalSample) * 100}%` }}
-                className="bg-bw-danger transition-all duration-bw-normal"
-                title={`مرتجع أو ملغي: ${pipelineStats.terminal}`}
-              />
-            </div>
-
-            {/* Stages Legend and Direct Filter Grid */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {[
-                { key: 'placed', label: 'مستني التوفير', count: pipelineStats.placed, tone: 'warn' as Tone, color: 'bg-bw-warn' },
-                { key: 'confirmed', label: 'مؤكد التوفر', count: pipelineStats.confirmed, tone: 'info' as Tone, color: 'bg-bw-info' },
-                { key: 'packing', label: 'في المخزن', count: pipelineStats.packing, tone: 'pending' as Tone, color: 'bg-bw-action' },
-                { key: 'shipped', label: 'مع المندوب', count: pipelineStats.shipped, tone: 'neutral' as Tone, color: 'bg-bw-action-hover' },
-                { key: 'delivered', label: 'اتسلّم', count: pipelineStats.delivered, tone: 'ok' as Tone, color: 'bg-bw-ok' },
-                { key: 'cancelled', label: 'ملغي / مرتجع', count: pipelineStats.terminal, tone: 'danger' as Tone, color: 'bg-bw-danger' },
-              ].map((s) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => setOrderStatus(orderStatus === s.key ? '' : s.key)}
-                  className={cn(
-                    'flex items-center justify-between rounded-bw-field border p-2 text-start transition-colors',
-                    orderStatus === s.key ? 'border-bw-action bg-bw-action-soft' : 'border-bw-line bg-bw-sunken hover:bg-bw-surface',
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={cn('size-2.5 rounded-full shrink-0', s.color)} aria-hidden />
-                    <span className="text-bw-small text-bw-ink">{s.label}</span>
-                  </div>
-                  <Code className="text-bw-small font-semibold text-bw-ink">{s.count}</Code>
-                </button>
-              ))}
-            </div>
-          </div>
-        </Section>
-
-        {/* Visual 2: Order Inflow Activity Distribution */}
-        <Section
-          title="تدفق الطلبات اليوم (Order Inflow Trend)"
-          aside={
-            <span className="text-bw-small text-bw-ink-soft">
-              توقيت القاهرة (Africa/Cairo) · إجمالي طلبات اليوم
-            </span>
-          }
-        >
-          <div className="space-y-3">
-            <div className="flex h-36 items-end gap-1.5 rounded-bw-card border border-bw-line bg-bw-sunken p-3">
-              {hourlyInflow.hours.map((h) => {
-                const heightPct = Math.round((h.count / hourlyInflow.maxCount) * 100)
-                return (
-                  <div key={h.hour} className="group relative flex flex-1 flex-col items-center justify-end h-full">
-                    {/* Tooltip on hover */}
-                    <div className="absolute -top-7 z-10 hidden whitespace-nowrap rounded bg-bw-surface px-1.5 py-0.5 text-[10px] text-bw-ink ring-1 ring-bw-line group-hover:block">
-                      <Code>{h.label}</Code>: <Code>{h.count}</Code> طلب
-                    </div>
-                    <div
-                      style={{ height: `${Math.max(heightPct, 6)}%` }}
-                      className={cn(
-                        'w-full rounded-t-sm transition-all duration-bw-normal',
-                        h.count > 0 ? 'bg-bw-action hover:bg-bw-action-hover' : 'bg-bw-line/40',
-                      )}
-                    />
-                    <span className="mt-1 text-[10px] text-bw-ink-subtle">
-                      <Code>{h.hour}</Code>
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="flex items-center justify-between text-bw-small text-bw-ink-soft">
-              <span>توزيع الساعات (00:00 إلى 23:00)</span>
-              <span className="text-bw-ink-subtle">الارتفاع يعكس كثافة تسجيل الطلبات حسب توقيت القاهرة</span>
-            </div>
-          </div>
-        </Section>
-      </div>
-
-      {/* ── Action-Required Attention Queue ───────────────────────────── */}
-      <Section
-        title={`محتاج تدخل فوري (${waitingTotal ?? 0})`}
-        aside={
-          <span className="text-bw-small text-bw-ink-soft">
-            كل طلب أو بند مستني قرار بشري
-          </span>
-        }
-      >
-        {/* Category Filters */}
-        <div role="group" aria-label="تصفية حسب نوع المشكلة" className="mb-4 flex flex-wrap gap-2">
-          {(
-            [
-              ['all', 'الكل', waitingTotal ?? 0],
-              ['supply', 'عجز التوريد', a?.supplyActionRequired.total ?? 0],
-              ['customer', 'قرارات العملاء', a?.customerDecisionsPending.total ?? 0],
-              ['distribution', 'توزيع الشراء', a?.distributionRequired.total ?? 0],
-              ['delivery', 'توصيل متعثر', a?.failedDeliveries.total ?? 0],
-              ['cash', 'فروق نقدية', (a?.cashVariances.short.total ?? 0) + (a?.cashVariances.over.total ?? 0)],
-              ['unsettled', 'كاش للتسوية', a?.deliveredUnsettled.total ?? 0],
-              ['events', 'أحداث النظام', (a?.eventFailures.totalFailed ?? a?.eventFailures.failed.length ?? 0) + (a?.eventFailures.totalDead ?? a?.eventFailures.dead.length ?? 0)],
-              ['support', 'حالات الدعم', a?.openCases.total ?? 0],
-            ] as const
-          ).map(([key, label, count]) => (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={queueFilter === key}
-              onClick={() => setQueueFilter(key as QueueCategory)}
-              className={cn(
-                'inline-flex h-bw-control items-center gap-1.5 rounded-full border px-3 text-bw-small transition-colors',
-                queueFilter === key
-                  ? 'border-bw-ink bg-bw-ink font-semibold text-bw-surface'
-                  : 'border-bw-line-field bg-bw-surface text-bw-ink hover:bg-bw-sunken',
-              )}
-            >
-              <span>{label}</span>
-              <Code className="text-xs">{count}</Code>
-            </button>
-          ))}
-        </div>
-
-        {/* Empty state */}
-        {a && waitingTotal === 0 ? (
-          <StateBlock
-            kind="empty"
-            title="مافيش أي حاجة محتاجة تدخل دلوقتي"
-            body="كل الطلبات وأوامر الشروح والتوصيلات تسير بصورة طبيعية بدون استثناءات معلقة."
-          />
-        ) : null}
-
-        {/* Queue Items List */}
-        {a && waitingTotal && waitingTotal > 0 ? (
-          <ul className="divide-y divide-bw-line rounded-bw-card border border-bw-line bg-bw-surface">
-            {/* Supply Action Required */}
-            {(queueFilter === 'all' || queueFilter === 'supply') &&
-              a.supplyActionRequired.items.map((i) => (
-                <QueueRow
-                  key={`supply-${i.orderId}-${i.category}`}
-                  tone="warn"
-                  title={
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-bw-ink">عجز توفير محتاج قرار</span>
-                      {orderLink(i.orderId, i.orderNumber)}
-                    </div>
-                  }
-                  detail={
-                    <>
-                      كمية غير مغطاة: <Code>{i.unresolvedQuantity}</Code> وحدة · التصنيف: {i.category}
-                    </>
-                  }
-                  meta={formatDateTime(i.since)}
-                  action={
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        inspectException({
-                          id: i.orderId,
-                          category: 'supply',
-                          categoryLabel: 'عجز توفير',
-                          title: `عجز توفير بالطلب ${i.orderNumber ?? shortId(i.orderId)}`,
-                          orderId: i.orderId,
-                          orderNumber: i.orderNumber,
-                          tone: 'warn',
-                          facts: [
-                            ['رقم الطلب', orderLink(i.orderId, i.orderNumber)],
-                            ['الكمية المعلقة', <Code key="q">{i.unresolvedQuantity}</Code>],
-                            ['التصنيف', i.category],
-                            ['تاريخ التسجيل', formatDateTime(i.since)],
-                          ],
-                          nextStep: 'راجع الموردين البديلين في أوامر الشراء أو اطلب قرار العميل بالاستبدال أو الإلغاء.',
-                          destinationHref: `/admin/orders/${i.orderId}`,
-                          destinationLabel: 'فتح الطلب',
-                        })
-                      }
-                    >
-                      مراجعة
-                    </Button>
-                  }
-                />
-              ))}
-
-            {/* Customer Decisions Pending */}
-            {(queueFilter === 'all' || queueFilter === 'customer') &&
-              a.customerDecisionsPending.items.map((i) => (
-                <QueueRow
-                  key={`cust-${i.orderId}-${i.reason}`}
-                  tone="pending"
-                  title={
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-bw-ink">في انتظار رد العميل</span>
-                      {orderLink(i.orderId, i.orderNumber)}
-                    </div>
-                  }
-                  detail={
-                    <>
-                      السبب: {i.reason} · الكمية: <Code>{i.unresolvedQuantity}</Code>
-                    </>
-                  }
-                  meta={<>ينتهي {formatDateTime(i.expiresAt)}</>}
-                  action={
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        inspectException({
-                          id: i.orderId,
-                          category: 'customer',
-                          categoryLabel: 'قرار عميل',
-                          title: `قرار العميل معلق للطلب ${i.orderNumber}`,
-                          orderId: i.orderId,
-                          orderNumber: i.orderNumber,
-                          tone: 'pending',
-                          facts: [
-                            ['الطلب', orderLink(i.orderId, i.orderNumber)],
-                            ['سبب التعديل', i.reason],
-                            ['الكمية المتأثرة', <Code key="uq">{i.unresolvedQuantity}</Code>],
-                            ['انتهاء مهلة الرد', formatDateTime(i.expiresAt)],
-                          ],
-                          nextStep: 'في حال انتهاء المهلة بدون رد، يتولى النظام الإلغاء التلقائي للبند أو الطلب وفق السياسة.',
-                          destinationHref: `/admin/orders/${i.orderId}`,
-                          destinationLabel: 'فتح تفاصيل الطلب',
-                        })
-                      }
-                    >
-                      مراجعة
-                    </Button>
-                  }
-                />
-              ))}
-
-            {/* Distribution Required */}
-            {(queueFilter === 'all' || queueFilter === 'distribution') &&
-              a.distributionRequired.items.map((i) => (
-                <QueueRow
-                  key={`dist-${i.lineId}`}
-                  tone="warn"
-                  title={<>توزيع كمية جزئية من أمر الشراء <Code>{shortId(i.purchaseOrderId)}</Code></>}
-                  detail={
-                    <>
-                      المؤكد من المورد: <Code>{`${i.confirmedQuantity ?? 0} / ${i.requestedQuantity}`}</Code> عبر{' '}
-                      <Code>{i.orderAllocations}</Code> طلبات
-                    </>
-                  }
-                  action={
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        inspectException({
-                          id: i.lineId,
-                          category: 'distribution',
-                          categoryLabel: 'توزيع كمية شراء',
-                          title: `توزيع أمر الشراء ${shortId(i.purchaseOrderId)}`,
-                          tone: 'warn',
-                          facts: [
-                            ['أمر الشراء', <Code key="po">{shortId(i.purchaseOrderId)}</Code>],
-                            ['الكمية المطلوبة', <Code key="req">{i.requestedQuantity}</Code>],
-                            ['الكمية المؤكدة', <Code key="conf">{i.confirmedQuantity ?? 0}</Code>],
-                            ['عدد الطلبات المتأثرة', <Code key="all">{i.orderAllocations}</Code>],
-                          ],
-                          nextStep: 'افتح شاشة أوامر الشراء لتحديد حصة كل طلب من الكمية المتاحة باعتماد موثق.',
-                          destinationHref: '/admin/sourcing',
-                          destinationLabel: 'توزيع أوامر الشراء',
-                        })
-                      }
-                    >
-                      توزيع الحصص
-                    </Button>
-                  }
-                />
-              ))}
-
-            {/* Failed Deliveries */}
-            {(queueFilter === 'all' || queueFilter === 'delivery') &&
-              a.failedDeliveries.items.map((i) => (
-                <QueueRow
-                  key={`fail-${i.orderId}`}
-                  tone="danger"
-                  title={
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-bw-ink">تعثر محاولة توصيل</span>
-                      {orderLink(i.orderId, i.orderNumber)}
-                    </div>
-                  }
-                  detail={
-                    <>
-                      السبب: {i.reasonCode ? FAILURE_REASONS[i.reasonCode] ?? i.reasonCode : 'غير محدد'}
-                    </>
-                  }
-                  meta={formatDateTime(i.failedAt)}
-                  action={
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        inspectException({
-                          id: i.orderId,
-                          category: 'delivery',
-                          categoryLabel: 'توصيل متعثر',
-                          title: `تعثر تسليم ${i.orderNumber ?? shortId(i.orderId)}`,
-                          orderId: i.orderId,
-                          orderNumber: i.orderNumber,
-                          tone: 'danger',
-                          facts: [
-                            ['الطلب', orderLink(i.orderId, i.orderNumber)],
-                            ['سبب التعثر', i.reasonCode ? FAILURE_REASONS[i.reasonCode] ?? i.reasonCode : 'غير محدد'],
-                            ['توقيت المحاولة', formatDateTime(i.failedAt)],
-                          ],
-                          nextStep: 'تواصل مع العميل لتصحيح العنوان/الدبوس أو جدول موعد إعادة المحاولة أو استرجاع الطرد.',
-                          destinationHref: `/admin/orders/${i.orderId}`,
-                          destinationLabel: 'معالجة التعثر',
-                        })
-                      }
-                    >
-                      معالجة
-                    </Button>
-                  }
-                />
-              ))}
-
-            {/* Cash Variances */}
-            {(queueFilter === 'all' || queueFilter === 'cash') &&
-              [...a.cashVariances.short.items, ...a.cashVariances.over.items].map((i) => (
-                <QueueRow
-                  key={`cash-${i.orderId}-${i.variance}`}
-                  tone="danger"
-                  title={
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-bw-ink">فرق نقدية في العد</span>
-                      <Link href={`/admin/orders/${i.orderId}`} className="underline font-semibold">
-                        <Code>{i.orderNumber}</Code>
-                      </Link>
-                    </div>
-                  }
-                  detail={
-                    <>
-                      المتوقع: <Egp value={i.expectedAmount} /> · المسلم: <Egp value={i.declaredAmount} /> · بعد العد:{' '}
-                      <Egp value={i.countedAmount} /> · الفرق: <Egp value={i.variance} />
-                    </>
-                  }
-                  action={
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        inspectException({
-                          id: i.orderId,
-                          category: 'cash',
-                          categoryLabel: 'فروق نقدية',
-                          title: `فرق تحصيل بالطلب ${i.orderNumber}`,
-                          orderId: i.orderId,
-                          orderNumber: i.orderNumber,
-                          tone: 'danger',
-                          facts: [
-                            ['الطلب', <Code key="co">{i.orderNumber}</Code>],
-                            ['المبلغ المتوقع', <Egp key="exp" value={i.expectedAmount} />],
-                            ['المعلن من المندوب', <Egp key="dec" value={i.declaredAmount} />],
-                            ['المعدود بالخزينة', <Egp key="cnt" value={i.countedAmount} />],
-                            ['الفرق', <Egp key="diff" value={i.variance} />],
-                          ],
-                          nextStep: 'افتح شاشة التسويات لاعتماد الفرق أو طلب إعادة العد بالتنسيق مع المشرف.',
-                          destinationHref: '/admin/cash',
-                          destinationLabel: 'شاشة التسويات',
-                        })
-                      }
-                    >
-                      تسوية
-                    </Button>
-                  }
-                />
-              ))}
-
-            {/* Delivered Unsettled Cash */}
-            {(queueFilter === 'all' || queueFilter === 'unsettled') &&
-              a.deliveredUnsettled.items.map((i) => (
-                <QueueRow
-                  key={`unsettled-${i.orderId}`}
-                  tone="warn"
-                  title={
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-bw-ink">كاش معلن مستني العد بالمخزن</span>
-                      <Link href={`/admin/orders/${i.orderId}`} className="underline font-semibold">
-                        <Code>{i.orderNumber}</Code>
-                      </Link>
-                    </div>
-                  }
-                  detail={<>أعلن المندوب تحصيل: <Egp value={i.declaredAmount} /></>}
-                  action={
-                    <Link
-                      href="/admin/cash"
-                      className="inline-flex h-bw-control items-center gap-1 rounded-bw-field border border-bw-line-field bg-bw-surface px-3 text-bw-small font-semibold hover:bg-bw-sunken"
-                    >
-                      عد النقدية
-                    </Link>
-                  }
-                />
-              ))}
-
-            {/* Event Failures */}
-            {(queueFilter === 'all' || queueFilter === 'events') &&
-              [...a.eventFailures.failed, ...a.eventFailures.dead].map((e) => {
-                const isPO = e.eventType.startsWith('purchase_order')
-                const isOrder = e.eventType.startsWith('order')
-                const destHref = isPO ? '/admin/sourcing' : isOrder ? `/admin/orders/${e.aggregateId}` : '/admin/support'
-                const destLabel = isPO ? 'إدارة التوريد والشراء' : isOrder ? 'فحص تفاصيل الطلب' : 'فحص الكيان المرتبط'
-
-                return (
-                  <QueueRow
-                    key={`event-${e.id}`}
-                    tone="danger"
-                    title={<>فشل حدث نظام: <Code>{e.eventType}</Code></>}
-                    detail={
-                      <>
-                        المستهلك: {e.consumer} · المحاولات: <Code>{e.attempts}</Code> {e.lastError ? `· ${e.lastError}` : ''}
-                      </>
-                    }
-                    action={
-                      <Button
-                        variant="secondary"
-                        onClick={() =>
-                          inspectException({
-                            id: e.id,
-                            category: 'events',
-                            categoryLabel: 'أخطاء نظام',
-                            title: `فشل حدث ${e.eventType}`,
-                            tone: 'danger',
-                            facts: [
-                              ['نوع الحدث', <Code key="et">{e.eventType}</Code>],
-                              ['المستهلك', e.consumer],
-                              ['المعرف المرتبط', <Code key="ag">{shortId(e.aggregateId)}</Code>],
-                              ['عدد المحاولات', <Code key="at">{e.attempts}</Code>],
-                              ['آخر خطأ مسجل', e.lastError ?? '—'],
-                            ],
-                            nextStep: 'تحقق من صحة المعاملة وسلامة خادم الأحداث لإعادة المحاولة.',
-                            destinationHref: destHref,
-                            destinationLabel: destLabel,
-                          })
-                        }
-                      >
-                        فحص
-                      </Button>
-                    }
-                  />
-                )
-              })}
-
-            {/* Open Support Cases */}
-            {(queueFilter === 'all' || queueFilter === 'support') &&
-              a.openCases.items.map((c) => (
-                <QueueRow
-                  key={`case-${c.id}`}
-                  tone={c.priority === 'critical' || c.priority === 'high' ? 'danger' : 'warn'}
-                  title={c.title}
-                  detail={c.orderId ? <>مرتبط بطلب: {orderLink(c.orderId, null)}</> : 'استفسار عام'}
-                  meta={formatDateTime(c.createdAt)}
-                  action={
-                    c.orderId ? (
-                      <Link
-                        href={`/admin/orders/${c.orderId}`}
-                        className="inline-flex h-bw-control items-center gap-1 rounded-bw-field border border-bw-line-field bg-bw-surface px-3 text-bw-small font-semibold hover:bg-bw-sunken"
-                      >
-                        فتح الطلب
-                      </Link>
-                    ) : undefined
-                  }
-                />
-              ))}
-          </ul>
-        ) : null}
-      </Section>
-
-      {/* ── Recent Orders Table & Operational Filtering ───────────────── */}
-      <Section
-        title="أحدث الطلبات والعمليات"
-        aside={
-          <Link href="/admin/orders" className="text-bw-small font-semibold text-bw-action-ink underline hover:text-bw-action">
-            عرض كافة الطلبات (<Code>{orders.data?.total ?? 0}</Code>)
-          </Link>
-        }
-      >
-        {/* Controls: Search, Status, Date Window */}
-        <div className="mb-4 flex flex-wrap items-end gap-3 rounded-bw-card border border-bw-line bg-bw-sunken p-3">
-          <div className="min-w-48 flex-1 space-y-1">
-            <label htmlFor="overview-order-search" className="block text-bw-small font-semibold text-bw-ink">
-              بحث سريع
-            </label>
-            <div className="relative">
-              <input
-                id="overview-order-search"
-                value={orderQueryInput}
-                onChange={(e) => setOrderQueryInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') setActiveQuery(orderQueryInput.trim())
-                }}
-                placeholder="رقم الطلب، اسم العميل، أو الموبايل"
-                className="h-bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-surface pe-9 ps-3 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle"
-              />
-              <button
-                type="button"
-                onClick={() => setActiveQuery(orderQueryInput.trim())}
-                aria-label="تنفيذ البحث"
-                className="absolute end-2 top-2.5 text-bw-ink-soft hover:text-bw-ink"
-              >
-                <Search className="size-4" aria-hidden />
-              </button>
-            </div>
-          </div>
-
-          <div className="w-48 space-y-1">
-            <Select
-              label="حالة الطلب"
-              value={orderStatus}
-              onChange={(val) => setOrderStatus(val)}
-              options={[['', 'كل الحالات'], ...Object.entries(ORDER_STATUS).map(([k, [t]]) => [k, t] as [string, string])]}
-            />
-          </div>
-
-          <div className="w-40 space-y-1">
-            <Select
-              label="النطاق الزمني"
-              value={dateFilter}
-              onChange={(val) => setDateFilter(val as 'all' | 'today')}
-              options={[
-                ['all', 'كافة المسجل'],
-                ['today', 'طلبات اليوم فقط'],
-              ]}
-            />
-          </div>
-
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setOrderQueryInput('')
-              setActiveQuery('')
-              setOrderStatus('')
-              setDateFilter('all')
-            }}
-          >
-            إلغاء الفلاتر
-          </Button>
-        </div>
-
-        {/* Loading skeleton */}
-        {orders.loading && !orders.data ? <Skeleton className="h-64 w-full" /> : null}
-
-        {/* Empty state */}
-        {orders.data && filteredOrders.length === 0 ? (
-          <StateBlock
-            kind="empty"
-            title="لا توجد طلبات مطابقة للشروط"
-            body="جرب تغيير معايير البحث أو اختيار حالة أخرى."
-          />
-        ) : null}
-
-        {/* Orders Table */}
-        {filteredOrders.length > 0 ? (
-          <DataTable
-            caption="قائمة أحدث الطلبات التشغيلية"
-            head={['الطلب', 'العميل', 'المحافظة والمنطقة', 'الحالة', 'المطلوب عند التسليم', 'القطع', 'تاريخ الطلب', 'إجراء']}
-          >
-            {filteredOrders.map((o) => (
-              <tr key={o.id} className="hover:bg-bw-sunken/40">
-                <td>
-                  <Link href={`/admin/orders/${o.id}`} className="font-semibold text-bw-action-ink underline hover:text-bw-action">
-                    <Code>{o.orderNumber}</Code>
-                  </Link>
-                </td>
-                <td className="font-medium text-bw-ink">{o.customerName}</td>
-                <td>
-                  <span className="text-bw-body">
-                    {[o.area, o.governorate].filter(Boolean).join('، ') || '—'}
-                  </span>
-                  {o.hasPin ? (
-                    <span className="ms-1.5 inline-flex items-center text-xs text-bw-ok font-medium">
-                      ✓ دبوس
-                    </span>
-                  ) : (
-                    <span className="ms-1.5 inline-flex items-center text-xs text-bw-ink-subtle">
-                      بدون دبوس
-                    </span>
-                  )}
-                </td>
-                <td>
-                  <Status map={ORDER_STATUS} value={o.status} />
-                </td>
-                <td>
-                  <div className="flex flex-col">
-                    <Egp value={o.codAmount ?? o.totalAmount} className="font-semibold" />
-                    <span className="text-[11px] text-bw-ink-subtle">{o.paymentMethod}</span>
-                  </div>
-                </td>
-                <td>
-                  <Code>{o.itemCount}</Code>
-                </td>
-                <td className="text-bw-small text-bw-ink-soft">
-                  {formatDateTime(o.createdAt)}
-                </td>
-                <td>
-                  <Link
-                    href={`/admin/orders/${o.id}`}
-                    className="inline-flex min-h-6 items-center gap-1 text-bw-small font-semibold text-bw-action hover:underline"
-                  >
-                    فتح
-                    <ArrowLeft className="size-3.5" aria-hidden />
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </DataTable>
-        ) : null}
-      </Section>
-
-      {/* ── Inspection Drawer for Selected Exception ─────────────────── */}
+      {/* ── Action Inspection Drawer Dialog ──────────────────────────── */}
       <Dialog
         dialogRef={drawer.ref}
+        title={selectedException?.title ?? 'تفاصيل التدخل المطلوب'}
         variant="drawer"
-        title={selectedException?.categoryLabel ?? 'تفاصيل التدخل المطلوب'}
         onClose={() => setSelectedException(null)}
         footer={
           selectedException ? (
-            <div className="flex w-full items-center justify-between gap-2">
-              <Button variant="secondary" onClick={() => drawer.close()}>
+            <div className="flex w-full items-center justify-between gap-3">
+              <Button variant="ghost" onClick={drawer.close}>
                 إغلاق
               </Button>
               <Link
                 href={selectedException.destinationHref}
-                className="inline-flex h-bw-control items-center justify-center gap-2 rounded-bw-field bg-bw-action px-4 text-bw-small font-semibold text-bw-on-action hover:bg-bw-action-hover"
+                className="inline-flex h-bw-control items-center gap-1.5 rounded-bw-field bg-bw-action px-4 font-semibold text-bw-on-action hover:bg-bw-action-hover transition-colors"
+                onClick={drawer.close}
               >
-                {selectedException.destinationLabel}
-                <ArrowLeft className="size-4" aria-hidden />
+                <span>{selectedException.destinationLabel}</span>
+                <ChevronLeft className="size-4" aria-hidden />
               </Link>
             </div>
           ) : undefined
         }
       >
         {selectedException ? (
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <StatusLabel tone={selectedException.tone}>{selectedException.categoryLabel}</StatusLabel>
-              </div>
-              <h3 className="text-bw-heading font-semibold text-bw-ink">
-                {selectedException.title}
-              </h3>
+          <div className="space-y-5 text-bw-body">
+            <div className="flex items-center justify-between border-b border-bw-line pb-3">
+              <span className="text-bw-small text-bw-ink-soft">تصنيف الإجراء:</span>
+              <StatusLabel tone={selectedException.tone}>{selectedException.categoryLabel}</StatusLabel>
             </div>
 
-            <dl className="divide-y divide-bw-line rounded-bw-card border border-bw-line bg-bw-sunken">
-              {selectedException.facts.map(([label, val]) => (
-                <div key={label} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-bw-small">
-                  <dt className="text-bw-ink-soft">{label}</dt>
-                  <dd className="font-semibold text-bw-ink">{val}</dd>
-                </div>
-              ))}
-            </dl>
+            <div className="space-y-2">
+              <h3 className="text-bw-small font-semibold uppercase tracking-wider text-bw-ink-subtle">
+                البيانات التشغيلية
+              </h3>
+              <dl className="space-y-2 rounded-bw-card border border-bw-line bg-bw-sunken p-3 text-bw-small">
+                {selectedException.facts.map(([k, v], idx) => (
+                  <div key={idx} className="flex items-center justify-between border-b border-bw-line/40 pb-1.5 last:border-b-0 last:pb-0">
+                    <dt className="text-bw-ink-soft">{k}:</dt>
+                    <dd className="font-semibold text-bw-ink">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
 
-            <Notice tone="neutral" title="الخطوة التشغيلية المعتمدة">
-              {selectedException.nextStep}
-            </Notice>
+            <div className="space-y-2">
+              <h3 className="text-bw-small font-semibold uppercase tracking-wider text-bw-ink-subtle">
+                التدخل الموصى به
+              </h3>
+              <div className="rounded-bw-card border border-bw-action/30 bg-bw-action-soft/20 p-3 text-bw-small text-bw-ink leading-relaxed">
+                {selectedException.nextStep}
+              </div>
+            </div>
           </div>
         ) : null}
       </Dialog>

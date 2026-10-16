@@ -53,11 +53,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<SessionState>({ status: 'loading' })
 
   const load = React.useCallback(async () => {
-    const token = getToken()
+    let token = getToken()
+    if (!token && process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_SESSION_TOKEN) {
+      token = process.env.NEXT_PUBLIC_DEV_SESSION_TOKEN
+      setToken(token)
+    }
     if (!token) {
-      if (process.env.NODE_ENV === 'development') {
-        return setState({ status: 'ready', me: DEV_DEFAULT_ME })
-      }
       return setState({ status: 'anonymous' })
     }
     try {
@@ -65,9 +66,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setToken(null)
-        if (process.env.NODE_ENV === 'development') {
-          return setState({ status: 'ready', me: DEV_DEFAULT_ME })
-        }
       }
       if (process.env.NODE_ENV === 'development') {
         return setState({ status: 'ready', me: DEV_DEFAULT_ME })
