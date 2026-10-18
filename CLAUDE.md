@@ -75,26 +75,27 @@ A feature is **Done** only when schema, business rules, validation, tests, and d
 
 ## 4. Frontend Design System (`apps/web` only)
 
-The storefront uses the **ShinaCare "Kohl & Malachite"** design system. Full guide: [`apps/web/design-system/README.md`](apps/web/design-system/README.md). Scope: `apps/web` — never `apps/business`.
+The storefront uses **SAHEL V2 (package SAHEL V18)** as its only design system — approved package `docs/design/sahel-v18/` (read its `README.md` precedence rules: boards over docs, Authentication Addendum over V17 for sign-in, FloatingNav over the drawn tab bar, `03-tokens/tokens.json` canonical, `99-archive/` never). Full guide: [`apps/web/design-system/README.md`](apps/web/design-system/README.md). Scope: `apps/web` — never `apps/business`. No parallel themes, legacy aliases or compatibility layers.
 
 ### Where things live
-- **Canonical tokens:** `apps/web/design-system/tokens.json` (verbatim from the supplied `ShinaCare-Design-System/tokens/tokens.json`). `roles.json` only maps app role names (`bg-primary`, `text-muted-foreground`…) onto token names.
-- **Generated runtime styles:** `npm run tokens` (`scripts/build-tokens.mjs`) → `src/styles/tokens.generated.css` + `src/styles/design-scales.generated.ts`. Both are committed; never edit them. `predev`/`prebuild` regenerate them. Tailwind reads the same JSON through `design-system/tailwind-preset.ts`, so `tailwind.config.ts` holds no design values.
-- **Fonts:** Alexandria (display) and IBM Plex Sans Arabic (text) via `next/font` in `src/lib/fonts.ts`; `<html lang dir>` is set from the locale (Arabic RTL first).
-- **Shared components:** `src/components/ui/*` (Button, IconButton, Input/TextField/PhoneField, OtpInput, SearchField, Alert, Badge, Card, Skeleton, BeadLoader, Icon, Wordmark, SectionHeader, Rail, ProductNiche, ProductArt, ConcernGlyph…) and `src/components/navigation/*` (BottomNav, WordmarkLink). Home and Auth consume them; feature folders keep only product-specific composition.
-- **Reference material** (outside the repo): `ShinaCare-Design-System/` — `docs/*.md` (brand book, layout, motion, imagery, implementation), component READMEs/previews, screens. The reference screens are validation compositions, not approved designs.
+- **Canonical tokens:** `apps/web/design-system/tokens.json` — byte-identical to `docs/design/sahel-v18/03-tokens/tokens.json`. `tokens.app.json` holds only values the V18 package states elsewhere (board-only colours pending design confirmation, mobile display sizes, board type/radius/spacing ramps, control sizes, board shadows, motion, breakpoints); it can never redefine a canonical name.
+- **Generated runtime styles:** `npm run tokens` (`scripts/build-tokens.mjs`) → `src/styles/tokens.generated.css` + `src/styles/design-scales.generated.ts`. Both are committed; never edit them. `predev`/`prebuild` regenerate them. Tailwind reads the same JSON through `design-system/tailwind-preset.ts` and *replaces* its default colours/radii/shadows/type scales, so `tailwind.config.ts` holds no design values and raw palette classes do not exist.
+- **Fonts:** Beiruti (display), IBM Plex Sans Arabic (text), Instrument Serif italic (campaign line only), self-hosted from `@fontsource` in `src/app/layout.tsx`; `<html lang dir>` is set from the locale (Arabic RTL first).
+- **Shared components:** `src/components/ui/*` (Button / AsyncButton with Shutter Loading, IconButton, TextField / PhoneField / TextAreaField, OtpInput, SearchField, Chip, StatusChip, MessageBox, QuantityStepper, ProductTile, Timeline, Toast, Sheet, Dialog, Skeleton, Icon, Wordmark, SectionHeader) and the shell `src/features/shell/*` (SiteHeader, FloatingNav, FocusHeader, SiteFooter, StorefrontShell, CartLink). The shared product card is `src/features/catalog/components/ProductCard.tsx`.
 
 ### Adoption rules
-1. No hex, raw Tailwind palette classes, arbitrary design px, `lucide-react`, or physical `left/right` utilities in TSX (enforced by `npm run check:design`).
-2. Use token utilities: colors by role, `text-display-*|title|heading|body*|label|caption|price*`, `rounded-xs|sm|md|lg|pill`, `h-control-s|m|l`, `shape-arch`, `shadow-float|sheet`, `duration-quick|settle`.
-3. Shape rule: pressable → pill; product image → arch niche; reading surface → rectangle. Flat by default (hairline border, no shadow).
+1. No hex, raw palette classes, legacy "Kohl & Malachite" names, arbitrary `text-[…]`/`bg-[…]`/`rounded-[…]`/`shadow-[…]`/`font-[…]`/`leading-[…]`/`tracking-[…]`, `lucide-react`, or physical `left/right` utilities in TSX (enforced by `npm run check:design`).
+2. Use SAHEL names: colours `bone|linen|sand|dune|night|ink-2|ink-3|line|line-2|blue*|coral*|saffron*|ok|err*`, type `text-display-hero|display-1|display-2|display-3|title|body|product-name|brand|price|label|campaign` plus the board ramp (`text-13`, `leading-22`), radii `rounded-image|input|card|sheet|pill`, shadows `shadow-elevation-1|2|3` and the inset outlines.
+3. Shutter Loading only on async buttons in the pending state (`Button loading` / `AsyncButton`); cards, images, pages and infinite scroll keep skeletons and written status.
 4. Fix shared components centrally; pages may only lay out (grid, spacing, order), never re-skin a shared component.
-5. Logical CSS, `<bdi>` for numbers/Latin runs, phone/OTP isolated LTR, Western digits. Errors/success always carry an icon and words.
-6. New design value → `tokens.json` first (+ contrast pair in `src/styles/contrast-pairs.json`), then `npm run tokens`.
+5. Logical CSS, `<bdi>`/`dir="ltr"` for Latin runs, phone/OTP isolated LTR. Errors/success always carry words.
+6. **Digits (scoped):** in the *Arabic storefront* prices, totals, quantities, counts and dates use Arabic-Indic digits with the Arabic thousands separator («٣٬٣٢٠ ج.م», «١٨ أكتوبر ٢٠٢٦») via `src/lib/i18n/format.ts` (Intl, never manual digit replacement). The English storefront and `apps/business` keep Western digits. Phone numbers, OTP codes, SKU codes and order/transaction references stay Western and LTR; numbers inside English product names are left as written; API payloads, stored values and calculations never use display formatting.
+7. New design value → `tokens.json` only when SAHEL adds it; otherwise `tokens.app.json` with its V18 source (+ contrast pair in `src/styles/contrast-pairs.json`), then `npm run tokens`.
 
 ### Verification (run from `apps/web`)
-- `npm run tokens:check` — generated files in sync with `tokens.json`
-- `npm run check:design` — WCAG contrast pairs + hex / palette / icon-library / direction guardrails
+- `npm run tokens:check` — generated files in sync with `tokens.json` + `tokens.app.json`
+- `npm run check:design` — WCAG contrast pairs + hex / palette / icon / direction / legacy-name guardrails
 - `npm run typecheck` · `npm run lint` · `npm test`
 - `npm run check:ui-reset` — route/RTL contract (starts its own dev server)
-- Visual: `npm run dev`, then check `/`, `/auth`, `/auth/verify` at 375, 768 and 1280px in Arabic and English.
+- Visual: compare against `docs/design/sahel-v18/05-boards/png/` at 390 and 1440 (Arabic), plus English spot checks.
+

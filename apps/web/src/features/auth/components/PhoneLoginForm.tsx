@@ -106,11 +106,7 @@ export function PhoneLoginForm() {
               {m.authPhoneHint} <bdi dir="ltr">{m.authPhonePlaceholder}</bdi>
             </>
           }
-          countryCode="+20"
-          countryCodeLabel={m.authCountryCode}
           error={error || undefined}
-          inputMode="numeric"
-          autoComplete="tel-national"
           maxLength={16}
           value={phone}
           onChange={(event) => {
@@ -121,7 +117,7 @@ export function PhoneLoginForm() {
           readOnly={isSubmitting}
         />
 
-        <Button type="submit" size="lg" loading={isSubmitting} className="mt-6 w-full">
+        <Button type="submit" size="l" loading={isSubmitting} className="mt-6 w-full">
           {m.authContinue}
           {isSubmitting ? null : <Icon name="arrow-forward" size={20} />}
         </Button>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert } from '@/components/ui/alert';
+import { MessageBox } from '@/components/ui/message-box';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { TextAreaField } from '@/components/ui/field';
@@ -71,31 +71,31 @@ export function OrderActions({ order }: { order: OrderTracking }) {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 rounded-md border border-border bg-card p-4">
+      <section className="space-y-3 rounded-card border border-line bg-linen p-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
-            <h2 className="text-heading text-foreground">{m.buyAgainOrder}</h2>
-            <p className="text-body-s text-ink-soft">{m.buyAgainOrderPrompt}</p>
+            <h2 className="text-title text-night">{m.buyAgainOrder}</h2>
+            <p className="text-14 text-ink-2">{m.buyAgainOrderPrompt}</p>
           </div>
           <Button
-            variant="default"
+            variant="blue"
             loading={reorderState === 'pending'}
             onClick={buyAgain}
           >
-            <Icon name="refresh" size={16} />
+            <Icon name="retry" size={16} />
             <span>{m.buyAgain}</span>
           </Button>
         </div>
 
         {reorderState === 'failed' ? (
-          <Alert variant="destructive">
-            <p className="text-body-s">{m.unexpectedErrorDescription}</p>
-          </Alert>
+          <MessageBox tone="err">
+            <p className="text-14">{m.unexpectedErrorDescription}</p>
+          </MessageBox>
         ) : reorderResult ? (
           reorderResult.summary.totalAdded > 0 ? (
-            <Alert variant="success">
+            <MessageBox tone="ok">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <p className="text-body-s">
+                <p className="text-14">
                   {reorderResult.summary.totalSkipped > 0
                     ? fillMessage(m.buyAgainPartial, {
                         added: reorderResult.summary.totalAdded,
@@ -105,35 +105,35 @@ export function OrderActions({ order }: { order: OrderTracking }) {
                         n: reorderResult.summary.totalAdded,
                       })}
                 </p>
-                <Link href={routes.cart} className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
+                <Link href={routes.cart} className={buttonVariants({ size: 's', variant: 'light' })}>
                   {m.buyAgainViewCart}
                 </Link>
               </div>
-            </Alert>
+            </MessageBox>
           ) : (
-            <Alert variant="warning">
-              <p className="text-body-s">{m.buyAgainUnavailable}</p>
-            </Alert>
+            <MessageBox tone="warn">
+              <p className="text-14">{m.buyAgainUnavailable}</p>
+            </MessageBox>
           )
         ) : null}
       </section>
 
-      {cancelState === 'done' ? <Alert variant="success"><p className="text-body-s">{m.orderCancelDone}</p></Alert> : null}
+      {cancelState === 'done' ? <MessageBox tone="ok"><p className="text-14">{m.orderCancelDone}</p></MessageBox> : null}
       {order.canCancel && cancelState !== 'done' ? (
-        <section className="space-y-2 rounded-md border border-border bg-card p-4">
-          <h2 className="text-heading text-foreground">{m.orderCancelTitle}</h2>
-          <p className="text-body-s text-ink-soft">{m.orderCancelBody}</p>
-          {cancelState === 'failed' ? <Alert variant="destructive"><p className="text-body-s">{m.orderCancelFailed}</p></Alert> : null}
-          <Button variant="outline" loading={cancelState === 'pending'} onClick={cancel}>{m.orderCancelButton}</Button>
+        <section className="space-y-2 rounded-card border border-line bg-linen p-4">
+          <h2 className="text-title text-night">{m.orderCancelTitle}</h2>
+          <p className="text-14 text-ink-2">{m.orderCancelBody}</p>
+          {cancelState === 'failed' ? <MessageBox tone="err"><p className="text-14">{m.orderCancelFailed}</p></MessageBox> : null}
+          <Button variant="light" loading={cancelState === 'pending'} onClick={cancel}>{m.orderCancelButton}</Button>
         </section>
       ) : null}
-      {cancelState === 'support' ? <Alert variant="warning"><p className="text-body-s">{m.orderCancelNeedsSupport}</p></Alert> : null}
+      {cancelState === 'support' ? <MessageBox tone="warn"><p className="text-14">{m.orderCancelNeedsSupport}</p></MessageBox> : null}
 
       {!closed || order.status === 'DELIVERED' ? (
-        <form onSubmit={send} className="space-y-3 rounded-md border border-border bg-card p-4">
-          <h2 className="text-heading text-foreground">{m.orderSupportTitle}</h2>
+        <form onSubmit={send} className="space-y-3 rounded-card border border-line bg-linen p-4">
+          <h2 className="text-title text-night">{m.orderSupportTitle}</h2>
           <fieldset className="space-y-2">
-            <legend className="text-body-s text-ink-soft">{m.orderSupportTopic}</legend>
+            <legend className="text-14 text-ink-2">{m.orderSupportTopic}</legend>
             <div className="flex flex-wrap gap-2">
               {SUPPORT_TOPICS.map((value) => (
                 <Chip key={value} selected={topic === value} onClick={() => setTopic(value)}>
@@ -143,9 +143,9 @@ export function OrderActions({ order }: { order: OrderTracking }) {
             </div>
           </fieldset>
           <TextAreaField label={m.orderSupportMessage} hint={m.orderSupportHint} rows={3} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={1000} />
-          {supportState === 'sent' ? <Alert variant="success"><p className="text-body-s">{m.orderSupportSent}</p></Alert> : null}
-          {supportState === 'failed' ? <Alert variant="destructive"><p className="text-body-s">{m.orderSupportFailed}</p></Alert> : null}
-          <Button type="submit" variant="secondary" loading={supportState === 'pending'} disabled={message.trim().length < 5}>{m.orderSupportSend}</Button>
+          {supportState === 'sent' ? <MessageBox tone="ok"><p className="text-14">{m.orderSupportSent}</p></MessageBox> : null}
+          {supportState === 'failed' ? <MessageBox tone="err"><p className="text-14">{m.orderSupportFailed}</p></MessageBox> : null}
+          <Button type="submit" variant="light" loading={supportState === 'pending'} disabled={message.trim().length < 5}>{m.orderSupportSend}</Button>
         </form>
       ) : null}
     </div>

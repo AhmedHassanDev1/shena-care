@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert } from '@/components/ui/alert';
+import { MessageBox } from '@/components/ui/message-box';
 import { Button } from '@/components/ui/button';
 import { TextAreaField, TextField } from '@/components/ui/field';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { ApiError } from '@/lib/api-client';
-import { useMessages } from '@/lib/i18n/LocaleProvider';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import { formatNumber } from '@/lib/i18n/format';
 import type { Messages } from '@/lib/i18n/messages';
 import { orders, type ProblemReason } from '@/lib/orders';
 import { cn } from '@/lib/utils';
@@ -33,7 +34,7 @@ export function ReportProblem({
 
   if (!open) {
     return (
-      <Button variant="link" size="sm" className="text-caption" onClick={() => setOpen(true)}>
+      <Button variant="text" size="s" className="text-12" onClick={() => setOpen(true)}>
         {m.problemOpen}
       </Button>
     );
@@ -66,6 +67,7 @@ function ProblemForm({
   onSent: () => void;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const queryClient = useQueryClient();
   const [reason, setReason] = useState<ProblemReason | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -102,38 +104,38 @@ function ProblemForm({
   };
 
   return (
-    <form onSubmit={submit} aria-labelledby={`problem-${itemId}`} className="mt-2 space-y-4 rounded-md border border-border bg-card p-4">
-      <h3 id={`problem-${itemId}`} className="text-label text-foreground">
+    <form onSubmit={submit} aria-labelledby={`problem-${itemId}`} className="mt-2 space-y-4 rounded-card border border-line bg-linen p-4">
+      <h3 id={`problem-${itemId}`} className="text-14 font-semibold text-night">
         {m.problemTitle}
       </h3>
 
-      {eligibility.isPending ? <p className="text-body-s text-ink-soft">{m.problemLoading}</p> : null}
+      {eligibility.isPending ? <p className="text-14 text-ink-2">{m.problemLoading}</p> : null}
       {eligibility.isError || (eligibility.data && !eligibility.data.isEligible) ? (
-        <Alert variant="info">
-          <p className="text-body-s">{m.problemUnavailable}</p>
-        </Alert>
+        <MessageBox tone="info">
+          <p className="text-14">{m.problemUnavailable}</p>
+        </MessageBox>
       ) : null}
 
       {eligibility.data?.isEligible ? (
         <>
           <fieldset className="space-y-2">
-            <legend className="mb-2 text-body-s text-foreground">{m.problemReason}</legend>
+            <legend className="mb-2 text-14 text-night">{m.problemReason}</legend>
             {eligibility.data.allowedReasons.map((code) => (
               <label
                 key={code}
                 className={cn(
-                  'flex min-h-control-m cursor-pointer items-center gap-3 rounded-sm border-[1.5px] bg-card px-3',
-                  reason === code ? 'border-foreground' : 'border-border',
+                  'flex min-h-control-s cursor-pointer items-center gap-3 rounded-input border bg-linen px-3',
+                  reason === code ? 'border-night' : 'border-line',
                 )}
               >
                 <input
                   type="radio"
                   name={`reason-${itemId}`}
-                  className="size-4 accent-primary"
+                  className="size-4 accent-blue"
                   checked={reason === code}
                   onChange={() => setReason(code)}
                 />
-                <span className={cn('text-body-s text-foreground', reason === code && 'font-semibold')}>
+                <span className={cn('text-14 text-night', reason === code && 'font-semibold')}>
                   {m[`problemReason${code}` as keyof Messages] as string}
                 </span>
               </label>
@@ -141,19 +143,20 @@ function ProblemForm({
           </fieldset>
 
           {reaction ? (
-            <Alert variant="warning">
-              <div className="space-y-1 text-body-s">
+            <MessageBox tone="warn">
+              <div className="space-y-1 text-14">
                 <p className="font-semibold">{m.problemSafetyNote}</p>
                 <p>{m.problemSafetyReview}</p>
               </div>
-            </Alert>
+            </MessageBox>
           ) : null}
 
           {maxQuantity > 1 ? (
             <div className="space-y-2">
-              <p className="text-body-s text-foreground">{m.problemQuantity}</p>
+              <p className="text-14 text-night">{m.problemQuantity}</p>
               <QuantityStepper
                 value={quantity}
+                displayValue={formatNumber(quantity, locale)}
                 max={maxQuantity}
                 onChange={setQuantity}
                 labels={{ group: m.problemQuantity, decrease: m.problemDecrease, increase: m.problemIncrease }}
@@ -180,13 +183,13 @@ function ProblemForm({
             />
           ) : null}
 
-          {state === 'failed' ? <p role="alert" className="text-body-s text-destructive">{m.problemFailed}</p> : null}
-          {state === 'conflict' ? <p role="status" className="text-body-s text-foreground">{m.problemConflict}</p> : null}
+          {state === 'failed' ? <p role="alert" className="text-14 text-err">{m.problemFailed}</p> : null}
+          {state === 'conflict' ? <p role="status" className="text-14 text-night">{m.problemConflict}</p> : null}
         </>
       ) : null}
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={onClose} disabled={state === 'sending'}>
+        <Button type="button" variant="light" onClick={onClose} disabled={state === 'sending'}>
           {m.problemCancel}
         </Button>
         {eligibility.data?.isEligible ? (

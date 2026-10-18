@@ -158,3 +158,13 @@ export async function getProductDetail(slugOrId: string, skuId?: string): Promis
   const query = skuId ? `?skuId=${encodeURIComponent(skuId)}` : '';
   return apiClient.get<ProductDetail>(`/products/${encodeURIComponent(slugOrId)}/detail${query}`);
 }
+
+/** A care concern as the public taxonomy `GET /care/concerns` returns it (active concerns only). */
+export interface Concern {
+  id: string;
+  name: string;
+  slug: string;
+  careArea: 'skin' | 'hair';
+  description: string | null;
+  isActive: boolean;
+}

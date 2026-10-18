@@ -1,18 +1,22 @@
 'use client';
 
-import { forwardRef, useState, type CSSProperties } from 'react';
+import { forwardRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+
+export type OtpCellState = 'default' | 'invalid' | 'verified';
 
 export interface OtpInputProps {
   id: string;
   value: string;
+  /** Number of drawn cells and maxlength — the code length of the challenge, never a client default. */
   length: number;
   onChange: (value: string) => void;
-  invalid?: boolean;
-  /** No new code can be entered (expired challenge): the boxes read as unavailable. */
+  state?: OtpCellState;
+  /** Expired or attempts exhausted: cells read as unavailable and the input is disabled. */
   disabled?: boolean;
   /** Code is being checked: keeps focus but ignores edits. */
   readOnly?: boolean;
+  labelledBy?: string;
   describedBy?: string;
   autoFocus?: boolean;
   /** Raw typed/pasted/autofilled text → digits (e.g. convert Arabic-Indic numerals). Defaults to stripping non-digits. */
@@ -22,58 +26,52 @@ export interface OtpInputProps {
 const digitsOnly = (raw: string) => raw.replace(/\D/g, '');
 
 /**
- * Segmented verification code.
- *
- * One real input carries the value, so SMS autofill (autocomplete="one-time-code"), full-code paste,
- * backspace and screen readers all behave natively. It sits transparently over the boxes, which only
- * draw the digits; the "focus" moves with the caret position (the next empty box). Digits run
- * left-to-right even in RTL, as they appear in the SMS.
+ * Verification code (Authentication Addendum §Code input, AuthStates §٣): ONE real input drawn as `length` cells.
+ * type=text, inputmode=numeric, pattern=[0-9]*, autocomplete=one-time-code, dir=ltr; the drawn cells are aria-hidden,
+ * so screen readers hear one field and SMS autofill / paste work natively. Cells: 50×60 mobile, 60×68 desktop, radius 14.
  */
 export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function OtpInput(
-  { id, value, length, onChange, invalid = false, disabled = false, readOnly = false, describedBy, autoFocus, normalize = digitsOnly },
+  { id, value, length, onChange, state = 'default', disabled = false, readOnly = false, labelledBy, describedBy, autoFocus, normalize = digitsOnly },
   ref
 ) {
   const [isFocused, setIsFocused] = useState(false);
   const activeIndex = Math.min(value.length, length - 1);
 
-  /** Editing always happens at the end, like typing into the next box. */
+  /** Editing always happens at the end, like typing into the next cell. */
   const keepCaretAtEnd = (input: HTMLInputElement) => {
     const end = input.value.length;
     if (input.selectionStart !== end || input.selectionEnd !== end) input.setSelectionRange(end, end);
   };
 
   return (
-    <div
-      dir="ltr"
-      className="relative grid gap-2 sm:gap-3"
-      style={{ gridTemplateColumns: `repeat(${length}, minmax(0, 1fr))` } as CSSProperties}
-    >
-      {Array.from({ length }, (_, index) => {
-        const digit = value[index] ?? '';
-        const isActive = isFocused && !disabled && index === activeIndex;
-        return (
-          <div
-            key={index}
-            aria-hidden="true"
-            className={cn(
-              'flex h-control-l items-center justify-center rounded-sm border-[1.5px] text-price-l tabular-nums text-foreground',
-              'transition-[border-color,box-shadow] duration-quick ease-out',
-              disabled
-                ? 'border-border bg-disabled text-disabled-foreground'
-                : invalid
-                  ? cn('border-destructive bg-card', isActive && 'shadow-[0_0_0_1px_rgb(var(--danger-rgb))]')
-                  : isActive
-                    ? 'border-primary bg-card shadow-[0_0_0_1px_rgb(var(--malachite-rgb))]'
-                    : digit
-                      ? 'border-foreground bg-card'
-                      : 'border-input bg-card'
-            )}
-          >
-            {digit}
-            {isActive && !digit && !readOnly ? <span className="h-6 w-0.5 rounded-pill bg-primary" /> : null}
-          </div>
-        );
-      })}
+    <div dir="ltr" className="relative">
+      <div aria-hidden="true" className="flex justify-center gap-2 lg:gap-2.5">
+        {Array.from({ length }, (_, index) => {
+          const digit = value[index] ?? '';
+          const isActive = isFocused && !disabled && !readOnly && index === activeIndex && state === 'default';
+          return (
+            <span
+              key={index}
+              className={cn(
+                'flex h-otp-h max-w-otp-w flex-1 items-center justify-center rounded-input text-24 font-bold tabular-nums lg:h-otp-h-lg lg:max-w-otp-w-lg',
+                'transition-shadow duration-fast ease-standard',
+                disabled
+                  ? 'bg-sand text-ink-3 shadow-outline-dune'
+                  : state === 'invalid'
+                    ? 'bg-linen text-night shadow-outline-err'
+                    : state === 'verified'
+                      ? 'bg-linen text-night shadow-outline-verified'
+                      : isActive
+                        ? 'bg-linen text-night shadow-focus-field'
+                        : 'bg-linen text-night shadow-outline-control'
+              )}
+            >
+              {digit}
+              {isActive && !digit ? <span className="h-6 w-0.5 rounded-pill bg-blue" /> : null}
+            </span>
+          );
+        })}
+      </div>
 
       <input
         ref={ref}
@@ -85,6 +83,7 @@ export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function Otp
         autoComplete="one-time-code"
         autoCorrect="off"
         spellCheck={false}
+        maxLength={length}
         value={value}
         onChange={(event) => onChange(normalize(event.target.value).slice(0, length))}
         onFocus={(event) => {
@@ -95,15 +94,12 @@ export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function Otp
         onSelect={(event) => keepCaretAtEnd(event.currentTarget)}
         disabled={disabled}
         readOnly={readOnly}
-        aria-invalid={invalid || undefined}
+        aria-invalid={state === 'invalid' || undefined}
+        aria-labelledby={labelledBy}
         aria-describedby={describedBy}
         autoFocus={autoFocus}
-        // 16px text stops iOS from zooming; the value itself is drawn by the boxes.
-        className={cn(
-          'absolute inset-0 size-full cursor-text appearance-none rounded-sm border-0 bg-transparent text-base',
-          'text-transparent caret-transparent outline-none selection:bg-transparent focus-visible:shadow-none',
-          'disabled:cursor-not-allowed'
-        )}
+        // 16px stops iOS from zooming; the value itself is drawn by the cells.
+        className="absolute inset-0 size-full cursor-text appearance-none border-0 bg-transparent text-16 text-transparent caret-transparent opacity-0 outline-none disabled:cursor-not-allowed"
       />
     </div>
   );

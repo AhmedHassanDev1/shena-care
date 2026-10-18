@@ -3,16 +3,14 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
-import { BeadLoader } from '@/components/ui/bead-loader';
+import { StatusChip } from '@/components/ui/status-chip';
 import { Button } from '@/components/ui/button';
-import { FieldMessage } from '@/components/ui/field';
+import { FieldLabel, FieldMessage } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
-import { Label } from '@/components/ui/label';
 import { OtpInput } from '@/components/ui/otp-input';
 import { auth } from '@/lib/auth';
 import { formatNumber } from '@/lib/i18n/format';
-import { useMessages } from '@/lib/i18n/LocaleProvider';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
@@ -41,6 +39,7 @@ type Failure = { kind: 'invalid' | 'incomplete' | 'expired' | 'other'; message: 
 
 export function OtpVerificationForm() {
   const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
@@ -84,7 +83,7 @@ export function OtpVerificationForm() {
   const verify = async (submitted: string) => {
     if (!challenge || verifyingRef.current || isExpired) return;
     if (submitted.length !== OTP_LENGTH) {
-      setFailure({ kind: 'incomplete', message: fillMessage(m.authCodeIncomplete, { n: formatNumber(OTP_LENGTH) }) });
+      setFailure({ kind: 'incomplete', message: fillMessage(m.authCodeIncomplete, { n: formatNumber(OTP_LENGTH, locale) }) });
       focusCode();
       return;
     }
@@ -144,9 +143,9 @@ export function OtpVerificationForm() {
 
   if (!challenge) {
     return (
-      <div className="flex h-72 items-center justify-center text-primary">
-        <BeadLoader label={m.loading} />
-      </div>
+      <p role="status" className="flex h-72 items-center justify-center text-15 text-ink-2">
+        {m.loading}
+      </p>
     );
   }
 
@@ -156,19 +155,19 @@ export function OtpVerificationForm() {
     <>
       <AuthHeader title={m.authOtpTitle} description={m.authOtpDescription} />
 
-      <div className="mt-6 flex min-h-14 items-center gap-3 rounded-md bg-sand pe-3 ps-3">
-        <span className="grid size-control-s shrink-0 place-items-center rounded-pill bg-card text-ink-soft">
+      <div className="mt-6 flex min-h-14 items-center gap-3 rounded-card bg-sand pe-3 ps-3">
+        <span className="grid size-control-s shrink-0 place-items-center rounded-pill bg-linen text-ink-2">
           <Icon name="phone" size={20} />
         </span>
         <p className="min-w-0 flex-1">
           <span className="sr-only">{m.authOtpSentTo} </span>
-          <bdi dir="ltr" className="text-body-l font-semibold tabular-nums text-foreground">
+          <bdi dir="ltr" className="text-body font-semibold tabular-nums text-night">
             {maskMobile(challenge.phoneNumber)}
           </bdi>
         </p>
         <Link
           href={changeNumberHref}
-          className="inline-flex min-h-control-m shrink-0 items-center rounded-pill px-2 text-label text-primary underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-quick hover:decoration-current"
+          className="inline-flex min-h-control-s shrink-0 items-center rounded-pill px-2 text-14 font-semibold text-blue underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-fast hover:decoration-current"
         >
           {m.authChangeNumber}
         </Link>
@@ -183,9 +182,9 @@ export function OtpVerificationForm() {
         }}
       >
         <div className="mb-2 flex items-baseline justify-between gap-3">
-          <Label htmlFor="otp">{m.authOtpLabel}</Label>
-          <span id="otp-length" className="text-body-s text-ink-subtle">
-            {fillMessage(m.authOtpLengthHint, { n: formatNumber(OTP_LENGTH) })}
+          <FieldLabel id="otp-label">{m.authOtpLabel}</FieldLabel>
+          <span id="otp-length" className="text-14 text-ink-3">
+            {fillMessage(m.authOtpLengthHint, { n: formatNumber(OTP_LENGTH, locale) })}
           </span>
         </div>
 
@@ -201,7 +200,8 @@ export function OtpVerificationForm() {
             if (next.length === OTP_LENGTH && next !== code) verify(next);
           }}
           normalize={(raw) => toLatinDigits(raw).replace(/\D/g, '')}
-          invalid={codeInvalid}
+          state={codeInvalid ? 'invalid' : 'default'}
+          labelledBy="otp-label"
           disabled={isExpired}
           readOnly={isVerifying}
           describedBy={failure ? 'otp-length otp-error' : 'otp-length'}
@@ -219,7 +219,7 @@ export function OtpVerificationForm() {
 
         <Button
           type="submit"
-          size="lg"
+          size="l"
           loading={isVerifying}
           disabled={isExpired}
           className="mt-6 w-full"
@@ -230,25 +230,25 @@ export function OtpVerificationForm() {
       </form>
 
       <div className="mt-6 flex flex-col items-center gap-2 text-center">
-        <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-body-s">
-          <span className="text-ink-soft">{m.authCodeNotReceived}</span>
+        <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-14">
+          <span className="text-ink-2">{m.authCodeNotReceived}</span>
           <Button
             type="button"
-            variant="link"
+            variant="text"
             loading={isResending}
             disabled={resendIn > 0}
             onClick={resend}
-            className={cn('min-h-control-m px-1', isExpired && resendIn === 0 && 'decoration-current')}
+            className={cn('min-h-control-s px-1', isExpired && resendIn === 0 && 'decoration-current')}
           >
             {m.authResend}
           </Button>
         </p>
         {resendIn > 0 ? (
-          <Badge variant="neutral" className="text-ink-soft">
-            <Icon name="clock" size={16} />
+          <StatusChip tone="gray" className="text-ink-2">
+            <Icon name="alert" size={16} />
             {/* Not a live region: a per-second announcement would drown the form. */}
-            {fillMessage(m.authResendIn, { time: formatNumber(resendIn) })}
-          </Badge>
+            {fillMessage(m.authResendIn, { time: formatNumber(resendIn, locale) })}
+          </StatusChip>
         ) : null}
       </div>
     </>

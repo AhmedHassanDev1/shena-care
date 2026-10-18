@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert } from '@/components/ui/alert';
+import { MessageBox } from '@/components/ui/message-box';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,18 +52,18 @@ export function MyOrdersView() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <h1 className="text-display-m text-foreground">{m.myOrdersTitle}</h1>
+      <h1 className="text-display-3 text-night">{m.myOrdersTitle}</h1>
       {!signedIn ? (
-        <div className="space-y-3 rounded-md border border-border bg-card p-4">
-          <p className="text-body-s text-ink-soft">{m.myOrdersSignIn}</p>
+        <div className="space-y-3 rounded-card border border-line bg-linen p-4">
+          <p className="text-14 text-ink-2">{m.myOrdersSignIn}</p>
           <Link href={`${routes.login}?returnTo=${encodeURIComponent('/orders')}`} className={buttonVariants()}>{m.myOrdersSignInButton}</Link>
         </div>
       ) : query.isPending ? (
-        <Skeleton shape="rect" className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
       ) : query.isError ? (
-        <Alert variant="destructive"><p className="text-body-s">{m.myOrdersLoadFailed}</p></Alert>
+        <MessageBox tone="err"><p className="text-14">{m.myOrdersLoadFailed}</p></MessageBox>
       ) : query.data.items.length === 0 ? (
-        <p className="text-body-s text-ink-soft">{m.myOrdersEmpty}</p>
+        <p className="text-14 text-ink-2">{m.myOrdersEmpty}</p>
       ) : (
         <ul className="space-y-3">
           {query.data.items.map((order) => {
@@ -71,52 +71,52 @@ export function MyOrdersView() {
             const currentFeedback = feedback?.orderNumber === order.orderNumber ? feedback : null;
 
             return (
-              <li key={order.id} className="rounded-md border border-border bg-card overflow-hidden">
+              <li key={order.id} className="rounded-card border border-line bg-linen overflow-hidden">
                 <Link
                   href={routes.order(order.orderNumber)}
                   className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-sand/30"
                 >
                   <span className="space-y-1">
-                    <bdi className="block text-body-s font-semibold text-foreground">{order.orderNumber}</bdi>
-                    <span className="block text-caption text-ink-soft">{formatDate(order.createdAt, locale)}</span>
+                    <bdi className="block text-14 font-semibold text-night">{order.orderNumber}</bdi>
+                    <span className="block text-12 text-ink-2">{formatDate(order.createdAt, locale)}</span>
                   </span>
                   <div className="flex items-center gap-2">
-                    <bdi className="text-body-s font-semibold text-foreground">{formatEgp(order.codAmount ?? order.totalAmount, order.currency, locale)}</bdi>
-                    <Icon name="chevron-forward" size={16} className="text-ink-subtle" />
+                    <bdi className="text-14 font-semibold text-night">{formatEgp(order.codAmount ?? order.totalAmount, order.currency, locale)}</bdi>
+                    <Icon name="chevron-forward" size={16} className="text-ink-3" />
                   </div>
                 </Link>
 
-                <div className="border-t border-border bg-card px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="border-t border-line bg-linen px-4 py-3 flex flex-wrap items-center justify-between gap-2">
                   <Button
-                    variant="secondary"
-                    size="sm"
+                    variant="light"
+                    size="s"
                     loading={isReordering}
                     onClick={() => handleReorder(order.orderNumber)}
                   >
-                    <Icon name="refresh" size={16} />
+                    <Icon name="retry" size={16} />
                     <span>{m.buyAgain}</span>
                   </Button>
 
                   <Link
                     href={routes.order(order.orderNumber)}
-                    className="text-caption text-ink-soft hover:text-foreground transition-colors"
+                    className="text-12 text-ink-2 hover:text-night transition-colors"
                   >
                     {order.status}
                   </Link>
                 </div>
 
                 {currentFeedback?.error ? (
-                  <div className="p-3 border-t border-border">
-                    <Alert variant="destructive">
-                      <p className="text-body-s">{m.unexpectedErrorDescription}</p>
-                    </Alert>
+                  <div className="p-3 border-t border-line">
+                    <MessageBox tone="err">
+                      <p className="text-14">{m.unexpectedErrorDescription}</p>
+                    </MessageBox>
                   </div>
                 ) : currentFeedback?.result ? (
-                  <div className="p-3 border-t border-border">
+                  <div className="p-3 border-t border-line">
                     {currentFeedback.result.summary.totalAdded > 0 ? (
-                      <Alert variant="success">
+                      <MessageBox tone="ok">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <p className="text-body-s">
+                          <p className="text-14">
                             {currentFeedback.result.summary.totalSkipped > 0
                               ? fillMessage(m.buyAgainPartial, {
                                   added: currentFeedback.result.summary.totalAdded,
@@ -126,15 +126,15 @@ export function MyOrdersView() {
                                   n: currentFeedback.result.summary.totalAdded,
                                 })}
                           </p>
-                          <Link href={routes.cart} className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
+                          <Link href={routes.cart} className={buttonVariants({ size: 's', variant: 'light' })}>
                             {m.buyAgainViewCart}
                           </Link>
                         </div>
-                      </Alert>
+                      </MessageBox>
                     ) : (
-                      <Alert variant="warning">
-                        <p className="text-body-s">{m.buyAgainUnavailable}</p>
-                      </Alert>
+                      <MessageBox tone="warn">
+                        <p className="text-14">{m.buyAgainUnavailable}</p>
+                      </MessageBox>
                     )}
                   </div>
                 ) : null}

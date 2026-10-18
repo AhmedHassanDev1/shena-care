@@ -8,11 +8,11 @@
 }
 
 .mapboxgl-ctrl-group {
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-input);
   overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--card);
-  box-shadow: var(--shadow-float);
+  border: 1px solid var(--line);
+  background: var(--linen);
+  box-shadow: var(--elevation-2);
 }
 
 .mapboxgl-ctrl-group button {
@@ -23,9 +23,9 @@
 .mapboxgl-ctrl-attrib {
   font-size: 11px;
   background-color: hsla(0, 0%, 100%, 0.8) !important;
-  color: var(--ink-soft);
+  color: var(--ink-2);
   padding: 2px 6px;
-  border-radius: var(--radius-xs, 4px);
+  border-radius: var(--radius-image);
 }
 
 /* Customer delivery pin */
@@ -57,16 +57,16 @@
 }
 
 .shinacare-map-popup .mapboxgl-popup-content {
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-input);
   padding: 8px 12px;
-  background: var(--card);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-float);
+  background: var(--linen);
+  color: var(--night);
+  border: 1px solid var(--line);
+  box-shadow: var(--elevation-2);
   font-size: 12px;
   line-height: 1.4;
 }
 
 .shinacare-map-popup .mapboxgl-popup-tip {
-  border-top-color: var(--card);
+  border-top-color: var(--linen);
 }

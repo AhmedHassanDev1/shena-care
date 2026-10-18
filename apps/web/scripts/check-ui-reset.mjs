@@ -10,6 +10,7 @@ const routes = [
   '/account/profile',
   '/account/routine',
   '/routine/builder',
+  '/shina',
 ];
 // Rebuilt in the approved design: must keep the RTL document contract and must not regress to the scaffold.
 const implementedRoutes = ['/', '/auth', '/auth/verify', '/products', '/products/reset-check', '/cart', '/checkout', '/orders/reset-check'];

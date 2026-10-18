@@ -1,5 +1,7 @@
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
+import { PageContainer } from '@/components/layout/page-container';
 import { AddressBookView } from '@/features/account/components/AddressBookView';
+import { StorefrontShell } from '@/features/shell/StorefrontShell';
 
 export const metadata: Metadata = {
   title: 'Saved Addresses | ShinaCare',
@@ -8,8 +10,10 @@ export const metadata: Metadata = {
 
 export default function AccountAddressesPage() {
   return (
-    <main className="container mx-auto px-4 py-8">
-      <AddressBookView />
-    </main>
+    <StorefrontShell nav="account">
+      <PageContainer className="py-8">
+        <AddressBookView />
+      </PageContainer>
+    </StorefrontShell>
   );
 }

@@ -7,8 +7,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useAddresses } from '@/features/account/hooks/useAddresses';
 import { type CustomerAddress } from '@/lib/addresses';
-import { Alert } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { MessageBox } from '@/components/ui/message-box';
+import { StatusChip } from '@/components/ui/status-chip';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { PhoneField, TextField } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
@@ -119,7 +119,7 @@ export function CheckoutView() {
     setErrors({});
   };
 
-  if (isLoading) return <Skeleton shape="pill" className="h-control-l w-full" />;
+  if (isLoading) return <Skeleton className="h-control-l w-full" />;
   if (!cart || cart.items.length === 0) {
     return (
       <Notice message={m.checkoutEmptyCart} action={<Link href={routes.products} className={buttonVariants()}>{m.pdpBackToProducts}</Link>} />
@@ -271,16 +271,16 @@ export function CheckoutView() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <header className="space-y-1">
-        <p className="text-caption text-ink-soft">{fillMessage(m.checkoutStepOf, { i: step === 'delivery' ? 1 : 2, n: 2 })}</p>
-        <h1 className="text-display-m text-foreground">{step === 'delivery' ? m.checkoutStepDelivery : m.checkoutStepReview}</h1>
+        <p className="text-12 text-ink-2">{fillMessage(m.checkoutStepOf, { i: step === 'delivery' ? 1 : 2, n: 2 })}</p>
+        <h1 className="text-display-3 text-night">{step === 'delivery' ? m.checkoutStepDelivery : m.checkoutStepReview}</h1>
       </header>
 
       {problem ? (
-        <Alert variant="destructive">
-          <p className="text-body-s">
+        <MessageBox tone="err">
+          <p className="text-14">
             {problem === 'quote' ? m.checkoutQuoteFailed : problem === 'validation' ? m.checkoutValidationFailed : m.checkoutSubmitFailed}
           </p>
-        </Alert>
+        </MessageBox>
       ) : null}
 
       {step === 'delivery' ? (
@@ -294,16 +294,16 @@ export function CheckoutView() {
         >
           {/* Saved Addresses Section (when authenticated and has saved addresses) */}
           {isAuthenticated && addresses.length > 0 && (
-            <div className="space-y-3 rounded-md border border-border bg-card p-4">
+            <div className="space-y-3 rounded-card border border-line bg-linen p-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Icon name="pin" size={18} className="text-primary" />
-                  <span className="text-heading text-foreground">{m.checkoutUseSavedAddress}</span>
+                  <Icon name="pin" size={18} className="text-blue" />
+                  <span className="text-title text-night">{m.checkoutUseSavedAddress}</span>
                 </div>
                 <Link
                   href={routes.accountAddresses}
                   target="_blank"
-                  className="text-caption text-primary hover:underline"
+                  className="text-12 text-blue hover:underline"
                 >
                   {m.addressBookManageInAccount}
                 </Link>
@@ -318,33 +318,33 @@ export function CheckoutView() {
                       type="button"
                       onClick={() => handleSelectSaved(addr)}
                       className={cn(
-                        'flex flex-col items-start gap-1.5 rounded-sm border p-3 text-start transition-all',
+                        'flex flex-col items-start gap-1.5 rounded-input border p-3 text-start transition-all',
                         isSelected
-                          ? 'border-primary bg-primary-subtle/30 shadow-xs ring-1 ring-primary'
-                          : 'border-border bg-card hover:border-ink-subtle/40',
+                          ? 'border-blue bg-blue-tint/30 shadow-elevation-1 ring-1 ring-blue'
+                          : 'border-line bg-linen hover:border-line-2/40',
                       )}
                     >
                       <div className="flex w-full items-center justify-between gap-2">
-                        <span className="text-label text-foreground font-medium">
+                        <span className="text-14 font-semibold text-night font-medium">
                           {addr.label || addr.customerName}
                         </span>
                         <div className="flex items-center gap-1.5">
                           {addr.isDefault && (
-                            <Badge variant="outline" className="text-caption py-0 text-primary border-primary">
+                            <StatusChip tone="gray" className="text-12 py-0 text-blue border-blue">
                               {m.addressBookDefaultBadge}
-                            </Badge>
+                            </StatusChip>
                           )}
                           {isSelected ? (
-                            <Icon name="check-circle" size={18} className="text-primary" />
+                            <Icon name="check" size={18} className="text-blue" />
                           ) : (
-                            <span className="h-4 w-4 rounded-full border border-border" />
+                            <span className="h-4 w-4 rounded-full border border-line" />
                           )}
                         </div>
                       </div>
-                      <p className="text-caption text-ink-soft">
+                      <p className="text-12 text-ink-2">
                         {addr.shippingAddress}, {addr.area}, {addr.governorate}
                       </p>
-                      <p dir="ltr" className="text-caption text-ink-subtle">
+                      <p dir="ltr" className="text-12 text-ink-3">
                         <bdi>{addr.customerPhone}</bdi>
                       </p>
                     </button>
@@ -355,13 +355,13 @@ export function CheckoutView() {
                   type="button"
                   onClick={handleSelectNew}
                   className={cn(
-                    'flex flex-col items-center justify-center gap-1.5 rounded-sm border border-dashed p-3 text-center transition-all min-h-[90px]',
+                    'flex flex-col items-center justify-center gap-1.5 rounded-input border border-dashed p-3 text-center transition-all min-h-[90px]',
                     selectedAddressId === 'new'
-                      ? 'border-primary bg-primary-subtle/30 shadow-xs ring-1 ring-primary'
-                      : 'border-border bg-card hover:border-ink-subtle/40 text-ink-soft',
+                      ? 'border-blue bg-blue-tint/30 shadow-elevation-1 ring-1 ring-blue'
+                      : 'border-line bg-linen hover:border-line-2/40 text-ink-2',
                   )}
                 >
-                  <div className="flex items-center gap-1.5 text-label text-foreground">
+                  <div className="flex items-center gap-1.5 text-14 font-semibold text-night">
                     <Icon name="plus" size={16} />
                     <span>{m.checkoutUseDifferentAddress}</span>
                   </div>
@@ -388,7 +388,7 @@ export function CheckoutView() {
                 </div>
                 {/* Quick Governorate Buttons (Cairo / Giza) */}
                 <div className="flex items-center gap-2">
-                  <span className="text-caption text-ink-subtle">{m.checkoutGovernorate}:</span>
+                  <span className="text-12 text-ink-3">{m.checkoutGovernorate}:</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -397,10 +397,10 @@ export function CheckoutView() {
                       if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
                     }}
                     className={cn(
-                      'rounded-pill border px-2.5 py-1 text-caption transition-colors',
+                      'rounded-pill border px-2.5 py-1 text-12 transition-colors',
                       delivery.governorate.toLowerCase() === 'cairo' || delivery.governorate === 'القاهرة'
-                        ? 'border-primary bg-primary-subtle text-primary'
-                        : 'border-border bg-card text-ink-soft hover:bg-sand',
+                        ? 'border-blue bg-blue-tint text-blue'
+                        : 'border-line bg-linen text-ink-2 hover:bg-sand',
                     )}
                   >
                     <bdi>{locale === 'ar' ? 'القاهرة' : 'Cairo'}</bdi>
@@ -413,10 +413,10 @@ export function CheckoutView() {
                       if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
                     }}
                     className={cn(
-                      'rounded-pill border px-2.5 py-1 text-caption transition-colors',
+                      'rounded-pill border px-2.5 py-1 text-12 transition-colors',
                       delivery.governorate.toLowerCase() === 'giza' || delivery.governorate === 'الجيزة'
-                        ? 'border-primary bg-primary-subtle text-primary'
-                        : 'border-border bg-card text-ink-soft hover:bg-sand',
+                        ? 'border-blue bg-blue-tint text-blue'
+                        : 'border-line bg-linen text-ink-2 hover:bg-sand',
                     )}
                   >
                     <bdi>{locale === 'ar' ? 'الجيزة' : 'Giza'}</bdi>
@@ -446,13 +446,13 @@ export function CheckoutView() {
 
               {/* Save to address book option for authenticated customers */}
               {isAuthenticated && (
-                <div className="space-y-2 rounded-sm border border-border bg-card p-3">
-                  <label className="flex cursor-pointer items-center gap-2 text-body-s">
+                <div className="space-y-2 rounded-input border border-line bg-linen p-3">
+                  <label className="flex cursor-pointer items-center gap-2 text-14">
                     <input
                       type="checkbox"
                       checked={saveToBook}
                       onChange={(e) => setSaveToBook(e.target.checked)}
-                      className="rounded border-border text-primary focus:ring-primary"
+                      className="rounded border-line text-blue focus:ring-blue"
                     />
                     <span>{m.checkoutSaveThisAddress}</span>
                   </label>
@@ -469,32 +469,32 @@ export function CheckoutView() {
             </>
           ) : (
             /* Selected Saved Address Preview Card */
-            <div className="space-y-3 rounded-md border border-primary/40 bg-card p-4">
+            <div className="space-y-3 rounded-card border border-blue/40 bg-linen p-4">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-heading text-foreground">
+                <span className="text-title text-night">
                   {m.checkoutDeliveryTo}: {delivery.customerName}
                 </span>
-                <Badge variant="outline" className="border-primary text-primary text-caption">
+                <StatusChip tone="gray" className="border-blue text-blue text-12">
                   <Icon name="check" size={14} className="me-1" />
                   {m.checkoutDeliverToThisAddress}
-                </Badge>
+                </StatusChip>
               </div>
-              <p className="text-body-s text-ink-soft">
+              <p className="text-14 text-ink-2">
                 {[delivery.shippingAddress, delivery.area, delivery.governorate].filter(Boolean).join('، ')}
               </p>
-              <p dir="ltr" className="text-body-s text-ink-soft text-start">
+              <p dir="ltr" className="text-14 text-ink-2 text-start">
                 <bdi>{delivery.customerPhone}</bdi>
               </p>
               {location && (
-                <div className="flex flex-wrap items-center gap-2 pt-1 text-caption text-ink-soft">
-                  <Icon name="pin" size={16} className="text-primary" />
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-12 text-ink-2">
+                  <Icon name="pin" size={16} className="text-blue" />
                   <span>{m.orderConfirmedLocation}:</span>
                   <bdi>
                     {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
                   </bdi>
-                  <Badge variant="success" className="px-1.5 py-0 text-caption">
+                  <StatusChip tone="ok" className="px-1.5 py-0 text-12">
                     {m.checkoutMapConfirmed}
-                  </Badge>
+                  </StatusChip>
                 </div>
               )}
               <TextField label={m.checkoutNotes} optionalLabel={m.checkoutOptional} {...field('notes')} />
@@ -502,10 +502,10 @@ export function CheckoutView() {
           )}
 
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between">
-            <Link href={routes.cart} className={buttonVariants({ variant: 'ghost' })}>
+            <Link href={routes.cart} className={buttonVariants({ variant: 'light' })}>
               {m.checkoutBackToCart}
             </Link>
-            <Button type="submit" size="lg" loading={pending}>
+            <Button type="submit" size="l" loading={pending}>
               {m.checkoutContinue}
             </Button>
           </div>
@@ -550,8 +550,8 @@ function Review({
   return (
     <div className="space-y-4">
       {changedFrom !== null ? (
-        <Alert variant="warning">
-          <div className="text-body-s">
+        <MessageBox tone="warn">
+          <div className="text-14">
             <p className="font-semibold">{m.checkoutChangedTitle}</p>
             <p>
               {changedFrom !== quote.totalAmount
@@ -559,89 +559,89 @@ function Review({
                 : m.checkoutChangedSame}
             </p>
           </div>
-        </Alert>
+        </MessageBox>
       ) : null}
 
-      <ReviewGroup title={m.checkoutItems} edit={<Link href={routes.cart} className={buttonVariants({ variant: 'link' })}>{m.checkoutEdit}</Link>}>
+      <ReviewGroup title={m.checkoutItems} edit={<Link href={routes.cart} className={buttonVariants({ variant: 'text' })}>{m.checkoutEdit}</Link>}>
         <ul className="space-y-2">
           {quote.items.map((item) => (
-            <li key={item.skuId} className="flex justify-between gap-3 text-body-s">
+            <li key={item.skuId} className="flex justify-between gap-3 text-14">
               <span dir="auto" className="min-w-0 text-match-parent">
                 {item.productName}
-                {item.variantName ? <span className="text-ink-subtle"> · <bdi>{item.variantName}</bdi></span> : null}
-                <span className="text-ink-subtle"> × <bdi>{item.quantity}</bdi></span>
+                {item.variantName ? <span className="text-ink-3"> · <bdi>{item.variantName}</bdi></span> : null}
+                <span className="text-ink-3"> × <bdi>{item.quantity}</bdi></span>
               </span>
-              <bdi className="shrink-0 tabular-nums text-foreground">{money(item.lineTotal)}</bdi>
+              <bdi className="shrink-0 tabular-nums text-night">{money(item.lineTotal)}</bdi>
             </li>
           ))}
         </ul>
       </ReviewGroup>
 
-      <ReviewGroup title={m.checkoutDeliveryTo} edit={<Button variant="link" onClick={onEditDelivery}>{m.checkoutEdit}</Button>}>
-        <p className="text-body-s text-foreground">{delivery.customerName}</p>
-        <p className="text-body-s text-ink-soft">
+      <ReviewGroup title={m.checkoutDeliveryTo} edit={<Button variant="text" onClick={onEditDelivery}>{m.checkoutEdit}</Button>}>
+        <p className="text-14 text-night">{delivery.customerName}</p>
+        <p className="text-14 text-ink-2">
           <bdi dir="ltr">{delivery.customerPhone}</bdi>
         </p>
-        <p className="text-body-s text-ink-soft">
+        <p className="text-14 text-ink-2">
           {[delivery.shippingAddress, delivery.area, delivery.governorate].filter(Boolean).join('، ')}
         </p>
         {location ? (
-          <div className="flex flex-wrap items-center gap-2 pt-1 text-caption text-ink-soft">
-            <Icon name="pin" size={16} className="text-primary" />
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-12 text-ink-2">
+            <Icon name="pin" size={16} className="text-blue" />
             <span>{m.orderConfirmedLocation}:</span>
             <bdi>
               {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
             </bdi>
-            <Badge variant="success" className="px-1.5 py-0 text-caption">
+            <StatusChip tone="ok" className="px-1.5 py-0 text-12">
               {m.checkoutMapConfirmed}
-            </Badge>
+            </StatusChip>
           </div>
         ) : null}
-        {delivery.notes ? <p className="text-body-s text-ink-subtle">{delivery.notes}</p> : null}
+        {delivery.notes ? <p className="text-14 text-ink-3">{delivery.notes}</p> : null}
       </ReviewGroup>
 
       <ReviewGroup title={m.checkoutPayment}>
-        <p className="text-body-s text-foreground">{m.checkoutPaymentCod}</p>
+        <p className="text-14 text-night">{m.checkoutPaymentCod}</p>
       </ReviewGroup>
 
-      <section aria-labelledby="checkout-totals" className="space-y-2 rounded-md border border-border bg-card p-4">
+      <section aria-labelledby="checkout-totals" className="space-y-2 rounded-card border border-line bg-linen p-4">
         <h2 id="checkout-totals" className="sr-only">
           {m.cartSummary}
         </h2>
-        <dl className="space-y-2 text-body-s">
+        <dl className="space-y-2 text-14">
           <Row label={m.checkoutSubtotal} value={money(quote.subtotal)} />
           {discount > 0 ? <Row label={m.checkoutDiscount} value={`− ${money(discount)}`} /> : null}
           <Row label={m.checkoutShipping} value={quote.shippingFee === 0 ? m.checkoutFree : money(quote.shippingFee)} />
-          <div className="flex justify-between gap-3 border-t border-border pt-2">
-            <dt className="text-label text-foreground">{m.checkoutCodTotal}</dt>
-            <dd className="text-price-l tabular-nums text-foreground">
+          <div className="flex justify-between gap-3 border-t border-line pt-2">
+            <dt className="text-14 font-semibold text-night">{m.checkoutCodTotal}</dt>
+            <dd className="text-price tabular-nums text-night">
               <bdi>{money(quote.codAmount)}</bdi>
             </dd>
           </div>
         </dl>
       </section>
 
-      <section aria-labelledby="checkout-confidence" className="space-y-2 rounded-md bg-sand p-4">
-        <h2 id="checkout-confidence" className="text-heading text-foreground">
+      <section aria-labelledby="checkout-confidence" className="space-y-2 rounded-card bg-sand p-4">
+        <h2 id="checkout-confidence" className="text-title text-night">
           {m.checkoutConfidenceTitle}
         </h2>
-        <p className="flex items-start gap-2 text-body-s text-ink-soft">
+        <p className="flex items-start gap-2 text-14 text-ink-2">
           <Icon name="pin" size={18} className="mt-0.5 shrink-0" />
           <span>
             <bdi>{quote.area}</bdi>، <bdi>{quote.governorate}</bdi>
           </span>
         </p>
-        <p className="flex items-start gap-2 text-body-s text-ink-soft">
-          <Icon name="clock" size={18} className="mt-0.5 shrink-0" />
+        <p className="flex items-start gap-2 text-14 text-ink-2">
+          <Icon name="alert" size={18} className="mt-0.5 shrink-0" />
           {m.checkoutPromise}
         </p>
-        <p className="flex items-start gap-2 text-body-s text-ink-soft">
-          <Icon name="info" size={18} className="mt-0.5 shrink-0" />
+        <p className="flex items-start gap-2 text-14 text-ink-2">
+          <Icon name="alert" size={18} className="mt-0.5 shrink-0" />
           {m.checkoutAvailabilityCaveat}
         </p>
       </section>
 
-      <Button size="lg" className="w-full" loading={pending} onClick={onPlaceOrder}>
+      <Button size="l" className="w-full" loading={pending} onClick={onPlaceOrder}>
         {m.checkoutPlaceOrder}
       </Button>
     </div>
@@ -650,9 +650,9 @@ function Review({
 
 function ReviewGroup({ title, edit, children }: { title: string; edit?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="space-y-2 rounded-md border border-border bg-card p-4">
+    <section className="space-y-2 rounded-card border border-line bg-linen p-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-heading text-foreground">{title}</h2>
+        <h2 className="text-title text-night">{title}</h2>
         {edit}
       </div>
       {children}
@@ -663,8 +663,8 @@ function ReviewGroup({ title, edit, children }: { title: string; edit?: React.Re
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-3">
-      <dt className="text-ink-soft">{label}</dt>
-      <dd className="tabular-nums text-foreground">
+      <dt className="text-ink-2">{label}</dt>
+      <dd className="tabular-nums text-night">
         <bdi>{value}</bdi>
       </dd>
     </div>
@@ -673,8 +673,8 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function Notice({ message, action }: { message: string; action: React.ReactNode }) {
   return (
-    <div className={cn('mx-auto max-w-xl rounded-md border border-border bg-card px-5 py-8 text-center')}>
-      <p className="text-body text-foreground">{message}</p>
+    <div className={cn('mx-auto max-w-xl rounded-card border border-line bg-linen px-5 py-8 text-center')}>
+      <p className="text-body text-night">{message}</p>
       <div className="mt-5 flex justify-center">{action}</div>
     </div>
   );

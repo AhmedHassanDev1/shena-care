@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 /*
- * Global foundations only. Every value is a design token (src/styles/tokens.generated.css, generated from
- * design-system/tokens.json); component styling belongs to the shared components in src/components.
+ * SAHEL V2 global foundations. Every value is a design token (src/styles/tokens.generated.css, generated from
+ * design-system/tokens.json + tokens.app.json); component styling belongs to src/components.
  */
 
 *,
@@ -19,11 +19,25 @@ html {
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
-  @apply bg-background font-text text-body text-foreground;
+  background: var(--bone);
+  color: var(--night);
+  font-family: var(--font-text);
+  font-size: 15px;
+  line-height: 27px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 /* Isolate Latin runs and numbers inside Arabic text so punctuation never jumps. */
@@ -31,24 +45,186 @@ bdi {
   unicode-bidi: isolate;
 }
 
-/*
- * Keyboard focus: a 2px paper gap then a 2px ink ring, drawn as box-shadow so it follows pills and arches.
- * :where() keeps specificity at zero, so a component may restyle its own focus (e.g. a field's focus-within).
- */
+/* SAHEL focus: a 2.5px Sahel-blue ring with a 3px offset (SAHEL V2 README §Color). */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid transparent;
-  outline-offset: 0;
-  box-shadow: var(--focus-ring);
+  outline: 2.5px solid var(--blue);
+  outline-offset: 3px;
 }
 
-/* Evening (kohl) surfaces switch the ring colors. */
-:where(.on-kohl) :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  box-shadow: var(--focus-ring-on-kohl);
-}
-
-/* Arabic is never letter-spaced. */
+/* Arabic is never letter-spaced (handoff §RTL 6). */
 :lang(ar) {
-  letter-spacing: normal !important;
+  letter-spacing: normal;
+}
+
+@layer components {
+  .skip-link {
+    position: absolute;
+    inset-inline-start: 16px;
+    top: -100px;
+    z-index: var(--z-toast);
+    padding: 10px 16px;
+    border-radius: var(--radius-pill);
+    background: var(--night);
+    color: var(--linen);
+    font-weight: 600;
+  }
+  .skip-link:focus {
+    top: 12px;
+  }
+
+  /*
+   * Shutter Loading — the pending state of async buttons ONLY (aria-busy="true"). Exact values from
+   * docs/design/sahel-v18/04-components/shutter-loading.css; the canvas helpers .sl-static / .sl-rm are not shipped.
+   */
+  .sl {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .sl > * {
+    position: relative;
+    z-index: 1;
+  }
+  .sl[aria-busy='true'] {
+    cursor: progress;
+  }
+  .sl[aria-busy='true']::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      116deg,
+      rgba(255, 255, 255, 0) 0 44px,
+      rgba(255, 255, 255, 0.17) 44px 56px,
+      rgba(255, 255, 255, 0.07) 56px 60px,
+      rgba(255, 255, 255, 0) 60px 100.7px
+    );
+    -webkit-mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+    mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+    animation: sl-run 1.6s linear infinite;
+  }
+  .sl.sl-light[aria-busy='true']::before {
+    background: repeating-linear-gradient(
+      116deg,
+      rgba(19, 24, 42, 0) 0 44px,
+      rgba(19, 24, 42, 0.07) 44px 56px,
+      rgba(19, 24, 42, 0.03) 56px 60px,
+      rgba(19, 24, 42, 0) 60px 100.7px
+    );
+  }
+  /* Strips travel right to left, in reading direction (handoff §Shutter Loading). */
+  @keyframes sl-run {
+    from {
+      background-position: 0 0;
+    }
+    to {
+      background-position: -112px 0;
+    }
+  }
+
+  /*
+   * Field geometry (Addendum §Inputs): linen fill, line-2 border, radius 14; focus = 2px blue + blue-tint halo;
+   * error = 2px err. Drawn as inset shadows so the box never changes size between states.
+   */
+  .field-box {
+    background: var(--linen);
+    border-radius: var(--radius-input);
+    box-shadow: inset 0 0 0 1px var(--line-2);
+    transition: box-shadow var(--dur-fast) var(--ease-standard);
+  }
+  .field-box:focus-within {
+    box-shadow: inset 0 0 0 2px var(--blue), 0 0 0 4px var(--blue-tint);
+  }
+  .field-box[data-invalid='true'] {
+    box-shadow: inset 0 0 0 2px var(--err);
+  }
+  .field-box[data-invalid='true']:focus-within {
+    box-shadow: inset 0 0 0 2px var(--err), 0 0 0 4px var(--err-tint);
+  }
+  .field-box :where(input, textarea, select):focus-visible {
+    outline: none;
+  }
+
+  /* Text link with the SAHEL underline (Home «كل الماركات», «شوف الكل»). */
+  .text-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--night);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 7px;
+  }
+  .text-link:hover {
+    color: var(--blue);
+  }
+
+  /* Campaign shutter light (Home hero, category fields, auth panel): never on UI surfaces. */
+  .shutter-light {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .shutter-light::after {
+    content: '';
+    position: absolute;
+    inset: -25%;
+    z-index: 2;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    filter: blur(9px);
+    background: repeating-linear-gradient(116deg, rgba(255, 255, 255, 0) 0 46px, rgba(110, 58, 20, 0.13) 46px 70px);
+  }
+  .shutter-light.warm::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(120% 90% at 85% 0%, rgba(255, 206, 140, 0.42), rgba(255, 206, 140, 0) 60%);
+  }
+  .shutter-light > * {
+    position: relative;
+    z-index: 3;
+  }
+
+  /* Sahel-blue campaign field (Home hero, auth editorial panel). */
+  .field-sahel {
+    background: linear-gradient(170deg, var(--blue-light) 0%, var(--blue) 45%, var(--blue-dark) 100%);
+    color: var(--bone);
+  }
+
+  /* One sun: the umber contact shadow every packshot stands on (ProductCard board, "isCut" packshots). */
+  .contact-shadow {
+    position: absolute;
+    bottom: 7%;
+    inset-inline-start: 22%;
+    width: 56%;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(92, 52, 20, 0.3), rgba(92, 52, 20, 0));
+  }
+
+  /* The Shina sun orb (FloatingNav, assistant entry): a quiet saffron ring, stronger when selected. */
+  .sun-orb {
+    border-radius: 9999px;
+    background: radial-gradient(circle at 38% 34%, var(--saffron-light) 0, var(--saffron) 46%, var(--warn) 100%);
+    box-shadow: 0 0 0 3px rgb(var(--saffron-rgb) / 0.14), 0 0 14px rgb(var(--saffron-rgb) / 0.45);
+  }
+  .sun-orb[data-on] {
+    box-shadow: 0 0 0 3px rgb(var(--saffron-rgb) / 0.45), 0 0 14px rgb(var(--saffron-rgb) / 0.45);
+  }
+
+  /* FloatingNav position: 12 from each side, 12 above the device's real bottom inset (handoff §Dynamic safe area). */
+  .floating-nav {
+    position: fixed;
+    inset-inline: var(--nav-gap);
+    bottom: calc(var(--nav-gap) + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @layer utilities {
@@ -59,21 +235,46 @@ bdi {
   /*
    * For `dir="auto"` text (Latin product names in Arabic UI): keep the bidi order of the text itself but align it
    * on the parent's edge. Chromium and WebKit only understand the prefixed value; Firefox takes the standard one.
-   * (Tailwind's arbitrary `[text-align:match-parent]` is dropped by Chromium, so it never applied.)
    */
   .text-match-parent {
     text-align: -webkit-match-parent;
     text-align: match-parent;
   }
+
+  /* Floating-nav pages: content ends 32 above the nav (handoff §Dynamic safe area, 146 on a 390 board). */
+  .pb-nav-safe {
+    padding-bottom: calc(var(--nav-h) + var(--nav-gap) + var(--nav-clearance) + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 1024px) {
+    .pb-nav-safe {
+      padding-bottom: 0;
+    }
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Shutter strips static at 55% (handoff §Shutter Loading); everything else fades only. */
+  .sl[aria-busy='true']::before {
+    animation: none;
+    opacity: 0.55;
+  }
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

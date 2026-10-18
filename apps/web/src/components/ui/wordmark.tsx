@@ -1,48 +1,25 @@
 import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
-/**
- * The brand, set in type (Alexandria Bold + a malachite dot + the Latin name). The working name is not
- * final, so render it ONLY through this component. There is no drawn logo yet; do not create one.
- */
-const wordmarkVariants = cva("inline-flex items-baseline gap-2 whitespace-nowrap font-display text-foreground", {
-  variants: {
-    size: {
-      s: "[&>[data-ar]]:text-[22px] [&>[data-ar]]:leading-7",
-      m: "[&>[data-ar]]:text-[26px] [&>[data-ar]]:leading-8 [&>[data-lat]]:text-[12px]",
-      l: "[&>[data-ar]]:text-[40px] [&>[data-ar]]:leading-[48px] [&>[data-lat]]:text-[15px]",
-    },
-    onKohl: {
-      true: "text-on-kohl [&>[data-lat]]:text-on-kohl [&>[data-ar]]:after:bg-malachite-on-kohl",
-      false: "",
-    },
-  },
-  defaultVariants: { size: "m", onKohl: false },
-})
-
-export interface WordmarkProps
-  extends Omit<React.HTMLAttributes<HTMLSpanElement>, "children">,
-    Omit<VariantProps<typeof wordmarkVariants>, "onKohl"> {
-  name?: string
-  latin?: string
-  /** Evening (kohl) surfaces. */
-  onKohl?: boolean
+export interface WordmarkProps extends Omit<React.HTMLAttributes<HTMLSpanElement>, "children"> {
+  /** `header` 34/36 desktop and 28/30 mobile (Main, PLPMobile); `footer` 34/36 on night. */
+  size?: "header" | "footer"
+  /** Show the Latin «SHINACARE» brand caps beside the Arabic (desktop header only). */
+  withLatin?: boolean
 }
 
-export function Wordmark({ name = "شينا كير", latin = "ShinaCare", size = "m", onKohl = false, className, ...props }: WordmarkProps) {
+/**
+ * The brand, set in type — there is no logo file (README §Assets): «شينا كير» in Beiruti 900, optionally followed by
+ * «SHINACARE» in tracked Latin caps (11/13, 600, 0.12em, ink-2). Render the brand ONLY through this component.
+ */
+export function Wordmark({ size = "header", withLatin = false, className, ...props }: WordmarkProps) {
   return (
-    <span role="img" aria-label={`${latin} ${name}`} className={cn(wordmarkVariants({ size, onKohl }), className)} {...props}>
-      <span
-        data-ar
-        className="font-bold after:ms-[0.12em] after:inline-block after:size-[0.32em] after:rounded-pill after:bg-primary after:align-[0.05em] after:content-['']"
-      >
-        {name}
-      </span>
-      {latin && size !== "s" ? (
-        <span data-lat lang="en" dir="ltr" className="font-text font-medium tracking-[0.04em] text-ink-soft">
-          {latin}
+    <span className={cn("inline-flex items-center gap-2.5 whitespace-nowrap", className)} {...props}>
+      <span className={cn("font-display font-black", size === "header" ? "text-28 leading-30 lg:text-34 lg:leading-36" : "text-34 leading-36")}>شينا كير</span>
+      {withLatin ? (
+        <span lang="en" dir="ltr" className="text-brand text-ink-2">
+          SHINACARE
         </span>
       ) : null}
     </span>

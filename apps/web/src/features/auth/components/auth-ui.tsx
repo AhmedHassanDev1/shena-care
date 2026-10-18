@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 export function AuthHeader({ title, description }: { title: string; description: ReactNode }) {
   return (
     <header>
-      <h1 className="text-display-m text-foreground lg:text-display-l">{title}</h1>
-      <p className="mt-2 text-body text-ink-soft">{description}</p>
+      <h1 className="text-display-3 text-night lg:text-display-2">{title}</h1>
+      <p className="mt-2 text-body text-ink-2">{description}</p>
     </header>
   );
 }
@@ -21,7 +21,7 @@ export function AuthHeader({ title, description }: { title: string; description:
 /** One quiet supporting line under the primary action. */
 export function AuthHelper({ icon, children, className }: { icon: IconName; children: ReactNode; className?: string }) {
   return (
-    <p className={cn('flex items-start justify-center gap-2 text-center text-body-s text-ink-subtle', className)}>
+    <p className={cn('flex items-start justify-center gap-2 text-center text-14 text-ink-3', className)}>
       <Icon name={icon} size={18} className="mt-0.5" />
       <span>{children}</span>
     </p>

@@ -6,28 +6,19 @@ import { CountBadge } from "./count-badge"
 import { Icon, type IconName } from "./icon"
 
 /**
- * Icon-only pill. Exported as a class builder so links (cart, account) get the exact same look and hit
- * area as buttons: `<Link className={iconButtonVariants()}>`.
+ * Icon-only 44×44 target (header account, back chevron, map «استخدم موقعي»). Exported as a class builder so links get
+ * the exact same look and hit area: `<Link className={iconButtonVariants()}>`.
  */
 export const iconButtonVariants = cva(
-  [
-    "relative inline-grid shrink-0 place-items-center rounded-pill text-foreground",
-    "transition-[background-color,border-color] duration-quick ease-out",
-    "disabled:cursor-not-allowed disabled:text-disabled-foreground",
-  ],
+  "relative inline-flex size-control-s shrink-0 items-center justify-center rounded-pill text-night transition-colors duration-fast ease-standard disabled:cursor-not-allowed disabled:text-ink-3",
   {
     variants: {
       variant: {
-        plain: "hover:bg-sand disabled:hover:bg-transparent",
-        outline: "border-[1.5px] border-input bg-card hover:border-foreground",
-        filled: "bg-primary text-primary-foreground hover:bg-primary-hover disabled:bg-disabled",
-      },
-      size: {
-        s: "size-control-s",
-        m: "size-control-m",
+        plain: "hover:bg-sand/60",
+        raised: "bg-linen shadow-elevation-1 hover:bg-bone",
       },
     },
-    defaultVariants: { variant: "plain", size: "m" },
+    defaultVariants: { variant: "plain" },
   }
 )
 
@@ -37,15 +28,16 @@ export interface IconButtonProps
   icon: IconName
   /** Required: an icon alone has no name. */
   label: string
-  /** Cart-style count shown on the corner; also include it in `label` for screen readers. */
-  count?: number
+  iconSize?: number
+  /** Count on the corner, already formatted; include it in `label` too. */
+  count?: string
 }
 
 const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
-  ({ icon, label, variant, size, count, className, type = "button", ...props }, ref) => (
-    <button ref={ref} type={type} aria-label={label} className={cn(iconButtonVariants({ variant, size }), className)} {...props}>
-      <Icon name={icon} size={size === "s" ? 20 : 24} />
-      {count ? <CountBadge count={count} className="absolute end-0 top-0.5" /> : null}
+  ({ icon, label, variant, iconSize = 22, count, className, type = "button", ...props }, ref) => (
+    <button ref={ref} type={type} aria-label={label} className={cn(iconButtonVariants({ variant }), className)} {...props}>
+      <Icon name={icon} size={iconSize} />
+      {count ? <CountBadge className="absolute end-0.5 top-0.5">{count}</CountBadge> : null}
     </button>
   )
 )

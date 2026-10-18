@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Alert } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { MessageBox } from '@/components/ui/message-box';
+import { StatusChip } from '@/components/ui/status-chip';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PhoneField, TextField } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -85,8 +84,8 @@ export function AddressBookView() {
   if (authLoading) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
-        <Skeleton shape="pill" className="h-control-l w-full" />
-        <Skeleton className="h-32 w-full rounded-sm" />
+        <Skeleton className="h-control-l w-full" />
+        <Skeleton className="h-32 w-full rounded-input" />
       </div>
     );
   }
@@ -94,14 +93,14 @@ export function AddressBookView() {
   if (!isAuthenticated) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 text-center">
-        <div className="rounded-sm border border-border bg-card p-8">
-          <Icon name="pin" size={40} className="mx-auto text-ink-subtle" />
-          <h1 className="mt-3 text-display-m text-foreground">{m.addressBookTitle}</h1>
-          <p className="mt-2 text-body-s text-muted-foreground">{m.myOrdersSignIn}</p>
+        <div className="rounded-input border border-line bg-linen p-8">
+          <Icon name="pin" size={40} className="mx-auto text-ink-3" />
+          <h1 className="mt-3 text-display-3 text-night">{m.addressBookTitle}</h1>
+          <p className="mt-2 text-14 text-ink-2">{m.myOrdersSignIn}</p>
           <div className="mt-6">
             <Link
               href={`${routes.login}?returnTo=${encodeURIComponent(routes.accountAddresses)}`}
-              className={buttonVariants({ size: 'lg' })}
+              className={buttonVariants({ size: 'l' })}
             >
               {m.myOrdersSignInButton}
             </Link>
@@ -263,11 +262,11 @@ export function AddressBookView() {
     <div className="mx-auto max-w-2xl space-y-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-display-m text-foreground">{m.addressBookTitle}</h1>
-          <p className="text-caption text-ink-soft">{m.addressBookSubtitle}</p>
+          <h1 className="text-display-3 text-night">{m.addressBookTitle}</h1>
+          <p className="text-12 text-ink-2">{m.addressBookSubtitle}</p>
         </div>
         {!formOpen && (
-          <Button onClick={openAddForm} size="sm">
+          <Button onClick={openAddForm} size="s">
             <Icon name="plus" size={18} className="me-1.5" />
             {m.addressBookAddNew}
           </Button>
@@ -275,29 +274,29 @@ export function AddressBookView() {
       </header>
 
       {successMessage && (
-        <Alert variant="success" className="border-primary-strong/30 bg-primary-subtle text-primary">
+        <MessageBox tone="ok" className="border-blue/30 bg-blue-tint text-blue">
           <div className="flex items-center gap-2">
-            <Icon name="check-circle" size={18} />
-            <p className="text-body-s">{successMessage}</p>
+            <Icon name="check" size={18} />
+            <p className="text-14">{successMessage}</p>
           </div>
-        </Alert>
+        </MessageBox>
       )}
 
       {submitError && (
-        <Alert variant="destructive">
+        <MessageBox tone="err">
           <div className="flex items-center gap-2">
             <Icon name="alert" size={18} />
-            <p className="text-body-s">{submitError}</p>
+            <p className="text-14">{submitError}</p>
           </div>
-        </Alert>
+        </MessageBox>
       )}
 
       {formOpen ? (
-        <Card className="border-primary/40">
-          <CardHeader>
-            <CardTitle>{editingId ? m.addressBookEdit : m.addressBookAddNew}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="rounded-card bg-linen shadow-outline-hairline">
+          <div className="flex flex-col gap-1.5 px-5 pt-5">
+            <h2 className="m-0 text-display-3 text-night">{editingId ? m.addressBookEdit : m.addressBookAddNew}</h2>
+          </div>
+          <div className="px-5 py-4">
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <TextField
                 label={m.addressBookLabelOptional}
@@ -355,7 +354,7 @@ export function AddressBookView() {
                 </div>
                 {/* Cairo / Giza quick selector */}
                 <div className="flex items-center gap-2">
-                  <span className="text-caption text-ink-subtle">{m.checkoutGovernorate}:</span>
+                  <span className="text-12 text-ink-3">{m.checkoutGovernorate}:</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -364,10 +363,10 @@ export function AddressBookView() {
                       if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
                     }}
                     className={cn(
-                      'rounded-pill border px-2.5 py-1 text-caption transition-colors',
+                      'rounded-pill border px-2.5 py-1 text-12 transition-colors',
                       formData.governorate.toLowerCase() === 'cairo' || formData.governorate === 'القاهرة'
-                        ? 'border-primary bg-primary-subtle text-primary'
-                        : 'border-border bg-card text-ink-soft hover:bg-sand',
+                        ? 'border-blue bg-blue-tint text-blue'
+                        : 'border-line bg-linen text-ink-2 hover:bg-sand',
                     )}
                   >
                     <bdi>{locale === 'ar' ? 'القاهرة' : 'Cairo'}</bdi>
@@ -380,10 +379,10 @@ export function AddressBookView() {
                       if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
                     }}
                     className={cn(
-                      'rounded-pill border px-2.5 py-1 text-caption transition-colors',
+                      'rounded-pill border px-2.5 py-1 text-12 transition-colors',
                       formData.governorate.toLowerCase() === 'giza' || formData.governorate === 'الجيزة'
-                        ? 'border-primary bg-primary-subtle text-primary'
-                        : 'border-border bg-card text-ink-soft hover:bg-sand',
+                        ? 'border-blue bg-blue-tint text-blue'
+                        : 'border-line bg-linen text-ink-2 hover:bg-sand',
                     )}
                   >
                     <bdi>{locale === 'ar' ? 'الجيزة' : 'Giza'}</bdi>
@@ -420,18 +419,18 @@ export function AddressBookView() {
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
 
-              <label className="flex cursor-pointer items-center gap-2 pt-1 text-body-s">
+              <label className="flex cursor-pointer items-center gap-2 pt-1 text-14">
                 <input
                   type="checkbox"
                   checked={formData.isDefault}
                   onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                  className="rounded border-border text-primary focus:ring-primary"
+                  className="rounded border-line text-blue focus:ring-blue"
                 />
                 <span>{m.addressBookSetDefault}</span>
               </label>
 
               <div className="flex items-center justify-end gap-3 pt-3">
-                <Button type="button" variant="ghost" onClick={cancelForm}>
+                <Button type="button" variant="light" onClick={cancelForm}>
                   {locale === 'ar' ? 'إلغاء' : 'Cancel'}
                 </Button>
                 <Button type="submit" loading={isSaving}>
@@ -439,20 +438,20 @@ export function AddressBookView() {
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : null}
 
       {addressesLoading ? (
         <div className="space-y-3">
-          <Skeleton className="h-28 w-full rounded-sm" />
-          <Skeleton className="h-28 w-full rounded-sm" />
+          <Skeleton className="h-28 w-full rounded-input" />
+          <Skeleton className="h-28 w-full rounded-input" />
         </div>
       ) : addresses.length === 0 && !formOpen ? (
-        <div className="rounded-sm border border-dashed border-border p-8 text-center">
-          <Icon name="pin" size={36} className="mx-auto text-ink-subtle" />
-          <p className="mt-3 text-body-s text-muted-foreground">{m.addressBookEmpty}</p>
-          <Button onClick={openAddForm} size="sm" className="mt-4">
+        <div className="rounded-input border border-dashed border-line p-8 text-center">
+          <Icon name="pin" size={36} className="mx-auto text-ink-3" />
+          <p className="mt-3 text-14 text-ink-2">{m.addressBookEmpty}</p>
+          <Button onClick={openAddForm} size="s" className="mt-4">
             <Icon name="plus" size={18} className="me-1.5" />
             {m.addressBookAddNew}
           </Button>
@@ -460,34 +459,31 @@ export function AddressBookView() {
       ) : (
         <div className="space-y-4">
           {addresses.map((addr) => (
-            <Card
+            <div
               key={addr.id}
-              className={cn(
-                'transition-all',
-                addr.isDefault && 'border-primary-strong/40 bg-card shadow-xs',
-              )}
+              className={cn('rounded-card bg-linen shadow-outline-hairline', addr.isDefault && 'shadow-outline-blue')}
             >
-              <CardHeader className="pb-2">
+              <div className="pb-2 flex flex-col gap-1.5 px-5 pt-5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-title text-foreground font-medium">
+                    <span className="text-title text-night font-medium">
                       {addr.label || addr.customerName}
                     </span>
                     {addr.isDefault && (
-                      <Badge variant="default" className="bg-primary text-primary-foreground text-caption">
+                      <StatusChip tone="blue">
                         {m.addressBookDefaultBadge}
-                      </Badge>
+                      </StatusChip>
                     )}
-                    <Badge variant="outline" className="text-caption text-ink-soft border-border">
+                    <StatusChip tone="gray" className="text-12 text-ink-2 border-line">
                       <Icon name="pin" size={14} className="me-1" />
                       {m.addressBookConfirmedLocation}
-                    </Badge>
+                    </StatusChip>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="sm"
+                      variant="light"
+                      size="s"
                       onClick={() => openEditForm(addr)}
                       disabled={formOpen}
                     >
@@ -495,9 +491,9 @@ export function AddressBookView() {
                     </Button>
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:bg-destructive/10"
+                      variant="light"
+                      size="s"
+                      className="text-err hover:bg-err/10"
                       onClick={() => handleDelete(addr.id)}
                       disabled={deletingId === addr.id || isDeleting || formOpen}
                       loading={deletingId === addr.id}
@@ -506,9 +502,9 @@ export function AddressBookView() {
                     </Button>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-1 text-body-s text-ink-soft">
-                {addr.label && <p className="text-foreground">{addr.customerName}</p>}
+              </div>
+              <div className="space-y-1 text-14 text-ink-2 px-5 py-4">
+                {addr.label && <p className="text-night">{addr.customerName}</p>}
                 <p dir="ltr" className="text-start">
                   <bdi>{addr.customerPhone}</bdi>
                 </p>
@@ -516,31 +512,31 @@ export function AddressBookView() {
                   {addr.shippingAddress}, {addr.area}, {addr.governorate}
                 </p>
                 {addr.notes && (
-                  <p className="text-caption text-ink-subtle">
+                  <p className="text-12 text-ink-3">
                     {m.checkoutNotes}: {addr.notes}
                   </p>
                 )}
-                <p className="text-caption text-ink-subtle" dir="ltr">
+                <p className="text-12 text-ink-3" dir="ltr">
                   {fillMessage(m.checkoutMapCoordinates, {
                     lat: addr.latitude.toFixed(4),
                     lng: addr.longitude.toFixed(4),
                   })}
                 </p>
-              </CardContent>
+              </div>
               {!addr.isDefault && (
-                <CardFooter className="pt-0">
+                <div className="pt-0 flex items-center gap-2 px-5 pb-5">
                   <Button
                     type="button"
-                    variant="outline"
-                    size="sm"
+                    variant="light"
+                    size="s"
                     onClick={() => handleSetDefault(addr.id)}
                     disabled={isSettingDefault || formOpen}
                   >
                     {m.addressBookSetDefault}
                   </Button>
-                </CardFooter>
+                </div>
               )}
-            </Card>
+            </div>
           ))}
         </div>
       )}

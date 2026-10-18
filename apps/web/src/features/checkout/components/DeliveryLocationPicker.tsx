@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { StatusChip } from '@/components/ui/status-chip';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
@@ -263,33 +263,33 @@ export function DeliveryLocationPicker({
   return (
     <section
       aria-labelledby="delivery-pin-title"
-      className={cn('space-y-3 rounded-md border border-border bg-card p-4', className)}
+      className={cn('space-y-3 rounded-card border border-line bg-linen p-4', className)}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 id="delivery-pin-title" className="text-heading text-foreground">
+          <h2 id="delivery-pin-title" className="text-title text-night">
             {m.checkoutMapTitle}
           </h2>
-          <p className="text-body-s text-ink-soft">{m.checkoutMapHint}</p>
+          <p className="text-14 text-ink-2">{m.checkoutMapHint}</p>
         </div>
         {pin?.confirmed && !isEditing ? (
-          <Badge variant="success" className="gap-1">
+          <StatusChip tone="ok" className="gap-1">
             <Icon name="check" size={14} />
             {m.checkoutMapConfirmed}
-          </Badge>
+          </StatusChip>
         ) : null}
       </div>
 
       {/* Confirmed Summary Card (when collapsed/confirmed) */}
       {pin?.confirmed && !isEditing ? (
-        <div className="space-y-3 rounded-md border border-border bg-sand p-3.5">
+        <div className="space-y-3 rounded-card border border-line bg-sand p-3.5">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <p className="flex items-center gap-1.5 text-body-s font-medium text-foreground">
-                <Icon name="pin" size={18} className="text-primary" />
+              <p className="flex items-center gap-1.5 text-14 font-medium text-night">
+                <Icon name="pin" size={18} className="text-blue" />
                 <span>{m.orderConfirmedLocation}</span>
               </p>
-              <p className="text-caption text-ink-subtle">
+              <p className="text-12 text-ink-3">
                 <bdi>
                   {pin.latitude.toFixed(4)}, {pin.longitude.toFixed(4)}
                 </bdi>
@@ -299,8 +299,8 @@ export function DeliveryLocationPicker({
               </p>
             </div>
             <Button
-              variant="outline"
-              size="sm"
+              variant="light"
+              size="s"
               onClick={() => setIsEditing(true)}
               aria-label={m.checkoutMapChangePin}
             >
@@ -315,8 +315,8 @@ export function DeliveryLocationPicker({
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
-              variant="secondary"
-              size="sm"
+              variant="light"
+              size="s"
               loading={locating}
               onClick={handleUseCurrentLocation}
               className="gap-1.5"
@@ -325,7 +325,7 @@ export function DeliveryLocationPicker({
               {locating ? m.checkoutMapLocating : m.checkoutMapUseCurrentLocation}
             </Button>
 
-            <span className="text-caption text-ink-subtle">{m.checkoutMapQuickAreas}:</span>
+            <span className="text-12 text-ink-3">{m.checkoutMapQuickAreas}:</span>
             <div className="flex flex-wrap gap-1.5">
               {CAIRO_GIZA_AREAS.slice(0, 5).map((area) => (
                 <button
@@ -336,7 +336,7 @@ export function DeliveryLocationPicker({
                     setCenter({ lat: area.lat, lng: area.lng });
                     setZoom(15);
                   }}
-                  className="rounded-pill border border-border bg-card px-2.5 py-1 text-caption text-ink-soft transition-colors hover:bg-sand hover:text-foreground"
+                  className="rounded-pill border border-line bg-linen px-2.5 py-1 text-12 text-ink-2 transition-colors hover:bg-sand hover:text-night"
                 >
                   <bdi>{locale === 'ar' ? area.nameAr : area.nameEn}</bdi>
                 </button>
@@ -370,7 +370,7 @@ export function DeliveryLocationPicker({
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
-              className="relative h-72 w-full cursor-grab select-none overflow-hidden rounded-md border border-border bg-sand active:cursor-grabbing focus:outline-none focus:ring-1 focus:ring-ring"
+              className="relative h-72 w-full cursor-grab select-none overflow-hidden rounded-card border border-line bg-sand active:cursor-grabbing focus:outline-none focus:ring-1 focus:ring-blue"
             >
               {/* Tile Images */}
               {tiles.map((t) => (
@@ -397,33 +397,33 @@ export function DeliveryLocationPicker({
                     transform: `translate3d(${pinPos.left}px, ${pinPos.top}px, 0)`,
                   }}
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-primary text-primary-foreground shadow-float">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-blue text-white shadow-elevation-2">
                     <Icon name="pin" size={18} />
                   </div>
-                  <div className="h-1.5 w-1.5 rounded-pill bg-foreground" />
+                  <div className="h-1.5 w-1.5 rounded-pill bg-night" />
                 </div>
               ) : null}
 
               {/* Viewport Map Center Crosshair (subtle guide) */}
               {!pinPos ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-pill border border-primary bg-primary/20" />
+                  <div className="h-2 w-2 rounded-pill border border-blue bg-blue/20" />
                 </div>
               ) : null}
 
-              <p className="pointer-events-auto absolute bottom-0 start-0 bg-card px-1.5 text-caption text-ink-soft">
+              <p className="pointer-events-auto absolute bottom-0 start-0 bg-linen px-1.5 text-12 text-ink-2">
                 <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
                   © OpenStreetMap
                 </a>
               </p>
 
               {/* Zoom Controls */}
-              <div className="absolute bottom-3 end-3 flex flex-col gap-1.5 rounded-sm border border-border bg-card p-1 shadow-float">
+              <div className="absolute bottom-3 end-3 flex flex-col gap-1.5 rounded-input border border-line bg-linen p-1 shadow-elevation-2">
                 <button
                   type="button"
                   onClick={() => setZoom((z) => Math.min(18, z + 1))}
                   aria-label={m.checkoutMapZoomIn}
-                  className="flex h-8 w-8 items-center justify-center rounded-sm text-foreground transition-colors hover:bg-sand"
+                  className="flex h-8 w-8 items-center justify-center rounded-input text-night transition-colors hover:bg-sand"
                 >
                   <Icon name="plus" size={16} />
                 </button>
@@ -431,7 +431,7 @@ export function DeliveryLocationPicker({
                   type="button"
                   onClick={() => setZoom((z) => Math.max(10, z - 1))}
                   aria-label={m.checkoutMapZoomOut}
-                  className="flex h-8 w-8 items-center justify-center rounded-sm text-foreground transition-colors hover:bg-sand"
+                  className="flex h-8 w-8 items-center justify-center rounded-input text-night transition-colors hover:bg-sand"
                 >
                   <Icon name="minus" size={16} />
                 </button>
@@ -441,21 +441,21 @@ export function DeliveryLocationPicker({
 
           {/* Location Validation and Status Bar */}
           {locatingError ? (
-            <p role="alert" className="flex items-center gap-1.5 text-body-s text-destructive">
+            <p role="alert" className="flex items-center gap-1.5 text-14 text-err">
               <Icon name="alert" size={16} />
               {locatingError}
             </p>
           ) : null}
 
           {pin && !inArea ? (
-            <p role="alert" className="flex items-center gap-1.5 text-body-s text-destructive">
+            <p role="alert" className="flex items-center gap-1.5 text-14 text-err">
               <Icon name="alert" size={16} />
               {m.checkoutMapOutOfService}
             </p>
           ) : null}
 
           {pin && inArea && isDefault ? (
-            <p role="alert" className="flex items-center gap-1.5 text-body-s text-destructive">
+            <p role="alert" className="flex items-center gap-1.5 text-14 text-err">
               <Icon name="alert" size={16} />
               {m.checkoutMapImprobablePin}
             </p>
@@ -464,7 +464,7 @@ export function DeliveryLocationPicker({
           {/* Action Row: Selected Coordinates & Explicit Confirm Button */}
           {pin ? (
             <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-body-s text-ink-soft">
+              <p className="text-14 text-ink-2">
                 <bdi>
                   {fillMessage(m.checkoutMapCoordinates, {
                     lat: pin.latitude.toFixed(4),
@@ -475,7 +475,7 @@ export function DeliveryLocationPicker({
 
               <Button
                 type="button"
-                size="sm"
+                size="s"
                 onClick={confirmPin}
                 disabled={!inArea || isDefault}
                 className="gap-1.5"
@@ -485,14 +485,14 @@ export function DeliveryLocationPicker({
               </Button>
             </div>
           ) : (
-            <p className="text-body-s text-ink-subtle">{m.checkoutMapHint}</p>
+            <p className="text-14 text-ink-3">{m.checkoutMapHint}</p>
           )}
         </div>
       )}
 
       {/* Outer validation error if submitted without confirmed pin */}
       {error ? (
-        <p role="alert" className="flex items-center gap-1.5 text-body-s text-destructive">
+        <p role="alert" className="flex items-center gap-1.5 text-14 text-err">
           <Icon name="alert" size={16} />
           {error}
         </p>

@@ -1,45 +1,54 @@
-// ShinaCare icon set (copied verbatim from the design system's components/src/icons.js).
-// 24px grid, 1.75 stroke, round caps/joins. Drawn RTL-native: "forward" points LEFT; DIRECTIONAL icons mirror under dir="ltr".
+// SAHEL icon set — path markup copied from docs/design/sahel-v18/06-assets/icons (extracted from the V18 boards),
+// deduplicated and named. 24px grid, round caps/joins, currentColor. Drawn RTL-native: "forward" points LEFT and
+// "back" points RIGHT; DIRECTIONAL icons mirror themselves under dir="ltr".
 export const ICON_PATHS = {
-  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4 20 20"/>',
-  bag: '<path d="M5.2 8.5h13.6l-1 11.5H6.2z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/>',
-  home: '<path d="M4 10.4 12 4l8 6.4V20h-5.2v-5.6H9.2V20H4z"/>',
-  shelf: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="3.25"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="3.25"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
-  routine: '<path d="M17 4.5v15"/><circle cx="17" cy="6" r="2" fill="currentColor"/><circle cx="17" cy="12" r="2" fill="currentColor"/><circle cx="17" cy="18" r="2"/><path d="M4 6h9M4 12h9M8 18h5"/>',
-  user: '<circle cx="12" cy="8" r="3.6"/><path d="M5 20c1.2-3.7 3.9-5.6 7-5.6s5.8 1.9 7 5.6"/>',
-  filter: '<path d="M20 7h-9M6 7H4M20 17h-2M13 17H4"/><circle cx="8.5" cy="7" r="2.3"/><circle cx="15.5" cy="17" r="2.3"/>',
-  sort: '<path d="M16 5v14M13 8l3-3 3 3M8 19V5M5 16l3 3 3-3"/>',
-  close: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
-  'chevron-forward': '<path d="M14.5 6 8.5 12l6 6"/>',
-  'chevron-back': '<path d="M9.5 6l6 6-6 6"/>',
-  'chevron-down': '<path d="M6 9.5l6 6 6-6"/>',
-  'arrow-forward': '<path d="M19 12H5M11 6l-6 6 6 6"/>',
-  'arrow-back': '<path d="M5 12h14M13 6l6 6-6 6"/>',
-  plus: '<path d="M12 5v14M5 12h14"/>',
-  minus: '<path d="M5 12h14"/>',
-  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-  'check-circle': '<circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.6 2.6 4.8-5"/>',
-  alert: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.6v5.4"/><path d="M12 16.3v.2"/>',
-  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.4"/><path d="M12 7.7v.2"/>',
-  truck: '<path d="M21 6.5H10.5V16H21zM10.5 10H6.6L3 13.4V16h7.5"/><circle cx="16.8" cy="17.6" r="1.8"/><circle cx="6.8" cy="17.6" r="1.8"/>',
-  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.6V12l3 2"/>',
-  sun: '<circle cx="12" cy="12" r="3.8"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
-  moon: '<path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/>',
-  lens: '<circle cx="9.3" cy="12" r="5.6"/><circle cx="14.7" cy="12" r="5.6"/><path d="M12 8.2v7.6" stroke-width="1.4" stroke-dasharray="1.4 1.6"/>',
-  phone: '<rect x="7" y="3" width="10" height="18" rx="2.6"/><path d="M11 17.8h2"/>',
-  trash: '<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>',
-  star: '<path d="M12 4.2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z"/>',
-  drop: '<path d="M12 3.6c3.4 4.1 5.9 7.4 5.9 10.4a5.9 5.9 0 0 1-11.8 0c0-3 2.5-6.3 5.9-10.4z"/>',
-  tag: '<path d="M20 12V5h-7l-9 9 7 7z"/><circle cx="16" cy="8" r="1.3"/>',
-  shield: '<path d="M12 3.2l7 2.9v5c0 4.5-3 8-7 9.7-4-1.7-7-5.2-7-9.7v-5z"/><path d="M8.8 12l2.2 2.2 4.2-4.3"/>',
-  box: '<path d="M4 7.8 12 4l8 3.8v8.4L12 20l-8-3.8z"/><path d="M4 7.8l8 3.9 8-3.9M12 11.7V20"/>',
-  pin: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
-  menu: '<path d="M4 7h16M4 12h16M10 17h10"/>',
-  refresh: '<path d="M5 12a7 7 0 1 0 2.05-4.95"/><path d="M5 4.2V8h3.8"/>',
-  compare: '<path d="M17 7H5l3-3M7 17h12l-3 3"/>',
-  // ShinaCare additions (same 24px grid / 1.75 stroke): carousel autoplay controls.
-  pause: '<path d="M9 6.5v11M15 6.5v11"/>',
-  play: '<path d="M8.5 5.8v12.4L18.2 12z"/>'
+  // Navigation and chrome
+  home: '<path d="M4.5 10.5 12 4.5l7.5 6v9h-5v-5h-5v5h-5z"/>', // icon-038 / FloatingNav
+  shop: '<rect x="4.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.5"/>', // icon-039
+  routine: '<path d="M3.5 17.5h17"/><path d="M7.5 17.5a4.5 4.5 0 0 1 9 0"/><path d="M12 6.5v2.5"/><path d="M6 9.5l1.4 1.4"/><path d="M18 9.5l-1.4 1.4"/>', // icon-034 (sun on the horizon)
+  evening: '<path d="M18.5 14.5A7 7 0 0 1 9.5 5.5a7 7 0 1 0 9 9z"/>', // icon-043 (moon)
+  user: '<circle cx="12" cy="8.5" r="3.75"/><path d="M4.75 20c1.2-3.6 4-5.25 7.25-5.25S18.05 16.4 19.25 20"/>', // icon-019
+  bag: '<path d="M5.5 8.5h13l-1 11.25h-11z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/>', // bag.svg
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>', // search-ic.svg
+  zoom: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M11 8v6M8 11h6"/>', // zoom.svg
+  filter: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>', // filter-ic.svg
+  sort: '<path d="M8 5v14M4.5 15.5 8 19l3.5-3.5"/><path d="M16 19V5M12.5 8.5 16 5l3.5 3.5"/>', // sort-ic.svg
+  list: '<path d="M8 6h11M8 12h11M8 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>', // routine-ic.svg
+  close: '<path d="M6 6l12 12M18 6L6 18"/>', // icon-006
+  'chevron-back': '<path d="M9 6l6 6-6 6"/>', // back.svg — points right (back in RTL)
+  'chevron-forward': '<path d="M15 6l-6 6 6 6"/>', // icon-013 — points left (forward in RTL)
+  'chevron-down': '<path d="M6 9.5l6 6 6-6"/>', // chev.svg
+  'arrow-forward': '<path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/>', // icon-015 ARROW
+
+  // Actions
+  plus: '<path d="M12 5v14M5 12h14"/>', // icon-004
+  minus: '<path d="M5 12h14"/>', // minus.svg
+  trash: '<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/>', // trash.svg
+  copy: '<rect x="8" y="8" width="11" height="12" rx="2"/><path d="M5 15V5.5A1.5 1.5 0 0 1 6.5 4H15"/>', // copy.svg
+  share: '<path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/>', // share.svg
+  retry: '<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/>', // retry-ic.svg
+  gps: '<circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/>', // gps.svg
+
+  // Status
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', // ok-ic.svg / check.svg
+  alert: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v4.5"/><path d="M12 16h.01"/>', // icon-078
+
+  // Commerce
+  pin: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>', // icon-027
+  truck: '<path d="M3.5 7h10v9h-10z"/><path d="M13.5 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.75"/><circle cx="17" cy="17.5" r="1.75"/>', // truck.svg
+  cash: '<rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.6"/>', // cash.svg
+  card: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 9.5h18M7 15h4"/>', // card.svg
+  payment: '<rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M3.5 10h17"/>', // icon-024 (footer «الدفع»)
+  returns: '<path d="M15 7l4 4-4 4"/><path d="M19 11h-9a5 5 0 0 0 0 10h2"/>', // icon-025 (footer «الاسترجاع»)
+  shield: '<path d="M12 3.5l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9v-5z"/><path d="M9 12l2 2 4-4"/>', // icon-026 (footer «مصدر المنتجات»)
+  phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/>', // ph.svg / wallet.svg
+  lock: '<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>', // lock.svg
+  message: '<path d="M4.5 6.5h15v10h-9l-4 3v-3h-2z"/>', // msg.svg
+  camera: '<path d="M4 8.5h3l1.5-2h7l1.5 2h3v10H4z"/><circle cx="12" cy="13" r="3.25"/>', // icon-049 (image placeholder)
+  'image-off': '<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M3.5 15l4.5-4.5 4 4 2.5-2.5 6 6"/><path d="M4 4l16 16"/>', // icon-071 (img-error)
 } as const;
+
 export type IconName = keyof typeof ICON_PATHS;
-export const DIRECTIONAL_ICONS: readonly IconName[] = ['chevron-forward', 'chevron-back', 'arrow-forward', 'arrow-back', 'truck', 'menu', 'routine', 'tag'];
+
+/** Icons whose meaning depends on reading direction; they flip under dir="ltr". */
+export const DIRECTIONAL_ICONS: readonly IconName[] = ['chevron-back', 'chevron-forward', 'arrow-forward', 'returns'];

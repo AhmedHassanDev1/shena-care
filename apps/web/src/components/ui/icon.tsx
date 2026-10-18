@@ -7,21 +7,21 @@ export type { IconName }
 
 export interface IconProps extends Omit<React.SVGAttributes<SVGSVGElement>, "name"> {
   name: IconName
-  /** Pixels. `icon-m` (24) is the default; use 18 (`icon-s`) inside chips, badges and inline text. Never below 16. */
+  /** Pixels. The boards use 16–24; 22 in chrome (header, nav), 18–20 inside buttons and rows. */
   size?: number
   /** Accessible name. Omit for decorative icons (they are hidden from assistive technology). */
   label?: string
+  /** SAHEL line weight is 1.75; chevrons and checks are drawn heavier on the boards. */
   strokeWidth?: number
 }
 
 /**
- * The one icon set (design-system `assets/Icons`): 24px grid, 1.75 stroke, inherits `currentColor`.
+ * The one icon set (SAHEL V18, docs/design/sahel-v18/06-assets/icons): 24px grid, 1.75px rounded line, currentColor.
  * Use forward/back, never left/right — directional glyphs mirror themselves under dir="ltr".
- * `lens` belongs to the assistant, `routine` to routines, `tag` to offers.
  *
  * The path markup comes from the static, repository-owned table in icon-paths.ts, never from user input.
  */
-export function Icon({ name, size = 24, label, className, strokeWidth = 1.75, ...props }: IconProps) {
+export function Icon({ name, size = 22, label, className, strokeWidth = 1.75, ...props }: IconProps) {
   return (
     <svg
       width={size}

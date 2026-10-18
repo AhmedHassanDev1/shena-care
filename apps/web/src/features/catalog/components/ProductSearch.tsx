@@ -8,15 +8,14 @@ import { suggestProducts, type ProductSuggestion } from '../api/discovery';
 
 interface ProductSearchProps {
   id: string;
-  size: 's' | 'm';
   label: string;
-  submitLabel: string;
   placeholder: string;
+  defaultValue?: string;
 }
 
 /** Full search remains a normal GET form; suggestions are an optional progressive enhancement. */
-export function ProductSearch({ id, size, label, submitLabel, placeholder }: ProductSearchProps) {
-  const [query, setQuery] = useState('');
+export function ProductSearch({ id, label, placeholder, defaultValue = '' }: ProductSearchProps) {
+  const [query, setQuery] = useState(defaultValue);
   const [focused, setFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
 
@@ -37,18 +36,18 @@ export function ProductSearch({ id, size, label, submitLabel, placeholder }: Pro
     <div className="relative" onBlur={event => {
       if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
     }}>
-      <SearchField id={id} size={size} action={routes.products} label={label}
-        submitLabel={submitLabel} placeholder={placeholder} maxLength={120}
+      <SearchField id={id} action={routes.products} label={label}
+        placeholder={placeholder} maxLength={120}
         value={query} onChange={event => { setQuery(event.target.value); setSuggestions([]); setFocused(true); }}
         onFocus={() => setFocused(true)} onKeyDown={event => { if (event.key === 'Escape') setFocused(false); }} />
       {show ? (
-        <ul aria-label={label} className="absolute inset-x-0 top-full z-50 mt-1 border border-border bg-card shadow-sheet">
+        <ul aria-label={label} className="absolute inset-x-0 top-full z-overlay mt-2 overflow-hidden rounded-card bg-linen py-1.5 shadow-elevation-2">
           {suggestions.map(item => (
             <li key={item.id}>
-              <Link href={routes.product(item.slug)} className="block px-4 py-3 text-body-s text-foreground hover:bg-muted focus-visible:bg-muted"
+              <Link href={routes.product(item.slug)} className="flex min-h-control-s items-center px-4 text-14 text-night no-underline hover:bg-bone focus-visible:bg-bone"
                 onClick={() => setFocused(false)}>
                 <bdi>{item.name}</bdi>
-                <span className="ms-2 text-muted-foreground"><bdi>{item.brand.name}</bdi></span>
+                <span className="ms-2 text-ink-2"><bdi>{item.brand.name}</bdi></span>
               </Link>
             </li>
           ))}

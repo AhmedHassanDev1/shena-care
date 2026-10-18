@@ -1,47 +1,29 @@
+import Link from 'next/link';
+import { buttonVariants } from '@/components/ui/button-variants';
+import { getMessages } from '@/lib/i18n/messages';
 import { getLocale } from '@/lib/i18n/server';
+import { routes } from '@/lib/routes';
 
-interface RedesignPlaceholderProps {
-  route: string;
-}
-
-const copy = {
-  ar: {
-    eyebrow: 'إعادة تصميم واجهة شينا كير',
-    title: 'هذه الصفحة غير مكتملة مؤقتًا',
-    description:
-      'تمت إزالة الواجهة السابقة مع الاحتفاظ بالخدمات والتكاملات والمنطق الوظيفي. سيُعاد بناء هذه الرحلة ضمن التصميم المخصص القادم.',
-    route: 'المسار المحفوظ',
-  },
-  en: {
-    eyebrow: 'ShinaCare interface reset',
-    title: 'This page is temporarily incomplete',
-    description:
-      'The previous presentation was removed while services, integrations, and application logic were preserved. This journey will return with the separately directed custom design.',
-    route: 'Preserved route',
-  },
-} as const;
-
-export function RedesignPlaceholder({ route }: RedesignPlaceholderProps) {
-  const locale = getLocale();
-  const content = copy[locale];
-
+/**
+ * Routes that exist (FloatingNav, footer) but have no V18 board yet: account, routines, Shina. A calm SAHEL notice with
+ * one way back, never a dead end. `data-ui-status` keeps the route contract checked by scripts/check-ui-reset.mjs.
+ */
+export function RedesignPlaceholder({ route }: { route: string }) {
+  const m = getMessages(getLocale());
   return (
     <section
       data-ui-status="redesign-pending"
-      aria-labelledby="redesign-pending-title"
-      className="mx-auto flex min-h-[70vh] max-w-2xl flex-col justify-center px-6 py-16"
+      data-route={route}
+      aria-labelledby="placeholder-title"
+      className="mx-auto flex min-h-[60dvh] max-w-narrow flex-col items-start justify-center gap-4 px-4 py-16"
     >
-      <p className="text-label text-primary">{content.eyebrow}</p>
-      <h1 id="redesign-pending-title" className="mt-3 text-display-l text-foreground">
-        {content.title}
+      <h1 id="placeholder-title" className="m-0 text-display-1 text-night">
+        {m.placeholderTitle}
       </h1>
-      <p className="mt-4 text-body text-muted-foreground">{content.description}</p>
-      <dl className="mt-8 border-s-2 border-border ps-4">
-        <dt className="text-caption text-muted-foreground">{content.route}</dt>
-        <dd className="mt-1 font-mono text-body-s text-foreground" dir="ltr">
-          {route}
-        </dd>
-      </dl>
+      <p className="m-0 text-15 leading-27 text-ink-2">{m.placeholderBody}</p>
+      <Link href={routes.home} className={buttonVariants({ variant: 'ink', size: 'm' })}>
+        {m.placeholderHome}
+      </Link>
     </section>
   );
 }

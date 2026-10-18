@@ -1,6 +1,6 @@
 import { apiClient, type RequestOptions } from './api-client';
 import { auth } from './auth';
-import { cart, type ReorderResult, type ReorderItemResult } from './cart';
+import { cart, type ReorderResult } from './cart';
 
 export interface CheckoutData {
   customerName: string;

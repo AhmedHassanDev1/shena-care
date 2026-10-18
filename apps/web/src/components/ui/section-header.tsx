@@ -2,39 +2,42 @@ import * as React from "react"
 import Link from "next/link"
 
 import { cn } from "@/lib/utils"
-import { Icon } from "./icon"
 
 export interface SectionHeaderProps {
   /** Id for `aria-labelledby` on the section. */
   id?: string
-  title: string
-  subtitle?: string
-  /** Small line above the title. */
-  eyebrow?: string
-  href?: string
-  linkLabel?: string
+  title: React.ReactNode
+  /** Small line above the title (12/17, 600, ink-2): «مختارات الموسم». */
+  eyebrow?: React.ReactNode
+  /** Line under the title (15/27, ink-2). */
+  description?: React.ReactNode
+  /** Underlined text link at the reading end: «شوف الكل», «كل الماركات». */
+  link?: { href: string; label: string }
+  /** Controls beside the link (e.g. Home filter pills). */
+  aside?: React.ReactNode
   className?: string
 }
 
-/** Section title with an optional "see all" link. Title = display `title`; the link points forward (chevron mirrors with direction). */
-export function SectionHeader({ id, title, subtitle, eyebrow, href, linkLabel, className }: SectionHeaderProps) {
+/** Section title (Main / Mobile): eyebrow, Beiruti display-2 title, optional description, link at the end. */
+export function SectionHeader({ id, title, eyebrow, description, link, aside, className }: SectionHeaderProps) {
   return (
-    <div className={cn("mb-4 flex items-end justify-between gap-4 lg:mb-6", className)}>
-      <div>
-        {eyebrow ? <p className="mb-0.5 text-caption text-ink-soft">{eyebrow}</p> : null}
-        <h2 id={id} className="text-title text-foreground lg:text-display-m">
+    <div className={cn("flex flex-wrap items-end justify-between gap-x-6 gap-y-3", className)}>
+      <div className="flex min-w-0 flex-col gap-1">
+        {eyebrow ? <p className="m-0 text-12 font-semibold leading-17 text-ink-2">{eyebrow}</p> : null}
+        <h2 id={id} className="m-0 text-display-2 text-night">
           {title}
         </h2>
-        {subtitle ? <p className="mt-0.5 text-body-s text-muted-foreground">{subtitle}</p> : null}
+        {description ? <p className="m-0 text-15 leading-27 text-ink-2">{description}</p> : null}
       </div>
-      {href && linkLabel ? (
-        <Link
-          href={href}
-          className="inline-flex min-h-control-m shrink-0 items-center gap-1 rounded-pill px-1 text-label text-primary underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-quick hover:decoration-current"
-        >
-          {linkLabel}
-          <Icon name="chevron-forward" size={18} />
-        </Link>
+      {aside || link ? (
+        <div className="flex flex-wrap items-center gap-2 lg:gap-6">
+          {aside}
+          {link ? (
+            <Link href={link.href} className="text-link">
+              {link.label}
+            </Link>
+          ) : null}
+        </div>
       ) : null}
     </div>
   )

@@ -4,19 +4,18 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Alert } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { MessageBox } from '@/components/ui/message-box';
+import { StatusChip } from '@/components/ui/status-chip';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
-import { ProductNiche } from '@/components/ui/product-niche';
+import { ProductTile } from '@/components/ui/product-tile';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCart } from '@/features/cart/hooks/useCart';
-import { ProductImage } from '@/features/home/components/ProductImage';
 import { ApiError } from '@/lib/api-client';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
-import { formatEgp, formatPackSize } from '@/lib/i18n/format';
+import { formatEgp, formatNumber, formatPackSize } from '@/lib/i18n/format';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
@@ -52,16 +51,16 @@ export function ProductDetailView({ slug }: { slug: string }) {
   if (query.status === 'error') {
     const missing = query.error instanceof ApiError && (query.error.status === 404 || query.error.status === 400);
     return (
-      <section className="mx-auto max-w-xl rounded-md border border-border bg-card px-5 py-8 text-center">
-        <h1 className="text-title text-foreground">{missing ? m.pdpNotFoundTitle : m.pdpLoadError}</h1>
-        {missing ? <p className="mt-2 text-body-s text-muted-foreground">{m.pdpNotFoundBody}</p> : null}
+      <section className="mx-auto max-w-xl rounded-card border border-line bg-linen px-5 py-8 text-center">
+        <h1 className="text-title text-night">{missing ? m.pdpNotFoundTitle : m.pdpLoadError}</h1>
+        {missing ? <p className="mt-2 text-14 text-ink-2">{m.pdpNotFoundBody}</p> : null}
         <div className="mt-5 flex justify-center gap-3">
           {missing ? null : (
-            <Button variant="secondary" onClick={() => query.refetch()}>
+            <Button variant="light" onClick={() => query.refetch()}>
               {m.tryAgain}
             </Button>
           )}
-          <Link href={routes.products} className={buttonVariants({ variant: missing ? 'default' : 'ghost' })}>
+          <Link href={routes.products} className={buttonVariants({ variant: missing ? 'blue' : 'light' })}>
             {m.pdpBackToProducts}
           </Link>
         </div>
@@ -103,17 +102,17 @@ function Detail({
 
       <div className="space-y-5" aria-busy={switching}>
         <header className="space-y-1">
-          <p className="text-label text-ink-soft">
+          <p className="text-14 font-semibold text-ink-2">
             <bdi>{product.brand.name}</bdi>
           </p>
-          <h1 dir="auto" className="text-display-m text-foreground text-match-parent">
+          <h1 dir="auto" className="text-display-3 text-night text-match-parent">
             {name}
           </h1>
         </header>
 
         {product.skus.length > 1 ? (
           <fieldset className="space-y-2">
-            <legend className="text-label text-foreground">{m.pdpSize}</legend>
+            <legend className="text-14 font-semibold text-night">{m.pdpSize}</legend>
             <div className="flex flex-wrap gap-2">
               {product.skus.map((sku) => (
                 <Chip key={sku.id} selected={sku.id === variant.id} onClick={() => sku.id !== variant.id && onSelectVariant(sku.id)}>
@@ -128,7 +127,7 @@ function Detail({
 
         <Availability variant={variant} siblings={product.skus} />
 
-        <p className="flex items-start gap-2 text-body-s text-ink-soft">
+        <p className="flex items-start gap-2 text-14 text-ink-2">
           <Icon name="truck" size={20} className="mt-0.5 shrink-0" />
           {m.pdpDeliveryNote}
         </p>
@@ -137,17 +136,17 @@ function Detail({
           <BuyBox variant={variant} name={name} disabled={switching} />
         </div>
 
-        <section className="divide-y divide-border border-y border-border">
+        <section className="divide-y divide-line border-y border-line">
           {sections.length === 0 ? (
-            <p className="py-4 text-body-s text-muted-foreground">{m.pdpContentPending}</p>
+            <p className="py-4 text-14 text-ink-2">{m.pdpContentPending}</p>
           ) : (
             sections.map((section, index) => (
               <details key={section.key} open={index === 0} className="group py-1">
-                <summary className="flex min-h-control-m cursor-pointer list-none items-center justify-between gap-3 text-heading text-foreground">
+                <summary className="flex min-h-control-s cursor-pointer list-none items-center justify-between gap-3 text-title text-night">
                   {section.title}
-                  <Icon name="chevron-down" size={20} className="shrink-0 transition-transform duration-quick group-open:rotate-180" />
+                  <Icon name="chevron-down" size={20} className="shrink-0 transition-transform duration-fast group-open:rotate-180" />
                 </summary>
-                <p dir="auto" className="whitespace-pre-line pb-4 text-body text-ink-soft text-match-parent">
+                <p dir="auto" className="whitespace-pre-line pb-4 text-body text-ink-2 text-match-parent">
                   {section.body}
                 </p>
               </details>
@@ -157,7 +156,7 @@ function Detail({
       </div>
 
       {/* Phones/tablets: the purchase bar stays reachable while reading. */}
-      <div className="fixed inset-x-0 bottom-0 z-sticky border-t border-border bg-card px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 shadow-float lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-sticky border-t border-line bg-linen px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 shadow-elevation-2 lg:hidden">
         <BuyBox variant={variant} name={name} disabled={switching} compact />
       </div>
     </article>
@@ -173,14 +172,13 @@ function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
 
   return (
     <div className="space-y-3">
-      <ProductNiche scale="gallery">
-        <ProductImage src={current?.url ?? null} alt={current?.altText?.trim() || name} priority />
+      <ProductTile src={current?.url ?? null} alt={current?.altText?.trim() || name} name={name} priority sizes="(min-width: 1024px) 560px, 100vw">
         {images.length > 1 ? (
-          <span className="absolute bottom-3 end-3 rounded-pill bg-card px-2 py-0.5 text-caption tabular-nums text-foreground">
+          <span className="absolute bottom-3 end-3 rounded-pill bg-linen px-2 py-0.5 text-12 tabular-nums text-night">
             <bdi>{fillMessage(m.pdpImageCount, { i: index + 1, n: images.length })}</bdi>
           </span>
         ) : null}
-      </ProductNiche>
+      </ProductTile>
       {images.length > 1 ? (
         <ul className="flex gap-2 overflow-x-auto pb-1">
           {images.map((image, i) => (
@@ -190,11 +188,9 @@ function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
                 aria-label={fillMessage(m.pdpShowImage, { i: i + 1 })}
                 aria-current={i === index}
                 onClick={() => setIndex(i)}
-                className={cn('block w-full rounded-sm border-[1.5px]', i === index ? 'border-foreground' : 'border-transparent')}
+                className={cn('block w-full rounded-input border', i === index ? 'border-night' : 'border-transparent')}
               >
-                <ProductNiche>
-                  <ProductImage src={image.url} alt="" />
-                </ProductNiche>
+                <ProductTile size="thumb" className="size-16" src={image.url} alt="" name={name} />
               </button>
             </li>
           ))}
@@ -209,7 +205,7 @@ function PriceBlock({ variant }: { variant: PublicVariant }) {
   const locale = useLocale();
   const price = variant.price;
   const amount = price ? formatEgp(price.amount, price.currency, locale) : null;
-  if (!price || !amount) return <p className="text-body text-ink-subtle">{m.productPriceUnavailable}</p>;
+  if (!price || !amount) return <p className="text-body text-ink-3">{m.productPriceUnavailable}</p>;
 
   // The reference price is shown only when the backend supplies one above the current price.
   const compareAt = price.compareAtAmount !== null && price.compareAtAmount > price.amount ? price.compareAtAmount : null;
@@ -217,21 +213,21 @@ function PriceBlock({ variant }: { variant: PublicVariant }) {
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <p className="text-price-l tabular-nums text-foreground">
+        <p className="text-price tabular-nums text-night">
           <bdi>{amount}</bdi>
         </p>
         {compareAt ? (
           <>
-            <p className="text-body-s text-ink-subtle line-through">
+            <p className="text-14 text-ink-3 line-through">
               <span className="sr-only">{fillMessage(m.pdpWas, { price: formatEgp(compareAt, price.currency, locale) ?? '' })}</span>
               <bdi aria-hidden>{formatEgp(compareAt, price.currency, locale)}</bdi>
             </p>
-            <Badge variant="offer">{fillMessage(m.pdpSave, { amount: formatEgp(compareAt - price.amount, price.currency, locale) ?? '' })}</Badge>
+            <StatusChip tone="err">{fillMessage(m.pdpSave, { amount: formatEgp(compareAt - price.amount, price.currency, locale) ?? '' })}</StatusChip>
           </>
         ) : null}
       </div>
       {discount > 0 ? (
-        <p className="text-body-s text-ink-soft">
+        <p className="text-14 text-ink-2">
           {fillMessage(m.pdpOrderDiscount, { amount: formatEgp(discount, price.currency, locale) ?? '' })}
         </p>
       ) : null}
@@ -243,7 +239,7 @@ function Availability({ variant, siblings }: { variant: PublicVariant; siblings:
   const m = useMessages();
   if (variant.canOrder) {
     return (
-      <p className="flex items-center gap-2 text-body-s text-guide">
+      <p className="flex items-center gap-2 text-14 text-blue-deep">
         <Icon name="check" size={18} />
         {m.pdpInStock}
       </p>
@@ -251,17 +247,18 @@ function Availability({ variant, siblings }: { variant: PublicVariant; siblings:
   }
   const alternative = siblings.some((sku) => sku.id !== variant.id && sku.canOrder);
   return (
-    <Alert variant="warning">
-      <div className="text-body-s">
+    <MessageBox tone="warn">
+      <div className="text-14">
         <p className="font-semibold">{m.pdpOutOfStock}</p>
         {alternative ? <p>{m.pdpOtherSizeAvailable}</p> : null}
       </div>
-    </Alert>
+    </MessageBox>
   );
 }
 
 function BuyBox({ variant, name, disabled, compact = false }: { variant: PublicVariant; name: string; disabled: boolean; compact?: boolean }) {
   const m = useMessages();
+  const locale = useLocale();
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [status, setStatus] = useState<AddStatus>('idle');
@@ -283,10 +280,11 @@ function BuyBox({ variant, name, disabled, compact = false }: { variant: PublicV
   };
 
   return (
-    <div className={cn('space-y-2', compact ? '' : 'rounded-md border border-border bg-card p-4')}>
+    <div className={cn('space-y-2', compact ? '' : 'rounded-card border border-line bg-linen p-4')}>
       <div className="flex items-center gap-3">
         <QuantityStepper
           value={quantity}
+          displayValue={formatNumber(quantity, locale)}
           max={MAX_LINE_QUANTITY}
           onChange={(next) => {
             setQuantity(next);
@@ -296,13 +294,13 @@ function BuyBox({ variant, name, disabled, compact = false }: { variant: PublicV
           labels={{ group: m.pdpQuantity, decrease: m.pdpDecrease, increase: m.pdpIncrease }}
         />
         {status === 'added' ? (
-          <Link href={routes.cart} className={cn(buttonVariants({ variant: 'tonal', size: 'lg' }), 'flex-1')}>
+          <Link href={routes.cart} className={cn(buttonVariants({ variant: 'light', size: 'l' }), 'flex-1')}>
             <Icon name="check" size={20} />
             {m.pdpViewCart}
           </Link>
         ) : (
           <Button
-            size="lg"
+            size="l"
             className="flex-1"
             disabled={!orderable || disabled}
             loading={status === 'pending'}
@@ -314,7 +312,7 @@ function BuyBox({ variant, name, disabled, compact = false }: { variant: PublicV
           </Button>
         )}
       </div>
-      <p role="status" className={cn('text-body-s', status === 'failed' || status === 'unavailable' ? 'flex items-center gap-2 text-destructive' : 'sr-only')}>
+      <p role="status" className={cn('text-14', status === 'failed' || status === 'unavailable' ? 'flex items-center gap-2 text-err' : 'sr-only')}>
         {status === 'added' ? m.pdpAdded : null}
         {status === 'failed' || status === 'unavailable' ? (
           <>
@@ -330,12 +328,12 @@ function BuyBox({ variant, name, disabled, compact = false }: { variant: PublicV
 function DetailSkeleton({ label }: { label: string }) {
   return (
     <div aria-busy="true" aria-label={label} className="grid gap-6 lg:grid-cols-2 lg:gap-12">
-      <Skeleton shape="arch" className="aspect-[4/5] w-full" />
+      <Skeleton className="aspect-[4/5] w-full" />
       <div className="space-y-3">
-        <Skeleton shape="pill" className="h-4 w-24" />
-        <Skeleton shape="pill" className="h-8 w-3/4" />
-        <Skeleton shape="pill" className="h-control-m w-48" />
-        <Skeleton shape="pill" className="h-8 w-32" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-8 w-3/4" />
+        <Skeleton className="h-control-s w-48" />
+        <Skeleton className="h-8 w-32" />
       </div>
     </div>
   );

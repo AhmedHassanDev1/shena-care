@@ -1,49 +1,70 @@
 import type { Locale } from './messages';
 
 /**
- * Plain number for UI copy (counts, timers, code lengths). Western digits with a comma for thousands in
- * both languages: the design system never mixes Arabic-Indic digits into prices, sizes, codes or quantities.
+ * Display formatting for the storefront (SAHEL V18 handoff §RTL 4, owner decision 2026-10-18):
+ * the Arabic storefront shows prices, totals, quantities, counts and dates in Arabic-Indic digits with the Arabic
+ * thousands separator (٣٬٣٢٠) and «ج.م» after the amount; English shows Western digits and "EGP 1,050".
+ *
+ * Display only: API payloads, stored values, calculations and validation never pass through these helpers.
+ * Phone numbers, OTP codes, SKU codes and order/transaction references are technical identifiers and are
+ * rendered as-is (Western digits, LTR) — never formatted here.
  */
-export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('en-US').format(value);
+
+const numberLocale = (locale: Locale) => (locale === 'ar' ? 'ar-EG' : 'en-US');
+
+/** Count, quantity or step number in the active language: ٣ / 3, ١٬٢٥٠ / 1,250. */
+export function formatNumber(value: number, locale: Locale): string {
+  return new Intl.NumberFormat(numberLocale(locale), { maximumFractionDigits: 2 }).format(value);
 }
 
-export function formatCurrency(amount: number, currency: string, locale: Locale): string {
-  try {
-    return new Intl.NumberFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
-      style: 'currency',
-      currency,
-    }).format(amount);
-  } catch {
-    return `${formatNumber(amount)} ${currency}`;
-  }
+/** Amount without the currency label, for layouts that set «ج.م» / "EGP" in a smaller, lighter style. */
+export function formatAmount(amount: number, locale: Locale): string {
+  return new Intl.NumberFormat(numberLocale(locale), { maximumFractionDigits: 2 }).format(amount);
+}
+
+/** «ج.م» in Arabic, "EGP" in English. */
+export function currencyLabel(locale: Locale): string {
+  return locale === 'ar' ? 'ج.م' : 'EGP';
 }
 
 /**
- * Storefront price. The catalog is priced in Egyptian pounds only; any other currency code means the
- * data is not trustworthy for display, so no price is rendered (returns null).
- * Latin digits keep prices aligned across Arabic and English UI and pair with `tabular-nums`.
+ * Storefront price: «٣٬٣٢٠ ج.م» / "EGP 3,320". The catalog is priced in Egyptian pounds only; any other
+ * currency means the data is not trustworthy for display, so no price is rendered (returns null).
  */
 export function formatEgp(amount: number, currency: string, locale: Locale): string | null {
   if (currency !== 'EGP' || !Number.isFinite(amount)) return null;
-  const value = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(amount);
-  return locale === 'ar' ? `${value} ج.م` : `EGP ${value}`;
+  const value = formatAmount(amount, locale);
+  return locale === 'ar' ? `${value} ${currencyLabel(locale)}` : `${currencyLabel(locale)} ${value}`;
 }
 
-const SIZE_UNITS_AR: Record<string, string> = { ml: 'مل', l: 'لتر', g: 'جم', kg: 'كجم', mg: 'ملجم' };
+const SIZE_UNITS_AR: Record<string, string> = { ml: 'مل', l: 'لتر', g: 'جم', gm: 'جم', kg: 'كجم', mg: 'ملجم' };
 
-/** "500 مل" / "500 ml". Returns null when the SKU has no size. */
+/** «٥٠٠ مل» / "500 ml". Returns null when the SKU has no size. */
 export function formatPackSize(size: number | null, unit: string | null, locale: Locale): string | null {
   if (size === null || !Number.isFinite(size) || size <= 0) return null;
-  const value = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(size);
+  const value = formatNumber(size, locale);
   const normalized = unit?.trim().toLowerCase() ?? '';
   if (!normalized) return value;
   return `${value} ${locale === 'ar' ? SIZE_UNITS_AR[normalized] ?? unit : unit}`;
 }
 
-/** Medium date in the active language, always with Western digits (design-system numeral rule). */
+const CAIRO = 'Africa/Cairo';
+
+/** «١٨ أكتوبر ٢٠٢٦» / "Oct 18, 2026" (Cairo time). */
 export function formatDate(value: string | Date, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-EG', {
-    dateStyle: 'medium',
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
+    day: 'numeric',
+    month: locale === 'ar' ? 'long' : 'short',
+    year: 'numeric',
+    timeZone: CAIRO,
+  }).format(new Date(value));
+}
+
+/** «٩:١٢ ص» / "9:12 AM" (Cairo time). */
+export function formatTime(value: string | Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: CAIRO,
   }).format(new Date(value));
 }

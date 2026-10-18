@@ -12,6 +12,9 @@ export interface ProductView {
     name: string;
     slug: string;
   };
+  /** Merchandising category (catalog-owned); null when the product has none. */
+  category?: { id: string; name: string; slug: string; parentId: string | null } | null;
+  productLine?: { id: string; name: string; slug: string } | null;
   skus: Array<{
     id: string;
     code: string;

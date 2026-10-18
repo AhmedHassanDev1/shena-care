@@ -3,19 +3,20 @@
 import { useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query';
-import { Alert } from '@/components/ui/alert';
+import { MessageBox } from '@/components/ui/message-box';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ProductGrid } from '@/features/home/components/ProductGrid';
-import { toProductCardModel } from '@/features/home/lib/products';
-import { useMessages } from '@/lib/i18n/LocaleProvider';
+import { ProductCard } from './ProductCard';
+import { toCardModel } from '../lib/card-model';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import { formatNumber } from '@/lib/i18n/format';
 import { fillMessage } from '@/lib/i18n/messages';
 import { apiClient } from '@/lib/api-client';
 import { mainCategorySlugs } from '@/lib/routes';
-import type { Concern } from '@/features/home/lib/concerns';
+import type { Concern } from '../api/discovery';
 import {
   discoverProducts,
   facetDisplayName,
@@ -63,6 +64,7 @@ function toQueryString(filters: DiscoveryFilters) {
  */
 export function ProductListing() {
   const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const filters = useFilters();
@@ -80,7 +82,7 @@ export function ProductListing() {
   });
 
   const first = query.data?.pages[0];
-  const products = useMemo(() => query.data?.pages.flatMap((page) => page.items).map(toProductCardModel) ?? [], [query.data]);
+  const products = useMemo(() => query.data?.pages.flatMap((page) => page.items).map((p) => toCardModel(p, locale, m.sizeOr)) ?? [], [query.data, locale, m.sizeOr]);
 
   const navigate = (next: DiscoveryFilters) => router.push(`${pathname}${toQueryString(next)}`, { scroll: false });
   // Root categories (the header's skin / hair links) are never facet values, so they take the header's labels.
@@ -92,7 +94,7 @@ export function ProductListing() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Search lives in the shared site header, which submits to this route's `q`. */}
-      <h1 className="text-display-m text-foreground">
+      <h1 className="text-display-3 text-night">
         {filters.q ? fillMessage(m.listingResultsFor, { q: filters.q }) : m.listingTitle}
       </h1>
 
@@ -122,41 +124,47 @@ export function ProductListing() {
       {query.status === 'pending' ? (
         <ListingSkeleton label={m.loading} />
       ) : query.status === 'error' ? (
-        <Alert variant="destructive" className="items-center">
-          <p className="flex-1 text-body-s">{m.productsError}</p>
-          <Button variant="secondary" size="sm" onClick={() => query.refetch()}>
+        <MessageBox tone="err" className="items-center">
+          <p className="flex-1 text-14">{m.productsError}</p>
+          <Button variant="light" size="s" onClick={() => query.refetch()}>
             {m.tryAgain}
           </Button>
-        </Alert>
+        </MessageBox>
       ) : products.length === 0 ? (
-        <section className="rounded-md border border-border bg-card px-5 py-8 text-center">
-          <h2 className="text-heading text-foreground">{m.listingNoResultsTitle}</h2>
-          <p className="mt-2 text-body-s text-muted-foreground">{m.listingNoResultsBody}</p>
+        <section className="rounded-card border border-line bg-linen px-5 py-8 text-center">
+          <h2 className="text-title text-night">{m.listingNoResultsTitle}</h2>
+          <p className="mt-2 text-14 text-ink-2">{m.listingNoResultsBody}</p>
           {filterKey ? (
-            <Button variant="secondary" className="mt-4" onClick={() => navigate({})}>
+            <Button variant="light" className="mt-4" onClick={() => navigate({})}>
               {m.listingClearAll}
             </Button>
           ) : null}
         </section>
       ) : (
         <section aria-labelledby="listing-count" className="space-y-4">
-          <p id="listing-count" role="status" className="text-body-s text-ink-soft">
+          <p id="listing-count" role="status" className="text-14 text-ink-2">
             {fillMessage(m.listingCount, { n: first?.total ?? products.length })}
           </p>
-          <ProductGrid products={products} />
+          <ul className="m-0 grid list-none grid-cols-2 gap-x-3 gap-y-8 p-0 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-12">
+            {products.map((product, index) => (
+              <li key={product.id} className="flex">
+                <ProductCard product={product} priority={index < 2} />
+              </li>
+            ))}
+          </ul>
           <div className="flex flex-col items-center gap-3 pt-2">
             {query.isFetchNextPageError ? (
-              <p role="alert" className="flex items-center gap-2 text-body-s text-destructive">
+              <p role="alert" className="flex items-center gap-2 text-14 text-err">
                 <Icon name="alert" size={18} />
                 {m.listingLoadMoreFailed}
               </p>
             ) : null}
             {query.hasNextPage ? (
-              <Button variant="secondary" loading={query.isFetchingNextPage} onClick={() => query.fetchNextPage()}>
+              <Button variant="light" loading={query.isFetchingNextPage} onClick={() => query.fetchNextPage()}>
                 {m.listingLoadMore}
               </Button>
             ) : (
-              <p className="text-caption text-ink-subtle">{fillMessage(m.listingEnd, { n: first?.total ?? products.length })}</p>
+              <p className="text-12 text-ink-3">{fillMessage(m.listingEnd, { n: first?.total ?? products.length })}</p>
             )}
           </div>
         </section>
@@ -170,9 +178,9 @@ function ListingSkeleton({ label }: { label: string }) {
     <ul aria-busy="true" aria-label={label} className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4 lg:gap-y-8">
       {Array.from({ length: 4 }, (_, index) => (
         <li key={index}>
-          <Skeleton shape="arch" className="aspect-[4/5] w-full" />
-          <Skeleton shape="pill" className="mt-3 h-4 w-3/4" />
-          <Skeleton shape="pill" className="mt-2 h-4 w-1/2" />
+          <Skeleton className="aspect-[4/5] w-full" />
+          <Skeleton className="mt-3 h-4 w-3/4" />
+          <Skeleton className="mt-2 h-4 w-1/2" />
         </li>
       ))}
     </ul>
@@ -195,6 +203,7 @@ function FilterSheet({
   appliedCount: number;
 }) {
   const m = useMessages();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DiscoveryFilters>(filters);
   const draftKey = toQueryString(draft);
@@ -255,10 +264,10 @@ function FilterSheet({
           <SheetTitle>{m.listingFilters}</SheetTitle>
         </SheetHeader>
         <div className="-mx-6 flex-1 space-y-6 overflow-y-auto px-6">
-          {visible.length === 0 ? <p className="text-body-s text-muted-foreground">{m.listingNoFacets}</p> : null}
+          {visible.length === 0 ? <p className="text-14 text-ink-2">{m.listingNoFacets}</p> : null}
           {visible.map((section) => (
             <fieldset key={section.key} className="space-y-3">
-              <legend className="text-heading text-foreground">{section.title}</legend>
+              <legend className="text-title text-night">{section.title}</legend>
               <div className="flex flex-wrap gap-2">
                 {section.options.map((option) => {
                   const selected = draft[section.key] === option.slug;
@@ -266,7 +275,7 @@ function FilterSheet({
                     <Chip
                       key={option.slug}
                       selected={selected}
-                      count={option.count}
+                      count={formatNumber(option.count, locale)}
                       onClick={() => setDraft({ ...draft, [section.key]: selected ? undefined : option.slug })}
                     >
                       <bdi>{option.name}</bdi>
@@ -277,8 +286,8 @@ function FilterSheet({
             </fieldset>
           ))}
         </div>
-        <SheetFooter className="flex-row gap-3 border-t border-border pt-4 sm:justify-between">
-          <Button variant="secondary" className="flex-1" onClick={() => setDraft({ q: filters.q })}>
+        <SheetFooter className="flex-row gap-3 border-t border-line pt-4 sm:justify-between">
+          <Button variant="light" className="flex-1" onClick={() => setDraft({ q: filters.q })}>
             {m.listingClearAll}
           </Button>
           <Button

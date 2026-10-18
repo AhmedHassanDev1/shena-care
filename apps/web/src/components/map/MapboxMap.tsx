@@ -147,13 +147,13 @@ export function MapboxMap({
       pinEl.setAttribute('role', 'img');
       pinEl.setAttribute('aria-label', 'Delivery location pin');
       pinEl.innerHTML = `
-        <div class="flex h-8 w-8 items-center justify-center rounded-pill bg-primary text-primary-foreground shadow-float">
+        <div class="flex h-8 w-8 items-center justify-center rounded-pill bg-blue text-white shadow-elevation-2">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
         </div>
-        <div class="h-1.5 w-1.5 rounded-pill bg-foreground mt-0.5"></div>
+        <div class="h-1.5 w-1.5 rounded-pill bg-night mt-0.5"></div>
       `;
 
       const marker = new mapboxgl.Marker({
@@ -200,8 +200,8 @@ export function MapboxMap({
       hubEl.setAttribute('role', 'img');
       hubEl.setAttribute('aria-label', hubLocation.name ?? 'ShinaCare Hub');
       hubEl.innerHTML = `
-        <div class="flex items-center gap-1.5 rounded-pill border border-border bg-card px-2 py-0.5 text-caption font-medium text-foreground shadow-float">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+        <div class="flex items-center gap-1.5 rounded-pill border border-line bg-linen px-2 py-0.5 text-12 font-medium text-night shadow-elevation-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue">
             <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             <polyline points="9 22 9 12 15 12 15 22" />
           </svg>
@@ -236,7 +236,7 @@ export function MapboxMap({
       aria-label={ariaLabel ?? 'Interactive Map'}
       dir="ltr"
       className={cn(
-        'relative h-72 w-full select-none overflow-hidden rounded-md border border-border bg-sand focus:outline-none focus:ring-1 focus:ring-ring',
+        'relative h-72 w-full select-none overflow-hidden rounded-card border border-line bg-sand focus:outline-none focus:ring-1 focus:ring-blue',
         className,
       )}
     />

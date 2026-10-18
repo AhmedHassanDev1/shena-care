@@ -25,3 +25,12 @@ export const routes = {
 
 /** Category slugs of the two MVP entry points (seeded catalog roots: apps/api seed.ts). */
 export const mainCategorySlugs = { skin: 'skin-care', hair: 'hair-care' } as const;
+
+/**
+ * Destinations of the SAHEL shell (header, floating nav, footer). Only routes that exist in this app; nav entries
+ * without a real destination (e.g. a personal-care category, which the catalog does not have) are not rendered.
+ */
+export const shellRoutes = {
+  shina: '/shina',
+  routines: '/account/routine',
+} as const;

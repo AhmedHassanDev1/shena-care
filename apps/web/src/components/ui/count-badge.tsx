@@ -3,28 +3,16 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * Henna count dot (cart count). Henna is the offers/cart color — never errors. Decorative: the owning
- * control puts the number in its accessible name (e.g. "Cart, 3 items"). Renders nothing for 0.
+ * Cart count (CartD header: saffron pill, night 12/700 digits, min 22×22). Decorative: the owning link puts the
+ * number in its accessible name. Pass the count already formatted for the locale; render nothing for an empty cart.
  */
-export function CountBadge({
-  count,
-  max = 99,
-  className,
-}: {
-  count: number
-  max?: number
-  className?: string
-}) {
-  if (!count || count < 1) return null
+export function CountBadge({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={cn(
-        "grid h-[18px] min-w-[18px] place-items-center rounded-pill bg-henna px-1 text-caption font-medium leading-none tabular-nums text-on-henna ring-2 ring-background",
-        className
-      )}
+      className={cn("inline-flex h-5.5 min-w-5.5 items-center justify-center rounded-pill bg-saffron px-1.5 text-12 font-bold leading-17 text-night", className)}
     >
-      {count > max ? `${max}+` : count}
+      {children}
     </span>
   )
 }

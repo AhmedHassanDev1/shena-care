@@ -17,6 +17,9 @@
     "check:ui-reset": "node scripts/check-ui-reset.mjs"
   },
   "dependencies": {
+    "@fontsource/beiruti": "5.3.0",
+    "@fontsource/ibm-plex-sans-arabic": "5.3.0",
+    "@fontsource/instrument-serif": "5.3.0",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-slot": "^1.1.0",
@@ -24,8 +27,6 @@
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.453.0",
-    "motion": "^14.3.0",
     "next": "^14.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

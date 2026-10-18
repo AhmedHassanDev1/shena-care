@@ -102,6 +102,9 @@ export interface BackendReorderResult {
   };
 }
 
+/** Per-line quantity limit of the cart contract (apps/api cart.service.ts MAX_LINE_QUANTITY; AddToCartDto @Max(20)). */
+export const MAX_LINE_QUANTITY = 20;
+
 const CART_TOKEN_KEY = 'guestCartToken';
 /** Backend prices are EGP; used only when a SKU can no longer be found in the catalog. */
 const FALLBACK_CURRENCY = 'EGP';

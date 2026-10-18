@@ -4,12 +4,12 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { MessageBox } from '@/components/ui/message-box';
+import { StatusChip } from '@/components/ui/status-chip';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Steps, type StepItem } from '@/components/ui/steps';
+import { Timeline, type TimelineItem } from '@/components/ui/timeline';
 import { ApiError } from '@/lib/api-client';
 import { createIdempotencyKey } from '@/lib/idempotency';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
@@ -51,16 +51,16 @@ export function OrderTrackingView({ orderNumber }: { orderNumber: string }) {
     const status = query.error instanceof ApiError ? query.error.status : 0;
     const access = status === 401 || status === 403;
     return (
-      <section className="mx-auto max-w-xl rounded-md border border-border bg-card px-5 py-8 text-center">
-        <h1 className="text-title text-foreground">{access || status === 404 || status === 400 ? m.orderNotFoundTitle : m.orderLoadError}</h1>
-        <p className="mt-2 text-body-s text-muted-foreground">{access ? m.orderNeedsAccessBody : status === 404 || status === 400 ? m.orderNotFoundBody : null}</p>
+      <section className="mx-auto max-w-xl rounded-card border border-line bg-linen px-5 py-8 text-center">
+        <h1 className="text-title text-night">{access || status === 404 || status === 400 ? m.orderNotFoundTitle : m.orderLoadError}</h1>
+        <p className="mt-2 text-14 text-ink-2">{access ? m.orderNeedsAccessBody : status === 404 || status === 400 ? m.orderNotFoundBody : null}</p>
         <div className="mt-5 flex justify-center gap-3">
           {access ? (
             <Link href={routes.login} className={buttonVariants()}>
               {m.orderSignIn}
             </Link>
           ) : (
-            <Button variant="secondary" onClick={() => query.refetch()}>
+            <Button variant="light" onClick={() => query.refetch()}>
               {m.tryAgain}
             </Button>
           )}
@@ -81,31 +81,31 @@ function Tracking({ order, placed }: { order: OrderTracking; placed: boolean }) 
   const money = (value: number) => formatEgp(value, order.amounts.currency, locale) ?? '';
   const { delivery } = order;
 
-  const steps: StepItem[] = order.timeline.map((event, index) => ({
+  const steps: TimelineItem[] = order.timeline.map((event, index) => ({
     id: `${event.status}-${index}`,
     label: m[STAGE_KEY(event.status)] as string,
-    detail: <bdi>{formatDate(event.occurredAt, locale)}</bdi>,
-    status: index === order.timeline.length - 1 ? 'current' : 'complete',
+    detail: formatDate(event.occurredAt, locale),
+    dot: index === order.timeline.length - 1 ? 'now' : 'done',
   }));
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       {placed ? (
-        <Alert variant="success">
-          <div className="text-body-s">
+        <MessageBox tone="ok">
+          <div className="text-14">
             <p className="font-semibold">{m.orderPlacedTitle}</p>
             <p>{m.orderPlacedBody}</p>
           </div>
-        </Alert>
+        </MessageBox>
       ) : null}
 
       <header className="space-y-1">
-        <p className="text-caption text-ink-soft">
+        <p className="text-12 text-ink-2">
           <bdi>{fillMessage(m.orderNumber, { n: order.orderNumber })}</bdi> · {fillMessage(m.orderPlacedOn, { date: formatDate(order.createdAt, locale) })}
         </p>
-        <h1 className="text-display-m text-foreground">{m[STAGE_KEY(order.status)] as string}</h1>
-        <p className="flex items-start gap-2 text-body-s text-ink-soft">
-          <Icon name="clock" size={18} className="mt-0.5 shrink-0" />
+        <h1 className="text-display-3 text-night">{m[STAGE_KEY(order.status)] as string}</h1>
+        <p className="flex items-start gap-2 text-14 text-ink-2">
+          <Icon name="alert" size={18} className="mt-0.5 shrink-0" />
           {delivery.deliveredAt
             ? fillMessage(m.orderDeliveredOn, { date: formatDate(delivery.deliveredAt, locale) })
             : delivery.estimatedDate
@@ -113,47 +113,47 @@ function Tracking({ order, placed }: { order: OrderTracking; placed: boolean }) 
               : m.orderPromise}
         </p>
         {delivery.nextUpdateBy ? (
-          <p className="text-body-s text-ink-soft">{fillMessage(m.orderNextUpdate, { date: formatDate(delivery.nextUpdateBy, locale) })}</p>
+          <p className="text-14 text-ink-2">{fillMessage(m.orderNextUpdate, { date: formatDate(delivery.nextUpdateBy, locale) })}</p>
         ) : null}
       </header>
 
       {receipt ? (
-        <Alert variant="success">
-          <p className="text-body-s">
+        <MessageBox tone="ok">
+          <p className="text-14">
             {fillMessage(m.decisionReceipt, {
               before: formatEgp(receipt.amounts.codBefore, receipt.amounts.currency, locale) ?? '',
               after: formatEgp(receipt.amounts.codAfter, receipt.amounts.currency, locale) ?? '',
             })}
           </p>
-        </Alert>
+        </MessageBox>
       ) : null}
 
       {problemSent ? (
-        <Alert variant="success">
-          <p className="text-body-s">{m.problemSent}</p>
-        </Alert>
+        <MessageBox tone="ok">
+          <p className="text-14">{m.problemSent}</p>
+        </MessageBox>
       ) : null}
 
       {order.actionRequired ? <DecisionPanel orderNumber={order.orderNumber} onResolved={setReceipt} /> : null}
 
       <Section title={m.orderItems}>
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-line">
           {order.items.map((item) => {
             const gone = item.lineState === 'removed' || item.lineState === 'replaced';
             return (
-              <li key={item.id} className="py-3 text-body-s">
+              <li key={item.id} className="py-3 text-14">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 space-y-1">
-                    <p dir="auto" className={cn('text-foreground text-match-parent', gone && 'text-ink-subtle line-through')}>
+                    <p dir="auto" className={cn('text-night text-match-parent', gone && 'text-ink-3 line-through')}>
                       {item.productName}
-                      {item.variantName ? <span className="text-ink-subtle"> · <bdi>{item.variantName}</bdi></span> : null}
-                      <span className="text-ink-subtle"> × <bdi>{item.quantity}</bdi></span>
+                      {item.variantName ? <span className="text-ink-3"> · <bdi>{item.variantName}</bdi></span> : null}
+                      <span className="text-ink-3"> × <bdi>{item.quantity}</bdi></span>
                     </p>
-                    <Badge variant={item.status === 'action-required' ? 'warning' : item.status === 'confirmed' ? 'success' : 'neutral'}>
+                    <StatusChip tone={item.status === 'action-required' ? 'warn' : item.status === 'confirmed' ? 'ok' : 'gray'}>
                       {gone ? (item.lineState === 'removed' ? m.orderItemRemoved : m.orderItemReplaced) : (m[ITEM_KEY[item.status]] as string)}
-                    </Badge>
+                    </StatusChip>
                   </div>
-                  <bdi className={cn('shrink-0 tabular-nums text-foreground', gone && 'text-ink-subtle line-through')}>{money(item.lineTotal)}</bdi>
+                  <bdi className={cn('shrink-0 tabular-nums text-night', gone && 'text-ink-3 line-through')}>{money(item.lineTotal)}</bdi>
                 </div>
                 {gone ? null : (
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -173,54 +173,54 @@ function Tracking({ order, placed }: { order: OrderTracking; placed: boolean }) 
       </Section>
 
       <Section title={m.orderAmounts}>
-        <dl className="space-y-2 text-body-s">
+        <dl className="space-y-2 text-14">
           <Row label={m.checkoutSubtotal} value={money(order.amounts.subtotal)} />
           <Row label={m.checkoutShipping} value={order.amounts.shippingFee === 0 ? m.checkoutFree : money(order.amounts.shippingFee)} />
-          <div className="flex justify-between gap-3 border-t border-border pt-2">
-            <dt className="text-label text-foreground">{m.orderCodNow}</dt>
-            <dd className="text-price-l tabular-nums text-foreground">
+          <div className="flex justify-between gap-3 border-t border-line pt-2">
+            <dt className="text-14 font-semibold text-night">{m.orderCodNow}</dt>
+            <dd className="text-price tabular-nums text-night">
               <bdi>{money(order.amounts.currentCodAmount)}</bdi>
             </dd>
           </div>
           {order.amounts.originalCodAmount !== order.amounts.currentCodAmount ? (
-            <p className="text-caption text-ink-subtle">{fillMessage(m.orderCodWas, { amount: money(order.amounts.originalCodAmount) })}</p>
+            <p className="text-12 text-ink-3">{fillMessage(m.orderCodWas, { amount: money(order.amounts.originalCodAmount) })}</p>
           ) : null}
         </dl>
       </Section>
 
       {steps.length ? (
         <Section title={m.orderTimeline}>
-          <Steps items={steps} statusLabels={{ complete: m.orderStepComplete, current: m.orderStepCurrent, upcoming: m.orderStepUpcoming }} />
+          <Timeline items={steps} label={m.orderTimeline} />
         </Section>
       ) : null}
 
       <Section title={m.orderAddress}>
-        <p className="text-body-s text-foreground">{order.customerName}</p>
-        <p className="text-body-s text-ink-soft">
+        <p className="text-14 text-night">{order.customerName}</p>
+        <p className="text-14 text-ink-2">
           {[order.deliveryAddress.address, order.deliveryAddress.area, order.deliveryAddress.governorate].filter(Boolean).join('، ')}
         </p>
         {order.deliveryAddress.latitude && order.deliveryAddress.longitude ? (
-          <div className="flex flex-wrap items-center gap-2 pt-1 text-caption text-ink-soft">
-            <Icon name="pin" size={16} className="text-primary" />
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-12 text-ink-2">
+            <Icon name="pin" size={16} className="text-blue" />
             <span>{m.orderConfirmedLocation}:</span>
             <bdi>
               {order.deliveryAddress.latitude.toFixed(4)}, {order.deliveryAddress.longitude.toFixed(4)}
             </bdi>
-            <Badge variant="success" className="px-1.5 py-0 text-caption">
+            <StatusChip tone="ok" className="px-1.5 py-0 text-12">
               {m.checkoutMapConfirmed}
-            </Badge>
+            </StatusChip>
           </div>
         ) : null}
       </Section>
 
       {order.resolutions.length ? (
         <Section title={m.orderResolutions}>
-          <ul className="space-y-2 text-body-s">
+          <ul className="space-y-2 text-14">
             {order.resolutions.map((resolution, index) => (
               <li key={index} className="space-y-1">
-                <Badge variant="neutral">{m[`orderResolutionStatus${resolution.status}` as keyof Messages] as string}</Badge>
+                <StatusChip tone="gray">{m[`orderResolutionStatus${resolution.status}` as keyof Messages] as string}</StatusChip>
                 {resolution.refund ? (
-                  <p className="text-ink-soft">
+                  <p className="text-ink-2">
                     {fillMessage(m.orderRefund, {
                       amount: formatEgp(resolution.refund.amount, resolution.refund.currency, locale) ?? '',
                       status: resolution.refund.status,
@@ -289,14 +289,14 @@ function DecisionPanel({
   };
 
   return (
-    <section aria-labelledby="decision-title" className="space-y-4 rounded-md border-[1.5px] border-attention-ink bg-attention-soft p-4">
-      <h2 id="decision-title" className="flex items-center gap-2 text-heading text-attention-ink">
+    <section aria-labelledby="decision-title" className="space-y-4 rounded-card border border-saffron-ink bg-saffron-tint p-4">
+      <h2 id="decision-title" className="flex items-center gap-2 text-title text-saffron-ink">
         <Icon name="alert" size={20} />
         {m.decisionTitle}
       </h2>
-      {state === 'failed' ? <p role="alert" className="text-body-s text-destructive">{m.decisionFailed}</p> : null}
-      {state === 'stale' ? <p role="status" className="text-body-s text-foreground">{m.decisionStale}</p> : null}
-      {decisions.isPending ? <p className="text-body-s text-ink-soft">{m.decisionLoading}</p> : null}
+      {state === 'failed' ? <p role="alert" className="text-14 text-err">{m.decisionFailed}</p> : null}
+      {state === 'stale' ? <p role="status" className="text-14 text-night">{m.decisionStale}</p> : null}
+      {decisions.isPending ? <p className="text-14 text-ink-2">{m.decisionLoading}</p> : null}
 
       {pending.map((decision) => {
         const name = decision.original.productName ?? '';
@@ -329,7 +329,7 @@ function DecisionPanel({
         }
         return (
           <fieldset key={decision.id} className="space-y-3">
-            <legend className="text-body-s text-foreground">
+            <legend className="text-14 text-night">
               {fillMessage(m.decisionIntro, { qty: decision.unresolvedQuantity, name })}
             </legend>
             {options.map((option) => {
@@ -338,20 +338,20 @@ function DecisionPanel({
                 <label
                   key={`${option.action}-${option.skuId ?? ''}`}
                   className={cn(
-                    'flex cursor-pointer items-start gap-3 rounded-sm border-[1.5px] bg-card p-3',
-                    selected ? 'border-foreground' : 'border-border',
+                    'flex cursor-pointer items-start gap-3 rounded-input border bg-linen p-3',
+                    selected ? 'border-night' : 'border-line',
                   )}
                 >
                   <input
                     type="radio"
                     name={`decision-${decision.id}`}
-                    className="mt-1 size-4 accent-primary"
+                    className="mt-1 size-4 accent-blue"
                     checked={selected}
                     onChange={() => setChoice({ decisionId: decision.id, action: option.action, skuId: option.skuId })}
                   />
                   <span className="space-y-0.5">
-                    <span className={cn('block text-body-s text-foreground', selected && 'font-semibold')}>{option.label}</span>
-                    <span className="block text-caption text-ink-soft">{option.detail}</span>
+                    <span className={cn('block text-14 text-night', selected && 'font-semibold')}>{option.label}</span>
+                    <span className="block text-12 text-ink-2">{option.detail}</span>
                   </span>
                 </label>
               );
@@ -373,8 +373,8 @@ function DecisionPanel({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-2 rounded-md border border-border bg-card p-4">
-      <h2 className="text-heading text-foreground">{title}</h2>
+    <section className="space-y-2 rounded-card border border-line bg-linen p-4">
+      <h2 className="text-title text-night">{title}</h2>
       {children}
     </section>
   );
@@ -383,8 +383,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-3">
-      <dt className="text-ink-soft">{label}</dt>
-      <dd className="tabular-nums text-foreground">
+      <dt className="text-ink-2">{label}</dt>
+      <dd className="tabular-nums text-night">
         <bdi>{value}</bdi>
       </dd>
     </div>
@@ -394,9 +394,9 @@ function Row({ label, value }: { label: string; value: string }) {
 function TrackingSkeleton({ label }: { label: string }) {
   return (
     <div aria-busy="true" aria-label={label} className="mx-auto max-w-2xl space-y-4">
-      <Skeleton shape="pill" className="h-4 w-40" />
-      <Skeleton shape="pill" className="h-8 w-2/3" />
-      <Skeleton className="h-32 w-full rounded-md" />
+      <Skeleton className="h-4 w-40" />
+      <Skeleton className="h-8 w-2/3" />
+      <Skeleton className="h-32 w-full rounded-card" />
     </div>
   );
 }
@@ -424,11 +424,11 @@ function BuyAgainItemButton({ orderNumber, skuId }: { orderNumber: string; skuId
   if (state === 'success') {
     return (
       <div className="flex items-center gap-2">
-        <Badge variant="success">
+        <StatusChip tone="ok">
           <Icon name="check" size={14} />
           <span>{m.buyAgainItemAdded}</span>
-        </Badge>
-        <Link href={routes.cart} className={buttonVariants({ size: 'sm', variant: 'ghost' })}>
+        </StatusChip>
+        <Link href={routes.cart} className={buttonVariants({ size: 's', variant: 'light' })}>
           {m.buyAgainViewCart}
         </Link>
       </div>
@@ -437,20 +437,20 @@ function BuyAgainItemButton({ orderNumber, skuId }: { orderNumber: string; skuId
 
   if (state === 'unavailable') {
     return (
-      <Badge variant="neutral">
+      <StatusChip tone="gray">
         <span>{m.buyAgainItemUnavailable}</span>
-      </Badge>
+      </StatusChip>
     );
   }
 
   return (
     <Button
-      variant="secondary"
-      size="sm"
+      variant="light"
+      size="s"
       loading={state === 'pending'}
       onClick={handleReorder}
     >
-      <Icon name="refresh" size={14} />
+      <Icon name="retry" size={14} />
       <span>{m.buyAgainItem}</span>
     </Button>
   );

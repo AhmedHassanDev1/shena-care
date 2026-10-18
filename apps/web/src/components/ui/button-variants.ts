@@ -1,50 +1,45 @@
 import { cva } from "class-variance-authority"
 
 /**
- * Button styling lives outside the "use client" button module so server components can style a link
- * as a button (calling a function exported from a client module is not possible on the server).
+ * SAHEL buttons (ShutterLoading board, SAHEL V2 §Components). Kept outside the "use client" module so server
+ * components can style a link as a button.
  *
- * Shape rule: everything pressable is a pill. Sizes are the control tokens (36 / 44 / 52). Focus is the
- * global ink ring (globals.css); disabled is carried by surface + text color + cursor, never opacity.
+ * Colours: `blue` buy/pay (the only commerce action), `ink` account/routine, `light` secondary (linen + 1.5px night
+ * ring), `saffron` the assistant (never next to blue), `text` underlined link. Every button is a pill; heights are the
+ * board's 44 / 48 / 56. Disabled = sand fill + ink-3 text (never opacity). `success` and the async states are driven
+ * by AsyncButton.
  */
 export const buttonVariants = cva(
   [
-    "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-pill border-[1.5px] border-transparent text-label",
-    "transition-[background-color,border-color,transform] duration-quick ease-out",
-    "enabled:active:scale-[0.98] enabled:active:duration-instant",
-    "disabled:cursor-not-allowed disabled:border-transparent disabled:bg-disabled disabled:text-disabled-foreground",
-    "aria-[busy=true]:cursor-progress",
+    "relative inline-flex items-center justify-center gap-2.5 whitespace-nowrap rounded-pill font-text font-semibold no-underline",
+    "transition-[background-color,box-shadow,transform,color] duration-fast ease-standard",
+    "enabled:active:scale-[.97]",
+    "disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-3 disabled:shadow-none",
     "[&_svg]:shrink-0",
   ],
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
-        /** Bordered, neutral: the second action next to a primary one. */
-        secondary: "border-input bg-card text-foreground hover:border-foreground disabled:border-transparent",
-        /** Alias of `secondary`, kept so existing call sites keep working. */
-        outline: "border-input bg-card text-foreground hover:border-foreground disabled:border-transparent",
-        /** Soft malachite fill for confirmations that should not shout (e.g. "added"). */
-        tonal: "bg-primary-subtle text-guide hover:bg-primary-subtle",
-        ghost: "px-3 text-foreground hover:bg-sand disabled:bg-transparent",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        link: "rounded-xs border-0 text-primary underline underline-offset-4 decoration-transparent hover:decoration-current disabled:bg-transparent",
+        blue: "bg-blue text-white shadow-action hover:bg-blue-hover active:bg-blue-deep",
+        ink: "bg-night text-linen hover:bg-night-2",
+        light: "sl-light bg-linen text-night shadow-outline-night hover:bg-bone",
+        saffron: "sl-light bg-saffron text-night hover:bg-saffron/90",
+        /** Linen pill on a Sahel-blue or night field (Home hero «تسوّق مختارات الخريف»). */
+        onDark: "sl-light bg-linen text-night hover:bg-bone",
+        text: "text-link h-auto rounded-none px-0 disabled:bg-transparent",
       },
       size: {
-        sm: "h-control-s px-4",
-        // 44px: the minimum comfortable touch target.
-        default: "h-control-m px-5",
-        lg: "h-control-l px-6",
-        icon: "size-control-m",
+        s: "h-control-s px-4.5 text-14 leading-22",
+        m: "h-control-m px-5.5 text-14 leading-22",
+        l: "h-control-l px-5.5 text-16 leading-25",
+        icon: "size-control-s p-0",
+      },
+      state: {
+        idle: "",
+        success: "bg-ok text-white shadow-none hover:bg-ok",
       },
     },
-    compoundVariants: [
-      // A text link keeps its content height and has no horizontal padding, whatever size it was given.
-      { variant: "link", className: "h-auto px-0" },
-    ],
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
+    compoundVariants: [{ variant: "text", className: "h-auto px-0" }],
+    defaultVariants: { variant: "blue", size: "l", state: "idle" },
   }
 )

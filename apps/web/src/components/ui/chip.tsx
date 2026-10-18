@@ -7,17 +7,17 @@ import { Icon } from "./icon"
 
 export interface ChipProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
   children: React.ReactNode
-  /** Toggle state. Selected chips are filled ink and semibold, so the state never rests on colour alone. */
+  /** Toggle state. Selected fills night and turns 600, so the state never rests on colour alone (aria-pressed). */
   selected?: boolean
-  /** Optional count shown after the label (e.g. matching products). */
-  count?: number
-  /** Renders a trailing close icon: the chip removes an applied filter. Pass an accessible label via aria-label. */
+  /** Optional count after the label (matching products), already formatted for the locale. */
+  count?: string
+  /** Trailing ✕: the chip removes an applied filter. Pass an accessible label via aria-label. */
   removable?: boolean
 }
 
 /**
- * Pressable filter pill (shape rule: pressable → pill). Use `selected` for toggles inside a filter sheet and
- * `removable` for the applied-filter row; both keep the 44px touch target.
+ * Filter pill (Home «الكل · البشرة · الشعر», PLP filters): 44 tall, 18px padding, 14px; selected = night fill +
+ * linen 600, idle = linen + 1px line-2 outline, 500.
  */
 const Chip = React.forwardRef<HTMLButtonElement, ChipProps>(
   ({ className, selected, count, removable, children, type = "button", ...props }, ref) => (
@@ -26,18 +26,16 @@ const Chip = React.forwardRef<HTMLButtonElement, ChipProps>(
       type={type}
       aria-pressed={removable ? undefined : selected ?? false}
       className={cn(
-        "inline-flex h-control-m shrink-0 items-center gap-2 whitespace-nowrap rounded-pill border-[1.5px] px-4 text-label",
-        "transition-[background-color,border-color] duration-quick ease-out",
-        selected || removable
-          ? "border-foreground bg-foreground font-semibold text-card"
-          : "border-input bg-card text-foreground hover:border-foreground",
+        "inline-flex h-control-s shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-4.5 text-14 leading-22",
+        "transition-[background-color,box-shadow,color] duration-fast ease-standard",
+        selected || removable ? "bg-night font-semibold text-linen" : "bg-linen font-medium text-night shadow-outline-control hover:bg-bone",
         className
       )}
       {...props}
     >
       <span className="truncate">{children}</span>
-      {count !== undefined ? <bdi className="text-caption tabular-nums opacity-80">{count}</bdi> : null}
-      {removable ? <Icon name="close" size={16} aria-hidden /> : null}
+      {count !== undefined ? <bdi className="text-12 opacity-80">{count}</bdi> : null}
+      {removable ? <Icon name="close" size={16} /> : null}
     </button>
   )
 )
