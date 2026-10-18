@@ -25,6 +25,12 @@ export interface AuthenticatedUserRequest {
 export class IngestionController {
   constructor(private readonly ingestionService: IngestionService, private readonly contentService: ProductContentService) {}
 
+  private supplierReadScope(user?: AuthenticatedUserRequest['user']): string | undefined {
+    if (user?.roles?.includes('ADMIN') || user?.roles?.includes('HUB_OPERATOR')) return undefined;
+    if (user?.roles?.includes('SUPPLIER') && user.supplierId) return user.supplierId;
+    throw new ForbiddenException('Supplier account is not linked to a supplier');
+  }
+
   @Post('jobs')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
   async createJob(
@@ -65,13 +71,15 @@ export class IngestionController {
   }
 
   @Get('jobs')
-  async getJobs() {
-    return this.ingestionService.getJobs();
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  async getJobs(@Req() req: AuthenticatedUserRequest) {
+    return this.ingestionService.getJobs(this.supplierReadScope(req.user));
   }
 
   @Get('jobs/:id')
-  async getJob(@Param('id') id: string) {
-    return this.ingestionService.getJob(id);
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  async getJob(@Req() req: AuthenticatedUserRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.ingestionService.getJob(id, this.supplierReadScope(req.user));
   }
 
   @Post('jobs/:id/publish')

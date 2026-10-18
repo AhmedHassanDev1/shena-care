@@ -167,14 +167,14 @@ export class IngestionService {
     };
   }
 
-  async getJob(jobId: string): Promise<IngestionJobDetail | null> {
-    if (!this.isUuid(jobId)) return null;
-    const job = await this.prisma.ingestionJob.findUnique({
-      where: { id: jobId },
+  async getJob(jobId: string, supplierId?: string): Promise<IngestionJobDetail> {
+    if (!this.isUuid(jobId)) throw new BadRequestException('Invalid ingestion job ID');
+    const job = await this.prisma.ingestionJob.findFirst({
+      where: { id: jobId, ...(supplierId ? { supplierId } : {}) },
       include: { items: true },
     });
 
-    if (!job) return null;
+    if (!job) throw new NotFoundException('Ingestion job not found');
 
     return {
       ...job,
@@ -185,8 +185,9 @@ export class IngestionService {
     };
   }
 
-  async getJobs(): Promise<IngestionJobDetail[]> {
+  async getJobs(supplierId?: string): Promise<IngestionJobDetail[]> {
     const jobs = await this.prisma.ingestionJob.findMany({
+      where: supplierId ? { supplierId } : {},
       orderBy: { createdAt: 'desc' },
       include: { items: true },
     });
