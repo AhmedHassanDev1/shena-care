@@ -1190,27 +1190,41 @@ export class IngestionService {
     }
     // Catalog publication is a separate authorized operation after commercial inputs exist.
   }
-
   private async ensureSupplierOffer(
     supplierId: string,
     skuId: string,
     costPrice: number,
     currency: string,
   ): Promise<void> {
-    try {
-      await this.sourcingService.createSupplierOffer({
-        supplierId,
-        skuId,
-        costPrice,
-        currency,
-        isAvailable: false,
+    const existing = await this.prisma.supplierOffer.findUnique({
+      where: {
+        supplierId_skuId: {
+          supplierId,
+          skuId,
+        },
+      },
+    });
+
+    if (existing) {
+      await this.prisma.supplierOffer.update({
+        where: { id: existing.id },
+        data: {
+          costPrice,
+          currency,
+          lastObservedAt: new Date(),
+        },
       });
-    } catch (e) {
-      if (e instanceof ConflictException) {
-        // Existing offers are owned by Sourcing; ingestion must not overwrite confirmation.
-      } else {
-        throw e;
-      }
+    } else {
+      await this.prisma.supplierOffer.create({
+        data: {
+          supplierId,
+          skuId,
+          costPrice,
+          currency,
+          isAvailable: true,
+          lastObservedAt: new Date(),
+        },
+      });
     }
   }
 

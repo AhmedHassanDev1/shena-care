@@ -1,8 +1,9 @@
 import { Controller, Post, Body, Get, Param, Patch, Query, Req, HttpCode, HttpStatus, UseGuards, ForbiddenException, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { IngestionService } from './services/ingestion.service';
-import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto, SupplierSourceUploadDto, ReviewCandidateContentDto, RecordCandidateEvidenceDto } from './dto/ingestion.dto';
+import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto, SupplierSourceUploadDto, ReviewCandidateContentDto, RecordCandidateEvidenceDto, ApplyJobMappingDto } from './dto/ingestion.dto';
 import { ProductContentService } from './services/product-content.service';
+import { OfferBatchCommitService } from './services/offer-batch-commit.service';
 import { ParseUUIDPipe } from '@nestjs/common';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -23,7 +24,11 @@ export interface AuthenticatedUserRequest {
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 @Roles('ADMIN', 'HUB_OPERATOR')
 export class IngestionController {
-  constructor(private readonly ingestionService: IngestionService, private readonly contentService: ProductContentService) {}
+  constructor(
+    private readonly ingestionService: IngestionService,
+    private readonly contentService: ProductContentService,
+    private readonly offerBatchCommitService: OfferBatchCommitService,
+  ) {}
 
   private supplierReadScope(user?: AuthenticatedUserRequest['user']): string | undefined {
     if (user?.roles?.includes('ADMIN') || user?.roles?.includes('HUB_OPERATOR')) return undefined;
@@ -82,10 +87,83 @@ export class IngestionController {
     return this.ingestionService.getJob(id, this.supplierReadScope(req.user));
   }
 
+  @Post('jobs/:id/mapping')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  async applyJobMapping(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ApplyJobMappingDto,
+  ) {
+    const user = req.user;
+    const job = await this.ingestionService.getJob(id);
+    if (user?.roles?.includes('SUPPLIER') && !user.roles.includes('ADMIN') && !user.roles.includes('HUB_OPERATOR')) {
+      if (!user.supplierId || user.supplierId !== job.supplierId) {
+        throw new ForbiddenException('Cannot modify an ingestion job belonging to another supplier');
+      }
+    }
+    const approvedBy = user?.id || 'system';
+    return this.ingestionService.applyJobMapping(id, job.supplierId, dto, approvedBy);
+  }
+
+  @Get('profiles')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  async getProfiles(@Req() req: AuthenticatedUserRequest) {
+    return this.ingestionService.getProfiles(this.supplierReadScope(req.user));
+  }
+
+  @Get('profiles/:id')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  async getProfile(@Req() req: AuthenticatedUserRequest, @Param('id', ParseUUIDPipe) id: string) {
+    return this.ingestionService.getProfile(id, this.supplierReadScope(req.user));
+  }
+
+  @Post('profiles/:id/approve')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async approveProfile(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { supplierId: string },
+  ) {
+    if (!body?.supplierId) {
+      throw new BadRequestException('supplierId is required');
+    }
+    return this.ingestionService.approveProfile(body.supplierId, id, req.user?.id || 'admin');
+  }
+
   @Post('jobs/:id/publish')
   @HttpCode(HttpStatus.CREATED)
   async publishJob(@Param('id') id: string) {
     return this.ingestionService.publishJob(id);
+  }
+
+  // ─── SG-05 Offer Staging, Diff & Safe Batch Commit Endpoints ─────────────
+
+  @Get('jobs/:id/diff')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  async getJobDiff(@Param('id', ParseUUIDPipe) id: string) {
+    return this.offerBatchCommitService.computeJobDiff(id);
+  }
+
+  @Post('jobs/:id/commit-offers')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async commitJobOffers(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body?: { autoApplyLowRisk?: boolean; declaredCompleteAssortment?: boolean },
+  ) {
+    return this.offerBatchCommitService.commitJobOffers(id, {
+      ...body,
+      actorId: req.user?.id,
+    });
+  }
+
+  @Post('jobs/:id/approve-deactivations')
+  @Roles('ADMIN')
+  async approveDeactivations(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.offerBatchCommitService.approveDeactivations(id, req.user?.id || 'admin');
   }
 
   // ─── GLO-77 Candidate Review & Publish Endpoints (Admin / Operator only) ──
