@@ -81,6 +81,7 @@
   --shadow-outline-warn: inset 0 0 0 2px var(--warn);
   --shadow-outline-commerce: inset 0 0 0 1.5px var(--blue);
   --shadow-tile-hairline: inset 0 0 0 1px var(--line), -1px 1px 1px rgba(92,52,20,.04), -4px 6px 12px -6px rgba(92,52,20,.12);
+  --shadow-outline-check: inset 0 0 0 1.5px var(--line-2);
 
   --space-1: 4px;
   --space-2: 8px;

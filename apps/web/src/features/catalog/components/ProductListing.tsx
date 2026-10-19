@@ -1,243 +1,381 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query';
-import { MessageBox } from '@/components/ui/message-box';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
-import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ProductCard } from './ProductCard';
-import { toCardModel } from '../lib/card-model';
+import { apiClient } from '@/lib/api-client';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { formatNumber } from '@/lib/i18n/format';
 import { fillMessage } from '@/lib/i18n/messages';
-import { apiClient } from '@/lib/api-client';
-import { mainCategorySlugs } from '@/lib/routes';
-import type { Concern } from '../api/discovery';
-import {
-  discoverProducts,
-  facetDisplayName,
-  FILTER_KEYS,
-  sanitizeFilters,
-  withoutFacet,
-  type DiscoveryFacet,
-  type DiscoveryFilters,
-  type DiscoveryPage,
-  type FilterKey,
-} from '../api/discovery';
+import { mainCategorySlugs, routes } from '@/lib/routes';
+import { cn } from '@/lib/utils';
+import { discoverProducts, withoutFacet, type Concern, type DiscoveryFacet, type DiscoveryFilters, type DiscoveryPage } from '../api/discovery';
+import { categoryLabel, toCardModel } from '../lib/card-model';
+import { departmentOf, listingContext, toQueryString, useCategoryTree, useListingFilters } from '../lib/listing';
+import { ProductCard, ProductCardSkeleton } from './ProductCard';
+import { AppliedFilters, type AppliedFilter } from './plp/AppliedFilters';
+import { FilterPanel, type FacetGroups } from './plp/FilterPanel';
+import { PlpHeader } from './plp/PlpHeader';
 
-const PAGE_SIZE = 20;
-const FACET_OF: Record<FilterKey, keyof DiscoveryPage['facets']> = {
-  brand: 'brands',
-  category: 'categories',
-  productLine: 'productLines',
-};
+/** Board grid: 12 visible before the next page (PLP «١٥ منتج · ظاهر ١٢»). */
+const PAGE_SIZE = 12;
 
-function useFilters(): DiscoveryFilters {
-  const params = useSearchParams();
-  return useMemo(
-    () => sanitizeFilters({
-        q: params.get('q') ?? undefined,
-        brand: params.get('brand') ?? undefined,
-        category: params.get('category') ?? undefined,
-        productLine: params.get('productLine') ?? undefined,
-        concern: params.get('concern') ?? undefined,
-      }),
-    [params],
-  );
-}
-
-function toQueryString(filters: DiscoveryFilters) {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);
-  const query = params.toString();
-  return query ? `?${query}` : '';
+/** One facet's options, counted with every OTHER filter applied (so a chosen value can be switched directly). */
+function useFacet(filters: DiscoveryFilters, key: 'category' | 'brand', current: DiscoveryPage | undefined, base?: DiscoveryFilters): DiscoveryFacet[] {
+  const source = base ?? withoutFacet(filters, key);
+  const needsOwn = Boolean(filters[key]) || Boolean(base);
+  const query = useQuery({
+    queryKey: ['discovery', 'facet', key, toQueryString(source)],
+    queryFn: () => discoverProducts(source, undefined, 1),
+    enabled: needsOwn,
+    staleTime: 60_000,
+  });
+  const facets = needsOwn ? query.data?.facets : current?.facets;
+  return (key === 'category' ? facets?.categories : facets?.brands) ?? [];
 }
 
 /**
- * Product listing over GET /products/discovery. The URL is the state (search, filters), so Back from a
- * product page restores it; facets and totals come from the backend after every sellability gate.
- * Pages load explicitly with "Show more" (cursor), never as an endless feed.
+ * PLP / search (boards PLP, PLPMobile, PLPMobileScrolled, PLPStates) over GET /products/discovery. The URL is the
+ * state; facets, counts and totals come from the backend after every sellability gate. Infinite scroll loads the next
+ * cursor page when the end of the grid comes into view, with a skeleton row, a written status and progress
+ * («بنحمّل باقي المنتجات…», «شفت ١٢ من ١٥ منتج») and a keyboard alternative «اعرض … منتجات كمان».
  */
 export function ProductListing() {
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const filters = useFilters();
-  const concerns = useQuery({ queryKey: ['care', 'concerns', 'public'],
-    queryFn: () => apiClient.get<Concern[]>('/care/concerns'), enabled: Boolean(filters.concern), staleTime: 5 * 60 * 1000 });
-  const concernName = concerns.data?.find(concern => concern.slug === filters.concern)?.name ?? filters.concern ?? '';
-  const filterKey = toQueryString(filters);
+  const filters = useListingFilters();
+  const tree = useCategoryTree();
+  const key = toQueryString(filters);
+  const context = listingContext(filters, tree.data);
+  const department = departmentOf(filters.category, tree.data);
+  // Until the department tree arrives, a category cannot be told apart from a filter: hold the header and chips.
+  const treeReady = !filters.category || !tree.isPending;
 
   const query = useInfiniteQuery({
-    queryKey: ['discovery', filterKey],
+    queryKey: ['discovery', 'list', key],
     queryFn: ({ pageParam }) => discoverProducts(filters, pageParam, PAGE_SIZE),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.pageInfo.nextCursor ?? undefined,
     staleTime: 60_000,
   });
-
   const first = query.data?.pages[0];
-  const products = useMemo(() => query.data?.pages.flatMap((page) => page.items).map((p) => toCardModel(p, locale, m.sizeOr)) ?? [], [query.data, locale, m.sizeOr]);
+  const total = first?.total ?? null;
+  const products = useMemo(
+    () => query.data?.pages.flatMap((page) => page.items).map((p) => toCardModel(p, locale, m.sizeOr)) ?? [],
+    [query.data, locale, m.sizeOr]
+  );
+
+  // «النوع» lists the department's child categories; with no department, every category the results carry.
+  const typeBase = department ? { ...filters, category: department.slug } : undefined;
+  const groups: FacetGroups = {
+    type: useFacet(filters, 'category', first, typeBase).filter((f) => !tree.data?.some((root) => root.slug === f.slug)),
+    brand: useFacet(filters, 'brand', first),
+  };
+  const deptTotal = useQuery({
+    queryKey: ['discovery', 'facet', 'total', toQueryString(typeBase ?? {})],
+    queryFn: () => discoverProducts(typeBase!, undefined, 1),
+    enabled: Boolean(typeBase),
+    staleTime: 60_000,
+  }).data?.total;
+
+  const concerns = useQuery({
+    queryKey: ['care', 'concerns', 'public'],
+    queryFn: () => apiClient.get<Concern[]>('/care/concerns'),
+    enabled: Boolean(filters.concern),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const navigate = (next: DiscoveryFilters) => router.push(`${pathname}${toQueryString(next)}`, { scroll: false });
-  // Root categories (the header's skin / hair links) are never facet values, so they take the header's labels.
-  const rootCategoryNames = { [mainCategorySlugs.skin]: m.homeNavSkin, [mainCategorySlugs.hair]: m.homeNavHair };
-  const facetName = (key: FilterKey, slug: string) =>
-    facetDisplayName(slug, first?.facets[FACET_OF[key]], key === 'category' ? rootCategoryNames : undefined);
-  const applied = FILTER_KEYS.filter((key) => filters[key]);
+  const clearAll = () => navigate({ q: filters.q, category: department && context.kind !== 'search' ? department.slug : undefined });
+
+  const isRoot = (slug: string | undefined) => Boolean(slug && tree.data?.some((r) => r.slug === slug));
+  const applied: AppliedFilter[] = [];
+  if (treeReady && filters.category && !isRoot(filters.category)) {
+    const facet = groups.type.find((f) => f.slug === filters.category);
+    applied.push({
+      key: 'category',
+      label: categoryLabel(facet ?? { slug: filters.category, name: filters.category }, locale) ?? filters.category,
+      onRemove: () => navigate({ ...filters, category: department?.slug }),
+    });
+  }
+  if (filters.brand && context.kind !== 'brand') {
+    const facet = groups.brand.find((f) => f.slug === filters.brand);
+    applied.push({ key: 'brand', label: (facet?.name ?? filters.brand).toUpperCase(), latin: true, onRemove: () => navigate({ ...filters, brand: undefined }) });
+  }
+  if (filters.concern) {
+    applied.push({
+      key: 'concern',
+      label: concerns.data?.find((c) => c.slug === filters.concern)?.name ?? filters.concern,
+      onRemove: () => navigate({ ...filters, concern: undefined }),
+    });
+  }
+
+  const showRail = context.kind !== 'search' || products.length > 0;
 
   return (
-    <div className="space-y-4 lg:space-y-6">
-      {/* Search lives in the shared site header, which submits to this route's `q`. */}
-      <h1 className="text-display-3 text-night">
-        {filters.q ? fillMessage(m.listingResultsFor, { q: filters.q }) : m.listingTitle}
-      </h1>
+    <div className="flex flex-col gap-6 pb-14 lg:gap-10">
+      {treeReady ? (
+        <PlpHeader context={context} total={total} prints={products.slice(0, 2)} tree={tree.data} filters={filters} onNavigate={navigate} />
+      ) : (
+        <Skeleton className="h-[160px] rounded-24 lg:h-[212px] lg:rounded-sheet" />
+      )}
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
-        <FilterSheet filters={filters} facets={first?.facets} onApply={navigate} appliedCount={applied.length + (filters.concern ? 1 : 0)} />
-        {filters.concern ? (
-          <Chip removable aria-label={fillMessage(m.listingRemoveFilter, { name: concernName })}
-            onClick={() => navigate({ ...filters, concern: undefined })}>
-            <bdi>{concernName}</bdi>
-          </Chip>
-        ) : null}
-        {applied.map((key) => {
-          const name = facetName(key, filters[key]!);
-          return (
-            <Chip
-              key={key}
-              removable
-              aria-label={fillMessage(m.listingRemoveFilter, { name })}
-              onClick={() => navigate({ ...filters, [key]: undefined })}
-            >
-              <bdi>{name}</bdi>
+      {/* Phone: quick type pills, then the sticky «فلترة» bar (PLPMobile, PLPMobileScrolled). */}
+      <div className="flex flex-col gap-3 lg:hidden">
+        {department && groups.type.length ? (
+          <div role="group" aria-label={m.plpType} className="-mx-4 flex gap-2 overflow-x-auto px-4 py-1.5 scrollbar-none">
+            <Chip selected={filters.category === department.slug} count={deptTotal !== undefined ? formatNumber(deptTotal, locale) : undefined} onClick={() => navigate({ ...filters, category: department.slug })}>
+              {m.plpAll}
             </Chip>
-          );
-        })}
+            {groups.type.map((f) => (
+              <Chip key={f.slug} selected={filters.category === f.slug} count={formatNumber(f.count, locale)} onClick={() => navigate({ ...filters, category: f.slug })}>
+                {categoryLabel(f, locale)}
+              </Chip>
+            ))}
+          </div>
+        ) : null}
+        <div className="sticky top-0 z-sticky -mx-4 bg-bone/95 px-4 py-2 backdrop-blur-sm">
+          <MobileFilterSheet filters={filters} groups={groups} applied={applied.length} onApply={navigate} clearTo={() => clearAll()} />
+        </div>
+        <AppliedFilters filters={applied} onClearAll={clearAll} />
       </div>
 
-      {query.status === 'pending' ? (
-        <ListingSkeleton label={m.loading} />
-      ) : query.status === 'error' ? (
-        <MessageBox tone="err" className="items-center">
-          <p className="flex-1 text-14">{m.productsError}</p>
-          <Button variant="light" size="s" onClick={() => query.refetch()}>
-            {m.tryAgain}
-          </Button>
-        </MessageBox>
-      ) : products.length === 0 ? (
-        <section className="rounded-card border border-line bg-linen px-5 py-8 text-center">
-          <h2 className="text-title text-night">{m.listingNoResultsTitle}</h2>
-          <p className="mt-2 text-14 text-ink-2">{m.listingNoResultsBody}</p>
-          {filterKey ? (
-            <Button variant="light" className="mt-4" onClick={() => navigate({})}>
-              {m.listingClearAll}
-            </Button>
-          ) : null}
-        </section>
-      ) : (
-        <section aria-labelledby="listing-count" className="space-y-4">
-          <p id="listing-count" role="status" className="text-14 text-ink-2">
-            {fillMessage(m.listingCount, { n: first?.total ?? products.length })}
-          </p>
-          <ul className="m-0 grid list-none grid-cols-2 gap-x-3 gap-y-8 p-0 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-12">
-            {products.map((product, index) => (
-              <li key={product.id} className="flex">
-                <ProductCard product={product} priority={index < 2} />
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col items-center gap-3 pt-2">
-            {query.isFetchNextPageError ? (
-              <p role="alert" className="flex items-center gap-2 text-14 text-err">
-                <Icon name="alert" size={18} />
-                {m.listingLoadMoreFailed}
-              </p>
-            ) : null}
-            {query.hasNextPage ? (
-              <Button variant="light" loading={query.isFetchingNextPage} onClick={() => query.fetchNextPage()}>
-                {m.listingLoadMore}
-              </Button>
-            ) : (
-              <p className="text-12 text-ink-3">{fillMessage(m.listingEnd, { n: first?.total ?? products.length })}</p>
-            )}
+      <div className="flex items-start gap-10">
+        {showRail ? (
+          <aside aria-labelledby="flt-h" className="sticky top-6 hidden w-[272px] flex-none self-start lg:block">
+            <div className="flex min-h-control-m items-center justify-between pb-1 shadow-hairline-bottom">
+              <h2 id="flt-h" className="m-0 inline-flex items-center gap-2 font-display text-22 font-bold leading-28">
+                {m.plpFilters}
+                {applied.length ? (
+                  <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-blue font-text text-12 font-bold text-white">
+                    {formatNumber(applied.length, locale)}
+                  </span>
+                ) : null}
+              </h2>
+              {applied.length ? (
+                <button type="button" onClick={clearAll} className="min-h-control-s bg-transparent text-14 font-semibold text-blue underline underline-offset-4">
+                  {m.plpClearAll}
+                </button>
+              ) : null}
+            </div>
+            <FilterPanel variant="rail" value={filters} onChange={navigate} groups={groups} />
+          </aside>
+        ) : null}
+
+        <div className="min-w-0 flex-1">
+          <div className="mb-7 hidden flex-col gap-4 pb-4 shadow-hairline-bottom lg:flex">
+            <p role="status" aria-live="polite" className="m-0 text-15 font-bold leading-24">
+              {total !== null ? fillMessage(m.plpCount, { n: formatNumber(total, locale) }) : ' '}
+              {total !== null && products.length < total ? (
+                <span className="font-medium text-ink-2">{fillMessage(m.plpShown, { n: formatNumber(products.length, locale) })}</span>
+              ) : null}
+            </p>
+            <AppliedFilters filters={applied} onClearAll={clearAll} />
           </div>
-        </section>
-      )}
+          <p role="status" aria-live="polite" className="m-0 mb-3 text-15 font-bold leading-24 lg:hidden">
+            {total !== null ? fillMessage(m.plpCount, { n: formatNumber(total, locale) }) : null}
+            {total !== null && products.length < total ? <span className="font-medium text-ink-2">{fillMessage(m.plpShown, { n: formatNumber(products.length, locale) })}</span> : null}
+          </p>
+
+          {query.status === 'pending' ? (
+            <Grid>{Array.from({ length: 6 }, (_, i) => <ProductCardSkeleton key={i} />)}</Grid>
+          ) : query.status === 'error' ? (
+            <div role="alert" className="flex flex-col items-center gap-4 rounded-card bg-err-tint px-6 py-8 text-center">
+              <p className="m-0 font-display text-21 font-bold leading-27 text-err">{m.plpLoadError}</p>
+              <Button variant="light" size="m" onClick={() => query.refetch()}>
+                {m.plpRetry}
+              </Button>
+            </div>
+          ) : products.length === 0 ? (
+            <ListingEmpty context={context.kind} q={filters.q} hasFilters={applied.length > 0} filters={applied} onClear={clearAll} department={department?.slug} />
+          ) : (
+            <>
+              <Grid>
+                {products.map((product, index) => (
+                  <ProductCard key={product.id} product={product} priority={index < 3} />
+                ))}
+                {query.isFetchingNextPage ? Array.from({ length: 3 }, (_, i) => <ProductCardSkeleton key={`s${i}`} />) : null}
+              </Grid>
+              <InfiniteStatus
+                shown={products.length}
+                total={total ?? products.length}
+                hasNext={Boolean(query.hasNextPage)}
+                loading={query.isFetchingNextPage}
+                failed={query.isFetchNextPageError}
+                onMore={() => query.fetchNextPage()}
+                where={context.kind === 'department' ? categoryLabel(context.department, locale) ?? context.department.name : null}
+              />
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-function ListingSkeleton({ label }: { label: string }) {
+function Grid({ children }: { children: ReactNode }) {
+  return <div className="grid grid-cols-2 gap-x-3 gap-y-8 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-12">{children}</div>;
+}
+
+function InfiniteStatus({ shown, total, hasNext, loading, failed, onMore, where }: {
+  shown: number; total: number; hasNext: boolean; loading: boolean; failed: boolean; onMore: () => void; where: string | null;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const sentinel = useRef<HTMLDivElement>(null);
+  const n = (v: number) => formatNumber(v, locale);
+
+  // Load the next page when the end of the grid comes into view (not when a load failed: that waits for «جرّب تاني»).
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasNext || failed) return;
+    const io = new IntersectionObserver((entries) => entries[0]?.isIntersecting && !loading && onMore(), { rootMargin: '600px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasNext, failed, loading, onMore]);
+
+  if (failed) {
+    return (
+      <div role="alert" className="mx-auto mt-10 flex max-w-[280px] flex-col items-center gap-3 rounded-card bg-err-tint px-6 py-6 text-center">
+        <p className="m-0 font-display text-17 font-bold leading-24 text-err">{m.plpMoreFailed}</p>
+        <p className="m-0 text-14 leading-22 text-night">{fillMessage(m.plpMoreFailedBody, { n: n(shown) })}</p>
+        <Button variant="light" size="s" onClick={onMore}>
+          {m.plpRetry}
+        </Button>
+      </div>
+    );
+  }
+  if (hasNext) {
+    const pct = total ? Math.min(100, Math.round((shown / total) * 100)) : 0;
+    return (
+      <div ref={sentinel} className="mt-10 flex flex-col items-center gap-3">
+        {loading ? (
+          <p role="status" className="m-0 flex items-center gap-2.5 text-14 font-semibold">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" className="text-blue motion-safe:animate-spin">
+              <circle cx="12" cy="12" r="8" opacity=".25" />
+              <path d="M20 12a8 8 0 0 0-8-8" />
+            </svg>
+            {m.plpLoading}
+          </p>
+        ) : null}
+        <div aria-hidden="true" className="h-1 w-[220px] overflow-hidden rounded-pill bg-dune">
+          <div className="h-full rounded-pill bg-night" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="m-0 text-12.5 leading-19 text-ink-2">{fillMessage(m.plpSeen, { shown: n(shown), total: n(total) })}</p>
+        {loading ? null : (
+          <Button variant="light" size="m" onClick={onMore}>
+            {fillMessage(m.plpShowMore, { n: n(Math.min(PAGE_SIZE, total - shown)) })}
+          </Button>
+        )}
+      </div>
+    );
+  }
   return (
-    <ul aria-busy="true" aria-label={label} className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4 lg:gap-y-8">
-      {Array.from({ length: 4 }, (_, index) => (
-        <li key={index}>
-          <Skeleton className="aspect-[4/5] w-full" />
-          <Skeleton className="mt-3 h-4 w-3/4" />
-          <Skeleton className="mt-2 h-4 w-1/2" />
-        </li>
-      ))}
-    </ul>
+    <div className="mx-auto mt-12 flex max-w-[300px] flex-col items-center gap-3 text-center">
+      <span aria-hidden="true" className="h-1 w-[180px] rounded-pill bg-night" />
+      <p className="m-0 font-display text-24 font-bold leading-30">{fillMessage(m.plpEndTitle, { n: n(total) })}</p>
+      <p className="m-0 text-14 leading-22 text-ink-2">{where ? fillMessage(m.plpEndBody, { where }) : m.plpEndBodyFiltered}</p>
+      <Button variant="light" size="m" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+        {m.plpBackToTop}
+      </Button>
+      <Button asChild variant="ink" size="m">
+        <Link href={routes.products}>{m.plpAllBrands}</Link>
+      </Button>
+    </div>
   );
 }
 
-/**
- * Filter sheet: single choice per facet (the API takes one value each). The footer shows the real count
- * for the pending selection, fetched with limit 1, before the shopper applies it.
- */
-function FilterSheet({
-  filters,
-  facets,
-  onApply,
-  appliedCount,
-}: {
-  filters: DiscoveryFilters;
-  facets: DiscoveryPage['facets'] | undefined;
-  onApply: (next: DiscoveryFilters) => void;
-  appliedCount: number;
+function ListingEmpty({ context, q, hasFilters, filters, onClear, department }: {
+  context: string; q?: string; hasFilters: boolean; filters: AppliedFilter[]; onClear: () => void; department?: string;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const total = useQuery({
+    queryKey: ['discovery', 'facet', 'total', department ?? 'all'],
+    queryFn: () => discoverProducts(department ? { category: department } : {}, undefined, 1),
+    enabled: hasFilters,
+  }).data?.total;
+  const box = 'flex flex-col items-start gap-4 rounded-card bg-linen p-6 shadow-outline-hairline lg:p-8';
+
+  if (context === 'search' && q) {
+    return (
+      <section className={box}>
+        <span aria-hidden="true" className="flex size-14 items-center justify-center rounded-full bg-sand text-night">
+          <Icon name="search" size={22} />
+        </span>
+        <h2 className="m-0 text-display-3">{fillMessage(m.plpNoResultsTitle, { q })}</h2>
+        <ul className="m-0 flex list-disc flex-col gap-1 ps-5 text-14.5 leading-24 text-ink-2">
+          <li>{m.plpNoResultsTip1}</li>
+          <li>{m.plpNoResultsTip2}</li>
+        </ul>
+        <p className="m-0 text-13 font-semibold">{m.plpOrBrowse}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="light" size="s">
+            <Link href={routes.productsByCategory(mainCategorySlugs.skin)}>{m.homeNavSkin}</Link>
+          </Button>
+          <Button asChild variant="light" size="s">
+            <Link href={routes.productsByCategory(mainCategorySlugs.hair)}>{m.homeNavHair}</Link>
+          </Button>
+          <Button asChild variant="light" size="s">
+            <Link href={routes.products}>{m.plpAllBrands}</Link>
+          </Button>
+        </div>
+      </section>
+    );
+  }
+  if (hasFilters) {
+    return (
+      <section className={box}>
+        <span aria-hidden="true" className="flex size-14 items-center justify-center rounded-full bg-sand text-night">
+          <Icon name="filter" size={22} />
+        </span>
+        <h2 className="m-0 text-display-3">{m.plpNoFilterTitle}</h2>
+        <AppliedFilters filters={filters} onClearAll={onClear} />
+        <Button variant="light" size="m" onClick={onClear}>
+          {total !== undefined ? fillMessage(m.plpClearFilters, { n: formatNumber(total, locale) }) : m.plpClearAll}
+        </Button>
+      </section>
+    );
+  }
+  return (
+    <section className={cn(box, 'items-center text-center')}>
+      <h2 className="m-0 text-display-3">{m.plpEmptyDeptTitle}</h2>
+      <p className="m-0 text-14 leading-22 text-ink-2">{m.plpEmptyDeptBody}</p>
+      <div className="flex flex-col gap-2">
+        <Button asChild variant="light" size="s">
+          <Link href={routes.productsByCategory(mainCategorySlugs.skin)}>{m.homeNavSkin}</Link>
+        </Button>
+        <Button asChild variant="light" size="s">
+          <Link href={routes.productsByCategory(mainCategorySlugs.hair)}>{m.homeNavHair}</Link>
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
+  filters: DiscoveryFilters; groups: FacetGroups; applied: number; onApply: (next: DiscoveryFilters) => void; clearTo: () => void;
 }) {
   const m = useMessages();
   const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DiscoveryFilters>(filters);
   const draftKey = toQueryString(draft);
-
   const preview = useQuery({
-    queryKey: ['discovery-count', draftKey],
+    queryKey: ['discovery', 'facet', 'draft', draftKey],
     queryFn: () => discoverProducts(draft, undefined, 1),
     enabled: open,
     staleTime: 60_000,
   });
-  // Facets for the pending selection, so options stay consistent with what would be shown.
-  const shown = (open && preview.data?.facets) || facets;
-  // A facet with a chosen value lists its options from the draft without that value (counts still honour every
-  // other filter), so the choice can be switched directly. Fetched only while the sheet is open and a value is set.
-  const unchosen = useQueries({
-    queries: FILTER_KEYS.map((key) => {
-      const source = withoutFacet(draft, key);
-      return {
-        queryKey: ['discovery-count', toQueryString(source)],
-        queryFn: () => discoverProducts(source, undefined, 1),
-        enabled: open && Boolean(draft[key]),
-        staleTime: 60_000,
-      };
-    }),
-  });
-  const optionsFor = (key: FilterKey): DiscoveryFacet[] =>
-    (draft[key] && unchosen[FILTER_KEYS.indexOf(key)].data?.facets[FACET_OF[key]]) || shown?.[FACET_OF[key]] || [];
-
-  const sections: Array<{ key: FilterKey; title: string; options: DiscoveryFacet[] }> = [
-    { key: 'category', title: m.listingCategory, options: optionsFor('category') },
-    { key: 'brand', title: m.listingBrand, options: optionsFor('brand') },
-    { key: 'productLine', title: m.listingProductLine, options: optionsFor('productLine') },
-  ];
-  const visible = sections.filter((section) => section.options.length > 0 || draft[section.key]);
+  const draftApplied = [draft.category && groups.type.some((f) => f.slug === draft.category), draft.brand, draft.concern].filter(Boolean).length;
 
   return (
     <Sheet
@@ -247,58 +385,52 @@ function FilterSheet({
         setOpen(next);
       }}
     >
-      <SheetTrigger asChild>
-        <Chip
-          selected={appliedCount > 0}
-          aria-label={appliedCount ? fillMessage(m.listingFiltersApplied, { n: appliedCount }) : m.listingFilters}
-        >
-          <span className="inline-flex items-center gap-2">
-            <Icon name="filter" size={18} />
-            {m.listingFilters}
-            {appliedCount ? <bdi className="tabular-nums">{appliedCount}</bdi> : null}
-          </span>
-        </Chip>
-      </SheetTrigger>
-      <SheetContent side="bottom" closeLabel={m.listingCloseFilters} className="mx-auto w-full max-w-2xl">
-        <SheetHeader>
-          <SheetTitle>{m.listingFilters}</SheetTitle>
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(filters);
+          setOpen(true);
+        }}
+        className="flex h-control-l w-full items-center justify-center gap-2.5 rounded-pill bg-night text-16 font-semibold text-linen"
+      >
+        <Icon name="filter" size={20} />
+        {m.plpFilterButton}
+        {applied ? (
+          <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-blue text-12 font-bold text-white">{formatNumber(applied, locale)}</span>
+        ) : null}
+      </button>
+      <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-24">
+        <span aria-hidden="true" className="mt-2 h-1 w-10 self-center rounded-4 bg-dune" />
+        <SheetHeader className="pb-2 pt-2 shadow-hairline-bottom">
+          <SheetTitle className="flex items-center gap-2 font-display text-24 font-bold leading-30">
+            {m.plpFilters}
+            {draftApplied ? <span className="font-text text-14 font-medium text-ink-2">{fillMessage(m.plpSelected, { n: formatNumber(draftApplied, locale) })}</span> : null}
+          </SheetTitle>
         </SheetHeader>
-        <div className="-mx-6 flex-1 space-y-6 overflow-y-auto px-6">
-          {visible.length === 0 ? <p className="text-14 text-ink-2">{m.listingNoFacets}</p> : null}
-          {visible.map((section) => (
-            <fieldset key={section.key} className="space-y-3">
-              <legend className="text-title text-night">{section.title}</legend>
-              <div className="flex flex-wrap gap-2">
-                {section.options.map((option) => {
-                  const selected = draft[section.key] === option.slug;
-                  return (
-                    <Chip
-                      key={option.slug}
-                      selected={selected}
-                      count={formatNumber(option.count, locale)}
-                      onClick={() => setDraft({ ...draft, [section.key]: selected ? undefined : option.slug })}
-                    >
-                      <bdi>{option.name}</bdi>
-                    </Chip>
-                  );
-                })}
-              </div>
-            </fieldset>
-          ))}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4">
+          <FilterPanel variant="sheet" value={draft} onChange={setDraft} groups={groups} />
         </div>
-        <SheetFooter className="flex-row gap-3 border-t border-line pt-4 sm:justify-between">
-          <Button variant="light" className="flex-1" onClick={() => setDraft({ q: filters.q })}>
-            {m.listingClearAll}
-          </Button>
+        <SheetFooter className="items-center">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              clearTo();
+            }}
+            className="min-h-control-s bg-transparent px-1 text-15 font-semibold text-night underline underline-offset-4"
+          >
+            {m.plpClearAll}
+          </button>
           <Button
+            variant="blue"
+            size="l"
             className="flex-1"
-            loading={preview.isFetching}
             onClick={() => {
               setOpen(false);
               onApply(draft);
             }}
           >
-            {preview.data ? fillMessage(m.listingShowResults, { n: preview.data.total }) : m.listingApply}
+            {preview.data ? fillMessage(m.plpApply, { n: formatNumber(preview.data.total, locale) }) : m.plpApplyCounting}
           </Button>
         </SheetFooter>
       </SheetContent>

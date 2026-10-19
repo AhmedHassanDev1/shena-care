@@ -219,6 +219,21 @@ bdi {
     box-shadow: 0 0 0 3px rgb(var(--saffron-rgb) / 0.45), 0 0 14px rgb(var(--saffron-rgb) / 0.45);
   }
 
+  /* PDP phone purchase bar (handoff: padding 10px 12px calc(10px + safe-area)); the nav rides above it while shown. */
+  .pdp-bar {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  :root[data-pdp-bar] .floating-nav {
+    bottom: calc(var(--nav-gap) + 76px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Scroll-aware nav (PDP): hidden while scrolling down, back when scrolling up (NavBoard). */
+  .nav-reveal .floating-nav {
+    transition: transform var(--dur-base) var(--ease-standard);
+  }
+  .nav-reveal[data-hidden] .floating-nav {
+    transform: translateY(calc(100% + 120px));
+  }
+
   /* FloatingNav position: 12 from each side, 12 above the device's real bottom inset (handoff §Dynamic safe area). */
   .floating-nav {
     position: fixed;
