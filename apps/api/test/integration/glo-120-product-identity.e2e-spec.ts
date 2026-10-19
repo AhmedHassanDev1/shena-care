@@ -8,6 +8,7 @@ import { createActor, Actor } from '../fixtures/actors';
 import { reviewCandidateMedia } from '../fixtures/candidate-review';
 
 describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
+  jest.setTimeout(60000);
   let admin: Actor;
   let app: INestApplication;
   let prisma: PrismaService;

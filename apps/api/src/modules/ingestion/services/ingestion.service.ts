@@ -1,23 +1,29 @@
-import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService, BrandService } from '../../catalog/public';
 import { SourcingService } from '../../sourcing/public';
 import { ProductIdentityService, MatchClassification } from './product-identity.service';
 import { ProductResearchService } from './product-research.service';
 import { ProductContentService } from './product-content.service';
-import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from '../dto/ingestion.dto';
-import { IngestionStatus, IngestionItemEnrichmentStatus, IngestionPriceType } from '@prisma/client';
+import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto, ApplyJobMappingDto } from '../dto/ingestion.dto';
+import { IngestionStatus, IngestionItemEnrichmentStatus, IngestionPriceType, IngestionImportMode } from '@prisma/client';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
 import { StorageService } from '../../../platform/storage/storage.service';
 import { requireMediaReview, isTrustedMediaSource } from '../../../platform/security/media-review';
-import * as fs from 'fs';
-import * as path from 'path';
+import { SpreadsheetParserService, ParsedSpreadsheet } from './spreadsheet-parser.service';
+import { FormatFingerprintService } from './format-fingerprint.service';
+import { ExportProfileService, ColumnMappingConfig } from './export-profile.service';
+import { RowNormalizationService } from './row-normalization.service';
+import { NormalizedRowStatus } from '../contracts/row-normalization.contract';
 import * as crypto from 'crypto';
 
 export interface IngestionJobDetail {
   id: string;
   supplierId: string;
   status: IngestionStatus;
+  mode: IngestionImportMode;
+  formatFingerprint?: string | null;
+  profileId?: string | null;
   createdAt: Date;
   items: Array<{
     id: string;
@@ -27,10 +33,29 @@ export interface IngestionJobDetail {
     barcode: string | null;
     price: number;
     priceType: IngestionPriceType | null;
+    reportedQuantity: number | null;
     currency: string;
     status: IngestionStatus;
     matchedSkuId: string | null;
   }>;
+}
+
+export interface IngestionUploadResult {
+  jobId: string;
+  sourceKey: string;
+  formatFingerprint?: string;
+  profileId?: string;
+  status: IngestionStatus;
+  requiresMapping: boolean;
+  reused?: boolean;
+  totalRows?: number;
+  importedItemsCount?: number;
+  sampleHeaders?: string[];
+  sampleRows?: Record<string, any>[];
+  proposedMapping?: Partial<ColumnMappingConfig>;
+  confidence?: Record<string, number>;
+  unmappedHeaders?: string[];
+  isComplete?: boolean;
 }
 
 @Injectable()
@@ -45,6 +70,10 @@ export class IngestionService {
     private readonly contentService: ProductContentService,
     private readonly aiClient: AiClient,
     private readonly storageService: StorageService,
+    private readonly spreadsheetParser: SpreadsheetParserService,
+    private readonly formatFingerprintService: FormatFingerprintService,
+    private readonly exportProfileService: ExportProfileService,
+    private readonly rowNormalizationService: RowNormalizationService,
   ) {}
 
   private isUuid(val: string): boolean {
@@ -68,7 +97,7 @@ export class IngestionService {
       .replace(/(^-|-$)+/g, '');
   }
 
-  async uploadSupplierSpreadsheet(supplierId: string, file: Express.Multer.File): Promise<{ jobId: string, sourceKey: string }> {
+  async uploadSupplierSpreadsheet(supplierId: string, file: Express.Multer.File): Promise<IngestionUploadResult> {
     if (!this.isUuid(supplierId)) throw new BadRequestException('Invalid supplier ID');
     if (!['text/csv', 'application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(file.mimetype)) {
       throw new BadRequestException('A supplier source document is required');
@@ -77,27 +106,282 @@ export class IngestionService {
     const supplier = await this.prisma.supplier.findUnique({ where: { id: supplierId } });
     if (!supplier) throw new BadRequestException('Supplier not found');
 
+    const isSpreadsheet = file.mimetype !== 'application/pdf';
+    let parsed: ParsedSpreadsheet | null = null;
+    let formatFingerprint: string | null = null;
+
+    if (isSpreadsheet) {
+      parsed = this.spreadsheetParser.parseSpreadsheet(file.buffer, file.originalname);
+      formatFingerprint = this.formatFingerprintService.computeFingerprint(parsed.headers, parsed.sheets);
+    }
+
     const checksum = crypto.createHash('sha256').update(file.buffer).digest('hex');
     return this.prisma.$transaction(async tx => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`source:${supplierId}:${checksum}`}))`;
-      const existing = await tx.ingestionJob.findFirst({ where: { supplierId, sourceChecksum: checksum }, orderBy: { createdAt: 'asc' } });
+      const existing = await tx.ingestionJob.findFirst({
+        where: { supplierId, sourceChecksum: checksum },
+        orderBy: { createdAt: 'asc' },
+        include: { items: true },
+      });
+
       if (existing?.sourceKey) {
         if (!(await this.storageService.exists(existing.sourceKey))) {
           await this.storageService.restorePrivateFile(existing.sourceKey, file, supplierId);
         }
-        return { jobId: existing.id, sourceKey: existing.sourceKey };
+        return {
+          jobId: existing.id,
+          sourceKey: existing.sourceKey,
+          formatFingerprint: existing.formatFingerprint ?? undefined,
+          profileId: existing.profileId ?? undefined,
+          status: existing.status,
+          requiresMapping: existing.status === IngestionStatus.review_required,
+          reused: true,
+          totalRows: existing.items.length,
+          importedItemsCount: existing.items.length,
+        };
       }
+
       const fileUrl = await this.storageService.uploadFile(file, true, 'ingestion', supplierId);
       const sourceKey = new URL(fileUrl).pathname.slice('/storage/'.length);
+
       try {
-        const job = existing ? await tx.ingestionJob.update({ where: { id: existing.id }, data: { sourceKey } }) :
-          await tx.ingestionJob.create({ data: { supplierId, status: 'pending', sourceKey, sourceChecksum: checksum } });
-        return { jobId: job.id, sourceKey };
+        if (!isSpreadsheet || !parsed || !formatFingerprint) {
+          const job = await tx.ingestionJob.create({
+            data: { supplierId, status: IngestionStatus.pending, sourceKey, sourceChecksum: checksum },
+          });
+          return { jobId: job.id, sourceKey, status: job.status, requiresMapping: false };
+        }
+
+        const approvedProfile = await this.exportProfileService.findApprovedProfile(supplierId, formatFingerprint);
+
+        if (approvedProfile) {
+          // Layout is recognized & approved! Deterministic extraction without AI
+          const job = await tx.ingestionJob.create({
+            data: {
+              supplierId,
+              status: IngestionStatus.pending,
+              sourceKey,
+              sourceChecksum: checksum,
+              formatFingerprint,
+              profileId: approvedProfile.id,
+            },
+          });
+
+          const itemsData = this.extractItemsFromParsedSpreadsheet(
+            { id: job.id, sourceKey, sourceChecksum: checksum, formatFingerprint },
+            parsed,
+            approvedProfile.mapping as any,
+            supplier.name,
+          );
+
+          if (itemsData.length > 0) {
+            await tx.ingestionItem.createMany({ data: itemsData });
+          }
+
+          return {
+            jobId: job.id,
+            sourceKey,
+            formatFingerprint,
+            profileId: approvedProfile.id,
+            status: IngestionStatus.pending,
+            requiresMapping: false,
+            totalRows: parsed.totalDataRows,
+            importedItemsCount: itemsData.length,
+          };
+        } else {
+          // New/unapproved layout -> Requires mapping review & approval
+          const proposal = this.exportProfileService.proposeMapping(parsed.headers);
+
+          const job = await tx.ingestionJob.create({
+            data: {
+              supplierId,
+              status: IngestionStatus.review_required,
+              sourceKey,
+              sourceChecksum: checksum,
+              formatFingerprint,
+            },
+          });
+
+          return {
+            jobId: job.id,
+            sourceKey,
+            formatFingerprint,
+            status: IngestionStatus.review_required,
+            requiresMapping: true,
+            sampleHeaders: parsed.headers,
+            sampleRows: parsed.sampleRows,
+            totalRows: parsed.totalDataRows,
+            proposedMapping: proposal.mapping,
+            confidence: proposal.confidence,
+            unmappedHeaders: proposal.unmappedHeaders,
+            isComplete: proposal.isComplete,
+          };
+        }
       } catch (error) {
         await this.storageService.deleteFile(fileUrl);
         throw error;
       }
-    }, { timeout: 15000 });
+    }, { timeout: 25000 });
+  }
+
+  async applyJobMapping(
+    jobId: string,
+    supplierId: string,
+    dto: ApplyJobMappingDto,
+    approvedBy: string,
+  ): Promise<{ jobId: string; status: IngestionStatus; profileId: string; importedItemsCount: number }> {
+    if (!this.isUuid(jobId)) throw new BadRequestException('Invalid job ID');
+    const job = await this.prisma.ingestionJob.findUnique({
+      where: { id: jobId },
+      include: { supplier: true },
+    });
+
+    if (!job) throw new NotFoundException('Ingestion job not found');
+    if (job.supplierId !== supplierId) {
+      throw new ForbiddenException('Cannot modify an ingestion job belonging to another supplier');
+    }
+    if (!job.sourceKey || !job.sourceChecksum) {
+      throw new BadRequestException('Job has no associated source file');
+    }
+
+    const buffer = await this.storageService.getFileBuffer(job.sourceKey);
+    const parsed = this.spreadsheetParser.parseSpreadsheet(buffer, job.sourceKey);
+    const fingerprint = job.formatFingerprint || this.formatFingerprintService.computeFingerprint(parsed.headers, parsed.sheets);
+
+    const profile = await this.exportProfileService.saveProfile({
+      supplierId,
+      formatFingerprint: fingerprint,
+      mapping: dto.mapping,
+      name: dto.profileName,
+      sampleHeaders: parsed.headers,
+      isApproved: true,
+      approvedBy,
+    });
+
+    const itemsData = this.extractItemsFromParsedSpreadsheet(
+      { id: job.id, sourceKey: job.sourceKey, sourceChecksum: job.sourceChecksum, formatFingerprint: fingerprint },
+      parsed,
+      dto.mapping,
+      job.supplier.name,
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.ingestionItem.deleteMany({ where: { jobId: job.id } });
+
+      if (itemsData.length > 0) {
+        await tx.ingestionItem.createMany({ data: itemsData });
+      }
+
+      await tx.ingestionJob.update({
+        where: { id: job.id },
+        data: {
+          profileId: profile.id,
+          formatFingerprint: fingerprint,
+          status: IngestionStatus.pending,
+        },
+      });
+
+      return {
+        jobId: job.id,
+        status: IngestionStatus.pending,
+        profileId: profile.id,
+        importedItemsCount: itemsData.length,
+      };
+    });
+  }
+
+  async getProfiles(supplierId?: string) {
+    return this.exportProfileService.listProfiles(supplierId);
+  }
+
+  async getProfile(profileId: string, supplierId?: string) {
+    return this.exportProfileService.getProfile(profileId, supplierId);
+  }
+
+  async approveProfile(supplierId: string, profileId: string, approvedBy: string) {
+    return this.exportProfileService.approveProfile(supplierId, profileId, approvedBy);
+  }
+
+  private extractItemsFromParsedSpreadsheet(
+    job: { id: string; sourceKey: string; sourceChecksum: string; formatFingerprint?: string | null },
+    parsed: ParsedSpreadsheet,
+    mapping: ColumnMappingConfig,
+    supplierName?: string,
+  ) {
+    const items: any[] = [];
+    const seenSkus = new Set<string>();
+
+    for (const row of parsed.rows) {
+      const rawSku = row.data[mapping.supplierSku];
+      const rawName = row.data[mapping.name];
+      const rawPrice = row.data[mapping.price];
+
+      const norm = this.rowNormalizationService.normalizeRow({
+        sourceRowNumber: row.sourceRow,
+        supplierSku: rawSku,
+        name: rawName,
+        brand: mapping.brand ? row.data[mapping.brand] : supplierName,
+        barcode: mapping.barcode ? row.data[mapping.barcode] : undefined,
+        price: rawPrice,
+        retailPrice: mapping.retailPrice ? row.data[mapping.retailPrice] : undefined,
+        quantity: mapping.quantity ? row.data[mapping.quantity] : undefined,
+        hasQuantityColumn: Boolean(mapping.quantity),
+        discount: mapping.discount ? row.data[mapping.discount] : undefined,
+        currency: mapping.currency || (mapping.currencyColumn ? row.data[mapping.currencyColumn] : undefined),
+        units: mapping.units ? row.data[mapping.units] : undefined,
+        extraAttributes: row.data,
+      });
+
+      if (norm.status === NormalizedRowStatus.INVALID) {
+        continue;
+      }
+
+      if (seenSkus.has(norm.normalizedSku)) {
+        continue;
+      }
+      seenSkus.add(norm.normalizedSku);
+
+      let itemStatus: IngestionStatus = IngestionStatus.pending;
+      if (norm.status === NormalizedRowStatus.REVIEW || norm.status === NormalizedRowStatus.OUT_OF_SCOPE) {
+        itemStatus = IngestionStatus.review_required;
+      }
+
+      items.push({
+        jobId: job.id,
+        supplierSkuCode: norm.normalizedSku,
+        name: rawName ? String(rawName).trim() : norm.normalizedTitle,
+        brand: norm.normalizedBrand || supplierName || 'General',
+        barcode: norm.normalizedBarcode,
+        price: norm.pricing.purchaseCost!,
+        priceType: IngestionPriceType.PURCHASE_COST,
+        reportedQuantity: norm.inventory.reportedQuantity,
+        currency: norm.pricing.currency,
+        status: itemStatus,
+        enrichment: {
+          source: {
+            objectKey: job.sourceKey,
+            checksum: job.sourceChecksum,
+            row: row.sourceRow,
+            formatFingerprint: job.formatFingerprint,
+            rawRow: row.data,
+            normalized: norm,
+            input: {
+              supplierSkuCode: norm.normalizedSku,
+              name: rawName ? String(rawName).trim() : norm.normalizedTitle,
+              brand: norm.normalizedBrand,
+              barcode: norm.normalizedBarcode,
+              price: norm.pricing.purchaseCost!,
+              priceType: IngestionPriceType.PURCHASE_COST,
+              reportedQuantity: norm.inventory.reportedQuantity,
+              currency: norm.pricing.currency,
+              sourceRow: row.sourceRow,
+            },
+          },
+        },
+      });
+    }
+
+    return items;
   }
 
   async createJob(dto: CreateIngestionJobDto): Promise<IngestionJobDetail> {
@@ -133,16 +417,17 @@ export class IngestionService {
         if (source.status !== IngestionStatus.pending) throw new ConflictException('Source job is not pending');
         await tx.ingestionItem.createMany({ data: dto.items.map(input => ({ jobId: source.id, supplierSkuCode: input.supplierSkuCode,
           name: input.name, brand: input.brand, barcode: input.barcode, price: input.price,
-          priceType: input.priceType ?? null, currency: input.currency,
+          priceType: input.priceType ?? null, reportedQuantity: input.reportedQuantity ?? null, currency: input.currency,
           enrichment: { source: { objectKey: source.sourceKey!, checksum: source.sourceChecksum!, row: input.sourceRow!,
             input: { supplierSkuCode: input.supplierSkuCode, name: input.name, brand: input.brand, barcode: input.barcode ?? null,
-              price: input.price, priceType: input.priceType ?? null, currency: input.currency, sourceRow: input.sourceRow! } } } }),
+              price: input.price, priceType: input.priceType ?? null, reportedQuantity: input.reportedQuantity ?? null, currency: input.currency, sourceRow: input.sourceRow! } } } }),
         ) });
         return tx.ingestionJob.findUniqueOrThrow({ where: { id: source.id }, include: { items: true } });
       }
       return tx.ingestionJob.create({
       data: {
         supplierId: dto.supplierId,
+        mode: dto.mode ?? IngestionImportMode.PARTIAL_UPDATE,
         items: {
           create: dto.items.map((item) => ({
             supplierSkuCode: item.supplierSkuCode,
@@ -151,6 +436,7 @@ export class IngestionService {
             barcode: item.barcode,
             price: item.price,
             priceType: item.priceType ?? null,
+            reportedQuantity: item.reportedQuantity ?? null,
             currency: item.currency,
           })),
         },
@@ -167,6 +453,7 @@ export class IngestionService {
       items: job.items.map((item) => ({
         ...item,
         price: item.price.toNumber(),
+        reportedQuantity: item.reportedQuantity ?? null,
       })),
     };
   }
@@ -185,6 +472,7 @@ export class IngestionService {
       items: job.items.map((item) => ({
         ...item,
         price: item.price.toNumber(),
+        reportedQuantity: item.reportedQuantity ?? null,
       })),
     };
   }
@@ -201,6 +489,7 @@ export class IngestionService {
       items: job.items.map((item) => ({
         ...item,
         price: item.price.toNumber(),
+        reportedQuantity: item.reportedQuantity ?? null,
       })),
     }));
   }
@@ -282,6 +571,7 @@ export class IngestionService {
       barcode: item.barcode,
       price: item.price.toNumber(),
       priceType: item.priceType,
+      reportedQuantity: item.reportedQuantity ?? null,
       currency: item.currency,
       status: item.status,
       matchedSkuId: item.matchedSkuId,
@@ -353,6 +643,7 @@ export class IngestionService {
         ...(dto.price !== undefined && { price: dto.price }),
         ...(dto.priceType !== undefined ? { priceType: dto.priceType } :
           dto.price !== undefined ? { priceType: null } : {}),
+        ...(dto.reportedQuantity !== undefined && { reportedQuantity: dto.reportedQuantity }),
         ...(dto.currency !== undefined && { currency: dto.currency }),
         matchedSkuId,
         status: IngestionStatus.review_required,
@@ -393,18 +684,84 @@ export class IngestionService {
       if (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.matchedSkuId) {
         matchedSkuId = matchAnalysis.matchedSkuId;
         status = IngestionStatus.review_required;
+      } else if (matchAnalysis.classification === MatchClassification.OUT_OF_SCOPE) {
+        await this.prisma.ingestionItem.update({
+          where: { id: item.id },
+          data: {
+            status: IngestionStatus.rejected,
+            enrichmentStatus: IngestionItemEnrichmentStatus.failed,
+            enrichmentError: matchAnalysis.reason,
+            enrichment: {
+              identity: {
+                fingerprint: matchAnalysis.fingerprint,
+                classification: matchAnalysis.classification,
+                matchReason: matchAnalysis.reason,
+                conflicts: matchAnalysis.conflicts,
+              },
+            },
+          },
+        });
+        continue;
+      } else if (matchAnalysis.classification === MatchClassification.INVALID) {
+        await this.prisma.ingestionItem.update({
+          where: { id: item.id },
+          data: {
+            status: IngestionStatus.rejected,
+            enrichmentStatus: IngestionItemEnrichmentStatus.failed,
+            enrichmentError: matchAnalysis.reason,
+            enrichment: {
+              identity: {
+                fingerprint: matchAnalysis.fingerprint,
+                classification: matchAnalysis.classification,
+                matchReason: matchAnalysis.reason,
+                conflicts: matchAnalysis.conflicts,
+              },
+            },
+          },
+        });
+        continue;
       }
+
+      // Multi-supplier candidate deduplication: reuse existing candidate enrichment
+      let reusedEnrichment: any = null;
+      if (matchAnalysis.existingCandidateId && matchAnalysis.existingCandidateId !== item.id) {
+        const existingCand = await this.prisma.ingestionItem.findUnique({
+          where: { id: matchAnalysis.existingCandidateId },
+        });
+        if (existingCand && existingCand.enrichment) {
+          reusedEnrichment = existingCand.enrichment;
+        }
+      }
+
+      const itemEnrichment = {
+        ...(reusedEnrichment || ((item.enrichment as Record<string, any>) || {})),
+        identity: {
+          fingerprint: matchAnalysis.fingerprint,
+          classification: matchAnalysis.classification,
+          matchReason: matchAnalysis.reason,
+          conflicts: matchAnalysis.conflicts,
+          canonicalSku: matchAnalysis.canonicalSku || null,
+          existingCandidateId: matchAnalysis.existingCandidateId || null,
+        },
+      };
 
       const changed = await this.prisma.ingestionItem.updateMany({
         where: { id: item.id, status: IngestionStatus.pending, updatedAt: item.updatedAt },
-        data: { matchedSkuId, status },
+        data: {
+          matchedSkuId,
+          status,
+          enrichment: itemEnrichment,
+          ...(reusedEnrichment ? { enrichmentStatus: IngestionItemEnrichmentStatus.succeeded } : {}),
+        },
       });
       if (!changed.count) continue;
 
-      // Trigger AI enrichment asynchronously (best-effort, non-blocking)
-      this.enrichItemAsync(item.id, item.name, item.brand, item.barcode ?? undefined).catch((err) =>
-        console.error(`Enrichment background error for item ${item.id}:`, err),
-      );
+      // Only trigger AI enrichment if NOT already enriched from existing candidate
+      if (!reusedEnrichment) {
+        this.enrichItemAsync(item.id, item.name, item.brand, item.barcode ?? undefined).catch((err) =>
+          console.error(`Enrichment background error for item ${item.id}:`, err),
+        );
+      }
     }
 
     await this.evaluateJobStatus(jobId);
@@ -917,6 +1274,16 @@ export class IngestionService {
       throw new BadRequestException('Job is not fully approved yet. Resolve pending items first.');
     }
 
+    if (job.mode === IngestionImportMode.FULL_SNAPSHOT) {
+      // Immediate safety switch (M0 / GLO-246):
+      // Unscoped mass-deactivation is blocked pending SG-05 verified assortment coverage & anomaly hold authorization.
+      if (process.env.ALLOW_UNSCOPED_FULL_SNAPSHOT_DEACTIVATION !== 'true') {
+        throw new BadRequestException(
+          'FULL_SNAPSHOT mass-deactivation is guarded pending SG-05 assortment scope verification and anomaly hold authorization. Use PARTIAL_UPDATE or enable verified assortment coverage.',
+        );
+      }
+    }
+
     const errors: string[] = [];
 
     for (const item of job.items) {
@@ -934,6 +1301,23 @@ export class IngestionService {
       throw new BadRequestException({
         message: 'Partial publish failure',
         errors,
+      });
+    }
+
+    if (job.mode === IngestionImportMode.FULL_SNAPSHOT) {
+      // Collect all published/matched SKU IDs present in this snapshot job
+      const publishedSkuIds = job.items
+        .map(i => i.matchedSkuId)
+        .filter((id): id is string => Boolean(id));
+
+      // In a FULL_SNAPSHOT, any existing offers from this supplier not in the snapshot are deactivated
+      await this.prisma.supplierOffer.updateMany({
+        where: {
+          supplierId: job.supplierId,
+          skuId: { notIn: publishedSkuIds },
+          isAvailable: true,
+        },
+        data: { isAvailable: false },
       });
     }
 

@@ -68,6 +68,20 @@ export class ProductResearchService {
    * structured fact extraction (Grok or rule fallback), and field-level evidence verification.
    */
   async researchProductCandidate(input: CandidateResearchInput): Promise<ResearchResult> {
+    // 0. Invalid brand validation guard (SG-04: invalid brand not researched)
+    if (!input.brand || !input.brand.trim() || !input.name || !input.name.trim()) {
+      throw new BadRequestException('Candidate brand and product name are mandatory for research');
+    }
+    const trimmedBrand = input.brand.trim().toLowerCase();
+    const invalidKeywords = ['unknown', 'general', 'fake', 'fakebrand', 'scam', 'n/a', 'none', 'غير معروف', 'عام', 'invalid', 'prohibited'];
+    if (
+      /^\d+$/.test(trimmedBrand) ||
+      trimmedBrand.length < 2 ||
+      invalidKeywords.some((k) => trimmedBrand.includes(k))
+    ) {
+      throw new BadRequestException(`Invalid or unresearched brand (${input.brand}) cannot be researched`);
+    }
+
     const providerStatuses: ResearchProviderStatus = {
       exa: 'UNAVAILABLE',
       firecrawl: 'UNAVAILABLE',
