@@ -163,6 +163,11 @@ bdi {
     color: var(--blue);
   }
 
+  /* «ج.م» after an amount (CartD, CheckoutD): 0.72em of the amount it follows. */
+  .money-unit {
+    font-size: 0.72em;
+  }
+
   /* Campaign shutter light (Home hero, category fields, auth panel): never on UI surfaces. */
   .shutter-light {
     position: relative;

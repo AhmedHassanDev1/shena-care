@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { PageContainer } from '@/components/layout/page-container';
-import { CartView } from '@/features/cart/components/CartView';
+import { CartHeaderTitle, CartView } from '@/features/cart/components/CartView';
 import { StorefrontShell } from '@/features/shell/StorefrontShell';
 import { getMessages } from '@/lib/i18n/messages';
 import { getLocale } from '@/lib/i18n/server';
@@ -14,8 +14,8 @@ export function generateMetadata(): Metadata {
 export default function CartPage() {
   const m = getMessages(getLocale());
   return (
-    <StorefrontShell phoneFocus={{ back: { href: routes.home, label: m.back }, title: m.shellCart }}>
-      <PageContainer className="pt-1 lg:pt-8">
+    <StorefrontShell phoneFocus={{ back: { href: routes.home, label: m.back }, title: <CartHeaderTitle /> }}>
+      <PageContainer className="pt-1 lg:pt-8 lg:pb-24">
         <CartView />
       </PageContainer>
     </StorefrontShell>

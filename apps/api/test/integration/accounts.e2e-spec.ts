@@ -167,6 +167,10 @@ describe('Accounts (e2e)', () => {
         .expect(201);
         
       expect(res.body.token).toBeDefined();
+
+      // The new phone account: its verified number for checkout's recipient, and no name until the customer gives one.
+      const me = await request(app.getHttpServer()).get('/accounts/me').set('Authorization', `Bearer ${res.body.token}`).expect(200);
+      expect(me.body).toMatchObject({ phoneNumber: '+201211111111', name: null });
     });
 
     it('should reject reused OTP', async () => {

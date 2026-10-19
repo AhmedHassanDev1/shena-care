@@ -210,7 +210,7 @@
     "15": "60px",
     "18": "72px",
     "26": "104px",
-    "$comment": "Half steps the boards use between Tailwind's 4px spacing steps: 7 (status dot), 18 (button padding s), 22 (button padding m/l), 26, 30. 52 (auth panel padding), 72 (eyebrow rule). Utility: p-4.5, px-5.5… Also 50/54/60/70 (sheet CTA, card footer heights, sheet thumbnail).",
+    "$comment": "Half steps the boards use between Tailwind's 4px spacing steps: 7 (status dot), 18 (button padding s), 22 (button padding m/l), 26, 30. 52 (auth panel padding), 72 (eyebrow rule). Utility: p-4.5, px-5.5… Also 50/54/60/70 (sheet CTA, card footer heights, sheet thumbnail). 90 and 130: cart line image heights (CommerceMobile ١ 72×90, CartD 104×130).",
     "1.75": "7px",
     "4.5": "18px",
     "5.5": "22px",
@@ -218,7 +218,9 @@
     "7.5": "30px",
     "12.5": "50px",
     "13.5": "54px",
-    "17.5": "70px"
+    "17.5": "70px",
+    "22.5": "90px",
+    "32.5": "130px"
   },
   "shadow": {
     "$comment": "Board shadows that are not elevation tokens: the FloatingNav capsule, the blue button's inset highlight, and the inset outlines the boards draw instead of borders (light buttons 1.5px night, controls and chips 1px line-2, success 1.5px ok, hairline cards 1px line).",

@@ -24,6 +24,8 @@ export interface CartItem {
       brand: {
         name: string;
       };
+      /** Merchandising category, for the product-type line under the name (CartD). */
+      category: { slug: string; name: string } | null;
     };
     /** Primary catalog image for display; null when the catalog has none. */
     image: { url: string; alt: string } | null;
@@ -157,6 +159,7 @@ export function toCart(raw: BackendCart, catalog: ProductView[]): Cart {
           name: found?.product.name ?? '',
           slug: found?.product.slug ?? '',
           brand: { name: found?.product.brand.name ?? '' },
+          category: found?.product.category ? { slug: found.product.category.slug, name: found.product.category.name } : null,
         },
         image: image ? { url: image.url, alt: image.altText?.trim() || found?.product.name || '' } : null,
       },

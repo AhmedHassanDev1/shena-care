@@ -4,9 +4,11 @@ import type { OtpChallengeResponse } from '@/features/auth/lib/otp-challenge';
 
 export interface User {
   id: string;
-  name: string;
+  /** Null until the customer gives a name (phone sign-up). */
+  name: string | null;
   email: string;
-  role: string;
+  /** Verified sign-in number (E.164), offered as the order recipient's. */
+  phoneNumber: string | null;
 }
 
 export interface AuthResponse {

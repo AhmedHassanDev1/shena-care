@@ -78,6 +78,8 @@ export interface CheckoutQuote {
   }>;
   /** Lines the backend cannot sell right now. */
   invalidItems: unknown[];
+  /** Promotions the server applied to this quote (automatic ones and a matching discount code). */
+  appliedPromotions?: Array<{ promotionId: string; campaignName: string; benefitType: string; valueApplied: number; description: string }>;
 }
 
 export interface Order {

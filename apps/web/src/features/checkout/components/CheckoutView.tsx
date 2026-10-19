@@ -1,692 +1,521 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/features/auth/AuthContext';
-import { useAddresses } from '@/features/account/hooks/useAddresses';
-import { type CustomerAddress } from '@/lib/addresses';
+import { AsyncButton, buttonVariants, type AsyncState } from '@/components/ui/button';
 import { MessageBox } from '@/components/ui/message-box';
-import { StatusChip } from '@/components/ui/status-chip';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { PhoneField, TextField } from '@/components/ui/field';
-import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAddresses } from '@/features/account/hooks/useAddresses';
+import { useAuth } from '@/features/auth/AuthContext';
+import { apiErrorCode, signInHref, toLatinDigits } from '@/features/auth/lib/auth-helpers';
 import { CART_QUERY_KEY, useCart } from '@/features/cart/hooks/useCart';
+import type { CustomerAddress } from '@/lib/addresses';
 import { ApiError } from '@/lib/api-client';
-import { signInHref } from '@/features/auth/lib/auth-helpers';
 import { createIdempotencyKey } from '@/lib/idempotency';
-import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { formatEgp } from '@/lib/i18n/format';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { orders, type CheckoutQuote } from '@/lib/orders';
 import { routes } from '@/lib/routes';
-import { cn } from '@/lib/utils';
 import {
-  DeliveryLocationPicker,
-  type LocationPin,
-  isInsideServiceArea,
-  isDefaultCentre,
-} from './DeliveryLocationPicker';
+  EGYPT_MOBILE,
+  EMPTY_ADDRESS,
+  clearDraft,
+  forgetPlacedOrder,
+  placedOrder,
+  readDraft,
+  rememberPlacedOrder,
+  saveDraft,
+  toGovernorate,
+  type NewAddressDraft,
+} from '../lib/checkout-draft';
+import { isDefaultCentre, isInsideServiceArea } from '../lib/service-area';
+import {
+  AddressSection,
+  DeliverySection,
+  PaymentSection,
+  RecipientSection,
+  type AddressErrors,
+  type QuoteStatus,
+  type Recipient,
+} from './CheckoutSections';
+import { CheckoutSummary, type CouponStatus } from './CheckoutSummary';
+import type { LocationPin } from './DeliveryLocationPicker';
 
-interface Delivery {
-  customerName: string;
-  customerPhone: string;
-  governorate: string;
-  area: string;
-  shippingAddress: string;
-  notes: string;
-}
+const pinOf = (address: CustomerAddress): LocationPin => ({
+  latitude: address.latitude,
+  longitude: address.longitude,
+  locationSource: address.locationSource,
+  confirmed: true,
+});
 
-const EMPTY: Delivery = { customerName: '', customerPhone: '', governorate: '', area: '', shippingAddress: '', notes: '' };
-/** Same pattern the API validates (apps/api ordering/dto/order.dto.ts); checked here only to explain the fix early. */
-const EGYPT_MOBILE = /^(\+201|01)[0-9]{9}$/;
-const REQUIRED: Array<keyof Delivery> = ['customerName', 'customerPhone', 'governorate', 'area', 'shippingAddress'];
+const normalisePhone = (value: string) => toLatinDigits(value).replace(/[\s-]/g, '');
 
-type Problem = 'quote' | 'submit' | 'validation' | null;
+/** Problems with the place-order request the customer must act on (CommerceStates §١ «خلص وقت التأكيد», §٣). */
+type PlaceProblem = 'changed' | 'stock' | 'fields' | null;
 
 /**
- * Focused checkout: Delivery details → Review & place order (COD is the only live method, so there is
- * no payment step). The backend quote is the only source of totals; the idempotency key is created once
- * per reviewed quote, so retries after a lost response replay the same order instead of duplicating it.
- * A changed quote (409 CHECKOUT_REVIEW_REQUIRED) is re-fetched and shown as a change receipt; delivery
- * input and confirmed location pins are never cleared on any error.
+ * Checkout, one page (CheckoutD, CommerceMobile ٣/٣ب, CommerceStates §٢–§٣): ١ المستلم · ٢ عنوان التوصيل (map pin
+ * required) · ٣ التوصيل · ٤ طريقة الدفع (cash on delivery), with «طلبك» beside (desktop) or below (phone).
+ *
+ * - Every total comes from the server quote, requested whenever the address, pin or code changes; «أكد الطلب» is
+ *   disabled until it returns and carries its total.
+ * - One idempotency key per quote: a retry after a lost response replays the same order; a changed quote (409) is
+ *   shown before the customer confirms again.
+ * - Entered details are kept as a draft for this tab (sign-in round trip, refresh) and cleared once the order exists;
+ *   the checkout history entry is replaced by the order, and landing here again resumes that order.
+ * - Signed out → phone sign-in and back; a session that expires at placement returns with «دخولك خلص وقته…».
  */
 export function CheckoutView() {
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { cart, isLoading } = useCart();
-  const [step, setStep] = useState<'delivery' | 'review'>('delivery');
-  const [delivery, setDelivery] = useState<Delivery>(EMPTY);
-  const [location, setLocation] = useState<LocationPin | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Partial<Record<keyof Delivery, string>>>({});
-  const [quote, setQuote] = useState<CheckoutQuote | null>(null);
-  const [changedFrom, setChangedFrom] = useState<number | null>(null);
-  const [pending, setPending] = useState(false);
-  const [problem, setProblem] = useState<Problem>(null);
-  const idempotencyKey = useRef<string | null>(null);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { cart, isLoading: cartLoading } = useCart();
+  const { addresses, defaultAddress, isLoading: addressesLoading, createAddress, updateAddress } = useAddresses();
 
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [ready, setReady] = useState(false);
+  const [recipient, setRecipient] = useState<Recipient>({ name: '', phone: '' });
+  const [recipientFromAccount, setRecipientFromAccount] = useState(false);
+  const [editingRecipient, setEditingRecipient] = useState(false);
+  const [recipientErrors, setRecipientErrors] = useState<Partial<Record<keyof Recipient, string>>>({});
+  const [selectedId, setSelectedId] = useState<string | 'new' | null>(null);
+  const [draftAddress, setDraftAddress] = useState<NewAddressDraft>(EMPTY_ADDRESS);
+  const [addressErrors, setAddressErrors] = useState<AddressErrors>({});
+  const [saveState, setSaveState] = useState<AsyncState>('idle');
+  const [pins, setPins] = useState<Record<string, LocationPin | null>>({});
+  const [pinError, setPinError] = useState<string | undefined>();
+
+  const [quote, setQuote] = useState<CheckoutQuote | null>(null);
+  const [quoteStatus, setQuoteStatus] = useState<QuoteStatus>('waiting');
+  const [previousFee, setPreviousFee] = useState<number | null>(null);
+  const [coupon, setCoupon] = useState<{ code: string; status: CouponStatus }>({ code: '', status: 'idle' });
+  const baselinePromotions = useRef(0);
+  const quoteSeq = useRef(0);
+
+  const [placeState, setPlaceState] = useState<AsyncState>('idle');
+  const [problem, setProblem] = useState<PlaceProblem>(null);
+  const [changedFrom, setChangedFrom] = useState<number | null>(null);
+  const keyRef = useRef<{ quoteVersion: string; key: string } | null>(null);
+  const placingRef = useRef(false);
+
+  /* ── Access, resume, restore ─────────────────────────────────────── */
 
   // An order needs a signed-in customer (server-enforced): signed out, checkout goes through phone sign-in and back.
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace(signInHref(routes.checkout));
   }, [authLoading, isAuthenticated, router]);
-  const { addresses, defaultAddress, createAddress } = useAddresses();
-  const [selectedAddressId, setSelectedAddressId] = useState<string | 'new' | null>(null);
-  const [saveToBook, setSaveToBook] = useState(false);
-  const [newAddressLabel, setNewAddressLabel] = useState('');
-  const initializedFromSaved = useRef(false);
 
-  const applySavedAddress = (addr: CustomerAddress) => {
-    setDelivery({
-      customerName: addr.customerName,
-      customerPhone: addr.customerPhone,
-      governorate: addr.governorate,
-      area: addr.area,
-      shippingAddress: addr.shippingAddress,
-      notes: addr.notes ?? '',
-    });
-    setLocation({
-      latitude: addr.latitude,
-      longitude: addr.longitude,
-      locationSource: addr.locationSource,
-      confirmed: true,
-    });
-    setLocationError(null);
-    setErrors({});
-  };
-
+  // The order this checkout already created: show it instead of an empty, submittable page.
   useEffect(() => {
-    if (isAuthenticated && addresses.length > 0 && !initializedFromSaved.current) {
-      const initial = defaultAddress ?? addresses[0];
-      if (initial) {
-        initializedFromSaved.current = true;
-        setSelectedAddressId(initial.id);
-        applySavedAddress(initial);
+    if (cartLoading || !cart) return;
+    const placed = placedOrder();
+    if (cart.items.length === 0 && placed) router.replace(routes.order(placed));
+    else if (cart.items.length > 0 && placed) forgetPlacedOrder();
+  }, [cart, cartLoading, router]);
+
+  // Restore the draft once the account and its addresses are known; otherwise start from the account.
+  useEffect(() => {
+    if (ready || authLoading || !isAuthenticated || addressesLoading) return;
+    const draft = readDraft();
+    const accountRecipient = { name: user?.name ?? '', phone: user?.phoneNumber ? `0${user.phoneNumber.replace(/^\+20/, '')}` : '' };
+    const fallback = defaultAddress ? { name: accountRecipient.name || defaultAddress.customerName, phone: accountRecipient.phone || defaultAddress.customerPhone } : accountRecipient;
+    const initial = draft.recipient ?? fallback;
+    setRecipient(initial);
+    setRecipientFromAccount(!draft.recipient && Boolean(initial.name && initial.phone));
+    setEditingRecipient(!(initial.name.trim() && EGYPT_MOBILE.test(normalisePhone(initial.phone))));
+    const draftId = draft.addressId && (draft.addressId === 'new' || addresses.some((a) => a.id === draft.addressId)) ? draft.addressId : null;
+    setSelectedId(draftId ?? defaultAddress?.id ?? 'new');
+    if (draft.newAddress) setDraftAddress(draft.newAddress);
+    if (draft.couponCode) setCoupon({ code: draft.couponCode, status: 'applying' });
+    setReady(true);
+  }, [ready, authLoading, isAuthenticated, addressesLoading, user, addresses, defaultAddress]);
+
+  // Keep the draft current (this tab only; no prices).
+  useEffect(() => {
+    if (!ready) return;
+    saveDraft({
+      recipient,
+      addressId: selectedId,
+      newAddress: selectedId === 'new' ? draftAddress : undefined,
+      couponCode: coupon.status === 'applied' || coupon.status === 'applying' ? coupon.code : undefined,
+    });
+  }, [ready, recipient, selectedId, draftAddress, coupon]);
+
+  /* ── Delivery address and pin ─────────────────────────────────────── */
+
+  const selected = useMemo(() => addresses.find((a) => a.id === selectedId) ?? null, [addresses, selectedId]);
+  const selectedPin = selected ? (selected.id in pins ? pins[selected.id] : pinOf(selected)) : null;
+  const deliverable = Boolean(
+    selected &&
+      selectedPin?.confirmed &&
+      toGovernorate(selected.governorate) &&
+      isInsideServiceArea(selectedPin.latitude, selectedPin.longitude) &&
+      !isDefaultCentre(selectedPin.latitude, selectedPin.longitude)
+  );
+
+  const onSavedPinChange = async (next: LocationPin | null) => {
+    if (!selected) return;
+    setPins((current) => ({ ...current, [selected.id]: next }));
+    setPinError(undefined);
+    // A confirmed move is saved on the address itself, so the next order starts from the right door.
+    if (next?.confirmed) {
+      try {
+        await updateAddress({ id: selected.id, data: { latitude: next.latitude, longitude: next.longitude, locationSource: next.locationSource } });
+      } catch {
+        // The order still uses the confirmed pin; the address book keeps its previous one.
       }
     }
-  }, [isAuthenticated, addresses, defaultAddress]);
-
-  const handleSelectSaved = (addr: CustomerAddress) => {
-    setSelectedAddressId(addr.id);
-    applySavedAddress(addr);
   };
 
-  const handleSelectNew = () => {
-    setSelectedAddressId('new');
-    setDelivery(EMPTY);
-    setLocation(null);
-    setLocationError(null);
-    setErrors({});
+  const validateRecipient = () => {
+    const errors: Partial<Record<keyof Recipient, string>> = {};
+    if (!recipient.name.trim()) errors.name = m.checkoutRequired;
+    const phone = normalisePhone(recipient.phone);
+    if (!phone) errors.phone = m.checkoutRequired;
+    else if (!EGYPT_MOBILE.test(phone)) errors.phone = m.checkoutPhoneInvalid;
+    setRecipientErrors(errors);
+    if (Object.keys(errors).length) setEditingRecipient(true);
+    return Object.keys(errors).length === 0;
   };
 
-  if (isLoading) return <Skeleton className="h-control-l w-full" />;
-  if (!cart || cart.items.length === 0) {
-    return (
-      <Notice message={m.checkoutEmptyCart} action={<Link href={routes.products} className={buttonVariants()}>{m.pdpBackToProducts}</Link>} />
-    );
-  }
-  if (cart.items.some((item) => !item.canOrder)) {
-    return <Notice message={m.checkoutUnavailableItems} action={<Link href={routes.cart} className={buttonVariants()}>{m.checkoutBackToCart}</Link>} />;
-  }
-
-  const validate = () => {
-    const next: Partial<Record<keyof Delivery, string>> = {};
-    for (const key of REQUIRED) if (!delivery[key].trim()) next[key] = m.checkoutRequired;
-    const phone = delivery.customerPhone.replace(/\s+/g, '');
-    if (phone && !EGYPT_MOBILE.test(phone)) next.customerPhone = m.checkoutPhoneInvalid;
-
-    // Validate service area for governorate (Cairo/Giza)
-    const gov = delivery.governorate.trim().toLowerCase();
-    if (gov && gov !== 'cairo' && gov !== 'giza' && gov !== 'القاهرة' && gov !== 'الجيزة') {
-      next.governorate = m.checkoutMapOutOfService;
-    }
-    setErrors(next);
-
-    // Validate mandatory customer-confirmed delivery pin
-    let locErr: string | null = null;
-    if (!location) {
-      locErr = m.checkoutMapPinRequired;
-    } else if (!location.confirmed) {
-      locErr = m.checkoutMapConfirmRequired;
-    } else if (!isInsideServiceArea(location.latitude, location.longitude)) {
-      locErr = m.checkoutMapOutOfService;
-    } else if (isDefaultCentre(location.latitude, location.longitude)) {
-      locErr = m.checkoutMapImprobablePin;
-    }
-    setLocationError(locErr);
-
-    return Object.keys(next).length === 0 && !locErr;
-  };
-
-  const requestQuote = async () => {
-    const fresh = await orders.getQuote({ governorate: delivery.governorate.trim(), area: delivery.area.trim() });
-    idempotencyKey.current = createIdempotencyKey();
-    setQuote(fresh);
-    return fresh;
-  };
-
-  const toReview = async () => {
-    if (!validate()) return;
-    setPending(true);
-    setProblem(null);
-    setChangedFrom(null);
+  const saveNewAddress = async () => {
+    const errors: AddressErrors = {};
+    if (!draftAddress.governorate) errors.governorate = m.checkoutRequired;
+    if (!draftAddress.area.trim()) errors.area = m.checkoutRequired;
+    if (!draftAddress.shippingAddress.trim()) errors.shippingAddress = m.checkoutRequired;
+    if (!draftAddress.pin?.confirmed) errors.pin = m.checkoutPinMissing;
+    setAddressErrors(errors);
+    const recipientOk = validateRecipient();
+    if (Object.keys(errors).length || !recipientOk || saveState === 'pending') return;
+    const pin = draftAddress.pin as LocationPin;
+    setSaveState('pending');
     try {
-      await requestQuote();
-      setStep('review');
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 422) {
-        setErrors((prev) => ({ ...prev, governorate: m.checkoutQuoteOutOfArea }));
-        setProblem('validation');
-      } else {
-        setProblem('quote');
-      }
-    } finally {
-      setPending(false);
+      const created = await createAddress({
+        label: draftAddress.label.trim() || undefined,
+        customerName: recipient.name.trim(),
+        customerPhone: normalisePhone(recipient.phone),
+        governorate: draftAddress.governorate,
+        area: draftAddress.area.trim(),
+        shippingAddress: draftAddress.shippingAddress.trim(),
+        notes: draftAddress.notes.trim() || undefined,
+        latitude: pin.latitude,
+        longitude: pin.longitude,
+        locationSource: pin.locationSource,
+      });
+      setSaveState('success');
+      window.setTimeout(() => {
+        setSelectedId(created.id);
+        setDraftAddress(EMPTY_ADDRESS);
+        setSaveState('idle');
+      }, 900);
+    } catch {
+      setSaveState('error');
     }
   };
+
+  /* ── Quote ────────────────────────────────────────────────────────── */
+
+  const requestQuote = useCallback(
+    async (couponCode?: string) => {
+      if (!selected || !deliverable) return null;
+      const seq = ++quoteSeq.current;
+      setQuoteStatus('loading');
+      try {
+        const fresh = await orders.getQuote({
+          governorate: toGovernorate(selected.governorate),
+          area: selected.area,
+          ...(couponCode ? { couponCode } : {}),
+        });
+        if (seq !== quoteSeq.current) return null;
+        setQuote(fresh);
+        setQuoteStatus('ready');
+        return fresh;
+      } catch (error) {
+        if (seq !== quoteSeq.current) return null;
+        if (error instanceof ApiError && error.status === 401) {
+          router.replace(signInHref(routes.checkout, 'expired'));
+          return null;
+        }
+        if (error instanceof ApiError && error.status === 409) {
+          // The cart itself changed (unavailable product, price): nothing can be quoted until it is reviewed.
+          setProblem('stock');
+        }
+        setQuoteStatus('error');
+        return null;
+      }
+    },
+    [selected, deliverable, router]
+  );
+
+  const activeCode = coupon.status === 'applied' || coupon.status === 'applying' ? coupon.code : undefined;
+  const quoteKey = selected && deliverable ? `${selected.id}|${selected.governorate}|${selected.area}|${selectedPin?.latitude}|${selectedPin?.longitude}|${cart?.revision}` : null;
+  const lastQuoteKey = useRef<string | null>(null);
+
+  // A new address or pin (or cart revision) asks the server again; the fee row shows «بنحسبه…» meanwhile.
+  useEffect(() => {
+    if (!ready) return;
+    if (!quoteKey) {
+      quoteSeq.current++;
+      setQuoteStatus('waiting');
+      setQuote(null);
+      return;
+    }
+    if (lastQuoteKey.current === quoteKey) return;
+    // The fee is compared only when the address or pin changed (not for a first quote or a cart edit).
+    const place = (key: string) => key.split('|').slice(0, 5).join('|');
+    const addressChanged = lastQuoteKey.current !== null && place(lastQuoteKey.current) !== place(quoteKey);
+    setPreviousFee(addressChanged && quote ? quote.shippingFee : null);
+    lastQuoteKey.current = quoteKey;
+    void (async () => {
+      const base = await requestQuote();
+      if (!base) return;
+      baselinePromotions.current = base.appliedPromotions?.length ?? 0;
+      if (activeCode) await applyCode(activeCode);
+    })();
+    // Re-quote only when what the fee depends on changes.
+  }, [ready, quoteKey]);
+
+  const applyCode = async (code: string) => {
+    setCoupon({ code, status: 'applying' });
+    const withCode = await requestQuote(code);
+    if (!withCode) {
+      setCoupon({ code, status: 'idle' });
+      return;
+    }
+    // The quote does not say which code matched; a code counts as applied when it adds a promotion.
+    const applied = (withCode.appliedPromotions?.length ?? 0) > baselinePromotions.current;
+    setCoupon({ code, status: applied ? 'applied' : 'not-applied' });
+    if (!applied) await requestQuote();
+  };
+
+  const removeCode = async () => {
+    setCoupon({ code: '', status: 'idle' });
+    await requestQuote();
+  };
+
+  /* ── Place order ──────────────────────────────────────────────────── */
+
+  // Pending is the AsyncButton's own guard (same box, shutter); disabled is only for a missing precondition.
+  const canPlace = quoteStatus === 'ready' && Boolean(quote) && deliverable;
+  const placeLabel =
+    quoteStatus === 'ready' && quote
+      ? fillMessage(m.checkoutPlaceOrder, { total: formatEgp(quote.totalAmount, quote.currency, locale) ?? '' })
+      : m.checkoutPlaceOrderShort;
 
   const placeOrder = async () => {
-    if (!quote || !idempotencyKey.current || !location || !location.confirmed) return;
-    setPending(true);
+    if (placingRef.current || !quote || !selected || !selectedPin) return;
     setProblem(null);
+    if (!validateRecipient()) {
+      setProblem('fields');
+      return;
+    }
+    if (!deliverable) {
+      setPinError(m.checkoutPinMissing);
+      return;
+    }
+    // One key per quote: a retry of the same quote replays the same order.
+    if (!keyRef.current || keyRef.current.quoteVersion !== quote.quoteVersion) {
+      keyRef.current = { quoteVersion: quote.quoteVersion, key: createIdempotencyKey() };
+    }
+    placingRef.current = true;
+    setPlaceState('pending');
     try {
-      if (isAuthenticated && selectedAddressId === 'new' && saveToBook) {
-        try {
-          await createAddress({
-            label: newAddressLabel.trim() || undefined,
-            customerName: delivery.customerName.trim(),
-            customerPhone: delivery.customerPhone.replace(/\s+/g, ''),
-            governorate: delivery.governorate.trim(),
-            area: delivery.area.trim(),
-            shippingAddress: delivery.shippingAddress.trim(),
-            notes: delivery.notes.trim() || undefined,
-            latitude: location.latitude,
-            longitude: location.longitude,
-            locationSource: location.locationSource,
-          });
-        } catch {
-          // Do not block checkout if background address saving encounters an issue
-        }
-      }
-
       const order = await orders.checkout({
-        customerName: delivery.customerName.trim(),
-        customerPhone: delivery.customerPhone.replace(/\s+/g, ''),
-        governorate: delivery.governorate.trim(),
-        area: delivery.area.trim(),
-        shippingAddress: delivery.shippingAddress.trim(),
-        ...(delivery.notes.trim() ? { notes: delivery.notes.trim() } : {}),
-        latitude: location.latitude,
-        longitude: location.longitude,
-        locationSource: location.locationSource,
+        customerName: recipient.name.trim(),
+        customerPhone: normalisePhone(recipient.phone),
+        governorate: toGovernorate(selected.governorate),
+        area: selected.area,
+        shippingAddress: selected.shippingAddress,
+        ...(selected.notes ? { notes: selected.notes } : {}),
+        latitude: selectedPin.latitude,
+        longitude: selectedPin.longitude,
+        locationSource: selectedPin.locationSource,
         locationConfirmed: true,
         paymentMethod: 'COD',
+        ...(coupon.status === 'applied' ? { couponCode: coupon.code } : {}),
         quoteVersion: quote.quoteVersion,
         cartRevision: quote.cartRevision,
-        idempotencyKey: idempotencyKey.current,
+        idempotencyKey: keyRef.current.key,
       });
+      rememberPlacedOrder(order.orderNumber);
+      clearDraft();
       queryClient.removeQueries({ queryKey: CART_QUERY_KEY });
+      // Replace checkout in history: Back must not return to a submittable checkout.
       router.replace(`${routes.order(order.orderNumber)}?placed=1`);
     } catch (error) {
+      placingRef.current = false;
+      const code = apiErrorCode(error);
       if (error instanceof ApiError && error.status === 401) {
-        // The session ran out mid-checkout: sign in again and come back; cart and typed details stay.
+        // The session ran out: sign in again and come back; the draft keeps everything entered.
         router.replace(signInHref(routes.checkout, 'expired'));
         return;
       }
-      if (error instanceof ApiError && error.status === 409) {
-        // Terms changed or the quote expired: show what changed and ask again; keep everything typed.
+      if (error instanceof ApiError && error.status === 409 && code !== 'IDEMPOTENCY_KEY_REUSED') {
+        // Terms changed since the quote: show the new total before the customer confirms again.
+        setPlaceState('idle');
         const previous = quote.totalAmount;
-        try {
-          await requestQuote();
+        const fresh = await requestQuote(coupon.status === 'applied' ? coupon.code : undefined);
+        if (fresh) {
           setChangedFrom(previous);
-        } catch {
-          setProblem('quote');
+          setProblem('changed');
         }
-      } else if (error instanceof ApiError && (error.type === 'VALIDATION' || error.status === 422)) {
-        if (error.status === 422) {
-          const errData = error.data as { code?: string; message?: { code?: string } } | undefined;
-          const code = errData?.code || errData?.message?.code;
-          if (code === 'OUT_OF_SERVICE_AREA') {
-            setLocationError(m.checkoutMapOutOfService);
-          } else if (code === 'LOCATION_PIN_IMPROBABLE') {
-            setLocationError(m.checkoutMapImprobablePin);
-          } else {
-            setLocationError(error.message);
-          }
-        }
-        setProblem('validation');
-        setStep('delivery');
-      } else {
-        // Network/server: the same key is kept so a retry cannot create a second order.
-        setProblem('submit');
+        return;
       }
-      setPending(false);
+      if (error instanceof ApiError && (error.status === 422 || error.status === 400)) {
+        setPlaceState('idle');
+        if (code === 'OUT_OF_SERVICE_AREA' || code?.startsWith('LOCATION_PIN')) {
+          setPinError(code === 'LOCATION_PIN_IMPROBABLE' ? m.checkoutMapImprobablePin : code === 'OUT_OF_SERVICE_AREA' ? m.checkoutOutOfArea : m.checkoutPinMissing);
+          setPins((current) => ({ ...current, [selected.id]: selectedPin ? { ...selectedPin, confirmed: false } : null }));
+        } else {
+          setProblem('fields');
+        }
+        return;
+      }
+      // Network or server: «جرّب تاني» repeats the same request with the same key.
+      setPlaceState('error');
     }
   };
 
-  const field = (key: keyof Delivery) => ({
-    value: delivery[key],
-    error: errors[key],
-    onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
-      setDelivery({ ...delivery, [key]: event.target.value });
-      if (errors[key]) setErrors({ ...errors, [key]: undefined });
-    },
-  });
+  /* ── Render ───────────────────────────────────────────────────────── */
+
+  if (authLoading || cartLoading || !isAuthenticated || !ready) return <CheckoutSkeleton label={m.loading} />;
+  if (!cart || cart.items.length === 0) {
+    return (
+      <section className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-4 rounded-card bg-linen px-6 py-10 text-center shadow-outline-hairline">
+        <p className="m-0 text-body text-night">{m.checkoutEmptyCart}</p>
+        <Link href={routes.products} className={buttonVariants({ variant: 'ink' })}>
+          {m.cartShop}
+        </Link>
+      </section>
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <header className="space-y-1">
-        <p className="text-12 text-ink-2">{fillMessage(m.checkoutStepOf, { i: step === 'delivery' ? 1 : 2, n: 2 })}</p>
-        <h1 className="text-display-3 text-night">{step === 'delivery' ? m.checkoutStepDelivery : m.checkoutStepReview}</h1>
+    <div className="pb-28 lg:pb-0">
+      <header className="mb-6 hidden lg:block">
+        <h1 className="m-0 font-display text-44 font-extrabold leading-50 text-night">{m.checkoutTitle}</h1>
+        <p className="m-0 mt-1.5 text-14 text-ink-2">{m.checkoutLead}</p>
       </header>
 
       {problem ? (
-        <MessageBox tone="err">
-          <p className="text-14">
-            {problem === 'quote' ? m.checkoutQuoteFailed : problem === 'validation' ? m.checkoutValidationFailed : m.checkoutSubmitFailed}
-          </p>
-        </MessageBox>
-      ) : null}
-
-      {step === 'delivery' ? (
-        <form
-          noValidate
-          className="space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            toReview();
-          }}
-        >
-          {/* Saved Addresses Section (when authenticated and has saved addresses) */}
-          {isAuthenticated && addresses.length > 0 && (
-            <div className="space-y-3 rounded-card border border-line bg-linen p-4">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Icon name="pin" size={18} className="text-blue" />
-                  <span className="text-title text-night">{m.checkoutUseSavedAddress}</span>
-                </div>
-                <Link
-                  href={routes.accountAddresses}
-                  target="_blank"
-                  className="text-12 text-blue hover:underline"
-                >
-                  {m.addressBookManageInAccount}
-                </Link>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {addresses.map((addr) => {
-                  const isSelected = selectedAddressId === addr.id;
-                  return (
-                    <button
-                      key={addr.id}
-                      type="button"
-                      onClick={() => handleSelectSaved(addr)}
-                      className={cn(
-                        'flex flex-col items-start gap-1.5 rounded-input border p-3 text-start transition-all',
-                        isSelected
-                          ? 'border-blue bg-blue-tint/30 shadow-elevation-1 ring-1 ring-blue'
-                          : 'border-line bg-linen hover:border-line-2/40',
-                      )}
-                    >
-                      <div className="flex w-full items-center justify-between gap-2">
-                        <span className="text-14 font-semibold text-night font-medium">
-                          {addr.label || addr.customerName}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          {addr.isDefault && (
-                            <StatusChip tone="gray" className="text-12 py-0 text-blue border-blue">
-                              {m.addressBookDefaultBadge}
-                            </StatusChip>
-                          )}
-                          {isSelected ? (
-                            <Icon name="check" size={18} className="text-blue" />
-                          ) : (
-                            <span className="h-4 w-4 rounded-full border border-line" />
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-12 text-ink-2">
-                        {addr.shippingAddress}, {addr.area}, {addr.governorate}
-                      </p>
-                      <p dir="ltr" className="text-12 text-ink-3">
-                        <bdi>{addr.customerPhone}</bdi>
-                      </p>
-                    </button>
-                  );
-                })}
-
-                <button
-                  type="button"
-                  onClick={handleSelectNew}
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-1.5 rounded-input border border-dashed p-3 text-center transition-all min-h-[90px]',
-                    selectedAddressId === 'new'
-                      ? 'border-blue bg-blue-tint/30 shadow-elevation-1 ring-1 ring-blue'
-                      : 'border-line bg-linen hover:border-line-2/40 text-ink-2',
-                  )}
-                >
-                  <div className="flex items-center gap-1.5 text-14 font-semibold text-night">
-                    <Icon name="plus" size={16} />
-                    <span>{m.checkoutUseDifferentAddress}</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Form fields: shown if selectedAddressId === 'new' or not authenticated or no saved addresses */}
-          {selectedAddressId === 'new' || !isAuthenticated || addresses.length === 0 ? (
-            <>
-              <TextField label={m.checkoutName} autoComplete="name" required {...field('customerName')} />
-              <PhoneField
-                label={m.checkoutPhone}
-                hint={errors.customerPhone ? undefined : m.checkoutPhoneHint}
-                placeholder="01012345678"
-                required
-                {...field('customerPhone')}
-              />
-              <div className="space-y-2">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <TextField label={m.checkoutGovernorate} autoComplete="address-level1" required {...field('governorate')} />
-                  <TextField label={m.checkoutArea} autoComplete="address-level2" required {...field('area')} />
-                </div>
-                {/* Quick Governorate Buttons (Cairo / Giza) */}
-                <div className="flex items-center gap-2">
-                  <span className="text-12 text-ink-3">{m.checkoutGovernorate}:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const val = locale === 'ar' ? 'القاهرة' : 'Cairo';
-                      setDelivery((prev) => ({ ...prev, governorate: val }));
-                      if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
-                    }}
-                    className={cn(
-                      'rounded-pill border px-2.5 py-1 text-12 transition-colors',
-                      delivery.governorate.toLowerCase() === 'cairo' || delivery.governorate === 'القاهرة'
-                        ? 'border-blue bg-blue-tint text-blue'
-                        : 'border-line bg-linen text-ink-2 hover:bg-sand',
-                    )}
-                  >
-                    <bdi>{locale === 'ar' ? 'القاهرة' : 'Cairo'}</bdi>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const val = locale === 'ar' ? 'الجيزة' : 'Giza';
-                      setDelivery((prev) => ({ ...prev, governorate: val }));
-                      if (errors.governorate) setErrors((prev) => ({ ...prev, governorate: undefined }));
-                    }}
-                    className={cn(
-                      'rounded-pill border px-2.5 py-1 text-12 transition-colors',
-                      delivery.governorate.toLowerCase() === 'giza' || delivery.governorate === 'الجيزة'
-                        ? 'border-blue bg-blue-tint text-blue'
-                        : 'border-line bg-linen text-ink-2 hover:bg-sand',
-                    )}
-                  >
-                    <bdi>{locale === 'ar' ? 'الجيزة' : 'Giza'}</bdi>
-                  </button>
-                </div>
-              </div>
-
-              <TextField
-                label={m.checkoutAddress}
-                hint={errors.shippingAddress ? undefined : m.checkoutAddressHint}
-                autoComplete="street-address"
-                required
-                {...field('shippingAddress')}
-              />
-
-              {/* Mandatory Map Location Picker with Customer Confirmation */}
-              <DeliveryLocationPicker
-                value={location}
-                onChange={(next) => {
-                  setLocation(next);
-                  if (next?.confirmed) setLocationError(null);
-                }}
-                error={locationError ?? undefined}
-              />
-
-              <TextField label={m.checkoutNotes} optionalLabel={m.checkoutOptional} {...field('notes')} />
-
-              {/* Save to address book option for authenticated customers */}
-              {isAuthenticated && (
-                <div className="space-y-2 rounded-input border border-line bg-linen p-3">
-                  <label className="flex cursor-pointer items-center gap-2 text-14">
-                    <input
-                      type="checkbox"
-                      checked={saveToBook}
-                      onChange={(e) => setSaveToBook(e.target.checked)}
-                      className="rounded border-line text-blue focus:ring-blue"
-                    />
-                    <span>{m.checkoutSaveThisAddress}</span>
-                  </label>
-                  {saveToBook && (
-                    <TextField
-                      label={m.addressBookLabelOptional}
-                      placeholder={locale === 'ar' ? 'مثال: البيت، المكتب' : 'e.g. Home, Office'}
-                      value={newAddressLabel}
-                      onChange={(e) => setNewAddressLabel(e.target.value)}
-                    />
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            /* Selected Saved Address Preview Card */
-            <div className="space-y-3 rounded-card border border-blue/40 bg-linen p-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-title text-night">
-                  {m.checkoutDeliveryTo}: {delivery.customerName}
-                </span>
-                <StatusChip tone="gray" className="border-blue text-blue text-12">
-                  <Icon name="check" size={14} className="me-1" />
-                  {m.checkoutDeliverToThisAddress}
-                </StatusChip>
-              </div>
-              <p className="text-14 text-ink-2">
-                {[delivery.shippingAddress, delivery.area, delivery.governorate].filter(Boolean).join('، ')}
-              </p>
-              <p dir="ltr" className="text-14 text-ink-2 text-start">
-                <bdi>{delivery.customerPhone}</bdi>
-              </p>
-              {location && (
-                <div className="flex flex-wrap items-center gap-2 pt-1 text-12 text-ink-2">
-                  <Icon name="pin" size={16} className="text-blue" />
-                  <span>{m.orderConfirmedLocation}:</span>
-                  <bdi>
-                    {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
-                  </bdi>
-                  <StatusChip tone="ok" className="px-1.5 py-0 text-12">
-                    {m.checkoutMapConfirmed}
-                  </StatusChip>
-                </div>
-              )}
-              <TextField label={m.checkoutNotes} optionalLabel={m.checkoutOptional} {...field('notes')} />
-            </div>
-          )}
-
-          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between">
-            <Link href={routes.cart} className={buttonVariants({ variant: 'light' })}>
-              {m.checkoutBackToCart}
-            </Link>
-            <Button type="submit" size="l" loading={pending}>
-              {m.checkoutContinue}
-            </Button>
-          </div>
-        </form>
-      ) : quote ? (
-        <Review
-          quote={quote}
-          delivery={delivery}
-          location={location}
-          changedFrom={changedFrom}
-          pending={pending}
-          onEditDelivery={() => setStep('delivery')}
-          onPlaceOrder={placeOrder}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function Review({
-  quote,
-  delivery,
-  location,
-  changedFrom,
-  pending,
-  onEditDelivery,
-  onPlaceOrder,
-}: {
-  quote: CheckoutQuote;
-  delivery: Delivery;
-  location: LocationPin | null;
-  changedFrom: number | null;
-  pending: boolean;
-  onEditDelivery: () => void;
-  onPlaceOrder: () => void;
-}) {
-  const m = useMessages();
-  const locale = useLocale();
-  const money = (value: number) => formatEgp(value, quote.currency, locale) ?? '';
-  const discount = Math.round((quote.subtotal + quote.shippingFee - quote.totalAmount) * 100) / 100;
-
-  return (
-    <div className="space-y-4">
-      {changedFrom !== null ? (
-        <MessageBox tone="warn">
-          <div className="text-14">
-            <p className="font-semibold">{m.checkoutChangedTitle}</p>
-            <p>
+        <div className="mb-4">
+          {problem === 'stock' ? (
+            <MessageBox tone="err" role="alert">
+              <p className="m-0 text-14 font-semibold">{m.checkoutStockLostTitle}</p>
+              <p className="m-0 text-14 leading-22">{m.checkoutStockLostBody}</p>
+              <Link href={routes.cart} className={buttonVariants({ variant: 'ink', size: 's', className: 'mt-2' })}>
+                {m.checkoutBackToCart}
+              </Link>
+            </MessageBox>
+          ) : problem === 'changed' && quote && changedFrom !== null ? (
+            <MessageBox tone="warn" role="alert">
               {changedFrom !== quote.totalAmount
-                ? fillMessage(m.checkoutChangedTotal, { old: money(changedFrom), new: money(quote.totalAmount) })
+                ? fillMessage(m.checkoutChangedTotal, {
+                    old: formatEgp(changedFrom, quote.currency, locale) ?? '',
+                    new: formatEgp(quote.totalAmount, quote.currency, locale) ?? '',
+                  })
                 : m.checkoutChangedSame}
-            </p>
-          </div>
+            </MessageBox>
+          ) : problem === 'fields' ? (
+            <MessageBox tone="err" role="alert">
+              {m.checkoutFixFields}
+            </MessageBox>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start lg:gap-10">
+        <div className="flex flex-col gap-4 lg:gap-5">
+          <RecipientSection
+            recipient={recipient}
+            fromAccount={recipientFromAccount}
+            editing={editingRecipient}
+            errors={recipientErrors}
+            onEdit={() => setEditingRecipient(true)}
+            onChange={(next) => {
+              setRecipient(next);
+              setRecipientFromAccount(false);
+              setRecipientErrors({});
+            }}
+            onDone={() => {
+              if (validateRecipient()) setEditingRecipient(false);
+            }}
+          />
+          <AddressSection
+            addresses={addresses}
+            selectedId={selectedId}
+            onSelect={(id) => {
+              setSelectedId(id);
+              setPinError(undefined);
+              setAddressErrors({});
+              setProblem(null);
+            }}
+            draft={draftAddress}
+            onDraft={(next) => {
+              setDraftAddress(next);
+              if (Object.keys(addressErrors).length) setAddressErrors({});
+            }}
+            errors={addressErrors}
+            saveState={saveState}
+            onSaveNew={saveNewAddress}
+            onCancelNew={() => setSelectedId(defaultAddress?.id ?? addresses[0]?.id ?? 'new')}
+            pin={selectedPin}
+            pinError={pinError}
+            onPinChange={onSavedPinChange}
+          />
+          <DeliverySection
+            area={selected?.area ?? null}
+            status={quoteStatus}
+            quote={quote}
+            previousFee={previousFee}
+            onRetry={() => void requestQuote(activeCode)}
+          />
+          <PaymentSection />
+        </div>
+
+        <CheckoutSummary
+          cart={cart}
+          quote={quote}
+          quoteStatus={quoteStatus}
+          coupon={coupon}
+          onApplyCoupon={(code) => void applyCode(code)}
+          onRemoveCoupon={() => void removeCode()}
+          placeState={placeState}
+          placeLabel={placeLabel}
+          canPlace={canPlace}
+          onPlace={placeOrder}
+        />
+      </div>
+
+      {placeState === 'error' ? (
+        <MessageBox tone="err" role="alert" className="mt-4">
+          {m.checkoutSubmitFailed}
         </MessageBox>
       ) : null}
 
-      <ReviewGroup title={m.checkoutItems} edit={<Link href={routes.cart} className={buttonVariants({ variant: 'text' })}>{m.checkoutEdit}</Link>}>
-        <ul className="space-y-2">
-          {quote.items.map((item) => (
-            <li key={item.skuId} className="flex justify-between gap-3 text-14">
-              <span dir="auto" className="min-w-0 text-match-parent">
-                {item.productName}
-                {item.variantName ? <span className="text-ink-3"> · <bdi>{item.variantName}</bdi></span> : null}
-                <span className="text-ink-3"> × <bdi>{item.quantity}</bdi></span>
-              </span>
-              <bdi className="shrink-0 tabular-nums text-night">{money(item.lineTotal)}</bdi>
-            </li>
-          ))}
-        </ul>
-      </ReviewGroup>
-
-      <ReviewGroup title={m.checkoutDeliveryTo} edit={<Button variant="text" onClick={onEditDelivery}>{m.checkoutEdit}</Button>}>
-        <p className="text-14 text-night">{delivery.customerName}</p>
-        <p className="text-14 text-ink-2">
-          <bdi dir="ltr">{delivery.customerPhone}</bdi>
-        </p>
-        <p className="text-14 text-ink-2">
-          {[delivery.shippingAddress, delivery.area, delivery.governorate].filter(Boolean).join('، ')}
-        </p>
-        {location ? (
-          <div className="flex flex-wrap items-center gap-2 pt-1 text-12 text-ink-2">
-            <Icon name="pin" size={16} className="text-blue" />
-            <span>{m.orderConfirmedLocation}:</span>
-            <bdi>
-              {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
-            </bdi>
-            <StatusChip tone="ok" className="px-1.5 py-0 text-12">
-              {m.checkoutMapConfirmed}
-            </StatusChip>
-          </div>
-        ) : null}
-        {delivery.notes ? <p className="text-14 text-ink-3">{delivery.notes}</p> : null}
-      </ReviewGroup>
-
-      <ReviewGroup title={m.checkoutPayment}>
-        <p className="text-14 text-night">{m.checkoutPaymentCod}</p>
-      </ReviewGroup>
-
-      <section aria-labelledby="checkout-totals" className="space-y-2 rounded-card border border-line bg-linen p-4">
-        <h2 id="checkout-totals" className="sr-only">
-          {m.cartSummary}
-        </h2>
-        <dl className="space-y-2 text-14">
-          <Row label={m.checkoutSubtotal} value={money(quote.subtotal)} />
-          {discount > 0 ? <Row label={m.checkoutDiscount} value={`− ${money(discount)}`} /> : null}
-          <Row label={m.checkoutShipping} value={quote.shippingFee === 0 ? m.checkoutFree : money(quote.shippingFee)} />
-          <div className="flex justify-between gap-3 border-t border-line pt-2">
-            <dt className="text-14 font-semibold text-night">{m.checkoutCodTotal}</dt>
-            <dd className="text-price tabular-nums text-night">
-              <bdi>{money(quote.codAmount)}</bdi>
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section aria-labelledby="checkout-confidence" className="space-y-2 rounded-card bg-sand p-4">
-        <h2 id="checkout-confidence" className="text-title text-night">
-          {m.checkoutConfidenceTitle}
-        </h2>
-        <p className="flex items-start gap-2 text-14 text-ink-2">
-          <Icon name="pin" size={18} className="mt-0.5 shrink-0" />
-          <span>
-            <bdi>{quote.area}</bdi>، <bdi>{quote.governorate}</bdi>
-          </span>
-        </p>
-        <p className="flex items-start gap-2 text-14 text-ink-2">
-          <Icon name="alert" size={18} className="mt-0.5 shrink-0" />
-          {m.checkoutPromise}
-        </p>
-        <p className="flex items-start gap-2 text-14 text-ink-2">
-          <Icon name="alert" size={18} className="mt-0.5 shrink-0" />
-          {m.checkoutAvailabilityCaveat}
-        </p>
-      </section>
-
-      <Button size="l" className="w-full" loading={pending} onClick={onPlaceOrder}>
-        {m.checkoutPlaceOrder}
-      </Button>
-    </div>
-  );
-}
-
-function ReviewGroup({ title, edit, children }: { title: string; edit?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section className="space-y-2 rounded-card border border-line bg-linen p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-title text-night">{title}</h2>
-        {edit}
+      {/* Phone: «أكد الطلب · total» in the sticky action area where the nav would be (CommerceMobile ٣ب). */}
+      <div className="pdp-bar fixed inset-x-0 bottom-0 z-nav bg-bone/95 px-4 pt-3 shadow-hairline-top backdrop-blur-sm lg:hidden">
+        <AsyncButton size="l" className="w-full" state={placeState} pendingLabel={m.checkoutPlacing} retryLabel={placeLabel} disabled={!canPlace} onClick={placeOrder}>
+          {placeLabel}
+        </AsyncButton>
       </div>
-      {children}
-    </section>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-3">
-      <dt className="text-ink-2">{label}</dt>
-      <dd className="tabular-nums text-night">
-        <bdi>{value}</bdi>
-      </dd>
     </div>
   );
 }
 
-function Notice({ message, action }: { message: string; action: React.ReactNode }) {
+function CheckoutSkeleton({ label }: { label: string }) {
   return (
-    <div className={cn('mx-auto max-w-xl rounded-card border border-line bg-linen px-5 py-8 text-center')}>
-      <p className="text-body text-night">{message}</p>
-      <div className="mt-5 flex justify-center">{action}</div>
+    <div aria-busy="true" aria-label={label} className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10">
+      <div className="flex flex-col gap-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <Skeleton key={index} className="h-32 w-full rounded-24" />
+        ))}
+      </div>
+      <Skeleton className="h-96 w-full rounded-sheet" />
     </div>
   );
 }

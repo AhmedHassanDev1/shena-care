@@ -8,6 +8,9 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID, randomInt } from 'crypto';
 
 /** OTP challenge contract (GLO-200). The client renders cells, expiry and resend countdown from these values only. */
+/** Name stored for an account created at phone sign-in, before the customer gives one (never shown as a name). */
+export const PHONE_SIGNUP_NAME = 'New User';
+
 export const OTP_CODE_LENGTH = 6;
 export const OTP_TTL_MS = 5 * 60 * 1000;
 export const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
@@ -249,7 +252,7 @@ export class AccountsService {
     if (!identity) {
       const customer = await this.prisma.customer.create({
         data: {
-          name: 'New User',
+          name: PHONE_SIGNUP_NAME,
           email: `${canonicalPhone.replace(/[^0-9]/g, '')}@placeholder.com`,
           roles: ['CUSTOMER'],
           identities: {
@@ -314,6 +317,10 @@ export class AccountsService {
     return { success: true };
   }
 
+  /**
+   * The signed-in customer's own profile. `phoneNumber` is the verified sign-in number (E.164) so checkout can offer
+   * it as the recipient's; `name` is null until the customer gives one (phone sign-up stores a placeholder).
+   */
   async getMe(customerId: string) {
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
@@ -322,14 +329,20 @@ export class AccountsService {
         name: true,
         email: true,
         createdAt: true,
+        identities: { where: { provider: 'PHONE' }, select: { providerId: true }, take: 1 },
       }
     });
-    
+
     if (!customer) {
       throw new UnauthorizedException('Customer not found');
     }
-    
-    return customer;
+
+    const { identities, ...profile } = customer;
+    return {
+      ...profile,
+      name: profile.name === PHONE_SIGNUP_NAME ? null : profile.name,
+      phoneNumber: identities[0]?.providerId ?? null,
+    };
   }
 
   /** Business Workspace identity: roles and supplier scope (hub scope is composed from Fulfillment). */
