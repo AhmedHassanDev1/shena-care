@@ -1,11 +1,19 @@
 import { Role } from '@prisma/client';
-import { Injectable, UnauthorizedException, ConflictException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException, ConflictException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../platform/database/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RegisterDto, LoginDto } from './dto/accounts.dto';
 import { CUSTOMER_PHONE_VERIFIED_EVENT, CUSTOMER_VERIFIED_EVENT, CustomerPhoneVerifiedEvent, CustomerVerifiedEvent } from './guest-adoption.contract';
 import * as bcrypt from 'bcrypt';
 import { randomUUID, randomInt } from 'crypto';
+
+/** OTP challenge contract (GLO-200). The client renders cells, expiry and resend countdown from these values only. */
+export const OTP_CODE_LENGTH = 6;
+export const OTP_TTL_MS = 5 * 60 * 1000;
+export const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+export const OTP_HOURLY_LIMIT = 5;
+
+const secondsUntil = (at: number, now: number) => Math.max(1, Math.ceil((at - now) / 1000));
 
 @Injectable()
 export class AccountsService {
@@ -75,55 +83,73 @@ export class AccountsService {
     return this.createSession(identity.customerId);
   }
 
+  /**
+   * Egyptian mobile → E.164 (+201XXXXXXXXX). Accepts 01XXXXXXXXX, 201XXXXXXXXX and 1XXXXXXXXX with any separators and
+   * Arabic-Indic digits. An international number with another country code is OTP_PHONE_NOT_EGYPTIAN; anything else is
+   * OTP_PHONE_INVALID (Authentication Addendum §States: separate errors for invalid and non-Egyptian numbers).
+   */
   private normalizeEgyptianPhone(phone: string): string {
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.startsWith('01') && cleaned.length === 11) {
+    const latin = phone
+      .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+      .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
+    const international = /^\s*(\+|00)/.test(latin);
+    const cleaned = latin.replace(/\D/g, '').replace(/^00/, '');
+    if (!international && cleaned.startsWith('01') && cleaned.length === 11) {
       return `+20${cleaned.substring(1)}`;
     }
     if (cleaned.startsWith('201') && cleaned.length === 12) {
       return `+${cleaned}`;
     }
-    if (cleaned.startsWith('1') && cleaned.length === 10) {
+    if (!international && cleaned.startsWith('1') && cleaned.length === 10) {
       return `+20${cleaned}`;
     }
-    return phone; // fallback
+    if (international && !cleaned.startsWith('20')) {
+      throw new BadRequestException({ code: 'OTP_PHONE_NOT_EGYPTIAN', message: 'Only Egyptian mobile numbers can sign in for now.' });
+    }
+    throw new BadRequestException({ code: 'OTP_PHONE_INVALID', message: 'Enter an Egyptian mobile number: 11 digits starting with 01.' });
   }
 
   async sendOtp(phoneNumber: string, pendingIntent?: string) {
     const canonicalPhone = this.normalizeEgyptianPhone(phoneNumber);
+    const now = Date.now();
 
-    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
     const recentChallenge = await this.prisma.otpChallenge.findFirst({
-      where: {
-        phoneNumber: canonicalPhone,
-        createdAt: { gte: oneMinuteAgo }
-      }
+      where: { phoneNumber: canonicalPhone, createdAt: { gte: new Date(now - OTP_RESEND_COOLDOWN_MS) } },
+      orderBy: { createdAt: 'desc' },
     });
-
     if (recentChallenge) {
-      throw new ConflictException('Please wait before requesting a new OTP');
+      // Every limited response carries retryAfter (seconds), so the resend countdown survives a refresh. The code
+      // sent moments ago is still the one to type, so the cooldown also describes it (no client defaults).
+      throw new ConflictException({
+        code: 'OTP_COOLDOWN',
+        message: 'Please wait before requesting a new OTP',
+        retryAfter: secondsUntil(recentChallenge.createdAt.getTime() + OTP_RESEND_COOLDOWN_MS, now),
+        codeLength: recentChallenge.code.length,
+        expiresAt: recentChallenge.expiresAt.toISOString(),
+      });
     }
 
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentChallengesCount = await this.prisma.otpChallenge.count({
-      where: {
-        phoneNumber: canonicalPhone,
-        createdAt: { gte: oneHourAgo }
-      }
+    const recentChallenges = await this.prisma.otpChallenge.findMany({
+      where: { phoneNumber: canonicalPhone, createdAt: { gte: new Date(now - 60 * 60 * 1000) } },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
     });
-
-    if (recentChallengesCount >= 5) {
-      throw new ConflictException('Too many requests. Please try again later.');
+    if (recentChallenges.length >= OTP_HOURLY_LIMIT) {
+      throw new ConflictException({
+        code: 'OTP_RATE_LIMITED',
+        message: 'Too many requests. Please try again later.',
+        retryAfter: secondsUntil(recentChallenges[0].createdAt.getTime() + 60 * 60 * 1000, now),
+      });
     }
-    
+
     // Validate pendingIntent to prevent open redirects (must be a local path)
     let safeIntent = null;
-    if (pendingIntent && pendingIntent.startsWith('/') && !pendingIntent.startsWith('//')) {
+    if (pendingIntent && pendingIntent.startsWith('/') && !pendingIntent.startsWith('//') && !pendingIntent.startsWith('/\\')) {
       safeIntent = pendingIntent;
     }
 
-    const code = randomInt(100000, 1000000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const code = randomInt(10 ** (OTP_CODE_LENGTH - 1), 10 ** OTP_CODE_LENGTH).toString();
+    const expiresAt = new Date(now + OTP_TTL_MS);
     // Dev-only: no SMS delivery yet, so the code is printed to the server log. Never in production.
     if (process.env.NODE_ENV !== 'production') console.log('phone code:', code);
 
@@ -136,9 +162,13 @@ export class AccountsService {
       }
     });
 
+    // The challenge the client renders from (Addendum §Code input: no client defaults). Identical for every valid
+    // number, known or new, so the response never reveals whether an account exists.
+    const challenge = { codeLength: OTP_CODE_LENGTH, expiresAt, retryAfter: Math.round(OTP_RESEND_COOLDOWN_MS / 1000) };
+
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
       console.log(`[DEV OTP SERVICE] OTP issued for ${canonicalPhone.slice(0, 5)}***** : ${code}`);
-      return { success: true, message: 'OTP sent to console (Dev/Test only)' };
+      return { success: true, message: 'OTP sent to console (Dev/Test only)', ...challenge };
     }
 
     throw new ServiceUnavailableException('OTP delivery provider is not configured for this environment');
@@ -156,8 +186,10 @@ export class AccountsService {
       orderBy: { createdAt: 'desc' }
     });
 
+    // Distinct, machine-readable failures (Addendum §API: wrong, expired, attempts exhausted). None reveals whether
+    // the number has an account.
     if (!challenge) {
-      throw new UnauthorizedException('Invalid or expired OTP');
+      throw new UnauthorizedException({ code: 'OTP_EXPIRED', message: 'Invalid or expired OTP' });
     }
 
     if (new Date() > challenge.expiresAt) {
@@ -165,7 +197,7 @@ export class AccountsService {
         where: { id: challenge.id },
         data: { isRevoked: true }
       });
-      throw new UnauthorizedException('OTP has expired');
+      throw new UnauthorizedException({ code: 'OTP_EXPIRED', message: 'OTP has expired' });
     }
 
     if (challenge.attempts >= challenge.maxAttempts) {
@@ -173,7 +205,7 @@ export class AccountsService {
         where: { id: challenge.id },
         data: { isRevoked: true }
       });
-      throw new UnauthorizedException('Max attempts reached. Please request a new OTP.');
+      throw new UnauthorizedException({ code: 'OTP_ATTEMPTS_EXHAUSTED', message: 'Max attempts reached. Please request a new OTP.' });
     }
 
     if (challenge.code !== code) {
@@ -185,7 +217,10 @@ export class AccountsService {
           isRevoked: newAttempts >= challenge.maxAttempts
         }
       });
-      throw new UnauthorizedException('Invalid OTP code');
+      if (newAttempts >= challenge.maxAttempts) {
+        throw new UnauthorizedException({ code: 'OTP_ATTEMPTS_EXHAUSTED', message: 'Max attempts reached. Please request a new OTP.' });
+      }
+      throw new UnauthorizedException({ code: 'OTP_INVALID', message: 'Invalid OTP code' });
     }
 
     await this.prisma.otpChallenge.update({
@@ -202,6 +237,13 @@ export class AccountsService {
       },
       include: { customer: true }
     });
+
+    // Customer OTP never authenticates staff: an account holding any non-customer role signs in through the staff
+    // workspace only. The answer is the generic wrong-code error, so the number's account type is not revealed.
+    if (identity && identity.customer.roles.some((role) => role !== Role.CUSTOMER)) {
+      console.warn(`[ACCOUNTS] OTP sign-in refused for a staff account (${canonicalPhone.slice(0, 5)}*****)`);
+      throw new UnauthorizedException({ code: 'OTP_INVALID', message: 'Invalid OTP code' });
+    }
 
     let customerId: string;
     if (!identity) {

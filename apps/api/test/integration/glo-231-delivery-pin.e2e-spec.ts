@@ -8,7 +8,7 @@ import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
 import { createSellableSku } from '../fixtures/sellable-sku';
-import { CAIRO_PIN, placeGuestOrder } from '../fixtures/checkout';
+import { CAIRO_PIN, placeGuestOrder, signInCustomer } from '../fixtures/checkout';
 
 /**
  * GLO-231 backend subsection: every new COD order carries a customer-placed, confirmed pin inside
@@ -25,12 +25,13 @@ describe('GLO-231 mandatory confirmed delivery pin (e2e)', () => {
 
   const quoteFor = async (address = { governorate: 'Cairo', area: 'Maadi' }) => {
     const added = await http().post('/ordering/cart/add').send({ skuId, quantity: 1 }).expect(201);
-    const token = added.body.guestCartToken as string;
-    const quote = await http().post('/ordering/checkout/quote').set('x-cart-token', token).send(address).expect(201);
+    // The guest cart becomes the customer's at sign-in; only a signed-in customer places the order.
+    const token = (await signInCustomer(app, added.body.guestCartToken)).auth as Record<string, string>;
+    const quote = await http().post('/ordering/checkout/quote').set(token).send(address).expect(201);
     return { token, quote: quote.body };
   };
-  const submit = (token: string, quote: { quoteVersion: string; revision: number }, overrides: Record<string, unknown>) =>
-    http().post('/ordering/checkout').set('x-cart-token', token).send({
+  const submit = (token: Record<string, string>, quote: { quoteVersion: string; revision: number }, overrides: Record<string, unknown>) =>
+    http().post('/ordering/checkout').set(token).send({
       governorate: 'Cairo', area: 'Maadi', customerName: 'Pin Customer', customerPhone: '01012345678',
       shippingAddress: '5 Pin Street', ...CAIRO_PIN, quoteVersion: quote.quoteVersion, cartRevision: quote.revision,
       idempotencyKey: randomUUID(), ...overrides,
@@ -72,7 +73,7 @@ describe('GLO-231 mandatory confirmed delivery pin (e2e)', () => {
     await submit(token, quote, { locationConfirmed: undefined }).expect(400);
     await submit(token, quote, { locationSource: 'geocoded_address' }).expect(400);
     await submit(token, quote, { latitude: 'thirty' }).expect(400);
-    expect((await prisma.cartItem.count({ where: { cart: { guestTokenHash: { not: null } }, skuId } }))).toBeGreaterThan(0);
+    expect((await prisma.cartItem.count({ where: { cart: { customerId: { not: null } }, skuId } }))).toBeGreaterThan(0);
   });
 
   it('rejects a map default centre and pins outside Cairo/Giza with typed 422 codes', async () => {
@@ -81,7 +82,7 @@ describe('GLO-231 mandatory confirmed delivery pin (e2e)', () => {
     expect(centre.body.code).toBe('LOCATION_PIN_IMPROBABLE');
     const alexandria = await submit(token, quote, { latitude: 31.2001, longitude: 29.9187 }).expect(422);
     expect(alexandria.body.code).toBe('OUT_OF_SERVICE_AREA');
-    const governorate = await http().post('/ordering/checkout/quote').set('x-cart-token', token)
+    const governorate = await http().post('/ordering/checkout/quote').set(token)
       .send({ governorate: 'Alexandria', area: 'Smouha' }).expect(422);
     expect(governorate.body.code).toBe('OUT_OF_SERVICE_AREA');
     // Nothing was consumed: the same quote still places the order with a valid pin.
@@ -110,7 +111,7 @@ describe('GLO-231 mandatory confirmed delivery pin (e2e)', () => {
       try {
         const pin = { latitude: 30.0071, longitude: 31.4913 }; // New Cairo
         expect((await submit(token, quote, pin).expect(409)).body.code).toBe('CHECKOUT_REVIEW_REQUIRED');
-        const requote = await http().post('/ordering/checkout/quote').set('x-cart-token', token)
+        const requote = await http().post('/ordering/checkout/quote').set(token)
           .send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
         return (await submit(token, requote.body, pin).expect(201)).body;
       } finally {
@@ -161,7 +162,7 @@ describe('GLO-231 mandatory confirmed delivery pin (e2e)', () => {
   });
 
   it('shows the customer their own pin and nobody else', async () => {
-    const placed = await placeGuestOrder(app.getHttpServer(), [{ skuId, quantity: 1 }]);
+    const placed = await placeGuestOrder(app, [{ skuId, quantity: 1 }]);
     const tracked = await http().get(`/ordering/guest/orders/${placed.orderNumber}/tracking`)
       .set('x-order-access-token', placed.guestAccessToken!).expect(200);
     expect(tracked.body.deliveryAddress).toMatchObject({ latitude: CAIRO_PIN.latitude, longitude: CAIRO_PIN.longitude });

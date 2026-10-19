@@ -4,6 +4,7 @@ import { PageContainer } from '@/components/layout/page-container';
 import { getMessages } from '@/lib/i18n/messages';
 import { getLocale } from '@/lib/i18n/server';
 import { routes } from '@/lib/routes';
+import { Wordmark } from '@/components/ui/wordmark';
 import { AuthBackLink } from './AuthBackLink';
 
 /**
@@ -12,7 +13,7 @@ import { AuthBackLink } from './AuthBackLink';
  *  - desktop: wordmark + SHINACARE and the contextual back link; the form (max 480) at the reading start and the
  *    Sahel-blue editorial panel in its neutral fallback (shutter-light field, headline, benefits, no photograph —
  *    the licensed SAHEL image does not exist yet);
- *  - phone: 56-tall header with the contextual back control, then the form.
+ *  - phone: 56-tall header with the contextual back control at the start and the wordmark at the end, then the form.
  */
 export function AuthShell({ children }: { children: ReactNode }) {
   const m = getMessages(getLocale());
@@ -21,17 +22,15 @@ export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-bone">
       <header className="bg-bone max-lg:shadow-hairline-bottom">
-        <div className="flex h-header-m items-center px-2 lg:hidden">
+        <div className="flex h-header-m items-center justify-between pe-4 ps-2 lg:hidden">
           <AuthBackLink variant="phone" />
+          <Link href={routes.home} aria-label={m.shellHome} className="text-night no-underline">
+            <Wordmark />
+          </Link>
         </div>
         <PageContainer className="hidden items-center gap-6 py-3.5 lg:flex">
           <Link href={routes.home} aria-label={m.shellHome} className="inline-flex min-h-control-s items-center text-night no-underline">
-            <span className="inline-flex items-center gap-3">
-              <span className="font-display text-30 font-black leading-32">شينا كير</span>
-              <span lang="en" dir="ltr" className="text-brand text-ink-2">
-                SHINACARE
-              </span>
-            </span>
+            <Wordmark withLatin />
           </Link>
           <span className="ms-auto">
             <AuthBackLink variant="desktop" />

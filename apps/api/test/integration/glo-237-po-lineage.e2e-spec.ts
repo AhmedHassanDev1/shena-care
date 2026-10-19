@@ -70,8 +70,8 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
   afterAll(async () => { if (app) await app.close(); });
 
   it('consolidates two orders into one PO line with N:1 quantity-aware lineage, exactly once', async () => {
-    const first = await placeGuestOrder(app.getHttpServer(), [{ skuId, quantity: 2 }]);
-    const second = await placeGuestOrder(app.getHttpServer(), [{ skuId, quantity: 3 }]);
+    const first = await placeGuestOrder(app, [{ skuId, quantity: 2 }]);
+    const second = await placeGuestOrder(app, [{ skuId, quantity: 3 }]);
     for (const order of [first, second]) {
       const p = await plan(order);
       expect(p.lines[0].allocations[0]).toMatchObject({ result: 'pending', selectedCost: 50 });
@@ -175,7 +175,7 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
   it('maps a single-allocation partial directly and leaves the rest for a customer decision', async () => {
     const sku = await createSellableSku(prisma); // only one supplier for this SKU
     const supplier = await createActor(prisma, 'SUPPLIER', sku.supplierId);
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 5 }]);
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 5 }]);
     await plan(order);
     const [po] = (await flush(sku.supplierId)).purchaseOrders;
     await http().post(`/purchase-orders/${po.id}/confirm`).set(supplier.auth)
@@ -192,7 +192,7 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
   it('maps a zero/price-changed answer to unavailable allocations with no payable quantity', async () => {
     const sku = await createSellableSku(prisma);
     const supplier = await createActor(prisma, 'SUPPLIER', sku.supplierId);
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 4 }]);
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 4 }]);
     await plan(order);
     const [po] = (await flush(sku.supplierId)).purchaseOrders;
     await http().post(`/purchase-orders/${po.id}/confirm`).set(supplier.auth)

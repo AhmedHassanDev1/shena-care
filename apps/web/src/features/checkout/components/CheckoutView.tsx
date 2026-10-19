@@ -15,6 +15,7 @@ import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CART_QUERY_KEY, useCart } from '@/features/cart/hooks/useCart';
 import { ApiError } from '@/lib/api-client';
+import { signInHref } from '@/features/auth/lib/auth-helpers';
 import { createIdempotencyKey } from '@/lib/idempotency';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { formatEgp } from '@/lib/i18n/format';
@@ -69,7 +70,12 @@ export function CheckoutView() {
   const [problem, setProblem] = useState<Problem>(null);
   const idempotencyKey = useRef<string | null>(null);
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
+  // An order needs a signed-in customer (server-enforced): signed out, checkout goes through phone sign-in and back.
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) router.replace(signInHref(routes.checkout));
+  }, [authLoading, isAuthenticated, router]);
   const { addresses, defaultAddress, createAddress } = useAddresses();
   const [selectedAddressId, setSelectedAddressId] = useState<string | 'new' | null>(null);
   const [saveToBook, setSaveToBook] = useState(false);
@@ -228,6 +234,11 @@ export function CheckoutView() {
       queryClient.removeQueries({ queryKey: CART_QUERY_KEY });
       router.replace(`${routes.order(order.orderNumber)}?placed=1`);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        // The session ran out mid-checkout: sign in again and come back; cart and typed details stay.
+        router.replace(signInHref(routes.checkout, 'expired'));
+        return;
+      }
       if (error instanceof ApiError && error.status === 409) {
         // Terms changed or the quote expired: show what changed and ask again; keep everything typed.
         const previous = quote.totalAmount;

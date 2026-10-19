@@ -39,7 +39,7 @@ describe('GLO-237/243 supplier exceptions and receiving shortfalls (e2e)', () =>
       await prisma.supplierOffer.create({ data: { supplierId: fallback.id, skuId: sku.id, costPrice: fallbackCost, currency: 'EGP', lastObservedAt: new Date(), lastConfirmedAt: new Date() } });
     }
     const supplier = await createActor(prisma, 'SUPPLIER', sku.supplierId);
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity }]);
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity }]);
     await settleEvents(order.id);
     const [po] = (await http().post('/purchase-orders/batches').set(admin.auth).send({ supplierId: sku.supplierId }).expect(201)).body.purchaseOrders;
     return { sku, supplier, order, po, lineId: po.lines[0].id as string, link: po.lines[0].allocations[0] };

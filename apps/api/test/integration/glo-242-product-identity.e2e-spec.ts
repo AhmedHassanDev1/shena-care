@@ -138,7 +138,7 @@ describe('GLO-242 canonical product identity at Hub receiving and preparation (e
     const sku = await createSellableSku(prisma);
     const other = await createSellableSku(prisma);
     const supplier = await createActor(prisma, 'SUPPLIER', sku.supplierId);
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 3 }]);
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 3 }]);
     await settleEvents(order.id);
     const [po] = (await http().post('/purchase-orders/batches').set(admin.auth).send({ supplierId: sku.supplierId }).expect(201)).body.purchaseOrders;
     await http().post(`/purchase-orders/${po.id}/confirm`).set(supplier.auth).send({ lines: [{ id: po.lines[0].id, status: 'confirmed_full' }] }).expect(201);

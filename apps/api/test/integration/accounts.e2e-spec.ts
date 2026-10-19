@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 const request = require('supertest');
 import { AppModule } from '../../src/app.module';
+import { PrismaService } from '../../src/platform/database/prisma.service';
 
 describe('Accounts (e2e)', () => {
   let app: INestApplication;
@@ -38,6 +39,7 @@ describe('Accounts (e2e)', () => {
     const { PrismaService } = require('../../src/platform/database/prisma.service');
     await app.get(PrismaService).otpChallenge.deleteMany({ where: { phoneNumber: { in: [
       '+201155555555', '+201166666666', '+201177777777', '+201188888888', '+201199999999', '+201211111111', '+201511111111',
+      '+201022220001', '+201022220002', '+201022220003', '+201022220004',
     ] } } });
   };
 
@@ -310,6 +312,68 @@ describe('Accounts (e2e)', () => {
         .post('/accounts/otp/verify')
         .send({ phoneNumber: '01199999999', code: '123456', guestId: 'not-a-uuid' })
         .expect(400);
+    });
+  });
+
+  /** The challenge contract the SAHEL phone sign-in screens read (Authentication Addendum, GLO-200). */
+  describe('OTP challenge contract and error codes', () => {
+    const http = () => request(app.getHttpServer());
+    const prisma = () => app.get(PrismaService);
+    const latestCode = async (phone: string) =>
+      (await prisma().otpChallenge.findFirstOrThrow({ where: { phoneNumber: phone }, orderBy: { createdAt: 'desc' } })).code;
+
+    it('returns the code length, expiry and resend wait, and the cooldown carries retryAfter', async () => {
+      const sent = await http().post('/accounts/otp/send').send({ phoneNumber: '010 2222 0001' }).expect(201);
+      expect(sent.body).toMatchObject({ success: true, codeLength: 6, retryAfter: 60 });
+      const expiresIn = new Date(sent.body.expiresAt).getTime() - Date.now();
+      expect(expiresIn).toBeGreaterThan(4 * 60_000);
+      expect(expiresIn).toBeLessThanOrEqual(5 * 60_000);
+      expect(await latestCode('+201022220001')).toMatch(/^[0-9]{6}$/);
+
+      const again = await http().post('/accounts/otp/send').send({ phoneNumber: '01022220001' }).expect(409);
+      expect(again.body.code).toBe('OTP_COOLDOWN');
+      expect(again.body.retryAfter).toBeGreaterThan(0);
+      expect(again.body.retryAfter).toBeLessThanOrEqual(60);
+      // The code already sent stays the one to type: the cooldown describes it.
+      expect(again.body).toMatchObject({ codeLength: 6, expiresAt: sent.body.expiresAt });
+    });
+
+    it('accepts Arabic-Indic digits and rejects invalid and non-Egyptian numbers with typed codes', async () => {
+      await http().post('/accounts/otp/send').send({ phoneNumber: '٠١٠٢٢٢٢٠٠٠٢' }).expect(201);
+      expect(await latestCode('+201022220002')).toMatch(/^[0-9]{6}$/);
+      expect((await http().post('/accounts/otp/send').send({ phoneNumber: '0102222' }).expect(400)).body.code).toBe('OTP_PHONE_INVALID');
+      expect((await http().post('/accounts/otp/send').send({ phoneNumber: '+447700900123' }).expect(400)).body.code).toBe('OTP_PHONE_NOT_EGYPTIAN');
+    });
+
+    it('distinguishes a wrong code, an exhausted challenge and a used or missing one', async () => {
+      const phone = '01022220003';
+      expect((await http().post('/accounts/otp/verify').send({ phoneNumber: phone, code: '000000' }).expect(401)).body.code).toBe('OTP_EXPIRED');
+      await http().post('/accounts/otp/send').send({ phoneNumber: phone }).expect(201);
+      const code = await latestCode('+201022220003');
+      const wrong = code === '000000' ? '111111' : '000000';
+      expect((await http().post('/accounts/otp/verify').send({ phoneNumber: phone, code: wrong }).expect(401)).body.code).toBe('OTP_INVALID');
+      expect((await http().post('/accounts/otp/verify').send({ phoneNumber: phone, code: wrong }).expect(401)).body.code).toBe('OTP_INVALID');
+      expect((await http().post('/accounts/otp/verify').send({ phoneNumber: phone, code: wrong }).expect(401)).body.code).toBe('OTP_ATTEMPTS_EXHAUSTED');
+      // The exhausted challenge is revoked: even the right code now needs a new request.
+      expect((await http().post('/accounts/otp/verify').send({ phoneNumber: phone, code }).expect(401)).body.code).toBe('OTP_EXPIRED');
+    });
+
+    it('never signs a staff account in with customer OTP, and answers like a wrong code', async () => {
+      const staff = await prisma().customer.create({ data: {
+        name: 'Staff With Phone', email: 'staff-otp-' + Date.now() + '@fixtures.test', roles: ['ADMIN'],
+        identities: { create: { provider: 'PHONE', providerId: '+201022220004' } },
+      } });
+      try {
+        await http().post('/accounts/otp/send').send({ phoneNumber: '01022220004' }).expect(201);
+        const refused = await http().post('/accounts/otp/verify')
+          .send({ phoneNumber: '01022220004', code: await latestCode('+201022220004') }).expect(401);
+        expect(refused.body.code).toBe('OTP_INVALID');
+        expect(refused.body.token).toBeUndefined();
+        expect(await prisma().session.count({ where: { customerId: staff.id } })).toBe(0);
+      } finally {
+        await prisma().identity.deleteMany({ where: { customerId: staff.id } });
+        await prisma().customer.delete({ where: { id: staff.id } });
+      }
     });
   });
 });

@@ -8,6 +8,8 @@ import { ReconciliationService } from '../../src/modules/ordering/services/recon
 import { FulfillmentService } from '../../src/modules/fulfillment/services/fulfillment.service';
 const request = require('supertest');
 import { ensureLegacyCatalog } from '../fixtures/legacy-catalog';
+import { placeGuestOrder, PlacedOrder } from '../fixtures/checkout';
+import type { CheckoutDto } from '../../src/modules/ordering/dto/order.dto';
 
 describe('Customer order read and tracking (e2e)', () => {
   let app: INestApplication;
@@ -27,25 +29,25 @@ describe('Customer order read and tracking (e2e)', () => {
     return { auth, id: me.body.id as string };
   };
 
+  /** With `auth`: a signed-in customer's order over HTTP. Without: a legacy guest order (before sign-in was required). */
   const submit = async (auth?: string) => {
-    const addRequest = http().post('/ordering/cart/add');
-    if (auth) addRequest.set('Authorization', auth);
-    const added = await addRequest.send({ skuId, quantity: 2 }).expect(201);
+    if (!auth) {
+      const { cartToken, body, ...order } = await placeGuestOrder(app, [{ skuId, quantity: 2 }], {
+        customerName: 'Tracking Customer', shippingAddress: '1 Tracking Street',
+      });
+      return { order: order as Omit<PlacedOrder, 'cartToken' | 'body'> & { guestAccessToken: string }, body, guestCartToken: cartToken as string | undefined };
+    }
+    const added = await http().post('/ordering/cart/add').set('Authorization', auth).send({ skuId, quantity: 2 }).expect(201);
     const guestCartToken = added.body.guestCartToken as string | undefined;
-    const quoteRequest = http().post('/ordering/checkout/quote');
-    if (auth) quoteRequest.set('Authorization', auth);
-    else quoteRequest.set('x-cart-token', guestCartToken!);
-    const quote = await quoteRequest.send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
+    const quote = await http().post('/ordering/checkout/quote').set('Authorization', auth)
+      .send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
     const body = {
       customerName: 'Tracking Customer', customerPhone: '01012345678',
       governorate: 'Cairo', area: 'Maadi', shippingAddress: '1 Tracking Street', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true,
       quoteVersion: quote.body.quoteVersion, cartRevision: quote.body.revision,
       idempotencyKey: randomUUID(),
     };
-    const checkoutRequest = http().post('/ordering/checkout');
-    if (auth) checkoutRequest.set('Authorization', auth);
-    else checkoutRequest.set('x-cart-token', guestCartToken!);
-    const placed = await checkoutRequest.send(body).expect(201);
+    const placed = await http().post('/ordering/checkout').set('Authorization', auth).send(body).expect(201);
     return { order: placed.body, body, guestCartToken };
   };
 
@@ -110,9 +112,11 @@ describe('Customer order read and tracking (e2e)', () => {
     const other = await submit();
     await http().get('/ordering/guest/orders/' + other.order.orderNumber + '/tracking')
       .set('x-order-access-token', placed.order.guestAccessToken).expect(404);
-    const replay = await http().post('/ordering/checkout').set('x-cart-token', placed.guestCartToken!)
-      .send(placed.body).expect(201);
-    expect(replay.body.guestAccessToken).toBe(placed.order.guestAccessToken);
+    const replay = await ordering.checkout({ guestToken: placed.guestCartToken! }, placed.body as unknown as CheckoutDto);
+    expect(replay.guestAccessToken).toBe(placed.order.guestAccessToken);
+    // A guest can no longer place (or replay) an order over HTTP.
+    expect((await http().post('/ordering/checkout').set('x-cart-token', placed.guestCartToken!)
+      .send(placed.body).expect(401)).body.code).toBe('SIGN_IN_REQUIRED');
 
     await prisma.order.update({ where: { id: placed.order.id }, data: { guestAccessExpiresAt: new Date(Date.now() - 1000) } });
     await read().expect(404);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { MessageBox } from '@/components/ui/message-box';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -15,6 +15,9 @@ import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { useCart } from '../hooks/useCart';
+import { useAuth } from '@/features/auth/AuthContext';
+import { signInHref } from '@/features/auth/lib/auth-helpers';
+import { consumeAuthReturn } from '@/features/auth/lib/auth-return';
 
 /** Backend cart limit per line (apps/api ordering/dto/cart.dto.ts). */
 const MAX_LINE_QUANTITY = 20;
@@ -32,6 +35,12 @@ export function CartView() {
   const [failed, setFailed] = useState(false);
   const [removed, setRemoved] = useState<{ skuId: string; quantity: number; name: string } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout>>();
+  const { isAuthenticated } = useAuth();
+  // Sign-in changed the cart (the account already held items): review it before checkout (Addendum §Return).
+  const [merged, setMerged] = useState(false);
+  useEffect(() => {
+    if (consumeAuthReturn('cart-merged')) setMerged(true);
+  }, []);
 
   const run = async (skuId: string, action: () => Promise<unknown>) => {
     setBusySku(skuId);
@@ -88,6 +97,12 @@ export function CartView() {
             <p className="text-14 text-ink-2">{fillMessage(m.cartItemCount, { n: cart?.itemCount ?? 0 })}</p>
           ) : null}
         </header>
+
+        {merged ? (
+          <MessageBox tone="info" role="status">
+            {m.authCartMerged}
+          </MessageBox>
+        ) : null}
 
         {removed ? (
           <MessageBox tone="info" className="items-center">
@@ -163,7 +178,8 @@ export function CartView() {
               {m.cartCheckout}
             </Button>
           ) : (
-            <Link href={routes.checkout} className={cn(buttonVariants({ size: 'l' }), 'w-full')}>
+            // Placing an order needs an account (server-enforced): signed out, «إتمام الطلب» goes through phone sign-in first.
+            <Link href={isAuthenticated ? routes.checkout : signInHref(routes.checkout)} className={cn(buttonVariants({ size: 'l' }), 'w-full')}>
               {m.cartCheckout}
             </Link>
           )}

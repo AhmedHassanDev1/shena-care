@@ -37,7 +37,7 @@ describe('C0 customer tracking and recovery', () => {
   afterAll(async () => { if (app) await app.close(); });
 
   it('a guest cancels a placed order once; replay is idempotent; tracking reflects it', async () => {
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 1 }]);
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 1 }]);
     const token = { 'x-order-access-token': order.guestAccessToken! };
     expect((await http().get(`/ordering/guest/orders/${order.orderNumber}/tracking`).set(token).expect(200)).body.canCancel).toBe(true);
 
@@ -52,7 +52,7 @@ describe('C0 customer tracking and recovery', () => {
   });
 
   it('refuses self-cancellation once goods are physical and routes the customer to support', async () => {
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 1 }]);
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 1 }]);
     const token = { 'x-order-access-token': order.guestAccessToken! };
     const hub = await prisma.fulfillmentLocation.create({ data: { name: 'C0 W6 Hub ' + randomUUID(), address: 'Maadi' } });
     await prisma.shipment.create({ data: { orderId: order.id, locationId: hub.id, status: 'ready_to_prepare' } });
@@ -71,8 +71,8 @@ describe('C0 customer tracking and recovery', () => {
   });
 
   it('verifying the checkout phone attaches guest orders to the account across devices', async () => {
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 1 }], { customerPhone: phone });
-    const other = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 1 }], { customerPhone: '01155555555' });
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 1 }], { customerPhone: phone });
+    const other = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 1 }], { customerPhone: '01155555555' });
 
     await http().post('/accounts/otp/send').send({ phoneNumber: phone }).expect(201);
     const challenge = await prisma.otpChallenge.findFirstOrThrow({ where: { phoneNumber: `+20${phone.slice(1)}` }, orderBy: { createdAt: 'desc' } });

@@ -68,3 +68,24 @@ export function formatTime(value: string | Date, locale: Locale): string {
     timeZone: CAIRO,
   }).format(new Date(value));
 }
+
+/** Countdown «m:ss» in the interface digits («١:٠٥» / "1:05"); announced once per state, never every second. */
+export function formatClock(totalSeconds: number, locale: Locale): string {
+  const s = Math.max(0, Math.ceil(totalSeconds));
+  const fmt = new Intl.NumberFormat(numberLocale(locale), { minimumIntegerDigits: 2, useGrouping: false });
+  const minutes = new Intl.NumberFormat(numberLocale(locale), { useGrouping: false }).format(Math.floor(s / 60));
+  return `${minutes}:${fmt.format(s % 60)}`;
+}
+
+/** «منتج واحد» / «منتجين» / «٣ منتجات» / «١٢ منتج» — Arabic number agreement; "1 product" / "3 products". */
+export function formatProductCount(count: number, locale: Locale): string {
+  if (locale === 'en') return `${formatNumber(count, locale)} ${count === 1 ? 'product' : 'products'}`;
+  if (count === 1) return 'منتج واحد';
+  if (count === 2) return 'منتجين';
+  return count <= 10 ? `${formatNumber(count, locale)} منتجات` : `${formatNumber(count, locale)} منتج`;
+}
+
+/** Wraps a left-to-right run (a m:ss clock) in Unicode isolates so it keeps its order inside an Arabic sentence. */
+export function isolateLtr(text: string): string {
+  return `⁦${text}⁩`;
+}

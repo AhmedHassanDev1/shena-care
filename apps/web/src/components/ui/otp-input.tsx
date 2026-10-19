@@ -83,15 +83,29 @@ export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function Otp
         autoComplete="one-time-code"
         autoCorrect="off"
         spellCheck={false}
-        maxLength={length}
+        // While a rejected code is shown the input accepts one more character, so the next digit can replace it.
+        maxLength={state === 'invalid' ? undefined : length}
         value={value}
-        onChange={(event) => onChange(normalize(event.target.value).slice(0, length))}
+        onChange={(event) => {
+          // A rejected code is replaced, not appended to: the next digit starts a new code (AuthMobile ٢ج).
+          const inserted = state === 'invalid' ? (event.nativeEvent as InputEvent).data : null;
+          onChange(normalize(inserted ?? event.target.value).slice(0, length));
+        }}
         onFocus={(event) => {
           setIsFocused(true);
-          keepCaretAtEnd(event.currentTarget);
+          // A rejected code stays written and selected, so the next digit replaces it (AuthMobile ٢ج).
+          if (state === 'invalid') event.currentTarget.select();
+          else keepCaretAtEnd(event.currentTarget);
         }}
         onBlur={() => setIsFocused(false)}
-        onSelect={(event) => keepCaretAtEnd(event.currentTarget)}
+        onPaste={(event) => {
+          if (state !== 'invalid') return;
+          event.preventDefault();
+          onChange(normalize(event.clipboardData.getData('text')).slice(0, length));
+        }}
+        onSelect={(event) => {
+          if (state !== 'invalid') keepCaretAtEnd(event.currentTarget);
+        }}
         disabled={disabled}
         readOnly={readOnly}
         aria-invalid={state === 'invalid' || undefined}

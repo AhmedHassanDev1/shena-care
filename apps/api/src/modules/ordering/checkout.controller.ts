@@ -2,13 +2,13 @@ import { Controller, Post, Body, Req, UseGuards, BadRequestException } from '@ne
 import { OrderingService } from './services/ordering.service';
 import { CheckoutDto, CheckoutQuoteRequestDto } from './dto/order.dto';
 import { OptionalAuthGuard } from './guards/optional-auth.guard';
+import { CustomerSessionGuard } from './guards/customer-session.guard';
 import { CartOwner } from './services/cart.service';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const CART_TOKEN_HEADER = 'x-cart-token';
 
 @Controller('ordering/checkout')
-@UseGuards(OptionalAuthGuard)
 export class CheckoutController {
   constructor(private readonly orderingService: OrderingService) {}
 
@@ -27,13 +27,20 @@ export class CheckoutController {
     return owner;
   }
 
+  /** Open to guests: a quote creates nothing and charges nothing (the guest cart stays usable before sign-in). */
   @Post('quote')
+  @UseGuards(OptionalAuthGuard)
   async quote(@Req() req: any, @Body() dto: CheckoutQuoteRequestDto) {
     return this.orderingService.getCheckoutQuote(this.requireOwner(req), dto);
   }
 
+  /**
+   * Order placement requires a signed-in customer (CustomerSessionGuard). The order is always placed from that
+   * customer's cart; guest carts reach it through adoption at sign-in (CUSTOMER_VERIFIED_EVENT).
+   */
   @Post()
+  @UseGuards(CustomerSessionGuard)
   async checkout(@Req() req: any, @Body() dto: CheckoutDto) {
-    return this.orderingService.checkout(this.requireOwner(req), dto);
+    return this.orderingService.checkout({ customerId: req.user.id }, dto);
   }
 }

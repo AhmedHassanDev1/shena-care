@@ -5,6 +5,7 @@ import { QueryProvider } from '@/lib/react-query/query-provider';
 import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
 import type { Locale } from '@/lib/i18n/messages';
 import { AuthProvider } from '@/features/auth/AuthContext';
+import { AuthReturnToast } from '@/features/auth/components/AuthReturnToast';
 
 export function AppProviders({
   children,
@@ -18,6 +19,7 @@ export function AppProviders({
       <LocaleProvider locale={locale}>
         <AuthProvider>
           {children}
+          <AuthReturnToast />
         </AuthProvider>
       </LocaleProvider>
     </QueryProvider>

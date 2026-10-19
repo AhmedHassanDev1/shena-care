@@ -72,7 +72,7 @@ describe('C0 Business Workspace reads', () => {
   });
 
   it('founder order console: list, detail by id or order number, and admin-only', async () => {
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 2 }], { customerName: 'Console Customer ' + randomUUID().slice(0, 6) });
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 2 }], { customerName: 'Console Customer ' + randomUUID().slice(0, 6) });
     await settle(order.id);
     const list = (await http().get(`/admin/orders?q=${order.orderNumber}`).set(admin.auth).expect(200)).body;
     expect(list.items).toEqual([expect.objectContaining({ id: order.id, status: 'placed', hasPin: true, itemCount: 2 })]);

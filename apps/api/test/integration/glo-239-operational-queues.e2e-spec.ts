@@ -74,7 +74,7 @@ describe('GLO-239 role-scoped operational queues (e2e)', () => {
   it('hub receivables: confirmed lineage still to arrive, scoped to the receiving hub, no PII', async () => {
     const sku = await createSellableSku(prisma);
     const supplierA = await createActor(prisma, 'SUPPLIER', sku.supplierId);
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 3 }]);
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 3 }]);
     await settleEvents(order.id);
     const [po] = (await http().post('/purchase-orders/batches').set(admin.auth).send({ supplierId: sku.supplierId }).expect(201)).body.purchaseOrders;
     const listFor = async (actor: Actor, hubId: string) =>

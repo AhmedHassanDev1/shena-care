@@ -10,7 +10,7 @@ import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
 import { createSellableSku } from '../fixtures/sellable-sku';
-import { CAIRO_PIN, placeGuestOrder } from '../fixtures/checkout';
+import { CAIRO_PIN, placeGuestOrder, signInCustomer } from '../fixtures/checkout';
 
 /** TEST DOUBLE ONLY — stands in for a future signed-callback PSP; never registered by the app. */
 const SECRET = 'test-double-secret-' + randomUUID();
@@ -70,7 +70,7 @@ describe('GLO-241 payment method foundation (e2e)', () => {
   afterAll(async () => { if (app) await app.close(); });
 
   it('keeps COD as the unchanged default with driver cash expected', async () => {
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId, quantity: 1 }]);
+    const order = await placeGuestOrder(app, [{ skuId, quantity: 1 }]);
     const stored = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
     expect(stored).toMatchObject({ paymentMethod: 'COD', paymentProvider: null });
     expect(Number(stored.codAmount)).toBe(Number(stored.totalAmount));
@@ -80,9 +80,9 @@ describe('GLO-241 payment method foundation (e2e)', () => {
 
   it('refuses card and wallet while no provider is connected, and invalid methods', async () => {
     const added = await http().post('/ordering/cart/add').send({ skuId, quantity: 1 }).expect(201);
-    const token = added.body.guestCartToken;
-    const quote = await http().post('/ordering/checkout/quote').set('x-cart-token', token).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
-    const submit = (extra: Record<string, unknown>) => http().post('/ordering/checkout').set('x-cart-token', token).send({
+    const token = (await signInCustomer(app, added.body.guestCartToken)).auth;
+    const quote = await http().post('/ordering/checkout/quote').set(token).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
+    const submit = (extra: Record<string, unknown>) => http().post('/ordering/checkout').set(token).send({
       governorate: 'Cairo', area: 'Maadi', customerName: 'Pay', customerPhone: '01012345678', shippingAddress: '1 Pay St', ...CAIRO_PIN,
       quoteVersion: quote.body.quoteVersion, cartRevision: quote.body.revision, idempotencyKey: randomUUID(), ...extra,
     });
@@ -91,13 +91,13 @@ describe('GLO-241 payment method foundation (e2e)', () => {
     }
     await submit({ paymentMethod: 'BITCOIN' }).expect(400);
     await submit({ cardNumber: '4111111111111111' }).expect(400); // card data is never accepted
-    expect((await http().get('/ordering/cart').set('x-cart-token', token).expect(200)).body.items).toHaveLength(1);
+    expect((await http().get('/ordering/cart').set(token).expect(200)).body.items).toHaveLength(1);
     await http().post('/payments/webhooks/no-such-psp').send({}).expect(404);
   });
 
   it('online order: pending → verified exact confirmation once → sourcing → dispatch, never driver cash', async () => {
     payments.registerProvider(testProvider('test-card-psp', ['CARD']));
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId, quantity: 2 }], { paymentMethod: 'CARD' });
+    const order = await placeGuestOrder(app, [{ skuId, quantity: 2 }], { paymentMethod: 'CARD' });
     const response = order as unknown as { paymentMethod: string; payment: Record<string, unknown> };
     expect(response.paymentMethod).toBe('CARD');
     const attempt = await prisma.paymentAttempt.findFirstOrThrow({ where: { orderId: order.id } });
@@ -148,7 +148,7 @@ describe('GLO-241 payment method foundation (e2e)', () => {
 
   it('a wallet payment that fails stays unpaid and never enters sourcing', async () => {
     payments.registerProvider(testProvider('vodafone_cash', ['MOBILE_WALLET']));
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId, quantity: 1 }], { paymentMethod: 'MOBILE_WALLET', paymentProvider: 'vodafone_cash' });
+    const order = await placeGuestOrder(app, [{ skuId, quantity: 1 }], { paymentMethod: 'MOBILE_WALLET', paymentProvider: 'vodafone_cash' });
     const attempt = await prisma.paymentAttempt.findFirstOrThrow({ where: { orderId: order.id } });
     expect(attempt).toMatchObject({ method: 'MOBILE_WALLET', provider: 'vodafone_cash' });
     // Another provider cannot answer for this attempt.

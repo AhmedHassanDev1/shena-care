@@ -1,4 +1,4 @@
-import { currencyLabel, formatAmount, formatDate, formatEgp, formatNumber, formatPackSize, formatTime } from './format';
+import { currencyLabel, formatAmount, formatDate, formatEgp, formatNumber, formatPackSize, formatTime, formatClock, formatProductCount } from './format';
 
 const ARABIC_INDIC = /[٠-٩]/;
 const WESTERN = /[0-9]/;
@@ -68,5 +68,25 @@ describe('formatDate / formatTime', () => {
   it('keeps Western digits in English', () => {
     expect(formatDate('2026-10-18T10:00:00Z', 'en')).toBe('Oct 18, 2026');
     expect(formatTime('2026-10-18T06:12:00Z', 'en')).not.toMatch(ARABIC_INDIC);
+  });
+});
+
+describe('formatClock', () => {
+  it('counts down m:ss in the interface digits', () => {
+    expect(formatClock(65, 'ar')).toBe('١:٠٥');
+    expect(formatClock(60, 'en')).toBe('1:00');
+    expect(formatClock(9, 'en')).toBe('0:09');
+    expect(formatClock(-3, 'en')).toBe('0:00');
+  });
+});
+
+describe('formatProductCount', () => {
+  it('agrees the Arabic noun with the number', () => {
+    expect(formatProductCount(1, 'ar')).toBe('منتج واحد');
+    expect(formatProductCount(2, 'ar')).toBe('منتجين');
+    expect(formatProductCount(4, 'ar')).toBe('٤ منتجات');
+    expect(formatProductCount(12, 'ar')).toBe('١٢ منتج');
+    expect(formatProductCount(1, 'en')).toBe('1 product');
+    expect(formatProductCount(3, 'en')).toBe('3 products');
   });
 });

@@ -1,5 +1,6 @@
 import { apiClient } from './api-client';
 import { SESSION_TOKEN_KEY } from './session-token';
+import type { OtpChallengeResponse } from '@/features/auth/lib/otp-challenge';
 
 export interface User {
   id: string;
@@ -50,8 +51,12 @@ export const auth = {
     return response;
   },
 
-  async sendOtp(phoneNumber: string): Promise<void> {
-    await apiClient.post('/accounts/otp/send', { phoneNumber });
+  /** POST /accounts/otp/send → the challenge contract (code length, expiry, retryAfter). `pendingIntent` is the return path. */
+  async sendOtp(phoneNumber: string, pendingIntent?: string): Promise<OtpChallengeResponse> {
+    return apiClient.post<OtpChallengeResponse>('/accounts/otp/send', {
+      phoneNumber,
+      ...(pendingIntent ? { pendingIntent } : {}),
+    });
   },
 
   async verifyOtp(phoneNumber: string, code: string): Promise<VerifyOtpResponse> {

@@ -11,7 +11,7 @@ import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
 import { createSellableSku } from '../fixtures/sellable-sku';
-import { placeGuestOrder } from '../fixtures/checkout';
+import { placeGuestOrder, signInCustomer } from '../fixtures/checkout';
 
 /**
  * GLO-236: order.placed is durable (written with the order, delivered with retry, replayable,
@@ -71,7 +71,7 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
 
   describe('order.placed → supply plan', () => {
     it('is written with the order and delivered exactly once', async () => {
-      const order = await placeGuestOrder(app.getHttpServer(), [{ skuId, quantity: 2 }]);
+      const order = await placeGuestOrder(app, [{ skuId, quantity: 2 }]);
       const rows = await eventsFor(order.id);
       expect(rows).toHaveLength(1);
       expect(rows[0]).toMatchObject({ eventType: 'order.placed', consumer: SUPPLY_PLAN_CONSUMER, aggregateType: 'Order' });
@@ -93,7 +93,7 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
       events.registerHandler(SUPPLY_PLAN_CONSUMER, async () => { throw new Error('sourcing temporarily down'); });
       let order;
       try {
-        order = await placeGuestOrder(app.getHttpServer(), [{ skuId, quantity: 1 }]);
+        order = await placeGuestOrder(app, [{ skuId, quantity: 1 }]);
         await settle();
         await events.dispatchPending({ aggregateId: order.id });
       } finally {
@@ -123,7 +123,7 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
       events.registerHandler(SUPPLY_PLAN_CONSUMER, async () => { throw new Error('never reached'); });
       let order;
       try {
-        order = await placeGuestOrder(app.getHttpServer(), [{ skuId, quantity: 1 }]);
+        order = await placeGuestOrder(app, [{ skuId, quantity: 1 }]);
         await settle();
       } finally {
         restoreConsumer();
@@ -140,13 +140,14 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
     it('writes no event when the order transaction rolls back', async () => {
       const before = await prisma.domainEvent.count();
       const added = await http().post('/ordering/cart/add').send({ skuId, quantity: 1 }).expect(201);
-      const quote = await http().post('/ordering/checkout/quote').set('x-cart-token', added.body.guestCartToken)
+      const owner = (await signInCustomer(app, added.body.guestCartToken)).auth;
+      const quote = await http().post('/ordering/checkout/quote').set(owner)
         .send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
       const idempotencyKey = randomUUID();
       await prisma.$executeRawUnsafe(
         `ALTER TABLE "operations"."domain_events" ADD CONSTRAINT "test_event_insert_failure" CHECK (event_type <> 'order.placed') NOT VALID`);
       try {
-        await http().post('/ordering/checkout').set('x-cart-token', added.body.guestCartToken).send({
+        await http().post('/ordering/checkout').set(owner).send({
           governorate: 'Cairo', area: 'Maadi', customerName: 'Rollback', customerPhone: '01012345678',
           shippingAddress: '1 Rollback St', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true,
           quoteVersion: quote.body.quoteVersion, cartRevision: quote.body.revision, idempotencyKey,

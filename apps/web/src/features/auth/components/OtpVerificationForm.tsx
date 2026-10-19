@@ -3,63 +3,68 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { StatusChip } from '@/components/ui/status-chip';
-import { Button } from '@/components/ui/button';
-import { FieldLabel, FieldMessage } from '@/components/ui/field';
+import { useQueryClient } from '@tanstack/react-query';
+import { AsyncButton, Button, type AsyncState } from '@/components/ui/button';
+import { FieldMessage } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { OtpInput } from '@/components/ui/otp-input';
+import { CART_QUERY_KEY, useCart } from '@/features/cart/hooks/useCart';
 import { auth } from '@/lib/auth';
-import { formatNumber } from '@/lib/i18n/format';
+import { cart as cartApi, type Cart } from '@/lib/cart';
+import { formatClock, isolateLtr } from '@/lib/i18n/format';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
-import { cn } from '@/lib/utils';
 import { useAuth } from '../AuthContext';
+import { apiErrorCode, apiRetryAfter, displayMobile, safeReturnTo, toLatinDigits } from '../lib/auth-helpers';
+import { cartChangedByAdoption, markAuthReturn } from '../lib/auth-return';
 import {
-  OTP_LENGTH,
-  toLatinDigits,
-  classifyVerifyFailure,
-  isResendCooldown,
-  maskMobile,
-  otpErrorMessage,
-  safeReturnTo,
-  sendOtpErrorMessage,
-} from '../lib/auth-helpers';
-import {
+  challengeFrom,
   clearOtpChallenge,
   readOtpChallenge,
   saveOtpChallenge,
-  secondsUntilResend,
+  secondsUntil,
   type OtpChallenge,
+  type OtpChallengeResponse,
 } from '../lib/otp-challenge';
 import { AuthHeader } from './auth-ui';
 
-/** invalid / incomplete: fix the code. expired: a new code is needed. other: retry as is. */
-type Failure = { kind: 'invalid' | 'incomplete' | 'expired' | 'other'; message: string };
+/** wrong / incomplete: fix the code. expired / exhausted: only a new code helps. network: retry as is. */
+type Failure = 'wrong' | 'incomplete' | 'expired' | 'exhausted' | 'network';
 
+/** How long the verified state (green cells, «اتأكد») holds before the return (Addendum: about 1 s). */
+const VERIFIED_HOLD_MS = 900;
+
+/**
+ * Code step (AuthOtpD, AuthMobile ٢–٢د, AuthStates §٣–§٥). Cells, expiry and the resend countdown come from the stored
+ * challenge (server contract), never from client defaults. After verification the customer returns to the exact task
+ * that started sign-in; if adoption changed the cart, the cart opens first for review.
+ */
 export function OtpVerificationForm() {
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const { refreshUser } = useAuth();
+  // Loads the guest cart, so the lines before sign-in are known when the code is confirmed.
+  useCart();
 
   const [challenge, setChallenge] = useState<OtpChallenge | null>(null);
   const [code, setCode] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isResending, setIsResending] = useState(false);
+  const [verifyState, setVerifyState] = useState<AsyncState>('idle');
+  const [resendState, setResendState] = useState<AsyncState>('idle');
   const [failure, setFailure] = useState<Failure | null>(null);
   const [notice, setNotice] = useState('');
+  const [limitNotice, setLimitNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
+  // The countdown is announced once per state (started, ended), never every second.
+  const [countdownNotice, setCountdownNotice] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const verifyingRef = useRef(false);
 
   const returnTo = searchParams.get('returnTo');
-  const intent = searchParams.get('intent');
-  const backParams = new URLSearchParams();
-  if (returnTo) backParams.set('returnTo', returnTo);
-  if (intent) backParams.set('intent', intent);
-  const changeNumberHref = backParams.toString() ? `${routes.login}?${backParams}` : routes.login;
+  const changeNumberHref = returnTo ? `${routes.login}?${new URLSearchParams({ returnTo })}` : routes.login;
 
   // The pending code request lives in this tab's session; without one there is nothing to verify.
   useEffect(() => {
@@ -69,75 +74,129 @@ export function OtpVerificationForm() {
     // Read once on arrival; later changes come from this page's own resend.
   }, []);
 
-  const resendIn = challenge ? secondsUntilResend(challenge, now) : 0;
+  const resendIn = challenge ? secondsUntil(challenge.resendAt, now) : 0;
+  const expired = challenge !== null && now >= challenge.expiresAt;
+  const needsNewCode = failure === 'expired' || failure === 'exhausted' || expired;
 
   useEffect(() => {
-    if (resendIn <= 0) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [resendIn]);
+    if (!challenge) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [challenge]);
 
-  const isExpired = failure?.kind === 'expired';
-  const focusCode = () => requestAnimationFrame(() => inputRef.current?.focus());
+  const resendAt = challenge?.resendAt ?? 0;
+  const cooling = resendIn > 0;
+  useEffect(() => {
+    if (!resendAt) return;
+    setCountdownNotice(cooling ? fillMessage(m.authResendIn, { time: isolateLtr(formatClock(secondsUntil(resendAt), locale)) }) : '');
+    // Only when a new countdown starts or the current one ends.
+  }, [resendAt, cooling]);
+
+  const focusCode = (select = false) =>
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      if (select) inputRef.current?.select();
+    });
+
+  const finish = async (sessionReturnTo: string | undefined, before: Cart | undefined) => {
+    const target = safeReturnTo(returnTo ?? sessionReturnTo ?? null);
+    let after: Cart | undefined;
+    try {
+      after = await cartApi.getCart();
+      queryClient.setQueryData(CART_QUERY_KEY, after);
+    } catch {
+      await queryClient.invalidateQueries({ queryKey: CART_QUERY_KEY });
+    }
+    await refreshUser();
+    if (target.startsWith(routes.checkout)) {
+      if (before && after && cartChangedByAdoption(before.items, after.items)) {
+        markAuthReturn('cart-merged');
+        router.replace(routes.cart);
+        return;
+      }
+      markAuthReturn('signed-in');
+    }
+    router.replace(target);
+  };
 
   const verify = async (submitted: string) => {
-    if (!challenge || verifyingRef.current || isExpired) return;
-    if (submitted.length !== OTP_LENGTH) {
-      setFailure({ kind: 'incomplete', message: fillMessage(m.authCodeIncomplete, { n: formatNumber(OTP_LENGTH, locale) }) });
+    if (!challenge || verifyingRef.current || needsNewCode) return;
+    if (submitted.length !== challenge.codeLength) {
+      setFailure('incomplete');
       focusCode();
       return;
     }
 
     verifyingRef.current = true;
-    setIsVerifying(true);
+    setVerifyState('pending');
     setFailure(null);
     setNotice('');
+    const before = queryClient.getQueryData<Cart>(CART_QUERY_KEY);
     try {
       const session = await auth.verifyOtp(challenge.phoneNumber, submitted);
       clearOtpChallenge();
-      setNotice(m.authSigningIn);
-      await refreshUser();
-      // The page's own returnTo wins; otherwise the API may echo a pending intent. Both are path-checked.
-      router.replace(safeReturnTo(returnTo ?? session.returnTo ?? null));
-      // Stay busy until the destination renders.
+      setVerifyState('success');
+      await Promise.all([
+        new Promise((resolve) => window.setTimeout(resolve, VERIFIED_HOLD_MS)),
+        finish(session.returnTo, before).catch(() => router.replace(safeReturnTo(returnTo))),
+      ]);
+      // Stays verified until the destination renders.
     } catch (err) {
-      const kind = classifyVerifyFailure(err);
-      if (kind === 'expired') {
-        setFailure({ kind, message: m.authCodeExpired });
-      } else if (kind === 'invalid') {
-        setFailure({ kind, message: m.authCodeInvalid });
-        focusCode();
-      } else {
-        setFailure({ kind, message: otpErrorMessage(err, m, m.authVerifyFailed) });
-        focusCode();
-      }
-      setCode('');
       verifyingRef.current = false;
-      setIsVerifying(false);
+      const errorCode = apiErrorCode(err);
+      if (errorCode === 'OTP_EXPIRED') {
+        setVerifyState('idle');
+        setFailure('expired');
+      } else if (errorCode === 'OTP_ATTEMPTS_EXHAUSTED') {
+        setVerifyState('idle');
+        setFailure('exhausted');
+      } else if (errorCode === 'OTP_INVALID') {
+        // Digits stay written and selected, so the next digit replaces them.
+        setVerifyState('idle');
+        setFailure('wrong');
+        focusCode(true);
+      } else {
+        // The request itself failed: the code stays typed, «تأكيد» retries it.
+        setVerifyState('error');
+        setFailure('network');
+      }
     }
   };
 
   const resend = async () => {
-    if (!challenge || resendIn > 0 || isResending || verifyingRef.current) return;
-    setIsResending(true);
+    if (!challenge || resendIn > 0 || resendState === 'pending' || verifyingRef.current) return;
+    setResendState('pending');
     setNotice('');
+    setLimitNotice('');
     try {
-      await auth.sendOtp(challenge.phoneNumber);
-      setChallenge(saveOtpChallenge(challenge.phoneNumber));
+      const next = await auth.sendOtp(challenge.phoneNumber, returnTo ? safeReturnTo(returnTo) : undefined);
+      setChallenge(saveOtpChallenge(challengeFrom(challenge.phoneNumber, next)));
       setNow(Date.now());
       setCode('');
       setFailure(null);
-      // The API confirms the request, not delivery, so the notice says exactly that.
+      setVerifyState('idle');
       setNotice(m.authResent);
+      setResendState('idle');
       focusCode();
     } catch (err) {
-      if (isResendCooldown(err)) {
-        setChallenge(saveOtpChallenge(challenge.phoneNumber));
+      const retryAfter = apiRetryAfter(err);
+      if (retryAfter) {
+        const data = (err as { data?: Partial<OtpChallengeResponse> & { message?: Partial<OtpChallengeResponse> } }).data;
+        const active = { ...data?.message, ...data } as Partial<OtpChallengeResponse>;
+        const updated: OtpChallenge = { ...challenge, resendAt: Date.now() + retryAfter * 1000 };
+        if (active.codeLength && active.expiresAt) {
+          updated.codeLength = active.codeLength;
+          updated.expiresAt = new Date(active.expiresAt).getTime();
+        }
+        setChallenge(saveOtpChallenge(updated));
         setNow(Date.now());
+        if (apiErrorCode(err) === 'OTP_RATE_LIMITED') {
+          setLimitNotice(fillMessage(m.authRateLimited, { time: isolateLtr(formatClock(retryAfter, locale)) }));
+        }
+        setResendState('idle');
+        return;
       }
-      setFailure({ kind: isExpired ? 'expired' : 'other', message: sendOtpErrorMessage(err, m, m.authResendFailed) });
-    } finally {
-      setIsResending(false);
+      setResendState('error');
     }
   };
 
@@ -149,107 +208,135 @@ export function OtpVerificationForm() {
     );
   }
 
-  const codeInvalid = failure?.kind === 'invalid' || failure?.kind === 'incomplete';
+  const failureMessage =
+    failure === 'wrong'
+      ? m.authCodeInvalid
+      : failure === 'exhausted'
+        ? m.authCodeExhausted
+        : failure === 'expired' || (expired && !failure)
+          ? m.authCodeExpired
+          : failure === 'network'
+            ? m.authVerifyFailed
+            : failure === 'incomplete'
+              ? m.authCodeIncomplete
+              : null;
+  const cellState = verifyState === 'success' ? 'verified' : failure === 'wrong' || failure === 'incomplete' ? 'invalid' : 'default';
+  const countdown = formatClock(resendIn, locale);
 
   return (
     <>
-      <AuthHeader title={m.authOtpTitle} description={m.authOtpDescription} />
+      <Link href={changeNumberHref} className="text-link gap-1 self-start text-14">
+        <Icon name="chevron-back" size={18} strokeWidth={1.9} />
+        {m.authChangeNumber}
+      </Link>
 
-      <div className="mt-6 flex min-h-14 items-center gap-3 rounded-card bg-sand pe-3 ps-3">
-        <span className="grid size-control-s shrink-0 place-items-center rounded-pill bg-linen text-ink-2">
-          <Icon name="phone" size={20} />
-        </span>
-        <p className="min-w-0 flex-1">
-          <span className="sr-only">{m.authOtpSentTo} </span>
-          <bdi dir="ltr" className="text-body font-semibold tabular-nums text-night">
-            {maskMobile(challenge.phoneNumber)}
-          </bdi>
-        </p>
-        <Link
-          href={changeNumberHref}
-          className="inline-flex min-h-control-s shrink-0 items-center rounded-pill px-2 text-14 font-semibold text-blue underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-fast hover:decoration-current"
-        >
-          {m.authChangeNumber}
-        </Link>
-      </div>
+      <AuthHeader
+        title={m.authOtpTitle}
+        titleId="otp-title"
+        descriptionId="otp-help"
+        description={
+          <>
+            {m.authOtpSentTo}{' '}
+            <bdi dir="ltr" className="font-semibold tabular-nums text-night">
+              {displayMobile(challenge.phoneNumber)}
+            </bdi>
+          </>
+        }
+      />
 
       <form
         noValidate
-        className="mt-6"
+        className="flex flex-col gap-5"
         onSubmit={(event: FormEvent) => {
           event.preventDefault();
           verify(code);
         }}
       >
-        <div className="mb-2 flex items-baseline justify-between gap-3">
-          <FieldLabel id="otp-label">{m.authOtpLabel}</FieldLabel>
-          <span id="otp-length" className="text-14 text-ink-3">
-            {fillMessage(m.authOtpLengthHint, { n: formatNumber(OTP_LENGTH, locale) })}
-          </span>
+        <div className="flex flex-col gap-2">
+          <OtpInput
+            ref={inputRef}
+            id="otp"
+            length={challenge.codeLength}
+            value={code}
+            onChange={(next) => {
+              setCode(next);
+              if (failure && failure !== 'expired' && failure !== 'exhausted') setFailure(null);
+              if (verifyState === 'error') setVerifyState('idle');
+              // The last digit (typed, pasted or autofilled) submits.
+              if (next.length === challenge.codeLength && next !== code) verify(next);
+            }}
+            normalize={(raw) => toLatinDigits(raw).replace(/\D/g, '')}
+            state={cellState}
+            labelledBy="otp-title"
+            describedBy={failureMessage ? 'otp-help otp-error' : 'otp-help'}
+            disabled={needsNewCode}
+            readOnly={verifyState === 'pending' || verifyState === 'success'}
+            autoFocus
+          />
+          {failureMessage ? (
+            <FieldMessage id="otp-error" tone="error">
+              {failureMessage}
+            </FieldMessage>
+          ) : null}
+          {notice ? (
+            <FieldMessage tone="success">
+              {notice}
+            </FieldMessage>
+          ) : null}
         </div>
 
-        <OtpInput
-          ref={inputRef}
-          id="otp"
-          length={OTP_LENGTH}
-          value={code}
-          onChange={(next) => {
-            setCode(next);
-            if (failure && failure.kind !== 'expired') setFailure(null);
-            // A complete code (typed, pasted or autofilled) is submitted straight away.
-            if (next.length === OTP_LENGTH && next !== code) verify(next);
-          }}
-          normalize={(raw) => toLatinDigits(raw).replace(/\D/g, '')}
-          state={codeInvalid ? 'invalid' : 'default'}
-          labelledBy="otp-label"
-          disabled={isExpired}
-          readOnly={isVerifying}
-          describedBy={failure ? 'otp-length otp-error' : 'otp-length'}
-          autoFocus
-        />
-
-        {failure ? (
-          <FieldMessage id="otp-error" tone="error" className="mt-2">
-            {failure.message}
-          </FieldMessage>
-        ) : null}
-        <div role="status" className={notice ? 'mt-2' : 'sr-only'}>
-          {notice ? <FieldMessage tone="success">{notice}</FieldMessage> : null}
-        </div>
-
-        <Button
-          type="submit"
-          size="l"
-          loading={isVerifying}
-          disabled={isExpired}
-          className="mt-6 w-full"
-        >
-          {m.authVerifyCta}
-          {isVerifying ? null : <Icon name="arrow-forward" size={20} />}
-        </Button>
-      </form>
-
-      <div className="mt-6 flex flex-col items-center gap-2 text-center">
-        <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-14">
-          <span className="text-ink-2">{m.authCodeNotReceived}</span>
-          <Button
-            type="button"
-            variant="text"
-            loading={isResending}
+        {needsNewCode ? (
+          <AsyncButton
+            size="l"
+            state={resendState}
+            pendingLabel={m.authSending}
             disabled={resendIn > 0}
             onClick={resend}
-            className={cn('min-h-control-s px-1', isExpired && resendIn === 0 && 'decoration-current')}
+            className="w-full"
           >
             {m.authResend}
-          </Button>
-        </p>
-        {resendIn > 0 ? (
-          <StatusChip tone="gray" className="text-ink-2">
-            <Icon name="alert" size={16} />
-            {/* Not a live region: a per-second announcement would drown the form. */}
-            {fillMessage(m.authResendIn, { time: formatNumber(resendIn, locale) })}
-          </StatusChip>
+          </AsyncButton>
+        ) : (
+          <AsyncButton
+            type="submit"
+            size="l"
+            state={verifyState}
+            pendingLabel={m.authVerifying}
+            successLabel={m.authVerified}
+            className="w-full"
+          >
+            {m.authVerifyCta}
+          </AsyncButton>
+        )}
+      </form>
+
+      <div className="flex flex-col items-center gap-3 text-center">
+        {resendState === 'error' ? (
+          <FieldMessage tone="error">
+            {m.authSendFailed}
+          </FieldMessage>
         ) : null}
+        {limitNotice && resendIn > 0 ? (
+          <p className="m-0 text-14 text-warn" aria-hidden="true">
+            {fillMessage(m.authRateLimited, { time: isolateLtr(countdown) })}
+          </p>
+        ) : resendIn > 0 ? (
+          // Not a live region: a per-second announcement would drown the form; the state is announced once below.
+          <p className="m-0 text-14 text-ink-2" aria-hidden="true">
+            {fillMessage(m.authResendIn, { time: '' })}
+            <bdi dir="ltr" className="font-bold tabular-nums text-night">
+              {countdown}
+            </bdi>
+          </p>
+        ) : !needsNewCode ? (
+          <Button variant="text" onClick={resend} loading={resendState === 'pending'} className="min-h-control-s px-1">
+            {m.authResend}
+          </Button>
+        ) : null}
+        <p role="status" className="sr-only">
+          {limitNotice && cooling ? limitNotice : countdownNotice}
+        </p>
+        <p className="m-0 text-13 leading-20 text-ink-3">{m.authNotReceived}</p>
       </div>
     </>
   );

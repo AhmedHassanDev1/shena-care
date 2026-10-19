@@ -3,7 +3,10 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { Role } from '@prisma/client';
 import { createSellableSku } from '../fixtures/sellable-sku';
+import { createActor } from '../fixtures/actors';
+import { signInCustomer } from '../fixtures/checkout';
 const request = require('supertest');
 
 describe('Order submission (e2e)', () => {
@@ -13,19 +16,22 @@ describe('Order submission (e2e)', () => {
   const http = () => request(app.getHttpServer());
   const quoteAddress = { governorate: 'Cairo', area: 'Maadi' };
 
+  type Owner = Record<string, string>;
+  /** A signed-in customer's cart (order placement requires a customer session since SAHEL V18). */
   const guestCart = async () => {
-    const added = await http().post('/ordering/cart/add').send({ skuId, quantity: 2 }).expect(201);
-    return { token: added.body.guestCartToken as string, revision: added.body.revision as number };
+    const customer = await signInCustomer(app);
+    const added = await http().post('/ordering/cart/add').set(customer.auth).send({ skuId, quantity: 2 }).expect(201);
+    return { token: customer.auth as Owner, revision: added.body.revision as number };
   };
-  const quote = async (token: string) =>
-    (await http().post('/ordering/checkout/quote').set('x-cart-token', token).send(quoteAddress).expect(201)).body;
+  const quote = async (token: Owner) =>
+    (await http().post('/ordering/checkout/quote').set(token).send(quoteAddress).expect(201)).body;
   const submission = (q: any, overrides: Record<string, unknown> = {}) => ({
     ...quoteAddress, customerName: 'Order Tester', customerPhone: '01012345678',
     shippingAddress: '123 Test Street', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true, quoteVersion: q.quoteVersion,
     cartRevision: q.revision, idempotencyKey: randomUUID(), ...overrides,
   });
-  const submit = (token: string, body: any) =>
-    http().post('/ordering/checkout').set('x-cart-token', token).send(body);
+  const submit = (token: Owner, body: any) =>
+    http().post('/ordering/checkout').set(token).send(body);
 
   beforeAll(async () => {
     process.env.TEST_BYPASS_AUTH = 'false';
@@ -57,7 +63,7 @@ describe('Order submission (e2e)', () => {
       skuId, productName: q.items[0].productName, skuCode: q.items[0].skuCode,
       quantity: 2, price: q.items[0].unitPrice, discountAmount: q.items[0].discountAmount, lineTotal: q.items[0].lineTotal,
     });
-    const cart = await http().get('/ordering/cart').set('x-cart-token', token).expect(200);
+    const cart = await http().get('/ordering/cart').set(token).expect(200);
     expect(cart.body.items).toHaveLength(0);
     expect(cart.body.revision).toBe(revision + 1);
     const replay = await submit(token, body).expect(201);
@@ -105,7 +111,7 @@ describe('Order submission (e2e)', () => {
   it('rejects a stale cart revision and leaves the quote unconsumed', async () => {
     const { token } = await guestCart();
     const q = await quote(token);
-    await http().patch('/ordering/cart/quantity').set('x-cart-token', token)
+    await http().patch('/ordering/cart/quantity').set(token)
       .send({ skuId, quantity: 3, expectedRevision: q.revision }).expect(200);
     const result = await submit(token, submission(q)).expect(409);
     expect(result.body.code).toBe('CHECKOUT_REVIEW_REQUIRED');
@@ -125,7 +131,7 @@ describe('Order submission (e2e)', () => {
     } finally {
       await prisma.$executeRawUnsafe('ALTER TABLE "ordering"."orders" DROP CONSTRAINT "test_order_insert_failure"');
     }
-    const cart = await http().get('/ordering/cart').set('x-cart-token', token).expect(200);
+    const cart = await http().get('/ordering/cart').set(token).expect(200);
     expect(cart.body.revision).toBe(q.revision);
     expect(cart.body.items).toHaveLength(1);
     expect((await prisma.checkoutQuote.findUnique({ where: { id: q.quoteVersion } }))?.consumedAt).toBeNull();
@@ -142,7 +148,55 @@ describe('Order submission (e2e)', () => {
       .toBe('IDEMPOTENCY_KEY_REUSED');
     const secondCart = await guestCart();
     await submit(secondCart.token, body).expect(409);
-    await http().post('/ordering/checkout').send(body).expect(400);
     await submit(firstCart.token, { ...body, quoteVersion: 'invalid' }).expect(400);
+  });
+
+  describe('sign-in required to place an order (owner decision 2026-10-18, supersedes GLO-71 guest checkout)', () => {
+    const anonymousCart = async () => {
+      const added = await http().post('/ordering/cart/add').send({ skuId, quantity: 1 }).expect(201);
+      return added.body.guestCartToken as string;
+    };
+
+    it('keeps the guest cart and the quote open without a session', async () => {
+      const token = await anonymousCart();
+      const q = (await http().post('/ordering/checkout/quote').set('x-cart-token', token).send(quoteAddress).expect(201)).body;
+      expect(q.items).toHaveLength(1);
+      expect(q.quoteVersion).toEqual(expect.any(String));
+    });
+
+    it('refuses a guest submission with SIGN_IN_REQUIRED and creates nothing', async () => {
+      const token = await anonymousCart();
+      const q = (await http().post('/ordering/checkout/quote').set('x-cart-token', token).send(quoteAddress).expect(201)).body;
+      const body = submission(q);
+      for (const headers of [{ 'x-cart-token': token }, {}, { Authorization: 'Bearer ' + randomUUID() }]) {
+        const refused = await http().post('/ordering/checkout').set(headers).send(body).expect(401);
+        expect(refused.body.code).toBe('SIGN_IN_REQUIRED');
+      }
+      expect(await prisma.order.count({ where: { idempotencyKey: body.idempotencyKey } })).toBe(0);
+      expect((await prisma.checkoutQuote.findUnique({ where: { id: q.quoteVersion } }))?.consumedAt).toBeNull();
+      const cart = await http().get('/ordering/cart').set('x-cart-token', token).expect(200);
+      expect(cart.body.items).toHaveLength(1);
+    });
+
+    it('refuses a staff session with CUSTOMER_ACCOUNT_REQUIRED', async () => {
+      const staff = await createActor(prisma, Role.ADMIN);
+      const added = await http().post('/ordering/cart/add').set(staff.auth).send({ skuId, quantity: 1 }).expect(201);
+      expect(added.body.items).toHaveLength(1);
+      const q = await quote(staff.auth);
+      const refused = await submit(staff.auth, submission(q)).expect(403);
+      expect(refused.body.code).toBe('CUSTOMER_ACCOUNT_REQUIRED');
+    });
+
+    it('places the guest cart once after sign-in adopts it, and a replay returns the same order', async () => {
+      const token = await anonymousCart();
+      const customer = await signInCustomer(app, token);
+      const q = await quote(customer.auth);
+      expect(q.items).toHaveLength(1);
+      const body = submission(q);
+      const placed = await submit(customer.auth, body).expect(201);
+      const replay = await submit(customer.auth, body).expect(201);
+      expect(replay.body.id).toBe(placed.body.id);
+      expect(await prisma.order.count({ where: { customerId: customer.id } })).toBe(1);
+    });
   });
 });

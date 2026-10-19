@@ -10,7 +10,8 @@ import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
 import { createSellableSku } from '../fixtures/sellable-sku';
-import { CAIRO_PIN } from '../fixtures/checkout';
+import { CAIRO_PIN, signInCustomer } from '../fixtures/checkout';
+import { CartService } from '../../src/modules/ordering/services/cart.service';
 
 /**
  * GLO-235 C1 GATE — one persisted, replayable Cart → Cash run through the real HTTP API and a
@@ -32,7 +33,7 @@ describe('C1 backend Cart-to-Cash acceptance (GLO-235)', () => {
   let cleanser: Awaited<ReturnType<typeof createSellableSku>>;
   let hubId: string; let hubBId: string;
   let cartToken: string;
-  let order: { id: string; orderNumber: string; codAmount: number; totalAmount: number; guestAccessToken: string; items: Array<{ id: string; skuId: string; quantity: number }> };
+  let order: { id: string; orderNumber: string; codAmount: number; totalAmount: number; items: Array<{ id: string; skuId: string; quantity: number }> };
   let secondOrder: { id: string; items: Array<{ id: string; skuId: string; quantity: number }> };
   let purchaseOrder: { id: string; lines: Array<{ id: string; skuId: string; requestedQuantity: number; allocations: Array<{ sourceAllocationId: string; orderId: string; orderItemId: string; quantity: number }> }> };
   let shipmentId: string; let barcode: string;
@@ -92,31 +93,34 @@ describe('C1 backend Cart-to-Cash acceptance (GLO-235)', () => {
     // Quantities are server-side and revisioned: a stale revision is refused.
     await http().patch('/ordering/cart/quantity').set('x-cart-token', cartToken).send({ skuId: serum.id, quantity: 2, expectedRevision: second.body.revision - 1 }).expect(409);
     await http().patch('/ordering/cart/quantity').set('x-cart-token', cartToken).send({ skuId: serum.id, quantity: 2, expectedRevision: second.body.revision }).expect(200);
+    // «إتمام الطلب» needs an account: phone sign-in adopts the guest cart (CUSTOMER_VERIFIED_EVENT), then the customer checks out.
+    await app.get(CartService).adoptGuestCart(customer.id, cartToken);
+    await http().post('/ordering/checkout').set('x-cart-token', cartToken).send({}).expect(401);
 
     const address = { governorate: 'Cairo', area: 'Maadi' };
-    const quote = (await http().post('/ordering/checkout/quote').set('x-cart-token', cartToken).send(address).expect(201)).body;
+    const quote = (await http().post('/ordering/checkout/quote').set(customer.auth).send(address).expect(201)).body;
     expect(quote).toMatchObject({ subtotal: 300, shippingFee: 50, totalAmount: 350, codAmount: 350, currency: 'EGP' });
 
     // The catalog price changes after the quote: the old quote is refused, nothing is consumed.
     const raise = await prisma.sellingPrice.create({ data: { skuId: serum.id, amount: 110, currency: 'EGP', validFrom: new Date(), isActive: true } });
-    expect((await http().post('/ordering/checkout').set('x-cart-token', cartToken).send(checkoutBody(quote)).expect(409)).body.code).toBe('CHECKOUT_REVIEW_REQUIRED');
+    expect((await http().post('/ordering/checkout').set(customer.auth).send(checkoutBody(quote)).expect(409)).body.code).toBe('CHECKOUT_REVIEW_REQUIRED');
     await prisma.sellingPrice.delete({ where: { id: raise.id } });
-    const requote = (await http().post('/ordering/checkout/quote').set('x-cart-token', cartToken).send(address).expect(201)).body;
+    const requote = (await http().post('/ordering/checkout/quote').set(customer.auth).send(address).expect(201)).body;
 
     // Missing / out-of-area pins are refused by the owner backend.
-    await http().post('/ordering/checkout').set('x-cart-token', cartToken).send(checkoutBody(requote, { latitude: undefined })).expect(400);
-    expect((await http().post('/ordering/checkout').set('x-cart-token', cartToken)
+    await http().post('/ordering/checkout').set(customer.auth).send(checkoutBody(requote, { latitude: undefined })).expect(400);
+    expect((await http().post('/ordering/checkout').set(customer.auth)
       .send(checkoutBody(requote, { latitude: 31.2001, longitude: 29.9187 })).expect(422)).body.code).toBe('OUT_OF_SERVICE_AREA');
 
     const body = checkoutBody(requote);
-    const placed = await http().post('/ordering/checkout').set('x-cart-token', cartToken).send(body).expect(201);
-    const replay = await http().post('/ordering/checkout').set('x-cart-token', cartToken).send(body).expect(201);
+    const placed = await http().post('/ordering/checkout').set(customer.auth).send(body).expect(201);
+    const replay = await http().post('/ordering/checkout').set(customer.auth).send(body).expect(201);
     expect(replay.body.id).toBe(placed.body.id);
     expect(await prisma.order.count({ where: { idempotencyKey: body.idempotencyKey } })).toBe(1);
     order = placed.body;
     expect(placed.body).toMatchObject({ status: 'placed', totalAmount: 350, codAmount: 350, latitude: CAIRO_PIN.latitude, longitude: CAIRO_PIN.longitude, paymentMethod: 'COD' });
     expect(order.items.map(i => [i.skuId, i.quantity]).sort()).toEqual([[cleanser.id, 1], [serum.id, 2]].sort());
-    expect((await http().get('/ordering/cart').set('x-cart-token', cartToken).expect(200)).body.items).toHaveLength(0);
+    expect((await http().get('/ordering/cart').set(customer.auth).expect(200)).body.items).toHaveLength(0);
   });
 
   it('2. durable order.placed creates exactly one supply plan; a second order shares the consolidated PO', async () => {
@@ -129,8 +133,9 @@ describe('C1 backend Cart-to-Cash acceptance (GLO-235)', () => {
 
     // Another customer orders the same serum.
     const added = await http().post('/ordering/cart/add').send({ skuId: serum.id, quantity: 1 }).expect(201);
-    const quote = (await http().post('/ordering/checkout/quote').set('x-cart-token', added.body.guestCartToken).send({ governorate: 'Giza', area: 'Dokki' }).expect(201)).body;
-    secondOrder = (await http().post('/ordering/checkout').set('x-cart-token', added.body.guestCartToken)
+    const secondCustomer = await signInCustomer(app, added.body.guestCartToken);
+    const quote = (await http().post('/ordering/checkout/quote').set(secondCustomer.auth).send({ governorate: 'Giza', area: 'Dokki' }).expect(201)).body;
+    secondOrder = (await http().post('/ordering/checkout').set(secondCustomer.auth)
       .send(checkoutBody(quote, { governorate: 'Giza', area: 'Dokki', latitude: 30.0386, longitude: 31.2122, customerName: 'Second Customer' })).expect(201)).body;
     await settleEvents(secondOrder.id);
 
@@ -243,7 +248,7 @@ describe('C1 backend Cart-to-Cash acceptance (GLO-235)', () => {
     expect((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe('delivered');
     expect(await prisma.paymentCollection.findUniqueOrThrow({ where: { orderId: order.id } })).toMatchObject({ status: 'collected', courierId: driver.id });
     expect((await prisma.deliveryStop.findMany({ where: { shipmentId }, orderBy: { createdAt: 'asc' } })).map(s => s.status)).toEqual(['failed', 'delivered']);
-    const tracking = await http().get(`/ordering/guest/orders/${order.orderNumber}/tracking`).set('x-order-access-token', order.guestAccessToken).expect(200);
+    const tracking = await http().get(`/ordering/orders/${order.orderNumber}/tracking`).set(customer.auth).expect(200);
     expect(tracking.body.status).toBe('DELIVERED');
   });
 

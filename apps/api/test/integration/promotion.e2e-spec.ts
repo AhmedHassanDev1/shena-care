@@ -5,6 +5,7 @@ import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 const request = require('supertest');
 import { ensureLegacyCatalog } from '../fixtures/legacy-catalog';
+import { signInCustomer } from '../fixtures/checkout';
 
 describe('Promotions & Price Integrity (e2e)', () => {
   let app: INestApplication;
@@ -15,13 +16,14 @@ describe('Promotions & Price Integrity (e2e)', () => {
 
   const guestCart = async () => {
     const added = await http().post('/ordering/cart/add').send({ skuId, quantity: 2 }).expect(201);
-    return { token: added.body.guestCartToken as string, revision: added.body.revision as number };
+    const customer = await signInCustomer(app, added.body.guestCartToken);
+    return { token: customer.auth as Record<string, string>, revision: added.body.revision as number };
   };
-  const quote = async (token: string, overrides: any = {}) =>
-    (await http().post('/ordering/checkout/quote').set('x-cart-token', token).send({ ...quoteAddress, ...overrides }).expect(201)).body;
+  const quote = async (token: Record<string, string>, overrides: any = {}) =>
+    (await http().post('/ordering/checkout/quote').set(token).send({ ...quoteAddress, ...overrides }).expect(201)).body;
   
-  const submit = (token: string, q: any, overrides: Record<string, unknown> = {}) =>
-    http().post('/ordering/checkout').set('x-cart-token', token).send({
+  const submit = (token: Record<string, string>, q: any, overrides: Record<string, unknown> = {}) =>
+    http().post('/ordering/checkout').set(token).send({
       ...quoteAddress, customerName: 'Promo Tester', customerPhone: '01012345678',
       shippingAddress: '123 Promo St', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true, quoteVersion: q.quoteVersion,
       cartRevision: q.revision, idempotencyKey: randomUUID(), ...overrides,

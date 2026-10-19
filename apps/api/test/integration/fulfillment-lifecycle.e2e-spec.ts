@@ -4,6 +4,7 @@ const request = require('supertest');
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { createSellableSku } from '../fixtures/sellable-sku';
+import { signInCustomer } from '../fixtures/checkout';
 
 /**
  * Fulfillment Lifecycle E2E Tests — GLO-150 + GLO-147
@@ -105,18 +106,20 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     locationId = locRes.body.id;
 
     // ── Add SKU to cart + checkout → Order in status 'placed' ───────────────
+    // Storefront orders are placed by a signed-in customer; staff sessions are refused at checkout.
+    const shopper = (await signInCustomer(app)).auth.Authorization;
     await request(app.getHttpServer())
       .post('/ordering/cart/add')
-      .set('Authorization', authToken)
+      .set('Authorization', shopper)
       .send({ skuId, quantity: 2 })
       .expect(201);
 
     const quote1 = await request(app.getHttpServer()).post('/ordering/checkout/quote')
-      .set('Authorization', authToken).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
+      .set('Authorization', shopper).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
 
     const checkoutRes = await request(app.getHttpServer())
       .post('/ordering/checkout')
-      .set('Authorization', authToken)
+      .set('Authorization', shopper)
       .send({
         sessionId: customerId,
         customerName: 'Fulfill Tester',
@@ -145,16 +148,16 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     // ── Create a SECOND order+shipment for GLO-147 invalid-state tests ───────
     await request(app.getHttpServer())
       .post('/ordering/cart/add')
-      .set('Authorization', authToken)
+      .set('Authorization', shopper)
       .send({ skuId, quantity: 1 })
       .expect(201);
 
     const quote2 = await request(app.getHttpServer()).post('/ordering/checkout/quote')
-      .set('Authorization', authToken).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
+      .set('Authorization', shopper).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
 
     const co2 = await request(app.getHttpServer())
       .post('/ordering/checkout')
-      .set('Authorization', authToken)
+      .set('Authorization', shopper)
       .send({
         sessionId: customerId,
         customerName: 'Fulfill Tester',

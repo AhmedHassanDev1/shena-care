@@ -180,7 +180,7 @@ describe('GLO-238 COD settlement and supplier payable integrity (e2e)', () => {
       const supplier = await createActor(prisma, 'SUPPLIER', sku.supplierId);
       const orders = [];
       for (const quantity of quantities) {
-        const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity }]);
+        const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity }]);
         await settleEvents(order.id);
         orders.push(order);
       }

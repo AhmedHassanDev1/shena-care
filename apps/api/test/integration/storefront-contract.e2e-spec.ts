@@ -6,6 +6,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createSellableSku } from '../fixtures/sellable-sku';
+import { signInCustomer } from '../fixtures/checkout';
 
 /**
  * GLO-199 contract test: the storefront (apps/web) reads these exact fields. If the API renames, drops or
@@ -71,7 +72,8 @@ describe('Storefront contract (GLO-199)', () => {
 
     // Cart (lib/cart.ts BackendCart)
     const added = await http().post('/ordering/cart/add').send({ skuId: sku.id, quantity: 2 }).expect(201);
-    const cartToken = added.body.guestCartToken;
+    // Sign-in adopts the guest cart; checkout and order reads use the customer session (SAHEL V18).
+    const customer = await signInCustomer(app, added.body.guestCartToken);
     expectShape(added.body, { id: 'string', revision: 'number', items: 'array', totalAmount: 'number', guestCartToken: 'string' }, 'cart');
     expectShape(added.body.items[0], {
       skuId: 'string', quantity: 'number', price: 'number|null', priceAtAdd: 'number|null', priceChangedSinceAdd: 'boolean',
@@ -79,23 +81,23 @@ describe('Storefront contract (GLO-199)', () => {
     }, 'cart.item');
 
     // Checkout (lib/orders.ts CheckoutQuote / PlacedOrder)
-    const quote = (await http().post('/ordering/checkout/quote').set('x-cart-token', cartToken)
+    const quote = (await http().post('/ordering/checkout/quote').set(customer.auth)
       .send({ governorate: 'Cairo', area: 'Maadi' }).expect(201)).body;
     expectShape(quote, {
       quoteVersion: 'string', cartRevision: 'number', subtotal: 'number', shippingFee: 'number', codAmount: 'number',
       totalAmount: 'number', currency: 'string', governorate: 'string', area: 'string', items: 'array',
     }, 'quote');
     expectShape(quote.items[0], { skuId: 'string', productName: 'string', variantName: 'string', quantity: 'number', lineTotal: 'number' }, 'quote.item');
-    const placed = (await http().post('/ordering/checkout').set('x-cart-token', cartToken).send({
+    const placed = (await http().post('/ordering/checkout').set(customer.auth).send({
       customerName: 'Contract Customer', customerPhone: '01012345678', governorate: 'Cairo', area: 'Maadi',
       shippingAddress: '1 Contract Street', notes: 'Gate 2', latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true, quoteVersion: quote.quoteVersion, cartRevision: quote.cartRevision,
       idempotencyKey: 'contract-' + quote.quoteVersion,
     }).expect(201)).body;
-    expectShape(placed, { id: 'string', orderNumber: 'string', totalAmount: 'number', currency: 'string', guestAccessToken: 'string' }, 'order');
+    expectShape(placed, { id: 'string', orderNumber: 'string', totalAmount: 'number', currency: 'string' }, 'order');
 
-    // Tracking (lib/orders.ts OrderTracking) through the guest route and on-device token
-    const tracking = (await http().get(`/ordering/guest/orders/${placed.orderNumber}/tracking`)
-      .set('x-order-access-token', placed.guestAccessToken).expect(200)).body;
+    // Tracking (lib/orders.ts OrderTracking) for the signed-in customer
+    const tracking = (await http().get(`/ordering/orders/${placed.orderNumber}/tracking`)
+      .set(customer.auth).expect(200)).body;
     expectShape(tracking, {
       orderNumber: 'string', createdAt: 'string', status: 'string', customerName: 'string', deliveryAddress: 'object',
       amounts: 'object', items: 'array', timeline: 'array', delivery: 'object', actionRequired: 'object|null', resolutions: 'array',
@@ -103,8 +105,8 @@ describe('Storefront contract (GLO-199)', () => {
     expectShape(tracking.amounts, { originalCodAmount: 'number', currentCodAmount: 'number', subtotal: 'number', shippingFee: 'number', currency: 'string' }, 'tracking.amounts');
     expectShape(tracking.items[0], { id: 'string', productName: 'string|null', variantName: 'string|null', quantity: 'number', lineTotal: 'number', status: 'string' }, 'tracking.item');
     expectShape(tracking.delivery, { estimatedDate: 'string|null', deliveredAt: 'string|null', nextUpdateBy: 'string|null', promise: 'string|null' }, 'tracking.delivery');
-    const decisions = (await http().get(`/ordering/guest/orders/${placed.orderNumber}/availability-decisions`)
-      .set('x-order-access-token', placed.guestAccessToken).expect(200)).body;
+    const decisions = (await http().get(`/ordering/orders/${placed.orderNumber}/availability-decisions`)
+      .set(customer.auth).expect(200)).body;
     expect(Array.isArray(decisions)).toBe(true);
   });
 });

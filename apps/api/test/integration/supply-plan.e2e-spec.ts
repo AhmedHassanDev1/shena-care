@@ -5,6 +5,7 @@ import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { SupplyPlanService } from '../../src/modules/sourcing/services/supply-plan.service';
 import { createSellableSku } from '../fixtures/sellable-sku';
+import { signInCustomer } from '../fixtures/checkout';
 const request = require('supertest');
 
 describe('Availability confirmation and supply plan (e2e)', () => {
@@ -75,10 +76,10 @@ describe('Availability confirmation and supply plan (e2e)', () => {
     const product = await http().get('/products/' + fixture.productSlug).expect(200);
     const skuId = product.body.skus[0].id;
     const cart = await http().post('/ordering/cart/add').send({ skuId, quantity: 2 }).expect(201);
-    const token = cart.body.guestCartToken;
-    const quote = await http().post('/ordering/checkout/quote').set('x-cart-token', token)
+    const token = (await signInCustomer(app, cart.body.guestCartToken)).auth;
+    const quote = await http().post('/ordering/checkout/quote').set(token)
       .send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
-    const submitted = await http().post('/ordering/checkout').set('x-cart-token', token).send({
+    const submitted = await http().post('/ordering/checkout').set(token).send({
       customerName: 'Supply Customer', customerPhone: '01012345678', shippingAddress: '1 Supply Street',
       latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true, governorate: 'Cairo', area: 'Maadi', quoteVersion: quote.body.quoteVersion,
       cartRevision: quote.body.revision, idempotencyKey: randomUUID(),

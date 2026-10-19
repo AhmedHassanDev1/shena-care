@@ -64,7 +64,7 @@ describe('Red-team operational hardening RT04 / RT08 / RT14 (e2e)', () => {
 
   it('RT08: operator instructions sit beside the customer pin and never replace it', async () => {
     const sku = await createSellableSku(prisma);
-    const placed = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 1 }]);
+    const placed = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 1 }]);
     const shipment = await prisma.shipment.create({ data: { orderId: placed.id, locationId, status: 'packed' } });
     const run = await http().post('/fulfillment/delivery-batches').set(hub.auth).send({ hubId: locationId, name: 'RT run', driverId: driver.id }).expect(201);
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/stops`).set(hub.auth).send({ stops: [{ shipmentId: shipment.id }] }).expect(201);
@@ -94,7 +94,7 @@ describe('Red-team operational hardening RT04 / RT08 / RT14 (e2e)', () => {
   it('RT04: lot/expiry evidence is kept; an already-expired pack is held as a receiving exception', async () => {
     const sku = await createSellableSku(prisma);
     const supplier = await createActor(prisma, 'SUPPLIER', sku.supplierId);
-    const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 2 }]);
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 2 }]);
     for (let i = 0; i < 50 && await prisma.domainEvent.count({ where: { aggregateId: order.id, status: { not: 'delivered' } } }); i++) {
       await events.dispatchPending({ aggregateId: order.id });
     }

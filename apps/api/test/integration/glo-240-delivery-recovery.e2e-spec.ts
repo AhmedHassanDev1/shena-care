@@ -156,7 +156,7 @@ describe('GLO-240 failed delivery retry, return to sender and cancellation (e2e)
 
     it('cancels a placed order once, releases its supply plan, and is admin-only', async () => {
       const sku = await createSellableSku(prisma);
-      const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 2 }]);
+      const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 2 }]);
       await settleEvents(order.id);
       const cancel = (actor: Actor, body: Record<string, unknown> = { reasonCode: 'CUSTOMER_REQUEST', notes: 'Called support' }) =>
         http().post(`/ordering/orders/${order.id}/cancel`).set(actor.auth).send(body);
@@ -180,7 +180,7 @@ describe('GLO-240 failed delivery retry, return to sender and cancellation (e2e)
     it('cancels a packed parcel on a planning run with goods in flight and opens an exception', async () => {
       const sku = await createSellableSku(prisma);
       const supplier = await createActor(prisma, 'SUPPLIER', sku.supplierId);
-      const order = await placeGuestOrder(app.getHttpServer(), [{ skuId: sku.id, quantity: 3 }]);
+      const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 3 }]);
       await settleEvents(order.id);
       const [po] = (await http().post('/purchase-orders/batches').set(admin.auth).send({ supplierId: sku.supplierId }).expect(201)).body.purchaseOrders;
       await http().post(`/purchase-orders/${po.id}/confirm`).set(supplier.auth).send({ lines: [{ id: po.lines[0].id, status: 'confirmed_full' }] }).expect(201);
