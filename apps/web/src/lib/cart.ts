@@ -210,6 +210,35 @@ async function project(raw: BackendCart): Promise<Cart> {
 
 export { project as projectCart };
 
+/** Catalog display data for one SKU (orders draw thumbnails and sizes from it; the order keeps its own names). */
+export interface SkuCatalogEntry {
+  image: { url: string; alt: string } | null;
+  size: number | null;
+  sizeUnit: string | null;
+  slug: string;
+}
+
+/** Catalog display data for the given SKUs, from the same cached catalog the cart uses. */
+export async function catalogEntries(skuIds: string[]): Promise<Record<string, SkuCatalogEntry>> {
+  if (!skuIds.length) return {};
+  const wanted = new Set(skuIds);
+  const entries: Record<string, SkuCatalogEntry> = {};
+  for (const product of await loadCatalog()) {
+    const images = product.media.filter((item) => item.type === 'image' && item.url);
+    const image = images.find((item) => item.isPrimary) ?? images[0] ?? null;
+    for (const sku of product.skus) {
+      if (!wanted.has(sku.id)) continue;
+      entries[sku.id] = {
+        image: image ? { url: image.url, alt: image.altText?.trim() || product.name } : null,
+        size: sku.size,
+        sizeUnit: sku.sizeUnit,
+        slug: product.slug,
+      };
+    }
+  }
+  return entries;
+}
+
 export const cart = {
   async getCart(): Promise<Cart> {
     return project(await apiClient.get<BackendCart>('/ordering/cart', getCartOptions()));

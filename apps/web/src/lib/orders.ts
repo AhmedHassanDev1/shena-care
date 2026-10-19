@@ -322,4 +322,11 @@ export interface MyOrder {
   codAmount: number | null;
   currency: string;
   createdAt: string;
+  /** Customer stage, the same the order page shows (GET /ordering/orders). */
+  stage: CustomerStage;
+  /** Amount due now when decisions changed it. */
+  currentCodAmount: number;
+  itemCount: number;
+  /** Line SKUs, for catalog thumbnails. */
+  skuIds: string[];
 }

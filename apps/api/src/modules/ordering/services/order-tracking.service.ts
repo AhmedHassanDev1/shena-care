@@ -75,6 +75,38 @@ export class OrderTrackingService {
     return this.project(order);
   }
 
+  /**
+   * "طلباتي" (OrdersD, CommerceMobile ٦): the customer's own orders, newest first, each with the same customer stage
+   * the order page shows (so a list chip never disagrees with the detail), its item count and line SKUs (the
+   * storefront draws catalog thumbnails from them). The original summary fields are kept for existing consumers.
+   */
+  async listForCustomer(customerId: string, paging: { take: number; skip: number }) {
+    const where = { customerId };
+    const [total, rows] = await Promise.all([
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({ where, orderBy: { createdAt: 'desc' }, take: paging.take, skip: paging.skip, include: orderInclude }),
+    ]);
+    const items = [];
+    for (const order of rows) {
+      const tracking = await this.project(order);
+      const active = order.items.filter((item) => item.lineState === 'active');
+      items.push({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        stage: tracking.status,
+        totalAmount: Number(order.totalAmount),
+        codAmount: order.codAmount === null ? null : Number(order.codAmount),
+        currentCodAmount: tracking.amounts.currentCodAmount,
+        currency: order.currency,
+        createdAt: order.createdAt,
+        itemCount: active.reduce((sum, item) => sum + item.quantity, 0),
+        skuIds: [...new Set(active.map((item) => item.skuId).filter((id): id is string => !!id))],
+      });
+    }
+    return { total, items };
+  }
+
   async forGuest(orderNumber: string, token: string): Promise<CustomerOrderTrackingDto> {
     const order = await this.prisma.order.findFirst({
       where: {

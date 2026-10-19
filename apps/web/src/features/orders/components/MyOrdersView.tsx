@@ -2,147 +2,76 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageBox } from '@/components/ui/message-box';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@/components/ui/icon';
-import { Skeleton } from '@/components/ui/skeleton';
-import { auth } from '@/lib/auth';
-import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
-import { formatDate, formatEgp } from '@/lib/i18n/format';
-import { fillMessage } from '@/lib/i18n/messages';
-import { orders, type ReorderResult } from '@/lib/orders';
+import { useAuth } from '@/features/auth/AuthContext';
+import { useMessages } from '@/lib/i18n/LocaleProvider';
+import { orders } from '@/lib/orders';
 import { routes } from '@/lib/routes';
+import { cn } from '@/lib/utils';
+import { OrdersEmpty, OrdersList, OrdersListSkeleton, OrdersLoadFailed, OrdersSignIn } from './OrdersList';
+import { OrderTrackingView } from './OrderTrackingView';
 
-interface ReorderFeedback {
-  orderNumber: string;
-  result?: ReorderResult;
-  error?: boolean;
+function useDesktop(): boolean {
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1024px)');
+    const update = () => setDesktop(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return desktop;
 }
 
 /**
- * "My orders" (C0 W6): the signed-in customer's own orders. A guest who verifies the phone they ordered
- * with sees those orders here on any device; without signing in, only this device's order links work.
+ * «طلباتي» (OrdersD, CommerceMobile ٦/٦ب/٧). Desktop: the list at the reading start and the selected order's detail
+ * beside it (the newest when none is chosen). Phone: the list on /orders, the order alone on /orders/[id].
  */
-export function MyOrdersView() {
+export function MyOrdersView({ selected }: { selected?: string }) {
   const m = useMessages();
-  const locale = useLocale();
-  const queryClient = useQueryClient();
-  // Read after mount: the token lives in the browser, so server and first client render agree.
-  const [signedIn, setSignedIn] = useState(false);
-  const [reorderingNumber, setReorderingNumber] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<ReorderFeedback | null>(null);
+  const desktop = useDesktop();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const query = useQuery({ queryKey: ['my-orders'], queryFn: () => orders.listMine(), enabled: isAuthenticated });
+  const shown = selected ?? query.data?.items[0]?.orderNumber ?? null;
 
-  useEffect(() => setSignedIn(!!auth.getToken()), []);
-  const query = useQuery({ queryKey: ['my-orders'], queryFn: () => orders.listMine(), enabled: signedIn });
-
-  const handleReorder = async (orderNumber: string) => {
-    setReorderingNumber(orderNumber);
-    setFeedback(null);
-    try {
-      const result = await orders.reorder(orderNumber);
-      await queryClient.invalidateQueries({ queryKey: ['cart'] });
-      setFeedback({ orderNumber, result });
-    } catch {
-      setFeedback({ orderNumber, error: true });
-    } finally {
-      setReorderingNumber(null);
-    }
-  };
+  const list = authLoading || (isAuthenticated && query.isPending) ? (
+    <OrdersListSkeleton />
+  ) : !isAuthenticated ? (
+    <OrdersSignIn />
+  ) : query.isError ? (
+    <OrdersLoadFailed onRetry={() => query.refetch()} />
+  ) : query.data && query.data.items.length === 0 ? (
+    <OrdersEmpty />
+  ) : query.data ? (
+    <OrdersList orders={query.data.items} selected={desktop ? shown : null} filterable={!desktop} />
+  ) : null;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <h1 className="text-display-3 text-night">{m.myOrdersTitle}</h1>
-      {!signedIn ? (
-        <div className="space-y-3 rounded-card border border-line bg-linen p-4">
-          <p className="text-14 text-ink-2">{m.myOrdersSignIn}</p>
-          <Link href={`${routes.login}?returnTo=${encodeURIComponent('/orders')}`} className={buttonVariants()}>{m.myOrdersSignInButton}</Link>
-        </div>
-      ) : query.isPending ? (
-        <Skeleton className="h-32 w-full" />
-      ) : query.isError ? (
-        <MessageBox tone="err"><p className="text-14">{m.myOrdersLoadFailed}</p></MessageBox>
-      ) : query.data.items.length === 0 ? (
-        <p className="text-14 text-ink-2">{m.myOrdersEmpty}</p>
-      ) : (
-        <ul className="space-y-3">
-          {query.data.items.map((order) => {
-            const isReordering = reorderingNumber === order.orderNumber;
-            const currentFeedback = feedback?.orderNumber === order.orderNumber ? feedback : null;
+    <div className="pb-nav-safe">
+      <header className="mb-6 hidden lg:block">
+        <nav aria-label={m.myOrdersAccount} className="flex items-center gap-1.5 text-13.5">
+          <Link href={routes.account} className="text-link min-h-0">
+            {m.myOrdersAccount}
+          </Link>
+          <Icon name="chevron-forward" size={14} className="text-ink-3" />
+          <span aria-current="page" className="font-bold text-night">
+            {m.myOrdersTitle}
+          </span>
+        </nav>
+        <h1 className="m-0 mt-2 font-display text-44 font-extrabold leading-50 text-night">{m.myOrdersTitle}</h1>
+      </header>
 
-            return (
-              <li key={order.id} className="rounded-card border border-line bg-linen overflow-hidden">
-                <Link
-                  href={routes.order(order.orderNumber)}
-                  className="flex items-center justify-between gap-3 p-4 transition-colors hover:bg-sand/30"
-                >
-                  <span className="space-y-1">
-                    <bdi className="block text-14 font-semibold text-night">{order.orderNumber}</bdi>
-                    <span className="block text-12 text-ink-2">{formatDate(order.createdAt, locale)}</span>
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <bdi className="text-14 font-semibold text-night">{formatEgp(order.codAmount ?? order.totalAmount, order.currency, locale)}</bdi>
-                    <Icon name="chevron-forward" size={16} className="text-ink-3" />
-                  </div>
-                </Link>
-
-                <div className="border-t border-line bg-linen px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-                  <Button
-                    variant="light"
-                    size="s"
-                    loading={isReordering}
-                    onClick={() => handleReorder(order.orderNumber)}
-                  >
-                    <Icon name="retry" size={16} />
-                    <span>{m.buyAgain}</span>
-                  </Button>
-
-                  <Link
-                    href={routes.order(order.orderNumber)}
-                    className="text-12 text-ink-2 hover:text-night transition-colors"
-                  >
-                    {order.status}
-                  </Link>
-                </div>
-
-                {currentFeedback?.error ? (
-                  <div className="p-3 border-t border-line">
-                    <MessageBox tone="err">
-                      <p className="text-14">{m.unexpectedErrorDescription}</p>
-                    </MessageBox>
-                  </div>
-                ) : currentFeedback?.result ? (
-                  <div className="p-3 border-t border-line">
-                    {currentFeedback.result.summary.totalAdded > 0 ? (
-                      <MessageBox tone="ok">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <p className="text-14">
-                            {currentFeedback.result.summary.totalSkipped > 0
-                              ? fillMessage(m.buyAgainPartial, {
-                                  added: currentFeedback.result.summary.totalAdded,
-                                  skipped: currentFeedback.result.summary.totalSkipped,
-                                })
-                              : fillMessage(m.buyAgainSuccess, {
-                                  n: currentFeedback.result.summary.totalAdded,
-                                })}
-                          </p>
-                          <Link href={routes.cart} className={buttonVariants({ size: 's', variant: 'light' })}>
-                            {m.buyAgainViewCart}
-                          </Link>
-                        </div>
-                      </MessageBox>
-                    ) : (
-                      <MessageBox tone="warn">
-                        <p className="text-14">{m.buyAgainUnavailable}</p>
-                      </MessageBox>
-                    )}
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <div className="lg:grid lg:grid-cols-[365px_minmax(0,1fr)] lg:items-start lg:gap-8">
+        <section aria-label={m.myOrdersTitle} className={cn('lg:sticky lg:top-6', selected && 'hidden lg:block')}>
+          {list}
+        </section>
+        {(selected || desktop) && shown ? (
+          <section>
+            <OrderTrackingView key={shown} orderNumber={shown} />
+          </section>
+        ) : null}
+      </div>
     </div>
   );
 }

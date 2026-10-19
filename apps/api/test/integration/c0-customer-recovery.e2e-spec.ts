@@ -92,5 +92,12 @@ describe('C0 customer tracking and recovery', () => {
     await http().post(`/ordering/orders/${order.orderNumber}/customer-cancel`).set(stranger.auth).expect(404);
     await http().post(`/ordering/orders/${order.orderNumber}/customer-cancel`).set(auth).expect(201);
     await http().get('/ordering/orders').expect(401);
+
+    // «طلباتي» carries the same customer stage as the order page, the item count and the line SKUs.
+    const listed = (await http().get('/ordering/orders').set(auth).expect(200)).body.items
+      .find((o: { orderNumber: string }) => o.orderNumber === order.orderNumber);
+    const tracking = (await http().get(`/ordering/orders/${order.orderNumber}/tracking`).set(auth).expect(200)).body;
+    expect(listed).toMatchObject({ stage: tracking.status, itemCount: 1, skuIds: [sku.id], currency: 'EGP' });
+    expect(listed.stage).toBe('CANCELLED');
   });
 });

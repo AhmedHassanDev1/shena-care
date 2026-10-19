@@ -6,12 +6,14 @@ import { iconButtonVariants } from '@/components/ui/icon-button';
 import { getMessages } from '@/lib/i18n/messages';
 import { getLocale } from '@/lib/i18n/server';
 import { routes } from '@/lib/routes';
+import { cn } from '@/lib/utils';
+import { Wordmark } from '@/components/ui/wordmark';
 
 export interface FocusHeaderProps {
   /** Phone title (Beiruti 22/28, 800): «السلة», «إتمام الطلب». Omit on pages whose own h1 carries the title. */
   title?: ReactNode;
-  /** Phone back target and its accessible name («رجوع», «ارجع للسلة»). */
-  back: { href: string; label: string };
+  /** Phone back target and its accessible name («رجوع», «ارجع للسلة»). Omitted on a page with nowhere to go back to (Order placed). */
+  back?: { href: string; label: string };
   /** One action at the phone header's end (e.g. «دفع آمن»). */
   action?: ReactNode;
   /** Desktop: the underlined link at the reading end («ارجع للسلة»). Omit to show the full browsing header instead. */
@@ -30,17 +32,19 @@ export function FocusHeader({ title, back, action, desktopBack, secure }: FocusH
   const m = getMessages(getLocale());
   return (
     <header className="bg-bone shadow-hairline-bottom">
-      <div className="flex h-header-m items-center gap-0.5 px-2 lg:hidden">
-        <Link href={back.href} aria-label={back.label} className={iconButtonVariants()}>
-          <Icon name="chevron-back" size={22} strokeWidth={1.9} />
-        </Link>
+      <div className={cn("flex h-header-m items-center gap-0.5 lg:hidden", back ? "px-2" : "px-4")}>
+        {back ? (
+          <Link href={back.href} aria-label={back.label} className={iconButtonVariants()}>
+            <Icon name="chevron-back" size={22} strokeWidth={1.9} />
+          </Link>
+        ) : null}
         {title ? <h1 className="m-0 font-display text-22 font-extrabold leading-28">{title}</h1> : null}
         {action ? <span className="ms-auto flex items-center pe-1.5">{action}</span> : null}
       </div>
       {desktopBack ? (
         <PageContainer className="hidden items-center gap-6 py-3.5 lg:flex">
           <Link href={routes.home} aria-label={m.shellHome} className="inline-flex min-h-control-s items-center text-night no-underline">
-            <span className="font-display text-30 font-black leading-32">شينا كير</span>
+            <Wordmark />
           </Link>
           {secure ? <SecureBadge label={m.focusSecure} /> : null}
           <Link href={desktopBack.href} className="text-link ms-auto">

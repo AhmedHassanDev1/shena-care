@@ -8,4 +8,5 @@ export * from './dto/order.dto';
 export * from './dto/reconciliation.dto';
 export { navigationUrl, serviceGovernorate, assertDeliverablePin, SHINACARE_HUB_COORDINATES, getDeliveryHubCoordinates } from './services/service-area';
 export { customerMayCancel } from './services/customer-cancellation';
+export { OrderTrackingService } from './services/order-tracking.service';
 export { OrderLookupParamsDto, GuestOrderLookupParamsDto, GuestOrderAccessHeaderDto } from './dto/order-tracking.dto';

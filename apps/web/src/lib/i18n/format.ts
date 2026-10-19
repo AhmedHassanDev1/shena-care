@@ -89,3 +89,13 @@ export function formatProductCount(count: number, locale: Locale): string {
 export function isolateLtr(text: string): string {
   return `⁦${text}⁩`;
 }
+
+/** «١٨ أكتوبر · ٩:١٢ ص» / "Oct 18 · 9:12 AM" (Cairo time): a stage time on the order timeline (OrdersD). */
+export function formatDayTime(value: string | Date, locale: Locale): string {
+  const day = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
+    day: 'numeric',
+    month: locale === 'ar' ? 'long' : 'short',
+    timeZone: CAIRO,
+  }).format(new Date(value));
+  return `${day} · ${formatTime(value, locale)}`;
+}

@@ -6,7 +6,7 @@ import { CurrentUser } from '../../../modules/accounts/decorators/current-user.d
 import { PageQueryDto, page } from '../../../platform/api/paging.dto';
 import {
   CartService,
-  GuestOrderAccessHeaderDto, GuestOrderLookupParamsDto, OrderLookupParamsDto, OrderingService, customerMayCancel,
+  GuestOrderAccessHeaderDto, GuestOrderLookupParamsDto, OrderLookupParamsDto, OrderingService, OrderTrackingService, customerMayCancel,
   ReorderOrderDto,
 } from '../../../modules/ordering/public';
 import { FulfillmentService } from '../../../modules/fulfillment/public';
@@ -47,12 +47,13 @@ export class CustomerOrderActionsController {
     private readonly support: SupportService,
     private readonly cancellation: OrderCancellationService,
     private readonly cart: CartService,
+    private readonly tracking: OrderTrackingService,
   ) {}
 
   @Get('orders')
   @UseGuards(AuthGuard)
   myOrders(@CurrentUser() user: { id: string }, @Query() query: PageQueryDto) {
-    return this.ordering.listOrdersForCustomer(user.id, page(query));
+    return this.tracking.listForCustomer(user.id, page(query));
   }
 
   @Post('orders/:idOrOrderNumber/reorder')

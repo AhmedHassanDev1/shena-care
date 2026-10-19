@@ -26,6 +26,6 @@ import { OperationsModule } from '../operations/operations.module';
     AvailabilityDecisionController, GuestAvailabilityDecisionController,
     CustomerReturnsController, GuestReturnsController, PaymentWebhookController],
   providers: [OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, ReturnEligibilityService, PaymentsService],
-  exports: [OrderingService, CartService, ReconciliationService, PaymentsService],
+  exports: [OrderingService, CartService, ReconciliationService, PaymentsService, OrderTrackingService],
 })
 export class OrderingModule {}

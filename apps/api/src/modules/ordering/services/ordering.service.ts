@@ -478,16 +478,6 @@ export class OrderingService {
   }
 
   /** A signed-in customer's own orders, newest first (summary only). */
-  async listOrdersForCustomer(customerId: string, paging: { take: number; skip: number }) {
-    const where = { customerId };
-    const [total, rows] = await Promise.all([
-      this.prisma.order.count({ where }),
-      this.prisma.order.findMany({ where, orderBy: { createdAt: 'desc' }, take: paging.take, skip: paging.skip,
-        select: { id: true, orderNumber: true, status: true, totalAmount: true, codAmount: true, currency: true, createdAt: true } }),
-    ]);
-    return { total, items: rows.map(o => ({ ...o, totalAmount: Number(o.totalAmount), codAmount: o.codAmount === null ? null : Number(o.codAmount) })) };
-  }
-
   /**
    * Phone OTP proves control of the number the guest checked out with, so their guest orders join the
    * account (C0 W6 cross-device access). Only unowned orders move; from then on the account (not the
