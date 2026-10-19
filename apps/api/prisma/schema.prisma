@@ -1420,6 +1420,13 @@ enum IngestionItemEnrichmentStatus {
   @@schema("ingestion")
 }
 
+enum IngestionPriceType {
+  PURCHASE_COST
+  RETAIL_REFERENCE
+
+  @@schema("ingestion")
+}
+
 model IngestionItem {
   id               String                        @id @default(uuid()) @db.Uuid
   jobId            String                        @map("job_id") @db.Uuid
@@ -1428,6 +1435,7 @@ model IngestionItem {
   brand            String
   barcode          String?
   price            Decimal                       @db.Decimal(10, 2)
+  priceType        IngestionPriceType?           @map("price_type")
   currency         String                        @db.VarChar(3)
   status           IngestionStatus               @default(pending)
   matchedSkuId     String?                       @map("matched_sku_id") @db.Uuid

@@ -69,6 +69,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
             name: 'GLO77 New Serum',
             brand: 'GLO77 Brand',
             price: 350.0,
+            priceType: 'PURCHASE_COST',
             currency: 'EGP',
           },
         ],

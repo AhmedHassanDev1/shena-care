@@ -88,7 +88,7 @@ describe('GLO-123/124 media, tenant storage and publication invariants (PostgreS
     const id = randomUUID();
     const job = await prisma.ingestionJob.create({ data: { supplierId: supplierA, items: { create: {
       supplierSkuCode: `PIPE-${id}`, name: `Pipeline Cream ${id}`, brand: `Pipeline Brand ${id}`, barcode: id,
-      price: 50, currency: 'SAR', status: 'review_required', enrichment: { research: { fieldEvidences: [{
+      price: 50, priceType: 'PURCHASE_COST', currency: 'SAR', status: 'review_required', enrichment: { research: { fieldEvidences: [{
         fieldName: 'size', sourceUrl, sourceType: 'OFFICIAL_MANUFACTURER', verificationStatus: 'SUPPORTED', proposedValue: { value: 50, unit: 'ml' },
       }] } },
     } } }, include: { items: true } });

@@ -49,6 +49,11 @@ describe('Ingestion Lifecycle (e2e)', () => {
   });
 
   async function cleanFixture() {
+    const otherSupplier = await prisma.supplier.findUnique({ where: { slug: 'ingest-supplier-other' } });
+    if (otherSupplier) {
+      await prisma.supplierOffer.deleteMany({ where: { supplierId: otherSupplier.id } });
+      await prisma.supplier.delete({ where: { id: otherSupplier.id } });
+    }
     const supplier = await prisma.supplier.findUnique({ where: { slug: 'ingest-supplier' } });
     if (supplier) {
       await prisma.ingestionItem.deleteMany({ where: { job: { supplierId: supplier.id } } });
@@ -117,6 +122,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
             brand: 'IngestBrand',
             barcode: '1234567890123', // should match
             price: 150.5,
+            priceType: 'PURCHASE_COST',
             currency: 'EGP',
           },
           {
@@ -125,6 +131,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
             brand: 'IngestBrand',
             barcode: '0000000000000', // won't match
             price: 200,
+            priceType: 'PURCHASE_COST',
             currency: 'EGP',
           },
         ],
@@ -196,6 +203,13 @@ describe('Ingestion Lifecycle (e2e)', () => {
     expect(offers[0].skuId).toBe(skuId);
     expect(offers[0].costPrice.toNumber()).toBe(150.5);
 
+    const otherSupplier = await prisma.supplier.create({
+      data: { name: 'Other Ingest Supplier', slug: 'ingest-supplier-other' },
+    });
+    await prisma.supplierOffer.create({
+      data: { supplierId: otherSupplier.id, skuId, costPrice: 79, currency: 'EGP', isAvailable: true },
+    });
+
     // 7. duplicate publish is safe (fails with 400 Job is already published)
     await request(app.getHttpServer())
       .post(`/ingestion/jobs/${jobId}/publish`).set(admin.auth)
@@ -213,6 +227,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
             brand: 'IngestBrand',
             barcode: '1234567890123',
             price: 180, // price changed
+            priceType: 'PURCHASE_COST',
             currency: 'EGP',
           },
         ],
@@ -238,5 +253,52 @@ describe('Ingestion Lifecycle (e2e)', () => {
     expect(offersAfter[0].costPrice.toNumber()).toBe(150.5);
     expect(offersAfter[0].isAvailable).toBe(false);
     expect(offersAfter[0].lastConfirmedAt).toBeNull();
+    const otherOffer = await prisma.supplierOffer.findUniqueOrThrow({
+      where: { supplierId_skuId: { supplierId: otherSupplier.id, skuId } },
+    });
+    expect(otherOffer.costPrice.toNumber()).toBe(79);
+    expect(otherOffer.isAvailable).toBe(true);
+  });
+
+  it.each([
+    ['missing price type', undefined],
+    ['retail reference price', 'RETAIL_REFERENCE'],
+  ])('does not publish a %s as a supplier cost', async (_label, priceType) => {
+    const created = await request(app.getHttpServer()).post('/ingestion/jobs').set(admin.auth).send({
+      supplierId,
+      items: [{ supplierSkuCode: 'SUP-RETAIL', name: 'Exact Match Product', brand: 'IngestBrand',
+        barcode: '1234567890123', price: 150.5, priceType, currency: 'EGP' }],
+    }).expect(201);
+    const itemId = created.body.items[0].id;
+    const reviews = await reviewCandidateMedia(app, admin.auth, itemId, '1234567890123');
+    await request(app.getHttpServer()).patch(`/ingestion/items/${itemId}/approve`).set(admin.auth)
+      .send({ matchedSkuId: skuId, mediaReviews: reviews }).expect(200);
+
+    await request(app.getHttpServer()).post(`/ingestion/candidates/${itemId}/publish`).set(admin.auth).expect(400);
+    await request(app.getHttpServer()).post(`/ingestion/jobs/${created.body.id}/publish`).set(admin.auth).expect(400);
+    expect(await prisma.supplierOffer.count({ where: { supplierId, skuId } })).toBe(0);
+    expect((await prisma.ingestionItem.findUniqueOrThrow({ where: { id: itemId } })).status).toBe('approved');
+  });
+
+  it('clears purchase-cost classification when a reviewer changes the price without reclassifying it', async () => {
+    const created = await request(app.getHttpServer()).post('/ingestion/jobs').set(admin.auth).send({
+      supplierId,
+      items: [{ supplierSkuCode: 'SUP-EDIT', name: 'Exact Match Product', brand: 'IngestBrand',
+        barcode: '1234567890123', price: 100, priceType: 'PURCHASE_COST', currency: 'EGP' }],
+    }).expect(201);
+    const itemId = created.body.items[0].id;
+    const firstReviews = await reviewCandidateMedia(app, admin.auth, itemId, '1234567890123');
+    await request(app.getHttpServer()).patch(`/ingestion/items/${itemId}/approve`).set(admin.auth)
+      .send({ matchedSkuId: skuId, mediaReviews: firstReviews }).expect(200);
+
+    const changed = await request(app.getHttpServer()).patch(`/ingestion/candidates/${itemId}`).set(admin.auth)
+      .send({ price: 300 }).expect(200);
+    expect(changed.body).toMatchObject({ price: 300, priceType: null, status: 'review_required' });
+    const secondReviews = await reviewCandidateMedia(app, admin.auth, itemId, '1234567890123');
+    await request(app.getHttpServer()).patch(`/ingestion/items/${itemId}/approve`).set(admin.auth)
+      .send({ matchedSkuId: skuId, mediaReviews: secondReviews }).expect(200);
+
+    await request(app.getHttpServer()).post(`/ingestion/candidates/${itemId}/publish`).set(admin.auth).expect(400);
+    expect(await prisma.supplierOffer.count({ where: { supplierId, skuId } })).toBe(0);
   });
 });

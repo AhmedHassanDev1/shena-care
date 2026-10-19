@@ -33,7 +33,7 @@ describe('Product readiness: source -> human review -> catalog -> public PDP', (
   let productId: string;
   let itemId: string;
   const row = (n = 1) => ({ supplierSkuCode: `READY-${run}-${n}`, name: `Readiness Cream ${run}-${n}`,
-    brand: `Readiness ${run}`, barcode: `ready-${run}-${n}`, price: 31, currency: 'EGP', sourceRow: n + 1 });
+    brand: `Readiness ${run}`, barcode: `ready-${run}-${n}`, price: 31, priceType: 'PURCHASE_COST', currency: 'EGP', sourceRow: n + 1 });
   const auth = (role = 'ADMIN') => ({ Authorization: `Bearer ${tokens[role]}` });
 
   beforeAll(async () => {
@@ -117,7 +117,14 @@ describe('Product readiness: source -> human review -> catalog -> public PDP', (
     expect(result.body.id).toBe(source.jobId);
     const replay = await request(app.getHttpServer()).post('/ingestion/jobs').set(auth()).send(payload).expect(201);
     expect(replay.body.items.map((i: any) => i.id)).toEqual(result.body.items.map((i: any) => i.id));
+    await request(app.getHttpServer()).post('/ingestion/jobs').set(auth()).send({
+      ...payload, items: [{ ...row(101), priceType: 'RETAIL_REFERENCE' }],
+    }).expect(409);
+    await request(app.getHttpServer()).post('/ingestion/jobs').set(auth()).send({
+      ...payload, items: [{ ...row(101), priceType: undefined }],
+    }).expect(409);
     const persisted = await db.ingestionItem.findUniqueOrThrow({ where: { id: result.body.items[0].id } });
+    expect(persisted.priceType).toBe('PURCHASE_COST');
     expect(persisted.enrichment).toMatchObject({ source: { objectKey: source.sourceKey, row: 102 } });
     await request(app.getHttpServer()).get(`/storage/${source.sourceKey}`).expect(401);
     await request(app.getHttpServer()).get(`/storage/${source.sourceKey}`).set(auth('CUSTOMER')).expect(403);
@@ -269,7 +276,7 @@ describe('Product readiness: source -> human review -> catalog -> public PDP', (
 
   it('rejects invalid candidate corrections and supplier price precision before database writes', async () => {
     const item = await reviewedCandidate(5);
-    for (const change of [{ name: ' ' }, { brand: '' }, { supplierSkuCode: '' }, { currency: 'EG' }, { price: 1e100 }, { price: 1.001 }]) {
+    for (const change of [{ name: ' ' }, { brand: '' }, { supplierSkuCode: '' }, { currency: 'EG' }, { price: 1e100 }, { price: 1.001 }, { priceType: 'UNMAPPED' }]) {
       await request(app.getHttpServer()).patch(`/ingestion/candidates/${item.id}`).set(auth()).send(change).expect(400);
     }
     for (const price of [1e100, 1.001]) await request(app.getHttpServer()).post('/ingestion/jobs').set(auth())

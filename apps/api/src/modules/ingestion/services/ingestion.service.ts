@@ -6,7 +6,7 @@ import { ProductIdentityService, MatchClassification } from './product-identity.
 import { ProductResearchService } from './product-research.service';
 import { ProductContentService } from './product-content.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto } from '../dto/ingestion.dto';
-import { IngestionStatus, IngestionItemEnrichmentStatus } from '@prisma/client';
+import { IngestionStatus, IngestionItemEnrichmentStatus, IngestionPriceType } from '@prisma/client';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
 import { StorageService } from '../../../platform/storage/storage.service';
 import { requireMediaReview, isTrustedMediaSource } from '../../../platform/security/media-review';
@@ -26,6 +26,7 @@ export interface IngestionJobDetail {
     brand: string;
     barcode: string | null;
     price: number;
+    priceType: IngestionPriceType | null;
     currency: string;
     status: IngestionStatus;
     matchedSkuId: string | null;
@@ -123,6 +124,7 @@ export class IngestionService {
             const original = (item.enrichment as any)?.source?.input;
             return original && original.supplierSkuCode === input.supplierSkuCode && original.name === input.name &&
               original.brand === input.brand && original.barcode === (input.barcode ?? null) && original.price === input.price &&
+              (original.priceType ?? null) === (input.priceType ?? null) &&
               original.currency === input.currency && original.sourceRow === input.sourceRow;
           }));
           if (!same) throw new ConflictException('Source rows already imported with different input');
@@ -130,10 +132,11 @@ export class IngestionService {
         }
         if (source.status !== IngestionStatus.pending) throw new ConflictException('Source job is not pending');
         await tx.ingestionItem.createMany({ data: dto.items.map(input => ({ jobId: source.id, supplierSkuCode: input.supplierSkuCode,
-          name: input.name, brand: input.brand, barcode: input.barcode, price: input.price, currency: input.currency,
+          name: input.name, brand: input.brand, barcode: input.barcode, price: input.price,
+          priceType: input.priceType ?? null, currency: input.currency,
           enrichment: { source: { objectKey: source.sourceKey!, checksum: source.sourceChecksum!, row: input.sourceRow!,
             input: { supplierSkuCode: input.supplierSkuCode, name: input.name, brand: input.brand, barcode: input.barcode ?? null,
-              price: input.price, currency: input.currency, sourceRow: input.sourceRow! } } } }),
+              price: input.price, priceType: input.priceType ?? null, currency: input.currency, sourceRow: input.sourceRow! } } } }),
         ) });
         return tx.ingestionJob.findUniqueOrThrow({ where: { id: source.id }, include: { items: true } });
       }
@@ -147,6 +150,7 @@ export class IngestionService {
             brand: item.brand,
             barcode: item.barcode,
             price: item.price,
+            priceType: item.priceType ?? null,
             currency: item.currency,
           })),
         },
@@ -221,6 +225,7 @@ export class IngestionService {
       brand: item.brand,
       barcode: item.barcode,
       price: item.price.toNumber(),
+      priceType: item.priceType,
       currency: item.currency,
       status: item.status,
       matchedSkuId: item.matchedSkuId,
@@ -276,6 +281,7 @@ export class IngestionService {
       brand: item.brand,
       barcode: item.barcode,
       price: item.price.toNumber(),
+      priceType: item.priceType,
       currency: item.currency,
       status: item.status,
       matchedSkuId: item.matchedSkuId,
@@ -345,6 +351,8 @@ export class IngestionService {
         ...(dto.brand !== undefined && { brand: dto.brand }),
         ...(dto.barcode !== undefined && { barcode: dto.barcode }),
         ...(dto.price !== undefined && { price: dto.price }),
+        ...(dto.priceType !== undefined ? { priceType: dto.priceType } :
+          dto.price !== undefined ? { priceType: null } : {}),
         ...(dto.currency !== undefined && { currency: dto.currency }),
         matchedSkuId,
         status: IngestionStatus.review_required,
@@ -867,6 +875,10 @@ export class IngestionService {
 
     if (item.status !== IngestionStatus.approved) {
       throw new BadRequestException('Candidate item is not approved for publication yet');
+    }
+
+    if (item.priceType !== IngestionPriceType.PURCHASE_COST) {
+      throw new BadRequestException('Explicit purchase cost price type is required for offer publication');
     }
 
     const skuId = await this.ensureCanonicalSku(item, item.job.supplierId);

@@ -1,5 +1,6 @@
 import { IsString, IsNotEmpty, IsNumber, IsOptional, ValidateNested, ValidateIf, IsArray, Min, Max, IsIn, IsUrl, ArrayMaxSize, ArrayMinSize, IsBoolean, IsUUID, IsInt, Matches, MaxLength } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
+import { IngestionPriceType } from '@prisma/client';
 
 export class IngestionItemInput {
   @IsString()
@@ -32,6 +33,9 @@ export class IngestionItemInput {
   @Min(0)
   @Max(99999999.99)
   price: number;
+
+  @IsOptional() @IsIn([IngestionPriceType.PURCHASE_COST, IngestionPriceType.RETAIL_REFERENCE])
+  priceType?: IngestionPriceType;
 
   @IsString()
   @IsNotEmpty()
@@ -162,6 +166,9 @@ export class UpdateCandidateDto {
   @Min(0)
   @Max(99999999.99)
   price?: number;
+
+  @IsOptional() @IsIn([IngestionPriceType.PURCHASE_COST, IngestionPriceType.RETAIL_REFERENCE])
+  priceType?: IngestionPriceType;
 
   @IsOptional()
   @IsString()
