@@ -2,7 +2,7 @@ import Link from 'next/link'
 import {
   FileText, Heart, HelpCircle, History,
   Home, LogOut, PackageOpen, Printer, Route, ScanLine, Search,
-  ShoppingBag, Store, Truck, UserRound, Wallet,
+  ShieldAlert, ShoppingBag, Store, Truck, UserRound, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -26,8 +26,9 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'attention', label: 'نظرة عامة', icon: Home, href: '/admin' },
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
       { id: 'sourcing', label: 'الموردين والشراء', icon: Store, href: '/admin/sourcing' },
-      { id: 'hub', label: 'المخزن والتجهيز', icon: PackageOpen, href: '/hub' },
-      { id: 'dispatch', label: 'التوصيل والمندوبين', icon: Truck, href: '/hub/dispatch' },
+      { id: 'hub', label: 'المخزن والتجهيز', icon: PackageOpen, href: '/admin/hub' },
+      { id: 'delivery', label: 'عمليات التوصيل', icon: Truck, href: '/admin/delivery' },
+      { id: 'exceptions', label: 'مركز الاستثناءات', icon: ShieldAlert, href: '/admin/exceptions' },
       { id: 'cod', label: 'المالية والتحصيل', icon: Wallet, href: '/admin/cash' },
     ],
   },
@@ -61,20 +62,20 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
 function Wordmark({ onKohl }: { onKohl?: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#ff783d]/25 to-[#ff783d]/10 text-[#ff783d] ring-1 ring-[#ff783d]/35 shadow-[0_0_12px_rgba(255,120,61,0.25)]">
-        <Heart className="size-4.5 fill-[#ff783d] text-[#ff783d]" />
+      <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#34d27b]/25 to-[#34d27b]/10 text-[#34d27b] ring-1 ring-[#34d27b]/35 shadow-[0_0_12px_rgba(52,210,123,0.25)]">
+        <Heart className="size-4.5 fill-[#34d27b] text-[#34d27b]" />
       </div>
       <div className="flex flex-col">
         <div className="flex items-center gap-1.5">
           <span className={cn('font-bw-display text-base font-extrabold tracking-tight', onKohl ? 'text-bw-on-kohl' : 'text-bw-ink')}>
-            شينا كير
+            ShinaCare
           </span>
-          <span className="text-[10px] font-bold text-[#ff783d] bg-[#ff783d]/15 px-1.5 py-0.2 rounded-full border border-[#ff783d]/25">
+          <span className="text-[10px] font-bold text-[#34d27b] bg-[#34d27b]/15 px-1.5 py-0.2 rounded-full border border-[#34d27b]/25">
             أعمال
           </span>
         </div>
-        <span className="text-[9px] font-semibold tracking-wider text-bw-ink-subtle">
-          SevenTeen® Architecture · ShinaCare
+        <span className="text-[10px] text-bw-ink-subtle">
+          لوحة العمليات الموحدة
         </span>
       </div>
     </div>
@@ -216,7 +217,7 @@ export function WorkspaceFrame({
                     : 'border-transparent text-bw-ink-soft hover:bg-white/[0.03] hover:text-bw-ink',
                 )}
               >
-                <item.icon className={cn('size-4 transition-transform duration-200 group-hover:scale-105', isActive ? 'text-[#ff783d] drop-shadow-[0_0_8px_rgba(255,120,61,0.6)]' : 'text-bw-ink-subtle group-hover:text-bw-ink')} aria-hidden />
+                <item.icon className={cn('size-4 transition-transform duration-200 group-hover:scale-105', isActive ? 'text-[#34d27b] drop-shadow-[0_0_8px_rgba(52,210,123,0.6)]' : 'text-bw-ink-subtle group-hover:text-bw-ink')} aria-hidden />
                 <span className="flex-1">{item.label}</span>
                 {isActive ? (
                   <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] ms-1" />
@@ -233,7 +234,7 @@ export function WorkspaceFrame({
           </button>
           <div className="flex items-center justify-between gap-2.5 rounded-xl border border-white/[0.06] bg-bw-surface/70 p-2.5 text-xs text-bw-ink-soft">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex size-7.5 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#ff783d]/25 to-[#ff783d]/10 text-xs font-bold text-[#ff783d] border border-[#ff783d]/30 shadow-xs">
+              <div className="flex size-7.5 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#34d27b]/25 to-[#34d27b]/10 text-xs font-bold text-[#34d27b] border border-[#34d27b]/30 shadow-xs">
                 {operator.slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0">

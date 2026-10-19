@@ -24,7 +24,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
       <header className="bg-bone max-lg:shadow-hairline-bottom">
         <div className="flex h-header-m items-center justify-between pe-4 ps-2 lg:hidden">
           <AuthBackLink variant="phone" />
-          <Link href={routes.home} aria-label={m.shellHome} className="text-night no-underline">
+          <Link href={routes.home} aria-label={m.shellHome} className="inline-flex min-h-control-s items-center text-night no-underline">
             <Wordmark />
           </Link>
         </div>

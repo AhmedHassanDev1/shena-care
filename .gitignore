@@ -10,7 +10,8 @@ coverage/
 jest_output.txt
 .codex/qa-logs/
 *.qa-backup/
-
+uploads
+docs
 # Production
 dist/
 build/

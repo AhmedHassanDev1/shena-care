@@ -31,7 +31,7 @@ export function QuantityStepper({ value, displayValue, min = 1, max, onChange, l
   const commerce = tone === "commerce"
   const button = cn(
     "flex h-control-s items-center justify-center disabled:cursor-not-allowed disabled:text-ink-3",
-    commerce ? "w-11 text-blue-deep" : "w-10 text-night"
+    "w-11", commerce ? "text-blue-deep" : "text-night"
   )
   return (
     <span

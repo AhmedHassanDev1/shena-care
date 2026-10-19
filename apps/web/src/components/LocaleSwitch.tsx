@@ -27,7 +27,7 @@ export function LocaleSwitch({ tone = 'onLight', className }: { tone?: 'onLight'
       type="button"
       onClick={switchLocale}
       className={cn(
-        'inline-flex min-h-control-s items-center bg-transparent px-0 font-text text-12 font-semibold underline underline-offset-4',
+        'inline-flex min-h-control-s min-w-control-s items-center justify-center bg-transparent px-0 font-text text-12 font-semibold underline underline-offset-4',
         tone === 'onNight' ? 'text-bone hover:text-saffron' : 'text-night hover:text-blue',
         className
       )}

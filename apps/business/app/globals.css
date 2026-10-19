@@ -2,6 +2,7 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import '../design/tokens.css';
+@import '../design/glow.css';
 
 :root { --navy:#08090c; --navy-2:#14171d; --navy-3:#1b1f27; --ink:#f4f6f8; --muted:#bac2cc; --line:rgba(255,255,255,.07); --surface:#14171d; --bg:#090b0e; --indigo:#ff783d; --green:#79dfb3; --amber:#ffd486; --red:#ff9eaa; --blue:#9bc1ff; }
 @theme inline { --color-background:var(--color-bw-page); --color-foreground:var(--color-bw-ink); --color-card:var(--color-bw-surface); --color-card-foreground:var(--color-bw-ink); --color-primary:var(--color-bw-action); --color-primary-foreground:var(--color-bw-on-action); --color-secondary:var(--color-bw-sunken); --color-secondary-foreground:var(--color-bw-ink); --color-muted:var(--color-bw-sunken); --color-muted-foreground:var(--color-bw-ink-soft); --color-border:var(--color-bw-line); --color-input:var(--color-bw-line-field); --color-ring:var(--color-bw-focus); --radius-sm:var(--radius-bw-field); --radius-md:var(--radius-bw-field); --radius-lg:var(--radius-bw-card); }

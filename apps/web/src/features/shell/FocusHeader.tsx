@@ -12,6 +12,8 @@ import { Wordmark } from '@/components/ui/wordmark';
 export interface FocusHeaderProps {
   /** Phone title (Beiruti 22/28, 800): «السلة», «إتمام الطلب». Omit on pages whose own h1 carries the title. */
   title?: ReactNode;
+  /** The title is only a label (the page body carries its own h1, e.g. Order placed): not a heading. */
+  titleIsLabel?: boolean;
   /** Phone back target and its accessible name («رجوع», «ارجع للسلة»). Omitted on a page with nowhere to go back to (Order placed). */
   back?: { href: string; label: string };
   /** One action at the phone header's end (e.g. «دفع آمن»). */
@@ -28,7 +30,8 @@ export interface FocusHeaderProps {
  *  - desktop (CheckoutD / AuthEntryD): wordmark (30/32), optional «دفع آمن», and the back link at the reading end.
  * No floating nav on these pages.
  */
-export function FocusHeader({ title, back, action, desktopBack, secure }: FocusHeaderProps) {
+export function FocusHeader({ title, titleIsLabel, back, action, desktopBack, secure }: FocusHeaderProps) {
+  const Title = titleIsLabel ? "p" : "h1";
   const m = getMessages(getLocale());
   return (
     <header className="bg-bone shadow-hairline-bottom">
@@ -38,7 +41,7 @@ export function FocusHeader({ title, back, action, desktopBack, secure }: FocusH
             <Icon name="chevron-back" size={22} strokeWidth={1.9} />
           </Link>
         ) : null}
-        {title ? <h1 className="m-0 font-display text-22 font-extrabold leading-28">{title}</h1> : null}
+        {title ? <Title className="m-0 font-display text-22 font-extrabold leading-28">{title}</Title> : null}
         {action ? <span className="ms-auto flex items-center pe-1.5">{action}</span> : null}
       </div>
       {desktopBack ? (

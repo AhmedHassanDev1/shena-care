@@ -81,7 +81,7 @@ export function ProductCard({ product, priority = false, feature = false }: { pr
         <span lang="en" dir="ltr" className="truncate text-10.5 font-semibold leading-13 tracking-brand text-ink-2 text-match-parent lg:text-11">
           {product.brandName.toUpperCase()}
         </span>
-        <Link href={href} className="group/name flex flex-col py-px text-night no-underline">
+        <Link href={href} className="group/name -my-2.5 flex flex-col py-2.5 text-night no-underline">
           <span
             dir="auto"
             className="line-clamp-2 min-h-10 text-14 font-semibold leading-20 text-match-parent group-hover/name:underline group-hover/name:underline-offset-[5px] lg:line-clamp-1 lg:min-h-0 lg:leading-22"

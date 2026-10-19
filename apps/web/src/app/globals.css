@@ -152,6 +152,7 @@ bdi {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
+    min-width: 44px;
     color: var(--night);
     font-size: 14px;
     font-weight: 600;

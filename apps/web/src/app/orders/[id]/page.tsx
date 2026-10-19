@@ -21,7 +21,7 @@ export default function OrderPage({ params, searchParams }: { params: { id: stri
   const orderNumber = decodeURIComponent(params.id);
   if (searchParams.placed === '1') {
     return (
-      <StorefrontShell nav="none" phoneHeader={<FocusHeader title={m.confirmHeader} />}>
+      <StorefrontShell nav="none" phoneHeader={<FocusHeader title={m.confirmHeader} titleIsLabel />}>
         <PageContainer className="lg:pb-24">
           <OrderTrackingView orderNumber={orderNumber} placed />
         </PageContainer>

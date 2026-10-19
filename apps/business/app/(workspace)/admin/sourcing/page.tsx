@@ -2,9 +2,11 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { AlertTriangle, ArrowLeft, ShieldAlert, Store } from 'lucide-react'
 import { Button, Code, DataTable, Field, Notice, PageHeader, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
 import { CommandError, Egp, Page, Select, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
+import { SupplierPerformanceTable } from '@/components/admin/sourcing/supplier-performance-table'
 import { api } from '@/lib/api'
 import { PAYABLE_STATUS, PO_LINE_STATUS, PO_STATUS, SUPPLIER_EXCEPTIONS, formatDateTime, shortId } from '@/lib/labels'
 import { useApi, useCommand } from '@/lib/use-api'
@@ -38,7 +40,40 @@ export default function AdminSourcing() {
       <Page>
         <PageHeader title="الموردين وأوامر الشراء" meta="أمر الشراء الواحد ممكن يغطي كذا طلب عميل؛ كل كمية مربوطة بطلبها." />
 
-        <Section title="تجميع الطلبات المعلقة في أوامر شراء">
+        {/* Exceptions Intervention Banner */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-amber-500/25 bg-amber-500/[0.04]">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-lg bg-amber-500/15 text-[#f5a524] flex items-center justify-center shrink-0">
+              <ShieldAlert className="size-4.5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-white">استنفاد مسارات التوريد الآلية؟</h4>
+              <p className="text-[11px] text-bw-ink-soft">
+                في حال رفض الموردين أو انتهاء مهلة التأكيد دون بديل تلقائي متاح، يتم تصعيد الحالة فوراً لمركز الاستثناءات.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/exceptions"
+            className="sc-btn sm secondary shrink-0 flex items-center gap-1.5 text-xs text-amber-400"
+          >
+            <span>مركز الاستثناءات</span>
+            <ArrowLeft className="size-3.5" />
+          </Link>
+        </div>
+
+        {/* Supplier Network Performance Section */}
+        <Section title="أداء وموثوقية شبكة الموردين في القاهرة والجيزة">
+          <div className="sc-card p-4 border-white/[0.08] bg-bw-surface space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-bw-ink-soft">
+                متابعة معدلات التأكيد في الموعد ومتوسط سرعة استجابة الصيدليات الشريكة ومستودعات التوريد.
+              </p>
+              <span className="sc-badge t-success text-[11px]">محدّث لحظياً</span>
+            </div>
+            <SupplierPerformanceTable />
+          </div>
+        </Section>
           <form className="flex flex-wrap items-end gap-3" onSubmit={async (e) => {
             e.preventDefault()
             const done = await flush.execute()

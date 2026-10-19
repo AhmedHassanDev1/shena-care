@@ -39,7 +39,7 @@ export function PlpHeader({ context, total, prints, tree, filters, onNavigate }:
     <nav aria-label={m.plpBreadcrumb}>
       <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-12.5 leading-20 lg:text-13">
         <li className="inline-flex items-center gap-2">
-          <Link href={routes.home} className="inline-flex min-h-control-s items-center font-medium text-inherit underline decoration-1 underline-offset-[5px]">
+          <Link href={routes.home} className="inline-flex min-h-control-s min-w-control-s items-center justify-center font-medium text-inherit underline decoration-1 underline-offset-[5px]">
             {m.plpHome}
           </Link>
           <span aria-hidden="true" className="opacity-70">
@@ -48,7 +48,7 @@ export function PlpHeader({ context, total, prints, tree, filters, onNavigate }:
         </li>
         {middle ? (
           <li className="inline-flex items-center gap-2">
-            <Link href={middle.href} className="inline-flex min-h-control-s items-center font-medium text-inherit underline decoration-1 underline-offset-[5px]">
+            <Link href={middle.href} className="inline-flex min-h-control-s min-w-control-s items-center justify-center font-medium text-inherit underline decoration-1 underline-offset-[5px]">
               {middle.label}
             </Link>
             <span aria-hidden="true" className="opacity-70">

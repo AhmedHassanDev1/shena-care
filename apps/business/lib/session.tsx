@@ -37,31 +37,12 @@ export function homeFor(me: WorkspaceMe): string {
   return '/login'
 }
 
-const DEV_DEFAULT_ME: WorkspaceMe = {
-  id: 'dev-admin-id',
-  name: 'مدير النظام (تطوير)',
-  email: 'admin@shenacare.dev',
-  roles: ['ADMIN', 'HUB_OPERATOR'],
-  supplierId: null,
-  supplierName: null,
-  hubLocations: [
-    { id: 'dev-hub-1', name: 'المخزن الرئيسي', address: 'المعادي، القاهرة' },
-  ],
-}
-
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<SessionState>({ status: 'loading' })
 
   const load = React.useCallback(async () => {
-    let token = getToken()
-    if (!token && process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_SESSION_TOKEN) {
-      token = process.env.NEXT_PUBLIC_DEV_SESSION_TOKEN
-      setToken(token)
-    }
+    const token = getToken()
     if (!token) {
-      if (process.env.NODE_ENV === 'development') {
-        return setState({ status: 'ready', me: DEV_DEFAULT_ME })
-      }
       return setState({ status: 'anonymous' })
     }
     try {
@@ -69,9 +50,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setToken(null)
-      }
-      if (process.env.NODE_ENV === 'development') {
-        return setState({ status: 'ready', me: DEV_DEFAULT_ME })
       }
       setState({ status: 'anonymous' })
     }
@@ -81,11 +59,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     load()
     return onUnauthorized(() => {
       setToken(null)
-      if (process.env.NODE_ENV === 'development') {
-        setState({ status: 'ready', me: DEV_DEFAULT_ME })
-      } else {
-        setState({ status: 'anonymous' })
-      }
+      setState({ status: 'anonymous' })
     })
   }, [load])
 

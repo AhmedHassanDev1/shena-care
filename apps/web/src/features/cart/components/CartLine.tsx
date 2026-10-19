@@ -97,7 +97,7 @@ export function CartLine({ item, busy, priceReview, onQuantity, onRemove, onPric
             </span>
           ) : null}
           {href ? (
-            <Link href={href} dir="auto" className="text-match-parent text-15 font-semibold leading-23 text-night no-underline lg:text-16 lg:leading-24">
+            <Link href={href} dir="auto" className="text-match-parent -my-2.5 py-2.5 text-15 font-semibold leading-23 text-night no-underline lg:text-16 lg:leading-24">
               {name}
             </Link>
           ) : (

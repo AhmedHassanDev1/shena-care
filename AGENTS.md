@@ -37,3 +37,4 @@ For storefront changes, also run `tokens:check` and `check:design`.
 
 Handoff: changed paths, commit SHA, verification, unresolved risks and next action.
 Do not push, merge or publish without authorization.
+Architecture Rule: Evaluate external integrations and replaceable infrastructure for provider abstraction. Introduce narrow, stable interfaces when switching costs, vendor dependency, or expected change justify them. Use dependency injection and configuration for provider selection. Implement only the currently required adapter. Avoid speculative abstractions, generic frameworks, and unnecessary architectural layers. Keep business rules provider-independent.

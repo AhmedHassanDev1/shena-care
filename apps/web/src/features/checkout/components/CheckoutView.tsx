@@ -51,6 +51,13 @@ const pinOf = (address: CustomerAddress): LocationPin => ({
   confirmed: true,
 });
 
+/** Errors are announced (role=alert); focus follows to the first field to fix once it is on screen. */
+function focusFirstInvalid(sectionId: string) {
+  window.requestAnimationFrame(() => {
+    document.querySelector<HTMLElement>(`section[aria-labelledby="${sectionId}"] [aria-invalid="true"]`)?.focus();
+  });
+}
+
 const normalisePhone = (value: string) => toLatinDigits(value).replace(/[\s-]/g, '');
 
 /** Problems with the place-order request the customer must act on (CommerceStates §١ «خلص وقت التأكيد», §٣). */
@@ -178,7 +185,10 @@ export function CheckoutView() {
     if (!phone) errors.phone = m.checkoutRequired;
     else if (!EGYPT_MOBILE.test(phone)) errors.phone = m.checkoutPhoneInvalid;
     setRecipientErrors(errors);
-    if (Object.keys(errors).length) setEditingRecipient(true);
+    if (Object.keys(errors).length) {
+      setEditingRecipient(true);
+      focusFirstInvalid('co-recipient');
+    }
     return Object.keys(errors).length === 0;
   };
 
@@ -190,6 +200,8 @@ export function CheckoutView() {
     if (!draftAddress.pin?.confirmed) errors.pin = m.checkoutPinMissing;
     setAddressErrors(errors);
     const recipientOk = validateRecipient();
+    if (!recipientOk) return;
+    if (Object.keys(errors).length) focusFirstInvalid('co-address');
     if (Object.keys(errors).length || !recipientOk || saveState === 'pending') return;
     const pin = draftAddress.pin as LocationPin;
     setSaveState('pending');

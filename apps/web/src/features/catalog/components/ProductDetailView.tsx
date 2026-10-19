@@ -157,7 +157,7 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
               href={`${routes.products}?brand=${encodeURIComponent(product.brand.slug)}`}
               lang="en"
               dir="ltr"
-              className="self-end text-12 font-bold leading-17 tracking-brand text-night underline decoration-1 underline-offset-[5px]"
+              className="-my-3.5 min-w-control-s self-end py-3.5 text-12 font-bold leading-17 tracking-brand text-night underline decoration-1 underline-offset-[5px]"
             >
               {product.brand.name.toUpperCase()}
             </Link>
@@ -176,7 +176,7 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
 
           <DeliveryDisclosure />
 
-          <Link href={shellRoutes.shina} className="flex items-center gap-3 self-start text-15 font-semibold text-night no-underline">
+          <Link href={shellRoutes.shina} className="flex min-h-control-s items-center gap-3 self-start text-15 font-semibold text-night no-underline">
             <span aria-hidden="true" className="sun-orb size-6.5" />
             <span className="underline decoration-1 underline-offset-[6px]">{m.pdpAskShina}</span>
           </Link>
