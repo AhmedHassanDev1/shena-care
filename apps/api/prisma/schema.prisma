@@ -276,6 +276,7 @@ model Supplier {
   payables       SupplierPayable[]
   skuAliases     SupplierSkuAlias[]
   accounts       Customer[]
+  exportProfiles ExportProfile[]
 
   @@map("suppliers")
   @@schema("sourcing")
@@ -458,6 +459,7 @@ model SupplierPurchaseOrder {
   /// Procurement batch run that consolidated this PO (GLO-237); null for manual POs.
   batchRef   String?             @map("batch_ref") @db.VarChar(64)
   issuedAt   DateTime?           @map("issued_at")
+  openedAt   DateTime?           @map("opened_at")
   confirmedAt DateTime?          @map("confirmed_at")
   readyAt    DateTime?           @map("ready_at")
   receivedAt DateTime?           @map("received_at")
@@ -1395,20 +1397,56 @@ enum IngestionStatus {
   @@schema("ingestion")
 }
 
-model IngestionJob {
-  id             String          @id @default(uuid()) @db.Uuid
-  supplierId     String          @map("supplier_id") @db.Uuid
-  status         IngestionStatus @default(pending)
-  sourceKey      String?         @map("source_key")
-  sourceChecksum String?         @map("source_checksum")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
+enum IngestionImportMode {
+  FULL_SNAPSHOT
+  PARTIAL_UPDATE
 
-  items    IngestionItem[]
-  supplier Supplier        @relation(fields: [supplierId], references: [id])
+  @@schema("ingestion")
+}
+
+model IngestionJob {
+  id                String              @id @default(uuid()) @db.Uuid
+  supplierId        String              @map("supplier_id") @db.Uuid
+  status            IngestionStatus     @default(pending)
+  mode              IngestionImportMode @default(PARTIAL_UPDATE) @map("mode")
+  sourceKey         String?             @map("source_key")
+  sourceChecksum    String?             @map("source_checksum")
+  formatFingerprint String?             @map("format_fingerprint")
+  profileId         String?             @map("profile_id") @db.Uuid
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  items         IngestionItem[]
+  supplier      Supplier       @relation(fields: [supplierId], references: [id])
+  exportProfile ExportProfile? @relation(fields: [profileId], references: [id])
 
   @@index([supplierId])
+  @@index([formatFingerprint])
   @@map("ingestion_jobs")
+  @@schema("ingestion")
+}
+
+model ExportProfile {
+  id                String    @id @default(uuid()) @db.Uuid
+  supplierId        String    @map("supplier_id") @db.Uuid
+  name              String
+  formatFingerprint String    @map("format_fingerprint")
+  version           Int       @default(1)
+  isApproved        Boolean   @default(false) @map("is_approved")
+  approvedBy        String?   @map("approved_by")
+  approvedAt        DateTime? @map("approved_at")
+  mapping           Json
+  sampleHeaders     String[]  @map("sample_headers")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  supplier Supplier       @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  jobs     IngestionJob[]
+
+  @@unique([supplierId, formatFingerprint, version])
+  @@index([supplierId])
+  @@index([formatFingerprint])
+  @@map("export_profiles")
   @@schema("ingestion")
 }
 
@@ -1436,6 +1474,7 @@ model IngestionItem {
   barcode          String?
   price            Decimal                       @db.Decimal(10, 2)
   priceType        IngestionPriceType?           @map("price_type")
+  reportedQuantity Int?                          @map("reported_quantity")
   currency         String                        @db.VarChar(3)
   status           IngestionStatus               @default(pending)
   matchedSkuId     String?                       @map("matched_sku_id") @db.Uuid
@@ -1485,6 +1524,56 @@ model ProductContentDraft {
 
   @@index([candidateId])
   @@map("product_content_drafts")
+  @@schema("ingestion")
+}
+
+model BrandDraft {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String
+  canonicalName    String   @map("canonical_name")
+  slug             String   @unique
+  aliases          String[]
+  descriptionEn    String?  @map("description_en")
+  descriptionAr    String?  @map("description_ar")
+  websiteUrl       String?  @map("website_url")
+  countryOfOrigin  String?  @map("country_of_origin")
+  logoUrl          String?  @map("logo_url")
+  logoMetadata     Json?    @map("logo_metadata")
+  status           String   @default("PENDING_REVIEW")
+  rejectionReason  String?  @map("rejection_reason")
+  reviewedBy       String?  @map("reviewed_by")
+  reviewedAt       DateTime? @map("reviewed_at")
+  evidence         Json?
+  canonicalBrandId String?  @map("canonical_brand_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  productLines ProductLineDraft[]
+
+  @@index([canonicalName])
+  @@index([status])
+  @@map("brand_drafts")
+  @@schema("ingestion")
+}
+
+model ProductLineDraft {
+  id              String   @id @default(uuid()) @db.Uuid
+  brandDraftId    String   @map("brand_draft_id") @db.Uuid
+  name            String
+  slug            String
+  descriptionEn   String?  @map("description_en")
+  descriptionAr   String?  @map("description_ar")
+  status          String   @default("PENDING_REVIEW")
+  rejectionReason String?  @map("rejection_reason")
+  canonicalLineId String?  @map("canonical_line_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  brandDraft BrandDraft @relation(fields: [brandDraftId], references: [id], onDelete: Cascade)
+
+  @@unique([brandDraftId, slug])
+  @@index([brandDraftId])
+  @@map("product_line_drafts")
   @@schema("ingestion")
 }
 
@@ -1749,6 +1838,7 @@ model Customer {
   email     String   @unique
   roles     Role[]   @default([CUSTOMER])
   supplierId String? @map("supplier_id") @db.Uuid
+  isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

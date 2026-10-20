@@ -8,6 +8,7 @@ import { FormatFingerprintService } from './services/format-fingerprint.service'
 import { ExportProfileService } from './services/export-profile.service';
 import { RowNormalizationService } from './services/row-normalization.service';
 import { OfferBatchCommitService } from './services/offer-batch-commit.service';
+import { BrandEnrichmentService } from './services/brand-enrichment.service';
 import { IngestionController } from './ingestion.controller';
 import { CatalogModule } from '../catalog/public';
 import { SourcingModule } from '../sourcing/public';
@@ -27,6 +28,7 @@ import { StorageModule } from '../../platform/storage/storage.module';
     ExportProfileService,
     RowNormalizationService,
     OfferBatchCommitService,
+    BrandEnrichmentService,
   ],
   exports: [
     IngestionService,
@@ -38,6 +40,7 @@ import { StorageModule } from '../../platform/storage/storage.module';
     ExportProfileService,
     RowNormalizationService,
     OfferBatchCommitService,
+    BrandEnrichmentService,
   ],
 })
 export class IngestionModule {}

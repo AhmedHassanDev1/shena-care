@@ -4,6 +4,8 @@ import { IngestionService } from './services/ingestion.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto, SupplierSourceUploadDto, ReviewCandidateContentDto, RecordCandidateEvidenceDto, ApplyJobMappingDto } from './dto/ingestion.dto';
 import { ProductContentService } from './services/product-content.service';
 import { OfferBatchCommitService } from './services/offer-batch-commit.service';
+import { BrandEnrichmentService } from './services/brand-enrichment.service';
+import { EnrichBrandDraftDto } from './contracts/brand-enrichment.contract';
 import { ParseUUIDPipe } from '@nestjs/common';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -28,6 +30,7 @@ export class IngestionController {
     private readonly ingestionService: IngestionService,
     private readonly contentService: ProductContentService,
     private readonly offerBatchCommitService: OfferBatchCommitService,
+    private readonly brandEnrichmentService: BrandEnrichmentService,
   ) {}
 
   private supplierReadScope(user?: AuthenticatedUserRequest['user']): string | undefined {
@@ -167,6 +170,52 @@ export class IngestionController {
     const actorId = req.user?.id;
     if (!actorId) throw new BadRequestException('Actor ID required');
     return this.offerBatchCommitService.approveDeactivations(id, actorId, body);
+  }
+
+  // ─── SG-06 Brand & ProductLine Knowledge Enrichment Endpoints ───────────
+
+  @Get('brands/drafts')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async getBrandDrafts(@Query('status') status?: string) {
+    return this.brandEnrichmentService.getBrandDrafts(status);
+  }
+
+  @Get('brands/drafts/:id')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async getBrandDraft(@Param('id', ParseUUIDPipe) id: string) {
+    return this.brandEnrichmentService.getBrandDraft(id);
+  }
+
+  @Post('brands/drafts/:id/enrich')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async enrichBrandDraft(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: EnrichBrandDraftDto,
+  ) {
+    return this.brandEnrichmentService.enrichBrandDraft(id, dto);
+  }
+
+  @Post('brands/drafts/:id/approve')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async approveBrandDraft(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const actorId = req.user?.id;
+    if (!actorId) throw new BadRequestException('Actor ID required');
+    return this.brandEnrichmentService.approveBrandDraft(id, actorId);
+  }
+
+  @Post('brands/drafts/:id/reject')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async rejectBrandDraft(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { reason: string },
+  ) {
+    const actorId = req.user?.id;
+    if (!actorId) throw new BadRequestException('Actor ID required');
+    return this.brandEnrichmentService.rejectBrandDraft(id, actorId, body?.reason);
   }
 
   // ─── GLO-77 Candidate Review & Publish Endpoints (Admin / Operator only) ──
