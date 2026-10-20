@@ -39,6 +39,14 @@ export interface CandidateResearchInput {
   existingEnrichment?: unknown;
 }
 
+export interface SourceContradiction {
+  fieldName: string;
+  officialValue: unknown;
+  distributorValue: unknown;
+  winningSource: SourceType;
+  reason: string;
+}
+
 export interface ResearchResult {
   candidateId: string;
   brand: string;
@@ -55,6 +63,7 @@ export interface ResearchResult {
     warnings?: string[];
   };
   fieldEvidences: FactEvidenceItem[];
+  contradictions?: SourceContradiction[];
   providerStatuses: ResearchProviderStatus;
   researchedAt: string;
 }
@@ -316,6 +325,15 @@ export class ProductResearchService {
       warnings: [],
     };
 
+    // Extract size from supplier product name first (ensures deterministic extraction even during research outage)
+    const sizeFromName = input.name.match(/(\d+(?:\.\d+)?)\s*(ml|g|kg|l|oz)/i);
+    if (sizeFromName) {
+      facts.size = {
+        value: parseFloat(sizeFromName[1]),
+        unit: sizeFromName[2].toLowerCase(),
+      };
+    }
+
     if (!pageContent) return facts;
 
     // 1. Ingredients Match
@@ -342,8 +360,10 @@ export class ProductResearchService {
         .filter((s) => s.length > 3);
     }
 
-    // 4. Size extraction
-    const sizeMatch = pageContent.match(/(\d+(?:\.\d+)?)\s*(ml|g|kg|l|oz)/i);
+    // 4. Size extraction (fallback to supplier product name if pageContent is empty or missing size)
+    const sizeMatch =
+      (pageContent && pageContent.match(/(\d+(?:\.\d+)?)\s*(ml|g|kg|l|oz)/i)) ||
+      input.name.match(/(\d+(?:\.\d+)?)\s*(ml|g|kg|l|oz)/i);
     if (sizeMatch) {
       facts.size = {
         value: parseFloat(sizeMatch[1]),
@@ -352,6 +372,76 @@ export class ProductResearchService {
     }
 
     return facts;
+  }
+
+  /**
+   * Compares official manufacturer evidence against distributor evidence.
+   * Invariant: Official manufacturer facts outrank distributor facts.
+   * Contradictory fields are flagged with CONFLICT and tracked with winning source provenance.
+   */
+  resolveMultiSourceContradictions(
+    officialFacts: ResearchResult['extractedFacts'],
+    distributorFacts: ResearchResult['extractedFacts'],
+    officialUrl: string,
+    distributorUrl: string,
+  ): {
+    reconciledFacts: ResearchResult['extractedFacts'];
+    contradictions: SourceContradiction[];
+    evidences: FactEvidenceItem[];
+  } {
+    const contradictions: SourceContradiction[] = [];
+    const evidences: FactEvidenceItem[] = [];
+    const observedAt = new Date().toISOString();
+
+    const reconciledFacts: ResearchResult['extractedFacts'] = {
+      ...distributorFacts,
+      ...officialFacts, // Official manufacturer outranks distributor
+    };
+
+    // Check size contradiction
+    if (officialFacts.size && distributorFacts.size) {
+      const sizeMismatch =
+        officialFacts.size.value !== distributorFacts.size.value ||
+        officialFacts.size.unit.toLowerCase() !== distributorFacts.size.unit.toLowerCase();
+
+      if (sizeMismatch) {
+        contradictions.push({
+          fieldName: 'size',
+          officialValue: officialFacts.size,
+          distributorValue: distributorFacts.size,
+          winningSource: SourceType.OFFICIAL_MANUFACTURER,
+          reason: `Official manufacturer specification (${officialFacts.size.value}${officialFacts.size.unit}) outranks distributor declaration (${distributorFacts.size.value}${distributorFacts.size.unit})`,
+        });
+
+        evidences.push({
+          fieldName: 'size',
+          proposedValue: officialFacts.size,
+          sourceUrl: officialUrl,
+          sourceType: SourceType.OFFICIAL_MANUFACTURER,
+          observedAt,
+          excerpt: `Official spec: ${officialFacts.size.value}${officialFacts.size.unit}`,
+          verificationStatus: VerificationStatus.SUPPORTED,
+          confidence: 0.95,
+        });
+
+        evidences.push({
+          fieldName: 'size',
+          proposedValue: distributorFacts.size,
+          sourceUrl: distributorUrl,
+          sourceType: SourceType.TRUSTED_DISTRIBUTOR,
+          observedAt,
+          excerpt: `Distributor declaration: ${distributorFacts.size.value}${distributorFacts.size.unit}`,
+          verificationStatus: VerificationStatus.CONFLICT,
+          confidence: 0.60,
+        });
+      }
+    }
+
+    return {
+      reconciledFacts,
+      contradictions,
+      evidences,
+    };
   }
 
   /**

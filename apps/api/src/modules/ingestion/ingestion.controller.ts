@@ -6,6 +6,7 @@ import { ProductContentService } from './services/product-content.service';
 import { OfferBatchCommitService } from './services/offer-batch-commit.service';
 import { BrandEnrichmentService } from './services/brand-enrichment.service';
 import { IngredientOntologyService } from './services/ingredient-ontology.service';
+import { RoutinePlacementService, DeterminePlacementInput } from './services/routine-placement.service';
 import { IngredientService } from '../catalog/public';
 import { ClaimValidationRequest } from './contracts/ingredient-ontology.contract';
 import { EnrichBrandDraftDto } from './contracts/brand-enrichment.contract';
@@ -36,6 +37,7 @@ export class IngestionController {
     private readonly brandEnrichmentService: BrandEnrichmentService,
     private readonly ingredientOntologyService: IngredientOntologyService,
     private readonly ingredientService: IngredientService,
+    private readonly routinePlacementService: RoutinePlacementService,
   ) {}
 
   private supplierReadScope(user?: AuthenticatedUserRequest['user']): string | undefined {
@@ -254,6 +256,12 @@ export class IngestionController {
     @Body() body?: { rawIngredients?: string[] | string },
   ) {
     return this.ingredientOntologyService.enrichCandidateIngredients(id, body?.rawIngredients);
+  }
+
+  @Post('routine/determine-placement')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async determineRoutinePlacement(@Body() dto: DeterminePlacementInput) {
+    return this.routinePlacementService.determineRoutinePlacement(dto);
   }
 
   // ─── GLO-77 Candidate Review & Publish Endpoints (Admin / Operator only) ──
