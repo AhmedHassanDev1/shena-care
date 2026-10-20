@@ -477,8 +477,8 @@ export class ProductContentService {
    */
   async approveContentDraft(candidateId: string, actorId: string) {
     const reviewer = await this.prisma.customer.findUnique({ where: { id: actorId } });
-    if (!reviewer?.roles.some(r => r === 'ADMIN' || r === 'HUB_OPERATOR')) {
-      throw new ForbiddenException('Only Admin or Hub Operator can approve content drafts');
+    if (!reviewer?.roles.includes('ADMIN')) {
+      throw new ForbiddenException('Only Admin can approve content drafts');
     }
 
     const draft = await this.prisma.productContentDraft.findUnique({ where: { candidateId } });
@@ -506,8 +506,8 @@ export class ProductContentService {
    */
   async rejectContentDraft(candidateId: string, actorId: string, reason?: string) {
     const reviewer = await this.prisma.customer.findUnique({ where: { id: actorId } });
-    if (!reviewer?.roles.some(r => r === 'ADMIN' || r === 'HUB_OPERATOR')) {
-      throw new ForbiddenException('Only Admin or Hub Operator can reject content drafts');
+    if (!reviewer?.roles.includes('ADMIN')) {
+      throw new ForbiddenException('Only Admin can reject content drafts');
     }
 
     const draft = await this.prisma.productContentDraft.findUnique({ where: { candidateId } });

@@ -530,6 +530,121 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
       expect(patchRes.body.normalizedIdentity.name).toBe('Corrected Cleanser 200ml');
       expect(patchRes.body.auditTrail.some((a: any) => a.action === 'CORRECTED')).toBe(true);
     });
+
+    it('denies Hub Operator and Supplier from approving or rejecting candidates with 403 Forbidden', async () => {
+      const candidateId = randomUUID();
+      createdCandidateIds.push(candidateId);
+
+      await prisma.ingestionItem.create({
+        data: {
+          id: candidateId,
+          jobId: jobAId,
+          supplierSkuCode: `RBAC2-${candidateId.slice(0, 6)}`,
+          name: 'RBAC Gate Test Lotion 100ml',
+          brand: 'CeraVe',
+          barcode: `RBAC2-${Date.now()}`,
+          price: 18.0,
+          priceType: IngestionPriceType.PURCHASE_COST,
+          currency: 'USD',
+          status: IngestionStatus.review_required,
+        },
+      });
+
+      // 1. Hub Operator cannot approve candidate (403)
+      const hubApproveRes = await request(app.getHttpServer())
+        .patch(`/ingestion/candidates/${candidateId}/approve`)
+        .set(hubOperator.auth)
+        .send();
+      expect(hubApproveRes.status).toBe(403);
+
+      // 2. Hub Operator cannot reject candidate (403)
+      const hubRejectRes = await request(app.getHttpServer())
+        .patch(`/ingestion/candidates/${candidateId}/reject`)
+        .set(hubOperator.auth)
+        .send({ reason: 'Hub staff attempt' });
+      expect(hubRejectRes.status).toBe(403);
+
+      // 3. Supplier cannot approve candidate (403)
+      const supApproveRes = await request(app.getHttpServer())
+        .patch(`/ingestion/candidates/${candidateId}/approve`)
+        .set(supplierUser.auth)
+        .send();
+      expect(supApproveRes.status).toBe(403);
+
+      // 4. Supplier cannot publish candidate (403)
+      const supPublishRes = await request(app.getHttpServer())
+        .post(`/ingestion/candidates/${candidateId}/publish`)
+        .set(supplierUser.auth)
+        .send();
+      expect(supPublishRes.status).toBe(403);
+    });
+
+    it('preserves candidate state and recovers safely from publication failure without duplicate records', async () => {
+      const candidateId = randomUUID();
+      createdCandidateIds.push(candidateId);
+      const barcode = `RECOV-${Date.now()}`;
+      const brandName = `BrandRecov${Date.now()}`;
+      createdBrandSlugs.push(brandName.toLowerCase());
+      await brandService.createBrand({ name: brandName });
+
+      await prisma.ingestionItem.create({
+        data: {
+          id: candidateId,
+          jobId: jobAId,
+          supplierSkuCode: `RECOV-${candidateId.slice(0, 6)}`,
+          name: `${brandName} Recovery Test Cream 100ml`,
+          brand: brandName,
+          barcode,
+          price: 22.0,
+          priceType: IngestionPriceType.PURCHASE_COST,
+          currency: 'USD',
+          status: IngestionStatus.approved,
+        },
+      });
+
+      // Attempt publish without verified packshot -> fails safely with 400
+      await expect(ingestionService.publishCandidate(candidateId, admin.id)).rejects.toThrow(
+        /Missing mandatory verified packshot prevents catalog publication/,
+      );
+
+      // Verify candidate is still approved and not corrupted
+      const itemBefore = await prisma.ingestionItem.findUnique({ where: { id: candidateId } });
+      expect(itemBefore!.status).toBe(IngestionStatus.approved);
+
+      // Verify no SKU created
+      const skuBefore = await prisma.sku.findFirst({ where: { barcode } });
+      expect(skuBefore).toBeNull();
+
+      // Now add verified packshot using helper
+      const packshot = await createVerifiedPackshot(supplierAId, candidateId, barcode, 100, 'ml');
+
+      await prisma.ingestionItem.update({
+        where: { id: candidateId },
+        data: {
+          enrichment: { media: [packshot] },
+        },
+      });
+
+      // Retry publication -> succeeds!
+      const publishRes = await ingestionService.publishCandidate(candidateId, admin.id);
+      expect(publishRes.status).toBe(IngestionStatus.published);
+
+      // Verify canonical SKU and SupplierOffer created exactly once
+      const skuAfter = await prisma.sku.findFirst({ where: { barcode } });
+      expect(skuAfter).not.toBeNull();
+      createdSkuCodes.push(skuAfter!.code);
+
+      const offer = await prisma.supplierOffer.findUnique({
+        where: {
+          supplierId_skuId: {
+            supplierId: supplierAId,
+            skuId: skuAfter!.id,
+          },
+        },
+      });
+      expect(offer).not.toBeNull();
+      expect(offer!.costPrice.toNumber()).toBe(22.0);
+    });
   });
 
   // ───────────────────────────────────────────────────────────────────────────

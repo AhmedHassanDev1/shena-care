@@ -562,7 +562,7 @@ describe('SG-09: Verified Packshots, Brand/Line Media & Evidence-Bound Content (
   // 7. Editorial Content Draft Workflow & Authorized API Endpoints
   // ───────────────────────────────────────────────────────────────────────────
   describe('7. Acceptance 9: Editorial Content Draft Approval & RBAC API Endpoints', () => {
-    it('allows Admin and Hub Operator to approve content drafts and denies unauthorized users', async () => {
+    it('restricts content draft approval strictly to Admin (denies Hub Operator and Supplier with 403)', async () => {
       const candidate = await createTestCandidate({
         name: 'Centella Asiatica Calming Ampoule 50ml',
         brand: 'Skin1004',
@@ -586,16 +586,22 @@ describe('SG-09: Verified Packshots, Brand/Line Media & Evidence-Bound Content (
       expect(draftRes.body.titleEn).toContain('Centella');
       expect(draftRes.body.isApproved).toBe(false);
 
-      // 3. Unauthorized user (Supplier) cannot approve content draft
+      // 3. Unauthorized user (Supplier) cannot approve content draft (403)
       await request(app.getHttpServer())
         .post(`/ingestion/candidates/${candidate.id}/content/approve`)
         .set('Authorization', `Bearer ${supplierUser.token}`)
         .expect(403);
 
-      // 4. Authorized operator approves content draft
-      const approvedRes = await request(app.getHttpServer())
+      // 4. Hub Operator cannot approve content draft (403 - Admin only)
+      await request(app.getHttpServer())
         .post(`/ingestion/candidates/${candidate.id}/content/approve`)
         .set('Authorization', `Bearer ${hubOperator.token}`)
+        .expect(403);
+
+      // 5. Authorized Admin approves content draft
+      const approvedRes = await request(app.getHttpServer())
+        .post(`/ingestion/candidates/${candidate.id}/content/approve`)
+        .set('Authorization', `Bearer ${admin.token}`)
         .expect(201);
 
       expect(approvedRes.body.isApproved).toBe(true);

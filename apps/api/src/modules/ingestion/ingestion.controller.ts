@@ -148,7 +148,7 @@ export class IngestionController {
     @Req() req: AuthenticatedUserRequest,
     @Param('id') id: string,
   ) {
-    return this.ingestionService.publishJob(id);
+    return this.ingestionService.publishJob(id, req.user?.id);
   }
 
   // ─── SG-05 Offer Staging, Diff & Safe Batch Commit Endpoints ─────────────
@@ -248,7 +248,7 @@ export class IngestionController {
   }
 
   @Post('candidates/:id/content/approve')
-  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Roles('ADMIN')
   async approveCandidateContent(
     @Req() req: AuthenticatedUserRequest,
     @Param('id', ParseUUIDPipe) id: string,
@@ -259,7 +259,7 @@ export class IngestionController {
   }
 
   @Post('candidates/:id/content/reject')
-  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Roles('ADMIN')
   async rejectCandidateContent(
     @Req() req: AuthenticatedUserRequest,
     @Param('id', ParseUUIDPipe) id: string,
@@ -366,7 +366,7 @@ export class IngestionController {
   }
 
   @Patch('candidates/:id/approve')
-  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Roles('ADMIN')
   async approveCandidate(
     @Req() req: AuthenticatedUserRequest,
     @Param('id') id: string,
@@ -376,7 +376,7 @@ export class IngestionController {
   }
 
   @Patch('candidates/:id/reject')
-  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Roles('ADMIN')
   async rejectCandidate(
     @Req() req: AuthenticatedUserRequest,
     @Param('id') id: string,
@@ -441,6 +441,7 @@ export class IngestionController {
   }
 
   @Patch('items/:id/approve')
+  @Roles('ADMIN')
   async approveItem(
     @Req() req: AuthenticatedUserRequest,
     @Param('id') id: string,
@@ -450,8 +451,13 @@ export class IngestionController {
   }
 
   @Patch('items/:id/reject')
-  async rejectItem(@Param('id') id: string) {
-    return this.ingestionService.rejectItem(id);
+  @Roles('ADMIN')
+  async rejectItem(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id') id: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.ingestionService.rejectItem(id, body?.reason, req.user?.id);
   }
 
   @Post('items/:id/enrich')

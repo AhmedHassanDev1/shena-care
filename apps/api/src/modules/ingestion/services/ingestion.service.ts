@@ -1144,6 +1144,13 @@ export class IngestionService {
       throw new BadRequestException('Cannot modify items of a published job');
     }
 
+    if (reviewerId) {
+      const reviewer = await this.prisma.customer.findUnique({ where: { id: reviewerId } });
+      if (!reviewer?.roles.includes('ADMIN')) {
+        throw new ForbiddenException('Only Admin can approve candidate items');
+      }
+    }
+
     let matchedSkuId: string | null = item.matchedSkuId;
 
     if (dto?.createNewProduct && dto?.matchedSkuId) {
@@ -1243,6 +1250,13 @@ export class IngestionService {
 
     if (item.job.status === IngestionStatus.published || item.status === IngestionStatus.published) {
       throw new BadRequestException('Cannot modify items of a published job');
+    }
+
+    if (actorId) {
+      const actor = await this.prisma.customer.findUnique({ where: { id: actorId } });
+      if (!actor?.roles.includes('ADMIN')) {
+        throw new ForbiddenException('Only Admin can reject candidate items');
+      }
     }
 
     const currentEnrichment = (item.enrichment as Record<string, any>) || {};
@@ -1657,6 +1671,13 @@ export class IngestionService {
       throw new BadRequestException('Candidate is already published');
     }
 
+    if (actorId) {
+      const actor = await this.prisma.customer.findUnique({ where: { id: actorId } });
+      if (!actor?.roles.includes('ADMIN')) {
+        throw new ForbiddenException('Only Admin can publish catalog candidates');
+      }
+    }
+
     if (item.status !== IngestionStatus.approved) {
       throw new BadRequestException('Candidate item is not approved for publication yet');
     }
@@ -1729,7 +1750,14 @@ export class IngestionService {
     };
   }
 
-  async publishJob(jobId: string): Promise<IngestionJobDetail> {
+  async publishJob(jobId: string, actorId?: string): Promise<IngestionJobDetail> {
+    if (actorId) {
+      const actor = await this.prisma.customer.findUnique({ where: { id: actorId } });
+      if (!actor?.roles.includes('ADMIN')) {
+        throw new ForbiddenException('Only Admin can publish catalog jobs');
+      }
+    }
+
     const job = await this.prisma.ingestionJob.findUnique({
       where: { id: jobId },
       include: { items: true },

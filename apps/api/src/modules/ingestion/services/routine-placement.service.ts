@@ -144,7 +144,14 @@ export class RoutinePlacementService {
         compatibleConcerns.push('skin_texture', 'hyperpigmentation', 'pores');
         warnings.push('Increases sun sensitivity; broad-spectrum sunscreen is mandatory during daytime');
         if (rinseType === RinseType.RINSE_OFF) {
-          warnings.push('Do not leave on skin for more than 10 minutes; rinse thoroughly with lukewarm water');
+          const minuteMatch = usageText.match(/(\d+)\s*(?:minute|min|دقائق|دقيقة)/i);
+          if (minuteMatch) {
+            warnings.push(`Do not leave on skin for more than ${minuteMatch[1]} minutes as instructed by manufacturer; rinse thoroughly with lukewarm water`);
+          } else if (/peeling solution|chemical peel/i.test(fullText)) {
+            warnings.push('Follow manufacturer package directions for duration; do not leave on skin beyond recommended time and rinse thoroughly with lukewarm water');
+          } else {
+            warnings.push('Rinse thoroughly with lukewarm water after application');
+          }
         }
         reasoning = 'Direct chemical exfoliant or peeling solution used 1-2 times weekly in the PM routine only';
       } else if (/eye cream|eye serum|eye contour|كريم العين|محيط العين/i.test(fullText)) {
