@@ -56,3 +56,28 @@ export interface EnrichBrandDraftDto {
   descriptionAr?: string;
   logoInput?: OfficialLogoInput;
 }
+
+export interface OfficialLineImageMetadata {
+  sourceUrl: string;
+  sourceDomain: string;
+  mediaType: 'image/svg+xml' | 'image/png' | 'image/webp' | 'image/jpeg';
+  licenseType: string;
+  isVerifiedOfficial: boolean;
+  fetchedAt: string;
+}
+
+export interface OfficialLineImageInput {
+  imageUrl: string;
+  sourceUrl: string;
+  sourceDomain: string;
+  mediaType: 'image/svg+xml' | 'image/png' | 'image/webp' | 'image/jpeg';
+  licenseType?: string;
+  isVerifiedOfficial: boolean;
+}
+
+export interface EnrichProductLineDraftDto {
+  descriptionEn?: string;
+  descriptionAr?: string;
+  imageInput?: OfficialLineImageInput;
+}
+

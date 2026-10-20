@@ -17,6 +17,9 @@ import {
   OfficialLogoInput,
   OfficialLogoMetadata,
   EnrichBrandDraftDto,
+  OfficialLineImageInput,
+  OfficialLineImageMetadata,
+  EnrichProductLineDraftDto,
 } from '../contracts/brand-enrichment.contract';
 import { Prisma } from '@prisma/client';
 
@@ -441,8 +444,55 @@ export class BrandEnrichmentService {
   }
 
   /**
+   * Enriches ProductLineDraft with verified official product line image ($0 policy) and descriptions.
+   */
+  async enrichProductLineDraft(draftId: string, dto: EnrichProductLineDraftDto): Promise<any> {
+    if (!this.isUuid(draftId)) throw new BadRequestException('Invalid line draft ID');
+
+    const draft = await this.prisma.productLineDraft.findUnique({ where: { id: draftId } });
+    if (!draft) throw new NotFoundException('Product line draft not found');
+
+    let verifiedImageMetadata: OfficialLineImageMetadata | null = null;
+    let imageUrl: string | null = null;
+
+    if (dto.imageInput) {
+      if (!dto.imageInput.isVerifiedOfficial) {
+        throw new BadRequestException('Only verified official product line images from authorized sources are permitted');
+      }
+      if (!['image/svg+xml', 'image/png', 'image/webp', 'image/jpeg'].includes(dto.imageInput.mediaType)) {
+        throw new BadRequestException('Invalid product line image media type');
+      }
+      if (!dto.imageInput.sourceUrl || !dto.imageInput.sourceDomain) {
+        throw new BadRequestException('Product line image source URL and verified domain are mandatory');
+      }
+
+      verifiedImageMetadata = {
+        sourceUrl: dto.imageInput.sourceUrl,
+        sourceDomain: dto.imageInput.sourceDomain,
+        mediaType: dto.imageInput.mediaType,
+        licenseType: dto.imageInput.licenseType || 'OFFICIAL_PRODUCT_LINE_ASSET',
+        isVerifiedOfficial: true,
+        fetchedAt: new Date().toISOString(),
+      };
+      imageUrl = dto.imageInput.imageUrl;
+    }
+
+    return this.prisma.productLineDraft.update({
+      where: { id: draftId },
+      data: {
+        ...(dto.descriptionEn && { descriptionEn: dto.descriptionEn }),
+        ...(dto.descriptionAr && { descriptionAr: dto.descriptionAr }),
+        ...(imageUrl && { imageUrl }),
+        ...(verifiedImageMetadata && {
+          imageMetadata: verifiedImageMetadata as unknown as Prisma.InputJsonValue,
+        }),
+      },
+    });
+  }
+
+  /**
    * Approves a BrandDraft into the canonical catalog (catalog.brands & catalog.product_lines).
-   * Enforces Admin or Hub Operator authorization.
+   * Enforces Admin authorization.
    */
   async approveBrandDraft(
     draftId: string,
@@ -479,6 +529,7 @@ export class BrandEnrichmentService {
             name: draft.name,
             description: description ?? brand.description,
             logoUrl: draft.logoUrl ?? brand.logoUrl,
+            logoMetadata: (draft.logoMetadata ?? brand.logoMetadata) as unknown as Prisma.InputJsonValue,
             websiteUrl: draft.websiteUrl ?? brand.websiteUrl,
             countryOfOrigin: draft.countryOfOrigin ?? brand.countryOfOrigin,
           },
@@ -490,6 +541,7 @@ export class BrandEnrichmentService {
             slug: draft.slug,
             description,
             logoUrl: draft.logoUrl,
+            logoMetadata: draft.logoMetadata as unknown as Prisma.InputJsonValue,
             websiteUrl: draft.websiteUrl,
             countryOfOrigin: draft.countryOfOrigin,
             isActive: true,
@@ -513,10 +565,21 @@ export class BrandEnrichmentService {
               name: lineDraft.name,
               slug: lineDraft.slug,
               description: lineDraft.descriptionAr || lineDraft.descriptionEn,
+              imageUrl: lineDraft.imageUrl,
+              imageMetadata: lineDraft.imageMetadata as unknown as Prisma.InputJsonValue,
               isActive: true,
             },
           });
           admittedLinesCount++;
+        } else if (lineDraft.imageUrl && !line.imageUrl) {
+          line = await tx.productLine.update({
+            where: { id: line.id },
+            data: {
+              imageUrl: lineDraft.imageUrl,
+              imageMetadata: lineDraft.imageMetadata as unknown as Prisma.InputJsonValue,
+              description: line.description || lineDraft.descriptionAr || lineDraft.descriptionEn,
+            },
+          });
         }
 
         await tx.productLineDraft.update({

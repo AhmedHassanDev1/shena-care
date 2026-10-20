@@ -10,6 +10,8 @@ export interface ProductLineSummary {
   name: string;
   slug: string;
   description: string | null;
+  imageUrl?: string | null;
+  imageMetadata?: unknown;
   isActive: boolean;
 }
 
@@ -19,6 +21,7 @@ export interface BrandSummary {
   slug: string;
   description: string | null;
   logoUrl: string | null;
+  logoMetadata?: unknown;
   websiteUrl: string | null;
   countryOfOrigin: string | null;
   isActive: boolean;
@@ -27,6 +30,8 @@ export interface BrandSummary {
     name: string;
     slug: string;
     description: string | null;
+    imageUrl?: string | null;
+    imageMetadata?: unknown;
     isActive: boolean;
   }>;
 }
@@ -58,6 +63,8 @@ export class BrandService {
             name: true,
             slug: true,
             description: true,
+            imageUrl: true,
+            imageMetadata: true,
             isActive: true,
           },
         },
@@ -71,6 +78,7 @@ export class BrandService {
       slug: b.slug,
       description: b.description,
       logoUrl: b.logoUrl,
+      logoMetadata: b.logoMetadata,
       websiteUrl: b.websiteUrl,
       countryOfOrigin: b.countryOfOrigin,
       isActive: b.isActive,
@@ -89,6 +97,8 @@ export class BrandService {
             name: true,
             slug: true,
             description: true,
+            imageUrl: true,
+            imageMetadata: true,
             isActive: true,
           },
         },
@@ -112,6 +122,7 @@ export class BrandService {
       slug: brand.slug,
       description: brand.description,
       logoUrl: brand.logoUrl,
+      logoMetadata: brand.logoMetadata,
       websiteUrl: brand.websiteUrl,
       countryOfOrigin: brand.countryOfOrigin,
       isActive: brand.isActive,
@@ -280,6 +291,8 @@ export class BrandService {
       name: line.name,
       slug: line.slug,
       description: line.description,
+      imageUrl: line.imageUrl,
+      imageMetadata: line.imageMetadata,
       isActive: line.isActive,
     };
   }
@@ -309,6 +322,8 @@ export class BrandService {
         name: dto.name,
         slug,
         description: dto.description ?? null,
+        imageUrl: dto.imageUrl ?? null,
+        imageMetadata: (dto.imageMetadata as any) ?? null,
         isActive: dto.isActive ?? true,
       },
     });
@@ -319,6 +334,8 @@ export class BrandService {
       name: line.name,
       slug: line.slug,
       description: line.description,
+      imageUrl: line.imageUrl,
+      imageMetadata: line.imageMetadata,
       isActive: line.isActive,
     };
   }
@@ -356,6 +373,8 @@ export class BrandService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(slug !== line.slug && { slug }),
         ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
+        ...(dto.imageMetadata !== undefined && { imageMetadata: dto.imageMetadata as any }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });
@@ -366,6 +385,8 @@ export class BrandService {
       name: updated.name,
       slug: updated.slug,
       description: updated.description,
+      imageUrl: updated.imageUrl,
+      imageMetadata: updated.imageMetadata,
       isActive: updated.isActive,
     };
   }

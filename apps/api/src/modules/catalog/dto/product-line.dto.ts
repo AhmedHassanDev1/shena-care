@@ -17,6 +17,13 @@ export class CreateProductLineDto {
   @IsOptional()
   description?: string;
 
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
+
+  @IsOptional()
+  imageMetadata?: unknown;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
@@ -38,6 +45,13 @@ export class UpdateProductLineDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
+
+  @IsOptional()
+  imageMetadata?: unknown;
 
   @IsBoolean()
   @IsOptional()

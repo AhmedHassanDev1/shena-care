@@ -19,6 +19,7 @@ model Brand {
   slug            String   @unique
   description     String?
   logoUrl         String?  @map("logo_url")
+  logoMetadata    Json?    @map("logo_metadata")
   websiteUrl      String?  @map("website_url")
   countryOfOrigin String?  @map("country_of_origin")
   isActive        Boolean  @default(true) @map("is_active")
@@ -33,14 +34,16 @@ model Brand {
 }
 
 model ProductLine {
-  id          String   @id @default(uuid()) @db.Uuid
-  brandId     String   @map("brand_id") @db.Uuid
-  name        String
-  slug        String   @unique
-  description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  brandId       String   @map("brand_id") @db.Uuid
+  name          String
+  slug          String   @unique
+  description   String?
+  imageUrl      String?  @map("image_url")
+  imageMetadata Json?    @map("image_metadata")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   brand    Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
   products Product[]
@@ -1619,6 +1622,8 @@ model ProductLineDraft {
   slug            String
   descriptionEn   String?  @map("description_en")
   descriptionAr   String?  @map("description_ar")
+  imageUrl        String?  @map("image_url")
+  imageMetadata   Json?    @map("image_metadata")
   status          String   @default("PENDING_REVIEW")
   rejectionReason String?  @map("rejection_reason")
   canonicalLineId String?  @map("canonical_line_id") @db.Uuid

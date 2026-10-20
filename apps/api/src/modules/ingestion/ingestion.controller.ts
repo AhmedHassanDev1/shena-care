@@ -9,7 +9,7 @@ import { IngredientOntologyService } from './services/ingredient-ontology.servic
 import { RoutinePlacementService, DeterminePlacementInput } from './services/routine-placement.service';
 import { IngredientService } from '../catalog/public';
 import { ClaimValidationRequest } from './contracts/ingredient-ontology.contract';
-import { EnrichBrandDraftDto } from './contracts/brand-enrichment.contract';
+import { EnrichBrandDraftDto, EnrichProductLineDraftDto } from './contracts/brand-enrichment.contract';
 import { ParseUUIDPipe } from '@nestjs/common';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -223,6 +223,52 @@ export class IngestionController {
     const actorId = req.user?.id;
     if (!actorId) throw new BadRequestException('Actor ID required');
     return this.brandEnrichmentService.rejectBrandDraft(id, actorId, body?.reason);
+  }
+
+  @Patch('product-lines/drafts/:id/enrich')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async enrichProductLineDraft(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: EnrichProductLineDraftDto,
+  ) {
+    return this.brandEnrichmentService.enrichProductLineDraft(id, dto);
+  }
+
+  // ─── GLO-254 Storefront Content Synthesis & Review Endpoints ─────────────
+
+  @Post('candidates/:id/content/generate')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async generateCandidateContentExplicit(@Param('id', ParseUUIDPipe) id: string) {
+    return this.contentService.generateContent(id);
+  }
+
+  @Post('candidates/:id/content/approve')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async approveCandidateContent(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const actorId = req.user?.id;
+    if (!actorId) throw new BadRequestException('Actor ID required');
+    return this.contentService.approveContentDraft(id, actorId);
+  }
+
+  @Post('candidates/:id/content/reject')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async rejectCandidateContent(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body?: { reason?: string },
+  ) {
+    const actorId = req.user?.id;
+    if (!actorId) throw new BadRequestException('Actor ID required');
+    return this.contentService.rejectContentDraft(id, actorId, body?.reason);
+  }
+
+  @Get('candidates/:id/content')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async getCandidateContent(@Param('id', ParseUUIDPipe) id: string) {
+    return this.contentService.getContentDraft(id);
   }
 
   // ─── GLO-252 Ingredient Knowledge Endpoints ──────────────────────────────

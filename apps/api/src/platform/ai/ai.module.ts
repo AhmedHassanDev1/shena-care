@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AiClient } from './ai-client.contract';
 import { HttpAiClient } from './http-ai.client';
+import { IMAGE_GENERATION_PROVIDER } from './image-generation.port';
+import { DeferredImageGenerationProvider } from './deferred-image-generation.provider';
 
 @Module({
   providers: [
@@ -12,7 +14,13 @@ import { HttpAiClient } from './http-ai.client';
         return new HttpAiClient(baseUrl, timeoutMs);
       },
     },
+    {
+      provide: IMAGE_GENERATION_PROVIDER,
+      useClass: DeferredImageGenerationProvider,
+    },
+    DeferredImageGenerationProvider,
   ],
-  exports: [AiClient],
+  exports: [AiClient, IMAGE_GENERATION_PROVIDER, DeferredImageGenerationProvider],
 })
 export class AiModule {}
+
