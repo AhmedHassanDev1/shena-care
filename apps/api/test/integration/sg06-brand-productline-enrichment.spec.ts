@@ -17,6 +17,7 @@ describe('SG-06: Reusable Brand & ProductLine Knowledge Enrichment (e2e)', () =>
   let prisma: PrismaService;
   let admin: Actor;
   let supplierUser: Actor;
+  let hubOperator: Actor;
   let brandEnrichmentService: BrandEnrichmentService;
 
   beforeAll(async () => {
@@ -32,6 +33,7 @@ describe('SG-06: Reusable Brand & ProductLine Knowledge Enrichment (e2e)', () =>
     brandEnrichmentService = app.get(BrandEnrichmentService);
     admin = await createActor(prisma, 'ADMIN');
     supplierUser = await createActor(prisma, 'SUPPLIER');
+    hubOperator = await createActor(prisma, 'HUB_OPERATOR');
   });
 
   afterAll(async () => {
@@ -251,10 +253,14 @@ describe('SG-06: Reusable Brand & ProductLine Knowledge Enrichment (e2e)', () =>
         'Sensibio',
       );
 
-      // 2. Non-admin cannot approve
+      // 2. Non-admin (Supplier and Hub Operator) cannot approve brand draft
       await expect(
         brandEnrichmentService.approveBrandDraft(draftId, supplierUser.id),
-      ).rejects.toThrow('Only administrators or hub operators can approve brand admissions');
+      ).rejects.toThrow('Only administrators can approve brand admissions');
+
+      await expect(
+        brandEnrichmentService.approveBrandDraft(draftId, hubOperator.id),
+      ).rejects.toThrow('Only administrators can approve brand admissions');
 
       // 3. Admin approves draft
       const approveRes = await brandEnrichmentService.approveBrandDraft(draftId, admin.id);
@@ -275,6 +281,11 @@ describe('SG-06: Reusable Brand & ProductLine Knowledge Enrichment (e2e)', () =>
       const rejectDraftRes = await brandEnrichmentService.resolveBrand(`SG06 Rejected Brand ${Date.now()}`);
       const rejectDraftId = rejectDraftRes.brandDraftId!;
 
+      // Hub operator cannot reject
+      await expect(
+        brandEnrichmentService.rejectBrandDraft(rejectDraftId, hubOperator.id, 'Prohibited'),
+      ).rejects.toThrow('Only administrators can reject brand drafts');
+
       const rejected = await brandEnrichmentService.rejectBrandDraft(
         rejectDraftId,
         admin.id,
@@ -284,11 +295,11 @@ describe('SG-06: Reusable Brand & ProductLine Knowledge Enrichment (e2e)', () =>
       expect(rejected.rejectionReason).toContain('Counterfeit or prohibited manufacturer');
     });
 
-    it('exposes HTTP endpoints GET /ingestion/brands/drafts and POST /ingestion/brands/drafts/:id/approve', async () => {
+    it('exposes HTTP endpoints GET /ingestion/brands/drafts and POST /ingestion/brands/drafts/:id/approve with strict Admin RBAC', async () => {
       const brandRes = await brandEnrichmentService.resolveBrand(`SG06 HTTP Brand ${Date.now()}`);
       const draftId = brandRes.brandDraftId!;
 
-      // GET drafts
+      // GET drafts (Admin allowed)
       const listRes = await request(app.getHttpServer())
         .get('/ingestion/brands/drafts')
         .set(admin.auth)
@@ -298,7 +309,19 @@ describe('SG-06: Reusable Brand & ProductLine Knowledge Enrichment (e2e)', () =>
       const found = listRes.body.find((d: any) => d.id === draftId);
       expect(found).toBeDefined();
 
-      // POST approve
+      // Hub operator receives 403 Forbidden on POST approve
+      await request(app.getHttpServer())
+        .post(`/ingestion/brands/drafts/${draftId}/approve`)
+        .set(hubOperator.auth)
+        .expect(403);
+
+      // Supplier receives 403 Forbidden on POST approve
+      await request(app.getHttpServer())
+        .post(`/ingestion/brands/drafts/${draftId}/approve`)
+        .set(supplierUser.auth)
+        .expect(403);
+
+      // POST approve by Admin succeeds
       const approveRes = await request(app.getHttpServer())
         .post(`/ingestion/brands/drafts/${draftId}/approve`)
         .set(admin.auth)

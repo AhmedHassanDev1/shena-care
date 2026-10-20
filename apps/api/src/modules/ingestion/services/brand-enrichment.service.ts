@@ -452,8 +452,8 @@ export class BrandEnrichmentService {
     if (!this.isUuid(actorId)) throw new BadRequestException('Invalid actor ID');
 
     const reviewer = await this.prisma.customer.findUnique({ where: { id: actorId } });
-    if (!reviewer?.roles.some((r) => r === 'ADMIN' || r === 'HUB_OPERATOR')) {
-      throw new ForbiddenException('Only administrators or hub operators can approve brand admissions');
+    if (!reviewer?.roles.includes('ADMIN')) {
+      throw new ForbiddenException('Only administrators can approve brand admissions');
     }
 
     const draft = await this.prisma.brandDraft.findUnique({
@@ -564,8 +564,8 @@ export class BrandEnrichmentService {
     if (!reason || !reason.trim()) throw new BadRequestException('Rejection reason is required');
 
     const reviewer = await this.prisma.customer.findUnique({ where: { id: actorId } });
-    if (!reviewer?.roles.some((r) => r === 'ADMIN' || r === 'HUB_OPERATOR')) {
-      throw new ForbiddenException('Only administrators or hub operators can reject brand drafts');
+    if (!reviewer?.roles.includes('ADMIN')) {
+      throw new ForbiddenException('Only administrators can reject brand drafts');
     }
 
     const draft = await this.prisma.brandDraft.findUnique({ where: { id: draftId } });

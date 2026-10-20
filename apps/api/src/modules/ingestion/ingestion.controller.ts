@@ -196,7 +196,7 @@ export class IngestionController {
   }
 
   @Post('brands/drafts/:id/approve')
-  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Roles('ADMIN')
   async approveBrandDraft(
     @Req() req: AuthenticatedUserRequest,
     @Param('id', ParseUUIDPipe) id: string,
@@ -207,7 +207,7 @@ export class IngestionController {
   }
 
   @Post('brands/drafts/:id/reject')
-  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Roles('ADMIN')
   async rejectBrandDraft(
     @Req() req: AuthenticatedUserRequest,
     @Param('id', ParseUUIDPipe) id: string,
