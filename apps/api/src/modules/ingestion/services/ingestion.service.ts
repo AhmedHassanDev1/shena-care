@@ -98,7 +98,11 @@ export class IngestionService {
       .replace(/(^-|-$)+/g, '');
   }
 
-  async uploadSupplierSpreadsheet(supplierId: string, file: Express.Multer.File): Promise<IngestionUploadResult> {
+  async uploadSupplierSpreadsheet(
+    supplierId: string,
+    file: Express.Multer.File,
+    mode: IngestionImportMode = IngestionImportMode.PARTIAL_UPDATE,
+  ): Promise<IngestionUploadResult> {
     if (!this.isUuid(supplierId)) throw new BadRequestException('Invalid supplier ID');
     if (!['text/csv', 'application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(file.mimetype)) {
       throw new BadRequestException('A supplier source document is required');
@@ -148,7 +152,7 @@ export class IngestionService {
       try {
         if (!isSpreadsheet || !parsed || !formatFingerprint) {
           const job = await tx.ingestionJob.create({
-            data: { supplierId, status: IngestionStatus.pending, sourceKey, sourceChecksum: checksum },
+            data: { supplierId, status: IngestionStatus.pending, mode, sourceKey, sourceChecksum: checksum },
           });
           return { jobId: job.id, sourceKey, status: job.status, requiresMapping: false };
         }
@@ -161,6 +165,7 @@ export class IngestionService {
             data: {
               supplierId,
               status: IngestionStatus.pending,
+              mode,
               sourceKey,
               sourceChecksum: checksum,
               formatFingerprint,
@@ -197,6 +202,7 @@ export class IngestionService {
             data: {
               supplierId,
               status: IngestionStatus.review_required,
+              mode,
               sourceKey,
               sourceChecksum: checksum,
               formatFingerprint,

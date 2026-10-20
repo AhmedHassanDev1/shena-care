@@ -77,7 +77,15 @@ const productWithRelations = Prisma.validator<Prisma.ProductDefaultArgs>()({
 type ProductWithRelations = Prisma.ProductGetPayload<typeof productWithRelations>;
 
 export interface SkuLabel {
-  skuId: string; productName: string; brandName: string | null; variantName: string; skuCode: string; barcode: string | null;
+  skuId: string;
+  productName: string;
+  brandName: string | null;
+  variantName: string;
+  skuCode: string;
+  barcode: string | null;
+  size?: number | null;
+  sizeUnit?: string | null;
+  imageUrl?: string | null;
 }
 
 @Injectable()
@@ -405,13 +413,36 @@ export class CatalogService {
   /** Human labels for operational screens (PO lines, picking): product/brand/variant/code/barcode, never prices. */
   async getSkuLabels(skuIds: string[]): Promise<Map<string, SkuLabel>> {
     const ids = [...new Set(skuIds)].filter(id => this.isUuid(id));
-    const rows = ids.length ? await this.prisma.sku.findMany({
-      where: { id: { in: ids } }, include: { product: { include: { brand: true } } },
-    }) : [];
-    return new Map(rows.map(sku => [sku.id, {
-      skuId: sku.id, productName: sku.product.name, brandName: sku.product.brand?.name ?? null,
-      variantName: sku.variantName, skuCode: sku.code, barcode: sku.barcode,
-    }]));
+    if (!ids.length) return new Map();
+    const rows = await this.prisma.sku.findMany({
+      where: { id: { in: ids } },
+      include: {
+        product: {
+          include: {
+            brand: true,
+            media: {
+              where: { originType: { not: 'generated' } },
+              orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+    return new Map(rows.map(sku => {
+      const primaryMedia = sku.product.media[0];
+      return [sku.id, {
+        skuId: sku.id,
+        productName: sku.product.name,
+        brandName: sku.product.brand?.name ?? null,
+        variantName: sku.variantName,
+        skuCode: sku.code,
+        barcode: sku.barcode,
+        size: sku.size ? sku.size.toNumber() : null,
+        sizeUnit: sku.sizeUnit,
+        imageUrl: primaryMedia?.url ?? null,
+      }];
+    }));
   }
 
   /** Stable identity lookup for internal custody workflows, including inactive catalog items. */

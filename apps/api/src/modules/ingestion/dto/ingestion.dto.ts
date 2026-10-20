@@ -1,6 +1,6 @@
 import { IsString, IsNotEmpty, IsNumber, IsOptional, ValidateNested, ValidateIf, IsArray, Min, Max, IsIn, IsUrl, ArrayMaxSize, ArrayMinSize, IsBoolean, IsUUID, IsInt, Matches, MaxLength } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { IngestionPriceType } from '@prisma/client';
+import { IngestionPriceType, IngestionImportMode } from '@prisma/client';
 
 export class IngestionItemInput {
   @IsString()
@@ -37,6 +37,9 @@ export class IngestionItemInput {
   @IsOptional() @IsIn([IngestionPriceType.PURCHASE_COST, IngestionPriceType.RETAIL_REFERENCE])
   priceType?: IngestionPriceType;
 
+  @IsOptional() @IsInt() @Min(0)
+  reportedQuantity?: number;
+
   @IsString()
   @IsNotEmpty()
   @Matches(/^[A-Z]{3}$/)
@@ -50,6 +53,9 @@ export class CreateIngestionJobDto {
   @IsOptional() @IsUUID()
   sourceJobId?: string;
 
+  @IsOptional() @IsIn([IngestionImportMode.FULL_SNAPSHOT, IngestionImportMode.PARTIAL_UPDATE])
+  mode?: IngestionImportMode;
+
   @IsArray()
   @ArrayMinSize(1) @ArrayMaxSize(1000)
   @ValidateNested({ each: true })
@@ -60,6 +66,10 @@ export class CreateIngestionJobDto {
 export class SupplierSourceUploadDto {
   @IsUUID()
   supplierId: string;
+
+  @IsOptional()
+  @IsIn([IngestionImportMode.FULL_SNAPSHOT, IngestionImportMode.PARTIAL_UPDATE])
+  mode?: IngestionImportMode;
 }
 
 export class ReviewedContentFieldDto {
@@ -170,8 +180,90 @@ export class UpdateCandidateDto {
   @IsOptional() @IsIn([IngestionPriceType.PURCHASE_COST, IngestionPriceType.RETAIL_REFERENCE])
   priceType?: IngestionPriceType;
 
+  @IsOptional() @IsInt() @Min(0)
+  reportedQuantity?: number;
+
   @IsOptional()
   @IsString()
   @Matches(/^[A-Z]{3}$/)
   currency?: string;
 }
+
+export class ColumnMappingInput {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  supplierSku: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  price: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  barcode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  brand?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  quantity?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  retailPrice?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  availability?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  discount?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  units?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  sourceTimestamp?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Z]{3}$/)
+  currency?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  currencyColumn?: string;
+}
+
+export class ApplyJobMappingDto {
+  @ValidateNested()
+  @Type(() => ColumnMappingInput)
+  mapping: ColumnMappingInput;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  profileName?: string;
+}
+

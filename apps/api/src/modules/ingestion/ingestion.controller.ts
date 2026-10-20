@@ -83,7 +83,7 @@ export class IngestionController {
         throw new ForbiddenException('Cannot upload ingestion job for another supplier');
       }
     }
-    return this.ingestionService.uploadSupplierSpreadsheet(supplierId, file);
+    return this.ingestionService.uploadSupplierSpreadsheet(supplierId, file, dto.mode);
   }
 
   @Get('jobs')
@@ -155,17 +155,34 @@ export class IngestionController {
 
   @Get('jobs/:id/diff')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
-  async getJobDiff(@Param('id', ParseUUIDPipe) id: string) {
+  async getJobDiff(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const user = req.user;
+    const job = await this.ingestionService.getJob(id);
+    if (user?.roles?.includes('SUPPLIER') && !user.roles.includes('ADMIN') && !user.roles.includes('HUB_OPERATOR')) {
+      if (!user.supplierId || user.supplierId !== job.supplierId) {
+        throw new ForbiddenException('Cannot view diff for another supplier');
+      }
+    }
     return this.offerBatchCommitService.computeJobDiff(id);
   }
 
   @Post('jobs/:id/commit-offers')
-  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
   async commitJobOffers(
     @Req() req: AuthenticatedUserRequest,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body?: { autoApplyLowRisk?: boolean; declaredCompleteAssortment?: boolean },
   ) {
+    const user = req.user;
+    const job = await this.ingestionService.getJob(id);
+    if (user?.roles?.includes('SUPPLIER') && !user.roles.includes('ADMIN') && !user.roles.includes('HUB_OPERATOR')) {
+      if (!user.supplierId || user.supplierId !== job.supplierId) {
+        throw new ForbiddenException('Cannot commit offers for another supplier');
+      }
+    }
     return this.offerBatchCommitService.commitJobOffers(id, {
       ...body,
       actorId: req.user?.id,

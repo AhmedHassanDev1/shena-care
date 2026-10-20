@@ -125,13 +125,28 @@ export class SourcingController {
   }
 
   @Patch('payables/:id/adjust')
-  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Roles('ADMIN')
   async adjustPayable(
     @CurrentUser() user: { id: string },
     @Param('id') id: string,
     @Body() dto: AdjustPayableDto
   ) {
     return this.payablesService.adjustPayable(id, { amount: dto.amount, reason: dto.reason, actorId: user.id });
+  }
+
+  @Post('payables/:id/apply-credit')
+  @Roles('ADMIN')
+  async applyCredit(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+    @Body() dto: { creditAmount: number; supplierReturnRef: string; reason?: string }
+  ) {
+    return this.payablesService.applySupplierCredit(id, {
+      creditAmount: dto.creditAmount,
+      supplierReturnRef: dto.supplierReturnRef,
+      reason: dto.reason,
+      actorId: user.id,
+    });
   }
 
   @Patch('payables/:id/mark-paid')

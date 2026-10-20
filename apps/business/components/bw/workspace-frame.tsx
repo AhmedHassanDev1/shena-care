@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import {
-  FileText, Heart, HelpCircle, History,
+  Heart, HelpCircle, History,
   Home, LogOut, PackageOpen, Printer, Route, ScanLine, Search,
   ShieldAlert, ShoppingBag, Store, Truck, UserRound, Wallet,
 } from 'lucide-react'
@@ -24,6 +24,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
     title: 'الإدارة',
     items: [
       { id: 'attention', label: 'نظرة عامة', icon: Home, href: '/admin' },
+      { id: 'catalog', label: 'مراجعة الكتالوج والمنتجات', icon: Store, href: '/admin/catalog' },
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
       { id: 'sourcing', label: 'الموردين والشراء', icon: Store, href: '/admin/sourcing' },
       { id: 'hub', label: 'المخزن والتجهيز', icon: PackageOpen, href: '/admin/hub' },
@@ -35,8 +36,8 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   supplier: {
     title: 'بوابة المورد',
     items: [
-      { id: 'pos', label: 'أوامر الشراء', icon: FileText, href: '/supplier' },
-      { id: 'account', label: 'حسابي', icon: UserRound, href: '/supplier/account' },
+      { id: 'pos', label: 'طلبات شيناكير', icon: ShoppingBag, href: '/supplier' },
+      { id: 'catalog', label: 'منتجاتي وأسعاري', icon: Store, href: '/supplier/catalog' },
     ],
   },
   hub: {

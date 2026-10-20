@@ -111,12 +111,89 @@ export class PayablesService {
     };
     const [total, rows] = await Promise.all([
       this.prisma.supplierPayable.count({ where }),
-      this.prisma.supplierPayable.findMany({ where, orderBy: { createdAt: 'desc' }, take: filter.take, skip: filter.skip, include: { supplier: { select: { name: true } } } }),
+      this.prisma.supplierPayable.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: filter.take,
+        skip: filter.skip,
+        include: { supplier: { select: { name: true } }, adjustments: true },
+      }),
     ]);
-    return { total, items: rows.map(p => ({
-      id: p.id, supplierId: p.supplierId, supplierName: p.supplier.name, purchaseOrderId: p.purchaseOrderId,
-      amount: Number(p.amount), currency: p.currency, status: p.status, paidAt: p.paidAt, paymentRef: p.paymentRef, createdAt: p.createdAt,
-    })) };
+    return {
+      total,
+      items: rows.map(p => {
+        const creditApplied = p.adjustments
+          .filter(a => Number(a.amount) < 0)
+          .reduce((sum, a) => sum + Math.abs(Number(a.amount)), 0);
+        const basisLines = Array.isArray(p.basis) ? (p.basis as Array<{ lineAmount: string }>) : [];
+        const grossAmount = basisLines.length
+          ? basisLines.reduce((sum, line) => sum + Number(line.lineAmount || 0), 0)
+          : Number(p.amount) + creditApplied;
+        const netAmount = Number(p.amount);
+        const cashPaid = p.status === 'paid' ? netAmount : 0;
+
+        return {
+          id: p.id,
+          supplierId: p.supplierId,
+          supplierName: p.supplier.name,
+          purchaseOrderId: p.purchaseOrderId,
+          grossAmount,
+          creditApplied,
+          netAmount,
+          cashPaid,
+          amount: netAmount,
+          currency: p.currency,
+          status: p.status,
+          paidAt: p.paidAt,
+          paymentRef: p.paymentRef,
+          adjustments: p.adjustments.map(a => ({
+            id: a.id,
+            amount: Number(a.amount),
+            reason: a.reason,
+            createdAt: a.createdAt,
+          })),
+          createdAt: p.createdAt,
+        };
+      }),
+    };
+  }
+
+  /**
+   * Applies verified old supplier return credit against a new PO payable (GLO-256 / SG-11).
+   * Invariant: New goods acquisition cost in basis remains gross (e.g. 600 EGP),
+   * credit is applied distinctly (-100 EGP), cash due is net (500 EGP).
+   */
+  async applySupplierCredit(payableId: string, dto: {
+    creditAmount: number;
+    supplierReturnRef: string;
+    reason?: string;
+    actorId: string;
+  }) {
+    if (!this.isUuid(payableId)) throw new BadRequestException('Invalid payable ID');
+    if (!dto.creditAmount || dto.creditAmount <= 0) {
+      throw new BadRequestException('Credit amount must be greater than zero');
+    }
+    if (!dto.supplierReturnRef) {
+      throw new BadRequestException('Supplier return reference is required');
+    }
+
+    const delta = -Math.abs(dto.creditAmount);
+    const reason = `SUPPLIER_CREDIT_APPLIED: Return ${dto.supplierReturnRef}${dto.reason ? ` - ${dto.reason}` : ''}`;
+
+    const result = await this.adjustPayable(payableId, {
+      amount: delta,
+      reason,
+      actorId: dto.actorId,
+    });
+
+    return {
+      payableId,
+      adjustmentId: result.adjustment.id,
+      creditApplied: Math.abs(Number(result.adjustment.amount)),
+      netAmount: Number(result.payable.amount),
+      payable: result.payable,
+      adjustment: result.adjustment,
+    };
   }
 
   async adjustPayable(payableId: string, dto: {
