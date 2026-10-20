@@ -16,6 +16,7 @@ import {
   CommitJobOptions,
   CommitJobResult,
   ItemCommitOutcome,
+  ApproveDeactivationsOptions,
 } from '../contracts/offer-batch-commit.contract';
 
 @Injectable()
@@ -70,6 +71,56 @@ export class OfferBatchCommitService {
     };
 
     for (const item of job.items) {
+      // Check if item was explicitly rejected
+      if (item.status === IngestionStatus.rejected) {
+        rows.push({
+          itemId: item.id,
+          supplierSkuCode: item.supplierSkuCode,
+          matchedSkuId: item.matchedSkuId,
+          canonicalSkuCode: null,
+          productName: item.name,
+          action: RowDiffAction.SKIP,
+          reasons: ['item_was_rejected_by_operator'],
+          before: null,
+          after: {
+            costPrice: null,
+            currency: item.currency,
+            isAvailable: null,
+          },
+          priceChangePercent: null,
+          isLargePriceJump: false,
+          isRetailOnly: false,
+          isPriceOnly: false,
+        });
+        counters.skipped++;
+        continue;
+      }
+
+      // Check if item price is invalid (<= 0)
+      if (item.price === null || item.price.toNumber() <= 0) {
+        rows.push({
+          itemId: item.id,
+          supplierSkuCode: item.supplierSkuCode,
+          matchedSkuId: item.matchedSkuId,
+          canonicalSkuCode: null,
+          productName: item.name,
+          action: RowDiffAction.ERROR,
+          reasons: ['invalid_price: price must be greater than zero'],
+          before: null,
+          after: {
+            costPrice: null,
+            currency: item.currency,
+            isAvailable: null,
+          },
+          priceChangePercent: null,
+          isLargePriceJump: false,
+          isRetailOnly: false,
+          isPriceOnly: false,
+        });
+        counters.error++;
+        continue;
+      }
+
       if (!item.matchedSkuId) {
         rows.push({
           itemId: item.id,
@@ -200,7 +251,10 @@ export class OfferBatchCommitService {
     }> = [];
     let requiresDeactivationApproval = false;
 
-    if (job.mode === IngestionImportMode.FULL_SNAPSHOT) {
+    // Price-only files have NO inventory signal and must NEVER deactivate offers
+    const isJobPriceOnly = job.items.length > 0 && job.items.every((i) => i.reportedQuantity === null);
+
+    if (job.mode === IngestionImportMode.FULL_SNAPSHOT && !isJobPriceOnly) {
       const activeSupplierOffers = await this.prisma.supplierOffer.findMany({
         where: {
           supplierId: job.supplierId,
@@ -226,11 +280,9 @@ export class OfferBatchCommitService {
           isAvailable: o.isAvailable,
         }));
 
-        // Anomaly threshold: if deactivation exceeds 20% of catalog, require explicit human confirmation
-        const deactivationRatio = totalActiveOffersCount > 0 ? activeSupplierOffers.length / totalActiveOffersCount : 0;
-        if (deactivationRatio > 0.2 || activeSupplierOffers.length > 50) {
-          requiresDeactivationApproval = true;
-        }
+        // In FULL_SNAPSHOT, ALL missing offers require explicit deactivation approval
+        // A 20% missing-offer threshold is an anomaly detector, not permission for automatic deactivation
+        requiresDeactivationApproval = true;
       }
     }
 
@@ -300,7 +352,35 @@ export class OfferBatchCommitService {
           const item = job.items.find((i) => i.id === row.itemId);
           if (!item) continue;
 
-          // 1. Items flagged for review (large price jump, ambiguous)
+          // 1. Invalid / error rows
+          if (row.action === RowDiffAction.ERROR) {
+            errorCount++;
+            itemOutcomes.push({
+              itemId: item.id,
+              supplierSkuCode: item.supplierSkuCode,
+              skuId: item.matchedSkuId,
+              action: RowDiffAction.ERROR,
+              status: 'ERROR',
+              reason: row.reasons.join('; '),
+            });
+            continue;
+          }
+
+          // 2. Explicitly skipped rows (e.g. operator rejected, retail reference only, unmatched)
+          if (row.action === RowDiffAction.SKIP) {
+            skippedCount++;
+            itemOutcomes.push({
+              itemId: item.id,
+              supplierSkuCode: item.supplierSkuCode,
+              skuId: item.matchedSkuId,
+              action: RowDiffAction.SKIP,
+              status: 'SKIPPED',
+              reason: row.reasons.join('; '),
+            });
+            continue;
+          }
+
+          // 3. Items flagged for review (large price jump, ambiguous)
           if (row.action === RowDiffAction.REVIEW) {
             heldForReviewCount++;
             itemOutcomes.push({
@@ -324,7 +404,7 @@ export class OfferBatchCommitService {
             continue;
           }
 
-          // 2. Retail reference only items (skipped for cost mutation)
+          // 3. Retail reference only items (skipped for cost mutation)
           if (row.isRetailOnly) {
             skippedCount++;
             itemOutcomes.push({
@@ -338,7 +418,7 @@ export class OfferBatchCommitService {
             continue;
           }
 
-          // 3. Unmatched items
+          // 4. Unmatched items
           if (!item.matchedSkuId) {
             skippedCount++;
             itemOutcomes.push({
@@ -352,7 +432,7 @@ export class OfferBatchCommitService {
             continue;
           }
 
-          // 4. Stale update check: protect against out-of-order older feeds
+          // 5. Stale update check: protect against out-of-order older feeds
           if (row.before?.lastObservedAt && item.createdAt < row.before.lastObservedAt) {
             skippedCount++;
             itemOutcomes.push({
@@ -366,7 +446,7 @@ export class OfferBatchCommitService {
             continue;
           }
 
-          // 5. Apply UPDATE or CREATE
+          // 6. Apply UPDATE, CREATE, or UNCHANGED
           if (row.action === RowDiffAction.CREATE || row.action === RowDiffAction.UPDATE || row.action === RowDiffAction.UNCHANGED) {
             const skuId = item.matchedSkuId;
             const targetCost = row.after.costPrice ?? item.price.toNumber();
@@ -381,6 +461,20 @@ export class OfferBatchCommitService {
                 },
               },
             });
+
+            // Re-verify staleness inside transaction against live offer
+            if (existingOffer && existingOffer.lastObservedAt && item.createdAt < existingOffer.lastObservedAt) {
+              skippedCount++;
+              itemOutcomes.push({
+                itemId: item.id,
+                supplierSkuCode: item.supplierSkuCode,
+                skuId: item.matchedSkuId,
+                action: RowDiffAction.SKIP,
+                status: 'SKIPPED',
+                reason: 'stale_import_older_than_last_observed_offer',
+              });
+              continue;
+            }
 
             if (existingOffer) {
               await tx.supplierOffer.update({
@@ -434,40 +528,25 @@ export class OfferBatchCommitService {
           }
         }
 
-        // 6. Handle FULL_SNAPSHOT Deactivations safely
+        // 7. Handle FULL_SNAPSHOT Deactivations safely
+        // Missing offers in a snapshot must NEVER be automatically deactivated during batch commit.
+        // A 20% missing-offer threshold is only an anomaly detector, not permission for automatic deactivation.
+        // Even with a 1-19% disappearance, deactivations must be explicitly authorized via approveDeactivations.
         let deactivatedCount = 0;
-        if (job.mode === IngestionImportMode.FULL_SNAPSHOT) {
-          if (diff.deactivationCandidates.length > 0) {
-            const deactivationSkuIds = diff.deactivationCandidates.map((c) => c.skuId);
-
-            // Deactivation requires verified complete assortment scope and anomaly authorization
-            if (options.declaredCompleteAssortment && (!diff.requiresDeactivationApproval || options.actorId)) {
-              const res = await tx.supplierOffer.updateMany({
-                where: {
-                  supplierId: job.supplierId,
-                  skuId: { in: deactivationSkuIds },
-                  isAvailable: true,
-                },
-                data: { isAvailable: false },
-              });
-              deactivatedCount = res.count;
-            } else {
-              // Deactivation held pending review; do not silently deactivate stock!
-              for (const cand of diff.deactivationCandidates) {
-                itemOutcomes.push({
-                  itemId: `deact-${cand.skuId}`,
-                  supplierSkuCode: cand.skuCode,
-                  skuId: cand.skuId,
-                  action: RowDiffAction.DEACTIVATE,
-                  status: 'HELD_FOR_REVIEW',
-                  reason: 'full_snapshot_deactivation_requires_human_approval',
-                });
-              }
-            }
+        if (job.mode === IngestionImportMode.FULL_SNAPSHOT && diff.deactivationCandidates.length > 0) {
+          for (const cand of diff.deactivationCandidates) {
+            itemOutcomes.push({
+              itemId: `deact-${cand.skuId}`,
+              supplierSkuCode: cand.skuCode,
+              skuId: cand.skuId,
+              action: RowDiffAction.DEACTIVATE,
+              status: 'HELD_FOR_REVIEW',
+              reason: 'full_snapshot_missing_offers_require_explicit_deactivation_approval',
+            });
           }
         }
 
-        // 7. Update Job Status
+        // 8. Update Job Status
         const newStatus =
           heldForReviewCount > 0
             ? IngestionStatus.review_required
@@ -497,11 +576,17 @@ export class OfferBatchCommitService {
 
   /**
    * Approves held FULL_SNAPSHOT deactivations following human anomaly inspection.
+   * Enforces Admin authorization, supplier scope, audit evidence and exact reviewed change set.
    */
-  async approveDeactivations(jobId: string, actorId: string): Promise<{ deactivatedCount: number }> {
+  async approveDeactivations(
+    jobId: string,
+    actorId: string,
+    options: ApproveDeactivationsOptions = {},
+  ): Promise<{ deactivatedCount: number; deactivatedSkuIds: string[] }> {
     if (!this.isUuid(jobId)) throw new BadRequestException('Invalid job ID');
     if (!this.isUuid(actorId)) throw new BadRequestException('Invalid actor ID');
 
+    // 1. Admin authorization check
     const reviewer = await this.prisma.customer.findUnique({ where: { id: actorId } });
     if (!reviewer?.roles.includes('ADMIN')) {
       throw new ForbiddenException('Only administrators can approve supplier catalog deactivations');
@@ -516,19 +601,82 @@ export class OfferBatchCommitService {
       throw new BadRequestException('Deactivation approval applies only to FULL_SNAPSHOT import mode');
     }
 
+    // 2. Supplier scope check
+    if (options.supplierId && job.supplierId !== options.supplierId) {
+      throw new ForbiddenException('Job does not belong to specified supplier scope');
+    }
+
+    // 3. Price-only check: cannot deactivate from price-only file
+    const isPriceOnly = job.items.length > 0 && job.items.every((i) => i.reportedQuantity === null);
+    if (isPriceOnly) {
+      throw new BadRequestException('Cannot deactivate offers from a price-only import');
+    }
+
+    // 4. Positive assortment coverage confirmation
+    if (options.confirmedAssortmentCoverage === false) {
+      throw new BadRequestException('Positive confirmation of complete supplier assortment coverage is required to approve deactivations');
+    }
+
     const matchedSkuIds = job.items
       .map((i) => i.matchedSkuId)
       .filter((id): id is string => Boolean(id));
 
-    const result = await this.prisma.supplierOffer.updateMany({
+    const missingOffers = await this.prisma.supplierOffer.findMany({
       where: {
         supplierId: job.supplierId,
         skuId: { notIn: matchedSkuIds },
         isAvailable: true,
       },
-      data: { isAvailable: false },
+      select: { skuId: true },
     });
 
-    return { deactivatedCount: result.count };
+    const candidateSkuIds = missingOffers.map((o) => o.skuId);
+    let targetSkuIds: string[];
+
+    if (options.approvedSkuIds && options.approvedSkuIds.length > 0) {
+      const candidateSet = new Set(candidateSkuIds);
+      targetSkuIds = options.approvedSkuIds.filter((id) => candidateSet.has(id));
+      if (targetSkuIds.length === 0) {
+        throw new BadRequestException('No matching deactivation candidates found for the specified change set');
+      }
+    } else {
+      targetSkuIds = candidateSkuIds;
+    }
+
+    if (targetSkuIds.length === 0) {
+      return { deactivatedCount: 0, deactivatedSkuIds: [] };
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.supplierOffer.updateMany({
+        where: {
+          supplierId: job.supplierId,
+          skuId: { in: targetSkuIds },
+          isAvailable: true,
+        },
+        data: { isAvailable: false },
+      });
+
+      // 5. Audit evidence trail in NotificationOutbox
+      await tx.notificationOutbox.create({
+        data: {
+          eventType: 'ingestion.offers_deactivated',
+          aggregateId: job.id,
+          aggregateType: 'IngestionJob',
+          payload: {
+            jobId: job.id,
+            supplierId: job.supplierId,
+            approvedBy: actorId,
+            deactivatedSkuIds: targetSkuIds,
+            deactivatedCount: result.count,
+            timestamp: new Date().toISOString(),
+          },
+          deduplicationKey: `deactivation:${job.id}:${Date.now()}`,
+        },
+      });
+
+      return { deactivatedCount: result.count, deactivatedSkuIds: targetSkuIds };
+    });
   }
 }
+

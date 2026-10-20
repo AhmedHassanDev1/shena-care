@@ -162,8 +162,11 @@ export class IngestionController {
   async approveDeactivations(
     @Req() req: AuthenticatedUserRequest,
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() body?: { supplierId?: string; confirmedAssortmentCoverage?: boolean; approvedSkuIds?: string[] },
   ) {
-    return this.offerBatchCommitService.approveDeactivations(id, req.user?.id || 'admin');
+    const actorId = req.user?.id;
+    if (!actorId) throw new BadRequestException('Actor ID required');
+    return this.offerBatchCommitService.approveDeactivations(id, actorId, body);
   }
 
   // ─── GLO-77 Candidate Review & Publish Endpoints (Admin / Operator only) ──

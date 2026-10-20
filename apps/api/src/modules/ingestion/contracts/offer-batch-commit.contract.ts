@@ -86,3 +86,9 @@ export interface CommitJobResult {
   deactivatedCount: number;
   itemOutcomes: ItemCommitOutcome[];
 }
+
+export interface ApproveDeactivationsOptions {
+  supplierId?: string;
+  confirmedAssortmentCoverage?: boolean;
+  approvedSkuIds?: string[];
+}

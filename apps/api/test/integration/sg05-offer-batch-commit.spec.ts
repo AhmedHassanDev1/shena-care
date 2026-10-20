@@ -54,6 +54,10 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
       await prisma.ingestionItem.deleteMany({ where: { job: { supplierId: s.id } } });
       await prisma.ingestionJob.deleteMany({ where: { supplierId: s.id } });
       await prisma.supplierOffer.deleteMany({ where: { supplierId: s.id } });
+      const pos = await prisma.supplierPurchaseOrder.findMany({ where: { supplierId: s.id } });
+      const poIds = pos.map((p) => p.id);
+      await prisma.purchaseOrderLine.deleteMany({ where: { purchaseOrderId: { in: poIds } } });
+      await prisma.supplierPurchaseOrder.deleteMany({ where: { supplierId: s.id } });
       await prisma.supplier.delete({ where: { id: s.id } });
     }
 
@@ -65,6 +69,8 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
       for (const p of products) {
         const skus = await prisma.sku.findMany({ where: { productId: p.id } });
         const skuIds = skus.map((s) => s.id);
+        await prisma.purchaseOrderLine.deleteMany({ where: { skuId: { in: skuIds } } });
+        await prisma.sellingPrice.deleteMany({ where: { skuId: { in: skuIds } } });
         await prisma.skuBarcodeAlias.deleteMany({ where: { skuId: { in: skuIds } } });
         await prisma.supplierOffer.deleteMany({ where: { skuId: { in: skuIds } } });
         await prisma.productMedia.deleteMany({ where: { productId: p.id } });
@@ -406,6 +412,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
           price: 105,
           priceType: IngestionPriceType.PURCHASE_COST,
           currency: 'SAR',
+          reportedQuantity: 25,
           matchedSkuId: sku1Id,
           status: IngestionStatus.approved,
         },
@@ -583,6 +590,377 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
         .expect(201);
 
       expect(commitRes.body.committedCount).toBe(1);
+    });
+  });
+
+  describe('10. Comprehensive Safety Invariants Verification (Strike Mode Pre-M3 Gate)', () => {
+    it('Invariant 1 & 2: 1-19% disappearance in snapshot never causes automatic deactivation during commit', async () => {
+      // Setup 5 active offers (disappearance of 1 offer = 20%, 4 active remaining)
+      // Here: 4 active offers, feed contains 3 (1 missing = 25% drop, or 10 offers where 1 missing = 10% drop)
+      const offersData = [];
+      const extraSkus = [];
+      const product = await prisma.product.findFirstOrThrow({ where: { brandId } });
+      for (let i = 0; i < 5; i++) {
+        const sku = await prisma.sku.create({
+          data: {
+            productId: product.id,
+            code: `SG05-INV-SKU-${i}-${Date.now()}`,
+            variantName: `${i * 10 + 10}ml`,
+            barcode: `62250000010${i}${Date.now().toString().slice(-2)}`,
+            isActive: true,
+          },
+        });
+        extraSkus.push(sku);
+        offersData.push({
+          supplierId,
+          skuId: sku.id,
+          costPrice: 50 + i * 10,
+          currency: 'SAR',
+          isAvailable: true,
+        });
+      }
+      await prisma.supplierOffer.createMany({ data: offersData });
+
+      // Feed only provides 4 of the 5 SKUs (1 missing = 20% disappearance)
+      const job = await prisma.ingestionJob.create({
+        data: { supplierId, status: IngestionStatus.review_required, mode: IngestionImportMode.FULL_SNAPSHOT },
+      });
+      for (let i = 0; i < 4; i++) {
+        await prisma.ingestionItem.create({
+          data: {
+            jobId: job.id,
+            supplierSkuCode: `SUP-INV-${i}`,
+            name: `Item ${i}`,
+            brand: 'SG05 Brand',
+            price: 55 + i * 10,
+            priceType: IngestionPriceType.PURCHASE_COST,
+            currency: 'SAR',
+            reportedQuantity: 10,
+            matchedSkuId: extraSkus[i].id,
+            status: IngestionStatus.approved,
+          },
+        });
+      }
+
+      // Even if declaredCompleteAssortment is passed, batch commit MUST NOT auto-deactivate missing offer!
+      const commitRes = await offerCommitService.commitJobOffers(job.id, {
+        declaredCompleteAssortment: true,
+        actorId: admin.id,
+      });
+
+      expect(commitRes.deactivatedCount).toBe(0);
+      const heldDeactivations = commitRes.itemOutcomes.filter((o) => o.action === RowDiffAction.DEACTIVATE);
+      expect(heldDeactivations.length).toBe(1);
+      expect(heldDeactivations[0].status).toBe('HELD_FOR_REVIEW');
+
+      // The 5th offer must STILL be available in DB
+      const fifthOffer = await prisma.supplierOffer.findUniqueOrThrow({
+        where: { supplierId_skuId: { supplierId, skuId: extraSkus[4].id } },
+      });
+      expect(fifthOffer.isAvailable).toBe(true);
+
+      // approveDeactivations without positive assortment coverage throws
+      await expect(
+        offerCommitService.approveDeactivations(job.id, admin.id, {
+          confirmedAssortmentCoverage: false,
+        }),
+      ).rejects.toThrow('Positive confirmation of complete supplier assortment coverage is required');
+    });
+
+    it('Invariant 3: Price-only files never deactivate offers or modify quantity/availability', async () => {
+      await prisma.supplierOffer.createMany({
+        data: [
+          { supplierId, skuId: sku1Id, costPrice: 100, currency: 'SAR', isAvailable: true },
+          { supplierId, skuId: sku2Id, costPrice: 200, currency: 'SAR', isAvailable: true },
+        ],
+      });
+
+      // Price-only file in FULL_SNAPSHOT mode (all items have reportedQuantity === null)
+      const job = await prisma.ingestionJob.create({
+        data: { supplierId, status: IngestionStatus.review_required, mode: IngestionImportMode.FULL_SNAPSHOT },
+      });
+      await prisma.ingestionItem.create({
+        data: {
+          jobId: job.id,
+          supplierSkuCode: 'SUP-SKU-1',
+          name: 'Moisturizing Cream 50ml',
+          brand: 'SG05 Brand',
+          price: 110,
+          priceType: IngestionPriceType.PURCHASE_COST,
+          currency: 'SAR',
+          reportedQuantity: null, // Price-only!
+          matchedSkuId: sku1Id,
+          status: IngestionStatus.approved,
+        },
+      });
+
+      const diff = await offerCommitService.computeJobDiff(job.id);
+      expect(diff.deactivationCandidates.length).toBe(0);
+      expect(diff.requiresDeactivationApproval).toBe(false);
+
+      // Attempting approveDeactivations on price-only job rejects
+      await expect(
+        offerCommitService.approveDeactivations(job.id, admin.id, { confirmedAssortmentCoverage: true }),
+      ).rejects.toThrow('Cannot deactivate offers from a price-only import');
+    });
+
+    it('Invariant 4: Stale imports do not overwrite newer supplier offer information', async () => {
+      // Newer offer observed at 10:00:00
+      const newerTimestamp = new Date('2026-10-20T10:00:00Z');
+      await prisma.supplierOffer.create({
+        data: {
+          supplierId,
+          skuId: sku1Id,
+          costPrice: 120,
+          currency: 'SAR',
+          isAvailable: true,
+          lastObservedAt: newerTimestamp,
+        },
+      });
+
+      // Stale job item created earlier at 09:00:00
+      const job = await prisma.ingestionJob.create({
+        data: { supplierId, status: IngestionStatus.review_required },
+      });
+      const item = await prisma.ingestionItem.create({
+        data: {
+          jobId: job.id,
+          supplierSkuCode: 'SUP-SKU-1',
+          name: 'Moisturizing Cream 50ml',
+          brand: 'SG05 Brand',
+          price: 90, // Outdated lower price
+          priceType: IngestionPriceType.PURCHASE_COST,
+          currency: 'SAR',
+          matchedSkuId: sku1Id,
+          status: IngestionStatus.approved,
+          createdAt: new Date('2026-10-20T09:00:00Z'),
+        },
+      });
+
+      const commitRes = await offerCommitService.commitJobOffers(job.id);
+      expect(commitRes.skippedCount).toBe(1);
+      expect(commitRes.committedCount).toBe(0);
+      expect(commitRes.itemOutcomes[0].reason).toContain('stale_import_older_than_last_observed_offer');
+
+      // Live offer is untouched
+      const liveOffer = await prisma.supplierOffer.findUniqueOrThrow({
+        where: { supplierId_skuId: { supplierId, skuId: sku1Id } },
+      });
+      expect(liveOffer.costPrice.toNumber()).toBe(120);
+      expect(liveOffer.lastObservedAt.toISOString()).toBe(newerTimestamp.toISOString());
+    });
+
+    it('Invariant 6: approve-deactivations enforces Admin authorization, supplier scope, audit trail, and exact change set', async () => {
+      await prisma.supplierOffer.createMany({
+        data: [
+          { supplierId, skuId: sku1Id, costPrice: 100, currency: 'SAR', isAvailable: true },
+          { supplierId, skuId: sku2Id, costPrice: 200, currency: 'SAR', isAvailable: true },
+          { supplierId, skuId: sku3Id, costPrice: 300, currency: 'SAR', isAvailable: true },
+        ],
+      });
+
+      // Snapshot with only SKU 1 (missing SKU 2 and SKU 3)
+      const job = await prisma.ingestionJob.create({
+        data: { supplierId, status: IngestionStatus.review_required, mode: IngestionImportMode.FULL_SNAPSHOT },
+      });
+      await prisma.ingestionItem.create({
+        data: {
+          jobId: job.id,
+          supplierSkuCode: 'SUP-SKU-1',
+          name: 'Moisturizing Cream 50ml',
+          brand: 'SG05 Brand',
+          price: 105,
+          priceType: IngestionPriceType.PURCHASE_COST,
+          currency: 'SAR',
+          reportedQuantity: 20,
+          matchedSkuId: sku1Id,
+          status: IngestionStatus.approved,
+        },
+      });
+
+      // 1. Non-admin authorization check
+      const supplierActor = await createActor(prisma, 'SUPPLIER', supplierId);
+      await expect(
+        offerCommitService.approveDeactivations(job.id, supplierActor.id, { confirmedAssortmentCoverage: true }),
+      ).rejects.toThrow('Only administrators can approve supplier catalog deactivations');
+
+      // 2. Mismatched supplier scope check
+      const otherSupplier = await prisma.supplier.create({
+        data: { name: `Other Supplier ${Date.now()}`, slug: `other-supp-${Date.now()}` },
+      });
+      await expect(
+        offerCommitService.approveDeactivations(job.id, admin.id, {
+          supplierId: otherSupplier.id,
+          confirmedAssortmentCoverage: true,
+        }),
+      ).rejects.toThrow('Job does not belong to specified supplier scope');
+
+      // 3. Exact reviewed change set (only approve SKU 2, do not deactivate SKU 3)
+      const approveRes = await offerCommitService.approveDeactivations(job.id, admin.id, {
+        supplierId,
+        confirmedAssortmentCoverage: true,
+        approvedSkuIds: [sku2Id],
+      });
+      expect(approveRes.deactivatedCount).toBe(1);
+      expect(approveRes.deactivatedSkuIds).toEqual([sku2Id]);
+
+      // SKU 2 is deactivated, SKU 3 remains available!
+      const offer2 = await prisma.supplierOffer.findUniqueOrThrow({
+        where: { supplierId_skuId: { supplierId, skuId: sku2Id } },
+      });
+      expect(offer2.isAvailable).toBe(false);
+
+      const offer3 = await prisma.supplierOffer.findUniqueOrThrow({
+        where: { supplierId_skuId: { supplierId, skuId: sku3Id } },
+      });
+      expect(offer3.isAvailable).toBe(true);
+
+      // 4. Audit evidence written in NotificationOutbox
+      const auditLog = await prisma.notificationOutbox.findFirst({
+        where: {
+          eventType: 'ingestion.offers_deactivated',
+          aggregateId: job.id,
+        },
+      });
+      expect(auditLog).toBeDefined();
+      expect((auditLog?.payload as any).approvedBy).toBe(admin.id);
+      expect((auditLog?.payload as any).deactivatedSkuIds).toContain(sku2Id);
+    });
+
+    it('Invariant 7: Rejected or invalid rows do not abort an otherwise safe batch', async () => {
+      const job = await prisma.ingestionJob.create({
+        data: { supplierId, status: IngestionStatus.review_required },
+      });
+
+      // Row 1: Rejected item
+      await prisma.ingestionItem.create({
+        data: {
+          jobId: job.id,
+          supplierSkuCode: 'SUP-REJECTED',
+          name: 'Rejected Product',
+          brand: 'SG05 Brand',
+          price: 50,
+          priceType: IngestionPriceType.PURCHASE_COST,
+          currency: 'SAR',
+          matchedSkuId: sku1Id,
+          status: IngestionStatus.rejected,
+        },
+      });
+
+      // Row 2: Invalid price (<= 0)
+      await prisma.ingestionItem.create({
+        data: {
+          jobId: job.id,
+          supplierSkuCode: 'SUP-INVALID-PRICE',
+          name: 'Zero Price Product',
+          brand: 'SG05 Brand',
+          price: 0,
+          priceType: IngestionPriceType.PURCHASE_COST,
+          currency: 'SAR',
+          matchedSkuId: sku2Id,
+          status: IngestionStatus.approved,
+        },
+      });
+
+      // Row 3: Valid item
+      await prisma.ingestionItem.create({
+        data: {
+          jobId: job.id,
+          supplierSkuCode: 'SUP-VALID',
+          name: 'Valid Product 200ml',
+          brand: 'SG05 Brand',
+          price: 175,
+          priceType: IngestionPriceType.PURCHASE_COST,
+          currency: 'SAR',
+          matchedSkuId: sku3Id,
+          status: IngestionStatus.approved,
+        },
+      });
+
+      const commitRes = await offerCommitService.commitJobOffers(job.id);
+      expect(commitRes.committedCount).toBe(1);
+      expect(commitRes.skippedCount).toBe(1);
+      expect(commitRes.errorCount).toBe(1);
+
+      // Valid item offer was committed
+      const committedOffer = await prisma.supplierOffer.findUniqueOrThrow({
+        where: { supplierId_skuId: { supplierId, skuId: sku3Id } },
+      });
+      expect(committedOffer.costPrice.toNumber()).toBe(175);
+
+      // Invalid rows did not create offers
+      const invalidOffer = await prisma.supplierOffer.findUnique({
+        where: { supplierId_skuId: { supplierId, skuId: sku2Id } },
+      });
+      expect(invalidOffer).toBeNull();
+    });
+
+    it('Invariant 8: Wholesale offer updates strictly preserve customer selling prices and purchase orders', async () => {
+      // 1. Set customer selling price in commerce.selling_prices
+      const customerPrice = await prisma.sellingPrice.create({
+        data: {
+          skuId: sku1Id,
+          amount: 250,
+          currency: 'SAR',
+          validFrom: new Date(),
+          isActive: true,
+        },
+      });
+
+      // 2. Set committed purchase order line
+      const po = await prisma.supplierPurchaseOrder.create({
+        data: {
+          supplierId,
+          status: 'confirmed',
+          notes: 'Test PO',
+        },
+      });
+      const poLine = await prisma.purchaseOrderLine.create({
+        data: {
+          purchaseOrderId: po.id,
+          skuId: sku1Id,
+          requestedQuantity: 10,
+          confirmedQuantity: 10,
+          unitCost: 80, // Committed agreed purchase price
+          currency: 'SAR',
+          status: 'confirmed_full',
+        },
+      });
+
+      // 3. Batch commit updating supplier wholesale cost to 140 SAR
+      const job = await prisma.ingestionJob.create({
+        data: { supplierId, status: IngestionStatus.review_required },
+      });
+      await prisma.ingestionItem.create({
+        data: {
+          jobId: job.id,
+          supplierSkuCode: 'SUP-SKU-1',
+          name: 'Moisturizing Cream 50ml',
+          brand: 'SG05 Brand',
+          price: 140,
+          priceType: IngestionPriceType.PURCHASE_COST,
+          currency: 'SAR',
+          matchedSkuId: sku1Id,
+          status: IngestionStatus.approved,
+        },
+      });
+
+      await offerCommitService.commitJobOffers(job.id);
+
+      // Verify SupplierOffer cost updated to 140
+      const offer = await prisma.supplierOffer.findUniqueOrThrow({
+        where: { supplierId_skuId: { supplierId, skuId: sku1Id } },
+      });
+      expect(offer.costPrice.toNumber()).toBe(140);
+
+      // Assert customer-facing selling price is STRICTLY UNCHANGED (250 SAR)
+      const priceAfter = await prisma.sellingPrice.findUniqueOrThrow({ where: { id: customerPrice.id } });
+      expect(priceAfter.amount.toNumber()).toBe(250);
+
+      // Assert committed PurchaseOrderLine unit cost is STRICTLY UNCHANGED (80 SAR)
+      const poLineAfter = await prisma.purchaseOrderLine.findUniqueOrThrow({ where: { id: poLine.id } });
+      expect(poLineAfter.unitCost.toNumber()).toBe(80);
+      expect(poLineAfter.confirmedQuantity).toBe(10);
     });
   });
 });
