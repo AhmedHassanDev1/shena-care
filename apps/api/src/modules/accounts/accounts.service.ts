@@ -83,6 +83,10 @@ export class AccountsService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (!identity.customer.isActive) {
+      throw new UnauthorizedException('Account has been deactivated');
+    }
+
     return this.createSession(identity.customerId);
   }
 
@@ -231,7 +235,7 @@ export class AccountsService {
       data: { isUsed: true }
     });
 
-    let identity = await this.prisma.identity.findUnique({
+    const identity = await this.prisma.identity.findUnique({
       where: {
         provider_providerId: {
           provider: 'PHONE',
@@ -246,6 +250,10 @@ export class AccountsService {
     if (identity && identity.customer.roles.some((role) => role !== Role.CUSTOMER)) {
       console.warn(`[ACCOUNTS] OTP sign-in refused for a staff account (${canonicalPhone.slice(0, 5)}*****)`);
       throw new UnauthorizedException({ code: 'OTP_INVALID', message: 'Invalid OTP code' });
+    }
+
+    if (identity && !identity.customer.isActive) {
+      throw new UnauthorizedException('Account has been deactivated');
     }
 
     let customerId: string;
@@ -349,19 +357,21 @@ export class AccountsService {
   async getWorkspaceIdentity(accountId: string) {
     const account = await this.prisma.customer.findUnique({
       where: { id: accountId },
-      select: { id: true, name: true, email: true, roles: true, supplierId: true, supplier: { select: { name: true } } },
+      select: { id: true, name: true, email: true, roles: true, supplierId: true, isActive: true, supplier: { select: { name: true } } },
     });
     if (!account) throw new UnauthorizedException('Account not found');
+    if (!account.isActive) throw new UnauthorizedException('Account has been deactivated');
     return {
       id: account.id, name: account.name, email: account.email, roles: account.roles,
       supplierId: account.supplierId, supplierName: account.supplier?.name ?? null,
+      isActive: account.isActive,
     };
   }
 
-  /** Staff directory for assignment pickers: ids and names only (no email/phone). */
+  /** Staff directory for assignment pickers: ids and names only (no email/phone), active accounts only. */
   async listAccountsWithRole(role: Role) {
     return this.prisma.customer.findMany({
-      where: { roles: { has: role } }, select: { id: true, name: true }, orderBy: { name: 'asc' },
+      where: { roles: { has: role }, isActive: true }, select: { id: true, name: true }, orderBy: { name: 'asc' },
     });
   }
 

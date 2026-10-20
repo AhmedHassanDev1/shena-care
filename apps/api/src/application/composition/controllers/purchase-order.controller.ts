@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Query, UseGuards, ForbiddenException, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Query, UseGuards, ForbiddenException, ParseUUIDPipe, Headers } from '@nestjs/common';
 import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
 import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
 import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
@@ -69,8 +69,19 @@ export class PurchaseOrderController {
 
   @Get(':id')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
-  async getPurchaseOrder(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
-    return this.present(user, await this.ownedPurchaseOrder(user, id));
+  async getPurchaseOrder(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Headers('purpose') purpose?: string,
+    @Headers('sec-purpose') secPurpose?: string,
+  ) {
+    const order = await this.ownedPurchaseOrder(user, id);
+    const isPrefetch = purpose === 'prefetch' || secPurpose === 'prefetch';
+    if (!this.isStaff(user) && !order.openedAt && !isPrefetch) {
+      const updated = await this.purchaseOrderService.recordOpen(id);
+      return this.present(user, updated);
+    }
+    return this.present(user, order);
   }
 
   @Post(':id/confirm')

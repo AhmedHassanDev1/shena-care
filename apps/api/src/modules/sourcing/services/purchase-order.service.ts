@@ -17,7 +17,7 @@ const BATCH_LOCK = 44090;
 /** What a supplier may see: its own lines, quantities and approved costs — no orders, customers or rivals. */
 export interface SupplierPurchaseOrderView {
   id: string; supplierId: string; status: PurchaseOrderStatus; notes: string | null; batchRef: string | null;
-  issuedAt: Date | null; confirmedAt: Date | null; readyAt: Date | null; receivedAt: Date | null; createdAt: Date;
+  issuedAt: Date | null; openedAt: Date | null; confirmedAt: Date | null; readyAt: Date | null; receivedAt: Date | null; createdAt: Date;
   lines: Array<{
     id: string; skuId: string; requestedQuantity: number; confirmedQuantity: number | null;
     status: PurchaseOrderLineStatus; unitCost: number | null; currency: string | null;
@@ -177,11 +177,25 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     return order;
   }
 
+  /** Record when a supplier account first views or opens a purchase order. */
+  async recordOpen(id: string): Promise<PurchaseOrderWithLineage> {
+    const order = await this.getPurchaseOrder(id);
+    if (!order.openedAt) {
+      const now = new Date();
+      await this.prisma.supplierPurchaseOrder.update({
+        where: { id },
+        data: { openedAt: now },
+      });
+      order.openedAt = now;
+    }
+    return order;
+  }
+
   /** Supplier-safe projection (no order/customer lineage). */
   toSupplierView(order: PurchaseOrderWithLineage): SupplierPurchaseOrderView {
     return {
       id: order.id, supplierId: order.supplierId, status: order.status, notes: null, batchRef: order.batchRef,
-      issuedAt: order.issuedAt, confirmedAt: order.confirmedAt, readyAt: order.readyAt, receivedAt: order.receivedAt,
+      issuedAt: order.issuedAt, openedAt: order.openedAt, confirmedAt: order.confirmedAt, readyAt: order.readyAt, receivedAt: order.receivedAt,
       createdAt: order.createdAt,
       lines: order.lines.map(line => ({
         id: line.id, skuId: line.skuId, requestedQuantity: line.requestedQuantity, confirmedQuantity: line.confirmedQuantity,

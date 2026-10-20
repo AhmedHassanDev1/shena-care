@@ -17,7 +17,8 @@
     "migration:revert": "prisma migrate reset",
     "seed": "ts-node src/platform/database/seed.ts",
     "events:dispatch": "ts-node scripts/dispatch-domain-events.ts",
-    "staff:provision": "ts-node scripts/provision-staff.ts"
+    "staff:provision": "ts-node scripts/provision-staff.ts",
+    "audit:offers": "ts-node scripts/audit-supplier-offers.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
@@ -37,7 +38,8 @@
     "multer": "^2.4.0",
     "reflect-metadata": "^0.1.14",
     "rxjs": "^7.8.1",
-    "uuid": "^14.0.2"
+    "uuid": "^14.0.2",
+    "xlsx": "0.18.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.2.1",

@@ -8,10 +8,13 @@ import { AuthGuard } from './guards/auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import rateLimit from 'express-rate-limit';
 
+import { StaffManagementService } from './services/staff-management.service';
+import { StaffManagementController } from './controllers/staff-management.controller';
+
 @Module({
-  controllers: [AccountsController, CustomerAddressesController],
-  providers: [AccountsService, CustomerAddressesService, PrismaService, AuthGuard, RolesGuard],
-  exports: [AccountsService, CustomerAddressesService, AuthGuard, RolesGuard],
+  controllers: [AccountsController, CustomerAddressesController, StaffManagementController],
+  providers: [AccountsService, CustomerAddressesService, StaffManagementService, PrismaService, AuthGuard, RolesGuard],
+  exports: [AccountsService, CustomerAddressesService, StaffManagementService, AuthGuard, RolesGuard],
 })
 export class AccountsModule {
   configure(consumer: MiddlewareConsumer) {

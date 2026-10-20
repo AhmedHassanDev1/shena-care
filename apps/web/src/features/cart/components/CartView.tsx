@@ -285,7 +285,8 @@ function EmptyCart({ signedIn }: { signedIn: boolean }) {
       <span className="grid size-14 place-items-center rounded-pill bg-sand text-night">
         <Icon name="bag" size={26} />
       </span>
-      <h1 className="m-0 font-display text-28 font-extrabold leading-34 text-night">{m.cartEmptyTitle}</h1>
+      <h2 className="m-0 font-display text-28 font-extrabold leading-34 text-night lg:hidden">{m.cartEmptyTitle}</h2>
+      <h1 className="m-0 hidden font-display text-28 font-extrabold leading-34 text-night lg:block">{m.cartEmptyTitle}</h1>
       <p className="m-0 text-14 leading-22 text-ink-2">{m.cartEmptyBody}</p>
       <span className="mt-2 flex flex-wrap justify-center gap-2.5">
         <Link href={routes.products} className={buttonVariants({ variant: 'ink' })}>

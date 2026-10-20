@@ -62,11 +62,11 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
             {fillMessage(m.orderPlacedOnLong, { date: formatDate(order.createdAt, locale) })} · {formatProductCount(count, locale)}
           </span>
           {/* Phone: the number is the header title (CommerceMobile ٧); desktop: the panel heading (OrdersD). */}
-          <h1 className="m-0 hidden text-match-parent lg:block">
+          <h2 className="m-0 hidden text-match-parent lg:block">
             <bdi dir="ltr" className="text-24 font-bold tabular-nums leading-30 text-night lg:text-28 lg:leading-34">
               {order.orderNumber}
             </bdi>
-          </h1>
+          </h2>
         </span>
         <StatusChip tone={stageTone(order.status)}>{stageLabel(order.status, m)}</StatusChip>
       </header>

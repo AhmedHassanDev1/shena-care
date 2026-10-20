@@ -244,8 +244,8 @@ export function AddressSection({
             onChange={(event) => onDraft({ ...draft, label: event.target.value })}
           />
           <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-            <legend className="mb-2 text-14 font-semibold text-night">{m.checkoutGovernorate}</legend>
-            <span role="radiogroup" className="flex gap-2">
+            <legend id="co-governorate-label" className="mb-2 text-14 font-semibold text-night">{m.checkoutGovernorate}</legend>
+            <span role="radiogroup" aria-labelledby="co-governorate-label" aria-invalid={errors.governorate ? true : undefined} aria-describedby={errors.governorate ? 'co-governorate-error' : undefined} tabIndex={errors.governorate ? -1 : undefined} className="flex gap-2">
               {(['Cairo', 'Giza'] as Governorate[]).map((g) => {
                 const checked = draft.governorate === g;
                 return (
@@ -262,7 +262,7 @@ export function AddressSection({
                 );
               })}
             </span>
-            {errors.governorate ? <InlineError>{errors.governorate}</InlineError> : null}
+            {errors.governorate ? <InlineError id="co-governorate-error">{errors.governorate}</InlineError> : null}
           </fieldset>
           <div className="grid gap-4 lg:grid-cols-2">
             <TextField
@@ -360,9 +360,9 @@ function RadioMark({ checked }: { checked: boolean }) {
   );
 }
 
-export function InlineError({ children }: { children: ReactNode }) {
+export function InlineError({ id, children }: { id?: string; children: ReactNode }) {
   return (
-    <p role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-22 text-err">
+    <p id={id} role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-22 text-err">
       <span aria-hidden="true" className="mt-2 size-1.75 flex-none rounded-full bg-err" />
       {children}
     </p>

@@ -116,14 +116,21 @@ const DEMO_HUB_SHIPMENTS: HubShipmentItem[] = [
 ]
 
 export default function AdminHubPage() {
+  return (
+    <RoleShell role="admin" active="hub" mode="desktop">
+      <AdminHubContent />
+    </RoleShell>
+  )
+}
+
+function AdminHubContent() {
   const me = useMe()
   const primaryHub = me.hubLocations[0] || { id: 'hub-cairo-central', name: 'المخزن المركزي - المعادي' }
 
   const [activeTab, setActiveTab] = React.useState<'overview' | 'receivables' | 'shipments'>('overview')
 
   return (
-    <RoleShell role="admin" active="hub" mode="desktop">
-      <div className="sc-glow p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1680px] mx-auto min-h-screen">
+    <div className="sc-glow p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1680px] mx-auto min-h-screen">
         {/* Header */}
         <div className="sc-pagehead flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -406,6 +413,5 @@ export default function AdminHubPage() {
           )}
         </div>
       </div>
-    </RoleShell>
   )
 }

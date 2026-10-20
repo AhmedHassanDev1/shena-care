@@ -16,8 +16,9 @@ import { OrderDetail } from './OrderDetail';
  * One order from the customer tracking projection (GLO-74): «طلبك اتسجّل» right after checkout (`placed`), the
  * detail and tracking otherwise. Refreshes every minute and on focus until live updates exist.
  */
-export function OrderTrackingView({ orderNumber, placed = false }: { orderNumber: string; placed?: boolean }) {
+export function OrderTrackingView({ orderNumber, placed = false, errorHeadingLevel = 1 }: { orderNumber: string; placed?: boolean; errorHeadingLevel?: 1 | 2 }) {
   const m = useMessages();
+  const ErrorHeading = `h${errorHeadingLevel}` as const;
   const query = useQuery({
     queryKey: ['order-tracking', orderNumber],
     queryFn: () => orders.getTracking(orderNumber),
@@ -32,7 +33,7 @@ export function OrderTrackingView({ orderNumber, placed = false }: { orderNumber
     const missing = access || status === 404 || status === 400;
     return (
       <section className="flex flex-col items-center gap-3 rounded-card bg-linen px-5 py-10 text-center shadow-outline-hairline">
-        <h1 className="m-0 text-17 font-bold text-night">{missing ? m.orderNotFoundTitle : m.orderLoadError}</h1>
+        <ErrorHeading className="m-0 text-17 font-bold text-night">{missing ? m.orderNotFoundTitle : m.orderLoadError}</ErrorHeading>
         {missing ? <p className="m-0 text-14 text-ink-2">{access ? m.orderNeedsAccessBody : m.orderNotFoundBody}</p> : null}
         {access ? (
           <Link href={signInHref(routes.order(orderNumber))} className={buttonVariants({ variant: 'ink' })}>

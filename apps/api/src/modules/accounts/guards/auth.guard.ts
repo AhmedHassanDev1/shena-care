@@ -32,6 +32,10 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
+    if (!session.customer.isActive) {
+      throw new UnauthorizedException('Account has been deactivated');
+    }
+
     // Attach user to request for use in controllers
     (request as any).user = session.customer;
     (request as any).sessionToken = token;

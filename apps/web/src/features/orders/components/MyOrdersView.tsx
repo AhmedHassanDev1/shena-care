@@ -68,7 +68,7 @@ export function MyOrdersView({ selected }: { selected?: string }) {
         </section>
         {(selected || desktop) && shown ? (
           <section>
-            <OrderTrackingView key={shown} orderNumber={shown} />
+            <OrderTrackingView key={shown} orderNumber={shown} errorHeadingLevel={2} />
           </section>
         ) : null}
       </div>

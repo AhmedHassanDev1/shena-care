@@ -56,15 +56,16 @@ export function onUnauthorized(listener: () => void): () => void {
 
 export async function api<T>(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
   const token = getToken()
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData
   let response: Response
   try {
     response = await fetch(`${API_URL}${path}`, {
       method: init.method ?? (init.body === undefined ? 'GET' : 'POST'),
       headers: {
-        ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(init.body === undefined || isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      body: init.body === undefined ? undefined : isFormData ? (init.body as FormData) : JSON.stringify(init.body),
       cache: 'no-store',
       signal: init.signal,
     })

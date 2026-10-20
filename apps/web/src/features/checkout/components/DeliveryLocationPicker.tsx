@@ -231,7 +231,7 @@ export function DeliveryLocationPicker({ value, onChange, error, onChooseOther, 
 
       {error && !showConfirmed ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-22 text-err">
+          <p role="alert" tabIndex={-1} data-error-focus className="m-0 flex items-start gap-2 text-13.5 leading-22 text-err">
             <span aria-hidden="true" className="mt-2 size-1.75 flex-none rounded-full bg-err" />
             {error}
           </p>

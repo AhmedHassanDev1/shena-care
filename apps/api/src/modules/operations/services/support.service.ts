@@ -1,5 +1,5 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, Role, SupportCaseCategory, SupportCasePriority, SupportCaseStatus } from '@prisma/client';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, Role, SupportCaseCategory, SupportCasePriority, SupportCaseStatus, OrderStatus } from '@prisma/client';
 import { CreateSupportCaseDto, UpdateSupportCaseDto } from '../dto/operations.dto';
 import { OutboxService } from './outbox.service';
 import { PrismaService } from '../../../platform/database/prisma.service';
@@ -158,14 +158,141 @@ export class SupportService {
   }
 
   async updateCase(id: string, dto: UpdateSupportCaseDto, actorId: string) {
-    const existing = await this.getCaseById(id);
-    return this.prisma.supportCase.update({
-      where: { id },
-      data: {
-        status: dto.status as any,
-        internalNotes: dto.internalNotes,
-        assigneeId: dto.assigneeId
+    return this.prisma.$transaction(async tx => {
+      // Serialize concurrent resolution attempts for this specific case
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`support-case:${id}`}))`;
+
+      const existing = await tx.supportCase.findUnique({ where: { id } });
+      if (!existing) throw new NotFoundException('Support case not found');
+
+      const isResolving = dto.status && ['resolved', 'closed'].includes(dto.status);
+      const wasOpen = ['open', 'in_progress'].includes(existing.status);
+
+      // Idempotent duplicate: if case is already resolved/closed with this exact status, return existing
+      if (['resolved', 'closed'].includes(existing.status) && isResolving && existing.status === dto.status) {
+        return existing;
       }
+
+      if (isResolving && wasOpen) {
+        // 1. Mandatory audit notes
+        if (!dto.internalNotes || dto.internalNotes.trim().length < 10) {
+          throw new BadRequestException('Closing or resolving an operational case requires documented internal notes (at least 10 characters).');
+        }
+
+        // 2. Cancellation outcome verification
+        if (existing.category === 'cancellation') {
+          if (!existing.orderId) {
+            throw new BadRequestException('Cannot close cancellation exception: case must be linked to an order with verified domain outcome.');
+          }
+          const order = await tx.order.findUnique({ where: { id: existing.orderId } });
+          if (!order) throw new NotFoundException('Linked order not found');
+          if (order.status !== OrderStatus.cancelled) {
+            throw new BadRequestException(`Cannot close cancellation exception for order ${order.orderNumber}: order is not cancelled in the ordering domain (current status: ${order.status}). Cancel the order first.`);
+          }
+          const shipment = await tx.shipment.findUnique({ where: { orderId: existing.orderId } });
+          if (shipment && ['dispatched', 'out_for_delivery', 'preparing', 'prepared', 'packing', 'packed', 'ready_to_pack', 'ready_to_prepare'].includes(shipment.status)) {
+            throw new BadRequestException(`Cannot close cancellation exception for order ${order.orderNumber}: shipment ${shipment.id} is still in active transit/preparation (${shipment.status}). Reconcile physical shipment custody first.`);
+          }
+        }
+
+        // 3. Delivery outcome verification
+        if (existing.category === 'delivery') {
+          if (!existing.orderId) {
+            throw new BadRequestException('Cannot close delivery exception: case must be linked to an order with verified domain outcome.');
+          }
+          const order = await tx.order.findUnique({ where: { id: existing.orderId } });
+          if (!order) throw new NotFoundException('Linked order not found');
+          if (!['delivered', 'returned', 'cancelled'].includes(order.status)) {
+            throw new BadRequestException(`Cannot close delivery exception for order ${order.orderNumber}: order status is ${order.status}. Order must be in a terminal disposition (delivered, returned, or cancelled).`);
+          }
+          const shipment = await tx.shipment.findUnique({ where: { orderId: existing.orderId } });
+          if (shipment && ['dispatched', 'out_for_delivery', 'preparing', 'prepared', 'packing', 'packed', 'ready_to_pack', 'ready_to_prepare'].includes(shipment.status)) {
+            throw new BadRequestException(`Cannot close delivery exception for order ${order.orderNumber}: shipment ${shipment.id} is still in active transit (${shipment.status}). Settle physical delivery status first.`);
+          }
+        }
+
+        // 4. Return / Refund outcome verification
+        if (existing.category === 'return') {
+          if (!existing.orderId) {
+            throw new BadRequestException('Cannot close return exception: case must be linked to an order with verified domain outcome.');
+          }
+          const order = await tx.order.findUnique({ where: { id: existing.orderId } });
+          if (!order) throw new NotFoundException('Linked order not found');
+          const resolutions = await tx.orderResolution.findMany({ where: { orderId: existing.orderId } });
+          const pendingResolution = resolutions.find(r => ['requested', 'approved', 'in_transit', 'received'].includes(r.status));
+          if (pendingResolution) {
+            throw new BadRequestException(`Cannot close return exception for order ${order.orderNumber}: return resolution ${pendingResolution.id} is still pending (${pendingResolution.status}). Settle or reject the return workflow first.`);
+          }
+          if (resolutions.length === 0 && !['returned', 'cancelled'].includes(order.status)) {
+            throw new BadRequestException(`Cannot close return exception for order ${order.orderNumber}: no processed return resolution exists and order is ${order.status}. Record a return resolution or return the order first.`);
+          }
+        }
+
+        // 5. Payment / COD discrepancy outcome verification
+        if (existing.category === 'payment') {
+          if (!existing.orderId) {
+            throw new BadRequestException('Cannot close payment exception: case must be linked to an order with verified domain outcome.');
+          }
+          const order = await tx.order.findUnique({ where: { id: existing.orderId } });
+          if (!order) throw new NotFoundException('Linked order not found');
+          const collection = await tx.paymentCollection.findUnique({ where: { orderId: existing.orderId } });
+          if (collection && ['expected', 'disputed'].includes(collection.status)) {
+            throw new BadRequestException(`Cannot close payment exception for order ${order.orderNumber}: cash collection is still ${collection.status}. Settle or void the collection through cash reconciliation first.`);
+          }
+        }
+
+        // 6. Sourcing outcome verification
+        if (existing.category === 'sourcing') {
+          if (!existing.orderId && !existing.supplierId) {
+            throw new BadRequestException('Cannot close sourcing exception: case must be linked to an order or supplier with verified domain outcome.');
+          }
+          if (existing.orderId) {
+            const order = await tx.order.findUnique({ where: { id: existing.orderId } });
+            if (!order) throw new NotFoundException('Linked order not found');
+            const actionReqs = await tx.availabilityActionRequirement.findMany({
+              where: { requirement: { supplyRequest: { orderId: existing.orderId } }, unresolvedQuantity: { gt: 0 } },
+            });
+            if (actionReqs.length > 0) {
+              throw new BadRequestException(`Cannot close sourcing exception for order ${order.orderNumber}: ${actionReqs.length} unresolved supply requirement(s) still exist. Allocate alternative supply or amend order first.`);
+            }
+          }
+          if (existing.supplierId) {
+            const pendingDistribution = await tx.purchaseOrderLine.findFirst({
+              where: { purchaseOrder: { supplierId: existing.supplierId }, distributionRequired: true },
+            });
+            if (pendingDistribution) {
+              throw new BadRequestException(`Cannot close sourcing exception for supplier ${existing.supplierId}: PO line ${pendingDistribution.id} has scarce stock awaiting manual distribution.`);
+            }
+          }
+        }
+      }
+
+      const updated = await tx.supportCase.update({
+        where: { id },
+        data: {
+          status: dto.status as SupportCaseStatus,
+          internalNotes: dto.internalNotes !== undefined ? dto.internalNotes : existing.internalNotes,
+          assigneeId: dto.assigneeId !== undefined ? dto.assigneeId : existing.assigneeId,
+        },
+      });
+
+      if (isResolving && wasOpen) {
+        await this.outbox.enqueue(tx, {
+          eventType: 'support.case_resolved',
+          aggregateId: existing.id,
+          aggregateType: 'SupportCase',
+          payload: {
+            caseId: existing.id,
+            status: dto.status,
+            category: existing.category,
+            resolvedBy: actorId,
+            internalNotes: dto.internalNotes,
+          },
+          deduplicationKey: `support.resolved:${existing.id}:${dto.status}`,
+        });
+      }
+
+      return updated;
     });
   }
 }

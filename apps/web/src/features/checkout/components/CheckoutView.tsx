@@ -54,7 +54,7 @@ const pinOf = (address: CustomerAddress): LocationPin => ({
 /** Errors are announced (role=alert); focus follows to the first field to fix once it is on screen. */
 function focusFirstInvalid(sectionId: string) {
   window.requestAnimationFrame(() => {
-    document.querySelector<HTMLElement>(`section[aria-labelledby="${sectionId}"] [aria-invalid="true"]`)?.focus();
+    document.querySelector<HTMLElement>(`section[aria-labelledby="${sectionId}"] [aria-invalid="true"], section[aria-labelledby="${sectionId}"] [data-error-focus]`)?.focus();
   });
 }
 

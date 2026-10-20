@@ -105,6 +105,16 @@ export class StorageService {
     return this.storagePort.exists(objectKey);
   }
 
+  async getFileBuffer(objectKey: string): Promise<Buffer> {
+    if (!(await this.storagePort.exists(objectKey))) {
+      throw new NotFoundException(`File object not found: ${objectKey}`);
+    }
+    const stream = await this.storagePort.readStream(objectKey);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    return Buffer.concat(chunks);
+  }
+
   /** Restore original bytes at a persisted private key without changing provenance URLs. */
   async restorePrivateFile(objectKey: string, file: Express.Multer.File, supplierId: string): Promise<void> {
     this.validateFile(file);

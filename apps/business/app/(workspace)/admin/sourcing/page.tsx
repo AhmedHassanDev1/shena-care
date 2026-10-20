@@ -21,7 +21,19 @@ interface StaffPo {
     allocations: Array<{ sourceAllocationId: string; orderId: string; quantity: number; confirmedQuantity: number | null; receivedQuantity: number }>
   }>
 }
-interface Payable { id: string; supplierName: string; purchaseOrderId: string; amount: number; status: string; paidAt: string | null; paymentRef: string | null }
+interface Payable {
+  id: string;
+  supplierName: string;
+  purchaseOrderId: string;
+  amount: number;
+  grossAmount?: number;
+  creditApplied?: number;
+  netAmount?: number;
+  cashPaid?: number;
+  status: string;
+  paidAt: string | null;
+  paymentRef: string | null;
+}
 
 /** Supplier purchase orders, scarce-stock decisions and supplier payables (W2). */
 export default function AdminSourcing() {
@@ -74,6 +86,8 @@ export default function AdminSourcing() {
             <SupplierPerformanceTable />
           </div>
         </Section>
+
+        <Section title="تجميع أوامر الشراء">
           <form className="flex flex-wrap items-end gap-3" onSubmit={async (e) => {
             e.preventDefault()
             const done = await flush.execute()
@@ -103,7 +117,7 @@ export default function AdminSourcing() {
         <Section title="مستحقات الموردين">
           {payables.data && payables.data.items.length === 0 ? <p className="text-bw-small text-bw-ink-soft">مافيش مستحقات لسه. المستحق بيتحسب من الكمية اللي وصلت فعلاً × تكلفة أمر الشراء.</p> : null}
           {payables.data?.items.length ? (
-            <DataTable caption="مستحقات الموردين" head={['المورد', 'أمر الشراء', 'المبلغ', 'الحالة', 'مرجع الدفع', '']}>
+            <DataTable caption="مستحقات الموردين" head={['المورد', 'أمر الشراء', 'إجمالي البضاعة', 'رصيد مرتجع مطبق', 'الصافي المستحق', 'الحالة', 'مرجع الدفع', '']}>
               {payables.data.items.map((p) => <PayableRow key={p.id} p={p} onChanged={payables.reload} />)}
             </DataTable>
           ) : null}
@@ -186,23 +200,75 @@ function Distribute({ po, line, onDone }: { po: StaffPo; line: StaffPo['lines'][
 
 function PayableRow({ p, onChanged }: { p: Payable; onChanged: () => void }) {
   const [ref, setRef] = React.useState('')
-  const cmd = useCommand(() => api(`/sourcing/payables/${p.id}/mark-paid`, { method: 'PATCH', body: { paymentRef: ref.trim() } }))
+  const [creditRef, setCreditRef] = React.useState('')
+  const [creditAmount, setCreditAmount] = React.useState('')
+  const [showCreditForm, setShowCreditForm] = React.useState(false)
+
+  const markPaidCmd = useCommand(() => api(`/sourcing/payables/${p.id}/mark-paid`, { method: 'PATCH', body: { paymentRef: ref.trim() } }))
+  const creditCmd = useCommand(() => api(`/sourcing/payables/${p.id}/apply-credit`, {
+    method: 'POST',
+    body: { creditAmount: Number(creditAmount), supplierReturnRef: creditRef.trim() },
+  }))
+
   return (
     <tr>
       <td>{p.supplierName}</td>
       <td><Code>{shortId(p.purchaseOrderId)}</Code></td>
-      <td><Egp value={p.amount} /></td>
+      <td><Egp value={p.grossAmount ?? p.amount} /></td>
+      <td>
+        {p.creditApplied ? (
+          <span className="text-emerald-400 font-mono font-bold">-<Egp value={p.creditApplied} /></span>
+        ) : '—'}
+      </td>
+      <td><Egp value={p.netAmount ?? p.amount} className="font-bold text-white" /></td>
       <td><Status map={PAYABLE_STATUS} value={p.status} /></td>
       <td>{p.paymentRef ? <Code>{p.paymentRef}</Code> : '—'}</td>
-      <td>
+      <td className="space-y-1">
         {p.status !== 'paid' ? (
-          <form className="flex items-center gap-2" onSubmit={async (e) => { e.preventDefault(); if (await cmd.execute()) onChanged() }}>
-            <input aria-label="مرجع التحويل" value={ref} onChange={(e) => setRef(e.target.value)} placeholder="مرجع التحويل" dir="ltr"
-              className="h-bw-control w-40 rounded-bw-field border-[1.5px] border-bw-line-field px-2" />
-            <Button type="submit" variant="secondary" loading={cmd.pending} disabled={!ref.trim()}>اتدفع</Button>
-          </form>
+          <div className="flex flex-col gap-1.5">
+            <form className="flex items-center gap-1.5" onSubmit={async (e) => { e.preventDefault(); if (await markPaidCmd.execute()) onChanged() }}>
+              <input aria-label="مرجع التحويل" value={ref} onChange={(e) => setRef(e.target.value)} placeholder="مرجع التحويل" dir="ltr"
+                className="h-8 w-28 rounded-bw-field border-[1.5px] border-bw-line-field px-2 text-xs" />
+              <Button type="submit" variant="secondary" loading={markPaidCmd.pending} disabled={!ref.trim()}>سداد الصافي</Button>
+            </form>
+
+            {!showCreditForm ? (
+              <button
+                type="button"
+                onClick={() => setShowCreditForm(true)}
+                className="text-[11px] text-emerald-400 hover:underline text-start"
+              >
+                + خصم رصيد مرتجع سابق
+              </button>
+            ) : (
+              <form className="flex items-center gap-1.5 p-1.5 rounded-lg bg-black/40 border border-emerald-500/30 text-xs" onSubmit={async (e) => {
+                e.preventDefault()
+                if (await creditCmd.execute()) {
+                  setShowCreditForm(false)
+                  onChanged()
+                }
+              }}>
+                <input
+                  type="text"
+                  placeholder="رقم إذن المرتجع"
+                  value={creditRef}
+                  onChange={(e) => setCreditRef(e.target.value)}
+                  className="h-7 w-24 rounded border border-white/[0.1] bg-black/50 px-1.5 text-[11px] text-white"
+                />
+                <input
+                  type="number"
+                  placeholder="المبلغ"
+                  value={creditAmount}
+                  onChange={(e) => setCreditAmount(e.target.value)}
+                  className="h-7 w-16 rounded border border-white/[0.1] bg-black/50 px-1.5 text-[11px] text-white"
+                />
+                <Button type="submit" variant="primary" loading={creditCmd.pending} disabled={!creditRef.trim() || !(Number(creditAmount) > 0)}>تطبيق</Button>
+                <button type="button" onClick={() => setShowCreditForm(false)} className="text-[10px] text-bw-ink-soft">إلغاء</button>
+              </form>
+            )}
+          </div>
         ) : formatDateTime(p.paidAt)}
-        <CommandError error={cmd.error} />
+        <CommandError error={markPaidCmd.error || creditCmd.error} />
       </td>
     </tr>
   )
