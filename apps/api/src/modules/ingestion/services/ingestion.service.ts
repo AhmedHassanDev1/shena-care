@@ -6,6 +6,7 @@ import { ProductIdentityService, MatchClassification } from './product-identity.
 import { ProductResearchService } from './product-research.service';
 import { ProductContentService } from './product-content.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto, ApplyJobMappingDto } from '../dto/ingestion.dto';
+import { CandidateReviewRecord, CorrectCandidateDto, CandidateAuditEntry } from '../contracts/candidate-review.contract';
 import { IngestionStatus, IngestionItemEnrichmentStatus, IngestionPriceType, IngestionImportMode } from '@prisma/client';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
 import { StorageService } from '../../../platform/storage/storage.service';
@@ -593,6 +594,367 @@ export class IngestionService {
     };
   }
 
+  /**
+   * SG-10: Single comprehensive review record showing original supplier row,
+   * source file, normalized identity, Brand/Line/Ingredient/routine dependencies,
+   * content/media drafts, policy/quality conflicts, and canPublish gate.
+   */
+  async getCandidateReviewRecord(itemId: string): Promise<CandidateReviewRecord> {
+    if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
+    const item = await this.prisma.ingestionItem.findUnique({
+      where: { id: itemId },
+      include: {
+        job: {
+          select: {
+            id: true,
+            supplierId: true,
+            mode: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+        contentDraft: true,
+      },
+    });
+
+    if (!item) throw new NotFoundException('Candidate item not found');
+
+    const enrichment = (item.enrichment as Record<string, any>) || {};
+    const auditTrail: CandidateAuditEntry[] = Array.isArray(enrichment.auditTrail) ? enrichment.auditTrail : [];
+
+    // Recompute match analysis and fingerprint
+    const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+      supplierId: item.job.supplierId,
+      supplierSkuCode: item.supplierSkuCode,
+      name: item.name,
+      brand: item.brand,
+      barcode: item.barcode,
+    });
+
+    let matchedSku = null;
+    const effectiveSkuId = item.matchedSkuId || matchAnalysis.matchedSkuId;
+    if (effectiveSkuId) {
+      matchedSku = await this.catalogService.getSkuIdentity(effectiveSkuId);
+    } else if (item.barcode) {
+      matchedSku = await this.catalogService.getSkuByBarcode(item.barcode);
+    }
+
+    // Dependencies: Brand & ProductLine
+    const brandMatch = await this.brandService.getBrand(item.brand);
+    const brandDraft = await this.prisma.brandDraft.findFirst({
+      where: {
+        OR: [
+          { name: { equals: item.brand, mode: 'insensitive' } },
+          { canonicalName: { equals: item.brand, mode: 'insensitive' } },
+          { aliases: { has: item.brand.toLowerCase() } },
+        ],
+      },
+    });
+
+    // Dependencies: Ingredients & Routine
+    const activeIngredients: string[] = [];
+    if (Array.isArray(enrichment.ingredients?.activeIngredients)) {
+      activeIngredients.push(
+        ...enrichment.ingredients.activeIngredients.map((i: any) =>
+          typeof i === 'string' ? i : i.name || i.inciName || '',
+        ),
+      );
+    }
+
+    const cautions: string[] = Array.isArray(enrichment.ingredients?.cautions)
+      ? enrichment.ingredients.cautions
+      : [];
+
+    const hasForbiddenSubstances = Boolean(enrichment.ingredients?.hasForbiddenSubstances);
+
+    // Dependencies: Routine placement
+    const routinePlacement = enrichment.routinePlacement;
+
+    // Content & Media
+    const media = Array.isArray(enrichment.media) ? enrichment.media : [];
+    const verifiedPackshots = media.filter((m: any) => m.originType === 'verified');
+    const hasVerifiedPackshot = verifiedPackshots.length > 0;
+
+    // Check for policy / quality conflicts
+    const policyAndQualityConflicts: string[] = [];
+
+    if (!item.barcode && !effectiveSkuId) {
+      policyAndQualityConflicts.push('MISSING_BARCODE');
+    }
+    if (!hasVerifiedPackshot) {
+      policyAndQualityConflicts.push('MISSING_OFFICIAL_PACKSHOT');
+    }
+    if (brandDraft && brandDraft.status === 'PENDING_REVIEW') {
+      policyAndQualityConflicts.push('UNAPPROVED_BRAND_DRAFT');
+    }
+    if (brandDraft && brandDraft.status === 'REJECTED') {
+      policyAndQualityConflicts.push('REJECTED_BRAND_DRAFT');
+    }
+    if (item.priceType !== IngestionPriceType.PURCHASE_COST) {
+      policyAndQualityConflicts.push('INVALID_PRICE_TYPE_PURCHASE_COST_REQUIRED');
+    }
+    if (hasForbiddenSubstances) {
+      policyAndQualityConflicts.push('FORBIDDEN_SUBSTANCE_DETECTED');
+    }
+    if (matchAnalysis.conflicts && matchAnalysis.conflicts.length > 0) {
+      policyAndQualityConflicts.push(...matchAnalysis.conflicts);
+    }
+
+    const canPublish = policyAndQualityConflicts.length === 0 && item.status === IngestionStatus.approved;
+
+    return {
+      candidateId: item.id,
+      status: item.status,
+      originalSupplierRow: {
+        jobId: item.jobId,
+        supplierId: item.job.supplierId,
+        supplierSkuCode: item.supplierSkuCode,
+        sourceFile: {
+          jobId: item.job.id,
+          mode: item.job.mode,
+          createdAt: item.job.createdAt,
+        },
+        price: item.price.toNumber(),
+        priceType: item.priceType,
+        currency: item.currency,
+        reportedQuantity: item.reportedQuantity ?? null,
+      },
+      normalizedIdentity: {
+        name: item.name,
+        brand: item.brand,
+        barcode: item.barcode,
+        category: enrichment.category || enrichment.normalized?.category || null,
+        size: enrichment.size || enrichment.normalized?.size || null,
+        sizeUnit: enrichment.sizeUnit || enrichment.normalized?.sizeUnit || null,
+        fingerprint: matchAnalysis.fingerprint,
+        matchClassification: matchAnalysis.classification,
+        matchReason: matchAnalysis.reason,
+        matchedSkuId: item.matchedSkuId,
+        matchedSku,
+      },
+      dependencies: {
+        brand: {
+          isCanonical: Boolean(brandMatch),
+          canonicalBrandId: brandMatch?.id || brandDraft?.canonicalBrandId || undefined,
+          draftStatus: brandDraft?.status,
+          name: brandMatch?.name || item.brand,
+        },
+        productLine: {
+          isCanonical: false,
+        },
+        ingredients: {
+          canonicalCount: Array.isArray(enrichment.ingredients?.canonicalIngredients)
+            ? enrichment.ingredients.canonicalIngredients.length
+            : 0,
+          activeIngredients,
+          cautions,
+          hasForbiddenSubstances,
+        },
+        routinePlacement: routinePlacement
+          ? {
+              stepOrder: routinePlacement.stepOrder || routinePlacement.step,
+              stepType: routinePlacement.stepType || routinePlacement.stepName,
+              timing: routinePlacement.timing || routinePlacement.timeOfDay,
+              frequency: routinePlacement.frequency,
+              requiresDaytimeSunscreen: routinePlacement.requiresDaytimeSunscreen,
+              isPhotosensitizing: routinePlacement.isPhotosensitizing,
+            }
+          : undefined,
+        research: enrichment.research
+          ? {
+              sourceCount: Array.isArray(enrichment.research.sources)
+                ? enrichment.research.sources.length
+                : 0,
+              fieldEvidences: Array.isArray(enrichment.research.fieldEvidences)
+                ? enrichment.research.fieldEvidences
+                : [],
+            }
+          : undefined,
+      },
+      contentAndMedia: {
+        contentDraft: item.contentDraft
+          ? {
+              titleEn: item.contentDraft.titleEn,
+              titleAr: item.contentDraft.titleAr,
+              shortDescriptionEn: item.contentDraft.shortDescriptionEn,
+              shortDescriptionAr: item.contentDraft.shortDescriptionAr,
+              benefitsEn: item.contentDraft.benefitsEn,
+              benefitsAr: item.contentDraft.benefitsAr,
+              usageEn: item.contentDraft.usageEn,
+              usageAr: item.contentDraft.usageAr,
+              isApproved: item.contentDraft.isApproved,
+              evidenceVersion: item.contentDraft.evidenceVersion,
+            }
+          : null,
+        verifiedPackshots,
+        hasVerifiedPackshot,
+        officialBrandLogo: brandMatch?.logoUrl || brandDraft?.logoUrl || null,
+      },
+      policyAndQualityConflicts,
+      canPublish,
+      auditTrail,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    };
+  }
+
+  async correctCandidate(
+    itemId: string,
+    dto: CorrectCandidateDto,
+    actorId: string,
+  ): Promise<CandidateReviewRecord> {
+    return this.withCandidateLock(itemId, () => this.correctCandidateLocked(itemId, dto, actorId));
+  }
+
+  private async correctCandidateLocked(
+    itemId: string,
+    dto: CorrectCandidateDto,
+    actorId: string,
+  ): Promise<CandidateReviewRecord> {
+    if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
+    if (!this.isUuid(actorId)) throw new BadRequestException('Invalid actor ID');
+
+    const item = await this.prisma.ingestionItem.findUnique({
+      where: { id: itemId },
+      include: { job: true },
+    });
+    if (!item) throw new NotFoundException('Candidate item not found');
+    if (item.status === IngestionStatus.published) {
+      throw new BadRequestException('Cannot modify published candidate');
+    }
+
+    const currentEnrichment = (item.enrichment as Record<string, any>) || {};
+    const auditTrail: CandidateAuditEntry[] = Array.isArray(currentEnrichment.auditTrail)
+      ? currentEnrichment.auditTrail
+      : [];
+
+    const previousValues = {
+      name: item.name,
+      brand: item.brand,
+      barcode: item.barcode,
+      price: item.price.toNumber(),
+      priceType: item.priceType,
+      currency: item.currency,
+      reportedQuantity: item.reportedQuantity,
+      category: currentEnrichment.category || currentEnrichment.normalized?.category,
+      size: currentEnrichment.size || currentEnrichment.normalized?.size,
+      sizeUnit: currentEnrichment.sizeUnit || currentEnrichment.normalized?.sizeUnit,
+    };
+
+    auditTrail.push({
+      action: 'CORRECTED',
+      actorId,
+      timestamp: new Date().toISOString(),
+      reason: dto.reason || 'Field-level editorial correction',
+      previousValues,
+      newValues: dto as Record<string, unknown>,
+    });
+
+    const newName = dto.name !== undefined ? dto.name.trim() : item.name;
+    const newBrand = dto.brand !== undefined ? dto.brand.trim() : item.brand;
+    const newBarcode = dto.barcode !== undefined ? dto.barcode.trim() : item.barcode;
+
+    const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+      supplierId: item.job.supplierId,
+      supplierSkuCode: item.supplierSkuCode,
+      name: newName,
+      brand: newBrand,
+      barcode: newBarcode,
+    });
+
+    let matchedSkuId = item.matchedSkuId;
+    if (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.matchedSkuId) {
+      matchedSkuId = matchAnalysis.matchedSkuId;
+    } else if (dto.barcode && !matchAnalysis.matchedSkuId) {
+      const skuByBarcode = await this.catalogService.getSkuByBarcode(dto.barcode);
+      if (skuByBarcode) {
+        matchedSkuId = skuByBarcode.id;
+      }
+    }
+
+    const updatedEnrichment = {
+      ...currentEnrichment,
+      auditTrail,
+      ...(dto.category !== undefined && { category: dto.category }),
+      ...(dto.size !== undefined && { size: dto.size }),
+      ...(dto.sizeUnit !== undefined && { sizeUnit: dto.sizeUnit }),
+    };
+
+    await this.prisma.ingestionItem.update({
+      where: { id: itemId },
+      data: {
+        name: newName,
+        brand: newBrand,
+        barcode: newBarcode,
+        ...(dto.price !== undefined && { price: dto.price }),
+        ...(dto.priceType !== undefined && { priceType: dto.priceType }),
+        ...(dto.reportedQuantity !== undefined && { reportedQuantity: dto.reportedQuantity }),
+        ...(dto.currency !== undefined && { currency: dto.currency }),
+        matchedSkuId,
+        status: IngestionStatus.review_required,
+        enrichment: updatedEnrichment as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      },
+    });
+
+    await this.evaluateJobStatus(item.jobId);
+    return this.getCandidateReviewRecord(itemId);
+  }
+
+  async requestMoreCandidate(
+    itemId: string,
+    requestedInfo: string,
+    actorId: string,
+  ): Promise<CandidateReviewRecord> {
+    return this.withCandidateLock(itemId, () => this.requestMoreCandidateLocked(itemId, requestedInfo, actorId));
+  }
+
+  private async requestMoreCandidateLocked(
+    itemId: string,
+    requestedInfo: string,
+    actorId: string,
+  ): Promise<CandidateReviewRecord> {
+    if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
+    if (!this.isUuid(actorId)) throw new BadRequestException('Invalid actor ID');
+    if (!requestedInfo || !requestedInfo.trim()) {
+      throw new BadRequestException('Requested information details are required');
+    }
+
+    const item = await this.prisma.ingestionItem.findUnique({
+      where: { id: itemId },
+      include: { job: true },
+    });
+    if (!item) throw new NotFoundException('Candidate item not found');
+    if (item.status === IngestionStatus.published) {
+      throw new BadRequestException('Cannot request info on published candidate');
+    }
+
+    const currentEnrichment = (item.enrichment as Record<string, any>) || {};
+    const auditTrail: CandidateAuditEntry[] = Array.isArray(currentEnrichment.auditTrail)
+      ? currentEnrichment.auditTrail
+      : [];
+
+    auditTrail.push({
+      action: 'REQUESTED_MORE_INFO',
+      actorId,
+      timestamp: new Date().toISOString(),
+      requestedInfo: requestedInfo.trim(),
+    });
+
+    await this.prisma.ingestionItem.update({
+      where: { id: itemId },
+      data: {
+        status: IngestionStatus.review_required,
+        enrichment: {
+          ...currentEnrichment,
+          requestedInfo: requestedInfo.trim(),
+          auditTrail,
+        } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      },
+    });
+
+    return this.getCandidateReviewRecord(itemId);
+  }
+
   async updateCandidate(itemId: string, dto: UpdateCandidateDto): Promise<Record<string, unknown>> {
     return this.withCandidateLock(itemId, () => this.updateCandidateLocked(itemId, dto));
   }
@@ -838,7 +1200,20 @@ export class IngestionService {
       }
     }
 
-    const updatedEnrichment = { ...currentEnrichment, media };
+    const currentEnrichmentObj = (item.enrichment as Record<string, any>) || {};
+    const auditTrail: CandidateAuditEntry[] = Array.isArray(currentEnrichmentObj.auditTrail)
+      ? currentEnrichmentObj.auditTrail
+      : [];
+
+    if (reviewerId) {
+      auditTrail.push({
+        action: 'APPROVED',
+        actorId: reviewerId,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    const updatedEnrichment = { ...currentEnrichmentObj, media, auditTrail };
     if (dto?.matchedSkuId && matchedSkuId) {
       await this.productIdentityService.createSupplierSkuAlias(item.job.supplierId, item.supplierSkuCode, matchedSkuId);
     }
@@ -855,11 +1230,11 @@ export class IngestionService {
     await this.evaluateJobStatus(item.jobId);
   }
 
-  async rejectItem(itemId: string): Promise<void> {
-    return this.withCandidateLock(itemId, () => this.rejectItemLocked(itemId));
+  async rejectItem(itemId: string, reason?: string, actorId?: string): Promise<void> {
+    return this.withCandidateLock(itemId, () => this.rejectItemLocked(itemId, reason, actorId));
   }
 
-  private async rejectItemLocked(itemId: string): Promise<void> {
+  private async rejectItemLocked(itemId: string, reason?: string, actorId?: string): Promise<void> {
     const item = await this.prisma.ingestionItem.findUnique({
       where: { id: itemId },
       include: { job: true },
@@ -870,9 +1245,30 @@ export class IngestionService {
       throw new BadRequestException('Cannot modify items of a published job');
     }
 
+    const currentEnrichment = (item.enrichment as Record<string, any>) || {};
+    const auditTrail: CandidateAuditEntry[] = Array.isArray(currentEnrichment.auditTrail)
+      ? currentEnrichment.auditTrail
+      : [];
+
+    if (actorId) {
+      auditTrail.push({
+        action: 'REJECTED',
+        actorId,
+        timestamp: new Date().toISOString(),
+        reason: reason || 'Item rejected by reviewer',
+      });
+    }
+
     await this.prisma.ingestionItem.update({
       where: { id: itemId },
-      data: { status: IngestionStatus.rejected },
+      data: {
+        status: IngestionStatus.rejected,
+        enrichment: {
+          ...currentEnrichment,
+          rejectionReason: reason || currentEnrichment.rejectionReason,
+          auditTrail,
+        } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      },
     });
 
     await this.evaluateJobStatus(item.jobId);
@@ -1090,20 +1486,37 @@ export class IngestionService {
   ): Promise<string> {
     const enrichment = (item.enrichment as Record<string, any>) || {};
     const reviewedMedia = (Array.isArray(enrichment.media) ? enrichment.media : []).filter((m: any) => m.originType === 'verified');
-    if (!reviewedMedia.length) throw new BadRequestException('At least one reviewed real image is required');
+    if (!reviewedMedia.length) {
+      throw new BadRequestException('Missing mandatory verified packshot prevents catalog publication');
+    }
     for (const m of reviewedMedia) {
       const review = requireMediaReview(m.review);
       if (review.candidateId !== item.id || review.barcode !== item.barcode || m.isTest) {
         throw new BadRequestException('Media review no longer matches candidate identity');
       }
     }
+
     // 1. Check if item is already matched to existing SKU in Catalog
     if (item.matchedSkuId) {
       const existing = await this.catalogService.getSkuIdentity(item.matchedSkuId);
-      if (existing) { await this.publishReviewedMedia(item, existing.id, supplierId); return existing.id; }
+      if (existing) {
+        await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, existing.id);
+        await this.publishReviewedMedia(item, existing.id, supplierId);
+        return existing.id;
+      }
     }
 
-    // 2. Perform pre-publish Identity Match Check (Deduplication)
+    // 2. Barcode-first deduplication inside transaction (prevents two suppliers creating duplicate SKUs)
+    if (item.barcode) {
+      const existingSku = await this.catalogService.getSkuByBarcode(item.barcode);
+      if (existingSku) {
+        await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, existingSku.id);
+        await this.publishReviewedMedia(item, existingSku.id, supplierId);
+        return existingSku.id;
+      }
+    }
+
+    // 3. Perform pre-publish Identity Match Check (Deduplication)
     const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
       supplierId,
       supplierSkuCode: item.supplierSkuCode,
@@ -1119,7 +1532,7 @@ export class IngestionService {
       return matchAnalysis.matchedSkuId;
     }
 
-    // 3. Resolve or create Brand in Catalog via BrandService
+    // 4. Resolve or create Brand in Catalog via BrandService
     let brandId: string;
     const brandSlug = this.slugify(item.brand);
     const existingBrand = await this.brandService.getBrand(brandSlug);
@@ -1132,7 +1545,7 @@ export class IngestionService {
 
     const brandName = existingBrand ? existingBrand.name : item.brand;
 
-    // 4. Resolve or create Product in Catalog via CatalogService
+    // 5. Resolve or create Product in Catalog via CatalogService
     const productSlug = this.slugify(`${brandName}-${item.name}`);
     let product = await this.catalogService.getProduct(productSlug);
     if (!product) {
@@ -1144,8 +1557,8 @@ export class IngestionService {
       });
     }
 
-    // 5. Check if SKU already exists under Product
-    const skuCode = item.supplierSkuCode || `SKU-${item.id.slice(0, 8).toUpperCase()}`;
+    // 6. Check if SKU already exists under Product
+    const skuCode = item.barcode ? `SKU-${item.barcode}` : (item.supplierSkuCode || `SKU-${item.id.slice(0, 8).toUpperCase()}`);
     const existingSkus = await this.catalogService.getSkus(product.id);
     const existingSku = existingSkus.find(
       (s) => s.code === skuCode || (item.barcode !== null && s.barcode === item.barcode),
@@ -1157,7 +1570,7 @@ export class IngestionService {
       return existingSku.id;
     }
 
-    // 6. Create new canonical SKU in Catalog
+    // 7. Create new canonical SKU in Catalog
     const newSku = await this.catalogService.createSku(product.id, {
       code: skuCode,
       variantName: reviewedMedia[0].review.variantName,
@@ -1167,7 +1580,7 @@ export class IngestionService {
       isActive: true,
     });
 
-    // 7. Register Supplier SKU Alias
+    // 8. Register Supplier SKU Alias
     await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, newSku.id);
 
     await this.publishReviewedMedia(item, newSku.id, supplierId);
@@ -1188,8 +1601,8 @@ export class IngestionService {
       await this.catalogService.addMedia(sku.productId, { type: 'image', url, originType: 'verified',
         generationMetadata: { ...review, skuId } }, review.reviewedBy);
     }
-    // Catalog publication is a separate authorized operation after commercial inputs exist.
   }
+
   private async ensureSupplierOffer(
     supplierId: string,
     skuId: string,
@@ -1228,11 +1641,11 @@ export class IngestionService {
     }
   }
 
-  async publishCandidate(itemId: string): Promise<Record<string, unknown>> {
-    return this.withCandidateLock(itemId, () => this.publishCandidateLocked(itemId));
+  async publishCandidate(itemId: string, actorId?: string): Promise<Record<string, unknown>> {
+    return this.withCandidateLock(itemId, () => this.publishCandidateLocked(itemId, actorId));
   }
 
-  private async publishCandidateLocked(itemId: string): Promise<Record<string, unknown>> {
+  private async publishCandidateLocked(itemId: string, actorId?: string): Promise<Record<string, unknown>> {
     if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
     const item = await this.prisma.ingestionItem.findUnique({
       where: { id: itemId },
@@ -1252,12 +1665,57 @@ export class IngestionService {
       throw new BadRequestException('Explicit purchase cost price type is required for offer publication');
     }
 
+    // Mandatory identity and verified packshot check (GLO-255 acceptance gate)
+    if (!item.barcode && !item.matchedSkuId) {
+      throw new BadRequestException('Missing mandatory barcode identity prevents catalog publication');
+    }
+
+    const enrichment = (item.enrichment as Record<string, any>) || {};
+    const reviewedMedia = (Array.isArray(enrichment.media) ? enrichment.media : []).filter((m: any) => m.originType === 'verified');
+    if (!reviewedMedia.length) {
+      throw new BadRequestException('Missing mandatory verified packshot prevents catalog publication');
+    }
+
+    // Brand draft gate
+    const brandDraft = await this.prisma.brandDraft.findFirst({
+      where: {
+        OR: [
+          { name: { equals: item.brand, mode: 'insensitive' } },
+          { canonicalName: { equals: item.brand, mode: 'insensitive' } },
+          { aliases: { has: item.brand.toLowerCase() } },
+        ],
+      },
+    });
+    if (brandDraft && brandDraft.status === 'PENDING_REVIEW') {
+      throw new BadRequestException('Brand draft must be approved by Administrator before candidate publication');
+    }
+    if (brandDraft && brandDraft.status === 'REJECTED') {
+      throw new BadRequestException('Brand draft was rejected. Candidate cannot be published');
+    }
+
     const skuId = await this.ensureCanonicalSku(item, item.job.supplierId);
     await this.ensureSupplierOffer(item.job.supplierId, skuId, item.price.toNumber(), item.currency);
 
+    const auditTrail: CandidateAuditEntry[] = Array.isArray(enrichment.auditTrail) ? enrichment.auditTrail : [];
+    if (actorId) {
+      auditTrail.push({
+        action: 'PUBLISHED',
+        actorId,
+        timestamp: new Date().toISOString(),
+        publishedSkuId: skuId,
+      });
+    }
+
     const updated = await this.prisma.ingestionItem.update({
       where: { id: itemId },
-      data: { status: IngestionStatus.published, matchedSkuId: skuId },
+      data: {
+        status: IngestionStatus.published,
+        matchedSkuId: skuId,
+        enrichment: {
+          ...enrichment,
+          auditTrail,
+        } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+      },
     });
 
     await this.evaluateJobStatus(item.jobId);

@@ -10,6 +10,7 @@ import { RoutinePlacementService, DeterminePlacementInput } from './services/rou
 import { IngredientService } from '../catalog/public';
 import { ClaimValidationRequest } from './contracts/ingredient-ontology.contract';
 import { EnrichBrandDraftDto, EnrichProductLineDraftDto } from './contracts/brand-enrichment.contract';
+import { CorrectCandidateDto, RequestMoreInfoDto } from './contracts/candidate-review.contract';
 import { ParseUUIDPipe } from '@nestjs/common';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -141,8 +142,12 @@ export class IngestionController {
   }
 
   @Post('jobs/:id/publish')
+  @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
-  async publishJob(@Param('id') id: string) {
+  async publishJob(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id') id: string,
+  ) {
     return this.ingestionService.publishJob(id);
   }
 
@@ -322,6 +327,12 @@ export class IngestionController {
     return this.ingestionService.getCandidateDetail(id);
   }
 
+  @Get('candidates/:id/review-record')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async getCandidateReviewRecord(@Param('id', ParseUUIDPipe) id: string) {
+    return this.ingestionService.getCandidateReviewRecord(id);
+  }
+
   @Patch('candidates/:id')
   async updateCandidate(
     @Param('id') id: string,
@@ -330,7 +341,32 @@ export class IngestionController {
     return this.ingestionService.updateCandidate(id, dto);
   }
 
+  @Patch('candidates/:id/correct')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async correctCandidate(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CorrectCandidateDto,
+  ) {
+    const actorId = req.user?.id;
+    if (!actorId) throw new BadRequestException('Actor ID required');
+    return this.ingestionService.correctCandidate(id, dto, actorId);
+  }
+
+  @Post('candidates/:id/request-more')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async requestMoreCandidate(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: RequestMoreInfoDto,
+  ) {
+    const actorId = req.user?.id;
+    if (!actorId) throw new BadRequestException('Actor ID required');
+    return this.ingestionService.requestMoreCandidate(id, body.requestedInfo, actorId);
+  }
+
   @Patch('candidates/:id/approve')
+  @Roles('ADMIN', 'HUB_OPERATOR')
   async approveCandidate(
     @Req() req: AuthenticatedUserRequest,
     @Param('id') id: string,
@@ -340,14 +376,23 @@ export class IngestionController {
   }
 
   @Patch('candidates/:id/reject')
-  async rejectCandidate(@Param('id') id: string) {
-    return this.ingestionService.rejectItem(id);
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async rejectCandidate(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id') id: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.ingestionService.rejectItem(id, body?.reason, req.user?.id);
   }
 
   @Post('candidates/:id/publish')
+  @Roles('ADMIN')
   @HttpCode(HttpStatus.OK)
-  async publishCandidate(@Param('id') id: string) {
-    return this.ingestionService.publishCandidate(id);
+  async publishCandidate(
+    @Req() req: AuthenticatedUserRequest,
+    @Param('id') id: string,
+  ) {
+    return this.ingestionService.publishCandidate(id, req.user?.id);
   }
 
   @Post('candidates/:id/research')
