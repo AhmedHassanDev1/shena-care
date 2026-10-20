@@ -5,6 +5,9 @@ import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto, Sup
 import { ProductContentService } from './services/product-content.service';
 import { OfferBatchCommitService } from './services/offer-batch-commit.service';
 import { BrandEnrichmentService } from './services/brand-enrichment.service';
+import { IngredientOntologyService } from './services/ingredient-ontology.service';
+import { IngredientService } from '../catalog/public';
+import { ClaimValidationRequest } from './contracts/ingredient-ontology.contract';
 import { EnrichBrandDraftDto } from './contracts/brand-enrichment.contract';
 import { ParseUUIDPipe } from '@nestjs/common';
 import { AuthGuard } from '../accounts/guards/auth.guard';
@@ -31,6 +34,8 @@ export class IngestionController {
     private readonly contentService: ProductContentService,
     private readonly offerBatchCommitService: OfferBatchCommitService,
     private readonly brandEnrichmentService: BrandEnrichmentService,
+    private readonly ingredientOntologyService: IngredientOntologyService,
+    private readonly ingredientService: IngredientService,
   ) {}
 
   private supplierReadScope(user?: AuthenticatedUserRequest['user']): string | undefined {
@@ -216,6 +221,39 @@ export class IngestionController {
     const actorId = req.user?.id;
     if (!actorId) throw new BadRequestException('Actor ID required');
     return this.brandEnrichmentService.rejectBrandDraft(id, actorId, body?.reason);
+  }
+
+  // ─── GLO-252 Ingredient Knowledge Endpoints ──────────────────────────────
+
+  @Get('ingredients')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async listIngredients(
+    @Query('isActive') isActive?: string,
+    @Query('family') familySlug?: string,
+  ) {
+    const activeBool = isActive !== undefined ? isActive === 'true' : undefined;
+    return this.ingredientService.listAll({ isActive: activeBool, familySlug });
+  }
+
+  @Get('ingredients/families/:familySlug')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async listIngredientsByFamily(@Param('familySlug') familySlug: string) {
+    return this.ingredientService.listByFamily(familySlug);
+  }
+
+  @Post('ingredients/validate-claim')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async validateClaim(@Body() dto: ClaimValidationRequest) {
+    return this.ingredientOntologyService.validateClaim(dto);
+  }
+
+  @Post('candidates/:id/enrich-ingredients')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async enrichCandidateIngredients(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body?: { rawIngredients?: string[] | string },
+  ) {
+    return this.ingredientOntologyService.enrichCandidateIngredients(id, body?.rawIngredients);
   }
 
   // ─── GLO-77 Candidate Review & Publish Endpoints (Admin / Operator only) ──

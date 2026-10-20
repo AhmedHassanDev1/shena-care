@@ -9,6 +9,7 @@ import { ExportProfileService } from './services/export-profile.service';
 import { RowNormalizationService } from './services/row-normalization.service';
 import { OfferBatchCommitService } from './services/offer-batch-commit.service';
 import { BrandEnrichmentService } from './services/brand-enrichment.service';
+import { IngredientOntologyService } from './services/ingredient-ontology.service';
 import { IngestionController } from './ingestion.controller';
 import { CatalogModule } from '../catalog/public';
 import { SourcingModule } from '../sourcing/public';
@@ -29,6 +30,7 @@ import { StorageModule } from '../../platform/storage/storage.module';
     RowNormalizationService,
     OfferBatchCommitService,
     BrandEnrichmentService,
+    IngredientOntologyService,
   ],
   exports: [
     IngestionService,
@@ -41,6 +43,7 @@ import { StorageModule } from '../../platform/storage/storage.module';
     RowNormalizationService,
     OfferBatchCommitService,
     BrandEnrichmentService,
+    IngredientOntologyService,
   ],
 })
 export class IngestionModule {}

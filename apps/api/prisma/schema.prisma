@@ -91,6 +91,7 @@ model Product {
   skus                Sku[]
   media               ProductMedia[]
   careRecommendations RoutineStepRecommendation[]
+  productIngredients  ProductIngredient[]
 
   @@index([brandId])
   @@index([productLineId])
@@ -185,6 +186,61 @@ model ProductMedia {
   @@index([productId])
   @@index([originType])
   @@map("product_media")
+  @@schema("catalog")
+}
+
+model Ingredient {
+  id                 String              @id @default(uuid()) @db.Uuid
+  name               String              @unique
+  nameAr             String?             @map("name_ar")
+  slug               String              @unique
+  inciName           String              @map("inci_name")
+  aliases            String[]            @default([])
+  family             String?             // e.g. "Vitamin C", "Retinoids", "Hydroxy Acids"
+  familySlug         String?             @map("family_slug")
+  chemicalForm       String?             @map("chemical_form") // e.g. "Pure Acid", "Ester", "Salt", "Glycoside"
+  primaryFunction    String              @map("primary_function") // "Antioxidant", "Humectant", "Exfoliant", "Barrier Support", "Skin Restoring", "Vehicle", "Preservative"
+  functions          String[]            @default([])
+  isActiveIngredient Boolean             @default(false) @map("is_active_ingredient")
+  rating             String?             // "BEST", "GOOD", "AVERAGE"
+  descriptionEn      String?             @map("description_en")
+  descriptionAr      String?             @map("description_ar")
+  benefits           Json?               // Array of { concern: string, description: string, evidenceLevel: string, pubmedRef?: string }
+  cautions           String[]            @default([])
+  contraindications  String[]            @default([]) // e.g. ["PREGNANCY", "COMPROMISED_BARRIER"]
+  visualStatus       String              @default("NOT_GENERATED") @map("visual_status")
+  visualUrl          String?             @map("visual_url")
+  visualMetadata     Json?               @map("visual_metadata")
+  status             String              @default("APPROVED")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  productIngredients ProductIngredient[]
+
+  @@index([familySlug])
+  @@index([inciName])
+  @@index([isActiveIngredient])
+  @@map("ingredients")
+  @@schema("catalog")
+}
+
+model ProductIngredient {
+  id            String     @id @default(uuid()) @db.Uuid
+  productId     String     @map("product_id") @db.Uuid
+  ingredientId  String     @map("ingredient_id") @db.Uuid
+  isKeyActive   Boolean    @default(false) @map("is_key_active")
+  concentration String?    // e.g. "10%", "2%" - only when verified, never assumed
+  sortOrder     Int        @default(0) @map("sort_order")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, ingredientId])
+  @@index([productId])
+  @@index([ingredientId])
+  @@map("product_ingredients")
   @@schema("catalog")
 }
 
