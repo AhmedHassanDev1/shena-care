@@ -201,6 +201,7 @@ export class SourcingService {
         ...(dto.currency !== undefined && { currency: dto.currency }),
         ...(dto.isAvailable !== undefined && { isAvailable: dto.isAvailable }),
         lastObservedAt: new Date(), // Always update lastObservedAt on any change
+        lastIngestionItemId: null,
       },
     });
 
@@ -224,6 +225,7 @@ export class SourcingService {
       data: {
         isAvailable,
         lastObservedAt: new Date(),
+        lastIngestionItemId: null,
         lastConfirmedAt: isAvailable ? new Date() : offer.lastConfirmedAt,
       },
     });

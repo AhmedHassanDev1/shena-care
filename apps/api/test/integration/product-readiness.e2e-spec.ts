@@ -45,6 +45,7 @@ describe('Product readiness: source -> human review -> catalog -> public PDP', (
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }));
     await app.init(); db = app.get(PrismaService); catalog = app.get(CatalogService); ingestion = app.get(IngestionService);
     supplierId = (await db.supplier.create({ data: { name: `Readiness ${run}`, slug: `ready-${run}` } })).id;
+    await db.brand.create({ data: { name: `Readiness ${run}`, slug: `readiness-${run}` } });
     for (const role of ['ADMIN', 'CUSTOMER', 'SUPPLIER']) {
       const user = await db.customer.create({ data: { name: 'Fixture', email: `${run}-${role}@ready.test`, roles: [role],
         supplierId: role === 'SUPPLIER' ? supplierId : null } });
@@ -111,7 +112,8 @@ describe('Product readiness: source -> human review -> catalog -> public PDP', (
   it('reuses identical supplier originals and associates normalized rows without losing provenance', async () => {
     const source = await uploadSource();
     const repeated = await uploadSource();
-    expect(repeated).toEqual(source);
+    expect(repeated).toMatchObject({ jobId: source.jobId, sourceKey: source.sourceKey,
+      formatFingerprint: source.formatFingerprint, status: source.status, reused: true });
     const payload = { supplierId, sourceJobId: source.jobId, items: [row(101)] };
     const result = await request(app.getHttpServer()).post('/ingestion/jobs').set(auth()).send(payload).expect(201);
     expect(result.body.id).toBe(source.jobId);
@@ -133,7 +135,7 @@ describe('Product readiness: source -> human review -> catalog -> public PDP', (
     const storage = app.get(StorageService);
     await storage.deleteFile(source.sourceKey);
     expect(await storage.exists(source.sourceKey)).toBe(false);
-    expect(await uploadSource()).toEqual(source);
+    expect(await uploadSource()).toMatchObject({ jobId: source.jobId, sourceKey: source.sourceKey, reused: true });
     await request(app.getHttpServer()).get(`/storage/${source.sourceKey}`).set(auth('SUPPLIER')).expect(200);
     expect((await db.ingestionItem.findUniqueOrThrow({ where: { id: persisted.id } })).enrichment).toMatchObject({ source: { objectKey: source.sourceKey } });
   });

@@ -20,6 +20,7 @@ export interface PublishedSku {
   variantName: string;
   size: number | null;
   sizeUnit: string | null;
+  packCount: number | null;
   barcode: string | null;
   isActive: boolean;
 }
@@ -381,6 +382,22 @@ export class CatalogService {
     return this.mapToPublishedProduct(updated, true);
   }
 
+  /** Add only reviewer-approved canonical ingredient links; never replace an existing formula. */
+  async addReviewedProductIngredients(productId: string, ingredientIds: string[]): Promise<void> {
+    if (!ingredientIds.length) return;
+    const product = await this.prisma.product.findUnique({ where: { id: productId }, select: { id: true } });
+    if (!product) throw new NotFoundException('Product not found');
+    const uniqueIds = [...new Set(ingredientIds)];
+    const ingredients = await this.prisma.ingredient.findMany({
+      where: { id: { in: uniqueIds }, status: 'APPROVED' }, select: { id: true },
+    });
+    if (ingredients.length !== uniqueIds.length) throw new BadRequestException('Unapproved or unknown ingredient selection');
+    await this.prisma.productIngredient.createMany({
+      data: uniqueIds.map((ingredientId, sortOrder) => ({ productId, ingredientId, isKeyActive: true, sortOrder })),
+      skipDuplicates: true,
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // SKU Operations
   // ---------------------------------------------------------------------------
@@ -405,6 +422,7 @@ export class CatalogService {
       variantName: sku.variantName,
       size: sku.size ? sku.size.toNumber() : null,
       sizeUnit: sku.sizeUnit,
+      packCount: sku.packCount,
       barcode: sku.barcode,
       isActive: sku.isActive,
     };
@@ -456,6 +474,7 @@ export class CatalogService {
       variantName: sku.variantName,
       size: sku.size ? sku.size.toNumber() : null,
       sizeUnit: sku.sizeUnit,
+      packCount: sku.packCount,
       barcode: sku.barcode,
       isActive: sku.isActive,
     };
@@ -490,6 +509,7 @@ export class CatalogService {
       variantName: sku.variantName,
       size: sku.size ? sku.size.toNumber() : null,
       sizeUnit: sku.sizeUnit,
+      packCount: sku.packCount,
       barcode: sku.barcode,
       isActive: sku.isActive,
     };
@@ -547,6 +567,7 @@ export class CatalogService {
         variantName: dto.variantName,
         size: dto.size !== undefined ? new Prisma.Decimal(dto.size) : null,
         sizeUnit: dto.sizeUnit ?? null,
+        packCount: dto.packCount ?? null,
         barcode: dto.barcode ?? null,
         isActive: dto.isActive ?? true,
       },
@@ -558,6 +579,7 @@ export class CatalogService {
       variantName: sku.variantName,
       size: sku.size ? sku.size.toNumber() : null,
       sizeUnit: sku.sizeUnit,
+      packCount: sku.packCount,
       barcode: sku.barcode,
       isActive: sku.isActive,
     };
@@ -598,6 +620,7 @@ export class CatalogService {
           size: dto.size !== null ? new Prisma.Decimal(dto.size) : null,
         }),
         ...(dto.sizeUnit !== undefined && { sizeUnit: dto.sizeUnit }),
+        ...(dto.packCount !== undefined && { packCount: dto.packCount }),
         ...(dto.barcode !== undefined && { barcode: dto.barcode }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
@@ -609,6 +632,7 @@ export class CatalogService {
       variantName: updated.variantName,
       size: updated.size ? updated.size.toNumber() : null,
       sizeUnit: updated.sizeUnit,
+      packCount: updated.packCount,
       barcode: updated.barcode,
       isActive: updated.isActive,
     };
@@ -633,6 +657,7 @@ export class CatalogService {
       variantName: s.variantName,
       size: s.size ? s.size.toNumber() : null,
       sizeUnit: s.sizeUnit,
+      packCount: s.packCount,
       barcode: s.barcode,
       isActive: s.isActive,
     }));
@@ -858,6 +883,7 @@ export class CatalogService {
           variantName: sku.variantName,
           size: sku.size ? sku.size.toNumber() : null,
           sizeUnit: sku.sizeUnit,
+          packCount: sku.packCount,
           barcode: sku.barcode,
           isActive: sku.isActive,
         })),

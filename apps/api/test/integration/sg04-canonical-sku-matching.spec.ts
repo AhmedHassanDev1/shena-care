@@ -8,6 +8,7 @@ import {
   MatchClassification,
 } from '../../src/modules/ingestion/services/product-identity.service';
 import { ProductResearchService } from '../../src/modules/ingestion/services/product-research.service';
+import { IngestionService } from '../../src/modules/ingestion/services/ingestion.service';
 import { createActor, Actor } from '../fixtures/actors';
 import { reviewCandidateMedia } from '../fixtures/candidate-review';
 
@@ -345,6 +346,14 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
       // Candidate dedup: identifies existing candidate ID from Supplier 1!
       expect(match2.existingCandidateId).toBe(candidate1.id);
       expect(match2.reason).toBe('no_canonical_match_found_existing_candidate_reused');
+
+      const secondJob = await app.get(IngestionService).createJob({ supplierId: supplier2Id, items: [{
+        supplierSkuCode: 'SUP2-BLEMISH-40ML', name: 'CeraVe Blemish Control Gel 40ml',
+        brand: 'CeraVe', barcode: '3337875794056', price: 200, currency: 'EGP',
+      }] });
+      const second = await prisma.ingestionItem.findUniqueOrThrow({ where: { id: secondJob.items[0].id } });
+      expect((second.enrichment as any)?.evidence?.manufacturerSource).toBeUndefined();
+      expect((second.enrichment as any)?.identity?.existingCandidateId).toBe(candidate1.id);
     });
   });
 

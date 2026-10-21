@@ -22,6 +22,7 @@ export enum QuantityPresence {
 export enum CanonicalPriceType {
   PURCHASE_COST = 'PURCHASE_COST',
   RETAIL_REFERENCE = 'RETAIL_REFERENCE',
+  UNCLASSIFIED = 'UNCLASSIFIED',
 }
 
 export interface CanonicalPricing {

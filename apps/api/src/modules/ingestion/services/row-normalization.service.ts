@@ -203,6 +203,15 @@ export interface RawRowInput {
 
 @Injectable()
 export class RowNormalizationService {
+  private parseMonetaryAmount(raw: unknown): number | null {
+    if (typeof raw === 'number') return Number.isFinite(raw) && raw > 0 ? raw : null;
+    if (typeof raw !== 'string') return null;
+    const text = raw.trim().replace(/^(SAR|EGP|AED|USD|EUR|KWD|BHD|OMR|QAR)\s*/i, '')
+      .replace(/\s*(SAR|EGP|AED|USD|EUR|KWD|BHD|OMR|QAR)$/i, '').trim();
+    if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(text)) return null;
+    const value = Number(text.replace(/,/g, ''));
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
   /**
    * Normalizes Arabic and English text deterministically.
    * Cleans punctuation, normalizes Alef/Yaa/Taa Marbuta, strips Tashkeel, converts Eastern numerals.
@@ -524,7 +533,7 @@ export class RowNormalizationService {
     const sizePack = this.extractSizeAndPack(input.name, input.units);
 
     // 4. Currency normalization & validation
-    const currencyStr = (input.currency || 'SAR').trim().toUpperCase();
+    const currencyStr = typeof input.currency === 'string' ? input.currency.trim().toUpperCase() : '';
     if (!SUPPORTED_CURRENCIES.has(currencyStr)) {
       return this.createInvalidRow(
         input.sourceRowNumber,
@@ -538,20 +547,15 @@ export class RowNormalizationService {
     let retailPrice: number | null = null;
 
     if (input.retailPrice !== undefined && input.retailPrice !== null && input.retailPrice !== '') {
-      const rNum =
-        typeof input.retailPrice === 'number'
-          ? input.retailPrice
-          : parseFloat(String(input.retailPrice).replace(/[^0-9.]/g, ''));
-      if (!isNaN(rNum) && rNum > 0) {
-        retailPrice = rNum;
-      }
+      retailPrice = this.parseMonetaryAmount(input.retailPrice);
+      if (retailPrice === null) return this.createInvalidRow(input.sourceRowNumber, 'Invalid retail reference price', rawEvidence);
     }
 
     const discount = this.parseDiscount(input.discount);
 
     if (input.price !== undefined && input.price !== null && input.price !== '') {
-      const num = typeof input.price === 'number' ? input.price : parseFloat(String(input.price).replace(/[^0-9.]/g, ''));
-      if (isNaN(num) || num <= 0) {
+      const num = this.parseMonetaryAmount(input.price);
+      if (num === null) {
         return this.createInvalidRow(
           input.sourceRowNumber,
           `Invalid non-positive purchase cost value (${input.price})`,
@@ -560,13 +564,7 @@ export class RowNormalizationService {
       }
       purchaseCost = num;
     } else if (retailPrice && discount) {
-      // If discount is percentage or numeric percentage value <= 100 (e.g. 18 in 'خصم التوريد (%)')
-      const pctValue =
-        discount.type === DiscountType.PERCENTAGE
-          ? discount.value
-          : discount.value <= 100
-          ? discount.value
-          : null;
+      const pctValue = discount.type === DiscountType.PERCENTAGE ? discount.value : null;
       if (pctValue !== null) {
         const calculated = Math.round(retailPrice * (1 - pctValue / 100) * 100) / 100;
         if (calculated > 0) {
@@ -596,6 +594,9 @@ export class RowNormalizationService {
 
     // 6. Inventory Semantics
     const hasQuantityCol = input.hasQuantityColumn ?? (input.quantity !== undefined && input.quantity !== null);
+    if (hasQuantityCol && typeof input.quantity === 'string' && /^\s*-/.test(input.quantity)) {
+      return this.createInvalidRow(input.sourceRowNumber, 'Negative reported quantity', rawEvidence);
+    }
     const inventory = this.parseInventorySemantics(input.quantity, hasQuantityCol, input.isInvoiceLine);
 
     // 7. Category & Brand Scope Classification
@@ -670,7 +671,7 @@ export class RowNormalizationService {
       pricing: {
         purchaseCost: null,
         retailReferencePrice: null,
-        currency: 'SAR',
+        currency: '',
         isVerifiedCost: false,
       },
       inventory: {

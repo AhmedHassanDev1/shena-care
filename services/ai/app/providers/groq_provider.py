@@ -60,7 +60,7 @@ class GroqProvider:
         except json.JSONDecodeError as e:
             raise ProviderError(f"Failed to parse Groq response as JSON: {str(e)}")
 
-    async def enrich_product(self, request: ProductEnrichmentRequest) -> ProductEnrichmentResult:
+    async def enrich(self, request: ProductEnrichmentRequest) -> ProductEnrichmentResult:
         system_prompt = """
 You are an expert product data extraction AI. Extract product facts strictly from the provided inputs without inventing data.
 Return a JSON object with the following schema:

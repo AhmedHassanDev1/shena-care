@@ -8,7 +8,7 @@ import {
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
 import { SourcingService } from '../../sourcing/public';
-import { IngestionImportMode, IngestionPriceType, IngestionStatus } from '@prisma/client';
+import { IngestionImportMode, IngestionPriceType, IngestionStatus, Prisma } from '@prisma/client';
 import {
   RowDiffAction,
   RowDiff,
@@ -29,6 +29,72 @@ export class OfferBatchCommitService {
 
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+  }
+
+  /** The candidate admission path uses the same cost, stock and anomaly policy as batch commit. */
+  async commitCandidateOffer(itemId: string, skuId: string): Promise<void> {
+    await this.prisma.$transaction(async tx => {
+      const item = await tx.ingestionItem.findUnique({ where: { id: itemId }, include: { job: true } });
+      if (!item || item.status !== IngestionStatus.approved) {
+        throw new ConflictException('Only an approved candidate can commit a supplier offer');
+      }
+      if (item.priceType !== IngestionPriceType.PURCHASE_COST || item.price.toNumber() <= 0) {
+        throw new BadRequestException('An explicit positive PURCHASE_COST is required');
+      }
+      if (item.reportedQuantity !== null && item.reportedQuantity < 0) {
+        throw new BadRequestException('Reported quantity cannot be negative');
+      }
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`commit:supplier:${item.job.supplierId}`}))`;
+      const existing = await tx.supplierOffer.findUnique({
+        where: { supplierId_skuId: { supplierId: item.job.supplierId, skuId } },
+      });
+      if (existing?.lastIngestionItemId === item.id) return;
+      if (existing?.lastObservedAt && item.createdAt < existing.lastObservedAt) {
+        throw new ConflictException('Stale import is older than the last observed supplier offer');
+      }
+      const cost = item.price.toNumber();
+      if (existing && existing.currency !== item.currency) {
+        throw new ConflictException('Supplier offer currency change requires review');
+      }
+      if (existing && Math.abs((cost - existing.costPrice.toNumber()) / existing.costPrice.toNumber()) > 0.3) {
+        throw new ConflictException('Large price jump requires review before supplier offer commit');
+      }
+      const availability = item.reportedQuantity === null
+        ? (existing?.isAvailable ?? false)
+        : item.reportedQuantity > 0;
+      await tx.supplierOffer.upsert({
+        where: { supplierId_skuId: { supplierId: item.job.supplierId, skuId } },
+        create: { supplierId: item.job.supplierId, skuId, costPrice: cost, currency: item.currency,
+          lastIngestionItemId: item.id,
+          isAvailable: availability, lastObservedAt: new Date() },
+        update: { costPrice: cost, currency: item.currency, isAvailable: availability,
+          lastIngestionItemId: item.id, lastObservedAt: new Date() },
+      });
+    }, { timeout: 30000, maxWait: 10000 });
+  }
+
+  async assertCandidateOfferSafe(itemId: string, skuId: string | null): Promise<void> {
+    const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId }, include: { job: true } });
+    if (!item || item.priceType !== IngestionPriceType.PURCHASE_COST || item.price.toNumber() <= 0) {
+      throw new BadRequestException('An explicit positive PURCHASE_COST is required');
+    }
+    if (item.reportedQuantity !== null && item.reportedQuantity < 0) {
+      throw new BadRequestException('Reported quantity cannot be negative');
+    }
+    if (!skuId) return;
+    const existing = await this.prisma.supplierOffer.findUnique({
+      where: { supplierId_skuId: { supplierId: item.job.supplierId, skuId } },
+    });
+    if (existing?.lastIngestionItemId === item.id) return;
+    if (existing?.lastObservedAt && item.createdAt < existing.lastObservedAt) {
+      throw new ConflictException('Stale import is older than the last observed supplier offer');
+    }
+    if (existing && existing.currency !== item.currency) {
+      throw new ConflictException('Supplier offer currency change requires review');
+    }
+    if (existing && Math.abs((item.price.toNumber() - existing.costPrice.toNumber()) / existing.costPrice.toNumber()) > 0.3) {
+      throw new ConflictException('Large price jump requires review before supplier offer commit');
+    }
   }
 
   /**
@@ -96,6 +162,19 @@ export class OfferBatchCommitService {
         continue;
       }
 
+      if (item.priceType === null) {
+        rows.push({
+          itemId: item.id, supplierSkuCode: item.supplierSkuCode, matchedSkuId: item.matchedSkuId,
+          canonicalSkuCode: null, productName: item.name, action: RowDiffAction.REVIEW,
+          reasons: ['price_type_requires_explicit_purchase_cost_review'], before: null,
+          after: { costPrice: null, currency: item.currency, isAvailable: null },
+          priceChangePercent: null, isLargePriceJump: false, isRetailOnly: false,
+          isPriceOnly: item.reportedQuantity === null,
+        });
+        counters.review++;
+        continue;
+      }
+
       // Check if item price is invalid (<= 0)
       if (item.price === null || item.price.toNumber() <= 0) {
         rows.push({
@@ -116,6 +195,19 @@ export class OfferBatchCommitService {
           isLargePriceJump: false,
           isRetailOnly: false,
           isPriceOnly: false,
+        });
+        counters.error++;
+        continue;
+      }
+
+      if (item.reportedQuantity !== null && item.reportedQuantity < 0) {
+        rows.push({
+          itemId: item.id, supplierSkuCode: item.supplierSkuCode, matchedSkuId: item.matchedSkuId,
+          canonicalSkuCode: null, productName: item.name, action: RowDiffAction.ERROR,
+          reasons: ['invalid_negative_reported_quantity'], before: null,
+          after: { costPrice: null, currency: item.currency, isAvailable: null },
+          priceChangePercent: null, isLargePriceJump: false,
+          isRetailOnly: item.priceType === IngestionPriceType.RETAIL_REFERENCE, isPriceOnly: false,
         });
         counters.error++;
         continue;
@@ -173,12 +265,14 @@ export class OfferBatchCommitService {
         afterAvailability = item.reportedQuantity > 0;
       } else {
         // Price-only leaves stock/availability intact
-        afterAvailability = before ? before.isAvailable : true;
+        afterAvailability = before ? before.isAvailable : false;
       }
 
       let priceChangePercent: number | null = null;
       let isLargePriceJump = false;
       const reasons: string[] = [];
+      const currencyChange = Boolean(before && before.currency !== item.currency);
+      if (currencyChange) reasons.push('currency_change_requires_review');
 
       if (before && afterCost !== null && before.costPrice !== null && before.costPrice > 0) {
         priceChangePercent = ((afterCost - before.costPrice) / before.costPrice) * 100;
@@ -194,7 +288,7 @@ export class OfferBatchCommitService {
 
       // Classify action
       let action: RowDiffAction;
-      if (isLargePriceJump) {
+      if (isLargePriceJump || currencyChange) {
         action = RowDiffAction.REVIEW;
         counters.review++;
       } else if (isRetailOnly && !existingOffer) {
@@ -318,17 +412,18 @@ export class OfferBatchCommitService {
 
         // Idempotency: if job is already published, return safe result without double-applying
         if (job.status === IngestionStatus.published) {
+          const priorOutcomes = job.items.map(i => (i.enrichment as any)?.offerCommit as ItemCommitOutcome | undefined);
           return {
             jobId: job.id,
             supplierId: job.supplierId,
             status: 'ALREADY_PUBLISHED',
             committedCount: 0,
-            unchangedCount: job.items.length,
+            unchangedCount: priorOutcomes.filter(outcome => outcome?.status === 'COMMITTED').length,
             heldForReviewCount: 0,
             skippedCount: 0,
             errorCount: 0,
             deactivatedCount: 0,
-            itemOutcomes: job.items.map((i) => ({
+            itemOutcomes: job.items.map((i, index) => priorOutcomes[index] ?? ({
               itemId: i.id,
               supplierSkuCode: i.supplierSkuCode,
               skuId: i.matchedSkuId,
@@ -351,6 +446,14 @@ export class OfferBatchCommitService {
         for (const row of diff.rows) {
           const item = job.items.find((i) => i.id === row.itemId);
           if (!item) continue;
+          if (item.status === IngestionStatus.published) {
+            unchangedCount++;
+            itemOutcomes.push((item.enrichment as any)?.offerCommit ?? {
+              itemId: item.id, supplierSkuCode: item.supplierSkuCode, skuId: item.matchedSkuId,
+              action: RowDiffAction.UNCHANGED, status: 'COMMITTED', reason: 'already_committed_in_prior_attempt',
+            });
+            continue;
+          }
 
           // 1. Invalid / error rows
           if (row.action === RowDiffAction.ERROR) {
@@ -451,7 +554,7 @@ export class OfferBatchCommitService {
             const skuId = item.matchedSkuId;
             const targetCost = row.after.costPrice ?? item.price.toNumber();
             const targetCurrency = row.after.currency ?? item.currency;
-            const targetAvailability = row.after.isAvailable ?? true;
+            const targetAvailability = row.after.isAvailable ?? false;
 
             const existingOffer = await tx.supplierOffer.findUnique({
               where: {
@@ -463,7 +566,8 @@ export class OfferBatchCommitService {
             });
 
             // Re-verify staleness inside transaction against live offer
-            if (existingOffer && existingOffer.lastObservedAt && item.createdAt < existingOffer.lastObservedAt) {
+            if (existingOffer && existingOffer.lastIngestionItemId !== item.id &&
+                existingOffer.lastObservedAt && item.createdAt < existingOffer.lastObservedAt) {
               skippedCount++;
               itemOutcomes.push({
                 itemId: item.id,
@@ -484,6 +588,7 @@ export class OfferBatchCommitService {
                   ...(targetCurrency && { currency: targetCurrency }),
                   ...(!row.isPriceOnly && { isAvailable: targetAvailability }),
                   lastObservedAt: new Date(),
+                  lastIngestionItemId: item.id,
                 },
               });
             } else {
@@ -495,6 +600,7 @@ export class OfferBatchCommitService {
                   currency: targetCurrency,
                   isAvailable: targetAvailability,
                   lastObservedAt: new Date(),
+                  lastIngestionItemId: item.id,
                 },
               });
             }
@@ -547,10 +653,21 @@ export class OfferBatchCommitService {
         }
 
         // 8. Update Job Status
+        const unresolvedSkip = itemOutcomes.some(outcome => outcome.status === 'SKIPPED' &&
+          !/item_was_rejected_by_operator|retail_reference_price_does_not_mutate_cost/.test(outcome.reason ?? ''));
         const newStatus =
-          heldForReviewCount > 0
+          heldForReviewCount > 0 || errorCount > 0 || unresolvedSkip
             ? IngestionStatus.review_required
             : IngestionStatus.published;
+
+        for (const outcome of itemOutcomes) {
+          if (!job.items.some(item => item.id === outcome.itemId)) continue;
+          const current = await tx.ingestionItem.findUniqueOrThrow({ where: { id: outcome.itemId } });
+          const enriched = { ...((current.enrichment as Record<string, any>) || {}), offerCommit: outcome };
+          await tx.ingestionItem.update({ where: { id: outcome.itemId }, data: {
+            enrichment: enriched as unknown as Prisma.InputJsonValue,
+          } });
+        }
 
         await tx.ingestionJob.update({
           where: { id: jobId },
@@ -581,7 +698,7 @@ export class OfferBatchCommitService {
   async approveDeactivations(
     jobId: string,
     actorId: string,
-    options: ApproveDeactivationsOptions = {},
+    options?: ApproveDeactivationsOptions,
   ): Promise<{ deactivatedCount: number; deactivatedSkuIds: string[] }> {
     if (!this.isUuid(jobId)) throw new BadRequestException('Invalid job ID');
     if (!this.isUuid(actorId)) throw new BadRequestException('Invalid actor ID');
@@ -602,7 +719,7 @@ export class OfferBatchCommitService {
     }
 
     // 2. Supplier scope check
-    if (options.supplierId && job.supplierId !== options.supplierId) {
+    if (options?.supplierId && job.supplierId !== options.supplierId) {
       throw new ForbiddenException('Job does not belong to specified supplier scope');
     }
 
@@ -613,8 +730,21 @@ export class OfferBatchCommitService {
     }
 
     // 4. Positive assortment coverage confirmation
-    if (options.confirmedAssortmentCoverage === false) {
-      throw new BadRequestException('Positive confirmation of complete supplier assortment coverage is required to approve deactivations');
+    if (options !== undefined) {
+      if (options.confirmedAssortmentCoverage !== true) {
+        throw new BadRequestException('Positive confirmation of complete supplier assortment coverage is required to approve deactivations');
+      }
+      if (!options.approvedSkuIds?.length || new Set(options.approvedSkuIds).size !== options.approvedSkuIds.length) {
+        throw new BadRequestException('An exact reviewed SKU deactivation change set is required');
+      }
+    }
+    if (job.status !== IngestionStatus.published || job.items.some(item =>
+      item.status !== IngestionStatus.published && item.status !== IngestionStatus.rejected)) {
+      throw new ConflictException('Snapshot offer commit must complete before deactivation approval');
+    }
+    const sourceOutcomes = Array.isArray(job.rowOutcomes) ? job.rowOutcomes as Array<{ outcome?: string }> : [];
+    if (sourceOutcomes.some(outcome => !['IMPORTED', 'IMPORTED_MANUAL'].includes(outcome.outcome ?? ''))) {
+      throw new ConflictException('Snapshot has unresolved source rows; deactivation is unsafe');
     }
 
     const matchedSkuIds = job.items
@@ -633,12 +763,12 @@ export class OfferBatchCommitService {
     const candidateSkuIds = missingOffers.map((o) => o.skuId);
     let targetSkuIds: string[];
 
-    if (options.approvedSkuIds && options.approvedSkuIds.length > 0) {
+    if (options?.approvedSkuIds && options.approvedSkuIds.length > 0) {
       const candidateSet = new Set(candidateSkuIds);
-      targetSkuIds = options.approvedSkuIds.filter((id) => candidateSet.has(id));
-      if (targetSkuIds.length === 0) {
-        throw new BadRequestException('No matching deactivation candidates found for the specified change set');
+      if (options.approvedSkuIds.some(id => !candidateSet.has(id))) {
+        throw new ConflictException('Reviewed deactivation change set no longer matches active missing offers');
       }
+      targetSkuIds = options.approvedSkuIds;
     } else {
       targetSkuIds = candidateSkuIds;
     }
@@ -648,6 +778,19 @@ export class OfferBatchCommitService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`commit:supplier:${job.supplierId}`}))`;
+      const current = await tx.ingestionJob.findUniqueOrThrow({ where: { id: job.id }, include: { items: true } });
+      if (current.status !== IngestionStatus.published || current.items.some(item =>
+        item.status !== IngestionStatus.published && item.status !== IngestionStatus.rejected)) {
+        throw new ConflictException('Snapshot state changed during deactivation review');
+      }
+      const stillMissing = await tx.supplierOffer.findMany({ where: {
+        supplierId: job.supplierId, skuId: { in: targetSkuIds, notIn: current.items
+          .map(item => item.matchedSkuId).filter((id): id is string => Boolean(id)) }, isAvailable: true,
+      }, select: { skuId: true } });
+      if (stillMissing.length !== targetSkuIds.length) {
+        throw new ConflictException('Reviewed deactivation change set changed before commit');
+      }
       const result = await tx.supplierOffer.updateMany({
         where: {
           supplierId: job.supplierId,

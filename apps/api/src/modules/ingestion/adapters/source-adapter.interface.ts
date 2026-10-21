@@ -71,16 +71,26 @@ export class CanonicalNormalizationUtils {
     isTaxInclusive: boolean = false,
   ): CanonicalPricing {
     const rawStr = rawAmount !== null && rawAmount !== undefined ? String(rawAmount).trim() : '';
-    // Strip currency symbols or thousand separators like commas
-    const cleaned = rawStr.replace(/[^0-9.-]+/g, '');
-    const amount = Number(cleaned);
+    let amount = 0;
+    if (typeof rawAmount === 'number') {
+      amount = isNaN(rawAmount) || !isFinite(rawAmount) ? 0 : Number(rawAmount.toFixed(2));
+    } else if (typeof rawAmount === 'string') {
+      const trimmed = rawAmount.trim();
+      const normalizedStr = trimmed.replace(/,/g, '');
+      if (/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(normalizedStr)) {
+        const parsed = Number(normalizedStr);
+        amount = isNaN(parsed) || !isFinite(parsed) ? 0 : Number(parsed.toFixed(2));
+      } else {
+        amount = 0;
+      }
+    }
 
-    const currency = typeof rawCurrency === 'string' && rawCurrency.trim().length === 3
+    const currency = typeof rawCurrency === 'string' && /^[A-Z]{3}$/i.test(rawCurrency.trim())
       ? rawCurrency.trim().toUpperCase()
-      : 'EGP';
+      : (typeof rawCurrency === 'string' && rawCurrency.trim() ? rawCurrency.trim().toUpperCase() : '');
 
     return {
-      amount: isNaN(amount) ? 0 : Number(amount.toFixed(2)),
+      amount,
       currency,
       priceType,
       isTaxInclusive,

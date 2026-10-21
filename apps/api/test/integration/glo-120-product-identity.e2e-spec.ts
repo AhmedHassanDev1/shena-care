@@ -133,6 +133,8 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
   });
 
   it('allows two separate suppliers to sell the same canonical SKU with independent SupplierOffers', async () => {
+    await prisma.brand.create({ data: { name: 'GLO120 Brand A', slug: 'glo120-brand-a' } });
+
     // 1. Supplier 1 imports and publishes candidate
     const createJob1 = await request(app.getHttpServer())
       .post('/ingestion/jobs').set(admin.auth)
@@ -188,7 +190,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
     expect(offer2!.costPrice.toNumber()).toBe(220);
   });
 
-  it('supports approved supplier-specific SKU aliases for automatic future matching', async () => {
+  it('holds a supplier SKU alias when the incoming brand contradicts canonical identity', async () => {
     // 1. Create a canonical SKU
     const brand = await prisma.brand.create({ data: { name: 'GLO120 Brand A', slug: 'glo120-brand-a' } });
     const product = await prisma.product.create({
@@ -209,8 +211,50 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       brand: 'Unclear Brand',
     });
 
-    expect(match.classification).toBe(MatchClassification.EXACT_MATCH);
-    expect(match.matchedSkuId).toBe(sku.id);
-    expect(match.reason).toBe('matched_supplier_sku_alias');
+    expect(match.classification).toBe(MatchClassification.CONFLICT);
+    expect(match.matchedSkuId).toBeNull();
+    expect(match.conflicts).toContain('brand_mismatch');
+  });
+
+  it('holds barcode and supplier alias matches when unit, variant, or pack conflicts', async () => {
+    const brand = await prisma.brand.create({ data: { name: 'GLO120 Brand A', slug: 'glo120-brand-a' } });
+    const product = await prisma.product.create({ data: {
+      name: 'Hydrating Lotion', slug: 'glo120-brand-a-hydrating-lotion', brandId: brand.id, isPublished: false,
+    } });
+    const sku = await prisma.sku.create({ data: {
+      productId: product.id, code: 'PACK-2-50ML', variantName: 'Blue', size: 50,
+      sizeUnit: 'ml', barcode: '6223333333333', packCount: 2,
+    } as any });
+    await identityService.createSupplierSkuAlias(supplier1Id, 'SUP-PACK', sku.id);
+
+    for (const change of [
+      { size: 50, sizeUnit: 'g', variantName: 'Blue', packageCount: 2, expected: 'size_unit_mismatch' },
+      { size: 50, sizeUnit: 'ml', variantName: 'Red', packageCount: 2, expected: 'variant_mismatch' },
+      { size: 50, sizeUnit: 'ml', variantName: 'Blue', packageCount: 3, expected: 'pack_count_mismatch' },
+    ]) {
+      const match = await identityService.classifyCandidateMatch({
+        supplierId: supplier1Id, supplierSkuCode: 'SUP-PACK', name: 'Hydrating Lotion',
+        brand: 'GLO120 Brand A', barcode: '6223333333333', ...change,
+      });
+      expect(match.classification).toBe(MatchClassification.CONFLICT);
+      expect(match.matchedSkuId).toBeNull();
+      expect(match.conflicts).toContain(change.expected);
+    }
+  });
+
+  it('does not auto-match a different unit under the same brand and name', async () => {
+    const brand = await prisma.brand.create({ data: { name: 'GLO120 Brand A', slug: 'glo120-brand-a' } });
+    const product = await prisma.product.create({ data: {
+      name: 'Hydrating Lotion', slug: 'glo120-brand-a-hydrating-lotion', brandId: brand.id, isPublished: false,
+    } });
+    await prisma.sku.create({ data: {
+      productId: product.id, code: 'HYDRATING-50ML', variantName: 'Default', size: 50, sizeUnit: 'ml',
+    } });
+    const match = await identityService.classifyCandidateMatch({
+      supplierId: supplier1Id, supplierSkuCode: 'SUP-50G', name: 'Hydrating Lotion',
+      brand: 'GLO120 Brand A', size: 50, sizeUnit: 'g',
+    });
+    expect(match.classification).toBe(MatchClassification.LIKELY_MATCH);
+    expect(match.matchedSkuId).toBeNull();
   });
 });

@@ -57,11 +57,13 @@ export class InMemorySourceAdapter implements SupplierSourceAdapter<InMemoryRawR
 
       const priceType = row.priceType === 'RETAIL_REFERENCE'
         ? CanonicalPriceType.RETAIL_REFERENCE
-        : (options.defaultPriceType || CanonicalPriceType.PURCHASE_COST);
+        : row.priceType === 'PURCHASE_COST'
+        ? CanonicalPriceType.PURCHASE_COST
+        : (options.defaultPriceType || CanonicalPriceType.UNCLASSIFIED);
 
       const pricing = CanonicalNormalizationUtils.parsePricing(
         row.price,
-        row.currency || options.defaultCurrency || 'EGP',
+        row.currency || options.defaultCurrency || '',
         priceType,
       );
 
@@ -133,6 +135,14 @@ export class InMemorySourceAdapter implements SupplierSourceAdapter<InMemoryRawR
           rowNumber: item.sourceRowNumber,
           field: 'pricing.amount',
           issue: 'Price must be greater than zero',
+          severity: 'ERROR',
+        });
+      }
+      if (!item.pricing.currency || item.pricing.currency.length !== 3) {
+        issues.push({
+          rowNumber: item.sourceRowNumber,
+          field: 'pricing.currency',
+          issue: 'Missing or invalid 3-letter currency code',
           severity: 'ERROR',
         });
       }

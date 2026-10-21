@@ -32,6 +32,10 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
   const createdCandidateIds: string[] = [];
   const createdBrandSlugs: string[] = [];
   const createdSkuCodes: string[] = [];
+  const createdCategoryIds: string[] = [];
+  const createdConcernIds: string[] = [];
+  const createdRoutineIds: string[] = [];
+  const createdIngredientIds: string[] = [];
 
   const validPng = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -133,6 +137,10 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
       await prisma.productLineDraft.deleteMany({ where: { brandDraft: { slug } } });
       await prisma.brandDraft.deleteMany({ where: { slug } });
     }
+    await prisma.category.deleteMany({ where: { id: { in: createdCategoryIds } } });
+    await prisma.concern.deleteMany({ where: { id: { in: createdConcernIds } } });
+    await prisma.routine.deleteMany({ where: { id: { in: createdRoutineIds } } });
+    await prisma.ingredient.deleteMany({ where: { id: { in: createdIngredientIds } } });
 
     if (app) await app.close();
   });
@@ -174,6 +182,51 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
       },
     };
   }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  it('persists only explicitly reviewed catalog and care selections with sourced ingredients', async () => {
+    const unique = Date.now().toString();
+    const brandName = `ReviewedBrand${unique}`;
+    const brand = await brandService.createBrand({ name: brandName });
+    createdBrandSlugs.push(brand.slug);
+    const line = await prisma.productLine.create({ data: { brandId: brand.id, name: 'Hydration', slug: `reviewed-line-${unique}` } });
+    const category = await prisma.category.create({ data: { name: 'Cleanser', slug: `reviewed-category-${unique}` } });
+    createdCategoryIds.push(category.id);
+    const concern = await prisma.concern.create({ data: { name: `Dryness ${unique}`, slug: `dryness-${unique}`, careArea: 'skin' } });
+    createdConcernIds.push(concern.id);
+    const routine = await prisma.routine.create({ data: { title: `Review routine ${unique}`, careArea: 'skin' } });
+    createdRoutineIds.push(routine.id);
+    const step = await prisma.routineStep.create({ data: { routineId: routine.id, title: 'Cleanse', stepOrder: 1, timing: 'both' } });
+    const ingredient = await prisma.ingredient.create({ data: {
+      name: `Reviewed ingredient ${unique}`, slug: `reviewed-ingredient-${unique}`,
+      inciName: `Reviewed INCI ${unique}`, primaryFunction: 'Humectant', isActiveIngredient: true,
+    } });
+    createdIngredientIds.push(ingredient.id);
+    const candidateId = randomUUID();
+    createdCandidateIds.push(candidateId);
+    const barcode = `622${unique.slice(-10)}`;
+    const packshot = await createVerifiedPackshot(supplierAId, candidateId, barcode);
+    await prisma.ingestionItem.create({ data: {
+      id: candidateId, jobId: jobAId, supplierSkuCode: `REVIEW-${unique}`,
+      name: 'Hydrating Cleanser 236ml', brand: brandName, barcode, price: 20,
+      priceType: IngestionPriceType.PURCHASE_COST, currency: 'EGP', status: IngestionStatus.review_required,
+      enrichment: { media: [packshot], ingredientProfile: { actives: [{ id: ingredient.id, name: ingredient.name }] },
+        research: { fieldEvidences: [{ fieldName: 'ingredients', proposedValue: [ingredient.inciName],
+          sourceUrl: 'https://www.cerave.com/ingredients', sourceType: 'OFFICIAL_MANUFACTURER', verificationStatus: 'SUPPORTED' }] } },
+    } });
+    await ingestionService.approveItem(candidateId, { productLineId: line.id, categoryId: category.id,
+      concernSlugs: [concern.slug], routineStepId: step.id, approvedIngredientIds: [ingredient.id] }, admin.id);
+    const review = await ingestionService.getCandidateReviewRecord(candidateId);
+    expect(review.dependencies.ingredients.activeIngredients).toContain(ingredient.name);
+    expect(review.dependencies.ingredients.canonicalCount).toBe(1);
+    const published = await ingestionService.publishCandidate(candidateId, admin.id);
+    const sku = await prisma.sku.findUniqueOrThrow({ where: { id: published.matchedSkuId as string } });
+    createdSkuCodes.push(sku.code);
+    const product = await prisma.product.findUniqueOrThrow({ where: { id: sku.productId } });
+    expect(product).toMatchObject({ productLineId: line.id, categoryId: category.id, concerns: [concern.slug], isPublished: false });
+    expect(await prisma.productIngredient.count({ where: { productId: product.id, ingredientId: ingredient.id } })).toBe(1);
+    expect(await prisma.routineStepRecommendation.count({ where: { productId: product.id, stepId: step.id } })).toBe(1);
+  });
 
   // ───────────────────────────────────────────────────────────────────────────
   describe('1. Acceptance 1: Two Suppliers Submitting Same New Product (Final Dedup)', () => {

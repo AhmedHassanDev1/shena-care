@@ -18,6 +18,11 @@ export interface ColumnMappingConfig {
   currencyColumn?: string;
 }
 
+export function currencyFromPriceHeader(header: string): string | null {
+  const match = header.match(/\b(EGP|SAR|AED|USD|EUR|KWD|BHD|OMR|QAR)\b/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
 export interface MappingProposal {
   mapping: Partial<ColumnMappingConfig>;
   confidence: Record<string, number>;
@@ -148,6 +153,10 @@ const MAPPING_RULES: KeywordRule[] = [
     keywords: ['discount', 'rebate', 'خصم التوريد', 'نسبة الخصم', 'خصم'],
   },
   {
+    target: 'currencyColumn',
+    keywords: ['currency', 'curr', 'عملة', 'العملة'],
+  },
+  {
     target: 'units',
     keywords: ['unit', 'units', 'uom', 'pack', 'package', 'size', 'العبوة', 'الحجم', 'وحدة', 'عبوة'],
   },
@@ -221,7 +230,15 @@ export class ExportProfileService {
     }
 
     const unmappedHeaders = headers.filter((h) => !mappedHeaders.has(h));
-    const isComplete = Boolean(mapping.supplierSku && mapping.name && mapping.price);
+    if (mapping.price && !mapping.currency && !mapping.currencyColumn) {
+      const embeddedCurrency = currencyFromPriceHeader(mapping.price);
+      if (embeddedCurrency) {
+        mapping.currency = embeddedCurrency;
+        confidence.currency = 1;
+      }
+    }
+    const isComplete = Boolean(mapping.supplierSku && mapping.name && mapping.price &&
+      (mapping.currency || mapping.currencyColumn));
 
     return {
       mapping,
@@ -234,10 +251,14 @@ export class ExportProfileService {
   /**
    * Finds the latest approved ExportProfile strictly scoped to the specified supplierId.
    */
-  async findApprovedProfile(supplierId: string, formatFingerprint: string) {
+  async findApprovedProfile(
+    supplierId: string,
+    formatFingerprint: string,
+    tx?: import('@prisma/client').Prisma.TransactionClient,
+  ) {
     if (!supplierId || !formatFingerprint) return null;
-
-    return this.prisma.exportProfile.findFirst({
+    const client = tx || this.prisma;
+    return client.exportProfile.findFirst({
       where: {
         supplierId,
         formatFingerprint,
@@ -264,6 +285,9 @@ export class ExportProfileService {
     // Validate minimum required fields
     if (!mapping.supplierSku || !mapping.name || !mapping.price) {
       throw new BadRequestException('Mapping requires at least supplierSku, name, and price columns');
+    }
+    if (!mapping.currency && !mapping.currencyColumn && !currencyFromPriceHeader(mapping.price)) {
+      throw new BadRequestException('Mapping requires an explicit currency, currency column, or ISO currency in price header');
     }
 
     const existing = await this.prisma.exportProfile.findFirst({

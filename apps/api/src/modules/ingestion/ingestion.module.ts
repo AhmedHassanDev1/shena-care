@@ -16,9 +16,10 @@ import { CatalogModule } from '../catalog/public';
 import { SourcingModule } from '../sourcing/public';
 import { AiModule } from '../../platform/ai';
 import { StorageModule } from '../../platform/storage/storage.module';
+import { CareModule } from '../care/public';
 
 @Module({
-  imports: [CatalogModule, SourcingModule, AiModule, StorageModule],
+  imports: [CatalogModule, CareModule, SourcingModule, AiModule, StorageModule],
   controllers: [IngestionController],
   providers: [
     IngestionService,

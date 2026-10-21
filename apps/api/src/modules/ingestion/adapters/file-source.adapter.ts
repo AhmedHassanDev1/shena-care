@@ -153,13 +153,15 @@ export class FileSourceAdapter implements SupplierSourceAdapter<string | Buffer,
       const rawUnit = unitIdx >= 0 ? cols[unitIdx] : null;
       const rawVariant = variantIdx >= 0 ? cols[variantIdx] : null;
       const rawPrice = priceIdx >= 0 ? cols[priceIdx] : null;
-      const rawCurr = currIdx >= 0 ? cols[currIdx] : options.defaultCurrency || 'EGP';
+      const rawCurr = currIdx >= 0 ? cols[currIdx] : (options.defaultCurrency || '');
       const rawPriceType = pTypeIdx >= 0 ? cols[pTypeIdx] : undefined;
       const rawQty = qtyIdx >= 0 ? cols[qtyIdx] : undefined;
 
       const priceType = rawPriceType && /retail/i.test(String(rawPriceType))
         ? CanonicalPriceType.RETAIL_REFERENCE
-        : (options.defaultPriceType || CanonicalPriceType.PURCHASE_COST);
+        : rawPriceType && /cost|purchase/i.test(String(rawPriceType))
+        ? CanonicalPriceType.PURCHASE_COST
+        : (options.defaultPriceType || CanonicalPriceType.UNCLASSIFIED);
 
       const pricing = CanonicalNormalizationUtils.parsePricing(
         rawPrice,
@@ -235,6 +237,14 @@ export class FileSourceAdapter implements SupplierSourceAdapter<string | Buffer,
           rowNumber: item.sourceRowNumber,
           field: 'pricing.amount',
           issue: 'Price must be greater than zero',
+          severity: 'ERROR',
+        });
+      }
+      if (!item.pricing.currency || item.pricing.currency.length !== 3) {
+        issues.push({
+          rowNumber: item.sourceRowNumber,
+          field: 'pricing.currency',
+          issue: 'Missing or invalid 3-letter currency code',
           severity: 'ERROR',
         });
       }

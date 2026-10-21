@@ -15,6 +15,15 @@ export interface PublicConcern {
 
 @Injectable()
 export class CareService {
+  async addReviewedProductStep(productId: string, stepId: string): Promise<void> {
+    const step = await this.prisma.routineStep.findUnique({ where: { id: stepId }, include: { routine: true } });
+    if (!step?.routine.isActive) throw new NotFoundException('Active routine step not found');
+    await this.prisma.routineStepRecommendation.upsert({
+      where: { stepId_productId: { stepId, productId } },
+      create: { stepId, productId, source: 'manual' },
+      update: {},
+    });
+  }
   constructor(
     private readonly prisma: PrismaService,
     private readonly catalogService: CatalogService,

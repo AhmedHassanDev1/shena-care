@@ -11,6 +11,7 @@ export interface MediaReview {
   size: number;
   sizeUnit: string;
   variantName: string;
+  packCount?: number;
   isTest: boolean;
 }
 
@@ -34,6 +35,7 @@ export function requireMediaReview(value: unknown): MediaReview {
   if (!m || m.isTest !== false || !m.reviewedBy || !uuid.test(m.reviewedBy) || (m.skuId !== undefined && !uuid.test(m.skuId)) || !m.reviewedAt ||
       !Number.isFinite(Date.parse(m.reviewedAt)) || !m.barcode ||
       !Number.isFinite(m.size) || m.size <= 0 || !m.sizeUnit || !m.variantName ||
+      (m.packCount !== undefined && (!Number.isInteger(m.packCount) || m.packCount <= 0)) ||
       !['OFFICIAL_MANUFACTURER', 'TRUSTED_DISTRIBUTOR'].includes(m.sourceType) ||
       !isTrustedMediaSource(m.sourceUrl)) {
     throw new BadRequestException('Verified media requires trusted evidence and an identity review');

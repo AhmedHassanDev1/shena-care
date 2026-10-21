@@ -139,7 +139,7 @@ describe('SG-02: Secure CSV/XLSX Parse, Format Fingerprints & Mapping Approval (
       const headers = ['كود الصنف', 'اسم المنتج', 'سعر الشراء', 'الرصيد', 'الباركود', 'ملاحظات المستودع'];
       const proposal = profileService.proposeMapping(headers);
 
-      expect(proposal.isComplete).toBe(true);
+      expect(proposal.isComplete).toBe(false); // Currency must be approved when absent from the source headers.
       expect(proposal.mapping.supplierSku).toBe('كود الصنف');
       expect(proposal.mapping.name).toBe('اسم المنتج');
       expect(proposal.mapping.price).toBe('سعر الشراء');
@@ -228,6 +228,7 @@ describe('SG-02: Secure CSV/XLSX Parse, Format Fingerprints & Mapping Approval (
             supplierSku: 'كود الصنف',
             name: 'اسم المنتج',
             price: 'سعر الشراء',
+            currency: 'SAR',
             quantity: 'المخزون',
             barcode: 'الباركود',
           },

@@ -18,6 +18,8 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
   let prisma: PrismaService;
   let admin: Actor;
   let normalizationService: RowNormalizationService;
+  const normalizeRow = (input: Parameters<RowNormalizationService['normalizeRow']>[0]) =>
+    normalizationService.normalizeRow({ currency: 'SAR', ...input });
   let ingestionService: IngestionService;
   let profileService: ExportProfileService;
   let supplierId: string;
@@ -86,7 +88,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
 
     normalizationTestCases.forEach((tc) => {
       it(`normalizes: ${tc.name}`, () => {
-        const result = normalizationService.normalizeRow({
+        const result = normalizeRow({
           sourceRowNumber: 1,
           supplierSku: 'TEST-SKU-01',
           name: tc.inputName,
@@ -107,7 +109,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
   describe('2. Strict Quantity & Availability Semantics', () => {
     it('distinguishes explicit >0, explicit 0, unknown blank, missing column, and boolean states', () => {
       // 1. Explicit reported count
-      const r1 = normalizationService.normalizeRow({
+      const r1 = normalizeRow({
         sourceRowNumber: 1,
         supplierSku: 'SKU-Q1',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -120,7 +122,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(r1.inventory.isInStock).toBe(true);
 
       // 2. Explicit zero
-      const r2 = normalizationService.normalizeRow({
+      const r2 = normalizeRow({
         sourceRowNumber: 2,
         supplierSku: 'SKU-Q2',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -133,7 +135,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(r2.inventory.isInStock).toBe(false);
 
       // 3. Unknown blank cell
-      const r3 = normalizationService.normalizeRow({
+      const r3 = normalizeRow({
         sourceRowNumber: 3,
         supplierSku: 'SKU-Q3',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -146,7 +148,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(r3.inventory.isInStock).toBeNull();
 
       // 4. Missing column completely
-      const r4 = normalizationService.normalizeRow({
+      const r4 = normalizeRow({
         sourceRowNumber: 4,
         supplierSku: 'SKU-Q4',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -158,7 +160,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(r4.inventory.isInStock).toBeNull();
 
       // 5. In-stock boolean text (does NOT fabricate count)
-      const r5 = normalizationService.normalizeRow({
+      const r5 = normalizeRow({
         sourceRowNumber: 5,
         supplierSku: 'SKU-Q5',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -174,7 +176,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
 
   describe('3. Financial & Price Semantics', () => {
     it('validates supported currencies and rejects malformed/mixed currency strings', () => {
-      const valid = normalizationService.normalizeRow({
+      const valid = normalizeRow({
         sourceRowNumber: 1,
         supplierSku: 'SKU-C1',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -184,7 +186,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(valid.status).toBe(NormalizedRowStatus.UPDATED_CANDIDATE);
       expect(valid.pricing.currency).toBe('SAR');
 
-      const invalid = normalizationService.normalizeRow({
+      const invalid = normalizeRow({
         sourceRowNumber: 2,
         supplierSku: 'SKU-C2',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -197,7 +199,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
 
     it('types discounts strictly into PERCENTAGE or FIXED_AMOUNT', () => {
       // Percentage via '%'
-      const r1 = normalizationService.normalizeRow({
+      const r1 = normalizeRow({
         sourceRowNumber: 1,
         supplierSku: 'SKU-D1',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -208,7 +210,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(r1.pricing.discount?.value).toBe(15);
 
       // Percentage via decimal fraction
-      const r2 = normalizationService.normalizeRow({
+      const r2 = normalizeRow({
         sourceRowNumber: 2,
         supplierSku: 'SKU-D2',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -219,7 +221,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(r2.pricing.discount?.value).toBe(20);
 
       // Fixed amount
-      const r3 = normalizationService.normalizeRow({
+      const r3 = normalizeRow({
         sourceRowNumber: 3,
         supplierSku: 'SKU-D3',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -231,7 +233,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
     });
 
     it('detects strong price-kind inversion anomaly (wholesale cost > retail price) and holds for REVIEW', () => {
-      const anomaly = normalizationService.normalizeRow({
+      const anomaly = normalizeRow({
         sourceRowNumber: 1,
         supplierSku: 'SKU-P1',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -244,7 +246,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
     });
 
     it('rejects non-positive or corrupt purchase cost with INVALID status', () => {
-      const zeroCost = normalizationService.normalizeRow({
+      const zeroCost = normalizeRow({
         sourceRowNumber: 1,
         supplierSku: 'SKU-Z1',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -252,7 +254,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       });
       expect(zeroCost.status).toBe(NormalizedRowStatus.INVALID);
 
-      const negativeCost = normalizationService.normalizeRow({
+      const negativeCost = normalizeRow({
         sourceRowNumber: 2,
         supplierSku: 'SKU-Z2',
         name: 'CeraVe Moisturizing Cream 50ml',
@@ -262,9 +264,25 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
     });
   });
 
+  describe('P0 monetary input safety', () => {
+    it('rejects missing currency and negative or malformed purchase prices', () => {
+      const base = { sourceRowNumber: 1, supplierSku: 'P0', name: 'CeraVe Moisturizing Cream 50ml' };
+      expect(normalizationService.normalizeRow({ ...base, price: 20 }).status).toBe(NormalizedRowStatus.INVALID);
+      expect(normalizeRow({ ...base, price: '-20', currency: 'SAR' }).status).toBe(NormalizedRowStatus.INVALID);
+      expect(normalizeRow({ ...base, price: '20oops', currency: 'SAR' }).status).toBe(NormalizedRowStatus.INVALID);
+    });
+
+    it('derives cost from an explicitly typed fixed discount without interpreting it as a percentage', () => {
+      const result = normalizeRow({ sourceRowNumber: 1, supplierSku: 'P0-D',
+        name: 'CeraVe Moisturizing Cream 50ml', retailPrice: '100 SAR', discount: '20 SAR', currency: 'SAR' });
+      expect(result.pricing.purchaseCost).toBe(80);
+      expect(result.pricing.discount?.type).toBe(DiscountType.FIXED_AMOUNT);
+    });
+  });
+
   describe('4. Brand & Line Scope Eligibility (Skincare/Haircare Pilot)', () => {
     it('classifies approved skincare and haircare items as eligible UPDATED_CANDIDATE', () => {
-      const skincare = normalizationService.normalizeRow({
+      const skincare = normalizeRow({
         sourceRowNumber: 1,
         supplierSku: 'SKU-S1',
         name: 'غسول رغوي للوجه للبشرة الدهنية 236 مل',
@@ -274,7 +292,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(skincare.status).toBe(NormalizedRowStatus.UPDATED_CANDIDATE);
       expect(skincare.scope.category).toBe('skincare');
 
-      const haircare = normalizationService.normalizeRow({
+      const haircare = normalizeRow({
         sourceRowNumber: 2,
         supplierSku: 'SKU-H1',
         name: 'شامبو لعلاج القشرة الدهنية 200 مل',
@@ -286,7 +304,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
     });
 
     it('skips clearly excluded goods (food, electronics, clothing) as OUT_OF_SCOPE with reason', () => {
-      const food = normalizationService.normalizeRow({
+      const food = normalizeRow({
         sourceRowNumber: 1,
         supplierSku: 'SKU-EX1',
         name: 'أرز بسمتي هندي درجة اولى 5 كجم',
@@ -295,7 +313,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(food.status).toBe(NormalizedRowStatus.OUT_OF_SCOPE);
       expect(food.statusReason).toContain('excluded');
 
-      const electronics = normalizationService.normalizeRow({
+      const electronics = normalizeRow({
         sourceRowNumber: 2,
         supplierSku: 'SKU-EX2',
         name: 'شاحن هاتف سريع 20 واط نوع سي',
@@ -306,7 +324,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
     });
 
     it('holds credible known pilot brand with ambiguous sub-line for REVIEW rather than false-skipping', () => {
-      const ambiguousBrandItem = normalizationService.normalizeRow({
+      const ambiguousBrandItem = normalizeRow({
         sourceRowNumber: 1,
         supplierSku: 'SKU-AM1',
         name: 'CeraVe Special Edition Organizer Kit',
@@ -325,7 +343,9 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
         'كود الصنف,اسم المنتج,سعر الشراء,المخزون,الباركود\n' +
         'SKU-01,واقي شمس لاروش بوزيه انفيسيبل فلويد 50 مل,85.00,40,3337875588569\n' +
         'SKU-02,أرز بسمتي فاخر 5 كجم,35.00,10,6221111222333\n' +
-        'SKU-03,CeraVe Ambiguous Line Kit,45.00,15,3337871324567\n';
+        'SKU-03,CeraVe Ambiguous Line Kit,45.00,15,3337871324567\n' +
+        'SKU-04,CeraVe Moisturizing Cream 50ml,-25.00,4,3337871324568\n' +
+        'SKU-01,CeraVe Moisturizing Cream 50ml,85.00,4,3337871324569\n';
 
       const file: Express.Multer.File = {
         buffer: Buffer.from(csv, 'utf-8'),
@@ -353,6 +373,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
             price: 'سعر الشراء',
             quantity: 'المخزون',
             barcode: 'الباركود',
+            currency: 'SAR',
           },
           profileName: 'SG03 Full Scope Test Profile',
         },
@@ -382,6 +403,10 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       const ambiguousItem = items.find((i) => i.supplierSkuCode === 'SKU-03');
       expect(ambiguousItem?.status).toBe(IngestionStatus.review_required);
       expect((ambiguousItem?.enrichment as any)?.source?.normalized?.status).toBe(NormalizedRowStatus.REVIEW);
+      const importedJob = await prisma.ingestionJob.findUniqueOrThrow({ where: { id: uploadResult.jobId } });
+      const outcomes = importedJob.rowOutcomes as Array<{ sourceRow: number; outcome: string; reason?: string }>;
+      expect(outcomes).toHaveLength(5);
+      expect(outcomes.map(o => o.outcome)).toEqual(['IMPORTED', 'IMPORTED', 'IMPORTED', 'INVALID', 'DUPLICATE']);
     });
   });
 });

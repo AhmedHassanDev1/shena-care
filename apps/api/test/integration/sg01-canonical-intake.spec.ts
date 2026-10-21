@@ -158,6 +158,18 @@ describe('SG-01: Canonical Intake Contract & Replaceable Adapters (e2e)', () => 
     });
   });
 
+  it('does not invent currency, cost type, or a valid amount in generic adapters', async () => {
+    const adapter = new InMemorySourceAdapter();
+    const envelope = await adapter.parseAndNormalize([
+      { supplierSkuCode: 'NO-CURRENCY', rawBrand: 'CeraVe', rawProductName: 'Cream', price: 20 },
+      { supplierSkuCode: 'BAD-PRICE', rawBrand: 'CeraVe', rawProductName: 'Cream', price: '20oops', currency: 'EGP', priceType: 'PURCHASE_COST' },
+    ], { supplierId, sourceId: randomUUID() });
+    expect(envelope.items[0].pricing.currency).toBe('');
+    expect(envelope.items[0].pricing.priceType).toBe('UNCLASSIFIED');
+    expect(envelope.items[1].pricing.amount).toBe(0);
+    expect(adapter.validateEnvelope(envelope).isValid).toBe(false);
+  });
+
   describe('Strict Quantity Semantics (EXPLICIT, ZERO, UNKNOWN, MISSING)', () => {
     it('correctly maps 4 distinct quantity states without assuming zero or available stock', async () => {
       const adapter = new InMemorySourceAdapter();

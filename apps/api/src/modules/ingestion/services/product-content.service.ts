@@ -149,21 +149,12 @@ export class ProductContentService {
 
     // Extract active ingredients
     const activeIngredients: string[] = [];
-    if (Array.isArray(enrichment.ingredients?.activeIngredients)) {
+    if (Array.isArray(enrichment.ingredientProfile?.actives)) {
       activeIngredients.push(
-        ...enrichment.ingredients.activeIngredients.map((i: any) =>
+        ...enrichment.ingredientProfile.actives.map((i: any) =>
           typeof i === 'string' ? i : i.name || i.inciName || '',
         ),
       );
-    } else if (candidate.name) {
-      const lower = candidate.name.toLowerCase();
-      if (lower.includes('retinol') || lower.includes('retinoid')) activeIngredients.push('Retinol');
-      if (lower.includes('vitamin c') || lower.includes('ascorb') || lower.includes('فيتامين سي')) activeIngredients.push('Vitamin C');
-      if (lower.includes('niacinamide') || lower.includes('نياسيناميد')) activeIngredients.push('Niacinamide');
-      if (lower.includes('hyaluronic') || lower.includes('هيالورونيك')) activeIngredients.push('Hyaluronic Acid');
-      if (lower.includes('ceramide') || lower.includes('سيراميد')) activeIngredients.push('Ceramides');
-      if (lower.includes('salicylic') || lower.includes('ساليسيليك')) activeIngredients.push('Salicylic Acid');
-      if (lower.includes('centella') || lower.includes('cica') || lower.includes('سيكا')) activeIngredients.push('Centella Asiatica');
     }
 
     // Determine routine placement

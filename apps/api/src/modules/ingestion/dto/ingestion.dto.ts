@@ -127,6 +127,8 @@ export class CandidateMediaReviewDto {
   sizeUnit: string;
   @IsString() @IsNotEmpty()
   variantName: string;
+  @IsOptional() @IsInt() @Min(1)
+  packCount?: number;
 }
 
 export class ApproveIngestionItemDto {
@@ -146,6 +148,21 @@ export class ApproveIngestionItemDto {
   @IsOptional() @IsArray() @ArrayMaxSize(20)
   @ValidateNested({ each: true }) @Type(() => CandidateMediaReviewDto)
   mediaReviews?: CandidateMediaReviewDto[];
+
+  @IsOptional() @IsUUID()
+  productLineId?: string;
+
+  @IsOptional() @IsUUID()
+  categoryId?: string;
+
+  @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true })
+  concernSlugs?: string[];
+
+  @IsOptional() @IsUUID()
+  routineStepId?: string;
+
+  @IsOptional() @IsArray() @ArrayMaxSize(100) @IsUUID('4', { each: true })
+  approvedIngredientIds?: string[];
 }
 
 export class UpdateCandidateDto {

@@ -478,6 +478,53 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
   });
 
   describe('8. Acceptance 8: Direct regression for existing dangerous publishJob behavior', () => {
+    it('holds a large direct-publish price jump before changing the offer', async () => {
+      await prisma.supplierOffer.create({ data: {
+        supplierId, skuId: sku1Id, costPrice: 100, currency: 'SAR', isAvailable: true,
+      } });
+      const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required } });
+      const sku = await prisma.sku.findUniqueOrThrow({ where: { id: sku1Id } });
+      const item = await prisma.ingestionItem.create({ data: {
+        jobId: job.id, supplierSkuCode: 'JUMP-1', name: 'Moisturizing Cream 50ml',
+        brand: 'SG05 Brand', barcode: sku.barcode, price: 150,
+        priceType: IngestionPriceType.PURCHASE_COST, currency: 'SAR', matchedSkuId: sku1Id,
+        status: IngestionStatus.approved,
+      } });
+      const media = await reviewCandidateMedia(app, admin.auth, item.id, sku.barcode!, 50, 'ml');
+      await request(app.getHttpServer()).patch(`/ingestion/candidates/${item.id}/approve`)
+        .set(admin.auth).send({ mediaReviews: media }).expect(200);
+      await expect(ingestionService.publishCandidate(item.id)).rejects.toThrow(/price jump|review/i);
+      const offer = await prisma.supplierOffer.findUniqueOrThrow({ where: { supplierId_skuId: { supplierId, skuId: sku1Id } } });
+      expect(offer.costPrice.toNumber()).toBe(100);
+      expect((await prisma.ingestionItem.findUniqueOrThrow({ where: { id: item.id } })).status).toBe(IngestionStatus.approved);
+    });
+
+    it('keeps review preview and publication aligned on identity and safety conflicts', async () => {
+      const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required } });
+      const sku = await prisma.sku.findUniqueOrThrow({ where: { id: sku1Id } });
+      const item = await prisma.ingestionItem.create({ data: {
+        jobId: job.id, supplierSkuCode: 'WRONG-BRAND', name: 'Moisturizing Cream 50ml',
+        brand: 'Other Brand', barcode: sku.barcode, price: 100,
+        priceType: IngestionPriceType.PURCHASE_COST, currency: 'SAR', matchedSkuId: sku1Id,
+        status: IngestionStatus.approved,
+      } });
+      const media = await reviewCandidateMedia(app, admin.auth, item.id, sku.barcode!, 50, 'ml');
+      await request(app.getHttpServer()).patch(`/ingestion/candidates/${item.id}/approve`)
+        .set(admin.auth).send({ mediaReviews: media }).expect(200);
+      let review = await ingestionService.getCandidateReviewRecord(item.id);
+      expect(review.canPublish).toBe(false);
+      await expect(ingestionService.publishCandidate(item.id)).rejects.toThrow(/identity|conflict/i);
+      await prisma.ingestionItem.update({ where: { id: item.id }, data: {
+        brand: (await prisma.brand.findUniqueOrThrow({ where: { id: brandId } })).name,
+        enrichment: { ...((await prisma.ingestionItem.findUniqueOrThrow({ where: { id: item.id } })).enrichment as object),
+          ingredients: { hasForbiddenSubstances: true } },
+      } });
+      review = await ingestionService.getCandidateReviewRecord(item.id);
+      expect(review.policyAndQualityConflicts).toContain('FORBIDDEN_SUBSTANCE_DETECTED');
+      await expect(ingestionService.publishCandidate(item.id)).rejects.toThrow(/safety|forbidden/i);
+      expect(await prisma.supplierOffer.findUnique({ where: { supplierId_skuId: { supplierId, skuId: sku1Id } } })).toBeNull();
+    });
+
     it('correctly updates existing offer price on re-import instead of swallowing it', async () => {
       // 1. Initial offer established at 100 SAR
       await prisma.supplierOffer.create({
@@ -528,7 +575,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
           jobId: job2.id,
           supplierSkuCode: 'SUP-SKU-1-V2',
           name: 'Moisturizing Cream 50ml',
-          brand: 'SG05 Brand',
+          brand: (await prisma.brand.findUniqueOrThrow({ where: { id: brandId } })).name,
           barcode: sku1.barcode,
           price: 125, // Another price change!
           priceType: IngestionPriceType.PURCHASE_COST,
@@ -551,6 +598,86 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
         where: { supplierId_skuId: { supplierId, skuId: sku1Id } },
       });
       expect(offerAfterPublish.costPrice.toNumber()).toBe(125);
+    });
+  });
+
+  describe('P0 explicit cost and quantity semantics', () => {
+    it('holds a supplier currency change and rejects negative stock', async () => {
+      await prisma.supplierOffer.create({ data: { supplierId, skuId: sku1Id, costPrice: 100,
+        currency: 'SAR', isAvailable: true } });
+      const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required } });
+      await prisma.ingestionItem.create({ data: { jobId: job.id, supplierSkuCode: 'CURRENCY-CHANGE',
+        name: 'Moisturizing Cream', brand: 'SG05 Brand', price: 100,
+        priceType: IngestionPriceType.PURCHASE_COST, currency: 'EGP', matchedSkuId: sku1Id,
+        status: IngestionStatus.approved } });
+      const change = await offerCommitService.computeJobDiff(job.id);
+      expect(change.rows[0].action).toBe(RowDiffAction.REVIEW);
+      await prisma.ingestionItem.update({ where: { id: change.rows[0].itemId }, data: {
+        currency: 'SAR', reportedQuantity: -4,
+      } });
+      const negative = await offerCommitService.computeJobDiff(job.id);
+      expect(negative.rows[0].action).toBe(RowDiffAction.ERROR);
+    });
+
+    it('does not deactivate omitted supplier offers through candidate job publication', async () => {
+      await prisma.supplierOffer.create({ data: { supplierId, skuId: sku2Id, costPrice: 100,
+        currency: 'SAR', isAvailable: true } });
+      const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required,
+        mode: IngestionImportMode.FULL_SNAPSHOT } });
+      const sku = await prisma.sku.findUniqueOrThrow({ where: { id: sku1Id } });
+      const brand = await prisma.brand.findUniqueOrThrow({ where: { id: brandId } });
+      const item = await prisma.ingestionItem.create({ data: {
+        jobId: job.id, supplierSkuCode: 'SNAP-ONE', name: 'Moisturizing Cream 50ml',
+        brand: brand.name, barcode: sku.barcode, price: 55, priceType: IngestionPriceType.PURCHASE_COST,
+        reportedQuantity: 3, currency: 'SAR', matchedSkuId: sku1Id, status: IngestionStatus.approved,
+      } });
+      const media = await reviewCandidateMedia(app, admin.auth, item.id, sku.barcode!, 50, 'ml');
+      await request(app.getHttpServer()).patch(`/ingestion/candidates/${item.id}/approve`)
+        .set(admin.auth).send({ mediaReviews: media }).expect(200);
+      await ingestionService.publishJob(job.id, admin.id);
+      expect((await prisma.supplierOffer.findUniqueOrThrow({ where: {
+        supplierId_skuId: { supplierId, skuId: sku2Id },
+      } })).isAvailable).toBe(true);
+    });
+
+    it('retries a partially completed candidate commit idempotently', async () => {
+      const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required } });
+      const item = await prisma.ingestionItem.create({ data: {
+        jobId: job.id, supplierSkuCode: 'RETRY-ONE', name: 'Moisturizing Cream', brand: 'SG05 Brand',
+        price: 55, priceType: IngestionPriceType.PURCHASE_COST, reportedQuantity: 0,
+        currency: 'SAR', matchedSkuId: sku1Id, status: IngestionStatus.approved,
+      } });
+      await offerCommitService.commitCandidateOffer(item.id, sku1Id);
+      const first = await prisma.supplierOffer.findUniqueOrThrow({ where: { supplierId_skuId: { supplierId, skuId: sku1Id } } });
+      await offerCommitService.commitCandidateOffer(item.id, sku1Id);
+      const retried = await prisma.supplierOffer.findUniqueOrThrow({ where: { supplierId_skuId: { supplierId, skuId: sku1Id } } });
+      expect(retried.lastObservedAt).toEqual(first.lastObservedAt);
+      expect(retried.isAvailable).toBe(false);
+    });
+
+    it('does not treat an untyped price as purchase cost', async () => {
+      const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required } });
+      await prisma.ingestionItem.create({ data: {
+        jobId: job.id, supplierSkuCode: 'UNKNOWN-TYPE', name: 'Moisturizing Cream', brand: 'SG05 Brand',
+        price: 55, priceType: null, currency: 'SAR', matchedSkuId: sku1Id, status: IngestionStatus.approved,
+      } });
+      const diff = await offerCommitService.computeJobDiff(job.id);
+      expect(diff.rows[0].action).toBe(RowDiffAction.REVIEW);
+      const result = await offerCommitService.commitJobOffers(job.id);
+      expect(result.committedCount).toBe(0);
+      expect(await prisma.supplierOffer.findUnique({ where: { supplierId_skuId: { supplierId, skuId: sku1Id } } })).toBeNull();
+    });
+
+    it('creates a price-only offer unavailable until stock is explicitly observed', async () => {
+      const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required } });
+      await prisma.ingestionItem.create({ data: {
+        jobId: job.id, supplierSkuCode: 'PRICE-ONLY', name: 'Moisturizing Cream', brand: 'SG05 Brand',
+        price: 55, priceType: IngestionPriceType.PURCHASE_COST, reportedQuantity: null,
+        currency: 'SAR', matchedSkuId: sku1Id, status: IngestionStatus.approved,
+      } });
+      await offerCommitService.commitJobOffers(job.id);
+      const offer = await prisma.supplierOffer.findUniqueOrThrow({ where: { supplierId_skuId: { supplierId, skuId: sku1Id } } });
+      expect(offer.isAvailable).toBe(false);
     });
   });
 
@@ -741,6 +868,9 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
       expect(commitRes.skippedCount).toBe(1);
       expect(commitRes.committedCount).toBe(0);
       expect(commitRes.itemOutcomes[0].reason).toContain('stale_import_older_than_last_observed_offer');
+      expect((await prisma.ingestionJob.findUniqueOrThrow({ where: { id: job.id } })).status).toBe(IngestionStatus.review_required);
+      expect(((await prisma.ingestionItem.findUniqueOrThrow({ where: { id: item.id } })).enrichment as any)?.offerCommit?.reason)
+        .toContain('stale_import_older_than_last_observed_offer');
 
       // Live offer is untouched
       const liveOffer = await prisma.supplierOffer.findUniqueOrThrow({
@@ -794,6 +924,14 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
           confirmedAssortmentCoverage: true,
         }),
       ).rejects.toThrow('Job does not belong to specified supplier scope');
+
+      await expect(offerCommitService.approveDeactivations(job.id, admin.id, {}))
+        .rejects.toThrow(/complete supplier assortment coverage/i);
+      await expect(offerCommitService.approveDeactivations(job.id, admin.id, {
+        supplierId, confirmedAssortmentCoverage: true,
+      })).rejects.toThrow(/exact reviewed/i);
+
+      await offerCommitService.commitJobOffers(job.id);
 
       // 3. Exact reviewed change set (only approve SKU 2, do not deactivate SKU 3)
       const approveRes = await offerCommitService.approveDeactivations(job.id, admin.id, {

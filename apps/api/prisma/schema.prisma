@@ -4,9 +4,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  schemas  = ["catalog", "commerce", "sourcing", "ingestion", "ordering", "fulfillment", "care", "accounts", "operations"]
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["catalog", "commerce", "sourcing", "ingestion", "ordering", "fulfillment", "care", "accounts", "operations"]
 }
 
 // ---------------------------------------------------------------------------
@@ -84,7 +85,7 @@ model Product {
   usage         String?
   warnings      String?
   concerns      String[] @default([])
-  isPublished   Boolean  @default(true) @map("is_published")
+  isPublished   Boolean  @default(false) @map("is_published")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -110,6 +111,7 @@ model Sku {
   variantName String   @map("variant_name")
   size        Decimal? @db.Decimal(10, 3)
   sizeUnit    String?  @map("size_unit")
+  packCount   Int?     @map("pack_count")
   barcode     String?  @unique
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -367,6 +369,7 @@ model SupplierOffer {
   currency        String    @db.VarChar(3)
   isAvailable     Boolean   @default(true) @map("is_available")
   lastObservedAt  DateTime  @default(now()) @map("last_observed_at")
+  lastIngestionItemId String? @map("last_ingestion_item_id") @db.Uuid
   lastConfirmedAt DateTime? @map("last_confirmed_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
@@ -1472,6 +1475,7 @@ model IngestionJob {
   sourceChecksum    String?             @map("source_checksum")
   formatFingerprint String?             @map("format_fingerprint")
   profileId         String?             @map("profile_id") @db.Uuid
+  rowOutcomes       Json?               @map("row_outcomes")
   createdAt         DateTime            @default(now()) @map("created_at")
   updatedAt         DateTime            @updatedAt @map("updated_at")
 

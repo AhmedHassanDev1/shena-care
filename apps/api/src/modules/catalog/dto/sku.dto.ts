@@ -4,6 +4,8 @@ import {
   IsOptional,
   IsNumber,
   IsPositive,
+  IsInt,
+  Min,
   IsBoolean,
   MinLength,
 } from 'class-validator';
@@ -26,6 +28,11 @@ export class CreateSkuDto {
   @IsString()
   @IsOptional()
   sizeUnit?: string;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  packCount?: number;
 
   @IsString()
   @IsOptional()
@@ -54,6 +61,11 @@ export class UpdateSkuDto {
   @IsString()
   @IsOptional()
   sizeUnit?: string | null;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  packCount?: number | null;
 
   @IsString()
   @IsOptional()
