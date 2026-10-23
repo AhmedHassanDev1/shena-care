@@ -86,7 +86,8 @@ const outputs = [
 ];
 
 if (process.argv.includes('--check')) {
-  const stale = outputs.filter(([path, content]) => !existsSync(path) || readFileSync(path, 'utf8') !== content);
+  const normalize = (s) => s.replace(/\r\n/g, '\n');
+  const stale = outputs.filter(([path, content]) => !existsSync(path) || normalize(readFileSync(path, 'utf8')) !== normalize(content));
   if (stale.length) {
     console.error(`✗ Generated tokens are stale (${stale.map(([p]) => p.replace(root, '')).join(', ')}). Run \`npm run tokens\`.`);
     process.exit(1);
