@@ -105,7 +105,7 @@ export interface CommitJobResult {
   deactivatedCount: number
 }
 
-type WorkflowStep = 'MODE_SELECT' | 'FILE_UPLOAD' | 'COLUMN_MAPPING' | 'PREVIEW_DIFF' | 'RECEIPT'
+type WorkflowStep = 'MODE_SELECT' | 'FILE_UPLOAD' | 'COLUMN_MAPPING' | 'AWAITING_APPROVAL' | 'PREVIEW_DIFF' | 'RECEIPT'
 
 export default function SupplierUpdatesWorkflowPage() {
   return (
@@ -124,6 +124,7 @@ function UpdatesWorkflowContent() {
 
   // Stage 1: Mode
   const [mode, setMode] = React.useState<'PARTIAL_UPDATE' | 'FULL_SNAPSHOT'>('PARTIAL_UPDATE')
+  const [documentKind, setDocumentKind] = React.useState<'PRICE_LIST' | 'STOCK_FEED'>('PRICE_LIST')
 
   // Stage 2: File Upload
   const [file, setFile] = React.useState<File | null>(null)
@@ -133,6 +134,7 @@ function UpdatesWorkflowContent() {
   // Stage 3: Ingestion Job & Mapping
   const [uploadResult, setUploadResult] = React.useState<IngestionUploadResult | null>(null)
   const [currentJobId, setCurrentJobId] = React.useState<string | null>(null)
+  const [checkingApproval, setCheckingApproval] = React.useState(false)
   const [mapping, setMapping] = React.useState<Record<string, string>>({
     supplierSku: '',
     name: '',
@@ -162,14 +164,20 @@ function UpdatesWorkflowContent() {
     formData.append('file', file)
     formData.append('supplierId', supplierId)
     formData.append('mode', mode)
+    formData.append('documentKind', documentKind)
 
-    const res = await api<IngestionUploadResult>('/ingestion/jobs/upload', {
+    const res = await api<IngestionUploadResult & { awaitingApproval?: boolean }>('/ingestion/jobs/upload', {
       method: 'POST',
       body: formData,
     })
 
     setUploadResult(res)
     setCurrentJobId(res.jobId)
+
+    if (res.awaitingApproval) {
+      setStep('AWAITING_APPROVAL')
+      return res
+    }
 
     if (res.requiresMapping) {
       // Pre-fill proposed mapping
@@ -218,13 +226,17 @@ function UpdatesWorkflowContent() {
     if (mapping.retailPrice?.trim()) cleanMapping.retailPrice = mapping.retailPrice.trim()
     if (mapping.currency?.trim()) cleanMapping.currency = mapping.currency.trim()
 
-    await api(`/ingestion/jobs/${currentJobId}/mapping`, {
+    const res = await api<{ awaitingApproval?: boolean; status?: string; importedItemsCount?: number }>(`/ingestion/jobs/${currentJobId}/mapping`, {
       method: 'POST',
       body: {
         mapping: cleanMapping,
         profileName: profileName.trim() || undefined,
       },
     })
+    if (res?.awaitingApproval || res?.status === 'review_required') {
+      setStep('AWAITING_APPROVAL')
+      return true
+    }
     await loadDiff(currentJobId)
     setStep('PREVIEW_DIFF')
     return true
@@ -494,6 +506,39 @@ function UpdatesWorkflowContent() {
               </button>
             </div>
 
+            {/* Document Kind Selector */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-1">
+              <div
+                onClick={() => setDocumentKind('PRICE_LIST')}
+                className={`cursor-pointer rounded-xl border p-3.5 text-xs transition-all flex items-center justify-between ${
+                  documentKind === 'PRICE_LIST'
+                    ? 'border-[#34d27b] bg-[#34d27b]/10 text-white shadow-xs'
+                    : 'border-white/[0.08] bg-black/30 text-bw-ink-soft hover:border-white/20'
+                }`}
+              >
+                <div className="space-y-0.5">
+                  <p className="font-bold text-white text-xs">قائمة أسعار وتوريد (Price List)</p>
+                  <p className="text-[11px] text-bw-ink-subtle">تتضمن أسعار الشراء وتحديثات التكلفة للأصناف</p>
+                </div>
+                {documentKind === 'PRICE_LIST' ? <CheckCircle2 className="size-4 text-[#34d27b] shrink-0" /> : null}
+              </div>
+
+              <div
+                onClick={() => setDocumentKind('STOCK_FEED')}
+                className={`cursor-pointer rounded-xl border p-3.5 text-xs transition-all flex items-center justify-between ${
+                  documentKind === 'STOCK_FEED'
+                    ? 'border-[#34d27b] bg-[#34d27b]/10 text-white shadow-xs'
+                    : 'border-white/[0.08] bg-black/30 text-bw-ink-soft hover:border-white/20'
+                }`}
+              >
+                <div className="space-y-0.5">
+                  <p className="font-bold text-white text-xs">تغذية مخزون وتوافر (Stock Feed)</p>
+                  <p className="text-[11px] text-bw-ink-subtle">تحديث كميات المخزون المتوفرة بالمستودع والجاهزة للطلب</p>
+                </div>
+                {documentKind === 'STOCK_FEED' ? <CheckCircle2 className="size-4 text-[#34d27b] shrink-0" /> : null}
+              </div>
+            </div>
+
             {/* Dropzone */}
             <div
               onDragOver={(e) => {
@@ -749,6 +794,68 @@ function UpdatesWorkflowContent() {
                 <span>حفظ التخطيط وبدء التحليل والمطابقة</span>
                 <ChevronLeft className="size-4 ms-1" />
               </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* STEP: Awaiting Admin Approval */}
+        {step === 'AWAITING_APPROVAL' ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] p-6 sm:p-8 text-center space-y-4">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-[0_0_24px_rgba(245,158,11,0.15)]">
+                <Clock className="size-7" />
+              </div>
+
+              <div className="space-y-1.5 max-w-lg mx-auto">
+                <h3 className="text-base sm:text-lg font-bold text-white">قالب الملف قيد المراجعة والاعتماد</h3>
+                <p className="text-xs text-bw-ink-soft leading-relaxed">
+                  تم إرسال القالب ومقترح مطابقة الأعمدة لإدارة شيناكير لمراجعته واعتماده لضمان دقة دلالات أسعار الشراء والكميات.
+                </p>
+                <div className="rounded-xl border border-amber-500/20 bg-black/40 p-3 text-xs text-amber-300 font-semibold mt-2">
+                  تم إرسال القالب للمراجعة — لن تظهر الأصناف في المعاينة حتى تتم الموافقة الرسمية من قبل الإدارة.
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+                <Button
+                  variant="primary"
+                  loading={checkingApproval}
+                  onClick={async () => {
+                    if (!currentJobId) return
+                    setCheckingApproval(true)
+                    try {
+                      const job = await api<{ status: string; importedItemsCount: number }>(`/ingestion/jobs/${currentJobId}`)
+                      if (job.status === 'pending' && job.importedItemsCount > 0) {
+                        await loadDiff(currentJobId)
+                        setStep('PREVIEW_DIFF')
+                      } else {
+                        alert('القالب لا يزال قيد المراجعة لدى فريق الإدارة. ستتم المعالجة فور اعتماد الدلالات.')
+                      }
+                    } catch (e: any) {
+                      alert(e?.message || 'حدث خطأ أثناء فحص حالة القالب')
+                    } finally {
+                      setCheckingApproval(false)
+                    }
+                  }}
+                  className="bg-[#34d27b] text-black font-bold h-10 px-5 hover:bg-[#2eb96c]"
+                >
+                  <RefreshCw className="size-4 ms-1" />
+                  <span>التحقق من حالة الاعتماد الآن</span>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setStep('MODE_SELECT')
+                    setFile(null)
+                    setCurrentJobId(null)
+                    setUploadResult(null)
+                  }}
+                  className="text-xs text-bw-ink-soft hover:text-white"
+                >
+                  بدء عملية تحديث جديدة
+                </Button>
+              </div>
             </div>
           </div>
         ) : null}

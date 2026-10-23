@@ -104,6 +104,7 @@ export interface ReviewRecord {
       sizeUnit: string
       sourceUrl: string
       sourceType: string
+      barcode?: string
     }>
     hasRequiredVerifiedPackshot: boolean
   }
@@ -133,7 +134,21 @@ export interface BrandDraft {
   createdAt: string
 }
 
-type TabKey = 'candidates' | 'brands' | 'history'
+export interface ExportProfileItem {
+  id: string
+  supplierId: string
+  supplierName?: string
+  formatFingerprint: string
+  version: number
+  isApproved: boolean
+  approvedBy?: string | null
+  sampleHeaders: string[]
+  mapping: Record<string, any>
+  name: string
+  createdAt?: string
+}
+
+type TabKey = 'candidates' | 'brands' | 'profiles'
 
 export default function AdminCatalogReview() {
   const [activeTab, setActiveTab] = React.useState<TabKey>('candidates')
@@ -151,23 +166,30 @@ export default function AdminCatalogReview() {
     pollMs: 30000,
   })
 
+  // Profiles query (pending mapping proposals)
+  const profilesApi = useApi<ExportProfileItem[]>('/ingestion/profiles', {
+    pollMs: 30000,
+  })
+
   const candidates = candidatesApi.data ?? []
   const brandDrafts = brandDraftsApi.data ?? []
+  const profiles = profilesApi.data ?? []
 
   const pendingReviewCount = candidates.filter((c) => c.status === 'review_required').length
   const brandDraftsCount = brandDrafts.length
+  const pendingProfilesCount = profiles.filter((p) => !p.isApproved).length
 
   return (
     <RoleShell
       role="admin"
       active="catalog"
       mode="desktop"
-      counts={{ catalog: pendingReviewCount + brandDraftsCount }}
+      counts={{ catalog: pendingReviewCount + brandDraftsCount + pendingProfilesCount }}
     >
       <Page>
         <PageHeader
           title="مراجعة الكتالوج والمنتجات"
-          meta="المراجعة التحريرية الشاملة لمنتجات الموردين، مسودات البراندات، واعتماد النشر المباشر في الكتالوج"
+          meta="المراجعة التحريرية الشاملة لمنتجات الموردين، مسودات البراندات، قوالب المطابقة واعتماد النشر"
         />
 
         {/* Tab Navigation */}
@@ -194,7 +216,19 @@ export default function AdminCatalogReview() {
             }`}
           >
             <Store className="size-4" />
-            <span>مسودات البراندات الجديدة ({brandDraftsCount})</span>
+            <span>مسودات البراندات ({brandDraftsCount})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('profiles')}
+            className={`flex items-center gap-2 pb-3 font-semibold transition-colors border-b-2 ${
+              activeTab === 'profiles'
+                ? 'border-[#34d27b] text-[#34d27b]'
+                : 'border-transparent text-bw-ink-soft hover:text-white'
+            }`}
+          >
+            <FileSpreadsheet className="size-4" />
+            <span>قوالب مطابقة معلقة ({pendingProfilesCount})</span>
           </button>
         </div>
 
@@ -280,6 +314,52 @@ export default function AdminCatalogReview() {
                     key={draft.id}
                     draft={draft}
                     onChanged={() => brandDraftsApi.reload()}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* Tab 3: Pending Mapping Proposals (GLO-274) */}
+        {activeTab === 'profiles' ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-white text-sm">مراجعة قوالب مطابقة الأعمدة للموردين (GLO-274)</h3>
+                <p className="text-xs text-bw-ink-subtle mt-0.5">
+                  اعتماد دلالات التكلفة والكميات رسمياً؛ لن يتم قبول أصناف أي ملف إلا بعد اعتماد قالبه المحدد بدلالات صحيحة.
+                </p>
+              </div>
+              <Button variant="ghost" onClick={() => profilesApi.reload()}>
+                <RefreshCw className="size-3.5" />
+                <span>تحديث</span>
+              </Button>
+            </div>
+
+            {profilesApi.error ? (
+              <LoadError message={profilesApi.error.message} onRetry={profilesApi.reload} />
+            ) : null}
+
+            {!profilesApi.data && profilesApi.loading ? (
+              <Skeleton className="h-48 w-full rounded-2xl" />
+            ) : null}
+
+            {profiles.length === 0 && !profilesApi.loading ? (
+              <StateBlock
+                kind="empty"
+                title="لا توجد قوالب مطابقة معلقة"
+                body="جميع قوالب الموردين معتمدة أو لم تُرسل قوالب جديدة للمراجعة بعد."
+              />
+            ) : null}
+
+            {profiles.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4">
+                {profiles.map((profile) => (
+                  <MappingProfileApprovalCard
+                    key={profile.id}
+                    profile={profile}
+                    onApproved={() => profilesApi.reload()}
                   />
                 ))}
               </div>
@@ -377,13 +457,61 @@ function CandidateReviewModal({
   const [requestedInfo, setRequestedInfo] = React.useState('')
   const [rejectReason, setRejectReason] = React.useState('')
 
+  // Media review and packshot upload states (GLO-276/279 · Contracts C3 & C4)
+  const [packshots, setPackshots] = React.useState<Array<{
+    url: string
+    sourceUrl: string
+    sourceType: 'OFFICIAL_MANUFACTURER' | 'TRUSTED_DISTRIBUTOR'
+    barcode: string
+    size: number
+    sizeUnit: string
+    variantName: string
+  }>>([])
+  const [uploadingPackshot, setUploadingPackshot] = React.useState(false)
+  const [showPackshotForm, setShowPackshotForm] = React.useState(false)
+  const [newPackshotUrl, setNewPackshotUrl] = React.useState('')
+  const [packshotSourceUrl, setPackshotSourceUrl] = React.useState('')
+  const [packshotSourceType, setPackshotSourceType] = React.useState<'OFFICIAL_MANUFACTURER' | 'TRUSTED_DISTRIBUTOR'>('OFFICIAL_MANUFACTURER')
+  const [packshotBarcode, setPackshotBarcode] = React.useState('')
+  const [packshotSize, setPackshotSize] = React.useState<number>(100)
+  const [packshotSizeUnit, setPackshotSizeUnit] = React.useState('ml')
+  const [packshotVariant, setPackshotVariant] = React.useState('Standard')
+  const [publishSuccessNotice, setPublishSuccessNotice] = React.useState(false)
+  const [approvalErrors, setApprovalErrors] = React.useState<string[]>([])
+
   React.useEffect(() => {
     if (record?.normalizedIdentity) {
       setCorrectName(record.normalizedIdentity.name || '')
       setCorrectCategory(record.normalizedIdentity.category || '')
       setCorrectBarcode(record.normalizedIdentity.barcode || '')
+      setPackshotBarcode(record.normalizedIdentity.barcode || '')
+      if (record.normalizedIdentity.size) setPackshotSize(record.normalizedIdentity.size)
+      if (record.normalizedIdentity.sizeUnit) setPackshotSizeUnit(record.normalizedIdentity.sizeUnit)
     }
   }, [record])
+
+  const handlePackshotFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingPackshot(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await api<{ url: string; type: string }>(`/ingestion/candidates/${candidateId}/media`, {
+        method: 'POST',
+        body: formData,
+      })
+      setNewPackshotUrl(res.url)
+      setPackshotBarcode(record?.normalizedIdentity?.barcode || '')
+      setPackshotSize(record?.normalizedIdentity?.size || 100)
+      setPackshotSizeUnit(record?.normalizedIdentity?.sizeUnit || 'ml')
+      setShowPackshotForm(true)
+    } catch (err: any) {
+      alert(err?.message || 'فشل رفع ملف الصورة')
+    } finally {
+      setUploadingPackshot(false)
+    }
+  }
 
   const correctCmd = useCommand(async () => {
     return api(`/ingestion/candidates/${candidateId}/correct`, {
@@ -405,10 +533,43 @@ function CandidateReviewModal({
   })
 
   const approveCandidateCmd = useCommand(async () => {
-    return api(`/ingestion/candidates/${candidateId}/approve`, {
-      method: 'PATCH',
-      body: {},
-    })
+    setApprovalErrors([])
+    const allMedia = [
+      ...(record?.mediaDraft?.verifiedPackshots || []),
+      ...packshots,
+    ]
+    const mediaReviews = allMedia.map((m) => ({
+      url: m.url,
+      sourceUrl: m.sourceUrl,
+      sourceType: m.sourceType as 'OFFICIAL_MANUFACTURER' | 'TRUSTED_DISTRIBUTOR',
+      barcode: m.barcode || record?.normalizedIdentity?.barcode || 'NO-BARCODE',
+      size: Number(m.size) || record?.normalizedIdentity?.size || 100,
+      sizeUnit: m.sizeUnit || record?.normalizedIdentity?.sizeUnit || 'ml',
+      variantName: m.variantName || 'Standard',
+    }))
+
+    try {
+      const res = await api(`/ingestion/candidates/${candidateId}/approve`, {
+        method: 'PATCH',
+        body: {
+          createNewProduct: true,
+          mediaReviews: mediaReviews.length > 0 ? mediaReviews : undefined,
+          confirmUsageRules: true,
+        },
+      })
+      reload()
+      onUpdated()
+      return res
+    } catch (err: any) {
+      if (Array.isArray(err?.message)) {
+        setApprovalErrors(err.message)
+      } else if (typeof err?.message === 'string') {
+        setApprovalErrors([err.message])
+      } else {
+        setApprovalErrors(['فشل اعتماد المرشح. يرجى مراجعة موانع الاعتماد المطلوبة.'])
+      }
+      return null
+    }
   })
 
   const rejectCandidateCmd = useCommand(async () => {
@@ -419,10 +580,12 @@ function CandidateReviewModal({
   })
 
   const publishCmd = useCommand(async () => {
-    return api(`/ingestion/candidates/${candidateId}/publish`, {
+    const res = await api(`/ingestion/candidates/${candidateId}/publish`, {
       method: 'POST',
       body: {},
     })
+    setPublishSuccessNotice(true)
+    return res
   })
 
   const generateContentCmd = useCommand(async () => {
@@ -535,32 +698,148 @@ function CandidateReviewModal({
                 </div>
               </div>
 
-              {/* Media & Packshot Status */}
-              <div className="sc-card p-3.5 border-white/[0.06] bg-white/[0.02] space-y-2">
+              {/* Media & Packshot Status (GLO-276/279 · Contracts C3 & C4) */}
+              <div className="sc-card p-3.5 border-white/[0.06] bg-white/[0.02] space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-bold text-bw-ink-subtle">الصور والباك شوت الموثق</p>
-                  {record.mediaDraft?.hasRequiredVerifiedPackshot ? (
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="size-4 text-emerald-400" />
+                    <p className="text-[11px] font-bold text-bw-ink-subtle">الصور والباك شوت الموثق (Packshots)</p>
+                  </div>
+                  {record.mediaDraft?.hasRequiredVerifiedPackshot || packshots.length > 0 ? (
                     <span className="sc-badge t-success text-[10px]">باك شوت موثق مطابق</span>
                   ) : (
                     <span className="sc-badge t-error text-[10px]">مطلوب باك شوت رسمي</span>
                   )}
                 </div>
 
-                {record.mediaDraft?.verifiedPackshots?.length ? (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {record.mediaDraft.verifiedPackshots.map((m, idx) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-black/40 border border-white/[0.05] text-xs">
-                        <ImageIcon className="size-4 text-emerald-400" />
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {record.mediaDraft?.verifiedPackshots?.map((m, idx) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-black/40 border border-white/[0.05] text-xs">
+                      <ImageIcon className="size-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <p className="text-[11px] text-white font-semibold">{m.variantName} ({m.size}{m.sizeUnit})</p>
+                        <p className="text-[10px] text-bw-ink-subtle truncate max-w-xs">{m.sourceUrl}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {packshots.map((m, idx) => (
+                    <div key={'p-' + idx} className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                      <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <p className="text-[11px] text-white font-semibold">{m.variantName} ({m.size}{m.sizeUnit})</p>
+                        <p className="text-[10px] text-emerald-300 truncate max-w-xs">{m.sourceUrl}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Upload Packshot Controls */}
+                <div className="pt-2 border-t border-white/[0.04]">
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/10 text-white text-xs font-semibold">
+                    <Upload className="size-3.5 text-emerald-400" />
+                    <span>{uploadingPackshot ? 'جاري رفع الملف...' : 'رفع صورة باك شوت رسمية للعبوة'}</span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      disabled={uploadingPackshot}
+                      onChange={handlePackshotFileUpload}
+                    />
+                  </label>
+                </div>
+
+                {/* Packshot Review Details Modal/Drawer */}
+                {showPackshotForm ? (
+                  <div className="p-3.5 rounded-xl bg-black/60 border border-emerald-500/30 space-y-3 mt-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+                      <CheckCircle2 className="size-4" />
+                      <span>توثيق دلالات صورة العبوة المرفوعة (Media Verification)</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <label className="text-[10px] text-bw-ink-soft block mb-1">رابط صفحة المصنع الموثوقة (https إلزامي)</label>
+                        <input
+                          type="url"
+                          placeholder="https://brand.com/products/example"
+                          value={packshotSourceUrl}
+                          onChange={(e) => setPackshotSourceUrl(e.target.value)}
+                          className="h-8 w-full rounded border border-white/[0.1] bg-black/40 px-2 text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-bw-ink-soft block mb-1">نوع المصدر</label>
+                        <select
+                          value={packshotSourceType}
+                          onChange={(e) => setPackshotSourceType(e.target.value as any)}
+                          className="h-8 w-full rounded border border-white/[0.1] bg-black/40 px-2 text-xs text-white"
+                        >
+                          <option value="OFFICIAL_MANUFACTURER">المصنع الرسمي (OFFICIAL_MANUFACTURER)</option>
+                          <option value="TRUSTED_DISTRIBUTOR">الموزع المعتمد (TRUSTED_DISTRIBUTOR)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-bw-ink-soft block mb-1">الباركود المطبوع على العبوة</label>
+                        <input
+                          type="text"
+                          value={packshotBarcode}
+                          onChange={(e) => setPackshotBarcode(e.target.value)}
+                          className="h-8 w-full rounded border border-white/[0.1] bg-black/40 px-2 text-xs text-white font-mono"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <p className="text-[11px] text-white font-semibold">{m.variantName} ({m.size}{m.sizeUnit})</p>
-                          <p className="text-[10px] text-bw-ink-subtle truncate max-w-xs">{m.sourceUrl}</p>
+                          <label className="text-[10px] text-bw-ink-soft block mb-1">الحجم الصافي</label>
+                          <input
+                            type="number"
+                            value={packshotSize}
+                            onChange={(e) => setPackshotSize(Number(e.target.value))}
+                            className="h-8 w-full rounded border border-white/[0.1] bg-black/40 px-2 text-xs text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-bw-ink-soft block mb-1">الوحدة</label>
+                          <select
+                            value={packshotSizeUnit}
+                            onChange={(e) => setPackshotSizeUnit(e.target.value)}
+                            className="h-8 w-full rounded border border-white/[0.1] bg-black/40 px-2 text-xs text-white"
+                          >
+                            <option value="ml">ml</option>
+                            <option value="g">g</option>
+                            <option value="l">l</option>
+                            <option value="kg">kg</option>
+                            <option value="oz">oz</option>
+                          </select>
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-white/[0.06]">
+                      <Button variant="ghost" onClick={() => setShowPackshotForm(false)}>إلغاء</Button>
+                      <Button
+                        variant="primary"
+                        disabled={!packshotSourceUrl.startsWith('https://')}
+                        onClick={() => {
+                          setPackshots([
+                            ...packshots,
+                            {
+                              url: newPackshotUrl,
+                              sourceUrl: packshotSourceUrl.trim(),
+                              sourceType: packshotSourceType,
+                              barcode: packshotBarcode.trim(),
+                              size: Number(packshotSize),
+                              sizeUnit: packshotSizeUnit,
+                              variantName: packshotVariant.trim() || 'Standard',
+                            },
+                          ])
+                          setShowPackshotForm(false)
+                        }}
+                        className="bg-[#34d27b] text-black font-bold h-8 px-4"
+                      >
+                        حفظ التوثيق للصورة
+                      </Button>
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-bw-ink-soft">لا توجد صور موثقة مرفوعة بعد.</p>
-                )}
+                ) : null}
               </div>
 
               {/* Storefront Content Draft */}
@@ -647,60 +926,85 @@ function CandidateReviewModal({
 
               {/* Sub-Tab 1: Overview Decisions */}
               {activeTab === 'overview' ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-bw-surface/80 border border-white/[0.08]">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="primary"
-                      disabled={!record.canPublish}
-                      loading={publishCmd.pending}
-                      onClick={async () => {
-                        const res = await publishCmd.execute()
-                        if (res) {
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-bw-surface/80 border border-white/[0.08]">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="primary"
+                        disabled={!record.canPublish}
+                        loading={publishCmd.pending}
+                        onClick={async () => {
+                          const res = await publishCmd.execute()
+                          if (res) {
+                            onUpdated()
+                          }
+                        }}
+                      >
+                        <ShieldCheck className="size-4" />
+                        <span>نشر رسمي في الكتالوج</span>
+                      </Button>
+
+                      <Button
+                        variant="secondary"
+                        loading={approveCandidateCmd.pending}
+                        onClick={async () => {
+                          await approveCandidateCmd.execute()
+                        }}
+                      >
+                        <CheckCircle2 className="size-4 text-emerald-400" />
+                        <span>اعتماد المراجعة</span>
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="سبب الرفض..."
+                        value={rejectReason}
+                        onChange={(e) => setRejectReason(e.target.value)}
+                        className="h-8 rounded-lg border border-white/[0.1] bg-black/40 px-2.5 text-xs text-white"
+                      />
+                      <Button
+                        variant="danger"
+                        disabled={!rejectReason.trim()}
+                        loading={rejectCandidateCmd.pending}
+                        onClick={async () => {
+                          await rejectCandidateCmd.execute()
+                          reload()
                           onUpdated()
-                          onClose()
-                        }
-                      }}
-                    >
-                      <ShieldCheck className="size-4" />
-                      <span>نشر رسمي في الكتالوج</span>
-                    </Button>
-
-                    <Button
-                      variant="secondary"
-                      loading={approveCandidateCmd.pending}
-                      onClick={async () => {
-                        await approveCandidateCmd.execute()
-                        reload()
-                        onUpdated()
-                      }}
-                    >
-                      <CheckCircle2 className="size-4 text-emerald-400" />
-                      <span>اعتماد المراجعة</span>
-                    </Button>
+                        }}
+                      >
+                        <XCircle className="size-4" />
+                        <span>رفض</span>
+                      </Button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="سبب الرفض..."
-                      value={rejectReason}
-                      onChange={(e) => setRejectReason(e.target.value)}
-                      className="h-8 rounded-lg border border-white/[0.1] bg-black/40 px-2.5 text-xs text-white"
-                    />
-                    <Button
-                      variant="danger"
-                      disabled={!rejectReason.trim()}
-                      loading={rejectCandidateCmd.pending}
-                      onClick={async () => {
-                        await rejectCandidateCmd.execute()
-                        reload()
-                        onUpdated()
-                      }}
-                    >
-                      <XCircle className="size-4" />
-                      <span>رفض</span>
-                    </Button>
-                  </div>
+                  {approvalErrors.length > 0 ? (
+                    <div className="rounded-xl border border-red-500/25 bg-red-500/10 p-3 text-xs text-red-300 space-y-1">
+                      <p className="font-bold flex items-center gap-1.5 text-red-400">
+                        <AlertCircle className="size-3.5" />
+                        <span>موانع الاعتماد:</span>
+                      </p>
+                      <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                        {approvalErrors.map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {publishSuccessNotice ? (
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-300 space-y-1">
+                      <p className="font-bold flex items-center gap-1.5 text-emerald-400">
+                        <CheckCircle2 className="size-4" />
+                        <span>تم نشر المنتج بنجاح كـ SKU معتمد في الكتالوج!</span>
+                      </p>
+                      <p className="text-[11px] text-bw-ink-soft">
+                        المنتج مسجل الآن برقم تعريفي رسمي. لتفعيله للمستهلكين في المتجر، توجه إلى شاشة تسعير الكتالوج لتعيين سعر البيع للمستهلك (`POST /commerce/prices`).
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -855,6 +1159,215 @@ function BrandDraftCard({
           </Button>
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Mapping Profile Approval Card (GLO-274 · Contract C1)                       */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+function MappingProfileApprovalCard({
+  profile,
+  onApproved,
+}: {
+  profile: ExportProfileItem
+  onApproved: () => void
+}) {
+  const [documentKind, setDocumentKind] = React.useState<'PRICE_LIST' | 'STOCK_FEED' | 'SALES_INVOICE'>(
+    (profile.mapping?.semantics?.documentKind as any) || 'PRICE_LIST'
+  )
+  const [priceBasis] = React.useState<'UNIT_PURCHASE_COST'>('UNIT_PURCHASE_COST')
+  const [quantityBasis, setQuantityBasis] = React.useState<'ON_HAND' | 'AVAILABLE_TO_SELL'>('ON_HAND')
+  const [discountBasis, setDiscountBasis] = React.useState<'PERCENT' | 'AMOUNT_PER_UNIT'>('PERCENT')
+  const [errors, setErrors] = React.useState<string[]>([])
+  const [successReceipt, setSuccessReceipt] = React.useState<{ importedJobs: string[] } | null>(null)
+
+  const hasQuantity = Boolean(profile.mapping?.quantity)
+  const hasDiscount = Boolean(profile.mapping?.discount)
+
+  const approveCmd = useCommand(async () => {
+    setErrors([])
+    setSuccessReceipt(null)
+    try {
+      const res = await api<{ id: string; importedJobs?: string[] }>(`/ingestion/profiles/${profile.id}/approve`, {
+        method: 'POST',
+        body: {
+          supplierId: profile.supplierId,
+          semantics: {
+            documentKind,
+            priceBasis,
+            quantityBasis: hasQuantity ? quantityBasis : undefined,
+            discountBasis: hasDiscount ? discountBasis : undefined,
+          },
+        },
+      })
+      setSuccessReceipt({ importedJobs: res.importedJobs || [] })
+      onApproved()
+      return res
+    } catch (err: any) {
+      if (Array.isArray(err?.message)) {
+        setErrors(err.message)
+      } else if (typeof err?.message === 'string') {
+        setErrors([err.message])
+      } else {
+        setErrors(['فشل اعتماد القالب. يرجى التحقق من استيفاء الدلالات المطلوبة.'])
+      }
+      return null
+    }
+  })
+
+  return (
+    <div className="sc-card p-5 border-white/[0.08] bg-bw-surface space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+            <FileSpreadsheet className="size-5" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-white">{profile.name || 'قالب ملف مورد'}</h4>
+            <div className="flex items-center gap-2 text-[11px] text-bw-ink-subtle font-mono mt-0.5">
+              <span>المورد: {shortId(profile.supplierId)}</span>
+              <span>·</span>
+              <span>الإصدار: v{profile.version}</span>
+              <span>·</span>
+              <span>البصمة: {profile.formatFingerprint.slice(0, 12)}...</span>
+            </div>
+          </div>
+        </div>
+
+        <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold ${
+          profile.isApproved
+            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+        }`}>
+          {profile.isApproved ? 'معتمد رسمياً' : 'بانتظار موافقة الإدارة'}
+        </span>
+      </div>
+
+      {/* Sample Headers and Mappings */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+        <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3 space-y-2">
+          <p className="font-bold text-bw-ink-subtle text-[11px]">أعمدة الملف المصدر (Headers)</p>
+          <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+            {profile.sampleHeaders?.map((h, idx) => (
+              <span key={idx} className="rounded bg-white/[0.06] px-2 py-0.5 font-mono text-[10px] text-white">
+                {h}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3 space-y-2">
+          <p className="font-bold text-bw-ink-subtle text-[11px]">المطابقة المعيارية المقترحة</p>
+          <div className="grid grid-cols-2 gap-1 text-[11px]">
+            <div><span className="text-bw-ink-soft">كود الصنف: </span><span className="font-mono text-white">{profile.mapping?.supplierSku || '—'}</span></div>
+            <div><span className="text-bw-ink-soft">الاسم: </span><span className="text-white">{profile.mapping?.name || '—'}</span></div>
+            <div><span className="text-bw-ink-soft">السعر: </span><span className="font-mono text-emerald-400 font-bold">{profile.mapping?.price || '—'}</span></div>
+            <div><span className="text-bw-ink-soft">الباركود: </span><span className="font-mono text-white">{profile.mapping?.barcode || '—'}</span></div>
+            <div><span className="text-bw-ink-soft">الكمية: </span><span className="text-white">{profile.mapping?.quantity || '—'}</span></div>
+            <div><span className="text-bw-ink-soft">البراند: </span><span className="text-white">{profile.mapping?.brand || '—'}</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Semantics Controls */}
+      {!profile.isApproved ? (
+        <div className="rounded-xl border border-white/[0.08] bg-black/40 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-xs font-bold text-white">
+            <CheckCircle2 className="size-4 text-[#34d27b]" />
+            <span>تحديد الدلالات الإلزامية للاعتماد (Reviewer Semantics)</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <label className="block text-[11px] text-bw-ink-soft mb-1">نوع المستند (Document Kind)</label>
+              <select
+                value={documentKind}
+                onChange={(e) => setDocumentKind(e.target.value as any)}
+                className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/50 px-2.5 text-xs text-white"
+              >
+                <option value="PRICE_LIST">قائمة أسعار (PRICE_LIST)</option>
+                <option value="STOCK_FEED">تغذية مخزون (STOCK_FEED)</option>
+                <option value="SALES_INVOICE">فاتورة بيع (SALES_INVOICE)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] text-bw-ink-soft mb-1">أساس السعر (Price Basis)</label>
+              <div className="h-9 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 flex items-center text-xs text-emerald-300 font-semibold">
+                تكلفة وحدة الشراء (UNIT_PURCHASE_COST)
+              </div>
+            </div>
+
+            {hasQuantity ? (
+              <div>
+                <label className="block text-[11px] text-bw-ink-soft mb-1">أساس الكمية (Quantity Basis)</label>
+                <select
+                  value={quantityBasis}
+                  onChange={(e) => setQuantityBasis(e.target.value as any)}
+                  className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/50 px-2.5 text-xs text-white"
+                >
+                  <option value="ON_HAND">في المستودع (ON_HAND)</option>
+                  <option value="AVAILABLE_TO_SELL">متاح للبيع (AVAILABLE_TO_SELL)</option>
+                </select>
+              </div>
+            ) : null}
+
+            {hasDiscount ? (
+              <div>
+                <label className="block text-[11px] text-bw-ink-soft mb-1">أساس الخصم (Discount Basis)</label>
+                <select
+                  value={discountBasis}
+                  onChange={(e) => setDiscountBasis(e.target.value as any)}
+                  className="h-9 w-full rounded-lg border border-white/[0.1] bg-black/50 px-2.5 text-xs text-white"
+                >
+                  <option value="PERCENT">نسبة مئوية (PERCENT)</option>
+                  <option value="AMOUNT_PER_UNIT">مبلغ لكل وحدة (AMOUNT_PER_UNIT)</option>
+                </select>
+              </div>
+            ) : null}
+          </div>
+
+          {errors.length > 0 ? (
+            <div className="rounded-lg border border-red-500/25 bg-red-500/10 p-3 text-xs text-red-300 space-y-1">
+              <p className="font-bold flex items-center gap-1.5 text-red-400">
+                <AlertCircle className="size-3.5" />
+                <span>ملاحظات مانعة للاعتماد:</span>
+              </p>
+              <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                {errors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          {successReceipt ? (
+            <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-3 text-xs text-emerald-300 space-y-1">
+              <p className="font-bold flex items-center gap-1.5 text-emerald-400">
+                <CheckCircle2 className="size-4" />
+                <span>تم اعتماد القالب بنجاح!</span>
+              </p>
+              <p className="text-[11px] text-bw-ink-soft">
+                تم قبول وإدخال الأصناف للعمليات المعلقة: {successReceipt.importedJobs.length} عملية استيراد.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="flex justify-end pt-2 border-t border-white/[0.05]">
+            <Button
+              variant="primary"
+              loading={approveCmd.pending}
+              onClick={() => approveCmd.execute()}
+              className="bg-[#34d27b] text-black font-bold h-9 px-5 hover:bg-[#2eb96c]"
+            >
+              <CheckCircle2 className="size-4 ms-1" />
+              <span>اعتماد القالب وإدخال الأصناف المعلقة</span>
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
