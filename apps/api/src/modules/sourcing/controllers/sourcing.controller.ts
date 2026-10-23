@@ -72,10 +72,10 @@ export class SourcingController {
     return this.sourcingService.updateSupplier(id, dto);
   }
 
+  /** GLO-280: linking a supplier to a canonical SKU is staff-only; suppliers reach new SKUs through reviewed files. */
   @Post('offers')
-  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
-  async createSupplierOffer(@CurrentUser() user: any, @Body() dto: CreateSupplierOfferDto) {
-    this.checkTenantIsolation(user, dto.supplierId);
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async createSupplierOffer(@Body() dto: CreateSupplierOfferDto) {
     return this.sourcingService.createSupplierOffer(dto);
   }
 
@@ -100,7 +100,7 @@ export class SourcingController {
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
   async updateSupplierOffer(@CurrentUser() user: TenantUser, @Param('id') id: string, @Body() dto: UpdateSupplierOfferDto) {
     await this.ownedOffer(user, id);
-    return this.sourcingService.updateSupplierOffer(id, dto);
+    return this.sourcingService.updateSupplierOffer(id, dto, { supplierScoped: Boolean(user.roles?.includes('SUPPLIER')) });
   }
 
   @Post('offers/:id/confirm-availability')

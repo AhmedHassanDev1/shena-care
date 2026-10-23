@@ -2,6 +2,7 @@ import { DomainEventsModule } from '../../platform/events/domain-events.module';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../platform/database/database.module';
 import { CatalogModule } from '../catalog/public';
+import { CommerceModule } from '../commerce/public';
 import { SourcingService } from './services/sourcing.service';
 import { PurchaseOrderService } from './services/purchase-order.service';
 import { PayablesService } from './services/payables.service';
@@ -14,7 +15,7 @@ import { SupplyPlanController } from './controllers/supply-plan.controller';
 import { OperationsModule } from '../operations/operations.module';
 
 @Module({
-  imports: [DomainEventsModule, DatabaseModule, CatalogModule, OperationsModule],
+  imports: [DomainEventsModule, DatabaseModule, CatalogModule, CommerceModule, OperationsModule],
   controllers: [SourcingController, SupplyPlanController],
   providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener],
   exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService],

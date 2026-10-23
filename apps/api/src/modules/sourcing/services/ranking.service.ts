@@ -7,13 +7,43 @@ export interface RankedOffer extends SupplierOfferDetail {
   reasonCodes: string[];
 }
 
+/** An offer for the SKU that was not eligible for automatic selection, with the reasons (audit/review). */
+export interface ExcludedOffer {
+  offerId: string;
+  supplierId: string;
+  reasonCodes: string[];
+}
+
 export interface RankingResult {
   skuId: string;
   requiredQuantity: number;
   rankedOffers: RankedOffer[];
+  excludedOffers: ExcludedOffer[];
   decisionLogId: string;
 }
 
+/** Platform procurement currency: when offers mix currencies (no verified FX), only this group is comparable. */
+const PLATFORM_CURRENCY = 'EGP';
+/** A cost below this share of the comparable benchmark is held for review, never auto-selected. */
+const ANOMALY_LOW_RATIO = 0.5;
+/** Above this multiple of the benchmark the offer stays eligible but is flagged (it ranks behind cheaper ones anyway). */
+const ANOMALY_HIGH_RATIO = 2;
+/** Confirmation reliability below this, with enough history, ranks a supplier behind every reliable one. */
+const RELIABILITY_FLOOR = 0.5;
+const MIN_RELIABILITY_HISTORY = 5;
+
+const median = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+
+/**
+ * GLO-280 sourcing policy (owner-approved 2026-10-23): first filter to offers that may be auto-selected — exact SKU,
+ * active supplier, available, fresh, comparable currency, not a suspiciously cheap outlier — then prefer the lowest
+ * comparable procurement cost, ranking low-confirmation-reliability suppliers behind reliable ones; ties go to higher
+ * reliability, then the fresher observation. MOQ/pack feasibility and landed cost need the offer-terms migration.
+ */
 @Injectable()
 export class RankingService {
   private readonly STALE_THRESHOLD_DAYS = 7;
@@ -37,71 +67,83 @@ export class RankingService {
       throw new NotFoundException(`No suppliers found for SKU ${skuId}`);
     }
 
-    const eligibleOffers: RankedOffer[] = [];
+    const excludedOffers: ExcludedOffer[] = [];
+    const exclude = (offer: { id: string; supplierId: string }, reasonCodes: string[]) =>
+      excludedOffers.push({ offerId: offer.id, supplierId: offer.supplierId, reasonCodes });
     const now = new Date();
+    const daysSince = (offer: { lastObservedAt: Date }) => (now.getTime() - offer.lastObservedAt.getTime()) / (1000 * 3600 * 24);
 
-    for (const offer of rawOffers) {
-      const reasonCodes: string[] = [];
-      let isEligible = true;
+    // Hard filters
+    let candidates = rawOffers.filter(offer => {
+      const reasons: string[] = [];
+      if (!offer.isAvailable) reasons.push('OUT_OF_STOCK');
+      if (daysSince(offer) > this.STALE_THRESHOLD_DAYS) reasons.push('STALE_OFFER');
+      if (offer.costPrice.toNumber() <= 0) reasons.push('INVALID_COST');
+      if (reasons.length) exclude(offer, reasons);
+      return reasons.length === 0;
+    });
 
-      // Hard filters
-      if (!offer.isAvailable) {
-        isEligible = false;
-        reasonCodes.push('OUT_OF_STOCK');
-      }
-
-      const daysSinceObserved = (now.getTime() - offer.lastObservedAt.getTime()) / (1000 * 3600 * 24);
-      if (daysSinceObserved > this.STALE_THRESHOLD_DAYS) {
-        isEligible = false;
-        reasonCodes.push('STALE_OFFER');
-      }
-
-      if (!isEligible) {
-        continue;
-      }
-
-      // Ranking score calculation (Higher is better)
-      // 1. Cost Price (Lower is better, inverted score)
-      const cost = offer.costPrice.toNumber();
-      const costScore = cost > 0 ? 1000 / cost : 0; 
-      
-      // 2. Freshness (Newer is better)
-      const freshnessScore = Math.max(0, this.STALE_THRESHOLD_DAYS - daysSinceObserved);
-
-      // 3. Reliability (New supplier = neutral prior of 0.5)
-      // In v1 we mock this, or calculate based on past PO line statuses
-      const reliabilityScore = await this.calculateSupplierReliability(offer.supplierId);
-
-      // Aggregate Score
-      // Weights: Cost (60%), Reliability (30%), Freshness (10%)
-      const finalScore = (costScore * 0.6) + (reliabilityScore * 100 * 0.3) + (freshnessScore * 10 * 0.1);
-      
-      reasonCodes.push(`COST_SCORE:${costScore.toFixed(2)}`);
-      reasonCodes.push(`RELIABILITY_SCORE:${reliabilityScore.toFixed(2)}`);
-      reasonCodes.push(`FRESHNESS_SCORE:${freshnessScore.toFixed(2)}`);
-
-      eligibleOffers.push({
-        ...offer,
-        costPrice: cost,
-        score: finalScore,
-        reasonCodes
-      });
+    // Raw numbers in different currencies are not comparable without a verified rate.
+    if (new Set(candidates.map(o => o.currency)).size > 1) {
+      for (const offer of candidates.filter(o => o.currency !== PLATFORM_CURRENCY)) exclude(offer, ['CURRENCY_NOT_COMPARABLE']);
+      candidates = candidates.filter(o => o.currency === PLATFORM_CURRENCY);
     }
 
-    // Sort by score descending
-    eligibleOffers.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+    // Outliers: benchmark = median of all comparable quotes when there are 3+, the other quote when there are 2, none for
+    // a single offer (no invented median). An extreme quote never drags the benchmark because the median ignores it.
+    const flags = new Map<string, string[]>();
+    if (candidates.length > 1) {
+      const anomalous = new Set<string>();
+      for (const offer of candidates) {
+        const cost = offer.costPrice.toNumber();
+        const benchmark = median((candidates.length > 2 ? candidates : candidates.filter(o => o.id !== offer.id))
+          .map(o => o.costPrice.toNumber()));
+        if (cost < benchmark * ANOMALY_LOW_RATIO) anomalous.add(offer.id);
+        else if (cost > benchmark * ANOMALY_HIGH_RATIO) flags.set(offer.id, [`PRICE_OUTLIER_HIGH:${benchmark.toFixed(2)}`]);
+      }
+      for (const offer of candidates.filter(o => anomalous.has(o.id))) exclude(offer, ['PRICE_ANOMALY_REVIEW']);
+      candidates = candidates.filter(o => !anomalous.has(o.id));
+    }
 
-    const decisionLogId = await this.auditRankingDecision(skuId, quantity, eligibleOffers);
+    const eligibleOffers: RankedOffer[] = [];
+    const reliabilityOf = new Map<string, { reliable: boolean; reliability: number }>();
+    for (const offer of candidates) {
+      const cost = offer.costPrice.toNumber();
+      const { score: reliability, history } = await this.calculateSupplierReliability(offer.supplierId);
+      const reliable = history < MIN_RELIABILITY_HISTORY || reliability >= RELIABILITY_FLOOR;
+      const freshnessScore = Math.max(0, this.STALE_THRESHOLD_DAYS - daysSince(offer));
+      const reasonCodes = [
+        `COST_SCORE:${(cost > 0 ? 1000 / cost : 0).toFixed(2)}`,
+        `RELIABILITY_SCORE:${reliability.toFixed(2)}`,
+        `FRESHNESS_SCORE:${freshnessScore.toFixed(2)}`,
+        ...(reliable ? [] : ['LOW_CONFIRMATION_RELIABILITY']),
+        ...(flags.get(offer.id) ?? []),
+      ];
+      reliabilityOf.set(offer.id, { reliable, reliability });
+      eligibleOffers.push({ ...offer, costPrice: cost, score: 0, reasonCodes });
+    }
+
+    const tier = (o: RankedOffer) => reliabilityOf.get(o.id)!;
+    eligibleOffers.sort((a, b) =>
+      Number(tier(b).reliable) - Number(tier(a).reliable) ||
+      a.costPrice - b.costPrice ||
+      tier(b).reliability - tier(a).reliability ||
+      b.lastObservedAt.getTime() - a.lastObservedAt.getTime() ||
+      a.id.localeCompare(b.id));
+    const rankedOffers = eligibleOffers.map((offer, index) => ({ ...offer, score: eligibleOffers.length - index }));
+
+    const decisionLogId = await this.auditRankingDecision(skuId, quantity, rankedOffers);
 
     return {
       skuId,
       requiredQuantity: quantity,
-      rankedOffers: eligibleOffers,
+      rankedOffers,
+      excludedOffers,
       decisionLogId
     };
   }
 
-  private async calculateSupplierReliability(supplierId: string): Promise<number> {
+  private async calculateSupplierReliability(supplierId: string): Promise<{ score: number; history: number }> {
     // Look at past PO lines for this supplier
     const totalLines = await this.prisma.purchaseOrderLine.count({
       where: {
@@ -110,7 +152,7 @@ export class RankingService {
     });
 
     if (totalLines === 0) {
-      return 0.5; // Neutral prior for new suppliers
+      return { score: 0.5, history: 0 }; // Neutral prior for new suppliers
     }
 
     const fullConfirmed = await this.prisma.purchaseOrderLine.count({
@@ -131,15 +173,15 @@ export class RankingService {
     // With anti-gaming penalty for frequent unavailability (price baiting proxy)
     const baseScore = fullConfirmed / totalLines;
     const penalty = (unavailable / totalLines) * 0.5;
-    
-    return Math.max(0, Math.min(1, baseScore - penalty));
+
+    return { score: Math.max(0, Math.min(1, baseScore - penalty)), history: totalLines };
   }
 
   private async auditRankingDecision(skuId: string, quantity: number, rankedOffers: RankedOffer[]): Promise<string> {
     // In a real app this would write to a specialized audit log or timeseries DB
     // For MVP, we just return a generated ID representing the snapshot
     const uuid = crypto.randomUUID();
-    // this.prisma.rankingAuditLog.create(...) 
+    // this.prisma.rankingAuditLog.create(...)
     return uuid;
   }
 }

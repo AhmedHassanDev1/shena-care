@@ -133,4 +133,72 @@ describe('RankingService', () => {
 
     await expect(service.rankOffersForSku('sku-1', 1)).rejects.toThrow(NotFoundException);
   });
+  describe('GLO-280 policy: eligibility first, then lowest comparable cost', () => {
+    const daysAgo = (d: number) => new Date(Date.now() - d * 86400000);
+    const offer = (id: string, supplierId: string, cost: number, extra: Record<string, unknown> = {}) => ({
+      id, supplierId, skuId: 'sku-1', isAvailable: true, currency: 'EGP', costPrice: { toNumber: () => cost },
+      lastObservedAt: new Date(), supplier: { isActive: true }, ...extra,
+    });
+    const rank = async (offers: unknown[], history: Record<string, [number, number, number]> = {}) => {
+      (prismaService.supplierOffer.findMany as jest.Mock).mockResolvedValue(offers);
+      (prismaService.purchaseOrderLine.count as jest.Mock).mockImplementation((args) => {
+        const [total, full, unavailable] = history[args.where.purchaseOrder.supplierId] ?? [0, 0, 0];
+        return Promise.resolve(args.where.status === 'confirmed_full' ? full : args.where.status === 'unavailable' ? unavailable : total);
+      });
+      return service.rankOffersForSku('sku-1', 1);
+    };
+
+    it('A 180 / B 165 / C 150 stale → B, A; the stale cheaper offer is excluded with its reason', async () => {
+      const result = await rank([offer('a', 'A', 180), offer('b', 'B', 165), offer('c', 'C', 150, { lastObservedAt: daysAgo(10) })]);
+      expect(result.rankedOffers.map(o => o.supplierId)).toEqual(['B', 'A']);
+      expect(result.excludedOffers).toEqual([{ offerId: 'c', supplierId: 'C', reasonCodes: ['STALE_OFFER'] }]);
+    });
+
+    it('a fully reliable established supplier at 180 no longer outranks a new supplier at 100', async () => {
+      // Old weighted score: 180 → 3.3 + 30 + 7 = 40.3 beat 100 → 6 + 15 + 7 = 28.
+      const result = await rank([offer('old', 'OLD', 180), offer('new', 'NEW', 100)], { OLD: [50, 50, 0] });
+      expect(result.rankedOffers.map(o => o.supplierId)).toEqual(['NEW', 'OLD']);
+    });
+
+    it('equal cost: the more reliable, then the fresher offer wins', async () => {
+      const result = await rank([
+        offer('z', 'Z', 100, { lastObservedAt: daysAgo(2) }), offer('y', 'Y', 100), offer('x', 'X', 100, { lastObservedAt: daysAgo(3) }),
+      ], { X: [10, 10, 0], Y: [10, 8, 0], Z: [10, 8, 0] });
+      expect(result.rankedOffers.map(o => o.supplierId)).toEqual(['X', 'Y', 'Z']);
+    });
+
+    it('100 / 102 / 800: the expensive outlier is flagged and ranks last; no median price is invented', async () => {
+      const result = await rank([offer('a', 'A', 100), offer('b', 'B', 102), offer('c', 'C', 800)]);
+      expect(result.rankedOffers.map(o => o.costPrice)).toEqual([100, 102, 800]);
+      expect(result.rankedOffers[2].reasonCodes.some(c => c.startsWith('PRICE_OUTLIER_HIGH'))).toBe(true);
+      expect(result.excludedOffers).toEqual([]);
+    });
+
+    it('never auto-selects a suspiciously cheap quote (100 / 102 / 30, and 40 vs 100)', async () => {
+      const three = await rank([offer('a', 'A', 100), offer('b', 'B', 102), offer('c', 'C', 30)]);
+      expect(three.rankedOffers.map(o => o.supplierId)).toEqual(['A', 'B']);
+      expect(three.excludedOffers).toEqual([{ offerId: 'c', supplierId: 'C', reasonCodes: ['PRICE_ANOMALY_REVIEW'] }]);
+      const two = await rank([offer('a', 'A', 100), offer('c', 'C', 40)]);
+      expect(two.rankedOffers.map(o => o.supplierId)).toEqual(['A']);
+    });
+
+    it('a single offer has no benchmark and is not flagged', async () => {
+      const result = await rank([offer('a', 'A', 5)]);
+      expect(result.rankedOffers.map(o => o.supplierId)).toEqual(['A']);
+      expect(result.excludedOffers).toEqual([]);
+    });
+
+    it('does not compare raw numbers across currencies', async () => {
+      const result = await rank([offer('egp', 'A', 300), offer('sar', 'B', 20, { currency: 'SAR' })]);
+      expect(result.rankedOffers.map(o => o.supplierId)).toEqual(['A']);
+      expect(result.excludedOffers[0]).toMatchObject({ offerId: 'sar', reasonCodes: ['CURRENCY_NOT_COMPARABLE'] });
+    });
+
+    it('a cheaper supplier with poor confirmation history ranks behind a reliable one but stays a fallback', async () => {
+      const result = await rank([offer('r', 'R', 120), offer('p', 'P', 100)], { R: [10, 10, 0], P: [10, 2, 8] });
+      expect(result.rankedOffers.map(o => o.supplierId)).toEqual(['R', 'P']);
+      expect(result.rankedOffers[1].reasonCodes).toContain('LOW_CONFIRMATION_RELIABILITY');
+    });
+  });
 });
+

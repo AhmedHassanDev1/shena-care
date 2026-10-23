@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
+import { CommerceService } from '../../commerce/public';
 import { CreateSupplierDto, UpdateSupplierDto } from '../dto/supplier.dto';
 import { CreateSupplierOfferDto, UpdateSupplierOfferDto } from '../dto/supplier-offer.dto';
 
@@ -36,6 +37,7 @@ export class SourcingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly catalogService: CatalogService,
+    private readonly commerceService: CommerceService,
   ) {}
 
   private isUuid(val: string): boolean {
@@ -188,11 +190,23 @@ export class SourcingService {
     return { ...offer, costPrice: offer.costPrice.toNumber() };
   }
 
-  async updateSupplierOffer(id: string, dto: UpdateSupplierOfferDto): Promise<SupplierOfferDetail> {
+  /**
+   * GLO-280: a supplier's own direct edit gets the same anomaly policy as a file commit (currency change, >30% jump,
+   * cost above the approved selling price). There is no review queue for direct edits, so those changes are refused and
+   * go through a reviewed price file instead; availability-only edits and normal cost changes apply directly.
+   */
+  async updateSupplierOffer(id: string, dto: UpdateSupplierOfferDto, options: { supplierScoped?: boolean } = {}): Promise<SupplierOfferDetail> {
     if (!this.isUuid(id)) throw new BadRequestException('Invalid offer ID');
 
     const offer = await this.getSupplierOffer(id);
     if (!offer) throw new NotFoundException(`Supplier offer ${id} not found`);
+    if (dto.costPrice !== undefined && dto.costPrice <= 0) throw new BadRequestException('Cost price must be positive');
+    if (options.supplierScoped) {
+      const reasons = await this.directEditReviewReasons(offer, dto);
+      if (reasons.length) {
+        throw new ConflictException(`Offer change requires review — submit it in a price file: ${reasons.join('; ')}`);
+      }
+    }
 
     const updated = await this.prisma.supplierOffer.update({
       where: { id },
@@ -209,6 +223,20 @@ export class SourcingService {
       ...updated,
       costPrice: updated.costPrice.toNumber(),
     };
+  }
+
+  private async directEditReviewReasons(offer: SupplierOfferDetail, dto: UpdateSupplierOfferDto): Promise<string[]> {
+    const reasons: string[] = [];
+    const currency = dto.currency ?? offer.currency;
+    if (currency !== offer.currency) reasons.push('currency_change_requires_review');
+    if (dto.costPrice === undefined || dto.costPrice === offer.costPrice) return reasons;
+    const change = offer.costPrice > 0 ? (dto.costPrice - offer.costPrice) / offer.costPrice : 0;
+    if (Math.abs(change) > 0.3) reasons.push(`large_price_jump: ${(change * 100).toFixed(1)}% exceeds 30% anomaly threshold`);
+    const price = await this.commerceService.getCurrentSellingPrice(offer.skuId);
+    if (price?.currency === currency && dto.costPrice > price.amount) {
+      reasons.push(`financial_hold: purchase cost ${dto.costPrice} exceeds approved selling price ${price.amount}`);
+    }
+    return reasons;
   }
 
   /**
@@ -240,18 +268,30 @@ export class SourcingService {
   // Availability Resolution (GLO-106)
   // ---------------------------------------------------------------------------
 
+  private availabilityMaxAgeMs(): number {
+    const configured = Number(process.env.SUPPLIER_AVAILABILITY_MAX_AGE_HOURS ?? 24);
+    if (!Number.isFinite(configured) || configured <= 0 || configured > 720)
+      throw new Error('Invalid supplier availability freshness configuration');
+    return configured * 3600000;
+  }
+
   /**
-   * Resolves whether a SKU is currently available based on active supplier offers.
-   * Returns true if there is at least one available offer from an active supplier.
+   * Provisional purchase availability (cart/checkout): an available offer from an active supplier with a FRESH signal —
+   * a supplier confirmation or a supplier feed/edit observation inside the availability window. A feed row is a signal,
+   * not a reservation or a confirmation (GLO-280 owner decision): it never sets `lastConfirmedAt`, and the quantity a
+   * supplier actually commits is confirmed per purchase order. `requireConfirmation` accepts only a fresh confirmation.
    */
   async checkAvailability(skuId: string, requireConfirmation = false): Promise<boolean> {
     if (!this.isUuid(skuId)) return false;
+    const since = new Date(Date.now() - this.availabilityMaxAgeMs());
 
     const offer = await this.prisma.supplierOffer.findFirst({
       where: {
         skuId,
         isAvailable: true,
-        ...(requireConfirmation && { lastConfirmedAt: { not: null } }),
+        ...(requireConfirmation
+          ? { lastConfirmedAt: { gte: since } }
+          : { OR: [{ lastConfirmedAt: { gte: since } }, { lastObservedAt: { gte: since } }] }),
         supplier: {
           isActive: true,
         },
@@ -261,12 +301,12 @@ export class SourcingService {
     return !!offer;
   }
 
-  /** Public projection deliberately excludes supplier identity and procurement cost. */
+  /**
+   * Public projection deliberately excludes supplier identity and procurement cost. Catalog sellability is backed by a
+   * fresh supplier CONFIRMATION only; a feed observation alone never makes a product publicly available.
+   */
   async getPublicAvailability(skuId: string, at = new Date()) {
-    const configured = Number(process.env.SUPPLIER_AVAILABILITY_MAX_AGE_HOURS ?? 24);
-    if (!Number.isFinite(configured) || configured <= 0 || configured > 720)
-      throw new Error('Invalid supplier availability freshness configuration');
-    const maxAgeMs = configured * 3600000;
+    const maxAgeMs = this.availabilityMaxAgeMs();
     const offer = await this.prisma.supplierOffer.findFirst({
       where: { skuId, isAvailable: true, supplier: { isActive: true }, lastConfirmedAt: { not: null, lte: at } },
       orderBy: [{ lastConfirmedAt: 'desc' }, { id: 'asc' }],

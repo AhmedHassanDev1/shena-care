@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { FILE_STORAGE_PORT, FileStoragePort } from '../../src/platform/storage/storage.port';
 import { OfferBatchCommitService } from '../../src/modules/ingestion/services/offer-batch-commit.service';
 import { IngestionService } from '../../src/modules/ingestion/services/ingestion.service';
 import { createActor, Actor } from '../fixtures/actors';
@@ -15,6 +16,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
 
   let app: INestApplication;
   let prisma: PrismaService;
+  let storagePort: FileStoragePort;
   let admin: Actor;
   let offerCommitService: OfferBatchCommitService;
   let ingestionService: IngestionService;
@@ -34,23 +36,47 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
     await app.init();
 
     prisma = app.get(PrismaService);
+    storagePort = app.get(FILE_STORAGE_PORT);
     offerCommitService = app.get(OfferBatchCommitService);
     ingestionService = app.get(IngestionService);
     admin = await createActor(prisma, 'ADMIN');
+    createdActorIds.push(admin.id);
   });
 
+  // Every row and file this suite creates is tracked by id and removed, so it can run against a shared database
+  // (never by slug/name pattern: that could reach records another run or a person created).
+  const createdActorIds: string[] = [];
+  const otherSupplierIds: string[] = [];
+  const ownedSupplierIds: string[] = [];
+  const ownedBrandIds: string[] = [];
+  const storageKey = (url: string) => url.split('/storage/')[1];
+
   afterAll(async () => {
-    if (app) {
-      await app.close();
-    }
+    if (!app) return;
+    await cleanFixture();
+    await prisma.session.deleteMany({ where: { customerId: { in: createdActorIds } } });
+    await prisma.customer.deleteMany({ where: { id: { in: createdActorIds } } });
+    await app.close();
   });
 
   async function cleanFixture() {
-    const suppliers = await prisma.supplier.findMany({
-      where: { slug: { startsWith: 'sg05-supplier' } },
-    });
+    const suppliers = await prisma.supplier.findMany({ where: { id: { in: [...ownedSupplierIds, ...otherSupplierIds] } } });
     for (const s of suppliers) {
+      for (const job of await prisma.ingestionJob.findMany({ where: { supplierId: s.id }, include: { items: true } })) {
+        if (job.sourceKey) await storagePort.delete(job.sourceKey);
+        for (const item of job.items) {
+          for (const media of ((item.enrichment as { media?: Array<{ url: string }> } | null)?.media ?? [])) {
+            const key = storageKey(media.url);
+            if (key) await storagePort.delete(key);
+          }
+        }
+      }
       await prisma.supplierSkuAlias.deleteMany({ where: { supplierId: s.id } });
+      // Deactivation approvals write an audit outbox row per job; remove the ones for this suite's jobs only.
+      const jobIds = (await prisma.ingestionJob.findMany({ where: { supplierId: s.id }, select: { id: true } })).map(j => j.id);
+      await prisma.notificationOutbox.deleteMany({
+        where: { eventType: 'ingestion.offers_deactivated', aggregateType: 'IngestionJob', aggregateId: { in: jobIds } },
+      });
       await prisma.ingestionItem.deleteMany({ where: { job: { supplierId: s.id } } });
       await prisma.ingestionJob.deleteMany({ where: { supplierId: s.id } });
       await prisma.supplierOffer.deleteMany({ where: { supplierId: s.id } });
@@ -61,9 +87,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
       await prisma.supplier.delete({ where: { id: s.id } });
     }
 
-    const brands = await prisma.brand.findMany({
-      where: { slug: { startsWith: 'sg05-brand' } },
-    });
+    const brands = await prisma.brand.findMany({ where: { id: { in: ownedBrandIds } } });
     for (const b of brands) {
       const products = await prisma.product.findMany({ where: { brandId: b.id } });
       for (const p of products) {
@@ -73,6 +97,10 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
         await prisma.sellingPrice.deleteMany({ where: { skuId: { in: skuIds } } });
         await prisma.skuBarcodeAlias.deleteMany({ where: { skuId: { in: skuIds } } });
         await prisma.supplierOffer.deleteMany({ where: { skuId: { in: skuIds } } });
+        for (const media of await prisma.productMedia.findMany({ where: { productId: p.id } })) {
+          const key = storageKey(media.url);
+          if (key) await storagePort.delete(key);
+        }
         await prisma.productMedia.deleteMany({ where: { productId: p.id } });
         await prisma.sku.deleteMany({ where: { id: { in: skuIds } } });
         await prisma.product.delete({ where: { id: p.id } });
@@ -88,11 +116,13 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
       data: { name: `SG05 Supplier ${Date.now()}`, slug: `sg05-supplier-${Date.now()}` },
     });
     supplierId = supplier.id;
+    ownedSupplierIds.push(supplier.id);
 
     const brand = await prisma.brand.create({
       data: { name: `SG05 Brand ${Date.now()}`, slug: `sg05-brand-${Date.now()}` },
     });
     brandId = brand.id;
+    ownedBrandIds.push(brand.id);
 
     const product = await prisma.product.create({
       data: { name: 'Moisturizing Cream', slug: `sg05-cream-${Date.now()}`, brandId: brand.id, isPublished: true },
@@ -430,8 +460,12 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
       });
       expect(activeOffersBeforeApproval.length).toBe(3);
 
+      // GLO-277: an approval without coverage confirmation and an exact reviewed change set is refused (fail closed)
+      await expect(offerCommitService.approveDeactivations(job.id, admin.id)).rejects.toThrow(/coverage/);
+
       // Now explicit admin approval is granted
-      const approveRes = await offerCommitService.approveDeactivations(job.id, admin.id);
+      const approveRes = await offerCommitService.approveDeactivations(job.id, admin.id,
+        { confirmedAssortmentCoverage: true, approvedSkuIds: [sku2Id, sku3Id] });
       expect(approveRes.deactivatedCount).toBe(2);
 
       const activeOffersAfterApproval = await prisma.supplierOffer.findMany({
@@ -845,9 +879,9 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
         },
       });
 
-      // Stale job item created earlier at 09:00:00
+      // Stale file received earlier at 09:00:00 (receipt time belongs to the job/file, GLO-277)
       const job = await prisma.ingestionJob.create({
-        data: { supplierId, status: IngestionStatus.review_required },
+        data: { supplierId, status: IngestionStatus.review_required, createdAt: new Date('2026-10-20T09:00:00Z') },
       });
       const item = await prisma.ingestionItem.create({
         data: {
@@ -867,10 +901,10 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
       const commitRes = await offerCommitService.commitJobOffers(job.id);
       expect(commitRes.skippedCount).toBe(1);
       expect(commitRes.committedCount).toBe(0);
-      expect(commitRes.itemOutcomes[0].reason).toContain('stale_import_older_than_last_observed_offer');
+      expect(commitRes.itemOutcomes[0].reason).toContain('received_before_last_accepted_import');
       expect((await prisma.ingestionJob.findUniqueOrThrow({ where: { id: job.id } })).status).toBe(IngestionStatus.review_required);
       expect(((await prisma.ingestionItem.findUniqueOrThrow({ where: { id: item.id } })).enrichment as any)?.offerCommit?.reason)
-        .toContain('stale_import_older_than_last_observed_offer');
+        .toContain('received_before_last_accepted_import');
 
       // Live offer is untouched
       const liveOffer = await prisma.supplierOffer.findUniqueOrThrow({
@@ -910,6 +944,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
 
       // 1. Non-admin authorization check
       const supplierActor = await createActor(prisma, 'SUPPLIER', supplierId);
+      createdActorIds.push(supplierActor.id);
       await expect(
         offerCommitService.approveDeactivations(job.id, supplierActor.id, { confirmedAssortmentCoverage: true }),
       ).rejects.toThrow('Only administrators can approve supplier catalog deactivations');
@@ -918,6 +953,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
       const otherSupplier = await prisma.supplier.create({
         data: { name: `Other Supplier ${Date.now()}`, slug: `other-supp-${Date.now()}` },
       });
+      otherSupplierIds.push(otherSupplier.id);
       await expect(
         offerCommitService.approveDeactivations(job.id, admin.id, {
           supplierId: otherSupplier.id,

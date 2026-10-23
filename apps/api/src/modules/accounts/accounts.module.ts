@@ -3,7 +3,6 @@ import { AccountsService } from './accounts.service';
 import { AccountsController } from './accounts.controller';
 import { CustomerAddressesService } from './services/customer-addresses.service';
 import { CustomerAddressesController } from './controllers/customer-addresses.controller';
-import { PrismaService } from '../../platform/database/prisma.service';
 import { AuthGuard } from './guards/auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import rateLimit from 'express-rate-limit';
@@ -11,9 +10,10 @@ import rateLimit from 'express-rate-limit';
 import { StaffManagementService } from './services/staff-management.service';
 import { StaffManagementController } from './controllers/staff-management.controller';
 
+// PrismaService comes from the global DatabaseModule: one connection pool for the whole app (GLO-281).
 @Module({
   controllers: [AccountsController, CustomerAddressesController, StaffManagementController],
-  providers: [AccountsService, CustomerAddressesService, StaffManagementService, PrismaService, AuthGuard, RolesGuard],
+  providers: [AccountsService, CustomerAddressesService, StaffManagementService, AuthGuard, RolesGuard],
   exports: [AccountsService, CustomerAddressesService, StaffManagementService, AuthGuard, RolesGuard],
 })
 export class AccountsModule {
