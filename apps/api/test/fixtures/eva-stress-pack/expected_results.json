@@ -1,0 +1,2098 @@
+{
+  "version": "2026-10-21-eva-stress-v1",
+  "status": "NOT_EXECUTED",
+  "seed_note": "Official EVA listing names/retail references; ALL supplier prices, quantities, supplier IDs synthetic",
+  "provenance": {
+    "natural_glow_collection": "https://www.shop.eva-cosmetics.com/collections/skin-care-natural-glow",
+    "natural_glow_page_2": "https://www.shop.eva-cosmetics.com/collections/skin-care-natural-glow?page=2",
+    "aloe_eva_collection": "https://www.shop.eva-cosmetics.com/collections/aloe-eva",
+    "user_photo": "https://cdn.shopify.com/s/files/1/0700/9488/0959/files/natural_glow_white_bg_1.png?v=1776525610"
+  },
+  "base_products": [
+    {
+      "ref": "R01",
+      "supplier_sku_test": "TEST-EVA-001",
+      "name_official": "Eva Skin Care Natural Glow Night Cream (50g) + Free Facial Wash for Combined Skin",
+      "line_hint": "Natural Glow",
+      "department_hint": "SKINCARE",
+      "listing_kind": "PROMO_BUNDLE",
+      "retail_reference_egp": 80.0,
+      "purchase_cost_egp_test": 53.6,
+      "stock_qty_test": 12,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/products/eva-skin-care-natural-glow-day-cream-spf-30-50g-free-facial-wash-for-oily-skin-copy"
+    },
+    {
+      "ref": "R02",
+      "supplier_sku_test": "TEST-EVA-002",
+      "name_official": "Eva Skin Care Natural Glow Night Cream 50 Gm",
+      "line_hint": "Natural Glow",
+      "department_hint": "SKINCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 72,
+      "purchase_cost_egp_test": 48.24,
+      "stock_qty_test": 30,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/products/eva-skin-care-natural-glow-night-cream-50-gm"
+    },
+    {
+      "ref": "R03",
+      "supplier_sku_test": "TEST-EVA-003",
+      "name_official": "Eva Skin Care Natural Glow Facial Wash For Combined Skin 100 Ml",
+      "line_hint": "Natural Glow",
+      "department_hint": "SKINCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 58.5,
+      "purchase_cost_egp_test": 39.2,
+      "stock_qty_test": 4,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/products/eva-skin-care-natural-glow-facial-wash-for-combined-skin-100-ml"
+    },
+    {
+      "ref": "R04",
+      "supplier_sku_test": "TEST-EVA-004",
+      "name_official": "Eva Skin Care Natural Glow Facial Wash For Oily Skin 100 Ml",
+      "line_hint": "Natural Glow",
+      "department_hint": "SKINCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 58.5,
+      "purchase_cost_egp_test": 39.2,
+      "stock_qty_test": 0,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/ar/products/eva-skin-care-natural-glow-facial-wash-for-oily-skin-100-ml"
+    },
+    {
+      "ref": "R05",
+      "supplier_sku_test": "TEST-EVA-005",
+      "name_official": "Eva Skin Care Natural Glow Facial Wash For Normal To Dry Skin 100 Ml",
+      "line_hint": "Natural Glow",
+      "department_hint": "SKINCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 58.5,
+      "purchase_cost_egp_test": 39.2,
+      "stock_qty_test": 13,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/ar/products/eva-skin-care-natural-glow-facial-wash-for-normal-to-dry-skin-100-ml"
+    },
+    {
+      "ref": "R06",
+      "supplier_sku_test": "TEST-EVA-006",
+      "name_official": "Eva Skin Care Natural Glow Day Cream With ( SPF 30 ) 50 Gm",
+      "line_hint": "Natural Glow",
+      "department_hint": "SKINCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 90,
+      "purchase_cost_egp_test": 60.3,
+      "stock_qty_test": 18,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/skin-care-natural-glow"
+    },
+    {
+      "ref": "R07",
+      "supplier_sku_test": "TEST-EVA-007",
+      "name_official": "Eva Skin Care Natural Glow Facial Scrub 100 Ml",
+      "line_hint": "Natural Glow",
+      "department_hint": "SKINCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 63,
+      "purchase_cost_egp_test": 42.21,
+      "stock_qty_test": 8,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/skin-care-natural-glow"
+    },
+    {
+      "ref": "R08",
+      "supplier_sku_test": "TEST-EVA-008",
+      "name_official": "Eva Skin Care Natural Glow Eye Cream 15 Gm",
+      "line_hint": "Natural Glow",
+      "department_hint": "SKINCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 49.5,
+      "purchase_cost_egp_test": 33.17,
+      "stock_qty_test": 3,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/skin-care-natural-glow"
+    },
+    {
+      "ref": "R09",
+      "supplier_sku_test": "TEST-EVA-009",
+      "name_official": "Eva Skin Care Natural Glow Day Cream SPF 30 (50g) + Free Facial Wash For Oily Skin",
+      "line_hint": "Natural Glow",
+      "department_hint": "SKINCARE",
+      "listing_kind": "PROMO_BUNDLE",
+      "retail_reference_egp": 100,
+      "purchase_cost_egp_test": 67.0,
+      "stock_qty_test": 4,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/skin-care-natural-glow"
+    },
+    {
+      "ref": "R10",
+      "supplier_sku_test": "TEST-EVA-010",
+      "name_official": "Aloe Eva Hair Strengthening Shampoo With Aloe Vera & Moroccan Argan Oil 230 Ml",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 67.5,
+      "purchase_cost_egp_test": 45.23,
+      "stock_qty_test": 40,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-hair-strengthening-shampoo-with-aloe-vera-moroccan-argan-oil-230-ml"
+    },
+    {
+      "ref": "R11",
+      "supplier_sku_test": "TEST-EVA-011",
+      "name_official": "Aloe Eva Hair Strengthening Conditioner With Aloe Vera & Moroccan Argan Oil 230 Ml",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 72,
+      "purchase_cost_egp_test": 48.24,
+      "stock_qty_test": 16,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/aloe-eva"
+    },
+    {
+      "ref": "R12",
+      "supplier_sku_test": "TEST-EVA-012",
+      "name_official": "Aloe Eva Hair Strengthening Mask Pouch With Aloe Vera & Moroccan Argan Oil 250 Gm",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 76.5,
+      "purchase_cost_egp_test": 51.26,
+      "stock_qty_test": 2,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/aloe-eva"
+    },
+    {
+      "ref": "R13",
+      "supplier_sku_test": "TEST-EVA-013",
+      "name_official": "Aloe Eva Strengthening Hair Mask Pouch With Aloe Vera & Silk Proteins 250 Gm",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 76.5,
+      "purchase_cost_egp_test": 51.26,
+      "stock_qty_test": 2,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/aloe-eva"
+    },
+    {
+      "ref": "R14",
+      "supplier_sku_test": "TEST-EVA-014",
+      "name_official": "Aloe Eva Strengthening Hair Mask Pouch With Aloe Vera & Yoghurt Proteins 250 Gm",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 76.5,
+      "purchase_cost_egp_test": 51.26,
+      "stock_qty_test": 2,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/aloe-eva"
+    },
+    {
+      "ref": "R15",
+      "supplier_sku_test": "TEST-EVA-015",
+      "name_official": "Aloe Eva Hair Strengthening Oil Replacement With Aloe Vera & Moroccan Argan Oil 250 Ml",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 90,
+      "purchase_cost_egp_test": 60.3,
+      "stock_qty_test": 0,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/aloe-eva"
+    },
+    {
+      "ref": "R16",
+      "supplier_sku_test": "TEST-EVA-016",
+      "name_official": "Aloe Eva Strengthening Hair Oil Replacement With Aloe Vera & Silk Proteins 250 Ml ( Special Offer 25 % )",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "PROMO_LABEL",
+      "retail_reference_egp": 90,
+      "purchase_cost_egp_test": 60.3,
+      "stock_qty_test": 12,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/aloe-eva"
+    },
+    {
+      "ref": "R17",
+      "supplier_sku_test": "TEST-EVA-017",
+      "name_official": "Aloe Eva Strengthening Hair Oil Replacement With Aloe Vera & Yoghurt Proteins 250 Ml ( Special Offer 25 % )",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "PROMO_LABEL",
+      "retail_reference_egp": 90,
+      "purchase_cost_egp_test": 60.3,
+      "stock_qty_test": 10,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/aloe-eva"
+    },
+    {
+      "ref": "R18",
+      "supplier_sku_test": "TEST-EVA-018",
+      "name_official": "Aloe Eva Strengthening Hair Mask Pouch With Aloe Vera 250 Gm",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "UNIT",
+      "retail_reference_egp": 76.5,
+      "purchase_cost_egp_test": 51.26,
+      "stock_qty_test": 5,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/aloe-eva"
+    },
+    {
+      "ref": "R19",
+      "supplier_sku_test": "TEST-EVA-019",
+      "name_official": "Aloe Eva Strengthening Hair Oil Replacement With Aloe Vera 250 Ml ( Special Offer 25 % )",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "PROMO_LABEL",
+      "retail_reference_egp": 90,
+      "purchase_cost_egp_test": 60.3,
+      "stock_qty_test": 5,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/aloe-eva"
+    },
+    {
+      "ref": "R20",
+      "supplier_sku_test": "TEST-EVA-020",
+      "name_official": "Aloe Eva Hair Strengthening Ampoules With Aloe Vera & Moroccan Argan Oil ( 4 Ampoules * 15 Ml )",
+      "line_hint": "Aloe Eva",
+      "department_hint": "HAIRCARE",
+      "listing_kind": "MULTIPACK",
+      "retail_reference_egp": 99,
+      "purchase_cost_egp_test": 66.33,
+      "stock_qty_test": 2,
+      "barcode_verified": null,
+      "source_url": "https://www.shop.eva-cosmetics.com/collections/aloe-eva"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "BASE-01",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 2,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 1, PROMO_BUNDLE, SKINCARE, no verified EAN",
+      "expected_safe_behavior": "HOLD_BUNDLE_VERIFICATION",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-02",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 3,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 2, UNIT, SKINCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-03",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 4,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 3, UNIT, SKINCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-04",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 5,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 4, UNIT, SKINCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-05",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 6,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 5, UNIT, SKINCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-06",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 7,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 6, UNIT, SKINCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-07",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 8,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 7, UNIT, SKINCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-08",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 9,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 8, UNIT, SKINCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-09",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 10,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 9, PROMO_BUNDLE, SKINCARE, no verified EAN",
+      "expected_safe_behavior": "HOLD_BUNDLE_VERIFICATION",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-10",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 11,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 10, UNIT, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-11",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 12,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 11, UNIT, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-12",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 13,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 12, UNIT, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-13",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 14,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 13, UNIT, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-14",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 15,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 14, UNIT, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-15",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 16,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 15, UNIT, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-16",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 17,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 16, PROMO_LABEL, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "REVIEW_PROMO_PRICE_SEMANTICS",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-17",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 18,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 17, PROMO_LABEL, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "REVIEW_PROMO_PRICE_SEMANTICS",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-18",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 19,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 18, UNIT, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-19",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 20,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 19, PROMO_LABEL, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "REVIEW_PROMO_PRICE_SEMANTICS",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "BASE-20",
+      "input_file": "01_Baseline_20.xlsx",
+      "file_row": 21,
+      "phase": "INTAKE/IDENTITY",
+      "scenario": "Official EVA product 20, MULTIPACK, HAIRCARE, no verified EAN",
+      "expected_safe_behavior": "REVIEW_MULTIPACK_IDENTITY",
+      "prerequisite": "Existing catalog state unknown",
+      "priority": "P0",
+      "assertion": "Rows accepted or explicitly reviewed; no guessed barcode or auto-publish"
+    },
+    {
+      "case_id": "D01",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 2,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Arabic name; source supplier code stays constant",
+      "expected_safe_behavior": "ALIAS_MATCH_ONLY_IF_IDENTITY_VALID_ELSE_REVIEW",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D02",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 3,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "English shorthand normalization",
+      "expected_safe_behavior": "REVIEW_IF_NOT_CONFIDENT",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D03",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 4,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Whitespace/case duplicate supplier code after normalization",
+      "expected_safe_behavior": "REJECT_DUPLICATE_WITH_ROW_REASON",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D04",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 5,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Negative purchase price numeric",
+      "expected_safe_behavior": "REJECT_NEGATIVE_PRICE",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D05",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 6,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Negative textual price must not strip minus",
+      "expected_safe_behavior": "REJECT_NEGATIVE_PRICE",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D06",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 7,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Missing brand; no supplier-name-to-brand fabrication",
+      "expected_safe_behavior": "HOLD_INCOMPLETE_IDENTITY",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D07",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 8,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Missing supplier item code",
+      "expected_safe_behavior": "REJECT_OR_EXPLICIT_ROW_INVALID",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D08",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 9,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Zero purchase cost",
+      "expected_safe_behavior": "REJECT_PURCHASE_COST_ZERO",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D09",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 10,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Negative reported quantity",
+      "expected_safe_behavior": "REJECT_NEGATIVE_QUANTITY",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D10",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 11,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Omitted quantity must not mean zero",
+      "expected_safe_behavior": "PRESERVE_PREVIOUS_AVAILABILITY",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D11",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 12,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Thousand separator in price",
+      "expected_safe_behavior": "ACCEPT_ONLY_WITH_LOCALE_PROVEN_PARSER",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D12",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 13,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Comma as ambiguous decimal separator",
+      "expected_safe_behavior": "REVIEW_AMBIGUOUS_DECIMAL",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D13",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 14,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Name identity conflicts with input code/reference",
+      "expected_safe_behavior": "DO_NOT_USE_WRONG_ALIAS",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D14",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 15,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "SPF30 vs SPF50 identity contradiction",
+      "expected_safe_behavior": "HOLD_IDENTITY_CONFLICT",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D15",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 16,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Same numeric size but different unit",
+      "expected_safe_behavior": "HOLD_VARIANT_UNIT_CONFLICT",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D16",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 17,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "4x15ml multipack collapsed to 15ml unit",
+      "expected_safe_behavior": "HOLD_PACK_COUNT_CONFLICT",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D17",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 18,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Bundle name changed to single-unit SKU",
+      "expected_safe_behavior": "HOLD_BUNDLE_IDENTITY_CONFLICT",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D18",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 19,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "12 digits supplied as barcode",
+      "expected_safe_behavior": "VERIFY_FORMAT_NO_AUTO_APPROVAL",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D19",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 20,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Formula-looking barcode cell",
+      "expected_safe_behavior": "REJECT_SUSPICIOUS_BARCODE_LITERAL",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D20",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 21,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Currency from a foreign-market feed",
+      "expected_safe_behavior": "BLOCK_UNLESS_EXPLICIT_CURRENCY_POLICY",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D21",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 22,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Foreign currency; no implicit EGP conversion",
+      "expected_safe_behavior": "BLOCK_NO_IMPLICIT_CONVERSION",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D22",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 23,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Retail-only price mislabeled as purchase",
+      "expected_safe_behavior": "NO_SUPPLIER_COST_MUTATION",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D23",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 24,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Price type missing",
+      "expected_safe_behavior": "HOLD_AMBIGUOUS_PRICE_TYPE",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D24",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 25,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "No product name",
+      "expected_safe_behavior": "REJECT_NAME_MISSING",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D25",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 26,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "No purchase price",
+      "expected_safe_behavior": "REJECT_PRICE_MISSING",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D26",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 27,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Whitespace & quoted name",
+      "expected_safe_behavior": "NORMALIZE_WITHOUT_OVERWRITE",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D27",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 28,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Unrecognized brand/line out of scope",
+      "expected_safe_behavior": "SKIP_SCOPE_WITH_REASON",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D28",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 29,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Zero quantity as string",
+      "expected_safe_behavior": "SET_UNAVAILABLE_ONLY_IF_EXPLICIT_VALID_QTY_ZERO",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D29",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 30,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Percentage presented in price column",
+      "expected_safe_behavior": "REJECT_OR_REVIEW_INVALID_PRICE_FORMAT",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D30",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 31,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Repeated source supplier code later in file",
+      "expected_safe_behavior": "REJECT_DUPLICATE_WITH_ROW_REASON",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D31",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 32,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Real Natural Glow BODYCARE item outside phase-1 MVP",
+      "expected_safe_behavior": "SCOPE_FILTER_SKIP_OR_REVIEW",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D32",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 33,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Real deodorant outside skincare/haircare MVP",
+      "expected_safe_behavior": "SCOPE_FILTER_SKIP_OR_REVIEW",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D33",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 34,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Unknown mixed bundle/no genuine official source",
+      "expected_safe_behavior": "CANDIDATE_UNPUBLISHED_IF_ELIGIBLE_ELSE_SKIP",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "D34",
+      "input_file": "02_Dirty_Supplier.xlsx",
+      "file_row": 35,
+      "phase": "MAPPING/NORMALIZE",
+      "scenario": "Valid official name but wrong brand",
+      "expected_safe_behavior": "HOLD_BRAND_CONFLICT",
+      "prerequisite": "Arabic column mapping must be approved",
+      "priority": "P0",
+      "assertion": "No silently dropped row; source row reason persisted"
+    },
+    {
+      "case_id": "I01",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 2,
+      "phase": "MATCHING",
+      "scenario": "Synthetic GS1 restricted-prefix EAN-13 mapped in TEST DB to same canonical combined wash",
+      "expected_safe_behavior": "MATCH_IF_ALL_IDENTITY_FIELDS_AGREE",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I02",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 3,
+      "phase": "MATCHING",
+      "scenario": "Same EAN points to combined wash; submitted name claims oily skin",
+      "expected_safe_behavior": "HOLD_BARCODE_VARIANT_CONFLICT",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I03",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 4,
+      "phase": "MATCHING",
+      "scenario": "Same EAN mapped to wash, but submitted item is night cream",
+      "expected_safe_behavior": "HOLD_BARCODE_PRODUCT_CONFLICT",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I04",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 5,
+      "phase": "MATCHING",
+      "scenario": "New unrecognized, checksum-valid synthetic EAN",
+      "expected_safe_behavior": "CANDIDATE_PENDING_REVIEW_NOT_AUTO_LINK",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I05",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 6,
+      "phase": "MATCHING",
+      "scenario": "Unverified all-zero number (checksum-valid but operationally suspicious)",
+      "expected_safe_behavior": "REJECT_OR_REVIEW_PLAUSIBILITY",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I06",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 7,
+      "phase": "MATCHING",
+      "scenario": "Same-sized hair mask SILK mistakenly marked as Yoghurt",
+      "expected_safe_behavior": "HOLD_VARIANT_CONFLICT",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I07",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 8,
+      "phase": "MATCHING",
+      "scenario": "Ampoule pack with wrong unit",
+      "expected_safe_behavior": "HOLD_SIZE_UNIT_CONFLICT",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I08",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 9,
+      "phase": "MATCHING",
+      "scenario": "Ampoules pack 4x15 becomes 1x15",
+      "expected_safe_behavior": "HOLD_PACK_COUNT_CONFLICT",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I09",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 10,
+      "phase": "MATCHING",
+      "scenario": "Supplier alias already belongs to standalone Night Cream, incoming is bundle",
+      "expected_safe_behavior": "HOLD_ALIAS_IDENTITY_CONFLICT",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I10",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 11,
+      "phase": "MATCHING",
+      "scenario": "Case/spacing-only name change and unknown supplier code",
+      "expected_safe_behavior": "NO_FALSE_DUPLICATE_OR_WRONG_MATCH",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I11",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 12,
+      "phase": "MATCHING",
+      "scenario": "Generic ambiguous name across 3 skin types",
+      "expected_safe_behavior": "NEEDS_HUMAN_REVIEW",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I12",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 13,
+      "phase": "MATCHING",
+      "scenario": "Synonym dry vs normal/dry against canonical",
+      "expected_safe_behavior": "MATCH_ONLY_WITH_EVIDENCE_AND_UNIT_VARIANT",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I13",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 14,
+      "phase": "MATCHING",
+      "scenario": "Bundle input changed into standalone night cream under new barcode",
+      "expected_safe_behavior": "HOLD_BUNDLE_CONFLICT",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "I14",
+      "input_file": "03_Identity_Collisions.xlsx",
+      "file_row": 15,
+      "phase": "MATCHING",
+      "scenario": "Same-size SILK mask name changed to ARGAN formula",
+      "expected_safe_behavior": "HOLD_FORMULA_VARIANT_CONFLICT",
+      "prerequisite": "Seed isolated _test catalog with specified test-only barcode/alias fixture",
+      "priority": "P0",
+      "assertion": "Supplier alias/barcode/brand/variant/size/unit/pack must agree"
+    },
+    {
+      "case_id": "P01",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 2,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Normal price increase",
+      "expected_safe_behavior": "UPDATE_PURCHASE_COST_ONLY",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P02",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 3,
+      "phase": "OFFER_COMMIT",
+      "scenario": "220% of old price; anomaly not auto approve",
+      "expected_safe_behavior": "HOLD_IF_CONFIGURED_PRICE_POLICY",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P03",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 4,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Explicit stock zero",
+      "expected_safe_behavior": "SET_ISAVAILABLE_FALSE_IF_DEFINED_SEMANTICS",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P04",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 5,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Quantity omitted",
+      "expected_safe_behavior": "PRESERVE_EXISTING_AVAILABILITY",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P05",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 6,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Huge reported quantity",
+      "expected_safe_behavior": "REVIEW_LIMITS_NO_OVERFLOW",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P06",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 7,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Zero quantity string",
+      "expected_safe_behavior": "NORMALIZE_0_NOT_MISSING",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P07",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 8,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Negative quantity",
+      "expected_safe_behavior": "REJECT",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P08",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 9,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Negative price",
+      "expected_safe_behavior": "REJECT",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P09",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 10,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Zero price",
+      "expected_safe_behavior": "REJECT",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P10",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 11,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Retail reference only; no cost update",
+      "expected_safe_behavior": "DO_NOT_MUTATE_PURCHASE_COST",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P11",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 12,
+      "phase": "OFFER_COMMIT",
+      "scenario": "No explicit price semantics",
+      "expected_safe_behavior": "HOLD_PRICE_TYPE_MISSING",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P12",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 13,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Explicit non-EGP currency",
+      "expected_safe_behavior": "REJECT_OR_REQUIRE_REVIEW_EXPLICIT_CONVERSION",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P13",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 14,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Discount text in purchase price",
+      "expected_safe_behavior": "HOLD_AMBIGUOUS_DISCOUNT",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P14",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 15,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Promo label: don't turn retail promotion into supplier discount",
+      "expected_safe_behavior": "NO_AUTOMATIC_DISCOUNT_INFERENCE",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P15",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 16,
+      "phase": "OFFER_COMMIT",
+      "scenario": "4 x 15ml amps; stock=one pack, not four ampoules",
+      "expected_safe_behavior": "COUNT_PACK_UNITS_NOT_COMPONENTS",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P16",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 17,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Two-product promo; stock of bundle requires explicit inventory allocation",
+      "expected_safe_behavior": "DO_NOT_MUTATE_COMPONENT_STOCK_AUTOMATICALLY",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P17",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 18,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Text numeric price with dot",
+      "expected_safe_behavior": "PARSE_IF_VALID_AND_CURRENCY_EGP",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "P18",
+      "input_file": "04_Price_Stock_Edges.xlsx",
+      "file_row": 19,
+      "phase": "OFFER_COMMIT",
+      "scenario": "Arabic Indic digits/decimal separator",
+      "expected_safe_behavior": "PARSE_SAFELY_OR_ROW_LEVEL_REVIEW",
+      "prerequisite": "Existing approved offer needed for before/after assertions",
+      "priority": "P0",
+      "assertion": "Only own supplier offer mutates; selling price untouched"
+    },
+    {
+      "case_id": "R01",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 2,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R02",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 3,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R03",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 4,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R04",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 5,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R05",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 6,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R06",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 7,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R07",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 8,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R08",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 9,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R09",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 10,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R10",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 11,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R11",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 12,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R12",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 13,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R13",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 14,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R14",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 15,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R15",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 16,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R16",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 17,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R17",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 18,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R18",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 19,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R19",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 20,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "R20",
+      "input_file": "05_Reimport_Changed.xlsx",
+      "file_row": 21,
+      "phase": "IDEMPOTENCY",
+      "scenario": "Same 20 test supplier codes, selected cost/quantity values changed",
+      "expected_safe_behavior": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+      "prerequisite": "Baseline committed into isolated test DB",
+      "priority": "P0",
+      "assertion": "Verify unique supplierId+skuId; retry exact same content yields no double write"
+    },
+    {
+      "case_id": "S01",
+      "input_file": "06_Partial_Full_Snapshot.xlsx",
+      "file_row": 2,
+      "phase": "SNAPSHOT",
+      "scenario": "Deliberately incomplete 8/20 supplier list uploaded as FULL_SNAPSHOT",
+      "expected_safe_behavior": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+      "prerequisite": "Prior 20-row offer baseline must exist",
+      "priority": "P0",
+      "assertion": "Missing offers stay available until validated scope+reviewed explicit deactivation"
+    },
+    {
+      "case_id": "S02",
+      "input_file": "06_Partial_Full_Snapshot.xlsx",
+      "file_row": 3,
+      "phase": "SNAPSHOT",
+      "scenario": "Deliberately incomplete 8/20 supplier list uploaded as FULL_SNAPSHOT",
+      "expected_safe_behavior": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+      "prerequisite": "Prior 20-row offer baseline must exist",
+      "priority": "P0",
+      "assertion": "Missing offers stay available until validated scope+reviewed explicit deactivation"
+    },
+    {
+      "case_id": "S03",
+      "input_file": "06_Partial_Full_Snapshot.xlsx",
+      "file_row": 4,
+      "phase": "SNAPSHOT",
+      "scenario": "Deliberately incomplete 8/20 supplier list uploaded as FULL_SNAPSHOT",
+      "expected_safe_behavior": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+      "prerequisite": "Prior 20-row offer baseline must exist",
+      "priority": "P0",
+      "assertion": "Missing offers stay available until validated scope+reviewed explicit deactivation"
+    },
+    {
+      "case_id": "S04",
+      "input_file": "06_Partial_Full_Snapshot.xlsx",
+      "file_row": 5,
+      "phase": "SNAPSHOT",
+      "scenario": "Deliberately incomplete 8/20 supplier list uploaded as FULL_SNAPSHOT",
+      "expected_safe_behavior": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+      "prerequisite": "Prior 20-row offer baseline must exist",
+      "priority": "P0",
+      "assertion": "Missing offers stay available until validated scope+reviewed explicit deactivation"
+    },
+    {
+      "case_id": "S05",
+      "input_file": "06_Partial_Full_Snapshot.xlsx",
+      "file_row": 6,
+      "phase": "SNAPSHOT",
+      "scenario": "Deliberately incomplete 8/20 supplier list uploaded as FULL_SNAPSHOT",
+      "expected_safe_behavior": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+      "prerequisite": "Prior 20-row offer baseline must exist",
+      "priority": "P0",
+      "assertion": "Missing offers stay available until validated scope+reviewed explicit deactivation"
+    },
+    {
+      "case_id": "S06",
+      "input_file": "06_Partial_Full_Snapshot.xlsx",
+      "file_row": 7,
+      "phase": "SNAPSHOT",
+      "scenario": "Deliberately incomplete 8/20 supplier list uploaded as FULL_SNAPSHOT",
+      "expected_safe_behavior": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+      "prerequisite": "Prior 20-row offer baseline must exist",
+      "priority": "P0",
+      "assertion": "Missing offers stay available until validated scope+reviewed explicit deactivation"
+    },
+    {
+      "case_id": "S07",
+      "input_file": "06_Partial_Full_Snapshot.xlsx",
+      "file_row": 8,
+      "phase": "SNAPSHOT",
+      "scenario": "Deliberately incomplete 8/20 supplier list uploaded as FULL_SNAPSHOT",
+      "expected_safe_behavior": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+      "prerequisite": "Prior 20-row offer baseline must exist",
+      "priority": "P0",
+      "assertion": "Missing offers stay available until validated scope+reviewed explicit deactivation"
+    },
+    {
+      "case_id": "S08",
+      "input_file": "06_Partial_Full_Snapshot.xlsx",
+      "file_row": 9,
+      "phase": "SNAPSHOT",
+      "scenario": "Deliberately incomplete 8/20 supplier list uploaded as FULL_SNAPSHOT",
+      "expected_safe_behavior": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+      "prerequisite": "Prior 20-row offer baseline must exist",
+      "priority": "P0",
+      "assertion": "Missing offers stay available until validated scope+reviewed explicit deactivation"
+    },
+    {
+      "case_id": "B01",
+      "input_file": "07_Second_Supplier.xlsx",
+      "file_row": 2,
+      "phase": "ISOLATION",
+      "scenario": "Different supplier reuses same Supplier SKU; different cost and quantity",
+      "expected_safe_behavior": "ISOLATED_SUPPLIER_B_OFFER",
+      "prerequisite": "Create test-only second supplier, login/tenant context",
+      "priority": "P0",
+      "assertion": "Supplier A offers and aliases unchanged; supplier B cannot access A jobs"
+    },
+    {
+      "case_id": "B02",
+      "input_file": "07_Second_Supplier.xlsx",
+      "file_row": 3,
+      "phase": "ISOLATION",
+      "scenario": "Different supplier reuses same Supplier SKU; different cost and quantity",
+      "expected_safe_behavior": "ISOLATED_SUPPLIER_B_OFFER",
+      "prerequisite": "Create test-only second supplier, login/tenant context",
+      "priority": "P0",
+      "assertion": "Supplier A offers and aliases unchanged; supplier B cannot access A jobs"
+    },
+    {
+      "case_id": "B03",
+      "input_file": "07_Second_Supplier.xlsx",
+      "file_row": 4,
+      "phase": "ISOLATION",
+      "scenario": "Different supplier reuses same Supplier SKU; different cost and quantity",
+      "expected_safe_behavior": "ISOLATED_SUPPLIER_B_OFFER",
+      "prerequisite": "Create test-only second supplier, login/tenant context",
+      "priority": "P0",
+      "assertion": "Supplier A offers and aliases unchanged; supplier B cannot access A jobs"
+    },
+    {
+      "case_id": "B04",
+      "input_file": "07_Second_Supplier.xlsx",
+      "file_row": 5,
+      "phase": "ISOLATION",
+      "scenario": "Different supplier reuses same Supplier SKU; different cost and quantity",
+      "expected_safe_behavior": "ISOLATED_SUPPLIER_B_OFFER",
+      "prerequisite": "Create test-only second supplier, login/tenant context",
+      "priority": "P0",
+      "assertion": "Supplier A offers and aliases unchanged; supplier B cannot access A jobs"
+    },
+    {
+      "case_id": "B05",
+      "input_file": "07_Second_Supplier.xlsx",
+      "file_row": 6,
+      "phase": "ISOLATION",
+      "scenario": "Different supplier reuses same Supplier SKU; different cost and quantity",
+      "expected_safe_behavior": "ISOLATED_SUPPLIER_B_OFFER",
+      "prerequisite": "Create test-only second supplier, login/tenant context",
+      "priority": "P0",
+      "assertion": "Supplier A offers and aliases unchanged; supplier B cannot access A jobs"
+    },
+    {
+      "case_id": "B06",
+      "input_file": "07_Second_Supplier.xlsx",
+      "file_row": 7,
+      "phase": "ISOLATION",
+      "scenario": "Different supplier reuses same Supplier SKU; different cost and quantity",
+      "expected_safe_behavior": "ISOLATED_SUPPLIER_B_OFFER",
+      "prerequisite": "Create test-only second supplier, login/tenant context",
+      "priority": "P0",
+      "assertion": "Supplier A offers and aliases unchanged; supplier B cannot access A jobs"
+    },
+    {
+      "case_id": "C02",
+      "input_file": "09_Arabic_BOM_Semicolon.csv",
+      "file_row": 2,
+      "phase": "CSV_ENCODING",
+      "scenario": "UTF-8 BOM; Arabic headers; semicolon-delimited; quoted product names",
+      "expected_safe_behavior": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+      "prerequisite": "Approved mapping profile",
+      "priority": "P0",
+      "assertion": "No mojibake; row count consistent; no unsafe fallback"
+    },
+    {
+      "case_id": "C03",
+      "input_file": "09_Arabic_BOM_Semicolon.csv",
+      "file_row": 3,
+      "phase": "CSV_ENCODING",
+      "scenario": "UTF-8 BOM; Arabic headers; semicolon-delimited; quoted product names",
+      "expected_safe_behavior": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+      "prerequisite": "Approved mapping profile",
+      "priority": "P0",
+      "assertion": "No mojibake; row count consistent; no unsafe fallback"
+    },
+    {
+      "case_id": "C04",
+      "input_file": "09_Arabic_BOM_Semicolon.csv",
+      "file_row": 4,
+      "phase": "CSV_ENCODING",
+      "scenario": "UTF-8 BOM; Arabic headers; semicolon-delimited; quoted product names",
+      "expected_safe_behavior": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+      "prerequisite": "Approved mapping profile",
+      "priority": "P0",
+      "assertion": "No mojibake; row count consistent; no unsafe fallback"
+    },
+    {
+      "case_id": "C10",
+      "input_file": "09_Arabic_BOM_Semicolon.csv",
+      "file_row": 5,
+      "phase": "CSV_ENCODING",
+      "scenario": "UTF-8 BOM; Arabic headers; semicolon-delimited; quoted product names",
+      "expected_safe_behavior": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+      "prerequisite": "Approved mapping profile",
+      "priority": "P0",
+      "assertion": "No mojibake; row count consistent; no unsafe fallback"
+    },
+    {
+      "case_id": "C13",
+      "input_file": "09_Arabic_BOM_Semicolon.csv",
+      "file_row": 6,
+      "phase": "CSV_ENCODING",
+      "scenario": "UTF-8 BOM; Arabic headers; semicolon-delimited; quoted product names",
+      "expected_safe_behavior": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+      "prerequisite": "Approved mapping profile",
+      "priority": "P0",
+      "assertion": "No mojibake; row count consistent; no unsafe fallback"
+    },
+    {
+      "case_id": "C20",
+      "input_file": "09_Arabic_BOM_Semicolon.csv",
+      "file_row": 7,
+      "phase": "CSV_ENCODING",
+      "scenario": "UTF-8 BOM; Arabic headers; semicolon-delimited; quoted product names",
+      "expected_safe_behavior": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+      "prerequisite": "Approved mapping profile",
+      "priority": "P0",
+      "assertion": "No mojibake; row count consistent; no unsafe fallback"
+    }
+  ],
+  "coverage": [
+    {
+      "stage": "File intake",
+      "scenario": "Excel valid / 20 source rows",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "All 20 rows accounted for; errors explicit",
+      "priority": "P0"
+    },
+    {
+      "stage": "Parsing",
+      "scenario": "Mixed Arabic/English text",
+      "test_file": "02_Dirty_Supplier.xlsx",
+      "expected": "No encoding corruption; preserve source names",
+      "priority": "P0"
+    },
+    {
+      "stage": "Parsing",
+      "scenario": "Arabic Indic digits and decimal",
+      "test_file": "04_Price_Stock_Edges.xlsx",
+      "expected": "Normalized only if deterministic; else review",
+      "priority": "P0"
+    },
+    {
+      "stage": "Parsing",
+      "scenario": "CSV BOM + semicolon",
+      "test_file": "09_Arabic_BOM_Semicolon.csv",
+      "expected": "Supported or explicit format-rejection; no silent row loss",
+      "priority": "P0"
+    },
+    {
+      "stage": "Parsing",
+      "scenario": "Headers reordered/renamed",
+      "test_file": "02_Dirty_Supplier.xlsx",
+      "expected": "Mapping UI asks approval; no wrong numeric column",
+      "priority": "P0"
+    },
+    {
+      "stage": "Mapping",
+      "scenario": "Unknown columns",
+      "test_file": "02_Dirty_Supplier.xlsx",
+      "expected": "Ignore unknown columns but preserve mapped fields",
+      "priority": "P0"
+    },
+    {
+      "stage": "Mapping",
+      "scenario": "Saved profile version drift",
+      "test_file": "MANUAL",
+      "expected": "Detect new fingerprint and request remapping",
+      "priority": "P0"
+    },
+    {
+      "stage": "Mapping",
+      "scenario": "Unauthorized profile reuse",
+      "test_file": "MANUAL",
+      "expected": "Supplier A map not silently reused for B",
+      "priority": "P0"
+    },
+    {
+      "stage": "Row accounting",
+      "scenario": "Identical normalized supplier SKU twice",
+      "test_file": "02_Dirty_Supplier.xlsx",
+      "expected": "Explicit duplicate row outcome",
+      "priority": "P0"
+    },
+    {
+      "stage": "Row accounting",
+      "scenario": "Invalid negative or missing values",
+      "test_file": "02_Dirty_Supplier.xlsx",
+      "expected": "Explicit rejected row outcome",
+      "priority": "P0"
+    },
+    {
+      "stage": "Row accounting",
+      "scenario": "Skip out-of-scope categories",
+      "test_file": "02_Dirty_Supplier.xlsx",
+      "expected": "Explicit skip with configured catalog scope",
+      "priority": "P0"
+    },
+    {
+      "stage": "Identity",
+      "scenario": "Same name with different variants",
+      "test_file": "03_Identity_Collisions.xlsx",
+      "expected": "No false exact match",
+      "priority": "P0"
+    },
+    {
+      "stage": "Identity",
+      "scenario": "200ml vs 200g same number",
+      "test_file": "03_Identity_Collisions.xlsx",
+      "expected": "Units must agree",
+      "priority": "P0"
+    },
+    {
+      "stage": "Identity",
+      "scenario": "Bundle vs its component",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Promo stays separate/review; no SKU identity collapse",
+      "priority": "P0"
+    },
+    {
+      "stage": "Identity",
+      "scenario": "4x15ml vs one 15ml",
+      "test_file": "03_Identity_Collisions.xlsx",
+      "expected": "Distinct pack identity",
+      "priority": "P0"
+    },
+    {
+      "stage": "Identity",
+      "scenario": "Aliased barcode contradictory brand",
+      "test_file": "03_Identity_Collisions.xlsx",
+      "expected": "Conflict wins over alias",
+      "priority": "P0"
+    },
+    {
+      "stage": "Identity",
+      "scenario": "BARCODE EAN-13 checksum",
+      "test_file": "03_Identity_Collisions.xlsx",
+      "expected": "Validate; synthetic barcodes only in isolated DB",
+      "priority": "P0"
+    },
+    {
+      "stage": "Identity",
+      "scenario": "Same product names transliterated",
+      "test_file": "02_Dirty_Supplier.xlsx",
+      "expected": "No over-confident name-only match",
+      "priority": "P0"
+    },
+    {
+      "stage": "Identity",
+      "scenario": "True manufacturer barcode unavailable",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Never synthesize an official barcode",
+      "priority": "P0"
+    },
+    {
+      "stage": "Identity",
+      "scenario": "First 20 products may already exist",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Match existing only using trusted verified identity",
+      "priority": "P0"
+    },
+    {
+      "stage": "Identity",
+      "scenario": "Across suppliers same supplier SKU",
+      "test_file": "07_Second_Supplier.xlsx",
+      "expected": "Aliases scoped to supplier, no leakage",
+      "priority": "P0"
+    },
+    {
+      "stage": "Commercial",
+      "scenario": "Purchase cost differs from official retail price",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Retail remains read-only evidence; selling price not updated",
+      "priority": "P0"
+    },
+    {
+      "stage": "Commercial",
+      "scenario": "RETAIL_REFERENCE mislabeled",
+      "test_file": "04_Price_Stock_Edges.xlsx",
+      "expected": "Never mutate purchase cost",
+      "priority": "P0"
+    },
+    {
+      "stage": "Commercial",
+      "scenario": "Currency missing/mismatched",
+      "test_file": "02_Dirty_Supplier.xlsx",
+      "expected": "No SAR default; block conversion guesses",
+      "priority": "P0"
+    },
+    {
+      "stage": "Commercial",
+      "scenario": "Negative sign in textual price",
+      "test_file": "02_Dirty_Supplier.xlsx",
+      "expected": "Preserve sign; reject negative",
+      "priority": "P0"
+    },
+    {
+      "stage": "Commercial",
+      "scenario": "Discount 15 vs 15% semantics",
+      "test_file": "02_Dirty_Supplier.xlsx",
+      "expected": "Do not infer ungrounded discount type",
+      "priority": "P0"
+    },
+    {
+      "stage": "Commercial",
+      "scenario": "Large price swing anomaly",
+      "test_file": "04_Price_Stock_Edges.xlsx",
+      "expected": "Policy-governed hold/confirmation, not arbitrary 20%",
+      "priority": "P0"
+    },
+    {
+      "stage": "Stock",
+      "scenario": "Omitted quantity",
+      "test_file": "04_Price_Stock_Edges.xlsx",
+      "expected": "Do not zero/deactivate",
+      "priority": "P0"
+    },
+    {
+      "stage": "Stock",
+      "scenario": "Explicit zero quantity",
+      "test_file": "04_Price_Stock_Edges.xlsx",
+      "expected": "Update availability per explicit policy",
+      "priority": "P0"
+    },
+    {
+      "stage": "Stock",
+      "scenario": "Pack stock vs component stock",
+      "test_file": "04_Price_Stock_Edges.xlsx",
+      "expected": "Unit-of-stock must be clear",
+      "priority": "P0"
+    },
+    {
+      "stage": "Stock",
+      "scenario": "Reported quantity vs physical hub stock",
+      "test_file": "04_Price_Stock_Edges.xlsx",
+      "expected": "Do not write hub InventoryBalance from offer",
+      "priority": "P0"
+    },
+    {
+      "stage": "Snapshot",
+      "scenario": "Incomplete feed marked FULL_SNAPSHOT",
+      "test_file": "06_Partial_Full_Snapshot.xlsx",
+      "expected": "No automatic deactivation without scope/review",
+      "priority": "P0"
+    },
+    {
+      "stage": "Snapshot",
+      "scenario": "New candidate added during snapshot",
+      "test_file": "06_Partial_Full_Snapshot.xlsx",
+      "expected": "Compute final successful SKU set before any deactivation",
+      "priority": "P0"
+    },
+    {
+      "stage": "Idempotency",
+      "scenario": "Exact same workbook bytes, renamed",
+      "test_file": "08_Exact_Replay_Bytes.xlsx",
+      "expected": "Content duplicate detected; no duplicate commit",
+      "priority": "P0"
+    },
+    {
+      "stage": "Idempotency",
+      "scenario": "Updated same 20 SKUs",
+      "test_file": "05_Reimport_Changed.xlsx",
+      "expected": "Update offer only, no extra products/SKUs",
+      "priority": "P0"
+    },
+    {
+      "stage": "Idempotency",
+      "scenario": "Retry after partial failure",
+      "test_file": "MANUAL",
+      "expected": "No double side effects/audit provenance loss",
+      "priority": "P0"
+    },
+    {
+      "stage": "Concurrency",
+      "scenario": "Two simultaneous commits of same job",
+      "test_file": "MANUAL",
+      "expected": "One winner; no duplicated side effects",
+      "priority": "P0"
+    },
+    {
+      "stage": "Security",
+      "scenario": "Supplier A reads supplier B job",
+      "test_file": "07_Second_Supplier.xlsx",
+      "expected": "403/404 and no data exposure",
+      "priority": "P0"
+    },
+    {
+      "stage": "Security",
+      "scenario": "Supplier B modifies supplier A offer",
+      "test_file": "07_Second_Supplier.xlsx",
+      "expected": "Forbidden server side",
+      "priority": "P0"
+    },
+    {
+      "stage": "AI",
+      "scenario": "Groq adapter contract",
+      "test_file": "MANUAL",
+      "expected": "Live provider only if credentials; otherwise controlled adapter PASS not live",
+      "priority": "P0"
+    },
+    {
+      "stage": "AI",
+      "scenario": "Provider timeout/invalid response",
+      "test_file": "MANUAL",
+      "expected": "Job records honest failure and permits retry",
+      "priority": "P0"
+    },
+    {
+      "stage": "Research",
+      "scenario": "Source URL/verification/provenance",
+      "test_file": "Oracle_Product_References",
+      "expected": "Facts tied to explicit sources, not supplier price inference",
+      "priority": "P0"
+    },
+    {
+      "stage": "Ingredients",
+      "scenario": "Actives vary across facial wash skin types",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "No cross-variant active transfer without evidence",
+      "priority": "P0"
+    },
+    {
+      "stage": "Ingredients",
+      "scenario": "Concentration not published",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Unknown is unknown; no fabricated concentration",
+      "priority": "P0"
+    },
+    {
+      "stage": "Ingredients",
+      "scenario": "Reviewed link to ProductIngredient",
+      "test_file": "MANUAL",
+      "expected": "Approved ingredient links persisted; no candidate-only JSON",
+      "priority": "P0"
+    },
+    {
+      "stage": "Care",
+      "scenario": "Product concerns vs Concern ontology",
+      "test_file": "MANUAL",
+      "expected": "Only approved supported mapping; no invented skin conditions",
+      "priority": "P1"
+    },
+    {
+      "stage": "Care",
+      "scenario": "Haircare vs skincare routine instructions",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Correct routine domain; no facial advice for shampoo",
+      "priority": "P0"
+    },
+    {
+      "stage": "Care",
+      "scenario": "AM/PM assignment grounded",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Day cream/night cream grounded, otherwise review",
+      "priority": "P1"
+    },
+    {
+      "stage": "Care",
+      "scenario": "Routine suggestions vs persisted steps",
+      "test_file": "MANUAL",
+      "expected": "Public reader sees reviewed data not orphaned JSON",
+      "priority": "P1"
+    },
+    {
+      "stage": "Content",
+      "scenario": "Draft approved vs public projection",
+      "test_file": "MANUAL",
+      "expected": "Approved fields actually shown; public claim evidence",
+      "priority": "P0"
+    },
+    {
+      "stage": "Content",
+      "scenario": "Unverified safety/medical claims",
+      "test_file": "MANUAL",
+      "expected": "Never assert dermatological tested authenticity without sources",
+      "priority": "P0"
+    },
+    {
+      "stage": "Media",
+      "scenario": "Provided promo image covers TWO products",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Valid for promo only; not standalone main image",
+      "priority": "P0"
+    },
+    {
+      "stage": "Media",
+      "scenario": "SKU image not available",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Candidate and supplier offer stages proceed; storefront blocked",
+      "priority": "P0"
+    },
+    {
+      "stage": "Media",
+      "scenario": "Brand/Line optional missing image",
+      "test_file": "MANUAL",
+      "expected": "Do not block ingestion",
+      "priority": "P0"
+    },
+    {
+      "stage": "Publish",
+      "scenario": "No auto publish for new candidates",
+      "test_file": "MANUAL",
+      "expected": "Unpublished until reviewed + price + image + listing + availability",
+      "priority": "P0"
+    },
+    {
+      "stage": "Publish",
+      "scenario": "Validation parity preview/commit",
+      "test_file": "MANUAL",
+      "expected": "Same authoritative validator at both points",
+      "priority": "P0"
+    },
+    {
+      "stage": "Publish",
+      "scenario": "Fresh supplier confirmation vs observation",
+      "test_file": "MANUAL",
+      "expected": "Import alone not proof of lastConfirmedAt",
+      "priority": "P0"
+    },
+    {
+      "stage": "Catalog",
+      "scenario": "Product vs SKU hierarchy",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Do not conflate variants/pack variants",
+      "priority": "P0"
+    },
+    {
+      "stage": "Catalog",
+      "scenario": "Brand/line canonicalization",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Eva Skin Care and Aloe Eva mapped only with verified taxonomy",
+      "priority": "P1"
+    },
+    {
+      "stage": "Catalog",
+      "scenario": "Physical supplier info not part of SKU identity",
+      "test_file": "01_Baseline_20.xlsx",
+      "expected": "Supplier SKU never used as globally unique SKU",
+      "priority": "P0"
+    },
+    {
+      "stage": "Operational",
+      "scenario": "Real-time UI vs DB state",
+      "test_file": "MANUAL",
+      "expected": "Page refresh reflects server-confirmed writes",
+      "priority": "P1"
+    },
+    {
+      "stage": "Operational",
+      "scenario": "No sandbox credentials committed",
+      "test_file": "MANUAL",
+      "expected": "Fixture artifact contains no secrets",
+      "priority": "P0"
+    }
+  ],
+  "state_warning": "Oracle values are abstract test expectations, not confirmed API enums."
+}

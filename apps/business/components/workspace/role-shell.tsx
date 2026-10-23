@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Skeleton, StateBlock } from '@/components/bw/primitives'
-import { type Role, WorkspaceFrame } from '@/components/bw/workspace-frame'
+import { type Role, type WorkspaceMode, WorkspaceFrame } from '@/components/bw/workspace-frame'
 import { type StaffRole, type WorkspaceMe, homeFor, useSession } from '@/lib/session'
 
 const MeContext = React.createContext<WorkspaceMe | null>(null)
@@ -28,7 +28,7 @@ const REQUIRED: Record<Role, StaffRole[]> = {
 export function RoleShell({
   role,
   active,
-  mode,
+  mode = 'responsive',
   counts,
   task,
   exitHref,
@@ -36,7 +36,7 @@ export function RoleShell({
 }: {
   role: Role
   active: string
-  mode: 'desktop' | 'mobile' | 'task'
+  mode?: WorkspaceMode
   counts?: Record<string, number | undefined>
   /** Task mode (scanner station): the task name and where "exit task" returns. */
   task?: string
