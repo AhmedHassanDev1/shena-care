@@ -428,7 +428,7 @@ leaves 4 candidate test images (+ meta) in the local scratch storage directory o
 | **Bypass (fixed)** | `POST /sourcing/offers` let a SUPPLIER link itself to any active canonical SKU with no identity review. |
 | **Gap (fixed)** | `commitCandidateOffer` / `assertCandidateOfferSafe` used receipt time for staleness and had no FINANCIAL_HOLD. |
 | **Gap (owner decision)** | Ranking weights let reliability/freshness outweigh cost — see below. |
-| **Gap (migration)** | `SupplierOffer` has no MOQ, pack size/price basis, bonus/discount, landed fees, offer revision history or separate cost vs quantity observation times. |
+| **Gap (migration)** | `SupplierOffer` has no MOQ, pack size/price basis, bonus/discount, offer revision history or separate cost vs quantity observation times. |
 
 **Fixed (no migration):**
 - `offer-batch-commit.service.ts`: `candidateOfferReview` — the candidate path now uses `assessSourceFreshness` against the row
@@ -462,8 +462,8 @@ leaves 4 candidate test images (+ meta) in the local scratch storage directory o
    (available, fresh, active, reliability above an owner-set floor), then lowest comparable unit cost, ties by freshness then
    reliability. This changes PO allocation, so it needs approval.
 2. **Migration (needs authorization):** `SupplierOffer` terms — `moq`, `units_per_pack` + price basis, bonus/discount terms,
-   landed fee fields — plus a `supplier_offer_revisions` audit table and separate `cost_observed_at` / `quantity_observed_at`.
-   Without these, the MOQ, carton-vs-piece, bonus and landed-cost scenarios cannot pass; they are **BLOCKED**, not passed.
+   (landed/delivery cost is NOT included: no Hub transport-cost source exists) — plus a `supplier_offer_revisions` audit table and separate `cost_observed_at` / `quantity_observed_at`.
+   Without these, the MOQ, carton-vs-piece and bonus scenarios cannot pass (landed cost needs its own design); they are **BLOCKED**, not passed.
 3. **Stock feed → `lastConfirmedAt`.** Today only `confirm-availability` makes an offer storefront-available.
 4. **Direct-edit hold UX.** Held direct edits are refused (not queued); the supplier must send a price file, which lands in review.
    Alternative: queue them as review items (needs the revision table above).
@@ -481,18 +481,20 @@ browser evidence (owner's Business files) open.
 2. Order: suppliers with confirmation reliability ≥ 0.5 (or < 5 PO lines of history) first, then **lowest cost**, then
    higher reliability, then fresher observation. Low-reliability suppliers stay as fallbacks (`LOW_CONFIRMATION_RELIABILITY`).
 3. Not yet possible without the offer-terms migration: MOQ/order-multiple feasibility, trade-pack normalization, bonus/
-   discount effective cost, landed fees, delivery SLA (no lead-time data exists). These remain **BLOCKED (migration)**.
+   discount effective cost, delivery SLA / landed cost (no lead-time data exists). These remain **BLOCKED (migration)**.
 Evidence: `ranking.service.spec.ts` 24/24 (Linear cases: 180/165/150-stale → 165, 180; 180-reliable vs 100-new → 100;
 100/102/800 → 800 flagged last; 100/102/30 and 100 vs 40 → cheap quote held; single offer unflagged; EGP vs SAR not
 compared; low-reliability cheaper supplier ranks behind but stays fallback); g08 e2e ranking case on Supabase.
 
-**Availability layers (stock feed decision):** catalog/PDP sellability still requires a fresh supplier **confirmation**
-(`getPublicAvailability`, unchanged contract); cart/checkout's provisional availability (`checkAvailability`) previously
-accepted **any** available offer regardless of age — it now requires a fresh signal (confirmation or feed/edit observation
-inside `SUPPLIER_AVAILABILITY_MAX_AGE_HOURS`, default 24 h); quantity actually committed is confirmed per PO (unchanged).
-Ingestion never sets `lastConfirmedAt`. Evidence: g08 e2e "treats a supplier feed as a provisional signal" — feed offer has
-`lastConfirmedAt = null`, provisional = true, confirmed = false, public availability false; after 48 h without a signal,
-provisional = false.
+**Availability — superseded by the single policy below (2026-10-23, Final Closure):** PDP, cart, checkout and substitute
+offers now all read `SourcingService.getPurchaseAvailability` (`availability-policy.ts`): `CONFIRMED` (supplier confirmation inside
+`SUPPLIER_AVAILABILITY_MAX_AGE_HOURS`, default 24) · `PROVISIONAL` (feed/edit signal only) · `UNAVAILABLE`. By default only
+`CONFIRMED` is orderable (the storefront contract that already shipped); `SUPPLIER_PROVISIONAL_ORDERABLE=true` makes a fresh
+signal orderable on every surface at once. Sourcing keeps one shared 7-day procurement window (`SOURCING_SIGNAL_MAX_AGE_MS`,
+previously hard-coded in four places). Ingestion never sets `lastConfirmedAt`. Evidence: 7 pure-policy unit cases + g08 e2e
+(feed → PROVISIONAL, not orderable, expires after 48 h; switch on → orderable everywhere; confirmation → CONFIRMED) 8/8 on
+Supabase with identical fingerprints. **Owner decision still open:** the default of the switch. **Not covered:** guidance/
+recommendations use `evaluateSellability` (no supplier input) and can recommend a product the cart refuses.
 
 **SupplierOffer terms migration — DRAFT, NOT APPLIED:** `docs/operations/drafts/g08-supplier-offer-terms.migration.sql`
 (additive: 15 nullable columns on `sourcing.supplier_offers` + append-only `sourcing.supplier_offer_revisions` + CHECKs) and
@@ -503,6 +505,55 @@ and is explicitly not a manufacturer bundle (bundles are their own catalog SKUs)
 2026-10-23: PostgreSQL 17.11, 57 migrations applied, none failed/pending, no column/table/constraint name collisions,
 0 offers with non-positive cost, `supplier_offers` 104 kB (ADD COLUMN without default is metadata-only). **Awaiting owner
 approval to apply.**
+
+## Final Closure pass (2026-10-23) — audits requested after Gate 09
+
+**1. Push readiness of the 6 unpushed commits** (`origin/feat/c0-commerce-integration..HEAD`: `9c22bf7`, the owner's earlier P0
+commit, plus `32d4753`, `7c43702`, `3e786fe`, `87f6eba`, `1dac140`; 72 files):
+- Scope: no path under `apps/business`, `apps/web`, the four owner scripts, `eva-stress-pack` or `egg-info`; the tested tree equals the committed tree.
+- Secrets: pattern scan of every added line (DB URLs with passwords, JWT/service-role, `sk-`/AWS keys, PEM) found only the localhost
+  placeholder in `.env.test.example`; no `.env*` file is tracked. **Review before pushing to a shared remote:** this report names the
+  Supabase project ref `cluidtctwgxxhybzftft` and the pooler host (identifiers, not credentials); redact them if the GitHub repo is not private.
+- Migration checksums vs `_prisma_migrations` on Supabase (read-only): 57 local = 57 applied, none failed, pending or unknown. The 5
+  migrations whose committed blob matches (`p0_*`, `g01`, `g07`) are byte-identical. The other 52 match only as CRLF (they were applied
+  from Windows working copies) while git stores LF (`core.autocrlf=true`), so a Linux/CI checkout hashes them differently. This is
+  pre-existing and not caused by these commits; `migrate deploy` does not re-verify applied checksums, `migrate dev` would warn.
+  Do not add `.gitattributes eol=lf` for `*.sql` without a decision: it would move the mismatch to Windows checkouts.
+- Not pushed: awaiting the owner's go-ahead.
+
+**2. OUT_OF_SCOPE vs the golden set (no skip because a brand is unknown).** The rule never reads the brand when skipping (a skip needs
+an excluded product word and no skincare/haircare word); an unknown brand with an unrecognised type is a REVIEW. Measured:
+- EVA pack (119 rows, oracle-labelled): 0 skipped; 36 over-held (every "Facial/Face Wash": the keyword list had no "wash").
+- Independent golden set written for this pass (`test/unit/g09-scope-golden.spec.ts`): **11 of 20 in-scope products were false-skipped**
+  ("Perfume Free Face Wash", "Eye Bag Reducing Gel", "Under Eye Bags Patches", "After Razor Burn Soothing Gel", "Lipstick & Mascara
+  Makeup Remover Wipes", "Heat Protectant Spray For Hair Dryer…", "Foundation Repair Barrier Wash", "Baby Face Wash Perfume Free", …).
+  Cause: an excluded word qualified the product instead of naming it, with no listed keyword to rescue the row.
+- Fix (`row-normalization.service.ts`): an excluded word in a negating or qualifying context ("<x> free", "free of/without <x>",
+  "<x> remover", "remover for <x>", "for <x>", "eye <x>", "<x> burn/bump/rash", Arabic خالي من / بدون / مزيل / ضد / عين) no longer
+  counts. Skincare keywords gain wash, facial, foam, mist, essence, patch, makeup remover (bare "gel" is deliberately not added: it
+  would stop "Nail Polish Gel" being skipped). Result: false skips **0/20**; true out-of-scope goods (appliances, electronics,
+  makeup, fragrance, food, clothing; EN and AR, 16 cases) are still skipped for every brand, including a known one; EVA pack
+  116/119 eligible, and the 3 held rows are the deodorant, the "outside scope" placeholder and the arbitrary kit, exactly the
+  oracle's expected holds.
+- Gate 09's 50 OUT_OF_SCOPE rows were "Hair Dryer 1200W" (`excluded_type:hair dryer`, independent of `G09 Brand`): correct skips.
+- **Oracle conflict:** EVA oracle case D27 expects an unrecognised brand/line to be SKIPPED with a reason; the owner rule and the
+  code HOLD it for review. Treat D27 as superseded.
+- Residual risk: skip lists are still keyword lists and cannot be measured further without real data. Every OUT_OF_SCOPE row of the
+  real pilot must be human-reviewed (pilot step 3). Unit 335/335 (38 new golden); SG-03 fixtures (food, electronics) are unaffected
+  (read, not re-run on Supabase).
+
+**3. UI contracts and pilot checklist:** `docs/operations/supplier-ingestion-ui-contracts-and-pilot.md` (mapping approval, evidence,
+packshot, approve/publish, availability, 13-step pilot with the evidence required per step). Defects found by reading the Business UI:
+the supplier wizard posts a mapping without `semantics` and then shows an empty diff (the job is silently waiting for approval);
+no screen calls `profiles/:id/approve`; the admin "Approve" sends `{}`, which cannot approve a new product (no media review).
+
+**4. Offer-terms migration review:** findings R1–R10 are written into the draft file itself: an unrepresentable carton division must
+hold for review, not be rounded; whole-pack ordering via `order_multiple_units`; a single discount tier only; the exact bonus
+formula; landed cost is out of scope (the earlier report text claiming "landed fee fields" was wrong and is corrected); history is
+append-only by convention because a blocking trigger would break the FK's own SET NULL; `schema.prisma` must change in the same
+commit. A rollback block was added. **Still not applied.**
+
+**5. Availability:** see "Availability — superseded" in Gate 08 above and contract C5 in the UI contracts doc.
 
 ## GLO-281 — Gate 09 Scale, Reconciliation, Concurrency & GO/NO-GO
 
@@ -628,10 +679,41 @@ no orphan state from failed/replayed commits, no destructive test on Supabase (f
 9. ~~1,000-row batch commit exceeded its transaction; concurrent commit → 500 (Gate 09)~~ — set-based commit, verified at 1,000 rows.
 10. Admin/supplier UI cannot complete mapping approval or candidate approval/publication (owner Business files).
 11. Offer terms (MOQ/pack/bonus/discount) not persisted — draft migration awaiting approval.
+12. ~~In-scope skincare products skipped as OUT_OF_SCOPE (11/20 in the golden set)~~ — fixed, 0/20, 16/16 true exclusions kept (unit-verified; Supabase SG-03 re-run pending).
+13. Availability: PDP/cart/checkout/substitutes unified; guidance still ignores supplier availability; provisional-ordering default is an owner decision.
 
-## Next safe action
-1. Owner: approve (or amend) `docs/operations/drafts/g08-supplier-offer-terms.migration.sql`; then persist terms from
-   files and wire MOQ/pack feasibility + effective cost into the ranking filters.
-2. Owner: Business UI — mapping-profile approval screen; candidate approval with evidence/packshot upload and `mediaReviews`.
-3. Owner data: brand/line allowlist; one authentic export per launch supplier format; 10–20 SKU pilot with real packshots.
-4. Engineering: batch the per-row identity sweep (≈4 DB ops/row) before large real files.
+## Closure plan (prioritized, from the unresolved acceptance criteria only)
+
+**Current verdict:** technical backend PASS on synthetic data; real-supplier pilot BLOCKED; production NO-GO. No Linear issue is Done.
+
+### P0 — blocks the pilot (each is a hard dependency of the next)
+| # | Work | Owner | Linear | Done when |
+|---|---|---|---|---|
+| 1 | Business UI: mapping-profile approval screen + supplier wizard "awaiting approval" state and `semantics` (contract C1) | owner (Business files) | 273, 274 | admin approves a real proposal from the UI; supplier sees why the preview is empty before approval |
+| 2 | Business UI: evidence → packshot upload → `mediaReviews` approve → publish (contracts C2–C4) | owner (Business files) | 279, 280 | a new product is approved and published from the UI with a verified packshot; errors rendered verbatim |
+| 3 | Owner data: brand/line allowlist (versioned), 1+ authentic export per launch supplier format, column meanings, 10–20 SKUs with authentic packshots | owner | 275, 281 | files + decisions delivered; allowlist loaded (needs a small design: list + where it is enforced) |
+| 4 | Owner decision: approve or amend `g08-supplier-offer-terms.migration.sql`; then persist terms from files and wire MOQ/pack/discount/bonus into the ranking filters (existing engine) | owner → engineer | 277, 280 | MOQ, carton-vs-piece and bonus scenarios pass in e2e, not BLOCKED |
+| 5 | Owner decision: `SUPPLIER_PROVISIONAL_ORDERABLE` default (customers may order on a feed signal, or only on supplier confirmation) | owner | 280 | decision recorded; pilot step 10 uses it |
+
+### P1 — before volume or a second supplier
+| # | Work | Linear |
+|---|---|---|
+| 6 | Batch the identity sweep (≈4 DB ops/row today; 1,000 rows ≈ 10 min from a remote workstation) | 276, 281 |
+| 7 | Guidance/recommendations must consult the same availability answer (composition-level, module boundary respected) | 280 |
+| 8 | Per-supplier refresh cadence + stale-supplier alerts (owner-configured), configurable price-jump threshold | 277 |
+| 9 | Research cache invalidation on formulation/market change; Brand/Line/Ingredient draft reuse audit | 279 |
+| 10 | Cloudinary `copyToPublic` idempotency on publish retry; recovery queue instead of retry-only convergence | 280 |
+| 11 | pg_trgm indexed retrieval + alias provenance (migration, needs approval); bilingual gold set from real supplier names | 276 |
+| 12 | Mapping "reject proposal" endpoint; retention/deletion policy for retained originals | 274, 273 |
+
+### P2 — acceptance evidence still missing
+| # | Work | Linear |
+|---|---|---|
+| 13 | Playwright role flows (supplier upload → admin review → publish → storefront 390/1440 px, AR first) | 281 |
+| 14 | Live (not stubbed) provider research on a cost-capped consented sample; AI mapping/disambiguation endpoints only if the owner wants them | 274, 276, 279, 281 |
+| 15 | Legacy storefront suites (cart, checkout, product-discovery, product-readiness, availability-resolution) re-run on Supabase after the availability change — needs approval because several legacy suites leaked rows before | 280 |
+
+### Do-not-do list (kept out of scope on purpose)
+No second ranking/catalog/pricing engine · no landed-cost model without a transport-cost source · no auto-confirmation from feeds · no
+brand-based skipping · no AI-generated packshots · no `.gitattributes` line-ending change · no push until the owner says so.
+

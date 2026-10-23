@@ -16,6 +16,32 @@
 --   * cost_observed_at / quantity_observed_at separate price freshness from stock freshness; source_observed_at is the
 --     supplier-reported row time (advisory); terms_source records who stated the terms.
 
+--
+-- REVIEW NOTES (2026-10-23, before approval) — read these first
+--   R1 Rounding. cost_price is DECIMAL(10,2); a carton price that does not divide into whole piastres (130 / 3 = 43.3333) must
+--      NOT be rounded silently: the importer holds such a row for review (reason pack_cost_not_representable). Exact
+--      per-unit cost is quoted_cost / trade_pack_units; cost_price is only written when the division is exact at 2 dp.
+--   R2 Whole-pack ordering. A PER_TRADE_PACK price means the supplier sells whole packs: the importer sets
+--      order_multiple_units = trade_pack_units unless the file states otherwise. Ranking treats quantities that are not a
+--      multiple of order_multiple_units, or below minimum_order_units, as infeasible (offer kept, not selected).
+--   R3 One discount tier only. discount_percent + discount_min_units encodes a single volume tier. A file with several tiers
+--      is held for review rather than guessed; a tier table can be added later without touching these columns.
+--   R4 Bonus. bonus_paid_units/bonus_free_units = "buy 10 get 2". Free units lower the effective cost only for the whole
+--      multiples actually ordered and are NEVER counted as available stock.
+--        for q wanted units: freeUnits = floor(q / (paid + free)) * free; paidUnits = q - freeUnits;
+--        effective unit cost = paidUnits * unit_cost / q (computed in code, not stored; stored values stay the stated terms).
+--   R5 Landed cost is OUT OF SCOPE of this migration: there is no Hub transport/fee cost source in the system, so no fee
+--      columns are added. Ranking compares ex-supplier unit cost; a landed-cost model needs its own owner-approved design.
+--   R6 Trade packs vs manufacturer bundles. trade_pack_units is the supplier case of N IDENTICAL sellable units. A customer
+--      bundle ("Night Cream + Free Wash") is its own catalog SKU with its own barcode and never a trade pack.
+--   R7 History is append-only by convention (written inside the same transaction as the offer change). No UPDATE/DELETE
+--      trigger is added: the FK ON DELETE SET NULL itself performs an UPDATE on this table, so a blocking trigger would
+--      make offers undeletable.
+--   R8 NOT VALID/VALIDATE is unnecessary: supplier_offers has 23 rows (104 kB), so the CHECK scan is instantaneous.
+--   R9 schema.prisma must change in the SAME commit as this migration (new columns + SupplierOfferRevision model); the
+--      final check is "prisma migrate diff --from-migrations ... --to-schema-datamodel" reporting no difference.
+--   R10 Backfill: none. Existing offers keep NULL terms (= no stated terms, behave exactly as today).
+--
 -- AlterTable
 ALTER TABLE "sourcing"."supplier_offers"
 ADD COLUMN     "quoted_cost" DECIMAL(12,2),
@@ -77,3 +103,15 @@ ALTER TABLE "sourcing"."supplier_offers" ADD CONSTRAINT "supplier_offers_terms_v
 );
 ALTER TABLE "sourcing"."supplier_offer_revisions" ADD CONSTRAINT "supplier_offer_revisions_source_valid"
   CHECK (source IN ('SUPPLIER_FILE', 'SUPPLIER_PORTAL', 'STAFF', 'CANDIDATE_PUBLISH'));
+
+-- ROLLBACK (only if the migration must be withdrawn; run in one transaction after reverting the code that writes terms):
+--   BEGIN;
+--   DROP TABLE IF EXISTS "sourcing"."supplier_offer_revisions";
+--   ALTER TABLE "sourcing"."supplier_offers" DROP CONSTRAINT IF EXISTS "supplier_offers_terms_valid",
+--     DROP COLUMN IF EXISTS "quoted_cost", DROP COLUMN IF EXISTS "quoted_cost_basis", DROP COLUMN IF EXISTS "trade_pack_units",
+--     DROP COLUMN IF EXISTS "minimum_order_units", DROP COLUMN IF EXISTS "order_multiple_units", DROP COLUMN IF EXISTS "discount_percent",
+--     DROP COLUMN IF EXISTS "discount_min_units", DROP COLUMN IF EXISTS "bonus_paid_units", DROP COLUMN IF EXISTS "bonus_free_units",
+--     DROP COLUMN IF EXISTS "terms_valid_until", DROP COLUMN IF EXISTS "reported_quantity", DROP COLUMN IF EXISTS "cost_observed_at",
+--     DROP COLUMN IF EXISTS "quantity_observed_at", DROP COLUMN IF EXISTS "source_observed_at", DROP COLUMN IF EXISTS "terms_source";
+--   DELETE FROM "_prisma_migrations" WHERE migration_name = '2026102XXXXXXX_g08_supplier_offer_terms';
+--   COMMIT;
