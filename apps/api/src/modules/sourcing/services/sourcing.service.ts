@@ -7,6 +7,9 @@ import {
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
 import { CommerceService } from '../../commerce/public';
+import {
+  PurchaseAvailability, customerAvailabilityWindowMs, provisionalOrderingEnabled, resolvePurchaseAvailability,
+} from './availability-policy';
 import { CreateSupplierDto, UpdateSupplierDto } from '../dto/supplier.dto';
 import { CreateSupplierOfferDto, UpdateSupplierOfferDto } from '../dto/supplier-offer.dto';
 
@@ -268,53 +271,34 @@ export class SourcingService {
   // Availability Resolution (GLO-106)
   // ---------------------------------------------------------------------------
 
-  private availabilityMaxAgeMs(): number {
-    const configured = Number(process.env.SUPPLIER_AVAILABILITY_MAX_AGE_HOURS ?? 24);
-    if (!Number.isFinite(configured) || configured <= 0 || configured > 720)
-      throw new Error('Invalid supplier availability freshness configuration');
-    return configured * 3600000;
-  }
-
   /**
-   * Provisional purchase availability (cart/checkout): an available offer from an active supplier with a FRESH signal —
-   * a supplier confirmation or a supplier feed/edit observation inside the availability window. A feed row is a signal,
-   * not a reservation or a confirmation (GLO-280 owner decision): it never sets `lastConfirmedAt`, and the quantity a
-   * supplier actually commits is confirmed per purchase order. `requireConfirmation` accepts only a fresh confirmation.
+   * THE customer-facing availability answer (see availability-policy.ts). A supplier feed row is a signal, never a
+   * confirmation (it does not set `lastConfirmedAt`), and the quantity a supplier commits is confirmed per purchase
+   * order. Whether a signal alone is orderable is one owner-controlled switch, not per-surface logic.
    */
-  async checkAvailability(skuId: string, requireConfirmation = false): Promise<boolean> {
-    if (!this.isUuid(skuId)) return false;
-    const since = new Date(Date.now() - this.availabilityMaxAgeMs());
-
-    const offer = await this.prisma.supplierOffer.findFirst({
-      where: {
-        skuId,
-        isAvailable: true,
-        ...(requireConfirmation
-          ? { lastConfirmedAt: { gte: since } }
-          : { OR: [{ lastConfirmedAt: { gte: since } }, { lastObservedAt: { gte: since } }] }),
-        supplier: {
-          isActive: true,
-        },
-      },
-    });
-
-    return !!offer;
-  }
-
-  /**
-   * Public projection deliberately excludes supplier identity and procurement cost. Catalog sellability is backed by a
-   * fresh supplier CONFIRMATION only; a feed observation alone never makes a product publicly available.
-   */
-  async getPublicAvailability(skuId: string, at = new Date()) {
-    const maxAgeMs = this.availabilityMaxAgeMs();
-    const offer = await this.prisma.supplierOffer.findFirst({
-      where: { skuId, isAvailable: true, supplier: { isActive: true }, lastConfirmedAt: { not: null, lte: at } },
-      orderBy: [{ lastConfirmedAt: 'desc' }, { id: 'asc' }],
+  async getPurchaseAvailability(skuId: string, at = new Date()): Promise<PurchaseAvailability> {
+    const offers = this.isUuid(skuId) ? await this.prisma.supplierOffer.findMany({
+      where: { skuId, isAvailable: true, supplier: { isActive: true } },
       select: { lastConfirmedAt: true, lastObservedAt: true },
-    });
-    const confirmedAt = offer?.lastConfirmedAt ?? null;
-    const validUntil = confirmedAt ? new Date(confirmedAt.getTime() + maxAgeMs) : null;
-    const isFresh = !!validUntil && validUntil > at;
-    return { isAvailable: isFresh, isFresh, confirmedAt, observedAt: offer?.lastObservedAt ?? null, validUntil };
+    }) : [];
+    return resolvePurchaseAvailability(offers, at, customerAvailabilityWindowMs(), provisionalOrderingEnabled());
+  }
+
+  /** Cart / checkout / substitute gate: same answer as the product page. */
+  async checkAvailability(skuId: string): Promise<boolean> {
+    return (await this.getPurchaseAvailability(skuId)).orderable;
+  }
+
+  /** Public projection deliberately excludes supplier identity and procurement cost. */
+  async getPublicAvailability(skuId: string, at = new Date()) {
+    const availability = await this.getPurchaseAvailability(skuId, at);
+    return {
+      isAvailable: availability.orderable,
+      isFresh: availability.state === 'CONFIRMED',
+      state: availability.state,
+      confirmedAt: availability.confirmedAt,
+      observedAt: availability.observedAt,
+      validUntil: availability.validUntil,
+    };
   }
 }

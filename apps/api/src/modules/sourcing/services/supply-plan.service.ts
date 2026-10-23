@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma, SourceConfirmationResult, SupplyPlanStatus } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { RankingService } from './ranking.service';
+import { SOURCING_SIGNAL_MAX_AGE_MS } from './availability-policy';
 import { OutboxService } from '../../operations/services/outbox.service';
 
 type Tx = Prisma.TransactionClient;
@@ -72,7 +73,7 @@ export class SupplyPlanService {
         if (pending?.poLink) continue;
         if (pending) {
           const offer = await tx.supplierOffer.findUnique({ where: { id: pending.supplierOfferId }, include: { supplier: true } });
-          const stale = !offer || Date.now() - offer.lastObservedAt.getTime() > 7 * 24 * 3600 * 1000;
+          const stale = !offer || Date.now() - offer.lastObservedAt.getTime() > SOURCING_SIGNAL_MAX_AGE_MS;
           if (offer?.isAvailable && offer.supplier.isActive && !stale &&
               offer.costPrice.equals(pending.selectedCost) && offer.currency === pending.selectedCurrency) continue;
           await tx.sourceAllocation.update({ where: { id: pending.id }, data: {
@@ -94,7 +95,7 @@ export class SupplyPlanService {
           // Ranking owns selection; verify the winning offer again under the order lock.
           const offer = await tx.supplierOffer.findUnique({ where: { id: candidate.id }, include: { supplier: true } });
           if (!offer?.isAvailable || !offer.supplier.isActive ||
-              Date.now() - offer.lastObservedAt.getTime() > 7 * 24 * 3600 * 1000 ||
+              Date.now() - offer.lastObservedAt.getTime() > SOURCING_SIGNAL_MAX_AGE_MS ||
               !offer.costPrice.equals(candidate.costPrice) || offer.currency !== candidate.currency) continue;
           await tx.sourceAllocation.create({ data: {
             requirementId: requirement.id, supplierOfferId: offer.id, requestedQuantity: remaining,
@@ -175,7 +176,7 @@ export class SupplyPlanService {
       const costChanged = !allocation.supplierOffer.costPrice.equals(allocation.selectedCost) ||
         allocation.supplierOffer.currency !== allocation.selectedCurrency;
       const offerUnavailable = !allocation.supplierOffer.isAvailable || !allocation.supplierOffer.supplier.isActive ||
-        Date.now() - allocation.supplierOffer.lastObservedAt.getTime() > 7 * 24 * 3600 * 1000;
+        Date.now() - allocation.supplierOffer.lastObservedAt.getTime() > SOURCING_SIGNAL_MAX_AGE_MS;
       if ((costChanged || offerUnavailable) &&
           (input.result === 'confirmed_full' || input.result === 'confirmed_partial')) {
         await tx.sourceAllocation.update({ where: { id: allocationId }, data: {

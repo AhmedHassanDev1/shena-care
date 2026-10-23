@@ -22,6 +22,8 @@ export class PublicPriceDto {
 export class PublicAvailabilityDto {
   @ApiProperty() isAvailable: boolean;
   @ApiProperty() isFresh: boolean;
+  /** CONFIRMED = a supplier confirmed within the window; PROVISIONAL = only a feed signal; UNAVAILABLE otherwise. */
+  @ApiProperty({ enum: ['CONFIRMED', 'PROVISIONAL', 'UNAVAILABLE'] }) state: 'CONFIRMED' | 'PROVISIONAL' | 'UNAVAILABLE';
   @ApiProperty({ type: String, format: 'date-time', nullable: true }) confirmedAt: string | null;
   @ApiProperty({ type: String, format: 'date-time', nullable: true }) observedAt: string | null;
   @ApiProperty({ type: String, format: 'date-time', nullable: true }) validUntil: string | null;

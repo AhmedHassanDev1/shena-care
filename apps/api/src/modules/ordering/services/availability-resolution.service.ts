@@ -6,7 +6,7 @@ import { AvailabilityDecision, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
 import { CommerceService } from '../../commerce/public';
-import { SupplyPlanService } from '../../sourcing/public';
+import { SourcingService, SupplyPlanService } from '../../sourcing/public';
 import {
   AvailabilityActionName, AvailabilityCandidateDto, AvailabilityDecisionDto, AvailabilityReceiptDto,
   SubmitAvailabilityDecisionDto,
@@ -49,6 +49,7 @@ export class AvailabilityResolutionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly supplyPlan: SupplyPlanService,
+    private readonly sourcing: SourcingService,
     private readonly commerce: CommerceService,
     private readonly catalog: CatalogService,
     private readonly outbox: OutboxService,
@@ -142,7 +143,8 @@ export class AvailabilityResolutionService {
       if (sku.id === item.skuId || !sku.isActive) continue;
       const terms = await this.commerce.getSellingTerms(sku.id);
       if (!terms?.canOrder || !terms.price || terms.price.currency !== orderCurrency) continue;
-      if (!(await this.supplyPlan.canSupply(sku.id, item.quantity))) continue;
+      // A substitute must be purchasable by the same rule as the product page and cart, and sourceable.
+      if (!(await this.sourcing.checkAvailability(sku.id)) || !(await this.supplyPlan.canSupply(sku.id, item.quantity))) continue;
       result.push({
         skuId: sku.id, skuCode: sku.code, variantName: sku.variantName, size: sku.size, sizeUnit: sku.sizeUnit,
         unitPrice: terms.price.amount, compareAtAmount: terms.price.compareAtAmount, currency: terms.price.currency,
@@ -280,7 +282,8 @@ export class AvailabilityResolutionService {
         if (!candidate) throw new BadRequestException('Candidate was not proposed for this decision');
         const terms = await this.commerce.getSellingTerms(candidate.skuId);
         if (!terms?.canOrder || !terms.price || terms.price.amount !== candidate.unitPrice ||
-            terms.price.currency !== candidate.currency || !(await this.supplyPlan.canSupply(candidate.skuId, item.quantity))) {
+            terms.price.currency !== candidate.currency || !(await this.sourcing.checkAvailability(candidate.skuId)) ||
+            !(await this.supplyPlan.canSupply(candidate.skuId, item.quantity))) {
           await tx.availabilityDecision.update({ where: { id: fresh.id }, data: { status: 'review_required' } });
           return { kind: 'review' as const };
         }

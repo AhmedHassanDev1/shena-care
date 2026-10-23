@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { SupplierOfferDetail } from './sourcing.service';
+import { SOURCING_SIGNAL_MAX_AGE_MS } from './availability-policy';
 
 export interface RankedOffer extends SupplierOfferDetail {
   score: number;
@@ -46,7 +47,7 @@ const median = (values: number[]) => {
  */
 @Injectable()
 export class RankingService {
-  private readonly STALE_THRESHOLD_DAYS = 7;
+  private readonly STALE_THRESHOLD_DAYS = SOURCING_SIGNAL_MAX_AGE_MS / (24 * 3600 * 1000);
 
   constructor(private readonly prisma: PrismaService) {}
 
