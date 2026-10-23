@@ -41,6 +41,16 @@ const SKINCARE_KEYWORDS = [
   'ceramide',
   'cica',
   'balm',
+  // Everyday cleanser/treatment forms that name no other keyword (GLO-281: "Perfume Free Face Wash" was skipped).
+  'wash',
+  'facial',
+  'foam',
+  'mist',
+  'essence',
+  'patch',
+  'makeup remover',
+  'make up remover',
+  'مزيل مكياج',
   'غسول',
   'منظف',
   'مرطب',
@@ -171,6 +181,24 @@ function toAsciiDigits(text: string): string {
     .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06f0))
     .replace(/٫/g, '.')
     .replace(/٬/g, ',');
+}
+
+const NEUTRAL_BEFORE_EN = 'free of|free from|without|remover for|for|against|eye|under eye';
+const NEUTRAL_AFTER_EN = 'free|remover|removing|burn|bumps?|rash|irritation';
+const NEUTRAL_BEFORE_AR = 'خالي من|بدون|مزيل|ضد|عين';
+
+/**
+ * An excluded-goods word that only qualifies a skincare/haircare product does not name the product: "perfume free",
+ * "without perfume", "lipstick remover", "razor burn", "eye bag(s)", "heat protectant for hair dryer". Such a word is
+ * ignored so the row is held for review instead of being skipped (GLO-281).
+ */
+function inNeutralContext(normalizedText: string, normalizedTerm: string): boolean {
+  const term = normalizedTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const edge = '[^\\p{L}\\p{N}]';
+  const pattern = /[؀-ۿ]/.test(normalizedTerm)
+    ? `(?:^| )(?:${NEUTRAL_BEFORE_AR}) (?:\\S+ )?${term}(?: |$)`
+    : `(?:^|${edge})(?:${NEUTRAL_BEFORE_EN}) (?:\\p{L}+ )?${term}(?:s|es)?(?:$|${edge})|(?:^|${edge})${term}(?:s|es)? (?:${NEUTRAL_AFTER_EN})(?:$|${edge})`;
+  return new RegExp(pattern, 'u').test(normalizedText);
 }
 
 /** Whole-word (English, optional plural) or whole-token (Arabic) match on normalized text; never a bare substring. */
@@ -333,7 +361,10 @@ export class RowNormalizationService {
   classifyScope(name: string, brand?: string): ProductScopeClassification {
     const normName = this.normalizeText(name);
     const normBrand = this.normalizeText(brand || '');
-    const excludedTypes = EXCLUDED_PRODUCT_TYPES.filter(cue => hasTerm(normName, this.normalizeText(cue)));
+    const excludedTypes = EXCLUDED_PRODUCT_TYPES.filter(cue => {
+      const term = this.normalizeText(cue);
+      return hasTerm(normName, term) && !inNeutralContext(normName, term);
+    });
     const matchedSkincare = SKINCARE_KEYWORDS.filter(cue => normName.includes(this.normalizeText(cue)));
     const matchedHaircare = HAIRCARE_KEYWORDS.filter(cue => normName.includes(this.normalizeText(cue)));
 

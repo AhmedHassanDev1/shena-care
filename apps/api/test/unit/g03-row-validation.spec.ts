@@ -102,7 +102,12 @@ describe('GLO-275 Gate 03: scope — skip only confident exclusions', () => {
   });
 
   it('holds a food/ingredient word with no product type for review rather than skipping it', () => {
-    expect(row({ name: 'Coffee Eye Patches', brand: 'Unknown Lab' }).status).toBe(NormalizedRowStatus.REVIEW);
+    expect(row({ name: 'Coffee Extract 250ml', brand: 'Unknown Lab' }).status).toBe(NormalizedRowStatus.REVIEW);
+  });
+
+  it('recognises coffee eye patches as skincare even with an unknown brand (GLO-281)', () => {
+    expect(row({ name: 'Coffee Eye Patches', brand: 'Unknown Lab' }).status).not.toBe(NormalizedRowStatus.OUT_OF_SCOPE);
+    expect(rows.classifyScope('Coffee Eye Patches', 'Unknown Lab').category).toBe('skincare');
   });
 
   it('still recognises plain skincare and haircare', () => {
