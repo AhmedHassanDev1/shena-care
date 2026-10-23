@@ -46,9 +46,12 @@ describe('SG-08: Research Evidence, Canonical Facts & Routine Placement Intellig
   });
 
   afterAll(async () => {
-    if (app) {
-      await app.close();
-    }
+    if (!app) return;
+    // Remove exactly the actors this suite created (it may run against a shared database).
+    const actorIds = [admin?.id, supplierUser?.id].filter((id): id is string => Boolean(id));
+    await prisma.session.deleteMany({ where: { customerId: { in: actorIds } } });
+    await prisma.customer.deleteMany({ where: { id: { in: actorIds } } });
+    await app.close();
   });
 
   describe('1. Acceptance 1: Formulations and Usages Yield Distinct Truthful Routines', () => {
@@ -64,8 +67,10 @@ describe('SG-08: Research Evidence, Canonical Facts & Routine Placement Intellig
       expect(res.stepOrder).toBe(1);
       expect(res.stepType).toBe(RoutineStepType.CLEANSER);
       expect(res.rinseType).toBe(RinseType.RINSE_OFF);
-      expect(res.timing).toBe(RoutineTiming.AM_PM);
-      expect(res.frequency).toBe(UsageFrequency.TWICE_DAILY);
+      // GLO-279: the directions state no time or frequency, so neither is invented from the product type.
+      expect(res.timing).toBe(RoutineTiming.UNKNOWN);
+      expect(res.frequency).toBe(UsageFrequency.UNCLEAR_HELD);
+      expect(res.frequencyStatus).toBe('HELD_FOR_REVIEW');
       expect(res.isPhotosensitizing).toBe(false);
       expect(res.requiresDaytimeSunscreen).toBe(false);
     });
@@ -82,11 +87,13 @@ describe('SG-08: Research Evidence, Canonical Facts & Routine Placement Intellig
       expect(res.category).toBe(RoutineCategory.SKIN_CARE);
       expect(res.stepOrder).toBe(3);
       expect(res.stepType).toBe(RoutineStepType.TREATMENT_SERUM);
-      expect(res.rinseType).toBe(RinseType.LEAVE_ON);
+      expect(res.rinseType).toBe(RinseType.UNKNOWN); // directions do not say
       expect(res.timing).toBe(RoutineTiming.PM_ONLY);
       expect(res.isPhotosensitizing).toBe(true);
       expect(res.requiresDaytimeSunscreen).toBe(true);
-      expect(res.warnings.some((w) => w.includes('sunscreen'))).toBe(true);
+      // GLO-279: ingredient-class sun guidance is for the reviewer, not a product warning the directions never gave.
+      expect(res.warnings).toEqual([]);
+      expect(res.genericGuidance.some((g) => g.text.includes('sunscreen'))).toBe(true);
     });
 
     it('places High-Strength AHA/BHA Peeling Solution at Step 2 Rinse-off (PM_ONLY, Weekly 1-2 times, 10 min max)', () => {
@@ -102,8 +109,9 @@ describe('SG-08: Research Evidence, Canonical Facts & Routine Placement Intellig
       expect(res.stepOrder).toBe(2);
       expect(res.stepType).toBe(RoutineStepType.EXFOLIANT);
       expect(res.rinseType).toBe(RinseType.RINSE_OFF);
-      expect(res.timing).toBe(RoutineTiming.PM_ONLY);
-      expect(res.frequency).toBe(UsageFrequency.WEEKLY_1_2_TIMES);
+      // GLO-279: no time or cadence in these directions — held, not "PM 1-2x weekly" by product type.
+      expect(res.timing).toBe(RoutineTiming.UNKNOWN);
+      expect(res.frequency).toBe(UsageFrequency.UNCLEAR_HELD);
       expect(res.isPhotosensitizing).toBe(true);
       expect(res.requiresDaytimeSunscreen).toBe(true);
       expect(res.warnings.some((w) => w.includes('10 minutes'))).toBe(true);
@@ -121,8 +129,8 @@ describe('SG-08: Research Evidence, Canonical Facts & Routine Placement Intellig
       expect(res.stepOrder).toBe(6);
       expect(res.stepType).toBe(RoutineStepType.SUNSCREEN);
       expect(res.timing).toBe(RoutineTiming.AM_ONLY);
-      expect(res.rinseType).toBe(RinseType.LEAVE_ON);
-      expect(res.frequency).toBe(UsageFrequency.DAILY);
+      expect(res.rinseType).toBe(RinseType.UNKNOWN);
+      expect(res.frequency).toBe(UsageFrequency.UNCLEAR_HELD); // "morning routine" is not a stated daily cadence
       expect(res.requiresDaytimeSunscreen).toBe(false); // It is the sunscreen!
     });
 
@@ -287,7 +295,7 @@ describe('SG-08: Research Evidence, Canonical Facts & Routine Placement Intellig
       expect(res.body.category).toBe(RoutineCategory.SKIN_CARE);
       expect(res.body.stepOrder).toBe(3);
       expect(res.body.stepType).toBe(RoutineStepType.TREATMENT_SERUM);
-      expect(res.body.timing).toBe(RoutineTiming.AM_PM);
+      expect(res.body.timing).toBe(RoutineTiming.UNKNOWN); // no directions supplied
       expect(res.body.compatibleConcerns).toContain('hyperpigmentation');
 
       // Unauthenticated access returns 401

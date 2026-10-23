@@ -64,6 +64,13 @@ export interface NormalizedProductRow {
   inventory: NormalizedRowInventory;
 
   scope: ProductScopeClassification;
+  /**
+   * Why a REVIEW row is held: `scope` (category not recognised — an exact catalog match can still prove it) and/or
+   * `fields` (quantity/price/discount doubts — never fast-laned). Absent on rows that are not REVIEW.
+   */
+  holds?: { scope: boolean; fields: boolean };
   rawEvidence: Record<string, any>;
   observedAt: Date;
+  /** Supplier-reported effective/export time of this row (ISO), when the file states one. Advisory, never receipt time. */
+  sourceObservedAt?: string | null;
 }

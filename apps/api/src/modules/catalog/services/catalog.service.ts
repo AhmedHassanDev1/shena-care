@@ -14,6 +14,34 @@ import { requireMediaReview } from '../../../platform/security/media-review';
 import { MEDIA_STORAGE_PORT, MediaStoragePort } from '../../../platform/storage/media-storage.port';
 import { Inject } from '@nestjs/common';
 
+/** A reviewer-confirmed usage rule from the product's own directions (GLO-279); see catalog.product_usage_rules. */
+export interface ReviewedUsageRuleInput {
+  targetArea: 'FACE' | 'EYE_CONTOUR' | 'LIPS' | 'BODY' | 'SCALP' | 'HAIR' | null;
+  routinePeriod: 'AM' | 'PM' | 'BOTH' | 'UNKNOWN';
+  rinseMode: 'RINSE_OFF' | 'LEAVE_ON' | 'UNKNOWN';
+  frequencyUnit: 'DAY' | 'WEEK' | 'AS_NEEDED' | 'UNKNOWN';
+  usesMin: number | null;
+  usesMax: number | null;
+  contactMinutes: number | null;
+  contactIsMaximum: boolean;
+  condition: string | null;
+  evidenceText: string;
+  sourceUrl: string;
+  sourceType: string;
+  retrievedAt: Date | null;
+  reviewedBy: string;
+  reviewedAt: Date;
+  sourceCandidateId: string | null;
+}
+
+/** A concentration the manufacturer/label states for this product, with evidence. */
+export interface StatedConcentrationInput {
+  ingredientId: string;
+  value: number;
+  unit: string;
+  evidence: { sourceUrl: string; sourceType: string; evidenceText: string; reviewedBy: string; reviewedAt: string };
+}
+
 export interface PublishedSku {
   id: string;
   code: string;
@@ -395,6 +423,41 @@ export class CatalogService {
     await this.prisma.productIngredient.createMany({
       data: uniqueIds.map((ingredientId, sortOrder) => ({ productId, ingredientId, isKeyActive: true, sortOrder })),
       skipDuplicates: true,
+    });
+  }
+
+  /**
+   * GLO-279: stores reviewer-confirmed usage rules for one SKU. Existing reviewed rules are never silently replaced by a
+   * later publication (another supplier's candidate): returns false so the caller records that a re-review is needed.
+   */
+  async addReviewedUsageRules(productId: string, skuId: string, rules: ReviewedUsageRuleInput[]): Promise<boolean> {
+    if (!rules.length) return false;
+    return this.prisma.$transaction(async tx => {
+      if (await tx.productUsageRule.count({ where: { skuId } })) return false;
+      await tx.productUsageRule.createMany({ data: rules.map(rule => ({ ...rule, productId, skuId })) });
+      return true;
+    });
+  }
+
+  /** Typed concentrations explicitly stated for this product, with their evidence (never inferred from INCI order). */
+  async setStatedConcentrations(productId: string, entries: StatedConcentrationInput[]): Promise<void> {
+    for (const entry of entries) {
+      await this.prisma.productIngredient.updateMany({
+        where: { productId, ingredientId: entry.ingredientId, concentrationValue: null },
+        data: { concentrationValue: entry.value, concentrationUnit: entry.unit, concentration: `${entry.value}${entry.unit}`,
+          concentrationEvidence: entry.evidence as Prisma.InputJsonValue },
+      });
+    }
+  }
+
+  /** Reviewed usage rules for the given SKUs, for product detail / routine building. */
+  async getReviewedUsageRules(skuIds: string[]) {
+    if (!skuIds.length) return [];
+    return this.prisma.productUsageRule.findMany({
+      where: { skuId: { in: skuIds } },
+      orderBy: [{ skuId: 'asc' }, { condition: { sort: 'asc', nulls: 'first' } }, { createdAt: 'asc' }],
+      select: { skuId: true, targetArea: true, routinePeriod: true, rinseMode: true, frequencyUnit: true, usesMin: true, usesMax: true,
+        contactMinutes: true, contactIsMaximum: true, condition: true, evidenceText: true, sourceUrl: true, reviewedAt: true },
     });
   }
 

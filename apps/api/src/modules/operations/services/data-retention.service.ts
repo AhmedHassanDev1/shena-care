@@ -9,6 +9,8 @@ export class DataRetentionService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly prisma: PrismaService) {}
 
   onModuleInit() {
+    // Test processes must never run global retention deletes against whatever database they point at.
+    if (process.env.NODE_ENV === 'test') return;
     // Run cleanup once a day, and once shortly after startup.
     this.timers = [
       setInterval(() => this.runCleanup(), 24 * 60 * 60 * 1000),

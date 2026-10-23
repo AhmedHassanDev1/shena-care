@@ -12,6 +12,7 @@ import {
 } from '../../src/modules/ingestion/contracts/row-normalization.contract';
 import { QuantityPresence } from '../../src/modules/ingestion/contracts/canonical-supplier-record.contract';
 import { IngestionStatus } from '@prisma/client';
+import { FILE_STORAGE_PORT, FileStoragePort } from '../../src/platform/storage/storage.port';
 
 describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (e2e)', () => {
   let app: INestApplication;
@@ -47,9 +48,18 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
   });
 
   afterAll(async () => {
-    if (app) {
-      await app.close();
+    if (!app) return;
+    const storagePort = app.get<FileStoragePort>(FILE_STORAGE_PORT);
+    for (const job of await prisma.ingestionJob.findMany({ where: { supplierId } })) {
+      if (job.sourceKey) await storagePort.delete(job.sourceKey);
     }
+    await prisma.ingestionItem.deleteMany({ where: { job: { supplierId } } });
+    await prisma.ingestionJob.deleteMany({ where: { supplierId } });
+    await prisma.exportProfile.deleteMany({ where: { supplierId } });
+    await prisma.supplier.deleteMany({ where: { id: supplierId } });
+    await prisma.session.deleteMany({ where: { customerId: admin.id } });
+    await prisma.customer.deleteMany({ where: { id: admin.id } });
+    await app.close();
   });
 
   describe('1. Table-Driven Arabic & English Normalization', () => {
@@ -209,7 +219,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(r1.pricing.discount?.type).toBe(DiscountType.PERCENTAGE);
       expect(r1.pricing.discount?.value).toBe(15);
 
-      // Percentage via decimal fraction
+      // GLO-275: a bare fraction has no stated unit (0.20 = 20%? 0.20 SAR?) — not guessed; the row is held for review.
       const r2 = normalizeRow({
         sourceRowNumber: 2,
         supplierSku: 'SKU-D2',
@@ -217,8 +227,8 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
         price: 50.0,
         discount: '0.20',
       });
-      expect(r2.pricing.discount?.type).toBe(DiscountType.PERCENTAGE);
-      expect(r2.pricing.discount?.value).toBe(20);
+      expect(r2.pricing.discount).toBeNull();
+      expect(r2.status).toBe(NormalizedRowStatus.REVIEW);
 
       // Fixed amount
       const r3 = normalizeRow({
@@ -374,30 +384,33 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
             quantity: 'المخزون',
             barcode: 'الباركود',
             currency: 'SAR',
+            semantics: { documentKind: 'STOCK_FEED', priceBasis: 'UNIT_PURCHASE_COST', quantityBasis: 'ON_HAND' },
           },
           profileName: 'SG03 Full Scope Test Profile',
         },
         admin.id,
       );
 
-      expect(applyResult.importedItemsCount).toBe(3);
+      // GLO-275: the confidently excluded food row is accounted as OUT_OF_SCOPE, not admitted as a candidate.
+      expect(applyResult.importedItemsCount).toBe(2);
 
       const items = await prisma.ingestionItem.findMany({
         where: { jobId: uploadResult.jobId },
         orderBy: { supplierSkuCode: 'asc' },
       });
 
-      expect(items.length).toBe(3);
+      expect(items.length).toBe(2);
 
-      // In-scope skincare item -> pending
+      // SKU-01 appears twice with different quantity/product (rows 2 and 6): GLO-277 holds the admitted row for
+      // reconciliation with both readings instead of letting the first row win — so it is not matched yet.
       const skincareItem = items.find((i) => i.supplierSkuCode === 'SKU-01');
-      expect(skincareItem?.status).toBe(IngestionStatus.pending);
+      expect(skincareItem?.status).toBe(IngestionStatus.review_required);
+      expect((skincareItem?.enrichment as any)?.identity).toBeUndefined();
+      expect((skincareItem?.enrichment as any)?.source?.duplicateConflicts).toHaveLength(1);
       expect((skincareItem?.enrichment as any)?.source?.normalized?.scope?.category).toBe('skincare');
 
-      // Out-of-scope food item -> review_required (retaining raw provenance)
-      const foodItem = items.find((i) => i.supplierSkuCode === 'SKU-02');
-      expect(foodItem?.status).toBe(IngestionStatus.review_required);
-      expect((foodItem?.enrichment as any)?.source?.normalized?.status).toBe(NormalizedRowStatus.OUT_OF_SCOPE);
+      // Out-of-scope food row -> no candidate item
+      expect(items.find((i) => i.supplierSkuCode === 'SKU-02')).toBeUndefined();
 
       // Ambiguous brand item -> review_required
       const ambiguousItem = items.find((i) => i.supplierSkuCode === 'SKU-03');
@@ -406,7 +419,9 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       const importedJob = await prisma.ingestionJob.findUniqueOrThrow({ where: { id: uploadResult.jobId } });
       const outcomes = importedJob.rowOutcomes as Array<{ sourceRow: number; outcome: string; reason?: string }>;
       expect(outcomes).toHaveLength(5);
-      expect(outcomes.map(o => o.outcome)).toEqual(['IMPORTED', 'IMPORTED', 'IMPORTED', 'INVALID', 'DUPLICATE']);
+      expect(outcomes.map(o => o.outcome)).toEqual(['IMPORTED', 'OUT_OF_SCOPE', 'IMPORTED', 'INVALID', 'DUPLICATE']);
+      expect(outcomes[1].reason).toMatch(/excluded/);
+      expect(outcomes[4].reason).toBe('duplicate_supplier_sku_with_conflicting_values');
     });
   });
 });

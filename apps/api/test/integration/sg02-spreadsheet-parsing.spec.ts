@@ -7,6 +7,7 @@ import { IngestionService } from '../../src/modules/ingestion/services/ingestion
 import { SpreadsheetParserService } from '../../src/modules/ingestion/services/spreadsheet-parser.service';
 import { FormatFingerprintService } from '../../src/modules/ingestion/services/format-fingerprint.service';
 import { ExportProfileService } from '../../src/modules/ingestion/services/export-profile.service';
+import { FILE_STORAGE_PORT, FileStoragePort } from '../../src/platform/storage/storage.port';
 import { IngestionStatus, IngestionPriceType } from '@prisma/client';
 import * as XLSX from 'xlsx';
 import { randomUUID } from 'crypto';
@@ -52,9 +53,19 @@ describe('SG-02: Secure CSV/XLSX Parse, Format Fingerprints & Mapping Approval (
   });
 
   afterAll(async () => {
-    if (app) {
-      await app.close();
+    if (!app) return;
+    const suppliers = [supplier1Id, supplier2Id].filter(Boolean);
+    const storagePort = app.get<FileStoragePort>(FILE_STORAGE_PORT);
+    for (const job of await prisma.ingestionJob.findMany({ where: { supplierId: { in: suppliers } } })) {
+      if (job.sourceKey) await storagePort.delete(job.sourceKey);
     }
+    await prisma.ingestionItem.deleteMany({ where: { job: { supplierId: { in: suppliers } } } });
+    await prisma.ingestionJob.deleteMany({ where: { supplierId: { in: suppliers } } });
+    await prisma.exportProfile.deleteMany({ where: { supplierId: { in: suppliers } } });
+    await prisma.supplier.deleteMany({ where: { id: { in: suppliers } } });
+    await prisma.session.deleteMany({ where: { customerId: admin.id } });
+    await prisma.customer.deleteMany({ where: { id: admin.id } });
+    await app.close();
   });
 
   describe('1. SpreadsheetParserService & Security Guards', () => {
@@ -231,6 +242,8 @@ describe('SG-02: Secure CSV/XLSX Parse, Format Fingerprints & Mapping Approval (
             currency: 'SAR',
             quantity: 'المخزون',
             barcode: 'الباركود',
+            // GLO-274: an approving reviewer must state what the price and quantity columns mean.
+            semantics: { documentKind: 'STOCK_FEED', priceBasis: 'UNIT_PURCHASE_COST', quantityBasis: 'ON_HAND' },
           },
           profileName: 'Supplier 1 Standard Arabic CSV Profile',
         },
@@ -243,7 +256,7 @@ describe('SG-02: Secure CSV/XLSX Parse, Format Fingerprints & Mapping Approval (
       approvedProfileId = applyResult.profileId;
 
       // Verify items are now present in DB with traceable coordinates & raw row data
-      const items = await prisma.ingestionItem.findMany({ where: { jobId: job1Id } });
+      const items = await prisma.ingestionItem.findMany({ where: { jobId: job1Id }, orderBy: { supplierSkuCode: 'asc' } });
       expect(items.length).toBe(2);
       expect(items[0].supplierSkuCode).toBe('SKU-A01');
       expect(items[0].price.toNumber()).toBe(68.0);

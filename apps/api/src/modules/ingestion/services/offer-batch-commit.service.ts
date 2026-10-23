@@ -19,6 +19,56 @@ import {
   ApproveDeactivationsOptions,
 } from '../contracts/offer-batch-commit.contract';
 
+/** When a supplier row's information was true, as far as the source tells us (all ISO strings). */
+export interface SourceTiming {
+  /** Supplier-reported row effective/export time (mapped column); advisory but comparable within one supplier. */
+  sourceObservedAt: string | null;
+  /** Workbook "modified" property; advisory, absent for CSV. */
+  workbookModifiedAt: string | null;
+  /** Server receipt time of the file (trusted). */
+  receivedAt: string;
+}
+
+export type FreshnessVerdict = { verdict: 'FRESH' } | { verdict: 'STALE' | 'UNPROVEN'; reason: string };
+
+/**
+ * GLO-277: may `incoming` replace the offer state last accepted from `lastAccepted`? Upload time alone never proves
+ * freshness: an old export uploaded today must not overwrite newer truth, and a newer export uploaded earlier must not
+ * be refused. Source times win; when the previous state had one and this row does not, freshness is unproven (review).
+ */
+export function assessSourceFreshness(incoming: SourceTiming, lastAccepted: SourceTiming | null): FreshnessVerdict {
+  if (!lastAccepted) return { verdict: 'FRESH' };
+  if (incoming.sourceObservedAt && lastAccepted.sourceObservedAt) {
+    return incoming.sourceObservedAt < lastAccepted.sourceObservedAt
+      ? { verdict: 'STALE', reason: 'source_time_older_than_last_accepted_offer' } : { verdict: 'FRESH' };
+  }
+  if (!incoming.sourceObservedAt && lastAccepted.sourceObservedAt) {
+    return { verdict: 'UNPROVEN', reason: 'no_source_time_while_last_accepted_offer_had_one' };
+  }
+  if (incoming.workbookModifiedAt && lastAccepted.workbookModifiedAt && incoming.workbookModifiedAt < lastAccepted.workbookModifiedAt) {
+    return { verdict: 'UNPROVEN', reason: 'workbook_modified_before_last_accepted_export' };
+  }
+  return incoming.receivedAt < lastAccepted.receivedAt
+    ? { verdict: 'STALE', reason: 'received_before_last_accepted_import' } : { verdict: 'FRESH' };
+}
+
+type TimedJob = { createdAt: Date; sourceMetadata: Prisma.JsonValue | null };
+function sourceTiming(job: TimedJob, enrichment: Prisma.JsonValue | null): SourceTiming {
+  const meta = (job.sourceMetadata ?? {}) as { receivedAt?: string; workbookModifiedAt?: string | null };
+  const input = ((enrichment ?? {}) as { source?: { input?: { sourceObservedAt?: string | null } } }).source?.input;
+  return {
+    sourceObservedAt: input?.sourceObservedAt ?? null,
+    workbookModifiedAt: meta.workbookModifiedAt ?? null,
+    receivedAt: meta.receivedAt ?? job.createdAt.toISOString(),
+  };
+}
+
+type OfferWrite = { itemId: string; skuId: string; cost: number; currency: string; available: boolean; priceOnly: boolean };
+type ItemPatch = { status: IngestionStatus | null; patch: Record<string, unknown> };
+const WRITE_CHUNK = 500;
+const chunks = <T>(list: T[]): T[][] =>
+  Array.from({ length: Math.ceil(list.length / WRITE_CHUNK) }, (_, i) => list.slice(i * WRITE_CHUNK, (i + 1) * WRITE_CHUNK));
+
 @Injectable()
 export class OfferBatchCommitService {
   constructor(
@@ -31,7 +81,49 @@ export class OfferBatchCommitService {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
   }
 
-  /** The candidate admission path uses the same cost, stock and anomaly policy as batch commit. */
+  /**
+   * GLO-280: the candidate admission path applies the batch path's policy — source-time freshness against the row that
+   * produced the current offer, currency change, >30% jump and FINANCIAL_HOLD against the effective selling price.
+   * Returns the review reasons (empty = safe); an offer already produced by this row is reported as `alreadyApplied`.
+   */
+  private async candidateOfferReview(
+    db: Prisma.TransactionClient,
+    item: { id: string; price: Prisma.Decimal; currency: string; enrichment: Prisma.JsonValue | null; job: TimedJob & { supplierId: string } },
+    skuId: string,
+  ): Promise<{ alreadyApplied: boolean; reasons: string[]; existing: { isAvailable: boolean } | null }> {
+    const existing = await db.supplierOffer.findUnique({
+      where: { supplierId_skuId: { supplierId: item.job.supplierId, skuId } },
+    });
+    if (existing?.lastIngestionItemId === item.id) return { alreadyApplied: true, reasons: [], existing };
+    const cost = item.price.toNumber();
+    const reasons: string[] = [];
+    if (existing) {
+      const last = existing.lastIngestionItemId ? await db.ingestionItem.findUnique({
+        where: { id: existing.lastIngestionItemId },
+        select: { enrichment: true, job: { select: { createdAt: true, sourceMetadata: true } } },
+      }) : null;
+      const lastTiming = last ? sourceTiming(last.job, last.enrichment)
+        : { sourceObservedAt: null, workbookModifiedAt: null, receivedAt: existing.lastObservedAt.toISOString() };
+      const freshness = assessSourceFreshness(sourceTiming(item.job, item.enrichment), lastTiming);
+      if (freshness.verdict !== 'FRESH') reasons.push(freshness.reason);
+      if (existing.currency !== item.currency) reasons.push('currency_change_requires_review');
+      const before = existing.costPrice.toNumber();
+      if (before > 0 && Math.abs((cost - before) / before) > 0.3) {
+        reasons.push(`large_price_jump: ${(((cost - before) / before) * 100).toFixed(1)}% exceeds 30% anomaly threshold`);
+      }
+    }
+    const now = new Date();
+    const approvedPrice = await db.sellingPrice.findFirst({
+      where: { skuId, isActive: true, validFrom: { lte: now }, OR: [{ validUntil: null }, { validUntil: { gt: now } }] },
+      orderBy: { validFrom: 'desc' },
+    });
+    if (approvedPrice?.currency === item.currency && cost > approvedPrice.amount.toNumber()) {
+      reasons.push(`financial_hold: purchase cost ${cost} exceeds approved selling price ${approvedPrice.amount.toNumber()}`);
+    }
+    return { alreadyApplied: false, reasons, existing };
+  }
+
+  /** The candidate admission path uses the same cost, stock, freshness and anomaly policy as batch commit. */
   async commitCandidateOffer(itemId: string, skuId: string): Promise<void> {
     await this.prisma.$transaction(async tx => {
       const item = await tx.ingestionItem.findUnique({ where: { id: itemId }, include: { job: true } });
@@ -45,20 +137,13 @@ export class OfferBatchCommitService {
         throw new BadRequestException('Reported quantity cannot be negative');
       }
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`commit:supplier:${item.job.supplierId}`}))`;
-      const existing = await tx.supplierOffer.findUnique({
-        where: { supplierId_skuId: { supplierId: item.job.supplierId, skuId } },
-      });
-      if (existing?.lastIngestionItemId === item.id) return;
-      if (existing?.lastObservedAt && item.createdAt < existing.lastObservedAt) {
-        throw new ConflictException('Stale import is older than the last observed supplier offer');
+      const review = await this.candidateOfferReview(tx, item, skuId);
+      if (review.alreadyApplied) return;
+      if (review.reasons.length) {
+        throw new ConflictException(`Supplier offer requires review: ${review.reasons.join('; ')}`);
       }
+      const { existing } = review;
       const cost = item.price.toNumber();
-      if (existing && existing.currency !== item.currency) {
-        throw new ConflictException('Supplier offer currency change requires review');
-      }
-      if (existing && Math.abs((cost - existing.costPrice.toNumber()) / existing.costPrice.toNumber()) > 0.3) {
-        throw new ConflictException('Large price jump requires review before supplier offer commit');
-      }
       const availability = item.reportedQuantity === null
         ? (existing?.isAvailable ?? false)
         : item.reportedQuantity > 0;
@@ -73,6 +158,43 @@ export class OfferBatchCommitService {
     }, { timeout: 30000, maxWait: 10000 });
   }
 
+  /** Creates/updates this supplier's offers in set-based statements; the caller holds the supplier commit lock. */
+  private async applyOfferWrites(tx: Prisma.TransactionClient, supplierId: string, writes: OfferWrite[]): Promise<void> {
+    if (!writes.length) return;
+    const existing = await tx.supplierOffer.findMany({
+      where: { supplierId, skuId: { in: writes.map(w => w.skuId) } }, select: { id: true, skuId: true },
+    });
+    const idBySku = new Map(existing.map(o => [o.skuId, o.id]));
+    const now = new Date();
+    const creates = writes.filter(w => !idBySku.has(w.skuId));
+    if (creates.length) {
+      await tx.supplierOffer.createMany({ data: creates.map(w => ({ supplierId, skuId: w.skuId, costPrice: w.cost,
+        currency: w.currency, isAvailable: w.available, lastObservedAt: now, lastIngestionItemId: w.itemId })) });
+    }
+    const at = Prisma.sql`(${now.toISOString()}::timestamptz AT TIME ZONE 'UTC')`;
+    for (const chunk of chunks(writes.filter(w => idBySku.has(w.skuId)))) {
+      const values = Prisma.join(chunk.map(w => Prisma.sql`(${idBySku.get(w.skuId)}::uuid, ${w.cost}::numeric,
+        ${w.currency}::varchar, ${w.available}::boolean, ${w.priceOnly}::boolean, ${w.itemId}::uuid)`));
+      // A price-only row never changes availability.
+      await tx.$executeRaw`UPDATE "sourcing"."supplier_offers" AS o SET "cost_price" = v.cost, "currency" = v.currency,
+        "is_available" = CASE WHEN v.price_only THEN o."is_available" ELSE v.available END,
+        "last_observed_at" = ${at}, "last_ingestion_item_id" = v.item_id, "updated_at" = ${at}
+        FROM (VALUES ${values}) AS v(id, cost, currency, available, price_only, item_id) WHERE o."id" = v.id`;
+    }
+  }
+
+  /** Sets item status (when given) and merges only the given enrichment keys, leaving concurrently written keys intact. */
+  private async applyItemPatches(tx: Prisma.TransactionClient, patches: Array<[string, ItemPatch]>): Promise<void> {
+    const at = Prisma.sql`(${new Date().toISOString()}::timestamptz AT TIME ZONE 'UTC')`;
+    for (const chunk of chunks(patches)) {
+      const values = Prisma.join(chunk.map(([id, p]) => Prisma.sql`(${id}::uuid, ${p.status}::text, ${JSON.stringify(p.patch)}::jsonb)`));
+      await tx.$executeRaw`UPDATE "ingestion"."ingestion_items" AS i
+        SET "status" = COALESCE(v.status::"ingestion"."IngestionStatus", i."status"),
+            "enrichment" = COALESCE(i."enrichment", '{}'::jsonb) || v.patch, "updated_at" = ${at}
+        FROM (VALUES ${values}) AS v(id, status, patch) WHERE i."id" = v.id`;
+    }
+  }
+
   async assertCandidateOfferSafe(itemId: string, skuId: string | null): Promise<void> {
     const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId }, include: { job: true } });
     if (!item || item.priceType !== IngestionPriceType.PURCHASE_COST || item.price.toNumber() <= 0) {
@@ -82,18 +204,9 @@ export class OfferBatchCommitService {
       throw new BadRequestException('Reported quantity cannot be negative');
     }
     if (!skuId) return;
-    const existing = await this.prisma.supplierOffer.findUnique({
-      where: { supplierId_skuId: { supplierId: item.job.supplierId, skuId } },
-    });
-    if (existing?.lastIngestionItemId === item.id) return;
-    if (existing?.lastObservedAt && item.createdAt < existing.lastObservedAt) {
-      throw new ConflictException('Stale import is older than the last observed supplier offer');
-    }
-    if (existing && existing.currency !== item.currency) {
-      throw new ConflictException('Supplier offer currency change requires review');
-    }
-    if (existing && Math.abs((item.price.toNumber() - existing.costPrice.toNumber()) / existing.costPrice.toNumber()) > 0.3) {
-      throw new ConflictException('Large price jump requires review before supplier offer commit');
+    const review = await this.candidateOfferReview(this.prisma, item, skuId);
+    if (review.reasons.length) {
+      throw new ConflictException(`Supplier offer requires review: ${review.reasons.join('; ')}`);
     }
   }
 
@@ -124,6 +237,22 @@ export class OfferBatchCommitService {
       },
     });
     const offerMap = new Map(existingOffers.map((o) => [o.skuId, o]));
+
+    // Source timing of the rows that produced the current offers (batched; no per-row queries).
+    const lastAcceptedItems = await this.prisma.ingestionItem.findMany({
+      where: { id: { in: existingOffers.map(o => o.lastIngestionItemId).filter((id): id is string => Boolean(id)) } },
+      select: { id: true, enrichment: true, job: { select: { createdAt: true, sourceMetadata: true } } },
+    });
+    const lastAcceptedTiming = new Map(lastAcceptedItems.map(i => [i.id, sourceTiming(i.job, i.enrichment)]));
+
+    // Currently effective approved selling prices: a verified per-unit cost above it is a FINANCIAL_HOLD (GLO-275/277).
+    const now = new Date();
+    const sellingPrices = await this.prisma.sellingPrice.findMany({
+      where: { skuId: { in: matchedSkuIds }, isActive: true, validFrom: { lte: now }, OR: [{ validUntil: null }, { validUntil: { gt: now } }] },
+      orderBy: { validFrom: 'desc' },
+    });
+    const sellingPriceBySku = new Map<string, (typeof sellingPrices)[number]>();
+    for (const price of sellingPrices) if (!sellingPriceBySku.has(price.skuId)) sellingPriceBySku.set(price.skuId, price);
 
     const rows: RowDiff[] = [];
     const counters = {
@@ -286,9 +415,34 @@ export class OfferBatchCommitService {
         reasons.push('retail_reference_price_does_not_mutate_cost');
       }
 
+      // Freshness against the source of the currently accepted offer (re-committing the same row is idempotent).
+      const lastTiming = existingOffer && existingOffer.lastIngestionItemId !== item.id
+        ? (existingOffer.lastIngestionItemId && lastAcceptedTiming.get(existingOffer.lastIngestionItemId)) ||
+          { sourceObservedAt: null, workbookModifiedAt: null, receivedAt: existingOffer.lastObservedAt.toISOString() }
+        : null;
+      const freshness = assessSourceFreshness(sourceTiming(job, item.enrichment), lastTiming);
+      if (freshness.verdict === 'STALE') {
+        rows.push({
+          itemId: item.id, supplierSkuCode: item.supplierSkuCode, matchedSkuId: item.matchedSkuId, canonicalSkuCode: null,
+          productName: item.name, action: RowDiffAction.SKIP, reasons: [freshness.reason], before,
+          after: { costPrice: afterCost, currency: item.currency, isAvailable: afterAvailability },
+          priceChangePercent, isLargePriceJump, isRetailOnly, isPriceOnly,
+        });
+        counters.skipped++;
+        continue;
+      }
+      if (freshness.verdict === 'UNPROVEN') reasons.push(freshness.reason);
+
+      const approvedPrice = sellingPriceBySku.get(item.matchedSkuId);
+      const financialHold = !isRetailOnly && afterCost !== null && approvedPrice?.currency === item.currency &&
+        afterCost > approvedPrice.amount.toNumber();
+      if (financialHold) {
+        reasons.push(`financial_hold: purchase cost ${afterCost} exceeds approved selling price ${approvedPrice!.amount.toNumber()}`);
+      }
+
       // Classify action
       let action: RowDiffAction;
-      if (isLargePriceJump || currencyChange) {
+      if (isLargePriceJump || currencyChange || financialHold || freshness.verdict === 'UNPROVEN') {
         action = RowDiffAction.REVIEW;
         counters.review++;
       } else if (isRetailOnly && !existingOffer) {
@@ -400,15 +554,16 @@ export class OfferBatchCommitService {
 
     return this.prisma.$transaction(
       async (tx) => {
-        const job = await tx.ingestionJob.findUnique({
+        const owner = await tx.ingestionJob.findUnique({ where: { id: jobId }, select: { supplierId: true } });
+        if (!owner) throw new NotFoundException('Ingestion job not found');
+
+        // Advisory transaction lock per supplier to prevent concurrent/interleaved commits. The job is read only
+        // AFTER the lock: a concurrent commit that finished while we waited must be seen (exactly-once, GLO-277).
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`commit:supplier:${owner.supplierId}`}))`;
+        const job = await tx.ingestionJob.findUniqueOrThrow({
           where: { id: jobId },
           include: { items: true },
         });
-
-        if (!job) throw new NotFoundException('Ingestion job not found');
-
-        // Advisory transaction lock per supplier to prevent concurrent/interleaved commits
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`commit:supplier:${job.supplierId}`}))`;
 
         // Idempotency: if job is already published, return safe result without double-applying
         if (job.status === IngestionStatus.published) {
@@ -442,9 +597,14 @@ export class OfferBatchCommitService {
         let heldForReviewCount = 0;
         let skippedCount = 0;
         let errorCount = 0;
+        // GLO-281: writes are collected and applied in set-based statements below, so a 1,000-row file commits in a
+        // handful of round trips instead of ~5 per row (which exceeded the transaction budget on a remote database).
+        const offerWrites = new Map<string, OfferWrite>();
+        const itemPatches = new Map<string, ItemPatch>();
+        const itemsById = new Map(job.items.map(i => [i.id, i]));
 
         for (const row of diff.rows) {
-          const item = job.items.find((i) => i.id === row.itemId);
+          const item = itemsById.get(row.itemId);
           if (!item) continue;
           if (item.status === IngestionStatus.published) {
             unchangedCount++;
@@ -494,16 +654,8 @@ export class OfferBatchCommitService {
               status: 'HELD_FOR_REVIEW',
               reason: row.reasons.join('; '),
             });
-            await tx.ingestionItem.update({
-              where: { id: item.id },
-              data: {
-                status: IngestionStatus.review_required,
-                enrichment: {
-                  ...((item.enrichment as Record<string, any>) || {}),
-                  diff: { action: row.action, reasons: row.reasons, before: row.before, after: row.after },
-                } as unknown as import('@prisma/client').Prisma.InputJsonValue,
-              },
-            });
+            itemPatches.set(item.id, { status: IngestionStatus.review_required,
+              patch: { diff: { action: row.action, reasons: row.reasons, before: row.before, after: row.after } } });
             continue;
           }
 
@@ -535,19 +687,7 @@ export class OfferBatchCommitService {
             continue;
           }
 
-          // 5. Stale update check: protect against out-of-order older feeds
-          if (row.before?.lastObservedAt && item.createdAt < row.before.lastObservedAt) {
-            skippedCount++;
-            itemOutcomes.push({
-              itemId: item.id,
-              supplierSkuCode: item.supplierSkuCode,
-              skuId: item.matchedSkuId,
-              action: RowDiffAction.SKIP,
-              status: 'SKIPPED',
-              reason: 'stale_import_older_than_last_observed_offer',
-            });
-            continue;
-          }
+          // 5. Staleness was decided in the diff from source times (assessSourceFreshness), under this supplier lock.
 
           // 6. Apply UPDATE, CREATE, or UNCHANGED
           if (row.action === RowDiffAction.CREATE || row.action === RowDiffAction.UPDATE || row.action === RowDiffAction.UNCHANGED) {
@@ -556,54 +696,10 @@ export class OfferBatchCommitService {
             const targetCurrency = row.after.currency ?? item.currency;
             const targetAvailability = row.after.isAvailable ?? false;
 
-            const existingOffer = await tx.supplierOffer.findUnique({
-              where: {
-                supplierId_skuId: {
-                  supplierId: job.supplierId,
-                  skuId,
-                },
-              },
-            });
-
-            // Re-verify staleness inside transaction against live offer
-            if (existingOffer && existingOffer.lastIngestionItemId !== item.id &&
-                existingOffer.lastObservedAt && item.createdAt < existingOffer.lastObservedAt) {
-              skippedCount++;
-              itemOutcomes.push({
-                itemId: item.id,
-                supplierSkuCode: item.supplierSkuCode,
-                skuId: item.matchedSkuId,
-                action: RowDiffAction.SKIP,
-                status: 'SKIPPED',
-                reason: 'stale_import_older_than_last_observed_offer',
-              });
-              continue;
-            }
-
-            if (existingOffer) {
-              await tx.supplierOffer.update({
-                where: { id: existingOffer.id },
-                data: {
-                  ...(!row.isRetailOnly && targetCost !== null && { costPrice: targetCost }),
-                  ...(targetCurrency && { currency: targetCurrency }),
-                  ...(!row.isPriceOnly && { isAvailable: targetAvailability }),
-                  lastObservedAt: new Date(),
-                  lastIngestionItemId: item.id,
-                },
-              });
-            } else {
-              await tx.supplierOffer.create({
-                data: {
-                  supplierId: job.supplierId,
-                  skuId,
-                  costPrice: targetCost,
-                  currency: targetCurrency,
-                  isAvailable: targetAvailability,
-                  lastObservedAt: new Date(),
-                  lastIngestionItemId: item.id,
-                },
-              });
-            }
+            // Two rows for one SKU: the later row wins, as with row-by-row application.
+            offerWrites.delete(skuId);
+            offerWrites.set(skuId, { itemId: item.id, skuId, cost: targetCost, currency: targetCurrency,
+              available: targetAvailability, priceOnly: row.isPriceOnly });
 
             if (row.action === RowDiffAction.UNCHANGED) {
               unchangedCount++;
@@ -611,16 +707,8 @@ export class OfferBatchCommitService {
               committedCount++;
             }
 
-            await tx.ingestionItem.update({
-              where: { id: item.id },
-              data: {
-                status: IngestionStatus.published,
-                enrichment: {
-                  ...((item.enrichment as Record<string, any>) || {}),
-                  diff: { action: row.action, before: row.before, after: row.after },
-                } as unknown as import('@prisma/client').Prisma.InputJsonValue,
-              },
-            });
+            itemPatches.set(item.id, { status: IngestionStatus.published,
+              patch: { diff: { action: row.action, before: row.before, after: row.after } } });
 
             itemOutcomes.push({
               itemId: item.id,
@@ -661,13 +749,13 @@ export class OfferBatchCommitService {
             : IngestionStatus.published;
 
         for (const outcome of itemOutcomes) {
-          if (!job.items.some(item => item.id === outcome.itemId)) continue;
-          const current = await tx.ingestionItem.findUniqueOrThrow({ where: { id: outcome.itemId } });
-          const enriched = { ...((current.enrichment as Record<string, any>) || {}), offerCommit: outcome };
-          await tx.ingestionItem.update({ where: { id: outcome.itemId }, data: {
-            enrichment: enriched as unknown as Prisma.InputJsonValue,
-          } });
+          if (!itemsById.has(outcome.itemId)) continue;
+          const entry = itemPatches.get(outcome.itemId) ?? { status: null, patch: {} };
+          entry.patch.offerCommit = outcome;
+          itemPatches.set(outcome.itemId, entry);
         }
+        await this.applyOfferWrites(tx, job.supplierId, [...offerWrites.values()]);
+        await this.applyItemPatches(tx, [...itemPatches.entries()]);
 
         await tx.ingestionJob.update({
           where: { id: jobId },
@@ -729,21 +817,19 @@ export class OfferBatchCommitService {
       throw new BadRequestException('Cannot deactivate offers from a price-only import');
     }
 
-    // 4. Positive assortment coverage confirmation
-    if (options !== undefined) {
-      if (options.confirmedAssortmentCoverage !== true) {
-        throw new BadRequestException('Positive confirmation of complete supplier assortment coverage is required to approve deactivations');
-      }
-      if (!options.approvedSkuIds?.length || new Set(options.approvedSkuIds).size !== options.approvedSkuIds.length) {
-        throw new BadRequestException('An exact reviewed SKU deactivation change set is required');
-      }
+    // 4. Positive assortment coverage confirmation — always required (fail closed when the caller omits options)
+    if (options?.confirmedAssortmentCoverage !== true) {
+      throw new BadRequestException('Positive confirmation of complete supplier assortment coverage is required to approve deactivations');
+    }
+    if (!options.approvedSkuIds?.length || new Set(options.approvedSkuIds).size !== options.approvedSkuIds.length) {
+      throw new BadRequestException('An exact reviewed SKU deactivation change set is required');
     }
     if (job.status !== IngestionStatus.published || job.items.some(item =>
       item.status !== IngestionStatus.published && item.status !== IngestionStatus.rejected)) {
       throw new ConflictException('Snapshot offer commit must complete before deactivation approval');
     }
     const sourceOutcomes = Array.isArray(job.rowOutcomes) ? job.rowOutcomes as Array<{ outcome?: string }> : [];
-    if (sourceOutcomes.some(outcome => !['IMPORTED', 'IMPORTED_MANUAL'].includes(outcome.outcome ?? ''))) {
+    if (sourceOutcomes.some(outcome => !['IMPORTED', 'IMPORTED_MANUAL', 'OUT_OF_SCOPE'].includes(outcome.outcome ?? ''))) {
       throw new ConflictException('Snapshot has unresolved source rows; deactivation is unsafe');
     }
 

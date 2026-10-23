@@ -28,6 +28,8 @@ export enum RoutineTiming {
   PM_ONLY = 'PM_ONLY',
   AM_PM = 'AM_PM',
   AS_NEEDED = 'AS_NEEDED',
+  /** The product's own directions do not say (GLO-279: never defaulted). */
+  UNKNOWN = 'UNKNOWN',
 }
 
 export enum ApplicationSite {
@@ -42,6 +44,34 @@ export enum ApplicationSite {
 export enum RinseType {
   RINSE_OFF = 'RINSE_OFF',
   LEAVE_ON = 'LEAVE_ON',
+  /** The product's own directions do not say. */
+  UNKNOWN = 'UNKNOWN',
+}
+
+/**
+ * One product-specific usage instruction, parsed from the product's own directions with its evidence sentence
+ * (GLO-279 UsageRuleSet). A product may carry several conditional rules (face vs scalp, introductory vs regular).
+ * Every field the text does not state is null/UNKNOWN — never filled from the product type.
+ */
+export interface UsageRule {
+  targetArea: 'FACE' | 'EYE_CONTOUR' | 'LIPS' | 'BODY' | 'SCALP' | 'HAIR' | null;
+  routinePeriod: 'AM' | 'PM' | 'BOTH' | 'UNKNOWN';
+  rinseMode: 'RINSE_OFF' | 'LEAVE_ON' | 'UNKNOWN';
+  frequencyUnit: 'DAY' | 'WEEK' | 'AS_NEEDED' | 'UNKNOWN';
+  usesMin: number | null;
+  usesMax: number | null;
+  /** Contact time stated by the manufacturer (minutes); `contactIsMaximum` when worded as a limit ("no more than 10"). */
+  contactMinutes: number | null;
+  contactIsMaximum: boolean;
+  condition: 'INTRODUCTORY' | null;
+  evidenceText: string;
+}
+
+/** Ingredient-class guidance (e.g. retinoids and sun sensitivity): not a product claim; needs editorial review. */
+export interface GenericGuidance {
+  text: string;
+  basis: 'INGREDIENT_CLASS';
+  requiresReview: true;
 }
 
 export enum UsageFrequency {
@@ -64,8 +94,14 @@ export interface RoutinePlacementResult {
   isPhotosensitizing: boolean;
   requiresDaytimeSunscreen: boolean;
   reasoning: string;
+  /** stepType/stepOrder/siteOfUse are a role proposal from name and category, not usage evidence. */
+  roleSource: 'NAME_AND_CATEGORY_HEURISTIC';
+  /** Typed, evidence-linked usage rules from the product's own directions (empty when none were supplied). */
+  usageRules: UsageRule[];
   compatibleConcerns: string[];
+  /** Product-specific warnings taken from the product's own directions only. */
   warnings: string[];
+  genericGuidance: GenericGuidance[];
   evidenceSummary: {
     sourceType?: string;
     sourceUrl?: string;

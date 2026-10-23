@@ -23,6 +23,7 @@ describe('SG-01: Canonical Intake Contract & Replaceable Adapters (e2e)', () => 
   let supplierId: string;
   let productId: string;
   let skuId: string;
+  let brandId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -46,6 +47,7 @@ describe('SG-01: Canonical Intake Contract & Replaceable Adapters (e2e)', () => 
     const brand = await prisma.brand.create({
       data: { name: `SG01 Brand ${Date.now()}`, slug: `sg01-brand-${Date.now()}` },
     });
+    brandId = brand.id;
 
     const product = await prisma.product.create({
       data: { name: 'SG01 Product', slug: `sg01-product-${Date.now()}`, brandId: brand.id },
@@ -64,7 +66,10 @@ describe('SG-01: Canonical Intake Contract & Replaceable Adapters (e2e)', () => 
     await prisma.ingestionJob.deleteMany({ where: { supplierId } });
     await prisma.sku.deleteMany({ where: { productId } });
     await prisma.product.deleteMany({ where: { id: productId } });
+    await prisma.brand.deleteMany({ where: { id: brandId } });
     await prisma.supplier.deleteMany({ where: { id: supplierId } });
+    await prisma.session.deleteMany({ where: { customerId: admin.id } });
+    await prisma.customer.deleteMany({ where: { id: admin.id } });
     await app.close();
   });
 

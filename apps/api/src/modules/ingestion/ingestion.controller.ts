@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Get, Param, Patch, Query, Req, HttpCode, HttpStatus, UseGuards, ForbiddenException, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { IngestionService } from './services/ingestion.service';
-import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto, SupplierSourceUploadDto, ReviewCandidateContentDto, RecordCandidateEvidenceDto, ApplyJobMappingDto } from './dto/ingestion.dto';
+import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto, SupplierSourceUploadDto, ReviewCandidateContentDto, RecordCandidateEvidenceDto, ApplyJobMappingDto, ApproveExportProfileDto } from './dto/ingestion.dto';
 import { ProductContentService } from './services/product-content.service';
 import { OfferBatchCommitService } from './services/offer-batch-commit.service';
 import { BrandEnrichmentService } from './services/brand-enrichment.service';
@@ -70,20 +70,25 @@ export class IngestionController {
     @Body() dto: SupplierSourceUploadDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    const supplierId = dto.supplierId;
     if (!file) {
       throw new BadRequestException('File is required');
+    }
+    const user = req.user;
+    let supplierId = dto.supplierId;
+    if (user?.roles?.includes('SUPPLIER') && !user.roles.includes('ADMIN') && !user.roles.includes('HUB_OPERATOR')) {
+      // The session's supplier link is authoritative; a different body value is a tenant-escape attempt.
+      if (!user.supplierId || (supplierId && user.supplierId !== supplierId)) {
+        throw new ForbiddenException('Cannot upload ingestion job for another supplier');
+      }
+      supplierId = user.supplierId;
     }
     if (!supplierId) {
       throw new BadRequestException('supplierId is required');
     }
-    const user = req.user;
-    if (user?.roles?.includes('SUPPLIER') && !user.roles.includes('ADMIN') && !user.roles.includes('HUB_OPERATOR')) {
-      if (!user.supplierId || user.supplierId !== supplierId) {
-        throw new ForbiddenException('Cannot upload ingestion job for another supplier');
-      }
-    }
-    return this.ingestionService.uploadSupplierSpreadsheet(supplierId, file, dto.mode);
+    return this.ingestionService.uploadSupplierSpreadsheet(supplierId, file, dto.mode, {
+      uploadedBy: user?.id,
+      documentKind: dto.documentKind,
+    });
   }
 
   @Get('jobs')
@@ -112,8 +117,17 @@ export class IngestionController {
         throw new ForbiddenException('Cannot modify an ingestion job belonging to another supplier');
       }
     }
-    const approvedBy = user?.id || 'system';
-    return this.ingestionService.applyJobMapping(id, job.supplierId, dto, approvedBy);
+    if (!user?.id) throw new BadRequestException('Actor ID required');
+    return this.ingestionService.applyJobMapping(id, job.supplierId, dto, user.id);
+  }
+
+  /** Re-runs identity matching for rows still pending (e.g. after a matching outage). Idempotent. */
+  @Post('jobs/:id/match')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  @HttpCode(HttpStatus.OK)
+  async matchJob(@Req() req: AuthenticatedUserRequest, @Param('id', ParseUUIDPipe) id: string) {
+    await this.ingestionService.getJob(id, this.supplierReadScope(req.user));
+    return this.ingestionService.processMatching(id);
   }
 
   @Get('profiles')
@@ -133,12 +147,10 @@ export class IngestionController {
   async approveProfile(
     @Req() req: AuthenticatedUserRequest,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: { supplierId: string },
+    @Body() body: ApproveExportProfileDto,
   ) {
-    if (!body?.supplierId) {
-      throw new BadRequestException('supplierId is required');
-    }
-    return this.ingestionService.approveProfile(body.supplierId, id, req.user?.id || 'admin');
+    if (!req.user?.id) throw new BadRequestException('Actor ID required');
+    return this.ingestionService.approveProfile(body.supplierId, id, req.user.id, body.semantics);
   }
 
   @Post('jobs/:id/publish')

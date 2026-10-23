@@ -52,14 +52,27 @@ export class ProductContentService {
       if (item.status === 'published' || item.status === 'rejected') throw new BadRequestException('Candidate evidence is immutable in this state');
       const reviewer = await tx.customer.findUnique({ where: { id: reviewerId } });
       if (!reviewer?.roles.some(role => role === 'ADMIN' || role === 'HUB_OPERATOR')) throw new BadRequestException('Authorized evidence reviewer required');
-      if (new Set(dto.fields.map(f => f.field)).size !== dto.fields.length || dto.fields.some(f => !isTrustedMediaSource(f.sourceUrl))) {
+      if (new Set(dto.fields.map(f => f.field)).size !== dto.fields.length) {
         throw new BadRequestException('Distinct fields and trusted source evidence are required');
       }
       const enrichment = (item.enrichment as unknown as CandidateEnrichment) || {};
+      const candidateMedia = Array.isArray(enrichment.media) ? enrichment.media : [];
+      // GLO-279: manufacturer webpages (trusted hosts), manufacturer documents and the authentic product label are all
+      // acceptable, each human-reviewed and bound to this candidate's identity at the time of recording.
+      const sourceOf = (f: RecordCandidateEvidenceDto['fields'][number]): string => {
+        const kind = f.evidenceKind ?? 'MANUFACTURER_WEBPAGE';
+        if (kind === 'MANUFACTURER_WEBPAGE' && f.sourceUrl && isTrustedMediaSource(f.sourceUrl)) return f.sourceUrl;
+        if (kind === 'MANUFACTURER_DOCUMENT' && f.sourceType === 'OFFICIAL_MANUFACTURER' && /^https:\/\//i.test(f.sourceUrl ?? '')) return f.sourceUrl!;
+        if (kind === 'PRODUCT_LABEL' && f.sourceType === 'OFFICIAL_MANUFACTURER' && candidateMedia.some((m: any) =>
+          m.url === f.labelMediaUrl && !m.isTest && m.originType !== 'test')) return f.labelMediaUrl!;
+        throw new BadRequestException(`Untrusted or unverifiable ${kind} evidence for ${f.field}`);
+      };
       const observedAt = new Date().toISOString();
       const recorded = dto.fields.map(f => ({ fieldName: f.field, proposedValue: f.field === 'size' ? { value: f.size!, unit: f.sizeUnit! } : f.value!,
-        sourceUrl: f.sourceUrl, sourceType: f.sourceType, excerpt: f.excerpt, observedAt, verificationStatus: 'SUPPORTED',
-        confidence: 1, reviewedBy: reviewerId, reviewedAt: observedAt }));
+        sourceUrl: sourceOf(f), sourceType: f.sourceType, evidenceKind: f.evidenceKind ?? 'MANUFACTURER_WEBPAGE',
+        marketVersion: f.marketVersion ?? null, excerpt: f.excerpt, observedAt, verificationStatus: 'SUPPORTED',
+        confidence: 1, reviewedBy: reviewerId, reviewedAt: observedAt,
+        identity: { barcode: item.barcode, name: item.name } }));
       const previous = Array.isArray(enrichment.research?.fieldEvidences) ? enrichment.research!.fieldEvidences! : [];
       const changesIdentity = dto.fields.some(f => ['name', 'brand', 'barcode', 'size'].includes(f.field));
       const media = Array.isArray(enrichment.media) ? enrichment.media.map(m => changesIdentity ?

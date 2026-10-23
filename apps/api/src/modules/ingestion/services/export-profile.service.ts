@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { FormatFingerprintService } from './format-fingerprint.service';
 
@@ -16,6 +17,44 @@ export interface ColumnMappingConfig {
   sourceTimestamp?: string;
   currency?: string;
   currencyColumn?: string;
+  /** Reviewed meaning of the mapped columns; a layout match alone never implies these. */
+  semantics?: MappingSemantics;
+  /** Who proposed this mapping when it awaits independent review. */
+  proposal?: { proposedBy: string; proposedAt: string };
+}
+
+export const DOCUMENT_KINDS = ['PRICE_LIST', 'STOCK_FEED', 'SALES_INVOICE'] as const;
+export const PRICE_BASES = ['UNIT_PURCHASE_COST', 'PACK_PURCHASE_COST', 'RETAIL_PRICE', 'UNKNOWN'] as const;
+export const QUANTITY_BASES = ['ON_HAND', 'AVAILABLE_TO_SELL', 'INVOICE_QUANTITY', 'UNKNOWN'] as const;
+export const DISCOUNT_BASES = ['PERCENT', 'AMOUNT_PER_UNIT'] as const;
+
+export interface MappingSemantics {
+  documentKind?: (typeof DOCUMENT_KINDS)[number];
+  priceBasis?: (typeof PRICE_BASES)[number];
+  quantityBasis?: (typeof QUANTITY_BASES)[number];
+  discountBasis?: (typeof DISCOUNT_BASES)[number];
+}
+
+/** Quantity bases that describe stock a supplier can ship (invoice quantities are sales, not stock). */
+export const STOCK_QUANTITY_BASES: ReadonlyArray<string> = ['ON_HAND', 'AVAILABLE_TO_SELL'];
+
+/**
+ * Reasons a mapping cannot be approved to write supplier cost/stock; empty when it is safe.
+ * Only an explicit per-unit purchase cost may become a SupplierOffer cost.
+ */
+export function mappingApprovalProblems(mapping: Partial<ColumnMappingConfig>): string[] {
+  const s = mapping.semantics ?? {};
+  const problems: string[] = [];
+  if (!s.documentKind) problems.push('documentKind must be confirmed');
+  if (s.priceBasis !== 'UNIT_PURCHASE_COST') {
+    problems.push('price column must be confirmed as UNIT_PURCHASE_COST (pack, retail or unknown prices cannot become supplier cost)');
+  }
+  if (mapping.quantity && !s.quantityBasis) problems.push('quantityBasis must be confirmed for the mapped quantity column');
+  if (s.documentKind === 'SALES_INVOICE' && s.quantityBasis && STOCK_QUANTITY_BASES.includes(s.quantityBasis)) {
+    problems.push('a sales invoice quantity cannot be approved as stock');
+  }
+  if (mapping.discount && !s.discountBasis) problems.push('discountBasis must be confirmed for the mapped discount column');
+  return problems;
 }
 
 export function currencyFromPriceHeader(header: string): string | null {
@@ -255,10 +294,11 @@ export class ExportProfileService {
     supplierId: string,
     formatFingerprint: string,
     tx?: import('@prisma/client').Prisma.TransactionClient,
+    declaredDocumentKind?: string | null,
   ) {
     if (!supplierId || !formatFingerprint) return null;
     const client = tx || this.prisma;
-    return client.exportProfile.findFirst({
+    const profile = await client.exportProfile.findFirst({
       where: {
         supplierId,
         formatFingerprint,
@@ -266,6 +306,12 @@ export class ExportProfileService {
       },
       orderBy: { version: 'desc' },
     });
+    if (!profile) return null;
+    // Legacy approvals without reviewed semantics, or a different declared document kind, go back to review.
+    const mapping = profile.mapping as unknown as ColumnMappingConfig;
+    if (mappingApprovalProblems(mapping).length) return null;
+    if (declaredDocumentKind && mapping.semantics?.documentKind !== declaredDocumentKind) return null;
+    return profile;
   }
 
   /**
@@ -289,6 +335,8 @@ export class ExportProfileService {
     if (!mapping.currency && !mapping.currencyColumn && !currencyFromPriceHeader(mapping.price)) {
       throw new BadRequestException('Mapping requires an explicit currency, currency column, or ISO currency in price header');
     }
+    const problems = isApproved ? mappingApprovalProblems(mapping) : [];
+    if (problems.length) throw new BadRequestException(`Mapping semantics not approvable: ${problems.join('; ')}`);
 
     const existing = await this.prisma.exportProfile.findFirst({
       where: { supplierId, formatFingerprint },
@@ -331,7 +379,7 @@ export class ExportProfileService {
   /**
    * Approves an ExportProfile, strictly verifying supplier ownership.
    */
-  async approveProfile(supplierId: string, profileId: string, approvedBy: string) {
+  async approveProfile(supplierId: string, profileId: string, approvedBy: string, semantics?: MappingSemantics) {
     const profile = await this.prisma.exportProfile.findUnique({
       where: { id: profileId },
     });
@@ -344,9 +392,18 @@ export class ExportProfileService {
       throw new ForbiddenException('Cannot approve an export profile belonging to another supplier');
     }
 
+    const current = profile.mapping as unknown as ColumnMappingConfig;
+    const mapping: ColumnMappingConfig = { ...current, semantics: { ...current.semantics, ...semantics } };
+    if (current.proposal?.proposedBy === approvedBy) {
+      throw new ForbiddenException('A mapping cannot be approved by the account that proposed it');
+    }
+    const problems = mappingApprovalProblems(mapping);
+    if (problems.length) throw new BadRequestException(`Mapping semantics not approvable: ${problems.join('; ')}`);
+
     return this.prisma.exportProfile.update({
       where: { id: profileId },
       data: {
+        mapping: mapping as unknown as Prisma.InputJsonValue,
         isApproved: true,
         approvedBy,
         approvedAt: new Date(),

@@ -1,12 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   ApplicationSite,
+  GenericGuidance,
   RinseType,
   RoutineCategory,
   RoutinePlacementResult,
   RoutineStepType,
   RoutineTiming,
   UsageFrequency,
+  UsageRule,
 } from '../contracts/routine-placement.contract';
 import { SourceType } from './product-research.service';
 
@@ -23,19 +25,30 @@ export interface DeterminePlacementInput {
   conflictingDistributorUsage?: string;
 }
 
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1, once: 1, two: 2, twice: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+  'مرة': 1, 'مره': 1, 'مرتين': 2, 'ثلاث': 3, 'اربع': 4, 'خمس': 5,
+};
+const NUM = '(\\d+|one|two|three|four|five|six|seven)';
+const WEEK = '(?:a|per|each)\\s*week|weekly|(?:في|ف)?\\s*(?:الاسبوع|اسبوعيا|اسبوعيًا)';
+const asNumber = (token: string) => NUMBER_WORDS[token] ?? Number(token);
+
 @Injectable()
 export class RoutinePlacementService {
   private readonly logger = new Logger(RoutinePlacementService.name);
 
   /**
-   * Deterministically calculates truthful routine step placement, timing, site of use,
-   * rinse vs leave-on, and frequency based on official evidence, active formulation, and editorial rules.
+   * GLO-279: proposes a routine ROLE (step type, phase, area) from name/category, and reads USAGE only from the product's
+   * own directions. Timing, rinse mode and frequency are never filled in from the product type: when the directions do
+   * not state them they are UNKNOWN and the frequency is held for review. Ingredient-class cautions are generic
+   * guidance for the reviewer, not product warnings.
    */
   determineRoutinePlacement(input: DeterminePlacementInput): RoutinePlacementResult {
     const nameLower = input.productName.toLowerCase();
     const categoryLower = (input.category || '').toLowerCase();
     const descLower = (input.description || '').toLowerCase();
-    const usageText = (input.usage?.join(' ') || input.directions || '').toLowerCase();
+    const usageLines = input.usage?.length ? input.usage : input.directions ? [input.directions] : [];
+    const usageText = usageLines.join(' ').toLowerCase();
     const fullText = `${nameLower} ${categoryLower} ${descLower} ${usageText}`;
     const ingredientsUpper = (input.ingredients || []).map((i) => i.toUpperCase());
 
@@ -48,215 +61,116 @@ export class RoutinePlacementService {
     ) {
       category = RoutineCategory.HAIR_CARE;
     } else if (
-      /body lotion|body wash|hand cream|foot cream|لوشن للجسم|غسول الجسم|كريم اليدين/i.test(
-        fullText,
-      ) &&
+      /body lotion|body wash|hand cream|foot cream|لوشن للجسم|غسول الجسم|كريم اليدين/i.test(fullText) &&
       !/face|facial|وجه/i.test(nameLower)
     ) {
       category = RoutineCategory.BODY_CARE;
     }
 
-    // 2. Skincare Routine Steps & Types
+    // 2. Role proposal (heuristic, labelled as such): step type, broad phase and area of use
     let stepType = RoutineStepType.MOISTURIZER;
     let stepOrder = 5;
     let siteOfUse = ApplicationSite.FACE;
-    let rinseType = RinseType.LEAVE_ON;
-    let timing = RoutineTiming.AM_PM;
-    let frequency = UsageFrequency.DAILY;
-    let frequencyStatus: 'CONFIRMED' | 'HELD_FOR_REVIEW' = 'CONFIRMED';
     let isPhotosensitizing = false;
     let requiresDaytimeSunscreen = false;
     const compatibleConcerns: string[] = [];
-    const warnings: string[] = [];
+    const genericGuidance: GenericGuidance[] = [];
+    const guidance = (text: string) => genericGuidance.push({ text, basis: 'INGREDIENT_CLASS', requiresReview: true });
     let reasoning = '';
 
     if (category === RoutineCategory.HAIR_CARE) {
-      // Haircare hierarchy
       if (/shampoo|cleanser|شامبو/i.test(fullText)) {
-        stepType = RoutineStepType.HAIR_SHAMPOO;
-        stepOrder = 1;
-        siteOfUse = ApplicationSite.SCALP;
-        rinseType = RinseType.RINSE_OFF;
-        timing = RoutineTiming.AS_NEEDED;
-        reasoning = 'Hair shampoo is step 1 cleansing, applied to wet scalp and rinsed off';
+        [stepType, stepOrder, siteOfUse] = [RoutineStepType.HAIR_SHAMPOO, 1, ApplicationSite.SCALP];
+        reasoning = 'Proposed role: shampoo (cleansing phase of a hair routine)';
       } else if (/conditioner|بلسم/i.test(fullText) && !/leave-in/i.test(fullText)) {
-        stepType = RoutineStepType.HAIR_CONDITIONER;
-        stepOrder = 2;
-        siteOfUse = ApplicationSite.HAIR_LENGTHS;
-        rinseType = RinseType.RINSE_OFF;
-        timing = RoutineTiming.AS_NEEDED;
-        reasoning = 'Rinse-out hair conditioner follows shampoo on lengths and ends';
+        [stepType, stepOrder, siteOfUse] = [RoutineStepType.HAIR_CONDITIONER, 2, ApplicationSite.HAIR_LENGTHS];
+        reasoning = 'Proposed role: conditioner (after cleansing, on lengths)';
       } else if (/mask|masque|ماسك/i.test(fullText)) {
-        stepType = RoutineStepType.HAIR_MASK;
-        stepOrder = 3;
-        siteOfUse = ApplicationSite.HAIR_LENGTHS;
-        rinseType = RinseType.RINSE_OFF;
-        frequency = UsageFrequency.WEEKLY_1_2_TIMES;
-        timing = RoutineTiming.AS_NEEDED;
-        reasoning = 'Deep conditioning hair mask used 1-2 times weekly for intensive repair';
+        [stepType, stepOrder, siteOfUse] = [RoutineStepType.HAIR_MASK, 3, ApplicationSite.HAIR_LENGTHS];
+        reasoning = 'Proposed role: hair mask (treatment phase)';
       } else if (/leave-in|heat protectant|بديل الزيت/i.test(fullText)) {
-        stepType = RoutineStepType.HAIR_LEAVE_IN;
-        stepOrder = 4;
-        siteOfUse = ApplicationSite.HAIR_LENGTHS;
-        rinseType = RinseType.LEAVE_ON;
-        timing = RoutineTiming.AS_NEEDED;
-        reasoning = 'Leave-in treatment applied to damp hair before styling';
+        [stepType, stepOrder, siteOfUse] = [RoutineStepType.HAIR_LEAVE_IN, 4, ApplicationSite.HAIR_LENGTHS];
+        reasoning = 'Proposed role: leave-in (after washing, before styling)';
       } else {
-        stepType = RoutineStepType.SCALP_TREATMENT;
-        stepOrder = 5;
-        siteOfUse = ApplicationSite.SCALP;
-        rinseType = RinseType.LEAVE_ON;
-        timing = RoutineTiming.AS_NEEDED;
-        reasoning = 'Targeted scalp serum or nourishing oil applied directly to scalp';
+        [stepType, stepOrder, siteOfUse] = [RoutineStepType.SCALP_TREATMENT, 5, ApplicationSite.SCALP];
+        reasoning = 'Proposed role: scalp treatment';
       }
-    } else {
-      // Skincare hierarchy
-      if (/cleanser|face wash|cleansing foam|micellar|cleansing balm|غسول|منظف/i.test(fullText)) {
-        stepType = RoutineStepType.CLEANSER;
-        stepOrder = 1;
-        siteOfUse = ApplicationSite.FACE;
-        rinseType = /micellar/i.test(fullText) ? RinseType.LEAVE_ON : RinseType.RINSE_OFF;
-        timing = RoutineTiming.AM_PM;
-        frequency = UsageFrequency.TWICE_DAILY;
-        reasoning = 'Facial cleanser is the fundamental step 1 preparation in AM and PM routines';
-      } else if (/toner|essence|facial mist|تونر/i.test(fullText)) {
-        stepType = RoutineStepType.TONER;
-        stepOrder = 2;
-        siteOfUse = ApplicationSite.FACE;
-        rinseType = RinseType.LEAVE_ON;
-        timing = RoutineTiming.AM_PM;
-        reasoning = 'Toner/essence balances skin hydration immediately following cleansing (step 2)';
-      } else if (
-        /peeling solution|chemical peel|exfoliating scrub|exfoliant|resurfacing peel|مقشر/i.test(
-          fullText,
-        )
-      ) {
-        stepType = RoutineStepType.EXFOLIANT;
-        stepOrder = 2;
-        siteOfUse = ApplicationSite.FACE;
-        rinseType = /peeling solution|scrub|mask/i.test(fullText)
-          ? RinseType.RINSE_OFF
-          : RinseType.LEAVE_ON;
-        timing = RoutineTiming.PM_ONLY;
-        frequency = UsageFrequency.WEEKLY_1_2_TIMES;
+    } else if (/cleanser|face wash|cleansing foam|micellar|cleansing balm|غسول|منظف/i.test(fullText)) {
+      [stepType, stepOrder] = [RoutineStepType.CLEANSER, 1];
+      reasoning = 'Proposed role: cleanser (cleansing phase comes first)';
+    } else if (/toner|essence|facial mist|تونر/i.test(fullText)) {
+      [stepType, stepOrder] = [RoutineStepType.TONER, 2];
+      reasoning = 'Proposed role: toner/essence (after cleansing)';
+    } else if (/peeling solution|chemical peel|exfoliating scrub|exfoliant|resurfacing peel|مقشر/i.test(fullText)) {
+      [stepType, stepOrder] = [RoutineStepType.EXFOLIANT, 2];
+      isPhotosensitizing = true;
+      requiresDaytimeSunscreen = true;
+      compatibleConcerns.push('skin_texture', 'hyperpigmentation', 'pores');
+      guidance('Chemical exfoliants can increase sun sensitivity; confirm the product directions on daytime sunscreen');
+      reasoning = 'Proposed role: exfoliant (treatment phase after cleansing)';
+    } else if (/eye cream|eye serum|eye contour|كريم العين|محيط العين/i.test(fullText)) {
+      [stepType, stepOrder, siteOfUse] = [RoutineStepType.EYE_CARE, 4, ApplicationSite.EYE_CONTOUR];
+      reasoning = 'Proposed role: eye care (before heavier moisturizers)';
+    } else if (/sunscreen|sun cream|uv fluid|sun block|واقي شمس/i.test(fullText) || /\bspf\b/i.test(nameLower)) {
+      [stepType, stepOrder] = [RoutineStepType.SUNSCREEN, 6];
+      compatibleConcerns.push('sun_protection', 'anti_aging', 'hyperpigmentation_prevention');
+      reasoning = 'Proposed role: sun protection (last skincare phase)';
+    } else if (
+      /serum|ampoule|booster|سيروم/i.test(fullText) || categoryLower.includes('serum') || categoryLower.includes('treatment') ||
+      /c e ferulic/i.test(fullText) ||
+      (ingredientsUpper.some((i) => i.includes('ASCORB') || i.includes('RETIN')) && !/cream|lotion|cleanser|wash/i.test(nameLower))
+    ) {
+      [stepType, stepOrder] = [RoutineStepType.TREATMENT_SERUM, 3];
+      const hasRetinoid = /retinol|retinal|retinoid|tretinoin|ريتينول/i.test(fullText) || ingredientsUpper.some((i) => i.includes('RETIN'));
+      const hasAhaBha = /glycolic|salicylic|lactic|mandelic|حمض الساليسيليك|حمض الجليكوليك/i.test(fullText) ||
+        ingredientsUpper.some((i) => i.includes('GLYCOLIC') || i.includes('SALICYLIC'));
+      const hasVitC = /vitamin c|ascorbic|فيتامين سي/i.test(fullText) || ingredientsUpper.some((i) => i.includes('ASCORB'));
+      if (hasRetinoid) {
         isPhotosensitizing = true;
         requiresDaytimeSunscreen = true;
-        compatibleConcerns.push('skin_texture', 'hyperpigmentation', 'pores');
-        warnings.push('Increases sun sensitivity; broad-spectrum sunscreen is mandatory during daytime');
-        if (rinseType === RinseType.RINSE_OFF) {
-          const minuteMatch = usageText.match(/(\d+)\s*(?:minute|min|دقائق|دقيقة)/i);
-          if (minuteMatch) {
-            warnings.push(`Do not leave on skin for more than ${minuteMatch[1]} minutes as instructed by manufacturer; rinse thoroughly with lukewarm water`);
-          } else if (/peeling solution|chemical peel/i.test(fullText)) {
-            warnings.push('Follow manufacturer package directions for duration; do not leave on skin beyond recommended time and rinse thoroughly with lukewarm water');
-          } else {
-            warnings.push('Rinse thoroughly with lukewarm water after application');
-          }
-        }
-        reasoning = 'Direct chemical exfoliant or peeling solution used 1-2 times weekly in the PM routine only';
-      } else if (/eye cream|eye serum|eye contour|كريم العين|محيط العين/i.test(fullText)) {
-        stepType = RoutineStepType.EYE_CARE;
-        stepOrder = 4;
-        siteOfUse = ApplicationSite.EYE_CONTOUR;
-        rinseType = RinseType.LEAVE_ON;
-        timing = RoutineTiming.AM_PM;
-        reasoning = 'Specialized orbital bone and eye contour treatment applied before heavy facial moisturizers';
-      } else if (/sunscreen|sun cream|uv fluid|sun block|واقي شمس/i.test(fullText) || /\bspf\b/i.test(nameLower)) {
-        stepType = RoutineStepType.SUNSCREEN;
-        stepOrder = 6;
-        siteOfUse = ApplicationSite.FACE;
-        rinseType = RinseType.LEAVE_ON;
-        timing = RoutineTiming.AM_ONLY;
-        frequency = UsageFrequency.DAILY;
-        requiresDaytimeSunscreen = false; // it is the sunscreen!
-        compatibleConcerns.push('sun_protection', 'anti_aging', 'hyperpigmentation_prevention');
-        reasoning = 'Broad spectrum sunscreen is strictly step 6 in the AM routine; reapply every 2 hours during sun exposure';
-      } else if (
-        /serum|ampoule|booster|سيروم/i.test(fullText) ||
-        categoryLower.includes('serum') ||
-        categoryLower.includes('treatment') ||
-        /c e ferulic/i.test(fullText) ||
-        (ingredientsUpper.some((i) => i.includes('ASCORB') || i.includes('RETIN')) &&
-          !/cream|lotion|cleanser|wash/i.test(nameLower))
-      ) {
-        stepType = RoutineStepType.TREATMENT_SERUM;
-        stepOrder = 3;
-        siteOfUse = ApplicationSite.FACE;
-        rinseType = RinseType.LEAVE_ON;
-
-        // Inspect actives to determine timing and warnings
-        const hasRetinoid =
-          /retinol|retinal|retinoid|tretinoin|ريتينول/i.test(fullText) ||
-          ingredientsUpper.some((i) => i.includes('RETIN'));
-
-        const hasAhaBha =
-          /glycolic|salicylic|lactic|mandelic|حمض الساليسيليك|حمض الجليكوليك/i.test(fullText) ||
-          ingredientsUpper.some((i) => i.includes('GLYCOLIC') || i.includes('SALICYLIC'));
-
-        const hasVitC =
-          /vitamin c|ascorbic|فيتامين سي/i.test(fullText) ||
-          ingredientsUpper.some((i) => i.includes('ASCORB'));
-
-        if (hasRetinoid) {
-          timing = RoutineTiming.PM_ONLY;
-          isPhotosensitizing = true;
-          requiresDaytimeSunscreen = true;
-          frequency = UsageFrequency.DAILY;
-          compatibleConcerns.push('anti_aging', 'fine_lines', 'pores', 'acne');
-          warnings.push('May cause initial flaking or redness; introduce gradually into PM routine');
-          warnings.push('Mandatory daily sunscreen application when using topical retinoids');
-          reasoning = 'Retinoid serum is strictly a PM active treatment (step 3) to prevent UV degradation and phototoxicity';
-        } else if (hasAhaBha && !hasVitC) {
-          timing = RoutineTiming.PM_ONLY;
-          isPhotosensitizing = true;
-          requiresDaytimeSunscreen = true;
-          compatibleConcerns.push('acne', 'pores', 'skin_texture');
-          warnings.push('Daily sunscreen required due to AHA/BHA keratolytic photo-sensitivity');
-          reasoning = 'Direct acid serum is placed at step 3 in PM routine to promote nocturnal desquamation';
-        } else if (hasVitC) {
-          timing = RoutineTiming.AM_PM;
-          compatibleConcerns.push('hyperpigmentation', 'dullness', 'antioxidant_defense');
-          reasoning = 'Vitamin C serum is recommended at step 3 in the AM for antioxidant defense under sunscreen';
-        } else {
-          timing = RoutineTiming.AM_PM;
-          compatibleConcerns.push('hydration', 'barrier_repair');
-          reasoning = 'Hydrating or soothing treatment serum applied at step 3 in both AM and PM routines';
-        }
-      } else if (/oil|زيت الوجه/i.test(fullText) && !/cleansing oil/i.test(fullText)) {
-        stepType = RoutineStepType.FACE_OIL;
-        stepOrder = 7;
-        siteOfUse = ApplicationSite.FACE;
-        rinseType = RinseType.LEAVE_ON;
-        timing = /night|pm/i.test(fullText) ? RoutineTiming.PM_ONLY : RoutineTiming.AM_PM;
-        reasoning = 'Pure facial oil acts as an occlusive seal applied over moisturizers';
+        compatibleConcerns.push('anti_aging', 'fine_lines', 'pores', 'acne');
+        guidance('Retinoids are commonly introduced gradually and paired with daytime sunscreen; use the product directions');
+      } else if (hasAhaBha && !hasVitC) {
+        isPhotosensitizing = true;
+        requiresDaytimeSunscreen = true;
+        compatibleConcerns.push('acne', 'pores', 'skin_texture');
+        guidance('AHA/BHA can increase sun sensitivity; confirm the product directions on daytime sunscreen');
+      } else if (hasVitC) {
+        compatibleConcerns.push('hyperpigmentation', 'dullness', 'antioxidant_defense');
       } else {
-        // Standard Moisturizer / Barrier Cream
-        stepType = RoutineStepType.MOISTURIZER;
-        stepOrder = 5;
-        siteOfUse = ApplicationSite.FACE;
-        rinseType = RinseType.LEAVE_ON;
-        timing = /night cream|sleeping mask|كريم ليلي/i.test(fullText)
-          ? RoutineTiming.PM_ONLY
-          : RoutineTiming.AM_PM;
-        compatibleConcerns.push('barrier_repair', 'dryness');
-        reasoning = 'Moisturizer locks in hydration and reinforces stratum corneum barrier lipids (step 5)';
+        compatibleConcerns.push('hydration', 'barrier_repair');
       }
+      reasoning = 'Proposed role: treatment serum (treatment phase after cleansing)';
+    } else if (/oil|زيت الوجه/i.test(fullText) && !/cleansing oil/i.test(fullText)) {
+      [stepType, stepOrder] = [RoutineStepType.FACE_OIL, 7];
+      reasoning = 'Proposed role: face oil (applied over lighter layers)';
+    } else {
+      compatibleConcerns.push('barrier_repair', 'dryness');
+      reasoning = 'Proposed role: moisturizer';
     }
 
-    // 3. Ambiguity & Frequency Guard
-    // If usage directions are ambiguous, conflicting, or missing for high-strength products, hold for review
-    const hasAmbiguousUsage =
-      /use as directed|consult (?:your )?physician|as needed|specialist advice/i.test(usageText) ||
-      (input.conflictingDistributorUsage !== undefined &&
-        input.conflictingDistributorUsage !== usageText);
+    // 3. Usage facts — evidence only, from the product's own directions
+    const usageRules = this.parseUsageRules(usageLines);
+    const regular = usageRules.find((rule) => rule.condition === null) ?? usageRules[0];
+    const rinseModes = new Set(usageRules.map((rule) => rule.rinseMode).filter((mode) => mode !== 'UNKNOWN'));
+    const rinseType = rinseModes.size === 1 ? (rinseModes.has('RINSE_OFF') ? RinseType.RINSE_OFF : RinseType.LEAVE_ON) : RinseType.UNKNOWN;
+    const timing = !regular ? RoutineTiming.UNKNOWN
+      : regular.frequencyUnit === 'AS_NEEDED' ? RoutineTiming.AS_NEEDED
+      : ({ AM: RoutineTiming.AM_ONLY, PM: RoutineTiming.PM_ONLY, BOTH: RoutineTiming.AM_PM, UNKNOWN: RoutineTiming.UNKNOWN } as const)[regular.routinePeriod];
+    let frequency = this.legacyFrequency(regular);
+    let frequencyStatus: 'CONFIRMED' | 'HELD_FOR_REVIEW' = frequency === UsageFrequency.UNCLEAR_HELD ? 'HELD_FOR_REVIEW' : 'CONFIRMED';
 
-    if (hasAmbiguousUsage && stepType === RoutineStepType.EXFOLIANT) {
+    const hasAmbiguousUsage =
+      /use as directed|consult (?:your )?physician|specialist advice/i.test(usageText) ||
+      (input.conflictingDistributorUsage !== undefined && input.conflictingDistributorUsage.toLowerCase() !== usageText);
+    if (hasAmbiguousUsage) {
       frequency = UsageFrequency.UNCLEAR_HELD;
       frequencyStatus = 'HELD_FOR_REVIEW';
-      reasoning += ' [HELD_FOR_REVIEW: Frequency held for editorial review due to ambiguous or conflicting source usage text]';
     }
-
-    const contradictionsFound = Boolean(input.conflictingDistributorUsage);
+    if (frequencyStatus === 'HELD_FOR_REVIEW') {
+      reasoning += ` [HELD_FOR_REVIEW: ${hasAmbiguousUsage ? 'ambiguous or conflicting source directions'
+        : usageLines.length ? 'directions do not state a frequency' : 'no product directions supplied'}]`;
+    }
 
     return {
       category,
@@ -270,14 +184,128 @@ export class RoutinePlacementService {
       isPhotosensitizing,
       requiresDaytimeSunscreen,
       reasoning,
+      roleSource: 'NAME_AND_CATEGORY_HEURISTIC',
+      usageRules,
       compatibleConcerns,
-      warnings,
+      warnings: this.warningsFromDirections(usageLines, usageRules),
+      genericGuidance,
       evidenceSummary: {
         sourceType: input.sourceType,
         sourceUrl: input.sourceUrl,
-        extractedUsageText: input.usage?.join('; ') || input.directions,
-        contradictionsFound,
+        extractedUsageText: usageLines.join('; ') || undefined,
+        contradictionsFound: Boolean(input.conflictingDistributorUsage),
       },
     };
+  }
+
+  /**
+   * Splits directions into sentences and reads what each one states. Sentences describing the same area and condition
+   * with no contradiction are merged; differing areas (face vs scalp) or an introductory schedule stay separate rules.
+   */
+  parseUsageRules(lines: string[]): UsageRule[] {
+    const sentences = lines.join('. ')
+      .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+      .split(/(?<=[.!?؟])\s+|[;\n•،]+/)
+      .map((s) => s.trim().replace(/[.!?؟]+$/, ''))
+      .filter(Boolean);
+    const areaOf = (s: string): UsageRule['targetArea'] =>
+      /scalp|فروة/i.test(s) ? 'SCALP' : /\bhair\b|شعر/i.test(s) ? 'HAIR' : /\beyes?\b|eye contour|العين/i.test(s) ? 'EYE_CONTOUR'
+        : /\blips?\b|شفاه/i.test(s) ? 'LIPS' : /\bbody\b|جسم/i.test(s) ? 'BODY' : /\bface\b|\bneck\b|وجه|رقبة/i.test(s) ? 'FACE' : null;
+    const allAreas = new Set(sentences.map(areaOf).filter(Boolean));
+    const documentArea = allAreas.size === 1 ? [...allAreas][0] : null;
+
+    const parsed: UsageRule[] = [];
+    let pendingArea: UsageRule['targetArea'] = null;
+    for (const sentence of sentences) {
+      // Match on a normalized copy (alef/hamza forms, tashkeel/tanween); the evidence keeps the original wording.
+      const s = sentence.toLowerCase().replace(/[أإآ]/g, 'ا').replace(/[ً-ٟـ]/g, '');
+      const rule: UsageRule = {
+        targetArea: areaOf(s), routinePeriod: 'UNKNOWN', rinseMode: 'UNKNOWN', frequencyUnit: 'UNKNOWN',
+        usesMin: null, usesMax: null, contactMinutes: null, contactIsMaximum: false,
+        condition: /beginner|first[- ]time|start(?:ing)? with|introduc|للمبتدئين|في البداية|ابدأ/i.test(s) ? 'INTRODUCTORY' : null,
+        evidenceText: sentence,
+      };
+      const range = s.match(new RegExp(`${NUM}\\s*(?:-|–|to|or|إلى|الى|او|أو)\\s*${NUM}\\s*(?:times?|مرات?)?\\s*(?:${WEEK})`));
+      const perWeek = s.match(new RegExp(`(once|twice|${NUM.slice(1, -1)})\\s*(?:times?)?\\s*(?:${WEEK})|(مرة|مره|مرتين|\\d+\\s*مرات?)\\s*(?:واحدة)?\\s*(?:${WEEK})`));
+      if (/as needed|when needed|whenever needed|عند الحاجة/.test(s)) {
+        rule.frequencyUnit = 'AS_NEEDED';
+      } else if (range) {
+        [rule.frequencyUnit, rule.usesMin, rule.usesMax] = ['WEEK', asNumber(range[1]), asNumber(range[2])];
+      } else if (perWeek) {
+        const token = (perWeek[1] ?? perWeek[2]).replace(/\s*مرات?$/, '');
+        rule.frequencyUnit = 'WEEK';
+        rule.usesMin = rule.usesMax = asNumber(token);
+      } else if (/\bweekly\b|اسبوعيا/.test(s)) {
+        [rule.frequencyUnit, rule.usesMin, rule.usesMax] = ['WEEK', 1, 1];
+      } else if (/twice\s*(?:a|per|each)?\s*day|twice daily|two times\s*(?:a|per)\s*day|مرتين\s*(?:في\s*)?(?:اليوم|يوميا)/.test(s)) {
+        [rule.frequencyUnit, rule.usesMin, rule.usesMax] = ['DAY', 2, 2];
+      } else if (/once\s*(?:a|per|each)?\s*day|once daily|every day|\bdaily\b|يوميا|مرة\s*(?:واحدة\s*)?(?:في\s*)?اليوم/.test(s)) {
+        [rule.frequencyUnit, rule.usesMin, rule.usesMax] = ['DAY', 1, 1];
+      }
+      const morning = /\bmorning\b|\bam\b|صباح/.test(s);
+      const evening = /\bevening\b|\bnight\b|\bpm\b|bedtime|مساء|ليل|قبل النوم/.test(s);
+      rule.routinePeriod = morning && evening ? 'BOTH' : morning ? 'AM' : evening ? 'PM' : 'UNKNOWN';
+      if (morning && evening && rule.frequencyUnit === 'UNKNOWN') [rule.frequencyUnit, rule.usesMin, rule.usesMax] = ['DAY', 2, 2];
+      if (/do not rinse|don't rinse|no need to rinse|leave-in|without rinsing|بدون شطف|لا تشطف|لا يشطف/.test(s)) rule.rinseMode = 'LEAVE_ON';
+      else if (/\brinse|wash off|اشطف|يشطف|شطف/.test(s)) rule.rinseMode = 'RINSE_OFF';
+      const contact = s.match(/(no more than|not more than|maximum of|up to|لا تزيد عن|بحد اقصى)?\s*(\d+)\s*(?:minutes?|mins?|دقائق|دقيقة)/);
+      if (contact) {
+        rule.contactMinutes = Number(contact[2]);
+        rule.contactIsMaximum = Boolean(contact[1]);
+      }
+      const informative = rule.frequencyUnit !== 'UNKNOWN' || rule.routinePeriod !== 'UNKNOWN' ||
+        rule.rinseMode !== 'UNKNOWN' || rule.contactMinutes !== null;
+      if (informative) {
+        if (!rule.targetArea && pendingArea) [rule.targetArea, pendingArea] = [pendingArea, null];
+        parsed.push(rule);
+      } else if (rule.targetArea) {
+        // "Apply to face and neck." belongs to the neighbouring instruction that names no area.
+        const previous = parsed[parsed.length - 1];
+        if (previous && !previous.targetArea) previous.targetArea = rule.targetArea;
+        else pendingArea = rule.targetArea;
+      }
+    }
+
+    // Merge compatible sentences into one rule; keep area/condition-specific instructions separate.
+    const rules: UsageRule[] = [];
+    for (const rule of parsed) {
+      const area = rule.targetArea ?? documentArea;
+      const target = rules.find((r) => (r.targetArea ?? documentArea) === area && r.condition === rule.condition &&
+        (r.frequencyUnit === 'UNKNOWN' || rule.frequencyUnit === 'UNKNOWN') &&
+        (r.routinePeriod === 'UNKNOWN' || rule.routinePeriod === 'UNKNOWN' || r.routinePeriod === rule.routinePeriod) &&
+        (r.rinseMode === 'UNKNOWN' || rule.rinseMode === 'UNKNOWN' || r.rinseMode === rule.rinseMode));
+      if (!target) {
+        rules.push({ ...rule, targetArea: area });
+        continue;
+      }
+      if (target.frequencyUnit === 'UNKNOWN') Object.assign(target, { frequencyUnit: rule.frequencyUnit, usesMin: rule.usesMin, usesMax: rule.usesMax });
+      if (target.routinePeriod === 'UNKNOWN') target.routinePeriod = rule.routinePeriod;
+      if (target.rinseMode === 'UNKNOWN') target.rinseMode = rule.rinseMode;
+      if (target.contactMinutes === null) Object.assign(target, { contactMinutes: rule.contactMinutes, contactIsMaximum: rule.contactIsMaximum });
+      target.evidenceText = `${target.evidenceText}. ${rule.evidenceText}`;
+    }
+    return rules;
+  }
+
+  /** Legacy single-value summary of the regular-use rule; anything not explicitly stated is held. */
+  private legacyFrequency(rule?: UsageRule): UsageFrequency {
+    if (!rule) return UsageFrequency.UNCLEAR_HELD;
+    if (rule.frequencyUnit === 'AS_NEEDED') return UsageFrequency.AS_NEEDED;
+    if (rule.frequencyUnit === 'DAY' && rule.usesMax === 1) return UsageFrequency.DAILY;
+    if (rule.frequencyUnit === 'DAY' && rule.usesMin === 2 && rule.usesMax === 2) return UsageFrequency.TWICE_DAILY;
+    if (rule.frequencyUnit === 'WEEK' && rule.usesMax !== null && rule.usesMax <= 2) return UsageFrequency.WEEKLY_1_2_TIMES;
+    return UsageFrequency.UNCLEAR_HELD;
+  }
+
+  /** Warnings the product's own directions state (sun protection, contact limits, avoid eyes/broken skin, patch test). */
+  private warningsFromDirections(lines: string[], rules: UsageRule[]): string[] {
+    const warnings = rules.filter((r) => r.contactIsMaximum && r.contactMinutes !== null)
+      .map((r) => `Do not leave on for more than ${r.contactMinutes} minutes (manufacturer directions)`);
+    for (const sentence of lines.join('. ').split(/(?<=[.!?؟])\s+|[;\n•]+/)) {
+      if (/sunscreen|\bspf\b|sun protection|avoid (?:contact with )?(?:the )?eyes?|broken skin|irritated skin|patch test|external use only|discontinue use|واقي شمس|تجنب ملامسة العين|اختبار حساسية|للاستخدام الخارجي|توقف عن الاستخدام/i.test(sentence)) {
+        warnings.push(sentence.trim());
+      }
+    }
+    return [...new Set(warnings)];
   }
 }

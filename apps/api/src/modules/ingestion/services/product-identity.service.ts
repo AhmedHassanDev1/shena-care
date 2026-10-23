@@ -1,8 +1,8 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { ConflictException, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService, BrandService } from '../../catalog/public';
 import { RowNormalizationService } from './row-normalization.service';
-import { IngestionStatus } from '@prisma/client';
+import { IngestionStatus, Prisma } from '@prisma/client';
 
 type IdentitySku = {
   id: string;
@@ -40,6 +40,9 @@ export interface CandidateItemIdentityInput {
   category?: string | null;
   rawBrand?: string | null;
   rawName?: string | null;
+  /** The ingestion row being classified: excluded from the candidate sweep and used for oldest-wins election. */
+  candidateItemId?: string;
+  candidateCreatedAt?: Date;
 }
 
 export interface CanonicalSkuSnapshot {
@@ -63,7 +66,16 @@ export interface ProductIdentityMatchResult {
   conflicts: string[];
   canonicalSku?: CanonicalSkuSnapshot | null;
   existingCandidateId?: string | null;
+  /** A retrieved canonical SKU a reviewer may confirm; never applied automatically (GLO-276). */
+  suggestedSkuId?: string | null;
+  /** A rejected row with the same identity (GLO-278): shown to the reviewer instead of creating a new candidate. */
+  previouslyRejectedCandidateId?: string | null;
+  /** Open candidates with the same brand and net content but different wording: duplicate cannot be ruled out. */
+  possibleDuplicateCandidateIds?: string[];
 }
+
+// Placeholder brand cells mean "brand not stated", not "invalid product".
+const PLACEHOLDER_BRANDS = ['unknown', 'general', 'n/a', 'na', 'none', '-', 'غير معروف', 'عام'];
 
 // Curated brand alias dictionary (AR & EN mapping to canonical keys)
 const BRAND_ALIASES: Record<string, string> = {
@@ -139,6 +151,31 @@ export class ProductIdentityService {
     return false;
   }
 
+  /** True when a brand value actually names a brand (not blank or a placeholder such as "General"). */
+  isStatedBrand(brand?: string | null): boolean {
+    const trimmed = (brand ?? '').trim().toLowerCase();
+    return Boolean(trimmed) && !PLACEHOLDER_BRANDS.includes(trimmed);
+  }
+
+  /**
+   * Infers a brand named inside a product title (e.g. "سيرافي كريم …", "CeraVe Cleanser …") from curated aliases and
+   * active catalog brands. Returns null unless exactly one brand is found — a guess is worse than "unknown".
+   */
+  async inferBrandFromName(name: string): Promise<string | null> {
+    const text = ` ${this.normalizeString(name).replace(/-/g, ' ')} `;
+    const found = new Map<string, string>();
+    for (const [alias, key] of Object.entries(BRAND_ALIASES)) {
+      if (text.includes(` ${this.normalizeString(alias).replace(/-/g, ' ')} `)) found.set(key, key);
+    }
+    const brands = await this.prisma.brand.findMany({ where: { isActive: true }, select: { name: true } });
+    for (const brand of brands) {
+      if (text.includes(` ${this.normalizeString(brand.name).replace(/-/g, ' ')} `)) found.set(this.canonicalizeBrand(brand.name), brand.name);
+    }
+    if (found.size !== 1) return null;
+    const [key, display] = [...found.entries()][0];
+    return brands.find(b => this.canonicalizeBrand(b.name) === key)?.name ?? display;
+  }
+
   /**
    * Generates a deterministic, versioned product identity fingerprint.
    * Format: v1:<brand_norm>:<name_norm>:<variant_norm>:<size><unit>
@@ -185,18 +222,21 @@ export class ProductIdentityService {
     size: number | null,
     unit: string | null,
     packCount: number | null,
+    options: { ignoreName?: boolean } = {},
   ): string[] {
     const conflicts: string[] = [];
-    if (this.canonicalizeBrand(input.brand) !== this.canonicalizeBrand(sku.product.brand.name)) {
+    // An unstated brand cannot veto, but a stated one must agree.
+    if (this.isStatedBrand(input.brand) &&
+        this.canonicalizeBrand(input.brand) !== this.canonicalizeBrand(sku.product.brand.name)) {
       conflicts.push('brand_mismatch');
     }
-    const baseName = (value: string) => this.normalizeString(
-      this.rowNormalizationService?.extractSizeAndPack(value).cleanTitle || value,
-    );
     const verifiedBarcode = Boolean(input.barcode && (input.barcode.trim() === sku.barcode ||
       sku.barcodeAliases?.some(alias => alias.status === 'approved' && alias.barcode === input.barcode!.trim())));
-    // A manufacturer barcode plus brand and pack facts can identify a translated title.
-    if (baseName(input.name) !== baseName(sku.product.name) && !verifiedBarcode) conflicts.push('product_name_mismatch');
+    // A manufacturer barcode plus brand and pack facts can identify a translated title; a reviewed supplier alias
+    // exists precisely because the supplier's wording differs, so only physical facts veto it.
+    if (!options.ignoreName && !this.sameBaseName(input.name, sku.product.name) && !verifiedBarcode) {
+      conflicts.push('product_name_mismatch');
+    }
     if (input.barcode && !verifiedBarcode) {
       conflicts.push('barcode_mismatch');
     }
@@ -209,6 +249,29 @@ export class ProductIdentityService {
       conflicts.push('pack_count_mismatch');
     }
     return conflicts;
+  }
+
+  sameBaseName(a: string, b: string): boolean {
+    return this.baseName(a) === this.baseName(b);
+  }
+
+  private baseName(value: string): string {
+    return this.normalizeString(this.rowNormalizationService?.extractSizeAndPack(value).cleanTitle || value);
+  }
+
+  /**
+   * Could two same-brand, same-size titles name one product? Titles in different scripts (Arabic vs Latin) cannot be
+   * compared word by word, so they may. Same-script titles may only when their distinguishing words (brand and size
+   * removed) mostly overlap — a brand's many different 30 ml serums are not duplicates of each other (GLO-281).
+   */
+  mayBeSameProduct(a: string, b: string, brand: string): boolean {
+    const arabic = /[؀-ۿ]/;
+    if (arabic.test(a) !== arabic.test(b)) return true;
+    const brandWords = new Set(this.normalizeString(brand).split('-'));
+    const words = (value: string) => new Set(this.baseName(value).split('-').filter(w => w && !brandWords.has(w)));
+    const [x, y] = [words(a), words(b)];
+    const union = new Set([...x, ...y]).size;
+    return union === 0 || [...x].filter(w => y.has(w)).length / union >= 0.5;
   }
 
   private snapshot(sku: IdentitySku): CanonicalSkuSnapshot {
@@ -246,8 +309,9 @@ export class ProductIdentityService {
       packageCount: effectivePackCount,
     });
 
-    // 0. Mandatory identifier validation
-    if (!input.name || !input.brand || !input.name.trim() || !input.brand.trim()) {
+    // 0. Mandatory identifier validation (a brand may be unstated; it then simply cannot vouch for identity)
+    const brandStated = this.isStatedBrand(input.brand);
+    if (!input.name || !input.name.trim()) {
       return {
         classification: MatchClassification.INVALID,
         matchedSkuId: null,
@@ -259,7 +323,7 @@ export class ProductIdentityService {
     }
 
     // 0b. Brand validity check
-    if (this.isInvalidBrand(input.brand)) {
+    if (brandStated && this.isInvalidBrand(input.brand)) {
       return {
         classification: MatchClassification.INVALID,
         matchedSkuId: null,
@@ -306,7 +370,8 @@ export class ProductIdentityService {
     });
 
     if (alias && alias.sku && alias.sku.isActive) {
-      const conflicts = this.canonicalConflicts(input, alias.sku as IdentitySku, effectiveSize, effectiveUnit, effectivePackCount);
+      const conflicts = this.canonicalConflicts(input, alias.sku as IdentitySku, effectiveSize, effectiveUnit, effectivePackCount,
+        { ignoreName: true });
       if (input.barcode && !conflicts.includes('barcode_mismatch')) {
         const competingPrimary = await this.prisma.sku.findFirst({ where: {
           barcode: input.barcode.trim(), isActive: true, id: { not: alias.skuId },
@@ -384,6 +449,21 @@ export class ProductIdentityService {
           };
         }
 
+        // A barcode alone is not identity (codes get reused or mistyped): a stated matching brand or the same
+        // product name must corroborate it, otherwise a reviewer confirms the suggestion.
+        const corroborated = brandStated || this.sameBaseName(input.name, canonicalSku.product.name);
+        if (!corroborated) {
+          return {
+            classification: MatchClassification.LIKELY_MATCH,
+            matchedSkuId: null,
+            reason: 'barcode_match_without_independent_corroboration',
+            fingerprint,
+            conflicts: ['barcode_requires_brand_or_name_corroboration'],
+            canonicalSku: this.snapshot(canonicalSku as IdentitySku),
+            suggestedSkuId: canonicalSku.id,
+          };
+        }
+
         const isAlias = skusWithBarcode.length === 0 && barcodeAliases.length > 0;
         return {
           classification: MatchClassification.EXACT_MATCH,
@@ -392,6 +472,23 @@ export class ProductIdentityService {
           fingerprint,
           conflicts: [],
           canonicalSku: this.snapshot(canonicalSku as IdentitySku),
+        };
+      }
+
+      // 2c. The barcode belongs to an existing but INACTIVE canonical SKU: never "new" (GLO-278) and never silently
+      // revived — a reviewer decides whether to reactivate it.
+      const inactive = await this.prisma.sku.findFirst({
+        where: { isActive: false, OR: [{ barcode: rawBarcode }, { barcodeAliases: { some: { barcode: rawBarcode, status: 'approved' } } }] },
+        include: { product: { include: { brand: true } } },
+      });
+      if (inactive) {
+        return {
+          classification: MatchClassification.CONFLICT,
+          matchedSkuId: null,
+          reason: 'barcode_matches_inactive_canonical_sku',
+          fingerprint,
+          conflicts: ['canonical_sku_inactive'],
+          canonicalSku: this.snapshot(inactive as unknown as IdentitySku),
         };
       }
     }
@@ -411,10 +508,11 @@ export class ProductIdentityService {
       });
     }
 
-    if (brand) {
+    if (brand && brandStated) {
       const canonicalProducts = await this.prisma.product.findMany({
         where: { brandId: brand.id },
-        include: { skus: { where: { isActive: true } } },
+        // Inactive SKUs are searched too: an unpublished/inactive item is existing identity, not a new product (GLO-278).
+        include: { skus: true },
       });
 
       const candidateNameNorm = this.normalizeString(
@@ -438,13 +536,26 @@ export class ProductIdentityService {
                 effectiveUnit && sku.sizeUnit?.toLowerCase() === effectiveUnit.toLowerCase() && completeVariant &&
                 (effectivePackCount === null ? sku.packCount === null : sku.packCount === effectivePackCount) &&
                 (input.variantName || this.normalizeString(sku.variantName) === 'default')) {
+              if (!sku.isActive) {
+                return {
+                  classification: MatchClassification.CONFLICT,
+                  matchedSkuId: null,
+                  reason: 'name_size_matches_inactive_canonical_sku',
+                  fingerprint,
+                  conflicts: ['canonical_sku_inactive'],
+                  canonicalSku: this.snapshot({ ...sku, product: { name: product.name, brand: { name: brand.name } } }),
+                };
+              }
+              // Name + size agreement retrieves a strong candidate but is not identity proof (formulation,
+              // version or a reused name can differ): a reviewer confirms before any offer is written.
               return {
-                classification: MatchClassification.EXACT_MATCH,
-                matchedSkuId: sku.id,
-                reason: 'brand_name_size_exact_match',
+                classification: MatchClassification.LIKELY_MATCH,
+                matchedSkuId: null,
+                reason: 'brand_name_size_match_requires_review',
                 fingerprint,
-                conflicts: [],
+                conflicts: ['name_match_requires_identity_review'],
                 canonicalSku: this.snapshot({ ...sku, product: { name: product.name, brand: { name: brand.name } } }),
+                suggestedSkuId: sku.id,
               };
             }
           }
@@ -462,43 +573,38 @@ export class ProductIdentityService {
       }
     }
 
-    // 4. Multi-supplier candidate deduplication: check if another supplier has already submitted this candidate
-    let existingCandidateItem: any = null;
-
-    if (input.barcode) {
-      existingCandidateItem = await this.prisma.ingestionItem.findFirst({
-        where: {
-          barcode: input.barcode,
-          brand: { equals: input.brand, mode: 'insensitive' },
-          status: { in: [IngestionStatus.pending, IngestionStatus.review_required, IngestionStatus.approved] },
-        },
-        orderBy: { createdAt: 'asc' },
-      });
-    }
-
-    if (!existingCandidateItem) {
-      const candBrand = this.canonicalizeBrand(input.brand);
-      const candidates = await this.prisma.ingestionItem.findMany({
-        where: {
-          status: { in: [IngestionStatus.pending, IngestionStatus.review_required, IngestionStatus.approved] },
-        },
-        orderBy: { createdAt: 'asc' },
-        take: 100,
-      });
-
-      for (const c of candidates) {
-        if (this.canonicalizeBrand(c.brand) === candBrand) {
-          const cFp = (c.enrichment as any)?.identity?.fingerprint ||
-            this.generateFingerprint({ brand: c.brand, name: c.name });
-          if (cFp === fingerprint) {
-            existingCandidateItem = c;
-            break;
-          }
-        }
-      }
-    }
+    // 4. Cross-supplier candidate sweep (GLO-278): every open candidate (no row cap), by barcode or identity
+    // fingerprint. The OLDEST matching row is the primary — every concurrent importer elects the same one, so two
+    // uploads of a new product converge on a single candidate instead of each creating (or pointing at) the other.
+    const openStatuses = [IngestionStatus.pending, IngestionStatus.review_required, IngestionStatus.approved];
+    const identityMatch: Prisma.IngestionItemWhereInput = { OR: [
+      ...(input.barcode ? [{ barcode: input.barcode.trim() }] : []),
+      { enrichment: { path: ['source', 'fingerprint'], equals: fingerprint } },
+      { enrichment: { path: ['identity', 'fingerprint'], equals: fingerprint } },
+    ] };
+    const notSelf: Prisma.IngestionItemWhereInput = input.candidateItemId ? { id: { not: input.candidateItemId } } : {};
+    const olderThanSelf: Prisma.IngestionItemWhereInput = input.candidateItemId && input.candidateCreatedAt
+      ? { OR: [{ createdAt: { lt: input.candidateCreatedAt } }, { createdAt: input.candidateCreatedAt, id: { lt: input.candidateItemId } }] }
+      : {};
+    const existingCandidateItem = await this.prisma.ingestionItem.findFirst({
+      where: { AND: [notSelf, olderThanSelf, identityMatch, { status: { in: openStatuses } }] },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
 
     if (existingCandidateItem) {
+      const brandsDisagree = brandStated && this.isStatedBrand(existingCandidateItem.brand) &&
+        this.canonicalizeBrand(existingCandidateItem.brand) !== this.canonicalizeBrand(input.brand);
+      if (brandsDisagree) {
+        return {
+          classification: MatchClassification.CONFLICT,
+          matchedSkuId: null,
+          reason: 'candidate_identity_conflict_across_suppliers',
+          fingerprint,
+          conflicts: ['candidate_barcode_brand_conflict'],
+          canonicalSku: null,
+          existingCandidateId: existingCandidateItem.id,
+        };
+      }
       return {
         classification: MatchClassification.NO_MATCH,
         matchedSkuId: null,
@@ -510,37 +616,67 @@ export class ProductIdentityService {
       };
     }
 
+    // A reviewer already rejected this identity (any supplier): surface it instead of resurrecting a new candidate.
+    const previouslyRejected = await this.prisma.ingestionItem.findFirst({
+      where: { AND: [notSelf, identityMatch, { status: IngestionStatus.rejected }] },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    // Same brand + same net content and plausibly the same product in other words (e.g. Arabic vs English title, no
+    // barcode): identity cannot be proven either way, so the row is flagged for review rather than becoming a second
+    // candidate. Clearly different products of the brand in the same size are not flagged.
+    const possibleDuplicateCandidateIds: string[] = [];
+    if (brandStated && effectiveSize !== null && effectiveUnit) {
+      // Only OLDER rows with a DIFFERENT fingerprint: same-fingerprint rows are settled by oldest-wins election, and a
+      // newer differently-worded row flags itself — so racing importers never stall each other.
+      const sameSize = await this.prisma.ingestionItem.findMany({
+        where: { AND: [notSelf, olderThanSelf, { status: { in: openStatuses } },
+          { NOT: { enrichment: { path: ['source', 'fingerprint'], equals: fingerprint } } },
+          { enrichment: { path: ['source', 'normalized', 'extractedSize'], equals: effectiveSize } },
+          { enrichment: { path: ['source', 'normalized', 'extractedUnit'], equals: effectiveUnit } }] },
+        select: { id: true, brand: true, name: true },
+        take: 500,
+      });
+      possibleDuplicateCandidateIds.push(...sameSize
+        .filter(c => this.isStatedBrand(c.brand) && this.canonicalizeBrand(c.brand) === this.canonicalizeBrand(input.brand) &&
+          this.mayBeSameProduct(input.name, c.name, input.brand))
+        .map(c => c.id));
+    }
+
     return {
       classification: MatchClassification.NO_MATCH,
       matchedSkuId: null,
       reason: 'no_canonical_match_found',
       fingerprint,
-      conflicts: input.barcode ? [] : ['missing_barcode'],
+      conflicts: [...(input.barcode ? [] : ['missing_barcode']), ...(brandStated ? [] : ['missing_brand']),
+        ...(effectiveSize === null || !effectiveUnit ? ['missing_net_content'] : [])],
       canonicalSku: null,
       existingCandidateId: null,
+      previouslyRejectedCandidateId: previouslyRejected?.id ?? null,
+      possibleDuplicateCandidateIds,
     };
+  }
+
+  /** The identity fingerprint stored on an admitted row so concurrent importers can find each other (GLO-278). */
+  rowFingerprint(input: { brand: string; name: string; size?: number | null; sizeUnit?: string | null; packageCount?: number | null }): string | null {
+    return this.isStatedBrand(input.brand) ? this.generateFingerprint(input) : null;
   }
 
   /**
    * Registers an approved Supplier SKU Alias for automatic matching on future imports.
    */
   async createSupplierSkuAlias(supplierId: string, supplierSkuCode: string, skuId: string): Promise<void> {
-    await this.prisma.supplierSkuAlias.upsert({
-      where: {
-        supplierId_supplierSkuCode: {
-          supplierId,
-          supplierSkuCode,
-        },
-      },
-      create: {
-        supplierId,
-        supplierSkuCode,
-        skuId,
-      },
-      update: {
-        skuId,
-      },
+    const existing = await this.prisma.supplierSkuAlias.findUnique({
+      where: { supplierId_supplierSkuCode: { supplierId, supplierSkuCode } },
     });
+    if (existing) {
+      // Re-pointing a reviewed supplier code to another SKU would silently move future offers; it needs review.
+      if (existing.skuId !== skuId) {
+        throw new ConflictException(`Supplier code ${supplierSkuCode} is already linked to a different canonical SKU`);
+      }
+      return;
+    }
+    await this.prisma.supplierSkuAlias.create({ data: { supplierId, supplierSkuCode, skuId } });
   }
 }
 

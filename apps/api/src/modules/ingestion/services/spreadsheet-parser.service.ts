@@ -14,6 +14,8 @@ export interface ParsedSpreadsheet {
   sampleRows: Record<string, any>[];
   totalDataRows: number;
   rows: ParsedSpreadsheetRow[];
+  /** Advisory workbook metadata (XLSX/XLS only); never trusted as business freshness. */
+  workbookProps?: { createdAt: string | null; modifiedAt: string | null };
 }
 
 export interface ParseSpreadsheetOptions {
@@ -28,6 +30,12 @@ const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const DEFAULT_MAX_SHEETS = 20;
 const DEFAULT_MAX_ROWS = 10000;
 const DEFAULT_MAX_COLUMNS = 100;
+// Zip-bomb bounds for XLSX archives, checked from the central directory before decompression.
+// 10k rows x 100 columns of XML stays well below this; real supplier exports are a few MB.
+const MAX_ARCHIVE_UNCOMPRESSED_BYTES = 150 * 1024 * 1024;
+const MAX_ARCHIVE_ENTRIES = 1000;
+// Rows scanned for header discovery on top of the data-row limit.
+const HEADER_SCAN_ROWS = 15;
 
 // Known header cues for automated discovery in English and Arabic
 const HEADER_KEYWORD_CUES = [
@@ -110,6 +118,7 @@ export class SpreadsheetParserService {
       if (!isZip) {
         throw new BadRequestException('Malformed XLSX file: invalid archive signature');
       }
+      this.assertBoundedArchive(buffer);
       return 'xlsx';
     }
 
@@ -117,6 +126,7 @@ export class SpreadsheetParserService {
       if (!isOle2 && !isZip) {
         throw new BadRequestException('Malformed XLS file: invalid spreadsheet signature');
       }
+      if (isZip) this.assertBoundedArchive(buffer);
       return 'xls';
     }
 
@@ -127,6 +137,44 @@ export class SpreadsheetParserService {
     }
 
     return 'csv';
+  }
+
+  /**
+   * Reads the ZIP central directory (without inflating anything) and rejects archives whose declared
+   * uncompressed size or entry count exceeds the bounds, plus ZIP64 and encrypted entries we never expect
+   * from a supplier export. Declared sizes can lie; the row/column caps below remain the second line.
+   */
+  assertBoundedArchive(buffer: Buffer): void {
+    const malformed = () => new BadRequestException('Malformed XLSX file: unreadable archive directory');
+    let eocd = -1;
+    for (let i = buffer.length - 22; i >= Math.max(0, buffer.length - 22 - 0xffff); i--) {
+      if (buffer.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw malformed();
+
+    const entries = buffer.readUInt16LE(eocd + 10);
+    const directoryOffset = buffer.readUInt32LE(eocd + 16);
+    if (entries === 0xffff || directoryOffset === 0xffffffff) {
+      throw new BadRequestException('Unsupported XLSX archive (ZIP64)');
+    }
+    if (entries > MAX_ARCHIVE_ENTRIES) {
+      throw new BadRequestException(`XLSX archive contains too many parts (${entries})`);
+    }
+
+    let offset = directoryOffset;
+    let declaredTotal = 0;
+    for (let n = 0; n < entries; n++) {
+      if (offset + 46 > buffer.length || buffer.readUInt32LE(offset) !== 0x02014b50) throw malformed();
+      const flags = buffer.readUInt16LE(offset + 8);
+      const uncompressed = buffer.readUInt32LE(offset + 24);
+      if (flags & 0x1) throw new BadRequestException('Encrypted or password-protected spreadsheets are not supported');
+      if (uncompressed === 0xffffffff) throw new BadRequestException('Unsupported XLSX archive (ZIP64)');
+      declaredTotal += uncompressed;
+      if (declaredTotal > MAX_ARCHIVE_UNCOMPRESSED_BYTES) {
+        throw new BadRequestException('XLSX archive expands beyond the allowed size');
+      }
+      offset += 46 + buffer.readUInt16LE(offset + 28) + buffer.readUInt16LE(offset + 30) + buffer.readUInt16LE(offset + 32);
+    }
   }
 
   /**
@@ -177,23 +225,15 @@ export class SpreadsheetParserService {
     const maxRows = options.maxRows ?? DEFAULT_MAX_ROWS;
     const maxCols = options.maxColumns ?? DEFAULT_MAX_COLUMNS;
 
+    // sheetRows bounds parsing work; the true extent is still checked via !fullref below.
+    const readOptions = { cellFormula: true, cellHTML: false, cellText: false, sheetRows: maxRows + HEADER_SCAN_ROWS + 1 };
     let workbook: XLSX.WorkBook;
     try {
       if (fileType === 'csv') {
         const textContent = buffer.toString('utf-8');
-        workbook = XLSX.read(textContent, {
-          type: 'string',
-          cellFormula: true,
-          cellHTML: false,
-          cellText: false,
-        });
+        workbook = XLSX.read(textContent, { ...readOptions, type: 'string' });
       } else {
-        workbook = XLSX.read(buffer, {
-          type: 'buffer',
-          cellFormula: true,
-          cellHTML: false,
-          cellText: false,
-        });
+        workbook = XLSX.read(buffer, { ...readOptions, type: 'buffer' });
       }
     } catch (err: any) {
       throw new BadRequestException(`Failed to parse spreadsheet file: ${err.message || 'Corrupt format'}`);
@@ -214,6 +254,16 @@ export class SpreadsheetParserService {
     const sheet = workbook.Sheets[activeSheetName];
     if (!sheet) {
       throw new BadRequestException(`Sheet "${activeSheetName}" not found in workbook`);
+    }
+    const fullRange = sheet['!fullref'] ?? sheet['!ref'];
+    if (fullRange) {
+      const extent = XLSX.utils.decode_range(fullRange);
+      if (extent.e.r - extent.s.r + 1 > maxRows + HEADER_SCAN_ROWS) {
+        throw new BadRequestException(`Spreadsheet exceeds maximum allowed rows limit of ${maxRows}`);
+      }
+      if (extent.e.c - extent.s.c + 1 > maxCols) {
+        throw new BadRequestException(`Spreadsheet exceeds maximum allowed columns limit of ${maxCols}`);
+      }
     }
 
     // Preserve formula expressions so formula injection sanitizer can neutralize them
@@ -302,7 +352,16 @@ export class SpreadsheetParserService {
       sampleRows,
       totalDataRows: rows.length,
       rows,
+      workbookProps: fileType === 'csv' ? undefined : {
+        createdAt: this.isoOrNull(workbook.Props?.CreatedDate),
+        modifiedAt: this.isoOrNull(workbook.Props?.ModifiedDate),
+      },
     };
+  }
+
+  private isoOrNull(value: unknown): string | null {
+    const date = value instanceof Date ? value : typeof value === 'string' ? new Date(value) : null;
+    return date && !isNaN(date.getTime()) ? date.toISOString() : null;
   }
 
   private normalizeCue(str: string): string {

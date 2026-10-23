@@ -121,66 +121,25 @@ const KNOWN_PILOT_BRANDS = [
   'سيتافيل',
 ];
 
-// Excluded product keywords (food, electronics, clothing, etc.)
-const EXCLUDED_GOODS_KEYWORDS = [
-  'rice',
-  'pasta',
-  'chocolate',
-  'chips',
-  'biscuit',
-  'coffee',
-  'tea',
-  'juice',
-  'drink',
-  'snack',
-  'sauce',
-  'sugar',
-  'cereal',
-  'charger',
-  'cable',
-  'smartphone',
-  'phone',
-  'television',
-  'laptop',
-  'headphone',
-  'speaker',
-  'battery',
-  'blender',
-  'kettle',
-  'shirt',
-  'pants',
-  'trousers',
-  'shoes',
-  'jacket',
-  'socks',
-  'bag',
-  'ارز',
-  'مكرونه',
-  'شوكولاته',
-  'شيبس',
-  'بسكويت',
-  'قهوه',
-  'شاي',
-  'عصير',
-  'مشروب',
-  'صلصه',
-  'سكر',
-  'شاحن',
-  'كابل',
-  'هاتف',
-  'موبايل',
-  'تلفزيون',
-  'لابتوب',
-  'سماعه',
-  'بطاريه',
-  'خلاط',
-  'غلايه',
-  'قميص',
-  'بنطلون',
-  'فستان',
-  'حذاء',
-  'شنطه',
+// Product types that are confidently outside the skincare/haircare pilot: goods, electronics, clothing, and the
+// owner-excluded makeup, fragrance and tool categories (GLO-275). Matched as whole words/tokens only.
+const EXCLUDED_PRODUCT_TYPES = [
+  'pasta', 'chips', 'biscuit', 'drink', 'snack', 'sauce', 'cereal', 'basmati',
+  'charger', 'cable', 'smartphone', 'phone', 'television', 'laptop', 'headphone', 'speaker', 'battery', 'blender', 'kettle',
+  'shirt', 'pants', 'trousers', 'shoes', 'jacket', 'socks', 'bag',
+  'lipstick', 'lip gloss', 'mascara', 'eyeliner', 'eye liner', 'eyeshadow', 'eye shadow', 'blusher', 'concealer',
+  'foundation', 'nail polish', 'perfume', 'parfum', 'eau de parfum', 'eau de toilette', 'cologne', 'makeup brush',
+  'razor', 'hair dryer', 'hair straightener',
+  'مكرونه', 'شيبس', 'بسكويت', 'مشروب', 'صلصه', 'بسمتي',
+  'شاحن', 'كابل', 'هاتف', 'موبايل', 'تلفزيون', 'لابتوب', 'سماعه', 'بطاريه', 'خلاط', 'غلايه',
+  'قميص', 'بنطلون', 'فستان', 'حذاء', 'شنطه',
+  'روج', 'احمر شفاه', 'ماسكارا', 'كحل', 'ايلاينر', 'ظلال عيون', 'بلاشر', 'كونسيلر', 'كريم اساس',
+  'طلاء اظافر', 'مناكير', 'عطر', 'برفان', 'بارفان', 'كولونيا', 'فرشاه مكياج', 'ماكينه حلاقه', 'سشوار', 'مكواه شعر',
 ];
+
+// Food/ingredient words that also name common skincare actives (green tea, rice water, sugar scrub, coffee scrub).
+// Alone they never prove a row is out of scope.
+const INGREDIENT_LIKE_WORDS = ['rice', 'tea', 'coffee', 'sugar', 'chocolate', 'juice', 'ارز', 'شاي', 'قهوه', 'سكر', 'شوكولاته', 'عصير'];
 
 export interface RawRowInput {
   sourceRowNumber: number;
@@ -195,18 +154,41 @@ export interface RawRowInput {
   hasQuantityColumn?: boolean;
   isInvoiceLine?: boolean;
   discount?: any;
+  /** Reviewed meaning of the discount column from the approved mapping profile. */
+  discountBasis?: 'PERCENT' | 'AMOUNT_PER_UNIT';
   currency?: string;
   units?: string;
+  /** Raw "last updated / effective" cell from the approved mapping's sourceTimestamp column. */
+  sourceTimestamp?: unknown;
   extraAttributes?: Record<string, any>;
   observedAt?: Date;
 }
+
+/** Arabic-Indic / Extended Arabic-Indic digits and Arabic separators → ASCII, so numbers parse identically. */
+function toAsciiDigits(text: string): string {
+  return text
+    .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/٫/g, '.')
+    .replace(/٬/g, ',');
+}
+
+/** Whole-word (English, optional plural) or whole-token (Arabic) match on normalized text; never a bare substring. */
+function hasTerm(normalizedText: string, normalizedTerm: string): boolean {
+  if (!normalizedTerm) return false;
+  if (/[؀-ۿ]/.test(normalizedTerm)) return ` ${normalizedText} `.includes(` ${normalizedTerm} `);
+  const escaped = normalizedTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(s|es)?($|[^\\p{L}\\p{N}])`, 'u').test(normalizedText);
+}
+
+export type QuantityProblem = 'NEGATIVE' | 'NON_INTEGER' | 'UNPARSEABLE';
 
 @Injectable()
 export class RowNormalizationService {
   private parseMonetaryAmount(raw: unknown): number | null {
     if (typeof raw === 'number') return Number.isFinite(raw) && raw > 0 ? raw : null;
     if (typeof raw !== 'string') return null;
-    const text = raw.trim().replace(/^(SAR|EGP|AED|USD|EUR|KWD|BHD|OMR|QAR)\s*/i, '')
+    const text = toAsciiDigits(raw).trim().replace(/^(SAR|EGP|AED|USD|EUR|KWD|BHD|OMR|QAR)\s*/i, '')
       .replace(/\s*(SAR|EGP|AED|USD|EUR|KWD|BHD|OMR|QAR)$/i, '').trim();
     if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(text)) return null;
     const value = Number(text.replace(/,/g, ''));
@@ -351,30 +333,31 @@ export class RowNormalizationService {
   classifyScope(name: string, brand?: string): ProductScopeClassification {
     const normName = this.normalizeText(name);
     const normBrand = this.normalizeText(brand || '');
-    const combined = `${normBrand} ${normName}`;
+    const excludedTypes = EXCLUDED_PRODUCT_TYPES.filter(cue => hasTerm(normName, this.normalizeText(cue)));
+    const matchedSkincare = SKINCARE_KEYWORDS.filter(cue => normName.includes(this.normalizeText(cue)));
+    const matchedHaircare = HAIRCARE_KEYWORDS.filter(cue => normName.includes(this.normalizeText(cue)));
 
-    // 1. Check explicitly excluded goods
-    for (const cue of EXCLUDED_GOODS_KEYWORDS) {
-      const normCue = this.normalizeText(cue);
-      if (combined.includes(normCue) || normName.includes(normCue)) {
-        return {
-          isEligible: false,
-          category: 'excluded',
-          confidence: 1.0,
-          matchedRules: [`excluded_keyword:${cue}`],
-          reason: `Goods belong to excluded category (${cue})`,
-        };
-      }
+    // 1. An excluded product type is a confident skip only when nothing in the name says skincare/haircare.
+    if (excludedTypes.length && (matchedSkincare.length || matchedHaircare.length)) {
+      return {
+        isEligible: false,
+        category: 'unknown',
+        confidence: 0.3,
+        matchedRules: [...excludedTypes.map(c => `excluded_type:${c}`), ...[...matchedSkincare, ...matchedHaircare].map(c => `eligible_type:${c}`)],
+        reason: 'Conflicting product-type signals (excluded and skincare/haircare); review required',
+      };
+    }
+    if (excludedTypes.length) {
+      return {
+        isEligible: false,
+        category: 'excluded',
+        confidence: 1.0,
+        matchedRules: excludedTypes.map(cue => `excluded_type:${cue}`),
+        reason: `Goods belong to excluded category (${excludedTypes[0]})`,
+      };
     }
 
     // 2. Check Skincare rules
-    const matchedSkincare: string[] = [];
-    for (const cue of SKINCARE_KEYWORDS) {
-      const normCue = this.normalizeText(cue);
-      if (normName.includes(normCue)) {
-        matchedSkincare.push(cue);
-      }
-    }
     if (matchedSkincare.length > 0) {
       return {
         isEligible: true,
@@ -385,13 +368,6 @@ export class RowNormalizationService {
     }
 
     // 3. Check Haircare rules
-    const matchedHaircare: string[] = [];
-    for (const cue of HAIRCARE_KEYWORDS) {
-      const normCue = this.normalizeText(cue);
-      if (normName.includes(normCue)) {
-        matchedHaircare.push(cue);
-      }
-    }
     if (matchedHaircare.length > 0) {
       return {
         isEligible: true,
@@ -416,42 +392,84 @@ export class RowNormalizationService {
       }
     }
 
-    // Unrecognized category
+    // Unrecognized category: held for review, never skipped (a food/ingredient word alone proves nothing).
+    const ingredientWords = INGREDIENT_LIKE_WORDS.filter(cue => hasTerm(normName, this.normalizeText(cue)));
     return {
       isEligible: false,
       category: 'unknown',
       confidence: 0.0,
-      matchedRules: [],
+      matchedRules: ingredientWords.map(cue => `ingredient_like:${cue}`),
       reason: 'Product does not match approved skincare or haircare categories',
     };
   }
 
   /**
-   * Parses and normalizes discount representations (percentage or fixed amount).
+   * Reads a supplier "last updated / effective" cell. Accepts an Excel date serial, ISO date(-time), or a day/month/year
+   * whose order is unambiguous (one part > 12). Times without a zone are read as stated (one supplier's clock is
+   * consistent with itself). Ambiguous (03/04/2026), unparseable or future (> 24 h ahead) values are flagged, never guessed.
    */
-  parseDiscount(rawDiscount: any): TypedDiscount | null {
-    if (rawDiscount === undefined || rawDiscount === null || rawDiscount === '') {
-      return null;
-    }
-
-    const str = String(rawDiscount).trim();
-    if (str.includes('%')) {
-      const val = parseFloat(str.replace(/[^0-9.]/g, ''));
-      if (!isNaN(val) && val >= 0 && val <= 100) {
-        return { type: DiscountType.PERCENTAGE, value: val, rawInput: str };
+  parseSourceTimestamp(raw: unknown, now = new Date()): { iso: string | null; problem?: 'UNPARSEABLE' | 'AMBIGUOUS' | 'FUTURE' } {
+    if (raw === undefined || raw === null || raw === '') return { iso: null };
+    let date: Date | null = null;
+    if (raw instanceof Date) date = raw;
+    else if (typeof raw === 'number') {
+      // Excel serials for 1970..2118; anything else is not a date cell.
+      if (raw > 25569 && raw < 80000) date = new Date(Math.round((raw - 25569) * 86400000));
+    } else {
+      const text = toAsciiDigits(String(raw)).trim();
+      const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?(Z|[+-]\d{2}:?\d{2})?$/);
+      const dmy = text.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+      const build = (y: number, mo: number, d: number, h = 0, mi = 0, s = 0) => {
+        const value = new Date(Date.UTC(y, mo - 1, d, h, mi, s));
+        return value.getUTCMonth() === mo - 1 && value.getUTCDate() === d && h < 24 && mi < 60 && s < 60 ? value : null;
+      };
+      if (iso) {
+        date = iso[7]
+          ? new Date(text.replace(' ', 'T'))
+          : build(+iso[1], +iso[2], +iso[3], +(iso[4] ?? 0), +(iso[5] ?? 0), +(iso[6] ?? 0));
+      } else if (dmy) {
+        const [a, b] = [+dmy[1], +dmy[2]];
+        if (a <= 12 && b <= 12 && a !== b) return { iso: null, problem: 'AMBIGUOUS' };
+        const [day, month] = a > 12 || a === b ? [a, b] : [b, a];
+        date = build(+dmy[3], month, day, +(dmy[4] ?? 0), +(dmy[5] ?? 0));
       }
     }
+    if (!date || isNaN(date.getTime())) return { iso: null, problem: 'UNPARSEABLE' };
+    if (date.getTime() > now.getTime() + 24 * 3600 * 1000) return { iso: date.toISOString(), problem: 'FUTURE' };
+    return { iso: date.toISOString() };
+  }
 
-    const num = parseFloat(str.replace(/[^0-9.]/g, ''));
-    if (!isNaN(num) && num > 0) {
-      // If <= 1.0 (e.g. 0.15), treat as percentage
-      if (num <= 1.0) {
-        return { type: DiscountType.PERCENTAGE, value: num * 100, rawInput: str };
-      }
-      return { type: DiscountType.FIXED_AMOUNT, value: num, rawInput: str };
+  /**
+   * Types a discount cell. The unit comes from the approved profile (`basis`) or an explicit "%" in the cell;
+   * a bare number with no stated unit is AMBIGUOUS and a signed/out-of-range/garbled value is INVALID — never guessed.
+   */
+  classifyDiscount(rawDiscount: any, basis?: 'PERCENT' | 'AMOUNT_PER_UNIT'):
+    { discount: TypedDiscount | null; problem?: 'INVALID' | 'AMBIGUOUS' } {
+    if (rawDiscount === undefined || rawDiscount === null || rawDiscount === '') return { discount: null };
+
+    let str = toAsciiDigits(String(rawDiscount)).trim();
+    // A currency code in the cell ("12.50 SAR", "EGP 5") states the unit: a per-unit amount.
+    const withoutCurrency = str.replace(/^(SAR|EGP|AED|USD|EUR|KWD|BHD|OMR|QAR)\s*|\s*(SAR|EGP|AED|USD|EUR|KWD|BHD|OMR|QAR)$/gi, '');
+    if (withoutCurrency !== str) {
+      if (basis === 'PERCENT' || !/^\d+(\.\d+)?$/.test(withoutCurrency.trim())) return { discount: null, problem: 'INVALID' };
+      basis = 'AMOUNT_PER_UNIT';
+      str = withoutCurrency.trim();
     }
+    if (!/^\d+(\.\d+)?\s*%?$/.test(str)) return { discount: null, problem: 'INVALID' };
+    const value = parseFloat(str);
+    const isPercent = basis === 'PERCENT' || (!basis && str.endsWith('%'));
+    if (isPercent) {
+      return value >= 0 && value <= 100 ? { discount: { type: DiscountType.PERCENTAGE, value, rawInput: str } } : { discount: null, problem: 'INVALID' };
+    }
+    if (basis === 'AMOUNT_PER_UNIT') {
+      return value > 0 && !str.endsWith('%') ? { discount: { type: DiscountType.FIXED_AMOUNT, value, rawInput: str } } : { discount: null, problem: 'INVALID' };
+    }
+    return { discount: null, problem: value === 0 ? undefined : 'AMBIGUOUS' };
+  }
 
-    return null;
+  /** Typed discount or null; see classifyDiscount for why a value was not accepted. */
+  parseDiscount(rawDiscount: any, basis?: 'PERCENT' | 'AMOUNT_PER_UNIT'): TypedDiscount | null {
+    return this.classifyDiscount(rawDiscount, basis).discount;
   }
 
   /**
@@ -461,7 +479,7 @@ export class RowNormalizationService {
     rawQty: any,
     hasQuantityColumn: boolean,
     isInvoiceLine?: boolean,
-  ): { presence: QuantityPresence; reportedQuantity: number | null; isInStock: boolean | null } {
+  ): { presence: QuantityPresence; reportedQuantity: number | null; isInStock: boolean | null; problem?: QuantityProblem } {
     if (!hasQuantityColumn) {
       return { presence: QuantityPresence.MISSING, reportedQuantity: null, isInStock: null };
     }
@@ -479,23 +497,38 @@ export class RowNormalizationService {
       };
     }
 
-    const str = String(rawQty).trim().toLowerCase();
+    const unknown = (problem: QuantityProblem) =>
+      ({ presence: QuantityPresence.UNKNOWN, reportedQuantity: null, isInStock: null, problem });
+    const counted = (value: number) => value === 0
+      ? { presence: QuantityPresence.ZERO, reportedQuantity: 0, isInStock: false }
+      : { presence: QuantityPresence.EXPLICIT, reportedQuantity: value, isInStock: true };
+
+    // A number cell is taken exactly: never strip its sign or decimal point.
+    if (typeof rawQty === 'number') {
+      if (!Number.isFinite(rawQty)) return unknown('UNPARSEABLE');
+      if (rawQty < 0) return unknown('NEGATIVE');
+      return Number.isInteger(rawQty) ? counted(rawQty) : unknown('NON_INTEGER');
+    }
+
+    const str = toAsciiDigits(String(rawQty)).trim().toLowerCase();
     if (['true', 'yes', 'in stock', 'instock', 'available', 'متاح', 'متوفر'].includes(str)) {
       return { presence: QuantityPresence.EXPLICIT, reportedQuantity: null, isInStock: true };
     }
     if (['false', 'no', 'out of stock', 'outofstock', 'unavailable', 'غير متاح', 'نفذ'].includes(str)) {
       return { presence: QuantityPresence.ZERO, reportedQuantity: 0, isInStock: false };
     }
-
-    const parsedNum = parseInt(str.replace(/[^0-9]/g, ''), 10);
-    if (!isNaN(parsedNum)) {
-      if (parsedNum === 0) {
-        return { presence: QuantityPresence.ZERO, reportedQuantity: 0, isInStock: false };
-      }
-      return { presence: QuantityPresence.EXPLICIT, reportedQuantity: parsedNum, isInStock: true };
+    // An explicit "don't know" is a legitimate UNKNOWN, not a parsing problem.
+    if (['unknown', 'n/a', 'na', '-', '?', 'غير معروف', 'غير محدد'].includes(str)) {
+      return { presence: QuantityPresence.UNKNOWN, reportedQuantity: null, isInStock: null };
     }
+    if (/^-\s*\d/.test(str)) return unknown('NEGATIVE');
 
-    return { presence: QuantityPresence.UNKNOWN, reportedQuantity: null, isInStock: null };
+    // Only a plain count is stock; ranges, fractions and unit words ("5 boxes", "كرتونة 6") need a human.
+    const plain = str.replace(/^(\d{1,3}(?:,\d{3})+)(\.0+)?$/, (_, digits: string, zeros = '') => digits.replace(/,/g, '') + zeros);
+    if (/^\d+$/.test(plain)) return counted(parseInt(plain, 10));
+    if (/^\d+\.0+$/.test(plain)) return counted(parseInt(plain, 10));
+    if (/^\d+\.\d+$/.test(plain)) return unknown('NON_INTEGER');
+    return unknown('UNPARSEABLE');
   }
 
   /**
@@ -551,9 +584,22 @@ export class RowNormalizationService {
       if (retailPrice === null) return this.createInvalidRow(input.sourceRowNumber, 'Invalid retail reference price', rawEvidence);
     }
 
-    const discount = this.parseDiscount(input.discount);
+    const { discount, problem: discountProblem } = this.classifyDiscount(input.discount, input.discountBasis);
+    if (discountProblem === 'INVALID') {
+      return this.createInvalidRow(input.sourceRowNumber, `Invalid discount value (${input.discount})`, rawEvidence);
+    }
+    const reviewReasons: string[] = [];
+    const hasExplicitCost = input.price !== undefined && input.price !== null && input.price !== '';
+    if (discountProblem === 'AMBIGUOUS') {
+      // A bare number could be a percent or a currency amount; deriving cost from it would be a guess.
+      if (!hasExplicitCost) {
+        return this.createInvalidRow(input.sourceRowNumber,
+          `Discount unit is ambiguous (${input.discount}); confirm PERCENT or AMOUNT_PER_UNIT in the mapping`, rawEvidence);
+      }
+      reviewReasons.push(`Discount unit is ambiguous (${input.discount})`);
+    }
 
-    if (input.price !== undefined && input.price !== null && input.price !== '') {
+    if (hasExplicitCost) {
       const num = this.parseMonetaryAmount(input.price);
       if (num === null) {
         return this.createInvalidRow(
@@ -591,13 +637,29 @@ export class RowNormalizationService {
     if (purchaseCost && retailPrice && purchaseCost > retailPrice) {
       priceAnomalyDetected = true;
     }
+    // An explicit cost that contradicts retail-minus-discount means one of the three columns is not what it seems.
+    if (hasExplicitCost && purchaseCost && retailPrice && discount) {
+      const expected = discount.type === DiscountType.PERCENTAGE
+        ? Math.round(retailPrice * (1 - discount.value / 100) * 100) / 100
+        : Math.round((retailPrice - discount.value) * 100) / 100;
+      if (Math.abs(expected - purchaseCost) > 0.01) {
+        reviewReasons.push(`Purchase cost ${purchaseCost} differs from retail ${retailPrice} minus discount (${expected})`);
+      }
+    }
 
     // 6. Inventory Semantics
     const hasQuantityCol = input.hasQuantityColumn ?? (input.quantity !== undefined && input.quantity !== null);
-    if (hasQuantityCol && typeof input.quantity === 'string' && /^\s*-/.test(input.quantity)) {
+    const inventory = this.parseInventorySemantics(input.quantity, hasQuantityCol, input.isInvoiceLine);
+    if (inventory.problem === 'NEGATIVE') {
       return this.createInvalidRow(input.sourceRowNumber, 'Negative reported quantity', rawEvidence);
     }
-    const inventory = this.parseInventorySemantics(input.quantity, hasQuantityCol, input.isInvoiceLine);
+    if (inventory.problem) {
+      reviewReasons.push(`Quantity is not a plain unit count (${input.quantity}); stock left unknown`);
+    }
+    const sourceTime = this.parseSourceTimestamp(input.sourceTimestamp);
+    if (sourceTime.problem) {
+      reviewReasons.push(`Source timestamp is ${sourceTime.problem.toLowerCase()} (${String(input.sourceTimestamp)}); freshness unproven`);
+    }
 
     // 7. Category & Brand Scope Classification
     const scope = this.classifyScope(input.name, input.brand);
@@ -618,15 +680,24 @@ export class RowNormalizationService {
     } else if (scope.category === 'unknown') {
       status = NormalizedRowStatus.REVIEW;
       statusReason = scope.reason || 'Credible brand with ambiguous category (review required)';
-    } else if (priceAnomalyDetected) {
-      status = NormalizedRowStatus.REVIEW;
-      statusReason = `Price anomaly: purchase cost (${purchaseCost}) exceeds retail reference price (${retailPrice})`;
     }
+    const scopeHold = status === NormalizedRowStatus.REVIEW;
+    if (priceAnomalyDetected) {
+      reviewReasons.unshift(`Price anomaly: purchase cost (${purchaseCost}) exceeds retail reference price (${retailPrice})`);
+    }
+    // Field-level doubts never upgrade an excluded row, but always hold an otherwise eligible one.
+    if (reviewReasons.length && status !== NormalizedRowStatus.OUT_OF_SCOPE) {
+      status = NormalizedRowStatus.REVIEW;
+      statusReason = [statusReason, ...reviewReasons].filter(Boolean).join('; ');
+    }
+    const holds = status === NormalizedRowStatus.REVIEW
+      ? { scope: scopeHold, fields: reviewReasons.length > 0 } : undefined;
 
     return {
       sourceRowNumber: input.sourceRowNumber,
       status,
       statusReason,
+      holds,
       normalizedSku,
       normalizedBrand,
       normalizedTitle: normalizedName,
@@ -651,6 +722,7 @@ export class RowNormalizationService {
       scope,
       rawEvidence,
       observedAt: input.observedAt || new Date(),
+      sourceObservedAt: sourceTime.problem ? null : sourceTime.iso,
     };
   }
 

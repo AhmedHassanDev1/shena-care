@@ -64,12 +64,19 @@ export class CreateIngestionJobDto {
 }
 
 export class SupplierSourceUploadDto {
+  /** Required for internal staff; a supplier account is always scoped to its own linked supplier. */
+  @IsOptional()
   @IsUUID()
-  supplierId: string;
+  supplierId?: string;
 
   @IsOptional()
   @IsIn([IngestionImportMode.FULL_SNAPSHOT, IngestionImportMode.PARTIAL_UPDATE])
   mode?: IngestionImportMode;
+
+  /** Supplier-declared meaning of the document; recorded as advisory provenance, verified in row semantics. */
+  @IsOptional()
+  @IsIn(['PRICE_LIST', 'STOCK_FEED', 'SALES_INVOICE'])
+  documentKind?: 'PRICE_LIST' | 'STOCK_FEED' | 'SALES_INVOICE';
 }
 
 export class ReviewedContentFieldDto {
@@ -98,8 +105,20 @@ export class CandidateSourceEvidenceDto {
   size?: number;
   @ValidateIf(dto => dto.field === 'size') @IsIn(['ml', 'g', 'kg', 'l', 'oz'])
   sizeUnit?: string;
-  @IsUrl({ protocols: ['https'], require_protocol: true })
-  sourceUrl: string;
+  /**
+   * GLO-279: what the evidence is. A manufacturer webpage (trusted host), a manufacturer document (spec sheet/leaflet,
+   * https), or the authentic product label photographed and uploaded on this candidate. Defaults to a webpage.
+   */
+  @IsOptional() @IsIn(['MANUFACTURER_WEBPAGE', 'MANUFACTURER_DOCUMENT', 'PRODUCT_LABEL'])
+  evidenceKind?: 'MANUFACTURER_WEBPAGE' | 'MANUFACTURER_DOCUMENT' | 'PRODUCT_LABEL';
+  @ValidateIf(dto => dto.evidenceKind !== 'PRODUCT_LABEL') @IsUrl({ protocols: ['https'], require_protocol: true })
+  sourceUrl?: string;
+  /** For PRODUCT_LABEL: the candidate media URL of the uploaded label photo. */
+  @ValidateIf(dto => dto.evidenceKind === 'PRODUCT_LABEL') @IsString() @IsNotEmpty() @MaxLength(2000)
+  labelMediaUrl?: string;
+  /** Market / formulation version the evidence describes (e.g. "EG 2026", "EU reformulated"). */
+  @IsOptional() @IsString() @MaxLength(120)
+  marketVersion?: string;
   @IsIn(['OFFICIAL_MANUFACTURER', 'TRUSTED_DISTRIBUTOR'])
   sourceType: 'OFFICIAL_MANUFACTURER' | 'TRUSTED_DISTRIBUTOR';
   @IsString() @IsNotEmpty() @MaxLength(10000)
@@ -163,6 +182,10 @@ export class ApproveIngestionItemDto {
 
   @IsOptional() @IsArray() @ArrayMaxSize(100) @IsUUID('4', { each: true })
   approvedIngredientIds?: string[];
+
+  /** GLO-279: reviewer confirms the usage rules parsed from the product's supported directions for publication. */
+  @IsOptional() @IsBoolean()
+  confirmUsageRules?: boolean;
 }
 
 export class UpdateCandidateDto {
@@ -206,7 +229,41 @@ export class UpdateCandidateDto {
   currency?: string;
 }
 
+/** Reviewed meaning of mapped columns (GLO-274); required before a mapping may admit rows. */
+export class MappingSemanticsInput {
+  @IsOptional()
+  @IsIn(['PRICE_LIST', 'STOCK_FEED', 'SALES_INVOICE'])
+  documentKind?: 'PRICE_LIST' | 'STOCK_FEED' | 'SALES_INVOICE';
+
+  @IsOptional()
+  @IsIn(['UNIT_PURCHASE_COST', 'PACK_PURCHASE_COST', 'RETAIL_PRICE', 'UNKNOWN'])
+  priceBasis?: 'UNIT_PURCHASE_COST' | 'PACK_PURCHASE_COST' | 'RETAIL_PRICE' | 'UNKNOWN';
+
+  @IsOptional()
+  @IsIn(['ON_HAND', 'AVAILABLE_TO_SELL', 'INVOICE_QUANTITY', 'UNKNOWN'])
+  quantityBasis?: 'ON_HAND' | 'AVAILABLE_TO_SELL' | 'INVOICE_QUANTITY' | 'UNKNOWN';
+
+  @IsOptional()
+  @IsIn(['PERCENT', 'AMOUNT_PER_UNIT'])
+  discountBasis?: 'PERCENT' | 'AMOUNT_PER_UNIT';
+}
+
+export class ApproveExportProfileDto {
+  @IsUUID()
+  supplierId: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MappingSemanticsInput)
+  semantics?: MappingSemanticsInput;
+}
+
 export class ColumnMappingInput {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MappingSemanticsInput)
+  semantics?: MappingSemanticsInput;
+
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
