@@ -96,6 +96,7 @@ model Product {
   media               ProductMedia[]
   careRecommendations RoutineStepRecommendation[]
   productIngredients  ProductIngredient[]
+  usageRules          ProductUsageRule[]
 
   @@index([brandId])
   @@index([productLineId])
@@ -120,6 +121,7 @@ model Sku {
   product            Product            @relation(fields: [productId], references: [id])
   supplierSkuAliases SupplierSkuAlias[]
   barcodeAliases     SkuBarcodeAlias[]
+  usageRules         ProductUsageRule[]
 
   @@index([productId])
   @@index([barcode])
@@ -235,6 +237,11 @@ model ProductIngredient {
   ingredientId  String     @map("ingredient_id") @db.Uuid
   isKeyActive   Boolean    @default(false) @map("is_key_active")
   concentration String?    // e.g. "10%", "2%" - only when verified, never assumed
+  /// Typed concentration explicitly stated by the manufacturer/label for THIS product (GLO-279); never inferred.
+  concentrationValue    Decimal? @map("concentration_value") @db.Decimal(7, 3)
+  concentrationUnit     String?  @map("concentration_unit") @db.VarChar(10)
+  /// { sourceUrl, sourceType, evidenceText, reviewedBy, reviewedAt } for the stated concentration.
+  concentrationEvidence Json?    @map("concentration_evidence")
   sortOrder     Int        @default(0) @map("sort_order")
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
@@ -246,6 +253,77 @@ model ProductIngredient {
   @@index([productId])
   @@index([ingredientId])
   @@map("product_ingredients")
+  @@schema("catalog")
+}
+
+enum UsageTargetArea {
+  FACE
+  EYE_CONTOUR
+  LIPS
+  BODY
+  SCALP
+  HAIR
+
+  @@schema("catalog")
+}
+
+enum UsageRoutinePeriod {
+  AM
+  PM
+  BOTH
+  UNKNOWN
+
+  @@schema("catalog")
+}
+
+enum UsageRinseMode {
+  RINSE_OFF
+  LEAVE_ON
+  UNKNOWN
+
+  @@schema("catalog")
+}
+
+enum UsageFrequencyUnit {
+  DAY
+  WEEK
+  AS_NEEDED
+  UNKNOWN
+
+  @@schema("catalog")
+}
+
+/// A reviewer-confirmed usage instruction for a product (optionally one SKU), taken from the product's own directions
+/// with its evidence (GLO-279). A product can have several conditional rules (face vs scalp, introductory vs regular);
+/// anything the directions do not state stays UNKNOWN/null — never filled from the product type.
+model ProductUsageRule {
+  id                String             @id @default(uuid()) @db.Uuid
+  productId         String             @map("product_id") @db.Uuid
+  skuId             String?            @map("sku_id") @db.Uuid
+  targetArea        UsageTargetArea?   @map("target_area")
+  routinePeriod     UsageRoutinePeriod @map("routine_period")
+  rinseMode         UsageRinseMode     @map("rinse_mode")
+  frequencyUnit     UsageFrequencyUnit @map("frequency_unit")
+  usesMin           Int?               @map("uses_min")
+  usesMax           Int?               @map("uses_max")
+  contactMinutes    Int?               @map("contact_minutes")
+  contactIsMaximum  Boolean            @default(false) @map("contact_is_maximum")
+  condition         String?            @db.VarChar(40)
+  evidenceText      String             @map("evidence_text")
+  sourceUrl         String             @map("source_url")
+  sourceType        String             @map("source_type") @db.VarChar(40)
+  retrievedAt       DateTime?          @map("retrieved_at")
+  reviewedBy        String             @map("reviewed_by")
+  reviewedAt        DateTime           @map("reviewed_at")
+  sourceCandidateId String?            @map("source_candidate_id") @db.Uuid
+  createdAt         DateTime           @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku     Sku?    @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([skuId])
+  @@map("product_usage_rules")
   @@schema("catalog")
 }
 
@@ -1473,6 +1551,13 @@ model IngestionJob {
   mode              IngestionImportMode @default(PARTIAL_UPDATE) @map("mode")
   sourceKey         String?             @map("source_key")
   sourceChecksum    String?             @map("source_checksum")
+  /// Intake audit: who submitted the original and what was received (Gate 01).
+  uploadedBy        String?             @map("uploaded_by")
+  sourceFileName    String?             @map("source_file_name")
+  sourceMimeType    String?             @map("source_mime_type")
+  sourceSizeBytes   Int?                @map("source_size_bytes")
+  /// Advisory provenance: server receipt time, workbook created/modified, declared document kind. Never trusted as freshness.
+  sourceMetadata    Json?               @map("source_metadata")
   formatFingerprint String?             @map("format_fingerprint")
   profileId         String?             @map("profile_id") @db.Uuid
   rowOutcomes       Json?               @map("row_outcomes")
@@ -1483,6 +1568,8 @@ model IngestionJob {
   supplier      Supplier       @relation(fields: [supplierId], references: [id])
   exportProfile ExportProfile? @relation(fields: [profileId], references: [id])
 
+  /// One job per identical supplier original; NULL checksums (JSON imports) stay unconstrained.
+  @@unique([supplierId, sourceChecksum])
   @@index([supplierId])
   @@index([formatFingerprint])
   @@map("ingestion_jobs")
