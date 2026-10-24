@@ -1,26 +1,28 @@
 /**
- * Seeds or updates the approved staff accounts from STAFF_CREDENTIALS.md
- * 
- * Accounts seeded:
- * 1. Admin: admin@shenacare.com / ShinaCare@2026Admin!
- * 2. Hub Operator: hub@shenacare.com / ShinaCare@2026Hub! (Maadi Pharmacy Hub)
- * 3. Supplier: supplier@shenacare.com / ShinaCare@2026Supplier! (official-distributor)
- * 4. Driver: driver@shenacare.com / ShinaCare@2026Driver!
+ * Seeds or updates LOCAL development staff accounts (admin/hub/supplier/driver @shenacare.com).
+ * The shared dev password comes from DEV_STAFF_PASSWORD (min 12 chars) and is never stored in the repo.
+ * Real staff are created with `npm run staff:provision` (STAFF_PASSWORD). Refuses NODE_ENV=production.
  */
 import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+
+function devStaffPassword(): string {
+  const value = process.env.DEV_STAFF_PASSWORD;
+  if (!value || value.length < 12) throw new Error('Set DEV_STAFF_PASSWORD (min 12 characters) to seed local dev staff accounts');
+  return value;
+}
 
 const STAFF_ACCOUNTS = [
   {
     name: 'System Admin',
     email: 'admin@shenacare.com',
-    password: 'ShinaCare@2026Admin!',
+    password: devStaffPassword(),
     role: Role.ADMIN,
   },
   {
     name: 'Hub Operator',
     email: 'hub@shenacare.com',
-    password: 'ShinaCare@2026Hub!',
+    password: devStaffPassword(),
     role: Role.HUB_OPERATOR,
     hubName: 'Maadi Pharmacy Hub',
     hubAddress: 'Maadi, Cairo, Egypt',
@@ -28,14 +30,14 @@ const STAFF_ACCOUNTS = [
   {
     name: 'Official Supplier',
     email: 'supplier@shenacare.com',
-    password: 'ShinaCare@2026Supplier!',
+    password: devStaffPassword(),
     role: Role.SUPPLIER,
     supplierSlug: 'official-distributor',
   },
   {
     name: 'Delivery Driver',
     email: 'driver@shenacare.com',
-    password: 'ShinaCare@2026Driver!',
+    password: devStaffPassword(),
     role: Role.DRIVER,
   },
 ];

@@ -34,7 +34,7 @@ async function runAudit() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: 'supplier@shenacare.com',
-        password: 'ShinaCare@2026Supplier!',
+        password: process.env.DEV_STAFF_PASSWORD ?? '',
       }),
     });
     const loginData = (await loginRes.json()) as any;

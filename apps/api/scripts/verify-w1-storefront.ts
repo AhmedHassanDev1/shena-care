@@ -484,6 +484,9 @@ async function main() {
   const keep = process.env.KEEP_DATA === '1'; // leave the order in place for role walkthroughs on a disposable DB
   console.log(keep ? '\n--- KEEP_DATA=1: leaving synthetic order and customer in place ---' : '\n--- CLEANING UP SYNTHETIC TEST FIXTURES ---');
   if (createdOrderId && !keep) {
+    // Sourcing owns the supply plan created from order.placed; remove it with the order or it would batch into a PO later.
+    await prisma.supplyRequest.deleteMany({ where: { orderId: createdOrderId } });
+    await prisma.domainEvent.deleteMany({ where: { aggregateId: createdOrderId } });
     await prisma.orderStatusEvent.deleteMany({ where: { orderId: createdOrderId } });
     await prisma.orderItem.deleteMany({ where: { orderId: createdOrderId } });
     await prisma.checkoutQuote.deleteMany({ where: { orderId: createdOrderId } });

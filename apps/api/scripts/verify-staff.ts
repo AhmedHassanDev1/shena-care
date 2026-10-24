@@ -4,10 +4,10 @@ import * as bcrypt from 'bcrypt';
 async function verify() {
   const prisma = new PrismaClient();
   const staffCredentials = [
-    { email: 'admin@shenacare.com', role: 'ADMIN', pass: 'ShinaCare@2026Admin!' },
-    { email: 'hub@shenacare.com', role: 'HUB_OPERATOR', pass: 'ShinaCare@2026Hub!' },
-    { email: 'supplier@shenacare.com', role: 'SUPPLIER', pass: 'ShinaCare@2026Supplier!' },
-    { email: 'driver@shenacare.com', role: 'DRIVER', pass: 'ShinaCare@2026Driver!' },
+    { email: 'admin@shenacare.com', role: 'ADMIN', pass: (process.env.DEV_STAFF_PASSWORD ?? '') },
+    { email: 'hub@shenacare.com', role: 'HUB_OPERATOR', pass: (process.env.DEV_STAFF_PASSWORD ?? '') },
+    { email: 'supplier@shenacare.com', role: 'SUPPLIER', pass: (process.env.DEV_STAFF_PASSWORD ?? '') },
+    { email: 'driver@shenacare.com', role: 'DRIVER', pass: (process.env.DEV_STAFF_PASSWORD ?? '') },
   ];
 
   console.log('Staff Provisioning Safety Verification:');

@@ -625,7 +625,7 @@ export default function LoginPage() {
                   <div className="grid grid-cols-2 gap-2 mt-2 text-xs animate-in fade-in">
                     <button
                       type="button"
-                      onClick={() => setPreset('admin@shenacare.com', 'ShinaCare@2026Admin!')}
+                      onClick={() => setPreset('admin@shenacare.com', '')}
                       className="p-2.5 rounded-lg bg-black/60 border border-white/10 hover:border-[#34d27b]/50 text-start transition-colors cursor-pointer"
                     >
                       <b className="text-white block text-[11px]">مدير النظام (Admin)</b>
@@ -633,7 +633,7 @@ export default function LoginPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPreset('hub@shenacare.com', 'ShinaCare@2026Hub!')}
+                      onClick={() => setPreset('hub@shenacare.com', '')}
                       className="p-2.5 rounded-lg bg-black/60 border border-white/10 hover:border-[#34d27b]/50 text-start transition-colors cursor-pointer"
                     >
                       <b className="text-white block text-[11px]">مشرف المخزن (Hub)</b>
@@ -641,7 +641,7 @@ export default function LoginPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPreset('supplier@shenacare.com', 'ShinaCare@2026Supplier!')}
+                      onClick={() => setPreset('supplier@shenacare.com', '')}
                       className="p-2.5 rounded-lg bg-black/60 border border-white/10 hover:border-[#34d27b]/50 text-start transition-colors cursor-pointer"
                     >
                       <b className="text-white block text-[11px]">مورد معتمد (Supplier)</b>
@@ -649,7 +649,7 @@ export default function LoginPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPreset('driver@shenacare.com', 'ShinaCare@2026Driver!')}
+                      onClick={() => setPreset('driver@shenacare.com', '')}
                       className="p-2.5 rounded-lg bg-black/60 border border-white/10 hover:border-[#34d27b]/50 text-start transition-colors cursor-pointer"
                     >
                       <b className="text-white block text-[11px]">مندوب توصيل (Driver)</b>
