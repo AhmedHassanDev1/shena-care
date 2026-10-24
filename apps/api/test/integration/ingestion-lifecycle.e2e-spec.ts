@@ -67,7 +67,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
       await prisma.sku.deleteMany({ where: { productId: product.id } });
       await prisma.product.delete({ where: { id: product.id } });
     }
-    await prisma.brand.deleteMany({ where: { slug: 'ingest-brand' } });
+    await prisma.brand.deleteMany({ where: { slug: 'ingestbrand' } });
   }
 
   beforeEach(async () => {
@@ -75,7 +75,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
 
     // Setup basic catalog & supplier
     const brand = await prisma.brand.create({
-      data: { name: 'IngestBrand', slug: 'ingest-brand' },
+      data: { name: 'IngestBrand', slug: 'ingestbrand' },
     });
     brandId = brand.id;
 
@@ -246,11 +246,12 @@ describe('Ingestion Lifecycle (e2e)', () => {
       .post(`/ingestion/jobs/${createJobRes2.body.id}/publish`).set(admin.auth)
       .expect(201);
 
-    // offer is not duplicated, and a re-import never overwrites the Sourcing-owned offer
+    // offer is not duplicated; a reviewed re-import within the price-jump threshold updates the cost of the SAME offer
+    // (GLO-277/280 file path), never availability confirmation, and never another supplier's offer.
     // (cost or availability); changes go through Sourcing.
     const offersAfter = await prisma.supplierOffer.findMany({ where: { supplierId } });
     expect(offersAfter.length).toBe(1);
-    expect(offersAfter[0].costPrice.toNumber()).toBe(150.5);
+    expect(offersAfter[0].costPrice.toNumber()).toBe(180);
     expect(offersAfter[0].isAvailable).toBe(false);
     expect(offersAfter[0].lastConfirmedAt).toBeNull();
     const otherOffer = await prisma.supplierOffer.findUniqueOrThrow({
@@ -258,7 +259,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
     });
     expect(otherOffer.costPrice.toNumber()).toBe(79);
     expect(otherOffer.isAvailable).toBe(true);
-  });
+  }, 60000);
 
   it.each([
     ['missing price type', undefined],

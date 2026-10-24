@@ -283,7 +283,7 @@ describe('Supplier Workflow & Engagement (e2e)', () => {
       expect(res.body.message).toContain('Explicit purchase cost price type is required for offer publication');
     });
 
-    it('deactivates unmentioned supplier offers on FULL_SNAPSHOT job publish while preserving on PARTIAL_UPDATE', async () => {
+    it('never deactivates unmentioned supplier offers on FULL_SNAPSHOT publish (deactivation needs explicit approval)', async () => {
       // 1. Create a second SKU
       const extraSku = await prisma.sku.create({
         data: { productId, code: `SKU-EXTRA-${randomUUID().slice(0, 6)}`, variantName: '50ml' },
@@ -328,9 +328,10 @@ describe('Supplier Workflow & Engagement (e2e)', () => {
         .set(admin.auth)
         .expect(201);
 
-      // Verify the omitted old offer was deactivated
+      // GLO-277: absence from a snapshot is never proof of unavailability, so publishing deactivates nothing;
+      // deactivations are proposed and need explicit approval (approve-deactivations, covered in g05).
       const updatedOldOffer = await prisma.supplierOffer.findUniqueOrThrow({ where: { id: oldOffer.id } });
-      expect(updatedOldOffer.isAvailable).toBe(false);
+      expect(updatedOldOffer.isAvailable).toBe(true);
 
       // Cleanup extraSku
       await prisma.supplierOffer.delete({ where: { id: oldOffer.id } });

@@ -140,7 +140,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId: supplier1Id,
-        items: [{ supplierSkuCode: 'SUP1-SKU', name: 'Shared Lotion', brand: 'GLO120 Brand A', barcode: '6228888888888', price: 200, priceType: 'PURCHASE_COST', currency: 'EGP' }],
+        items: [{ supplierSkuCode: 'SUP1-SKU', name: 'Shared Lotion 50ml', brand: 'GLO120 Brand A', barcode: '6228888888888', price: 200, priceType: 'PURCHASE_COST', currency: 'EGP' }],
       })
       .expect(201);
 
@@ -157,7 +157,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId: supplier2Id,
-        items: [{ supplierSkuCode: 'SUP2-SKU', name: 'Shared Lotion', brand: 'GLO120 Brand A', barcode: '6228888888888', price: 220, priceType: 'PURCHASE_COST', currency: 'EGP' }],
+        items: [{ supplierSkuCode: 'SUP2-SKU', name: 'Shared Lotion 50ml', brand: 'GLO120 Brand A', barcode: '6228888888888', price: 220, priceType: 'PURCHASE_COST', currency: 'EGP' }],
       })
       .expect(201);
 

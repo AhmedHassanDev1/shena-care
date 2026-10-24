@@ -32,7 +32,7 @@ describe('Product readiness: source -> human review -> catalog -> public PDP', (
   let secondSku: string;
   let productId: string;
   let itemId: string;
-  const row = (n = 1) => ({ supplierSkuCode: `READY-${run}-${n}`, name: `Readiness Cream ${run}-${n}`,
+  const row = (n = 1) => ({ supplierSkuCode: `READY-${run}-${n}`, name: `Readiness Cream ${run}-${n} 50ml`,
     brand: `Readiness ${run}`, barcode: `ready-${run}-${n}`, price: 31, priceType: 'PURCHASE_COST', currency: 'EGP', sourceRow: n + 1 });
   const auth = (role = 'ADMIN') => ({ Authorization: `Bearer ${tokens[role]}` });
 

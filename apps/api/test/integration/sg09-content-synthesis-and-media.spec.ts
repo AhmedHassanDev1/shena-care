@@ -128,8 +128,8 @@ describe('SG-09: Verified Packshots, Brand/Line Media & Evidence-Bound Content (
               },
             ],
           },
-          ingredients: {
-            activeIngredients: [
+          ingredientProfile: {
+            actives: [
               { name: 'Ceramides', inciName: 'CERAMIDE NP', family: 'Ceramides' },
               { name: 'Niacinamide', inciName: 'NIACINAMIDE', family: 'Niacinamide' },
               { name: 'Hyaluronic Acid', inciName: 'SODIUM HYALURONATE', family: 'Hyaluronic Acid' },
@@ -445,8 +445,8 @@ describe('SG-09: Verified Packshots, Brand/Line Media & Evidence-Bound Content (
               },
             ],
           },
-          ingredients: {
-            activeIngredients: [
+          ingredientProfile: {
+            actives: [
               { name: 'Retinol', inciName: 'RETINOL', family: 'Retinoids' },
               { name: 'Niacinamide', inciName: 'NIACINAMIDE', family: 'Niacinamide' },
               { name: 'Ceramides', inciName: 'CERAMIDE NP', family: 'Ceramides' },
@@ -498,7 +498,7 @@ describe('SG-09: Verified Packshots, Brand/Line Media & Evidence-Bound Content (
         name: 'Hydrating Gentle Foam Cleanser 150ml',
         brand: 'Simple',
         enrichment: {
-          ingredients: { activeIngredients: ['Hyaluronic Acid'] },
+          ingredientProfile: { activeIngredients: ['Hyaluronic Acid'] },
         },
       });
 
@@ -520,7 +520,7 @@ describe('SG-09: Verified Packshots, Brand/Line Media & Evidence-Bound Content (
         name: 'Soothing Barrier Cream 50ml',
         brand: 'Avene',
         enrichment: {
-          ingredients: { activeIngredients: ['Ceramides'] },
+          ingredientProfile: { activeIngredients: ['Ceramides'] },
         },
       });
 
@@ -541,7 +541,7 @@ describe('SG-09: Verified Packshots, Brand/Line Media & Evidence-Bound Content (
         name: 'Pure Hyaluronic Hydrating Essence 100ml',
         brand: 'Cosrx',
         enrichment: {
-          ingredients: { activeIngredients: ['Hyaluronic Acid'] },
+          ingredientProfile: { activeIngredients: ['Hyaluronic Acid'] },
         },
       });
 
@@ -567,7 +567,7 @@ describe('SG-09: Verified Packshots, Brand/Line Media & Evidence-Bound Content (
         name: 'Centella Asiatica Calming Ampoule 50ml',
         brand: 'Skin1004',
         enrichment: {
-          ingredients: { activeIngredients: ['Centella Asiatica'] },
+          ingredientProfile: { activeIngredients: ['Centella Asiatica'] },
         },
       });
 

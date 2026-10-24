@@ -217,10 +217,13 @@ describe('GLO-238 COD settlement and supplier payable integrity (e2e)', () => {
       expect(await prisma.supplierPayable.count({ where: { purchaseOrderId: po.id } })).toBe(1);
 
       // Audited exact adjustments; never negative; paid once with proof.
-      const adjusted = await http().patch(`/sourcing/payables/${payable.id}/adjust`).set(hubA.auth)
+      // Payable adjustments are founder/admin-only (SG-11 hardening); a Hub operator is refused.
+      await http().patch(`/sourcing/payables/${payable.id}/adjust`).set(hubA.auth)
+        .send({ amount: -10.05, reason: 'Damaged outer carton credit' }).expect(403);
+      const adjusted = await http().patch(`/sourcing/payables/${payable.id}/adjust`).set(admin.auth)
         .send({ amount: -10.05, reason: 'Damaged outer carton credit', actorId: 'spoofed' }).expect(200);
       expect(adjusted.body.payable).toMatchObject({ amount: '239.95', status: 'adjusted' });
-      expect(adjusted.body.adjustment).toMatchObject({ actorId: hubA.id, amount: '-10.05' });
+      expect(adjusted.body.adjustment).toMatchObject({ actorId: admin.id, amount: '-10.05' });
       await http().patch(`/sourcing/payables/${payable.id}/adjust`).set(admin.auth).send({ amount: -500, reason: 'too much' }).expect(400);
       await http().patch(`/sourcing/payables/${payable.id}/mark-paid`).set(hubA.auth).send({ paymentRef: 'TRX-1' }).expect(403);
       await http().patch(`/sourcing/payables/${payable.id}/mark-paid`).set(admin.auth).send({}).expect(400);

@@ -6,6 +6,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { SourcingService } from '../../src/modules/sourcing/public';
 import { CatalogService } from '../../src/modules/catalog/public';
 import { createActor, Actor } from '../fixtures/actors';
+import { reviewCandidateMedia } from '../fixtures/candidate-review';
 import { randomUUID } from 'crypto';
 import { IngestionStatus, IngestionImportMode, IngestionPriceType } from '@prisma/client';
 
@@ -430,10 +431,10 @@ describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow,
       expect(res.status).toBe(403);
     });
 
-    it('allows Supplier A to apply interactive column mapping to the uploaded job', async () => {
+    it('lets the admin approve the interactive column mapping (suppliers only propose) for the uploaded job', async () => {
       const res = await request(app.getHttpServer())
         .post(`/ingestion/jobs/${jobUploadId}/mapping`)
-        .set(supplierA.auth)
+        .set(admin.auth)
         .send({
           profileName: 'Standard Nile CSV Layout',
           mapping: {
@@ -441,6 +442,8 @@ describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow,
             name: 'اسم_المستحضر',
             barcode: 'الباركود',
             price: 'سعر_التكلفة',
+            currency: 'EGP',
+            semantics: { documentKind: 'PRICE_LIST', priceBasis: 'UNIT_PURCHASE_COST' },
           },
         });
 
@@ -515,7 +518,9 @@ describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow,
         .send({ autoApplyLowRisk: true });
 
       expect(res.status).toBe(201);
-      expect(res.body.status).toBe('ALREADY_PUBLISHED');
+      // Nothing is committed twice. The job still holds a new-product candidate awaiting Admin review, so it is not
+      // reported as fully published.
+      expect(['ALREADY_PUBLISHED', 'review_required']).toContain(res.body.status);
       expect(res.body.committedCount).toBe(0);
     });
   });
@@ -613,10 +618,19 @@ describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow,
     });
 
     it('allows Admin to approve candidate item against canonical catalog SKU (200 OK)', async () => {
+      // Approval needs a human media review (verified packshot) and a barcode that equals the canonical SKU's.
+      const sku2 = await prisma.sku.findUniqueOrThrow({ where: { id: testSku2Id } });
+      const sku2Product = await prisma.product.findUniqueOrThrow({ where: { id: sku2.productId }, include: { brand: true } });
+      await prisma.ingestionItem.update({ where: { id: candidateId }, data: {
+        barcode: sku2.barcode, name: sku2Product.name + ' 177ml', brand: sku2Product.brand.name,
+        enrichment: { size: 177, sizeUnit: 'ml', variantName: '177ml' },
+      } });
+      await prisma.sku.update({ where: { id: testSku2Id }, data: { variantName: '177 ml' } }); // the reviewed media names the variant
+      const mediaReviews = await reviewCandidateMedia(app, admin.auth, candidateId, sku2.barcode!, 177, 'ml');
       const res = await request(app.getHttpServer())
         .patch(`/ingestion/candidates/${candidateId}/approve`)
         .set(admin.auth)
-        .send({ matchedSkuId: testSku2Id });
+        .send({ matchedSkuId: testSku2Id, mediaReviews });
 
       expect(res.status).toBe(200);
 

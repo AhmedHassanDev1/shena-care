@@ -39,6 +39,8 @@ describe('Customer availability resolution + order amendment (e2e)', () => {
         const supplier = await prisma.supplier.create({ data: { name: 'Res Sup ' + code + suffix, slug: 'res-sup-' + code + suffix } });
         offerId = (await prisma.supplierOffer.create({ data: {
           supplierId: supplier.id, skuId: sku.id, costPrice: price / 2, currency: 'EGP', lastObservedAt: new Date(), isAvailable: true,
+          // Customer-orderable only when a supplier CONFIRMED it (availability-policy.ts); a feed signal is not enough.
+          lastConfirmedAt: new Date(),
         } })).id;
       }
       return { id: sku.id, offerId };

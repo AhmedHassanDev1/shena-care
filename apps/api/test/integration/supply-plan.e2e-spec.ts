@@ -204,7 +204,7 @@ describe('Availability confirmation and supply plan (e2e)', () => {
 
   it('reports a partial shortage after fallback rejects and serializes concurrent confirmation attempts', async () => {
     const skuId = await makeSku();
-    await makeOffer(skuId, 20);
+    await makeOffer(skuId, 30); // a quote below half the other is held as a price anomaly (ranking policy 2026-10-23)
     await makeOffer(skuId, 50);
     const order = await makeOrder(skuId);
     const initial = await plans.initiateForOrder(order.id);

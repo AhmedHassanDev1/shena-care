@@ -6,6 +6,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { SourcingService } from '../../src/modules/sourcing/public';
 import { CatalogService } from '../../src/modules/catalog/public';
 import { createActor, Actor } from '../fixtures/actors';
+import { reviewCandidateMedia } from '../fixtures/candidate-review';
 import { randomUUID } from 'crypto';
 import { IngestionStatus, IngestionImportMode, IngestionPriceType } from '@prisma/client';
 
@@ -194,6 +195,7 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
               name: 'Supplier A Test Serum',
               brand: 'TestBrand',
               price: 110.0,
+              priceType: IngestionPriceType.PURCHASE_COST,
               currency: 'EGP',
               matchedSkuId: testSku1Id,
               status: IngestionStatus.pending,
@@ -217,6 +219,7 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
               name: 'Supplier B Exclusive',
               brand: 'TestBrand',
               price: 90.0,
+              priceType: IngestionPriceType.PURCHASE_COST,
               currency: 'EGP',
               matchedSkuId: testSku2Id,
               status: IngestionStatus.pending,
@@ -417,7 +420,8 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
 
       expect(offer).toBeDefined();
       expect(offer!.costPrice.toNumber()).toBe(110.0);
-      expect(offer!.isAvailable).toBe(true);
+      // A price-only row never claims availability: stock comes from a quantity column or a supplier confirmation.
+      expect(offer!.isAvailable).toBe(false);
     });
 
     it('re-committing an already published job is idempotent and safe', async () => {
@@ -514,10 +518,19 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
     });
 
     it('allows Admin to approve candidate (200 OK)', async () => {
+      // Approval needs the candidate's identity to equal the canonical SKU's, plus a human media review.
+      const sku1 = await prisma.sku.findUniqueOrThrow({ where: { id: testSku1Id }, include: { product: { include: { brand: true } } } });
+      const unit = sku1.sizeUnit!; const size = Number(sku1.size);
+      await prisma.sku.update({ where: { id: testSku1Id }, data: { variantName: `${size} ${unit}` } });
+      await prisma.ingestionItem.update({ where: { id: candidateId }, data: {
+        barcode: sku1.barcode, name: `${sku1.product.name} ${size}${unit}`, brand: sku1.product.brand.name,
+        enrichment: { size, sizeUnit: unit, variantName: `${size} ${unit}` },
+      } });
+      const mediaReviews = await reviewCandidateMedia(app, admin.auth, candidateId, sku1.barcode!, size, unit);
       const res = await request(app.getHttpServer())
         .patch(`/ingestion/candidates/${candidateId}/approve`)
         .set(admin.auth)
-        .send({ matchedSkuId: testSku1Id });
+        .send({ matchedSkuId: testSku1Id, mediaReviews });
 
       expect(res.status).toBe(200);
 

@@ -110,7 +110,7 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
           {
             supplierSkuCode: 'UNKNOWN-LOTION',
             name: 'Generic Hydrating Essence',
-            brand: 'UnknownBrand',
+            brand: 'Obscure Lab', // brands containing 'unknown' are refused by the research guard
             price: 120.0,
             currency: 'EGP',
           },

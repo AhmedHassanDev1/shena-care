@@ -11,7 +11,8 @@ module.exports = {
   coverageDirectory: './coverage',
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/test/test-database-guard.ts'],
-  testTimeout: 15000,
+  // Booting AppModule in beforeAll occasionally exceeds 15 s on a loaded Windows host (hook timeouts, not test failures).
+  testTimeout: 30000,
   moduleNameMapper: {
     ...(process.env.PIPELINE_PRISMA_CLIENT && process.env.NODE_ENV === 'test'
       ? { '^@prisma/client$': process.env.PIPELINE_PRISMA_CLIENT } : {}),

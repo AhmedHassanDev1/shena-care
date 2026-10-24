@@ -37,8 +37,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
       await prisma.supplierOffer.deleteMany({ where: { supplierId: supplier.id } });
       await prisma.supplier.delete({ where: { id: supplier.id } });
     }
-    const product = await prisma.product.findUnique({ where: { slug: 'glo77-brand-glo77-new-serum' } });
-    if (product) {
+    for (const product of await prisma.product.findMany({ where: { brand: { slug: 'glo77-brand' } } })) {
       await prisma.productMedia.deleteMany({ where: { productId: product.id } });
       await prisma.sku.deleteMany({ where: { productId: product.id } });
       await prisma.product.delete({ where: { id: product.id } });
@@ -66,7 +65,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
         items: [
           {
             supplierSkuCode: 'GLO77-SKU-01',
-            name: 'GLO77 New Serum',
+            name: 'GLO77 New Serum 50ml',
             brand: 'GLO77 Brand',
             price: 350.0,
             priceType: 'PURCHASE_COST',
@@ -98,9 +97,12 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
       .expect(200);
 
     expect(detailRes.body.id).toBe(itemId);
-    expect(detailRes.body.name).toBe('GLO77 New Serum');
+    expect(detailRes.body.name).toBe('GLO77 New Serum 50ml');
     expect(detailRes.body.conflicts).toContain('missing_barcode');
     expect(detailRes.body.conflicts).toContain('brand_not_found_in_catalog');
+
+    // The administrator admits the brand (publication requires a reviewed catalog brand), then corrects the data.
+    await prisma.brand.upsert({ where: { slug: 'glo77-brand' }, update: {}, create: { name: 'GLO77 Brand', slug: 'glo77-brand' } });
 
     // 4. Correct candidate data (adding barcode)
     const updateRes = await request(app.getHttpServer())
@@ -118,7 +120,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
     const unreviewed = await request(app.getHttpServer())
       .post(`/ingestion/candidates/${itemId}/publish`).set(admin.auth)
       .expect(400);
-    expect(unreviewed.body.message).toContain('reviewed real image');
+    expect(unreviewed.body.message).toContain('verified packshot');
 
     // Human evidence + media review, then approve for publication
     const mediaReviews = await reviewCandidateMedia(app, admin.auth, itemId, '6220001112223');
@@ -150,7 +152,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
 
     expect(createdSku).toBeDefined();
     expect(createdSku!.barcode).toBe('6220001112223');
-    expect(createdSku!.product.name).toBe('GLO77 New Serum');
+    expect(createdSku!.product.name).toBe('GLO77 New Serum 50ml');
     expect(createdSku!.product.brand.name).toBe('GLO77 Brand');
     // Customer publication is a separate authorized operation once commercial inputs exist.
     expect(createdSku!.product.isPublished).toBe(false);
@@ -172,7 +174,7 @@ describe('GLO-77 Candidate Review & Publish (e2e)', () => {
 
     // Verify product count in Catalog is exactly 1 (no duplicate creation)
     const productCount = await prisma.product.count({
-      where: { name: 'GLO77 New Serum' },
+      where: { name: 'GLO77 New Serum 50ml' },
     });
     expect(productCount).toBe(1);
   });

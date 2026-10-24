@@ -20,6 +20,26 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Disposable database for the API test suites (guard requires a *_test name).
+  # docker compose up -d --wait postgres-test ; stop with: docker compose rm -sfv postgres-test
+  postgres-test:
+    image: postgres:17-alpine
+    container_name: shenacare-postgres-test
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
+    environment:
+      POSTGRES_DB: shenacare_test
+      POSTGRES_USER: shenacare
+      POSTGRES_PASSWORD: shenacare
+    ports:
+      - "127.0.0.1:5434:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shenacare -d shenacare_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
 volumes:
   postgres_data:
     driver: local

@@ -109,7 +109,7 @@ describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & 
         data: {
           id: testProductId,
           brandId: testBrandId,
-          title: 'CeraVe Foaming Cleanser 236ml',
+          name: 'CeraVe Foaming Cleanser 236ml',
           slug: `cerave-foaming-cleanser-236ml-${Date.now()}`,
         },
       });
@@ -229,7 +229,7 @@ describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & 
     it('applies proposed column mapping and extracts all 25 rows into database items', async () => {
       const res = await request(app.getHttpServer())
         .post(`/ingestion/jobs/${fullJobId}/mapping`)
-        .set(supplierA.auth)
+        .set(admin.auth)
         .send({
           profileName: 'Egyptian Launch Distributor Layout v1',
           mapping: {
@@ -242,6 +242,7 @@ describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & 
             price: 'سعر الشراء الصافي (EGP)',
             units: 'العبوة',
             sourceTimestamp: 'آخر تحديث',
+            semantics: { documentKind: 'STOCK_FEED', priceBasis: 'UNIT_PURCHASE_COST', quantityBasis: 'ON_HAND', discountBasis: 'PERCENT' },
           },
         });
 
@@ -363,7 +364,7 @@ describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & 
 
       const mappingRes = await request(app.getHttpServer())
         .post(`/ingestion/jobs/${priceJobId}/mapping`)
-        .set(supplierA.auth)
+        .set(admin.auth)
         .send({
           profileName: 'Price Update Delta Layout v1',
           mapping: {
@@ -373,6 +374,7 @@ describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & 
             discount: 'خصم التوريد (%)',
             price: 'سعر الشراء الصافي (EGP)',
             sourceTimestamp: 'تاريخ السعر',
+            semantics: { documentKind: 'PRICE_LIST', priceBasis: 'UNIT_PURCHASE_COST', discountBasis: 'PERCENT' },
           },
         });
 
