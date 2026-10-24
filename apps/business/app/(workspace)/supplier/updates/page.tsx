@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { Button, Code, Field, Notice, PageHeader, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
 import { CommandError, Egp } from '@/components/workspace/kit'
+import { SourceRowOutcomes, type SourceRowSummary } from '@/components/workspace/source-rows'
 import { LoadError, RoleShell, useMe } from '@/components/workspace/role-shell'
 import { api, type ApiError } from '@/lib/api'
 import { formatDateTime, shortId } from '@/lib/labels'
@@ -59,6 +60,7 @@ export interface JobDiffSummary {
   supplierId: string
   mode: string
   totalRows: number
+  sourceRows?: SourceRowSummary
   counters: {
     updated: number
     created: number
@@ -899,9 +901,17 @@ function UpdatesWorkflowContent() {
 
                 <div className="rounded-xl border border-red-500/30 bg-red-500/[0.04] p-3 text-center space-y-0.5">
                   <span className="text-[10px] font-bold uppercase text-red-400">أخطاء بالملف</span>
-                  <p className="font-mono text-xl font-extrabold text-white">{diff.counters.error}</p>
+                  <p className="font-mono text-xl font-extrabold text-white">{diff.counters.error + (diff.sourceRows?.invalid ?? 0)}</p>
                 </div>
               </div>
+
+              {uploadResult?.reused ? (
+                <Notice tone="info" title="هذا الملف سبق رفعه ومعالجته">
+                  لم تُنشأ عملية جديدة ولم تتكرر أي أصناف أو عروض؛ هذه هي نتيجة العملية <Code>{shortId(uploadResult.jobId)}</Code> السابقة.
+                </Notice>
+              ) : null}
+
+              <SourceRowOutcomes summary={diff.sourceRows} />
 
               {/* Candidate Protection Notice */}
               {diff.counters.skipped > 0 ? (
@@ -1023,7 +1033,7 @@ function UpdatesWorkflowContent() {
                                   <Plus className="size-3" />
                                   إضافة جديدة
                                 </span>
-                              ) : row.action === 'NOOP' ? (
+                              ) : row.action === 'UNCHANGED' ? (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] text-bw-ink-subtle px-2 py-0.5 text-[10px] font-bold">
                                   بدون تغيير
                                 </span>

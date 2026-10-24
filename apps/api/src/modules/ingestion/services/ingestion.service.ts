@@ -204,7 +204,8 @@ export class IngestionService {
             formatFingerprint: existing.formatFingerprint ?? undefined,
             profileId: existing.profileId ?? undefined,
             status: existing.status,
-            requiresMapping: existing.status === IngestionStatus.review_required,
+            // Only a job that still holds no rows is waiting for a mapping; one already mapped is just a repeat.
+            requiresMapping: existing.status === IngestionStatus.review_required && existing.items.length === 0,
             reused: true,
             totalRows: existing.items.length,
             importedItemsCount: existing.items.length,

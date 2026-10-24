@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { Button, Code, Notice, PageHeader, Skeleton, StateBlock } from '@/components/bw/primitives'
 import { CommandError, Egp } from '@/components/workspace/kit'
+import { SourceRowOutcomes } from '@/components/workspace/source-rows'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
 import { formatDateTime, shortId } from '@/lib/labels'
@@ -219,10 +220,11 @@ export default function SupplierJobDetailPage() {
 
                   <div className="rounded-xl border border-red-500/30 bg-red-500/[0.04] p-3 text-center space-y-0.5">
                     <span className="text-[10px] font-bold uppercase text-red-400">أخطاء بالملف</span>
-                    <p className="font-mono text-xl font-extrabold text-white">{diff.counters.error}</p>
+                    <p className="font-mono text-xl font-extrabold text-white">{diff.counters.error + (diff.sourceRows?.invalid ?? 0)}</p>
                   </div>
                 </div>
               ) : null}
+              {diff ? <SourceRowOutcomes summary={diff.sourceRows} /> : null}
             </div>
 
             {/* Commit Success Receipt if newly committed */}

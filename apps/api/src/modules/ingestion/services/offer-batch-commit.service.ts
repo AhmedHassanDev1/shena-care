@@ -17,6 +17,7 @@ import {
   CommitJobResult,
   ItemCommitOutcome,
   ApproveDeactivationsOptions,
+  SourceRowSummary,
 } from '../contracts/offer-batch-commit.contract';
 
 /** When a supplier row's information was true, as far as the source tells us (all ISO strings). */
@@ -520,13 +521,24 @@ export class OfferBatchCommitService {
 
       if (activeSupplierOffers.length > 0) {
         counters.deactivationsPending = activeSupplierOffers.length;
-        deactivationCandidates = activeSupplierOffers.map((o) => ({
-          skuId: o.skuId,
-          skuCode: o.skuId.slice(0, 8),
-          productName: `Canonical SKU (${o.skuId.slice(0, 8)})`,
-          currentCost: o.costPrice.toNumber(),
-          isAvailable: o.isAvailable,
-        }));
+        // Show the reviewer which products would be switched off, not an opaque id fragment.
+        const candidateSkus = await this.prisma.sku.findMany({
+          where: { id: { in: activeSupplierOffers.map((o) => o.skuId) } },
+          select: { id: true, code: true, variantName: true, product: { select: { name: true } } },
+        });
+        const skuById = new Map(candidateSkus.map((s) => [s.id, s]));
+        deactivationCandidates = activeSupplierOffers.map((o) => {
+          const sku = skuById.get(o.skuId);
+          return {
+            skuId: o.skuId,
+            skuCode: sku?.code ?? o.skuId.slice(0, 8),
+            productName: sku
+              ? (sku.variantName && sku.variantName !== 'Default' ? `${sku.product.name} — ${sku.variantName}` : sku.product.name)
+              : `Canonical SKU (${o.skuId.slice(0, 8)})`,
+            currentCost: o.costPrice.toNumber(),
+            isAvailable: o.isAvailable,
+          };
+        });
 
         // In FULL_SNAPSHOT, ALL missing offers require explicit deactivation approval
         // A 20% missing-offer threshold is an anomaly detector, not permission for automatic deactivation
@@ -539,10 +551,37 @@ export class OfferBatchCommitService {
       supplierId: job.supplierId,
       mode: job.mode,
       totalRows: job.items.length,
+      sourceRows: this.summarizeSourceRows(job.rowOutcomes, job.items.length),
       counters,
       rows,
       deactivationCandidates,
       requiresDeactivationApproval,
+    };
+  }
+
+  /**
+   * Intake records an outcome for every file row, but only admitted rows become items. Without this summary the
+   * supplier sees "0 errors" for a file whose rows were all rejected.
+   */
+  private summarizeSourceRows(rowOutcomes: Prisma.JsonValue | null, admittedItems: number): SourceRowSummary | undefined {
+    if (!Array.isArray(rowOutcomes)) return undefined;
+    const outcomes = (rowOutcomes as Array<Record<string, unknown>>).map((o) => ({
+      sourceRow: Number(o.sourceRow),
+      supplierSku: String(o.supplierSku ?? ''),
+      outcome: String(o.outcome ?? ''),
+      reason: typeof o.reason === 'string' ? o.reason : null,
+    }));
+    const notAdmitted = outcomes
+      .filter((o) => !['IMPORTED', 'IMPORTED_MANUAL'].includes(o.outcome))
+      .sort((a, b) => a.sourceRow - b.sourceRow);
+    const count = (outcome: string) => notAdmitted.filter((o) => o.outcome === outcome).length;
+    return {
+      total: outcomes.length,
+      admitted: admittedItems,
+      invalid: count('INVALID'),
+      duplicate: count('DUPLICATE'),
+      outOfScope: count('OUT_OF_SCOPE'),
+      notAdmitted,
     };
   }
 

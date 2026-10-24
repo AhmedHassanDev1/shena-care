@@ -31,11 +31,24 @@ export interface RowDiff {
   isPriceOnly: boolean;
 }
 
+/** What happened to every data row of the uploaded file, including rows that never became an ingestion item. */
+export interface SourceRowSummary {
+  total: number;
+  admitted: number;
+  invalid: number;
+  duplicate: number;
+  outOfScope: number;
+  /** Rows the system did not admit, in file order, with the reason recorded at intake. */
+  notAdmitted: Array<{ sourceRow: number; supplierSku: string; outcome: string; reason: string | null }>;
+}
+
 export interface JobDiffSummary {
   jobId: string;
   supplierId: string;
   mode: string;
   totalRows: number;
+  /** Absent only for jobs created before row outcomes were recorded. */
+  sourceRows?: SourceRowSummary;
   counters: {
     updated: number;
     created: number;
