@@ -41,6 +41,10 @@ const STAFF_ACCOUNTS = [
 ];
 
 async function seedStaff() {
+  // These passwords are public dev fixtures; real staff are created with `npm run staff:provision` and STAFF_PASSWORD.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('seed-staff uses well-known dev passwords and refuses to run with NODE_ENV=production');
+  }
   const prisma = new PrismaClient();
   console.log('Seeding approved Business Workspace staff credentials...');
 

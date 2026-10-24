@@ -45,3 +45,8 @@ __pycache__/
 *.db
 *.sqlite
 pgdata/
+
+# Local-only staff dev credentials doc (never commit passwords) and Python build metadata
+STAFF_CREDENTIALS.md
+**/STAFF_CREDENTIALS.md
+*.egg-info/
