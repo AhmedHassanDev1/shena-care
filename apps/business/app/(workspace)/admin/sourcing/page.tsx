@@ -6,7 +6,6 @@ import { AlertTriangle, ArrowLeft, ShieldAlert, Store } from 'lucide-react'
 import { Button, Code, DataTable, Field, Notice, PageHeader, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
 import { CommandError, Egp, Page, Select, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
-import { SupplierPerformanceTable } from '@/components/admin/sourcing/supplier-performance-table'
 import { api } from '@/lib/api'
 import { PAYABLE_STATUS, PO_LINE_STATUS, PO_STATUS, SUPPLIER_EXCEPTIONS, formatDateTime, shortId } from '@/lib/labels'
 import { useApi, useCommand } from '@/lib/use-api'
@@ -73,19 +72,6 @@ export default function AdminSourcing() {
             <ArrowLeft className="size-3.5" />
           </Link>
         </div>
-
-        {/* Supplier Network Performance Section */}
-        <Section title="أداء وموثوقية شبكة الموردين في القاهرة والجيزة">
-          <div className="sc-card p-4 border-white/[0.08] bg-bw-surface space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-bw-ink-soft">
-                متابعة معدلات التأكيد في الموعد ومتوسط سرعة استجابة الصيدليات الشريكة ومستودعات التوريد.
-              </p>
-              <span className="sc-badge t-success text-[11px]">محدّث لحظياً</span>
-            </div>
-            <SupplierPerformanceTable />
-          </div>
-        </Section>
 
         <Section title="تجميع أوامر الشراء">
           <form className="flex flex-wrap items-end gap-3" onSubmit={async (e) => {

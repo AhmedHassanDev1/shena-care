@@ -33,6 +33,10 @@ async function main() {
   let customerId = '';
   let skuId = '';
   let createdOrderId = '';
+  let unitPrice = 0;
+  const FEE = Number(process.env.DELIVERY_FEE_EGP ?? 50);
+  const SUBTOTAL = () => unitPrice * 2;
+  const TOTAL = () => SUBTOTAL() + FEE;
 
   // 1. Availability & Catalog Discovery
   await record('Product discovery and verified availability', async () => {
@@ -40,13 +44,14 @@ async function main() {
     if (!res.ok) throw new Error(`Discovery failed with status ${res.status}`);
     const data: any = await res.json();
     if (!data.items || data.items.length === 0) throw new Error('No published products found in discovery');
-    const eva = data.items.find((p: any) => p.name.includes('Eva'));
-    if (!eva) throw new Error('Eva product not found in discovery');
+    const eva = data.items.find((p: any) => p.name.includes('Eva') && p.skus?.[0]?.canOrder);
+    if (!eva) throw new Error('No orderable Eva product found in discovery');
     if (!eva.skus || !eva.skus[0] || !eva.skus[0].canOrder) throw new Error('Eva product SKU cannot be ordered');
     skuId = eva.skus[0].id;
     const price = eva.skus[0].price.amount;
     const availability = eva.skus[0].availability;
-    if (price !== 130) throw new Error(`Expected price 130, got ${price}`);
+    if (!(price > 0)) throw new Error(`Expected a positive public price, got ${price}`);
+    unitPrice = price; // expected totals below derive from the live catalog price, never a hard-coded fixture
     if (availability.state !== 'CONFIRMED') throw new Error(`Expected CONFIRMED availability, got ${availability.state}`);
     return `Product "${eva.name}" discovered, SKU: ${skuId}, Price: ${price} EGP, Availability: ${availability.state}`;
   });
@@ -98,12 +103,11 @@ async function main() {
     const quote: any = await res.json();
     quoteVersion = quote.quoteVersion;
     cartRevision = quote.revision;
-    // 2 items * 130 = 260 + 50 fee = 310
-    if (quote.subtotal !== 260) throw new Error(`Expected subtotal 260, got ${quote.subtotal}`);
-    if (quote.shippingFee !== 50) throw new Error(`Expected shipping fee 50, got ${quote.shippingFee}`);
-    if (quote.codAmount !== 310) throw new Error(`Expected COD amount 310, got ${quote.codAmount}`);
-    if (quote.totalAmount !== 310) throw new Error(`Expected total amount 310, got ${quote.totalAmount}`);
-    return `Authoritative quote generated: Subtotal 260 EGP, Shipping 50 EGP, Total COD 310 EGP (Quote ID: ${quoteVersion})`;
+    if (quote.subtotal !== SUBTOTAL()) throw new Error(`Expected subtotal ${SUBTOTAL()}, got ${quote.subtotal}`);
+    if (quote.shippingFee !== FEE) throw new Error(`Expected shipping fee ${FEE}, got ${quote.shippingFee}`);
+    if (quote.codAmount !== TOTAL()) throw new Error(`Expected COD amount ${TOTAL()}, got ${quote.codAmount}`);
+    if (quote.totalAmount !== TOTAL()) throw new Error(`Expected total amount ${TOTAL()}, got ${quote.totalAmount}`);
+    return `Authoritative quote generated: Subtotal ${SUBTOTAL()} EGP, Shipping ${FEE} EGP, Total COD ${TOTAL()} EGP (Quote ID: ${quoteVersion})`;
   });
 
   // 4. Invalid Location / Out of Service Area Guard
@@ -236,10 +240,10 @@ async function main() {
     const quote: any = await res.json();
     customerQuoteVersion = quote.quoteVersion;
     customerCartRevision = quote.revision;
-    if (quote.subtotal !== 260 || quote.shippingFee !== 50 || quote.totalAmount !== 310) {
+    if (quote.subtotal !== SUBTOTAL() || quote.shippingFee !== FEE || quote.totalAmount !== TOTAL()) {
       throw new Error(`Unexpected quote values: subtotal=${quote.subtotal}, shipping=${quote.shippingFee}, total=${quote.totalAmount}`);
     }
-    return `Customer Quote created: ID ${customerQuoteVersion}, Revision ${customerCartRevision}, Total 310 EGP`;
+    return `Customer Quote created: ID ${customerQuoteVersion}, Revision ${customerCartRevision}, Total ${TOTAL()} EGP`;
   });
 
   // 9. Negative Test: Checkout with Unconfirmed Pin
@@ -336,7 +340,7 @@ async function main() {
     if (!order.orderNumber || !order.orderNumber.startsWith('ORD-')) {
       throw new Error(`Invalid orderNumber: ${order.orderNumber}`);
     }
-    if (order.totalAmount !== 310 || order.codAmount !== 310 || order.shippingFee !== 50) {
+    if (order.totalAmount !== TOTAL() || order.codAmount !== TOTAL() || order.shippingFee !== FEE) {
       throw new Error(`Order amounts mismatch: total=${order.totalAmount}, cod=${order.codAmount}, fee=${order.shippingFee}`);
     }
     if (order.latitude !== 29.9602 || order.longitude !== 31.2569) {
@@ -437,7 +441,7 @@ async function main() {
     if (tracking.deliveryAddress.latitude !== 29.9602 || tracking.deliveryAddress.longitude !== 31.2569) {
       throw new Error(`Coordinates mismatch in tracking: ${tracking.deliveryAddress.latitude}, ${tracking.deliveryAddress.longitude}`);
     }
-    if (tracking.amounts.currentCodAmount !== 310) {
+    if (tracking.amounts.currentCodAmount !== TOTAL()) {
       throw new Error(`COD amount mismatch in tracking: ${tracking.amounts.currentCodAmount}`);
     }
     return `Tracking verified: Order: ${tracking.orderNumber}, Status: ${tracking.status}, Customer: ${tracking.customerName}, COD: ${tracking.amounts.currentCodAmount} EGP, Location: (${tracking.deliveryAddress.latitude}, ${tracking.deliveryAddress.longitude})`;
@@ -477,15 +481,16 @@ async function main() {
   });
 
   // 16. Safe Cleanup of Synthetic Test Order
-  console.log('\n--- CLEANING UP SYNTHETIC TEST FIXTURES ---');
-  if (createdOrderId) {
+  const keep = process.env.KEEP_DATA === '1'; // leave the order in place for role walkthroughs on a disposable DB
+  console.log(keep ? '\n--- KEEP_DATA=1: leaving synthetic order and customer in place ---' : '\n--- CLEANING UP SYNTHETIC TEST FIXTURES ---');
+  if (createdOrderId && !keep) {
     await prisma.orderStatusEvent.deleteMany({ where: { orderId: createdOrderId } });
     await prisma.orderItem.deleteMany({ where: { orderId: createdOrderId } });
     await prisma.checkoutQuote.deleteMany({ where: { orderId: createdOrderId } });
     await prisma.order.delete({ where: { id: createdOrderId } });
     console.log(`Cleaned up test order: ${createdOrderId}`);
   }
-  if (customerId) {
+  if (customerId && !keep) {
     await prisma.session.deleteMany({ where: { customerId } });
     await prisma.identity.deleteMany({ where: { customerId } });
     await prisma.checkoutQuote.deleteMany({ where: { cart: { customerId } } });
