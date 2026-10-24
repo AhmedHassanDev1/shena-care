@@ -94,6 +94,9 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
 
   describe('1. Acceptance 1: Same product two suppliers differently named → single canonical SKU with two offers', () => {
     it('resolves English and Arabic names to single canonical SKU and creates distinct supplier offers', async () => {
+      // Publication requires a reviewed catalog brand; do not depend on another suite having created it.
+      await prisma.brand.upsert({ where: { slug: 'cerave' }, update: {}, create: { name: 'CeraVe', slug: 'cerave' } });
+
       // Step A: Supplier 1 imports "CeraVe Moisturizing Cream 340g" (English name)
       const job1 = await request(app.getHttpServer())
         .post('/ingestion/jobs')
