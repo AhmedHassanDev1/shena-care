@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsBoolean, IsOptional, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsBoolean, IsOptional, IsInt, Min } from 'class-validator';
 
 export class CreateSupplierOfferDto {
   @IsString()
@@ -20,6 +20,12 @@ export class CreateSupplierOfferDto {
   @IsBoolean()
   @IsOptional()
   isAvailable?: boolean;
+
+  /** Quantity the supplier can supply now; allocation never exceeds it. */
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  availableQuantity?: number;
 }
 
 export class UpdateSupplierOfferDto {
@@ -35,4 +41,10 @@ export class UpdateSupplierOfferDto {
   @IsBoolean()
   @IsOptional()
   isAvailable?: boolean;
+
+  /** Quantity the supplier can supply now; allocation never exceeds it. */
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  availableQuantity?: number;
 }

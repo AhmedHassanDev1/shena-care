@@ -100,10 +100,9 @@ export class ReceiveAllocatedGoodsDto {
   @MaxLength(64)
   lotNumber?: string;
 
-  /** Printed expiry (YYYY-MM-DD), when visible. An already-expired unit is never received. */
-  @IsOptional()
+  /** Printed expiry (YYYY-MM-DD), required at the hub. Expired or short-dated units (owner minimum shelf life) are never received. */
   @IsDateString({ strict: true })
-  expiryDate?: string;
+  expiryDate: string;
 }
 
 export class AllocateShipmentDto {

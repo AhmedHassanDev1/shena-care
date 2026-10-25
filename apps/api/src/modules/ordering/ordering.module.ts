@@ -19,13 +19,14 @@ import { AvailabilityDecisionController, GuestAvailabilityDecisionController } f
 import { CustomerReturnsController } from './customer-returns.controller';
 import { GuestReturnsController } from './guest-returns.controller';
 import { ReturnEligibilityService } from './services/return-eligibility.service';
+import { MonthlyStatementService } from './services/monthly-statement.service';
 import { OperationsModule } from '../operations/operations.module';
 @Module({
   imports: [DomainEventsModule, CommerceModule, SourcingModule, CatalogModule, OperationsModule],
   controllers: [OrderingController, CartController, CheckoutController, GuestOrderTrackingController,
     AvailabilityDecisionController, GuestAvailabilityDecisionController,
     CustomerReturnsController, GuestReturnsController, PaymentWebhookController],
-  providers: [OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, ReturnEligibilityService, PaymentsService],
+  providers: [OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, ReturnEligibilityService, PaymentsService, MonthlyStatementService],
   exports: [OrderingService, CartService, ReconciliationService, PaymentsService, OrderTrackingService],
 })
 export class OrderingModule {}

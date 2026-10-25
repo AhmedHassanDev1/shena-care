@@ -1,6 +1,6 @@
 import { CUSTOMER_PHONE_VERIFIED_EVENT, CustomerPhoneVerifiedEvent } from '../../accounts/public';
 import { OnEvent } from '@nestjs/event-emitter';
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { createHash, createHmac, randomUUID } from 'crypto';
 import { OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
@@ -11,6 +11,8 @@ import { AddDeliveryInstructionDto, CheckoutDto, CheckoutQuoteRequestDto, Correc
 import { assertDeliverablePin, navigationUrl, serviceGovernorate } from './service-area';
 import { OutboxService } from '../../operations/services/outbox.service';
 import { CartOwner, CartService } from './cart.service';
+import { computeDeliveryFee } from './delivery-fee';
+import { SourcingService, cairoDate, cairoWallTime, promisedDate } from '../../sourcing/public';
 
 export interface QuotedItem {
   skuId: string;
@@ -31,31 +33,21 @@ export interface QuoteSnapshot {
   cartRevision: number;
   subtotal: number;
   shippingFee: number;
+  /** Fee by distance before the invoice-size discount, and what ShinaCare absorbs (for the customer's breakdown). */
+  deliveryFeeBase: number;
+  deliveryDiscount: number;
   codAmount: number;
   totalAmount: number;
   currency: string;
   deliveryPromise: string;
+  /** YYYY-MM-DD (Cairo): first day after the order on which the suppliers of every item are open. */
+  promisedDate: string;
   availabilityCertainty: 'not_confirmed';
   items: QuotedItem[];
   appliedPromotions: any[];
 }
 
 const REVIEW_REQUIRED = { code: 'CHECKOUT_REVIEW_REQUIRED', message: 'Checkout changed or expired. Review a new quote before submitting.' };
-const DELIVERY_PROMISE = 'Delivery timing will be confirmed after sourcing.';
-/**
- * Customer-facing delivery fee (EGP). Owner policy (C0 directive): the fee is configured, not hardcoded,
- * and there is no approved unconditional free-shipping threshold — free delivery only comes from an
- * explicitly configured promotion. DELIVERY_FEE_EGP overrides the provisional 50 EGP; an invalid value
- * fails closed (no quote) rather than silently charging a guessed amount.
- */
-export function deliveryFee(raw = process.env.DELIVERY_FEE_EGP): number {
-  if (raw === undefined || raw.trim() === '') return 50;
-  const fee = Number(raw);
-  if (!Number.isFinite(fee) || fee < 0 || Math.round(fee * 100) !== fee * 100) {
-    throw new ServiceUnavailableException({ code: 'DELIVERY_FEE_NOT_CONFIGURED', message: 'Delivery pricing is not configured.' });
-  }
-  return fee;
-}
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const canonical = (value: unknown): string => JSON.stringify(value, (_key, item) =>
   item && typeof item === 'object' && !Array.isArray(item)
@@ -111,6 +103,7 @@ export class OrderingService {
     private readonly outbox: OutboxService,
     private readonly events: DomainEventsService,
     private readonly payments: PaymentsService,
+    private readonly sourcing: SourcingService,
   ) {}
 
   private reviewRequired(): never {
@@ -142,6 +135,7 @@ export class OrderingService {
         currency,
       };
     }));
+    const promised = promisedDate(new Date(), await this.sourcing.getClosedWeekdaysBySku(items.map(i => i.skuId)));
     const currency = items[0].currency;
     if (items.some(i => i.currency !== currency)) this.reviewRequired();
     const subtotal = Math.round(items.reduce((sum, item) => sum + item.lineTotal, 0) * 100) / 100;
@@ -154,15 +148,19 @@ export class OrderingService {
     });
 
     const finalSubtotal = Math.max(0, subtotal - evaluation.orderDiscountAmount);
-    const shippingFee = evaluation.freeShippingQualified ? 0 : deliveryFee();
+    // Owner policy: distance band from the hub, minus the invoice-size discount, free above the threshold; a free-shipping promotion wins.
+    const delivery = computeDeliveryFee({ invoice: finalSubtotal, latitude: dto.latitude, longitude: dto.longitude });
+    const shippingFee = evaluation.freeShippingQualified ? 0 : delivery.fee;
+    const deliveryFeeBase = delivery.baseFee;
+    const deliveryDiscount = Math.round((deliveryFeeBase - shippingFee) * 100) / 100;
     const totalAmount = Math.round((finalSubtotal + shippingFee) * 100) / 100;
     
     return {
       cartId: cart.id,
       snapshot: {
         governorate: dto.governorate, area: dto.area, cartRevision: cart.revision,
-        subtotal, shippingFee, codAmount: totalAmount, totalAmount,
-        currency, deliveryPromise: DELIVERY_PROMISE, availabilityCertainty: 'not_confirmed', items,
+        subtotal, shippingFee, deliveryFeeBase, deliveryDiscount, codAmount: totalAmount, totalAmount,
+        currency, deliveryPromise: `Delivery expected on ${promised}.`, promisedDate: promised, availabilityCertainty: 'not_confirmed', items,
         appliedPromotions: evaluation.appliedPromotions,
       },
     };
@@ -170,6 +168,7 @@ export class OrderingService {
 
   async getCheckoutQuote(owner: CartOwner, dto: CheckoutQuoteRequestDto) {
     serviceGovernorate(dto.governorate);
+    if (dto.latitude !== undefined || dto.longitude !== undefined) assertDeliverablePin(dto);
     const { cartId, snapshot } = await this.currentSnapshot(owner, dto);
     const expiresAt = new Date(Date.now() + 15 * 60_000);
     const quote = await this.prisma.$transaction(async tx => {
@@ -290,7 +289,7 @@ export class OrderingService {
         quote.revision !== dto.cartRevision || cart.revision !== dto.cartRevision) this.reviewRequired();
     const accepted = quote.snapshot as unknown as QuoteSnapshot;
     if (accepted.governorate !== dto.governorate || accepted.area !== dto.area) this.reviewRequired();
-    const current = await this.currentSnapshot(owner, { governorate: dto.governorate, area: dto.area, couponCode: dto.couponCode });
+    const current = await this.currentSnapshot(owner, { governorate: dto.governorate, area: dto.area, couponCode: dto.couponCode, latitude: dto.latitude, longitude: dto.longitude });
     if (current.cartId !== cart.id || canonical(current.snapshot) !== canonical(accepted)) this.reviewRequired();
 
       const order = await this.prisma.$transaction(async tx => {
@@ -319,7 +318,7 @@ export class OrderingService {
             // Only cash on delivery creates money the driver collects (GLO-241).
             codAmount: online ? 0 : accepted.codAmount, totalAmount: accepted.totalAmount, currency: accepted.currency,
             paymentMethod, paymentProvider,
-            deliveryPromise: accepted.deliveryPromise, availabilityCertainty: accepted.availabilityCertainty,
+            deliveryPromise: accepted.deliveryPromise, promisedDate: new Date(accepted.promisedDate + 'T00:00:00Z'), availabilityCertainty: accepted.availabilityCertainty,
             appliedPromotions: accepted.appliedPromotions as Prisma.InputJsonValue,
             status: OrderStatus.placed,
             statusEvents: { create: { status: OrderStatus.placed } },
@@ -442,6 +441,29 @@ export class OrderingService {
       totalAmount: Number(order.totalAmount), codAmount: order.codAmount === null ? null : Number(order.codAmount),
       currency: order.currency, itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
       hasPin: order.latitude !== null && order.longitude !== null, createdAt: order.createdAt,
+    })) };
+  }
+
+  /**
+   * Orders that have not left the hub although their promised day has arrived (after 12:00 Cairo time) or passed —
+   * the owner sends the delegate or tells the customer. No customer details here.
+   */
+  async listLateOrders(paging: { take: number; skip: number }, now = new Date()) {
+    const today = cairoDate(now);
+    const day = new Date(today + 'T00:00:00Z');
+    const afterNoon = now >= cairoWallTime(today, 12 * 60);
+    const where: Prisma.OrderWhereInput = {
+      status: { in: ['placed', 'confirmed', 'packing'] },
+      OR: [{ promisedDate: { lt: day } }, ...(afterNoon ? [{ promisedDate: day }] : [])],
+    };
+    const [total, rows] = await Promise.all([
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({ where, orderBy: [{ promisedDate: 'asc' }, { createdAt: 'asc' }], take: paging.take, skip: paging.skip }),
+    ]);
+    return { total, items: rows.map(order => ({
+      orderId: order.id, orderNumber: order.orderNumber, status: order.status,
+      promisedDate: (order.promisedDate as Date).toISOString().slice(0, 10), createdAt: order.createdAt,
+      daysLate: Math.round((day.getTime() - (order.promisedDate as Date).getTime()) / 86_400_000),
     })) };
   }
 

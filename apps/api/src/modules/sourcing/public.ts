@@ -8,3 +8,4 @@ export * from './services/payables.service';
 export * from './dto/supplier.dto';
 export * from './dto/supplier-offer.dto';
 export * from './dto/purchase-order.dto';
+export * from './services/supplier-schedule';

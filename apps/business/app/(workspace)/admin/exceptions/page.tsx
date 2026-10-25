@@ -11,11 +11,22 @@ import { useApi } from '@/lib/use-api'
 
 type Paged<T> = { total: number; items: T[] }
 
+/** A purchase order the supplier has not reacted to; the clock starts when the supplier could first see it. */
+interface SupplierWait { purchaseOrderId: string; supplierName: string; waitedMinutes: number; opened: boolean; lineCount: number; totalCost: number; currency: string | null }
+interface CashVariance { orderId: string; orderNumber: string; variance: string | null; severity: 'large' | 'small' }
+
+const waited = (minutes: number) => (minutes >= 120 ? `${Math.floor(minutes / 60)} ساعة` : `${minutes} دقيقة`)
+
 interface AttentionQueue {
   supplyActionRequired: Paged<{ orderId: string; orderNumber: string | null; category?: string; unresolvedQuantity?: number; since?: string }>
   customerDecisionsPending: Paged<{ orderId: string; orderNumber: string; reason?: string; unresolvedQuantity?: number; expiresAt?: string }>
   distributionRequired: Paged<{ purchaseOrderId: string; lineId: string; requestedQuantity: number; confirmedQuantity: number | null }>
-  failedDeliveries: Paged<{ orderId: string; orderNumber: string | null; reasonCode: string | null; failedAt: string }>
+  failedDeliveries: Paged<{ orderId: string; orderNumber: string | null; reasonCode: string | null; failedAt: string; returnDue?: boolean }>
+  supplierResponses?: { unopened: SupplierWait[]; unanswered: SupplierWait[] }
+  lateOrders?: Paged<{ orderId: string; orderNumber: string; promisedDate: string; daysLate: number }>
+  cashVariances?: { short: Paged<CashVariance>; over: Paged<CashVariance> }
+  unsettledRounds?: Paged<{ courierId: string; locationId: string; orders: number; expectedTotal: string; declaredTotal: string; oldestDeclaredAt: string | null }>
+  roundVariances?: Paged<{ batchId: string; reference: string; expectedTotal: string; countedTotal: string; variance: string; severity: 'large' | 'small'; settledAt: string }>
   openCases?: Paged<{ id: string; title: string; priority: string; orderId: string | null; createdAt: string }>
 }
 
@@ -45,12 +56,47 @@ function ExceptionsContent() {
 
       {data ? (
         <>
+          {data.supplierResponses ? (
+            <>
+              <Queue title="طلبيات موردين ما اتردّش عليها (اتصل بالمورد)" page={asPage(data.supplierResponses.unanswered)}
+                row={(r) => <SupplierRow key={r.purchaseOrderId} wait={r} />} />
+              <Queue title="طلبيات موردين ما اتفتحتش" page={asPage(data.supplierResponses.unopened)}
+                row={(r) => <SupplierRow key={r.purchaseOrderId} wait={r} />} />
+            </>
+          ) : null}
+          {data.lateOrders ? (
+            <Queue title="طلبات متأخرة عن ميعادها" page={data.lateOrders}
+              row={(r) => <OrderRow key={r.orderId} orderId={r.orderId} label={r.orderNumber} note={r.daysLate > 0 ? `متأخر ${r.daysLate} يوم` : 'ميعاده النهارده'} at={r.promisedDate} />} />
+          ) : null}
+          {data.cashVariances ? (
+            <Queue title="فروق كاش (الكبيرة الأول)" page={asPage([...data.cashVariances.short.items, ...data.cashVariances.over.items]
+              .sort((a, b) => Number(b.severity === 'large') - Number(a.severity === 'large')))}
+              row={(r) => <OrderRow key={r.orderId} orderId={r.orderId} label={r.orderNumber} note={`${r.severity === 'large' ? 'فرق كبير' : 'فرق صغير'} ${r.variance ?? ''}`} />} />
+          ) : null}
+          {data.roundVariances ? (
+            <Queue title="فروق في عدّ الجولات (الكبيرة الأول)" page={data.roundVariances}
+              row={(r) => (
+                <li key={r.batchId} className="flex items-center justify-between border-t border-bw-line py-2 text-bw-small">
+                  <span><Code>{r.reference}</Code> · {r.severity === 'large' ? 'فرق كبير' : 'فرق صغير'} {r.variance} · متوقع <Code>{r.expectedTotal}</Code> · اتعدّ <Code>{r.countedTotal}</Code> · {formatDateTime(r.settledAt)}</span>
+                  <Link href="/admin/cash" className="flex items-center gap-1 underline">افتح النقدية<ArrowLeft className="size-3.5" /></Link>
+                </li>
+              )} />
+          ) : null}
+          {data.unsettledRounds ? (
+            <Queue title="جولات نقدية ما اتعدّتش بعد ١٢ ساعة" page={data.unsettledRounds}
+              row={(r) => (
+                <li key={`${r.courierId}-${r.locationId}`} className="flex items-center justify-between border-t border-bw-line py-2 text-bw-small">
+                  <span>مندوب <Code>{shortId(r.courierId)}</Code> · {r.orders} طلب · متوقع <Code>{r.expectedTotal}</Code> · أعلن <Code>{r.declaredTotal}</Code>{r.oldestDeclaredAt ? ` · من ${formatDateTime(r.oldestDeclaredAt)}` : ''}</span>
+                  <Link href="/admin/cash" className="flex items-center gap-1 underline">افتح النقدية<ArrowLeft className="size-3.5" /></Link>
+                </li>
+              )} />
+          ) : null}
           <Queue title="نقص توريد يحتاج قرار" page={data.supplyActionRequired}
             row={(r) => <OrderRow key={r.orderId} orderId={r.orderId} label={r.orderNumber} note={r.unresolvedQuantity ? `${r.unresolvedQuantity} قطعة ناقصة` : undefined} at={r.since} />} />
           <Queue title="قرارات عملاء معلّقة" page={data.customerDecisionsPending}
             row={(r) => <OrderRow key={r.orderId} orderId={r.orderId} label={r.orderNumber} note={r.unresolvedQuantity ? `${r.unresolvedQuantity} قطعة` : undefined} at={r.expiresAt} />} />
           <Queue title="توصيلات فاشلة" page={data.failedDeliveries}
-            row={(r) => <OrderRow key={`${r.orderId}-${r.failedAt}`} orderId={r.orderId} label={r.orderNumber} note={r.reasonCode ?? undefined} at={r.failedAt} />} />
+            row={(r) => <OrderRow key={`${r.orderId}-${r.failedAt}`} orderId={r.orderId} label={r.orderNumber} note={`${r.reasonCode ?? ''}${r.returnDue ? ' · عدّت ٢٤ ساعة، يتحوّل مرتجع (امسح الشحنة في الـ hub)' : ''}`.trim() || undefined} at={r.failedAt} />} />
           <Queue title="بضاعة موردين محتاجة توزيع" page={data.distributionRequired}
             row={(r) => (
               <li key={r.lineId} className="flex items-center justify-between border-t border-bw-line py-2 text-bw-small">
@@ -70,6 +116,20 @@ function ExceptionsContent() {
         </>
       ) : null}
     </Page>
+  )
+}
+
+const asPage = <T,>(items: T[]): Paged<T> => ({ total: items.length, items })
+
+function SupplierRow({ wait }: { wait: SupplierWait }) {
+  return (
+    <li className="flex items-center justify-between border-t border-bw-line py-2 text-bw-small">
+      <span>
+        <b>{wait.supplierName}</b> · أمر شراء <Code>{shortId(wait.purchaseOrderId)}</Code> · {wait.lineCount} صنف · تكلفة <Code>{wait.totalCost}</Code>{wait.currency ? ` ${wait.currency}` : ''}
+        {` · مستني ${waited(wait.waitedMinutes)}`}{wait.opened ? ' · اتفتح من غير رد' : ' · لسه ما اتفتحش'}
+      </span>
+      <Link href="/admin/sourcing" className="flex items-center gap-1 underline">افتح التوريد<ArrowLeft className="size-3.5" /></Link>
+    </li>
   )
 }
 

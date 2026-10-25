@@ -1,6 +1,27 @@
-import { IsString, IsNotEmpty, IsBoolean, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsBoolean, IsOptional, IsArray, ArrayUnique, IsInt, Min, Max, Matches } from 'class-validator';
 
-export class CreateSupplierDto {
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** Working schedule (Cairo time): closed weekdays (0 = Sunday … 6 = Saturday; Friday by default) and optional hours. */
+export class SupplierScheduleDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  closedWeekdays?: number[];
+
+  @IsOptional()
+  @Matches(HHMM, { message: 'opensAt must be HH:MM' })
+  opensAt?: string;
+
+  @IsOptional()
+  @Matches(HHMM, { message: 'closesAt must be HH:MM' })
+  closesAt?: string;
+}
+
+export class CreateSupplierDto extends SupplierScheduleDto {
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -14,7 +35,7 @@ export class CreateSupplierDto {
   isActive?: boolean;
 }
 
-export class UpdateSupplierDto {
+export class UpdateSupplierDto extends SupplierScheduleDto {
   @IsString()
   @IsOptional()
   name?: string;

@@ -106,12 +106,20 @@ describe('Red-team operational hardening RT04 / RT08 / RT14 (e2e)', () => {
     const link = po.lines[0].allocations[0];
     const receive = (extra: Record<string, unknown>) => http().post('/fulfillment/receipts').set(hub.auth).send({
       locationId, allocationId: link.sourceAllocationId, orderId: order.id, orderItemId: link.orderItemId, skuId: sku.id,
-      variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: 1, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(), ...extra,
+      variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: 1, condition: 'ACCEPTABLE', expiryDate: '2031-12-31', idempotencyKey: randomUUID(), ...extra,
     });
     await receive({ expiryDate: '31/12/2030' }).expect(400);
     const expired = await receive({ expiryDate: '2026-01-31', lotNumber: 'L-OLD-7' }).expect(400);
     expect(expired.body.code).toBe('RECEIVING_EXCEPTION');
     expect((await prisma.supportCase.findUniqueOrThrow({ where: { id: expired.body.caseId } })).description).toContain('lot L-OLD-7');
+    expect(await prisma.fulfillmentReceipt.count({ where: { orderId: order.id } })).toBe(0);
+
+    // Less than the owner's minimum shelf life (6 months) is held for the supplier, like an expired pack.
+    const soon = new Date(); soon.setUTCMonth(soon.getUTCMonth() + 3);
+    const shortDated = await receive({ expiryDate: soon.toISOString().slice(0, 10), lotNumber: 'L-SHORT-1' }).expect(400);
+    expect(shortDated.body.code).toBe('RECEIVING_EXCEPTION');
+    expect(shortDated.body.message).toContain('SHORT_DATED');
+    await receive({ expiryDate: undefined }).expect(400);
     expect(await prisma.fulfillmentReceipt.count({ where: { orderId: order.id } })).toBe(0);
 
     await receive({ expiryDate: '2028-06-30', lotNumber: 'L-2026-44' }).expect(201);

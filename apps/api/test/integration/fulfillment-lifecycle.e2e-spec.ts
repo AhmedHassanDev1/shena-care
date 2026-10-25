@@ -145,6 +145,14 @@ describe('Fulfillment Lifecycle (e2e)', () => {
 
     shipmentId = allocRes.body.id;
 
+    // Receiving cannot be skipped: a shipment whose goods were not received (pending) cannot be prepared.
+    const early = await request(app.getHttpServer())
+      .post(`/fulfillment/shipments/${shipmentId}/preparation`).set('Authorization', authToken)
+      .send({ operatorId: 'op-1' }).expect(400);
+    expect(early.body.message).toMatch(/receive the goods before preparing/);
+    // This suite exercises preparation/packing only: simulate "every item received" the way the receipt does.
+    await prisma.shipment.update({ where: { id: shipmentId }, data: { status: 'ready_to_prepare' } });
+
     // ── Create a SECOND order+shipment for GLO-147 invalid-state tests ───────
     await request(app.getHttpServer())
       .post('/ordering/cart/add')

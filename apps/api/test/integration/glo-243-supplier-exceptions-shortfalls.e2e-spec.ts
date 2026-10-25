@@ -110,7 +110,7 @@ describe('GLO-237/243 supplier exceptions and receiving shortfalls (e2e)', () =>
     await http().post(`/purchase-orders/${po.id}/ready`).set(supplier.auth).expect(201);
     await http().post('/fulfillment/receipts').set(hub.auth).send({
       locationId, allocationId: link.sourceAllocationId, orderId: order.id, orderItemId: link.orderItemId, skuId: sku.id,
-      variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: 6, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(),
+      variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: 6, condition: 'ACCEPTABLE', expiryDate: '2031-12-31', idempotencyKey: randomUUID(),
     }).expect(201);
     expect((await prisma.supplierPurchaseOrder.findUniqueOrThrow({ where: { id: po.id } })).status).toBe('ready');
     // Payable waits for the outstanding two units to be explained.
@@ -139,7 +139,7 @@ describe('GLO-237/243 supplier exceptions and receiving shortfalls (e2e)', () =>
     expect(plan.body.lines[0]).toMatchObject({ coveredQuantity: 6, unresolvedQuantity: 2 });
     await http().post('/fulfillment/receipts').set(hub.auth).send({
       locationId, allocationId: link.sourceAllocationId, orderId: order.id, orderItemId: link.orderItemId, skuId: sku.id,
-      variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: 1, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(),
+      variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: 1, condition: 'ACCEPTABLE', expiryDate: '2031-12-31', idempotencyKey: randomUUID(),
     }).expect(400);
     expect(await prisma.supportCase.count({ where: { orderId: order.id, title: { contains: 'Receiving shortfall' } } })).toBe(2);
     const receivables = await http().get(`/fulfillment/locations/${locationId}/receivables`).set(hub.auth).expect(200);

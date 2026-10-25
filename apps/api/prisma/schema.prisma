@@ -406,6 +406,11 @@ model Supplier {
   name      String   @unique
   slug      String   @unique
   isActive  Boolean  @default(true) @map("is_active")
+  /// Days the warehouse is closed (0 = Sunday … 6 = Saturday); Friday by default.
+  closedWeekdays Int[]   @default([5]) @map("closed_weekdays")
+  /// Working hours "HH:MM" (Cairo time); both empty = open all day.
+  opensAt   String?  @map("opens_at") @db.VarChar(5)
+  closesAt  String?  @map("closes_at") @db.VarChar(5)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -449,6 +454,9 @@ model SupplierOffer {
   lastObservedAt  DateTime  @default(now()) @map("last_observed_at")
   lastIngestionItemId String? @map("last_ingestion_item_id") @db.Uuid
   lastConfirmedAt DateTime? @map("last_confirmed_at")
+  /// Quantity the supplier says it can supply now; null = not reported (yes/no availability only).
+  availableQuantity Int?    @map("available_quantity")
+  quantityUpdatedAt DateTime? @map("quantity_updated_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -843,6 +851,7 @@ model Order {
   subtotal              Decimal?    @db.Decimal(10, 2)
   codAmount             Decimal?    @map("cod_amount") @db.Decimal(10, 2)
   deliveryPromise       String?     @map("delivery_promise")
+  promisedDate          DateTime?   @map("promised_date") @db.Date
   availabilityCertainty String?     @map("availability_certainty")
   guestAccessTokenHash  String?     @unique @map("guest_access_token_hash")
   guestAccessExpiresAt  DateTime?   @map("guest_access_expires_at")

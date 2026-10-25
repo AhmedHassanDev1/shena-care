@@ -6,6 +6,8 @@ import { OutboxService } from '../../operations/services/outbox.service';
 import { SupportService } from '../../operations/services/support.service';
 import { assertClaimableQuantity } from './resolution-claims';
 
+const positiveDays = (raw: string | undefined, fallback: number) => (Number(raw) > 0 && Number.isFinite(Number(raw)) ? Number(raw) : fallback);
+
 @Injectable()
 export class ReturnEligibilityService {
   constructor(
@@ -64,9 +66,10 @@ export class ReturnEligibilityService {
 
     const now = new Date();
     
-    // For MVP, dummy policy values
-    const normalWindowDays = 14;
-    const defectWindowDays = 30;
+    // Owner policy (2026-10-25): change of mind 7 days, sealed and unused only; wrong, missing, damaged, defective or
+    // expired products 14 days even when opened.
+    const normalWindowDays = positiveDays(process.env.RETURN_CHANGE_OF_MIND_DAYS, 7);
+    const defectWindowDays = positiveDays(process.env.RETURN_DEFECT_DAYS, 14);
 
     let normalWindowEndsAt: Date | null = null;
     let defectWindowEndsAt: Date | null = null;
@@ -84,17 +87,15 @@ export class ReturnEligibilityService {
       const normalOpen = now <= normalWindowEndsAt;
       const defectOpen = now <= defectWindowEndsAt;
 
-      if (normalOpen) {
+      if (normalOpen) allowedReasons.push(ReturnReason.CHANGE_OF_MIND);
+      if (defectOpen) {
         allowedReasons.push(
           ReturnReason.WRONG_ITEM,
           ReturnReason.MISSING_ITEM,
           ReturnReason.DAMAGED_OR_LEAKING,
-          ReturnReason.CHANGE_OF_MIND,
+          ReturnReason.DEFECT_OR_QUALITY_CONCERN,
+          ReturnReason.EXPIRED_PRODUCT,
         );
-      }
-      
-      if (defectOpen) {
-        allowedReasons.push(ReturnReason.DEFECT_OR_QUALITY_CONCERN);
       }
 
       // Safety and other always available (though policy might restrict, we allow submission for review)
@@ -141,6 +142,9 @@ export class ReturnEligibilityService {
     if (customerAction && !eligibility.allowedReasons.includes(dto.reasonCode)) {
       throw new BadRequestException(`Reason ${dto.reasonCode} is not allowed for this item currently.`);
     }
+    if (customerAction && dto.reasonCode === ReturnReason.CHANGE_OF_MIND && dto.sealedAndUnused !== true) {
+      throw new BadRequestException({ code: 'SEALED_AND_UNUSED_REQUIRED', message: 'A change of mind is accepted only for a sealed, unused product.' });
+    }
 
     return this.prisma.$transaction(async (tx) => {
       await assertClaimableQuantity(tx, order.id, orderItemId, dto.quantity);
@@ -149,6 +153,7 @@ export class ReturnEligibilityService {
         mediaRefs: dto.mediaRefs,
         batchOrLot: dto.batchOrLot,
         expiry: dto.expiry,
+        sealedAndUnused: dto.sealedAndUnused,
         escalateToSafety: dto.reasonCode === ReturnReason.POSSIBLE_ADVERSE_EVENT,
         requiresPhysicalReturn: dto.reasonCode !== ReturnReason.MISSING_ITEM
       };

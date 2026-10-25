@@ -93,7 +93,7 @@ describe('GLO-239 role-scoped operational queues (e2e)', () => {
     // Once hub A receives the first unit, the order belongs to hub A and disappears from hub B.
     await http().post('/fulfillment/receipts').set(hubA.auth).send({
       locationId: hubAId, allocationId: receivable.allocationId, orderId: order.id, orderItemId: receivable.orderItemId,
-      skuId: sku.id, variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: 1, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(),
+      skuId: sku.id, variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: 1, condition: 'ACCEPTABLE', expiryDate: '2031-12-31', idempotencyKey: randomUUID(),
     }).expect(201);
     expect((await listFor(hubA, hubAId)).find(r => r.orderId === order.id)).toMatchObject({ receivedQuantity: 1, remainingQuantity: 2 });
     expect((await listFor(hubB, hubBId)).some(r => r.orderId === order.id)).toBe(false);
@@ -148,7 +148,7 @@ describe('GLO-239 role-scoped operational queues (e2e)', () => {
     await http().post(`/fulfillment/shipments/${failed.shipmentId}/events`).set(driverA.auth).send({ type: 'FAILED', reasonCode: 'CUSTOMER_UNREACHABLE' }).expect(201);
     const queue = await http().get('/operations/queues/attention').set(admin.auth).expect(200);
     expect(Object.keys(queue.body).sort()).toEqual(['cashVariances', 'customerDecisionsPending', 'deliveredUnsettled', 'distributionRequired',
-      'eventFailures', 'failedDeliveries', 'openCases', 'supplyActionRequired'].sort());
+      'eventFailures', 'failedDeliveries', 'lateOrders', 'openCases', 'roundVariances', 'supplierResponses', 'supplyActionRequired', 'unsettledRounds'].sort());
     expect(queue.body.failedDeliveries.total).toBeGreaterThanOrEqual(1);
     expect(queue.body.cashVariances.short.total).toBeGreaterThanOrEqual(1);
     for (const section of ['supplyActionRequired', 'customerDecisionsPending', 'distributionRequired', 'failedDeliveries', 'deliveredUnsettled']) {

@@ -62,6 +62,9 @@ export interface CheckoutQuote {
   cartRevision: number;
   subtotal: number;
   shippingFee: number;
+  /** Fee by distance before the invoice-size discount, and the part ShinaCare absorbs. */
+  deliveryFeeBase?: number;
+  deliveryDiscount?: number;
   codAmount: number;
   totalAmount: number;
   currency: string;
@@ -108,7 +111,7 @@ export interface Order {
 }
 
 export const orders = {
-  async getQuote(data: { governorate: string; area: string; couponCode?: string }): Promise<CheckoutQuote> {
+  async getQuote(data: { governorate: string; area: string; couponCode?: string; latitude?: number; longitude?: number }): Promise<CheckoutQuote> {
     const token = auth.getToken();
     const guestToken = typeof window !== 'undefined' ? localStorage.getItem('guestCartToken') : undefined;
     const options: RequestOptions = {};

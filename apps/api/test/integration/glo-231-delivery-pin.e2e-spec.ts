@@ -1,3 +1,5 @@
+// These specs assert order totals with a flat 50 EGP fee; the tiered policy is covered by delivery-fee-policy.e2e-spec.ts.
+process.env.DELIVERY_FEE_POLICY = JSON.stringify({ bands: [{ maxKm: null, fee: 50 }], discountTiers: [], freeFrom: 100000 });
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';

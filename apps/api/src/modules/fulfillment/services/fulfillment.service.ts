@@ -11,6 +11,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderDeliveredEvent } from '../../../platform/events/integration.events';
 import { OutboxService } from '../../operations/services/outbox.service';
 import { SupportService } from '../../operations/services/support.service';
+import { expiryProblem } from './receiving-policy';
 
 export interface FulfillmentLocationDetail {
   id: string;
@@ -355,10 +356,10 @@ export class FulfillmentService {
     if (allocation.orderId !== dto.orderId || allocation.orderItemId !== dto.orderItemId || allocation.skuId !== dto.skuId) {
       throw new BadRequestException('Receipt does not match the Supply Plan allocation');
     }
-    // An already-expired pack is treated like any other unacceptable condition (near-expiry is owner policy).
-    const expired = dto.expiryDate !== undefined && dto.expiryDate < new Date().toISOString().slice(0, 10);
-    if (dto.condition !== 'ACCEPTABLE' || expired) {
-      const condition = dto.condition !== 'ACCEPTABLE' ? dto.condition : 'EXPIRED';
+    // An expired or short-dated pack (less than the owner's minimum shelf life) is treated like any other unacceptable condition.
+    const shelfProblem = expiryProblem(dto.expiryDate);
+    if (dto.condition !== 'ACCEPTABLE' || shelfProblem) {
+      const condition = dto.condition !== 'ACCEPTABLE' ? dto.condition : shelfProblem!;
       // Held, not received: the physical fact is recorded as a receiving exception for a human decision.
       const supportCase = await this.prisma.$transaction(tx => this.support.openOperationalException(tx, {
         dedupKey: `receiving:${dto.idempotencyKey}`, category: 'sourcing', priority: 'high', orderId: dto.orderId,
@@ -710,12 +711,15 @@ export class FulfillmentService {
     }
 
     return this.prisma.$transaction(async tx => {
+      // Only a shipment whose every order line was received at the hub (ready_to_prepare) can be picked and packed.
       const updateResult = await tx.shipment.updateMany({
-        where: { id: shipmentId, status: { in: ['pending', 'ready_to_prepare'] } },
+        where: { id: shipmentId, status: 'ready_to_prepare' },
         data: { status: 'preparing' }
       });
       if (updateResult.count === 0) {
-        throw new BadRequestException(`Cannot start preparation for shipment in status ${shipment.status}. Concurrency conflict or invalid state.`);
+        throw new BadRequestException(shipment.status === 'pending'
+          ? { code: 'GOODS_NOT_RECEIVED', message: 'Not every item of this order has been received at the hub yet; receive the goods before preparing.' }
+          : `Cannot start preparation for shipment in status ${shipment.status}. Concurrency conflict or invalid state.`);
       }
       const session = await tx.shipmentPreparationSession.create({
         data: { shipmentId, operatorId: actor.id, status: PreparationSessionStatus.in_progress }
@@ -1484,10 +1488,17 @@ export class FulfillmentService {
       this.prisma.shipment.findMany({ where, orderBy: { updatedAt: 'asc' }, take: paging.take, skip: paging.skip,
         include: { events: { where: { type: 'FAILED' }, orderBy: { createdAt: 'desc' }, take: 1 } } }),
     ]);
-    return { total, items: rows.map(row => ({
-      shipmentId: row.id, orderId: row.orderId, locationId: row.locationId,
-      reasonCode: row.events[0]?.reasonCode ?? null, failedAt: row.events[0]?.createdAt ?? row.updatedAt,
-    })) };
+    // Owner rule (2026-10-25): a customer who does not answer within 24 hours of a failed delivery is returned; the hub
+    // finishes it by scanning the parcel back, so it is flagged here instead of being closed by the system.
+    const returnAfterMs = (Number(process.env.FAILED_DELIVERY_RETURN_AFTER_HOURS) > 0 ? Number(process.env.FAILED_DELIVERY_RETURN_AFTER_HOURS) : 24) * 3_600_000;
+    return { total, items: rows.map(row => {
+      const failedAt = row.events[0]?.createdAt ?? row.updatedAt;
+      return {
+        shipmentId: row.id, orderId: row.orderId, locationId: row.locationId,
+        reasonCode: row.events[0]?.reasonCode ?? null, failedAt,
+        returnDue: Date.now() - failedAt.getTime() >= returnAfterMs,
+      };
+    }) };
   }
 
   // --- Business Workspace reads (C0) ---

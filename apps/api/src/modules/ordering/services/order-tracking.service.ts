@@ -202,7 +202,7 @@ export class OrderTrackingService {
       timeline: this.timeline(order, shipment, availability),
       delivery: {
         certainty: stage === 'DELIVERED' ? 'confirmed' : 'unknown',
-        estimatedDate: null,
+        estimatedDate: stage === 'DELIVERED' ? null : order.promisedDate ?? null,
         deliveredAt: shipment?.deliveredAt ?? null,
         source: shipment?.deliveredAt ? 'fulfillment' : stage === 'DELIVERED' ? 'order_status' : null,
         nextUpdateBy: null,

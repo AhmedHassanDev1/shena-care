@@ -240,6 +240,7 @@ export function CheckoutView() {
         const fresh = await orders.getQuote({
           governorate: toGovernorate(selected.governorate),
           area: selected.area,
+          ...(selectedPin ? { latitude: selectedPin.latitude, longitude: selectedPin.longitude } : {}),
           ...(couponCode ? { couponCode } : {}),
         });
         if (seq !== quoteSeq.current) return null;
@@ -260,7 +261,7 @@ export function CheckoutView() {
         return null;
       }
     },
-    [selected, deliverable, router]
+    [selected, selectedPin, deliverable, router]
   );
 
   const activeCode = coupon.status === 'applied' || coupon.status === 'applying' ? coupon.code : undefined;

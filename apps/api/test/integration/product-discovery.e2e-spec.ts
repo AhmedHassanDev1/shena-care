@@ -1,3 +1,5 @@
+// These specs assert the strict confirmed-only storefront gate (SUPPLIER_PROVISIONAL_ORDERABLE=false); the default now also accepts a fresh supplier signal (see g08).
+process.env.SUPPLIER_PROVISIONAL_ORDERABLE = 'false';
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';

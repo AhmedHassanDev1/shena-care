@@ -71,7 +71,7 @@ function ReceiveRow({ r, hubId, onDone }: { r: Receivable; hubId: string; onDone
     locationId: hubId, allocationId: r.allocationId, orderId: r.orderId, orderItemId: r.orderItemId, skuId: r.skuId,
     variantName: r.variantName ?? '-', quantity: Number(quantity), condition, idempotencyKey: key.current,
     ...(manual ? { manualReason: manualReason.trim(), manualChecks: checks } : { barcodeScanned: barcode.trim() }),
-    ...(lot.trim() ? { lotNumber: lot.trim() } : {}), ...(expiry ? { expiryDate: expiry } : {}),
+    ...(lot.trim() ? { lotNumber: lot.trim() } : {}), expiryDate: expiry,
   } }))
   const shortfall = useCommand(() => api(`/purchase-orders/${r.purchaseOrderId}/shortfalls`, { body: {
     sourceAllocationId: r.allocationId, quantity: Number(shortQty), reasonCode: shortReason,
@@ -79,7 +79,7 @@ function ReceiveRow({ r, hubId, onDone }: { r: Receivable; hubId: string; onDone
 
   const qty = Number(quantity)
   const evidenceOk = manual ? manualReason.trim().length > 0 && checks.length === CHECKS.length : barcode.trim().length > 0
-  const valid = Number.isInteger(qty) && qty >= 1 && qty <= r.remainingQuantity && evidenceOk
+  const valid = Number.isInteger(qty) && qty >= 1 && qty <= r.remainingQuantity && evidenceOk && expiry.length > 0
 
   return (
     <div className="space-y-3 rounded-bw-field border border-bw-line p-3">
@@ -113,7 +113,7 @@ function ReceiveRow({ r, hubId, onDone }: { r: Receivable; hubId: string; onDone
           error={qty > r.remainingQuantity ? `أكتر من الباقي (${r.remainingQuantity})` : undefined} />
         <Select label="الحالة" value={condition} onChange={setCondition} options={[['ACCEPTABLE', 'سليمة'], ['DAMAGED', 'تالفة'], ['EXPIRED', 'منتهية الصلاحية'], ['QUARANTINED', 'معزولة للفحص']]} />
         <Field label="رقم التشغيلة (اختياري)" ltr value={lot} onChange={(e) => setLot(e.target.value)} />
-        <Field label="تاريخ الصلاحية (اختياري)" type="date" ltr value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+        <Field label="تاريخ الصلاحية (إجباري، ٦ شهور على الأقل)" type="date" ltr value={expiry} onChange={(e) => setExpiry(e.target.value)} />
         <div className="flex items-end gap-2 md:col-span-2">
           <Button type="submit" loading={receive.pending} disabled={!valid}>تسجيل الاستلام</Button>
           <button type="button" className="text-bw-small underline" onClick={() => setManual(!manual)}>{manual ? 'رجوع لمسح الباركود' : 'تحقق يدوي'}</button>

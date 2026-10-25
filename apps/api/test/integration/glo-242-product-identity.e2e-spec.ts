@@ -146,7 +146,7 @@ describe('GLO-242 canonical product identity at Hub receiving and preparation (e
     const link = po.lines[0].allocations[0];
     const receive = (extra: Record<string, unknown>, idempotencyKey = randomUUID()) => http().post('/fulfillment/receipts').set(hub.auth).send({
       locationId, allocationId: link.sourceAllocationId, orderId: order.id, orderItemId: link.orderItemId, skuId: sku.id,
-      variantName: sku.variantName, quantity: 1, condition: 'ACCEPTABLE', idempotencyKey, ...extra,
+      variantName: sku.variantName, quantity: 1, condition: 'ACCEPTABLE', expiryDate: '2031-12-31', idempotencyKey, ...extra,
     });
 
     await receive({}).expect(400); // no identity evidence

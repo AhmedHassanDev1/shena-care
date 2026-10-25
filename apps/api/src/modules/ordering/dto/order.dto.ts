@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, Matches, IsNumber, IsIn, Min, Max, IsInt, IsUUID, MaxLength, Equals } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, Matches, IsNumber, IsIn, Min, Max, IsInt, IsUUID, MaxLength, Equals, ValidateIf } from 'class-validator';
 import { CONFIRMED_PIN_SOURCES } from '../services/service-area';
 
 export class CheckoutDto {
@@ -88,6 +88,19 @@ export class CheckoutQuoteRequestDto {
   @IsString()
   @IsOptional()
   couponCode?: string;
+
+  /** The customer's confirmed pin: the delivery fee depends on its distance from the hub. Both or neither. */
+  @ValidateIf(o => o.latitude !== undefined || o.longitude !== undefined)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(-90)
+  @Max(90)
+  latitude?: number;
+
+  @ValidateIf(o => o.latitude !== undefined || o.longitude !== undefined)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(-180)
+  @Max(180)
+  longitude?: number;
 }
 
 /** Operator pin for an order placed before pins were mandatory (GLO-231); never overwrites a customer pin. */

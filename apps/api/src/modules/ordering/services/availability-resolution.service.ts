@@ -1,5 +1,5 @@
 import {
-  BadRequestException, ConflictException, Injectable, Logger, NotFoundException,
+  BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit,
 } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
 import { AvailabilityDecision, Prisma } from '@prisma/client';
@@ -12,8 +12,10 @@ import {
   SubmitAvailabilityDecisionDto,
 } from '../dto/availability-decision.dto';
 import { OutboxService } from '../../operations/services/outbox.service';
+import { decisionDeadline } from './decision-window';
 
 export type DecisionOwner =
+  | { system: true }
   | { customerId: string }
   | { guestOrderNumber: string; guestToken: string };
 
@@ -43,8 +45,10 @@ interface StoredCandidate {
  * decision leaves an append-only OrderAmendment.
  */
 @Injectable()
-export class AvailabilityResolutionService {
+export class AvailabilityResolutionService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AvailabilityResolutionService.name);
+  private timer?: NodeJS.Timeout;
+  private sweeping = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -55,6 +59,74 @@ export class AvailabilityResolutionService {
     private readonly outbox: OutboxService,
   ) {}
 
+  /**
+   * Creates decisions for orders no supplier can cover (without waiting for the customer to open the order) and
+   * applies the owner's expiry rule to unanswered ones. Polls only outside tests unless DECISION_SWEEP_MS is set.
+   */
+  onModuleInit() {
+    const configured = process.env.DECISION_SWEEP_MS;
+    const interval = configured !== undefined ? Number(configured) : process.env.NODE_ENV === 'test' ? 0 : 5 * 60_000;
+    if (interval > 0) {
+      this.timer = setInterval(() => {
+        if (this.sweeping) return;
+        this.sweeping = true;
+        this.sweep().catch(error => this.logger.error('Availability decision sweep failed: ' + error?.message))
+          .finally(() => { this.sweeping = false; });
+      }, interval);
+    }
+  }
+
+  onModuleDestroy() {
+    if (this.timer) clearInterval(this.timer);
+  }
+
+  /** One pass: open a decision for every uncovered order line, then expire the unanswered ones that are due. */
+  async sweep(now = new Date()): Promise<{ opened: number; expired: number }> {
+    let opened = 0;
+    for (let skip = 0; ; skip += 100) {
+      const page = await this.supplyPlan.listOpenActionRequirements({ take: 100, skip });
+      for (const orderId of new Set(page.items.map(item => item.orderId))) {
+        const before = await this.prisma.availabilityDecision.count({ where: { orderId } });
+        await this.ensureDecisions(orderId);
+        opened += (await this.prisma.availabilityDecision.count({ where: { orderId } })) - before;
+      }
+      if (skip + 100 >= page.total) break;
+    }
+    return { opened, expired: await this.expireDue(now) };
+  }
+
+  /**
+   * Owner rule for an unanswered decision after its window: the unavailable item is dropped and the rest of the
+   * order continues; if it was the only item the order is cancelled. The amendment keeps the original delivery fee.
+   */
+  async expireDue(now = new Date()): Promise<number> {
+    const due = await this.prisma.availabilityDecision.findMany({
+      where: { status: 'pending', expiresAt: { lte: now } }, orderBy: { expiresAt: 'asc' }, take: 100,
+    });
+    let expired = 0;
+    for (const decision of due) {
+      const actions = decision.availableActions as unknown as AvailabilityActionName[];
+      const action: AvailabilityActionName = actions.includes('CONTINUE_WITHOUT_ITEM') ? 'CONTINUE_WITHOUT_ITEM' : 'CANCEL_ORDER';
+      try {
+        await this.decide({ system: true }, decision.id, {
+          action, version: decision.version, idempotencyKey: 'expiry:' + decision.id, channel: 'system_expiry' as never,
+        });
+        const order = await this.prisma.order.findUniqueOrThrow({ where: { id: decision.orderId } });
+        await this.outbox.enqueue(this.prisma, {
+          eventType: 'availability.expired', aggregateId: decision.id, aggregateType: 'AvailabilityDecision',
+          customerId: order.customerId || undefined,
+          payload: { orderId: order.id, orderNumber: order.orderNumber, decisionId: decision.id, action },
+          channelIntent: 'whatsapp', templateId: 'availability_expired_v1', deduplicationKey: 'availability.expired:' + decision.id,
+        });
+        expired++;
+      } catch (error: unknown) {
+        // A conflicting change (the customer answered, the order moved on) is re-evaluated on the next pass.
+        this.logger.warn('Could not expire decision ' + decision.id + ': ' + (error instanceof Error ? error.message : String(error)));
+      }
+    }
+    return expired;
+  }
+
   private async lock(tx: Prisma.TransactionClient, orderId: string) {
     // Same key space as Sourcing so amendments and supply advancement are serialized per order.
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(44071, hashtext(${orderId}))::text AS locked`;
@@ -64,7 +136,8 @@ export class AvailabilityResolutionService {
 
   private async ownedOrder(owner: DecisionOwner, ref: { id?: string; orderNumber?: string }) {
     const where: Prisma.OrderWhereInput = { ...(ref.id ? { id: ref.id } : {}), ...(ref.orderNumber ? { orderNumber: ref.orderNumber } : {}) };
-    if ('customerId' in owner) where.customerId = owner.customerId;
+    if ('system' in owner) { /* internal expiry: no customer ownership applies */ }
+    else if ('customerId' in owner) where.customerId = owner.customerId;
     else {
       where.customerId = null;
       where.orderNumber = owner.guestOrderNumber;
@@ -194,6 +267,8 @@ export class AvailabilityResolutionService {
           originalSnapshot: snapshot as unknown as Prisma.InputJsonValue,
           candidates: candidates as unknown as Prisma.InputJsonValue,
           availableActions: actions as unknown as Prisma.InputJsonValue, stateFingerprint: fingerprint,
+          // The customer's window: 12 waking hours (the night does not count), then the expiry rule applies.
+          expiresAt: decisionDeadline(new Date()),
         } });
         
         await this.outbox.enqueue(this.prisma, {
@@ -233,7 +308,7 @@ export class AvailabilityResolutionService {
     const decision = await this.prisma.availabilityDecision.findUnique({ where: { id: decisionId } });
     if (!decision) throw new NotFoundException('Decision not found');
     const owned = await this.ownedOrder(owner, { id: decision.orderId, orderNumber: scope?.orderNumber });
-    const actor = 'customerId' in owner ? 'customer:' + owner.customerId : 'guest:' + owned.id;
+    const actor = 'system' in owner ? 'system:expiry' : 'customerId' in owner ? 'customer:' + owner.customerId : 'guest:' + owned.id;
     const hash = createHash('sha256').update(JSON.stringify({
       d: decisionId, a: dto.action, s: dto.candidateSkuId ?? null, v: dto.version,
     })).digest('hex');

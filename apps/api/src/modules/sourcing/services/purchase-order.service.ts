@@ -7,6 +7,7 @@ import { SupportService } from '../../operations/services/support.service';
 import { PurchaseOrderStatus, PurchaseOrderLineStatus, Prisma } from '@prisma/client';
 import { RankingService } from './ranking.service';
 import { SupplyPlanService } from './supply-plan.service';
+import { nextOpening } from './supplier-schedule';
 
 type Tx = Prisma.TransactionClient;
 
@@ -42,15 +43,17 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   /**
-   * The procurement cadence is owner policy (provisional ~12h): automatic batching runs only when
-   * PROCUREMENT_BATCH_INTERVAL_MINUTES is configured; otherwise batches are flushed manually.
+   * Procurement cadence (owner decision 2026-10-25): pending demand is consolidated into one purchase order per
+   * supplier every 3 hours. PROCUREMENT_BATCH_INTERVAL_MINUTES overrides it (0 turns automatic batching off); tests
+   * stay manual unless it is set.
    */
   onModuleInit() {
     this.events.registerHandler(PURCHASE_ORDER_ADVANCE_CONSUMER, async event => {
       const orderIds = (event.payload as { orderIds?: string[] }).orderIds ?? [];
       for (const orderId of orderIds) await this.supplyPlan.advance(orderId);
     });
-    const minutes = Number(process.env.PROCUREMENT_BATCH_INTERVAL_MINUTES ?? 0);
+    const configured = process.env.PROCUREMENT_BATCH_INTERVAL_MINUTES;
+    const minutes = configured !== undefined ? Number(configured) : process.env.NODE_ENV === 'test' ? 0 : 180;
     if (minutes > 0) {
       this.timer = setInterval(() => {
         this.flushProcurementBatch('system:procurement-schedule')
@@ -162,6 +165,36 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       where: { id: { in: created } }, include: lineInclude, orderBy: { createdAt: 'asc' },
     });
     return { batchRef: created.length ? batchRef : null, purchaseOrders };
+  }
+
+  /**
+   * Purchase orders a supplier has not reacted to (owner decision 2026-10-25): not opened 30 minutes, or not answered
+   * 2 hours, after the supplier could first see them — a PO sent on a Friday or at night starts its clock at the
+   * supplier's next opening. The owner phones the supplier; nothing is reassigned automatically.
+   */
+  async listOverdueResponses(now = new Date()) {
+    const minutes = (raw: string | undefined, fallback: number) => (Number.isFinite(Number(raw)) && Number(raw) > 0 ? Number(raw) : fallback);
+    const unopenedAfter = minutes(process.env.PO_UNOPENED_ALERT_MINUTES, 30);
+    const unansweredAfter = minutes(process.env.PO_UNANSWERED_ALERT_MINUTES, 120);
+    const orders = await this.prisma.supplierPurchaseOrder.findMany({
+      where: { status: { in: OPEN_FOR_CONFIRMATION }, issuedAt: { not: null } },
+      include: { supplier: true, lines: true }, orderBy: { issuedAt: 'asc' }, take: 500,
+    });
+    const unopened: Array<ReturnType<typeof view>> = [];
+    const unanswered: Array<ReturnType<typeof view>> = [];
+    const view = (po: (typeof orders)[number], waitingSince: Date, waitedMinutes: number) => ({
+      purchaseOrderId: po.id, supplierId: po.supplierId, supplierName: po.supplier.name, issuedAt: po.issuedAt as Date,
+      waitingSince, waitedMinutes, opened: po.openedAt !== null, lineCount: po.lines.length,
+      totalCost: po.lines.reduce((sum, line) => sum + (line.unitCost ? Number(line.unitCost) * line.requestedQuantity : 0), 0),
+      currency: po.lines.find(line => line.currency)?.currency ?? null,
+    });
+    for (const po of orders) {
+      const waitingSince = nextOpening(po.issuedAt as Date, { closedWeekdays: po.supplier.closedWeekdays, opensAt: po.supplier.opensAt, closesAt: po.supplier.closesAt });
+      const waited = Math.floor((now.getTime() - waitingSince.getTime()) / 60_000);
+      if (waited >= unansweredAfter) unanswered.push(view(po, waitingSince, waited));
+      else if (!po.openedAt && waited >= unopenedAfter) unopened.push(view(po, waitingSince, waited));
+    }
+    return { unopened, unanswered };
   }
 
   async getPurchaseOrder(id: string) {

@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { CatalogService } from '../../catalog/public';
+import { CatalogService, SkuLabel } from '../../catalog/public';
 import { CommerceService } from '../../commerce/public';
 import {
   PurchaseAvailability, customerAvailabilityWindowMs, provisionalOrderingEnabled, resolvePurchaseAvailability,
@@ -18,6 +18,9 @@ export interface SupplierDetail {
   name: string;
   slug: string;
   isActive: boolean;
+  closedWeekdays: number[];
+  opensAt: string | null;
+  closesAt: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,8 +34,11 @@ export interface SupplierOfferDetail {
   isAvailable: boolean;
   lastObservedAt: Date;
   lastConfirmedAt: Date | null;
+  availableQuantity: number | null;
+  quantityUpdatedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  sku?: SkuLabel;
 }
 
 @Injectable()
@@ -67,6 +73,9 @@ export class SourcingService {
         name: dto.name,
         slug: dto.slug,
         isActive: dto.isActive ?? true,
+        ...(dto.closedWeekdays !== undefined && { closedWeekdays: dto.closedWeekdays }),
+        ...(dto.opensAt !== undefined && { opensAt: dto.opensAt }),
+        ...(dto.closesAt !== undefined && { closesAt: dto.closesAt }),
       },
     });
 
@@ -105,14 +114,35 @@ export class SourcingService {
       }
     }
 
+    const opensAt = dto.opensAt ?? supplier.opensAt;
+    const closesAt = dto.closesAt ?? supplier.closesAt;
+    if ((opensAt === null) !== (closesAt === null) || (opensAt !== null && closesAt !== null && opensAt >= closesAt)) {
+      throw new BadRequestException('Working hours need both opensAt and closesAt, with opensAt earlier than closesAt');
+    }
+
     return this.prisma.supplier.update({
       where: { id },
       data: {
+        ...(dto.closedWeekdays !== undefined && { closedWeekdays: dto.closedWeekdays }),
+        ...(dto.opensAt !== undefined && { opensAt: dto.opensAt }),
+        ...(dto.closesAt !== undefined && { closesAt: dto.closesAt }),
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.slug !== undefined && { slug: dto.slug }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });
+  }
+
+  /**
+   * For each SKU (same order as `skuIds`), the closed weekdays of every active supplier that currently offers it —
+   * what the promised delivery date is computed from.
+   */
+  async getClosedWeekdaysBySku(skuIds: string[]): Promise<number[][][]> {
+    const offers = skuIds.length ? await this.prisma.supplierOffer.findMany({
+      where: { skuId: { in: skuIds }, isAvailable: true, supplier: { isActive: true } },
+      select: { skuId: true, supplier: { select: { closedWeekdays: true } } },
+    }) : [];
+    return skuIds.map(id => offers.filter(o => o.skuId === id).map(o => o.supplier.closedWeekdays));
   }
 
   // ---------------------------------------------------------------------------
@@ -151,13 +181,17 @@ export class SourcingService {
         skuId: dto.skuId,
         costPrice: dto.costPrice,
         currency: dto.currency,
-        isAvailable: dto.isAvailable ?? true,
+        isAvailable: dto.availableQuantity === 0 ? false : dto.isAvailable ?? true,
+        ...(dto.availableQuantity !== undefined && { availableQuantity: dto.availableQuantity, quantityUpdatedAt: new Date() }),
       },
     });
+
+    const labels = await this.catalogService.getSkuLabels([offer.skuId]);
 
     return {
       ...offer,
       costPrice: offer.costPrice.toNumber(),
+      sku: labels.get(offer.skuId),
     };
   }
 
@@ -180,9 +214,12 @@ export class SourcingService {
       orderBy: { createdAt: 'desc' },
     });
 
+    const labels = await this.catalogService.getSkuLabels(offers.map((o) => o.skuId));
+
     return offers.map((o) => ({
       ...o,
       costPrice: o.costPrice.toNumber(),
+      sku: labels.get(o.skuId),
     }));
   }
 
@@ -190,7 +227,12 @@ export class SourcingService {
     if (!this.isUuid(id)) return null;
     const offer = await this.prisma.supplierOffer.findUnique({ where: { id } });
     if (!offer) return null;
-    return { ...offer, costPrice: offer.costPrice.toNumber() };
+    const labels = await this.catalogService.getSkuLabels([offer.skuId]);
+    return {
+      ...offer,
+      costPrice: offer.costPrice.toNumber(),
+      sku: labels.get(offer.skuId),
+    };
   }
 
   /**
@@ -216,15 +258,23 @@ export class SourcingService {
       data: {
         ...(dto.costPrice !== undefined && { costPrice: dto.costPrice }),
         ...(dto.currency !== undefined && { currency: dto.currency }),
-        ...(dto.isAvailable !== undefined && { isAvailable: dto.isAvailable }),
+        // A reported quantity restarts the count (allocations before it are already in the supplier's number);
+        // zero means out of stock, a positive count brings an out-of-stock offer back unless told otherwise.
+        ...(dto.availableQuantity !== undefined && { availableQuantity: dto.availableQuantity, quantityUpdatedAt: new Date() }),
+        ...((dto.isAvailable !== undefined || dto.availableQuantity !== undefined) && {
+          isAvailable: dto.availableQuantity === 0 ? false : dto.isAvailable ?? true,
+        }),
         lastObservedAt: new Date(), // Always update lastObservedAt on any change
         lastIngestionItemId: null,
       },
     });
 
+    const labels = await this.catalogService.getSkuLabels([updated.skuId]);
+
     return {
       ...updated,
       costPrice: updated.costPrice.toNumber(),
+      sku: labels.get(updated.skuId),
     };
   }
 

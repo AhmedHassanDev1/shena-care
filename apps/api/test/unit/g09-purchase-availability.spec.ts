@@ -43,8 +43,8 @@ describe('GLO-281 purchase availability policy', () => {
     expect(customerAvailabilityWindowMs({})).toBe(24 * HOUR);
     expect(customerAvailabilityWindowMs({ SUPPLIER_AVAILABILITY_MAX_AGE_HOURS: '6' })).toBe(6 * HOUR);
     expect(() => customerAvailabilityWindowMs({ SUPPLIER_AVAILABILITY_MAX_AGE_HOURS: '0' })).toThrow();
-    expect(provisionalOrderingEnabled({})).toBe(false);
+    expect(provisionalOrderingEnabled({})).toBe(true); // owner decision 2026-10-25: a fresh supplier signal is orderable
     expect(provisionalOrderingEnabled({ SUPPLIER_PROVISIONAL_ORDERABLE: 'true' })).toBe(true);
-    expect(provisionalOrderingEnabled({ SUPPLIER_PROVISIONAL_ORDERABLE: '1' })).toBe(false);
+    expect(provisionalOrderingEnabled({ SUPPLIER_PROVISIONAL_ORDERABLE: 'false' })).toBe(false);
   });
 });

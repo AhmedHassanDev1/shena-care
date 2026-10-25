@@ -1,3 +1,5 @@
+// These specs assert order totals with a flat 50 EGP fee; the tiered policy is covered by delivery-fee-policy.e2e-spec.ts.
+process.env.DELIVERY_FEE_POLICY = JSON.stringify({ bands: [{ maxKm: null, fee: 50 }], discountTiers: [], freeFrom: 100000 });
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { randomUUID } from 'crypto';
@@ -81,7 +83,7 @@ describe('Customer order read and tracking (e2e)', () => {
     expect(details.body).toMatchObject({
       orderReceived: true, availabilityConfirmed: false,
       deliveryAddress: { address: '1 Tracking Street' },
-      delivery: { certainty: 'unknown', estimatedDate: null, nextUpdateBy: null },
+      delivery: { certainty: 'unknown', estimatedDate: expect.any(String), nextUpdateBy: null }, // the promised day (supplier schedule), not a confirmed one
       amounts: { originalCodAmount: placed.order.codAmount, currentCodAmount: placed.order.codAmount },
     });
     expect(['RECEIVED', 'CONFIRMING_PRODUCTS', 'ACTION_REQUIRED']).toContain(details.body.status);
@@ -144,7 +146,7 @@ describe('Customer order read and tracking (e2e)', () => {
     } });
     await ordering.updateOrderStatus(placed.order.id, 'packing');
     const shipment = await prisma.shipment.create({ data: {
-      orderId: placed.order.id, locationId: location.id, status: 'pending',
+      orderId: placed.order.id, locationId: location.id, status: 'ready_to_prepare', // every item received at the hub
     } });
     read = await http().get(path).set('Authorization', owner.auth).expect(200);
     expect(read.body.status).toBe('CONFIRMED');

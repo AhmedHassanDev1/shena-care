@@ -1,10 +1,11 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Patch, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Patch, ParseUUIDPipe, Query } from '@nestjs/common';
 import { OrderingService } from './services/ordering.service';
 import { CartService } from './services/cart.service';
 import { OrderTrackingService } from './services/order-tracking.service';
 import { OrderLookupParamsDto } from './dto/order-tracking.dto';
 import { AddDeliveryInstructionDto, CorrectDeliveryLocationDto } from './dto/order.dto';
-import { CreateResolutionDto, UpdateResolutionStatusDto, InitializePaymentCollectionDto, InitiateRefundDto, UpdateRefundStatusDto } from './dto/reconciliation.dto';
+import { CreateResolutionDto, UpdateResolutionStatusDto, InitializePaymentCollectionDto, InitiateRefundDto, UpdateRefundStatusDto, SetResponsibilityDto, MonthlyStatementQueryDto } from './dto/reconciliation.dto';
+import { MonthlyStatementService } from './services/monthly-statement.service';
 import { ReconciliationService } from './services/reconciliation.service';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
@@ -20,6 +21,7 @@ export class OrderingController {
     private readonly cartService: CartService,
     private readonly reconciliationService: ReconciliationService,
     private readonly orderTrackingService: OrderTrackingService,
+    private readonly statements: MonthlyStatementService,
   ) {}
 
 
@@ -68,6 +70,22 @@ export class OrderingController {
     @Body() dto: UpdateResolutionStatusDto
   ) {
     return this.reconciliationService.updateResolutionStatus(id, dto.status, admin.id, dto.notes);
+  }
+
+  /** ShinaCare's month-end statement with the hub: net sales, commission, absorbed delivery fees and return losses. */
+  @Get('statements/monthly')
+  @Roles('ADMIN')
+  @RequirePermissions('cod.read')
+  async monthlyStatement(@Query() query: MonthlyStatementQueryDto) {
+    return this.statements.monthly(query.month);
+  }
+
+  /** Who bears the loss of this return and what happens to the goods (owner decision 2026-10-25). */
+  @Patch('resolutions/:id/responsibility')
+  @Roles('ADMIN')
+  @RequirePermissions('return.manage')
+  async setResponsibility(@Param('id') id: string, @CurrentUser() admin: { id: string }, @Body() dto: SetResponsibilityDto) {
+    return this.reconciliationService.setResponsibility(id, dto, admin.id);
   }
 
   // --- Refunds ---

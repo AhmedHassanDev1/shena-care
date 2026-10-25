@@ -184,19 +184,19 @@ describe('GLO-280 Gate 08: offer comparison and pricing safety (e2e)', () => {
     const sourcing = app.get(SourcingService);
     const feed = (await offer(sD, skuX))!;
     expect(feed).toMatchObject({ isAvailable: true, lastConfirmedAt: null });
-    // Default policy: customers order only what a supplier confirmed; the feed is a visible-to-staff signal.
-    expect(await sourcing.getPurchaseAvailability(skuX)).toMatchObject({ state: 'PROVISIONAL', orderable: false, confirmedAt: null });
-    expect(await sourcing.checkAvailability(skuX)).toBe(false);
-    expect(await sourcing.getPublicAvailability(skuX)).toMatchObject({ isAvailable: false, isFresh: false, state: 'PROVISIONAL' });
+    // Default policy (owner decision 2026-10-25): suppliers keep their stock current, so a fresh signal is orderable.
+    expect(await sourcing.getPurchaseAvailability(skuX)).toMatchObject({ state: 'PROVISIONAL', orderable: true, confirmedAt: null });
+    expect(await sourcing.checkAvailability(skuX)).toBe(true);
+    expect(await sourcing.getPublicAvailability(skuX)).toMatchObject({ isAvailable: true, isFresh: false, state: 'PROVISIONAL' });
     // The owner switch changes the answer for PDP, cart and checkout together, because they share it.
-    process.env.SUPPLIER_PROVISIONAL_ORDERABLE = 'true';
+    process.env.SUPPLIER_PROVISIONAL_ORDERABLE = 'false';
     try {
-      expect(await sourcing.checkAvailability(skuX)).toBe(true);
-      expect(await sourcing.getPublicAvailability(skuX)).toMatchObject({ isAvailable: true, isFresh: false, state: 'PROVISIONAL' });
+      expect(await sourcing.checkAvailability(skuX)).toBe(false);
+      expect(await sourcing.getPublicAvailability(skuX)).toMatchObject({ isAvailable: false, isFresh: false, state: 'PROVISIONAL' });
     } finally { delete process.env.SUPPLIER_PROVISIONAL_ORDERABLE; }
     await prisma.supplierOffer.update({ where: { id: feed.id }, data: { lastObservedAt: new Date(Date.now() - 48 * 3600000) } });
     expect((await sourcing.getPurchaseAvailability(skuX)).state).toBe('UNAVAILABLE');
-    // A supplier confirmation makes it CONFIRMED and orderable under the default policy.
+    // A supplier confirmation makes it CONFIRMED and orderable under every policy.
     await prisma.supplierOffer.update({ where: { id: feed.id }, data: { lastConfirmedAt: new Date(), lastObservedAt: new Date() } });
     expect(await sourcing.checkAvailability(skuX)).toBe(true);
     expect(await sourcing.getPublicAvailability(skuX)).toMatchObject({ isAvailable: true, isFresh: true, state: 'CONFIRMED' });

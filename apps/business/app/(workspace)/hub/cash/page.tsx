@@ -13,8 +13,8 @@ interface Collection { orderId: string; orderNumber: string; courierId: string |
 interface SettlementLine { orderId: string; expectedAmount: string; declaredAmount: string; countedAmount: string; variance: string; status: string }
 
 /**
- * Hub cashier count (W5 settlement): cash the driver declared at the door is counted here by the
- * cashier — never self-approved by the driver. Every short/over stays visible; nothing is auto-accepted.
+ * Hub cashier count (owner decision 2026-10-25): a driver's whole round is counted as ONE total. The expected cash was fixed
+ * when the round left the hub; the difference (short/over) shows on the round and goes to the admin queue. Never self-approved.
  */
 export default function HubCash() {
   return (
@@ -24,7 +24,8 @@ export default function HubCash() {
   )
 }
 
-interface Receipt { name: string; reference: string; lines: SettlementLine[]; orderNumbers: Record<string, string> }
+interface RoundTotals { expectedTotal: string; declaredTotal: string; countedTotal: string; variance: string }
+interface Receipt { name: string; reference: string; round: RoundTotals; lines: SettlementLine[]; orderNumbers: Record<string, string> }
 
 function CashBody() {
   const hub = useHub()
@@ -54,17 +55,18 @@ function CashBody() {
 }
 
 function SettlementReceipt({ receipt }: { receipt: Receipt }) {
-  const clean = receipt.lines.every((l) => Number(l.variance) === 0)
+  const clean = Number(receipt.round.variance) === 0
   return (
     <Section title={<>تسوية {receipt.name} · <Code>{receipt.reference}</Code></>}>
       <div className="space-y-2">
-        <Notice tone={clean ? 'ok' : 'warn'} title={clean ? 'اتسوّى بدون فروق' : 'اتسوّى مع فروق ظاهرة للإدارة'} />
-        <DataTable caption="نتيجة التسوية" head={['الطلب', 'متوقع', 'أعلن', 'اتعدّ', 'الفرق', 'الحالة']}>
+        <Notice tone={clean ? 'ok' : 'warn'} title={clean ? 'الجولة اتسوّت بدون فروق' : `فرق في الجولة: ${Number(receipt.round.variance) > 0 ? 'زيادة' : 'عجز'} ${Math.abs(Number(receipt.round.variance)).toLocaleString('en-US')} ج.م — ظاهر للإدارة`} />
+        <p className="text-bw-small">متوقع <Egp value={receipt.round.expectedTotal} /> · أعلن المندوب <Egp value={receipt.round.declaredTotal} /> · اتعدّ <Egp value={receipt.round.countedTotal} /></p>
+        <DataTable caption="نتيجة التسوية" head={['الطلب', 'متوقع', 'أعلن المندوب', 'الفرق عن المتوقع', 'الحالة']}>
           {receipt.lines.map((l) => (
             <tr key={l.orderId}>
               <td><Code>{receipt.orderNumbers[l.orderId] ?? shortId(l.orderId)}</Code></td>
-              <td><Egp value={l.expectedAmount} /></td><td><Egp value={l.declaredAmount} /></td><td><Egp value={l.countedAmount} /></td>
-              <td><Egp value={l.variance} /></td><td>{l.status}</td>
+              <td><Egp value={l.expectedAmount} /></td><td><Egp value={l.declaredAmount} /></td>
+              <td><Egp value={Number(l.declaredAmount) - Number(l.expectedAmount)} /></td><td>{l.status}</td>
             </tr>
           ))}
         </DataTable>
@@ -74,36 +76,41 @@ function SettlementReceipt({ receipt }: { receipt: Receipt }) {
 }
 
 function CourierCount({ hubId, courierId, name, rows, onSettled }: { hubId: string; courierId: string; name: string; rows: Collection[]; onSettled: (receipt: Receipt) => void }) {
-  const [counted, setCounted] = React.useState<Record<string, string>>({})
+  const [counted, setCounted] = React.useState('')
   // A stable reference per count makes a retried submit replay the same settlement, never a second one.
   const reference = React.useRef(`CNT-${new Date().toISOString().slice(0, 10)}-${courierId.slice(0, 6)}-${Math.random().toString(36).slice(2, 7)}`.toUpperCase())
-  const total = rows.reduce((sum, r) => sum + (Number(counted[r.orderId]) || 0), 0)
-  const complete = rows.every((r) => counted[r.orderId] !== undefined && counted[r.orderId] !== '' && Number(counted[r.orderId]) >= 0)
-  const settle = useCommand(() => api<{ lines: SettlementLine[] }>('/ordering/settlements/batch', { body: {
-    courierId, locationId: hubId, reference: reference.current, currency: 'EGP', totalCollected: Math.round(total * 100) / 100,
-    collections: rows.map((r) => ({ orderId: r.orderId, collectedAmount: Number(counted[r.orderId]) })),
+  const expectedTotal = rows.reduce((sum, r) => sum + Number(r.expectedAmount), 0)
+  const declaredTotal = rows.reduce((sum, r) => sum + Number(r.declaredAmount ?? 0), 0)
+  const amount = Number(counted)
+  const valid = counted.trim() !== '' && Number.isFinite(amount) && amount >= 0
+  const difference = valid ? Math.round((amount - expectedTotal) * 100) / 100 : null
+  const settle = useCommand(() => api<RoundTotals & { lines: SettlementLine[] }>('/ordering/settlements/rounds', { body: {
+    courierId, locationId: hubId, reference: reference.current, countedTotal: Math.round(amount * 100) / 100,
   } }))
 
   return (
     <Section title={<>المندوب: {name}</>} aside={<span className="text-bw-small">مرجع العدّ <Code>{reference.current}</Code></span>}>
       <form className="space-y-3" onSubmit={async (e) => {
         e.preventDefault()
-        if (!window.confirm(`تأكيد عدّ ${total.toLocaleString('en-US')} ج.م من ${name}؟ التسوية بتتسجل مرة واحدة.`)) return
+        if (!window.confirm(`تأكيد عدّ ${amount.toLocaleString('en-US')} ج.م من ${name} للجولة كلها؟ التسوية بتتسجل مرة واحدة.`)) return
         const done = await settle.execute()
-        if (done) onSettled({ name, reference: reference.current, lines: done.lines, orderNumbers: Object.fromEntries(rows.map((r) => [r.orderId, r.orderNumber])) })
+        if (done) {
+          onSettled({ name, reference: reference.current, round: done, lines: done.lines, orderNumbers: Object.fromEntries(rows.map((r) => [r.orderId, r.orderNumber])) })
+        }
       }}>
-        <DataTable caption="عدّ النقدية" head={['الطلب', 'متوقع', 'أعلن المندوب', 'المبلغ اللي اتعدّ فعلاً']}>
+        <DataTable caption="طلبات الجولة" head={['الطلب', 'متوقع', 'أعلن المندوب']}>
           {rows.map((r) => (
             <tr key={r.orderId}>
               <td><Code>{r.orderNumber}</Code></td>
               <td><Egp value={r.expectedAmount} /></td>
               <td><Egp value={r.declaredAmount} /></td>
-              <td><Field label={`المعدود لطلب ${r.orderNumber}`} ltr inputMode="decimal" value={counted[r.orderId] ?? ''} onChange={(e) => setCounted({ ...counted, [r.orderId]: e.target.value })} /></td>
             </tr>
           ))}
         </DataTable>
-        <p>إجمالي المعدود: <Egp value={total} /></p>
-        <Button type="submit" loading={settle.pending} disabled={!complete}>تسجيل العدّ والتسوية</Button>
+        <p>إجمالي المتوقع للجولة: <Egp value={expectedTotal} /> · إجمالي اللي أعلنه المندوب: <Egp value={declaredTotal} /></p>
+        <Field label="المبلغ اللي اتعدّ فعلاً للجولة كلها" ltr inputMode="decimal" value={counted} onChange={(e) => setCounted(e.target.value)} />
+        {difference !== null && difference !== 0 ? <Notice tone="warn" title={`${difference > 0 ? 'زيادة' : 'عجز'} ${Math.abs(difference).toLocaleString('en-US')} ج.م عن المتوقع — هيظهر للإدارة`} /> : null}
+        <Button type="submit" loading={settle.pending} disabled={!valid}>تسجيل العدّ والتسوية</Button>
         <CommandError error={settle.error} />
       </form>
     </Section>

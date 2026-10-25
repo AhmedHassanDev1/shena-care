@@ -192,7 +192,7 @@ describe('GLO-238 COD settlement and supplier payable integrity (e2e)', () => {
       for (const link of po.lines[0].allocations) {
         await http().post('/fulfillment/receipts').set(hubA.auth).send({
           locationId: hubAId, allocationId: link.sourceAllocationId, orderId: link.orderId, orderItemId: link.orderItemId,
-          skuId: sku.id, variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: received?.[i++] ?? link.quantity, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(),
+          skuId: sku.id, variantName: sku.variantName, barcodeScanned: sku.barcode, quantity: received?.[i++] ?? link.quantity, condition: 'ACCEPTABLE', expiryDate: '2031-12-31', idempotencyKey: randomUUID(),
         }).expect(201);
       }
     };

@@ -77,7 +77,8 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
       expect(rows[0]).toMatchObject({ eventType: 'order.placed', consumer: SUPPLY_PLAN_CONSUMER, aggregateType: 'Order' });
 
       await events.dispatchPending({ aggregateId: order.id });
-      await settle();
+      // dispatchSoon may hold the row while it runs the handler: wait for it instead of sleeping a fixed time.
+      for (let i = 0; i < 100 && (await eventsFor(order.id))[0].status === 'processing'; i++) await settle();
       const [row] = await eventsFor(order.id);
       expect(row.status).toBe('delivered');
       expect(await prisma.supplyRequest.count({ where: { orderId: order.id } })).toBe(1);

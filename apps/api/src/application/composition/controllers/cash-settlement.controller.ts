@@ -7,7 +7,7 @@ import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
 import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
-import { CreateSettlementBatchDto, ReconciliationService } from '../../../modules/ordering/public';
+import { CreateSettlementBatchDto, ReconciliationService, SettleRoundDto } from '../../../modules/ordering/public';
 import { FulfillmentActor, FulfillmentService } from '../../../modules/fulfillment/public';
 
 export class CollectionQueryDto extends PageQueryDto {
@@ -41,6 +41,18 @@ export class CashSettlementController {
   async createSettlementBatch(@CurrentUser() actor: FulfillmentActor, @Body() dto: CreateSettlementBatchDto) {
     const allowed = await this.fulfillment.operatorLocationIds(actor);
     return this.reconciliation.createSettlementBatch({ ...dto, actorId: actor.id }, allowed);
+  }
+
+  /** Rounds waiting for a count at the operator's hubs: expected (fixed at dispatch) against what drivers declared. */
+  @Get('rounds/open')
+  async openRounds(@CurrentUser() actor: FulfillmentActor) {
+    return this.reconciliation.listOpenRounds(await this.fulfillment.operatorLocationIds(actor));
+  }
+
+  /** Count one driver's whole round as a single total; the difference is shown on the round. */
+  @Post('rounds')
+  async settleRound(@CurrentUser() actor: FulfillmentActor, @Body() dto: SettleRoundDto) {
+    return this.reconciliation.settleRound({ ...dto, actorId: actor.id }, await this.fulfillment.operatorLocationIds(actor));
   }
 
   /** Cashier queue (GLO-239): expected / declared / counted cash per order, own hubs only. */

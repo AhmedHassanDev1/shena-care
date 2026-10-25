@@ -1,3 +1,5 @@
+// These specs assert order totals with a flat 50 EGP fee; the tiered policy is covered by delivery-fee-policy.e2e-spec.ts.
+process.env.DELIVERY_FEE_POLICY = JSON.stringify({ bands: [{ maxKm: null, fee: 50 }], discountTiers: [], freeFrom: 100000 });
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -167,7 +169,7 @@ describe('C1 backend Cart-to-Cash acceptance (GLO-235)', () => {
     const receive = (o: { id: string; items: Array<{ id: string; skuId: string }> }, sku: typeof serum, quantity: number, extra: Record<string, unknown> = {}) =>
       http().post('/fulfillment/receipts').set(hub.auth).send({
         locationId: hubId, allocationId: linkFor(o.id, sku.id).sourceAllocationId, orderId: o.id, orderItemId: itemOf(o, sku.id).id,
-        skuId: sku.id, variantName: sku.variantName, barcodeScanned: sku.barcode, quantity, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(), ...extra,
+        skuId: sku.id, variantName: sku.variantName, barcodeScanned: sku.barcode, quantity, condition: 'ACCEPTABLE', expiryDate: '2031-12-31', idempotencyKey: randomUUID(), ...extra,
       });
     const receivables = await http().get(`/fulfillment/locations/${hubId}/receivables`).set(hub.auth).expect(200);
     expect(receivables.body.filter((r: { orderId: string }) => r.orderId === order.id)).toHaveLength(2);

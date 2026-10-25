@@ -3,6 +3,10 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { SettlementStatus, OrderResolutionType, OrderResolutionStatus, Prisma, RefundStatus } from '@prisma/client';
 import { OutboxService } from '../../operations/services/outbox.service';
 import { assertClaimableQuantity } from './resolution-claims';
+import { LossDisposition, LossParty, lossShares } from './loss-responsibility';
+
+/** A cash difference above this (EGP) is a real discrepancy; at or below it is change (owner decision 2026-10-25). */
+export const CASH_VARIANCE_LARGE = 20;
 
 // Resolution and refund lifecycles only move forward; rejected/resolved/succeeded/failed are final.
 const RESOLUTION_TRANSITIONS: Record<OrderResolutionStatus, OrderResolutionStatus[]> = {
@@ -129,6 +133,34 @@ export class ReconciliationService {
       }
 
       return resolution;
+    });
+  }
+
+  /**
+   * Records who bears the loss of a return and what happens to the goods (owner decision 2026-10-25). Stored with the
+   * resolution's details and appended to its audit trail; the monthly statement reads it. A later correction replaces it
+   * and leaves both entries in the trail.
+   */
+  async setResponsibility(resolutionId: string, dto: { party: LossParty; supplierShare?: number; hubShare?: number; shinacareShare?: number;
+    disposition?: LossDisposition; note?: string }, actorId: string) {
+    if (!this.isUuid(resolutionId)) throw new BadRequestException('Invalid resolution ID');
+    let shares;
+    try {
+      shares = lossShares(dto.party, { supplier: dto.supplierShare, hub: dto.hubShare, shinacare: dto.shinacareShare });
+    } catch (error) {
+      throw new BadRequestException((error as Error).message);
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.orderResolution.findUnique({ where: { id: resolutionId } });
+      if (!current) throw new NotFoundException('Resolution not found');
+      const responsibility = { party: dto.party, shares, disposition: dto.disposition ?? null, note: dto.note ?? null, decidedBy: actorId, decidedAt: new Date().toISOString() };
+      const details = { ...((current.resolutionDetails as Record<string, unknown> | null) ?? {}), responsibility };
+      const updated = await tx.orderResolution.update({ where: { id: resolutionId }, data: { resolutionDetails: details as Prisma.InputJsonValue } });
+      await tx.orderResolutionEvent.create({ data: {
+        resolutionId, status: current.status, actorId,
+        notes: `Responsibility: ${dto.party}${shares ? ` (supplier ${shares.supplier}% / hub ${shares.hub}% / ShinaCare ${shares.shinacare}%)` : ''}${dto.disposition ? `; ${dto.disposition}` : ''}${dto.note ? ` — ${dto.note}` : ''}`,
+      } });
+      return updated;
     });
   }
 
@@ -460,6 +492,105 @@ export class ReconciliationService {
   }
 
   /**
+   * Declared cash waiting for a count, one group per driver and hub — a "round" (owner decision 2026-10-25). The expected
+   * total is fixed when the run leaves the hub; `olderThanHours` keeps only rounds whose oldest declaration is that old.
+   */
+  async listOpenRounds(locationIds: string[] | 'all', olderThanHours?: number) {
+    const groups = await this.prisma.paymentCollection.groupBy({
+      by: ['courierId', 'locationId', 'currency'],
+      where: { status: 'collected', settlementBatchId: null, courierId: { not: null }, locationId: locationIds === 'all' ? { not: null } : { in: locationIds },
+        order: { status: 'delivered' } },
+      _count: { _all: true }, _sum: { expectedAmount: true, declaredAmount: true }, _min: { declaredAt: true },
+    });
+    const cutoff = olderThanHours ? Date.now() - olderThanHours * 3_600_000 : null;
+    return groups.filter(g => cutoff === null || (g._min.declaredAt !== null && g._min.declaredAt.getTime() <= cutoff))
+      .map(g => ({
+        courierId: g.courierId as string, locationId: g.locationId as string, currency: g.currency, orders: g._count._all,
+        expectedTotal: (g._sum.expectedAmount ?? new Prisma.Decimal(0)).toFixed(2), declaredTotal: (g._sum.declaredAmount ?? new Prisma.Decimal(0)).toFixed(2),
+        oldestDeclaredAt: g._min.declaredAt,
+      }))
+      .sort((a, b) => (a.oldestDeclaredAt?.getTime() ?? 0) - (b.oldestDeclaredAt?.getTime() ?? 0));
+  }
+
+  /**
+   * The cashier counts everything one driver brought back to a hub as ONE total. The round's expected cash (fixed at
+   * dispatch) is compared with the count at round level; each order keeps the driver's own declaration, so a difference
+   * is shown on the round, never guessed onto one order. A reference is idempotent: the same count returns the same batch.
+   */
+  async settleRound(dto: { courierId: string; locationId: string; reference: string; countedTotal: number; fees?: number; notes?: string; actorId: string },
+    allowedLocationIds: string[] | 'all') {
+    if (allowedLocationIds !== 'all' && !allowedLocationIds.includes(dto.locationId)) {
+      throw new ForbiddenException('Operator is not assigned to this hub');
+    }
+    const counted = new Prisma.Decimal(dto.countedTotal);
+    const fees = new Prisma.Decimal(dto.fees ?? 0);
+    if (fees.greaterThan(counted)) throw new BadRequestException('Fees cannot exceed the counted total');
+
+    const replay = async () => {
+      const prior = await this.prisma.courierSettlementBatch.findUnique({ where: { reference: dto.reference } });
+      if (!prior) return null;
+      if (prior.courierId !== dto.courierId || prior.locationId !== dto.locationId || !prior.totalCollected.equals(counted) || !prior.fees.equals(fees)) {
+        throw new ConflictException({ code: 'SETTLEMENT_REFERENCE_REUSED', message: 'Settlement reference was used for a different count' });
+      }
+      return this.getSettlementBatch(prior.id);
+    };
+    const prior = await replay();
+    if (prior) return prior;
+
+    let batchId: string;
+    try {
+      batchId = await this.prisma.$transaction(async tx => {
+        const rows = await tx.paymentCollection.findMany({
+          where: { courierId: dto.courierId, locationId: dto.locationId, status: 'collected', settlementBatchId: null, order: { status: 'delivered' } },
+        });
+        if (!rows.length) {
+          throw new ConflictException({ code: 'NO_OPEN_ROUND', message: 'This driver has no declared cash waiting to be counted at this hub' });
+        }
+        const currency = rows[0].currency;
+        if (rows.some(row => row.currency !== currency)) throw new ConflictException('The round mixes currencies');
+        const expected = rows.reduce((sum, row) => sum.plus(row.expectedAmount), new Prisma.Decimal(0));
+        const batch = await tx.courierSettlementBatch.create({ data: {
+          reference: dto.reference, courierId: dto.courierId, locationId: dto.locationId, totalExpected: expected,
+          totalCollected: counted, fees, netSettled: counted.minus(fees), currency, actorId: dto.actorId, notes: dto.notes,
+        } });
+        for (const row of rows) {
+          const declared = row.declaredAmount as Prisma.Decimal;
+          const status: SettlementStatus = declared.lessThan(row.expectedAmount) ? 'short' : declared.greaterThan(row.expectedAmount) ? 'over' : 'settled';
+          const settled = await tx.paymentCollection.updateMany({
+            where: { id: row.id, status: 'collected', settlementBatchId: null },
+            data: { collectedAmount: declared, status, settlementBatchId: batch.id },
+          });
+          if (settled.count !== 1) throw new ConflictException('A collection of this round was settled concurrently; retry');
+        }
+        return batch.id;
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const raced = await replay();
+        if (raced) return raced;
+      }
+      throw error;
+    }
+    return this.getSettlementBatch(batchId);
+  }
+
+  /** Counted rounds whose cash does not match what was expected, newest first, large differences marked. */
+  async listRoundVariances(locationIds: string[] | 'all', take = 50) {
+    const batches = await this.prisma.courierSettlementBatch.findMany({
+      where: locationIds === 'all' ? {} : { locationId: { in: locationIds } }, orderBy: { settledAt: 'desc' }, take: 200,
+    });
+    const items = batches.filter(batch => !batch.totalCollected.equals(batch.totalExpected)).map(batch => {
+      const variance = batch.totalCollected.minus(batch.totalExpected);
+      return {
+        batchId: batch.id, reference: batch.reference, courierId: batch.courierId, locationId: batch.locationId, settledAt: batch.settledAt,
+        expectedTotal: batch.totalExpected.toFixed(2), countedTotal: batch.totalCollected.toFixed(2), variance: variance.toFixed(2), currency: batch.currency,
+        severity: variance.abs().greaterThan(CASH_VARIANCE_LARGE) ? 'large' as const : 'small' as const,
+      };
+    }).sort((a, b) => Number(b.severity === 'large') - Number(a.severity === 'large'));
+    return { total: items.length, items: items.slice(0, take) };
+  }
+
+  /**
    * Cashier/admin queue of COD collections by hub (GLO-239): expected, declared and counted cash
    * side by side, with the variance; `locationIds` is the caller's hub scope ('all' for admins).
    */
@@ -538,8 +669,15 @@ export class ReconciliationService {
     });
     if (!batch) throw new NotFoundException('Settlement batch not found');
     const { collections, ...header } = batch;
+    const declaredTotal = collections.reduce((sum, c) => sum.plus(c.declaredAmount ?? 0), new Prisma.Decimal(0));
     return {
       ...header,
+      // Round level: the count against what was expected (fixed at dispatch) and against what the driver declared.
+      expectedTotal: header.totalExpected.toFixed(2),
+      declaredTotal: declaredTotal.toFixed(2),
+      countedTotal: header.totalCollected.toFixed(2),
+      variance: header.totalCollected.minus(header.totalExpected).toFixed(2),
+      varianceVsDeclared: header.totalCollected.minus(declaredTotal).toFixed(2),
       lines: collections.map(c => ({
         orderId: c.orderId,
         orderNumber: c.order.orderNumber,

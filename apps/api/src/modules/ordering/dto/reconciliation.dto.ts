@@ -1,6 +1,7 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray, IsNumber, ValidateNested, IsUUID, Length, Min, ArrayNotEmpty, IsIn, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray, IsNumber, ValidateNested, IsUUID, Length, Min, ArrayNotEmpty, IsIn, MaxLength, IsInt, Max, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderResolutionType, OrderResolutionStatus } from '@prisma/client';
+import { LOSS_DISPOSITIONS, LOSS_PARTIES, LossDisposition, LossParty } from '../services/loss-responsibility';
 
 export class OrderResolutionItemDto {
   @IsString()
@@ -115,6 +116,64 @@ export class CreateSettlementBatchDto {
   @ValidateNested({ each: true })
   @Type(() => CollectionItemDto)
   collections: CollectionItemDto[];
+}
+
+export class MonthlyStatementQueryDto {
+  /** Cairo calendar month, YYYY-MM. */
+  @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, { message: 'month must be YYYY-MM' })
+  month: string;
+}
+
+/** Who bears the loss of a returned/damaged/expired product, and what happens to the goods (owner decision 2026-10-25). */
+export class SetResponsibilityDto {
+  @IsIn([...LOSS_PARTIES])
+  party: LossParty;
+
+  /** Whole percents, only for SPLIT (several at fault); they must add up to 100. */
+  @IsOptional() @IsInt() @Min(0) @Max(100)
+  supplierShare?: number;
+
+  @IsOptional() @IsInt() @Min(0) @Max(100)
+  hubShare?: number;
+
+  @IsOptional() @IsInt() @Min(0) @Max(100)
+  shinacareShare?: number;
+
+  @IsOptional()
+  @IsIn([...LOSS_DISPOSITIONS])
+  disposition?: LossDisposition;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+/** The cashier's count of everything one driver brought back to a hub (owner decision 2026-10-25). */
+export class SettleRoundDto {
+  @IsUUID()
+  courierId: string;
+
+  @IsUUID()
+  locationId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Length(1, 120)
+  reference: string;
+
+  /** Physical cash counted for the whole round. */
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  countedTotal: number;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  fees?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 
 /** Manual refund obligation; method is how the operator will pay it back (no gateway). */

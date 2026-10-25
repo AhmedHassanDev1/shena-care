@@ -37,6 +37,23 @@ export class SupplyPlanService {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(44071, hashtext(${orderId}))::text AS locked`;
   }
 
+  /**
+   * What the supplier can still supply on this offer: its reported quantity minus what was allocated to it after that
+   * count (pending, or confirmed and not released). null = no quantity reported, so no cap. Serialised per offer, so
+   * two orders placed at the same moment can never both take the last units.
+   */
+  private async offerCapacity(tx: Tx, offer: { id: string; availableQuantity: number | null; quantityUpdatedAt: Date | null }): Promise<number | null> {
+    if (offer.availableQuantity === null) return null;
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(44072, hashtext(${offer.id}))::text AS locked`;
+    const since = offer.quantityUpdatedAt ?? new Date(0);
+    const live = { supplierOfferId: offer.id, selectedAt: { gte: since }, requirement: { releasedAt: null } };
+    const [pending, confirmed] = await Promise.all([
+      tx.sourceAllocation.aggregate({ _sum: { allocatedQuantity: true }, where: { ...live, result: 'pending' } }),
+      tx.sourceAllocation.aggregate({ _sum: { confirmedQuantity: true }, where: { ...live, result: { in: ['confirmed_full', 'confirmed_partial'] } } }),
+    ]);
+    return Math.max(offer.availableQuantity - (pending._sum.allocatedQuantity ?? 0) - (confirmed._sum.confirmedQuantity ?? 0), 0);
+  }
+
   async initiateForOrder(orderId: string) {
     await this.prisma.$transaction(async tx => {
       await this.lock(tx, orderId);
@@ -97,9 +114,13 @@ export class SupplyPlanService {
           if (!offer?.isAvailable || !offer.supplier.isActive ||
               Date.now() - offer.lastObservedAt.getTime() > SOURCING_SIGNAL_MAX_AGE_MS ||
               !offer.costPrice.equals(candidate.costPrice) || offer.currency !== candidate.currency) continue;
+          // Never ask a supplier for more than it reports it has; the rest goes to the next supplier once this one answers.
+          const capacity = await this.offerCapacity(tx, offer);
+          const quantity = capacity === null ? remaining : Math.min(remaining, capacity);
+          if (quantity <= 0) continue;
           await tx.sourceAllocation.create({ data: {
-            requirementId: requirement.id, supplierOfferId: offer.id, requestedQuantity: remaining,
-            allocatedQuantity: remaining, selectedCost: offer.costPrice, selectedCurrency: offer.currency,
+            requirementId: requirement.id, supplierOfferId: offer.id, requestedQuantity: quantity,
+            allocatedQuantity: quantity, selectedCost: offer.costPrice, selectedCurrency: offer.currency,
             rankingDecisionId: ranked!.decisionLogId,
           } });
           if (requirement.actionRequirement) await tx.availabilityActionRequirement.delete({ where: { requirementId: requirement.id } });

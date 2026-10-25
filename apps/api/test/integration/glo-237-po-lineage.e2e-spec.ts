@@ -161,7 +161,7 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
     // Hub receives physical quantities against the confirmed lineage; over-receipt is blocked.
     const receive = (order: PlacedOrder, allocationId: string, quantity: number) => http().post('/fulfillment/receipts').set(hub.auth).send({
       locationId, allocationId, orderId: order.id, orderItemId: order.items[0].id, skuId, variantName: skuVariant, barcodeScanned: skuBarcode,
-      quantity, condition: 'ACCEPTABLE', idempotencyKey: randomUUID(),
+      quantity, condition: 'ACCEPTABLE', expiryDate: '2031-12-31', idempotencyKey: randomUUID(),
     });
     await receive(second, a2, 2).expect(400);
     await receive(first, a1, 2).expect(201);

@@ -16,12 +16,12 @@ export function customerAvailabilityWindowMs(env: NodeJS.ProcessEnv = process.en
 }
 
 /**
- * Owner decision switch (GLO-280 follow-up). A supplier file/edit is an availability SIGNAL, never a confirmation.
- * false (default): customers can order only what a supplier has CONFIRMED inside the window — the storefront contract
- * that already shipped. true: a fresh signal alone is orderable ("PROVISIONAL"); the PO still confirms the quantity.
+ * Owner decision (2026-10-25). A supplier file/edit is an availability SIGNAL, never a confirmation. Suppliers keep
+ * their quantities current and confirm before preparation, so a signal inside the window is orderable ("PROVISIONAL");
+ * the purchase order still confirms the quantity. SUPPLIER_PROVISIONAL_ORDERABLE=false restores confirmed-only ordering.
  */
 export function provisionalOrderingEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.SUPPLIER_PROVISIONAL_ORDERABLE === 'true';
+  return env.SUPPLIER_PROVISIONAL_ORDERABLE !== 'false';
 }
 
 /** CONFIRMED: a supplier confirmed within the window. PROVISIONAL: only a feed/edit signal within the window. */

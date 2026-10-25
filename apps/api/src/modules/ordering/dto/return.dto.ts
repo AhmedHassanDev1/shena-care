@@ -1,10 +1,11 @@
-import { IsEnum, IsString, IsArray, IsOptional, IsInt, Min } from 'class-validator';
+import { IsEnum, IsString, IsArray, IsOptional, IsInt, Min, IsBoolean, ValidateIf } from 'class-validator';
 
 export enum ReturnReason {
   WRONG_ITEM = 'WRONG_ITEM',
   MISSING_ITEM = 'MISSING_ITEM',
   DAMAGED_OR_LEAKING = 'DAMAGED_OR_LEAKING',
   DEFECT_OR_QUALITY_CONCERN = 'DEFECT_OR_QUALITY_CONCERN',
+  EXPIRED_PRODUCT = 'EXPIRED_PRODUCT',
   CHANGE_OF_MIND = 'CHANGE_OF_MIND',
   DELIVERY_PROBLEM = 'DELIVERY_PROBLEM',
   POSSIBLE_ADVERSE_EVENT = 'POSSIBLE_ADVERSE_EVENT',
@@ -45,4 +46,9 @@ export class SubmitReturnDto {
   @IsOptional()
   @IsString()
   expiry?: string;
+
+  /** Change of mind is accepted only for a sealed, unused product; the hub checks it when the parcel comes back. */
+  @ValidateIf(o => o.sealedAndUnused !== undefined)
+  @IsBoolean()
+  sealedAndUnused?: boolean;
 }

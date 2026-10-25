@@ -136,7 +136,7 @@ describe('Fulfillment supplier receiving and order allocation (e2e)', () => {
       skuId: fixture.sku.id,
       variantName: fixture.sku.variantName, barcodeScanned: fixture.sku.barcode!,
       quantity: 1,
-      condition: 'ACCEPTABLE',
+      condition: 'ACCEPTABLE', expiryDate: '2031-12-31',
       idempotencyKey: randomUUID(),
     };
     await http().post('/fulfillment/receipts').send(body).expect(401);
@@ -156,7 +156,7 @@ describe('Fulfillment supplier receiving and order allocation (e2e)', () => {
       skuId: fixture.sku.id,
       variantName: fixture.sku.variantName, barcodeScanned: fixture.sku.barcode!,
       quantity: 1,
-      condition: 'ACCEPTABLE',
+      condition: 'ACCEPTABLE', expiryDate: '2031-12-31',
       idempotencyKey: randomUUID(),
     };
     await http().post('/fulfillment/receipts').set('Authorization', operatorAuth)
@@ -203,7 +203,7 @@ describe('Fulfillment supplier receiving and order allocation (e2e)', () => {
       skuId: fixture.sku.id,
       variantName: fixture.sku.variantName, barcodeScanned: fixture.sku.barcode!,
       quantity: 1,
-      condition: 'ACCEPTABLE',
+      condition: 'ACCEPTABLE', expiryDate: '2031-12-31',
       idempotencyKey: firstKey,
     };
     const concurrent = await Promise.all([
