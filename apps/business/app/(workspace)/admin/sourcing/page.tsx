@@ -34,9 +34,50 @@ interface Payable {
   paymentRef: string | null;
 }
 
+/** A supplier with its working schedule (Cairo time): closed weekdays (0 = Sunday … 6 = Saturday) and optional hours. */
+interface SupplierWithSchedule { id: string; name: string; closedWeekdays?: number[]; opensAt?: string | null; closesAt?: string | null }
+
+const WEEKDAYS: Array<[number, string]> = [[6, 'السبت'], [0, 'الأحد'], [1, 'الإثنين'], [2, 'الثلاثاء'], [3, 'الأربعاء'], [4, 'الخميس'], [5, 'الجمعة']]
+
+/**
+ * Days off and working hours of one supplier (owner decision): the delivery date promised to customers and the clocks of
+ * the "supplier did not answer" alerts both start from the supplier's next opening. Friday is closed by default.
+ */
+function SupplierScheduleRow({ supplier, onSaved }: { supplier: SupplierWithSchedule; onSaved: () => void }) {
+  const [closed, setClosed] = React.useState<number[]>(supplier.closedWeekdays ?? [5])
+  const [opensAt, setOpensAt] = React.useState(supplier.opensAt ?? '')
+  const [closesAt, setClosesAt] = React.useState(supplier.closesAt ?? '')
+  const hoursOk = (opensAt === '') === (closesAt === '') && (opensAt === '' || opensAt < closesAt)
+  const save = useCommand(() => api(`/sourcing/suppliers/${supplier.id}`, { method: 'PATCH', body: {
+    closedWeekdays: [...closed].sort((a, b) => a - b),
+    ...(opensAt !== '' && closesAt !== '' ? { opensAt, closesAt } : {}),
+  } }))
+  return (
+    <form className="space-y-2 border-t border-bw-line py-3" onSubmit={async (e) => { e.preventDefault(); if (hoursOk && await save.execute()) onSaved() }}>
+      <p className="font-semibold">{supplier.name}</p>
+      <fieldset className="flex flex-wrap gap-3 text-bw-small">
+        <legend className="mb-1">أيام الإجازة:</legend>
+        {WEEKDAYS.map(([day, label]) => (
+          <label key={day} className="flex items-center gap-1">
+            <input type="checkbox" checked={closed.includes(day)} onChange={(e) => setClosed(e.target.checked ? [...closed, day] : closed.filter((d) => d !== day))} />
+            {label}
+          </label>
+        ))}
+      </fieldset>
+      <div className="grid gap-3 sm:grid-cols-[10rem_10rem_auto] sm:items-end">
+        <Field label="بيفتح الساعة" type="time" ltr value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
+        <Field label="بيقفل الساعة" type="time" ltr value={closesAt} onChange={(e) => setClosesAt(e.target.value)}
+          error={!hoursOk ? 'اكتب الميعادين مع بعض، والفتح قبل القفل' : undefined} />
+        <Button type="submit" loading={save.pending} disabled={!hoursOk}>حفظ المواعيد</Button>
+      </div>
+      <CommandError error={save.error} />
+    </form>
+  )
+}
+
 /** Supplier purchase orders, scarce-stock decisions and supplier payables (W2). */
 export default function AdminSourcing() {
-  const suppliers = useApi<Array<{ id: string; name: string }>>('/sourcing/suppliers')
+  const suppliers = useApi<SupplierWithSchedule[]>('/sourcing/suppliers')
   const [status, setStatus] = React.useState('')
   const pos = useApi<{ total: number; items: StaffPo[] }>(`/purchase-orders?take=50${status ? `&status=${status}` : ''}`, { pollMs: 30000 })
   const payables = useApi<{ total: number; items: Payable[] }>('/sourcing/payables?take=50')
@@ -72,6 +113,12 @@ export default function AdminSourcing() {
             <ArrowLeft className="size-3.5" />
           </Link>
         </div>
+
+        <Section title="مواعيد الموردين (الجمعة إجازة تلقائيًا)">
+          {(suppliers.data ?? []).length === 0
+            ? <StateBlock kind="empty" title="مفيش موردين لسه" body="أول ما تضيف مورد هتظبط مواعيده هنا." />
+            : (suppliers.data ?? []).map((s) => <SupplierScheduleRow key={s.id} supplier={s} onSaved={suppliers.reload} />)}
+        </Section>
 
         <Section title="تجميع أوامر الشراء">
           <form className="flex flex-wrap items-end gap-3" onSubmit={async (e) => {
