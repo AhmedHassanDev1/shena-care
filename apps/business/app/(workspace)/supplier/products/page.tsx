@@ -36,10 +36,22 @@ export interface SupplierOffer {
   costPrice: number
   currency: string
   isAvailable: boolean
+  /** Quantity the supplier says it can supply now; null = not reported. Allocation never goes above it. */
+  availableQuantity?: number | null
   lastObservedAt: string
   lastConfirmedAt: string | null
   createdAt: string
   updatedAt: string
+  sku?: {
+    productName: string
+    brandName: string | null
+    variantName: string
+    skuCode: string
+    barcode: string | null
+    size?: number | null
+    sizeUnit?: string | null
+    imageUrl?: string | null
+  }
 }
 
 export interface CatalogProductView {
@@ -138,7 +150,7 @@ function ProductsContent() {
   const enrichedOffers = React.useMemo<EnrichedOffer[]>(() => {
     const rawOffers = offersApi.data ?? []
     return rawOffers.map((offer) => {
-      const meta = skuIndex.get(offer.skuId)
+      const meta = offer.sku ?? skuIndex.get(offer.skuId)
       return {
         ...offer,
         productName: meta?.productName ?? `صنف #${shortId(offer.skuId)}`,
@@ -843,6 +855,11 @@ function EditOfferModal({
 }) {
   const [costPrice, setCostPrice] = React.useState(String(offer.costPrice))
   const [isAvailable, setIsAvailable] = React.useState(offer.isAvailable)
+  const [quantity, setQuantity] = React.useState(offer.availableQuantity === null || offer.availableQuantity === undefined ? '' : String(offer.availableQuantity))
+
+  // Blank = no quantity reported (yes/no availability only). A number caps what ShinaCare can order from this offer.
+  const quantityText = quantity.trim()
+  const isValidQuantity = quantityText === '' || (/^\d+$/.test(quantityText) && Number(quantityText) <= 1_000_000)
 
   const save = useCommand(() =>
     api(`/sourcing/offers/${offer.id}`, {
@@ -850,6 +867,7 @@ function EditOfferModal({
       body: {
         costPrice: Number(costPrice),
         isAvailable,
+        ...(quantityText === '' ? {} : { availableQuantity: Number(quantityText) }),
       },
     })
   )
@@ -858,7 +876,7 @@ function EditOfferModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isValidPrice) return
+    if (!isValidPrice || !isValidQuantity) return
     const res = await save.execute()
     if (res) onSuccess()
   }
@@ -927,6 +945,18 @@ function EditOfferModal({
             </div>
           </div>
 
+          <Field
+            label="الكمية المتاحة عندك دلوقتي (اختياري)"
+            ltr
+            inputMode="numeric"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            error={!isValidQuantity ? 'اكتب رقم صحيح (٠ أو أكتر)' : undefined}
+          />
+          <p className="text-[11px] text-bw-ink-subtle -mt-2">
+            حدّث الرقم كل ما يتغير. شيناكير مش هتطلب منك أكتر منه، و٠ معناها نفد.
+          </p>
+
           <CommandError error={save.error} />
 
           <div className="flex gap-2.5 pt-3 border-t border-white/[0.08]">
@@ -942,7 +972,7 @@ function EditOfferModal({
               type="submit"
               className="flex-1 bg-[#34d27b] text-black font-bold hover:bg-[#2eb96c]"
               loading={save.pending}
-              disabled={!isValidPrice}
+              disabled={!isValidPrice || !isValidQuantity}
             >
               حفظ التعديل
             </Button>
