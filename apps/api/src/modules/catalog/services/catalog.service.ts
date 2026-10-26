@@ -42,6 +42,35 @@ export interface StatedConcentrationInput {
   evidence: { sourceUrl: string; sourceType: string; evidenceText: string; reviewedBy: string; reviewedAt: string };
 }
 
+/** One reviewed key active of a product, as the routine engine reads it. */
+export interface RoutineActiveFact {
+  ingredientId: string;
+  ingredientSlug: string;
+  familySlug: string | null;
+  concentrationValue: number | null;
+  concentrationUnit: string | null;
+  /** The stated concentration carries evidence (source + reviewer); never inferred. */
+  concentrationVerified: boolean;
+  concentrationReviewedAt: string | null;
+}
+
+/** What the routine engine may rely on for one published product: reviewed facts only, nothing inferred. */
+export interface RoutineProductFacts {
+  productId: string;
+  name: string;
+  brandName: string;
+  skus: Array<{ id: string; size: number | null; sizeUnit: string | null; isActive: boolean }>;
+  imageUrl: string | null;
+  actives: RoutineActiveFact[];
+  ingredientIds: string[];
+  ingredientSlugs: string[];
+  ingredientFamilies: string[];
+  usageRules: Array<{
+    skuId: string | null; targetArea: string | null; routinePeriod: string; rinseMode: string; frequencyUnit: string;
+    usesMin: number | null; usesMax: number | null; condition: string | null; reviewedAt: string;
+  }>;
+}
+
 export interface PublishedSku {
   id: string;
   code: string;
@@ -448,6 +477,55 @@ export class CatalogService {
           concentrationEvidence: entry.evidence as Prisma.InputJsonValue },
       });
     }
+  }
+
+  /**
+   * Reviewed facts of published products for the routine engine (care module): key actives with stated
+   * concentrations and their evidence, the full reviewed ingredient set, and reviewed usage rules.
+   */
+  async getRoutineProductFacts(productIds: string[]): Promise<RoutineProductFacts[]> {
+    const ids = [...new Set(productIds)].filter(id => this.isUuid(id));
+    if (!ids.length) return [];
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: ids }, isPublished: true },
+      include: {
+        brand: true,
+        skus: true,
+        media: { where: { isPrimary: true }, take: 1 },
+        productIngredients: { include: { ingredient: true } },
+        usageRules: true,
+      },
+      orderBy: { id: 'asc' },
+    });
+    return products.map(p => ({
+      productId: p.id,
+      name: p.name,
+      brandName: p.brand.name,
+      skus: p.skus.map(sku => ({ id: sku.id, size: sku.size === null ? null : Number(sku.size), sizeUnit: sku.sizeUnit ?? null, isActive: sku.isActive })),
+      imageUrl: p.media[0]?.url ?? null,
+      actives: p.productIngredients
+        .filter(pi => pi.isKeyActive && pi.ingredient.status === 'APPROVED')
+        .map(pi => {
+          const evidence = (pi.concentrationEvidence ?? null) as { reviewedAt?: string; sourceUrl?: string } | null;
+          return {
+            ingredientId: pi.ingredientId,
+            ingredientSlug: pi.ingredient.slug,
+            familySlug: pi.ingredient.familySlug ?? null,
+            concentrationValue: pi.concentrationValue === null ? null : Number(pi.concentrationValue),
+            concentrationUnit: pi.concentrationUnit ?? null,
+            concentrationVerified: pi.concentrationValue !== null && !!evidence?.sourceUrl,
+            concentrationReviewedAt: evidence?.reviewedAt ?? null,
+          };
+        }),
+      ingredientIds: p.productIngredients.map(pi => pi.ingredientId),
+      ingredientSlugs: p.productIngredients.map(pi => pi.ingredient.slug),
+      ingredientFamilies: [...new Set(p.productIngredients.map(pi => pi.ingredient.familySlug).filter((f): f is string => !!f))],
+      usageRules: p.usageRules.map(r => ({
+        skuId: r.skuId, targetArea: r.targetArea, routinePeriod: r.routinePeriod, rinseMode: r.rinseMode,
+        frequencyUnit: r.frequencyUnit, usesMin: r.usesMin, usesMax: r.usesMax, condition: r.condition,
+        reviewedAt: r.reviewedAt.toISOString(),
+      })),
+    }));
   }
 
   /** Reviewed usage rules for the given SKUs, for product detail / routine building. */

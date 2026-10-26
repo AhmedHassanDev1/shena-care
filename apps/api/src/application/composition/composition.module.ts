@@ -14,6 +14,8 @@ import { DiscoveryService } from './services/discovery.service';
 import { ProductDetailService } from './services/product-detail.service';
 import { CareModule } from '../../modules/care/public';
 import { IngestionModule } from '../../modules/ingestion/public';
+import { OrderingModule } from '../../modules/ordering/public';
+import { RoutineCartController } from './controllers/routine-cart.controller';
 
 // ─── CompositionModule ────────────────────────────────────────────────────────
 // الـ Composition Layer هي المسؤولة عن الـ HTTP API
@@ -24,7 +26,7 @@ import { IngestionModule } from '../../modules/ingestion/public';
 // القاعدة: الـ Controllers هنا بس — مش جوا الـ Business Modules
 
 @Module({
-  imports: [CatalogModule, CommerceModule, SourcingModule, CareModule, IngestionModule],
+  imports: [CatalogModule, CommerceModule, SourcingModule, CareModule, IngestionModule, OrderingModule],
   controllers: [
     ProductViewController,  // GET /products, GET /products/:slug
     BrandController,        // GET /brands, GET /brands/:slug
@@ -34,6 +36,7 @@ import { IngestionModule } from '../../modules/ingestion/public';
     // /sourcing/* is served by the guarded SourcingController in the Sourcing module
     PurchaseOrderController,// /purchase-orders
     BarcodeAliasController, // /catalog/barcode-aliases (GLO-242)
+    RoutineCartController,  // /care/me/routines/:id/cart, /care/workspace/proposals/:id/cart
   ],
   providers: [ProductViewService, DiscoveryService, ProductDetailService],
 })

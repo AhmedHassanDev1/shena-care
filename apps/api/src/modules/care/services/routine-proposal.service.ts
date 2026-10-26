@@ -1,256 +1,214 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { Prisma, RoutineProposal, RoutineProposalStatus, RoutinePurchasePhase, RoutineTier } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
-import { RecommendationValidatorService } from '../../guidance/services/recommendation-validator.service';
-import { RoutineWorkspaceService } from './routine-workspace.service';
-import { RoutineProposalStatus, RoutineTiming, CareArea, Prisma } from '@prisma/client';
+import { RoutineProductFacts } from '../../catalog/public';
+import { ProposalActionDto, SaveProposalDto } from '../dto/routine-workspace.dto';
+import { buildProposal, EngineProposal, ENGINE_VERSION, selectBlueprint } from '../engine/routine-engine';
+import { readSafety, RoutineEngineService } from './routine-engine.service';
+import { DraftOwner, RoutineWorkspaceService } from './routine-workspace.service';
+import { MyRoutinesService } from './my-routines.service';
+
+/** The frozen record kept with every saved routine version (§10, «الـ IDs لوحدها مش كفاية»). */
+export function versionSnapshot(proposal: EngineProposal, facts: Map<string, RoutineProductFacts>, extra: Record<string, unknown>) {
+  const selected = proposal.items.filter(i => i.status === 'SELECTED' && i.product);
+  return {
+    engineVersion: proposal.engineVersion,
+    blueprint: proposal.blueprint,
+    mode: proposal.mode,
+    tier: proposal.tier,
+    warnings: proposal.warnings,
+    totals: proposal.totals,
+    items: proposal.items.map(i => ({
+      roleKey: i.roleKey, titleAr: i.titleAr, status: i.status, isEssential: i.isEssential, startWeek: i.startWeek,
+      purchasePhase: i.purchasePhase, product: i.product, reasonCodes: i.reasonCodes, usageNoteAr: i.usageNoteAr,
+    })),
+    facts: Object.fromEntries(selected.map(i => {
+      const f = facts.get(i.product!.productId);
+      return [i.product!.productId, f ? {
+        actives: f.actives,
+        ingredientSlugs: f.ingredientSlugs,
+        usageRules: f.usageRules.filter(r => r.skuId === null || r.skuId === i.product!.skuId),
+      } : null];
+    })),
+    ...extra,
+  };
+}
 
 @Injectable()
 export class RoutineProposalService {
-  private readonly logger = new Logger(RoutineProposalService.name);
-
   constructor(
     private readonly prisma: PrismaService,
-    private readonly aiClient: AiClient,
-    private readonly validator: RecommendationValidatorService,
+    private readonly engine: RoutineEngineService,
     private readonly workspace: RoutineWorkspaceService,
+    private readonly myRoutines: MyRoutinesService,
   ) {}
 
-  async generateProposal(draftId: string, customerId?: string, guestToken?: string) {
-    const draft = await this.workspace.getDraft(draftId, customerId, guestToken);
-
-    // Build recommendation context
-    let profileData: any = {};
-    if (draft.customerId) {
-      const profile = await this.prisma.customerCareProfile.findUnique({
-        where: { customerId: draft.customerId },
-        include: { concerns: { include: { concern: true } } }
-      });
-      if (profile) {
-        profileData = {
-          skinType: profile.skinType,
-          sensitivities: profile.sensitivities,
-          concerns: profile.concerns.map((c: any) => c.concern.name)
-        };
-      }
-    }
-
-    const input = {
-      customerId: draft.customerId || `guest-${draft.id}`,
-      profile: {
-        skinType: profileData.skinType,
-        sensitivities: profileData.sensitivities,
-        concerns: [
-          ...(profileData.concerns || []),
-          draft.primaryConcern,
-          ...(draft.secondaryGoals || [])
-        ].filter(Boolean),
-      },
-      chatHistory: [], // No chat history in direct workspace flow for now
-    };
-
-    let result: any;
-    let errorState: any = null;
-    let rawProposal: any = null;
-
-    try {
-      // Bounded retry logic for safe operations could be added here, 
-      // but for now relying on AI Client timeout and standard network retry
-      result = await this.aiClient.recommendRoutine(input);
-      rawProposal = result.proposal;
-    } catch (err: any) {
-      this.logger.error(`AI recommendation failed for draft ${draftId}`, err);
-      
-      // Handle AI timeouts, HTTP 429, 5xx, and malformed responses
-      if (err instanceof AiClientError) {
-        errorState = {
-          code: err.kind,
-          message: err.message,
-          retryable: err.kind === AiErrorKind.TIMEOUT || err.kind === AiErrorKind.UNAVAILABLE
-        };
-      } else {
-        errorState = {
-          code: 'internal_error',
-          message: 'An unexpected error occurred while generating the proposal',
-          retryable: true
-        };
-      }
-    }
-
-    // Preserve Care Profile and RoutineDraft state when AI fails.
-    // Never save a partially generated RoutineProposal.
-    // Failed retries must not create duplicate records - we upsert or create a failed proposal.
-
-    let snapshot = rawProposal;
-    let totalPrice = 0;
-    
-    if (rawProposal) {
-      // Deterministic Guidance validation
-      const validationResult = await this.validator.validateProposal(rawProposal, { 
-        budgetLimit: draft.isBudgetStrict ? Number(draft.budget) : undefined 
-      });
-
-      if (!validationResult.isValid) {
-        errorState = {
-          code: 'validation_failed',
-          message: 'The AI generated a proposal that did not pass safety and availability validation.',
-          details: validationResult.errors,
-          retryable: true
-        };
-        snapshot = null; // Don't save invalid proposal as the valid snapshot
-      } else {
-        // Enforce deterministic rules:
-        // Already-owned products are excluded from purchase totals.
-        
-        const validSteps = [];
-        for (const stepResult of validationResult.stepResults) {
-          const originalStep = rawProposal.steps[stepResult.stepIndex];
-          if (stepResult.productResolution?.resolved && stepResult.availabilityCheck?.isSellable) {
-             const productId = stepResult.productResolution.productId;
-             const isOwned = draft.ownedProductIds.includes(productId as string);
-             
-             if (!isOwned && stepResult.availabilityCheck.terms?.price?.amount) {
-               totalPrice += Number(stepResult.availabilityCheck.terms.price.amount);
-             }
-             
-             validSteps.push({
-               ...originalStep,
-               resolvedProductId: productId,
-               resolvedSkuId: stepResult.availabilityCheck.skuId,
-               price: stepResult.availabilityCheck.terms?.price?.amount || 0,
-               isOwned
-             });
-          } else {
-            // Keep step but without resolved product
-            validSteps.push(originalStep);
-          }
-        }
-        snapshot.steps = validSteps;
-      }
-    }
-
-    const proposal = await this.prisma.routineProposal.create({
+  /** Runs the engine on the draft as it is now and stores the result as the draft's current proposal. */
+  async generateProposal(draftId: string, owner: DraftOwner): Promise<RoutineProposal> {
+    const draft = await this.workspace.loadOwnedDraft(draftId, owner);
+    const { proposal } = await this.run(draft);
+    return this.prisma.routineProposal.create({
       data: {
         draftId: draft.id,
-        status: errorState ? RoutineProposalStatus.failed : RoutineProposalStatus.proposed,
-        snapshot: snapshot || {},
-        totalPrice: snapshot ? totalPrice : null,
-        error: errorState || Prisma.DbNull,
-      }
+        status: RoutineProposalStatus.proposed,
+        snapshot: proposal as unknown as Prisma.InputJsonValue,
+        totalPrice: proposal.totals.all,
+        draftVersion: draft.version,
+        engineVersion: ENGINE_VERSION,
+        error: Prisma.DbNull,
+      },
     });
-
-    return proposal;
   }
 
-  async acceptProposal(proposalId: string, customerId?: string, guestToken?: string) {
-    const proposal = await this.prisma.routineProposal.findUnique({
-      where: { id: proposalId },
-      include: { draft: true }
-    });
+  async applyAction(draftId: string, dto: ProposalActionDto, owner: DraftOwner) {
+    await this.workspace.applyAction(draftId, dto, owner);
+    return this.generateProposal(draftId, owner);
+  }
 
+  /**
+   * Saves the current proposal as the customer's routine. Idempotent per proposal. Re-runs the engine first:
+   * when stock or prices moved since the proposal, nothing is saved and the fresh proposal is returned to confirm.
+   */
+  async saveProposal(proposalId: string, customerId: string, dto: SaveProposalDto) {
+    const proposal = await this.prisma.routineProposal.findUnique({ where: { id: proposalId }, include: { draft: true } });
     if (!proposal) throw new NotFoundException('Proposal not found');
-    if (proposal.status === RoutineProposalStatus.accepted) {
-      // Idempotent retry
-      this.workspace.verifyOwnership(proposal.draft, customerId, guestToken);
-      const routineId = (proposal.snapshot as any)?.routineId;
-      if (routineId) {
-        const routine = await this.prisma.routine.findUnique({
-          where: { id: routineId },
-          include: { steps: { include: { recommendations: true } } }
-        });
-        if (routine) return routine;
-      }
-      throw new BadRequestException('Proposal already accepted but routine not found');
-    } else if (proposal.status !== RoutineProposalStatus.proposed) {
-      throw new BadRequestException(`Cannot accept proposal with status ${proposal.status}`);
+    if (proposal.draft.customerId !== customerId) {
+      throw new ForbiddenException('Sign in and link the draft before saving the routine');
     }
 
-    // Verify ownership
-    this.workspace.verifyOwnership(proposal.draft, customerId, guestToken);
+    const existing = await this.prisma.customerRoutine.findUnique({ where: { createdFromProposalId: proposalId } });
+    if (existing) return this.myRoutines.getRoutine(existing.id, customerId);
 
-    const snapshot = proposal.snapshot as any;
-    if (!snapshot || !snapshot.steps) {
-      throw new BadRequestException('Proposal contains no valid snapshot to accept');
+    if (proposal.status !== RoutineProposalStatus.proposed) {
+      throw new BadRequestException(`Cannot save a proposal with status ${proposal.status}`);
+    }
+    if (proposal.draftVersion !== proposal.draft.version) {
+      throw new ConflictException({ code: 'PROPOSAL_OUTDATED', message: 'The draft changed after this proposal; use the latest one.' });
     }
 
-    // Re-validate before acceptance
-    const validationResult = await this.validator.validateProposal(snapshot);
-    if (!validationResult.isValid) {
-      throw new BadRequestException('Proposal is no longer valid: ' + validationResult.errors.join(', '));
+    const { proposal: fresh, facts } = await this.run(proposal.draft);
+    const stored = proposal.snapshot as unknown as EngineProposal;
+    if (fingerprint(fresh) !== fingerprint(stored)) {
+      const replacement = await this.prisma.routineProposal.create({
+        data: { draftId: proposal.draftId, status: RoutineProposalStatus.proposed, snapshot: fresh as unknown as Prisma.InputJsonValue,
+          totalPrice: fresh.totals.all, draftVersion: proposal.draft.version, engineVersion: ENGINE_VERSION, error: Prisma.DbNull },
+      });
+      throw new ConflictException({ code: 'PROPOSAL_CHANGED', message: 'Availability or prices changed; review the updated routine.', proposalId: replacement.id });
+    }
+    if (fresh.items.some(i => i.isEssential && (i.status === 'UNAVAILABLE' || i.status === 'UPGRADE_AVAILABLE'))) {
+      throw new UnprocessableEntityException({ code: 'ESSENTIAL_STEP_MISSING', message: 'Every essential step needs a product or "I have it" first.' });
     }
 
-    // Explicit acceptance -> Saved Routine revision
-    // Create new Routine and RoutineSteps
+    const draft = proposal.draft;
+    const safety = readSafety(draft.safety);
+    let routineId: string;
     try {
-      return await this.prisma.$transaction(async (tx: any) => {
-        const routine = await tx.routine.create({
+      routineId = await this.prisma.$transaction(async tx => {
+        const profile = await tx.customerCareProfile.upsert({
+          where: { customerId },
+          create: { customerId, skinType: draft.skinType, ageBand: draft.ageBand, experienceLevel: draft.experienceLevel,
+            fragranceFree: draft.fragranceFree },
+          update: { skinType: draft.skinType ?? undefined, ageBand: draft.ageBand ?? undefined,
+            experienceLevel: draft.experienceLevel ?? undefined, fragranceFree: draft.fragranceFree ?? undefined },
+        });
+        if (draft.consentVersion && draft.consentAt && draft.ageBand !== 'UNDER_15') {
+          const flags = { ...safety, allergyIngredientIds: draft.allergyIngredientIds, consentVersion: draft.consentVersion, consentAt: draft.consentAt };
+          await tx.careSafetyFlags.upsert({ where: { careProfileId: profile.id }, create: { careProfileId: profile.id, ...flags }, update: flags });
+        }
+        const routine = await tx.customerRoutine.create({
           data: {
-            title: snapshot.title || 'My Routine',
-            description: snapshot.description,
-            careArea: proposal.draft.careArea,
-            isTemplate: false,
-            isActive: true,
-            steps: {
-              create: snapshot.steps.map((step: any, idx: number) => ({
-                title: step.title,
-                instructions: step.instructions,
-                stepOrder: idx,
-                timing: step.timing || RoutineTiming.both,
-                isOptional: step.isOptional || false,
-                recommendations: step.resolvedProductId ? {
-                  create: [{ productId: step.resolvedProductId, source: 'ai' }]
-                } : undefined
-              }))
-            }
-          }
-        });
-
-        // Mark proposal accepted (idempotency)
-        const updatedSnapshot = { ...snapshot, routineId: routine.id };
-        const updatedProposal = await tx.routineProposal.updateMany({
-          where: { id: proposalId, status: RoutineProposalStatus.proposed },
-          data: { 
-            status: RoutineProposalStatus.accepted,
-            snapshot: updatedSnapshot
-          }
-        });
-
-        if (updatedProposal.count === 0) {
-           throw new ConflictException('Proposal already accepted concurrently');
-        }
-
-        if (proposal.draft.customerId) {
-          await tx.customerCareProfile.upsert({
-            where: { customerId: proposal.draft.customerId },
-            create: {
-              customerId: proposal.draft.customerId,
-              routineId: routine.id
+            careProfileId: profile.id,
+            blueprintId: fresh.blueprint.id,
+            blueprintVersion: fresh.blueprint.version,
+            concernSlug: fresh.blueprint.concernSlug,
+            careArea: fresh.blueprint.careArea,
+            kind: fresh.blueprint.kind,
+            titleAr: fresh.blueprint.titleAr,
+            tier: fresh.tier as RoutineTier,
+            budget: draft.budget,
+            createdFromProposalId: proposal.id,
+            items: {
+              create: fresh.items.filter(i => i.status === 'SELECTED' || i.status === 'OWNED').map(i => ({
+                roleKey: i.roleKey, sortOrder: i.sortOrder, isEssential: i.isEssential,
+                productId: i.product?.productId ?? null, skuId: i.product?.skuId ?? null,
+                tier: (i.product?.tier as RoutineTier | undefined) ?? null,
+                isOwned: i.status === 'OWNED',
+                purchasePhase: i.purchasePhase as RoutinePurchasePhase, startWeek: i.startWeek,
+                reasonCodes: i.reasonCodes, addedAtVersion: 1,
+              })),
             },
-            update: {
-              routineId: routine.id
-            }
-          });
-        }
-
-        return routine;
+            versions: {
+              create: {
+                version: 1,
+                snapshot: versionSnapshot(fresh, facts, {
+                  safetyAnswers: draft.ageBand === 'UNDER_15' ? null : safety,
+                  answers: { severity: draft.severity, skinType: draft.skinType, ageBand: draft.ageBand, budget: draft.budget },
+                }) as unknown as Prisma.InputJsonValue,
+              },
+            },
+          },
+        });
+        const marked = await tx.routineProposal.updateMany({
+          where: { id: proposal.id, status: RoutineProposalStatus.proposed }, data: { status: RoutineProposalStatus.accepted },
+        });
+        if (marked.count === 0) throw new ConflictException('Proposal already saved concurrently');
+        return routine.id;
       });
     } catch (error) {
-      if (error instanceof ConflictException && error.message === 'Proposal already accepted concurrently') {
-         const acceptedProposal = await this.prisma.routineProposal.findUnique({
-           where: { id: proposalId }
-         });
-         if (acceptedProposal?.status === RoutineProposalStatus.accepted) {
-           const routineId = (acceptedProposal.snapshot as any)?.routineId;
-           if (routineId) {
-             const routine = await this.prisma.routine.findUnique({
-               where: { id: routineId },
-               include: { steps: { include: { recommendations: true } } }
-             });
-             if (routine) return routine;
-           }
-         }
-      }
+      // A concurrent save of the same proposal won the unique createdFromProposalId: return that routine.
+      const winner = await this.prisma.customerRoutine.findUnique({ where: { createdFromProposalId: proposalId } });
+      if (winner) return this.myRoutines.getRoutine(winner.id, customerId);
       throw error;
     }
+
+    if (dto.activate !== false) {
+      const result = await this.myRoutines.tryActivate(routineId, customerId, []);
+      return { ...(await this.myRoutines.getRoutine(routineId, customerId)), activationResult: result };
+    }
+    return this.myRoutines.getRoutine(routineId, customerId);
   }
+
+  /** What a guest or customer can put in the cart straight from the current proposal (§5.5). */
+  async purchasableFromProposal(proposalId: string, owner: DraftOwner, phase: 'IMMEDIATE' | 'ALL') {
+    const proposal = await this.prisma.routineProposal.findUnique({ where: { id: proposalId }, include: { draft: true } });
+    if (!proposal) throw new NotFoundException('Proposal not found');
+    this.workspace.verifyOwnership(proposal.draft, owner);
+    if (proposal.draftVersion !== proposal.draft.version) {
+      throw new ConflictException({ code: 'PROPOSAL_OUTDATED', message: 'The draft changed after this proposal; use the latest one.' });
+    }
+    const snapshot = proposal.snapshot as unknown as EngineProposal;
+    return snapshot.items
+      .filter(i => i.status === 'SELECTED' && i.product?.skuId)
+      .filter(i => phase === 'ALL' || i.purchasePhase === 'IMMEDIATE')
+      .map(i => ({ roleKey: i.roleKey, productId: i.product!.productId, skuId: i.product!.skuId! }));
+  }
+
+  private async run(draft: Prisma.RoutineDraftGetPayload<object>) {
+    if (!draft.primaryConcern) {
+      throw new UnprocessableEntityException({ code: 'CONCERN_REQUIRED', message: 'Pick the concern first.' });
+    }
+    const blueprints = await this.engine.publishedBlueprints(draft.primaryConcern);
+    const blueprint = selectBlueprint(blueprints, draft.primaryConcern, draft.severity ?? null);
+    if (!blueprint) {
+      throw new UnprocessableEntityException({ code: 'CONCERN_NOT_AVAILABLE', message: 'No published routine for this concern yet.' });
+    }
+    const profile = draft.customerId
+      ? await this.prisma.customerCareProfile.findUnique({ where: { customerId: draft.customerId }, select: { id: true } })
+      : null;
+    const [{ candidates, facts }, rules, activeProducts] = await Promise.all([
+      this.engine.candidatesFor(blueprint),
+      this.engine.activeRules(),
+      this.engine.activeRoutineProducts(profile?.id ?? null),
+    ]);
+    const proposal = buildProposal(blueprint, candidates, rules, this.engine.contextFromDraft(draft, activeProducts));
+    return { proposal, facts };
+  }
+}
+
+/** What must not change silently between showing a routine and saving it. */
+function fingerprint(p: EngineProposal) {
+  return JSON.stringify({
+    blueprint: [p.blueprint.id, p.blueprint.version], tier: p.tier, mode: p.mode,
+    items: p.items.map(i => [i.roleKey, i.status, i.product?.productId ?? null, i.product?.skuId ?? null, i.product?.price ?? null, i.purchasePhase]),
+  });
 }

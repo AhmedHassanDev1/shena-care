@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "npm run dev --workspace=api & npm run dev --workspace=web",
     "dev:api": "npm run dev --workspace=api",
-    "dev:business": "npm run dev --workspace=business",
+    "dev:business": "npm --prefix apps/business run dev",
     "dev:web": "npm run dev --workspace=web",
     "build": "npm run build --workspace=api && npm run build --workspace=web",
     "build:api": "npm run build --workspace=api",

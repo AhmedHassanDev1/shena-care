@@ -12,7 +12,7 @@ async function bootstrap() {
   app.use(helmet({
     contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
   }));
-
+ 
   app.use(
     rateLimit({
       windowMs: 1 * 60 * 1000, // 1 minute
@@ -33,7 +33,7 @@ async function bootstrap() {
 
   const allowedOrigins = process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(',').map((u) => u.trim())
-    : ['http://localhost:3000', 'http://localhost:3020'];
+    : ['http://localhost:3000', 'http://localhost:3002'];
   
   app.enableCors({
     origin: (origin, callback) => {

@@ -16,6 +16,7 @@
     "migration:run": "prisma migrate deploy",
     "migration:revert": "prisma migrate reset",
     "seed": "ts-node src/platform/database/seed.ts",
+    "seed:routine": "ts-node scripts/seed-routine-system.ts",
     "events:dispatch": "ts-node scripts/dispatch-domain-events.ts",
     "staff:provision": "ts-node scripts/provision-staff.ts",
     "audit:offers": "ts-node scripts/audit-supplier-offers.ts"

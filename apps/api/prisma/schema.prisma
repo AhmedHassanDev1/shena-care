@@ -1855,11 +1855,16 @@ model CustomerCareProfile {
   currency      String?   @db.VarChar(3)
   sensitivities String?
   routineId     String?   @map("routine_id") @db.Uuid
+  ageBand         CareAgeBand?         @map("age_band")
+  experienceLevel CareExperienceLevel? @map("experience_level")
+  fragranceFree   Boolean?             @map("fragrance_free")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  routine  Routine?                     @relation(fields: [routineId], references: [id])
-  concerns CustomerCareProfileConcern[]
+  routine          Routine?                     @relation(fields: [routineId], references: [id])
+  concerns         CustomerCareProfileConcern[]
+  safetyFlags      CareSafetyFlags?
+  customerRoutines CustomerRoutine[]
 
   @@index([routineId])
   @@map("customer_care_profiles")
@@ -1920,6 +1925,23 @@ model RoutineDraft {
   preferences     Json?    
   ownedProductIds String[] @map("owned_product_ids")
 
+  /// 1 mild · 2 moderate · 3 severe (severe routes to the safety path, ROUTINE_SYSTEM.md §8).
+  severity        Int?
+  skinType        SkinType?            @map("skin_type")
+  tier            RoutineTier?
+  ageBand         CareAgeBand?         @map("age_band")
+  experienceLevel CareExperienceLevel? @map("experience_level")
+  fragranceFree   Boolean?             @map("fragrance_free")
+  /// Safety answers for this draft only: { pregnant, breastfeeding, prescriptionTopical, oralRetinoid, fragranceSensitive }
+  /// each YES | NO | UNKNOWN, plus pending flags for answers read from chat. Never free text.
+  safety          Json?
+  allergyIngredientIds String[]     @map("allergy_ingredient_ids")
+  ownedRoleKeys   String[]          @map("owned_role_keys")
+  /// Builder overrides replayed by the engine: { swaps: { roleKey: productId }, removed: roleKey[], upgrades: roleKey[] }
+  overrides       Json?
+  consentVersion  String?           @map("consent_version")
+  consentAt       DateTime?         @map("consent_at")
+
   version         Int      @default(1)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -1947,6 +1969,9 @@ model RoutineProposal {
   snapshot        Json
   totalPrice      Decimal? @map("total_price") @db.Decimal(10, 2)
   error           Json?    // Typed recoverable error state
+  /// Draft version the engine ran on; only the proposal for the current draft version can be saved.
+  draftVersion    Int?     @map("draft_version")
+  engineVersion   String?  @map("engine_version")
   createdAt       DateTime @default(now()) @map("created_at")
 
   draft           RoutineDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
@@ -1976,6 +2001,309 @@ model GuidanceMessage {
 
   @@index([sessionId])
   @@map("guidance_messages")
+  @@schema("care")
+}
+
+// ---------------------------------------------------------------------------
+// Routine system — phase 1, individual (docs/project/ROUTINE_SYSTEM.md)
+// ---------------------------------------------------------------------------
+
+enum CareAgeBand {
+  UNDER_15
+  AGE_15_17
+  ADULT
+
+  @@schema("care")
+}
+
+enum CareExperienceLevel {
+  BEGINNER
+  EXPERIENCED
+
+  @@schema("care")
+}
+
+enum CareTriState {
+  YES
+  NO
+  UNKNOWN
+
+  @@schema("care")
+}
+
+enum RoutineTier {
+  SMART
+  COMPLETE
+  LUXE
+
+  @@schema("care")
+}
+
+enum RoutineKind {
+  TREATMENT
+  SUPPORT
+  MAINTENANCE
+
+  @@schema("care")
+}
+
+enum BlueprintStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+
+  @@schema("care")
+}
+
+enum EligibilityReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@schema("care")
+}
+
+enum IngredientRuleKind {
+  /// Both may be in one routine, applied at different times (e.g. benzoyl peroxide + tretinoin).
+  SEPARATE_TIMES
+  /// Explicitly compatible; recorded so the engine does not guess (e.g. benzoyl peroxide + adapalene).
+  COMPATIBLE
+  /// At most one product with the subject across all ACTIVE routines of one care area.
+  MAX_ONE_PER_AREA
+  /// The subject is excluded while the condition is YES or UNKNOWN.
+  EXCLUDE_CONDITION
+
+  @@schema("care")
+}
+
+enum IngredientRuleSubject {
+  FAMILY
+  INGREDIENT
+
+  @@schema("care")
+}
+
+enum IngredientRuleStatus {
+  ACTIVE
+  DRAFT
+
+  @@schema("care")
+}
+
+enum RoutineActivation {
+  ACTIVE
+  INACTIVE
+
+  @@schema("care")
+}
+
+enum RoutineLifecycle {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  STOPPED
+
+  @@schema("care")
+}
+
+enum RoutinePurchasePhase {
+  IMMEDIATE
+  DEFERRED
+
+  @@schema("care")
+}
+
+/// The fixed structure of a routine for one concern and severity range. System data, published from admin only.
+model RoutineBlueprint {
+  id                 String          @id @default(uuid()) @db.Uuid
+  key                String          @unique
+  concernSlug        String          @map("concern_slug")
+  careArea           CareArea        @map("care_area")
+  kind               RoutineKind
+  severityMin        Int             @default(1) @map("severity_min")
+  severityMax        Int             @default(2) @map("severity_max")
+  titleAr            String          @map("title_ar")
+  titleEn            String          @map("title_en")
+  goalAr             String?         @map("goal_ar")
+  timelineAr         String?         @map("timeline_ar")
+  safetyNotesAr      String[]        @map("safety_notes_ar")
+  /// [{ title, url }] the rules and timeline come from; publishing requires at least one.
+  sources            Json
+  status             BlueprintStatus @default(DRAFT)
+  version            Int             @default(1)
+  publishedAt        DateTime?       @map("published_at")
+  publishedBy        String?         @map("published_by")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  roles BlueprintRole[]
+
+  @@index([concernSlug, status])
+  @@map("routine_blueprints")
+  @@schema("care")
+}
+
+/// One step of a blueprint, in application order. A role with required actives is a treatment role.
+model BlueprintRole {
+  id                     String  @id @default(uuid()) @db.Uuid
+  blueprintId            String  @map("blueprint_id") @db.Uuid
+  roleKey                String  @map("role_key")
+  sortOrder              Int     @map("sort_order")
+  titleAr                String  @map("title_ar")
+  isEssential            Boolean @default(true) @map("is_essential")
+  /// Week the step joins the routine (1 = from the start). Sunscreen is always 1.
+  startWeek              Int     @default(1) @map("start_week")
+  /// Ingredient family or ingredient slugs; a candidate needs one of them as a reviewed key active.
+  requiredActives        String[] @map("required_actives")
+  /// [{ subject, min, max, unit }]: the stated concentration must fall inside when the subject is the active used.
+  concentrationRanges    Json?   @map("concentration_ranges")
+  usageNoteAr            String? @map("usage_note_ar")
+
+  blueprint RoutineBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+
+  @@unique([blueprintId, roleKey])
+  @@index([blueprintId])
+  @@map("blueprint_roles")
+  @@schema("care")
+}
+
+/// A product approved for a role. Approval comes from admin review; the engine never infers it.
+model ProductRoleEligibility {
+  id                String                  @id @default(uuid()) @db.Uuid
+  productId         String                  @map("product_id") @db.Uuid
+  roleKey           String                  @map("role_key")
+  tier              RoutineTier
+  concernSlugs      String[]                @map("concern_slugs")
+  /// Empty = suitable for every skin type.
+  suitableSkinTypes SkinType[]              @map("suitable_skin_types")
+  reviewStatus      EligibilityReviewStatus @default(PENDING) @map("review_status")
+  reviewedBy        String?                 @map("reviewed_by")
+  reviewedAt        DateTime?               @map("reviewed_at")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+
+  @@unique([productId, roleKey])
+  @@index([roleKey, reviewStatus])
+  @@map("product_role_eligibility")
+  @@schema("care")
+}
+
+/// Compatibility and exclusion matrix (ROUTINE_SYSTEM.md §8-أ). Every row names its source.
+model IngredientRule {
+  id            String                @id @default(uuid()) @db.Uuid
+  key           String                @unique
+  kind          IngredientRuleKind
+  subjectType   IngredientRuleSubject @map("subject_type")
+  subject       String
+  otherType     IngredientRuleSubject? @map("other_type")
+  other         String?
+  /// PREGNANT | BREASTFEEDING | ORAL_RETINOID | PRESCRIPTION_TOPICAL | AGE_UNDER_12 for EXCLUDE_CONDITION.
+  condition     String?
+  noteAr        String?               @map("note_ar")
+  sourceTitle   String                @map("source_title")
+  sourceUrl     String?               @map("source_url")
+  /// PUBLISHED_GUIDANCE | STUDY | SHINACARE_POLICY (a conservative product rule, not a medical claim).
+  sourceType    String                @map("source_type")
+  status        IngredientRuleStatus  @default(ACTIVE)
+  reviewedAt    DateTime              @default(now()) @map("reviewed_at")
+  createdAt     DateTime              @default(now()) @map("created_at")
+
+  @@index([kind, status])
+  @@map("ingredient_rules")
+  @@schema("care")
+}
+
+/// Safety answers of one care profile. Tri-state: UNKNOWN is never read as NO.
+model CareSafetyFlags {
+  id                   String       @id @default(uuid()) @db.Uuid
+  careProfileId        String       @unique @map("care_profile_id") @db.Uuid
+  pregnant             CareTriState @default(UNKNOWN)
+  breastfeeding        CareTriState @default(UNKNOWN)
+  prescriptionTopical  CareTriState @default(UNKNOWN) @map("prescription_topical")
+  oralRetinoid         CareTriState @default(UNKNOWN) @map("oral_retinoid")
+  fragranceSensitive   CareTriState @default(UNKNOWN) @map("fragrance_sensitive")
+  allergyIngredientIds String[]     @map("allergy_ingredient_ids")
+  consentVersion       String       @map("consent_version")
+  consentAt            DateTime     @map("consent_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  careProfile CustomerCareProfile @relation(fields: [careProfileId], references: [id], onDelete: Cascade)
+
+  @@map("care_safety_flags")
+  @@schema("care")
+}
+
+/// A customer's saved routine. Activation and lifecycle are separate axes (ROUTINE_SYSTEM.md §5.6).
+model CustomerRoutine {
+  id                     String            @id @default(uuid()) @db.Uuid
+  careProfileId          String            @map("care_profile_id") @db.Uuid
+  blueprintId            String            @map("blueprint_id") @db.Uuid
+  blueprintVersion       Int               @map("blueprint_version")
+  concernSlug            String            @map("concern_slug")
+  careArea               CareArea          @map("care_area")
+  kind                   RoutineKind
+  titleAr                String            @map("title_ar")
+  tier                   RoutineTier?
+  activation             RoutineActivation @default(INACTIVE)
+  lifecycle              RoutineLifecycle  @default(NOT_STARTED)
+  /// Why it is inactive or stopped, for the customer: COMPLETED | SEASON | CUSTOMER | SAFETY_IRRITATION | AREA_LIMIT ...
+  statusReason           String?           @map("status_reason")
+  version                Int               @default(1)
+  budget                 Decimal?          @db.Decimal(10, 2)
+  createdFromProposalId  String            @unique @map("created_from_proposal_id") @db.Uuid
+  startedAt              DateTime?         @map("started_at")
+  completedAt            DateTime?         @map("completed_at")
+  stoppedAt              DateTime?         @map("stopped_at")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+
+  careProfile CustomerCareProfile      @relation(fields: [careProfileId], references: [id], onDelete: Cascade)
+  items       CustomerRoutineItem[]
+  versions    CustomerRoutineVersion[]
+
+  @@index([careProfileId, activation])
+  @@map("customer_routines")
+  @@schema("care")
+}
+
+/// One step of a saved routine. Items are never edited in place: a change closes the item and adds a new one.
+model CustomerRoutineItem {
+  id                  String               @id @default(uuid()) @db.Uuid
+  routineId           String               @map("routine_id") @db.Uuid
+  roleKey             String               @map("role_key")
+  sortOrder           Int                  @map("sort_order")
+  isEssential         Boolean              @map("is_essential")
+  productId           String?              @map("product_id") @db.Uuid
+  skuId               String?              @map("sku_id") @db.Uuid
+  tier                RoutineTier?
+  isOwned             Boolean              @default(false) @map("is_owned")
+  sharedWithRoutineId String?              @map("shared_with_routine_id") @db.Uuid
+  purchasePhase       RoutinePurchasePhase @default(IMMEDIATE) @map("purchase_phase")
+  startWeek           Int                  @default(1) @map("start_week")
+  reasonCodes         String[]             @map("reason_codes")
+  addedAtVersion      Int                  @map("added_at_version")
+  removedAtVersion    Int?                 @map("removed_at_version")
+  createdAt           DateTime             @default(now()) @map("created_at")
+
+  routine CustomerRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@index([routineId, removedAtVersion])
+  @@map("customer_routine_items")
+  @@schema("care")
+}
+
+/// Frozen record of what the customer was told at one version: facts, usage, reasons, safety answers, rules.
+model CustomerRoutineVersion {
+  id        String   @id @default(uuid()) @db.Uuid
+  routineId String   @map("routine_id") @db.Uuid
+  version   Int
+  snapshot  Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  routine CustomerRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@unique([routineId, version])
+  @@map("customer_routine_versions")
   @@schema("care")
 }
 
