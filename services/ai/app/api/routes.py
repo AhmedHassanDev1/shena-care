@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Header, status
+from fastapi import APIRouter, Depends, Header, status
 
 from app.contracts.enrichment import (
     HealthResponse,
@@ -13,6 +13,7 @@ from app.contracts.content import (
     ProductContentGenerationRequest,
     ProductContentGenerationResult,
 )
+from app.core.auth import require_service_token
 from app.core.config import get_settings
 from app.providers.registry import get_provider, get_guidance_provider, get_content_provider
 from app.services.enrichment_service import EnrichmentService
@@ -33,6 +34,7 @@ async def health() -> HealthResponse:
     "/v1/enrichment/product",
     response_model=ProductEnrichmentResult,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_service_token)],
 )
 async def enrich_product(
     request: ProductEnrichmentRequest,
@@ -45,6 +47,7 @@ async def enrich_product(
     "/v1/guidance/recommend",
     response_model=GuidanceRecommendationResult,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_service_token)],
 )
 async def recommend_routine(
     request: GuidanceRecommendationRequest,
@@ -57,6 +60,7 @@ async def recommend_routine(
     "/v1/content/generate",
     response_model=ProductContentGenerationResult,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_service_token)],
 )
 async def generate_content(
     request: ProductContentGenerationRequest,

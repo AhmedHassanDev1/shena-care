@@ -1,8 +1,9 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import TEST_SERVICE_TOKEN
 
-client = TestClient(app)
+client = TestClient(app, headers={"Authorization": f"Bearer {TEST_SERVICE_TOKEN}"})
 
 
 def test_health_returns_ok() -> None:

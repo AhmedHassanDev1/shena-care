@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { createHmac, randomBytes, randomUUID } from 'crypto';
 import {
   AiClient,
   AiClientError,
@@ -39,10 +40,18 @@ interface TransportResult {
 export class HttpAiClient implements AiClient {
   private readonly logger = new Logger(HttpAiClient.name);
 
+  private readonly pseudonymKey: Buffer;
+
   constructor(
     private readonly baseUrl: string = process.env.AI_SERVICE_URL ?? 'http://localhost:8000',
     private readonly timeoutMs: number = Number(process.env.AI_SERVICE_TIMEOUT_MS ?? 5000),
-  ) {}
+    /** Shared secret the AI service requires on every /v1 call (AI_SERVICE_TOKEN). */
+    private readonly serviceToken: string | undefined = process.env.AI_SERVICE_TOKEN || undefined,
+    /** Key for the customer pseudonyms the model sees (AI_PSEUDONYM_SECRET); a per-process key when unset. */
+    pseudonymSecret: string | undefined = process.env.AI_PSEUDONYM_SECRET || undefined,
+  ) {
+    this.pseudonymKey = pseudonymSecret ? Buffer.from(pseudonymSecret) : randomBytes(32);
+  }
 
   async enrichProduct(input: ProductEnrichmentInput, correlationId?: string): Promise<ProductEnrichmentResult> {
     if (input.sourceUrl) {
@@ -61,10 +70,7 @@ export class HttpAiClient implements AiClient {
     try {
       response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(correlationId ? { 'X-Correlation-ID': correlationId } : {}),
-        },
+        headers: this.requestHeaders(correlationId),
         body: JSON.stringify(this.toTransportRequest(input)),
         signal: controller.signal,
       });
@@ -104,28 +110,25 @@ export class HttpAiClient implements AiClient {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     const startTime = Date.now();
-    const resolvedCorrelationId = correlationId || require('crypto').randomUUID();
+    const resolvedCorrelationId = correlationId || randomUUID();
+    const transport = this.toGuidanceTransport(input);
 
     this.logger.log(
-      `AI guidance attempt customer=${input.customerId} correlation=${resolvedCorrelationId}`,
+      `AI guidance attempt subject=${transport.customerId} correlation=${resolvedCorrelationId}`,
     );
 
     let response: Response;
     try {
       response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Correlation-ID': resolvedCorrelationId,
-        },
-        body: JSON.stringify(input),
+        headers: this.requestHeaders(resolvedCorrelationId),
+        body: JSON.stringify(transport),
         signal: controller.signal,
       });
-      this.logger.log(`Sending catalogProducts: ${JSON.stringify(input.catalogProducts)}`);
     } catch (err) {
       const latencyMs = Date.now() - startTime;
       this.logger.error(`AI guidance network failure latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
-      throw this.mapNetworkError(err, input.customerId);
+      throw this.mapNetworkError(err, resolvedCorrelationId);
     } finally {
       clearTimeout(timer);
     }
@@ -159,7 +162,7 @@ export class HttpAiClient implements AiClient {
       this.logger.error(`AI guidance schema mismatch latencyMs=${latencyMs} version=${raw.schemaVersion} correlation=${resolvedCorrelationId}`);
       throw new AiClientError(
         AiErrorKind.INCOMPATIBLE_SCHEMA,
-        `Unsupported AI guidance schemaVersion ${String(raw.schemaVersion)} for ${input.customerId}`,
+        `Unsupported AI guidance schemaVersion ${String(raw.schemaVersion)} (correlation ${resolvedCorrelationId})`,
       );
     }
 
@@ -172,7 +175,7 @@ export class HttpAiClient implements AiClient {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs * 2); // content gen takes longer
     const startTime = Date.now();
-    const resolvedCorrelationId = correlationId || require('crypto').randomUUID();
+    const resolvedCorrelationId = correlationId || randomUUID();
 
     this.logger.log(`AI content generation attempt candidate=${input.candidateId} correlation=${resolvedCorrelationId}`);
 
@@ -180,10 +183,7 @@ export class HttpAiClient implements AiClient {
     try {
       response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Correlation-ID': resolvedCorrelationId,
-        },
+        headers: this.requestHeaders(resolvedCorrelationId),
         body: JSON.stringify(input),
         signal: controller.signal,
       });
@@ -230,6 +230,48 @@ export class HttpAiClient implements AiClient {
 
     this.logger.log(`AI content generation success latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
     return raw as ProductContentGenerationResult;
+  }
+
+  private requestHeaders(correlationId?: string): Record<string, string> {
+    return {
+      'Content-Type': 'application/json',
+      ...(this.serviceToken ? { Authorization: `Bearer ${this.serviceToken}` } : {}),
+      ...(correlationId ? { 'X-Correlation-ID': correlationId } : {}),
+    };
+  }
+
+  /**
+   * What the model may see of a customer: a keyed pseudonym instead of the customer or guest id, and only the
+   * draft fields that shape a routine. Never the id, guest token hash or anything else on the draft row.
+   */
+  private toGuidanceTransport(input: GuidanceRecommendationRequest) {
+    const draft = input.routineDraft;
+    const budget = draft?.budget === null || draft?.budget === undefined ? null : Number(draft.budget);
+    return {
+      customerId: this.pseudonymize(input.customerId),
+      profile: {
+        skinType: input.profile.skinType ?? null,
+        sensitivities: input.profile.sensitivities ?? null,
+        concerns: input.profile.concerns,
+      },
+      chatHistory: input.chatHistory.map(({ role, content }) => ({ role, content })),
+      routineDraft: draft
+        ? {
+            careArea: draft.careArea ?? null,
+            primaryConcern: draft.primaryConcern ?? null,
+            secondaryGoals: Array.isArray(draft.secondaryGoals) ? draft.secondaryGoals : [],
+            budget: budget !== null && Number.isFinite(budget) ? budget : null,
+            isBudgetStrict: Boolean(draft.isBudgetStrict),
+            maxSteps: draft.maxSteps ?? null,
+          }
+        : null,
+      catalogProducts: input.catalogProducts ?? [],
+    };
+  }
+
+  /** Stable per subject for log correlation, and not reversible without AI_PSEUDONYM_SECRET. */
+  private pseudonymize(subjectId: string): string {
+    return `subj_${createHmac('sha256', this.pseudonymKey).update(subjectId).digest('hex').slice(0, 32)}`;
   }
 
   private toTransportRequest(input: ProductEnrichmentInput): Record<string, unknown> {
