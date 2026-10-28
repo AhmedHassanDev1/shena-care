@@ -1,8 +1,12 @@
-# SAHEL V2 — the storefront design system (`apps/web`)
+# Storefront Design System (`apps/web`)
 
-SAHEL V18 is the storefront's **only** design system (approved package: `docs/design/sahel-v18/`). The previous
-"Kohl & Malachite" system, its tokens, semantic-role layer, campaign palette, fonts, assets and components were removed;
-there are no parallel themes, aliases or compatibility layers. Scope: `apps/web` only — never `apps/business`.
+> [!WARNING]
+> **DEPRECATED — DO NOT USE AS DESIGN REFERENCE**
+> The SAHEL visual design direction (SAHEL V18 / V2) is **deprecated** and is no longer an active visual reference.
+> The upcoming storefront redesign will use new **Stitch design references** as the primary source of visual truth.
+> The token definitions, generated styles, and utility presets below are preserved strictly as technical guardrails and runtime infrastructure during the redesign transition. They must not be used as visual inspiration or design authority.
+
+SAHEL V18 was the transitional design package. Scope: `apps/web` only — never `apps/business`.
 
 ```
 design-system/

@@ -59,7 +59,7 @@ apps/web/src/
 
 ## 4. Removed Legacy Visual Artifacts
 
-The following 10 obsolete presentation files were confirmed safe to delete and have been removed:
+The following 11 obsolete presentation files were confirmed safe to delete and have been removed:
 1. `src/features/home/components/HomeHero.tsx` (SAHEL billboard hero with serif campaign lines)
 2. `src/features/home/components/HeroProduct.tsx` (SAHEL hero spotlight card)
 3. `src/features/home/components/Departments.tsx` (SAHEL colored department tiles with tilted camera mockups)
@@ -70,20 +70,32 @@ The following 10 obsolete presentation files were confirmed safe to delete and h
 8. `src/features/home/home-data.ts` (mock editorial categories & brand fixtures)
 9. `src/features/shell/FloatingNav.tsx` (SAHEL 68px night capsule bottom navigation bar)
 10. `src/features/shell/NavReveal.tsx` (scroll reveal listener tied to FloatingNav)
+11. `src/components/ui/section-header.tsx` (obsolete section header created for deleted marketing shelves)
 
-Additionally, obsolete visual CSS rules were removed from `src/app/globals.css`:
-- `.shutter-light`, `.field-sahel`, `.contact-shadow`, `.sun-orb`, `.floating-nav`, and `.nav-reveal`.
+Additionally, obsolete visual CSS rules and legacy clearance padding were neutralized in `src/app/globals.css`:
+- Removed `.shutter-light`, `.field-sahel`, `.contact-shadow`, `.sun-orb`, `.floating-nav`, and `.nav-reveal`.
+- Neutralized `.pb-nav-safe` from artificial 112px clearance (`var(--nav-h) + var(--nav-gap) + var(--nav-clearance)`) down to standard safe-area padding `env(safe-area-inset-bottom, 0px)`.
+- Neutralized legacy SAHEL design comments across `globals.css` and `AuthShell.tsx`.
 
 ---
 
-## 5. Route Status and Touchpoints for Redesign
+## 5. Legacy Design Documentation Deprecation
+
+The legacy SAHEL V18 visual design documentation has been formally marked as **DEPRECATED**:
+- `apps/web/design-system/README.md`: Flagged with a deprecation banner. It specifies that SAHEL visual guidelines are obsolete, and future visual truth will come exclusively from new **Stitch design references**.
+- `CLAUDE.md`: Updated Section 4 to mark SAHEL V18 as deprecated for the upcoming redesign. Existing tokens and verification scripts serve solely as transitional technical guardrails.
+- Any references to SAHEL boards, campaign palettes, or editorial mockups in project documentation must be ignored as active design references.
+
+---
+
+## 6. Route Status and Touchpoints for Redesign
 
 All application routes are registered, functional, and return the required Arabic-first RTL document contract (`lang="ar"` `dir="rtl"`).
 
-### Routes Ready for New UI/UX Implementation:
+### Routes Ready for New UI/UX Implementation (Stitch Source of Truth):
 1. **Home (`/`)** — `src/features/home/components/HomePage.tsx`:
    - Currently a neutral functional container with direct navigation to catalog, cart, and account.
-   - Claude Code should implement the new homepage design and composition here.
+   - Claude Code should implement the new homepage design and composition here using Stitch references.
 2. **Product Catalog & Search (`/products`)** — `src/features/catalog/components/ProductListing.tsx`:
    - Infinite scroll, faceted search, category navigation, and product card grid.
    - All state and data fetching are handled; styling and layout can be redesigned freely.
@@ -110,7 +122,19 @@ These routes deliberately render `<RedesignPlaceholder route="..." />` and are c
 
 ---
 
-## 6. Verification Status
+## 7. Remaining Legacy Design Dependencies (Transitional Infrastructure)
+
+The following token infrastructure remains in place to support existing functional components and satisfy guardrails until Claude Code replaces them with the new Stitch design system:
+1. `design-system/tokens.json` & `design-system/tokens.app.json`: Base tokens (colors, type ramps, shadows, radii) powering Tailwind preset (`tailwind-preset.ts`).
+2. `scripts/build-tokens.mjs`: Token compiler generating `src/styles/tokens.generated.css` and `src/styles/design-scales.generated.ts`.
+3. `scripts/check-design-system.mjs`: Design guardrails script enforcing WCAG contrast, logical direction (no physical left/right), and no raw palette classes.
+4. `src/styles/contrast-pairs.json`: WCAG accessible contrast definitions.
+
+When implementing the Stitch redesign, update `tokens.json` / `tokens.app.json` with the new design tokens and re-run `npm run tokens`.
+
+---
+
+## 8. Verification Commands & Baseline Status
 
 All verification suites in `apps/web` pass with zero errors:
 - `npm run tokens:check`: **PASS** (tokens in sync)

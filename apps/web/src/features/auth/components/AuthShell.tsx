@@ -8,12 +8,8 @@ import { Wordmark } from '@/components/ui/wordmark';
 import { AuthBackLink } from './AuthBackLink';
 
 /**
- * Sign-in frame (AuthEntryD / AuthOtpD / AuthMobile, Authentication Addendum §Screens): its own page in Focus Mode —
- * back plus one primary action, no floating nav.
- *  - desktop: wordmark + SHINACARE and the contextual back link; the form (max 480) at the reading start and the
- *    Sahel-blue editorial panel in its neutral fallback (shutter-light field, headline, benefits, no photograph —
- *    the licensed SAHEL image does not exist yet);
- *  - phone: 56-tall header with the contextual back control at the start and the wordmark at the end, then the form.
+ * Neutral authentication shell container providing focused navigation, responsive header,
+ * and form containment for phone sign-in and OTP verification flows.
  */
 export function AuthShell({ children }: { children: ReactNode }) {
   const m = getMessages(getLocale());

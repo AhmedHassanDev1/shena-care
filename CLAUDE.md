@@ -75,13 +75,16 @@ A feature is **Done** only when schema, business rules, validation, tests, and d
 
 ## 4. Frontend Design System (`apps/web` only)
 
-The storefront uses **SAHEL V2 (package SAHEL V18)** as its only design system — approved package `docs/design/sahel-v18/` (read its `README.md` precedence rules: boards over docs, Authentication Addendum over V17 for sign-in, FloatingNav over the drawn tab bar, `03-tokens/tokens.json` canonical, `99-archive/` never). Full guide: [`apps/web/design-system/README.md`](apps/web/design-system/README.md). Scope: `apps/web` — never `apps/business`. No parallel themes, legacy aliases or compatibility layers.
+> [!NOTE]
+> **SAHEL V18 DEPRECATED FOR UPCOMING REDESIGN**: The SAHEL V18 visual design direction is deprecated. Future visual design will be implemented using new Stitch design references as the primary source of visual truth. The token infrastructure, presets, and check scripts below currently serve as baseline technical guardrails during the redesign transition.
+
+The transitional design system package was SAHEL V18. Full guide: [`apps/web/design-system/README.md`](apps/web/design-system/README.md). Scope: `apps/web` — never `apps/business`. No parallel themes, legacy aliases or compatibility layers.
 
 ### Where things live
 - **Canonical tokens:** `apps/web/design-system/tokens.json` — byte-identical to `docs/design/sahel-v18/03-tokens/tokens.json`. `tokens.app.json` holds only values the V18 package states elsewhere (board-only colours pending design confirmation, mobile display sizes, board type/radius/spacing ramps, control sizes, board shadows, motion, breakpoints); it can never redefine a canonical name.
 - **Generated runtime styles:** `npm run tokens` (`scripts/build-tokens.mjs`) → `src/styles/tokens.generated.css` + `src/styles/design-scales.generated.ts`. Both are committed; never edit them. `predev`/`prebuild` regenerate them. Tailwind reads the same JSON through `design-system/tailwind-preset.ts` and *replaces* its default colours/radii/shadows/type scales, so `tailwind.config.ts` holds no design values and raw palette classes do not exist.
 - **Fonts:** Beiruti (display), IBM Plex Sans Arabic (text), Instrument Serif italic (campaign line only), self-hosted from `@fontsource` in `src/app/layout.tsx`; `<html lang dir>` is set from the locale (Arabic RTL first).
-- **Shared components:** `src/components/ui/*` (Button / AsyncButton with Shutter Loading, IconButton, TextField / PhoneField / TextAreaField, OtpInput, SearchField, Chip, StatusChip, MessageBox, QuantityStepper, ProductTile, Timeline, Toast, Sheet, Dialog, Skeleton, Icon, Wordmark, SectionHeader) and the shell `src/features/shell/*` (SiteHeader, FloatingNav, FocusHeader, SiteFooter, StorefrontShell, CartLink). The shared product card is `src/features/catalog/components/ProductCard.tsx`.
+- **Shared components:** `src/components/ui/*` (Button / AsyncButton with Shutter Loading, IconButton, TextField / PhoneField / TextAreaField, OtpInput, SearchField, Chip, StatusChip, MessageBox, QuantityStepper, ProductTile, Timeline, Toast, Sheet, Dialog, Skeleton, Icon, Wordmark) and the shell `src/features/shell/*` (SiteHeader, FocusHeader, SiteFooter, StorefrontShell, CartLink). The shared product card is `src/features/catalog/components/ProductCard.tsx`.
 
 ### Adoption rules
 1. No hex, raw palette classes, legacy "Kohl & Malachite" names, arbitrary `text-[…]`/`bg-[…]`/`rounded-[…]`/`shadow-[…]`/`font-[…]`/`leading-[…]`/`tracking-[…]`, `lucide-react`, or physical `left/right` utilities in TSX (enforced by `npm run check:design`).

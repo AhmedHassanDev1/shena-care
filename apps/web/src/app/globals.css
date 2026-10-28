@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
- * SAHEL V2 global foundations. Every value is a design token (src/styles/tokens.generated.css, generated from
+ * Global styling foundations. Values are design tokens (src/styles/tokens.generated.css, generated from
  * design-system/tokens.json + tokens.app.json); component styling belongs to src/components.
  */
 
@@ -45,7 +45,7 @@ bdi {
   unicode-bidi: isolate;
 }
 
-/* SAHEL focus: a 2.5px Sahel-blue ring with a 3px offset (SAHEL V2 README §Color). */
+/* Focus visible ring: accessible high-contrast indicator. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 2.5px solid var(--blue);
   outline-offset: 3px;
@@ -147,7 +147,7 @@ bdi {
     outline: none;
   }
 
-  /* Text link with the SAHEL underline (Home «كل الماركات», «شوف الكل»). */
+  /* Text link with distinct underline */
   .text-link {
     display: inline-flex;
     align-items: center;
@@ -189,14 +189,9 @@ bdi {
     text-align: match-parent;
   }
 
-  /* Floating-nav pages: content ends 32 above the nav (handoff §Dynamic safe area, 146 on a 390 board). */
+  /* Safe-area bottom padding for mobile viewports */
   .pb-nav-safe {
-    padding-bottom: calc(var(--nav-h) + var(--nav-gap) + var(--nav-clearance) + env(safe-area-inset-bottom, 0px));
-  }
-  @media (min-width: 1024px) {
-    .pb-nav-safe {
-      padding-bottom: 0;
-    }
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .pb-safe {
