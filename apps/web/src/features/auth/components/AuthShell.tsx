@@ -17,7 +17,6 @@ import { AuthBackLink } from './AuthBackLink';
  */
 export function AuthShell({ children }: { children: ReactNode }) {
   const m = getMessages(getLocale());
-  const [line1, line2] = m.authPanelTitle.split('|');
 
   return (
     <div className="min-h-dvh bg-bone">
@@ -38,35 +37,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
         </PageContainer>
       </header>
 
-      <PageContainer className="pb-10 lg:grid lg:grid-cols-[minmax(0,480px)_minmax(0,1fr)] lg:items-start lg:gap-20 lg:pt-2">
-        <section className="flex flex-col gap-5 px-0 pt-6 lg:px-1 lg:pt-16">{children}</section>
-
-        <aside
-          aria-label={m.authPanelLabel}
-          className="field-sahel shutter-light warm hidden min-h-auth-panel-h flex-col justify-between rounded-sheet shadow-elevation-3 lg:flex"
-        >
-          <div className="px-13 pt-14">
-            <span className="flex items-center gap-3 text-12 font-semibold leading-17">
-              <span>{m.authPanelEyebrow}</span>
-              <span aria-hidden="true" className="h-[1.5px] w-18 bg-bone/55" />
-            </span>
-          </div>
-          <div className="flex flex-col gap-5.5 px-13 pb-14">
-            <p className="m-0 text-display-hero">
-              {line1}
-              <br />
-              {line2}
-            </p>
-            <ul className="m-0 flex list-none flex-col gap-2.5 p-0 pt-5.5 text-15 leading-24 shadow-hairline-on-blue">
-              {[m.authPanelBenefit1, m.authPanelBenefit2, m.authPanelBenefit3].map((benefit) => (
-                <li key={benefit} className="flex items-center gap-2.5">
-                  <span aria-hidden="true" className="h-[1.5px] w-4.5 bg-saffron" />
-                  {benefit}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
+      <PageContainer className="pb-10 pt-4 lg:pt-12">
+        <section className="mx-auto flex max-w-[480px] flex-col gap-5 px-0 pt-6 lg:px-1">{children}</section>
       </PageContainer>
     </div>
   );

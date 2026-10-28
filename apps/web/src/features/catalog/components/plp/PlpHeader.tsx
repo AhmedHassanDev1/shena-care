@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Chip } from '@/components/ui/chip';
-import { ProductTile } from '@/components/ui/product-tile';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { formatNumber } from '@/lib/i18n/format';
 import { fillMessage } from '@/lib/i18n/messages';
@@ -16,21 +15,18 @@ import type { CategoryNode, ListingContext } from '../../lib/listing';
 interface PlpHeaderProps {
   context: ListingContext;
   total: number | null;
-  /** First products of the listing: their catalog images fill the banner's tilted prints (no campaign photography). */
-  prints: CardModel[];
+  prints?: CardModel[];
   tree: CategoryNode[] | undefined;
   filters: DiscoveryFilters;
   onNavigate: (next: DiscoveryFilters) => void;
 }
-
-const FIELD: Record<string, string> = { 'skin-care': 'bg-coral text-night', 'hair-care': 'field-sahel text-linen' };
 
 /**
  * Listing header (PLP, PLPMobile, PLPStates «سياق الصفحة»): the department banner only on a department's first,
  * unfiltered page; a brand title in Latin caps with department pills; search results «نتايج «…»» with department
  * pills; a plain title + «بعد الفلترة» after filtering. Breadcrumbs everywhere.
  */
-export function PlpHeader({ context, total, prints, tree, filters, onNavigate }: PlpHeaderProps) {
+export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHeaderProps) {
   const m = useMessages();
   const locale = useLocale();
   const count = total === null ? null : fillMessage(m.plpCount, { n: formatNumber(total, locale) });
@@ -77,33 +73,6 @@ export function PlpHeader({ context, total, prints, tree, filters, onNavigate }:
       </div>
     ) : null;
 
-  if (context.kind === 'department') {
-    const d = context.department;
-    const title = categoryLabel(d, locale) ?? d.name;
-    const list = d.children.map((child) => categoryLabel(child, locale) ?? child.name).join('، ');
-    return (
-      <section aria-labelledby="plp-h" className={cn('shutter-light warm relative min-h-[160px] rounded-24 px-5 pb-4 pt-2 shadow-elevation-1 lg:min-h-[212px] lg:rounded-sheet lg:px-10 lg:pb-6.5 lg:pt-3', FIELD[d.slug] ?? 'bg-sand text-night')}>
-        <div>{crumbs(title)}</div>
-        <div className="mt-1 flex max-w-[236px] flex-col gap-1 lg:max-w-[560px] lg:gap-2">
-          <h1 id="plp-h" className="m-0 whitespace-nowrap font-display text-31 font-extrabold leading-36 lg:text-52 lg:leading-56">
-            {title}
-          </h1>
-          {list ? <p className="m-0 text-13 leading-20 lg:text-15 lg:leading-26">{fillMessage(m.plpDeptBody, { list })}</p> : null}
-        </div>
-        {prints[0] ? (
-          <span aria-hidden="true" className="absolute end-3.5 top-7 h-[104px] w-[78px] -rotate-3 overflow-hidden rounded-image shadow-elevation-2 lg:end-14 lg:top-5.5 lg:h-[168px] lg:w-[132px] lg:rounded-input ltr:rotate-3">
-            <ProductTile src={prints[0].imageUrl} alt="" name={prints[0].name} className="h-full rounded-none" sizes="132px" />
-          </span>
-        ) : null}
-        {prints[1] ? (
-          <span aria-hidden="true" className="absolute end-[172px] top-10 hidden h-[146px] w-[116px] rotate-[4deg] overflow-hidden rounded-input shadow-elevation-2 lg:block ltr:-rotate-[4deg]">
-            <ProductTile src={prints[1].imageUrl} alt="" name={prints[1].name} className="h-full rounded-none" sizes="116px" />
-          </span>
-        ) : null}
-      </section>
-    );
-  }
-
   const plain = (title: string, body: ReactNode, crumb: ReactNode, aside?: ReactNode, titleLatin = false) => (
     <section aria-labelledby="plp-h" className="flex flex-col gap-2">
       {crumb}
@@ -119,6 +88,18 @@ export function PlpHeader({ context, total, prints, tree, filters, onNavigate }:
       {aside ? <div className="pt-2">{aside}</div> : null}
     </section>
   );
+
+  if (context.kind === 'department') {
+    const d = context.department;
+    const title = categoryLabel(d, locale) ?? d.name;
+    const list = d.children.map((child) => categoryLabel(child, locale) ?? child.name).join('، ');
+    return plain(
+      title,
+      list ? fillMessage(m.plpDeptBody, { list }) : null,
+      crumbs(title),
+      deptPills(d.slug)
+    );
+  }
 
   if (context.kind === 'brand') {
     return plain(

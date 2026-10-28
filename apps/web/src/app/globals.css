@@ -169,82 +169,9 @@ bdi {
     font-size: 0.72em;
   }
 
-  /* Campaign shutter light (Home hero, category fields, auth panel): never on UI surfaces. */
-  .shutter-light {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-  }
-  .shutter-light::after {
-    content: '';
-    position: absolute;
-    inset: -25%;
-    z-index: 2;
-    pointer-events: none;
-    mix-blend-mode: multiply;
-    filter: blur(9px);
-    background: repeating-linear-gradient(116deg, rgba(255, 255, 255, 0) 0 46px, rgba(110, 58, 20, 0.13) 46px 70px);
-  }
-  .shutter-light.warm::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    background: radial-gradient(120% 90% at 85% 0%, rgba(255, 206, 140, 0.42), rgba(255, 206, 140, 0) 60%);
-  }
-  .shutter-light > * {
-    position: relative;
-    z-index: 3;
-  }
-
-  /* Sahel-blue campaign field (Home hero, auth editorial panel). */
-  .field-sahel {
-    background: linear-gradient(170deg, var(--blue-light) 0%, var(--blue) 45%, var(--blue-dark) 100%);
-    color: var(--bone);
-  }
-
-  /* One sun: the umber contact shadow every packshot stands on (ProductCard board, "isCut" packshots). */
-  .contact-shadow {
-    position: absolute;
-    bottom: 7%;
-    inset-inline-start: 22%;
-    width: 56%;
-    height: 14px;
-    border-radius: 50%;
-    background: radial-gradient(closest-side, rgba(92, 52, 20, 0.3), rgba(92, 52, 20, 0));
-  }
-
-  /* The Shina sun orb (FloatingNav, assistant entry): a quiet saffron ring, stronger when selected. */
-  .sun-orb {
-    border-radius: 9999px;
-    background: radial-gradient(circle at 38% 34%, var(--saffron-light) 0, var(--saffron) 46%, var(--warn) 100%);
-    box-shadow: 0 0 0 3px rgb(var(--saffron-rgb) / 0.14), 0 0 14px rgb(var(--saffron-rgb) / 0.45);
-  }
-  .sun-orb[data-on] {
-    box-shadow: 0 0 0 3px rgb(var(--saffron-rgb) / 0.45), 0 0 14px rgb(var(--saffron-rgb) / 0.45);
-  }
-
-  /* PDP phone purchase bar (handoff: padding 10px 12px calc(10px + safe-area)); the nav rides above it while shown. */
+  /* PDP phone purchase bar safe area padding. */
   .pdp-bar {
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-  }
-  :root[data-pdp-bar] .floating-nav {
-    bottom: calc(var(--nav-gap) + 76px + env(safe-area-inset-bottom, 0px));
-  }
-  /* Scroll-aware nav (PDP): hidden while scrolling down, back when scrolling up (NavBoard). */
-  .nav-reveal .floating-nav {
-    transition: transform var(--dur-base) var(--ease-standard);
-  }
-  .nav-reveal[data-hidden] .floating-nav {
-    transform: translateY(calc(100% + 120px));
-  }
-
-  /* FloatingNav position: 12 from each side, 12 above the device's real bottom inset (handoff §Dynamic safe area). */
-  .floating-nav {
-    position: fixed;
-    inset-inline: var(--nav-gap);
-    bottom: calc(var(--nav-gap) + env(safe-area-inset-bottom, 0px));
   }
 }
 

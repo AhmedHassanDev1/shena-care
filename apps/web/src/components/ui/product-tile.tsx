@@ -44,12 +44,7 @@ export function ProductTile({ src, alt, name, size = "tile", priority, sizes, cl
   return (
     <div className={cn("relative overflow-hidden rounded-image bg-sand", !thumb && "aspect-[4/5]", className)}>
       {src && !failed ? (
-        <>
-          <span
-            aria-hidden="true"
-            className="contact-shadow"
-          />
-          <Image
+        <Image
             ref={imgRef}
             src={src}
             alt={alt}
@@ -60,7 +55,6 @@ export function ProductTile({ src, alt, name, size = "tile", priority, sizes, cl
             onError={() => setFailed(true)}
             className="object-contain object-bottom p-[6%] pb-[4%] mix-blend-multiply"
           />
-        </>
       ) : failed ? (
         <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-12 font-medium leading-17 text-ink-2">
           <Icon name="image-off" size={thumb ? 20 : 28} />

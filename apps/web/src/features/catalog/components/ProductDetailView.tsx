@@ -176,8 +176,7 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
 
           <DeliveryDisclosure />
 
-          <Link href={shellRoutes.shina} className="flex min-h-control-s items-center gap-3 self-start text-15 font-semibold text-night no-underline">
-            <span aria-hidden="true" className="sun-orb size-6.5" />
+          <Link href={shellRoutes.shina} className="flex min-h-control-s items-center gap-2 self-start text-15 font-semibold text-night no-underline">
             <span className="underline decoration-1 underline-offset-[6px]">{m.pdpAskShina}</span>
           </Link>
         </div>
