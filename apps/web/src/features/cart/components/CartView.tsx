@@ -13,7 +13,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { signInHref } from '@/features/auth/lib/auth-helpers';
 import { consumeAuthReturn } from '@/features/auth/lib/auth-return';
 import type { CartItem } from '@/lib/cart';
-import { formatNumber, formatProductCount } from '@/lib/i18n/format';
+import { formatEgp, formatNumber, formatProductCount } from '@/lib/i18n/format';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
@@ -131,7 +131,7 @@ export function CartView() {
     <div className="pb-28 lg:pb-0">
       <header className="hidden lg:block">
         <div className="flex items-baseline gap-3.5">
-          <h1 className="m-0 font-display text-44 font-extrabold leading-50 text-night">{m.cartTitle}</h1>
+          <h1 className="m-0 font-display text-36 font-extrabold leading-44 text-night">{m.cartStagingTitle}</h1>
           <span className="text-16 text-ink-2">{formatProductCount(count, locale)}</span>
         </div>
         <p className="m-0 mt-2 text-14 text-ink-3">{m.cartLead}</p>
@@ -145,6 +145,21 @@ export function CartView() {
 
       <div className="lg:mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-12">
         <section aria-label={m.cartTitle}>
+          {/* Routine Verification Safety Banner from Stitch Screen 4 */}
+          <div className="mb-6 flex flex-col gap-2 rounded-card bg-sand/60 p-4 shadow-outline-hairline lg:p-5">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-8 items-center justify-center rounded-full bg-bottle-tint text-bottle">
+                <Icon name="shield" size={16} />
+              </span>
+              <span className="font-display text-14.5 font-bold leading-20 text-night">
+                {m.cartRoutineVerified}
+              </span>
+            </div>
+            <p className="m-0 text-12.5 leading-20 text-ink-2">
+              {m.cartRoutineDuplicateExcluded}
+            </p>
+          </div>
+
           {failed ? (
             <p role="alert" className="m-0 mt-3 flex items-center gap-2 text-14 text-err">
               <Icon name="alert" size={18} />
@@ -210,6 +225,25 @@ function CartSummary({
       <h2 id="cart-summary" className="m-0 hidden font-display text-26 font-extrabold leading-32 text-night lg:block">
         {m.cartSummary}
       </h2>
+
+      {/* Free Delivery Threshold Bar from Stitch Screen 4 */}
+      {(() => {
+        const threshold = 1500;
+        const diff = Math.max(0, threshold - total);
+        const pct = Math.min(100, Math.round((total / threshold) * 100));
+        return (
+          <div className="rounded-card bg-bone p-3.5 shadow-elevation-1">
+            <div className="flex items-center justify-between text-12 font-bold leading-17 text-night">
+              <span>{diff > 0 ? fillMessage(m.cartFreeShippingProgress, { amount: formatEgp(diff, 'EGP', locale) ?? '' }) : m.cartFreeShippingEligible}</span>
+              <span className="font-tabular text-bottle">{pct}%</span>
+            </div>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
+              <div className="h-full rounded-full bg-bottle transition-all duration-300" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        );
+      })()}
+
       <SummaryRow label={fillMessage(m.cartSubtotalCount, { count: formatProductCount(count, locale) })}>
         <Money amount={total} />
       </SummaryRow>

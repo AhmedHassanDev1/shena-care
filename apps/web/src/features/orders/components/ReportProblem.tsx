@@ -131,7 +131,7 @@ function ProblemForm({
                 <input
                   type="radio"
                   name={`reason-${itemId}`}
-                  className="size-4 accent-blue"
+                  className="size-4 accent-bottle"
                   checked={reason === code}
                   onChange={() => setReason(code)}
                 />

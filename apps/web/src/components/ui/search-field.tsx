@@ -10,13 +10,15 @@ export interface SearchFieldProps extends Omit<React.InputHTMLAttributes<HTMLInp
   action?: string
   /** Classes for the form wrapper (layout only). */
   className?: string
+  /** Optional end slot, e.g. the Stitch Smart Search pill button. */
+  smartSearchAction?: React.ReactNode
 }
 
 /**
  * Header search (Main / PLPMobile header): 50-tall linen pill, 1px line-2 outline, lens in ink-2 at the reading start,
- * 15px text; focus = 2px blue + blue-tint halo. A plain GET form, so it works without JavaScript.
+ * 15px text; focus = 2px bottle + bottle-tint halo. A plain GET form, so it works without JavaScript.
  */
-export function SearchField({ label, action, className, name = "q", id = "site-search", ...inputProps }: SearchFieldProps) {
+export function SearchField({ label, action, className, smartSearchAction, name = "q", id = "site-search", ...inputProps }: SearchFieldProps) {
   return (
     <form action={action} method={action ? "get" : undefined} role="search" className={cn("m-0", className)}>
       <label htmlFor={id} className="sr-only">
@@ -33,6 +35,7 @@ export function SearchField({ label, action, className, name = "q", id = "site-s
           className="h-full min-w-0 flex-1 border-0 bg-transparent font-text text-15 text-night outline-none placeholder:text-ink-3 focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
           {...inputProps}
         />
+        {smartSearchAction}
       </div>
     </form>
   )

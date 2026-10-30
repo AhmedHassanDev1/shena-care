@@ -92,7 +92,7 @@ function FilterGroup({ title, active, children }: { title: string; active: numbe
         <span className="inline-flex items-center gap-2">
           {title}
           {active ? (
-            <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-blue text-12 font-bold text-white">{formatNumber(active, locale)}</span>
+            <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-bottle text-12 font-bold text-white">{formatNumber(active, locale)}</span>
           ) : null}
         </span>
         <Icon name="chevron-down" size={16} strokeWidth={2} className={cn('transition-transform duration-fast', !open && 'rotate-180')} />
@@ -118,7 +118,7 @@ function CheckRow({ checked, label, count, latin, onToggle }: { checked: boolean
     >
       <span
         aria-hidden="true"
-        className={cn('flex size-5 flex-none items-center justify-center rounded-6', checked ? 'bg-blue text-white' : 'bg-linen shadow-outline-check')}
+        className={cn('flex size-5 flex-none items-center justify-center rounded-6', checked ? 'bg-bottle text-white' : 'bg-linen shadow-outline-check')}
       >
         {checked ? <Icon name="check" size={14} strokeWidth={3} /> : null}
       </span>

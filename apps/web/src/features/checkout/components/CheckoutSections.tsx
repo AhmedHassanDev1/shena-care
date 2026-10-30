@@ -195,7 +195,7 @@ export function AddressSection({
                 key={address.id}
                 className={cn(
                   'relative flex cursor-pointer items-start gap-3 rounded-16 px-4 py-3.5',
-                  checked ? 'bg-blue-tint shadow-outline-blue' : 'bg-linen shadow-outline-control'
+                  checked ? 'bg-bottle-tint shadow-outline-bottle' : 'bg-linen shadow-outline-control'
                 )}
               >
                 <input
@@ -227,7 +227,7 @@ export function AddressSection({
         <button
           type="button"
           onClick={() => onSelect('new')}
-          className="inline-flex min-h-control-s items-center gap-2 self-start px-1 text-14.5 font-semibold text-blue underline underline-offset-[6px]"
+          className="inline-flex min-h-control-s items-center gap-2 self-start px-1 text-14.5 font-semibold text-bottle underline underline-offset-[6px]"
         >
           <Icon name="plus" size={18} />
           {m.checkoutNewAddress}
@@ -253,7 +253,7 @@ export function AddressSection({
                     key={g}
                     className={cn(
                       'inline-flex min-h-control-s cursor-pointer items-center gap-2 rounded-pill px-4.5 text-14.5 font-semibold',
-                      checked ? 'bg-blue-tint text-blue-deep shadow-outline-blue' : 'bg-linen text-night shadow-outline-control'
+                      checked ? 'bg-bottle-tint text-bottle-deep shadow-outline-bottle' : 'bg-linen text-night shadow-outline-control'
                     )}
                   >
                     <input type="radio" name="co-governorate" className="sr-only" checked={checked} onChange={() => onDraft({ ...draft, governorate: g })} />
@@ -352,7 +352,7 @@ function RadioMark({ checked }: { checked: boolean }) {
       aria-hidden="true"
       className={cn(
         'mt-0.5 grid size-5 flex-none place-items-center rounded-pill',
-        checked ? 'bg-blue text-white' : 'bg-linen shadow-outline-check'
+        checked ? 'bg-bottle text-white' : 'bg-linen shadow-outline-check'
       )}
     >
       {checked ? <Icon name="check" size={13} strokeWidth={3} /> : null}
@@ -458,7 +458,7 @@ export function PaymentSection() {
   return (
     <CheckoutSection id="co-payment" step={4} done title={m.checkoutPaymentTitle}>
       <div role="radiogroup" aria-labelledby="co-payment">
-        <label className="flex cursor-pointer items-center gap-3 rounded-16 bg-blue-tint px-4 py-3.5 shadow-outline-blue">
+        <label className="flex cursor-pointer items-center gap-3 rounded-16 bg-bottle-tint px-4 py-3.5 shadow-outline-bottle">
           <input type="radio" name="co-payment" value="COD" className="sr-only" checked readOnly />
           <RadioMark checked />
           <Icon name="cash" size={22} className="flex-none text-night" />

@@ -62,7 +62,7 @@ export function ProductDetailView({ slug }: { slug: string }) {
               {m.tryAgain}
             </Button>
           )}
-          <Link href={routes.products} className={buttonVariants({ variant: missing ? 'blue' : 'light', size: 'm' })}>
+          <Link href={routes.products} className={buttonVariants({ variant: missing ? 'bottle' : 'light', size: 'm' })}>
             {m.pdpBackToProducts}
           </Link>
         </div>
@@ -234,18 +234,146 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
         </section>
       ) : null}
 
-      <section aria-labelledby="routine-h" className="flex flex-col gap-3 rounded-card bg-linen p-6 shadow-outline-hairline lg:max-w-[416px] lg:p-7">
-        <h2 id="routine-h" className="m-0 text-display-3">
-          {m.pdpRoutineTitle}
-        </h2>
-        <p className="m-0 text-14.5 leading-24 text-ink-2">{m.pdpRoutineBody}</p>
-        <Link href={routes.routineBuilder} className="text-link self-start">
-          {m.pdpRoutineCta}
-        </Link>
-      </section>
+      <ClinicalSections product={product} variant={variant} />
 
       <MobilePurchaseBar product={product} variant={variant} buy={buy} visible={barVisible} onSelect={onSelectVariant} name={name} />
     </article>
+  );
+}
+
+function ClinicalSections({ product, variant }: { product: ProductDetail; variant: PublicVariant }) {
+  const m = useMessages();
+  const categorySlug = product.category?.slug ?? '';
+  const categoryName = product.category?.name ?? '';
+
+  const isCleanser = categorySlug.includes('cleanser') || categoryName.includes('غسول') || categoryName.includes('منظف');
+  const isSunscreen = categorySlug.includes('sun') || categoryName.includes('شمس') || categoryName.includes('واقي');
+  const isSerum = categorySlug.includes('serum') || categorySlug.includes('treat') || categoryName.includes('سيروم') || categoryName.includes('علاج');
+  const activeStep = isCleanser ? 1 : isSerum ? 2 : isSunscreen ? 4 : 3;
+
+  const steps = [
+    { num: 1, label: m.pdpStepCleanser },
+    { num: 2, label: m.pdpStepTreat },
+    { num: 3, label: m.pdpStepMoisturize },
+    { num: 4, label: m.pdpStepProtect },
+  ];
+
+  const rawIngredients = variant.content?.ingredients?.trim() || null;
+  const ingredientsList = rawIngredients
+    ? rawIngredients.split(/[،,•\n]+/).map((s) => s.trim()).filter(Boolean).slice(0, 6)
+    : null;
+
+  const rawUsage = (variant.content?.usage ?? product.usage)?.trim() || null;
+  const usageSteps = rawUsage
+    ? rawUsage.split(/[.\n]+/).map((s) => s.trim()).filter((s) => s.length > 5).slice(0, 3)
+    : [m.pdpProtocolStep1, m.pdpProtocolStep2, m.pdpProtocolStep3];
+
+  return (
+    <div className="flex flex-col gap-8">
+      {/* Key Ingredients from verified catalog data */}
+      {ingredientsList && ingredientsList.length > 0 ? (
+        <section aria-labelledby="actives-h" className="flex flex-col gap-4 rounded-card bg-linen p-6 shadow-outline-hairline lg:p-7">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 flex-none items-center justify-center rounded-full bg-bottle-tint text-bottle">
+              <Icon name="science" size={20} />
+            </span>
+            <div className="flex flex-col">
+              <h2 id="actives-h" className="m-0 font-display text-20 font-bold leading-26 text-night">
+                {m.pdpClinicalActivesTitle}
+              </h2>
+              <p className="m-0 text-13 leading-20 text-ink-2">{m.pdpClinicalActivesLead}</p>
+            </div>
+          </div>
+          <ul className="m-0 grid list-none grid-cols-1 gap-2.5 p-0 sm:grid-cols-2">
+            {ingredientsList.map((ing) => (
+              <li key={ing} className="flex items-center gap-2 rounded-image bg-bone/70 p-3 text-13 font-semibold text-night shadow-elevation-1">
+                <span className="flex size-5 flex-none items-center justify-center rounded-full bg-bottle text-linen">
+                  <Icon name="check" size={12} />
+                </span>
+                <span>{ing}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* Routine Placement Stepper */}
+      <section aria-labelledby="routine-placement-h" className="flex flex-col gap-4 rounded-card bg-sand/60 p-6 shadow-outline-hairline lg:p-7">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 flex-none items-center justify-center rounded-full bg-saffron-tint text-saffron-ink">
+            <Icon name="sparkles" size={20} />
+          </span>
+          <div className="flex flex-col">
+            <h2 id="routine-placement-h" className="m-0 font-display text-20 font-bold leading-26 text-night">
+              {m.pdpRoutineStepTitle}
+            </h2>
+            <p className="m-0 text-13 leading-20 text-ink-2">{m.pdpRoutineStepLead}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {steps.map((st) => {
+            const isCurrent = st.num === activeStep;
+            return (
+              <div
+                key={st.num}
+                className={cn(
+                  'flex flex-col items-center gap-1.5 rounded-card p-3 text-center transition-all',
+                  isCurrent
+                    ? 'bg-bottle text-linen shadow-elevation-2'
+                    : 'bg-linen text-night shadow-outline-hairline opacity-80'
+                )}
+              >
+                <span className={cn('text-11 font-bold', isCurrent ? 'text-linen/80' : 'text-ink-3')}>
+                  خطوة ٠{st.num}
+                </span>
+                <span className="text-14 font-bold">{st.label}</span>
+                {isCurrent ? (
+                  <span className="rounded-full bg-linen/20 px-2 py-0.5 text-10.5 font-bold text-linen">
+                    هذا المنتج
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Recommended Application Protocol */}
+      <section aria-labelledby="protocol-h" className="flex flex-col gap-4 rounded-card bg-linen p-6 shadow-outline-hairline lg:p-7">
+        <h2 id="protocol-h" className="m-0 font-display text-20 font-bold leading-26 text-night">
+          {m.pdpProtocolTitle}
+        </h2>
+        <ol className="m-0 flex list-none flex-col gap-3 p-0">
+          {usageSteps.map((stepText, idx) => (
+            <li key={idx} className="flex items-start gap-3">
+              <span className="flex size-7 flex-none items-center justify-center rounded-full bg-bottle-tint font-display text-13 font-bold text-bottle">
+                ٠{idx + 1}
+              </span>
+              <p className="m-0 pt-0.5 text-14 leading-24 text-night">{stepText}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Routine Section with Link to Builder */}
+      <section aria-labelledby="routine-h" className="flex flex-col gap-3 rounded-card bg-linen p-6 shadow-outline-hairline lg:p-7">
+        <h2 id="routine-h" className="m-0 font-display text-20 font-bold leading-26 text-night">
+          {m.pdpRoutineTitle}
+        </h2>
+        <p className="m-0 text-14.5 leading-24 text-ink-2">{m.pdpRoutineBody}</p>
+        <div className="flex flex-wrap gap-3 pt-2">
+          <Link href={routes.routineBuilder} className={cn(buttonVariants({ variant: 'bottle', size: 'm' }))}>
+            {m.pdpRoutineCta}
+          </Link>
+          {categorySlug ? (
+            <Link href={`${routes.products}?category=${encodeURIComponent(categorySlug)}`} className={cn(buttonVariants({ variant: 'light', size: 'm' }))}>
+              {m.pdpAlternativesTitle}
+            </Link>
+          ) : null}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -281,6 +409,12 @@ function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
           sizes="(min-width: 1024px) 600px, 100vw"
           className="rounded-card shadow-elevation-3 lg:aspect-[600/750]"
         />
+        <div className="pointer-events-none absolute bottom-4 inset-x-4 flex flex-wrap items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-night/85 px-3 py-1 text-12 font-semibold text-linen backdrop-blur-sm shadow-elevation-1">
+            <Icon name="shield" size={14} className="text-saffron" />
+            <span>{m.pdpAuthenticRibbon}</span>
+          </span>
+        </div>
         {current ? (
           <button type="button" aria-label={m.pdpZoom} onClick={() => setZoom(true)} className={cn(iconButtonVariants({ variant: 'raised' }), 'absolute start-4 top-4 size-11')}>
             <Icon name="zoom" size={20} />
@@ -296,7 +430,7 @@ function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
                 aria-label={fillMessage(m.pdpShowImage, { i: i + 1 })}
                 aria-current={i === index}
                 onClick={() => setIndex(i)}
-                className={cn('block rounded-image p-0.5', i === index ? 'shadow-outline-blue' : 'shadow-none')}
+                className={cn('block rounded-image p-0.5', i === index ? 'shadow-outline-bottle' : 'shadow-none')}
               >
                 <ProductTile size="thumb" className="size-16" src={image.url} alt="" name={name} />
               </button>
@@ -339,10 +473,10 @@ function SizeOptions({ product, variant, onSelect, compact = false }: { product:
               className={cn(
                 'flex items-center gap-2.5 rounded-image px-3.5 text-start',
                 compact ? 'h-12' : 'h-15',
-                checked ? 'bg-blue-tint shadow-outline-blue' : sku.canOrder ? 'bg-linen shadow-outline-control' : 'bg-linen shadow-outline-hairline'
+                checked ? 'bg-bottle-tint shadow-outline-bottle' : sku.canOrder ? 'bg-linen shadow-outline-control' : 'bg-linen shadow-outline-hairline'
               )}
             >
-              <span aria-hidden="true" className={cn('flex size-5 flex-none items-center justify-center rounded-full', checked ? 'bg-blue text-white' : 'shadow-outline-check')}>
+              <span aria-hidden="true" className={cn('flex size-5 flex-none items-center justify-center rounded-full', checked ? 'bg-bottle text-white' : 'shadow-outline-check')}>
                 {checked ? <Icon name="check" size={13} strokeWidth={3} /> : null}
               </span>
               <span className={cn('text-16 font-bold', !sku.canOrder && 'text-ink-3 line-through')}>{label(sku)}</span>
@@ -398,7 +532,7 @@ function BuyRow({ product, variant, buy, disabled, name }: { product: ProductDet
   if (!variant.canOrder || !variant.price) {
     return (
       <div className="flex flex-col gap-3">
-        <Button variant="blue" size="l" disabled className="w-full">
+        <Button variant="bottle" size="l" disabled className="w-full">
           {m.pdpUnavailableNow}
         </Button>
         {product.category ? (
@@ -424,9 +558,9 @@ function BuyRow({ product, variant, buy, disabled, name }: { product: ProductDet
         />
         <AsyncButton
           state={buy.state === 'added' ? 'idle' : buy.state}
-          variant="blue"
+          variant="bottle"
           size="l"
-          className={cn('flex-1', added && 'bg-blue-deep hover:bg-blue-deep')}
+          className={cn('flex-1', added && 'bg-bottle-deep hover:bg-bottle-deep')}
           pendingLabel={m.pdpAdding}
           retryLabel={m.pdpAddCta}
           disabled={disabled}
@@ -486,7 +620,7 @@ function AddedPopover({ variant, name, brand, quantity, onClose }: { variant: Pu
         </span>
       </div>
       <div className="flex gap-2.5">
-        <Button asChild variant="blue" size="m" className="flex-1">
+        <Button asChild variant="bottle" size="m" className="flex-1">
           <Link href={routes.cart}>{fillMessage(m.pdpGoToCart, { n: formatNumber(quantity, locale) })}</Link>
         </Button>
         <Button variant="light" size="m" onClick={onClose}>
@@ -568,9 +702,9 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
         {orderable ? (
           <AsyncButton
             state={buy.state === 'added' ? 'idle' : buy.state}
-            variant="blue"
+            variant="bottle"
             size="m"
-            className={cn('h-12.5 flex-1', added && 'bg-blue-deep hover:bg-blue-deep')}
+            className={cn('h-12.5 flex-1', added && 'bg-bottle-deep hover:bg-bottle-deep')}
             pendingLabel={m.cardAdding}
             retryLabel={m.pdpAddCta}
             tabIndex={visible ? 0 : -1}
@@ -613,7 +747,7 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
             />
             <AsyncButton
               state={buy.state === 'added' ? 'idle' : buy.state}
-              variant="blue"
+              variant="bottle"
               size="m"
               className="h-12.5 w-full"
               pendingLabel={m.cardAdding}

@@ -344,7 +344,7 @@ function TileMap({
           className="pointer-events-none absolute -ms-4 -mt-9 flex flex-col items-center"
           style={{ transform: `translate3d(${pinPx.x - topLeft.x}px, ${pinPx.y - topLeft.y}px, 0)` }}
         >
-          <span className="grid size-8 place-items-center rounded-pill bg-blue text-white shadow-elevation-2">
+          <span className="grid size-8 place-items-center rounded-pill bg-bottle text-white shadow-elevation-2">
             <Icon name="pin" size={18} />
           </span>
           <span className="mt-0.5 size-1.5 rounded-pill bg-night" />

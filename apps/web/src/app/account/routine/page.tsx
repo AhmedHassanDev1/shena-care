@@ -1,11 +1,10 @@
-import { RedesignPlaceholder } from '@/components/redesign-placeholder';
+import { ActiveRoutineTracker } from '@/features/routine/components/ActiveRoutineTracker';
 import { StorefrontShell } from '@/features/shell/StorefrontShell';
 
-/** No V18 board yet: SAHEL placeholder inside the browsing shell. */
 export default function MyRoutinePage() {
   return (
     <StorefrontShell nav="routines">
-      <RedesignPlaceholder route="/account/routine" />
+      <ActiveRoutineTracker />
     </StorefrontShell>
   );
 }

@@ -7,6 +7,7 @@ import { formatNumber } from '@/lib/i18n/format';
 import { fillMessage, getMessages } from '@/lib/i18n/messages';
 import { getLocale } from '@/lib/i18n/server';
 import { mainCategorySlugs, routes, shellRoutes } from '@/lib/routes';
+import { cn } from '@/lib/utils';
 
 /**
  * Service strip + night footer (Main, CartD bottom). The service strip states only what the backend confirms
@@ -15,7 +16,7 @@ import { mainCategorySlugs, routes, shellRoutes } from '@/lib/routes';
  * Footer entries without a page in this app (delivery, returns, contact, FAQ, terms, privacy) are plain text in the
  * link style — never dead links — until those pages exist.
  */
-export function SiteFooter() {
+export function SiteFooter({ services: showServices = true, dockClearance = false }: { services?: boolean; dockClearance?: boolean } = {}) {
   const locale = getLocale();
   const m = getMessages(locale);
   const services: Array<{ icon: IconName; title: string; body: string }> = [
@@ -50,6 +51,7 @@ export function SiteFooter() {
 
   return (
     <>
+      {showServices ? (
       <PageContainer>
         <ul className="m-0 grid list-none grid-cols-2 gap-x-4 gap-y-6 px-0 pb-12 pt-7 shadow-hairline-top lg:grid-cols-4 lg:gap-6">
           {services.map((s) => (
@@ -65,8 +67,9 @@ export function SiteFooter() {
           ))}
         </ul>
       </PageContainer>
+      ) : null}
 
-      <footer className="bg-night pb-nav-safe text-bone">
+      <footer className={cn('bg-night pb-nav-safe text-bone', dockClearance && 'max-lg:pb-24')}>
         <PageContainer className="flex flex-col gap-10 pb-8 pt-10 lg:pt-16">
           <div className="flex flex-wrap gap-x-16 gap-y-10 max-lg:hidden">
             <div className="flex flex-[1.4_1_300px] flex-col gap-3">

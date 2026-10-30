@@ -128,6 +128,36 @@ export function ProductListing() {
         <Skeleton className="h-[160px] rounded-24 lg:h-[212px] lg:rounded-sheet" />
       )}
 
+      {/* Smart Search Understanding Banner from Stitch Screen 9 */}
+      {filters.q ? (
+        <div className="flex flex-col gap-3 rounded-card bg-sand/60 p-4 shadow-outline-hairline lg:p-5">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 flex-none items-center justify-center rounded-full bg-bottle-tint text-bottle">
+              <Icon name="sparkles" size={18} />
+            </span>
+            <div className="flex flex-col">
+              <span className="font-display text-15 font-bold leading-22 text-night">
+                {fillMessage(m.plpSmartSearchQueryUnderstanding, { query: filters.q })}
+              </span>
+              <span className="text-12 leading-18 text-ink-2">
+                {m.plpSmartSearchTagline}
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-night shadow-elevation-1">
+              تركيبات خالية من العطور
+            </span>
+            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-night shadow-elevation-1">
+              تراكيز علاجية مثبتة
+            </span>
+            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-night shadow-elevation-1">
+              مستوى حموضة متوازن pH
+            </span>
+          </div>
+        </div>
+      ) : null}
+
       {/* Phone: quick type pills, then the sticky «فلترة» bar (PLPMobile, PLPMobileScrolled). */}
       <div className="flex flex-col gap-3 lg:hidden">
         {department && groups.type.length ? (
@@ -155,13 +185,13 @@ export function ProductListing() {
               <h2 id="flt-h" className="m-0 inline-flex items-center gap-2 font-display text-22 font-bold leading-28">
                 {m.plpFilters}
                 {applied.length ? (
-                  <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-blue font-text text-12 font-bold text-white">
+                  <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-bottle font-text text-12 font-bold text-white">
                     {formatNumber(applied.length, locale)}
                   </span>
                 ) : null}
               </h2>
               {applied.length ? (
-                <button type="button" onClick={clearAll} className="min-h-control-s bg-transparent text-14 font-semibold text-blue underline underline-offset-4">
+                <button type="button" onClick={clearAll} className="min-h-control-s bg-transparent text-14 font-semibold text-bottle underline underline-offset-4">
                   {m.plpClearAll}
                 </button>
               ) : null}
@@ -213,6 +243,21 @@ export function ProductListing() {
                 onMore={() => query.fetchNextPage()}
                 where={context.kind === 'department' ? categoryLabel(context.department, locale) ?? context.department.name : null}
               />
+
+              {/* Pharmaceutical Trust & Expiry Guarantee Callout from Stitch Screen 2 */}
+              <div className="mt-12 flex flex-col items-center gap-4 rounded-card bg-linen p-6 text-center shadow-outline-hairline sm:flex-row sm:items-start sm:p-7 sm:text-start">
+                <span className="flex size-11 flex-none items-center justify-center rounded-full bg-bottle-tint text-bottle">
+                  <Icon name="shield" size={22} />
+                </span>
+                <div className="flex flex-col gap-1">
+                  <h3 className="m-0 font-display text-16 font-bold text-night">
+                    {m.plpCatalogTrustTitle}
+                  </h3>
+                  <p className="m-0 text-13.5 leading-22 text-ink-2">
+                    {m.plpCatalogTrustBody}
+                  </p>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -259,7 +304,7 @@ function InfiniteStatus({ shown, total, hasNext, loading, failed, onMore, where 
       <div ref={sentinel} className="mt-10 flex flex-col items-center gap-3">
         {loading ? (
           <p role="status" className="m-0 flex items-center gap-2.5 text-14 font-semibold">
-            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" className="text-blue motion-safe:animate-spin">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" className="text-bottle motion-safe:animate-spin">
               <circle cx="12" cy="12" r="8" opacity=".25" />
               <path d="M20 12a8 8 0 0 0-8-8" />
             </svg>
@@ -396,7 +441,7 @@ function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
         <Icon name="filter" size={20} />
         {m.plpFilterButton}
         {applied ? (
-          <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-blue text-12 font-bold text-white">{formatNumber(applied, locale)}</span>
+          <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-bottle text-12 font-bold text-white">{formatNumber(applied, locale)}</span>
         ) : null}
       </button>
       <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-24">
@@ -422,7 +467,7 @@ function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
             {m.plpClearAll}
           </button>
           <Button
-            variant="blue"
+            variant="bottle"
             size="l"
             className="flex-1"
             onClick={() => {

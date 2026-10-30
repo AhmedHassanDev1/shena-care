@@ -81,7 +81,7 @@ export interface AsyncButtonProps extends Omit<ButtonProps, "asChild" | "childre
  * Pending is a UI guard only — mutating requests also carry an idempotency key server-side.
  */
 const AsyncButton = React.forwardRef<HTMLButtonElement, AsyncButtonProps>(
-  ({ state, children, pendingLabel, successLabel, retryLabel, className, variant = "blue", size, onClick, ...props }, ref) => {
+  ({ state, children, pendingLabel, successLabel, retryLabel, className, variant = "bottle", size, onClick, ...props }, ref) => {
     const pending = state === "pending"
     const success = state === "success" && successLabel !== undefined
     return (

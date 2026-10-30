@@ -27,17 +27,17 @@ scripts/check-design-system.mjs  guardrails (below)
 ## Vocabulary
 
 - **Colour by SAHEL name:** `bg-bone` (page), `bg-linen` (cards, sheets, inputs), `bg-sand` (product tiles, muted),
-  `bg-dune`, `text-night` / `text-ink-2` / `text-ink-3`, `border-line` (hairline) / `line-2` (controls), `bg-blue`
-  (the only commerce action) / `blue-deep` / `blue-tint`, `coral` (campaign fields only), `saffron*` (Shina and "now"
-  only), `ok` / `err` / `err-tint`. Board-only colours (`warn`, `ok-tint`, `white`, `blue-hover`, `blue-light`,
-  `blue-dark`, `saffron-light`) are flagged in `tokens.app.json` as pending design confirmation.
+  `bg-dune`, `text-night` / `text-ink-2` / `text-ink-3`, `border-line` (hairline) / `line-2` (controls), `bg-bottle`
+  (the only commerce action) / `bottle-deep` / `bottle-tint`, `coral` (campaign fields only), `saffron*` (Shina and "now"
+  only), `ok` / `err` / `err-tint`. Board-only colours (`warn`, `ok-tint`, `white`, `bottle-hover`, `bottle-light`,
+  `bottle-dark`, `saffron-light`) are flagged in `tokens.app.json` as pending design confirmation.
 - **Type:** `text-display-hero|display-1|display-2|display-3` (Beiruti; sizes step down below `lg`), `text-title`,
   `text-body`, `text-product-name`, `text-brand` (Latin caps, tracked), `text-price`, `text-label`, `text-campaign`
   (Instrument Serif italic, one Latin line per campaign). Other board sizes use the ramp: `text-13`, `leading-22`…
 - **Radius:** `rounded-image` 12, `rounded-input` 14, `rounded-card` 20, `rounded-sheet` 28, `rounded-pill`; board ramp
   `rounded-4|6|8|10|16|18|22|24|32`.
 - **Shadow:** `shadow-elevation-1|2|3` (one sun, umber, falls toward the reading end), `shadow-nav`, `shadow-action`,
-  inset outlines `shadow-outline-night|control|hairline|ok|blue|err|verified|dune|warn|commerce`, `shadow-focus-field`.
+  inset outlines `shadow-outline-night|control|hairline|ok|bottle|err|verified|dune|warn|commerce`, `shadow-focus-field`.
 - **Sizes:** `h-control-s|m|search|l` (44 / 48 / 50 / 56), `h-header-m` 56, `h-nav-h` 68, `max-w-container` 1200.
 - **Motion:** `duration-fast|base|slow` (180/300/600), `ease-standard`. Reduced motion: fades only.
 - **Breakpoint:** the boards draw 390 and 1440 only; the desktop layout starts at `lg` = 1024 (engineering decision,

@@ -1,11 +1,10 @@
-import { RedesignPlaceholder } from '@/components/redesign-placeholder';
+import { RoutineReviewApproval } from '@/features/routine/components/RoutineReviewApproval';
 import { StorefrontShell } from '@/features/shell/StorefrontShell';
 
-/** No V18 board yet: SAHEL placeholder inside the browsing shell. */
 export default function RoutineBuilderPage() {
   return (
     <StorefrontShell nav="routines">
-      <RedesignPlaceholder route="/routine/builder" />
+      <RoutineReviewApproval />
     </StorefrontShell>
   );
 }

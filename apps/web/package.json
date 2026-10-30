@@ -13,8 +13,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
-    "check:design": "node scripts/check-design-system.mjs",
-    "check:ui-reset": "node scripts/check-ui-reset.mjs"
+    "check:design": "node scripts/check-design-system.mjs && node scripts/check-assets.mjs",
+    "check:ui-reset": "node scripts/check-ui-reset.mjs",
+    "check:assets": "node scripts/check-assets.mjs"
   },
   "dependencies": {
     "@fontsource/beiruti": "5.3.0",
@@ -27,6 +28,7 @@
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "motion": "^14.7.1",
     "next": "^14.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

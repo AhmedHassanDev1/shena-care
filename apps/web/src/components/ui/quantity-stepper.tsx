@@ -17,7 +17,7 @@ export interface QuantityStepperProps {
   /** Locks the whole stepper while a quantity change is pending (handoff §Async: «stepper locked»). */
   pending?: boolean
   disabled?: boolean
-  /** `commerce`: the product card's "added" counter (blue-tint pill, 1.5px blue ring, blue-deep glyphs, 44-wide buttons). */
+  /** `commerce`: the product card's "added" counter (bottle-tint pill, 1.5px bottle ring, bottle-deep glyphs, 44-wide buttons). */
   tone?: "default" | "commerce"
   className?: string
 }
@@ -31,7 +31,7 @@ export function QuantityStepper({ value, displayValue, min = 1, max, onChange, l
   const commerce = tone === "commerce"
   const button = cn(
     "flex h-control-s items-center justify-center disabled:cursor-not-allowed disabled:text-ink-3",
-    "w-11", commerce ? "text-blue-deep" : "text-night"
+    "w-11", commerce ? "text-bottle-deep" : "text-night"
   )
   return (
     <span
@@ -40,7 +40,7 @@ export function QuantityStepper({ value, displayValue, min = 1, max, onChange, l
       aria-busy={pending || undefined}
       className={cn(
         "inline-flex h-control-s flex-none items-center rounded-pill",
-        commerce ? "bg-blue-tint shadow-outline-commerce" : "bg-linen shadow-outline-control",
+        commerce ? "bg-bottle-tint shadow-outline-commerce" : "bg-linen shadow-outline-control",
         pending && "opacity-60",
         className
       )}

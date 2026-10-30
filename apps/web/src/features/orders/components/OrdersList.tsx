@@ -23,7 +23,7 @@ const THUMBS = 3;
 
 /**
  * «طلباتي» list (OrdersD start column, CommerceMobile ٦/٦ب): order cards with reference, stage chip, date · count ·
- * total and up to three product thumbnails; the selected order has the blue ring on desktop. The phone adds the
+ * total and up to three product thumbnails; the selected order has the bottle ring on desktop. The phone adds the
  * «الكل · شغّالة · خلصت» filter. Stages are the server's customer stages (the same as the order page).
  */
 export function OrdersList({
@@ -91,7 +91,7 @@ function OrderCard({
       aria-current={selected ? 'page' : undefined}
       className={cn(
         'flex flex-col gap-2 rounded-card bg-linen p-4 text-night no-underline',
-        selected ? 'shadow-outline-blue' : 'shadow-outline-hairline hover:shadow-outline-control'
+        selected ? 'shadow-outline-bottle' : 'shadow-outline-hairline hover:shadow-outline-control'
       )}
     >
       <span className="flex items-center justify-between gap-3">

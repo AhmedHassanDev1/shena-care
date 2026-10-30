@@ -5,7 +5,7 @@ import type { Locale, Messages } from '@/lib/i18n/messages';
 import type { CustomerStage, OrderTracking } from '@/lib/orders';
 import { toGovernorate } from '@/features/checkout/lib/checkout-draft';
 
-/** Chip tone per customer stage (OrdersD): in progress blue, delivered ok, needs attention warn, closed gray. */
+/** Chip tone per customer stage (OrdersD): in progress bottle, delivered ok, needs attention warn, closed gray. */
 export function stageTone(stage: CustomerStage): StatusTone {
   switch (stage) {
     case 'DELIVERED':
@@ -17,7 +17,7 @@ export function stageTone(stage: CustomerStage): StatusTone {
     case 'CANCELLED':
       return 'gray';
     default:
-      return 'blue';
+      return 'bottle';
   }
 }
 

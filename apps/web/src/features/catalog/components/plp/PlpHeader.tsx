@@ -75,7 +75,13 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
 
   const plain = (title: string, body: ReactNode, crumb: ReactNode, aside?: ReactNode, titleLatin = false) => (
     <section aria-labelledby="plp-h" className="flex flex-col gap-2">
-      {crumb}
+      <div className="flex flex-wrap items-center gap-2.5">
+        {crumb}
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-bottle-tint px-2.5 py-0.5 text-11.5 font-bold text-bottle" title={m.plpPharmacyTrust}>
+          <span className="size-1.5 rounded-full bg-bottle animate-pulse" />
+          <span>{m.plpPharmacyBadge}</span>
+        </span>
+      </div>
       <h1
         id="plp-h"
         lang={titleLatin ? 'en' : undefined}

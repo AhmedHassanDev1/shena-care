@@ -145,7 +145,7 @@ export function ProductCard({ product, priority = false, feature = false }: { pr
               onClick={start}
               className={cn(
                 'sl inline-flex h-control-s flex-none items-center gap-[5px] rounded-pill px-3.5 text-14 font-semibold text-white shadow-action transition-[background-color,transform] duration-fast ease-standard lg:px-4',
-                multi && pickerOpen ? 'bg-blue-deep outline outline-[2.5px] outline-offset-[3px] outline-blue' : 'bg-blue hover:bg-blue-hover active:scale-[.97] active:bg-blue-deep'
+                multi && pickerOpen ? 'bg-bottle-deep outline outline-[2.5px] outline-offset-[3px] outline-bottle' : 'bg-bottle hover:bg-bottle-hover active:scale-[.97] active:bg-bottle-deep'
               )}
             >
               {state === 'pending' && !multi ? (

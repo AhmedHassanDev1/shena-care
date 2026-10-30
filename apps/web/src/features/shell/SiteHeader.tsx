@@ -56,7 +56,7 @@ export function SiteHeader({ searchDefault }: { searchDefault?: string }) {
           <nav aria-label={m.shellAccountNav} className="ms-auto flex items-center gap-1.5">
             <Link
               href={routes.account}
-              className="inline-flex h-control-s items-center gap-2 rounded-pill px-3.5 text-14 font-medium text-night no-underline hover:text-blue"
+              className="inline-flex h-control-s items-center gap-2 rounded-pill px-3.5 text-14 font-medium text-night no-underline hover:text-bottle"
             >
               <Icon name="user" size={22} />
               <span>{m.shellAccount}</span>
@@ -67,7 +67,7 @@ export function SiteHeader({ searchDefault }: { searchDefault?: string }) {
         <PageContainer>
           <nav aria-label={m.shellDepartments} className="flex flex-wrap gap-x-8 pb-1 text-15 font-medium leading-25">
             {departments.map((d) => (
-              <Link key={d.label} href={d.href} className="py-2.5 text-night no-underline hover:text-blue">
+              <Link key={d.label} href={d.href} className="py-2.5 text-night no-underline hover:text-bottle">
                 {d.label}
               </Link>
             ))}

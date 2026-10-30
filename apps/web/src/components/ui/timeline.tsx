@@ -16,7 +16,7 @@ export interface TimelineItem {
 const dotClass: Record<TimelineDot, string> = {
   done: "bg-night text-linen",
   na: "bg-linen shadow-outline-night",
-  now: "bg-blue shadow-halo-blue",
+  now: "bg-bottle shadow-halo-bottle",
   next: "bg-linen shadow-outline-dune",
   err: "bg-err text-white",
   warn: "bg-linen shadow-outline-warn",
@@ -24,7 +24,7 @@ const dotClass: Record<TimelineDot, string> = {
 
 /**
  * Tracking timeline (OrdersD, CommerceMobile ٧; handoff §Components): 22px dots — `done` night with a check, `na` night
- * ring (cash: no payment step), `now` Sahel blue with a blue-tint halo and aria-current="step", `next` dune ring with
+ * ring (cash: no payment step), `now` Sahel bottle with a bottle-tint halo and aria-current="step", `next` dune ring with
  * ink-3 text, `err` red with ✕, `warn` amber ring. The connector is night up to the current step, dune after it.
  * The label always names the state; the dot never carries it alone.
  */

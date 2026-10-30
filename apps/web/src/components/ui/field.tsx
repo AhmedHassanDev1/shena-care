@@ -5,7 +5,7 @@ import { Icon, type IconName } from "./icon"
 
 /*
  * SAHEL fields (Authentication Addendum §Inputs; AuthStates §١, CommerceStates §٣): label 14/600 above, a 56px linen
- * box with a 1px line-2 outline and radius 14, focus = 2px blue + blue-tint halo, error = 2px err. Messages sit under
+ * box with a 1px line-2 outline and radius 14, focus = 2px bottle + bottle-tint halo, error = 2px err. Messages sit under
  * the box: helper in ink-2, inline error = red dot + words with role="alert", linked by aria-describedby; the control
  * gets aria-invalid. Box geometry lives in globals.css (.field-box) so every state keeps the same size.
  */

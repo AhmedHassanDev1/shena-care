@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 export type MessageTone = "info" | "warn" | "ok" | "err"
 
 const toneClass: Record<MessageTone, { box: string; dot: string }> = {
-  info: { box: "bg-blue-tint", dot: "bg-blue" },
+  info: { box: "bg-bottle-tint", dot: "bg-bottle" },
   warn: { box: "bg-saffron-tint", dot: "bg-warn" },
   ok: { box: "bg-ok-tint", dot: "bg-ok" },
   err: { box: "bg-err-tint", dot: "bg-err" },

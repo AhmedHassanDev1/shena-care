@@ -47,7 +47,7 @@ bdi {
 
 /* Focus visible ring: accessible high-contrast indicator. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2.5px solid var(--blue);
+  outline: 2.5px solid var(--bottle);
   outline-offset: 3px;
 }
 
@@ -108,10 +108,10 @@ bdi {
   .sl.sl-light[aria-busy='true']::before {
     background: repeating-linear-gradient(
       116deg,
-      rgba(19, 24, 42, 0) 0 44px,
-      rgba(19, 24, 42, 0.07) 44px 56px,
-      rgba(19, 24, 42, 0.03) 56px 60px,
-      rgba(19, 24, 42, 0) 60px 100.7px
+      rgba(21, 22, 26, 0) 0 44px,
+      rgba(21, 22, 26, 0.07) 44px 56px,
+      rgba(21, 22, 26, 0.03) 56px 60px,
+      rgba(21, 22, 26, 0) 60px 100.7px
     );
   }
   /* Strips travel right to left, in reading direction (handoff §Shutter Loading). */
@@ -125,7 +125,7 @@ bdi {
   }
 
   /*
-   * Field geometry (Addendum §Inputs): linen fill, line-2 border, radius 14; focus = 2px blue + blue-tint halo;
+   * Field geometry (Addendum §Inputs): linen fill, line-2 border, radius 14; focus = 2px bottle + bottle-tint halo;
    * error = 2px err. Drawn as inset shadows so the box never changes size between states.
    */
   .field-box {
@@ -135,7 +135,7 @@ bdi {
     transition: box-shadow var(--dur-fast) var(--ease-standard);
   }
   .field-box:focus-within {
-    box-shadow: inset 0 0 0 2px var(--blue), 0 0 0 4px var(--blue-tint);
+    box-shadow: inset 0 0 0 2px var(--bottle), 0 0 0 4px var(--bottle-tint);
   }
   .field-box[data-invalid='true'] {
     box-shadow: inset 0 0 0 2px var(--err);
@@ -161,7 +161,53 @@ bdi {
     text-underline-offset: 7px;
   }
   .text-link:hover {
-    color: var(--blue);
+    color: var(--bottle);
+  }
+
+  /* Quiet text link: no underline at rest, a drawn one on hover/focus (the line grows from the reading start). */
+  .link-quiet {
+    background: linear-gradient(currentColor, currentColor) no-repeat;
+    background-size: 0% 1.5px;
+    background-position: 100% calc(100% - 0.55em);
+    text-decoration: none;
+    transition: background-size var(--dur-base) var(--ease-standard);
+  }
+  .link-quiet:dir(ltr) {
+    background-position: 0% calc(100% - 0.55em);
+  }
+  .link-quiet:hover,
+  .link-quiet:focus-visible {
+    background-size: 100% 1.5px;
+  }
+
+  /* Homepage hero entrance: one staggered rise on load, CSS only so it ships with the HTML. */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-rise {
+      animation: rise-in 720ms var(--ease-standard) backwards;
+    }
+  }
+
+  /*
+   * Brand marquee. The track holds two identical groups, so moving it by exactly one group (50% of the track) lands on
+   * the same picture and the loop has no seam. Content starts at the reading edge: under dir="ltr" it moves toward the
+   * start (left), under RTL toward the end (right), which is the only direction that keeps the track covering the
+   * viewport. Only transform animates. Paused by hover, focus inside, or data-paused from the pause button.
+   */
+  .marquee-track {
+    animation: marquee-ltr 60s linear infinite;
+    will-change: transform;
+  }
+  html[dir='rtl'] .marquee-track {
+    animation-name: marquee-rtl;
+  }
+  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track,
+  .marquee[data-paused='true'] .marquee-track {
+    animation-play-state: paused;
+  }
+  .marquee-mask {
+    -webkit-mask-image: linear-gradient(90deg, transparent, rgb(0 0 0) 12%, rgb(0 0 0) 88%, transparent);
+    mask-image: linear-gradient(90deg, transparent, rgb(0 0 0) 12%, rgb(0 0 0) 88%, transparent);
   }
 
   /* «ج.م» after an amount (CartD, CheckoutD): 0.72em of the amount it follows. */
@@ -203,6 +249,17 @@ bdi {
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+}
+
+@keyframes marquee-ltr {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+@keyframes marquee-rtl {
+  to {
+    transform: translate3d(50%, 0, 0);
   }
 }
 

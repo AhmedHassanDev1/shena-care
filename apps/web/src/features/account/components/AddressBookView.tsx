@@ -274,7 +274,7 @@ export function AddressBookView() {
       </header>
 
       {successMessage && (
-        <MessageBox tone="ok" className="border-blue/30 bg-blue-tint text-blue">
+        <MessageBox tone="ok" className="border-bottle/30 bg-bottle-tint text-bottle">
           <div className="flex items-center gap-2">
             <Icon name="check" size={18} />
             <p className="text-14">{successMessage}</p>
@@ -365,7 +365,7 @@ export function AddressBookView() {
                     className={cn(
                       'rounded-pill border px-2.5 py-1 text-12 transition-colors',
                       formData.governorate.toLowerCase() === 'cairo' || formData.governorate === 'القاهرة'
-                        ? 'border-blue bg-blue-tint text-blue'
+                        ? 'border-bottle bg-bottle-tint text-bottle'
                         : 'border-line bg-linen text-ink-2 hover:bg-sand',
                     )}
                   >
@@ -381,7 +381,7 @@ export function AddressBookView() {
                     className={cn(
                       'rounded-pill border px-2.5 py-1 text-12 transition-colors',
                       formData.governorate.toLowerCase() === 'giza' || formData.governorate === 'الجيزة'
-                        ? 'border-blue bg-blue-tint text-blue'
+                        ? 'border-bottle bg-bottle-tint text-bottle'
                         : 'border-line bg-linen text-ink-2 hover:bg-sand',
                     )}
                   >
@@ -424,7 +424,7 @@ export function AddressBookView() {
                   type="checkbox"
                   checked={formData.isDefault}
                   onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                  className="rounded border-line text-blue focus:ring-blue"
+                  className="rounded border-line text-bottle focus:ring-bottle"
                 />
                 <span>{m.addressBookSetDefault}</span>
               </label>
@@ -461,7 +461,7 @@ export function AddressBookView() {
           {addresses.map((addr) => (
             <div
               key={addr.id}
-              className={cn('rounded-card bg-linen shadow-outline-hairline', addr.isDefault && 'shadow-outline-blue')}
+              className={cn('rounded-card bg-linen shadow-outline-hairline', addr.isDefault && 'shadow-outline-bottle')}
             >
               <div className="pb-2 flex flex-col gap-1.5 px-5 pt-5">
                 <div className="flex items-start justify-between gap-2">
@@ -470,7 +470,7 @@ export function AddressBookView() {
                       {addr.label || addr.customerName}
                     </span>
                     {addr.isDefault && (
-                      <StatusChip tone="blue">
+                      <StatusChip tone="bottle">
                         {m.addressBookDefaultBadge}
                       </StatusChip>
                     )}

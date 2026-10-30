@@ -505,12 +505,12 @@ function DecisionPanel({ orderNumber, onResolved }: { orderNumber: string; onRes
               return (
                 <label
                   key={`${option.action}-${option.skuId ?? ''}`}
-                  className={cn('flex cursor-pointer items-start gap-3 rounded-16 bg-linen px-4 py-3', selected ? 'shadow-outline-blue' : 'shadow-outline-control')}
+                  className={cn('flex cursor-pointer items-start gap-3 rounded-16 bg-linen px-4 py-3', selected ? 'shadow-outline-bottle' : 'shadow-outline-control')}
                 >
                   <input
                     type="radio"
                     name={`decision-${decision.id}`}
-                    className="mt-1 size-4 accent-blue"
+                    className="mt-1 size-4 accent-bottle"
                     checked={selected}
                     onChange={() => setChoice({ decisionId: decision.id, action: option.action, skuId: option.skuId })}
                   />

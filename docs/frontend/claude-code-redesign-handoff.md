@@ -1,5 +1,7 @@
 # ShinaCare Frontend Redesign Handoff for Claude Code
 
+> **Update:** the redesign foundation now exists. The active visual rules, shared components, asset rules and checks are in [`design-system.md`](design-system.md); the homepage image provenance and missing assets are in [`homepage-image-manifest.md`](homepage-image-manifest.md). Sections below describe the pre-redesign baseline.
+
 ## 1. Executive Summary
 
 The ShinaCare frontend (`apps/web`) has been prepared for a complete UI/UX redesign. The influence of previous visual marketing layouts, mock presentation sections, and board-specific visual chrome (SAHEL V18 boards, billboard heroes, tilted cards, floating capsule navigation) has been safely removed.

@@ -16,7 +16,7 @@ docs
 dist/
 build/
 .next/
-
+graphify-out
 # Environment
 .env
 .env*.local

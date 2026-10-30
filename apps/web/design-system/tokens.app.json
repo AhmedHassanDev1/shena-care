@@ -16,26 +16,26 @@
       {
         "name": "white",
         "value": "#FFFFFF",
-        "usage": "Label on blue and ok buttons (ShutterLoading, every commerce board). Pending design confirmation."
+        "usage": "Label on bottle and ok buttons (ShutterLoading, every commerce board). Pending design confirmation."
       },
       {
-        "name": "blue-hover",
-        "value": "#1C2EAE",
-        "usage": "Hover fill of blue actions (.add:hover on Home, PLP, PDP, commerce boards)."
+        "name": "bottle-hover",
+        "value": "#0F4733",
+        "usage": "Hover fill of bottle actions (.add:hover on Home, PLP, PDP, commerce boards)."
       },
       {
-        "name": "blue-light",
-        "value": "#2B3FD0",
-        "usage": "Light end of the Sahel-blue campaign gradient (Home hero, auth panel)."
+        "name": "bottle-light",
+        "value": "#1B6B50",
+        "usage": "Light end of the Sahel-bottle campaign gradient (Home hero, auth panel)."
       },
       {
-        "name": "blue-dark",
-        "value": "#1A2A9C",
-        "usage": "Dark end of the Sahel-blue campaign gradient (Home hero, auth panel)."
+        "name": "bottle-dark",
+        "value": "#0A2E21",
+        "usage": "Dark end of the Sahel-bottle campaign gradient (Home hero, auth panel)."
       },
       {
         "name": "saffron-light",
-        "value": "#FFE7B0",
+        "value": "#E5D3A8",
         "usage": "Highlight of the Shina sun orb (FloatingNav, Home assistant entry)."
       }
     ]
@@ -223,15 +223,15 @@
     "32.5": "130px"
   },
   "shadow": {
-    "$comment": "Board shadows that are not elevation tokens: the FloatingNav capsule, the blue button's inset highlight, and the inset outlines the boards draw instead of borders (light buttons 1.5px night, controls and chips 1px line-2, success 1.5px ok, hairline cards 1px line).",
+    "$comment": "Board shadows that are not elevation tokens: the FloatingNav capsule, the bottle button's inset highlight, and the inset outlines the boards draw instead of borders (light buttons 1.5px night, controls and chips 1px line-2, success 1.5px ok, hairline cards 1px line).",
     "tokens": [
       {
         "name": "nav",
-        "value": "0 1px 0 rgba(247,242,234,.08) inset, 0 2px 6px rgba(19,24,42,.22), 0 22px 40px -14px rgba(19,24,42,.6)"
+        "value": "0 1px 0 rgba(243,243,241,.08) inset, 0 2px 6px rgba(21,22,26,.22), 0 22px 40px -14px rgba(21,22,26,.6)"
       },
       {
         "name": "action",
-        "value": "inset 0 1px 0 rgba(255,255,255,.22), -1px 1px 1px rgba(92,52,20,.06), -4px 6px 12px -6px rgba(92,52,20,.18)"
+        "value": "inset 0 1px 0 rgba(255,255,255,.22), -1px 1px 1px rgba(21,22,26,.06), -4px 6px 12px -6px rgba(21,22,26,.18)"
       },
       {
         "name": "outline-night",
@@ -250,8 +250,8 @@
         "value": "inset 0 0 0 1.5px var(--ok)"
       },
       {
-        "name": "outline-blue",
-        "value": "inset 0 0 0 2px var(--blue)"
+        "name": "outline-bottle",
+        "value": "inset 0 0 0 2px var(--bottle)"
       },
       {
         "name": "outline-err",
@@ -267,7 +267,7 @@
       },
       {
         "name": "focus-field",
-        "value": "inset 0 0 0 2px var(--blue), 0 0 0 4px var(--blue-tint)"
+        "value": "inset 0 0 0 2px var(--bottle), 0 0 0 4px var(--bottle-tint)"
       },
       {
         "name": "hairline-bottom",
@@ -282,12 +282,12 @@
         "value": "inset 0 1px 0 rgb(var(--bone-rgb) / .18)"
       },
       {
-        "name": "hairline-on-blue",
+        "name": "hairline-on-bottle",
         "value": "inset 0 1px 0 rgb(var(--bone-rgb) / .28)"
       },
       {
-        "name": "halo-blue",
-        "value": "0 0 0 5px var(--blue-tint)"
+        "name": "halo-bottle",
+        "value": "0 0 0 5px var(--bottle-tint)"
       },
       {
         "name": "outline-warn",
@@ -295,11 +295,11 @@
       },
       {
         "name": "outline-commerce",
-        "value": "inset 0 0 0 1.5px var(--blue)"
+        "value": "inset 0 0 0 1.5px var(--bottle)"
       },
       {
         "name": "tile-hairline",
-        "value": "inset 0 0 0 1px var(--line), -1px 1px 1px rgba(92,52,20,.04), -4px 6px 12px -6px rgba(92,52,20,.12)"
+        "value": "inset 0 0 0 1px var(--line), -1px 1px 1px rgba(21,22,26,.04), -4px 6px 12px -6px rgba(21,22,26,.12)"
       },
       {
         "name": "outline-check",

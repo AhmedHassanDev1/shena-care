@@ -21,7 +21,7 @@ interface SizePickerProps {
 /**
  * «اختار الحجم» (ProductCard variant-open; PLPStates «موبايل ٣٩٠ — الشيتات»): size is chosen before adding.
  * Desktop: a dialog over the card's own image. Phone: a bottom sheet with the product row. A radiogroup of the
- * orderable sizes (selected = blue-tint + 2px blue ring + check, 700), then «أضف للسلة · price» for the chosen size.
+ * orderable sizes (selected = bottle-tint + 2px bottle ring + check, 700), then «أضف للسلة · price» for the chosen size.
  */
 export function SizePicker(props: SizePickerProps) {
   const [desktop, setDesktop] = useState<boolean | null>(null);
@@ -74,10 +74,10 @@ function SizeOptions({ product, selected, onSelect }: { product: CardModel; sele
             }}
             className={cn(
               'flex h-control-m cursor-pointer items-center justify-center gap-1.5 rounded-image text-14 text-night',
-              checked ? 'bg-blue-tint font-bold shadow-outline-blue' : 'bg-linen font-medium shadow-outline-control'
+              checked ? 'bg-bottle-tint font-bold shadow-outline-bottle' : 'bg-linen font-medium shadow-outline-control'
             )}
           >
-            {checked ? <Icon name="check" size={16} strokeWidth={2.5} className="text-blue" /> : null}
+            {checked ? <Icon name="check" size={16} strokeWidth={2.5} className="text-bottle" /> : null}
             {variant.label}
           </span>
         );
@@ -94,7 +94,7 @@ function AddButton({ product, skuId, pending, failed, onAdd, compact }: { produc
   return (
     <>
       <Button
-        variant="blue"
+        variant="bottle"
         size={compact ? 's' : 'l'}
         className={cn('w-full', !compact && 'h-12.5 text-15')}
         loading={pending}

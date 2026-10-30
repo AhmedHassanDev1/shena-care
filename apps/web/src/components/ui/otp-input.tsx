@@ -67,7 +67,7 @@ export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function Otp
               )}
             >
               {digit}
-              {isActive && !digit ? <span className="h-6 w-0.5 rounded-pill bg-blue" /> : null}
+              {isActive && !digit ? <span className="h-6 w-0.5 rounded-pill bg-bottle" /> : null}
             </span>
           );
         })}

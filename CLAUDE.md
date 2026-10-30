@@ -75,32 +75,36 @@ A feature is **Done** only when schema, business rules, validation, tests, and d
 
 ## 4. Frontend Design System (`apps/web` only)
 
-> [!NOTE]
-> **SAHEL V18 DEPRECATED FOR UPCOMING REDESIGN**: The SAHEL V18 visual design direction is deprecated. Future visual design will be implemented using new Stitch design references as the primary source of visual truth. The token infrastructure, presets, and check scripts below currently serve as baseline technical guardrails during the redesign transition.
-
-The transitional design system package was SAHEL V18. Full guide: [`apps/web/design-system/README.md`](apps/web/design-system/README.md). Scope: `apps/web` — never `apps/business`. No parallel themes, legacy aliases or compatibility layers.
+The storefront has **one** design system: [`docs/frontend/design-system.md`](docs/frontend/design-system.md) (luxury editorial beauty, smoke-white ground, emerald accent, photography-led, Arabic-first RTL). Read it before touching `apps/web`. Stitch defines the **page structure** of each page; the shared system defines everything visual. Scope: `apps/web` only, never `apps/business`. No parallel themes, legacy aliases, compatibility layers or page-specific styles that conflict with the shared system. The SAHEL V18 documents (`apps/web/design-system/README.md`, `docs/design/sahel-v18`) are deprecated and are not a visual reference.
 
 ### Where things live
-- **Canonical tokens:** `apps/web/design-system/tokens.json` — byte-identical to `docs/design/sahel-v18/03-tokens/tokens.json`. `tokens.app.json` holds only values the V18 package states elsewhere (board-only colours pending design confirmation, mobile display sizes, board type/radius/spacing ramps, control sizes, board shadows, motion, breakpoints); it can never redefine a canonical name.
-- **Generated runtime styles:** `npm run tokens` (`scripts/build-tokens.mjs`) → `src/styles/tokens.generated.css` + `src/styles/design-scales.generated.ts`. Both are committed; never edit them. `predev`/`prebuild` regenerate them. Tailwind reads the same JSON through `design-system/tailwind-preset.ts` and *replaces* its default colours/radii/shadows/type scales, so `tailwind.config.ts` holds no design values and raw palette classes do not exist.
-- **Fonts:** Beiruti (display), IBM Plex Sans Arabic (text), Instrument Serif italic (campaign line only), self-hosted from `@fontsource` in `src/app/layout.tsx`; `<html lang dir>` is set from the locale (Arabic RTL first).
-- **Shared components:** `src/components/ui/*` (Button / AsyncButton with Shutter Loading, IconButton, TextField / PhoneField / TextAreaField, OtpInput, SearchField, Chip, StatusChip, MessageBox, QuantityStepper, ProductTile, Timeline, Toast, Sheet, Dialog, Skeleton, Icon, Wordmark) and the shell `src/features/shell/*` (SiteHeader, FocusHeader, SiteFooter, StorefrontShell, CartLink). The shared product card is `src/features/catalog/components/ProductCard.tsx`.
+- **Tokens:** `apps/web/design-system/tokens.json` (+ `tokens.app.json` for values the canonical file lacks) → `npm run tokens` → `src/styles/tokens.generated.css` + `design-scales.generated.ts` (committed, never hand-edited; `predev`/`prebuild` regenerate). Tailwind reads the same JSON through `design-system/tailwind-preset.ts` and *replaces* its default colours/radii/shadows/type, so raw palette classes do not exist. The action colour token is `bottle` (emerald); `blue` no longer exists.
+- **Fonts:** Beiruti (display), IBM Plex Sans Arabic (text), Instrument Serif italic (one Latin campaign line, not UI), self-hosted from `@fontsource`.
+- **Shared components:** `src/components/layout/*` (`Section`, `SectionHeader`, `PageContainer`), `src/components/ui/*` (Button, Chip, ChipLink, GlassBadge, ArrowLink, MediaFrame, cardVariants, ProductTile, Icon, MessageBox, Skeleton, …), the shell `src/features/shell/*`, and `features/catalog/components/ProductCard.tsx`. The catalog of components and when to use each is in the design-system doc §3.
 
-### Adoption rules
-1. No hex, raw palette classes, legacy "Kohl & Malachite" names, arbitrary `text-[…]`/`bg-[…]`/`rounded-[…]`/`shadow-[…]`/`font-[…]`/`leading-[…]`/`tracking-[…]`, `lucide-react`, or physical `left/right` utilities in TSX (enforced by `npm run check:design`).
-2. Use SAHEL names: colours `bone|linen|sand|dune|night|ink-2|ink-3|line|line-2|blue*|coral*|saffron*|ok|err*`, type `text-display-hero|display-1|display-2|display-3|title|body|product-name|brand|price|label|campaign` plus the board ramp (`text-13`, `leading-22`), radii `rounded-image|input|card|sheet|pill`, shadows `shadow-elevation-1|2|3` and the inset outlines.
-3. Shutter Loading only on async buttons in the pending state (`Button loading` / `AsyncButton`); cards, images, pages and infinite scroll keep skeletons and written status.
-4. Fix shared components centrally; pages may only lay out (grid, spacing, order), never re-skin a shared component.
-5. Logical CSS, `<bdi>`/`dir="ltr"` for Latin runs, phone/OTP isolated LTR. Errors/success always carry words.
-6. **Digits (scoped):** in the *Arabic storefront* prices, totals, quantities, counts and dates use Arabic-Indic digits with the Arabic thousands separator («٣٬٣٢٠ ج.م», «١٨ أكتوبر ٢٠٢٦») via `src/lib/i18n/format.ts` (Intl, never manual digit replacement). The English storefront and `apps/business` keep Western digits. Phone numbers, OTP codes, SKU codes and order/transaction references stay Western and LTR; numbers inside English product names are left as written; API payloads, stored values and calculations never use display formatting.
-7. New design value → `tokens.json` only when SAHEL adds it; otherwise `tokens.app.json` with its V18 source (+ contrast pair in `src/styles/contrast-pairs.json`), then `npm run tokens`.
+### Mandatory visual consistency rules
+1. No hex, raw palette classes, arbitrary `text-[…]`/`bg-[…]`/`rounded-[…]`/`shadow-[…]`/`font-[…]`/`leading-[…]`/`tracking-[…]`, `lucide-react` (icons are Lucide-style paths added to `components/ui/icon-paths.ts`), or physical `left/right` utilities in TSX (enforced by `npm run check:design`).
+2. Compose pages from `Section` / `SectionHeader` and the shared components. A page may lay out (grid, order); it never re-skins a shared component and never invents its own card, chip, badge, button, section-title or image treatment. Need a new pattern? Add it to the shared system and the doc first, then use it.
+3. Spacing comes from `Section` rhythm only; do not patch whitespace with per-page padding.
+4. Shutter Loading only on async buttons in the pending state; cards, images, pages and lists use skeletons and written status. Every data section implements loading, error (with retry), empty and data states.
+5. Motion is purposeful, transform/opacity only, and respects `prefers-reduced-motion`; auto-moving content has a pause control.
+6. Logical CSS, `<bdi>`/`dir="ltr"` for Latin runs, phone/OTP isolated LTR. Errors and success always carry words. Every string in both languages (`messages.test.ts`).
+7. **Digits (scoped):** in the *Arabic storefront* prices, totals, quantities, counts and dates use Arabic-Indic digits with the Arabic thousands separator via `src/lib/i18n/format.ts` (Intl, never manual replacement). The English storefront and `apps/business` keep Western digits. Phone numbers, OTP codes, SKU codes and order/transaction references stay Western and LTR; API payloads, stored values and calculations never use display formatting.
+8. New design value → `tokens.json`/`tokens.app.json` (+ a contrast pair in `src/styles/contrast-pairs.json`), then `npm run tokens`.
 
-### Verification (run from `apps/web`)
-- `npm run tokens:check` — generated files in sync with `tokens.json` + `tokens.app.json`
-- `npm run check:design` — WCAG contrast pairs + hex / palette / icon / direction / legacy-name guardrails
-- `npm run typecheck` · `npm run lint` · `npm test`
+### Mandatory asset and data rules
+1. **Photography, never drawing:** no SVG or CSS-drawn bottles, packs, faces or scenes, and no cartoon or generic illustration standing in for a photograph. SVG is for icons and UI chrome only.
+2. **Products and brands come from the catalog API only.** Never invent, generate or draw a product, pack, label, brand mark or price, and never add fixtures to the storefront. A missing product photo shows `ProductTile`'s labelled placeholder; a missing logo shows the brand name in type.
+3. **Every image asset is registered and documented:** campaign photos in `public/images/home` via `features/home/lib/home-images.ts`, logos via `brand-logos.ts`, each listed in `docs/frontend/homepage-image-manifest.md` with source, rights status and the missing-asset list. Missing essential photography is reported there, never silently replaced.
+4. Images use `next/image` with real dimensions or `fill` + `sizes`, an `alt` (empty only when adjacent text says the same), `priority` only for the first-screen hero.
+5. Never hide an API error, and never loosen a backend rule (availability window, sellability, price) to make a screen look full. If a screen is empty, trace the cause (design-system doc §10) and report it.
+
+### Verification (run from `apps/web`; all must pass, and visual work needs real screenshots)
+- `npm run tokens:check` — generated files in sync
+- `npm run check:design` — WCAG contrast pairs + hex / palette / icon / direction / legacy-name guardrails, then `check:assets` (referenced files exist, declared image sizes match, every public image is in the manifest, no inline SVG in `features/home`, `<Image>` always has alt)
+- `npm run typecheck` · `npm run lint` · `npm test` · `npm run build`
 - `npm run check:ui-reset` — route/RTL contract (starts its own dev server)
-- Visual: compare against `docs/design/sahel-v18/05-boards/png/` at 390 and 1440 (Arabic), plus English spot checks.
+- Visual: screenshots at 390 and 1440 (Arabic) plus English spot checks, with real catalog data where the page shows it; verify navigation, images, animation, API states and keyboard access.
 
 ## graphify
 

@@ -46,9 +46,28 @@ export const ICON_PATHS = {
   message: '<path d="M4.5 6.5h15v10h-9l-4 3v-3h-2z"/>', // msg.svg
   camera: '<path d="M4 8.5h3l1.5-2h7l1.5 2h3v10H4z"/><circle cx="12" cy="13" r="3.25"/>', // icon-049 (image placeholder)
   'image-off': '<rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="M3.5 15l4.5-4.5 4 4 2.5-2.5 6 6"/><path d="M4 4l16 16"/>', // icon-071 (img-error)
+
+  // Care concerns and media controls. Path data from Lucide (ISC licence, https://lucide.dev); copied here so the app keeps
+  // one icon source and no icon-library dependency. Names say what they mean in the storefront, not the Lucide name.
+  acne: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/>', // lucide circle-dot
+  dryness: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>', // lucide droplet
+  pigmentation: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>', // lucide sun
+  'hair-loss': '<path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/>', // lucide trending-down
+  wrinkles: '<path d="M2 12q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 19q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 5q2.5 2 5 0t5 0 5 0 5 0"/>', // lucide waves-horizontal
+  frizz: '<path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/>', // lucide wind (flows toward the reading end in RTL)
+  pause: '<rect x="14" y="3" width="5" height="18" rx="1"/><rect x="5" y="3" width="5" height="18" rx="1"/>', // lucide pause
+  play: '<path d="M18 3 4 12l14 9z" stroke-linejoin="round"/>', // lucide play, drawn pointing at the reading end (RTL)
+  sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/><path d="M19 3v4M21 5h-4"/>', // lucide sparkles
+  science: '<path d="M10 2v7.3M14 2v7.3M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"/>', // lucide flask
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>', // lucide sun
+  bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>', // lucide bookmark
+  swap: '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>', // lucide arrow-left-right
+  mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>', // lucide mic
+  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>', // lucide send
+  heart: '<path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7Z"/>', // lucide heart
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;
 
 /** Icons whose meaning depends on reading direction; they flip under dir="ltr". */
-export const DIRECTIONAL_ICONS: readonly IconName[] = ['chevron-back', 'chevron-forward', 'arrow-forward', 'returns'];
+export const DIRECTIONAL_ICONS: readonly IconName[] = ['chevron-back', 'chevron-forward', 'arrow-forward', 'returns', 'play'];
