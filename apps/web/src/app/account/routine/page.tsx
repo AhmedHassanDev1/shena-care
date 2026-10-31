@@ -3,7 +3,7 @@ import { StorefrontShell } from '@/features/shell/StorefrontShell';
 
 export default function MyRoutinePage() {
   return (
-    <StorefrontShell nav="routines">
+    <StorefrontShell nav="routines" dock="routines">
       <ActiveRoutineTracker />
     </StorefrontShell>
   );

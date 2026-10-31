@@ -10,12 +10,12 @@ import { Icon, type IconName } from "./icon"
  * the exact same look and hit area: `<Link className={iconButtonVariants()}>`.
  */
 export const iconButtonVariants = cva(
-  "relative inline-flex size-control-s shrink-0 items-center justify-center rounded-pill text-night transition-colors duration-fast ease-standard disabled:cursor-not-allowed disabled:text-ink-3",
+  "relative inline-flex size-control-m shrink-0 items-center justify-center rounded-pill text-ink transition-all duration-fast ease-standard disabled:cursor-not-allowed disabled:text-stone",
   {
     variants: {
       variant: {
         plain: "hover:bg-sand/60",
-        raised: "bg-linen shadow-elevation-1 hover:bg-bone",
+        raised: "bg-linen shadow-e1 hover:bg-chalk",
       },
     },
     defaultVariants: { variant: "plain" },

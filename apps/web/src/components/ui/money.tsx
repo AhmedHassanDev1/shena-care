@@ -24,13 +24,13 @@ export function Money({ amount, struck, className, currencyClassName }: MoneyPro
     <bdi className={cn("whitespace-nowrap tabular-nums", struck && "line-through decoration-1", className)}>
       {locale === "en" ? (
         <>
-          <span className={cn("me-1 money-unit font-medium text-ink-2", currencyClassName)}>{currencyLabel(locale)}</span>
+          <span className={cn("me-1 money-unit font-medium text-stone", currencyClassName)}>{currencyLabel(locale)}</span>
           {formatAmount(amount, locale)}
         </>
       ) : (
         <>
           {formatAmount(amount, locale)}
-          <span className={cn("ms-[3px] money-unit font-medium text-ink-2", currencyClassName)}>{currencyLabel(locale)}</span>
+          <span className={cn("ms-[3px] money-unit font-medium text-stone", currencyClassName)}>{currencyLabel(locale)}</span>
         </>
       )}
     </bdi>

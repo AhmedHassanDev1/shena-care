@@ -17,10 +17,10 @@ export function RedesignPlaceholder({ route }: { route: string }) {
       aria-labelledby="placeholder-title"
       className="mx-auto flex min-h-[60dvh] max-w-narrow flex-col items-start justify-center gap-4 px-4 py-16"
     >
-      <h1 id="placeholder-title" className="m-0 text-display-1 text-night">
+      <h1 id="placeholder-title" className="m-0 text-display-1 text-ink font-display font-bold">
         {m.placeholderTitle}
       </h1>
-      <p className="m-0 text-15 leading-27 text-ink-2">{m.placeholderBody}</p>
+      <p className="m-0 text-16 leading-26 text-stone font-display">{m.placeholderBody}</p>
       <Link href={routes.home} className={buttonVariants({ variant: 'ink', size: 'm' })}>
         {m.placeholderHome}
       </Link>

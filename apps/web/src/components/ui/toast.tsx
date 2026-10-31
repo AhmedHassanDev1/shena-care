@@ -3,31 +3,39 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { Icon } from "./icon"
 
 export interface ToastProps {
   children: React.ReactNode
-  /** Optional action, e.g. «تراجع» after removing an item. */
+  /** Optional secondary subtitle text */
+  subtitle?: React.ReactNode
+  /** Optional action button */
   action?: { label: string; onClick: () => void }
   className?: string
 }
 
 /**
- * Dark toast (CommerceStates §١ item removed, AuthStates §٥ «دخلت بحسابك…»): night ground, linen text, radius 16,
- * announced politely. Placement (above the sticky action area or the nav) is the page's job.
+ * Sahel Toast: ink ground, chalk text, pill radius (rounded-pill), shadow-e3, citron check circle.
  */
-export function Toast({ children, action, className }: ToastProps) {
+export function Toast({ children, subtitle, action, className }: ToastProps) {
   return (
     <div
       role="status"
       aria-live="polite"
-      className={cn("flex items-center gap-3 rounded-16 bg-night px-4 py-3 text-14 leading-22 text-linen shadow-elevation-2", className)}
+      className={cn("flex items-center gap-3.5 rounded-pill bg-ink p-2.5 pe-4 text-chalk shadow-e3 font-display", className)}
     >
-      <div className="min-w-0 flex-1">{children}</div>
+      <span aria-hidden="true" className="flex size-10.5 flex-none items-center justify-center rounded-full bg-citron text-ink">
+        <Icon name="check" size={20} strokeWidth={2.4} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-16 font-semibold leading-tight">{children}</div>
+        {subtitle ? <div className="text-13 text-chalk/75 leading-tight mt-0.5">{subtitle}</div> : null}
+      </div>
       {action ? (
         <button
           type="button"
           onClick={action.onClick}
-          className="min-h-control-s flex-none px-1 text-14 font-semibold text-saffron underline underline-offset-4"
+          className="h-control-m px-4 rounded-pill bg-linen text-ink text-15 font-semibold transition-transform hover:scale-105 active:scale-95"
         >
           {action.label}
         </button>

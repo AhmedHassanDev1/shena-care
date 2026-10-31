@@ -30,8 +30,8 @@ export function QuantityStepper({ value, displayValue, min = 1, max, onChange, l
   const locked = pending || disabled
   const commerce = tone === "commerce"
   const button = cn(
-    "flex h-control-s items-center justify-center disabled:cursor-not-allowed disabled:text-ink-3",
-    "w-11", commerce ? "text-bottle-deep" : "text-night"
+    "flex h-control-s items-center justify-center disabled:cursor-not-allowed disabled:text-stone",
+    "w-11", commerce ? "text-cobalt-deep" : "text-ink"
   )
   return (
     <span
@@ -40,7 +40,7 @@ export function QuantityStepper({ value, displayValue, min = 1, max, onChange, l
       aria-busy={pending || undefined}
       className={cn(
         "inline-flex h-control-s flex-none items-center rounded-pill",
-        commerce ? "bg-bottle-tint shadow-outline-commerce" : "bg-linen shadow-outline-control",
+        commerce ? "bg-sand shadow-outline-commerce" : "bg-linen shadow-outline-control",
         pending && "opacity-60",
         className
       )}
@@ -48,7 +48,7 @@ export function QuantityStepper({ value, displayValue, min = 1, max, onChange, l
       <button type="button" aria-label={labels.increase} className={button} disabled={locked || value >= max} onClick={() => onChange(Math.min(max, value + 1))}>
         <Icon name="plus" size={16} strokeWidth={2.25} />
       </button>
-      <span aria-live="polite" className="min-w-4.5 text-center text-15 font-bold text-night">
+      <span aria-live="polite" className="min-w-4.5 text-center text-16 font-display font-bold text-ink">
         {displayValue}
       </span>
       <button type="button" aria-label={labels.decrease} className={button} disabled={locked || value <= min} onClick={() => onChange(Math.max(min, value - 1))}>

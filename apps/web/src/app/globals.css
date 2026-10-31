@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 /*
- * Global styling foundations. Values are design tokens (src/styles/tokens.generated.css, generated from
- * design-system/tokens.json + tokens.app.json); component styling belongs to src/components.
+ * ShinaCare · Sahel — Global styling foundations.
+ * Single source of truth: apps/web/docs/design-system/ShinaCare-Design-System-Sahel
  */
 
 *,
@@ -21,19 +21,21 @@ html {
 body {
   min-height: 100dvh;
   margin: 0;
-  background: var(--bone);
-  color: var(--night);
-  font-family: var(--font-text);
-  font-size: 15px;
-  line-height: 27px;
+  background: var(--chalk);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 29px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
 h2,
-h3 {
+h3,
+h4 {
   text-wrap: balance;
+  color: var(--ink);
 }
 
 p {
@@ -45,36 +47,213 @@ bdi {
   unicode-bidi: isolate;
 }
 
-/* Focus visible ring: accessible high-contrast indicator. */
+/* Focus visible ring: accessible high-contrast indicator in Sahel Cobalt. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2.5px solid var(--bottle);
-  outline-offset: 3px;
+  outline: 2px solid var(--cobalt);
+  outline-offset: 4px;
 }
 
-/* Arabic is never letter-spaced (handoff §RTL 6). */
+/* Arabic is never letter-spaced. */
 :lang(ar) {
   letter-spacing: normal;
 }
 
 @layer components {
+  /* Skip Link */
   .skip-link {
     position: absolute;
     inset-inline-start: 16px;
     top: -100px;
     z-index: var(--z-toast);
-    padding: 10px 16px;
+    padding: 10px 20px;
     border-radius: var(--radius-pill);
-    background: var(--night);
-    color: var(--linen);
+    background: var(--ink);
+    color: var(--chalk);
     font-weight: 600;
+    transition: top var(--dur-fast) var(--ease-standard);
   }
   .skip-link:focus {
     top: 12px;
   }
 
   /*
-   * Shutter Loading — the pending state of async buttons ONLY (aria-busy="true"). Exact values from
-   * docs/design/sahel-v18/04-components/shutter-loading.css; the canvas helpers .sl-static / .sl-rm are not shipped.
+   * Sahel Shutter Light — The Signature:
+   * Soft slatted afternoon sunlight falling across hero surfaces and imagery.
+   */
+  .shutter {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .shutter::after {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    z-index: 2;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    filter: blur(5px);
+    background: repeating-linear-gradient(118deg, rgba(255, 255, 255, 0) 0 34px, rgba(120, 60, 20, 0.16) 34px 56px);
+  }
+  .shutter.soft::after {
+    background: repeating-linear-gradient(118deg, rgba(255, 255, 255, 0) 0 40px, rgba(120, 60, 20, 0.09) 40px 60px);
+  }
+  .shutter.warm::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(200deg, rgba(255, 196, 120, 0.38), rgba(255, 196, 120, 0) 60%);
+  }
+  .shutter > * {
+    position: relative;
+  }
+
+  /*
+   * Editorial Hero Sunlight & Window Shutter Effect:
+   * Simulates late-afternoon sunlight through a nearby window casting soft slatted shadows
+   * and warm golden light bands across the campaign photography.
+   */
+  .hero-sunlight {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    isolation: isolate;
+  }
+
+  .hero-sunlight-ambience {
+    position: absolute;
+    inset: -15%;
+    pointer-events: none;
+    mix-blend-mode: soft-light;
+    background: radial-gradient(circle at 12% 18%, rgba(255, 195, 115, 0.22) 0%, rgba(240, 160, 75, 0.10) 40%, transparent 70%);
+    filter: blur(16px);
+  }
+
+  .hero-sunlight-shadows {
+    position: absolute;
+    inset: -20%;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    filter: blur(10px);
+    opacity: 0.75;
+    background: repeating-linear-gradient(
+      124deg,
+      transparent 0px,
+      transparent 54px,
+      rgba(75, 42, 20, 0.08) 60px,
+      rgba(55, 28, 12, 0.14) 76px,
+      rgba(75, 42, 20, 0.08) 90px,
+      transparent 96px,
+      transparent 156px,
+      rgba(75, 42, 20, 0.07) 162px,
+      rgba(55, 28, 12, 0.12) 184px,
+      rgba(75, 42, 20, 0.07) 204px,
+      transparent 210px
+    );
+    mask-image: radial-gradient(ellipse 110% 90% at 15% 25%, #000 25%, rgba(0, 0, 0, 0.6) 60%, rgba(0, 0, 0, 0.15) 85%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 110% 90% at 15% 25%, #000 25%, rgba(0, 0, 0, 0.6) 60%, rgba(0, 0, 0, 0.15) 85%, transparent 100%);
+  }
+
+  .hero-sunlight-beams {
+    position: absolute;
+    inset: -20%;
+    pointer-events: none;
+    mix-blend-mode: soft-light;
+    filter: blur(8px);
+    opacity: 0.85;
+    background: repeating-linear-gradient(
+      124deg,
+      rgba(255, 205, 125, 0.32) 0px,
+      rgba(255, 205, 125, 0.32) 54px,
+      rgba(240, 165, 70, 0.08) 60px,
+      transparent 76px,
+      rgba(240, 165, 70, 0.08) 90px,
+      rgba(255, 200, 115, 0.28) 96px,
+      rgba(255, 200, 115, 0.28) 156px,
+      rgba(240, 165, 70, 0.06) 162px,
+      transparent 184px,
+      rgba(240, 165, 70, 0.06) 204px,
+      rgba(255, 205, 125, 0.32) 210px
+    );
+    mask-image: radial-gradient(ellipse 110% 90% at 15% 25%, #000 25%, rgba(0, 0, 0, 0.6) 60%, rgba(0, 0, 0, 0.15) 85%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 110% 90% at 15% 25%, #000 25%, rgba(0, 0, 0, 0.6) 60%, rgba(0, 0, 0, 0.15) 85%, transparent 100%);
+  }
+
+  @media (max-width: 640px) {
+    .hero-sunlight-shadows {
+      filter: blur(8px);
+      opacity: 0.6;
+      background: repeating-linear-gradient(
+        124deg,
+        transparent 0px,
+        transparent 40px,
+        rgba(75, 42, 20, 0.07) 45px,
+        rgba(55, 28, 12, 0.11) 58px,
+        rgba(75, 42, 20, 0.07) 68px,
+        transparent 72px,
+        transparent 118px,
+        rgba(75, 42, 20, 0.06) 123px,
+        rgba(55, 28, 12, 0.10) 138px,
+        rgba(75, 42, 20, 0.06) 152px,
+        transparent 156px
+      );
+    }
+    .hero-sunlight-beams {
+      filter: blur(7px);
+      opacity: 0.75;
+      background: repeating-linear-gradient(
+        124deg,
+        rgba(255, 205, 125, 0.28) 0px,
+        rgba(255, 205, 125, 0.28) 40px,
+        rgba(240, 165, 70, 0.07) 45px,
+        transparent 58px,
+        rgba(240, 165, 70, 0.07) 68px,
+        rgba(255, 200, 115, 0.24) 72px,
+        rgba(255, 200, 115, 0.24) 118px,
+        rgba(240, 165, 70, 0.05) 123px,
+        transparent 138px,
+        rgba(240, 165, 70, 0.05) 152px,
+        rgba(255, 205, 125, 0.28) 156px
+      );
+    }
+  }
+
+  /*
+   * Sahel Assistant Sun Presence:
+   * Small sun orb with yellow glow ring; breathes when thinking, cobalt when listening.
+   */
+  .sun {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    flex: none;
+    background: radial-gradient(circle at 40% 38%, #F4F98A, #E4EE3C 55%, #C9D21F);
+    box-shadow: 0 0 0 6px rgba(228, 238, 60, 0.22), var(--elevation-1);
+    transition: box-shadow var(--dur-base) var(--ease-standard);
+  }
+  .sun.sm {
+    width: 30px;
+    height: 30px;
+    box-shadow: 0 0 0 4px rgba(228, 238, 60, 0.22);
+  }
+  .sun.think {
+    animation: sh-breath 2.4s var(--ease-standard) infinite;
+  }
+  @keyframes sh-breath {
+    50% {
+      box-shadow: 0 0 0 14px rgba(228, 238, 60, 0.12), var(--elevation-1);
+    }
+  }
+  .sun.listen {
+    box-shadow: 0 0 0 6px rgba(30, 63, 216, 0.25), var(--elevation-1);
+  }
+
+  /*
+   * Sahel Shutter Loading — Pending state for async buttons ONLY (aria-busy="true").
+   * Light slats pass right-to-left across the button.
    */
   .sl {
     position: relative;
@@ -91,57 +270,49 @@ bdi {
   .sl[aria-busy='true']::before {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: -40%;
     z-index: 0;
     pointer-events: none;
     background: repeating-linear-gradient(
-      116deg,
-      rgba(255, 255, 255, 0) 0 44px,
-      rgba(255, 255, 255, 0.17) 44px 56px,
-      rgba(255, 255, 255, 0.07) 56px 60px,
-      rgba(255, 255, 255, 0) 60px 100.7px
+      118deg,
+      rgba(255, 255, 255, 0) 0 14px,
+      rgba(255, 255, 255, 0.22) 14px 24px
     );
-    -webkit-mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
-    mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
-    animation: sl-run 1.6s linear infinite;
+    animation: sh-slats 1.2s linear infinite;
   }
   .sl.sl-light[aria-busy='true']::before {
     background: repeating-linear-gradient(
-      116deg,
-      rgba(21, 22, 26, 0) 0 44px,
-      rgba(21, 22, 26, 0.07) 44px 56px,
-      rgba(21, 22, 26, 0.03) 56px 60px,
-      rgba(21, 22, 26, 0) 60px 100.7px
+      118deg,
+      rgba(22, 19, 15, 0) 0 14px,
+      rgba(22, 19, 15, 0.08) 14px 24px
     );
   }
-  /* Strips travel right to left, in reading direction (handoff §Shutter Loading). */
-  @keyframes sl-run {
-    from {
-      background-position: 0 0;
-    }
+  @keyframes sh-slats {
     to {
-      background-position: -112px 0;
+      transform: translateX(-27px);
     }
   }
 
   /*
-   * Field geometry (Addendum §Inputs): linen fill, line-2 border, radius 14; focus = 2px bottle + bottle-tint halo;
-   * error = 2px err. Drawn as inset shadows so the box never changes size between states.
+   * Sahel Field Geometry:
+   * Linen fill, 16px radius, hairline border. Focus: 2px solid ink + e1 shadow.
    */
   .field-box {
     background: var(--linen);
     border-radius: var(--radius-input);
-    box-shadow: inset 0 0 0 1px var(--line-2);
-    transition: box-shadow var(--dur-fast) var(--ease-standard);
+    border: 1px solid rgba(22, 19, 15, 0.18);
+    transition: border-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
   }
   .field-box:focus-within {
-    box-shadow: inset 0 0 0 2px var(--bottle), 0 0 0 4px var(--bottle-tint);
+    border-color: var(--ink);
+    box-shadow: var(--elevation-1);
   }
   .field-box[data-invalid='true'] {
-    box-shadow: inset 0 0 0 2px var(--err);
+    border-color: var(--tomato);
   }
   .field-box[data-invalid='true']:focus-within {
-    box-shadow: inset 0 0 0 2px var(--err), 0 0 0 4px var(--err-tint);
+    border-color: var(--tomato);
+    box-shadow: 0 0 0 3px rgba(242, 73, 29, 0.2);
   }
   .field-box :where(input, textarea, select):focus-visible {
     outline: none;
@@ -153,24 +324,25 @@ bdi {
     align-items: center;
     min-height: 44px;
     min-width: 44px;
-    color: var(--night);
-    font-size: 14px;
+    color: var(--ink);
+    font-size: 15px;
     font-weight: 600;
     text-decoration: underline;
     text-decoration-thickness: 1.5px;
     text-underline-offset: 7px;
+    transition: color var(--dur-fast);
   }
   .text-link:hover {
-    color: var(--bottle);
+    color: var(--cobalt);
   }
 
-  /* Quiet text link: no underline at rest, a drawn one on hover/focus (the line grows from the reading start). */
+  /* Quiet text link */
   .link-quiet {
     background: linear-gradient(currentColor, currentColor) no-repeat;
     background-size: 0% 1.5px;
     background-position: 100% calc(100% - 0.55em);
     text-decoration: none;
-    transition: background-size var(--dur-base) var(--ease-standard);
+    transition: background-size var(--dur-base) var(--ease-standard), color var(--dur-fast);
   }
   .link-quiet:dir(ltr) {
     background-position: 0% calc(100% - 0.55em);
@@ -178,21 +350,17 @@ bdi {
   .link-quiet:hover,
   .link-quiet:focus-visible {
     background-size: 100% 1.5px;
+    color: var(--cobalt);
   }
 
-  /* Homepage hero entrance: one staggered rise on load, CSS only so it ships with the HTML. */
+  /* Hero entrance */
   @media (prefers-reduced-motion: no-preference) {
     .hero-rise {
       animation: rise-in 720ms var(--ease-standard) backwards;
     }
   }
 
-  /*
-   * Brand marquee. The track holds two identical groups, so moving it by exactly one group (50% of the track) lands on
-   * the same picture and the loop has no seam. Content starts at the reading edge: under dir="ltr" it moves toward the
-   * start (left), under RTL toward the end (right), which is the only direction that keeps the track covering the
-   * viewport. Only transform animates. Paused by hover, focus inside, or data-paused from the pause button.
-   */
+  /* Brand marquee */
   .marquee-track {
     animation: marquee-ltr 60s linear infinite;
     will-change: transform;
@@ -210,12 +378,15 @@ bdi {
     mask-image: linear-gradient(90deg, transparent, rgb(0 0 0) 12%, rgb(0 0 0) 88%, transparent);
   }
 
-  /* «ج.م» after an amount (CartD, CheckoutD): 0.72em of the amount it follows. */
+  /* «ج.م» unit */
   .money-unit {
     font-size: 0.72em;
+    font-weight: 500;
+    color: var(--stone);
+    margin-inline-start: 4px;
   }
 
-  /* PDP phone purchase bar safe area padding. */
+  /* Safe area padding */
   .pdp-bar {
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
@@ -226,16 +397,11 @@ bdi {
     transform: scaleX(-1);
   }
 
-  /*
-   * For `dir="auto"` text (Latin product names in Arabic UI): keep the bidi order of the text itself but align it
-   * on the parent's edge. Chromium and WebKit only understand the prefixed value; Firefox takes the standard one.
-   */
   .text-match-parent {
     text-align: -webkit-match-parent;
     text-align: match-parent;
   }
 
-  /* Safe-area bottom padding for mobile viewports */
   .pb-nav-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -264,7 +430,6 @@ bdi {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Shutter strips static at 55% (handoff §Shutter Loading); everything else fades only. */
   .sl[aria-busy='true']::before {
     animation: none;
     opacity: 0.55;

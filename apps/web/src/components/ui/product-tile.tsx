@@ -42,21 +42,21 @@ export function ProductTile({ src, alt, name, size = "tile", priority, sizes, cl
   const thumb = size === "thumb"
 
   return (
-    <div className={cn("relative overflow-hidden rounded-image bg-sand", !thumb && "aspect-[4/5]", className)}>
+    <div className={cn("relative overflow-hidden rounded-image bg-sand/30", !thumb && "aspect-square", className)}>
       {src && !failed ? (
         <Image
-            ref={imgRef}
-            src={src}
-            alt={alt}
-            fill
-            priority={priority}
-            unoptimized={!canOptimizeImage(src)}
-            sizes={sizes ?? (thumb ? "96px" : "(min-width: 1024px) 288px, 46vw")}
-            onError={() => setFailed(true)}
-            className="object-contain object-bottom p-[6%] pb-[4%] mix-blend-multiply"
-          />
+          ref={imgRef}
+          src={src}
+          alt={alt}
+          fill
+          priority={priority}
+          unoptimized={!canOptimizeImage(src)}
+          sizes={sizes ?? (thumb ? "96px" : "(min-width: 1024px) 288px, 46vw")}
+          onError={() => setFailed(true)}
+          className="size-full object-cover transition-transform duration-base ease-standard group-hover/card:scale-105"
+        />
       ) : failed ? (
-        <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-12 font-medium leading-17 text-ink-2">
+        <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-12 font-medium leading-17 text-stone font-display">
           <Icon name="image-off" size={thumb ? 20 : 28} />
           {thumb ? <span className="sr-only">{m.tileError}</span> : <span>{m.tileError}</span>}
         </span>
@@ -65,8 +65,8 @@ export function ProductTile({ src, alt, name, size = "tile", priority, sizes, cl
           role="img"
           aria-label={fillMessage(m.tilePendingLabel, { name })}
           className={cn(
-            "absolute flex flex-col items-center justify-center gap-1.5 rounded-8 border border-dashed border-line-2 text-center font-semibold text-ink-3",
-            thumb ? "inset-1.5 text-10.5 leading-13" : "inset-3 text-12 leading-16"
+            "absolute flex flex-col items-center justify-center gap-1.5 rounded-4 border border-dashed border-line-2 text-center font-semibold text-stone font-display",
+            thumb ? "inset-1 text-11 leading-14" : "inset-2 text-12 leading-16"
           )}
         >
           <Icon name="camera" size={thumb ? 16 : 22} />

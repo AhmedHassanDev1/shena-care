@@ -58,7 +58,7 @@ function BrandItem({ brand, hidden }: { brand: MarqueeBrand; hidden: boolean }) 
             style={{ height: logoHeight(brand.logo) }}
           />
         ) : (
-          <span lang="en" dir="ltr" className="whitespace-nowrap text-brand text-night">
+          <span lang="en" dir="ltr" className="whitespace-nowrap font-serif italic text-16 text-ink">
             {brand.name.toUpperCase()}
           </span>
         )}
@@ -95,33 +95,40 @@ export function BrandMarquee() {
   const group = Array.from({ length: repeats }, (_, r) => brands.map((brand) => ({ brand, hidden: r > 0 }))).flat();
 
   return (
-    <section aria-labelledby="home-brands-title" className="py-4 lg:py-6">
-      <PageContainer className="mb-1 flex items-center justify-between gap-4">
-        <h2 id="home-brands-title" className="m-0 text-14 font-semibold leading-22 text-ink-2">
-          {m.homeBrandsLabel}
-        </h2>
+    <section aria-labelledby="home-brands-title" className="border-y border-line bg-linen/50 py-6 lg:py-8">
+      <PageContainer className="mb-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span aria-hidden="true" className="size-1.5 rounded-full bg-cobalt" />
+          <h2 id="home-brands-title" className="m-0 font-display text-14 font-bold tracking-wide text-ink sm:text-15">
+            {m.homeBrandsLabel}
+          </h2>
+          <span className="hidden font-serif italic text-13 text-stone sm:inline">
+            · Authorized Partners
+          </span>
+        </div>
         <div className="flex items-center gap-4">
           {brands.length > 0 ? (
             <button
               type="button"
               aria-pressed={paused}
               onClick={() => setPaused((p) => !p)}
-              className="inline-flex min-h-control-s items-center gap-1.5 text-13 font-semibold text-ink-2 transition-colors duration-fast ease-standard hover:text-night motion-reduce:hidden"
+              className="inline-flex min-h-10 items-center gap-1.5 text-12 font-semibold text-stone transition-colors duration-fast ease-standard hover:text-ink motion-reduce:hidden"
             >
               <Icon name={paused ? 'play' : 'pause'} size={14} strokeWidth={2} />
               {paused ? m.homeBrandsPlay : m.homeBrandsPause}
             </button>
           ) : null}
-          <Link href={routes.products} className="link-quiet inline-flex min-h-control-s items-center text-13 font-semibold text-bottle">
-            {m.homeBrandsAll}
+          <Link href={routes.products} className="inline-flex min-h-10 items-center gap-1 font-serif italic text-14 font-bold text-cobalt transition-colors hover:text-ink">
+            <span>{m.homeBrandsAll}</span>
+            <Icon name="arrow-forward" size={14} />
           </Link>
         </div>
       </PageContainer>
 
       {isError ? (
-        <PageContainer className="flex flex-wrap items-center justify-between gap-3 py-2 text-14 text-err" role="alert">
+        <PageContainer className="flex flex-wrap items-center justify-between gap-3 py-2 text-14 text-tomato-ink" role="alert">
           <span>{m.homeBrandsError}</span>
-          <Button variant="light" size="s" loading={isFetching} onClick={() => refetch()}>
+          <Button variant="linen" size="s" loading={isFetching} onClick={() => refetch()}>
             {m.tryAgain}
           </Button>
         </PageContainer>

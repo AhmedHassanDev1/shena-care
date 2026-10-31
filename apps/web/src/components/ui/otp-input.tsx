@@ -54,20 +54,20 @@ export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function Otp
               key={index}
               className={cn(
                 'flex h-otp-h max-w-otp-w flex-1 items-center justify-center rounded-input text-24 font-bold tabular-nums lg:h-otp-h-lg lg:max-w-otp-w-lg',
-                'transition-shadow duration-fast ease-standard',
+                'transition-all duration-fast ease-standard font-display',
                 disabled
-                  ? 'bg-sand text-ink-3 shadow-outline-dune'
+                  ? 'bg-sand text-stone shadow-outline-dune'
                   : state === 'invalid'
-                    ? 'bg-linen text-night shadow-outline-err'
+                    ? 'bg-linen text-tomato-ink shadow-outline-err'
                     : state === 'verified'
-                      ? 'bg-linen text-night shadow-outline-verified'
+                      ? 'bg-linen text-ok shadow-outline-verified'
                       : isActive
-                        ? 'bg-linen text-night shadow-focus-field'
-                        : 'bg-linen text-night shadow-outline-control'
+                        ? 'bg-linen text-ink shadow-focus-field'
+                        : 'bg-linen text-ink shadow-outline-control'
               )}
             >
               {digit}
-              {isActive && !digit ? <span className="h-6 w-0.5 rounded-pill bg-bottle" /> : null}
+              {isActive && !digit ? <span className="h-6 w-0.5 rounded-pill bg-cobalt" /> : null}
             </span>
           );
         })}

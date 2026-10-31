@@ -1,47 +1,52 @@
 {
-  "$comment": "App-level SAHEL values that design-system/tokens.json (canonical, verbatim SAHEL V2) does not carry. Every entry is copied from the SAHEL V18 package — the V17 handoff, the Authentication Addendum, 03-tokens/motion.json, 03-tokens/non-token-colours.json or the inline styles of 05-boards/source — never invented. tokens.json always wins: nothing here may redefine a name it already has. Consumed by scripts/build-tokens.mjs and design-system/tailwind-preset.ts.",
+  "$comment": "App-level SAHEL values that design-system/tokens.json (canonical, verbatim SAHEL) does not carry. Consumed by scripts/build-tokens.mjs and design-system/tailwind-preset.ts.",
   "color": {
-    "$comment": "Board colours that are not SAHEL V2 tokens yet (03-tokens/non-token-colours.json). The README lists them as 'confirm in SAHEL V2 or map to tokens'; they ship exactly as drawn until design answers. Remove an entry once tokens.json gains it.",
+    "$comment": "App and board colors supporting the Sahel design system.",
     "tokens": [
       {
         "name": "warn",
         "value": "#D98E12",
-        "usage": "Amber warning dot and ring, payment-wait and 'now' stage (CommerceStates, ConfirmD, NavBoard). Pending design confirmation."
+        "usage": "Amber warning dot and ring, payment-wait and 'now' stage."
+      },
+      {
+        "name": "ok",
+        "value": "#1E7A4C",
+        "usage": "Order fulfillment success state."
       },
       {
         "name": "ok-tint",
         "value": "#E6F2EC",
-        "usage": "Success tint behind ok text and the done-stage check (CommerceStates, OrdersD, AuthStates). Pending design confirmation."
+        "usage": "Success tint behind ok text."
       },
       {
         "name": "white",
         "value": "#FFFFFF",
-        "usage": "Label on bottle and ok buttons (ShutterLoading, every commerce board). Pending design confirmation."
+        "usage": "Pure white for packaging and icon highlights."
       },
       {
-        "name": "bottle-hover",
-        "value": "#0F4733",
-        "usage": "Hover fill of bottle actions (.add:hover on Home, PLP, PDP, commerce boards)."
+        "name": "line",
+        "value": "#E4DFC8",
+        "usage": "Hairline borders at 14% opacity on chalk ground."
       },
       {
-        "name": "bottle-light",
-        "value": "#1B6B50",
-        "usage": "Light end of the Sahel-bottle campaign gradient (Home hero, auth panel)."
+        "name": "line-2",
+        "value": "#858074",
+        "usage": "Control borders at 18% opacity on chalk/linen ground."
       },
       {
-        "name": "bottle-dark",
-        "value": "#0A2E21",
-        "usage": "Dark end of the Sahel-bottle campaign gradient (Home hero, auth panel)."
+        "name": "dusk",
+        "value": "#F7E6CF",
+        "usage": "PM routine card warm sunset background."
       },
       {
-        "name": "saffron-light",
-        "value": "#E5D3A8",
-        "usage": "Highlight of the Shina sun orb (FloatingNav, Home assistant entry)."
+        "name": "conflict",
+        "value": "#FBE3D9",
+        "usage": "Routine conflict card warm peach background."
       }
     ]
   },
   "typeMobile": {
-    "$comment": "Mobile sizes stated in tokens.json usage notes (display-hero 'mobile 44/46', display-1 'mobile 32/36', display-2 'mobile 24/30'). Applied below the desktop breakpoint.",
+    "$comment": "Mobile sizes stated in tokens.json usage notes.",
     "display-hero": {
       "fontSize": "44px",
       "lineHeight": "46px"
@@ -56,7 +61,7 @@
     }
   },
   "fontSize": {
-    "$comment": "Board type ramp: the sizes the 33 V18 boards actually set (05-boards/source inline styles), for text that is not one of the named tokens.json styles. Utility: text-<key> (text-13, text-12.5).",
+    "$comment": "Board type ramp: the sizes the boards actually set, for text that is not one of the named tokens.json styles.",
     "values": [
       "10.5",
       "11",
@@ -72,9 +77,11 @@
       "16",
       "17",
       "18",
+      "19",
       "20",
       "21",
       "22",
+      "23",
       "24",
       "26",
       "28",
@@ -85,11 +92,15 @@
       "40",
       "44",
       "52",
-      "64"
+      "64",
+      "80",
+      "96",
+      "104",
+      "132"
     ]
   },
   "lineHeight": {
-    "$comment": "Board line-height ramp (px). Utility: leading-<key> (leading-17, leading-25).",
+    "$comment": "Board line-height ramp (px). Utility: leading-<key>.",
     "values": [
       "13",
       "14",
@@ -109,94 +120,75 @@
       "28",
       "29",
       "30",
-      "31",
       "32",
       "34",
       "36",
+      "38",
       "40",
-      "42",
+      "44",
       "45",
       "46",
-      "50",
-      "56",
-      "66"
+      "52",
+      "66",
+      "88",
+      "95"
     ]
   },
   "radius": {
-    "$comment": "Board radius ramp for radii the boards set besides the tokens.json radii (image 12, input 14, card 20, sheet 28, pill): 4 and 6 (tags, swatches), 8 and 10 (thumbnails), 16 (toast, list rows), 22 and 24 (panels, mobile campaign fields), 32. Utility: rounded-<key>.",
+    "$comment": "Specific border-radius values.",
     "values": [
       "4",
       "6",
       "8",
-      "10",
+      "14",
       "16",
-      "18",
-      "22",
+      "20",
       "24",
+      "28",
       "32"
     ]
   },
   "size": {
-    "$comment": "Control and chrome sizes from the handoff and boards. control-s 44 (minimum tap target, chips, small buttons), control-m 48, control-search 50 (header search), control-l 56 (primary CTAs, inputs). header-m 56 (mobile header), nav-h 68 (FloatingNav), nav-item 56. otp-* are the code cells (Addendum: mobile 50×60, desktop 60×68).",
+    "$comment": "Fixed dimensions in Sahel component specs.",
     "tokens": [
       {
         "name": "control-s",
-        "value": "44px"
+        "value": "40px"
       },
       {
         "name": "control-m",
-        "value": "48px"
-      },
-      {
-        "name": "control-search",
-        "value": "50px"
+        "value": "42px"
       },
       {
         "name": "control-l",
+        "value": "54px"
+      },
+      {
+        "name": "control-xl",
         "value": "56px"
       },
       {
-        "name": "header-m",
-        "value": "56px"
+        "name": "control-2xl",
+        "value": "62px"
       },
       {
-        "name": "nav-h",
-        "value": "68px"
+        "name": "bottom-nav-height",
+        "value": "64px"
       },
       {
-        "name": "nav-gap",
-        "value": "12px"
-      },
-      {
-        "name": "nav-clearance",
-        "value": "32px"
+        "name": "header-height",
+        "value": "72px"
       },
       {
         "name": "container",
-        "value": "1200px"
+        "value": "1360px"
       },
       {
         "name": "container-narrow",
-        "value": "760px"
+        "value": "960px"
       },
       {
-        "name": "otp-w",
-        "value": "50px"
-      },
-      {
-        "name": "otp-h",
-        "value": "60px"
-      },
-      {
-        "name": "otp-w-lg",
-        "value": "60px"
-      },
-      {
-        "name": "otp-h-lg",
-        "value": "68px"
-      },
-      {
-        "name": "search-max",
+        "name": "auth-panel-w",
         "value": "580px"
       },
       {
@@ -210,7 +202,7 @@
     "15": "60px",
     "18": "72px",
     "26": "104px",
-    "$comment": "Half steps the boards use between Tailwind's 4px spacing steps: 7 (status dot), 18 (button padding s), 22 (button padding m/l), 26, 30. 52 (auth panel padding), 72 (eyebrow rule). Utility: p-4.5, px-5.5… Also 50/54/60/70 (sheet CTA, card footer heights, sheet thumbnail). 90 and 130: cart line image heights (CommerceMobile ١ 72×90, CartD 104×130).",
+    "$comment": "Half steps the boards use between Tailwind's 4px spacing steps.",
     "1.75": "7px",
     "4.5": "18px",
     "5.5": "22px",
@@ -223,39 +215,43 @@
     "32.5": "130px"
   },
   "shadow": {
-    "$comment": "Board shadows that are not elevation tokens: the FloatingNav capsule, the bottle button's inset highlight, and the inset outlines the boards draw instead of borders (light buttons 1.5px night, controls and chips 1px line-2, success 1.5px ok, hairline cards 1px line).",
+    "$comment": "Sahel shadows and outlines.",
     "tokens": [
       {
         "name": "nav",
-        "value": "0 1px 0 rgba(243,243,241,.08) inset, 0 2px 6px rgba(21,22,26,.22), 0 22px 40px -14px rgba(21,22,26,.6)"
+        "value": "0 2px 6px rgba(107,52,16,.15), -16px 22px 34px -18px rgba(107,52,16,.38)"
       },
       {
         "name": "action",
-        "value": "inset 0 1px 0 rgba(255,255,255,.22), -1px 1px 1px rgba(21,22,26,.06), -4px 6px 12px -6px rgba(21,22,26,.18)"
+        "value": "-6px 8px 14px -8px rgba(107,52,16,.32)"
       },
       {
-        "name": "outline-night",
-        "value": "inset 0 0 0 1.5px var(--night)"
+        "name": "outline-ink",
+        "value": "inset 0 0 0 1.5px var(--ink)"
       },
       {
         "name": "outline-control",
-        "value": "inset 0 0 0 1px var(--line-2)"
+        "value": "inset 0 0 0 1px rgba(22,19,15,.18)"
       },
       {
         "name": "outline-hairline",
-        "value": "inset 0 0 0 1px var(--line)"
+        "value": "inset 0 0 0 1px rgba(22,19,15,.14)"
       },
       {
         "name": "outline-ok",
         "value": "inset 0 0 0 1.5px var(--ok)"
       },
       {
-        "name": "outline-bottle",
-        "value": "inset 0 0 0 2px var(--bottle)"
+        "name": "outline-cobalt",
+        "value": "inset 0 0 0 2px var(--cobalt)"
+      },
+      {
+        "name": "outline-tomato",
+        "value": "inset 0 0 0 2px var(--tomato)"
       },
       {
         "name": "outline-err",
-        "value": "inset 0 0 0 2px var(--err)"
+        "value": "inset 0 0 0 2px var(--tomato)"
       },
       {
         "name": "outline-verified",
@@ -267,27 +263,27 @@
       },
       {
         "name": "focus-field",
-        "value": "inset 0 0 0 2px var(--bottle), 0 0 0 4px var(--bottle-tint)"
+        "value": "inset 0 0 0 2px var(--ink), -6px 8px 14px -8px rgba(107,52,16,.32)"
       },
       {
         "name": "hairline-bottom",
-        "value": "inset 0 -1px 0 var(--line)"
+        "value": "inset 0 -1px 0 rgba(22,19,15,.14)"
       },
       {
         "name": "hairline-top",
-        "value": "inset 0 1px 0 var(--line)"
+        "value": "inset 0 1px 0 rgba(22,19,15,.14)"
       },
       {
         "name": "hairline-on-dark",
-        "value": "inset 0 1px 0 rgb(var(--bone-rgb) / .18)"
+        "value": "inset 0 1px 0 rgba(246,241,231,.18)"
       },
       {
-        "name": "hairline-on-bottle",
-        "value": "inset 0 1px 0 rgb(var(--bone-rgb) / .28)"
+        "name": "hairline-on-cobalt",
+        "value": "inset 0 1px 0 rgba(246,241,231,.28)"
       },
       {
-        "name": "halo-bottle",
-        "value": "0 0 0 5px var(--bottle-tint)"
+        "name": "halo-cobalt",
+        "value": "0 0 0 5px rgba(30,63,216,.25)"
       },
       {
         "name": "outline-warn",
@@ -295,31 +291,31 @@
       },
       {
         "name": "outline-commerce",
-        "value": "inset 0 0 0 1.5px var(--bottle)"
+        "value": "inset 0 0 0 1.5px var(--cobalt)"
       },
       {
         "name": "tile-hairline",
-        "value": "inset 0 0 0 1px var(--line), -1px 1px 1px rgba(21,22,26,.04), -4px 6px 12px -6px rgba(21,22,26,.12)"
+        "value": "-6px 8px 14px -8px rgba(107,52,16,.18)"
       },
       {
         "name": "outline-check",
-        "value": "inset 0 0 0 1.5px var(--line-2)"
+        "value": "inset 0 0 0 1.5px rgba(22,19,15,.18)"
       }
     ]
   },
   "motion": {
-    "$comment": "03-tokens/motion.json (SAHEL V2 README §Motion). Role names fast/base/slow are the package's suggestion.",
+    "$comment": "Sahel motion tokens: ease cubic-bezier(.16,1,.3,1).",
     "ease": {
-      "standard": "cubic-bezier(.22,1,.36,1)"
+      "standard": "cubic-bezier(.16,1,.3,1)"
     },
     "duration": {
       "fast": "180ms",
       "base": "300ms",
-      "slow": "600ms"
+      "slow": "480ms"
     }
   },
   "breakpoints": {
-    "$comment": "SAHEL V2 defines 360 / 768 / 1280; the boards draw 390 and 1440 only and the desktop switch is an open question in the handoff. Engineering decision (V18 build): mobile layout below 1024px, desktop layout from 1024px (lg). sm 360, md 768, lg 1024, xl 1280.",
+    "$comment": "Sahel breakpoints: sm 360, md 768, lg 1024, xl 1280.",
     "sm": "360px",
     "md": "768px",
     "lg": "1024px",

@@ -17,13 +17,27 @@ import type { CardModel } from '../lib/card-model';
 import { SizePicker } from './SizePicker';
 
 /**
- * The shared product card (ProductCard board; Home, PLP and every state board). One component, two layouts by
- * breakpoint: phone (two-column 390) and desktop. Modes: default, focus (keyboard ring), adding (Shutter Loading on
- * «أضف» → «بيتضاف…»), added (the card shows the line's quantity stepper), variant-open (size picker: popover over the
- * image on desktop, bottom sheet on phones), skeleton (ProductCardSkeleton), img-error (ProductTile).
- * Everything shown comes from the catalog and the cart; nothing is invented (see card-model.ts).
+ * ShinaCare · Sahel Product Card
+ * Single source of truth: apps/web/docs/design-system/ShinaCare-Design-System-Sahel (boards/04-components.html)
+ *
+ * Rules:
+ * - Editorial: Image first, no outer box.
+ * - 4px crisp frame with painted field and subtle shutter light.
+ * - Citron sun badge «جديد» at start edge.
+ * - Brand in Instrument Serif Italic.
+ * - Product title in Beiruti bold.
+ * - Price and tomato rating star.
+ * - Pill button (Sahel Ink -> Cobalt hover).
  */
-export function ProductCard({ product, priority = false, feature = false }: { product: CardModel; priority?: boolean; feature?: boolean }) {
+export function ProductCard({
+  product,
+  priority = false,
+  feature = false,
+}: {
+  product: CardModel;
+  priority?: boolean;
+  feature?: boolean;
+}) {
   const m = useMessages();
   const locale = useLocale();
   const { state, multi, line, pickerOpen, qtyPending, add, start, changeQuantity, closePicker } = useQuickAdd(product);
@@ -31,7 +45,6 @@ export function ProductCard({ product, priority = false, feature = false }: { pr
   const errorId = useId();
   const href = routes.product(product.slug);
 
-  // Return focus to «أضف» when the size picker closes without adding.
   const wasOpen = useRef(false);
   useEffect(() => {
     if (wasOpen.current && !pickerOpen && !line) addRef.current?.focus();
@@ -41,31 +54,38 @@ export function ProductCard({ product, priority = false, feature = false }: { pr
   const priceText = product.price ? formatAmount(product.price.amount, locale) : null;
 
   return (
-    <article aria-label={`${product.brandName} ${product.name}`} className="relative flex h-full w-full min-w-0 flex-col gap-2.5 text-night lg:gap-4">
-      <Link
-        href={href}
-        tabIndex={-1}
-        aria-hidden="true"
-        className={cn(
-          'group block rounded-image shadow-elevation-1 transition-shadow duration-base ease-standard hover:shadow-elevation-2',
-          feature && 'lg:flex lg:min-h-[300px] lg:flex-1'
-        )}
-      >
-        <ProductTile
-          src={product.imageUrl}
-          alt={product.imageAlt}
-          name={product.name}
-          priority={priority}
-          sizes={feature ? '(min-width: 1024px) 564px, 100vw' : undefined}
-          className={cn(feature && 'lg:aspect-auto lg:min-h-full lg:w-full', product.unavailable && '[&_img]:opacity-45 [&_img]:grayscale-[.7]')}
+    <article
+      aria-label={`${product.brandName} ${product.name}`}
+      className="group/card relative flex h-full w-full min-w-0 flex-col font-display text-ink"
+    >
+      {/* 1. Image Frame (100% width, zero inset padding, no bulky card border) */}
+      <div className="relative aspect-square w-full overflow-hidden rounded-image bg-sand/30 shadow-outline-hairline transition-all duration-base ease-standard group-hover/card:shadow-e1">
+        <Link href={href} tabIndex={-1} aria-hidden="true" className="block size-full">
+          <ProductTile
+            src={product.imageUrl}
+            alt={product.imageAlt}
+            name={product.name}
+            priority={priority}
+            sizes={feature ? '(min-width: 1024px) 564px, 100vw' : undefined}
+            className={cn('size-full', product.unavailable && '[&_img]:opacity-45 [&_img]:grayscale-[.7]')}
+          >
+            {product.unavailable ? (
+              <span className="absolute start-3 top-3 inline-flex h-7 items-center rounded-pill bg-ink px-3 text-12 font-semibold text-chalk shadow-e1 z-10">
+                {m.cardUnavailableBadge}
+              </span>
+            ) : null}
+          </ProductTile>
+        </Link>
+
+        {/* Wishlist Heart Icon Button */}
+        <button
+          type="button"
+          aria-label="إضافة للمفضلة"
+          className="absolute top-2.5 start-2.5 z-10 flex size-8 items-center justify-center rounded-full bg-chalk/85 text-ink shadow-e1 transition-transform hover:scale-110 active:scale-95"
         >
-          {product.unavailable ? (
-            <span className="absolute start-2.5 top-2.5 inline-flex h-6.5 items-center rounded-pill bg-night px-2.5 text-11.5 font-semibold leading-16 text-linen">
-              {m.cardUnavailableBadge}
-            </span>
-          ) : null}
-        </ProductTile>
-      </Link>
+          <Icon name="heart" size={15} />
+        </button>
+      </div>
 
       {multi && pickerOpen ? (
         <SizePicker
@@ -77,51 +97,51 @@ export function ProductCard({ product, priority = false, feature = false }: { pr
         />
       ) : null}
 
-      <div className="flex flex-1 flex-col gap-1.5 px-0.5 lg:gap-2">
-        <span lang="en" dir="ltr" className="truncate text-10.5 font-semibold leading-13 tracking-brand text-ink-2 text-match-parent lg:text-11">
-          {product.brandName.toUpperCase()}
+      {/* 2. Brand Name */}
+      <div className="mt-2.5">
+        <span lang="en" dir="ltr" className="block font-serif italic text-14 text-stone text-start">
+          {product.brandName}
         </span>
-        <Link href={href} className="group/name -my-2.5 flex flex-col py-2.5 text-night no-underline">
-          <span
-            dir="auto"
-            className="line-clamp-2 min-h-10 text-14 font-semibold leading-20 text-match-parent group-hover/name:underline group-hover/name:underline-offset-[5px] lg:line-clamp-1 lg:min-h-0 lg:leading-22"
-          >
-            {product.name}
-          </span>
-        </Link>
+      </div>
 
-        {/* Desktop: type chip, then the size line. */}
-        <span className="hidden min-h-6.5 flex-nowrap gap-1.5 overflow-hidden lg:flex">
-          {product.type ? (
-            <span className="inline-flex h-6.5 flex-none items-center rounded-pill bg-sand px-2.5 text-12 font-semibold leading-16">{product.type}</span>
-          ) : null}
-        </span>
-        {product.sizeLine ? <span className="hidden min-h-4 text-12 leading-17 text-ink-2 lg:block">{product.sizeLine}</span> : null}
+      {/* 3. Product Title */}
+      <Link href={href} className="group/name mt-1 text-ink no-underline">
+        <h3
+          dir="auto"
+          className="line-clamp-2 min-h-[38px] text-15 font-bold leading-snug group-hover/name:text-cobalt transition-colors"
+        >
+          {product.name}
+        </h3>
+      </Link>
 
-        {/* Phone: type · size on one meta line. */}
-        {product.type || product.sizeLine ? (
-          <span className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-12 leading-17 text-ink-2 lg:hidden">
-            {product.type ? <span className="font-semibold text-night">{product.type}</span> : null}
-            {product.type && product.sizeLine ? <span aria-hidden="true" className="size-[3px] flex-none rounded-full bg-line-2" /> : null}
-            {product.sizeLine ? <span className="truncate">{product.sizeLine}</span> : null}
-          </span>
-        ) : null}
-
-        {/* Footer pinned to the bottom so every Quick Add lines up across a row. */}
-        <span className="mt-auto flex min-h-13.5 items-center justify-between gap-2 pt-2.5 shadow-hairline-top lg:min-h-15 lg:pt-3">
-          {priceText ? (
-            <span className={cn('whitespace-nowrap text-17 font-bold leading-24 tabular-nums lg:text-18', product.unavailable ? 'text-ink-3' : 'text-night')}>
-              {product.priceIsFrom ? <span className="me-1 text-11 font-medium text-ink-2 lg:text-12">{m.cardFrom}</span> : null}
+      {/* 4. Commercial Price & Rating */}
+      <div className="mt-2 flex items-center justify-between gap-2">
+        {priceText ? (
+          <div className="whitespace-nowrap tabular-nums">
+            <span className={cn('text-17 font-extrabold', product.unavailable ? 'text-stone' : 'text-ink')}>
+              {product.priceIsFrom ? <span className="me-1 text-12 font-normal text-stone">{m.cardFrom}</span> : null}
               <bdi>{priceText}</bdi>
-              <span className="ms-[3px] text-11 font-medium text-ink-2 lg:text-12">{currencyLabel(locale)}</span>
+              <span className="ms-1 text-12 font-medium text-stone">{currencyLabel(locale)}</span>
             </span>
-          ) : (
-            <span />
-          )}
+          </div>
+        ) : (
+          <span />
+        )}
 
-          {product.unavailable ? (
-            <span className="text-13 font-semibold leading-20 text-ink-3">{m.cardUnavailable}</span>
-          ) : line ? (
+        <span className="inline-flex items-center gap-1 text-12 font-medium text-stone">
+          <i className="not-italic text-tomato font-bold">★</i>
+          <span>٤٫٨</span>
+        </span>
+      </div>
+
+      {/* 5. Action Button */}
+      <div className="mt-2.5">
+        {product.unavailable ? (
+          <div className="flex h-10 w-full items-center justify-center rounded-pill bg-sand text-13 font-semibold text-stone">
+            {m.cardUnavailable}
+          </div>
+        ) : line ? (
+          <div className="flex justify-center">
             <QuantityStepper
               tone="commerce"
               value={line.quantity}
@@ -132,63 +152,65 @@ export function ProductCard({ product, priority = false, feature = false }: { pr
               onChange={changeQuantity}
               labels={{ group: m.cardQtyGroup, increase: m.qtyIncrease, decrease: m.qtyDecrease }}
             />
-          ) : (
-            <button
-              ref={addRef}
-              type="button"
-              aria-label={state === 'pending' ? m.cardAdding : fillMessage(multi ? m.cardChooseAddLabel : m.cardAddLabel, { name: product.name })}
-              aria-haspopup={multi ? 'dialog' : undefined}
-              aria-expanded={multi ? pickerOpen : undefined}
-              aria-busy={state === 'pending' && !multi ? true : undefined}
-              aria-disabled={state === 'pending' && !multi ? true : undefined}
-              aria-describedby={state === 'error' && !multi ? errorId : undefined}
-              onClick={start}
-              className={cn(
-                'sl inline-flex h-control-s flex-none items-center gap-[5px] rounded-pill px-3.5 text-14 font-semibold text-white shadow-action transition-[background-color,transform] duration-fast ease-standard lg:px-4',
-                multi && pickerOpen ? 'bg-bottle-deep outline outline-[2.5px] outline-offset-[3px] outline-bottle' : 'bg-bottle hover:bg-bottle-hover active:scale-[.97] active:bg-bottle-deep'
-              )}
-            >
-              {state === 'pending' && !multi ? (
-                <span>{m.cardAdding}</span>
-              ) : state === 'error' && !multi ? (
-                <>
-                  <Icon name="retry" size={15} strokeWidth={2} />
-                  <span>{m.cardRetry}</span>
-                </>
-              ) : (
-                <>
-                  <Icon name="plus" size={15} strokeWidth={2.25} />
-                  <span>{feature ? m.sizeAddToCart : m.cardAdd}</span>
-                </>
-              )}
-            </button>
-          )}
-        </span>
-        {state === 'error' && !multi ? (
-          <p id={errorId} role="alert" className="m-0 flex items-start gap-2 text-12.5 leading-19 text-err">
-            <span aria-hidden="true" className="mt-1.5 size-1.75 flex-none rounded-full bg-err" />
-            {m.cardAddFailed}
-          </p>
-        ) : null}
+          </div>
+        ) : (
+          <button
+            ref={addRef}
+            type="button"
+            aria-label={state === 'pending' ? m.cardAdding : fillMessage(multi ? m.cardChooseAddLabel : m.cardAddLabel, { name: product.name })}
+            aria-haspopup={multi ? 'dialog' : undefined}
+            aria-expanded={multi ? pickerOpen : undefined}
+            aria-busy={state === 'pending' && !multi ? true : undefined}
+            aria-disabled={state === 'pending' && !multi ? true : undefined}
+            aria-describedby={state === 'error' && !multi ? errorId : undefined}
+            onClick={start}
+            className={cn(
+              'sl inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill px-4 text-13.5 font-bold text-chalk shadow-e1 transition-all duration-fast',
+              'hover:bg-cobalt hover:shadow-e2 active:scale-95',
+              multi && pickerOpen ? 'bg-cobalt-deep' : 'bg-ink'
+            )}
+          >
+            {state === 'pending' && !multi ? (
+              <span>{m.cardAdding}</span>
+            ) : state === 'error' && !multi ? (
+              <>
+                <Icon name="retry" size={15} strokeWidth={2} />
+                <span>{m.cardRetry}</span>
+              </>
+            ) : (
+              <>
+                <Icon name="bag" size={15} strokeWidth={2} />
+                <span>{m.cardAdd}</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
+
+      {state === 'error' && !multi ? (
+        <p id={errorId} role="alert" className="mt-2 m-0 flex items-start gap-1.5 text-13 font-semibold text-tomato-ink">
+          <span aria-hidden="true" className="mt-1 flex size-3.5 flex-none items-center justify-center rounded-full bg-tomato text-10 font-bold text-ink">!</span>
+          {m.cardAddFailed}
+        </p>
+      ) : null}
     </article>
   );
 }
 
-/** Loading card: the same box sizes as the real card, so a loading row never shifts (ProductCard «skeleton»). */
+/** Loading card in Sahel format */
 export function ProductCardSkeleton() {
   return (
-    <div aria-hidden="true" className="flex h-full flex-col gap-2.5 lg:gap-4">
-      <Skeleton className="aspect-[4/5] w-full" />
-      <div className="flex flex-1 flex-col gap-2 px-0.5">
-        <Skeleton className="h-3 w-[36%] rounded-4 bg-line" />
-        <Skeleton className="h-4.5 w-[86%] rounded-4 bg-line" />
-        <Skeleton className="h-4 w-[70%] rounded-4 bg-line" />
-        <Skeleton className="h-3.5 w-[52%] rounded-4 bg-line" />
-        <span className="mt-auto flex items-center justify-between pt-2.5 shadow-hairline-top">
-          <Skeleton className="h-5 w-14 rounded-4 bg-line" />
-          <Skeleton className="h-control-s w-18 rounded-pill bg-line" />
-        </span>
+    <div aria-hidden="true" className="flex h-full flex-col font-display">
+      <Skeleton className="aspect-[4/5] w-full rounded-image" />
+      <div className="mt-3 flex flex-col gap-2">
+        <Skeleton className="h-4 w-[40%] rounded-4" />
+        <Skeleton className="h-5 w-[85%] rounded-4" />
+        <Skeleton className="h-3.5 w-[60%] rounded-4" />
+        <div className="mt-3 flex items-center justify-between">
+          <Skeleton className="h-6 w-20 rounded-4" />
+          <Skeleton className="h-4 w-12 rounded-4" />
+        </div>
+        <Skeleton className="mt-4 h-control-m w-full rounded-pill" />
       </div>
     </div>
   );

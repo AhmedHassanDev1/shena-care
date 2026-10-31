@@ -87,12 +87,12 @@ function FilterGroup({ title, active, children }: { title: string; active: numbe
         type="button"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="flex min-h-control-m w-full items-center justify-between gap-2 bg-transparent p-0 text-15 font-bold text-night"
+        className="flex min-h-11 w-full items-center justify-between gap-2 bg-transparent p-0 text-15 font-bold text-ink"
       >
         <span className="inline-flex items-center gap-2">
           {title}
           {active ? (
-            <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-bottle text-12 font-bold text-white">{formatNumber(active, locale)}</span>
+            <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-cobalt text-12 font-bold text-chalk">{formatNumber(active, locale)}</span>
           ) : null}
         </span>
         <Icon name="chevron-down" size={16} strokeWidth={2} className={cn('transition-transform duration-fast', !open && 'rotate-180')} />
@@ -114,18 +114,18 @@ function CheckRow({ checked, label, count, latin, onToggle }: { checked: boolean
       aria-disabled={disabled || undefined}
       aria-label={fillMessage(m.plpFilterLabel, { name: label, n: formatNumber(count, locale) })}
       onClick={disabled ? undefined : onToggle}
-      className={cn('flex min-h-control-s w-full items-center gap-3 bg-transparent p-0 text-14 leading-22 text-night', disabled && 'cursor-default opacity-[.42]')}
+      className={cn('flex min-h-10 w-full items-center gap-3 bg-transparent p-0 text-14 leading-22 text-ink', disabled && 'cursor-default opacity-50')}
     >
       <span
         aria-hidden="true"
-        className={cn('flex size-5 flex-none items-center justify-center rounded-6', checked ? 'bg-bottle text-white' : 'bg-linen shadow-outline-check')}
+        className={cn('flex size-5 flex-none items-center justify-center rounded-card', checked ? 'bg-cobalt text-chalk shadow-e1' : 'bg-linen shadow-outline-hairline')}
       >
         {checked ? <Icon name="check" size={14} strokeWidth={3} /> : null}
       </span>
-      <span lang={latin ? 'en' : undefined} dir={latin ? 'ltr' : undefined} className={cn('text-match-parent', latin && 'text-12.5 font-semibold tracking-brand')}>
+      <span lang={latin ? 'en' : undefined} dir={latin ? 'ltr' : undefined} className={cn('text-match-parent', latin && 'font-serif italic text-14')}>
         {label}
       </span>
-      <span aria-hidden="true" className="ms-auto text-12.5 tabular-nums text-ink-3">
+      <span aria-hidden="true" className="ms-auto text-12.5 tabular-nums text-stone">
         {formatNumber(count, locale)}
       </span>
     </button>

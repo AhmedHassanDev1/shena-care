@@ -18,8 +18,8 @@ export function Wordmark({ size = "header", withLatin = false, className, ...pro
     <span className={cn("inline-flex items-center gap-2.5 whitespace-nowrap", className)} {...props}>
       <span className={cn("font-display font-bold", size === "header" ? "text-28 leading-30 lg:text-34 lg:leading-36" : "text-34 leading-36")}>شينا كير</span>
       {withLatin ? (
-        <span lang="en" dir="ltr" className="text-brand text-ink-2">
-          SHINACARE
+        <span lang="en" dir="ltr" className="font-serif italic text-20 text-stone">
+          ShinaCare
         </span>
       ) : null}
     </span>

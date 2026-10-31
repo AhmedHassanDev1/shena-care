@@ -1,10 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Section, SectionHeader } from '@/components/layout/section';
-import { cardVariants } from '@/components/ui/card-variants';
-import { ChipLink } from '@/components/ui/chip-link';
+import { PageContainer } from '@/components/layout/page-container';
 import { Icon } from '@/components/ui/icon';
 import { apiClient } from '@/lib/api-client';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
@@ -12,11 +11,11 @@ import { routes, shellRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import type { Concern } from '@/features/catalog/api/discovery';
 import { CONCERN_CHIPS, concernHref } from '../lib/concern-chips';
-import { sectionNumber } from '../lib/section-number';
 
 /**
- * Shop by concern (Stitch section 01): 2x2 Clinically Categorized Solutions grid,
- * followed by customer concern chips, and elevated Shina consultation banner.
+ * Modern Beauty Editorial: Shop by Concern Discovery Strip
+ * Prominently showcases real dermatological concern photography in elegant,
+ * accessible horizontal discovery chips.
  */
 export function ConcernShelf() {
   const m = useMessages();
@@ -28,117 +27,63 @@ export function ConcernShelf() {
   });
   const concerns = data ?? [];
 
-  const solutions = [
-    {
-      title: m.homeSolutionBarrierTitle,
-      subtitle: m.homeSolutionBarrierSubtitle,
-      icon: 'shield' as const,
-      href: `${routes.products}?q=سيراميد`,
-      tint: 'bg-bottle-tint text-bottle',
-    },
-    {
-      title: m.homeSolutionRadianceTitle,
-      subtitle: m.homeSolutionRadianceSubtitle,
-      icon: 'sparkles' as const,
-      href: `${routes.products}?q=فيتامين+سي`,
-      tint: 'bg-saffron-tint text-saffron-ink',
-    },
-    {
-      title: m.homeSolutionSunTitle,
-      subtitle: m.homeSolutionSunSubtitle,
-      icon: 'sun' as const,
-      href: `${routes.products}?category=sun-protection`,
-      tint: 'bg-sand text-night',
-    },
-    {
-      title: m.homeSolutionHairTitle,
-      subtitle: m.homeSolutionHairSubtitle,
-      icon: 'science' as const,
-      href: `${routes.products}?category=hair-care`,
-      tint: 'bg-bone text-night',
-    },
-  ];
-
   return (
-    <Section labelledBy="home-concern-title" className="gap-5 lg:gap-6">
-      <div className="flex flex-col gap-2">
-        <span className="w-fit rounded-full bg-bottle-tint px-3 py-1 text-12 font-bold text-bottle">
-          {m.homeConcernSolutionsBadge}
-        </span>
-        <SectionHeader number={sectionNumber(1, locale)} title={m.homeConcernTitle} titleId="home-concern-title" lead={m.homeConcernBody} />
-      </div>
-
-      {/* 2x2 Clinically Categorized Solutions Grid from Stitch Screen 1 */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-4">
-        {solutions.map((sol) => (
-          <Link
-            key={sol.title}
-            href={sol.href}
-            className={cn(
-              cardVariants({ interactive: true }),
-              'group flex items-center justify-between gap-3 p-4 transition-all duration-fast'
-            )}
-          >
-            <div className="flex min-w-0 items-center gap-3.5">
-              <span className={cn('flex size-11 flex-none items-center justify-center rounded-card', sol.tint)}>
-                <Icon name={sol.icon} size={22} />
-              </span>
-              <div className="flex min-w-0 flex-col">
-                <span className="text-15 font-bold leading-22 text-night group-hover:text-bottle transition-colors">
-                  {sol.title}
-                </span>
-                <span className="text-12 leading-18 text-ink-2">
-                  {sol.subtitle}
-                </span>
-              </div>
+    <section aria-labelledby="home-concern-title" className="border-b border-line bg-linen/50 py-8 lg:py-10">
+      <PageContainer className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2.5">
+              <span aria-hidden="true" className="size-1.5 rounded-full bg-cobalt" />
+              <h2 id="home-concern-title" className="m-0 font-display text-18 font-bold tracking-tight text-ink sm:text-20 lg:text-22">
+                {m.homeConcernTitle}
+              </h2>
             </div>
-            <span className="flex size-8 flex-none items-center justify-center rounded-full bg-bone text-ink-3 transition-colors duration-fast group-hover:bg-bottle group-hover:text-linen">
-              <Icon name="arrow-forward" size={16} />
-            </span>
+            <p className="m-0 text-13 font-medium text-stone lg:text-14">
+              اختاري ما يهمك لنقدم لك أفضل المنتجات المناسبة لبشرتك وشعرك
+            </p>
+          </div>
+
+          <Link
+            href={routes.products}
+            className="group inline-flex items-center gap-1.5 text-13 font-bold text-cobalt transition-colors hover:text-ink lg:text-14"
+          >
+            <span>عرض كل الاحتياجات</span>
+            <Icon name="arrow-forward" size={14} className="transition-transform group-hover:translate-x-[-2px] rtl:group-hover:translate-x-[2px]" />
           </Link>
-        ))}
-      </div>
+        </div>
 
-      {/* Quick Concern Chips */}
-      <nav aria-label={m.homeConcernNavLabel}>
-        <ul className="scrollbar-none -mx-4 m-0 flex list-none snap-x gap-2.5 overflow-x-auto scroll-px-4 px-4 py-1 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0">
-          {CONCERN_CHIPS.map((chip) => {
-            const label = m[chip.label];
-            return (
-              <li key={chip.id} className="flex-none snap-start">
-                <ChipLink href={concernHref(chip, label, concerns).href} icon={chip.icon}>
-                  {label}
-                </ChipLink>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
-      {/* Shina AI Advisor Card from Stitch Screen 1 */}
-      <Link
-        href={shellRoutes.shina}
-        className={cn(
-          cardVariants({ interactive: true }),
-          'group flex flex-col justify-between gap-3 rounded-card bg-sand/60 p-4 shadow-outline-hairline sm:flex-row sm:items-center lg:p-5'
-        )}
-      >
-        <span className="flex min-w-0 items-center gap-3.5">
-          <span className="flex size-11 flex-none items-center justify-center rounded-card bg-saffron-tint text-saffron-ink shadow-elevation-1">
-            <Icon name="sparkles" size={22} />
-          </span>
-          <span className="flex min-w-0 flex-col">
-            <span className="font-display text-16 font-bold leading-24 text-night group-hover:text-bottle transition-colors">
-              {m.homeAdvisorPrompt}
-            </span>
-            <span className="text-13 leading-20 text-ink-2">{m.homeAdvisorPromptLead}</span>
-          </span>
-        </span>
-        <span className="inline-flex min-h-control-s items-center justify-center gap-2 self-start rounded-full bg-night px-4 py-2 text-13 font-bold text-linen shadow-elevation-1 transition-all duration-fast group-hover:bg-bottle sm:self-center">
-          <span>{m.homeAdvisorPromptCta}</span>
-          <Icon name="arrow-forward" size={16} />
-        </span>
-      </Link>
-    </Section>
+        {/* Refined Horizontal Discovery Strip with Real Macro Photography */}
+        <nav aria-label={m.homeConcernNavLabel} className="pt-1">
+          <ul className="scrollbar-none -mx-4 m-0 flex list-none snap-x gap-3 overflow-x-auto scroll-px-4 px-4 py-1.5 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0">
+            {CONCERN_CHIPS.map((chip) => {
+              const label = m[chip.label];
+              const { href } = concernHref(chip, label, concerns);
+              return (
+                <li key={chip.id} className="flex-none snap-start">
+                  <Link
+                    href={href}
+                    className={cn(
+                      'group inline-flex h-13 items-center gap-3 rounded-full border border-line bg-chalk pe-5 ps-1.5 py-1 text-14 font-semibold text-ink shadow-outline-hairline transition-all duration-fast',
+                      'hover:border-cobalt hover:bg-chalk hover:text-cobalt hover:shadow-e1 active:scale-95'
+                    )}
+                  >
+                    <div className="relative size-10 overflow-hidden rounded-full border border-line bg-sand flex-none shadow-sm">
+                      <Image
+                        src={chip.image}
+                        alt={label}
+                        fill
+                        sizes="40px"
+                        className="object-cover transition-transform duration-base ease-standard group-hover:scale-110"
+                      />
+                    </div>
+                    <span className="whitespace-nowrap">{label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </PageContainer>
+    </section>
   );
 }

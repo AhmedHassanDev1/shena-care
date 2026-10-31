@@ -35,11 +35,11 @@ export function ProductPhoneHeader() {
   };
 
   return (
-    <header className="relative flex h-header-m items-center gap-1 bg-bone px-2 lg:hidden">
+    <header className="relative flex h-header-m items-center gap-1 bg-chalk border-b border-ink/14 px-2 lg:hidden">
       <button type="button" aria-label={m.back} onClick={back} className={iconButtonVariants()}>
         <Icon name="chevron-back" size={22} strokeWidth={1.9} />
       </button>
-      <Link href={routes.home} aria-label={m.shellHome} className="inline-flex min-h-control-s items-center text-night no-underline">
+      <Link href={routes.home} aria-label={m.shellHome} className="inline-flex min-h-control-s items-center text-ink no-underline">
         <Wordmark />
       </Link>
       <span className="ms-auto flex items-center">

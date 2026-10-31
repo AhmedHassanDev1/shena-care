@@ -33,9 +33,9 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
 
   const crumbs = (current: string, middle?: { href: string; label: string }) => (
     <nav aria-label={m.plpBreadcrumb}>
-      <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-12.5 leading-20 lg:text-13">
+      <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-12.5 leading-20 text-stone lg:text-13">
         <li className="inline-flex items-center gap-2">
-          <Link href={routes.home} className="inline-flex min-h-control-s min-w-control-s items-center justify-center font-medium text-inherit underline decoration-1 underline-offset-[5px]">
+          <Link href={routes.home} className="inline-flex min-h-10 min-w-10 items-center justify-center font-medium text-stone hover:text-ink underline decoration-1 underline-offset-4">
             {m.plpHome}
           </Link>
           <span aria-hidden="true" className="opacity-70">
@@ -44,7 +44,7 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
         </li>
         {middle ? (
           <li className="inline-flex items-center gap-2">
-            <Link href={middle.href} className="inline-flex min-h-control-s min-w-control-s items-center justify-center font-medium text-inherit underline decoration-1 underline-offset-[5px]">
+            <Link href={middle.href} className="inline-flex min-h-10 min-w-10 items-center justify-center font-medium text-stone hover:text-ink underline decoration-1 underline-offset-4">
               {middle.label}
             </Link>
             <span aria-hidden="true" className="opacity-70">
@@ -52,7 +52,7 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
             </span>
           </li>
         ) : null}
-        <li aria-current="page" className="font-semibold">
+        <li aria-current="page" className="font-semibold text-ink">
           {current}
         </li>
       </ol>
@@ -77,8 +77,8 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
     <section aria-labelledby="plp-h" className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2.5">
         {crumb}
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-bottle-tint px-2.5 py-0.5 text-11.5 font-bold text-bottle" title={m.plpPharmacyTrust}>
-          <span className="size-1.5 rounded-full bg-bottle animate-pulse" />
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-sand px-2.5 py-0.5 text-12 font-bold text-ink" title={m.plpPharmacyTrust}>
+          <span className="size-1.5 rounded-full bg-citron" />
           <span>{m.plpPharmacyBadge}</span>
         </span>
       </div>
@@ -86,11 +86,11 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
         id="plp-h"
         lang={titleLatin ? 'en' : undefined}
         dir={titleLatin ? 'ltr' : undefined}
-        className={cn('m-0 text-display-1 text-match-parent', titleLatin && 'tracking-brand')}
+        className={cn('m-0 text-36 font-bold leading-tight text-ink md:text-44', titleLatin && 'font-serif italic font-normal')}
       >
         {title}
       </h1>
-      {body ? <p className="m-0 text-14.5 leading-22 text-ink-2">{body}</p> : null}
+      {body ? <p className="m-0 text-14.5 leading-22 text-stone">{body}</p> : null}
       {aside ? <div className="pt-2">{aside}</div> : null}
     </section>
   );

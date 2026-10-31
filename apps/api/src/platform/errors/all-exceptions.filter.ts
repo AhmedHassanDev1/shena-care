@@ -27,9 +27,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getResponse()
         : 'Internal server error';
 
-    // Log the actual exception for internal debugging, but avoid logging PII payload directly
+    // Log errors for internal debugging, avoiding sensitive credentials/PII leakage
     if (status >= 500) {
-      this.logger.error(`[${request.method}] ${request.url} - ${exception}`);
+      const details = exception instanceof Error ? exception.stack || exception.message : String(exception);
+      this.logger.error(`[${request.method}] ${request.url} - ${status} Server Error: ${details}`);
+    } else {
+      const formattedMessage =
+        typeof message === 'object' && message !== null
+          ? JSON.stringify(message)
+          : String(message);
+      this.logger.warn(`[${request.method}] ${request.url} - ${status}: ${formattedMessage}`);
     }
 
     // Never leak stack traces to the client

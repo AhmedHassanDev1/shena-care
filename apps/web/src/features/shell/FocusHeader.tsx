@@ -34,19 +34,19 @@ export function FocusHeader({ title, titleIsLabel, back, action, desktopBack, se
   const Title = titleIsLabel ? "p" : "h1";
   const m = getMessages(getLocale());
   return (
-    <header className="bg-bone shadow-hairline-bottom">
+    <header className="bg-chalk border-b border-ink/14">
       <div className={cn("flex h-header-m items-center gap-0.5 lg:hidden", back ? "px-2" : "px-4")}>
         {back ? (
           <Link href={back.href} aria-label={back.label} className={iconButtonVariants()}>
             <Icon name="chevron-back" size={22} strokeWidth={1.9} />
           </Link>
         ) : null}
-        {title ? <Title className="m-0 font-display text-22 font-extrabold leading-28">{title}</Title> : null}
+        {title ? <Title className="m-0 font-display text-22 font-extrabold leading-28 text-ink">{title}</Title> : null}
         {action ? <span className="ms-auto flex items-center pe-1.5">{action}</span> : null}
       </div>
       {desktopBack ? (
         <PageContainer className="hidden items-center gap-6 py-3.5 lg:flex">
-          <Link href={routes.home} aria-label={m.shellHome} className="inline-flex min-h-control-s items-center text-night no-underline">
+          <Link href={routes.home} aria-label={m.shellHome} className="inline-flex min-h-control-s items-center text-ink no-underline">
             <Wordmark />
           </Link>
           {secure ? <SecureBadge label={m.focusSecure} /> : null}

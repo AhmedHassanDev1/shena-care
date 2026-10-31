@@ -1,33 +1,113 @@
 {
-  "$comment": "SAHEL text/UI pairs that must meet WCAG 2.x contrast (ratios stated in design-system/tokens.json usage notes and the V17 handoff). Consumed by scripts/check-design-system.mjs; names resolve against src/styles/tokens.generated.css. min 4.5 = text (1.4.3), 3 = UI boundaries and focus indicators (1.4.11), null = informational.",
+  "$comment": "Sahel text/UI pairs that must meet WCAG 2.x contrast. Consumed by scripts/check-design-system.mjs; names resolve against src/styles/tokens.generated.css. min 4.5 = text (1.4.3), 3 = UI boundaries and focus indicators (1.4.11), null = informational.",
   "pairs": [
-    { "fg": "night", "bg": "bone", "min": 4.5 },
-    { "fg": "night", "bg": "linen", "min": 4.5 },
-    { "fg": "night", "bg": "sand", "min": 4.5 },
-    { "fg": "ink-2", "bg": "bone", "min": 4.5 },
-    { "fg": "ink-2", "bg": "linen", "min": 4.5 },
-    { "fg": "ink-2", "bg": "sand", "min": 4.5 },
-    { "fg": "ink-3", "bg": "bone", "min": 4.5 },
-    { "fg": "ink-3", "bg": "linen", "min": 4.5 },
-    { "fg": "ink-3", "bg": "sand", "min": 4.5, "note": "disabled button label" },
-    { "fg": "line-2", "bg": "linen", "min": 3, "note": "control borders" },
-    { "fg": "line-2", "bg": "bone", "min": 3, "note": "control borders" },
-    { "fg": "bottle", "bg": "bone", "min": 3, "note": "focus ring" },
-    { "fg": "bottle", "bg": "linen", "min": 4.5, "note": "links" },
-    { "fg": "white", "bg": "bottle", "min": 4.5, "note": "primary action label" },
-    { "fg": "linen", "bg": "night", "min": 4.5, "note": "ink action label" },
-    { "fg": "bone", "bg": "night", "min": 4.5, "note": "floating nav, footer" },
-    { "fg": "bone", "bg": "bottle", "min": 4.5, "note": "Sahel-bottle campaign field text" },
-    { "fg": "night", "bg": "saffron", "min": 4.5, "note": "assistant button" },
-    { "fg": "saffron-ink", "bg": "saffron-tint", "min": 4.5 },
-    { "fg": "night", "bg": "coral", "min": 4.5, "note": "campaign field text" },
-    { "fg": "ok", "bg": "linen", "min": 4.5 },
-    { "fg": "ok", "bg": "ok-tint", "min": 4.5 },
-    { "fg": "white", "bg": "ok", "min": 4.5, "note": "success button label" },
-    { "fg": "err", "bg": "linen", "min": 4.5 },
-    { "fg": "err", "bg": "err-tint", "min": 4.5 },
-    { "fg": "err", "bg": "bone", "min": 4.5 },
-    { "fg": "saffron", "bg": "night", "min": 3, "note": "focus ring inside the floating nav" },
-    { "fg": "warn", "bg": "linen", "min": null, "note": "warning dot / ring, always with words" }
+    {
+      "fg": "ink",
+      "bg": "chalk",
+      "min": 4.5,
+      "note": "Sahel primary text on page ground"
+    },
+    {
+      "fg": "ink",
+      "bg": "linen",
+      "min": 4.5,
+      "note": "Sahel primary text on raised surfaces"
+    },
+    {
+      "fg": "ink",
+      "bg": "sand",
+      "min": 4.5,
+      "note": "Sahel primary text on quiet fills"
+    },
+    {
+      "fg": "ink",
+      "bg": "tomato",
+      "min": 4.5,
+      "note": "Sahel ink text on tomato painted field"
+    },
+    {
+      "fg": "ink",
+      "bg": "citron",
+      "min": 4.5,
+      "note": "Sahel ink text on citron sun badge"
+    },
+    {
+      "fg": "ink",
+      "bg": "tan",
+      "min": 4.5,
+      "note": "Sahel ink text on skin warmth"
+    },
+    {
+      "fg": "stone",
+      "bg": "chalk",
+      "min": 4.5,
+      "note": "Sahel secondary text on page ground"
+    },
+    {
+      "fg": "stone",
+      "bg": "linen",
+      "min": 4.5,
+      "note": "Sahel secondary text on raised surfaces"
+    },
+    {
+      "fg": "stone",
+      "bg": "sand",
+      "min": 4.5,
+      "note": "Sahel secondary text on quiet fills"
+    },
+    {
+      "fg": "chalk",
+      "bg": "cobalt",
+      "min": 4.5,
+      "note": "Sahel chalk text on cobalt buttons/chips"
+    },
+    {
+      "fg": "chalk",
+      "bg": "ink",
+      "min": 4.5,
+      "note": "Sahel chalk text on ink buttons/cards"
+    },
+    {
+      "fg": "tomato-ink",
+      "bg": "chalk",
+      "min": 4.5,
+      "note": "Sahel error text on page ground"
+    },
+    {
+      "fg": "tomato-ink",
+      "bg": "linen",
+      "min": 4.5,
+      "note": "Sahel error text on raised surfaces"
+    },
+    {
+      "fg": "line-2",
+      "bg": "chalk",
+      "min": 3,
+      "note": "Control borders on chalk"
+    },
+    {
+      "fg": "line-2",
+      "bg": "linen",
+      "min": 3,
+      "note": "Control borders on linen"
+    },
+    {
+      "fg": "cobalt",
+      "bg": "chalk",
+      "min": 3,
+      "note": "Focus indicator on chalk"
+    },
+    {
+      "fg": "ok",
+      "bg": "linen",
+      "min": 4.5,
+      "note": "Order status text on linen"
+    },
+    {
+      "fg": "warn",
+      "bg": "linen",
+      "min": null,
+      "note": "Warning indicator dot on linen"
+    }
   ]
 }

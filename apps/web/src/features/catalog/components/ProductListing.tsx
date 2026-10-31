@@ -132,26 +132,26 @@ export function ProductListing() {
       {filters.q ? (
         <div className="flex flex-col gap-3 rounded-card bg-sand/60 p-4 shadow-outline-hairline lg:p-5">
           <div className="flex items-center gap-3">
-            <span className="flex size-9 flex-none items-center justify-center rounded-full bg-bottle-tint text-bottle">
+            <span className="flex size-9 flex-none items-center justify-center rounded-full bg-sand text-ink">
               <Icon name="sparkles" size={18} />
             </span>
             <div className="flex flex-col">
-              <span className="font-display text-15 font-bold leading-22 text-night">
+              <span className="font-display text-15 font-bold leading-22 text-ink">
                 {fillMessage(m.plpSmartSearchQueryUnderstanding, { query: filters.q })}
               </span>
-              <span className="text-12 leading-18 text-ink-2">
+              <span className="text-12 leading-18 text-stone">
                 {m.plpSmartSearchTagline}
               </span>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-night shadow-elevation-1">
+            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-ink shadow-e1">
               تركيبات خالية من العطور
             </span>
-            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-night shadow-elevation-1">
+            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-ink shadow-e1">
               تراكيز علاجية مثبتة
             </span>
-            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-night shadow-elevation-1">
+            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-ink shadow-e1">
               مستوى حموضة متوازن pH
             </span>
           </div>
@@ -172,7 +172,7 @@ export function ProductListing() {
             ))}
           </div>
         ) : null}
-        <div className="sticky top-0 z-sticky -mx-4 bg-bone/95 px-4 py-2 backdrop-blur-sm">
+        <div className="sticky top-0 z-sticky -mx-4 bg-chalk/80 px-4 py-2.5 backdrop-blur-md shadow-outline-hairline">
           <MobileFilterSheet filters={filters} groups={groups} applied={applied.length} onApply={navigate} clearTo={() => clearAll()} />
         </div>
         <AppliedFilters filters={applied} onClearAll={clearAll} />
@@ -181,17 +181,17 @@ export function ProductListing() {
       <div className="flex items-start gap-10">
         {showRail ? (
           <aside aria-labelledby="flt-h" className="sticky top-6 hidden w-[272px] flex-none self-start lg:block">
-            <div className="flex min-h-control-m items-center justify-between pb-1 shadow-hairline-bottom">
-              <h2 id="flt-h" className="m-0 inline-flex items-center gap-2 font-display text-22 font-bold leading-28">
+            <div className="flex min-h-11 items-center justify-between pb-1 shadow-hairline-bottom">
+              <h2 id="flt-h" className="m-0 inline-flex items-center gap-2 font-display text-22 font-bold leading-28 text-ink">
                 {m.plpFilters}
                 {applied.length ? (
-                  <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-bottle font-text text-12 font-bold text-white">
+                  <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-cobalt font-text text-12 font-bold text-chalk">
                     {formatNumber(applied.length, locale)}
                   </span>
                 ) : null}
               </h2>
               {applied.length ? (
-                <button type="button" onClick={clearAll} className="min-h-control-s bg-transparent text-14 font-semibold text-bottle underline underline-offset-4">
+                <button type="button" onClick={clearAll} className="min-h-10 bg-transparent text-14 font-semibold text-cobalt underline underline-offset-4">
                   {m.plpClearAll}
                 </button>
               ) : null}
@@ -202,25 +202,25 @@ export function ProductListing() {
 
         <div className="min-w-0 flex-1">
           <div className="mb-7 hidden flex-col gap-4 pb-4 shadow-hairline-bottom lg:flex">
-            <p role="status" aria-live="polite" className="m-0 text-15 font-bold leading-24">
+            <p role="status" aria-live="polite" className="m-0 text-15 font-bold leading-24 text-ink">
               {total !== null ? fillMessage(m.plpCount, { n: formatNumber(total, locale) }) : ' '}
               {total !== null && products.length < total ? (
-                <span className="font-medium text-ink-2">{fillMessage(m.plpShown, { n: formatNumber(products.length, locale) })}</span>
+                <span className="font-medium text-stone">{fillMessage(m.plpShown, { n: formatNumber(products.length, locale) })}</span>
               ) : null}
             </p>
             <AppliedFilters filters={applied} onClearAll={clearAll} />
           </div>
-          <p role="status" aria-live="polite" className="m-0 mb-3 text-15 font-bold leading-24 lg:hidden">
+          <p role="status" aria-live="polite" className="m-0 mb-3 text-15 font-bold leading-24 text-ink lg:hidden">
             {total !== null ? fillMessage(m.plpCount, { n: formatNumber(total, locale) }) : null}
-            {total !== null && products.length < total ? <span className="font-medium text-ink-2">{fillMessage(m.plpShown, { n: formatNumber(products.length, locale) })}</span> : null}
+            {total !== null && products.length < total ? <span className="font-medium text-stone">{fillMessage(m.plpShown, { n: formatNumber(products.length, locale) })}</span> : null}
           </p>
 
           {query.status === 'pending' ? (
             <Grid>{Array.from({ length: 6 }, (_, i) => <ProductCardSkeleton key={i} />)}</Grid>
           ) : query.status === 'error' ? (
-            <div role="alert" className="flex flex-col items-center gap-4 rounded-card bg-err-tint px-6 py-8 text-center">
-              <p className="m-0 font-display text-21 font-bold leading-27 text-err">{m.plpLoadError}</p>
-              <Button variant="light" size="m" onClick={() => query.refetch()}>
+            <div role="alert" className="flex flex-col items-center gap-4 rounded-card bg-conflict px-6 py-8 text-center">
+              <p className="m-0 font-display text-21 font-bold leading-27 text-tomato-ink">{m.plpLoadError}</p>
+              <Button variant="linen" size="m" onClick={() => query.refetch()}>
                 {m.plpRetry}
               </Button>
             </div>
@@ -246,14 +246,14 @@ export function ProductListing() {
 
               {/* Pharmaceutical Trust & Expiry Guarantee Callout from Stitch Screen 2 */}
               <div className="mt-12 flex flex-col items-center gap-4 rounded-card bg-linen p-6 text-center shadow-outline-hairline sm:flex-row sm:items-start sm:p-7 sm:text-start">
-                <span className="flex size-11 flex-none items-center justify-center rounded-full bg-bottle-tint text-bottle">
+                <span className="flex size-11 flex-none items-center justify-center rounded-full bg-sand text-ink">
                   <Icon name="shield" size={22} />
                 </span>
                 <div className="flex flex-col gap-1">
-                  <h3 className="m-0 font-display text-16 font-bold text-night">
+                  <h3 className="m-0 font-display text-16 font-bold text-ink">
                     {m.plpCatalogTrustTitle}
                   </h3>
-                  <p className="m-0 text-13.5 leading-22 text-ink-2">
+                  <p className="m-0 text-13.5 leading-22 text-stone">
                     {m.plpCatalogTrustBody}
                   </p>
                 </div>
@@ -289,10 +289,10 @@ function InfiniteStatus({ shown, total, hasNext, loading, failed, onMore, where 
 
   if (failed) {
     return (
-      <div role="alert" className="mx-auto mt-10 flex max-w-[280px] flex-col items-center gap-3 rounded-card bg-err-tint px-6 py-6 text-center">
-        <p className="m-0 font-display text-17 font-bold leading-24 text-err">{m.plpMoreFailed}</p>
-        <p className="m-0 text-14 leading-22 text-night">{fillMessage(m.plpMoreFailedBody, { n: n(shown) })}</p>
-        <Button variant="light" size="s" onClick={onMore}>
+      <div role="alert" className="mx-auto mt-10 flex max-w-[280px] flex-col items-center gap-3 rounded-card bg-conflict px-6 py-6 text-center">
+        <p className="m-0 font-display text-17 font-bold leading-24 text-tomato-ink">{m.plpMoreFailed}</p>
+        <p className="m-0 text-14 leading-22 text-ink">{fillMessage(m.plpMoreFailedBody, { n: n(shown) })}</p>
+        <Button variant="linen" size="s" onClick={onMore}>
           {m.plpRetry}
         </Button>
       </div>
@@ -303,20 +303,20 @@ function InfiniteStatus({ shown, total, hasNext, loading, failed, onMore, where 
     return (
       <div ref={sentinel} className="mt-10 flex flex-col items-center gap-3">
         {loading ? (
-          <p role="status" className="m-0 flex items-center gap-2.5 text-14 font-semibold">
-            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" className="text-bottle motion-safe:animate-spin">
+          <p role="status" className="m-0 flex items-center gap-2.5 text-14 font-semibold text-ink">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" className="text-cobalt motion-safe:animate-spin">
               <circle cx="12" cy="12" r="8" opacity=".25" />
               <path d="M20 12a8 8 0 0 0-8-8" />
             </svg>
             {m.plpLoading}
           </p>
         ) : null}
-        <div aria-hidden="true" className="h-1 w-[220px] overflow-hidden rounded-pill bg-dune">
-          <div className="h-full rounded-pill bg-night" style={{ width: `${pct}%` }} />
+        <div aria-hidden="true" className="h-1 w-[220px] overflow-hidden rounded-pill bg-sand">
+          <div className="h-full rounded-pill bg-cobalt" style={{ width: `${pct}%` }} />
         </div>
-        <p className="m-0 text-12.5 leading-19 text-ink-2">{fillMessage(m.plpSeen, { shown: n(shown), total: n(total) })}</p>
+        <p className="m-0 text-12.5 leading-19 text-stone">{fillMessage(m.plpSeen, { shown: n(shown), total: n(total) })}</p>
         {loading ? null : (
-          <Button variant="light" size="m" onClick={onMore}>
+          <Button variant="linen" size="m" onClick={onMore}>
             {fillMessage(m.plpShowMore, { n: n(Math.min(PAGE_SIZE, total - shown)) })}
           </Button>
         )}
@@ -325,10 +325,10 @@ function InfiniteStatus({ shown, total, hasNext, loading, failed, onMore, where 
   }
   return (
     <div className="mx-auto mt-12 flex max-w-[300px] flex-col items-center gap-3 text-center">
-      <span aria-hidden="true" className="h-1 w-[180px] rounded-pill bg-night" />
-      <p className="m-0 font-display text-24 font-bold leading-30">{fillMessage(m.plpEndTitle, { n: n(total) })}</p>
-      <p className="m-0 text-14 leading-22 text-ink-2">{where ? fillMessage(m.plpEndBody, { where }) : m.plpEndBodyFiltered}</p>
-      <Button variant="light" size="m" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+      <span aria-hidden="true" className="h-1 w-[180px] rounded-pill bg-cobalt" />
+      <p className="m-0 font-display text-24 font-bold leading-30 text-ink">{fillMessage(m.plpEndTitle, { n: n(total) })}</p>
+      <p className="m-0 text-14 leading-22 text-stone">{where ? fillMessage(m.plpEndBody, { where }) : m.plpEndBodyFiltered}</p>
+      <Button variant="linen" size="m" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
         {m.plpBackToTop}
       </Button>
       <Button asChild variant="ink" size="m">
@@ -353,23 +353,23 @@ function ListingEmpty({ context, q, hasFilters, filters, onClear, department }: 
   if (context === 'search' && q) {
     return (
       <section className={box}>
-        <span aria-hidden="true" className="flex size-14 items-center justify-center rounded-full bg-sand text-night">
+        <span aria-hidden="true" className="flex size-14 items-center justify-center rounded-full bg-sand text-ink">
           <Icon name="search" size={22} />
         </span>
-        <h2 className="m-0 text-display-3">{fillMessage(m.plpNoResultsTitle, { q })}</h2>
-        <ul className="m-0 flex list-disc flex-col gap-1 ps-5 text-14.5 leading-24 text-ink-2">
+        <h2 className="m-0 font-display text-24 font-bold leading-30 text-ink">{fillMessage(m.plpNoResultsTitle, { q })}</h2>
+        <ul className="m-0 flex list-disc flex-col gap-1 ps-5 text-14.5 leading-24 text-stone">
           <li>{m.plpNoResultsTip1}</li>
           <li>{m.plpNoResultsTip2}</li>
         </ul>
-        <p className="m-0 text-13 font-semibold">{m.plpOrBrowse}</p>
+        <p className="m-0 text-13 font-semibold text-ink">{m.plpOrBrowse}</p>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="light" size="s">
+          <Button asChild variant="linen" size="s">
             <Link href={routes.productsByCategory(mainCategorySlugs.skin)}>{m.homeNavSkin}</Link>
           </Button>
-          <Button asChild variant="light" size="s">
+          <Button asChild variant="linen" size="s">
             <Link href={routes.productsByCategory(mainCategorySlugs.hair)}>{m.homeNavHair}</Link>
           </Button>
-          <Button asChild variant="light" size="s">
+          <Button asChild variant="linen" size="s">
             <Link href={routes.products}>{m.plpAllBrands}</Link>
           </Button>
         </div>
@@ -379,12 +379,12 @@ function ListingEmpty({ context, q, hasFilters, filters, onClear, department }: 
   if (hasFilters) {
     return (
       <section className={box}>
-        <span aria-hidden="true" className="flex size-14 items-center justify-center rounded-full bg-sand text-night">
+        <span aria-hidden="true" className="flex size-14 items-center justify-center rounded-full bg-sand text-ink">
           <Icon name="filter" size={22} />
         </span>
-        <h2 className="m-0 text-display-3">{m.plpNoFilterTitle}</h2>
+        <h2 className="m-0 font-display text-24 font-bold leading-30 text-ink">{m.plpNoFilterTitle}</h2>
         <AppliedFilters filters={filters} onClearAll={onClear} />
-        <Button variant="light" size="m" onClick={onClear}>
+        <Button variant="linen" size="m" onClick={onClear}>
           {total !== undefined ? fillMessage(m.plpClearFilters, { n: formatNumber(total, locale) }) : m.plpClearAll}
         </Button>
       </section>
@@ -392,13 +392,13 @@ function ListingEmpty({ context, q, hasFilters, filters, onClear, department }: 
   }
   return (
     <section className={cn(box, 'items-center text-center')}>
-      <h2 className="m-0 text-display-3">{m.plpEmptyDeptTitle}</h2>
-      <p className="m-0 text-14 leading-22 text-ink-2">{m.plpEmptyDeptBody}</p>
+      <h2 className="m-0 font-display text-24 font-bold leading-30 text-ink">{m.plpEmptyDeptTitle}</h2>
+      <p className="m-0 text-14 leading-22 text-stone">{m.plpEmptyDeptBody}</p>
       <div className="flex flex-col gap-2">
-        <Button asChild variant="light" size="s">
+        <Button asChild variant="linen" size="s">
           <Link href={routes.productsByCategory(mainCategorySlugs.skin)}>{m.homeNavSkin}</Link>
         </Button>
-        <Button asChild variant="light" size="s">
+        <Button asChild variant="linen" size="s">
           <Link href={routes.productsByCategory(mainCategorySlugs.hair)}>{m.homeNavHair}</Link>
         </Button>
       </div>
@@ -436,20 +436,22 @@ function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
           setDraft(filters);
           setOpen(true);
         }}
-        className="flex h-control-l w-full items-center justify-center gap-2.5 rounded-pill bg-night text-16 font-semibold text-linen"
+        className="group relative flex h-13 w-full items-center justify-center gap-2.5 overflow-hidden rounded-pill bg-ink/85 px-6 text-15 font-bold text-chalk backdrop-blur-xl border border-chalk/20 shadow-e2 transition-all hover:bg-ink active:scale-[0.98]"
       >
-        <Icon name="filter" size={20} />
-        {m.plpFilterButton}
+        {/* Specular glass reflection highlight */}
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-pill bg-gradient-to-b from-chalk/20 to-transparent" />
+        <Icon name="filter" size={19} className="transition-transform group-hover:scale-110" />
+        <span>{m.plpFilterButton}</span>
         {applied ? (
-          <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-bottle text-12 font-bold text-white">{formatNumber(applied, locale)}</span>
+          <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-cobalt text-12 font-bold text-chalk shadow-e1">{formatNumber(applied, locale)}</span>
         ) : null}
       </button>
-      <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-24">
-        <span aria-hidden="true" className="mt-2 h-1 w-10 self-center rounded-4 bg-dune" />
+      <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-sheet bg-linen/95 backdrop-blur-2xl border-t border-chalk/50 shadow-e3">
+        <span aria-hidden="true" className="mt-2 h-1 w-10 self-center rounded-image bg-sand" />
         <SheetHeader className="pb-2 pt-2 shadow-hairline-bottom">
-          <SheetTitle className="flex items-center gap-2 font-display text-24 font-bold leading-30">
+          <SheetTitle className="flex items-center gap-2 font-display text-24 font-bold leading-30 text-ink">
             {m.plpFilters}
-            {draftApplied ? <span className="font-text text-14 font-medium text-ink-2">{fillMessage(m.plpSelected, { n: formatNumber(draftApplied, locale) })}</span> : null}
+            {draftApplied ? <span className="font-text text-14 font-medium text-stone">{fillMessage(m.plpSelected, { n: formatNumber(draftApplied, locale) })}</span> : null}
           </SheetTitle>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-4">
@@ -462,12 +464,12 @@ function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
               setOpen(false);
               clearTo();
             }}
-            className="min-h-control-s bg-transparent px-1 text-15 font-semibold text-night underline underline-offset-4"
+            className="min-h-10 bg-transparent px-1 text-15 font-semibold text-ink underline underline-offset-4"
           >
             {m.plpClearAll}
           </button>
           <Button
-            variant="bottle"
+            variant="cobalt"
             size="l"
             className="flex-1"
             onClick={() => {

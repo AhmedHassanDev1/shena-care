@@ -44,17 +44,17 @@ export function SectionHeader({ number, title, titleId, lead, aside }: SectionHe
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <div className="flex items-baseline gap-3">
           {number ? (
-            <span aria-hidden="true" className="text-label tabular-nums text-bottle">
+            <span aria-hidden="true" className="font-serif italic text-20 text-cobalt tabular-nums">
               {number}
             </span>
           ) : null}
-          <h2 id={titleId} className="m-0 text-display-2 text-night">
+          <h2 id={titleId} className="m-0 text-display-2 text-ink font-display font-bold">
             {title}
           </h2>
         </div>
         {aside}
       </div>
-      {lead ? <p className="m-0 max-w-narrow text-body text-ink-2">{lead}</p> : null}
+      {lead ? <p className="m-0 max-w-narrow text-body text-stone font-display">{lead}</p> : null}
     </div>
   )
 }

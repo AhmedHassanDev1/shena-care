@@ -12,6 +12,7 @@ import { routes } from '@/lib/routes';
 export interface ConcernChip {
   id: string;
   icon: IconName;
+  image: string;
   label: keyof Messages;
   area: Concern['careArea'];
   /** Lower-case fragments matched against a taxonomy concern's slug and name. */
@@ -19,12 +20,12 @@ export interface ConcernChip {
 }
 
 export const CONCERN_CHIPS: readonly ConcernChip[] = [
-  { id: 'acne', icon: 'acne', label: 'homeConcernAcne', area: 'skin', match: ['acne', 'breakout', 'pimple', 'حب'] },
-  { id: 'dryness', icon: 'dryness', label: 'homeConcernDryness', area: 'skin', match: ['dryness', 'dry-skin', 'dry skin', 'dehydrat', 'جفاف'] },
-  { id: 'pigmentation', icon: 'pigmentation', label: 'homeConcernPigmentation', area: 'skin', match: ['pigment', 'dark-spot', 'dark spot', 'discolo', 'تصبغ'] },
-  { id: 'hair-loss', icon: 'hair-loss', label: 'homeConcernHairLoss', area: 'hair', match: ['hair-loss', 'hair loss', 'hair-fall', 'hair fall', 'shedding', 'thinning', 'تساقط'] },
-  { id: 'wrinkles', icon: 'wrinkles', label: 'homeConcernWrinkles', area: 'skin', match: ['wrinkle', 'fine-line', 'fine line', 'aging', 'ageing', 'تجاعيد'] },
-  { id: 'frizz', icon: 'frizz', label: 'homeConcernFrizz', area: 'hair', match: ['frizz', 'هيشان'] },
+  { id: 'acne', icon: 'acne', image: '/images/concerns/acne.jpg', label: 'homeConcernAcne', area: 'skin', match: ['acne', 'breakout', 'pimple', 'حب'] },
+  { id: 'pigmentation', icon: 'pigmentation', image: '/images/concerns/pigmentation.jpg', label: 'homeConcernPigmentation', area: 'skin', match: ['pigment', 'dark-spot', 'dark spot', 'discolo', 'تصبغ'] },
+  { id: 'wrinkles', icon: 'wrinkles', image: '/images/concerns/wrinkles.jpg', label: 'homeConcernWrinkles', area: 'skin', match: ['wrinkle', 'fine-line', 'fine line', 'aging', 'ageing', 'تجاعيد'] },
+  { id: 'dryness', icon: 'dryness', image: '/images/concerns/dryness.jpg', label: 'homeConcernDryness', area: 'skin', match: ['dryness', 'dry-skin', 'dry skin', 'dehydrat', 'جفاف'] },
+  { id: 'frizz', icon: 'frizz', image: '/images/concerns/frizz.jpg', label: 'homeConcernFrizz', area: 'hair', match: ['frizz', 'هيشان'] },
+  { id: 'hair-loss', icon: 'hair-loss', image: '/images/concerns/hair-loss.jpg', label: 'homeConcernHairLoss', area: 'hair', match: ['hair-loss', 'hair loss', 'hair-fall', 'hair fall', 'shedding', 'thinning', 'تساقط'] },
 ] as const;
 
 /** The taxonomy concern a chip stands for, if the catalog defines one (same care area, slug or name contains a fragment). */

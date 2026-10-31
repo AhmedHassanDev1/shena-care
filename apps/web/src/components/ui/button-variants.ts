@@ -1,45 +1,54 @@
 import { cva } from "class-variance-authority"
 
 /**
- * SAHEL buttons (ShutterLoading board, SAHEL V2 §Components). Kept outside the "use client" module so server
- * components can style a link as a button.
+ * ShinaCare · Sahel Buttons
+ * Canonical specification from apps/web/docs/design-system/ShinaCare-Design-System-Sahel
  *
- * Colours: `bottle` buy/pay (the only commerce action), `ink` account/routine, `light` secondary (linen + 1.5px night
- * ring), `saffron` the assistant (never next to bottle), `text` underlined link. Every button is a pill; heights are the
- * board's 44 / 48 / 56. Disabled = sand fill + ink-3 text (never opacity). `success` and the async states are driven
- * by AsyncButton.
+ * Rules:
+ * - Every button is a pill (rounded-pill).
+ * - Default button is Sahel Ink with Chalk text, shifting to Cobalt with lengthened shadow e2 on hover.
+ * - Cobalt variant for direct CTA.
+ * - Ghost variant uses 1.5px ink outline, inversing to ink on hover.
+ * - Linen variant for soft surfaces.
+ * - Tomato variant for special offers.
+ * - Heights: 42px (sm) / 54px (l).
+ * - Disabled: sand fill with stone text.
  */
 export const buttonVariants = cva(
   [
-    "relative inline-flex items-center justify-center gap-2.5 whitespace-nowrap rounded-pill font-text font-semibold no-underline",
-    "transition-[background-color,box-shadow,transform,color] duration-fast ease-standard",
-    "enabled:active:scale-[.97]",
-    "disabled:cursor-not-allowed disabled:bg-sand disabled:text-ink-3 disabled:shadow-none",
+    "relative inline-flex items-center justify-center gap-2.5 whitespace-nowrap rounded-pill font-display font-semibold no-underline",
+    "transition-[background-color,box-shadow,transform,color] duration-base ease-standard",
+    "enabled:hover:-translate-y-px enabled:hover:shadow-e2",
+    "enabled:active:scale-[.97] enabled:active:translate-y-0",
+    "disabled:cursor-not-allowed disabled:bg-sand disabled:text-stone disabled:shadow-none",
     "[&_svg]:shrink-0",
   ],
   {
     variants: {
       variant: {
-        bottle: "bg-bottle text-white shadow-action hover:bg-bottle-hover active:bg-bottle-deep",
-        ink: "bg-night text-linen hover:bg-night-2",
-        light: "sl-light bg-linen text-night shadow-outline-night hover:bg-bone",
-        saffron: "sl-light bg-saffron text-night hover:bg-saffron/90",
-        /** Linen pill on a Sahel-bottle or night field (Home hero «تسوّق مختارات الخريف»). */
-        onDark: "sl-light bg-linen text-night hover:bg-bone",
-        text: "text-link h-auto rounded-none px-0 disabled:bg-transparent",
+        ink: "bg-ink text-chalk shadow-e1 hover:bg-cobalt active:bg-cobalt-deep",
+        cobalt: "bg-cobalt text-chalk shadow-e1 hover:bg-cobalt-deep active:bg-cobalt-deep",
+        tomato: "bg-tomato text-ink shadow-e1 hover:bg-tomato/90",
+        ghost: "bg-transparent text-ink shadow-outline-ink hover:bg-ink hover:text-chalk hover:shadow-e1",
+        linen: "bg-linen text-ink shadow-e1 hover:bg-linen/90",
+        light: "bg-linen text-ink shadow-e1 hover:bg-linen/90",
+        bottle: "bg-cobalt text-chalk shadow-e1 hover:bg-cobalt-deep active:bg-cobalt-deep",
+        saffron: "bg-citron text-ink shadow-e1 hover:bg-citron/90",
+        onDark: "bg-linen text-ink shadow-e1 hover:bg-linen/90",
+        text: "text-link h-auto rounded-none px-0 shadow-none hover:shadow-none hover:translate-y-0 disabled:bg-transparent",
       },
       size: {
-        s: "h-control-s px-4.5 text-14 leading-22",
-        m: "h-control-m px-5.5 text-14 leading-22",
-        l: "h-control-l px-5.5 text-16 leading-25",
-        icon: "size-control-s p-0",
+        s: "h-control-m px-5 text-16 leading-none",
+        m: "h-control-m px-6 text-17 leading-none",
+        l: "h-control-l px-7.5 text-18 leading-none",
+        icon: "size-control-m p-0",
       },
       state: {
         idle: "",
         success: "bg-ok text-white shadow-none hover:bg-ok",
       },
     },
-    compoundVariants: [{ variant: "text", className: "h-auto px-0" }],
-    defaultVariants: { variant: "bottle", size: "l", state: "idle" },
+    compoundVariants: [{ variant: "text", className: "h-auto px-0 shadow-none hover:shadow-none" }],
+    defaultVariants: { variant: "ink", size: "l", state: "idle" },
   }
 )

@@ -4,10 +4,10 @@ import { cn } from "@/lib/utils"
 import { Icon, type IconName } from "./icon"
 
 /*
- * SAHEL fields (Authentication Addendum §Inputs; AuthStates §١, CommerceStates §٣): label 14/600 above, a 56px linen
- * box with a 1px line-2 outline and radius 14, focus = 2px bottle + bottle-tint halo, error = 2px err. Messages sit under
- * the box: helper in ink-2, inline error = red dot + words with role="alert", linked by aria-describedby; the control
- * gets aria-invalid. Box geometry lives in globals.css (.field-box) so every state keeps the same size.
+ * SAHEL fields (Single Source of Truth: boards/04-components.html):
+ * Label 15/600 in ink, a 56px linen box with 16px radius and 1px line-2 outline.
+ * Focus: 2px solid ink + e1 shadow. Error: 2px solid tomato.
+ * Messages sit under the box: helper in stone, inline error in tomato-ink with tomato badge.
  */
 
 /* ── Message ───────────────────────────────────────────────────────────── */
@@ -30,14 +30,18 @@ export function FieldMessage({
       id={id}
       role={tone === "error" ? "alert" : tone === "success" ? "status" : undefined}
       className={cn(
-        "m-0 flex items-start gap-2 text-13.5 leading-22",
-        tone === "hint" && "text-ink-2",
-        tone === "error" && "text-err",
-        tone === "success" && "text-ok",
+        "m-0 flex items-start gap-2 text-14 font-display leading-22",
+        tone === "hint" && "text-stone",
+        tone === "error" && "text-tomato-ink font-semibold",
+        tone === "success" && "text-ok font-semibold",
         className
       )}
     >
-      {tone === "error" ? <span aria-hidden="true" className="mt-1.5 size-1.75 flex-none rounded-full bg-err" /> : null}
+      {tone === "error" ? (
+        <span aria-hidden="true" className="mt-1 flex size-4 flex-none items-center justify-center rounded-full bg-tomato text-11 font-bold text-ink">
+          !
+        </span>
+      ) : null}
       {tone === "success" ? <Icon name="check" size={16} strokeWidth={2.4} className="mt-0.5" /> : null}
       <span>{children}</span>
     </p>
@@ -52,7 +56,7 @@ interface MessageProps {
   success?: React.ReactNode
 }
 
-/** Message precedence: error, then success, then hint (the error replaces the helper, Addendum §Phone field). */
+/** Message precedence: error, then success, then hint. */
 function resolveMessage(id: string, { hint, error, success }: MessageProps) {
   const tone: FieldMessageTone = error ? "error" : success ? "success" : "hint"
   const content = error || success || hint
@@ -61,7 +65,7 @@ function resolveMessage(id: string, { hint, error, success }: MessageProps) {
 
 export function FieldLabel({ htmlFor, id, children, className }: { htmlFor?: string; id?: string; children: React.ReactNode; className?: string }) {
   return (
-    <label htmlFor={htmlFor} id={id} className={cn("text-14 font-semibold leading-22 text-night", className)}>
+    <label htmlFor={htmlFor} id={id} className={cn("text-15 font-semibold font-display leading-none text-ink", className)}>
       {children}
     </label>
   )
@@ -83,7 +87,7 @@ function FieldShell({ id, label, optionalLabel, className, children, ...message 
       {label ? (
         <FieldLabel htmlFor={id}>
           {label}
-          {optionalLabel ? <span className="font-normal text-ink-2"> {optionalLabel}</span> : null}
+          {optionalLabel ? <span className="font-normal text-stone"> {optionalLabel}</span> : null}
         </FieldLabel>
       ) : null}
       {children}
@@ -99,7 +103,7 @@ function FieldShell({ id, label, optionalLabel, className, children, ...message 
 const describedBy = (own: string | undefined, messageId: string | undefined) => [own, messageId].filter(Boolean).join(" ") || undefined
 
 const controlClass =
-  "h-full min-w-0 flex-1 border-0 bg-transparent p-0 font-text text-night outline-none placeholder:text-ink-3 disabled:cursor-not-allowed disabled:text-ink-3"
+  "h-full min-w-0 flex-1 border-0 bg-transparent p-0 font-display text-ink outline-none placeholder:text-stone disabled:cursor-not-allowed disabled:text-stone"
 
 /* ── TextField ─────────────────────────────────────────────────────────── */
 
@@ -116,7 +120,7 @@ export interface TextFieldProps extends Omit<React.InputHTMLAttributes<HTMLInput
   wrapperClassName?: string
 }
 
-/** Labelled 56px text field. Wires aria-invalid and aria-describedby itself. */
+/** Labelled 56px text field in Sahel style. */
 const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
   ({ label, optionalLabel, hint, error, success, icon, suffix, id, wrapperClassName, className, ...rest }, ref) => {
     const auto = React.useId()
@@ -124,12 +128,12 @@ const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
     const { messageId } = resolveMessage(fid, { hint, error, success })
     return (
       <FieldShell id={fid} label={label} optionalLabel={optionalLabel} hint={hint} error={error} success={success} className={wrapperClassName}>
-        <div className={cn("field-box flex h-control-l items-center gap-2.5 px-4", className)} data-invalid={error ? true : undefined}>
-          {icon ? <Icon name={icon} size={20} className="text-ink-2" /> : null}
+        <div className={cn("field-box flex h-control-xl items-center gap-2.5 px-5", className)} data-invalid={error ? true : undefined}>
+          {icon ? <Icon name={icon} size={20} className="text-stone" /> : null}
           <input
             ref={ref}
             id={fid}
-            className={cn(controlClass, "text-15")}
+            className={cn(controlClass, "text-17")}
             {...rest}
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy(rest["aria-describedby"], messageId)}
@@ -159,12 +163,12 @@ const TextAreaField = React.forwardRef<HTMLTextAreaElement, TextAreaFieldProps>(
     const { messageId } = resolveMessage(fid, { hint, error })
     return (
       <FieldShell id={fid} label={label} optionalLabel={optionalLabel} hint={hint} error={error} className={wrapperClassName}>
-        <div className="field-box px-4 py-3" data-invalid={error ? true : undefined}>
+        <div className="field-box px-5 py-3" data-invalid={error ? true : undefined}>
           <textarea
             ref={ref}
             id={fid}
             rows={rows}
-            className={cn(controlClass, "block w-full resize-y text-15 leading-25", className)}
+            className={cn(controlClass, "block w-full resize-y text-17 leading-26", className)}
             {...rest}
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy(rest["aria-describedby"], messageId)}
@@ -181,9 +185,7 @@ TextAreaField.displayName = "TextAreaField"
 export type PhoneFieldProps = Omit<TextFieldProps, "icon" | "suffix" | "dir" | "type">
 
 /**
- * Egyptian mobile number (Addendum §Phone field): type=tel, inputmode=tel, autocomplete=tel-national, dir=ltr, 17px
- * so iOS does not zoom, phone glyph at the reading start. The digits run LTR inside the Arabic layout; label and
- * message keep the page direction.
+ * Egyptian mobile number: 56px Sahel field with phone icon.
  */
 const PhoneField = React.forwardRef<HTMLInputElement, PhoneFieldProps>(
   ({ label, optionalLabel, hint, error, success, id, wrapperClassName, className, ...rest }, ref) => {
@@ -192,8 +194,8 @@ const PhoneField = React.forwardRef<HTMLInputElement, PhoneFieldProps>(
     const { messageId } = resolveMessage(fid, { hint, error, success })
     return (
       <FieldShell id={fid} label={label} optionalLabel={optionalLabel} hint={hint} error={error} success={success} className={wrapperClassName}>
-        <div className={cn("field-box flex h-control-l items-center gap-2.5 px-4", className)} data-invalid={error ? true : undefined}>
-          <Icon name="phone" size={20} className="text-ink-2" />
+        <div className={cn("field-box flex h-control-xl items-center gap-2.5 px-5", className)} data-invalid={error ? true : undefined}>
+          <Icon name="phone" size={20} className="text-stone" />
           <input
             ref={ref}
             id={fid}

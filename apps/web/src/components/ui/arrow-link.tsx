@@ -14,7 +14,7 @@ export interface ArrowLinkProps extends LinkProps, Omit<React.AnchorHTMLAttribut
  */
 export function ArrowLink({ className, children, ...props }: ArrowLinkProps) {
   return (
-    <Link className={cn("link-quiet inline-flex min-h-control-s items-center gap-1.5 text-14 font-semibold text-bottle", className)} {...props}>
+    <Link className={cn("link-quiet inline-flex min-h-control-s items-center gap-1.5 text-16 font-display font-semibold text-cobalt", className)} {...props}>
       {children}
       <Icon name="arrow-forward" size={16} strokeWidth={2} />
     </Link>

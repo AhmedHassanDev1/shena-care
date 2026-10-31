@@ -20,6 +20,8 @@ export interface StorefrontShellProps {
   dock?: DockItem;
   /** The footer's service strip; a page that states the same services itself turns it off. */
   footerServices?: boolean;
+  /** Hide the footer completely for focused full-page workspaces like Ask Shina. */
+  hideFooter?: boolean;
 }
 
 /**
@@ -33,6 +35,7 @@ export function StorefrontShell({
   className,
   dock,
   footerServices = true,
+  hideFooter = false,
 }: StorefrontShellProps) {
   return (
     <div className={cn('flex min-h-dvh flex-col', className)}>
@@ -46,10 +49,12 @@ export function StorefrontShell({
       ) : (
         <SiteHeader searchDefault={searchDefault} />
       )}
-      <div className="flex-1">{children}</div>
-      <div className={cn(phoneFocus && 'hidden lg:block')}>
-        <SiteFooter services={footerServices} dockClearance={Boolean(dock)} />
-      </div>
+      <div className="flex-1 flex flex-col min-h-0">{children}</div>
+      {!hideFooter ? (
+        <div className={cn(phoneFocus && 'hidden lg:block')}>
+          <SiteFooter services={footerServices} dockClearance={Boolean(dock)} />
+        </div>
+      ) : null}
       {dock ? <MobileDock active={dock} /> : null}
     </div>
   );

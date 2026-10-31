@@ -1,10 +1,17 @@
-import { RoutineDraftAssistant } from '@/features/routine/components/RoutineDraftAssistant';
+import { Suspense } from 'react';
+import { ShinaChatView } from '@/features/shina/components/ShinaChatView';
 import { StorefrontShell } from '@/features/shell/StorefrontShell';
 
-export default function ShinaPage() {
+export default function ShinaPage({
+  searchParams,
+}: {
+  searchParams?: { q?: string; product?: string; concern?: string };
+}) {
   return (
-    <StorefrontShell nav="shina">
-      <RoutineDraftAssistant />
+    <StorefrontShell nav="shina" hideFooter className="h-dvh overflow-hidden bg-chalk">
+      <Suspense fallback={null}>
+        <ShinaChatView initialQuery={searchParams?.q} contextProductSlug={searchParams?.product} />
+      </Suspense>
     </StorefrontShell>
   );
 }

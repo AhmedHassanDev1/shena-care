@@ -26,9 +26,11 @@ const Chip = React.forwardRef<HTMLButtonElement, ChipProps>(
       type={type}
       aria-pressed={removable ? undefined : selected ?? false}
       className={cn(
-        "inline-flex h-control-s shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-4.5 text-14 leading-22",
-        "transition-[background-color,box-shadow,color] duration-fast ease-standard",
-        selected || removable ? "bg-night font-semibold text-linen" : "bg-linen font-medium text-night shadow-outline-control hover:bg-bone",
+        "inline-flex h-control-s shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-4.5 text-16 font-display",
+        "transition-[background-color,box-shadow,color,transform] duration-fast ease-standard",
+        selected || removable
+          ? "bg-cobalt font-semibold text-chalk shadow-e1"
+          : "bg-linen font-medium text-ink shadow-outline-control hover:bg-chalk",
         className
       )}
       {...props}

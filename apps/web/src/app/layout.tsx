@@ -11,12 +11,13 @@ import '@fontsource/ibm-plex-sans-arabic/600.css';
 import '@fontsource/ibm-plex-sans-arabic/700.css';
 import '@fontsource/instrument-serif/400-italic.css';
 import '@/styles/tokens.generated.css';
+import 'swiper/css';
 import './globals.css';
 import { AppProviders } from './providers';
 import { getLocale } from '@/lib/i18n/server';
 import tokens from '../../design-system/tokens.json';
 
-const bone = tokens.color.tokens.find((t) => t.name === 'bone')!.value;
+const chalk = tokens.color.tokens.find((t) => t.name === 'chalk')!.value;
 
 export function generateMetadata(): Metadata {
   return {
@@ -25,12 +26,12 @@ export function generateMetadata(): Metadata {
   };
 }
 
-/** viewport-fit=cover populates env(safe-area-inset-bottom) for the floating nav and sticky action areas (V17 handoff). */
+/** viewport-fit=cover populates env(safe-area-inset-bottom) for the floating nav and sticky action areas. */
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: bone,
+  themeColor: chalk,
 };
 
 export default function RootLayout({

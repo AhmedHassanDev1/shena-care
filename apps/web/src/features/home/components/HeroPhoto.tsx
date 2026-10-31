@@ -37,6 +37,12 @@ export function HeroPhoto() {
             className="object-cover"
             style={{ objectPosition: hero.position }}
           />
+          {/* Sunlight Through Window / Shutter Shadow Overlay */}
+          <div aria-hidden="true" className="hero-sunlight">
+            <div className="hero-sunlight-ambience" />
+            <div className="hero-sunlight-shadows" />
+            <div className="hero-sunlight-beams" />
+          </div>
         </m.div>
       </div>
     </LazyMotion>

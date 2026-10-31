@@ -106,39 +106,39 @@ export function RoutineDraftAssistant() {
 
   return (
     <div
-      data-ui-status="redesign-pending"
+      data-ui-status="verified-pillar"
       data-route="/shina"
       className="mx-auto flex max-w-narrow flex-col gap-8 pb-24 pt-6"
     >
       {/* Header with Shina avatar and consultation rationale */}
       <header className="flex flex-col gap-4 rounded-card bg-sand/60 p-6 shadow-outline-hairline lg:p-8">
         <div className="flex items-center gap-4">
-          <span className="flex size-14 flex-none items-center justify-center rounded-card bg-saffron-tint text-saffron-ink shadow-elevation-1">
+          <span className="flex size-14 flex-none items-center justify-center rounded-card bg-citron text-ink shadow-e1">
             <Icon name="sparkles" size={28} />
           </span>
           <div className="flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="m-0 font-display text-24 font-extrabold leading-30 text-night lg:text-30 lg:leading-36">
+              <h1 className="m-0 font-display text-24 font-extrabold leading-30 text-ink lg:text-30 lg:leading-36">
                 {m.routineDraftTitle}
               </h1>
-              <span className="rounded-full bg-bottle-tint px-2.5 py-0.5 text-11.5 font-bold text-bottle">
+              <span className="rounded-full bg-sand px-2.5 py-0.5 text-11.5 font-bold text-ink">
                 اقتراح استرشادي
               </span>
             </div>
-            <p className="m-0 text-14 leading-22 text-ink-2">
+            <p className="m-0 text-14 leading-22 text-stone">
               {m.routineDraftSubtitle}
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2 pt-2 shadow-hairline-top">
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-night shadow-elevation-1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-e1">
             🎯 الهدف: تنظيم الإفرازات ودعم حاجز البشرة
           </span>
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-night shadow-elevation-1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-e1">
             🧴 نوع البشرة: دهنية إلى مختلطة
           </span>
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-bottle shadow-elevation-1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-cobalt shadow-e1">
             ✓ تناغم خطوات الاستخدام
           </span>
         </div>
@@ -146,15 +146,15 @@ export function RoutineDraftAssistant() {
 
       {/* AM / PM Tab Switcher */}
       <div className="flex flex-col gap-4">
-        <div className="flex rounded-full bg-bone p-1 shadow-elevation-1">
+        <div className="flex rounded-full bg-sand/60 p-1 shadow-e1">
           <button
             type="button"
             onClick={() => setActiveTab('am')}
             className={cn(
               'flex-1 rounded-full py-2.5 text-center text-14 font-bold transition-all',
               activeTab === 'am'
-                ? 'bg-night text-linen shadow-elevation-1'
-                : 'text-ink-2 hover:text-night'
+                ? 'bg-ink text-chalk shadow-e1'
+                : 'text-stone hover:text-ink'
             )}
           >
             ☀️ {m.routineMorningTab}
@@ -165,8 +165,8 @@ export function RoutineDraftAssistant() {
             className={cn(
               'flex-1 rounded-full py-2.5 text-center text-14 font-bold transition-all',
               activeTab === 'pm'
-                ? 'bg-night text-linen shadow-elevation-1'
-                : 'text-ink-2 hover:text-night'
+                ? 'bg-ink text-chalk shadow-e1'
+                : 'text-stone hover:text-ink'
             )}
           >
             🌙 {m.routineEveningTab}
@@ -180,38 +180,38 @@ export function RoutineDraftAssistant() {
               key={st.num}
               className={cn(
                 'group flex flex-col gap-3.5 rounded-card bg-linen p-5 shadow-outline-hairline transition-all lg:p-6',
-                swappedIndex === idx && 'ring-2 ring-bottle ring-offset-2'
+                swappedIndex === idx && 'ring-2 ring-cobalt ring-offset-2'
               )}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-9 flex-none items-center justify-center rounded-full bg-bottle-tint font-display text-14 font-bold text-bottle">
+                  <span className="flex size-9 flex-none items-center justify-center rounded-full bg-sand font-display text-14 font-bold text-ink">
                     {st.num}
                   </span>
                   <div className="flex flex-col">
-                    <span className="text-12 font-bold text-ink-3">
+                    <span className="text-12 font-bold text-stone">
                       {st.brand}
                     </span>
-                    <h2 className="m-0 font-display text-16 font-bold leading-24 text-night">
+                    <h2 className="m-0 font-display text-16 font-bold leading-24 text-ink">
                       {st.productName}
                     </h2>
                   </div>
                 </div>
-                <span className="font-display text-15 font-bold text-night">
+                <span className="font-display text-15 font-bold text-ink">
                   {st.price}
                 </span>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-sand/70 px-2.5 py-0.5 text-11.5 font-semibold text-night">
+                <span className="rounded-full bg-sand/70 px-2.5 py-0.5 text-11.5 font-semibold text-ink">
                   {st.stepName}
                 </span>
-                <span className="rounded-full bg-bottle-tint px-2.5 py-0.5 text-11.5 font-semibold text-bottle">
+                <span className="rounded-full bg-sand px-2.5 py-0.5 text-11.5 font-semibold text-ink">
                   {st.actives}
                 </span>
               </div>
 
-              <p className="m-0 text-13 leading-22 text-ink-2">
+              <p className="m-0 text-13 leading-22 text-stone">
                 {st.usage}
               </p>
 
@@ -219,12 +219,12 @@ export function RoutineDraftAssistant() {
                 <button
                   type="button"
                   onClick={() => setSwappedIndex(swappedIndex === idx ? null : idx)}
-                  className="inline-flex items-center gap-1.5 text-12 font-bold text-bottle hover:underline"
+                  className="inline-flex items-center gap-1.5 text-12 font-bold text-cobalt hover:underline"
                 >
                   <Icon name="retry" size={14} />
                   <span>{swappedIndex === idx ? 'تم تثبيت البديل' : 'عرض بديل متوافق'}</span>
                 </button>
-                <span className="text-11.5 text-ink-3">
+                <span className="text-11.5 text-stone">
                   إرشاد استخدام يومي
                 </span>
               </div>
@@ -234,18 +234,18 @@ export function RoutineDraftAssistant() {
       </div>
 
       {/* Floating Action & Question Bar */}
-      <div className="sticky bottom-6 z-sticky flex flex-col gap-3 rounded-card bg-linen/95 p-4 shadow-elevation-3 backdrop-blur-md">
+      <div className="sticky bottom-6 z-sticky flex flex-col gap-3 rounded-card bg-linen/95 p-4 shadow-e3 backdrop-blur-md">
         <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="ابحثي عن منتجات أو مكونات مطابقة في الكتالوج..."
-            className="h-11 flex-1 rounded-full bg-bone px-4 text-14 font-medium text-night placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-bottle"
+            className="h-11 flex-1 rounded-full bg-chalk px-4 text-14 font-medium text-ink placeholder:text-stone focus:outline-none focus:ring-2 focus:ring-cobalt"
           />
           <button
             type="submit"
-            className="flex size-11 flex-none items-center justify-center rounded-full bg-night text-linen transition-colors hover:bg-bottle"
+            className="flex size-11 flex-none items-center justify-center rounded-full bg-ink text-chalk transition-colors hover:bg-cobalt"
             aria-label="بحث في الكتالوج"
           >
             <Icon name="search" size={18} />
@@ -254,7 +254,7 @@ export function RoutineDraftAssistant() {
 
         <Link
           href={routes.routineBuilder}
-          className={cn(buttonVariants({ variant: 'bottle', size: 'l' }), 'w-full justify-center text-center font-bold')}
+          className={cn(buttonVariants({ variant: 'ink', size: 'l' }), 'w-full justify-center text-center font-bold')}
         >
           <span>{m.routineReviewTitle}</span>
           <Icon name="arrow-forward" size={18} />

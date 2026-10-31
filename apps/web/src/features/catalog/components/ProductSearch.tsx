@@ -39,28 +39,28 @@ export function ProductSearch({ id, label, placeholder, defaultValue = '' }: Pro
     <div className="relative" onBlur={event => {
       if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
     }}>
-      <SearchField id={id} action={routes.products} label={label}
-        placeholder={placeholder} maxLength={120}
-        value={query} onChange={event => { setQuery(event.target.value); setSuggestions([]); setFocused(true); }}
-        onFocus={() => setFocused(true)} onKeyDown={event => { if (event.key === 'Escape') setFocused(false); }}
-        smartSearchAction={
-          <Link
-            href={shellRoutes.shina}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-saffron-tint px-3 py-1 text-12 font-semibold text-saffron-ink no-underline transition-colors hover:bg-saffron hover:text-night"
-          >
-            <Icon name="sparkles" size={14} className="text-coral" />
-            <span>{locale === 'ar' ? 'بحث ذكي' : 'Smart Search'}</span>
-          </Link>
-        }
+      <SearchField
+        id={id}
+        action={routes.products}
+        label={label}
+        placeholder={placeholder}
+        maxLength={120}
+        value={query}
+        onChange={event => { setQuery(event.target.value); setSuggestions([]); setFocused(true); }}
+        onFocus={() => setFocused(true)}
+        onKeyDown={event => { if (event.key === 'Escape') setFocused(false); }}
       />
       {show ? (
-        <ul aria-label={label} className="absolute inset-x-0 top-full z-overlay mt-2 overflow-hidden rounded-card bg-linen py-1.5 shadow-elevation-2">
+        <ul aria-label={label} className="absolute inset-x-0 top-full z-overlay mt-2 overflow-hidden rounded-card bg-linen py-1.5 border border-ink/14 shadow-e2 font-display">
           {suggestions.map(item => (
             <li key={item.id}>
-              <Link href={routes.product(item.slug)} className="flex min-h-control-s items-center px-4 text-14 text-night no-underline hover:bg-bone focus-visible:bg-bone"
-                onClick={() => setFocused(false)}>
-                <bdi>{item.name}</bdi>
-                <span className="ms-2 text-ink-2"><bdi>{item.brand.name}</bdi></span>
+              <Link
+                href={routes.product(item.slug)}
+                className="flex min-h-control-s items-center px-4 text-15 text-ink no-underline hover:bg-chalk focus-visible:bg-chalk transition-colors"
+                onClick={() => setFocused(false)}
+              >
+                <bdi className="font-medium">{item.name}</bdi>
+                <span className="ms-2 font-serif italic text-14 text-stone"><bdi>{item.brand.name}</bdi></span>
               </Link>
             </li>
           ))}

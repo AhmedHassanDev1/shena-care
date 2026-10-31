@@ -50,35 +50,35 @@ export function RoutineReviewApproval() {
 
   return (
     <div
-      data-ui-status="redesign-pending"
+      data-ui-status="verified-pillar"
       data-route="/routine/builder"
       className="mx-auto flex max-w-narrow flex-col gap-8 pb-28 pt-6"
     >
       {/* Header */}
       <header className="flex flex-col gap-3 rounded-card bg-sand/60 p-6 shadow-outline-hairline lg:p-8">
         <div className="flex items-center gap-2.5">
-          <span className="flex size-10 items-center justify-center rounded-full bg-bottle-tint text-bottle">
+          <span className="flex size-10 items-center justify-center rounded-full bg-citron text-ink">
             <Icon name="check" size={20} />
           </span>
-          <span className="rounded-full bg-bottle px-3 py-1 text-12 font-bold text-linen">
+          <span className="rounded-full bg-cobalt px-3 py-1 text-12 font-bold text-chalk">
             روتين متناسق استرشادي
           </span>
         </div>
-        <h1 className="m-0 font-display text-26 font-extrabold leading-34 text-night lg:text-34 lg:leading-42">
+        <h1 className="m-0 font-display text-26 font-extrabold leading-34 text-ink lg:text-34 lg:leading-42">
           {m.routineReviewTitle}
         </h1>
-        <p className="m-0 text-14.5 leading-24 text-ink-2">
+        <p className="m-0 text-14.5 leading-24 text-stone">
           {m.routineReviewLead}
         </p>
 
         <div className="flex flex-wrap items-center gap-2 pt-2 shadow-hairline-top">
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-night shadow-elevation-1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-e1">
             ✓ متوافق مع البشرة المعرضة للحبوب
           </span>
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-night shadow-elevation-1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-e1">
             ✓ خطوات متوازنة صباحاً ومساءً
           </span>
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-bottle shadow-elevation-1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-cobalt shadow-e1">
             ✓ تغليف محكم وتوصيل معتمد
           </span>
         </div>
@@ -88,14 +88,14 @@ export function RoutineReviewApproval() {
       <section aria-labelledby="am-review-h" className="flex flex-col gap-4 rounded-card bg-linen p-6 shadow-outline-hairline">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="flex size-8 items-center justify-center rounded-full bg-sand text-night">
+            <span className="flex size-8 items-center justify-center rounded-full bg-sand text-ink">
               ☀️
             </span>
-            <h2 id="am-review-h" className="m-0 font-display text-18 font-bold text-night">
+            <h2 id="am-review-h" className="m-0 font-display text-18 font-bold text-ink">
               {m.routineMorningTab}
             </h2>
           </div>
-          <span className="text-12 font-bold text-ink-3">
+          <span className="text-12 font-bold text-stone">
             ٤ خطوات أساسية
           </span>
         </div>
@@ -105,25 +105,25 @@ export function RoutineReviewApproval() {
             <li
               key={item.id}
               onClick={() => toggle(item.id)}
-              className="flex cursor-pointer items-center justify-between gap-3 rounded-image bg-bone/70 p-3.5 shadow-elevation-1 transition-all hover:bg-bone"
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-image bg-chalk p-3.5 shadow-e1 transition-all hover:bg-sand/30"
             >
               <div className="flex items-center gap-3">
                 <span
                   className={cn(
                     'flex size-5 flex-none items-center justify-center rounded-full border transition-colors',
                     selectedItems.includes(item.id)
-                      ? 'border-bottle bg-bottle text-linen'
+                      ? 'border-cobalt bg-cobalt text-chalk'
                       : 'border-line-2 bg-linen'
                   )}
                 >
                   {selectedItems.includes(item.id) ? <Icon name="check" size={12} /> : null}
                 </span>
                 <div className="flex flex-col">
-                  <span className="text-11.5 font-bold text-ink-3">{item.step}</span>
-                  <span className="text-14 font-bold text-night">{item.name}</span>
+                  <span className="text-11.5 font-bold text-stone">{item.step}</span>
+                  <span className="text-14 font-bold text-ink">{item.name}</span>
                 </div>
               </div>
-              <span className="font-display text-14 font-bold text-night">
+              <span className="font-display text-14 font-bold text-ink">
                 {item.price} ج.م
               </span>
             </li>
@@ -135,14 +135,14 @@ export function RoutineReviewApproval() {
       <section aria-labelledby="pm-review-h" className="flex flex-col gap-4 rounded-card bg-linen p-6 shadow-outline-hairline">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="flex size-8 items-center justify-center rounded-full bg-sand text-night">
+            <span className="flex size-8 items-center justify-center rounded-full bg-sand text-ink">
               🌙
             </span>
-            <h2 id="pm-review-h" className="m-0 font-display text-18 font-bold text-night">
+            <h2 id="pm-review-h" className="m-0 font-display text-18 font-bold text-ink">
               {m.routineEveningTab}
             </h2>
           </div>
-          <span className="text-12 font-bold text-ink-3">
+          <span className="text-12 font-bold text-stone">
             ٣ خطوات علاجية
           </span>
         </div>
@@ -152,25 +152,25 @@ export function RoutineReviewApproval() {
             <li
               key={item.id}
               onClick={() => toggle(item.id)}
-              className="flex cursor-pointer items-center justify-between gap-3 rounded-image bg-bone/70 p-3.5 shadow-elevation-1 transition-all hover:bg-bone"
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-image bg-chalk p-3.5 shadow-e1 transition-all hover:bg-sand/30"
             >
               <div className="flex items-center gap-3">
                 <span
                   className={cn(
                     'flex size-5 flex-none items-center justify-center rounded-full border transition-colors',
                     selectedItems.includes(item.id)
-                      ? 'border-bottle bg-bottle text-linen'
+                      ? 'border-cobalt bg-cobalt text-chalk'
                       : 'border-line-2 bg-linen'
                   )}
                 >
                   {selectedItems.includes(item.id) ? <Icon name="check" size={12} /> : null}
                 </span>
                 <div className="flex flex-col">
-                  <span className="text-11.5 font-bold text-ink-3">{item.step}</span>
-                  <span className="text-14 font-bold text-night">{item.name}</span>
+                  <span className="text-11.5 font-bold text-stone">{item.step}</span>
+                  <span className="text-14 font-bold text-ink">{item.name}</span>
                 </div>
               </div>
-              <span className="font-display text-14 font-bold text-night">
+              <span className="font-display text-14 font-bold text-ink">
                 {item.price} ج.م
               </span>
             </li>
@@ -179,36 +179,36 @@ export function RoutineReviewApproval() {
       </section>
 
       {/* Formulation Synergy Guidance Card */}
-      <div className="flex flex-col gap-3 rounded-card bg-bottle-tint/60 p-5 shadow-outline-hairline">
-        <div className="flex items-center gap-2 text-bottle">
+      <div className="flex flex-col gap-3 rounded-card bg-sand/60 p-5 shadow-outline-hairline">
+        <div className="flex items-center gap-2 text-cobalt">
           <Icon name="shield" size={18} />
           <span className="text-13 font-bold">إرشادات التوافق والتطبيق</span>
         </div>
-        <p className="m-0 text-12.5 leading-20 text-ink-2">
+        <p className="m-0 text-12.5 leading-20 text-stone">
           تم تنسيق خطوات هذا الروتين الاسترشادي لدعم توازن البشرة: يوصى باتباع التسلسل الموضح مع إدخال الأحماض المقشرة تدريجياً لضمان راحة البشرة وتجنب أي تحسس.
         </p>
       </div>
 
       {/* Floating Bottom Approval Bar */}
-      <div className="sticky bottom-6 z-sticky flex items-center justify-between gap-4 rounded-card bg-linen/95 p-4 shadow-elevation-3 backdrop-blur-md">
+      <div className="sticky bottom-6 z-sticky flex items-center justify-between gap-4 rounded-card bg-linen/95 p-4 shadow-e3 backdrop-blur-md">
         <div className="flex flex-col">
-          <span className="text-11.5 font-semibold text-ink-3">إجمالي الروتين المقترح ({selectedItems.length} منتجات)</span>
-          <span className="font-display text-20 font-extrabold text-night">{totalPrice} ج.م</span>
+          <span className="text-11.5 font-semibold text-stone">إجمالي الروتين المقترح ({selectedItems.length} منتجات)</span>
+          <span className="font-display text-20 font-extrabold text-ink">{totalPrice} ج.م</span>
         </div>
 
         <div className="flex items-center gap-2">
           <Link
             href="/account/routine"
-            className={cn(buttonVariants({ variant: 'light', size: 'm' }), 'font-semibold')}
+            className={cn(buttonVariants({ variant: 'ghost', size: 'm' }), 'font-semibold')}
           >
             حفظ الروتين
           </Link>
           <Button
-            variant="bottle"
+            variant="ink"
             size="l"
             onClick={handleApprove}
             disabled={added || selectedItems.length === 0}
-            className="font-bold"
+            className="font-bold shadow-e1"
           >
             {added ? 'جاري الانتقال للكتالوج ✓' : 'البحث عن المنتجات في الكتالوج'}
           </Button>

@@ -18,13 +18,13 @@ export function ChipLink({ icon, className, children, ...props }: ChipLinkProps)
   return (
     <Link
       className={cn(
-        "group inline-flex h-12 flex-none items-center gap-2.5 whitespace-nowrap rounded-pill bg-linen ps-4 pe-5 text-14 font-semibold leading-none text-night no-underline shadow-outline-control",
-        "transition-[transform,box-shadow,background-color] duration-base ease-standard hover:-translate-y-px hover:bg-bone hover:shadow-outline-night",
+        "group inline-flex h-12 flex-none items-center gap-2.5 whitespace-nowrap rounded-pill bg-linen ps-4 pe-5 text-16 font-display font-semibold leading-none text-ink no-underline shadow-outline-control",
+        "transition-[transform,box-shadow,background-color] duration-base ease-standard hover:-translate-y-px hover:bg-chalk hover:shadow-e1",
         className
       )}
       {...props}
     >
-      {icon ? <Icon name={icon} size={18} className="text-bottle transition-transform duration-base ease-standard group-hover:scale-110" /> : null}
+      {icon ? <Icon name={icon} size={18} className="text-cobalt transition-transform duration-base ease-standard group-hover:scale-110" /> : null}
       <span>{children}</span>
     </Link>
   )

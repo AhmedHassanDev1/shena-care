@@ -20,7 +20,10 @@ export const routes = {
   productsSearch: (query: string) => `/products?q=${encodeURIComponent(query)}`,
   /** Catalog listing narrowed by a curated care concern slug. */
   productsByConcern: (slug: string) => `/products?concern=${encodeURIComponent(slug)}`,
+  routines: '/routines',
   routine: (id: string) => `/routines/${encodeURIComponent(id)}`,
+  routineDetail: (slug: string) => `/routines/${encodeURIComponent(slug)}`,
+  myRoutine: '/account/routine',
 } as const;
 
 /** Category slugs of the two MVP entry points (seeded catalog roots: apps/api seed.ts). */
@@ -32,5 +35,5 @@ export const mainCategorySlugs = { skin: 'skin-care', hair: 'hair-care' } as con
  */
 export const shellRoutes = {
   shina: '/shina',
-  routines: '/account/routine',
+  routines: '/routines',
 } as const;

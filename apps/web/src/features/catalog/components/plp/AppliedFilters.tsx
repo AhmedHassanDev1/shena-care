@@ -24,7 +24,7 @@ export function AppliedFilters({ filters, onClearAll, className }: { filters: Ap
       {filters.map((f) => (
         <span
           key={f.key}
-          className="inline-flex h-9 flex-none items-center gap-1.5 whitespace-nowrap rounded-pill bg-linen pe-1.5 ps-3.5 text-13 font-semibold text-night shadow-outline-control"
+          className="inline-flex h-9 flex-none items-center gap-1.5 whitespace-nowrap rounded-pill bg-linen pe-1.5 ps-3.5 text-14 font-display font-semibold text-ink shadow-outline-control"
         >
           <span lang={f.latin ? 'en' : undefined} dir={f.latin ? 'ltr' : 'auto'}>
             {f.label}
@@ -33,13 +33,13 @@ export function AppliedFilters({ filters, onClearAll, className }: { filters: Ap
             type="button"
             aria-label={fillMessage(m.plpRemove, { name: f.label })}
             onClick={f.onRemove}
-            className="-my-1 -me-1.5 flex size-control-s items-center justify-center rounded-pill bg-transparent text-night"
+            className="-my-1 -me-1.5 flex size-control-s items-center justify-center rounded-pill bg-transparent text-ink hover:text-cobalt"
           >
             <Icon name="close" size={16} strokeWidth={2} />
           </button>
         </span>
       ))}
-      <button type="button" onClick={onClearAll} className="ms-2 min-h-control-s bg-transparent px-1 text-14 font-semibold text-bottle underline underline-offset-4">
+      <button type="button" onClick={onClearAll} className="ms-2 min-h-control-s bg-transparent px-1 text-15 font-display font-semibold text-cobalt underline underline-offset-4">
         {m.plpClearAll}
       </button>
     </div>

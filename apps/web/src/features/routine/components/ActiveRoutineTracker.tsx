@@ -2,283 +2,315 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
+import { PageContainer } from '@/components/layout/page-container';
 import { Icon } from '@/components/ui/icon';
-import { useMessages } from '@/lib/i18n/LocaleProvider';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
-
-interface TrackerStep {
-  id: string;
-  num: string;
-  title: string;
-  product: string;
-  instruction: string;
-  timeHint: string;
-}
-
-const STORAGE_KEY = 'shinacare_active_routine_steps';
-
-const AM_TRACKER_STEPS: TrackerStep[] = [
-  {
-    id: 'am1',
-    num: '٠١',
-    title: 'تنظيف لطيف وموازنة الدهون',
-    product: 'Effaclar Purifying Foaming Gel',
-    instruction: 'اغسلي وجهك بحركات دائرية هادئة لمدة دقيقة بالماء الفاتر.',
-    timeHint: '٠٨:٠٠ صباحاً',
-  },
-  {
-    id: 'am2',
-    num: '٠٢',
-    title: 'علاج حب الشباب والمسام',
-    product: 'Effaclar Duo+ M Anti-Imperfections',
-    instruction: 'ضعي كمية صغيرة جداً على أماكن الحبوب فقط واتركيها تجف.',
-    timeHint: '٠٨:٠٥ صباحاً',
-  },
-  {
-    id: 'am3',
-    num: '٠٣',
-    title: 'ترطيب وحماية الحاجز',
-    product: 'Toleriane Sensitive Fluide',
-    instruction: 'وزعي ضختين على كامل الوجه والرقبة برفق.',
-    timeHint: '٠٨:١٠ صباحاً',
-  },
-  {
-    id: 'am4',
-    num: '٠٤',
-    title: 'حماية قصوى واسعة SPF50+',
-    product: 'Anthelios UVMune 400 Oil Control',
-    instruction: 'ضعي مقدار إصبعين قبل الخروج للشمس بـ ١٥ دقيقة.',
-    timeHint: '٠٨:٢٥ صباحاً',
-  },
-];
-
-const PM_TRACKER_STEPS: TrackerStep[] = [
-  {
-    id: 'pm1',
-    num: '٠١',
-    title: 'تنظيف مسائي مزدوج',
-    product: 'Effaclar Purifying Foaming Gel',
-    instruction: 'تنظيف عميق لإزالة بقايا الواقي الشمسي والتلوث اليومي.',
-    timeHint: '٠٩:٣٠ مساءً',
-  },
-  {
-    id: 'pm2',
-    num: '٠٢',
-    title: 'تقشير وتجديد الخلايا',
-    product: 'Effaclar Ultra Concentrated Serum',
-    instruction: '٣ قطرات مساءً فقط لتنقية مسام البشرة بلطف.',
-    timeHint: '٠٩:٣٥ مساءً',
-  },
-  {
-    id: 'pm3',
-    num: '٠٣',
-    title: 'ترميم وتغذية ليلية مكثفة',
-    product: 'Cicaplast Baume B5+ Ultra-Repairing',
-    instruction: 'طبقة مهدئة غنية بالبانثينول لترميم البشرة أثناء النوم.',
-    timeHint: '٠٩:٤٥ مساءً',
-  },
-];
+import { useCart } from '@/features/cart/hooks/useCart';
+import {
+  getSavedCustomerRoutine,
+  clearSavedCustomerRoutine,
+  getDailyTrackerChecks,
+  setDailyTrackerChecks,
+  type CustomerSavedRoutine,
+} from '../lib/routineStorage';
 
 export function ActiveRoutineTracker() {
-  const m = useMessages();
-  const [period, setPeriod] = useState<'am' | 'pm'>('am');
-  const [checkedSteps, setCheckedSteps] = useState<Record<string, boolean>>({
-    am1: true,
-    am2: true,
-    am3: true,
-  });
+  const { addItem } = useCart();
+  const [routine, setRoutine] = useState<CustomerSavedRoutine | null>(null);
+  const [checkedSteps, setCheckedSteps] = useState<Record<string, boolean>>({});
+  const [period, setPeriod] = useState<'morning' | 'evening'>('morning');
+  const [isClientLoaded, setIsClientLoaded] = useState(false);
+  const [addingAll, setAddingAll] = useState(false);
+  const [addedSuccess, setAddedSuccess] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        setCheckedSteps(JSON.parse(saved));
-      }
-    } catch {
-      // LocalStorage access restricted or unavailable
-    }
+    setRoutine(getSavedCustomerRoutine());
+    setCheckedSteps(getDailyTrackerChecks());
+    setIsClientLoaded(true);
   }, []);
 
-  const steps = period === 'am' ? AM_TRACKER_STEPS : PM_TRACKER_STEPS;
-  const completedCount = steps.filter((s) => checkedSteps[s.id]).length;
-  const progressPct = Math.round((completedCount / steps.length) * 100);
-
   const toggleStep = (id: string) => {
-    setCheckedSteps((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // Ignore write error
-      }
-      return next;
-    });
+    const next = { ...checkedSteps, [id]: !checkedSteps[id] };
+    setCheckedSteps(next);
+    setDailyTrackerChecks(next);
   };
+
+  const handleClearRoutine = () => {
+    if (window.confirm('هل أنتِ متأكدة من رغبتك في حذف هذا الروتين المحفوظ؟')) {
+      clearSavedCustomerRoutine();
+      setRoutine(null);
+      setCheckedSteps({});
+    }
+  };
+
+  const handleAddAllToCart = async () => {
+    if (!routine) return;
+    try {
+      setAddingAll(true);
+      const allSteps = [...routine.morningSteps, ...routine.eveningSteps];
+      for (const st of allSteps) {
+        if (st.skuId) {
+          await addItem({ skuId: st.skuId, quantity: 1 });
+        }
+      }
+      setAddedSuccess(true);
+      setTimeout(() => setAddedSuccess(false), 2500);
+    } catch {
+      // Error handled
+    } finally {
+      setAddingAll(false);
+    }
+  };
+
+  // EMPTY STATE: Customer does not have a saved routine yet
+  if (!isClientLoaded || !routine) {
+    return (
+      <div
+        data-ui-status="verified-pillar"
+        data-route="/account/routine"
+        className="mx-auto flex max-w-narrow flex-col gap-8 pb-24 pt-6"
+      >
+        <section
+          aria-labelledby="empty-routine-title"
+          className="flex flex-col items-center justify-center gap-6 rounded-card border border-line bg-linen p-8 text-center shadow-e1 sm:p-12"
+        >
+          <span className="flex size-16 items-center justify-center rounded-full bg-sand text-ink shadow-e1">
+            <Icon name="routine" size={32} />
+          </span>
+
+          <div className="flex max-w-md flex-col gap-2">
+            <h1 id="empty-routine-title" className="m-0 font-display text-24 font-black text-ink sm:text-28">
+              ليس لديك روتين محفوظ بعد
+            </h1>
+            <p className="m-0 text-14 leading-24 text-stone">
+              الروتين المحفوظ يتيح لك متابعة خطواتك اليومية صباحاً ومساءً، التحقق من تطبيق المستحضرات، وإعادة طلب النواقص بضغطة واحدة.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link
+              href={routes.routines}
+              className={cn(buttonVariants({ variant: 'ink', size: 'l' }), 'font-bold shadow-e1')}
+            >
+              <span>استكشاف الروتينات الجاهزة</span>
+              <Icon name="arrow-forward" size={16} />
+            </Link>
+
+            <Link
+              href={routes.routineBuilder}
+              className={cn(buttonVariants({ variant: 'ghost', size: 'l' }), 'font-bold')}
+            >
+              بناء روتين مخصص
+            </Link>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-4 border-t border-line/60 pt-6 text-12 text-stone">
+            <span className="flex items-center gap-1.5 font-medium">
+              ✓ لا ننشئ روتيناً تلقائياً دون موافقتك
+            </span>
+            <span className="text-stone">•</span>
+            <span className="flex items-center gap-1.5 font-medium">
+              ✓ خيارات حقيقية من الكتالوج المعتمد
+            </span>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // ACTIVE SAVED ROUTINE STATE
+  const currentSteps = period === 'morning' ? routine.morningSteps : routine.eveningSteps;
+  const activeSteps = currentSteps.length > 0 ? currentSteps : routine.morningSteps;
+  const completedCount = activeSteps.filter((s) => checkedSteps[s.id]).length;
+  const progressPct = activeSteps.length > 0 ? Math.round((completedCount / activeSteps.length) * 100) : 0;
 
   return (
     <div
-      data-ui-status="redesign-pending"
+      data-ui-status="verified-pillar"
       data-route="/account/routine"
       className="mx-auto flex max-w-narrow flex-col gap-8 pb-28 pt-6"
     >
       {/* Header */}
-      <header className="flex flex-col gap-4 rounded-card bg-sand/60 p-6 shadow-outline-hairline lg:p-8">
-        <div className="flex items-center justify-between gap-3">
+      <header className="flex flex-col gap-4 rounded-card border border-line bg-linen p-6 shadow-e1 sm:p-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-card bg-saffron-tint text-saffron-ink shadow-elevation-1">
-              <Icon name="sun" size={22} />
+            <span className="flex size-12 flex-none items-center justify-center rounded-card bg-sand text-ink shadow-e1">
+              <Icon name="routine" size={24} />
             </span>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <h1 className="m-0 font-display text-24 font-extrabold leading-32 text-night lg:text-30 lg:leading-38">
-                  {m.routineTrackerTitle}
+                <h1 className="m-0 font-display text-22 font-black leading-tight text-ink sm:text-26">
+                  {routine.title}
                 </h1>
-                <span className="rounded-full bg-bottle-tint px-2 py-0.5 text-11 font-semibold text-bottle">
-                  متابعة محلية
+                <span className="rounded-full bg-citron px-2.5 py-0.5 text-11 font-bold text-ink">
+                  روتين محفوظ
                 </span>
               </div>
-              <span className="text-13 leading-20 text-ink-2">
-                الالتزام اليومي يصنع الفارق في تجديد ونضارة البشرة
+              <span className="text-12.5 text-stone">
+                مجال العناية: {routine.category === 'skin' ? 'بشرة' : 'شعر'} • حفظ في {new Date(routine.savedAt).toLocaleDateString('ar-EG')}
               </span>
             </div>
           </div>
 
-          <div className="flex flex-col items-end">
-            <span className="rounded-full bg-bottle px-3 py-1 font-display text-13 font-bold text-linen">
-              ٧ {m.routineTrackerStreak} 🔥
-            </span>
-            <span className="text-11 text-ink-3">إنجاز رائع</span>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <Link
+              href={routes.routineBuilder}
+              className={cn(buttonVariants({ variant: 'ghost', size: 's' }), 'text-12 font-bold')}
+            >
+              تعديل الروتين
+            </Link>
+            <button
+              type="button"
+              onClick={handleClearRoutine}
+              className="text-12 text-stone hover:text-tomato-ink underline px-2"
+            >
+              حذف
+            </button>
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="flex flex-col gap-2 pt-2 shadow-hairline-top">
-          <div className="flex items-center justify-between text-13 font-bold text-night">
+        {/* Real Daily Progress */}
+        <div className="flex flex-col gap-2 border-t border-line/60 pt-3">
+          <div className="flex items-center justify-between text-13 font-bold text-ink">
             <span>
-              تم إنجاز {completedCount} من أصل {steps.length} خطوات اليوم
+              تم إنجاز {completedCount} من أصل {activeSteps.length} خطوات اليوم
             </span>
-            <span className="font-tabular text-bottle">{progressPct}%</span>
+            <span className="font-tabular text-cobalt">{progressPct}%</span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-bone">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-sand/60">
             <div
-              className="h-full rounded-full bg-bottle transition-all duration-300"
+              className="h-full rounded-full bg-cobalt transition-all duration-300"
               style={{ width: `${progressPct}%` }}
             />
           </div>
         </div>
       </header>
 
-      {/* AM / PM Toggle */}
-      <div className="flex rounded-full bg-bone p-1 shadow-elevation-1">
-        <button
-          type="button"
-          onClick={() => setPeriod('am')}
-          className={cn(
-            'flex-1 rounded-full py-2.5 text-center text-14 font-bold transition-all',
-            period === 'am'
-              ? 'bg-night text-linen shadow-elevation-1'
-              : 'text-ink-2 hover:text-night'
-          )}
-        >
-          ☀️ الروتين الصباحي (٠٨:٠٠ ص)
-        </button>
-        <button
-          type="button"
-          onClick={() => setPeriod('pm')}
-          className={cn(
-            'flex-1 rounded-full py-2.5 text-center text-14 font-bold transition-all',
-            period === 'pm'
-              ? 'bg-night text-linen shadow-elevation-1'
-              : 'text-ink-2 hover:text-night'
-          )}
-        >
-          🌙 الروتين المسائي (٠٩:٣٠ م)
-        </button>
-      </div>
+      {/* AM / PM Toggle (if routine has both periods) */}
+      {routine.eveningSteps.length > 0 ? (
+        <div className="flex rounded-full bg-sand/60 p-1 shadow-e1">
+          <button
+            type="button"
+            onClick={() => setPeriod('morning')}
+            className={cn(
+              'flex-1 rounded-full py-2.5 text-center text-13 font-bold transition-all',
+              period === 'morning'
+                ? 'bg-ink text-chalk shadow-e1'
+                : 'text-stone hover:text-ink'
+            )}
+          >
+            ☀️ الروتين الصباحي ({routine.morningSteps.length} خطوات)
+          </button>
+          <button
+            type="button"
+            onClick={() => setPeriod('evening')}
+            className={cn(
+              'flex-1 rounded-full py-2.5 text-center text-13 font-bold transition-all',
+              period === 'evening'
+                ? 'bg-ink text-chalk shadow-e1'
+                : 'text-stone hover:text-ink'
+            )}
+          >
+            🌙 الروتين المسائي ({routine.eveningSteps.length} خطوات)
+          </button>
+        </div>
+      ) : null}
 
-      {/* Step by step checklist */}
-      <div className="flex flex-col gap-3.5">
-        {steps.map((st) => {
+      {/* Steps Checklist */}
+      <div className="flex flex-col gap-3">
+        {activeSteps.map((st) => {
           const isDone = Boolean(checkedSteps[st.id]);
           return (
             <div
               key={st.id}
               onClick={() => toggleStep(st.id)}
               className={cn(
-                'flex cursor-pointer items-start justify-between gap-3.5 rounded-card p-5 shadow-outline-hairline transition-all',
+                'flex cursor-pointer items-start justify-between gap-3.5 rounded-card border p-4 shadow-e1 transition-all sm:p-5',
                 isDone
-                  ? 'bg-linen opacity-95'
-                  : 'bg-linen shadow-elevation-1 ring-1 ring-bottle/20'
+                  ? 'border-line/60 bg-sand/40 opacity-80'
+                  : 'border-line bg-linen hover:shadow-e2'
               )}
             >
               <div className="flex items-start gap-3.5">
                 <span
                   className={cn(
-                    'mt-0.5 flex size-6 flex-none items-center justify-center rounded-full border transition-all',
+                    'mt-0.5 flex size-5.5 flex-none items-center justify-center rounded-full border transition-all',
                     isDone
-                      ? 'border-bottle bg-bottle text-linen'
-                      : 'border-line-2 bg-bone text-transparent'
+                      ? 'border-cobalt bg-cobalt text-chalk'
+                      : 'border-line bg-chalk text-transparent'
                   )}
                 >
-                  <Icon name="check" size={14} />
+                  <Icon name="check" size={13} />
                 </span>
 
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-display text-12 font-bold text-ink-3">
+                    <span className="font-display text-11.5 font-bold text-stone">
                       خطوة {st.num}
                     </span>
-                    <span className="text-11.5 font-semibold text-ink-3">
-                      • {st.timeHint}
+                    <span className="text-11.5 font-semibold text-cobalt">
+                      {st.stepName}
                     </span>
                   </div>
+
                   <h2
                     className={cn(
-                      'm-0 font-display text-15 font-bold leading-22',
-                      isDone ? 'text-ink-2 line-through' : 'text-night'
+                      'm-0 font-display text-15 font-bold leading-snug',
+                      isDone ? 'text-stone line-through' : 'text-ink'
                     )}
                   >
-                    {st.product}
+                    {st.productName}
                   </h2>
-                  <p className="m-0 text-12.5 leading-18 text-ink-2">
-                    {st.instruction}
+                  <span className="text-11.5 text-stone">{st.brand} • {st.actives}</span>
+
+                  <p className="m-0 text-12 text-stone pt-0.5">
+                    {st.usage}
                   </p>
                 </div>
               </div>
 
-              <span
-                className={cn(
-                  'rounded-full px-2.5 py-1 text-11.5 font-bold',
-                  isDone
-                    ? 'bg-bottle-tint text-bottle'
-                    : 'bg-sand text-night'
-                )}
-              >
-                {isDone ? m.routineStepDone : m.routineStepPending}
-              </span>
+              <div className="flex flex-col items-end gap-1">
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-11 font-bold',
+                    isDone
+                      ? 'bg-sand text-cobalt'
+                      : 'bg-sand/60 text-stone'
+                  )}
+                >
+                  {isDone ? 'تمت الخطوة' : 'في الانتظار'}
+                </span>
+                <span className="font-display text-12 font-bold text-ink">
+                  {st.price} ج.م
+                </span>
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Quick Routine Reorder & Guidance Card */}
-      <div className="flex flex-col gap-3 rounded-card bg-linen p-6 shadow-outline-hairline sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <span className="font-display text-15 font-bold text-night">
-            قاربت عبوتك على الانتهاء؟
+      {/* Quick Reorder Card */}
+      <div className="flex flex-col gap-3 rounded-card border border-line bg-linen p-5 shadow-e1 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-display text-15 font-bold text-ink">
+            قاربت عبوات روتينك على الانتهاء؟
           </span>
-          <span className="text-13 text-ink-2">
-            يمكنك إعادة طلب منتجات روتينك المسجلة مباشرة لتصلك قبل نفادها.
+          <span className="text-12.5 text-stone">
+            يمكنك إعادة طلب كافة مستحضرات روتينك مباشرة لتصلك قبل نفادها.
           </span>
         </div>
-        <Link
-          href={routes.cart}
-          className={cn(buttonVariants({ variant: 'bottle', size: 'm' }), 'font-bold self-start sm:self-auto')}
+
+        <Button
+          variant="ink"
+          size="m"
+          onClick={handleAddAllToCart}
+          disabled={addingAll}
+          className="font-bold self-start sm:self-auto shadow-e1"
         >
-          طلب إعادة تزويد
-        </Link>
+          {addedSuccess ? 'تمت إضافة الروتين للسلة ✓' : addingAll ? 'جاري الإضافة...' : 'إضافة كل النواقص للسلة'}
+        </Button>
       </div>
     </div>
   );

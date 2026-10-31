@@ -1,25 +1,33 @@
 import { StorefrontShell } from '@/features/shell/StorefrontShell';
-import { BrandMarquee } from './BrandMarquee';
-import { ConcernShelf } from './ConcernShelf';
 import { HomeHero } from './HomeHero';
-import { RoutineSection } from './RoutineSection';
-import { ShinaStudio } from './ShinaStudio';
+import { ConcernShelf } from './ConcernShelf';
 import { SpotlightProducts } from './SpotlightProducts';
+import { CategoryEditorial } from './CategoryEditorial';
+import { RoutineSection } from './RoutineSection';
+import { BrandMarquee } from './BrandMarquee';
+import { ShinaStudio } from './ShinaStudio';
 import { TrustBadges } from './TrustBadges';
 
 /**
- * Homepage, in the approved Stitch order: hero banner, shop by concern (+ Shina bar), the brand marquee, routines,
- * selected products, the custom routine studio, trust badges; the shell adds the header, the phone dock and the footer. Data sections
- * read the live catalog; photography comes from public/images/home (see the image manifest).
+ * Modern Beauty Editorial Homepage:
+ * 1. HERO — Full-Bleed Photographic Campaign
+ * 2. SHOP BY CONCERN — Refined Horizontal Discovery Strip
+ * 3. BESTSELLERS / THE BEAUTY EDIT — Real Product Showcase
+ * 4. CATEGORY EDITORIAL — Striking Skincare / Haircare Photographic Spreads
+ * 5. CURATED ROUTINES — Premium Regimen Guides
+ * 6. BRAND GALLERY — Minimalist Brand Marquee
+ * 7. CREATE YOUR ROUTINE — Atmospheric Shina Studio Banner
+ * 8. TRUST PILLARS & FOOTER
  */
 export function HomePage() {
   return (
     <StorefrontShell nav="home" dock="home" footerServices={false}>
       <HomeHero />
       <ConcernShelf />
-      <BrandMarquee />
-      <RoutineSection />
       <SpotlightProducts />
+      <CategoryEditorial />
+      <RoutineSection />
+      <BrandMarquee />
       <ShinaStudio />
       <TrustBadges />
     </StorefrontShell>

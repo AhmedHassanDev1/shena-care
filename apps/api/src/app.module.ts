@@ -16,6 +16,7 @@ import { AccountsModule } from './modules/accounts/accounts.module';
 import { OperationsModule } from './modules/operations/operations.module';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { RequestIdMiddleware } from './platform/logger/request-id.middleware';
+import { HttpLoggerMiddleware } from './platform/logger/http-logger.middleware';
 
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -52,6 +53,6 @@ import { DomainEventsModule } from './platform/events/domain-events.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestIdMiddleware).forRoutes('*');
+    consumer.apply(RequestIdMiddleware, HttpLoggerMiddleware).forRoutes('*');
   }
 }

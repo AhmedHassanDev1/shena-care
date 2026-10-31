@@ -21,6 +21,7 @@ import { currencyLabel, formatAmount, formatEgp, formatNumber, formatPackSize } 
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes, shellRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import { getSavedCustomerRoutine } from '@/features/routine/lib/routineStorage';
 import { getProductDetail, type ProductDetail, type PublicMedia, type PublicVariant } from '../api/discovery';
 import { categoryLabel } from '../lib/card-model';
 import { useCategoryTree } from '../lib/listing';
@@ -157,11 +158,11 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
               href={`${routes.products}?brand=${encodeURIComponent(product.brand.slug)}`}
               lang="en"
               dir="ltr"
-              className="-my-3.5 min-w-control-s self-end py-3.5 text-12 font-bold leading-17 tracking-brand text-night underline decoration-1 underline-offset-[5px]"
+              className="-my-3.5 min-w-10 self-end py-3.5 font-serif italic text-14 text-stone hover:text-ink underline decoration-1 underline-offset-4"
             >
               {product.brand.name.toUpperCase()}
             </Link>
-            <h1 dir="auto" className="m-0 font-text text-32 font-bold leading-40 text-night text-match-parent lg:text-40 lg:leading-45">
+            <h1 dir="auto" className="m-0 font-display text-32 font-bold leading-40 text-ink text-match-parent lg:text-40 lg:leading-45">
               {name}
             </h1>
           </div>
@@ -176,8 +177,8 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
 
           <DeliveryDisclosure />
 
-          <Link href={shellRoutes.shina} className="flex min-h-control-s items-center gap-2 self-start text-15 font-semibold text-night no-underline">
-            <span className="underline decoration-1 underline-offset-[6px]">{m.pdpAskShina}</span>
+          <Link href={shellRoutes.shina} className="flex min-h-10 items-center gap-2 self-start text-15 font-semibold text-ink hover:text-cobalt no-underline transition-colors">
+            <span className="underline decoration-1 underline-offset-4">{m.pdpAskShina}</span>
           </Link>
         </div>
       </div>
@@ -185,17 +186,17 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
       {description || sections.length || sizes || categoryName ? (
         <section aria-labelledby="about-h" className="grid gap-10 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-20">
           <div className="flex flex-col gap-4">
-            <span className="text-12 font-semibold leading-17 text-ink-2">{m.pdpAboutEyebrow}</span>
-            <h2 id="about-h" className="m-0 text-display-1">
+            <span className="text-12 font-semibold leading-17 text-stone">{m.pdpAboutEyebrow}</span>
+            <h2 id="about-h" className="m-0 font-display text-32 font-bold leading-tight text-ink">
               {m.pdpBrandSays}
             </h2>
             {description ? (
-              <blockquote dir="auto" className="m-0 whitespace-pre-line text-17 leading-30 text-night text-match-parent">
+              <blockquote dir="auto" className="m-0 whitespace-pre-line text-17 leading-30 text-ink text-match-parent">
                 «{description}»
               </blockquote>
             ) : null}
-            <span className="flex items-center gap-2 text-13 text-ink-2">
-              <span className="rounded-6 bg-saffron-tint px-2 py-0.5 text-12 font-semibold text-saffron-ink">{m.pdpBrandBadge}</span>
+            <span className="flex items-center gap-2 text-13 text-stone">
+              <span className="rounded-image bg-sand px-2 py-0.5 text-12 font-semibold text-ink">{m.pdpBrandBadge}</span>
               <span>{fillMessage(m.pdpBrandDescription, { brand: product.brand.name })}</span>
             </span>
             <dl className="m-0 grid grid-cols-2 gap-x-6">
@@ -208,8 +209,8 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
                 .filter((row) => row.v)
                 .map((row) => (
                   <div key={row.k} className="flex flex-col gap-0.5 py-3 shadow-hairline-bottom">
-                    <dt className="text-12 font-semibold leading-17 text-ink-2">{row.k}</dt>
-                    <dd dir={row.latin ? 'ltr' : undefined} className="m-0 text-15 font-semibold leading-24 text-match-parent">
+                    <dt className="text-12 font-semibold leading-17 text-stone">{row.k}</dt>
+                    <dd dir={row.latin ? 'ltr' : undefined} className="m-0 text-15 font-semibold leading-24 text-match-parent text-ink">
                       {row.v}
                     </dd>
                   </div>
@@ -220,11 +221,11 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
             <div className="flex flex-col shadow-hairline-top">
               {sections.map((section, index) => (
                 <details key={section.key} open={index === 0} className="group shadow-hairline-bottom">
-                  <summary className="flex min-h-15 cursor-pointer list-none items-center justify-between gap-3 font-display text-21 font-bold leading-27 text-night [&::-webkit-details-marker]:hidden">
+                  <summary className="flex min-h-15 cursor-pointer list-none items-center justify-between gap-3 font-display text-21 font-bold leading-27 text-ink [&::-webkit-details-marker]:hidden">
                     {section.title}
                     <Icon name="chevron-down" size={18} strokeWidth={2} className="transition-transform duration-fast group-open:rotate-180" />
                   </summary>
-                  <p dir="auto" className="m-0 whitespace-pre-line pb-5 text-15 leading-27 text-ink-2 text-match-parent">
+                  <p dir="auto" className="m-0 whitespace-pre-line pb-5 text-15 leading-27 text-stone text-match-parent">
                     {section.body}
                   </p>
                 </details>
@@ -243,8 +244,20 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
 
 function ClinicalSections({ product, variant }: { product: ProductDetail; variant: PublicVariant }) {
   const m = useMessages();
+  const [savedRoutine, setSavedRoutine] = useState<any>(null);
+
+  useEffect(() => {
+    setSavedRoutine(getSavedCustomerRoutine());
+  }, []);
+
   const categorySlug = product.category?.slug ?? '';
   const categoryName = product.category?.name ?? '';
+
+  const matchedSavedStep = savedRoutine
+    ? [...(savedRoutine.morningSteps || []), ...(savedRoutine.eveningSteps || [])].find(
+        (st: any) => st.productSlug === product.slug || (categoryName && st.stepName && st.stepName.includes(categoryName))
+      )
+    : null;
 
   const isCleanser = categorySlug.includes('cleanser') || categoryName.includes('غسول') || categoryName.includes('منظف');
   const isSunscreen = categorySlug.includes('sun') || categoryName.includes('شمس') || categoryName.includes('واقي');
@@ -274,20 +287,20 @@ function ClinicalSections({ product, variant }: { product: ProductDetail; varian
       {ingredientsList && ingredientsList.length > 0 ? (
         <section aria-labelledby="actives-h" className="flex flex-col gap-4 rounded-card bg-linen p-6 shadow-outline-hairline lg:p-7">
           <div className="flex items-center gap-3">
-            <span className="flex size-10 flex-none items-center justify-center rounded-full bg-bottle-tint text-bottle">
+            <span className="flex size-10 flex-none items-center justify-center rounded-full bg-sand text-ink">
               <Icon name="science" size={20} />
             </span>
             <div className="flex flex-col">
-              <h2 id="actives-h" className="m-0 font-display text-20 font-bold leading-26 text-night">
+              <h2 id="actives-h" className="m-0 font-display text-20 font-bold leading-26 text-ink">
                 {m.pdpClinicalActivesTitle}
               </h2>
-              <p className="m-0 text-13 leading-20 text-ink-2">{m.pdpClinicalActivesLead}</p>
+              <p className="m-0 text-13 leading-20 text-stone">{m.pdpClinicalActivesLead}</p>
             </div>
           </div>
           <ul className="m-0 grid list-none grid-cols-1 gap-2.5 p-0 sm:grid-cols-2">
             {ingredientsList.map((ing) => (
-              <li key={ing} className="flex items-center gap-2 rounded-image bg-bone/70 p-3 text-13 font-semibold text-night shadow-elevation-1">
-                <span className="flex size-5 flex-none items-center justify-center rounded-full bg-bottle text-linen">
+              <li key={ing} className="flex items-center gap-2 rounded-image bg-chalk p-3 text-13 font-semibold text-ink shadow-e1">
+                <span className="flex size-5 flex-none items-center justify-center rounded-full bg-cobalt text-chalk">
                   <Icon name="check" size={12} />
                 </span>
                 <span>{ing}</span>
@@ -300,14 +313,14 @@ function ClinicalSections({ product, variant }: { product: ProductDetail; varian
       {/* Routine Placement Stepper */}
       <section aria-labelledby="routine-placement-h" className="flex flex-col gap-4 rounded-card bg-sand/60 p-6 shadow-outline-hairline lg:p-7">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 flex-none items-center justify-center rounded-full bg-saffron-tint text-saffron-ink">
+          <span className="flex size-10 flex-none items-center justify-center rounded-full bg-sand text-ink">
             <Icon name="sparkles" size={20} />
           </span>
           <div className="flex flex-col">
-            <h2 id="routine-placement-h" className="m-0 font-display text-20 font-bold leading-26 text-night">
+            <h2 id="routine-placement-h" className="m-0 font-display text-20 font-bold leading-26 text-ink">
               {m.pdpRoutineStepTitle}
             </h2>
-            <p className="m-0 text-13 leading-20 text-ink-2">{m.pdpRoutineStepLead}</p>
+            <p className="m-0 text-13 leading-20 text-stone">{m.pdpRoutineStepLead}</p>
           </div>
         </div>
 
@@ -320,16 +333,16 @@ function ClinicalSections({ product, variant }: { product: ProductDetail; varian
                 className={cn(
                   'flex flex-col items-center gap-1.5 rounded-card p-3 text-center transition-all',
                   isCurrent
-                    ? 'bg-bottle text-linen shadow-elevation-2'
-                    : 'bg-linen text-night shadow-outline-hairline opacity-80'
+                    ? 'bg-cobalt text-chalk shadow-e2'
+                    : 'bg-linen text-ink shadow-outline-hairline opacity-80'
                 )}
               >
-                <span className={cn('text-11 font-bold', isCurrent ? 'text-linen/80' : 'text-ink-3')}>
+                <span className={cn('text-11 font-bold', isCurrent ? 'text-chalk/80' : 'text-stone')}>
                   خطوة ٠{st.num}
                 </span>
                 <span className="text-14 font-bold">{st.label}</span>
                 {isCurrent ? (
-                  <span className="rounded-full bg-linen/20 px-2 py-0.5 text-10.5 font-bold text-linen">
+                  <span className="rounded-full bg-chalk/20 px-2 py-0.5 text-10.5 font-bold text-chalk">
                     هذا المنتج
                   </span>
                 ) : null}
@@ -341,33 +354,67 @@ function ClinicalSections({ product, variant }: { product: ProductDetail; varian
 
       {/* Recommended Application Protocol */}
       <section aria-labelledby="protocol-h" className="flex flex-col gap-4 rounded-card bg-linen p-6 shadow-outline-hairline lg:p-7">
-        <h2 id="protocol-h" className="m-0 font-display text-20 font-bold leading-26 text-night">
+        <h2 id="protocol-h" className="m-0 font-display text-20 font-bold leading-26 text-ink">
           {m.pdpProtocolTitle}
         </h2>
         <ol className="m-0 flex list-none flex-col gap-3 p-0">
           {usageSteps.map((stepText, idx) => (
             <li key={idx} className="flex items-start gap-3">
-              <span className="flex size-7 flex-none items-center justify-center rounded-full bg-bottle-tint font-display text-13 font-bold text-bottle">
+              <span className="flex size-7 flex-none items-center justify-center rounded-full bg-sand font-display text-13 font-bold text-ink">
                 ٠{idx + 1}
               </span>
-              <p className="m-0 pt-0.5 text-14 leading-24 text-night">{stepText}</p>
+              <p className="m-0 pt-0.5 text-14 leading-24 text-ink">{stepText}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      {/* Routine Section with Link to Builder */}
-      <section aria-labelledby="routine-h" className="flex flex-col gap-3 rounded-card bg-linen p-6 shadow-outline-hairline lg:p-7">
-        <h2 id="routine-h" className="m-0 font-display text-20 font-bold leading-26 text-night">
-          {m.pdpRoutineTitle}
-        </h2>
-        <p className="m-0 text-14.5 leading-24 text-ink-2">{m.pdpRoutineBody}</p>
-        <div className="flex flex-wrap gap-3 pt-2">
-          <Link href={routes.routineBuilder} className={cn(buttonVariants({ variant: 'bottle', size: 'm' }))}>
-            {m.pdpRoutineCta}
+      {/* Routine Section with Contextual Matching and Link to Builder */}
+      <section aria-labelledby="routine-h" className="flex flex-col gap-4 rounded-card bg-linen p-6 shadow-e1 lg:p-7">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 flex-none items-center justify-center rounded-full bg-sand text-cobalt">
+            <Icon name="routine" size={20} />
+          </span>
+          <div className="flex flex-col">
+            <h2 id="routine-h" className="m-0 font-display text-20 font-bold leading-26 text-ink">
+              موقع المستحضر في روتين العناية
+            </h2>
+            <span className="text-12 text-stone">إرشاد مبني على الكتالوج وتناسق الخطوات</span>
+          </div>
+        </div>
+
+        {matchedSavedStep ? (
+          <div className="flex items-center gap-2 rounded-card bg-sand/50 p-3.5 text-13 font-bold text-cobalt">
+            <Icon name="check" size={16} />
+            <span>يناسب روتينك اليومي المحفوظ: خطوة {matchedSavedStep.stepName}</span>
+          </div>
+        ) : (
+          <p className="m-0 text-14 leading-24 text-stone">
+            مكان هذا المستحضر النموذجي في تسلسل العناية هو خطوة <strong>{steps.find((s) => s.num === activeStep)?.label ?? categoryName}</strong> لدعم التوازن والحماية دون إجهاد حاجز البشرة.
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          <Link
+            href={`${routes.routineBuilder}?product=${encodeURIComponent(product.slug)}`}
+            className={cn(buttonVariants({ variant: 'cobalt', size: 'm' }), 'font-bold shadow-e1')}
+          >
+            <Icon name="sparkles" size={16} />
+            <span>ابني روتينك مع هذا المنتج</span>
           </Link>
+
+          <Link
+            href={routes.routines}
+            className={cn(buttonVariants({ variant: 'linen', size: 'm' }), 'font-semibold')}
+          >
+            دليل الروتينات الجاهزة
+          </Link>
+
           {categorySlug ? (
-            <Link href={`${routes.products}?category=${encodeURIComponent(categorySlug)}`} className={cn(buttonVariants({ variant: 'light', size: 'm' }))}>
+            <Link
+              href={`${routes.products}?category=${encodeURIComponent(categorySlug)}`}
+              className={cn(buttonVariants({ variant: 'linen', size: 'm' }))}
+            >
               {m.pdpAlternativesTitle}
             </Link>
           ) : null}
@@ -380,7 +427,7 @@ function ClinicalSections({ product, variant }: { product: ProductDetail; varian
 function Crumb({ href, label }: { href: string; label: string }) {
   return (
     <li className="inline-flex items-center gap-2">
-      <Link href={href} className="font-medium text-night underline decoration-1 underline-offset-[5px]">
+      <Link href={href} className="font-medium text-stone hover:text-ink underline decoration-1 underline-offset-4">
         {label}
       </Link>
       <span aria-hidden="true" className="opacity-70">
@@ -407,11 +454,11 @@ function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
           name={name}
           priority
           sizes="(min-width: 1024px) 600px, 100vw"
-          className="rounded-card shadow-elevation-3 lg:aspect-[600/750]"
+          className="rounded-card shadow-e3 lg:aspect-[600/750]"
         />
         <div className="pointer-events-none absolute bottom-4 inset-x-4 flex flex-wrap items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-night/85 px-3 py-1 text-12 font-semibold text-linen backdrop-blur-sm shadow-elevation-1">
-            <Icon name="shield" size={14} className="text-saffron" />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-ink/85 px-3 py-1 text-12 font-semibold text-chalk backdrop-blur-sm shadow-e1">
+            <Icon name="shield" size={14} className="text-citron" />
             <span>{m.pdpAuthenticRibbon}</span>
           </span>
         </div>
@@ -430,7 +477,7 @@ function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
                 aria-label={fillMessage(m.pdpShowImage, { i: i + 1 })}
                 aria-current={i === index}
                 onClick={() => setIndex(i)}
-                className={cn('block rounded-image p-0.5', i === index ? 'shadow-outline-bottle' : 'shadow-none')}
+                className={cn('block rounded-image p-0.5', i === index ? 'ring-2 ring-cobalt shadow-e1' : 'shadow-none')}
               >
                 <ProductTile size="thumb" className="size-16" src={image.url} alt="" name={name} />
               </button>
@@ -456,8 +503,8 @@ function SizeOptions({ product, variant, onSelect, compact = false }: { product:
   const label = (s: PublicVariant) => formatPackSize(s.size, s.sizeUnit, locale) ?? s.variantName;
   return (
     <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-      <legend className="mb-2 p-0 text-14 font-bold">
-        {m.pdpSizeLabel} <span className="font-normal text-ink-2">{label(variant)}</span>
+      <legend className="mb-2 p-0 text-14 font-bold text-ink">
+        {m.pdpSizeLabel} <span className="font-normal text-stone">{label(variant)}</span>
       </legend>
       <div role="radiogroup" aria-label={m.pdpSpecSize} className="grid grid-cols-2 gap-3">
         {product.skus.map((sku) => {
@@ -471,16 +518,16 @@ function SizeOptions({ product, variant, onSelect, compact = false }: { product:
               aria-checked={checked}
               onClick={() => !checked && onSelect(sku.id)}
               className={cn(
-                'flex items-center gap-2.5 rounded-image px-3.5 text-start',
+                'flex items-center gap-2.5 rounded-image px-3.5 text-start transition-all',
                 compact ? 'h-12' : 'h-15',
-                checked ? 'bg-bottle-tint shadow-outline-bottle' : sku.canOrder ? 'bg-linen shadow-outline-control' : 'bg-linen shadow-outline-hairline'
+                checked ? 'bg-sand shadow-outline-hairline ring-2 ring-cobalt' : sku.canOrder ? 'bg-linen shadow-outline-hairline hover:bg-sand/30' : 'bg-linen opacity-50 shadow-outline-hairline'
               )}
             >
-              <span aria-hidden="true" className={cn('flex size-5 flex-none items-center justify-center rounded-full', checked ? 'bg-bottle text-white' : 'shadow-outline-check')}>
+              <span aria-hidden="true" className={cn('flex size-5 flex-none items-center justify-center rounded-full', checked ? 'bg-cobalt text-chalk' : 'shadow-outline-check')}>
                 {checked ? <Icon name="check" size={13} strokeWidth={3} /> : null}
               </span>
-              <span className={cn('text-16 font-bold', !sku.canOrder && 'text-ink-3 line-through')}>{label(sku)}</span>
-              <span className={cn('ms-auto text-12.5', sku.canOrder ? 'text-ink-2' : 'font-medium text-err')}>
+              <span className={cn('text-16 font-bold text-ink', !sku.canOrder && 'text-stone line-through')}>{label(sku)}</span>
+              <span className={cn('ms-auto text-12.5', sku.canOrder ? 'text-stone' : 'font-medium text-tomato-ink')}>
                 {sku.canOrder ? price : m.pdpUnavailableNow}
               </span>
             </button>
@@ -501,22 +548,22 @@ function PriceRow({ variant }: { variant: PublicVariant }) {
     <div className="flex flex-wrap items-center justify-between gap-3">
       {price ? (
         <p className="m-0 flex items-baseline gap-2">
-          <span className="text-32 font-bold leading-36 tabular-nums">
+          <span className="text-32 font-bold leading-36 tabular-nums text-ink">
             <bdi>{formatAmount(price.amount, locale)}</bdi>
-            <span className="ms-1.5 text-14 font-medium text-ink-2">{currencyLabel(locale)}</span>
+            <span className="ms-1.5 text-14 font-medium text-stone">{currencyLabel(locale)}</span>
           </span>
           {compareAt ? (
-            <span className="text-15 text-ink-3 line-through">
+            <span className="text-15 text-stone line-through">
               <span className="sr-only">{fillMessage(m.pdpWas, { price: formatEgp(compareAt, price.currency, locale) ?? '' })}</span>
               <bdi aria-hidden>{formatAmount(compareAt, locale)}</bdi>
             </span>
           ) : null}
         </p>
       ) : (
-        <p className="m-0 text-15 text-ink-3">{m.productPriceUnavailable}</p>
+        <p className="m-0 text-15 text-stone">{m.productPriceUnavailable}</p>
       )}
-      <p className={cn('m-0 flex items-center gap-2 text-15 font-semibold', variant.canOrder ? 'text-ok' : 'text-err')}>
-        <span aria-hidden="true" className={cn('size-2 rounded-full', variant.canOrder ? 'bg-ok' : 'bg-err')} />
+      <p className={cn('m-0 flex items-center gap-2 text-15 font-semibold', variant.canOrder ? 'text-ok' : 'text-tomato-ink')}>
+        <span aria-hidden="true" className={cn('size-2 rounded-full', variant.canOrder ? 'bg-ok' : 'bg-tomato')} />
         {variant.canOrder ? m.pdpAvailable : m.pdpUnavailableNow}
       </p>
     </div>
@@ -532,11 +579,11 @@ function BuyRow({ product, variant, buy, disabled, name }: { product: ProductDet
   if (!variant.canOrder || !variant.price) {
     return (
       <div className="flex flex-col gap-3">
-        <Button variant="bottle" size="l" disabled className="w-full">
+        <Button variant="ink" size="l" disabled className="w-full">
           {m.pdpUnavailableNow}
         </Button>
         {product.category ? (
-          <Button asChild variant="light" size="l" className="w-full">
+          <Button asChild variant="linen" size="l" className="w-full">
             <Link href={routes.productsByCategory(product.category.slug)}>{m.pdpAlternatives}</Link>
           </Button>
         ) : null}
@@ -554,13 +601,13 @@ function BuyRow({ product, variant, buy, disabled, name }: { product: ProductDet
           onChange={buy.setQuantity}
           disabled={disabled || buy.state === 'pending'}
           labels={{ group: m.pdpQuantity, decrease: m.pdpDecrease, increase: m.pdpIncrease }}
-          className="h-control-l [&_button]:h-control-l [&_button]:w-11"
+          className="h-14 [&_button]:h-14 [&_button]:w-11"
         />
         <AsyncButton
           state={buy.state === 'added' ? 'idle' : buy.state}
-          variant="bottle"
+          variant="ink"
           size="l"
-          className={cn('flex-1', added && 'bg-bottle-deep hover:bg-bottle-deep')}
+          className={cn('flex-1', added && 'bg-cobalt hover:bg-cobalt-deep text-chalk')}
           pendingLabel={m.pdpAdding}
           retryLabel={m.pdpAddCta}
           disabled={disabled}
@@ -580,8 +627,8 @@ function BuyRow({ product, variant, buy, disabled, name }: { product: ProductDet
         </AsyncButton>
       </div>
       {buy.state === 'error' ? (
-        <p role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-21 text-err">
-          <span aria-hidden="true" className="mt-1.5 size-1.75 flex-none rounded-full bg-err" />
+        <p role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-21 text-tomato-ink">
+          <span aria-hidden="true" className="mt-1.5 size-1.75 flex-none rounded-full bg-tomato" />
           {m.pdpAddFailed}
         </p>
       ) : null}
@@ -610,20 +657,20 @@ function AddedPopover({ variant, name, brand, quantity, onClose }: { variant: Pu
       <div className="flex items-center gap-3">
         <ProductTile size="thumb" className="size-14 flex-none" src={image?.url ?? null} alt="" name={name} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span lang="en" dir="ltr" className="text-brand text-ink-2 text-match-parent">
+          <span lang="en" dir="ltr" className="font-serif italic text-14 text-stone text-match-parent">
             {brand.toUpperCase()}
           </span>
-          <span dir="auto" className="truncate text-14 font-semibold text-match-parent">
+          <span dir="auto" className="truncate text-14 font-semibold text-match-parent text-ink">
             {name}
           </span>
-          <span className="text-12.5 text-ink-2">{fillMessage(m.pdpQtyLine, { size, n: formatNumber(quantity, locale) })}</span>
+          <span className="text-12.5 text-stone">{fillMessage(m.pdpQtyLine, { size, n: formatNumber(quantity, locale) })}</span>
         </span>
       </div>
       <div className="flex gap-2.5">
-        <Button asChild variant="bottle" size="m" className="flex-1">
+        <Button asChild variant="ink" size="m" className="flex-1">
           <Link href={routes.cart}>{fillMessage(m.pdpGoToCart, { n: formatNumber(quantity, locale) })}</Link>
         </Button>
-        <Button variant="light" size="m" onClick={onClose}>
+        <Button variant="linen" size="m" onClick={onClose}>
           {m.pdpKeepShopping}
         </Button>
       </div>
@@ -635,13 +682,13 @@ function DeliveryDisclosure() {
   const m = useMessages();
   return (
     <details className="group rounded-input bg-linen shadow-outline-hairline">
-      <summary className="flex min-h-13 cursor-pointer list-none items-center gap-2.5 px-4 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-13 cursor-pointer list-none items-center gap-2.5 px-4 [&::-webkit-details-marker]:hidden text-ink">
         <Icon name="truck" size={20} />
         <span className="text-15 font-semibold">{m.pdpDelivery}</span>
-        <span className="ms-auto text-13 text-ink-3">{m.pdpNotConfirmed}</span>
+        <span className="ms-auto text-13 text-stone">{m.pdpNotConfirmed}</span>
         <Icon name="chevron-down" size={16} strokeWidth={2} className="transition-transform duration-fast group-open:rotate-180" />
       </summary>
-      <div className="flex flex-col gap-1 px-4 pb-4 text-14 leading-22 text-ink-2">
+      <div className="flex flex-col gap-1 px-4 pb-4 text-14 leading-22 text-stone">
         <p className="m-0">{m.pdpDeliveryBody}</p>
         <p className="m-0">{m.pdpReturnsBody}</p>
       </div>
@@ -667,7 +714,7 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
   return (
     <div
       className={cn(
-        'pdp-bar fixed inset-x-0 bottom-0 z-nav flex flex-col gap-2 bg-bone/95 px-3 pt-2.5 shadow-hairline-top backdrop-blur-sm transition-transform duration-base ease-standard lg:hidden',
+        'pdp-bar fixed inset-x-0 bottom-0 z-nav flex flex-col gap-2 bg-chalk/95 px-3 pt-2.5 shadow-hairline-top backdrop-blur-sm transition-transform duration-base ease-standard lg:hidden',
         visible ? 'translate-y-0' : 'pointer-events-none translate-y-full'
       )}
       aria-hidden={!visible}
@@ -681,30 +728,30 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
         </Toast>
       ) : null}
       <div className="flex items-center gap-2.5">
-        <ProductTile size="thumb" className="h-12.5 w-10 flex-none rounded-8" src={image?.url ?? null} alt="" name={name} />
+        <ProductTile size="thumb" className="h-12.5 w-10 flex-none rounded-image" src={image?.url ?? null} alt="" name={name} />
         <button
           type="button"
           onClick={() => product.skus.length > 1 && setSizeOpen(true)}
           aria-label={product.skus.length > 1 ? fillMessage(m.pdpBarSize, { size }) : undefined}
           className="flex h-12.5 flex-none flex-col items-start justify-center rounded-input bg-sand px-3 text-start"
         >
-          <span className="flex items-center gap-1 text-12.5 font-semibold">
+          <span className="flex items-center gap-1 text-12.5 font-semibold text-ink">
             {product.skus.length > 1 ? <Icon name="chevron-down" size={12} strokeWidth={2} /> : null}
             {size}
           </span>
           {variant.price ? (
-            <span className="text-15 font-bold leading-20 tabular-nums">
+            <span className="text-15 font-bold leading-20 tabular-nums text-ink">
               <bdi>{formatAmount(variant.price.amount, locale)}</bdi>
-              <span className="ms-1 text-11 font-medium text-ink-2">{currencyLabel(locale)}</span>
+              <span className="ms-1 text-11 font-medium text-stone">{currencyLabel(locale)}</span>
             </span>
           ) : null}
         </button>
         {orderable ? (
           <AsyncButton
             state={buy.state === 'added' ? 'idle' : buy.state}
-            variant="bottle"
+            variant="ink"
             size="m"
-            className={cn('h-12.5 flex-1', added && 'bg-bottle-deep hover:bg-bottle-deep')}
+            className={cn('h-12.5 flex-1', added && 'bg-cobalt hover:bg-cobalt-deep text-chalk')}
             pendingLabel={m.cardAdding}
             retryLabel={m.pdpAddCta}
             tabIndex={visible ? 0 : -1}
@@ -723,7 +770,7 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
             )}
           </AsyncButton>
         ) : (
-          <Button asChild variant="light" size="m" className="h-12.5 flex-1">
+          <Button asChild variant="linen" size="m" className="h-12.5 flex-1">
             <Link href={product.category ? routes.productsByCategory(product.category.slug) : routes.products} tabIndex={visible ? 0 : -1}>
               {m.pdpSeeAlternatives}
             </Link>
@@ -731,10 +778,10 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
         )}
       </div>
       <Sheet open={sizeOpen} onOpenChange={setSizeOpen}>
-        <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-24">
-          <span aria-hidden="true" className="mt-2 h-1 w-10 self-center rounded-4 bg-dune" />
+        <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-sheet">
+          <span aria-hidden="true" className="mt-2 h-1 w-10 self-center rounded-image bg-sand" />
           <div className="px-4 pb-2 pt-1 shadow-hairline-bottom">
-            <SheetTitle className="flex h-control-s items-center font-display text-22 font-bold leading-28">{m.pdpChooseSize}</SheetTitle>
+            <SheetTitle className="flex h-10 items-center font-display text-22 font-bold leading-28 text-ink">{m.pdpChooseSize}</SheetTitle>
           </div>
           <div className="flex flex-col gap-4 px-4 pb-5 pt-4">
             <SizeOptions
@@ -747,7 +794,7 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
             />
             <AsyncButton
               state={buy.state === 'added' ? 'idle' : buy.state}
-              variant="bottle"
+              variant="ink"
               size="m"
               className="h-12.5 w-full"
               pendingLabel={m.cardAdding}
@@ -760,7 +807,7 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
               {m.pdpAddCta}
               {variant.price ? (
                 <>
-                  <span aria-hidden="true" className="size-[3px] rounded-full bg-white/70" />
+                  <span aria-hidden="true" className="size-1 rounded-full bg-chalk/70" />
                   <bdi>{formatEgp(variant.price.amount, variant.price.currency, locale)}</bdi>
                 </>
               ) : null}
@@ -777,11 +824,11 @@ function DetailSkeleton() {
     <div aria-busy="true" className="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,600px)] lg:gap-16">
       <Skeleton className="aspect-[4/5] w-full rounded-card lg:order-2" />
       <div className="flex flex-col gap-4 lg:order-1 lg:pt-6">
-        <Skeleton className="h-4 w-28 rounded-4 bg-line" />
-        <Skeleton className="h-10 w-4/5 rounded-6 bg-line" />
+        <Skeleton className="h-4 w-28 rounded-image bg-line" />
+        <Skeleton className="h-10 w-4/5 rounded-card bg-line" />
         <Skeleton className="h-15 w-full rounded-image bg-line" />
-        <Skeleton className="h-9 w-40 rounded-6 bg-line" />
-        <Skeleton className="h-control-l w-full rounded-pill bg-line" />
+        <Skeleton className="h-9 w-40 rounded-card bg-line" />
+        <Skeleton className="h-14 w-full rounded-pill bg-line" />
       </div>
     </div>
   );

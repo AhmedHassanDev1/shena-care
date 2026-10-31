@@ -4,7 +4,7 @@ import { colorScale, fontSizeScale, leadingScale, radiusScale, shadowScale } fro
 
 /**
  * tailwind-merge must know the SAHEL scales (generated from design-system/tokens.json + tokens.app.json).
- * Without this it reads `text-body` as a text *color* and silently drops a real color such as `text-night`.
+ * Without this it reads `text-body` as a text *color* and silently drops a real color such as `text-ink`.
  */
 const twMerge = extendTailwindMerge({
   override: {

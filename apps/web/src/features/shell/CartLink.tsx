@@ -28,7 +28,7 @@ export function CartLink({ variant }: { variant: 'pill' | 'icon' }) {
       <Link
         href={routes.cart}
         aria-label={label}
-        className="inline-flex h-control-s items-center gap-2 rounded-pill bg-night ps-4.5 pe-3 text-14 font-semibold text-linen no-underline transition-colors duration-fast ease-standard hover:bg-night-2"
+        className="inline-flex h-control-m items-center gap-2 rounded-pill bg-ink ps-4.5 pe-3 text-16 font-display font-semibold text-chalk shadow-e1 no-underline transition-all duration-fast ease-standard hover:bg-cobalt hover:shadow-e2"
       >
         <Icon name="bag" size={20} />
         <span>{m.shellCart}</span>

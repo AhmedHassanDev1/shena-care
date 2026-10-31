@@ -5,7 +5,10 @@ import { PrismaClient } from '@prisma/client';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
     super({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      log:
+        process.env.PRISMA_LOG_QUERIES === 'true'
+          ? ['query', 'error', 'warn']
+          : ['error', 'warn'],
     });
   }
 
