@@ -14,6 +14,16 @@ export function getSupplierResponseMinutes(expedited = false): number {
   return Number.isSafeInteger(value) && value > 0 && value <= 10080 ? value : expedited ? 30 : 60;
 }
 
+/** Internal planning bounds only; these values never establish a customer delivery SLA. */
+export function getEstimatedPickupLead() {
+  const minutes = Number(process.env.PROCUREMENT_ESTIMATED_PICKUP_LEAD_MINUTES ?? '240');
+  const uncertaintyMinutes = Number(process.env.PROCUREMENT_PICKUP_UNCERTAINTY_MINUTES ?? '120');
+  if (![minutes, uncertaintyMinutes].every(value => Number.isSafeInteger(value) && value > 0 && value <= 10080)) {
+    throw new Error('Invalid procurement pickup estimate configuration');
+  }
+  return { minutes, uncertaintyMinutes };
+}
+
 export interface ProcurementBatchConfig {
   intervalMinutes: number;
   dispatchCheckpoints: string[];

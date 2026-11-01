@@ -114,6 +114,85 @@ describe('GLO-283 Supplier PO Batching Production Verification (e2e)', () => {
     expect(await prisma.orderItem.findMany({ where: { orderId: { in: orders.map(o => o.id) } }, orderBy: { id: 'asc' } })).toEqual(before);
   });
 
+  it('automatically recovers repeated shared partials using estimated leads without revoking confirmed stock or changing delivery promises', async () => {
+    const sku = await createSellableSku(prisma);
+    const alternates = [];
+    for (const cost of [65, 75]) {
+      const supplier = await prisma.supplier.create({ data: { name: 'Estimated recovery ' + randomUUID(), slug: 'estimated-' + randomUUID(),
+        closedWeekdays: [], opensAt: '00:00', closesAt: '23:59', pickupLeadMinutes: null } });
+      const offer = await prisma.supplierOffer.create({ data: { supplierId: supplier.id, skuId: sku.id, costPrice: cost,
+        currency: 'EGP', availableQuantity: 10, lastConfirmedAt: new Date() } });
+      alternates.push({ supplierId: supplier.id, offerId: offer.id });
+    }
+    const orders = [];
+    for (const quantity of [2, 1, 3]) { const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity }]); await settleEvents(order.id); orders.push(order); }
+    await prisma.order.update({ where: { id: orders[2].id }, data: { promisedDate: new Date() } });
+    const snapshots = () => prisma.order.findMany({ where: { id: { in: orders.map(o => o.id) } }, orderBy: { id: 'asc' },
+      select: { id: true, promisedDate: true, items: { orderBy: { id: 'asc' }, select: { id: true, price: true, lineTotal: true, quantity: true, currency: true } } } });
+    const before = await snapshots();
+    const original = (await flush({ supplierId: sku.supplierId })).purchaseOrders[0];
+    const answer = { lines: [{ id: original.lines[0].id, status: 'confirmed_partial', confirmedQuantity: 4 }] };
+    const simultaneous = await Promise.all([http().post(`/purchase-orders/${original.id}/confirm`).set(admin.auth).send(answer),
+      http().post(`/purchase-orders/${original.id}/confirm`).set(admin.auth).send(answer)]);
+    expect(simultaneous.some(r => r.status === 201)).toBe(true);
+    expect(simultaneous.every(r => [201, 409].includes(r.status))).toBe(true);
+    await settleEvents(original.id);
+    const originalLinks = () => prisma.purchaseOrderLineAllocation.findMany({ where: { purchaseOrderLineId: original.lines[0].id }, orderBy: { id: 'asc' } });
+    const preserved = await originalLinks();
+    expect(orders.map(o => preserved.find(link => link.orderId === o.id)?.confirmedQuantity)).toEqual([1, 0, 3]);
+    const second = await prisma.supplierPurchaseOrder.findFirstOrThrow({ where: { supplierId: alternates[0].supplierId }, include: { lines: true } });
+    expect(second).toMatchObject({ expedited: true, status: 'sent' });
+    expect(second.lines[0].requestedQuantity).toBe(2);
+    await Promise.all([1, 2].map(() => poService.flushProcurementBatch('system:duplicate-recovery', {
+      orderIds: orders.map(o => o.id), recoveryOnly: true, expedited: true, isEarlyFlush: true,
+    })));
+    expect(await prisma.supplierPurchaseOrder.count({ where: { supplierId: alternates[0].supplierId } })).toBe(1);
+    await http().post(`/purchase-orders/${second.id}/confirm`).set(admin.auth)
+      .send({ lines: [{ id: second.lines[0].id, status: 'confirmed_partial', confirmedQuantity: 1 }] }).expect(201);
+    await settleEvents(second.id);
+    expect(await originalLinks()).toEqual(preserved);
+    const secondLinks = await prisma.purchaseOrderLineAllocation.findMany({ where: { purchaseOrderLineId: second.lines[0].id } });
+    expect([orders[0], orders[1]].map(o => secondLinks.find(link => link.orderId === o.id)?.confirmedQuantity)).toEqual([1, 0]);
+    const third = await prisma.supplierPurchaseOrder.findFirstOrThrow({ where: { supplierId: alternates[1].supplierId }, include: { lines: true } });
+    expect(third.lines[0].requestedQuantity).toBe(1);
+    const competing = await Promise.all([
+      http().post(`/purchase-orders/${second.id}/confirm`).set(admin.auth).send({ lines: [{ id: second.lines[0].id, status: 'confirmed_full' }] }),
+      http().post(`/purchase-orders/${third.id}/confirm`).set(admin.auth).send({ lines: [{ id: third.lines[0].id, status: 'confirmed_full' }] }),
+    ]);
+    expect(competing.map(r => r.status)).toEqual([409, 201]);
+    await settleEvents(third.id);
+    expect(await originalLinks()).toEqual(preserved);
+    expect((await prisma.sourceAllocation.aggregate({ where: { requirement: { supplyRequest: { orderId: { in: orders.map(o => o.id) } } } }, _sum: { confirmedQuantity: true } }))._sum.confirmedQuantity).toBe(6);
+    expect(await prisma.purchaseOrderLine.count({ where: { purchaseOrderId: { in: [original.id, second.id] }, distributionRequired: true } })).toBe(0);
+    expect(await snapshots()).toEqual(before);
+    expect(await prisma.sourcingDecision.findMany({ where: { skuId: sku.id } })).toEqual(expect.arrayContaining([
+      expect.objectContaining({ rankedOffers: expect.arrayContaining([expect.objectContaining({ offerId: alternates[0].offerId,
+        pickupLead: { source: 'OPERATIONAL_ESTIMATE', minutes: 240, uncertaintyMinutes: 120, planningMinutes: 360, deliverySlaVerified: false } })]) }),
+    ]));
+  });
+
+  it('does not issue an estimated-lead fallback that cannot meet the existing delivery constraint', async () => {
+    const sku = await createSellableSku(prisma);
+    const supplier = await prisma.supplier.create({ data: { name: 'Uncertain late ' + randomUUID(), slug: 'uncertain-late-' + randomUUID(),
+      closedWeekdays: [], opensAt: '00:00', closesAt: '23:59' } });
+    await prisma.supplierOffer.create({ data: { supplierId: supplier.id, skuId: sku.id, costPrice: 65, currency: 'EGP', lastConfirmedAt: new Date() } });
+    const order = await placeGuestOrder(app, [{ skuId: sku.id, quantity: 1 }]); await settleEvents(order.id);
+    const before = await prisma.order.findUniqueOrThrow({ where: { id: order.id }, select: { promisedDate: true, totalAmount: true } });
+    const po = (await flush({ supplierId: sku.supplierId })).purchaseOrders[0];
+    const saved = process.env.PROCUREMENT_ESTIMATED_PICKUP_LEAD_MINUTES;
+    try {
+      process.env.PROCUREMENT_ESTIMATED_PICKUP_LEAD_MINUTES = '10080';
+      await http().post(`/purchase-orders/${po.id}/confirm`).set(admin.auth).send({ lines: [{ id: po.lines[0].id, status: 'unavailable' }] }).expect(201);
+      await settleEvents(po.id);
+      expect(await prisma.supplierPurchaseOrder.count({ where: { supplierId: supplier.id } })).toBe(0);
+      expect(await prisma.availabilityActionRequirement.count({ where: { requirement: { supplyRequest: { orderId: order.id } } } })).toBe(1);
+      expect(await prisma.sourcingDecision.findMany({ where: { skuId: sku.id } })).toEqual(expect.arrayContaining([
+        expect.objectContaining({ excludedOffers: expect.arrayContaining([expect.objectContaining({ reasonCodes: expect.arrayContaining(['DELIVERY_PROMISE']) })]) }),
+      ]));
+      expect(await prisma.order.findUniqueOrThrow({ where: { id: order.id }, select: { promisedDate: true, totalAmount: true } })).toEqual(before);
+    } finally { if (saved === undefined) delete process.env.PROCUREMENT_ESTIMATED_PICKUP_LEAD_MINUTES; else process.env.PROCUREMENT_ESTIMATED_PICKUP_LEAD_MINUTES = saved; }
+  });
+
   it.each([6, 0])('consolidates 2 + 1 + 3 and confirms %i/6 without duplicate commitments', async quantity => {
     const sku = await createSellableSku(prisma);
     const alternate = await prisma.supplier.create({ data: { name: 'Recovery ' + randomUUID(), slug: 'recovery-' + randomUUID(),

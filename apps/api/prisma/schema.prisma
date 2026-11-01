@@ -409,7 +409,7 @@ model Supplier {
   /// Days the warehouse is closed (0 = Sunday … 6 = Saturday); Friday by default.
   closedWeekdays Int[]   @default([5]) @map("closed_weekdays")
   closedDates String[]   @default([]) @map("closed_dates")
-  /// Staff-verified preparation, pickup and onward delivery lead after accepted confirmation; null blocks automatic recovery.
+  /// Staff-verified preparation, pickup and onward delivery lead; null uses a conservative operational estimate with uncertainty.
   pickupLeadMinutes Int? @map("pickup_lead_minutes")
   /// Working hours "HH:MM" in the configured supplier timezone; empty uses the configured defaults.
   opensAt   String?  @map("opens_at") @db.VarChar(5)

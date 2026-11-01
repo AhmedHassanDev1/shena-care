@@ -3,7 +3,7 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { SupplierOfferDetail } from './sourcing.service';
 import { SOURCING_SIGNAL_MAX_AGE_MS } from './availability-policy';
 import { Prisma } from '@prisma/client';
-import { RecoveryContext, recoveryExclusions } from './procurement-policy';
+import { RecoveryContext, recoveryExclusions, recoveryPickupLead } from './procurement-policy';
 
 export interface RankedOffer extends SupplierOfferDetail {
   score: number;
@@ -121,12 +121,15 @@ export class RankingService {
     }
 
     const eligibleOffers: RankedOffer[] = [];
+    const pickupLeads = new Map<string, ReturnType<typeof recoveryPickupLead>>();
     const reliabilityOf = new Map<string, { reliable: boolean; reliability: number }>();
     for (const offer of candidates) {
       const cost = offer.costPrice.toNumber();
       const { score: reliability, history } = await this.calculateSupplierReliability(offer.supplierId, db);
       const reliable = history < MIN_RELIABILITY_HISTORY || reliability >= RELIABILITY_FLOOR;
       const freshnessScore = Math.max(0, this.STALE_THRESHOLD_DAYS - daysSince(offer));
+      const pickupLead = options.recovery ? recoveryPickupLead(offer.supplier.pickupLeadMinutes) : null;
+      if (pickupLead) pickupLeads.set(offer.id, pickupLead);
       const reasonCodes = [
         `COST_SCORE:${(cost > 0 ? 1000 / cost : 0).toFixed(2)}`,
         `RELIABILITY_SCORE:${reliability.toFixed(2)}`,
@@ -134,6 +137,8 @@ export class RankingService {
         ...(reliable ? [] : ['LOW_CONFIRMATION_RELIABILITY']),
         ...(flags.get(offer.id) ?? []),
         ...(deferred.has(offer.id) ? ['DEFER_UNTIL_SUPPLIER_OPENS'] : []),
+        ...(pickupLead ? [`PICKUP_LEAD_${pickupLead.source}:${pickupLead.minutes}`,
+          `PICKUP_UNCERTAINTY_MINUTES:${pickupLead.uncertaintyMinutes}`, 'DELIVERY_SLA_UNVERIFIED'] : []),
       ];
       reliabilityOf.set(offer.id, { reliable, reliability });
       eligibleOffers.push({ ...offer, costPrice: cost, score: 0, reasonCodes });
@@ -143,6 +148,7 @@ export class RankingService {
     eligibleOffers.sort((a, b) =>
       Number(deferred.has(a.id)) - Number(deferred.has(b.id)) ||
       Number(tier(b).reliable) - Number(tier(a).reliable) ||
+      Number(pickupLeads.get(a.id)?.source === 'OPERATIONAL_ESTIMATE') - Number(pickupLeads.get(b.id)?.source === 'OPERATIONAL_ESTIMATE') ||
       a.costPrice - b.costPrice ||
       tier(b).reliability - tier(a).reliability ||
       b.lastObservedAt.getTime() - a.lastObservedAt.getTime() ||
@@ -151,7 +157,8 @@ export class RankingService {
 
     const decision = await db.sourcingDecision.create({ data: { skuId, requiredQuantity: quantity,
       requirementId: options.requirementId,
-      rankedOffers: rankedOffers.map(o => ({ offerId: o.id, supplierId: o.supplierId, cost: o.costPrice, reasons: o.reasonCodes })),
+      rankedOffers: rankedOffers.map(o => ({ offerId: o.id, supplierId: o.supplierId, cost: o.costPrice, reasons: o.reasonCodes,
+        ...(options.recovery ? { pickupLead: pickupLeads.get(o.id)! } : {}) })),
       excludedOffers: excludedOffers as unknown as Prisma.InputJsonValue,
     } });
 

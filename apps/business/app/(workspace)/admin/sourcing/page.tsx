@@ -74,7 +74,7 @@ function SupplierScheduleRow({ supplier, onSaved }: { supplier: SupplierWithSche
         <Field label="مدة التجهيز والاستلام والنقل المعتمدة (دقيقة)" type="number" min={0} max={10080} step={1}
           ltr value={pickupLead} onChange={(e) => setPickupLead(e.target.value)}
           error={!pickupOk ? 'اكتب عدد دقائق صحيح من صفر إلى 10080' : undefined} />
-        <p className="text-bw-small text-bw-ink-soft">مدة يراجعها مسؤول العمليات. تركها فارغة يمنع التحويل التلقائي لهذا المورد لعدم التأكد من إمكانية الاستلام والتوصيل.</p>
+        <p className="text-bw-small text-bw-ink-soft">مدة يراجعها مسؤول العمليات. تركها فارغة يستخدم تقديرًا تشغيليًا محافظًا بهامش لعدم اليقين، وليس موعد توصيل مضمونًا.</p>
         <Button type="submit" loading={save.pending} disabled={!hoursOk || !pickupOk}>حفظ المواعيد</Button>
       </div>
       <CommandError error={save.error} />

@@ -1,5 +1,5 @@
 import { cairoWallTime, isSupplierOperating, SupplierSchedule, supplierResponseDeadline } from './supplier-schedule';
-import { getProcurementBatchConfig, getSupplierResponseMinutes } from '../config/procurement-batch.config';
+import { getEstimatedPickupLead, getProcurementBatchConfig, getSupplierResponseMinutes } from '../config/procurement-batch.config';
 
 export interface RecoveryContext {
   now: Date;
@@ -13,6 +13,13 @@ export function committedDeliveryDeadline(date: Date | null): Date | null {
   return date ? new Date(cairoWallTime(date.toISOString().slice(0, 10), 23 * 60 + 59).getTime() + 60_000) : null;
 }
 
+export function recoveryPickupLead(verifiedMinutes: number | null) {
+  const estimated = verifiedMinutes === null;
+  const { minutes, uncertaintyMinutes } = estimated ? getEstimatedPickupLead() : { minutes: verifiedMinutes, uncertaintyMinutes: 0 };
+  return { source: estimated ? 'OPERATIONAL_ESTIMATE' : 'SUPPLIER_VERIFIED', minutes, uncertaintyMinutes,
+    planningMinutes: minutes + uncertaintyMinutes, deliverySlaVerified: false };
+}
+
 export function recoveryExclusions(offer: {
   costPrice: number; currency: string; minimumOrderUnits: number; orderMultipleUnits: number;
   supplier: SupplierSchedule & { pickupLeadMinutes: number | null };
@@ -23,11 +30,11 @@ export function recoveryExclusions(offer: {
   if (context.quantity % offer.orderMultipleUnits !== 0) reasons.push('ORDER_MULTIPLE');
   if (offer.currency !== context.currency) reasons.push('ORDER_CURRENCY');
   if (Math.round(offer.costPrice * 100) > Math.floor(context.maximumUnitCost * 100 + 1e-7)) reasons.push('MARGIN_LIMIT');
-  if (offer.supplier.pickupLeadMinutes === null) reasons.push('PICKUP_FEASIBILITY_UNKNOWN');
-  else if (context.deliveryDeadline) {
+  const pickupLead = recoveryPickupLead(offer.supplier.pickupLeadMinutes);
+  if (context.deliveryDeadline) {
     try {
       const readyBy = supplierResponseDeadline(context.now, offer.supplier, getSupplierResponseMinutes(true));
-      if (readyBy.getTime() + offer.supplier.pickupLeadMinutes * 60_000 > context.deliveryDeadline.getTime()) reasons.push('DELIVERY_PROMISE');
+      if (readyBy.getTime() + pickupLead.planningMinutes * 60_000 > context.deliveryDeadline.getTime()) reasons.push('DELIVERY_PROMISE');
     } catch { reasons.push('NO_SERVICE_WINDOW'); }
   }
   return reasons;

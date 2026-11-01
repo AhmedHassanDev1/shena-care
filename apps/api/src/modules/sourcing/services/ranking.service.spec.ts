@@ -20,6 +20,29 @@ describe('RankingService', () => {
     service = new RankingService(prismaService);
   });
 
+  it('prefers open verified leads, retains eligible estimated leads and audits uncertainty without a delivery SLA', async () => {
+    const supplier = { isActive: true, closedWeekdays: [], opensAt: '09:00', closesAt: '01:00', pickupLeadMinutes: 30 };
+    (prismaService.supplierOffer.findMany as jest.Mock).mockResolvedValue([
+      { id: 'estimated', supplierId: 's1', skuId: 'sku-1', isAvailable: true, currency: 'EGP', minimumOrderUnits: 1,
+        orderMultipleUnits: 1, costPrice: { toNumber: () => 50 }, lastObservedAt: new Date(), supplier: { ...supplier, pickupLeadMinutes: null } },
+      { id: 'verified', supplierId: 's2', skuId: 'sku-1', isAvailable: true, currency: 'EGP', minimumOrderUnits: 1,
+        orderMultipleUnits: 1, costPrice: { toNumber: () => 60 }, lastObservedAt: new Date(), supplier },
+      { id: 'closed-verified', supplierId: 's3', skuId: 'sku-1', isAvailable: true, currency: 'EGP', minimumOrderUnits: 1,
+        orderMultipleUnits: 1, costPrice: { toNumber: () => 55 }, lastObservedAt: new Date(), supplier: { ...supplier, closedWeekdays: [3] } },
+    ]);
+    (prismaService.purchaseOrderLine.count as jest.Mock).mockResolvedValue(0);
+    const result = await service.rankOffersForSku('sku-1', 1, { recovery: { now: new Date('2027-01-13T10:00:00Z'),
+      quantity: 1, maximumUnitCost: 100, currency: 'EGP', deliveryDeadline: new Date('2027-01-15T20:00:00Z') } });
+    expect(result.rankedOffers.map(o => o.id)).toEqual(['verified', 'estimated', 'closed-verified']);
+    const audit = (prismaService.sourcingDecision.create as jest.Mock).mock.calls[0][0].data.rankedOffers;
+    expect(audit.find((o: { offerId: string }) => o.offerId === 'estimated')).toMatchObject({ pickupLead: {
+      source: 'OPERATIONAL_ESTIMATE', minutes: 240, uncertaintyMinutes: 120, planningMinutes: 360, deliverySlaVerified: false,
+    } });
+    expect(audit.find((o: { offerId: string }) => o.offerId === 'verified')).toMatchObject({ pickupLead: {
+      source: 'SUPPLIER_VERIFIED', minutes: 30, uncertaintyMinutes: 0, planningMinutes: 30, deliverySlaVerified: false,
+    } });
+  });
+
   it('should rank a cheaper reliable offer higher than an expensive one', async () => {
     (prismaService.supplierOffer.findMany as jest.Mock).mockResolvedValue([
       {
