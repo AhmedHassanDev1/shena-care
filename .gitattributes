@@ -1,0 +1,2 @@
+# Preserve the exact bytes of the already-applied supplier deadline migration.
+apps/api/prisma/migrations/20261101005709_supplier_po_response_deadline/migration.sql -text whitespace=cr-at-eol

@@ -94,6 +94,8 @@ Applied with `prisma migrate deploy` (exit 0) on Development only:
 
 Post-deploy verification at 2026-11-01 04:26:39 Africa/Cairo: 64 migrations applied; `prisma migrate status` exit 0/up to date; all 89 original application table hashes preserved (the migration registry changed as expected); all original migration records preserved; two checks validated and five new indexes present; new Prisma client field reads succeeded inside a read-only transaction.
 
+A post-commit checksum check found Git had normalized the final CRLF of the already-applied deadline migration. Its SQL was unchanged, but its original file used mixed line endings. A narrowly scoped `.gitattributes` entry preserves that migration's exact original bytes, so the committed blob matches the applied checksum on every platform. This correction changes no SQL, remote data or migration registry metadata.
+
 Existing unrelated schema drift includes extra Care proposal columns, catalog/ingestion index/default/type differences. The generated destructive schema diff was **reviewed but never executed**. Remote residual drift after deployment exactly matches the successfully rehearsed clone; the four Supplier migrations do not drop, reset, rewrite or delete application data.
 
 Backup and restore/deploy evidence is retained, excluded from Git, under `.codex/qa-logs/glo-283-20261101/development-backup/`. Raw verification logs remain in `output/glo-283/`. Neither secrets, backup data nor runtime fixture credentials belong in the commit.
@@ -120,6 +122,7 @@ Only the explicit paths below plus this report and its assertion SQL are selecte
 
 ## Changed task paths
 
+- .gitattributes (only the applied Supplier PO deadline migration is exempted from newline conversion)
 - apps/api/prisma/schema.prisma
 - apps/api/prisma/migrations/20261101005709_supplier_po_response_deadline/migration.sql
 - apps/api/prisma/migrations/20261101005910_supplier_offer_shortage_evidence/migration.sql
