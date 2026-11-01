@@ -19,6 +19,7 @@ import type { EngineContext, SafetyAnswers, Tier, AgeBand } from '../engine/rout
 
 export interface FeatureActivesFact {
   ingredientId: string;
+  skuId?: string | null;
   ingredientSlug: string;
   familySlug: string | null;
   /** Explicit typed concentration percentage or value; null if unstated. Never inferred. */
@@ -138,6 +139,25 @@ export function extractProductFeatures(
     r => !r.skuId || r.skuId === targetSkuId,
   );
 
+  // Scoped actives: active applies if product-wide (skuId == null) or matching target SKU
+  const scopedActives = facts.actives.filter(
+    a => !a.skuId || a.skuId === targetSkuId,
+  );
+
+  // Scoped ingredient identities:
+  const relevantPis = (facts.productIngredients ?? []).filter(
+    pi => !pi.skuId || pi.skuId === targetSkuId,
+  );
+  const scopedIngredientIds = relevantPis.length
+    ? relevantPis.map(pi => pi.ingredientId)
+    : facts.ingredientIds;
+  const scopedIngredientSlugs = relevantPis.length
+    ? relevantPis.map(pi => pi.ingredientSlug)
+    : facts.ingredientSlugs;
+  const scopedIngredientFamilies = relevantPis.length
+    ? [...new Set(relevantPis.map(pi => pi.familySlug).filter((f): f is string => !!f))]
+    : facts.ingredientFamilies;
+
   return {
     productId: facts.productId,
     skuId: targetSkuId,
@@ -164,8 +184,9 @@ export function extractProductFeatures(
       isNonComedogenic: facts.isNonComedogenic ?? null,
       claimsEvidence: facts.claimsEvidence ?? null,
     },
-    actives: facts.actives.map((a: RoutineActiveFact) => ({
+    actives: scopedActives.map((a: RoutineActiveFact) => ({
       ingredientId: a.ingredientId,
+      skuId: a.skuId ?? null,
       ingredientSlug: a.ingredientSlug,
       familySlug: a.familySlug,
       concentrationValue: a.concentrationValue,
@@ -174,9 +195,9 @@ export function extractProductFeatures(
       concentrationVerified: a.concentrationVerified,
       reviewedAt: a.concentrationReviewedAt,
     })),
-    ingredientIds: facts.ingredientIds,
-    ingredientSlugs: facts.ingredientSlugs,
-    ingredientFamilies: facts.ingredientFamilies,
+    ingredientIds: scopedIngredientIds,
+    ingredientSlugs: scopedIngredientSlugs,
+    ingredientFamilies: scopedIngredientFamilies,
     safetyWarnings: scopedWarnings.map(w => ({
       id: w.id,
       kind: w.kind as SafetyWarningKind,

@@ -51,6 +51,7 @@ export interface StatedConcentrationInput {
 /** One reviewed key active of a product, as the routine engine reads it. */
 export interface RoutineActiveFact {
   ingredientId: string;
+  skuId?: string | null;
   ingredientSlug: string;
   familySlug: string | null;
   concentrationValue: number | null;
@@ -81,6 +82,15 @@ export interface RoutineProductFacts {
   skus: Array<{ id: string; size: number | null; sizeUnit: string | null; isActive: boolean; estimatedDaysOfUse?: number | null }>;
   imageUrl: string | null;
   actives: RoutineActiveFact[];
+  productIngredients?: Array<{
+    ingredientId: string;
+    skuId?: string | null;
+    ingredientSlug: string;
+    familySlug: string | null;
+    isKeyActive: boolean;
+    concentrationValue: number | null;
+    concentrationUnit: string | null;
+  }>;
   ingredientIds: string[];
   ingredientSlugs: string[];
   ingredientFamilies: string[];
@@ -534,11 +544,15 @@ export class CatalogService {
     return this.mapToPublishedProduct(updated, true);
   }
 
-  /** Add only reviewer-approved canonical ingredient links; never replace an existing formula. */
-  async addReviewedProductIngredients(productId: string, ingredientIds: string[]): Promise<void> {
+  /** Add only reviewer-approved canonical ingredient links; optionally scoped to a SKU; never replace an existing formula. */
+  async addReviewedProductIngredients(productId: string, ingredientIds: string[], skuId?: string): Promise<void> {
     if (!ingredientIds.length) return;
     const product = await this.prisma.product.findUnique({ where: { id: productId }, select: { id: true, isFragranceFree: true } });
     if (!product) throw new NotFoundException('Product not found');
+    if (skuId) {
+      const sku = await this.prisma.sku.findUnique({ where: { id: skuId } });
+      if (!sku || sku.productId !== productId) throw new BadRequestException('Target SKU does not belong to this product');
+    }
     const uniqueIds = [...new Set(ingredientIds)];
     const ingredients = await this.prisma.ingredient.findMany({
       where: { id: { in: uniqueIds }, status: 'APPROVED' }, select: { id: true, name: true, slug: true, primaryFunction: true },
@@ -555,7 +569,13 @@ export class CatalogService {
       }
     }
     await this.prisma.productIngredient.createMany({
-      data: uniqueIds.map((ingredientId, sortOrder) => ({ productId, ingredientId, isKeyActive: true, sortOrder })),
+      data: uniqueIds.map((ingredientId, sortOrder) => ({
+        productId,
+        skuId: skuId ?? null,
+        ingredientId,
+        isKeyActive: true,
+        sortOrder,
+      })),
       skipDuplicates: true,
     });
   }
@@ -634,6 +654,7 @@ export class CatalogService {
           const evidence = (pi.concentrationEvidence ?? null) as { reviewedAt?: string; sourceUrl?: string } | null;
           return {
             ingredientId: pi.ingredientId,
+            skuId: pi.skuId ?? null,
             ingredientSlug: pi.ingredient.slug,
             familySlug: pi.ingredient.familySlug ?? null,
             concentrationValue: pi.concentrationValue === null ? null : Number(pi.concentrationValue),
@@ -642,6 +663,15 @@ export class CatalogService {
             concentrationReviewedAt: evidence?.reviewedAt ?? null,
           };
         }),
+      productIngredients: p.productIngredients.map(pi => ({
+        ingredientId: pi.ingredientId,
+        skuId: pi.skuId ?? null,
+        ingredientSlug: pi.ingredient.slug,
+        familySlug: pi.ingredient.familySlug ?? null,
+        isKeyActive: pi.isKeyActive,
+        concentrationValue: pi.concentrationValue === null ? null : Number(pi.concentrationValue),
+        concentrationUnit: pi.concentrationUnit ?? null,
+      })),
       ingredientIds: p.productIngredients.map(pi => pi.ingredientId),
       ingredientSlugs: p.productIngredients.map(pi => pi.ingredient.slug),
       ingredientFamilies: [...new Set(p.productIngredients.map(pi => pi.ingredient.familySlug).filter((f): f is string => !!f))],

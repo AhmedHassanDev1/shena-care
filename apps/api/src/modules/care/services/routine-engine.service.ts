@@ -97,13 +97,20 @@ export class RoutineEngineService {
       const offer = offers.get(e.productId)!;
       const rules = f.usageRules.filter(r => r.skuId === null || r.skuId === offer.skuId);
       const warnings = (f.safetyWarnings ?? []).filter(w => !w.skuId || w.skuId === offer.skuId);
+      const actives = (f.actives ?? []).filter(a => !a.skuId || a.skuId === offer.skuId);
+      const relevantPis = (f.productIngredients ?? []).filter(pi => !pi.skuId || pi.skuId === offer.skuId);
+      const ingredientIds = relevantPis.length ? relevantPis.map(pi => pi.ingredientId) : f.ingredientIds;
+      const ingredientSlugs = relevantPis.length ? relevantPis.map(pi => pi.ingredientSlug) : f.ingredientSlugs;
+      const ingredientFamilies = relevantPis.length
+        ? [...new Set(relevantPis.map(pi => pi.familySlug).filter((fl): fl is string => !!fl))]
+        : f.ingredientFamilies;
       candidates.push({
         productId: f.productId, skuId: offer.skuId, name: f.name, brandName: f.brandName, imageUrl: f.imageUrl,
         roleKey: e.roleKey, tier: e.tier as Tier, concernSlugs: e.concernSlugs, suitableSkinTypes: e.suitableSkinTypes,
-        price: offer.price, currency: offer.currency, sellable: offer.sellable, actives: f.actives,
-        ingredientIds: f.ingredientIds, ingredientSlugs: f.ingredientSlugs, ingredientFamilies: f.ingredientFamilies,
+        price: offer.price, currency: offer.currency, sellable: offer.sellable, actives,
+        ingredientIds, ingredientSlugs, ingredientFamilies,
         usageRuleCount: rules.length,
-        factsReviewedAt: [...rules.map(r => r.reviewedAt), ...f.actives.map(a => a.concentrationReviewedAt).filter((d): d is string => !!d)],
+        factsReviewedAt: [...rules.map(r => r.reviewedAt), ...actives.map(a => a.concentrationReviewedAt).filter((d): d is string => !!d)],
         safetyWarnings: warnings.map(w => ({ kind: w.kind, condition: w.condition, skuId: w.skuId ?? null })),
       });
     }

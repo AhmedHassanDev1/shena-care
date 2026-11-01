@@ -2,3 +2,5 @@
 apps/api/prisma/migrations/20261101005709_supplier_po_response_deadline/migration.sql -text whitespace=cr-at-eol
 # Preserve the exact bytes of the applied GLO-284 foundation migration.
 apps/api/prisma/migrations/20261101030000_glo284_product_schema_foundation/migration.sql text eol=lf
+apps/api/prisma/migrations/20261101040000_glo284_schedule_and_formula_integrity/migration.sql text eol=lf
+apps/api/prisma/migrations/20261101050000_glo284_sku_ingredient_formula_isolation/migration.sql text eol=lf

@@ -140,6 +140,7 @@ model Sku {
   product            Product            @relation(fields: [productId], references: [id])
   supplierSkuAliases SupplierSkuAlias[]
   barcodeAliases     SkuBarcodeAlias[]
+  productIngredients ProductIngredient[]
   usageRules         ProductUsageRule[]
   safetyWarnings     ProductSafetyWarning[]
 
@@ -254,6 +255,7 @@ model Ingredient {
 model ProductIngredient {
   id            String     @id @default(uuid()) @db.Uuid
   productId     String     @map("product_id") @db.Uuid
+  skuId         String?    @map("sku_id") @db.Uuid
   ingredientId  String     @map("ingredient_id") @db.Uuid
   isKeyActive   Boolean    @default(false) @map("is_key_active")
   concentration String?    // e.g. "10%", "2%" - only when verified, never assumed
@@ -268,10 +270,12 @@ model ProductIngredient {
   updatedAt     DateTime   @updatedAt @map("updated_at")
 
   product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku        Sku?       @relation(fields: [skuId], references: [id], onDelete: Cascade)
   ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
 
-  @@unique([productId, ingredientId])
+  @@unique([productId, ingredientId, skuId])
   @@index([productId])
+  @@index([skuId])
   @@index([ingredientId])
   @@map("product_ingredients")
   @@schema("catalog")
