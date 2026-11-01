@@ -86,6 +86,7 @@ export interface RoutineProductFacts {
   ingredientFamilies: string[];
   safetyWarnings?: Array<{
     id: string;
+    skuId?: string | null;
     kind: string;
     condition: string | null;
     descriptionEn: string;
@@ -646,6 +647,7 @@ export class CatalogService {
       ingredientFamilies: [...new Set(p.productIngredients.map(pi => pi.ingredient.familySlug).filter((f): f is string => !!f))],
       safetyWarnings: p.safetyWarnings?.map(sw => ({
         id: sw.id,
+        skuId: sw.skuId ?? null,
         kind: sw.kind,
         condition: sw.condition,
         descriptionEn: sw.descriptionEn,
@@ -674,8 +676,9 @@ export class CatalogService {
     });
   }
 
-  /** Add structured safety warning (GLO-284 §4D). */
+  /** Add structured safety warning (GLO-284 §4D). Supports optional skuId for formula/variant scoping. */
   async addProductSafetyWarning(productId: string, warning: {
+    skuId?: string | null;
     kind: SafetyWarningKind;
     condition?: string | null;
     descriptionEn: string;
@@ -687,9 +690,16 @@ export class CatalogService {
   }) {
     const product = await this.prisma.product.findUnique({ where: { id: productId } });
     if (!product) throw new NotFoundException('Product not found');
+    if (warning.skuId) {
+      const sku = await this.prisma.sku.findUnique({ where: { id: warning.skuId } });
+      if (!sku || sku.productId !== productId) {
+        throw new BadRequestException('Target SKU does not belong to this product');
+      }
+    }
     return this.prisma.productSafetyWarning.create({
       data: {
         productId,
+        skuId: warning.skuId ?? null,
         kind: warning.kind,
         condition: warning.condition ?? null,
         descriptionEn: warning.descriptionEn,

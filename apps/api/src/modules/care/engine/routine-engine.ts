@@ -72,8 +72,8 @@ export interface EngineCandidate {
   usageRuleCount: number;
   /** Review dates of the facts that qualify the product (usage rules, stated concentrations). */
   factsReviewedAt: string[];
-  /** Structured product safety warnings (GLO-284 §4D). */
-  safetyWarnings?: Array<{ kind: string; condition: string | null }>;
+  /** Structured product safety warnings (GLO-284 §4D). Supports optional skuId scoping. */
+  safetyWarnings?: Array<{ kind: string; condition: string | null; skuId?: string | null }>;
 }
 
 export interface SafetyAnswers {
@@ -259,7 +259,7 @@ export function exclusionFor(
 
   if (c.safetyWarnings) {
     for (const warning of c.safetyWarnings) {
-      if ((warning.kind === 'CONTRAINDICATION' || warning.kind === 'RESTRICTION') && warning.condition) {
+      if ((!warning.skuId || warning.skuId === c.skuId) && (warning.kind === 'CONTRAINDICATION' || warning.kind === 'RESTRICTION') && warning.condition) {
         const { applies, unknown } = conditionApplies(warning.condition, ctx);
         if (applies) return { reason: `CONDITION:${warning.condition}`, unknownSafety: unknown };
       }

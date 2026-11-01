@@ -96,6 +96,7 @@ export class RoutineEngineService {
       if (!f) continue; // unpublished or removed from the catalog
       const offer = offers.get(e.productId)!;
       const rules = f.usageRules.filter(r => r.skuId === null || r.skuId === offer.skuId);
+      const warnings = (f.safetyWarnings ?? []).filter(w => !w.skuId || w.skuId === offer.skuId);
       candidates.push({
         productId: f.productId, skuId: offer.skuId, name: f.name, brandName: f.brandName, imageUrl: f.imageUrl,
         roleKey: e.roleKey, tier: e.tier as Tier, concernSlugs: e.concernSlugs, suitableSkinTypes: e.suitableSkinTypes,
@@ -103,7 +104,7 @@ export class RoutineEngineService {
         ingredientIds: f.ingredientIds, ingredientSlugs: f.ingredientSlugs, ingredientFamilies: f.ingredientFamilies,
         usageRuleCount: rules.length,
         factsReviewedAt: [...rules.map(r => r.reviewedAt), ...f.actives.map(a => a.concentrationReviewedAt).filter((d): d is string => !!d)],
-        safetyWarnings: f.safetyWarnings?.map(w => ({ kind: w.kind, condition: w.condition })),
+        safetyWarnings: warnings.map(w => ({ kind: w.kind, condition: w.condition, skuId: w.skuId ?? null })),
       });
     }
     return { candidates, facts };
