@@ -100,7 +100,7 @@
     ]
   },
   "lineHeight": {
-    "$comment": "Board line-height ramp (px). Utility: leading-<key>.",
+    "$comment": "Board line-height ramp (px). Utility: leading-<key>. ratios: unitless leading for headings that change size across breakpoints (leading-tight|snug|relaxed).",
     "values": [
       "13",
       "14",
@@ -132,7 +132,12 @@
       "66",
       "88",
       "95"
-    ]
+    ],
+    "ratios": {
+      "tight": "1.15",
+      "snug": "1.3",
+      "relaxed": "1.65"
+    }
   },
   "radius": {
     "$comment": "Specific border-radius values.",

@@ -51,7 +51,7 @@ export function RoutineReviewApproval() {
   return (
     <div
       data-ui-status="verified-pillar"
-      data-route="/routine/builder"
+      data-route="/routines/build"
       className="mx-auto flex max-w-narrow flex-col gap-8 pb-28 pt-6"
     >
       {/* Header */}
@@ -64,7 +64,7 @@ export function RoutineReviewApproval() {
             روتين متناسق استرشادي
           </span>
         </div>
-        <h1 className="m-0 font-display text-26 font-extrabold leading-34 text-ink lg:text-34 lg:leading-42">
+        <h1 className="m-0 font-display text-26 font-extrabold leading-34 text-ink lg:text-34 lg:leading-40">
           {m.routineReviewTitle}
         </h1>
         <p className="m-0 text-14.5 leading-24 text-stone">
@@ -72,13 +72,13 @@ export function RoutineReviewApproval() {
         </p>
 
         <div className="flex flex-wrap items-center gap-2 pt-2 shadow-hairline-top">
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-e1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-elevation-1">
             ✓ متوافق مع البشرة المعرضة للحبوب
           </span>
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-e1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-elevation-1">
             ✓ خطوات متوازنة صباحاً ومساءً
           </span>
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-cobalt shadow-e1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-cobalt shadow-elevation-1">
             ✓ تغليف محكم وتوصيل معتمد
           </span>
         </div>
@@ -105,7 +105,7 @@ export function RoutineReviewApproval() {
             <li
               key={item.id}
               onClick={() => toggle(item.id)}
-              className="flex cursor-pointer items-center justify-between gap-3 rounded-image bg-chalk p-3.5 shadow-e1 transition-all hover:bg-sand/30"
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-image bg-chalk p-3.5 shadow-elevation-1 transition-all hover:bg-sand/30"
             >
               <div className="flex items-center gap-3">
                 <span
@@ -152,7 +152,7 @@ export function RoutineReviewApproval() {
             <li
               key={item.id}
               onClick={() => toggle(item.id)}
-              className="flex cursor-pointer items-center justify-between gap-3 rounded-image bg-chalk p-3.5 shadow-e1 transition-all hover:bg-sand/30"
+              className="flex cursor-pointer items-center justify-between gap-3 rounded-image bg-chalk p-3.5 shadow-elevation-1 transition-all hover:bg-sand/30"
             >
               <div className="flex items-center gap-3">
                 <span
@@ -190,7 +190,7 @@ export function RoutineReviewApproval() {
       </div>
 
       {/* Floating Bottom Approval Bar */}
-      <div className="sticky bottom-6 z-sticky flex items-center justify-between gap-4 rounded-card bg-linen/95 p-4 shadow-e3 backdrop-blur-md">
+      <div className="sticky bottom-6 z-sticky flex items-center justify-between gap-4 rounded-card bg-linen/95 p-4 shadow-elevation-3 backdrop-blur-md">
         <div className="flex flex-col">
           <span className="text-11.5 font-semibold text-stone">إجمالي الروتين المقترح ({selectedItems.length} منتجات)</span>
           <span className="font-display text-20 font-extrabold text-ink">{totalPrice} ج.م</span>
@@ -208,7 +208,7 @@ export function RoutineReviewApproval() {
             size="l"
             onClick={handleApprove}
             disabled={added || selectedItems.length === 0}
-            className="font-bold shadow-e1"
+            className="font-bold shadow-elevation-1"
           >
             {added ? 'جاري الانتقال للكتالوج ✓' : 'البحث عن المنتجات في الكتالوج'}
           </Button>

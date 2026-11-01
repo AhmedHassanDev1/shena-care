@@ -11,7 +11,7 @@ export interface ChipLinkProps extends LinkProps, Omit<React.AnchorHTMLAttribute
 
 /**
  * Navigation chip (shop by concern): a link that looks like the filter pill, 48 tall, with an optional leading icon in
- * bottle green. Hover lifts 1px, darkens the outline and nudges the icon; the focus ring comes from the global
+ * cobalt. Hover lifts 1px, darkens the outline and nudges the icon; the focus ring comes from the global
  * :focus-visible style. For toggle filters use `Chip` instead.
  */
 export function ChipLink({ icon, className, children, ...props }: ChipLinkProps) {
@@ -19,7 +19,7 @@ export function ChipLink({ icon, className, children, ...props }: ChipLinkProps)
     <Link
       className={cn(
         "group inline-flex h-12 flex-none items-center gap-2.5 whitespace-nowrap rounded-pill bg-linen ps-4 pe-5 text-16 font-display font-semibold leading-none text-ink no-underline shadow-outline-control",
-        "transition-[transform,box-shadow,background-color] duration-base ease-standard hover:-translate-y-px hover:bg-chalk hover:shadow-e1",
+        "transition-[transform,box-shadow,background-color] duration-base ease-standard hover:-translate-y-px hover:bg-chalk hover:shadow-elevation-1",
         className
       )}
       {...props}

@@ -58,12 +58,12 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
     <article className="flex flex-col gap-5 lg:rounded-sheet lg:bg-linen lg:p-7 lg:shadow-elevation-3 lg:outline lg:outline-1 lg:outline-line">
       <header className="flex items-start justify-between gap-3">
         <span className="flex flex-col gap-1">
-          <span className="text-13 text-ink-2">
+          <span className="text-13 text-stone">
             {fillMessage(m.orderPlacedOnLong, { date: formatDate(order.createdAt, locale) })} · {formatProductCount(count, locale)}
           </span>
           {/* Phone: the number is the header title (CommerceMobile ٧); desktop: the panel heading (OrdersD). */}
           <h2 className="m-0 hidden text-match-parent lg:block">
-            <bdi dir="ltr" className="text-24 font-bold tabular-nums leading-30 text-night lg:text-28 lg:leading-34">
+            <bdi dir="ltr" className="text-24 font-bold tabular-nums leading-30 text-ink lg:text-28 lg:leading-34">
               {order.orderNumber}
             </bdi>
           </h2>
@@ -89,7 +89,7 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
       <Timeline items={trackingSteps(order, m, locale)} label={m.orderTimeline} />
 
       <section aria-labelledby="od-items" className="flex flex-col gap-3 pt-5 shadow-hairline-top">
-        <h2 id="od-items" className="m-0 text-17 font-bold text-night">
+        <h2 id="od-items" className="m-0 text-17 font-bold text-ink">
           {m.orderItems}
         </h2>
         <ul className="m-0 flex list-none flex-col p-0">
@@ -101,12 +101,12 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
             return (
               <li key={item.id} className="flex flex-col gap-2 py-3 shadow-hairline-bottom last:shadow-none">
                 <span className="flex items-center gap-3">
-                  <ProductTile size="thumb" className={cn('h-15 w-12 flex-none rounded-10', gone && 'opacity-50')} src={entry?.image?.url ?? null} alt="" name={name} />
+                  <ProductTile size="thumb" className={cn('h-15 w-12 flex-none rounded-8', gone && 'opacity-50')} src={entry?.image?.url ?? null} alt="" name={name} />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span dir="auto" className={cn('text-match-parent text-14.5 font-semibold text-night', gone && 'text-ink-3 line-through')}>
+                    <span dir="auto" className={cn('text-match-parent text-14.5 font-semibold text-ink', gone && 'text-stone line-through')}>
                       {name}
                     </span>
-                    <span className="text-12.5 text-ink-2">
+                    <span className="text-12.5 text-stone">
                       {fillMessage(m.checkoutLineMeta, { size, qty: formatNumber(item.quantity, locale) })}
                     </span>
                     {gone || item.status === 'action-required' ? (
@@ -115,7 +115,7 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
                       </StatusChip>
                     ) : null}
                   </span>
-                  <Money amount={item.lineTotal} className={cn('text-14 font-bold text-night', gone && 'text-ink-3 line-through')} />
+                  <Money amount={item.lineTotal} className={cn('text-14 font-bold text-ink', gone && 'text-stone line-through')} />
                 </span>
                 {finished && !gone ? (
                   <span className="flex flex-wrap items-center gap-2 ps-15">
@@ -143,26 +143,26 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
           <Money amount={order.amounts.currentCodAmount} />
         </Row>
         {order.amounts.originalCodAmount !== order.amounts.currentCodAmount ? (
-          <p className="m-0 text-12.5 text-ink-3">
+          <p className="m-0 text-12.5 text-stone">
             {fillMessage(m.orderCodWas, { amount: formatEgp(order.amounts.originalCodAmount, order.amounts.currency, locale) ?? '' })}
           </p>
         ) : null}
-        <p className="m-0 text-13 text-ink-2">{m.orderPaymentLine}</p>
+        <p className="m-0 text-13 text-stone">{m.orderPaymentLine}</p>
       </section>
 
       <section aria-labelledby="od-delivery" className="flex flex-col gap-1">
-        <h2 id="od-delivery" className="m-0 text-17 font-bold text-night">
+        <h2 id="od-delivery" className="m-0 text-17 font-bold text-ink">
           {m.orderDeliveryTitle}
         </h2>
-        <p className="m-0 text-14 leading-22 text-night">
+        <p className="m-0 text-14 leading-22 text-ink">
           {order.customerName} · {address}
         </p>
-        <p className="m-0 text-13 text-ink-2">{promise}</p>
+        <p className="m-0 text-13 text-stone">{promise}</p>
       </section>
 
       {order.resolutions.length ? (
         <section aria-labelledby="od-resolutions" className="flex flex-col gap-2">
-          <h2 id="od-resolutions" className="m-0 text-17 font-bold text-night">
+          <h2 id="od-resolutions" className="m-0 text-17 font-bold text-ink">
             {m.orderResolutions}
           </h2>
           <ul className="m-0 flex list-none flex-col gap-2 p-0 text-14">
@@ -172,7 +172,7 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
                   {m[`orderResolutionStatus${resolution.status}` as keyof Messages] as string}
                 </StatusChip>
                 {resolution.refund ? (
-                  <span className="text-ink-2">
+                  <span className="text-stone">
                     {fillMessage(m.orderRefund, {
                       amount: formatEgp(resolution.refund.amount, resolution.refund.currency, locale) ?? '',
                       status: resolution.refund.status,
@@ -192,7 +192,7 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
 
 function Row({ label, strong, children }: { label: string; strong?: boolean; children: React.ReactNode }) {
   return (
-    <div className={cn('flex min-h-7.5 items-center justify-between gap-3 text-night', strong ? 'text-17 font-bold' : 'text-14.5 font-medium')}>
+    <div className={cn('flex min-h-7.5 items-center justify-between gap-3 text-ink', strong ? 'text-17 font-bold' : 'text-14.5 font-medium')}>
       <span>{label}</span>
       <span className="tabular-nums">{children}</span>
     </div>
@@ -296,7 +296,7 @@ function OrderSelfService({ order }: { order: OrderTracking }) {
           {m.orderContactSupport}
         </button>
       </div>
-      {order.canCancel && cancelState !== 'done' ? <p className="m-0 text-12.5 text-ink-3">{m.orderCancelNote}</p> : null}
+      {order.canCancel && cancelState !== 'done' ? <p className="m-0 text-12.5 text-stone">{m.orderCancelNote}</p> : null}
 
       {reorder.state === 'failed' ? (
         <MessageBox tone="err" role="alert">
@@ -322,10 +322,10 @@ function OrderSelfService({ order }: { order: OrderTracking }) {
       ) : null}
 
       {supportOpen ? (
-        <form onSubmit={send} className="flex flex-col gap-3 rounded-card bg-bone p-4 shadow-outline-hairline">
-          <h2 className="m-0 text-16 font-bold text-night">{m.orderSupportTitle}</h2>
+        <form onSubmit={send} className="flex flex-col gap-3 rounded-card bg-chalk p-4 shadow-outline-hairline">
+          <h2 className="m-0 text-16 font-bold text-ink">{m.orderSupportTitle}</h2>
           <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-            <legend className="mb-2 text-14 text-ink-2">{m.orderSupportTopic}</legend>
+            <legend className="mb-2 text-14 text-stone">{m.orderSupportTopic}</legend>
             <div className="flex flex-wrap gap-2">
               {SUPPORT_TOPICS.map((value) => (
                 <Chip key={value} selected={topic === value} onClick={() => setTopic(value)}>
@@ -408,7 +408,7 @@ function BuyAgainItem({ orderNumber, skuId }: { orderNumber: string; skuId: stri
       </Link>
     );
   }
-  if (state === 'unavailable') return <span className="text-13 text-ink-3">{m.buyAgainItemUnavailable}</span>;
+  if (state === 'unavailable') return <span className="text-13 text-stone">{m.buyAgainItemUnavailable}</span>;
   return (
     <AsyncButton variant="light" size="s" state={state === 'pending' ? 'pending' : state === 'error' ? 'error' : 'idle'} pendingLabel={m.buyAgainAdding} onClick={add}>
       {m.buyAgainItem}
@@ -460,13 +460,13 @@ function DecisionPanel({ orderNumber, onResolved }: { orderNumber: string; onRes
   };
 
   return (
-    <section aria-labelledby="decision-title" className="flex flex-col gap-4 rounded-card bg-saffron-tint p-4 shadow-outline-warn">
-      <h2 id="decision-title" className="m-0 text-16 font-bold text-saffron-ink">
+    <section aria-labelledby="decision-title" className="flex flex-col gap-4 rounded-card bg-citron/30 p-4 shadow-outline-warn">
+      <h2 id="decision-title" className="m-0 text-16 font-bold text-ink">
         {m.decisionTitle}
       </h2>
-      {state === 'failed' ? <p role="alert" className="m-0 text-14 text-err">{m.decisionFailed}</p> : null}
-      {state === 'stale' ? <p role="status" className="m-0 text-14 text-night">{m.decisionStale}</p> : null}
-      {query.isPending ? <p className="m-0 text-14 text-ink-2">{m.decisionLoading}</p> : null}
+      {state === 'failed' ? <p role="alert" className="m-0 text-14 text-tomato-ink">{m.decisionFailed}</p> : null}
+      {state === 'stale' ? <p role="status" className="m-0 text-14 text-ink">{m.decisionStale}</p> : null}
+      {query.isPending ? <p className="m-0 text-14 text-stone">{m.decisionLoading}</p> : null}
 
       {pending.map((decision) => {
         const name = decision.original.productName ?? '';
@@ -499,24 +499,24 @@ function DecisionPanel({ orderNumber, onResolved }: { orderNumber: string; onRes
         }
         return (
           <fieldset key={decision.id} className="m-0 flex flex-col gap-2.5 border-0 p-0">
-            <legend className="mb-2 text-14 text-night">{fillMessage(m.decisionIntro, { qty: formatNumber(decision.unresolvedQuantity, locale), name })}</legend>
+            <legend className="mb-2 text-14 text-ink">{fillMessage(m.decisionIntro, { qty: formatNumber(decision.unresolvedQuantity, locale), name })}</legend>
             {options.map((option) => {
               const selected = choice?.decisionId === decision.id && choice.action === option.action && choice.skuId === option.skuId;
               return (
                 <label
                   key={`${option.action}-${option.skuId ?? ''}`}
-                  className={cn('flex cursor-pointer items-start gap-3 rounded-16 bg-linen px-4 py-3', selected ? 'shadow-outline-bottle' : 'shadow-outline-control')}
+                  className={cn('flex cursor-pointer items-start gap-3 rounded-16 bg-linen px-4 py-3', selected ? 'shadow-outline-cobalt' : 'shadow-outline-control')}
                 >
                   <input
                     type="radio"
                     name={`decision-${decision.id}`}
-                    className="mt-1 size-4 accent-bottle"
+                    className="mt-1 size-4 accent-cobalt"
                     checked={selected}
                     onChange={() => setChoice({ decisionId: decision.id, action: option.action, skuId: option.skuId })}
                   />
                   <span className="flex flex-col gap-0.5">
-                    <span className={cn('text-14 text-night', selected && 'font-bold')}>{option.label}</span>
-                    <span className="text-12.5 text-ink-2">{option.detail}</span>
+                    <span className={cn('text-14 text-ink', selected && 'font-bold')}>{option.label}</span>
+                    <span className="text-12.5 text-stone">{option.detail}</span>
                   </span>
                 </label>
               );

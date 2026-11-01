@@ -23,7 +23,7 @@ const THUMBS = 3;
 
 /**
  * «طلباتي» list (OrdersD start column, CommerceMobile ٦/٦ب): order cards with reference, stage chip, date · count ·
- * total and up to three product thumbnails; the selected order has the bottle ring on desktop. The phone adds the
+ * total and up to three product thumbnails; the selected order has the cobalt ring on desktop. The phone adds the
  * «الكل · شغّالة · خلصت» filter. Stages are the server's customer stages (the same as the order page).
  */
 export function OrdersList({
@@ -59,7 +59,7 @@ export function OrdersList({
       ) : null}
 
       {visible.length === 0 ? (
-        <p className="m-0 py-6 text-center text-14 text-ink-2">{m.myOrdersEmptyFilter}</p>
+        <p className="m-0 py-6 text-center text-14 text-stone">{m.myOrdersEmptyFilter}</p>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-3 p-0">
           {visible.map((order) => (
@@ -90,8 +90,8 @@ function OrderCard({
       href={routes.order(order.orderNumber)}
       aria-current={selected ? 'page' : undefined}
       className={cn(
-        'flex flex-col gap-2 rounded-card bg-linen p-4 text-night no-underline',
-        selected ? 'shadow-outline-bottle' : 'shadow-outline-hairline hover:shadow-outline-control'
+        'flex flex-col gap-2 rounded-card bg-linen p-4 text-ink no-underline',
+        selected ? 'shadow-outline-cobalt' : 'shadow-outline-hairline hover:shadow-outline-control'
       )}
     >
       <span className="flex items-center justify-between gap-3">
@@ -100,8 +100,8 @@ function OrderCard({
         </bdi>
         <StatusChip tone={stageTone(order.stage)}>{stageLabel(order.stage, m)}</StatusChip>
       </span>
-      <span className="text-13 text-ink-2">
-        {formatDate(order.createdAt, locale)} · {formatProductCount(order.itemCount, locale)} · <bdi className="font-bold text-night">{total}</bdi>
+      <span className="text-13 text-stone">
+        {formatDate(order.createdAt, locale)} · {formatProductCount(order.itemCount, locale)} · <bdi className="font-bold text-ink">{total}</bdi>
       </span>
       {order.skuIds.length ? (
         <span className="flex gap-2">
@@ -128,7 +128,7 @@ export function OrdersSignIn() {
   const m = useMessages();
   return (
     <section className="flex flex-col items-start gap-3 rounded-card bg-linen p-5 shadow-outline-hairline">
-      <p className="m-0 text-15 text-night">{m.myOrdersSignIn}</p>
+      <p className="m-0 text-15 text-ink">{m.myOrdersSignIn}</p>
       <Link href={signInHref(routes.myOrders)} className={buttonVariants({ variant: 'ink' })}>
         {m.myOrdersSignInButton}
       </Link>
@@ -140,7 +140,7 @@ export function OrdersEmpty() {
   const m = useMessages();
   return (
     <section className="flex flex-col items-center gap-3 rounded-card bg-linen px-5 py-10 text-center shadow-outline-hairline">
-      <p className="m-0 text-15 text-night">{m.myOrdersEmpty}</p>
+      <p className="m-0 text-15 text-ink">{m.myOrdersEmpty}</p>
       <Link href={routes.products} className={buttonVariants({ variant: 'ink' })}>
         {m.cartShop}
       </Link>

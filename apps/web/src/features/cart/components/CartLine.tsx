@@ -57,9 +57,9 @@ export function CartLine({ item, busy, priceReview, onQuantity, onRemove, onPric
   const amount =
     !unavailable && item.subtotal !== null ? (
       <span className="flex flex-col items-end gap-0.5">
-        <Money amount={item.subtotal} className="text-17 font-bold leading-24 text-night lg:text-18" />
+        <Money amount={item.subtotal} className="text-17 font-bold leading-24 text-ink lg:text-18" />
         {item.quantity > 1 && item.price ? (
-          <span className="text-12 leading-17 text-ink-3">
+          <span className="text-12 leading-17 text-stone">
             {fillMessage(m.cartUnitPrice, { price: formatAmount(item.price.amount, locale) })}
           </span>
         ) : null}
@@ -72,7 +72,7 @@ export function CartLine({ item, busy, priceReview, onQuantity, onRemove, onPric
       onClick={onRemove}
       disabled={busy}
       aria-label={fillMessage(m.cartRemoveItem, { name })}
-      className="inline-flex min-h-control-s items-center gap-1.5 px-1 text-13.5 font-semibold text-ink-2 underline underline-offset-4 hover:text-night disabled:opacity-50"
+      className="inline-flex min-h-control-s items-center gap-1.5 px-1 text-13.5 font-semibold text-stone underline underline-offset-4 hover:text-ink disabled:opacity-50"
     >
       <Icon name="trash" size={18} />
       {m.cartRemove}
@@ -92,21 +92,21 @@ export function CartLine({ item, busy, priceReview, onQuantity, onRemove, onPric
 
         <div className={cn('flex min-w-0 flex-1 flex-col gap-1', unavailable && 'opacity-60')}>
           {product.brand.name ? (
-            <span dir="ltr" className="text-match-parent text-brand uppercase text-ink-2">
+            <span dir="ltr" className="text-match-parent text-brand uppercase text-stone">
               {product.brand.name}
             </span>
           ) : null}
           {href ? (
-            <Link href={href} dir="auto" className="text-match-parent -my-2.5 py-2.5 text-15 font-semibold leading-23 text-night no-underline lg:text-16 lg:leading-24">
+            <Link href={href} dir="auto" className="text-match-parent -my-2.5 py-2.5 text-15 font-semibold leading-23 text-ink no-underline lg:text-16 lg:leading-24">
               {name}
             </Link>
           ) : (
-            <span dir="auto" className="text-match-parent text-15 font-semibold leading-23 text-night lg:text-16 lg:leading-24">
+            <span dir="auto" className="text-match-parent text-15 font-semibold leading-23 text-ink lg:text-16 lg:leading-24">
               {name}
             </span>
           )}
-          {type ? <span className="hidden text-14 leading-22 text-ink-2 lg:block">{type}</span> : null}
-          <span className="flex flex-wrap items-center gap-x-3 text-13 leading-20 text-ink-2">
+          {type ? <span className="hidden text-14 leading-22 text-stone lg:block">{type}</span> : null}
+          <span className="flex flex-wrap items-center gap-x-3 text-13 leading-20 text-stone">
             {size ? <bdi>{size}</bdi> : null}
             <span className="hidden lg:inline-flex">{removeLink}</span>
           </span>
@@ -119,7 +119,7 @@ export function CartLine({ item, busy, priceReview, onQuantity, onRemove, onPric
                 onClick={onRemove}
                 disabled={busy}
                 aria-label={fillMessage(m.cartRemoveItem, { name })}
-                className={cn(iconButtonVariants(), 'text-ink-2')}
+                className={cn(iconButtonVariants(), 'text-stone')}
               >
                 <Icon name="trash" size={20} />
               </button>

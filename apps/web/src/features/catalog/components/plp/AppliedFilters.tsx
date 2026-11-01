@@ -13,7 +13,7 @@ export interface AppliedFilter {
 }
 
 /**
- * Applied filters (PLPStates «فلاتر شغالة»): 36-tall linen chips with a 44×44 ✕ hit area, then «امسح الكل» in bottle.
+ * Applied filters (PLPStates «فلاتر شغالة»): 36-tall linen chips with a 44×44 ✕ hit area, then «امسح الكل» in cobalt.
  * Removing focuses nothing surprising: the chip simply leaves and the listing refreshes from the URL.
  */
 export function AppliedFilters({ filters, onClearAll, className }: { filters: AppliedFilter[]; onClearAll: () => void; className?: string }) {

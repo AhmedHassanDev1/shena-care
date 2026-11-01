@@ -391,7 +391,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
   return (
     <div className="flex h-full w-full flex-col bg-chalk overflow-hidden p-0 sm:p-4 lg:p-6">
       {/* ELEVATED LUXURY CHAT WORKSPACE CARD (Matching Visual Reference) */}
-      <div className="mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-chalk sm:rounded-3xl sm:border sm:border-line/70 sm:shadow-e2">
+      <div className="mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-chalk sm:rounded-sheet sm:border sm:border-line/70 sm:shadow-elevation-2">
         {/* 1. COMPACT ASSISTANT TOP BAR */}
         <div className="flex h-14 sm:h-16 w-full flex-none items-center justify-between border-b border-line/60 bg-chalk/95 px-4 sm:px-6 backdrop-blur-md z-10">
           <div className="flex items-center gap-3">
@@ -450,9 +450,9 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
             {/* STATE 1: EMPTY STATE (بداية المحادثة) */}
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 sm:py-14 text-center animate-fade-in">
-                <div className="relative mb-5 flex size-20 items-center justify-center rounded-full bg-linen shadow-e1">
+                <div className="relative mb-5 flex size-20 items-center justify-center rounded-full bg-linen shadow-elevation-1">
                   <span className="sun" style={{ width: 44, height: 44 }} />
-                  <span className="absolute -top-1 -end-1 flex size-7 items-center justify-center rounded-full bg-chalk text-cobalt shadow-sm">
+                  <span className="absolute -top-1 -end-1 flex size-7 items-center justify-center rounded-full bg-chalk text-cobalt shadow-elevation-1">
                     <Icon name="sparkles" size={16} />
                   </span>
                 </div>
@@ -471,7 +471,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                       key={prompt}
                       type="button"
                       onClick={() => handleSendMessage(prompt)}
-                      className="group flex items-center justify-between rounded-card border border-line bg-linen/70 p-3.5 text-start font-display text-13 font-semibold text-ink shadow-outline-hairline transition-all hover:bg-linen hover:shadow-e1 active:scale-[0.99]"
+                      className="group flex items-center justify-between rounded-card border border-line bg-linen/70 p-3.5 text-start font-display text-13 font-semibold text-ink shadow-outline-hairline transition-all hover:bg-linen hover:shadow-elevation-1 active:scale-[0.99]"
                     >
                       <span>{prompt}</span>
                       <Icon
@@ -518,10 +518,10 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                     {/* Bubble */}
                     <div
                       className={cn(
-                        'px-4.5 py-3.5 text-14.5 leading-24 shadow-sm',
+                        'px-4.5 py-3.5 text-14.5 leading-24 shadow-elevation-1',
                         isUser
-                          ? 'rounded-2xl rounded-tr-xs bg-cobalt font-medium text-chalk'
-                          : 'rounded-2xl rounded-tl-xs border border-line/60 bg-linen text-ink'
+                          ? 'rounded-16 rounded-ss-4 bg-cobalt font-medium text-chalk'
+                          : 'rounded-16 rounded-se-4 border border-line/60 bg-linen text-ink'
                       )}
                     >
                       <p className="m-0 whitespace-pre-wrap">{msg.content}</p>
@@ -531,7 +531,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                         <div className="mt-3.5 border-t border-line/70 pt-2.5">
                           <Link
                             href={msg.actionPrompt.href}
-                            className="inline-flex items-center gap-2 rounded-pill bg-chalk px-4 py-1.5 font-display text-12.5 font-bold text-cobalt shadow-sm transition-all hover:bg-ink hover:text-chalk active:scale-95"
+                            className="inline-flex items-center gap-2 rounded-pill bg-chalk px-4 py-1.5 font-display text-12.5 font-bold text-cobalt shadow-elevation-1 transition-all hover:bg-ink hover:text-chalk active:scale-95"
                           >
                             <span>{msg.actionPrompt.label}</span>
                             <Icon name="arrow-forward" size={13} />
@@ -548,7 +548,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
 
                   {/* STATE 3: PRODUCT COMPARISON TABLE (مقارنة منتجات) */}
                   {msg.comparison ? (
-                    <div className="mt-2 w-full max-w-xl overflow-hidden rounded-card border border-line bg-linen/90 p-4 shadow-e1 ms-10">
+                    <div className="mt-2 w-full max-w-xl overflow-hidden rounded-card border border-line bg-linen/90 p-4 shadow-elevation-1 ms-10">
                       <div className="mb-3 flex items-center justify-between border-b border-line/60 pb-2">
                         <span className="font-display text-13.5 font-bold text-ink">
                           {msg.comparison.title}
@@ -562,11 +562,11 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                         {msg.comparison.products.map((item) => (
                           <div
                             key={item.brand}
-                            className="flex flex-col gap-2.5 rounded-card bg-chalk p-3 shadow-sm border border-line/40"
+                            className="flex flex-col gap-2.5 rounded-card bg-chalk p-3 shadow-elevation-1 border border-line/40"
                           >
                             <div className="flex items-center gap-2">
                               {item.imageUrl ? (
-                                <div className="relative size-10 overflow-hidden rounded-md bg-sand/30 flex-none">
+                                <div className="relative size-10 overflow-hidden rounded-6 bg-sand/30 flex-none">
                                   <Image
                                     src={item.imageUrl}
                                     alt={item.name}
@@ -638,7 +638,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                         >
                           {msg.products.map((prod) => (
                             <SwiperSlide key={prod.slug} className="!h-auto">
-                              <div className="group/pcard flex h-full flex-col overflow-hidden rounded-card border border-line/70 bg-chalk shadow-sm transition-all hover:shadow-e1">
+                              <div className="group/pcard flex h-full flex-col overflow-hidden rounded-card border border-line/70 bg-chalk shadow-elevation-1 transition-all hover:shadow-elevation-1">
                                 {/* Square Image Frame */}
                                 <div className="relative aspect-square w-full overflow-hidden bg-sand/20">
                                   {prod.imageUrl ? (
@@ -659,7 +659,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                                   <button
                                     type="button"
                                     aria-label="إضافة للمفضلة"
-                                    className="absolute top-2 start-2 z-10 flex size-7 items-center justify-center rounded-full bg-chalk/85 text-ink shadow-sm transition-transform hover:scale-110 active:scale-95"
+                                    className="absolute top-2 start-2 z-10 flex size-7 items-center justify-center rounded-full bg-chalk/85 text-ink shadow-elevation-1 transition-transform hover:scale-110 active:scale-95"
                                   >
                                     <Icon name="heart" size={13} />
                                   </button>
@@ -680,7 +680,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                                     </span>
                                     {prod.reviewsCount ? (
                                       <span className="flex items-center gap-0.5 text-10.5 text-stone">
-                                        <span className="text-amber-500">★</span>
+                                        <span className="text-warn">★</span>
                                         <span>({prod.reviewsCount})</span>
                                       </span>
                                     ) : null}
@@ -698,7 +698,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                                     onClick={() => handleAddToCart(prod)}
                                     disabled={addingSku === prod.skuId}
                                     className={cn(
-                                      'mt-2.5 flex h-8.5 w-full items-center justify-center gap-1.5 rounded-pill text-11.5 font-bold text-chalk shadow-sm transition-all',
+                                      'mt-2.5 flex h-8.5 w-full items-center justify-center gap-1.5 rounded-pill text-11.5 font-bold text-chalk shadow-elevation-1 transition-all',
                                       addingSku === prod.skuId
                                         ? 'bg-citron text-ink'
                                         : 'bg-ink hover:bg-cobalt active:scale-95'
@@ -721,7 +721,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                             type="button"
                             onClick={() => swiperRefs[msg.id]?.slidePrev()}
                             aria-label="السابق"
-                            className="flex size-7 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-sm hover:border-cobalt hover:text-cobalt active:scale-95 transition-all"
+                            className="flex size-7 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-elevation-1 hover:border-cobalt hover:text-cobalt active:scale-95 transition-all"
                           >
                             <Icon name="chevron-back" size={13} />
                           </button>
@@ -729,7 +729,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                             type="button"
                             onClick={() => swiperRefs[msg.id]?.slideNext()}
                             aria-label="التالي"
-                            className="flex size-7 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-sm hover:border-cobalt hover:text-cobalt active:scale-95 transition-all"
+                            className="flex size-7 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-elevation-1 hover:border-cobalt hover:text-cobalt active:scale-95 transition-all"
                           >
                             <Icon name="chevron-forward" size={13} />
                           </button>
@@ -785,7 +785,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                       <button
                         type="button"
                         onClick={handleRetry}
-                        className="flex items-center gap-1 rounded-pill bg-chalk px-3 py-1 font-display text-11.5 font-bold text-ink shadow-sm hover:bg-sand"
+                        className="flex items-center gap-1 rounded-pill bg-chalk px-3 py-1 font-display text-11.5 font-bold text-ink shadow-elevation-1 hover:bg-sand"
                       >
                         <Icon name="retry" size={13} />
                         <span>إعادة المحاولة</span>
@@ -801,7 +801,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
               <div className="flex items-start gap-2.5 self-start animate-fade-in">
                 <span className="sun sm think flex-none mt-1" style={{ width: 28, height: 28 }} />
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-3 rounded-2xl rounded-tl-xs border border-line/60 bg-linen px-4 py-3 shadow-sm">
+                  <div className="flex items-center gap-3 rounded-16 rounded-se-4 border border-line/60 bg-linen px-4 py-3 shadow-elevation-1">
                     <span className="font-display text-13 font-bold text-ink">شينا</span>
                     <div className="flex items-center gap-1">
                       <span className="size-1.5 rounded-full bg-stone/70 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -825,7 +825,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
               e.preventDefault();
               handleSendMessage();
             }}
-            className="flex items-center gap-2 rounded-pill border border-line bg-linen px-2.5 sm:px-3 py-1.5 shadow-sm transition-all focus-within:border-ink/30 focus-within:shadow-e1"
+            className="flex items-center gap-2 rounded-pill border border-line bg-linen px-2.5 sm:px-3 py-1.5 shadow-elevation-1 transition-all focus-within:border-ink/30 focus-within:shadow-elevation-1"
           >
             {/* Attachment Button */}
             <button
@@ -856,7 +856,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
               type="submit"
               disabled={!inputText.trim() || isTyping}
               aria-label="إرسال"
-              className="flex size-10 flex-none items-center justify-center rounded-full bg-ink text-chalk shadow-sm transition-all hover:bg-cobalt active:scale-95 disabled:opacity-25 disabled:pointer-events-none"
+              className="flex size-10 flex-none items-center justify-center rounded-full bg-ink text-chalk shadow-elevation-1 transition-all hover:bg-cobalt active:scale-95 disabled:opacity-25 disabled:pointer-events-none"
             >
               <Icon name="arrow-up" size={18} strokeWidth={2.2} />
             </button>
@@ -876,7 +876,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
               <button
                 type="button"
                 onClick={handleNewChat}
-                className="inline-flex items-center gap-1 rounded-pill bg-chalk px-3 py-1 font-display text-11.5 font-bold text-ink shadow-sm hover:bg-sand transition-colors"
+                className="inline-flex items-center gap-1 rounded-pill bg-chalk px-3 py-1 font-display text-11.5 font-bold text-ink shadow-elevation-1 hover:bg-sand transition-colors"
               >
                 <Icon name="plus" size={13} />
                 <span>محادثة جديدة</span>
@@ -902,7 +902,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                     className={cn(
                       'flex flex-col items-start gap-1 rounded-card border p-3 text-start transition-all',
                       sess.id === currentSessionId
-                        ? 'border-cobalt bg-chalk shadow-sm'
+                        ? 'border-cobalt bg-chalk shadow-elevation-1'
                         : 'border-line bg-chalk/60 hover:bg-chalk'
                     )}
                   >

@@ -1,10 +1,13 @@
+import type { Metadata } from 'next';
 import { RoutineHubView } from '@/features/routine/components/RoutineHubView';
 import { StorefrontShell } from '@/features/shell/StorefrontShell';
+import { getMessages } from '@/lib/i18n/messages';
+import { getLocale } from '@/lib/i18n/server';
 
-export const metadata = {
-  title: 'دليل الروتينات والعناية | ShinaCare',
-  description: 'استكشفي بروتوكولات العناية الجاهزة المُعدة بواسطة خبراء العناية وفق مستحضرات الكتالوج الحقيقية، أو ابني روتينك المخصص.',
-};
+export function generateMetadata(): Metadata {
+  const m = getMessages(getLocale());
+  return { title: m.routinesMetaTitle, description: m.routinesMetaDescription };
+}
 
 export default function RoutinesPage() {
   return (

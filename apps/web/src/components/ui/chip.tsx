@@ -29,7 +29,7 @@ const Chip = React.forwardRef<HTMLButtonElement, ChipProps>(
         "inline-flex h-control-s shrink-0 items-center gap-2 whitespace-nowrap rounded-pill px-4.5 text-16 font-display",
         "transition-[background-color,box-shadow,color,transform] duration-fast ease-standard",
         selected || removable
-          ? "bg-cobalt font-semibold text-chalk shadow-e1"
+          ? "bg-cobalt font-semibold text-chalk shadow-elevation-1"
           : "bg-linen font-medium text-ink shadow-outline-control hover:bg-chalk",
         className
       )}

@@ -1,228 +1,185 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { PageContainer } from '@/components/layout/page-container';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Chip } from '@/components/ui/chip';
 import { Icon } from '@/components/ui/icon';
-import { buttonVariants } from '@/components/ui/button';
+import { ProductTile } from '@/components/ui/product-tile';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatEgp, formatNumber } from '@/lib/i18n/format';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { CURATED_ROUTINES, type CuratedRoutine } from '../data/curatedRoutines';
+import { useRoutineProducts, type RoutineProducts } from '../hooks/useRoutineProducts';
 import { getSavedCustomerRoutine, type CustomerSavedRoutine } from '../lib/routineStorage';
 
+type Group = 'all' | CuratedRoutine['category'];
+
+/**
+ * Routine discovery. Each card shows the routine's real products (photo, live price) in step order; the routine file
+ * only says which product sits in which step. The builder entry is a plain invitation: the questions and the engine
+ * live in the builder, so nothing here promises a result.
+ */
 export function RoutineHubView() {
-  const [activeTab, setActiveTab] = useState<'all' | 'skin' | 'hair'>('all');
-  const [savedRoutine, setSavedRoutine] = useState<CustomerSavedRoutine | null>(null);
+  const m = useMessages();
+  const locale = useLocale();
+  const [group, setGroup] = useState<Group>('all');
+  const [saved, setSaved] = useState<CustomerSavedRoutine | null>(null);
+  const products = useRoutineProducts(CURATED_ROUTINES);
 
-  useEffect(() => {
-    setSavedRoutine(getSavedCustomerRoutine());
-  }, []);
+  useEffect(() => setSaved(getSavedCustomerRoutine()), []);
 
-  const filteredRoutines = activeTab === 'all'
-    ? CURATED_ROUTINES
-    : CURATED_ROUTINES.filter((r) => r.category === activeTab);
+  const visible = useMemo(() => (group === 'all' ? CURATED_ROUTINES : CURATED_ROUTINES.filter((r) => r.category === group)), [group]);
+  const count = (g: Group) => formatNumber(g === 'all' ? CURATED_ROUTINES.length : CURATED_ROUTINES.filter((r) => r.category === g).length, locale);
 
   return (
-    <div
-      data-ui-status="verified-pillar"
-      data-route="/routines"
-      className="flex flex-col gap-10 pb-24 pt-6 lg:gap-14"
-    >
-      <PageContainer className="flex flex-col gap-8">
-        {/* Header */}
-        <header className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span aria-hidden="true" className="size-2 rounded-full bg-cobalt animate-pulse" />
-            <span className="font-serif italic text-14 text-stone">Care Architecture</span>
-            <span aria-hidden="true" className="text-stone/40">•</span>
-            <span className="text-12 font-semibold text-cobalt">دليل الروتينات المعتمدة</span>
-          </div>
-          <h1 className="m-0 font-display text-28 font-black leading-tight text-ink sm:text-36 lg:text-44">
-            دليل الروتينات والعناية المتكاملة
-          </h1>
-          <p className="m-0 max-w-2xl text-14.5 leading-24 text-stone sm:text-16 sm:leading-28">
-            استكشفي بروتوكولات العناية الجاهزة المُعدة بواسطة خبراء العناية وفق مستحضرات الكتالوج الحقيقية، أو استخدمي أداة بناء الروتين لتصميم روتين مفصل لاحتياجاتك.
-          </p>
-        </header>
+    <PageContainer className="flex flex-col gap-8 pb-16 pt-6 lg:gap-10 lg:pt-10">
+      <header className="flex flex-col gap-3 lg:max-w-narrow">
+        <h1 className="m-0 text-balance font-display text-40 font-extrabold leading-tight text-ink lg:text-52">{m.routinesPageTitle}</h1>
+        <p className="m-0 text-pretty text-16 leading-28 text-stone lg:text-18 lg:leading-32">{m.routinesLead}</p>
+      </header>
 
-        {/* Prioritized Saved Routine Banner (Only if customer has an actual saved routine) */}
-        {savedRoutine ? (
-          <section
-            aria-labelledby="saved-routine-banner-title"
-            className="flex flex-col gap-4 rounded-card border border-line bg-linen p-5 shadow-e1 sm:flex-row sm:items-center sm:justify-between sm:p-6"
-          >
-            <div className="flex items-center gap-4">
-              <span className="flex size-12 flex-none items-center justify-center rounded-full bg-cobalt text-chalk shadow-e1">
-                <Icon name="routine" size={24} />
-              </span>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-11.5 font-bold text-cobalt">روتينك النشط المحفوظ</span>
-                <h2 id="saved-routine-banner-title" className="m-0 font-display text-17 font-bold text-ink">
-                  {savedRoutine.title}
-                </h2>
-                <span className="text-12.5 text-stone">
-                  {savedRoutine.morningSteps.length + savedRoutine.eveningSteps.length} خطوات يومية متابعة • حفظ في {new Date(savedRoutine.savedAt).toLocaleDateString('ar-EG')}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <Link
-                href={routes.myRoutine}
-                className={cn(buttonVariants({ variant: 'ink', size: 'm' }), 'font-bold shadow-e1')}
-              >
-                <span>متابعة روتيني اليومي</span>
-                <Icon name="arrow-forward" size={16} />
-              </Link>
-            </div>
-          </section>
-        ) : null}
-
-        {/* Interactive Routine Builder Invitation Card */}
-        <section
-          aria-labelledby="builder-invite-title"
-          className="flex flex-col justify-between gap-6 rounded-card border border-line bg-linen p-6 shadow-e1 transition-all duration-base hover:shadow-e2 sm:p-8 lg:flex-row lg:items-center"
-        >
-          <div className="flex max-w-xl flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <span className="flex size-6 items-center justify-center rounded-full bg-sand text-ink">
-                ✨
-              </span>
-              <span className="font-serif italic text-13 text-stone">Personalized Diagnostics</span>
-            </div>
-            <h2 id="builder-invite-title" className="m-0 font-display text-22 font-extrabold text-ink sm:text-26">
-              تريدين روتيناً مصمماً خصيصاً لاحتياجك؟
+      {saved ? (
+        <section aria-labelledby="saved-routine-title" className="flex flex-col gap-4 rounded-card bg-linen p-5 shadow-outline-hairline sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex flex-col gap-0.5">
+            <h2 id="saved-routine-title" className="m-0 font-display text-18 font-bold text-ink">
+              {m.routinesSavedTitle}
             </h2>
-            <p className="m-0 text-13.5 leading-22 text-stone sm:text-14 sm:leading-24">
-              أجيبي عن أسئلة بسيطة حول نوع بشرتك أو شعرك، أهدافك المحددة، وميزانيتك لنقترح لك خطوات متوازنة ومنتجات حقيقية يمكنك مراجعتها وتعديلها بحرية.
+            <p className="m-0 text-14 text-stone">
+              {saved.title} · {fillMessage(m.routinesSavedMeta, { n: formatNumber(saved.morningSteps.length + saved.eveningSteps.length, locale) })}
             </p>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href={routes.routineBuilder}
-              className={cn(buttonVariants({ variant: 'ink', size: 'l' }), 'font-bold shadow-e1')}
-            >
-              <span>ابني روتينك المخصص الآن</span>
-              <Icon name="arrow-forward" size={18} />
-            </Link>
-          </div>
+          <Link href={routes.myRoutine} className={cn(buttonVariants({ variant: 'ink', size: 'm' }), 'self-start sm:self-auto')}>
+            {m.routinesSavedCta}
+          </Link>
         </section>
+      ) : null}
 
-        {/* Category Tabs Switcher */}
-        <div className="flex items-center justify-between border-b border-line pb-4">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab('all')}
-              className={cn(
-                'rounded-full px-4 py-2 text-13 font-bold transition-all',
-                activeTab === 'all'
-                  ? 'bg-ink text-chalk shadow-e1'
-                  : 'bg-sand/60 text-stone hover:bg-sand hover:text-ink'
-              )}
-            >
-              جميع الروتينات ({CURATED_ROUTINES.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('skin')}
-              className={cn(
-                'rounded-full px-4 py-2 text-13 font-bold transition-all',
-                activeTab === 'skin'
-                  ? 'bg-ink text-chalk shadow-e1'
-                  : 'bg-sand/60 text-stone hover:bg-sand hover:text-ink'
-              )}
-            >
-              روتينات البشرة (٣)
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('hair')}
-              className={cn(
-                'rounded-full px-4 py-2 text-13 font-bold transition-all',
-                activeTab === 'hair'
-                  ? 'bg-ink text-chalk shadow-e1'
-                  : 'bg-sand/60 text-stone hover:bg-sand hover:text-ink'
-              )}
-            >
-              روتينات الشعر (٢)
-            </button>
-          </div>
+      <div role="group" aria-label={m.routinesGroupLabel} className="-mx-4 flex gap-2 overflow-x-auto px-4 py-1 scrollbar-none lg:mx-0 lg:px-0">
+        <Chip selected={group === 'all'} count={count('all')} onClick={() => setGroup('all')}>
+          {m.plpAll}
+        </Chip>
+        <Chip selected={group === 'skin'} count={count('skin')} onClick={() => setGroup('skin')}>
+          {m.navSkin}
+        </Chip>
+        <Chip selected={group === 'hair'} count={count('hair')} onClick={() => setGroup('hair')}>
+          {m.navHair}
+        </Chip>
+      </div>
 
-          <span className="hidden text-12 text-stone sm:inline">
-            مستحضرات صيدلانية معتمدة من الكتالوج
-          </span>
-        </div>
-
-        {/* Curated Routine Cards Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredRoutines.map((routine) => (
-            <article
-              key={routine.slug}
-              className="flex flex-col justify-between rounded-card border border-line bg-linen p-6 shadow-e1 transition-all duration-base hover:-translate-y-1 hover:shadow-e2"
-            >
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-2 border-b border-line/60 pb-3">
-                  <span className="rounded-full bg-sand px-2.5 py-0.5 text-11 font-bold text-ink">
-                    {routine.category === 'skin' ? '🧴 عناية بالبشرة' : '✨ عناية بالشعر'}
-                  </span>
-                  <span className="text-11.5 font-semibold text-cobalt">
-                    {routine.protocolBadgeAr}
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <h3 className="m-0 font-display text-19 font-extrabold leading-snug text-ink">
-                    {routine.titleAr}
-                  </h3>
-                  <span className="font-serif italic text-12.5 text-stone">
-                    {routine.titleEn}
-                  </span>
-                  <p className="m-0 line-clamp-3 text-13 leading-20 text-stone pt-1">
-                    {routine.taglineAr}
-                  </p>
-                </div>
-
-                {/* Steps Mini Preview */}
-                <div className="flex flex-col gap-2 rounded-card bg-chalk p-3.5">
-                  <span className="text-11.5 font-bold text-stone">
-                    تسلسل خطوات البروتوكول:
-                  </span>
-                  <ol className="m-0 flex list-none flex-col gap-1.5 p-0 text-12 text-ink">
-                    {routine.steps.map((st) => (
-                      <li key={st.id} className="flex items-center gap-2">
-                        <span className="flex size-4.5 flex-none items-center justify-center rounded-full bg-sand font-display text-10 font-bold text-ink">
-                          {st.num}
-                        </span>
-                        <span className="truncate font-medium">{st.roleAr}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              </div>
-
-              {/* Card Footer Actions */}
-              <div className="mt-6 flex items-center justify-between gap-3 border-t border-line/70 pt-4">
-                <div className="flex flex-col">
-                  <span className="text-10.5 text-stone">إجمالي المستحضرات</span>
-                  <span className="font-display text-15 font-bold text-ink">
-                    {routine.totalPrice} ج.م
-                  </span>
-                </div>
-
-                <Link
-                  href={routes.routineDetail(routine.slug)}
-                  className={cn(buttonVariants({ variant: 'ink', size: 's' }), 'font-bold shadow-e1')}
-                >
-                  <span>استكشاف الروتين</span>
-                  <Icon name="arrow-forward" size={14} />
-                </Link>
-              </div>
-            </article>
+      {visible.length === 0 ? (
+        <p role="status" className="m-0 rounded-card bg-linen px-6 py-10 text-center text-15 text-stone shadow-outline-hairline">
+          {m.routinesEmpty}
+        </p>
+      ) : (
+        <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          {visible.map((routine) => (
+            <li key={routine.slug} className="flex">
+              <RoutineCard routine={routine} resolved={products.get(routine.slug)} />
+            </li>
           ))}
+        </ul>
+      )}
+
+      <section aria-labelledby="builder-title" className="flex flex-col gap-5 rounded-card bg-ink p-6 text-chalk sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:p-10">
+        <div className="flex max-w-xl flex-col gap-2">
+          <h2 id="builder-title" className="m-0 font-display text-28 font-extrabold leading-tight text-chalk lg:text-34">
+            {m.routinesBuildTitle}
+          </h2>
+          <p className="m-0 text-15 leading-26 text-chalk/80 lg:text-16">{m.routinesBuildBody}</p>
         </div>
-      </PageContainer>
-    </div>
+        <Link href={routes.routineBuilder} className={cn(buttonVariants({ variant: 'onDark', size: 'l' }), 'self-start lg:self-auto')}>
+          <span>{m.routinesBuildCta}</span>
+          <Icon name="arrow-forward" size={18} />
+        </Link>
+      </section>
+    </PageContainer>
+  );
+}
+
+function RoutineCard({ routine, resolved }: { routine: CuratedRoutine; resolved: RoutineProducts | undefined }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const title = locale === 'ar' ? routine.titleAr : routine.titleEn;
+  const steps = resolved?.steps ?? [];
+  const total = resolved?.total ?? null;
+  const failed = steps.find((s) => s.state === 'error');
+
+  return (
+    <article className="flex w-full flex-col gap-4 rounded-card bg-linen p-4 shadow-outline-hairline transition-shadow duration-base ease-standard hover:shadow-elevation-2 sm:p-5">
+      {/* The routine's products in step order: real packshots, or a labelled placeholder */}
+      <ol className="m-0 grid list-none gap-2 p-0" style={{ gridTemplateColumns: `repeat(${routine.steps.length}, minmax(0, 1fr))` }}>
+        {routine.steps.map((step, index) => {
+          const entry = steps[index];
+          return (
+            <li key={step.id} className="min-w-0">
+              {entry?.state === 'loading' || !entry ? (
+                <Skeleton className="aspect-square w-full rounded-image" />
+              ) : (
+                <ProductTile
+                  src={entry.imageUrl}
+                  alt={entry.imageAlt}
+                  name={step.productName}
+                  size="thumb"
+                  sizes="(min-width: 1024px) 110px, 22vw"
+                  className={cn('aspect-square w-full', !entry.orderable && '[&_img]:opacity-45 [&_img]:grayscale')}
+                />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="flex flex-col gap-1.5">
+        <p className="m-0 text-13 font-semibold text-stone">
+          {routine.category === 'skin' ? m.navSkin : m.navHair} · {fillMessage(m.routineStepsCount, { n: formatNumber(routine.steps.length, locale) })}
+        </p>
+        <h2 className="m-0 font-display text-22 font-extrabold leading-snug text-ink">{title}</h2>
+        {locale === 'ar' ? <p className="m-0 line-clamp-2 text-14 leading-22 text-stone">{routine.taglineAr}</p> : null}
+      </div>
+
+      <ol className="m-0 flex list-none flex-col p-0">
+        {routine.steps.map((step, index) => (
+          <li key={step.id} className="flex min-h-10 items-center gap-3 py-1.5 shadow-hairline-top">
+            <span className="flex size-6 flex-none items-center justify-center rounded-full bg-sand font-display text-12 font-bold tabular-nums text-ink">
+              {formatNumber(index + 1, locale)}
+            </span>
+            <span className="min-w-0 truncate text-14 font-semibold text-ink">{locale === 'ar' ? step.roleAr : step.roleEn}</span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-auto flex flex-col gap-3 pt-2">
+        {failed ? (
+          <p role="alert" className="m-0 flex flex-wrap items-center gap-x-3 text-13 text-tomato-ink">
+            {m.routineProductError}
+            <Button variant="text" size="s" onClick={failed.retry} className="text-13 font-semibold">
+              {m.tryAgain}
+            </Button>
+          </p>
+        ) : null}
+        <div className="flex items-end justify-between gap-3">
+          <div className="flex flex-col">
+            <span className="text-12 text-stone">{m.routineTotalLabel}</span>
+            {total !== null ? (
+              <span className="font-display text-20 font-extrabold tabular-nums text-ink">
+                <bdi>{formatEgp(total, 'EGP', locale)}</bdi>
+              </span>
+            ) : resolved?.settled ? (
+              <span className="text-14 text-stone">—</span>
+            ) : (
+              <Skeleton className="mt-1 h-6 w-24 rounded-4" />
+            )}
+          </div>
+          <Link href={routes.routineDetail(routine.slug)} className={buttonVariants({ variant: 'ink', size: 's' })}>
+            {m.homeRoutineOpen}
+          </Link>
+        </div>
+      </div>
+    </article>
   );
 }

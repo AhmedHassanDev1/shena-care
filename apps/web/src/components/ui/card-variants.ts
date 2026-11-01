@@ -8,7 +8,7 @@ import { cva } from "class-variance-authority"
 export const cardVariants = cva("rounded-card bg-linen text-ink shadow-outline-hairline", {
   variants: {
     interactive: {
-      true: "no-underline transition-[transform,box-shadow] duration-base ease-standard hover:-translate-y-0.5 hover:shadow-e2",
+      true: "no-underline transition-[transform,box-shadow] duration-base ease-standard hover:-translate-y-0.5 hover:shadow-elevation-2",
       false: "",
     },
   },

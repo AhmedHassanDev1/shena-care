@@ -99,12 +99,9 @@ export function BrandMarquee() {
       <PageContainer className="mb-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span aria-hidden="true" className="size-1.5 rounded-full bg-cobalt" />
-          <h2 id="home-brands-title" className="m-0 font-display text-14 font-bold tracking-wide text-ink sm:text-15">
+          <h2 id="home-brands-title" className="m-0 font-display text-15 font-bold text-ink">
             {m.homeBrandsLabel}
           </h2>
-          <span className="hidden font-serif italic text-13 text-stone sm:inline">
-            · Authorized Partners
-          </span>
         </div>
         <div className="flex items-center gap-4">
           {brands.length > 0 ? (

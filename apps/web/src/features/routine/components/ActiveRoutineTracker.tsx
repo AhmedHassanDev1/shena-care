@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PageContainer } from '@/components/layout/page-container';
 import { Icon } from '@/components/ui/icon';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
@@ -74,9 +73,9 @@ export function ActiveRoutineTracker() {
       >
         <section
           aria-labelledby="empty-routine-title"
-          className="flex flex-col items-center justify-center gap-6 rounded-card border border-line bg-linen p-8 text-center shadow-e1 sm:p-12"
+          className="flex flex-col items-center justify-center gap-6 rounded-card border border-line bg-linen p-8 text-center shadow-elevation-1 sm:p-12"
         >
-          <span className="flex size-16 items-center justify-center rounded-full bg-sand text-ink shadow-e1">
+          <span className="flex size-16 items-center justify-center rounded-full bg-sand text-ink shadow-elevation-1">
             <Icon name="routine" size={32} />
           </span>
 
@@ -92,7 +91,7 @@ export function ActiveRoutineTracker() {
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href={routes.routines}
-              className={cn(buttonVariants({ variant: 'ink', size: 'l' }), 'font-bold shadow-e1')}
+              className={cn(buttonVariants({ variant: 'ink', size: 'l' }), 'font-bold shadow-elevation-1')}
             >
               <span>استكشاف الروتينات الجاهزة</span>
               <Icon name="arrow-forward" size={16} />
@@ -133,10 +132,10 @@ export function ActiveRoutineTracker() {
       className="mx-auto flex max-w-narrow flex-col gap-8 pb-28 pt-6"
     >
       {/* Header */}
-      <header className="flex flex-col gap-4 rounded-card border border-line bg-linen p-6 shadow-e1 sm:p-8">
+      <header className="flex flex-col gap-4 rounded-card border border-line bg-linen p-6 shadow-elevation-1 sm:p-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex size-12 flex-none items-center justify-center rounded-card bg-sand text-ink shadow-e1">
+            <span className="flex size-12 flex-none items-center justify-center rounded-card bg-sand text-ink shadow-elevation-1">
               <Icon name="routine" size={24} />
             </span>
             <div className="flex flex-col">
@@ -164,7 +163,7 @@ export function ActiveRoutineTracker() {
             <button
               type="button"
               onClick={handleClearRoutine}
-              className="text-12 text-stone hover:text-tomato-ink underline px-2"
+              className="text-12 text-stone hover:text-ink underline px-2"
             >
               حذف
             </button>
@@ -177,7 +176,7 @@ export function ActiveRoutineTracker() {
             <span>
               تم إنجاز {completedCount} من أصل {activeSteps.length} خطوات اليوم
             </span>
-            <span className="font-tabular text-cobalt">{progressPct}%</span>
+            <span className="tabular-nums text-cobalt">{progressPct}%</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-sand/60">
             <div
@@ -190,14 +189,14 @@ export function ActiveRoutineTracker() {
 
       {/* AM / PM Toggle (if routine has both periods) */}
       {routine.eveningSteps.length > 0 ? (
-        <div className="flex rounded-full bg-sand/60 p-1 shadow-e1">
+        <div className="flex rounded-full bg-sand/60 p-1 shadow-elevation-1">
           <button
             type="button"
             onClick={() => setPeriod('morning')}
             className={cn(
               'flex-1 rounded-full py-2.5 text-center text-13 font-bold transition-all',
               period === 'morning'
-                ? 'bg-ink text-chalk shadow-e1'
+                ? 'bg-ink text-chalk shadow-elevation-1'
                 : 'text-stone hover:text-ink'
             )}
           >
@@ -209,7 +208,7 @@ export function ActiveRoutineTracker() {
             className={cn(
               'flex-1 rounded-full py-2.5 text-center text-13 font-bold transition-all',
               period === 'evening'
-                ? 'bg-ink text-chalk shadow-e1'
+                ? 'bg-ink text-chalk shadow-elevation-1'
                 : 'text-stone hover:text-ink'
             )}
           >
@@ -227,10 +226,10 @@ export function ActiveRoutineTracker() {
               key={st.id}
               onClick={() => toggleStep(st.id)}
               className={cn(
-                'flex cursor-pointer items-start justify-between gap-3.5 rounded-card border p-4 shadow-e1 transition-all sm:p-5',
+                'flex cursor-pointer items-start justify-between gap-3.5 rounded-card border p-4 shadow-elevation-1 transition-all sm:p-5',
                 isDone
                   ? 'border-line/60 bg-sand/40 opacity-80'
-                  : 'border-line bg-linen hover:shadow-e2'
+                  : 'border-line bg-linen hover:shadow-elevation-2'
               )}
             >
               <div className="flex items-start gap-3.5">
@@ -292,7 +291,7 @@ export function ActiveRoutineTracker() {
       </div>
 
       {/* Quick Reorder Card */}
-      <div className="flex flex-col gap-3 rounded-card border border-line bg-linen p-5 shadow-e1 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="flex flex-col gap-3 rounded-card border border-line bg-linen p-5 shadow-elevation-1 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex flex-col gap-0.5">
           <span className="font-display text-15 font-bold text-ink">
             قاربت عبوات روتينك على الانتهاء؟
@@ -307,7 +306,7 @@ export function ActiveRoutineTracker() {
           size="m"
           onClick={handleAddAllToCart}
           disabled={addingAll}
-          className="font-bold self-start sm:self-auto shadow-e1"
+          className="font-bold self-start sm:self-auto shadow-elevation-1"
         >
           {addedSuccess ? 'تمت إضافة الروتين للسلة ✓' : addingAll ? 'جاري الإضافة...' : 'إضافة كل النواقص للسلة'}
         </Button>

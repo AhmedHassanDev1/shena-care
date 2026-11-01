@@ -2,101 +2,68 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { PageContainer } from '@/components/layout/page-container';
+import { Section, SectionHeader } from '@/components/layout/section';
 import { Icon } from '@/components/ui/icon';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { mainCategorySlugs, routes } from '@/lib/routes';
 import { HOME_IMAGES } from '../lib/home-images';
 
 /**
- * Modern Beauty Editorial: Category Editorial
- * Two striking photographic compositions for SKINCARE and HAIRCARE with edge-to-edge imagery,
- * sophisticated dark overlays, bold typography, and clear editorial navigation.
+ * The two departments as photographic doors. Copy names what each department actually holds (the catalog's own
+ * categories), never an efficacy claim. The scrim exists only so the type stays readable on the photograph.
  */
 export function CategoryEditorial() {
   const m = useMessages();
 
-  const categories = [
+  const departments = [
     {
       id: 'skin',
-      englishTitle: 'SKINCARE · ESSENTIALS',
-      arabicTitle: 'العناية الفائقة بالبشرة',
-      description: 'تركيبات متوازنة مدعومة بالمكونات الفعالة لترميم الحاجز واستعادة نضارة البشرة الطبيعية.',
-      ctaText: 'استكشاف مستحضرات البشرة',
+      title: m.homeCategorySkinTitle,
+      body: m.homeCategorySkinBody,
+      cta: m.homeCategorySkinCta,
       href: routes.productsByCategory(mainCategorySlugs.skin),
       image: HOME_IMAGES.routineSkin,
     },
     {
       id: 'hair',
-      englishTitle: 'HAIRCARE · NOURISHMENT',
-      arabicTitle: 'العناية المتكاملة بالشعر',
-      description: 'علاجات مركزة لتغذية الفروة، تقوية الألياف، ومقاومة التساقط والهيشان من الجذور.',
-      ctaText: 'استكشاف مستحضرات الشعر',
+      title: m.homeCategoryHairTitle,
+      body: m.homeCategoryHairBody,
+      cta: m.homeCategoryHairCta,
       href: routes.productsByCategory(mainCategorySlugs.hair),
       image: HOME_IMAGES.routineHair,
     },
   ];
 
   return (
-    <section aria-labelledby="home-category-editorial-title" className="py-8 lg:py-12">
-      <PageContainer className="flex flex-col gap-6">
-        <div className="flex items-center gap-2">
-          <span aria-hidden="true" className="size-1.5 rounded-full bg-cobalt" />
-          <h2 id="home-category-editorial-title" className="m-0 font-serif italic text-14 text-stone">
-            Editorial Perspectives · عالم العناية
-          </h2>
-        </div>
+    <Section labelledBy="home-departments-title">
+      <SectionHeader title={m.homeCategoriesTitle} titleId="home-departments-title" />
 
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-          {categories.map((cat) => (
-            <article
-              key={cat.id}
-              className="group relative isolate flex min-h-[420px] flex-col justify-end overflow-hidden rounded-card bg-sand p-6 text-chalk shadow-e1 transition-all duration-base sm:min-h-[480px] sm:p-8 lg:min-h-[520px] lg:p-10"
-            >
-              {/* Category Background Photography */}
-              <div className="absolute inset-0 -z-20 overflow-hidden">
-                <Image
-                  src={cat.image.src}
-                  alt=""
-                  fill
-                  sizes="(min-width: 1024px) 50vw, 100vw"
-                  className="object-cover transition-transform duration-slow ease-standard group-hover:scale-105"
-                  style={{ objectPosition: cat.image.position }}
-                />
-              </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6">
+        {departments.map((dept) => (
+          <Link
+            key={dept.id}
+            href={dept.href}
+            className="group relative isolate flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-image bg-sand p-5 text-chalk no-underline sm:aspect-[4/5] sm:p-7 lg:aspect-[5/4] lg:p-9"
+          >
+            <Image
+              src={dept.image.src}
+              alt=""
+              fill
+              sizes="(min-width: 1360px) 650px, (min-width: 640px) 50vw, 100vw"
+              className="-z-20 object-cover transition-transform duration-slow ease-standard motion-safe:group-hover:scale-[1.03]"
+              style={{ objectPosition: dept.image.position }}
+            />
+            <span aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-ink/85 via-ink/35 via-45% to-transparent" />
 
-              {/* Scrim Overlay */}
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/60 via-45% to-transparent transition-opacity duration-base group-hover:via-ink/50"
-              />
-
-              {/* Card Editorial Content */}
-              <div className="flex flex-col items-start gap-3">
-                <span className="font-serif italic text-13 tracking-wider text-chalk/80 sm:text-14">
-                  {cat.englishTitle}
-                </span>
-
-                <h3 className="m-0 font-display text-26 font-black leading-tight text-chalk sm:text-30 lg:text-36">
-                  {cat.arabicTitle}
-                </h3>
-
-                <p className="m-0 max-w-md text-13.5 leading-22 text-chalk/90 sm:text-14 sm:leading-24">
-                  {cat.description}
-                </p>
-
-                <Link
-                  href={cat.href}
-                  className="mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-pill bg-chalk px-5 text-13 font-bold text-ink shadow-e1 transition-all duration-fast hover:bg-cobalt hover:text-chalk active:scale-95"
-                >
-                  <span>{cat.ctaText}</span>
-                  <Icon name="arrow-forward" size={16} strokeWidth={2.2} />
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
-      </PageContainer>
-    </section>
+            <h3 className="m-0 font-display text-28 font-extrabold leading-tight text-chalk lg:text-40">{dept.title}</h3>
+            <p className="m-0 mt-2 max-w-sm text-15 leading-24 text-chalk/90 lg:text-16 lg:leading-26">{dept.body}</p>
+            <span className="mt-4 inline-flex h-control-s items-center gap-2 self-start rounded-pill bg-chalk px-5 text-14 font-bold text-ink shadow-elevation-1 transition-colors duration-fast group-hover:bg-cobalt group-hover:text-chalk">
+              {dept.cta}
+              <Icon name="arrow-forward" size={16} strokeWidth={2.2} />
+            </span>
+          </Link>
+        ))}
+      </div>
+    </Section>
   );
 }

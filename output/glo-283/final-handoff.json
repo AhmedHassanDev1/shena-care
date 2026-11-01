@@ -1,0 +1,10 @@
+{
+  "head": "bdc577377825ff803c1e206611c46a295571d223",
+  "remoteConfirmed": true,
+  "development": {
+    "applied": 64,
+    "verifiedSupplierMigrations": 4
+  },
+  "branch": "feat/c0-commerce-integration",
+  "branchUrl": "https://github.com/AhmedHassanDev1/shena-care/tree/feat/c0-commerce-integration"
+}

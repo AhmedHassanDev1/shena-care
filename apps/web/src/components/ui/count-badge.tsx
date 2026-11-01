@@ -10,7 +10,7 @@ export function CountBadge({ children, className }: { children: React.ReactNode;
   return (
     <span
       aria-hidden="true"
-      className={cn("inline-flex h-5.5 min-w-5.5 items-center justify-center rounded-pill bg-citron px-1.5 text-12 font-bold leading-none text-ink shadow-e1", className)}
+      className={cn("inline-flex h-5.5 min-w-5.5 items-center justify-center rounded-pill bg-citron px-1.5 text-12 font-bold leading-none text-ink shadow-elevation-1", className)}
     >
       {children}
     </span>

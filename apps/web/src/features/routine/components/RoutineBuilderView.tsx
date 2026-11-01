@@ -9,8 +9,8 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/features/cart/hooks/useCart';
-import { saveCustomerRoutine, type CustomerSavedRoutine, type SavedRoutineStepItem } from '../lib/routineStorage';
-import { CURATED_ROUTINES, getCuratedRoutineBySlug } from '../data/curatedRoutines';
+import { saveCustomerRoutine, type CustomerSavedRoutine } from '../lib/routineStorage';
+import { getCuratedRoutineBySlug } from '../data/curatedRoutines';
 
 type FocusArea = 'skin' | 'hair';
 type SkinType = 'oily' | 'combination' | 'dry' | 'normal';
@@ -40,7 +40,7 @@ export function RoutineBuilderView() {
 
   const initialTemplate = templateSlug ? getCuratedRoutineBySlug(templateSlug) : null;
 
-  const { addItem, cart } = useCart();
+  const { addItem } = useCart();
 
   // Wizard Steps: 1: Focus, 2: Concerns, 3: Preferences & Budget, 4: Proposal Review
   const [currentStep, setCurrentStep] = useState<number>(initialTemplate ? 4 : 1);
@@ -328,27 +328,26 @@ export function RoutineBuilderView() {
 
   return (
     <div
-      data-ui-status="redesign-pending"
-      data-route="/routine/builder"
+      data-route="/routines/build"
       className="flex flex-col gap-8 pb-28 pt-4 lg:gap-12 lg:pt-6"
     >
       <PageContainer className="flex max-w-narrow flex-col gap-8">
         {/* Navigation Breadcrumb */}
-        <nav aria-label="مسار التنقل" className="flex items-center gap-2 text-12 text-ink-2">
-          <Link href={routes.home} className="hover:text-night transition-colors">الرئيسية</Link>
+        <nav aria-label="مسار التنقل" className="flex items-center gap-2 text-12 text-stone">
+          <Link href={routes.home} className="hover:text-ink transition-colors">الرئيسية</Link>
           <span aria-hidden="true">/</span>
-          <Link href={routes.routines} className="hover:text-night transition-colors">دليل الروتينات</Link>
+          <Link href={routes.routines} className="hover:text-ink transition-colors">دليل الروتينات</Link>
           <span aria-hidden="true">/</span>
-          <span className="font-semibold text-night">أداة بناء الروتين المخصص</span>
+          <span className="font-semibold text-ink">أداة بناء الروتين المخصص</span>
         </nav>
 
         {/* Wizard Step Progress Tracker */}
         <div className="flex flex-col gap-3 rounded-card border border-line bg-linen p-5 shadow-elevation-1 sm:p-6">
           <div className="flex items-center justify-between">
-            <span className="text-12 font-bold text-coral">
+            <span className="text-12 font-bold text-cobalt">
               الخطوة {currentStep} من ٤
             </span>
-            <span className="text-12 text-ink-3">
+            <span className="text-12 text-stone">
               {currentStep === 1
                 ? 'مجال العناية'
                 : currentStep === 2
@@ -359,9 +358,9 @@ export function RoutineBuilderView() {
             </span>
           </div>
 
-          <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-bone">
+          <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-chalk">
             <div
-              className="h-full rounded-full bg-coral transition-all duration-300"
+              className="h-full rounded-full bg-cobalt transition-all duration-300"
               style={{ width: `${(currentStep / 4) * 100}%` }}
             />
           </div>
@@ -371,10 +370,10 @@ export function RoutineBuilderView() {
         {currentStep === 1 ? (
           <section aria-labelledby="step1-title" className="flex flex-col gap-6">
             <div className="flex flex-col gap-1.5">
-              <h1 id="step1-title" className="m-0 font-display text-24 font-black text-night sm:text-28">
+              <h1 id="step1-title" className="m-0 font-display text-24 font-black text-ink sm:text-28">
                 ما هو مجال العناية الذي تودين بناء روتين له؟
               </h1>
-              <p className="m-0 text-14 text-ink-2">
+              <p className="m-0 text-14 text-stone">
                 نعتمد في ShinaCare على بروتوكولات مخصصة إما للعناية بالبشرة أو الشعر لضمان أعلى درجات التناغم.
               </p>
             </div>
@@ -386,14 +385,14 @@ export function RoutineBuilderView() {
                 className={cn(
                   'flex flex-col gap-3 rounded-card border p-6 text-start transition-all duration-base hover:shadow-elevation-1',
                   focusArea === 'skin'
-                    ? 'border-coral bg-coral-tint/30 ring-2 ring-coral'
+                    ? 'border-cobalt bg-cobalt/5 ring-2 ring-cobalt'
                     : 'border-line bg-linen'
                 )}
               >
                 <span className="text-28">🧴</span>
                 <div className="flex flex-col">
-                  <h2 className="m-0 font-display text-18 font-bold text-night">العناية بالبشرة</h2>
-                  <p className="m-0 text-13 text-ink-2">
+                  <h2 className="m-0 font-display text-18 font-bold text-ink">العناية بالبشرة</h2>
+                  <p className="m-0 text-13 text-stone">
                     تنظيف، ترطيب، علاج الحبوب والبهتان، ووقاية يومية من الشمس.
                   </p>
                 </div>
@@ -405,14 +404,14 @@ export function RoutineBuilderView() {
                 className={cn(
                   'flex flex-col gap-3 rounded-card border p-6 text-start transition-all duration-base hover:shadow-elevation-1',
                   focusArea === 'hair'
-                    ? 'border-coral bg-coral-tint/30 ring-2 ring-coral'
+                    ? 'border-cobalt bg-cobalt/5 ring-2 ring-cobalt'
                     : 'border-line bg-linen'
                 )}
               >
                 <span className="text-28">✨</span>
                 <div className="flex flex-col">
-                  <h2 className="m-0 font-display text-18 font-bold text-night">العناية بالشعر</h2>
-                  <p className="m-0 text-13 text-ink-2">
+                  <h2 className="m-0 font-display text-18 font-bold text-ink">العناية بالشعر</h2>
+                  <p className="m-0 text-13 text-stone">
                     ترويض النفشة، تحديد الكيرلز، ترميم الروابط، وتغذية الفروة.
                   </p>
                 </div>
@@ -421,7 +420,7 @@ export function RoutineBuilderView() {
 
             <div className="flex justify-end pt-4">
               <Button
-                variant="bottle"
+                variant="cobalt"
                 size="l"
                 onClick={() => setCurrentStep(2)}
                 className="font-bold shadow-action"
@@ -437,10 +436,10 @@ export function RoutineBuilderView() {
         {currentStep === 2 ? (
           <section aria-labelledby="step2-title" className="flex flex-col gap-6">
             <div className="flex flex-col gap-1.5">
-              <h1 id="step2-title" className="m-0 font-display text-24 font-black text-night sm:text-28">
+              <h1 id="step2-title" className="m-0 font-display text-24 font-black text-ink sm:text-28">
                 ما هي الأهداف أو التحديات الأساسية؟
               </h1>
-              <p className="m-0 text-14 text-ink-2">
+              <p className="m-0 text-14 text-stone">
                 يمكنك اختيار أكثر من هدف لتخصيص المكونات الفعالة المناسبة.
               </p>
             </div>
@@ -460,7 +459,7 @@ export function RoutineBuilderView() {
                     className={cn(
                       'flex items-start gap-3 rounded-card border p-4 text-start transition-all',
                       selectedConcerns.includes(item.id)
-                        ? 'border-coral bg-coral-tint/30 ring-1 ring-coral'
+                        ? 'border-cobalt bg-cobalt/5 ring-1 ring-cobalt'
                         : 'border-line bg-linen hover:bg-sand/40'
                     )}
                   >
@@ -468,15 +467,15 @@ export function RoutineBuilderView() {
                       className={cn(
                         'mt-0.5 flex size-5 flex-none items-center justify-center rounded-full border',
                         selectedConcerns.includes(item.id)
-                          ? 'border-coral bg-coral text-linen'
-                          : 'border-line bg-bone'
+                          ? 'border-cobalt bg-cobalt text-linen'
+                          : 'border-line bg-chalk'
                       )}
                     >
                       {selectedConcerns.includes(item.id) ? <Icon name="check" size={12} /> : null}
                     </span>
                     <div className="flex flex-col">
-                      <span className="font-display text-14 font-bold text-night">{item.label}</span>
-                      <span className="text-12 text-ink-2">{item.desc}</span>
+                      <span className="font-display text-14 font-bold text-ink">{item.label}</span>
+                      <span className="text-12 text-stone">{item.desc}</span>
                     </div>
                   </button>
                 ))}
@@ -495,7 +494,7 @@ export function RoutineBuilderView() {
                     className={cn(
                       'flex items-start gap-3 rounded-card border p-4 text-start transition-all',
                       selectedConcerns.includes(item.id)
-                        ? 'border-coral bg-coral-tint/30 ring-1 ring-coral'
+                        ? 'border-cobalt bg-cobalt/5 ring-1 ring-cobalt'
                         : 'border-line bg-linen hover:bg-sand/40'
                     )}
                   >
@@ -503,15 +502,15 @@ export function RoutineBuilderView() {
                       className={cn(
                         'mt-0.5 flex size-5 flex-none items-center justify-center rounded-full border',
                         selectedConcerns.includes(item.id)
-                          ? 'border-coral bg-coral text-linen'
-                          : 'border-line bg-bone'
+                          ? 'border-cobalt bg-cobalt text-linen'
+                          : 'border-line bg-chalk'
                       )}
                     >
                       {selectedConcerns.includes(item.id) ? <Icon name="check" size={12} /> : null}
                     </span>
                     <div className="flex flex-col">
-                      <span className="font-display text-14 font-bold text-night">{item.label}</span>
-                      <span className="text-12 text-ink-2">{item.desc}</span>
+                      <span className="font-display text-14 font-bold text-ink">{item.label}</span>
+                      <span className="text-12 text-stone">{item.desc}</span>
                     </div>
                   </button>
                 ))}
@@ -527,7 +526,7 @@ export function RoutineBuilderView() {
                 السابق
               </Button>
               <Button
-                variant="bottle"
+                variant="cobalt"
                 size="l"
                 onClick={() => setCurrentStep(3)}
                 disabled={selectedConcerns.length === 0}
@@ -544,17 +543,17 @@ export function RoutineBuilderView() {
         {currentStep === 3 ? (
           <section aria-labelledby="step3-title" className="flex flex-col gap-6">
             <div className="flex flex-col gap-1.5">
-              <h1 id="step3-title" className="m-0 font-display text-24 font-black text-night sm:text-28">
+              <h1 id="step3-title" className="m-0 font-display text-24 font-black text-ink sm:text-28">
                 التفضيلات ونطاق الميزانية
               </h1>
-              <p className="m-0 text-14 text-ink-2">
+              <p className="m-0 text-14 text-stone">
                 نراعي ميزانيتك لنقترح منتجات حقيقية متوفرة في مصر بأفضل قيمة.
               </p>
             </div>
 
             {/* Budget Tiers */}
             <div className="flex flex-col gap-3">
-              <span className="text-13 font-bold text-night">نطاق الميزانية المرغوب:</span>
+              <span className="text-13 font-bold text-ink">نطاق الميزانية المرغوب:</span>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {[
                   { id: 'economic', label: 'اقتصادي', range: 'أقل من ٥٠٠ ج.م', desc: 'أفضل قيمة صيدلانية فعالة' },
@@ -568,13 +567,13 @@ export function RoutineBuilderView() {
                     className={cn(
                       'flex flex-col gap-1.5 rounded-card border p-4 text-start transition-all',
                       budgetTier === b.id
-                        ? 'border-coral bg-coral-tint/30 ring-1 ring-coral'
+                        ? 'border-cobalt bg-cobalt/5 ring-1 ring-cobalt'
                         : 'border-line bg-linen hover:bg-sand/40'
                     )}
                   >
-                    <span className="font-display text-15 font-bold text-night">{b.label}</span>
-                    <span className="font-display text-12.5 font-bold text-coral">{b.range}</span>
-                    <span className="text-11.5 text-ink-2">{b.desc}</span>
+                    <span className="font-display text-15 font-bold text-ink">{b.label}</span>
+                    <span className="font-display text-12.5 font-bold text-cobalt">{b.range}</span>
+                    <span className="text-11.5 text-stone">{b.desc}</span>
                   </button>
                 ))}
               </div>
@@ -583,7 +582,7 @@ export function RoutineBuilderView() {
             {/* Skin Type (if Skin focus) */}
             {focusArea === 'skin' ? (
               <div className="flex flex-col gap-3 pt-2">
-                <span className="text-13 font-bold text-night">نوع البشرة:</span>
+                <span className="text-13 font-bold text-ink">نوع البشرة:</span>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                   {[
                     { id: 'oily', label: 'دهنية' },
@@ -598,8 +597,8 @@ export function RoutineBuilderView() {
                       className={cn(
                         'rounded-pill border py-2.5 text-center text-13 font-bold transition-all',
                         skinType === st.id
-                          ? 'border-coral bg-coral text-linen'
-                          : 'border-line bg-linen text-ink-2 hover:border-night/40 hover:text-night'
+                          ? 'border-cobalt bg-cobalt text-linen'
+                          : 'border-line bg-linen text-stone hover:border-ink/40 hover:text-ink'
                       )}
                     >
                       {st.label}
@@ -612,14 +611,14 @@ export function RoutineBuilderView() {
             {/* Fragrance Preference */}
             <div className="flex items-center justify-between rounded-card border border-line bg-linen p-4">
               <div className="flex flex-col">
-                <span className="text-13 font-bold text-night">تفضيل تركيبات خالية من العطور؟</span>
-                <span className="text-12 text-ink-2">مفضل للبشرة الحساسة المعرضة للتهيج السريع.</span>
+                <span className="text-13 font-bold text-ink">تفضيل تركيبات خالية من العطور؟</span>
+                <span className="text-12 text-stone">مفضل للبشرة الحساسة المعرضة للتهيج السريع.</span>
               </div>
               <input
                 type="checkbox"
                 checked={fragranceFree}
                 onChange={(e) => setFragranceFree(e.target.checked)}
-                className="size-5 rounded border-line text-coral accent-coral"
+                className="size-5 rounded border-line text-cobalt accent-cobalt"
               />
             </div>
 
@@ -632,7 +631,7 @@ export function RoutineBuilderView() {
                 السابق
               </Button>
               <Button
-                variant="bottle"
+                variant="cobalt"
                 size="l"
                 onClick={generateProposal}
                 className="font-bold shadow-action"
@@ -650,10 +649,10 @@ export function RoutineBuilderView() {
             <header className="flex flex-col gap-3 rounded-card border border-line bg-sand/60 p-6 shadow-outline-hairline">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex size-9 items-center justify-center rounded-full bg-coral-tint text-coral font-bold">
+                  <span className="flex size-9 items-center justify-center rounded-full bg-sand text-ink font-bold">
                     ✓
                   </span>
-                  <span className="rounded-full bg-coral-tint px-3 py-0.5 text-12 font-bold text-coral">
+                  <span className="rounded-full bg-sand px-3 py-0.5 text-12 font-bold text-ink">
                     مقترح استرشادي قيد المراجعة
                   </span>
                 </div>
@@ -661,27 +660,27 @@ export function RoutineBuilderView() {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className="text-12 font-semibold text-ink-2 hover:text-night underline"
+                  className="text-12 font-semibold text-stone hover:text-ink underline"
                 >
                   إعادة ضبط الخيارات
                 </button>
               </div>
 
-              <h1 id="step4-proposal-title" className="m-0 font-display text-24 font-black text-night sm:text-30">
+              <h1 id="step4-proposal-title" className="m-0 font-display text-24 font-black text-ink sm:text-30">
                 مقترح الروتين المخصص
               </h1>
-              <p className="m-0 text-13.5 leading-22 text-ink-2">
+              <p className="m-0 text-13.5 leading-22 text-stone">
                 هذا مقترح أولي يمكنك مراجعته وتعديل أو حذف خطواته بحرية. لن يتم تفعيل أو حفظ الروتين تلقائياً دون موافقتك.
               </p>
 
-              <div className="flex flex-wrap items-center gap-2 border-t border-line/60 pt-3 text-12 text-ink-2">
-                <span className="rounded-full bg-linen px-2.5 py-1 font-semibold text-night shadow-elevation-1">
+              <div className="flex flex-wrap items-center gap-2 border-t border-line/60 pt-3 text-12 text-stone">
+                <span className="rounded-full bg-linen px-2.5 py-1 font-semibold text-ink shadow-elevation-1">
                   المجال: {focusArea === 'skin' ? 'بشرة' : 'شعر'}
                 </span>
-                <span className="rounded-full bg-linen px-2.5 py-1 font-semibold text-night shadow-elevation-1">
+                <span className="rounded-full bg-linen px-2.5 py-1 font-semibold text-ink shadow-elevation-1">
                   الأهداف: {selectedConcerns.join(' + ')}
                 </span>
-                <span className="rounded-full bg-linen px-2.5 py-1 font-semibold text-night shadow-elevation-1">
+                <span className="rounded-full bg-linen px-2.5 py-1 font-semibold text-ink shadow-elevation-1">
                   الميزانية: {budgetTier === 'economic' ? 'اقتصادي' : budgetTier === 'balanced' ? 'متوازن' : 'متخصص'}
                 </span>
               </div>
@@ -689,8 +688,8 @@ export function RoutineBuilderView() {
 
             {/* Saved Toast Banner if customer clicked save */}
             {isSaved ? (
-              <div className="flex items-center justify-between gap-3 rounded-card border border-coral/40 bg-coral-tint/40 p-4 shadow-elevation-1">
-                <div className="flex items-center gap-2.5 text-coral">
+              <div className="flex items-center justify-between gap-3 rounded-card bg-ok-tint p-4 shadow-outline-ok">
+                <div className="flex items-center gap-2.5 text-ok">
                   <Icon name="check" size={20} />
                   <span className="font-display text-14 font-bold">
                     تم حفظ الروتين بنجاح في روتيناتي!
@@ -698,7 +697,7 @@ export function RoutineBuilderView() {
                 </div>
                 <Link
                   href={routes.myRoutine}
-                  className={cn(buttonVariants({ variant: 'bottle', size: 's' }), 'font-bold shadow-action')}
+                  className={cn(buttonVariants({ variant: 'cobalt', size: 's' }), 'font-bold shadow-action')}
                 >
                   الذهاب لمتابعة الروتين ←
                 </Link>
@@ -708,10 +707,10 @@ export function RoutineBuilderView() {
             {/* Proposal Steps Checklist */}
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <span className="text-13 font-bold text-night">
+                <span className="text-13 font-bold text-ink">
                   الخطوات والمستحضرات المقترحة ({selectedItems.length} محددة من {proposalItems.length}):
                 </span>
-                <span className="text-12 text-ink-3">
+                <span className="text-12 text-stone">
                   انقري على أي خطوة لإلغاء تحديدها أو إعادتها
                 </span>
               </div>
@@ -733,8 +732,8 @@ export function RoutineBuilderView() {
                         className={cn(
                           'mt-1 flex size-5 flex-none items-center justify-center rounded-full border transition-colors',
                           item.selected
-                            ? 'border-coral bg-coral text-linen'
-                            : 'border-line bg-bone'
+                            ? 'border-cobalt bg-cobalt text-linen'
+                            : 'border-line bg-chalk'
                         )}
                       >
                         {item.selected ? <Icon name="check" size={12} /> : null}
@@ -742,35 +741,35 @@ export function RoutineBuilderView() {
 
                       <div className="flex flex-col gap-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="flex size-5 items-center justify-center rounded-full bg-sand font-display text-10 font-bold text-night">
+                          <span className="flex size-5 items-center justify-center rounded-full bg-sand font-display text-10.5 font-bold text-ink">
                             {item.num}
                           </span>
-                          <span className="text-12 font-bold text-ink-3">{item.stepName}</span>
-                          <span className="rounded-full bg-coral-tint px-2 py-0.5 text-10.5 font-bold text-coral">
+                          <span className="text-12 font-bold text-stone">{item.stepName}</span>
+                          <span className="rounded-full bg-sand px-2 py-0.5 text-10.5 font-bold text-ink">
                             {item.actives}
                           </span>
                         </div>
 
                         <div className="flex flex-col">
-                          <span className="text-11 font-bold text-ink-3">{item.brand}</span>
-                          <span className="font-display text-15 font-bold text-night">{item.productName}</span>
+                          <span className="text-11 font-bold text-stone">{item.brand}</span>
+                          <span className="font-display text-15 font-bold text-ink">{item.productName}</span>
                         </div>
 
-                        <p className="m-0 text-12 text-ink-2">
+                        <p className="m-0 text-12 text-stone">
                           {item.usage}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between gap-3 border-t border-line/60 pt-2 sm:border-t-0 sm:pt-0 sm:flex-col sm:items-end">
-                      <span className="font-display text-15 font-bold text-night whitespace-nowrap">
+                      <span className="font-display text-15 font-bold text-ink whitespace-nowrap">
                         {item.price} ج.م
                       </span>
 
                       <Link
                         href={routes.product(item.productSlug)}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-11.5 font-semibold text-coral hover:underline"
+                        className="text-11.5 font-semibold text-cobalt hover:underline"
                       >
                         فحص المنتج
                       </Link>
@@ -783,8 +782,8 @@ export function RoutineBuilderView() {
             {/* Floating Review & Action Bar */}
             <div className="sticky bottom-6 z-sticky flex flex-col gap-3 rounded-card border border-line bg-linen/95 p-4 shadow-elevation-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-col">
-                <span className="text-11.5 text-ink-3">إجمالي المقترح المحدد ({selectedItems.length} مستحضرات)</span>
-                <span className="font-display text-20 font-black text-night">{totalPrice} ج.م</span>
+                <span className="text-11.5 text-stone">إجمالي المقترح المحدد ({selectedItems.length} مستحضرات)</span>
+                <span className="font-display text-20 font-black text-ink">{totalPrice} ج.م</span>
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5">
@@ -799,7 +798,7 @@ export function RoutineBuilderView() {
                 </Button>
 
                 <Button
-                  variant="bottle"
+                  variant="cobalt"
                   size="l"
                   onClick={handleAddToCart}
                   disabled={isAddingToCart || selectedItems.length === 0}

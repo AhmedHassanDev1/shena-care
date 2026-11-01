@@ -399,7 +399,7 @@ export function CheckoutView() {
   if (!cart || cart.items.length === 0) {
     return (
       <section className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-4 rounded-card bg-linen px-6 py-10 text-center shadow-outline-hairline">
-        <p className="m-0 text-body text-night">{m.checkoutEmptyCart}</p>
+        <p className="m-0 text-body text-ink">{m.checkoutEmptyCart}</p>
         <Link href={routes.products} className={buttonVariants({ variant: 'ink' })}>
           {m.cartShop}
         </Link>
@@ -410,8 +410,8 @@ export function CheckoutView() {
   return (
     <div className="pb-28 lg:pb-0">
       <header className="mb-6 hidden lg:block">
-        <h1 className="m-0 font-display text-44 font-extrabold leading-50 text-night">{m.checkoutTitle}</h1>
-        <p className="m-0 mt-1.5 text-14 text-ink-2">{m.checkoutLead}</p>
+        <h1 className="m-0 font-display text-44 font-extrabold leading-52 text-ink">{m.checkoutTitle}</h1>
+        <p className="m-0 mt-1.5 text-14 text-stone">{m.checkoutLead}</p>
       </header>
 
       {problem ? (
@@ -511,7 +511,7 @@ export function CheckoutView() {
       ) : null}
 
       {/* Phone: «أكد الطلب · total» in the sticky action area where the nav would be (CommerceMobile ٣ب). */}
-      <div className="pdp-bar fixed inset-x-0 bottom-0 z-nav bg-bone/95 px-4 pt-3 shadow-hairline-top backdrop-blur-sm lg:hidden">
+      <div className="pdp-bar fixed inset-x-0 bottom-0 z-nav bg-chalk/95 px-4 pt-3 shadow-hairline-top backdrop-blur-sm lg:hidden">
         <AsyncButton size="l" className="w-full" state={placeState} pendingLabel={m.checkoutPlacing} retryLabel={placeLabel} disabled={!canPlace} onClick={placeOrder}>
           {placeLabel}
         </AsyncButton>

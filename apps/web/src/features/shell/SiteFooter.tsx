@@ -49,7 +49,7 @@ export function SiteFooter({ services: showServices = true, dockClearance = fals
     <>
       {showServices ? (
         <PageContainer>
-          <ul className="m-0 grid list-none grid-cols-2 gap-x-4 gap-y-6 px-0 pb-12 pt-8 border-t border-ink/14 lg:grid-cols-4 lg:gap-6 font-display">
+          <ul className="m-0 grid list-none grid-cols-2 gap-x-4 gap-y-6 px-0 pb-12 pt-8 border-t border-ink/15 lg:grid-cols-4 lg:gap-6 font-display">
             {services.map((s) => (
               <li key={s.title} className="flex items-start gap-3.5">
                 <span className="hidden size-11 flex-none items-center justify-center rounded-full bg-sand text-ink lg:flex">
@@ -113,7 +113,7 @@ export function SiteFooter({ services: showServices = true, dockClearance = fals
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-5 text-13 text-chalk/75 border-t border-chalk/14">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-5 text-13 text-chalk/75 border-t border-chalk/15">
             <span>{fillMessage(m.footerCopyright, { year: formatNumber(new Date().getFullYear(), locale).replace(/[٬,]/g, '') })}</span>
             <span className="flex items-center gap-5">
               <span>{m.footerTerms}</span>

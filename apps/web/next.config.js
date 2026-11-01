@@ -19,6 +19,12 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        // The builder used to live at /routine/builder; the query string (?template=, ?product=) is carried over.
+        source: '/routine/builder',
+        destination: '/routines/build',
+        permanent: true,
+      },
+      {
         source: '/login',
         destination: '/auth',
         permanent: false,

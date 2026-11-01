@@ -25,7 +25,7 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<typeof Dialo
   closeLabel?: string
 }
 
-/** Confirm dialog: linen, radius-sheet, elevation-3 (shadow-e3), centred with symmetric insets. */
+/** Confirm dialog: linen, radius-sheet, elevation-3 (shadow-elevation-3), centred with symmetric insets. */
 const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Content>, DialogContentProps>(
   ({ className, children, closeLabel, ...props }, ref) => (
     <DialogPortal>
@@ -34,7 +34,7 @@ const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.C
         ref={ref}
         className={cn(
           "fixed inset-x-4 top-1/2 z-overlay mx-auto flex max-h-[calc(100dvh-2rem)] max-w-[480px] -translate-y-1/2 flex-col gap-4 overflow-y-auto",
-          "rounded-card bg-linen p-6 text-ink shadow-e3 motion-safe:data-[state=open]:animate-rise-in",
+          "rounded-card bg-linen p-6 text-ink shadow-elevation-3 motion-safe:data-[state=open]:animate-rise-in",
           className
         )}
         {...props}

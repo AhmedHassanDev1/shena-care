@@ -145,18 +145,18 @@ export function PhoneLoginForm() {
         </MessageBox>
       ) : null}
 
-      <AuthHeader eyebrow={m.authPanelLabel} title={m.authPhoneTitle} description={m.authPhoneDescription} />
+      <AuthHeader title={m.authPhoneTitle} description={m.authPhoneDescription} />
 
       {savedCount > 0 ? (
         <div role="status" className="flex items-start gap-3 rounded-16 bg-linen px-4 py-3.5 shadow-outline-hairline">
-          <span aria-hidden="true" className="grid size-10 flex-none place-items-center rounded-image bg-sand text-night">
+          <span aria-hidden="true" className="grid size-10 flex-none place-items-center rounded-image bg-sand text-ink">
             <Icon name="bag" size={22} />
           </span>
           <p className="m-0 flex min-w-0 flex-col gap-0.5">
-            <span className="text-14.5 font-bold leading-22 text-night">
+            <span className="text-14.5 font-bold leading-22 text-ink">
               {fillMessage(m.authCartSaved, { count: formatProductCount(savedCount, locale) })}
             </span>
-            <span className="text-13 leading-20 text-ink-2">{m.authCartSavedBody}</span>
+            <span className="text-13 leading-20 text-stone">{m.authCartSavedBody}</span>
           </p>
         </div>
       ) : null}
@@ -207,7 +207,7 @@ export function PhoneLoginForm() {
         </p>
       </form>
 
-      <p className="m-0 text-13 leading-20 text-ink-2">{m.authLegal}</p>
+      <p className="m-0 text-13 leading-20 text-stone">{m.authLegal}</p>
     </>
   );
 }

@@ -22,9 +22,9 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
 
 /**
- * SAHEL sheet: linen, radius-card (6px) or rounded-t-2xl on phone, elevation-3 (shadow-e3).
+ * SAHEL sheet: linen, radius-card (6px) or rounded-t-sheet on phone, elevation-3 (shadow-elevation-3).
  */
-const sheetVariants = cva("fixed z-overlay flex flex-col bg-linen text-ink shadow-e3", {
+const sheetVariants = cva("fixed z-overlay flex flex-col bg-linen text-ink shadow-elevation-3", {
   variants: {
     side: {
       bottom: "inset-x-0 bottom-0 max-h-[88dvh] rounded-t-sheet pb-safe motion-safe:data-[state=open]:animate-sheet-in-bottom",

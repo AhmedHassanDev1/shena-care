@@ -15,14 +15,14 @@ export interface ToastProps {
 }
 
 /**
- * Sahel Toast: ink ground, chalk text, pill radius (rounded-pill), shadow-e3, citron check circle.
+ * Sahel Toast: ink ground, chalk text, pill radius (rounded-pill), shadow-elevation-3, citron check circle.
  */
 export function Toast({ children, subtitle, action, className }: ToastProps) {
   return (
     <div
       role="status"
       aria-live="polite"
-      className={cn("flex items-center gap-3.5 rounded-pill bg-ink p-2.5 pe-4 text-chalk shadow-e3 font-display", className)}
+      className={cn("flex items-center gap-3.5 rounded-pill bg-ink p-2.5 pe-4 text-chalk shadow-elevation-3 font-display", className)}
     >
       <span aria-hidden="true" className="flex size-10.5 flex-none items-center justify-center rounded-full bg-citron text-ink">
         <Icon name="check" size={20} strokeWidth={2.4} />

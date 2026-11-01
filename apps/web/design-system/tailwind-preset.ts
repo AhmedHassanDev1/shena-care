@@ -30,7 +30,7 @@ const boxShadow = {
 };
 
 const fontSize = Object.fromEntries(app.fontSize.values.map((v) => [v, `${v}px`]));
-const lineHeight = { none: '1', ...Object.fromEntries(app.lineHeight.values.map((v) => [v, `${v}px`])) };
+const lineHeight = { none: '1', ...app.lineHeight.ratios, ...Object.fromEntries(app.lineHeight.values.map((v) => [v, `${v}px`])) };
 
 const sizes = Object.fromEntries(app.size.tokens.map((t) => [t.name, `var(--${t.name})`]));
 const { $comment: _spaceNote, ...halfSteps } = app.spacing;

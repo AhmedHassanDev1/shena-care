@@ -1,0 +1,12 @@
+{
+  "hooks": [],
+  "deployments": [],
+  "actions/workflows": [
+    {
+      "name": "Security Validation",
+      "path": ".github/workflows/security.yml",
+      "state": "active"
+    }
+  ],
+  "commits/bdc577377825ff803c1e206611c46a295571d223/check-runs": []
+}

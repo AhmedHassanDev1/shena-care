@@ -27,7 +27,7 @@ export function SiteHeader({ searchDefault }: { searchDefault?: string }) {
   );
 
   return (
-    <header className="bg-chalk border-b border-ink/14">
+    <header className="bg-chalk border-b border-ink/15">
       {/* Phone */}
       <div className="flex flex-col gap-2.5 px-4 pb-3 pt-2 lg:hidden">
         <div className="flex h-12 items-center justify-between">

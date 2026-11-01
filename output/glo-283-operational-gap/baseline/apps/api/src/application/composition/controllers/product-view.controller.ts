@@ -1,0 +1,218 @@
+import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
+import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
+import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Query,
+  BadRequestException,
+  Body,
+  NotFoundException,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import { ProductViewService } from '../services/product-view.service';
+import { DiscoveryService } from '../services/discovery.service';
+import { DiscoveryQueryDto, ProductListQueryDto, SuggestQueryDto } from '../dto/discovery.dto';
+import { CareService } from '../../../modules/care/public';
+import { ProductDetailService } from '../services/product-detail.service';
+import { ApiOkResponse, ApiNotFoundResponse, ApiBadRequestResponse, ApiTags } from '@nestjs/swagger';
+import { ProductDetailQueryDto, ProductDetailResponseDto } from '../dto/product-detail.dto';
+import {
+  CatalogService,
+  CreateProductDto,
+  UpdateProductDto,
+  CreateSkuDto,
+  UpdateSkuDto,
+  CreateProductMediaDto,
+  UpdateProductMediaDto,
+} from '../../../modules/catalog/public';
+
+@Controller('products')
+@ApiTags('Products')
+export class ProductViewController {
+  constructor(
+    private readonly productViewService: ProductViewService,
+    private readonly catalogService: CatalogService,
+    private readonly discoveryService: DiscoveryService,
+    private readonly productDetailService: ProductDetailService,
+    private readonly careService: CareService,
+  ) {}
+
+  // ---------------------------------------------------------------------------
+  // Product Read & Query
+  // ---------------------------------------------------------------------------
+
+  // GET /products
+  // GET /products?category=moisturizers&brand=cerave&productLine=cerave-daily-moisturizers&page=1&limit=20
+  @Get()
+  async listProducts(
+    @Query() query: ProductListQueryDto,
+  ) {
+    if (query.q || query.concern || query.cursor) return (await this.discoveryService.discover(query)).items;
+    return this.productViewService.getProductViews({ categorySlug: query.category, brandSlug: query.brand,
+      productLineSlug: query.productLine, page: query.page, limit: query.limit });
+  }
+
+  @Get('discovery')
+  async discover(@Query() query: DiscoveryQueryDto) {
+    return this.discoveryService.discover(query);
+  }
+
+  @Get('suggestions')
+  async suggestions(@Query() query: SuggestQueryDto) {
+    return this.discoveryService.suggest(query);
+  }
+
+  private async validateConcerns(slugs?: string[]) {
+    if (!slugs?.length) return;
+    const known = new Set((await this.careService.getPublicConcerns()).map(c => c.slug));
+    if (slugs.some(slug => !known.has(slug))) throw new BadRequestException('Unknown or inactive concern');
+  }
+
+  // ---------------------------------------------------------------------------
+  // SKU Management (Declared before :slugOrId to prevent route conflict)
+  // ---------------------------------------------------------------------------
+
+  // PATCH /products/skus/:skuId
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Patch('skus/:skuId')
+  async updateSku(
+    @Param('skuId') skuId: string,
+    @Body() dto: UpdateSkuDto,
+  ) {
+    return this.catalogService.updateSku(skuId, dto);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Media Management (Declared before :slugOrId to prevent route conflict)
+  // ---------------------------------------------------------------------------
+
+  // PATCH /products/media/:mediaId
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Patch('media/:mediaId')
+  async updateMedia(
+    @Req() req: { user: { id: string } },
+    @Param('mediaId') mediaId: string,
+    @Body() dto: UpdateProductMediaDto,
+  ) {
+    return this.catalogService.updateMedia(mediaId, dto, req.user.id);
+  }
+
+  // DELETE /products/media/:mediaId
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Delete('media/:mediaId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteMedia(@Param('mediaId') mediaId: string) {
+    await this.catalogService.deleteMedia(mediaId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Product Write
+  // ---------------------------------------------------------------------------
+
+  // POST /products
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async createProduct(@Body() dto: CreateProductDto) {
+    await this.validateConcerns(dto.concerns);
+    return this.catalogService.createProduct(dto);
+  }
+
+  // PATCH /products/:id
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Patch(':id')
+  async updateProduct(
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+  ) {
+    await this.validateConcerns(dto.concerns);
+    return this.catalogService.updateProduct(id, dto);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Product Sub-resources (SKUs & Media by product ID)
+  // ---------------------------------------------------------------------------
+
+  // GET /products/:productId/skus
+  @Get(':productId/skus')
+  async listProductSkus(@Param('productId') productId: string) {
+    const product = await this.productViewService.getProductView(productId);
+    if (!product) throw new NotFoundException('Product not published');
+    return product.skus;
+  }
+
+  // POST /products/:productId/skus
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Post(':productId/skus')
+  @HttpCode(HttpStatus.CREATED)
+  async createSku(
+    @Param('productId') productId: string,
+    @Body() dto: CreateSkuDto,
+  ) {
+    return this.catalogService.createSku(productId, dto);
+  }
+
+  // GET /products/:productId/media
+  @Get(':productId/media')
+  async listProductMedia(@Param('productId') productId: string) {
+    const product = await this.productViewService.getProductView(productId);
+    if (!product) throw new NotFoundException('Product not published');
+    return product.media;
+  }
+
+  // POST /products/:productId/media
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @Post(':productId/media')
+  @HttpCode(HttpStatus.CREATED)
+  async addProductMedia(
+    @Req() req: { user: { id: string } },
+    @Param('productId') productId: string,
+    @Body() dto: CreateProductMediaDto,
+  ) {
+    return this.catalogService.addMedia(productId, dto, req.user.id);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Single Product Read
+  // ---------------------------------------------------------------------------
+
+  // GET /products/:slugOrId
+  @Get(':slugOrId/detail')
+  @ApiOkResponse({ type: ProductDetailResponseDto })
+  @ApiNotFoundResponse({ description: 'Product or selected variant is not publicly eligible' })
+  @ApiBadRequestResponse({ description: 'Invalid query' })
+  async getProductDetail(@Param('slugOrId') slugOrId: string, @Query() query: ProductDetailQueryDto) {
+    const detail = await this.productDetailService.getDetail(slugOrId, query.skuId);
+    if (!detail) throw new NotFoundException('Product not found');
+    return detail;
+  }
+
+  @Get(':slugOrId')
+  @ApiOkResponse({ type: ProductDetailResponseDto })
+  @ApiNotFoundResponse({ description: 'Product or selected variant is not publicly eligible' })
+  @ApiBadRequestResponse({ description: 'Invalid query' })
+  async getProduct(@Param('slugOrId') slugOrId: string, @Query() query: ProductDetailQueryDto) {
+    const productView = await this.productDetailService.getDetail(slugOrId, query.skuId);
+
+    if (!productView) {
+      throw new NotFoundException(`Product not found: ${slugOrId}`);
+    }
+
+    return productView;
+  }
+}

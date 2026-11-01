@@ -38,7 +38,7 @@ function BackControl({ variant }: { variant: 'phone' | 'desktop' }) {
       <Link
         href={task.href}
         aria-label={task.label}
-        className="inline-flex min-h-control-s items-center gap-0.5 pe-2.5 text-15 font-semibold text-night no-underline"
+        className="inline-flex min-h-control-s items-center gap-0.5 pe-2.5 text-15 font-semibold text-ink no-underline"
       >
         <Icon name="chevron-back" size={22} strokeWidth={1.9} />
         {task.short}

@@ -9,7 +9,7 @@ export interface ArrowLinkProps extends LinkProps, Omit<React.AnchorHTMLAttribut
 }
 
 /**
- * Text link with a forward arrow (section «عرض الكل», card «ابدأ…»): bottle green, 44 tall target, underline that draws
+ * Text link with a forward arrow (section «عرض الكل», card «ابدأ…»): cobalt, 44 tall target, underline that draws
  * on hover or focus (.link-quiet). The arrow points at the reading end in both directions.
  */
 export function ArrowLink({ className, children, ...props }: ArrowLinkProps) {

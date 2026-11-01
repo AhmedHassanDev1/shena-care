@@ -23,7 +23,7 @@ export function MobileDock({ active }: { active: DockItem }) {
   return (
     <nav aria-label={m.homeNavLabel} className="pointer-events-none fixed inset-x-0 bottom-0 z-nav pb-safe lg:hidden">
       <div className="mx-auto flex justify-center px-4 pb-3">
-        <ul className="pointer-events-auto m-0 flex h-16 w-full max-w-sm list-none items-center justify-around rounded-pill bg-linen/95 p-1.5 border border-ink/14 shadow-e3 backdrop-blur-xl">
+        <ul className="pointer-events-auto m-0 flex h-16 w-full max-w-sm list-none items-center justify-around rounded-pill bg-linen/95 p-1.5 border border-ink/15 shadow-elevation-3 backdrop-blur-xl">
           {items.map((it) => {
             const isActive = it.id === active;
             return (
@@ -33,7 +33,7 @@ export function MobileDock({ active }: { active: DockItem }) {
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
                     'flex h-13 min-w-[72px] flex-col items-center justify-center gap-0.5 rounded-pill px-3 text-13 font-display font-semibold leading-tight no-underline transition-all duration-fast ease-standard',
-                    isActive ? 'bg-cobalt text-chalk shadow-e1' : 'text-stone hover:text-ink'
+                    isActive ? 'bg-cobalt text-chalk shadow-elevation-1' : 'text-stone hover:text-ink'
                   )}
                 >
                   <Icon name={it.icon} size={22} />

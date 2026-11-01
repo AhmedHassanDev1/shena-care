@@ -8,7 +8,7 @@ export const routes = {
   login: '/auth',
   register: '/auth',
   verify: '/auth/verify',
-  routineBuilder: '/routine/builder',
+  routineBuilder: '/routines/build',
   product: (slug: string) => `/products/${encodeURIComponent(slug)}`,
   /** Product page with a specific variant selected. */
   productVariant: (slug: string, skuId: string) => `/products/${encodeURIComponent(slug)}?sku=${encodeURIComponent(skuId)}`,

@@ -118,7 +118,7 @@ function CheckRow({ checked, label, count, latin, onToggle }: { checked: boolean
     >
       <span
         aria-hidden="true"
-        className={cn('flex size-5 flex-none items-center justify-center rounded-card', checked ? 'bg-cobalt text-chalk shadow-e1' : 'bg-linen shadow-outline-hairline')}
+        className={cn('flex size-5 flex-none items-center justify-center rounded-card', checked ? 'bg-cobalt text-chalk shadow-elevation-1' : 'bg-linen shadow-outline-hairline')}
       >
         {checked ? <Icon name="check" size={14} strokeWidth={3} /> : null}
       </span>

@@ -1,0 +1,23 @@
+{
+  "suites": 127,
+  "passed": 1094,
+  "failed": 12,
+  "total": 1106,
+  "newFailures": [
+    "Availability decision window and expiry (e2e) opens the decision by itself with a deadline, and leaves it alone before the window ends",
+    "GLO-278 Gate 06: new product candidates & cross-supplier dedup (e2e) converges two suppliers racing on the same new product onto a single candidate",
+    "GLO-281 Gate 09: 1000-row scale, reconciliation and concurrency (e2e) concurrency: the same file uploaded 3× at once is one receipt; two suppliers racing on one new product create one candidate",
+    "GLO-281 Gate 09: 1000-row scale, reconciliation and concurrency (e2e) known-only 1000 rows: first file, changed re-upload on the approved layout with zero AI calls, identical replay",
+    "GLO-281 Gate 09: 1000-row scale, reconciliation and concurrency (e2e) mixed 1000-row file: every row is accounted for in exactly one outcome, only verified rows reach offers"
+  ],
+  "existingFailures": [
+    "GLO-182/183 public discovery and detail (PostgreSQL) fails closed for incomplete detail and invalidated exact identity review",
+    "GLO-182/183 public discovery and detail (PostgreSQL) groups eligible variants, counts eligible products and fills pages after all gates",
+    "GLO-182/183 public discovery and detail (PostgreSQL) keeps the insertion watermark and rejects cursor reuse with changed filters",
+    "GLO-182/183 public discovery and detail (PostgreSQL) normalizes Arabic, ranks exact names, finds curated concerns and suggests only sellable products",
+    "GLO-280 Gate 08: offer comparison and pricing safety (e2e) one availability answer for every surface: a feed is PROVISIONAL, never a confirmation, and expires",
+    "Product readiness: source -> human review -> catalog -> public PDP rejects a selected variant with stale stock while preserving its fresh sibling",
+    "ShinaCare Maps Phase 3.2 — Single-Driver Route Optimization MapboxOptimizationProvider live smoke test against Mapbox Optimization v1 API"
+  ],
+  "resolvedBaselineFailures": []
+}

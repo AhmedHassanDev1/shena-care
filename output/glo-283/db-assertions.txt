@@ -1,0 +1,30 @@
+ overconfirmed_allocations 
+---------------------------
+                         0
+(1 row)
+
+ overcommitted_requirements 
+----------------------------
+                          0
+(1 row)
+
+ competing_pending_requirements 
+--------------------------------
+                              0
+(1 row)
+
+ expired_po_pending_allocations 
+--------------------------------
+                              0
+(1 row)
+
+ broken_aggregated_line_quantities 
+-----------------------------------
+                                 0
+(1 row)
+
+ sample_count |  min_ms   | p50_ms |       p95_ms       |   max_ms   
+--------------+-----------+--------+--------------------+------------
+            3 | 65.000000 |     76 | 101.19999999999999 | 104.000000
+(1 row)
+

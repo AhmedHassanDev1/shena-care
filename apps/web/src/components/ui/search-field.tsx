@@ -21,7 +21,7 @@ export function SearchField({ label, action, className, name = "q", id = "site-s
       <label htmlFor={id} className="sr-only">
         {label}
       </label>
-      <div className="flex h-control-xl items-center gap-3 rounded-pill bg-linen px-5 border border-ink/18 shadow-e1 transition-all duration-fast ease-standard focus-within:border-2 focus-within:border-ink">
+      <div className="flex h-control-xl items-center gap-3 rounded-pill bg-linen px-5 border border-ink/20 shadow-elevation-1 transition-all duration-fast ease-standard focus-within:border-2 focus-within:border-ink">
         <Icon name="search" size={20} className="text-stone shrink-0" />
         <input
           id={id}

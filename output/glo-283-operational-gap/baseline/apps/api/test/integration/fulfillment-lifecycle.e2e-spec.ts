@@ -1,0 +1,492 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe, Catch, ExceptionFilter, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+const request = require('supertest');
+import { AppModule } from '../../src/app.module';
+import { PrismaService } from '../../src/platform/database/prisma.service';
+import { createSellableSku } from '../fixtures/sellable-sku';
+import { signInCustomer } from '../fixtures/checkout';
+
+/**
+ * Fulfillment Lifecycle E2E Tests — GLO-150 + GLO-147
+ *
+ * Routes (from fulfillment.controller.ts):
+ *   POST /fulfillment/locations
+ *   POST /fulfillment/shipments/allocate
+ *   POST /fulfillment/shipments/:id/preparation          → startPreparationSession
+ *   POST /fulfillment/preparation-sessions/:id/scan      → scanItem
+ *   POST /fulfillment/preparation-sessions/:id/complete  → completePreparationSession
+ *   POST /fulfillment/shipments/:id/label                → generateShipmentLabel
+ *   POST /fulfillment/shipments/:id/events               → recordShipmentEvent
+ *
+ * Fixture setup:
+ *   1. Register a customer via /accounts/register
+ *   2. Add seeded SKU to cart
+ *   3. Checkout → produces an Order in status 'placed'
+ *   4. Update order to 'confirmed' via prisma (allocateShipment requires confirmed/placed)
+ *   5. Create fulfillment location
+ *   6. Allocate shipment
+ *
+ * Note: FulfillmentController has no auth guard — it is a hub-internal API.
+ * OrderingController IS guarded — checkout must use the real auth token.
+ */
+@Catch()
+class TestErrorFilter implements ExceptionFilter {
+  catch(exception: any, host: ArgumentsHost) {
+    console.error('TEST SERVER ERROR:', exception);
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    response.status(status).json({
+      statusCode: status,
+      message: exception.message,
+      error: 'Test Error'
+    });
+  }
+}
+
+describe('Fulfillment Lifecycle (e2e)', () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+
+  // Fixture state shared across ordered tests
+  let skuId: string;
+  let skuCode: string;
+  let authToken: string;
+  let shipmentId: string;
+  let sessionId: string;
+  let locationId: string;
+  let secondShipmentId: string; // for GLO-147 invalid-state tests
+  let labelBarcode: string;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
+    app.useGlobalFilters(new TestErrorFilter());
+    await app.init();
+
+    prisma = app.get<PrismaService>(PrismaService);
+
+    // ── Find a seeded SKU ────────────────────────────────────────────────────
+    const sku = await createSellableSku(prisma);
+    if (!sku) throw new Error('No SKU with barcode in test DB — seed data missing');
+    skuId = sku.id;
+    skuCode = sku.barcode!;
+
+    // ── Register + login a test customer ────────────────────────────────────
+    const email = `fulfill-${Date.now()}@test.local`;
+    const regRes = await request(app.getHttpServer())
+      .post('/accounts/register')
+      .send({ name: 'Fulfill Tester', email, password: 'TestPass!1' });
+    if (regRes.status !== 201) {
+      console.log('Register failed:', regRes.body);
+    }
+    expect(regRes.status).toBe(201);
+
+    authToken = `Bearer ${regRes.body.token}`;
+    await prisma.customer.update({ where: { email }, data: { roles: ['ADMIN'] } });
+
+    // Get customer ID — required by AddToCartDto (sessionId field)
+    const meRes = await request(app.getHttpServer())
+      .get('/accounts/me')
+      .set('Authorization', authToken)
+      .expect(200);
+    const customerId = meRes.body.id;
+
+    // ── Create fulfillment location ──────────────────────────────────────────
+    const locRes = await request(app.getHttpServer())
+      .post('/fulfillment/locations').set('Authorization', authToken)
+      .send({ name: `Hub-${Date.now()}`, address: '1 Warehouse St' })
+      .expect(201);
+    locationId = locRes.body.id;
+
+    // ── Add SKU to cart + checkout → Order in status 'placed' ───────────────
+    // Storefront orders are placed by a signed-in customer; staff sessions are refused at checkout.
+    const shopper = (await signInCustomer(app)).auth.Authorization;
+    await request(app.getHttpServer())
+      .post('/ordering/cart/add')
+      .set('Authorization', shopper)
+      .send({ skuId, quantity: 2 })
+      .expect(201);
+
+    const quote1 = await request(app.getHttpServer()).post('/ordering/checkout/quote')
+      .set('Authorization', shopper).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
+
+    const checkoutRes = await request(app.getHttpServer())
+      .post('/ordering/checkout')
+      .set('Authorization', shopper)
+      .send({
+        sessionId: customerId,
+        customerName: 'Fulfill Tester',
+        customerPhone: '+201001234567',
+        shippingAddress: '10 Test Street, Cairo',
+        governorate: 'Cairo',
+        area: 'Maadi',
+        latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true,
+        quoteVersion: quote1.body.quoteVersion,
+        cartRevision: quote1.body.revision,
+        idempotencyKey: `fulfillment-1-${Date.now()}`,
+      })
+      .expect(201);
+
+    const orderId = checkoutRes.body.id;
+
+    // allocateShipment checks: status must be 'placed' or 'confirmed'
+    // 'placed' is what checkout produces — that satisfies the guard already.
+    const allocRes = await request(app.getHttpServer())
+      .post('/fulfillment/shipments/allocate').set('Authorization', authToken)
+      .send({ orderId, locationId })
+      .expect(201);
+
+    shipmentId = allocRes.body.id;
+
+    // Receiving cannot be skipped: a shipment whose goods were not received (pending) cannot be prepared.
+    const early = await request(app.getHttpServer())
+      .post(`/fulfillment/shipments/${shipmentId}/preparation`).set('Authorization', authToken)
+      .send({ operatorId: 'op-1' }).expect(400);
+    expect(early.body.message).toMatch(/receive the goods before preparing/);
+    // This suite exercises preparation/packing only: simulate "every item received" the way the receipt does.
+    await prisma.shipment.update({ where: { id: shipmentId }, data: { status: 'ready_to_prepare' } });
+
+    // ── Create a SECOND order+shipment for GLO-147 invalid-state tests ───────
+    await request(app.getHttpServer())
+      .post('/ordering/cart/add')
+      .set('Authorization', shopper)
+      .send({ skuId, quantity: 1 })
+      .expect(201);
+
+    const quote2 = await request(app.getHttpServer()).post('/ordering/checkout/quote')
+      .set('Authorization', shopper).send({ governorate: 'Cairo', area: 'Maadi' }).expect(201);
+
+    const co2 = await request(app.getHttpServer())
+      .post('/ordering/checkout')
+      .set('Authorization', shopper)
+      .send({
+        sessionId: customerId,
+        customerName: 'Fulfill Tester',
+        customerPhone: '+201001234567',
+        shippingAddress: '10 Test Street, Cairo',
+        governorate: 'Cairo',
+        area: 'Maadi',
+        latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true,
+        quoteVersion: quote2.body.quoteVersion,
+        cartRevision: quote2.body.revision,
+        idempotencyKey: `fulfillment-2-${Date.now()}`,
+      })
+      .expect(201);
+
+    const alloc2 = await request(app.getHttpServer())
+      .post('/fulfillment/shipments/allocate').set('Authorization', authToken)
+      .send({ orderId: co2.body.id, locationId })
+      .expect(201);
+
+    secondShipmentId = alloc2.body.id;
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GLO-150 — Order Preparation + Pick/Scan Verification
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('GLO-150: Order Preparation', () => {
+    it('should reject label generation while in pending status (pre-check)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/shipments/${shipmentId}/label`).set('Authorization', authToken)
+        .expect(400);
+      expect(res.body.message).toMatch(/Cannot generate label for shipment in status/);
+    });
+
+    it('should start a preparation session', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/shipments/${shipmentId}/preparation`).set('Authorization', authToken)
+        .send({ operatorId: 'op-1' })
+        .expect(201);
+
+      expect(res.body.id).toBeDefined();
+      expect(res.body.status).toBe('in_progress');
+      sessionId = res.body.id;
+    });
+
+    it('concurrent start returns same session (idempotent)', async () => {
+      // Both hit the endpoint while shipment is already 'preparing'
+      // First call returns the existing in_progress session; second also returns it.
+      // The updateMany guard prevents creating a duplicate session.
+      const [r1, r2] = await Promise.all([
+        request(app.getHttpServer())
+          .post(`/fulfillment/shipments/${shipmentId}/preparation`).set('Authorization', authToken)
+          .send({ operatorId: 'op-1' }),
+        request(app.getHttpServer())
+          .post(`/fulfillment/shipments/${shipmentId}/preparation`).set('Authorization', authToken)
+          .send({ operatorId: 'op-2' }),
+      ]);
+
+      // Both should succeed — one returns the existing session, the other is rejected with 400
+      // because updateMany returns count=0 when status is no longer 'pending'/'ready_to_prepare'.
+      // Either both get the same session (via the idempotent return path) or one gets 400.
+      const statuses = [r1.status, r2.status].sort();
+      expect(statuses).toEqual(
+        expect.arrayContaining([expect.any(Number)])
+      );
+      // At least one must not be 500 — concurrency is handled gracefully.
+      expect(r1.status).toBeLessThan(500);
+      expect(r2.status).toBeLessThan(500);
+      // The session used by subsequent tests must be the original one.
+      // If r1 got 201, use it; if r2 got 201, use it; if both returned session, verify same id.
+      const success = r1.status === 201 ? r1 : r2;
+      if (success.status === 201) {
+        // Idempotent: same session id returned
+        expect(success.body.id).toBe(sessionId);
+      }
+    });
+
+    it('should accept a valid barcode scan (isSuccessful=true)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`).set('Authorization', authToken)
+        .send({ barcodeScanned: skuCode })
+        .expect(201);
+
+      expect(res.body.isSuccessful).toBe(true);
+      expect(res.body.sessionId).toBe(sessionId);
+    });
+
+    it('should record wrong SKU scan as unsuccessful (WRONG_ITEM)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`).set('Authorization', authToken)
+        .send({ barcodeScanned: 'UNKNOWN-BARCODE-XYZ' })
+        .expect(201);
+
+      expect(res.body.isSuccessful).toBe(false);
+      expect(res.body.errorReason).toBe('PRODUCT_IDENTITY_REVIEW_REQUIRED'); // GLO-242: unknown code needs review
+    });
+
+    it('should reject completion when not all items are scanned', async () => {
+      // Only 1 of 2 units scanned so far
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/preparation-sessions/${sessionId}/complete`).set('Authorization', authToken)
+        .expect(400);
+
+      expect(res.body.message).toMatch(/Cannot complete preparation/);
+    });
+
+    it('should record the second valid scan (completing quantity=2)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`).set('Authorization', authToken)
+        .send({ barcodeScanned: skuCode })
+        .expect(201);
+
+      expect(res.body.isSuccessful).toBe(true);
+    });
+
+    it('should record excess scan as unsuccessful (EXCESS_QUANTITY)', async () => {
+      // Third scan of same item — quantity is 2, already scanned 2 successfully
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`).set('Authorization', authToken)
+        .send({ barcodeScanned: skuCode })
+        .expect(201);
+
+      expect(res.body.isSuccessful).toBe(false);
+      expect(res.body.errorReason).toBe('EXCESS_QUANTITY');
+    });
+
+    it('should complete preparation when exactly all items are scanned', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/preparation-sessions/${sessionId}/complete`).set('Authorization', authToken)
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+    });
+
+    it('should reject scanning after session is completed', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/preparation-sessions/${sessionId}/scan`).set('Authorization', authToken)
+        .send({ barcodeScanned: skuCode })
+        .expect(400);
+
+      expect(res.body.message).toBe('Session is not in progress');
+    });
+
+    it('should reject repeated completion of the same session', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/preparation-sessions/${sessionId}/complete`).set('Authorization', authToken)
+        .expect(400);
+
+      expect(res.body.message).toBe('Session is not in progress');
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GLO-147 — Shipment Label, Barcode/QR & Driver Handoff
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  describe('GLO-147: Shipment Label & Driver Handoff', () => {
+    it('should reject label generation for shipment still in pending (second shipment)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/shipments/${secondShipmentId}/label`).set('Authorization', authToken)
+        .expect(400);
+
+      expect(res.body.message).toMatch(/Cannot generate label for shipment in status/);
+    });
+
+    it('should generate label now that primary shipment is prepared', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/shipments/${shipmentId}/label`).set('Authorization', authToken)
+        .expect(201);
+
+      expect(res.body.barcode).toBeDefined();
+      // Barcode must be opaque — must not contain raw PII
+      expect(res.body.barcode).not.toContain('@');
+      expect(res.body.shipmentId).toBe(shipmentId);
+      labelBarcode = res.body.barcode;
+    });
+
+    it('should reject handoff event when not yet packed', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
+        .send({ type: 'HANDOFF_SCANNED', barcode: labelBarcode })
+        .expect(400);
+
+      expect(res.body.message).toMatch(/Shipment must be packed before dispatch/);
+    });
+
+    it('should allow PACKED event in prepared state', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
+        .send({ type: 'PACKED', actorId: 'op-1' })
+        .expect(201);
+
+      expect(res.body.type).toBe('PACKED');
+      expect(res.body.shipmentId).toBe(shipmentId);
+    });
+
+    it('should reject HANDOFF_SCANNED without the matching label barcode (GLO-206 GAP-06)', async () => {
+      for (const barcode of [undefined, 'SHP-00000000-0000000000000000', `${labelBarcode}X`]) {
+        const res = await request(app.getHttpServer())
+          .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
+          .send({ type: 'HANDOFF_SCANNED', ...(barcode ? { barcode } : {}) })
+          .expect(400);
+        expect(res.body.message).toMatch(/barcode does not match/);
+      }
+    });
+
+    it('should allow HANDOFF_SCANNED after packing and attribute it to the session user', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
+        .send({ type: 'HANDOFF_SCANNED', actorId: 'spoofed-driver', barcode: labelBarcode })
+        .expect(201);
+
+      expect(res.body.type).toBe('HANDOFF_SCANNED');
+      expect(res.body.actorId).not.toBe('spoofed-driver');
+    });
+
+    it('should allow OUT_FOR_DELIVERY event after handoff (dispatched state)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
+        .send({ type: 'OUT_FOR_DELIVERY', actorId: 'driver-1' })
+        .expect(201);
+
+      expect(res.body.type).toBe('OUT_FOR_DELIVERY');
+    });
+
+    it('should reject UUID-invalid shipment ID (opaque ID safety)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/fulfillment/shipments/not-a-uuid/label').set('Authorization', authToken)
+        .expect(400);
+
+      expect(res.body.message).toBe('Invalid shipment ID');
+    });
+
+    it('should reject UUID-invalid shipment ID for events', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/fulfillment/shipments/not-a-uuid/events').set('Authorization', authToken)
+        .send({ type: 'PACKED', actorId: 'op-1' })
+        .expect(400);
+
+      expect(res.body.message).toBe('Invalid shipment ID');
+    });
+  });
+
+  describe('GLO-149: Delivery Batch Planning', () => {
+    let batchId: string;
+
+    it('should get eligible shipments for batching', async () => {
+      // Shipments only move forward through the API (GLO-210), so reset to packed directly for the batch tests.
+      await prisma.shipment.update({ where: { id: shipmentId }, data: { status: 'packed' } });
+
+      const res = await request(app.getHttpServer())
+        .get(`/fulfillment/locations/${locationId}/eligible-shipments`).set('Authorization', authToken)
+        .expect(200);
+
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should create a delivery batch', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/fulfillment/delivery-batches').set('Authorization', authToken)
+        .send({ hubId: locationId, name: 'Morning Run A' })
+        .expect(201);
+
+      expect(res.body.id).toBeDefined();
+      expect(res.body.status).toBe('planning');
+      batchId = res.body.id;
+    });
+
+    it('should add stops to batch', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/delivery-batches/${batchId}/stops`).set('Authorization', authToken)
+        .send({
+          stops: [{ shipmentId, sequence: 1 }]
+        })
+        .expect(201);
+
+      expect(res.body.stops.length).toBe(1);
+      expect(res.body.stops[0].shipmentId).toBe(shipmentId);
+    });
+
+    it('should prevent duplicate shipment assignment', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/delivery-batches/${batchId}/stops`).set('Authorization', authToken)
+        .send({
+          stops: [{ shipmentId, sequence: 2 }]
+        })
+        .expect(400);
+      
+      expect(res.body.message).toMatch(/already assigned/);
+    });
+
+    it('should allow manual stop ordering', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/fulfillment/delivery-batches/${batchId}/stops/sequence`).set('Authorization', authToken)
+        .send({
+          stops: [{ shipmentId, sequence: 10 }]
+        })
+        .expect(200);
+
+      expect(res.body.stops[0].sequence).toBe(10);
+    });
+
+    it('should dispatch the batch', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/fulfillment/delivery-batches/${batchId}/dispatch`).set('Authorization', authToken)
+        .expect(201);
+
+      expect(res.body.status).toBe('dispatched');
+    });
+
+    it('should reject modifications after dispatch', async () => {
+      const res = await request(app.getHttpServer())
+        .delete(`/fulfillment/delivery-batches/${batchId}/stops/${shipmentId}`).set('Authorization', authToken)
+        .expect(400);
+
+      expect(res.body.message).toMatch(/Cannot modify/);
+    });
+  });
+});

@@ -13,7 +13,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { signInHref } from '@/features/auth/lib/auth-helpers';
 import { consumeAuthReturn } from '@/features/auth/lib/auth-return';
 import type { CartItem } from '@/lib/cart';
-import { formatEgp, formatNumber, formatProductCount } from '@/lib/i18n/format';
+import { formatNumber, formatProductCount } from '@/lib/i18n/format';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
@@ -131,10 +131,10 @@ export function CartView() {
     <div className="pb-28 lg:pb-0">
       <header className="hidden lg:block">
         <div className="flex items-baseline gap-3.5">
-          <h1 className="m-0 font-display text-36 font-extrabold leading-44 text-night">{m.cartStagingTitle}</h1>
-          <span className="text-16 text-ink-2">{formatProductCount(count, locale)}</span>
+          <h1 className="m-0 font-display text-34 font-extrabold leading-44 text-ink">{m.cartStagingTitle}</h1>
+          <span className="text-16 text-stone">{formatProductCount(count, locale)}</span>
         </div>
-        <p className="m-0 mt-2 text-14 text-ink-3">{m.cartLead}</p>
+        <p className="m-0 mt-2 text-14 text-stone">{m.cartLead}</p>
       </header>
 
       {merged ? (
@@ -145,23 +145,8 @@ export function CartView() {
 
       <div className="lg:mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-12">
         <section aria-label={m.cartTitle}>
-          {/* Routine Verification Safety Banner from Stitch Screen 4 */}
-          <div className="mb-6 flex flex-col gap-2 rounded-card bg-sand/60 p-4 shadow-outline-hairline lg:p-5">
-            <div className="flex items-center gap-2.5">
-              <span className="flex size-8 items-center justify-center rounded-full bg-bottle-tint text-bottle">
-                <Icon name="shield" size={16} />
-              </span>
-              <span className="font-display text-14.5 font-bold leading-20 text-night">
-                {m.cartRoutineVerified}
-              </span>
-            </div>
-            <p className="m-0 text-12.5 leading-20 text-ink-2">
-              {m.cartRoutineDuplicateExcluded}
-            </p>
-          </div>
-
           {failed ? (
-            <p role="alert" className="m-0 mt-3 flex items-center gap-2 text-14 text-err">
+            <p role="alert" className="m-0 mt-3 flex items-center gap-2 text-14 text-tomato-ink">
               <Icon name="alert" size={18} />
               {m.cartUpdateFailed}
             </p>
@@ -222,33 +207,15 @@ function CartSummary({
       aria-labelledby="cart-summary"
       className="mt-5 flex flex-col gap-3.5 lg:sticky lg:top-6 lg:mt-0 lg:rounded-sheet lg:bg-linen lg:p-7 lg:shadow-elevation-3 lg:outline lg:outline-1 lg:outline-line"
     >
-      <h2 id="cart-summary" className="m-0 hidden font-display text-26 font-extrabold leading-32 text-night lg:block">
+      <h2 id="cart-summary" className="m-0 hidden font-display text-26 font-extrabold leading-32 text-ink lg:block">
         {m.cartSummary}
       </h2>
-
-      {/* Free Delivery Threshold Bar from Stitch Screen 4 */}
-      {(() => {
-        const threshold = 1500;
-        const diff = Math.max(0, threshold - total);
-        const pct = Math.min(100, Math.round((total / threshold) * 100));
-        return (
-          <div className="rounded-card bg-bone p-3.5 shadow-elevation-1">
-            <div className="flex items-center justify-between text-12 font-bold leading-17 text-night">
-              <span>{diff > 0 ? fillMessage(m.cartFreeShippingProgress, { amount: formatEgp(diff, 'EGP', locale) ?? '' }) : m.cartFreeShippingEligible}</span>
-              <span className="font-tabular text-bottle">{pct}%</span>
-            </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
-              <div className="h-full rounded-full bg-bottle transition-all duration-300" style={{ width: `${pct}%` }} />
-            </div>
-          </div>
-        );
-      })()}
 
       <SummaryRow label={fillMessage(m.cartSubtotalCount, { count: formatProductCount(count, locale) })}>
         <Money amount={total} />
       </SummaryRow>
       <SummaryRow label={m.cartShipping}>
-        <span className="text-ink-3">{m.cartShippingLater}</span>
+        <span className="text-stone">{m.cartShippingLater}</span>
       </SummaryRow>
       <div aria-hidden="true" className="my-1.5 h-px bg-line" />
       <SummaryRow label={m.cartTotalNoDelivery} strong>
@@ -273,7 +240,7 @@ function CartSummary({
         )}
       </div>
 
-      <ul className="m-0 flex list-disc flex-col gap-0.5 ps-4.5 text-13 leading-21 text-ink-2">
+      <ul className="m-0 flex list-disc flex-col gap-0.5 ps-4.5 text-13 leading-21 text-stone">
         {signedIn ? null : <li>{m.cartNoteSignIn}</li>}
         <li>{m.cartNoteDelivery}</li>
         <li>{m.cartNotePayment}</li>
@@ -287,7 +254,7 @@ function SummaryRow({ label, strong, children }: { label: string; strong?: boole
     <div
       className={cn(
         'flex min-h-7.5 items-center justify-between gap-3',
-        strong ? 'text-17 font-bold text-night' : 'text-14.5 font-medium text-night'
+        strong ? 'text-17 font-bold text-ink' : 'text-14.5 font-medium text-ink'
       )}
     >
       <span>{label}</span>
@@ -300,10 +267,10 @@ function SummaryRow({ label, strong, children }: { label: string; strong?: boole
 function MobileCheckoutBar({ total, blocked, onCheckout }: { total: number; blocked: boolean; onCheckout: () => void }) {
   const m = useMessages();
   return (
-    <div className="fixed inset-x-0 bottom-0 z-nav flex items-center gap-3 bg-bone/95 px-4 pt-3 shadow-hairline-top backdrop-blur-sm lg:hidden pdp-bar">
+    <div className="fixed inset-x-0 bottom-0 z-nav flex items-center gap-3 bg-chalk/95 px-4 pt-3 shadow-hairline-top backdrop-blur-sm lg:hidden pdp-bar">
       <span className="flex flex-col">
-        <span className="text-12 leading-17 text-ink-2">{m.cartWithoutDelivery}</span>
-        <Money amount={total} className="text-17 font-bold leading-24 text-night" />
+        <span className="text-12 leading-17 text-stone">{m.cartWithoutDelivery}</span>
+        <Money amount={total} className="text-17 font-bold leading-24 text-ink" />
       </span>
       <Button size="l" className="flex-1" disabled={blocked} onClick={onCheckout}>
         {m.cartCheckout}
@@ -316,12 +283,12 @@ function EmptyCart({ signedIn }: { signedIn: boolean }) {
   const m = useMessages();
   return (
     <section className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-3 rounded-card bg-linen px-6 py-10 text-center shadow-outline-hairline lg:mt-16">
-      <span className="grid size-14 place-items-center rounded-pill bg-sand text-night">
+      <span className="grid size-14 place-items-center rounded-pill bg-sand text-ink">
         <Icon name="bag" size={26} />
       </span>
-      <h2 className="m-0 font-display text-28 font-extrabold leading-34 text-night lg:hidden">{m.cartEmptyTitle}</h2>
-      <h1 className="m-0 hidden font-display text-28 font-extrabold leading-34 text-night lg:block">{m.cartEmptyTitle}</h1>
-      <p className="m-0 text-14 leading-22 text-ink-2">{m.cartEmptyBody}</p>
+      <h2 className="m-0 font-display text-28 font-extrabold leading-34 text-ink lg:hidden">{m.cartEmptyTitle}</h2>
+      <h1 className="m-0 hidden font-display text-28 font-extrabold leading-34 text-ink lg:block">{m.cartEmptyTitle}</h1>
+      <p className="m-0 text-14 leading-22 text-stone">{m.cartEmptyBody}</p>
       <span className="mt-2 flex flex-wrap justify-center gap-2.5">
         <Link href={routes.products} className={buttonVariants({ variant: 'ink' })}>
           {m.cartShop}
@@ -363,7 +330,7 @@ export function CartHeaderTitle() {
   return (
     <>
       {m.cartTitle}
-      {count ? <span className="ms-1.5 text-15 font-medium text-ink-2">({formatNumber(count, locale)})</span> : null}
+      {count ? <span className="ms-1.5 text-15 font-medium text-stone">({formatNumber(count, locale)})</span> : null}
     </>
   );
 }

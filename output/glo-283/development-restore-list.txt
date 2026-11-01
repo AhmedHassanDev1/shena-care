@@ -1,0 +1,627 @@
+;
+; Archive created at 2026-11-01 01:59:52 UTC
+;     dbname: postgres
+;     TOC Entries: 618
+;     Compression: gzip
+;     Dump Version: 1.16-0
+;     Format: CUSTOM
+;     Integer: 4 bytes
+;     Offset: 8 bytes
+;     Dumped from database version: 17.11
+;     Dumped by pg_dump version: 17.11
+;
+;
+; Selected TOC Entries:
+;
+33; 2615 26311 SCHEMA - accounts postgres
+32; 2615 26127 SCHEMA - care postgres
+19; 2615 25804 SCHEMA - catalog postgres
+22; 2615 25805 SCHEMA - commerce postgres
+31; 2615 25974 SCHEMA - fulfillment postgres
+28; 2615 25912 SCHEMA - ingestion postgres
+34; 2615 26498 SCHEMA - operations postgres
+30; 2615 25973 SCHEMA - ordering postgres
+; 17; 2615 2200 SCHEMA - public pg_database_owner
+5168; 0 0 COMMENT - SCHEMA public pg_database_owner
+29; 2615 25913 SCHEMA - sourcing postgres
+1505; 1247 26562 TYPE accounts Role postgres
+1732; 1247 39892 TYPE care BlueprintStatus postgres
+1717; 1247 39855 TYPE care CareAgeBand postgres
+1406; 1247 26129 TYPE care CareArea postgres
+1720; 1247 39862 TYPE care CareExperienceLevel postgres
+1723; 1247 39868 TYPE care CareTriState postgres
+1735; 1247 39900 TYPE care EligibilityReviewStatus postgres
+1460; 1247 26358 TYPE care GuidanceMessageRole postgres
+1457; 1247 26350 TYPE care GuidanceSessionStatus postgres
+1738; 1247 39908 TYPE care IngredientRuleKind postgres
+1744; 1247 39924 TYPE care IngredientRuleStatus postgres
+1741; 1247 39918 TYPE care IngredientRuleSubject postgres
+1412; 1247 26144 TYPE care RecommendationSource postgres
+1747; 1247 39930 TYPE care RoutineActivation postgres
+1729; 1247 39884 TYPE care RoutineKind postgres
+1750; 1247 39936 TYPE care RoutineLifecycle postgres
+1640; 1247 27243 TYPE care RoutineProposalStatus postgres
+1753; 1247 39946 TYPE care RoutinePurchasePhase postgres
+1726; 1247 39876 TYPE care RoutineTier postgres
+1409; 1247 26134 TYPE care RoutineTiming postgres
+1454; 1247 26338 TYPE care SkinType postgres
+1664; 1247 27391 TYPE catalog BarcodeAliasStatus postgres
+1358; 1247 25915 TYPE catalog MediaOriginType postgres
+1334; 1247 25807 TYPE catalog MediaType postgres
+1711; 1247 27916 TYPE catalog UsageFrequencyUnit postgres
+1708; 1247 27908 TYPE catalog UsageRinseMode postgres
+1705; 1247 27898 TYPE catalog UsageRoutinePeriod postgres
+1702; 1247 27884 TYPE catalog UsageTargetArea postgres
+1601; 1247 27050 TYPE commerce BenefitType postgres
+1604; 1247 27058 TYPE commerce DiscountType postgres
+1616; 1247 27099 TYPE fulfillment FulfillmentCapability postgres
+1430; 1247 26219 TYPE fulfillment PreparationSessionStatus postgres
+1619; 1247 27108 TYPE fulfillment ReceivedGoodsCondition postgres
+1373; 1247 25990 TYPE fulfillment ShipmentStatus postgres
+1684; 1247 27558 TYPE ingestion IngestionImportMode postgres
+1427; 1247 26211 TYPE ingestion IngestionItemEnrichmentStatus postgres
+1681; 1247 27552 TYPE ingestion IngestionPriceType postgres
+1376; 1247 26002 TYPE ingestion IngestionStatus postgres
+1517; 1247 26624 TYPE operations AccountingExportStatus postgres
+1643; 1247 27288 TYPE operations DomainEventStatus postgres
+1607; 1247 27064 TYPE operations NotificationStatus postgres
+1514; 1247 26604 TYPE operations SupportCaseCategory postgres
+1511; 1247 26594 TYPE operations SupportCasePriority postgres
+1508; 1247 26584 TYPE operations SupportCaseStatus postgres
+1592; 1247 27002 TYPE ordering AvailabilityDecisionAction postgres
+1589; 1247 26992 TYPE ordering AvailabilityDecisionStatus postgres
+1586; 1247 26984 TYPE ordering OrderItemLineState postgres
+1496; 1247 26524 TYPE ordering OrderResolutionStatus postgres
+1493; 1247 26512 TYPE ordering OrderResolutionType postgres
+1370; 1247 25976 TYPE ordering OrderStatus postgres
+1655; 1247 27356 TYPE ordering PaymentAttemptStatus postgres
+1652; 1247 27349 TYPE ordering PaymentMethod postgres
+1499; 1247 26538 TYPE ordering RefundStatus postgres
+1502; 1247 26548 TYPE ordering SettlementStatus postgres
+1490; 1247 26500 TYPE sourcing PayableStatus postgres
+1451; 1247 26328 TYPE sourcing PurchaseOrderLineStatus postgres
+1448; 1247 26313 TYPE sourcing PurchaseOrderStatus postgres
+1568; 1247 26902 TYPE sourcing SourceConfirmationResult postgres
+1565; 1247 26892 TYPE sourcing SupplyPlanStatus postgres
+599; 1255 27524 FUNCTION catalog search_normalize(text) postgres
+567; 1255 17603 FUNCTION public rls_auto_enable() postgres
+437; 1259 27534 TABLE accounts customer_addresses postgres
+397; 1259 26416 TABLE accounts customers postgres
+398; 1259 26424 TABLE accounts identities postgres
+412; 1259 26830 TABLE accounts otp_challenges postgres
+399; 1259 26432 TABLE accounts sessions postgres
+445; 1259 39963 TABLE care blueprint_roles postgres
+448; 1259 39991 TABLE care care_safety_flags postgres
+382; 1259 26153 TABLE care concerns postgres
+394; 1259 26392 TABLE care customer_care_profile_concerns postgres
+393; 1259 26384 TABLE care customer_care_profiles postgres
+450; 1259 40014 TABLE care customer_routine_items postgres
+451; 1259 40025 TABLE care customer_routine_versions postgres
+449; 1259 40003 TABLE care customer_routines postgres
+396; 1259 26408 TABLE care guidance_messages postgres
+395; 1259 26399 TABLE care guidance_sessions postgres
+447; 1259 39981 TABLE care ingredient_rules postgres
+446; 1259 39972 TABLE care product_role_eligibility postgres
+444; 1259 39951 TABLE care routine_blueprints postgres
+428; 1259 27211 TABLE care routine_drafts postgres
+429; 1259 27223 TABLE care routine_proposals postgres
+385; 1259 26181 TABLE care routine_step_recommendations postgres
+384; 1259 26172 TABLE care routine_steps postgres
+383; 1259 26162 TABLE care routines postgres
+363; 1259 25811 TABLE catalog brands postgres
+370; 1259 25922 TABLE catalog categories postgres
+441; 1259 27628 TABLE catalog ingredients postgres
+442; 1259 27645 TABLE catalog product_ingredients postgres
+369; 1259 25890 TABLE catalog product_lines postgres
+366; 1259 25838 TABLE catalog product_media postgres
+443; 1259 27927 TABLE catalog product_usage_rules postgres
+364; 1259 25820 TABLE catalog products postgres
+434; 1259 27396 TABLE catalog sku_barcode_aliases postgres
+365; 1259 25829 TABLE catalog skus postgres
+367; 1259 25848 TABLE commerce listings postgres
+422; 1259 27073 TABLE commerce promotions postgres
+368; 1259 25855 TABLE commerce selling_prices postgres
+386; 1259 26237 TABLE fulfillment delivery_batches postgres
+390; 1259 26293 TABLE fulfillment delivery_stops postgres
+424; 1259 27118 TABLE fulfillment fulfillment_location_operators postgres
+377; 1259 26042 TABLE fulfillment fulfillment_locations postgres
+425; 1259 27131 TABLE fulfillment fulfillment_receipts postgres
+408; 1259 26700 TABLE fulfillment inventory_balances postgres
+409; 1259 26710 TABLE fulfillment inventory_transactions postgres
+389; 1259 26263 TABLE fulfillment preparation_scan_events postgres
+387; 1259 26246 TABLE fulfillment shipment_events postgres
+379; 1259 26060 TABLE fulfillment shipment_items postgres
+388; 1259 26254 TABLE fulfillment shipment_preparation_sessions postgres
+378; 1259 26051 TABLE fulfillment shipments postgres
+439; 1259 27592 TABLE ingestion brand_drafts postgres
+438; 1259 27565 TABLE ingestion export_profiles postgres
+381; 1259 26073 TABLE ingestion ingestion_items postgres
+380; 1259 26066 TABLE ingestion ingestion_jobs postgres
+427; 1259 27177 TABLE ingestion product_content_drafts postgres
+440; 1259 27608 TABLE ingestion product_line_drafts postgres
+411; 1259 26739 TABLE operations accounting_export_jobs postgres
+430; 1259 27299 TABLE operations domain_events postgres
+423; 1259 27083 TABLE operations notification_outbox postgres
+410; 1259 26728 TABLE operations support_cases postgres
+420; 1259 27010 TABLE ordering availability_decisions postgres
+374; 1259 26021 TABLE ordering cart_items postgres
+373; 1259 26013 TABLE ordering carts postgres
+413; 1259 26856 TABLE ordering checkout_quotes postgres
+407; 1259 26691 TABLE ordering courier_settlement_batches postgres
+436; 1259 27427 TABLE ordering delivery_instructions postgres
+421; 1259 27029 TABLE ordering order_amendments postgres
+376; 1259 26036 TABLE ordering order_items postgres
+404; 1259 26665 TABLE ordering order_resolution_events postgres
+403; 1259 26660 TABLE ordering order_resolution_items postgres
+402; 1259 26651 TABLE ordering order_resolutions postgres
+414; 1259 26877 TABLE ordering order_status_events postgres
+375; 1259 26027 TABLE ordering orders postgres
+432; 1259 27364 TABLE ordering payment_attempts postgres
+406; 1259 26682 TABLE ordering payment_collections postgres
+433; 1259 27373 TABLE ordering payment_provider_events postgres
+405; 1259 26673 TABLE ordering refund_transactions postgres
+362; 1259 25795 TABLE public _prisma_migrations postgres
+418; 1259 26958 TABLE sourcing availability_action_requirements postgres
+401; 1259 26643 TABLE sourcing payable_adjustments postgres
+431; 1259 27318 TABLE sourcing purchase_order_line_allocations postgres
+392; 1259 26377 TABLE sourcing purchase_order_lines postgres
+435; 1259 27413 TABLE sourcing receiving_shortfalls postgres
+417; 1259 26937 TABLE sourcing source_allocations postgres
+372; 1259 25955 TABLE sourcing supplier_offers postgres
+400; 1259 26634 TABLE sourcing supplier_payables postgres
+391; 1259 26368 TABLE sourcing supplier_purchase_orders postgres
+426; 1259 27156 TABLE sourcing supplier_sku_aliases postgres
+371; 1259 25946 TABLE sourcing suppliers postgres
+419; 1259 26971 TABLE sourcing supply_plan_events postgres
+415; 1259 26915 TABLE sourcing supply_requests postgres
+416; 1259 26923 TABLE sourcing supply_requirements postgres
+5145; 0 27534 TABLE DATA accounts customer_addresses postgres
+5105; 0 26416 TABLE DATA accounts customers postgres
+5106; 0 26424 TABLE DATA accounts identities postgres
+5120; 0 26830 TABLE DATA accounts otp_challenges postgres
+5107; 0 26432 TABLE DATA accounts sessions postgres
+5153; 0 39963 TABLE DATA care blueprint_roles postgres
+5156; 0 39991 TABLE DATA care care_safety_flags postgres
+5090; 0 26153 TABLE DATA care concerns postgres
+5102; 0 26392 TABLE DATA care customer_care_profile_concerns postgres
+5101; 0 26384 TABLE DATA care customer_care_profiles postgres
+5158; 0 40014 TABLE DATA care customer_routine_items postgres
+5159; 0 40025 TABLE DATA care customer_routine_versions postgres
+5157; 0 40003 TABLE DATA care customer_routines postgres
+5104; 0 26408 TABLE DATA care guidance_messages postgres
+5103; 0 26399 TABLE DATA care guidance_sessions postgres
+5155; 0 39981 TABLE DATA care ingredient_rules postgres
+5154; 0 39972 TABLE DATA care product_role_eligibility postgres
+5152; 0 39951 TABLE DATA care routine_blueprints postgres
+5136; 0 27211 TABLE DATA care routine_drafts postgres
+5137; 0 27223 TABLE DATA care routine_proposals postgres
+5093; 0 26181 TABLE DATA care routine_step_recommendations postgres
+5092; 0 26172 TABLE DATA care routine_steps postgres
+5091; 0 26162 TABLE DATA care routines postgres
+5071; 0 25811 TABLE DATA catalog brands postgres
+5078; 0 25922 TABLE DATA catalog categories postgres
+5149; 0 27628 TABLE DATA catalog ingredients postgres
+5150; 0 27645 TABLE DATA catalog product_ingredients postgres
+5077; 0 25890 TABLE DATA catalog product_lines postgres
+5074; 0 25838 TABLE DATA catalog product_media postgres
+5151; 0 27927 TABLE DATA catalog product_usage_rules postgres
+5072; 0 25820 TABLE DATA catalog products postgres
+5142; 0 27396 TABLE DATA catalog sku_barcode_aliases postgres
+5073; 0 25829 TABLE DATA catalog skus postgres
+5075; 0 25848 TABLE DATA commerce listings postgres
+5130; 0 27073 TABLE DATA commerce promotions postgres
+5076; 0 25855 TABLE DATA commerce selling_prices postgres
+5094; 0 26237 TABLE DATA fulfillment delivery_batches postgres
+5098; 0 26293 TABLE DATA fulfillment delivery_stops postgres
+5132; 0 27118 TABLE DATA fulfillment fulfillment_location_operators postgres
+5085; 0 26042 TABLE DATA fulfillment fulfillment_locations postgres
+5133; 0 27131 TABLE DATA fulfillment fulfillment_receipts postgres
+5116; 0 26700 TABLE DATA fulfillment inventory_balances postgres
+5117; 0 26710 TABLE DATA fulfillment inventory_transactions postgres
+5097; 0 26263 TABLE DATA fulfillment preparation_scan_events postgres
+5095; 0 26246 TABLE DATA fulfillment shipment_events postgres
+5087; 0 26060 TABLE DATA fulfillment shipment_items postgres
+5096; 0 26254 TABLE DATA fulfillment shipment_preparation_sessions postgres
+5086; 0 26051 TABLE DATA fulfillment shipments postgres
+5147; 0 27592 TABLE DATA ingestion brand_drafts postgres
+5146; 0 27565 TABLE DATA ingestion export_profiles postgres
+5089; 0 26073 TABLE DATA ingestion ingestion_items postgres
+5088; 0 26066 TABLE DATA ingestion ingestion_jobs postgres
+5135; 0 27177 TABLE DATA ingestion product_content_drafts postgres
+5148; 0 27608 TABLE DATA ingestion product_line_drafts postgres
+5119; 0 26739 TABLE DATA operations accounting_export_jobs postgres
+5138; 0 27299 TABLE DATA operations domain_events postgres
+5131; 0 27083 TABLE DATA operations notification_outbox postgres
+5118; 0 26728 TABLE DATA operations support_cases postgres
+5128; 0 27010 TABLE DATA ordering availability_decisions postgres
+5082; 0 26021 TABLE DATA ordering cart_items postgres
+5081; 0 26013 TABLE DATA ordering carts postgres
+5121; 0 26856 TABLE DATA ordering checkout_quotes postgres
+5115; 0 26691 TABLE DATA ordering courier_settlement_batches postgres
+5144; 0 27427 TABLE DATA ordering delivery_instructions postgres
+5129; 0 27029 TABLE DATA ordering order_amendments postgres
+5084; 0 26036 TABLE DATA ordering order_items postgres
+5112; 0 26665 TABLE DATA ordering order_resolution_events postgres
+5111; 0 26660 TABLE DATA ordering order_resolution_items postgres
+5110; 0 26651 TABLE DATA ordering order_resolutions postgres
+5122; 0 26877 TABLE DATA ordering order_status_events postgres
+5083; 0 26027 TABLE DATA ordering orders postgres
+5140; 0 27364 TABLE DATA ordering payment_attempts postgres
+5114; 0 26682 TABLE DATA ordering payment_collections postgres
+5141; 0 27373 TABLE DATA ordering payment_provider_events postgres
+5113; 0 26673 TABLE DATA ordering refund_transactions postgres
+5070; 0 25795 TABLE DATA public _prisma_migrations postgres
+5126; 0 26958 TABLE DATA sourcing availability_action_requirements postgres
+5109; 0 26643 TABLE DATA sourcing payable_adjustments postgres
+5139; 0 27318 TABLE DATA sourcing purchase_order_line_allocations postgres
+5100; 0 26377 TABLE DATA sourcing purchase_order_lines postgres
+5143; 0 27413 TABLE DATA sourcing receiving_shortfalls postgres
+5125; 0 26937 TABLE DATA sourcing source_allocations postgres
+5080; 0 25955 TABLE DATA sourcing supplier_offers postgres
+5108; 0 26634 TABLE DATA sourcing supplier_payables postgres
+5099; 0 26368 TABLE DATA sourcing supplier_purchase_orders postgres
+5134; 0 27156 TABLE DATA sourcing supplier_sku_aliases postgres
+5079; 0 25946 TABLE DATA sourcing suppliers postgres
+5127; 0 26971 TABLE DATA sourcing supply_plan_events postgres
+5123; 0 26915 TABLE DATA sourcing supply_requests postgres
+5124; 0 26923 TABLE DATA sourcing supply_requirements postgres
+4774; 2606 27544 CONSTRAINT accounts customer_addresses customer_addresses_pkey postgres
+4621; 2606 26423 CONSTRAINT accounts customers customers_pkey postgres
+4625; 2606 26431 CONSTRAINT accounts identities identities_pkey postgres
+4674; 2606 26842 CONSTRAINT accounts otp_challenges otp_challenges_pkey postgres
+4629; 2606 26438 CONSTRAINT accounts sessions sessions_pkey postgres
+4816; 2606 39971 CONSTRAINT care blueprint_roles blueprint_roles_pkey postgres
+4827; 2606 40002 CONSTRAINT care care_safety_flags care_safety_flags_pkey postgres
+4564; 2606 26161 CONSTRAINT care concerns concerns_pkey postgres
+4610; 2606 26398 CONSTRAINT care customer_care_profile_concerns customer_care_profile_concerns_pkey postgres
+4606; 2606 26391 CONSTRAINT care customer_care_profiles customer_care_profiles_pkey postgres
+4833; 2606 40024 CONSTRAINT care customer_routine_items customer_routine_items_pkey postgres
+4836; 2606 40032 CONSTRAINT care customer_routine_versions customer_routine_versions_pkey postgres
+4831; 2606 40013 CONSTRAINT care customer_routines customer_routines_pkey postgres
+4617; 2606 26415 CONSTRAINT care guidance_messages guidance_messages_pkey postgres
+4615; 2606 26407 CONSTRAINT care guidance_sessions guidance_sessions_pkey postgres
+4824; 2606 39990 CONSTRAINT care ingredient_rules ingredient_rules_pkey postgres
+4818; 2606 39980 CONSTRAINT care product_role_eligibility product_role_eligibility_pkey postgres
+4812; 2606 39962 CONSTRAINT care routine_blueprints routine_blueprints_pkey postgres
+4740; 2606 27262 CONSTRAINT care routine_drafts routine_drafts_pkey postgres
+4743; 2606 27265 CONSTRAINT care routine_proposals routine_proposals_pkey postgres
+4573; 2606 26187 CONSTRAINT care routine_step_recommendations routine_step_recommendations_pkey postgres
+4569; 2606 26180 CONSTRAINT care routine_steps routine_steps_pkey postgres
+4567; 2606 26171 CONSTRAINT care routines routines_pkey postgres
+4472; 2606 25819 CONSTRAINT catalog brands brands_pkey postgres
+4513; 2606 25931 CONSTRAINT catalog categories categories_pkey postgres
+4798; 2606 27644 CONSTRAINT catalog ingredients ingredients_pkey postgres
+4802; 2606 27654 CONSTRAINT catalog product_ingredients product_ingredients_pkey postgres
+4509; 2606 25898 CONSTRAINT catalog product_lines product_lines_pkey postgres
+4497; 2606 25847 CONSTRAINT catalog product_media product_media_pkey postgres
+4806; 2606 27935 CONSTRAINT catalog product_usage_rules product_usage_rules_pkey postgres
+4479; 2606 25828 CONSTRAINT catalog products products_pkey postgres
+4765; 2606 27404 CONSTRAINT catalog sku_barcode_aliases sku_barcode_aliases_pkey postgres
+4489; 2606 25837 CONSTRAINT catalog skus skus_pkey postgres
+4500; 2606 25854 CONSTRAINT commerce listings listings_pkey postgres
+4711; 2606 27082 CONSTRAINT commerce promotions promotions_pkey postgres
+4504; 2606 25861 CONSTRAINT commerce selling_prices selling_prices_pkey postgres
+4580; 2606 26245 CONSTRAINT fulfillment delivery_batches delivery_batches_pkey postgres
+4594; 2606 26298 CONSTRAINT fulfillment delivery_stops delivery_stops_pkey postgres
+4720; 2606 27123 CONSTRAINT fulfillment fulfillment_location_operators fulfillment_location_operators_pkey postgres
+4544; 2606 26050 CONSTRAINT fulfillment fulfillment_locations fulfillment_locations_pkey postgres
+4726; 2606 27140 CONSTRAINT fulfillment fulfillment_receipts fulfillment_receipts_pkey postgres
+4661; 2606 26709 CONSTRAINT fulfillment inventory_balances inventory_balances_pkey postgres
+4665; 2606 26717 CONSTRAINT fulfillment inventory_transactions inventory_transactions_pkey postgres
+4588; 2606 26271 CONSTRAINT fulfillment preparation_scan_events preparation_scan_events_pkey postgres
+4582; 2606 26253 CONSTRAINT fulfillment shipment_events shipment_events_pkey postgres
+4550; 2606 26065 CONSTRAINT fulfillment shipment_items shipment_items_pkey postgres
+4585; 2606 26262 CONSTRAINT fulfillment shipment_preparation_sessions shipment_preparation_sessions_pkey postgres
+4548; 2606 26059 CONSTRAINT fulfillment shipments shipments_pkey postgres
+4783; 2606 27603 CONSTRAINT ingestion brand_drafts brand_drafts_pkey postgres
+4785; 2606 27605 CONSTRAINT ingestion brand_drafts brand_drafts_slug_key postgres
+4777; 2606 27576 CONSTRAINT ingestion export_profiles export_profiles_pkey postgres
+4779; 2606 27578 CONSTRAINT ingestion export_profiles export_profiles_supplier_id_format_fingerprint_version_key postgres
+4560; 2606 26081 CONSTRAINT ingestion ingestion_items ingestion_items_pkey postgres
+4555; 2606 26072 CONSTRAINT ingestion ingestion_jobs ingestion_jobs_pkey postgres
+4736; 2606 27185 CONSTRAINT ingestion product_content_drafts product_content_drafts_pkey postgres
+4789; 2606 27620 CONSTRAINT ingestion product_line_drafts product_line_drafts_brand_draft_id_slug_key postgres
+4791; 2606 27618 CONSTRAINT ingestion product_line_drafts product_line_drafts_pkey postgres
+4671; 2606 26747 CONSTRAINT operations accounting_export_jobs accounting_export_jobs_pkey postgres
+4747; 2606 27310 CONSTRAINT operations domain_events domain_events_pkey postgres
+4715; 2606 27093 CONSTRAINT operations notification_outbox notification_outbox_pkey postgres
+4668; 2606 26738 CONSTRAINT operations support_cases support_cases_pkey postgres
+4704; 2606 27019 CONSTRAINT ordering availability_decisions availability_decisions_pkey postgres
+4531; 2606 26026 CONSTRAINT ordering cart_items cart_items_pkey postgres
+4527; 2606 26020 CONSTRAINT ordering carts carts_pkey postgres
+4678; 2606 26863 CONSTRAINT ordering checkout_quotes checkout_quotes_pkey postgres
+4656; 2606 26699 CONSTRAINT ordering courier_settlement_batches courier_settlement_batches_pkey postgres
+4771; 2606 27434 CONSTRAINT ordering delivery_instructions delivery_instructions_pkey postgres
+4708; 2606 27036 CONSTRAINT ordering order_amendments order_amendments_pkey postgres
+4540; 2606 26041 CONSTRAINT ordering order_items order_items_pkey postgres
+4646; 2606 26672 CONSTRAINT ordering order_resolution_events order_resolution_events_pkey postgres
+4643; 2606 26664 CONSTRAINT ordering order_resolution_items order_resolution_items_pkey postgres
+4641; 2606 26659 CONSTRAINT ordering order_resolutions order_resolutions_pkey postgres
+4681; 2606 26882 CONSTRAINT ordering order_status_events order_status_events_pkey postgres
+4537; 2606 26035 CONSTRAINT ordering orders orders_pkey postgres
+4757; 2606 27372 CONSTRAINT ordering payment_attempts payment_attempts_pkey postgres
+4654; 2606 26690 CONSTRAINT ordering payment_collections payment_collections_pkey postgres
+4760; 2606 27380 CONSTRAINT ordering payment_provider_events payment_provider_events_pkey postgres
+4650; 2606 26681 CONSTRAINT ordering refund_transactions refund_transactions_pkey postgres
+4469; 2606 25803 CONSTRAINT public _prisma_migrations _prisma_migrations_pkey postgres
+4694; 2606 26964 CONSTRAINT sourcing availability_action_requirements availability_action_requirements_pkey postgres
+4638; 2606 26650 CONSTRAINT sourcing payable_adjustments payable_adjustments_pkey postgres
+4751; 2606 27324 CONSTRAINT sourcing purchase_order_line_allocations purchase_order_line_allocations_pkey postgres
+4601; 2606 26383 CONSTRAINT sourcing purchase_order_lines purchase_order_lines_pkey postgres
+4768; 2606 27420 CONSTRAINT sourcing receiving_shortfalls receiving_shortfalls_pkey postgres
+4690; 2606 26945 CONSTRAINT sourcing source_allocations source_allocations_pkey postgres
+4520; 2606 25962 CONSTRAINT sourcing supplier_offers supplier_offers_pkey postgres
+4633; 2606 26642 CONSTRAINT sourcing supplier_payables supplier_payables_pkey postgres
+4598; 2606 26376 CONSTRAINT sourcing supplier_purchase_orders supplier_purchase_orders_pkey postgres
+4729; 2606 27163 CONSTRAINT sourcing supplier_sku_aliases supplier_sku_aliases_pkey postgres
+4517; 2606 25954 CONSTRAINT sourcing suppliers suppliers_pkey postgres
+4697; 2606 26976 CONSTRAINT sourcing supply_plan_events supply_plan_events_pkey postgres
+4684; 2606 26921 CONSTRAINT sourcing supply_requests supply_requests_pkey postgres
+4687; 2606 26929 CONSTRAINT sourcing supply_requirements supply_requirements_pkey postgres
+4772; 1259 27545 INDEX accounts customer_addresses_customer_id_idx postgres
+4619; 1259 26449 INDEX accounts customers_email_key postgres
+4622; 1259 27193 INDEX accounts customers_supplier_id_idx postgres
+4623; 1259 26450 INDEX accounts identities_customer_id_idx postgres
+4626; 1259 26451 INDEX accounts identities_provider_provider_id_key postgres
+4672; 1259 26843 INDEX accounts otp_challenges_phone_number_idx postgres
+4627; 1259 26453 INDEX accounts sessions_customer_id_idx postgres
+4630; 1259 26454 INDEX accounts sessions_token_idx postgres
+4631; 1259 26452 INDEX accounts sessions_token_key postgres
+4813; 1259 40035 INDEX care blueprint_roles_blueprint_id_idx postgres
+4814; 1259 40036 INDEX care blueprint_roles_blueprint_id_role_key_key postgres
+4825; 1259 40041 INDEX care care_safety_flags_care_profile_id_key postgres
+4562; 1259 26188 INDEX care concerns_name_key postgres
+4565; 1259 26189 INDEX care concerns_slug_key postgres
+4608; 1259 26445 INDEX care customer_care_profile_concerns_concern_id_idx postgres
+4611; 1259 26446 INDEX care customer_care_profile_concerns_profile_id_concern_id_key postgres
+4612; 1259 26444 INDEX care customer_care_profile_concerns_profile_id_idx postgres
+4604; 1259 26442 INDEX care customer_care_profiles_customer_id_key postgres
+4607; 1259 26443 INDEX care customer_care_profiles_routine_id_idx postgres
+4834; 1259 40044 INDEX care customer_routine_items_routine_id_removed_at_version_idx postgres
+4837; 1259 40045 INDEX care customer_routine_versions_routine_id_version_key postgres
+4828; 1259 40043 INDEX care customer_routines_care_profile_id_activation_idx postgres
+4829; 1259 40042 INDEX care customer_routines_created_from_proposal_id_key postgres
+4618; 1259 26448 INDEX care guidance_messages_session_id_idx postgres
+4613; 1259 26447 INDEX care guidance_sessions_customer_id_idx postgres
+4821; 1259 40039 INDEX care ingredient_rules_key_key postgres
+4822; 1259 40040 INDEX care ingredient_rules_kind_status_idx postgres
+4819; 1259 40038 INDEX care product_role_eligibility_product_id_role_key_key postgres
+4820; 1259 40037 INDEX care product_role_eligibility_role_key_review_status_idx postgres
+4809; 1259 40034 INDEX care routine_blueprints_concern_slug_status_idx postgres
+4810; 1259 40033 INDEX care routine_blueprints_key_key postgres
+4737; 1259 27275 INDEX care routine_drafts_customer_id_idx postgres
+4738; 1259 27232 INDEX care routine_drafts_guest_token_hash_key postgres
+4741; 1259 27269 INDEX care routine_proposals_draft_id_idx postgres
+4574; 1259 26193 INDEX care routine_step_recommendations_product_id_idx postgres
+4575; 1259 26192 INDEX care routine_step_recommendations_step_id_idx postgres
+4576; 1259 26194 INDEX care routine_step_recommendations_step_id_product_id_key postgres
+4570; 1259 26190 INDEX care routine_steps_routine_id_idx postgres
+4571; 1259 26191 INDEX care routine_steps_routine_id_step_order_key postgres
+4470; 1259 25862 INDEX catalog brands_name_key postgres
+4473; 1259 27528 INDEX catalog brands_search_name_idx postgres
+4474; 1259 27529 INDEX catalog brands_search_name_prefix_idx postgres
+4475; 1259 25863 INDEX catalog brands_slug_key postgres
+4511; 1259 25933 INDEX catalog categories_parent_id_idx postgres
+4514; 1259 25932 INDEX catalog categories_slug_key postgres
+4793; 1259 27657 INDEX catalog ingredients_family_slug_idx postgres
+4794; 1259 27658 INDEX catalog ingredients_inci_name_idx postgres
+4795; 1259 27659 INDEX catalog ingredients_is_active_ingredient_idx postgres
+4796; 1259 27655 INDEX catalog ingredients_name_key postgres
+4799; 1259 27656 INDEX catalog ingredients_slug_key postgres
+4800; 1259 27662 INDEX catalog product_ingredients_ingredient_id_idx postgres
+4803; 1259 27661 INDEX catalog product_ingredients_product_id_idx postgres
+4804; 1259 27660 INDEX catalog product_ingredients_product_id_ingredient_id_key postgres
+4507; 1259 25900 INDEX catalog product_lines_brand_id_idx postgres
+4510; 1259 25899 INDEX catalog product_lines_slug_key postgres
+4495; 1259 25934 INDEX catalog product_media_origin_type_idx postgres
+4498; 1259 25870 INDEX catalog product_media_product_id_idx postgres
+4807; 1259 27936 INDEX catalog product_usage_rules_product_id_idx postgres
+4808; 1259 27937 INDEX catalog product_usage_rules_sku_id_idx postgres
+4476; 1259 25865 INDEX catalog products_brand_id_idx postgres
+4477; 1259 25935 INDEX catalog products_category_id_idx postgres
+4480; 1259 25901 INDEX catalog products_product_line_id_idx postgres
+4481; 1259 27527 INDEX catalog products_search_concerns_idx postgres
+4482; 1259 27525 INDEX catalog products_search_name_idx postgres
+4483; 1259 27526 INDEX catalog products_search_name_prefix_idx postgres
+4484; 1259 25864 INDEX catalog products_slug_key postgres
+4762; 1259 27405 INDEX catalog sku_barcode_aliases_barcode_idx postgres
+4763; 1259 27406 INDEX catalog sku_barcode_aliases_barcode_sku_id_key postgres
+4485; 1259 25869 INDEX catalog skus_barcode_idx postgres
+4486; 1259 25867 INDEX catalog skus_barcode_key postgres
+4487; 1259 25866 INDEX catalog skus_code_key postgres
+4490; 1259 25868 INDEX catalog skus_product_id_idx postgres
+4491; 1259 27532 INDEX catalog skus_search_barcode_idx postgres
+4492; 1259 27530 INDEX catalog skus_search_code_idx postgres
+4493; 1259 27531 INDEX catalog skus_search_code_prefix_idx postgres
+4494; 1259 27533 INDEX catalog skus_search_variant_idx postgres
+4501; 1259 25872 INDEX commerce listings_sku_id_idx postgres
+4502; 1259 25871 INDEX commerce listings_sku_id_key postgres
+4709; 1259 27094 INDEX commerce promotions_code_key postgres
+4505; 1259 25873 INDEX commerce selling_prices_sku_id_idx postgres
+4506; 1259 25874 INDEX commerce selling_prices_sku_id_valid_from_idx postgres
+4577; 1259 27277 INDEX fulfillment delivery_batches_driver_id_idx postgres
+4578; 1259 27276 INDEX fulfillment delivery_batches_location_id_idx postgres
+4591; 1259 26300 INDEX fulfillment delivery_stops_batch_id_sequence_key postgres
+4592; 1259 27347 INDEX fulfillment delivery_stops_one_active_per_shipment postgres
+4595; 1259 27346 INDEX fulfillment delivery_stops_shipment_id_idx postgres
+4717; 1259 27124 INDEX fulfillment fulfillment_location_operators_location_id_operator_id_key postgres
+4718; 1259 27125 INDEX fulfillment fulfillment_location_operators_operator_id_idx postgres
+4542; 1259 26089 INDEX fulfillment fulfillment_locations_name_key postgres
+4721; 1259 27141 INDEX fulfillment fulfillment_receipts_idempotency_key_key postgres
+4722; 1259 27142 INDEX fulfillment fulfillment_receipts_inventory_transaction_id_key postgres
+4723; 1259 27145 INDEX fulfillment fulfillment_receipts_location_id_sku_id_idx postgres
+4724; 1259 27144 INDEX fulfillment fulfillment_receipts_order_id_order_item_id_idx postgres
+4727; 1259 27143 INDEX fulfillment fulfillment_receipts_source_allocation_id_idx postgres
+4658; 1259 26758 INDEX fulfillment inventory_balances_location_id_idx postgres
+4659; 1259 26760 INDEX fulfillment inventory_balances_location_id_sku_id_key postgres
+4662; 1259 26759 INDEX fulfillment inventory_balances_sku_id_idx postgres
+4663; 1259 26761 INDEX fulfillment inventory_transactions_balance_id_idx postgres
+4589; 1259 27436 INDEX fulfillment preparation_scan_events_session_id_client_scan_id_key postgres
+4590; 1259 26455 INDEX fulfillment preparation_scan_events_session_id_idx postgres
+4583; 1259 26456 INDEX fulfillment shipment_events_shipment_id_idx postgres
+4551; 1259 26092 INDEX fulfillment shipment_items_shipment_id_idx postgres
+4552; 1259 26093 INDEX fulfillment shipment_items_sku_id_idx postgres
+4586; 1259 26457 INDEX fulfillment shipment_preparation_sessions_shipment_id_idx postgres
+4545; 1259 26091 INDEX fulfillment shipments_location_id_idx postgres
+4546; 1259 26090 INDEX fulfillment shipments_order_id_key postgres
+4781; 1259 27606 INDEX ingestion brand_drafts_canonical_name_idx postgres
+4786; 1259 27607 INDEX ingestion brand_drafts_status_idx postgres
+4775; 1259 27585 INDEX ingestion export_profiles_format_fingerprint_idx postgres
+4780; 1259 27584 INDEX ingestion export_profiles_supplier_id_idx postgres
+4558; 1259 26095 INDEX ingestion ingestion_items_job_id_idx postgres
+4561; 1259 26096 INDEX ingestion ingestion_items_status_idx postgres
+4553; 1259 27586 INDEX ingestion ingestion_jobs_format_fingerprint_idx postgres
+4556; 1259 26094 INDEX ingestion ingestion_jobs_supplier_id_idx postgres
+4557; 1259 27817 INDEX ingestion ingestion_jobs_supplier_id_source_checksum_key postgres
+4733; 1259 27187 INDEX ingestion product_content_drafts_candidate_id_idx postgres
+4734; 1259 27186 INDEX ingestion product_content_drafts_candidate_id_key postgres
+4787; 1259 27626 INDEX ingestion product_line_drafts_brand_draft_id_idx postgres
+4792; 1259 27627 INDEX ingestion product_line_drafts_status_idx postgres
+4744; 1259 27312 INDEX operations domain_events_aggregate_id_idx postgres
+4745; 1259 27313 INDEX operations domain_events_event_type_aggregate_id_consumer_key postgres
+4748; 1259 27311 INDEX operations domain_events_status_next_attempt_at_idx postgres
+4712; 1259 27097 INDEX operations notification_outbox_aggregate_id_event_type_idx postgres
+4713; 1259 27095 INDEX operations notification_outbox_deduplication_key_key postgres
+4716; 1259 27096 INDEX operations notification_outbox_status_next_attempt_at_idx postgres
+4666; 1259 26764 INDEX operations support_cases_assignee_id_idx postgres
+4669; 1259 26763 INDEX operations support_cases_status_idx postgres
+4699; 1259 27025 INDEX ordering availability_decisions_decision_key_key postgres
+4700; 1259 27028 INDEX ordering availability_decisions_one_pending_per_item postgres
+4701; 1259 27027 INDEX ordering availability_decisions_order_id_status_idx postgres
+4702; 1259 27026 INDEX ordering availability_decisions_order_item_id_version_key postgres
+4528; 1259 26083 INDEX ordering cart_items_cart_id_idx postgres
+4529; 1259 26085 INDEX ordering cart_items_cart_id_sku_id_key postgres
+4532; 1259 26084 INDEX ordering cart_items_sku_id_idx postgres
+4524; 1259 26848 INDEX ordering carts_customer_id_key postgres
+4525; 1259 26849 INDEX ordering carts_guest_token_hash_key postgres
+4675; 1259 26865 INDEX ordering checkout_quotes_cart_id_revision_idx postgres
+4676; 1259 26864 INDEX ordering checkout_quotes_order_id_key postgres
+4657; 1259 26757 INDEX ordering courier_settlement_batches_reference_key postgres
+4769; 1259 27435 INDEX ordering delivery_instructions_order_id_created_at_idx postgres
+4705; 1259 27047 INDEX ordering order_amendments_decision_id_key postgres
+4706; 1259 27048 INDEX ordering order_amendments_order_id_idx postgres
+4538; 1259 26087 INDEX ordering order_items_order_id_idx postgres
+4541; 1259 26088 INDEX ordering order_items_sku_id_idx postgres
+4647; 1259 26753 INDEX ordering order_resolution_events_resolution_id_idx postgres
+4644; 1259 26752 INDEX ordering order_resolution_items_resolution_id_order_item_id_key postgres
+4639; 1259 26751 INDEX ordering order_resolutions_order_id_idx postgres
+4679; 1259 26883 INDEX ordering order_status_events_order_id_created_at_idx postgres
+4533; 1259 26876 INDEX ordering orders_guest_access_token_hash_key postgres
+4534; 1259 26890 INDEX ordering orders_idempotency_key_key postgres
+4535; 1259 26086 INDEX ordering orders_order_number_key postgres
+4754; 1259 27389 INDEX ordering payment_attempts_one_confirmed_per_order postgres
+4755; 1259 27382 INDEX ordering payment_attempts_order_id_idx postgres
+4758; 1259 27381 INDEX ordering payment_attempts_reference_key postgres
+4652; 1259 26756 INDEX ordering payment_collections_order_id_key postgres
+4761; 1259 27383 INDEX ordering payment_provider_events_provider_provider_event_id_key postgres
+4648; 1259 26755 INDEX ordering refund_transactions_order_id_idx postgres
+4651; 1259 26754 INDEX ordering refund_transactions_resolution_id_key postgres
+4695; 1259 26965 INDEX sourcing availability_action_requirements_requirement_id_key postgres
+4636; 1259 26750 INDEX sourcing payable_adjustments_payable_id_idx postgres
+4749; 1259 27327 INDEX sourcing purchase_order_line_allocations_order_id_idx postgres
+4752; 1259 27326 INDEX sourcing purchase_order_line_allocations_purchase_order_line_id_idx postgres
+4753; 1259 27325 INDEX sourcing purchase_order_line_allocations_source_allocation_id_key postgres
+4602; 1259 26440 INDEX sourcing purchase_order_lines_purchase_order_id_idx postgres
+4603; 1259 26441 INDEX sourcing purchase_order_lines_sku_id_idx postgres
+4766; 1259 27421 INDEX sourcing receiving_shortfalls_link_id_idx postgres
+4691; 1259 26947 INDEX sourcing source_allocations_requirement_id_idx postgres
+4692; 1259 26946 INDEX sourcing source_allocations_requirement_id_supplier_offer_id_key postgres
+4521; 1259 25966 INDEX sourcing supplier_offers_sku_id_idx postgres
+4522; 1259 25965 INDEX sourcing supplier_offers_supplier_id_idx postgres
+4523; 1259 25967 INDEX sourcing supplier_offers_supplier_id_sku_id_key postgres
+4634; 1259 27339 INDEX sourcing supplier_payables_purchase_order_id_key postgres
+4635; 1259 26748 INDEX sourcing supplier_payables_supplier_id_idx postgres
+4596; 1259 27328 INDEX sourcing supplier_purchase_orders_batch_ref_idx postgres
+4599; 1259 26439 INDEX sourcing supplier_purchase_orders_supplier_id_idx postgres
+4730; 1259 27165 INDEX sourcing supplier_sku_aliases_sku_id_idx postgres
+4731; 1259 27164 INDEX sourcing supplier_sku_aliases_supplier_id_idx postgres
+4732; 1259 27166 INDEX sourcing supplier_sku_aliases_supplier_id_supplier_sku_code_key postgres
+4515; 1259 25963 INDEX sourcing suppliers_name_key postgres
+4518; 1259 25964 INDEX sourcing suppliers_slug_key postgres
+4698; 1259 26977 INDEX sourcing supply_plan_events_supply_request_id_created_at_idx postgres
+4682; 1259 26922 INDEX sourcing supply_requests_order_id_key postgres
+4685; 1259 26930 INDEX sourcing supply_requirements_order_item_id_key postgres
+4688; 1259 26931 INDEX sourcing supply_requirements_supply_request_id_idx postgres
+4908; 2606 27546 FK CONSTRAINT accounts customer_addresses customer_addresses_customer_id_fkey postgres
+4868; 2606 27194 FK CONSTRAINT accounts customers customers_supplier_id_fkey postgres
+4869; 2606 26488 FK CONSTRAINT accounts identities identities_customer_id_fkey postgres
+4870; 2606 26493 FK CONSTRAINT accounts sessions sessions_customer_id_fkey postgres
+4915; 2606 40046 FK CONSTRAINT care blueprint_roles blueprint_roles_blueprint_id_fkey postgres
+4916; 2606 40051 FK CONSTRAINT care care_safety_flags care_safety_flags_care_profile_id_fkey postgres
+4865; 2606 26478 FK CONSTRAINT care customer_care_profile_concerns customer_care_profile_concerns_concern_id_fkey postgres
+4866; 2606 26473 FK CONSTRAINT care customer_care_profile_concerns customer_care_profile_concerns_profile_id_fkey postgres
+4864; 2606 26468 FK CONSTRAINT care customer_care_profiles customer_care_profiles_routine_id_fkey postgres
+4918; 2606 40061 FK CONSTRAINT care customer_routine_items customer_routine_items_routine_id_fkey postgres
+4919; 2606 40066 FK CONSTRAINT care customer_routine_versions customer_routine_versions_routine_id_fkey postgres
+4917; 2606 40056 FK CONSTRAINT care customer_routines customer_routines_care_profile_id_fkey postgres
+4867; 2606 26483 FK CONSTRAINT care guidance_messages guidance_messages_session_id_fkey postgres
+4901; 2606 27270 FK CONSTRAINT care routine_proposals routine_proposals_draft_id_fkey postgres
+4854; 2606 26205 FK CONSTRAINT care routine_step_recommendations routine_step_recommendations_product_id_fkey postgres
+4855; 2606 26200 FK CONSTRAINT care routine_step_recommendations routine_step_recommendations_step_id_fkey postgres
+4853; 2606 26195 FK CONSTRAINT care routine_steps routine_steps_routine_id_fkey postgres
+4844; 2606 25936 FK CONSTRAINT catalog categories categories_parent_id_fkey postgres
+4911; 2606 27668 FK CONSTRAINT catalog product_ingredients product_ingredients_ingredient_id_fkey postgres
+4912; 2606 27663 FK CONSTRAINT catalog product_ingredients product_ingredients_product_id_fkey postgres
+4843; 2606 25902 FK CONSTRAINT catalog product_lines product_lines_brand_id_fkey postgres
+4842; 2606 25885 FK CONSTRAINT catalog product_media product_media_product_id_fkey postgres
+4913; 2606 27938 FK CONSTRAINT catalog product_usage_rules product_usage_rules_product_id_fkey postgres
+4914; 2606 27943 FK CONSTRAINT catalog product_usage_rules product_usage_rules_sku_id_fkey postgres
+4838; 2606 25875 FK CONSTRAINT catalog products products_brand_id_fkey postgres
+4839; 2606 25941 FK CONSTRAINT catalog products products_category_id_fkey postgres
+4840; 2606 25907 FK CONSTRAINT catalog products products_product_line_id_fkey postgres
+4905; 2606 27407 FK CONSTRAINT catalog sku_barcode_aliases sku_barcode_aliases_sku_id_fkey postgres
+4841; 2606 25880 FK CONSTRAINT catalog skus skus_product_id_fkey postgres
+4856; 2606 27278 FK CONSTRAINT fulfillment delivery_batches delivery_batches_location_id_fkey postgres
+4860; 2606 26301 FK CONSTRAINT fulfillment delivery_stops delivery_stops_batch_id_fkey postgres
+4861; 2606 26306 FK CONSTRAINT fulfillment delivery_stops delivery_stops_shipment_id_fkey postgres
+4895; 2606 27126 FK CONSTRAINT fulfillment fulfillment_location_operators fulfillment_location_operators_location_id_fkey postgres
+4896; 2606 27151 FK CONSTRAINT fulfillment fulfillment_receipts fulfillment_receipts_inventory_transaction_id_fkey postgres
+4897; 2606 27146 FK CONSTRAINT fulfillment fulfillment_receipts fulfillment_receipts_location_id_fkey postgres
+4882; 2606 26820 FK CONSTRAINT fulfillment inventory_balances inventory_balances_location_id_fkey postgres
+4883; 2606 26825 FK CONSTRAINT fulfillment inventory_transactions inventory_transactions_balance_id_fkey postgres
+4859; 2606 26287 FK CONSTRAINT fulfillment preparation_scan_events preparation_scan_events_session_id_fkey postgres
+4857; 2606 26277 FK CONSTRAINT fulfillment shipment_events shipment_events_shipment_id_fkey postgres
+4849; 2606 26112 FK CONSTRAINT fulfillment shipment_items shipment_items_shipment_id_fkey postgres
+4858; 2606 26282 FK CONSTRAINT fulfillment shipment_preparation_sessions shipment_preparation_sessions_shipment_id_fkey postgres
+4848; 2606 26107 FK CONSTRAINT fulfillment shipments shipments_location_id_fkey postgres
+4909; 2606 27579 FK CONSTRAINT ingestion export_profiles export_profiles_supplier_id_fkey postgres
+4852; 2606 26117 FK CONSTRAINT ingestion ingestion_items ingestion_items_job_id_fkey postgres
+4850; 2606 27587 FK CONSTRAINT ingestion ingestion_jobs ingestion_jobs_profile_id_fkey postgres
+4851; 2606 26122 FK CONSTRAINT ingestion ingestion_jobs ingestion_jobs_supplier_id_fkey postgres
+4900; 2606 27188 FK CONSTRAINT ingestion product_content_drafts product_content_drafts_candidate_id_fkey postgres
+4910; 2606 27621 FK CONSTRAINT ingestion product_line_drafts product_line_drafts_brand_draft_id_fkey postgres
+4892; 2606 27020 FK CONSTRAINT ordering availability_decisions availability_decisions_order_id_fkey postgres
+4846; 2606 26097 FK CONSTRAINT ordering cart_items cart_items_cart_id_fkey postgres
+4884; 2606 26866 FK CONSTRAINT ordering checkout_quotes checkout_quotes_cart_id_fkey postgres
+4885; 2606 26871 FK CONSTRAINT ordering checkout_quotes checkout_quotes_order_id_fkey postgres
+4907; 2606 27437 FK CONSTRAINT ordering delivery_instructions delivery_instructions_order_id_fkey postgres
+4893; 2606 27042 FK CONSTRAINT ordering order_amendments order_amendments_decision_id_fkey postgres
+4894; 2606 27037 FK CONSTRAINT ordering order_amendments order_amendments_order_id_fkey postgres
+4847; 2606 26102 FK CONSTRAINT ordering order_items order_items_order_id_fkey postgres
+4877; 2606 26795 FK CONSTRAINT ordering order_resolution_events order_resolution_events_resolution_id_fkey postgres
+4875; 2606 26790 FK CONSTRAINT ordering order_resolution_items order_resolution_items_order_item_id_fkey postgres
+4876; 2606 26785 FK CONSTRAINT ordering order_resolution_items order_resolution_items_resolution_id_fkey postgres
+4874; 2606 26780 FK CONSTRAINT ordering order_resolutions order_resolutions_order_id_fkey postgres
+4886; 2606 26884 FK CONSTRAINT ordering order_status_events order_status_events_order_id_fkey postgres
+4904; 2606 27384 FK CONSTRAINT ordering payment_attempts payment_attempts_order_id_fkey postgres
+4880; 2606 26810 FK CONSTRAINT ordering payment_collections payment_collections_order_id_fkey postgres
+4881; 2606 26815 FK CONSTRAINT ordering payment_collections payment_collections_settlement_batch_id_fkey postgres
+4878; 2606 26805 FK CONSTRAINT ordering refund_transactions refund_transactions_order_id_fkey postgres
+4879; 2606 26800 FK CONSTRAINT ordering refund_transactions refund_transactions_resolution_id_fkey postgres
+4890; 2606 26966 FK CONSTRAINT sourcing availability_action_requirements availability_action_requirements_requirement_id_fkey postgres
+4873; 2606 26775 FK CONSTRAINT sourcing payable_adjustments payable_adjustments_payable_id_fkey postgres
+4902; 2606 27329 FK CONSTRAINT sourcing purchase_order_line_allocations purchase_order_line_allocations_purchase_order_line_id_fkey postgres
+4903; 2606 27334 FK CONSTRAINT sourcing purchase_order_line_allocations purchase_order_line_allocations_source_allocation_id_fkey postgres
+4863; 2606 26463 FK CONSTRAINT sourcing purchase_order_lines purchase_order_lines_purchase_order_id_fkey postgres
+4906; 2606 27422 FK CONSTRAINT sourcing receiving_shortfalls receiving_shortfalls_link_id_fkey postgres
+4888; 2606 26948 FK CONSTRAINT sourcing source_allocations source_allocations_requirement_id_fkey postgres
+4889; 2606 26953 FK CONSTRAINT sourcing source_allocations source_allocations_supplier_offer_id_fkey postgres
+4845; 2606 25968 FK CONSTRAINT sourcing supplier_offers supplier_offers_supplier_id_fkey postgres
+4871; 2606 26770 FK CONSTRAINT sourcing supplier_payables supplier_payables_purchase_order_id_fkey postgres
+4872; 2606 26765 FK CONSTRAINT sourcing supplier_payables supplier_payables_supplier_id_fkey postgres
+4862; 2606 26458 FK CONSTRAINT sourcing supplier_purchase_orders supplier_purchase_orders_supplier_id_fkey postgres
+4898; 2606 27172 FK CONSTRAINT sourcing supplier_sku_aliases supplier_sku_aliases_sku_id_fkey postgres
+4899; 2606 27167 FK CONSTRAINT sourcing supplier_sku_aliases supplier_sku_aliases_supplier_id_fkey postgres
+4891; 2606 26978 FK CONSTRAINT sourcing supply_plan_events supply_plan_events_supply_request_id_fkey postgres
+4887; 2606 26932 FK CONSTRAINT sourcing supply_requirements supply_requirements_supply_request_id_fkey postgres
+5068; 0 25795 ROW SECURITY public _prisma_migrations postgres

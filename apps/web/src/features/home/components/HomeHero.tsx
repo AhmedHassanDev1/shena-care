@@ -3,63 +3,48 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { PageContainer } from '@/components/layout/page-container';
-import { buttonVariants } from '@/components/ui/button-variants';
 import { Icon } from '@/components/ui/icon';
-import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { routes, shellRoutes } from '@/lib/routes';
 import { HeroPhoto } from './HeroPhoto';
-import { HeroProductTag } from './HeroProductTag';
 
 const delay = (ms: number): CSSProperties => ({ animationDelay: `${ms}ms` });
 
 /**
- * Modern Beauty Editorial Campaign Hero:
- * Replaces the split-card with a high-impact, full-bleed photographic campaign section.
- * The art-directed photograph fills the viewport height with controlled cinematic scrims,
- * confident typography, a signature rose accent tag, and a live catalog product pill.
+ * Editorial split hero: asymmetric grid, crisp 4px photo frame, a clean photograph with nothing laid over it.
+ * The copy owns the reading-start column on the chalk ground and never sits on the subject's face; the photograph
+ * owns the other seven columns. On phones the photo comes first at a shorter crop so the headline and both actions
+ * stay above the fold. The hero says «personalised discovery», not a product promotion, so it carries no product tag.
  */
 export function HomeHero() {
   const m = useMessages();
-  const locale = useLocale();
 
   return (
-    <section aria-labelledby="home-hero-title" className="relative isolate w-full overflow-hidden bg-chalk text-ink">
-      {/* Background Campaign Photography */}
-      <div className="absolute inset-0 -z-20">
-        <HeroPhoto />
-      </div>
+    <section aria-labelledby="home-hero-title" className="bg-chalk text-ink">
+      <PageContainer className="grid gap-6 pb-8 pt-4 lg:grid-cols-12 lg:items-center lg:gap-12 lg:py-12">
+        {/* Photograph: end columns on desktop, first on phones */}
+        <div className="relative isolate aspect-[4/3] overflow-hidden rounded-image bg-sand sm:aspect-[16/10] lg:order-last lg:col-span-7 lg:aspect-[6/5]">
+          <HeroPhoto />
+        </div>
 
-
-
-
-
-      {/* Campaign Copy & Editorial Actions */}
-      <PageContainer className="relative flex min-h-[560px] flex-col justify-end pb-12 pt-16 sm:min-h-[640px] sm:pb-16 lg:min-h-[680px] lg:justify-center lg:py-24">
-        <div className="flex max-w-xl flex-col items-start gap-4 lg:gap-6">
-       
-
-          {/* Headline */}
+        {/* Copy: reading-start columns */}
+        <div className="flex flex-col items-start gap-4 lg:col-span-5 lg:gap-6">
           <h1
             id="home-hero-title"
-            className="hero-rise m-0 font-display text-36 font-extrabold leading-tight text-ink sm:text-48 sm:leading-tight lg:text-56 lg:leading-none"
-            style={delay(140)}
+            className="hero-rise m-0 text-balance font-display text-40 font-extrabold leading-tight text-ink sm:text-52 lg:text-64"
+            style={delay(120)}
           >
             {m.homeHeroTitle}
           </h1>
 
-          {/* Subtitle */}
-          <p
-            className="hero-rise m-0 text-15 leading-26 text-stone sm:text-16 sm:leading-28 lg:text-18 lg:leading-32"
-            style={delay(240)}
-          >
+          <p className="hero-rise m-0 max-w-md text-pretty text-16 leading-28 text-stone lg:text-18 lg:leading-32" style={delay(220)}>
             {m.homeHeroBody}
           </p>
 
-          {/* Action Row */}
-          <div className="hero-rise flex flex-wrap items-center gap-3 pt-2 sm:gap-4" style={delay(340)}>
+          <div className="hero-rise flex w-full flex-wrap items-center gap-3 pt-1 sm:w-auto" style={delay(320)}>
             <Link
               href={routes.products}
-              className="inline-flex h-14 items-center justify-center gap-2.5 rounded-pill bg-ink px-7 text-15 font-bold text-chalk shadow-e1 transition-all duration-fast hover:bg-cobalt hover:shadow-e2 active:scale-95"
+              className="inline-flex h-control-l flex-1 items-center justify-center gap-2.5 rounded-pill bg-ink px-7 text-15 font-bold text-chalk shadow-elevation-1 transition-[background-color,box-shadow,transform] duration-fast hover:bg-cobalt hover:shadow-elevation-2 active:scale-[.98] sm:flex-none"
             >
               <span>{m.homeHeroCta}</span>
               <Icon name="arrow-forward" size={18} strokeWidth={2.2} />
@@ -67,9 +52,9 @@ export function HomeHero() {
 
             <Link
               href={shellRoutes.shina}
-              className="inline-flex h-14 items-center justify-center gap-2.5 rounded-pill bg-linen px-6 text-15 font-semibold text-ink shadow-outline-hairline transition-all duration-fast hover:bg-sand/60"
+              className="inline-flex h-control-l flex-1 items-center justify-center gap-2.5 rounded-pill bg-linen px-6 text-15 font-semibold text-ink shadow-outline-control transition-colors duration-fast hover:bg-sand sm:flex-none"
             >
-              <span className="size-2.5 rounded-full bg-citron" />
+              <span aria-hidden="true" className="size-2.5 rounded-full bg-citron shadow-outline-hairline" />
               <span>{m.homeAdvisorPromptCta}</span>
             </Link>
           </div>

@@ -14,9 +14,9 @@ export interface TimelineItem {
 }
 
 const dotClass: Record<TimelineDot, string> = {
-  done: "bg-ink text-chalk shadow-e1",
+  done: "bg-ink text-chalk shadow-elevation-1",
   na: "bg-linen shadow-outline-ink",
-  now: "bg-cobalt text-chalk shadow-e1",
+  now: "bg-cobalt text-chalk shadow-elevation-1",
   next: "bg-linen shadow-outline-dune",
   err: "bg-tomato text-ink",
   warn: "bg-linen shadow-outline-warn",

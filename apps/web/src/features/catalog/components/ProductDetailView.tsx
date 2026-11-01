@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { getSavedCustomerRoutine } from '@/features/routine/lib/routineStorage';
 import { getProductDetail, type ProductDetail, type PublicMedia, type PublicVariant } from '../api/discovery';
 import { categoryLabel } from '../lib/card-model';
+import { ROUTINE_ORDER, routineStepFor } from '../lib/routine-order';
 import { useCategoryTree } from '../lib/listing';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,14 +57,14 @@ export function ProductDetailView({ slug }: { slug: string }) {
     return (
       <section className="mx-auto my-10 flex max-w-narrow flex-col items-center gap-4 rounded-card bg-linen px-6 py-10 text-center shadow-outline-hairline">
         <h1 className="m-0 text-display-3">{missing ? m.pdpNotFoundTitle : m.pdpLoadError}</h1>
-        {missing ? <p className="m-0 text-15 leading-25 text-ink-2">{m.pdpNotFoundBody}</p> : null}
+        {missing ? <p className="m-0 text-15 leading-25 text-stone">{m.pdpNotFoundBody}</p> : null}
         <div className="flex flex-wrap justify-center gap-3">
           {missing ? null : (
             <Button variant="light" size="m" onClick={() => query.refetch()}>
               {m.tryAgain}
             </Button>
           )}
-          <Link href={routes.products} className={buttonVariants({ variant: missing ? 'bottle' : 'light', size: 'm' })}>
+          <Link href={routes.products} className={buttonVariants({ variant: missing ? 'cobalt' : 'light', size: 'm' })}>
             {m.pdpBackToProducts}
           </Link>
         </div>
@@ -147,7 +148,7 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
         </ol>
       </nav>
 
-      <div className="-mt-12 grid gap-6 lg:-mt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,600px)] lg:gap-16">
+      <div className="grid gap-6 lg:-mt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,600px)] lg:gap-16">
         <div className="lg:order-2">
           <Gallery media={media} name={name} />
         </div>
@@ -186,19 +187,20 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
       {description || sections.length || sizes || categoryName ? (
         <section aria-labelledby="about-h" className="grid gap-10 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-20">
           <div className="flex flex-col gap-4">
-            <span className="text-12 font-semibold leading-17 text-stone">{m.pdpAboutEyebrow}</span>
-            <h2 id="about-h" className="m-0 font-display text-32 font-bold leading-tight text-ink">
-              {m.pdpBrandSays}
+            <h2 id="about-h" className="m-0 font-display text-28 font-bold leading-tight text-ink lg:text-32">
+              {description ? m.pdpBrandSays : m.pdpAboutEyebrow}
             </h2>
             {description ? (
-              <blockquote dir="auto" className="m-0 whitespace-pre-line text-17 leading-30 text-ink text-match-parent">
-                «{description}»
-              </blockquote>
+              <>
+                <blockquote dir="auto" className="m-0 whitespace-pre-line text-17 leading-30 text-ink text-match-parent">
+                  «{description}»
+                </blockquote>
+                <span className="flex items-center gap-2 text-13 text-stone">
+                  <span className="rounded-image bg-sand px-2 py-0.5 text-12 font-semibold text-ink">{m.pdpBrandBadge}</span>
+                  <span>{fillMessage(m.pdpBrandDescription, { brand: product.brand.name })}</span>
+                </span>
+              </>
             ) : null}
-            <span className="flex items-center gap-2 text-13 text-stone">
-              <span className="rounded-image bg-sand px-2 py-0.5 text-12 font-semibold text-ink">{m.pdpBrandBadge}</span>
-              <span>{fillMessage(m.pdpBrandDescription, { brand: product.brand.name })}</span>
-            </span>
             <dl className="m-0 grid grid-cols-2 gap-x-6">
               {[
                 { k: m.pdpSpecSize, v: sizes },
@@ -235,192 +237,87 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
         </section>
       ) : null}
 
-      <ClinicalSections product={product} variant={variant} />
+      <RoutinePlacement product={product} />
 
       <MobilePurchaseBar product={product} variant={variant} buy={buy} visible={barVisible} onSelect={onSelectVariant} name={name} />
     </article>
   );
 }
 
-function ClinicalSections({ product, variant }: { product: ProductDetail; variant: PublicVariant }) {
+/**
+ * Where the product sits in the storefront's routine outline (features/catalog/lib/routine-order), matched by category
+ * slug. Rendered only for categories that belong to an outline; no efficacy claims, usage or ingredient copy here (the
+ * catalog's own usage and ingredients are in the sections above).
+ */
+function RoutinePlacement({ product }: { product: ProductDetail }) {
   const m = useMessages();
-  const [savedRoutine, setSavedRoutine] = useState<any>(null);
+  const locale = useLocale();
+  const [inSavedRoutine, setInSavedRoutine] = useState(false);
 
   useEffect(() => {
-    setSavedRoutine(getSavedCustomerRoutine());
-  }, []);
+    const saved = getSavedCustomerRoutine();
+    setInSavedRoutine(Boolean(saved && [...saved.morningSteps, ...saved.eveningSteps].some((step) => step.productSlug === product.slug)));
+  }, [product.slug]);
 
-  const categorySlug = product.category?.slug ?? '';
-  const categoryName = product.category?.name ?? '';
-
-  const matchedSavedStep = savedRoutine
-    ? [...(savedRoutine.morningSteps || []), ...(savedRoutine.eveningSteps || [])].find(
-        (st: any) => st.productSlug === product.slug || (categoryName && st.stepName && st.stepName.includes(categoryName))
-      )
-    : null;
-
-  const isCleanser = categorySlug.includes('cleanser') || categoryName.includes('غسول') || categoryName.includes('منظف');
-  const isSunscreen = categorySlug.includes('sun') || categoryName.includes('شمس') || categoryName.includes('واقي');
-  const isSerum = categorySlug.includes('serum') || categorySlug.includes('treat') || categoryName.includes('سيروم') || categoryName.includes('علاج');
-  const activeStep = isCleanser ? 1 : isSerum ? 2 : isSunscreen ? 4 : 3;
-
-  const steps = [
-    { num: 1, label: m.pdpStepCleanser },
-    { num: 2, label: m.pdpStepTreat },
-    { num: 3, label: m.pdpStepMoisturize },
-    { num: 4, label: m.pdpStepProtect },
-  ];
-
-  const rawIngredients = variant.content?.ingredients?.trim() || null;
-  const ingredientsList = rawIngredients
-    ? rawIngredients.split(/[،,•\n]+/).map((s) => s.trim()).filter(Boolean).slice(0, 6)
-    : null;
-
-  const rawUsage = (variant.content?.usage ?? product.usage)?.trim() || null;
-  const usageSteps = rawUsage
-    ? rawUsage.split(/[.\n]+/).map((s) => s.trim()).filter((s) => s.length > 5).slice(0, 3)
-    : [m.pdpProtocolStep1, m.pdpProtocolStep2, m.pdpProtocolStep3];
+  const placement = routineStepFor(product.category?.slug);
+  if (!placement || !product.category) return null;
+  const outline = ROUTINE_ORDER[placement.kind];
+  const category = categoryLabel(product.category, locale) ?? product.category.name;
+  const department = categoryLabel({ slug: outline.department, name: outline.department }, locale) ?? outline.department;
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Key Ingredients from verified catalog data */}
-      {ingredientsList && ingredientsList.length > 0 ? (
-        <section aria-labelledby="actives-h" className="flex flex-col gap-4 rounded-card bg-linen p-6 shadow-outline-hairline lg:p-7">
-          <div className="flex items-center gap-3">
-            <span className="flex size-10 flex-none items-center justify-center rounded-full bg-sand text-ink">
-              <Icon name="science" size={20} />
-            </span>
-            <div className="flex flex-col">
-              <h2 id="actives-h" className="m-0 font-display text-20 font-bold leading-26 text-ink">
-                {m.pdpClinicalActivesTitle}
-              </h2>
-              <p className="m-0 text-13 leading-20 text-stone">{m.pdpClinicalActivesLead}</p>
-            </div>
-          </div>
-          <ul className="m-0 grid list-none grid-cols-1 gap-2.5 p-0 sm:grid-cols-2">
-            {ingredientsList.map((ing) => (
-              <li key={ing} className="flex items-center gap-2 rounded-image bg-chalk p-3 text-13 font-semibold text-ink shadow-e1">
-                <span className="flex size-5 flex-none items-center justify-center rounded-full bg-cobalt text-chalk">
-                  <Icon name="check" size={12} />
-                </span>
-                <span>{ing}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
+    <section aria-labelledby="routine-h" className="flex flex-col gap-5 shadow-hairline-top pt-8">
+      <div className="flex flex-col gap-1">
+        <h2 id="routine-h" className="m-0 font-display text-28 font-bold text-ink">
+          {m.pdpRoutineStepTitle}
+        </h2>
+        <p className="m-0 text-15 leading-24 text-stone">
+          {fillMessage(m.pdpRoutineStepLead, {
+            n: formatNumber(placement.index + 1, locale),
+            total: formatNumber(outline.steps.length, locale),
+            department,
+          })}
+        </p>
+      </div>
+
+      <ol className="m-0 grid list-none gap-2 p-0" style={{ gridTemplateColumns: `repeat(${outline.steps.length}, minmax(0, 1fr))` }}>
+        {outline.steps.map((step, index) => {
+          const current = index === placement.index;
+          return (
+            <li
+              key={step.slug}
+              aria-current={current ? 'step' : undefined}
+              className={cn(
+                'flex min-h-20 flex-col justify-between gap-2 rounded-card p-3',
+                current ? 'bg-ink text-chalk' : 'bg-linen text-ink shadow-outline-hairline'
+              )}
+            >
+              <span className={cn('font-display text-13 font-bold tabular-nums', current ? 'text-citron' : 'text-stone')}>
+                {formatNumber(index + 1, locale)}
+              </span>
+              <span className="text-14 font-bold leading-20">{categoryLabel(step, locale)}</span>
+              {current ? <span className="sr-only">{m.pdpRoutineThisProduct}</span> : null}
+            </li>
+          );
+        })}
+      </ol>
+
+      {inSavedRoutine ? (
+        <p className="m-0 flex items-center gap-2 text-14 font-semibold text-ok">
+          <Icon name="check" size={16} />
+          {m.pdpRoutineInSaved}
+        </p>
       ) : null}
 
-      {/* Routine Placement Stepper */}
-      <section aria-labelledby="routine-placement-h" className="flex flex-col gap-4 rounded-card bg-sand/60 p-6 shadow-outline-hairline lg:p-7">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 flex-none items-center justify-center rounded-full bg-sand text-ink">
-            <Icon name="sparkles" size={20} />
-          </span>
-          <div className="flex flex-col">
-            <h2 id="routine-placement-h" className="m-0 font-display text-20 font-bold leading-26 text-ink">
-              {m.pdpRoutineStepTitle}
-            </h2>
-            <p className="m-0 text-13 leading-20 text-stone">{m.pdpRoutineStepLead}</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {steps.map((st) => {
-            const isCurrent = st.num === activeStep;
-            return (
-              <div
-                key={st.num}
-                className={cn(
-                  'flex flex-col items-center gap-1.5 rounded-card p-3 text-center transition-all',
-                  isCurrent
-                    ? 'bg-cobalt text-chalk shadow-e2'
-                    : 'bg-linen text-ink shadow-outline-hairline opacity-80'
-                )}
-              >
-                <span className={cn('text-11 font-bold', isCurrent ? 'text-chalk/80' : 'text-stone')}>
-                  خطوة ٠{st.num}
-                </span>
-                <span className="text-14 font-bold">{st.label}</span>
-                {isCurrent ? (
-                  <span className="rounded-full bg-chalk/20 px-2 py-0.5 text-10.5 font-bold text-chalk">
-                    هذا المنتج
-                  </span>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Recommended Application Protocol */}
-      <section aria-labelledby="protocol-h" className="flex flex-col gap-4 rounded-card bg-linen p-6 shadow-outline-hairline lg:p-7">
-        <h2 id="protocol-h" className="m-0 font-display text-20 font-bold leading-26 text-ink">
-          {m.pdpProtocolTitle}
-        </h2>
-        <ol className="m-0 flex list-none flex-col gap-3 p-0">
-          {usageSteps.map((stepText, idx) => (
-            <li key={idx} className="flex items-start gap-3">
-              <span className="flex size-7 flex-none items-center justify-center rounded-full bg-sand font-display text-13 font-bold text-ink">
-                ٠{idx + 1}
-              </span>
-              <p className="m-0 pt-0.5 text-14 leading-24 text-ink">{stepText}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* Routine Section with Contextual Matching and Link to Builder */}
-      <section aria-labelledby="routine-h" className="flex flex-col gap-4 rounded-card bg-linen p-6 shadow-e1 lg:p-7">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 flex-none items-center justify-center rounded-full bg-sand text-cobalt">
-            <Icon name="routine" size={20} />
-          </span>
-          <div className="flex flex-col">
-            <h2 id="routine-h" className="m-0 font-display text-20 font-bold leading-26 text-ink">
-              موقع المستحضر في روتين العناية
-            </h2>
-            <span className="text-12 text-stone">إرشاد مبني على الكتالوج وتناسق الخطوات</span>
-          </div>
-        </div>
-
-        {matchedSavedStep ? (
-          <div className="flex items-center gap-2 rounded-card bg-sand/50 p-3.5 text-13 font-bold text-cobalt">
-            <Icon name="check" size={16} />
-            <span>يناسب روتينك اليومي المحفوظ: خطوة {matchedSavedStep.stepName}</span>
-          </div>
-        ) : (
-          <p className="m-0 text-14 leading-24 text-stone">
-            مكان هذا المستحضر النموذجي في تسلسل العناية هو خطوة <strong>{steps.find((s) => s.num === activeStep)?.label ?? categoryName}</strong> لدعم التوازن والحماية دون إجهاد حاجز البشرة.
-          </p>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          <Link
-            href={`${routes.routineBuilder}?product=${encodeURIComponent(product.slug)}`}
-            className={cn(buttonVariants({ variant: 'cobalt', size: 'm' }), 'font-bold shadow-e1')}
-          >
-            <Icon name="sparkles" size={16} />
-            <span>ابني روتينك مع هذا المنتج</span>
-          </Link>
-
-          <Link
-            href={routes.routines}
-            className={cn(buttonVariants({ variant: 'linen', size: 'm' }), 'font-semibold')}
-          >
-            دليل الروتينات الجاهزة
-          </Link>
-
-          {categorySlug ? (
-            <Link
-              href={`${routes.products}?category=${encodeURIComponent(categorySlug)}`}
-              className={cn(buttonVariants({ variant: 'linen', size: 'm' }))}
-            >
-              {m.pdpAlternativesTitle}
-            </Link>
-          ) : null}
-        </div>
-      </section>
-    </div>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        <Link href={`${routes.routineBuilder}?product=${encodeURIComponent(product.slug)}`} className={buttonVariants({ variant: 'ink', size: 'm' })}>
+          {m.pdpRoutineBuild}
+        </Link>
+        <Link href={routes.productsByCategory(product.category.slug)} className="link-quiet text-14 font-semibold text-ink">
+          {fillMessage(m.pdpMoreInCategory, { category })}
+        </Link>
+      </div>
+    </section>
   );
 }
 
@@ -454,10 +351,10 @@ function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
           name={name}
           priority
           sizes="(min-width: 1024px) 600px, 100vw"
-          className="rounded-card shadow-e3 lg:aspect-[600/750]"
+          className="rounded-card shadow-elevation-3 lg:aspect-[600/750]"
         />
         <div className="pointer-events-none absolute bottom-4 inset-x-4 flex flex-wrap items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-ink/85 px-3 py-1 text-12 font-semibold text-chalk backdrop-blur-sm shadow-e1">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-ink/85 px-3 py-1 text-12 font-semibold text-chalk backdrop-blur-sm shadow-elevation-1">
             <Icon name="shield" size={14} className="text-citron" />
             <span>{m.pdpAuthenticRibbon}</span>
           </span>
@@ -477,7 +374,7 @@ function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
                 aria-label={fillMessage(m.pdpShowImage, { i: i + 1 })}
                 aria-current={i === index}
                 onClick={() => setIndex(i)}
-                className={cn('block rounded-image p-0.5', i === index ? 'ring-2 ring-cobalt shadow-e1' : 'shadow-none')}
+                className={cn('block rounded-image p-0.5', i === index ? 'ring-2 ring-cobalt shadow-elevation-1' : 'shadow-none')}
               >
                 <ProductTile size="thumb" className="size-16" src={image.url} alt="" name={name} />
               </button>

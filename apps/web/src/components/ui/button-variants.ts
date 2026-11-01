@@ -18,7 +18,7 @@ export const buttonVariants = cva(
   [
     "relative inline-flex items-center justify-center gap-2.5 whitespace-nowrap rounded-pill font-display font-semibold no-underline",
     "transition-[background-color,box-shadow,transform,color] duration-base ease-standard",
-    "enabled:hover:-translate-y-px enabled:hover:shadow-e2",
+    "enabled:hover:-translate-y-px enabled:hover:shadow-elevation-2",
     "enabled:active:scale-[.97] enabled:active:translate-y-0",
     "disabled:cursor-not-allowed disabled:bg-sand disabled:text-stone disabled:shadow-none",
     "[&_svg]:shrink-0",
@@ -26,15 +26,14 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        ink: "bg-ink text-chalk shadow-e1 hover:bg-cobalt active:bg-cobalt-deep",
-        cobalt: "bg-cobalt text-chalk shadow-e1 hover:bg-cobalt-deep active:bg-cobalt-deep",
-        tomato: "bg-tomato text-ink shadow-e1 hover:bg-tomato/90",
-        ghost: "bg-transparent text-ink shadow-outline-ink hover:bg-ink hover:text-chalk hover:shadow-e1",
-        linen: "bg-linen text-ink shadow-e1 hover:bg-linen/90",
-        light: "bg-linen text-ink shadow-e1 hover:bg-linen/90",
-        bottle: "bg-cobalt text-chalk shadow-e1 hover:bg-cobalt-deep active:bg-cobalt-deep",
-        saffron: "bg-citron text-ink shadow-e1 hover:bg-citron/90",
-        onDark: "bg-linen text-ink shadow-e1 hover:bg-linen/90",
+        ink: "bg-ink text-chalk shadow-elevation-1 hover:bg-cobalt active:bg-cobalt-deep",
+        cobalt: "bg-cobalt text-chalk shadow-elevation-1 hover:bg-cobalt-deep active:bg-cobalt-deep",
+        tomato: "bg-tomato text-ink shadow-elevation-1 hover:bg-tomato/90",
+        ghost: "bg-transparent text-ink shadow-outline-ink hover:bg-ink hover:text-chalk hover:shadow-elevation-1",
+        linen: "bg-linen text-ink shadow-elevation-1 hover:bg-linen/90",
+        light: "bg-linen text-ink shadow-elevation-1 hover:bg-linen/90",
+        saffron: "bg-citron text-ink shadow-elevation-1 hover:bg-citron/90",
+        onDark: "bg-linen text-ink shadow-elevation-1 hover:bg-linen/90",
         text: "text-link h-auto rounded-none px-0 shadow-none hover:shadow-none hover:translate-y-0 disabled:bg-transparent",
       },
       size: {

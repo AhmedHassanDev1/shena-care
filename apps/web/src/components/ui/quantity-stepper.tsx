@@ -17,7 +17,7 @@ export interface QuantityStepperProps {
   /** Locks the whole stepper while a quantity change is pending (handoff §Async: «stepper locked»). */
   pending?: boolean
   disabled?: boolean
-  /** `commerce`: the product card's "added" counter (bottle-tint pill, 1.5px bottle ring, bottle-deep glyphs, 44-wide buttons). */
+  /** `commerce`: the product card's "added" counter (cobalt-tint pill, 1.5px cobalt ring, cobalt-deep glyphs, 44-wide buttons). */
   tone?: "default" | "commerce"
   className?: string
 }

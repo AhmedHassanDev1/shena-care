@@ -2,10 +2,9 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-export type StatusTone = "bottle" | "ok" | "warn" | "gray" | "err" | "ink" | "cobalt"
+export type StatusTone = "ok" | "warn" | "gray" | "err" | "ink" | "cobalt"
 
 const tones: Record<StatusTone, string> = {
-  bottle: "bg-sand text-cobalt-deep",
   cobalt: "bg-sand text-cobalt-deep",
   ok: "bg-ok-tint text-ok",
   warn: "bg-dusk text-stone",

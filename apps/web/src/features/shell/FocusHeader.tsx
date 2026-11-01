@@ -34,7 +34,7 @@ export function FocusHeader({ title, titleIsLabel, back, action, desktopBack, se
   const Title = titleIsLabel ? "p" : "h1";
   const m = getMessages(getLocale());
   return (
-    <header className="bg-chalk border-b border-ink/14">
+    <header className="bg-chalk border-b border-ink/15">
       <div className={cn("flex h-header-m items-center gap-0.5 lg:hidden", back ? "px-2" : "px-4")}>
         {back ? (
           <Link href={back.href} aria-label={back.label} className={iconButtonVariants()}>

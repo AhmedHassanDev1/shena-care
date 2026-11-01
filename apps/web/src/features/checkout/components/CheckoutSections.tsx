@@ -46,12 +46,12 @@ export function CheckoutSection({
           aria-hidden="true"
           className={cn(
             'grid size-7.5 flex-none place-items-center rounded-pill text-14 font-bold',
-            done ? 'bg-ok text-white' : 'bg-night text-linen'
+            done ? 'bg-ok text-white' : 'bg-ink text-linen'
           )}
         >
           {done ? <Icon name="check" size={18} strokeWidth={2.6} /> : formatNumber(step, locale)}
         </span>
-        <h2 id={id} className="m-0 font-display text-22 font-bold leading-29 text-night">
+        <h2 id={id} className="m-0 font-display text-22 font-bold leading-29 text-ink">
           {title}
         </h2>
         {action ? <span className="ms-auto">{action}</span> : null}
@@ -127,11 +127,11 @@ export function RecipientSection({
         </div>
       ) : (
         <p className="m-0 flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5 text-15">
-          <strong className="font-bold text-night">{recipient.name}</strong>
-          <bdi dir="ltr" className="tabular-nums text-ink-2">
+          <strong className="font-bold text-ink">{recipient.name}</strong>
+          <bdi dir="ltr" className="tabular-nums text-stone">
             {displayMobile(recipient.phone)}
           </bdi>
-          {fromAccount ? <span className="text-13 text-ink-3">{m.checkoutFromAccount}</span> : null}
+          {fromAccount ? <span className="text-13 text-stone">{m.checkoutFromAccount}</span> : null}
         </p>
       )}
     </CheckoutSection>
@@ -195,7 +195,7 @@ export function AddressSection({
                 key={address.id}
                 className={cn(
                   'relative flex cursor-pointer items-start gap-3 rounded-16 px-4 py-3.5',
-                  checked ? 'bg-bottle-tint shadow-outline-bottle' : 'bg-linen shadow-outline-control'
+                  checked ? 'bg-cobalt/10 shadow-outline-cobalt' : 'bg-linen shadow-outline-control'
                 )}
               >
                 <input
@@ -207,11 +207,11 @@ export function AddressSection({
                 />
                 <RadioMark checked={checked} />
                 <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-15 font-bold text-night">{address.label || address.area}</span>
-                  <span className="text-14 leading-22 text-night">
+                  <span className="text-15 font-bold text-ink">{address.label || address.area}</span>
+                  <span className="text-14 leading-22 text-ink">
                     {[address.shippingAddress, address.area, governorateName(address.governorate)].filter(Boolean).join('، ')}
                   </span>
-                  {address.notes ? <span className="text-13 leading-20 text-ink-2">{address.notes}</span> : null}
+                  {address.notes ? <span className="text-13 leading-20 text-stone">{address.notes}</span> : null}
                   <span className="mt-0.5 inline-flex items-center gap-1.5 text-12.5 font-semibold text-ok">
                     <span aria-hidden="true" className="size-1.75 rounded-full bg-ok" />
                     {fillMessage(m.checkoutAddressDeliverable, { governorate: governorateName(address.governorate) })}
@@ -227,7 +227,7 @@ export function AddressSection({
         <button
           type="button"
           onClick={() => onSelect('new')}
-          className="inline-flex min-h-control-s items-center gap-2 self-start px-1 text-14.5 font-semibold text-bottle underline underline-offset-[6px]"
+          className="inline-flex min-h-control-s items-center gap-2 self-start px-1 text-14.5 font-semibold text-cobalt underline underline-offset-[6px]"
         >
           <Icon name="plus" size={18} />
           {m.checkoutNewAddress}
@@ -244,7 +244,7 @@ export function AddressSection({
             onChange={(event) => onDraft({ ...draft, label: event.target.value })}
           />
           <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-            <legend id="co-governorate-label" className="mb-2 text-14 font-semibold text-night">{m.checkoutGovernorate}</legend>
+            <legend id="co-governorate-label" className="mb-2 text-14 font-semibold text-ink">{m.checkoutGovernorate}</legend>
             <span role="radiogroup" aria-labelledby="co-governorate-label" aria-invalid={errors.governorate ? true : undefined} aria-describedby={errors.governorate ? 'co-governorate-error' : undefined} tabIndex={errors.governorate ? -1 : undefined} className="flex gap-2">
               {(['Cairo', 'Giza'] as Governorate[]).map((g) => {
                 const checked = draft.governorate === g;
@@ -253,7 +253,7 @@ export function AddressSection({
                     key={g}
                     className={cn(
                       'inline-flex min-h-control-s cursor-pointer items-center gap-2 rounded-pill px-4.5 text-14.5 font-semibold',
-                      checked ? 'bg-bottle-tint text-bottle-deep shadow-outline-bottle' : 'bg-linen text-night shadow-outline-control'
+                      checked ? 'bg-cobalt/10 text-cobalt-deep shadow-outline-cobalt' : 'bg-linen text-ink shadow-outline-control'
                     )}
                   >
                     <input type="radio" name="co-governorate" className="sr-only" checked={checked} onChange={() => onDraft({ ...draft, governorate: g })} />
@@ -336,10 +336,10 @@ function PinBlock({ children }: { children: ReactNode }) {
   const m = useMessages();
   return (
     <div className="flex flex-col gap-2.5">
-      <p className="m-0 flex items-center gap-1.5 text-14 font-semibold text-night">
+      <p className="m-0 flex items-center gap-1.5 text-14 font-semibold text-ink">
         <Icon name="pin" size={18} />
         {m.checkoutPinTitle}
-        <span className="text-13 font-normal text-ink-2">{m.checkoutPinRequired}</span>
+        <span className="text-13 font-normal text-stone">{m.checkoutPinRequired}</span>
       </p>
       {children}
     </div>
@@ -352,7 +352,7 @@ function RadioMark({ checked }: { checked: boolean }) {
       aria-hidden="true"
       className={cn(
         'mt-0.5 grid size-5 flex-none place-items-center rounded-pill',
-        checked ? 'bg-bottle text-white' : 'bg-linen shadow-outline-check'
+        checked ? 'bg-cobalt text-white' : 'bg-linen shadow-outline-check'
       )}
     >
       {checked ? <Icon name="check" size={13} strokeWidth={3} /> : null}
@@ -362,8 +362,8 @@ function RadioMark({ checked }: { checked: boolean }) {
 
 export function InlineError({ id, children }: { id?: string; children: ReactNode }) {
   return (
-    <p id={id} role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-22 text-err">
-      <span aria-hidden="true" className="mt-2 size-1.75 flex-none rounded-full bg-err" />
+    <p id={id} role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-22 text-tomato-ink">
+      <span aria-hidden="true" className="mt-2 size-1.75 flex-none rounded-full bg-tomato-ink" />
       {children}
     </p>
   );
@@ -395,25 +395,25 @@ export function DeliverySection({
 
   return (
     <CheckoutSection id="co-delivery" step={3} done={Boolean(ready)} title={m.checkoutDeliveryTitle}>
-      <div className="flex items-center justify-between gap-3 rounded-16 bg-bone px-4 py-3.5">
+      <div className="flex items-center justify-between gap-3 rounded-16 bg-chalk px-4 py-3.5">
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-15 font-bold text-night">
+          <span className="text-15 font-bold text-ink">
             {area ? fillMessage(m.checkoutDeliveryTo, { area }) : m.checkoutDeliveryTitle}
           </span>
-          <span className="text-13 leading-20 text-ink-2">{m.checkoutDeliveryPromise}</span>
+          <span className="text-13 leading-20 text-stone">{m.checkoutDeliveryPromise}</span>
         </span>
-        <span className="flex-none text-15 font-bold text-night">
+        <span className="flex-none text-15 font-bold text-ink">
           {status === 'waiting' ? (
-            <span className="text-13.5 font-medium text-ink-3">{m.cartShippingLater}</span>
+            <span className="text-13.5 font-medium text-stone">{m.cartShippingLater}</span>
           ) : status === 'loading' ? (
-            <span role="status" className="text-13.5 font-medium text-ink-2">
+            <span role="status" className="text-13.5 font-medium text-stone">
               {m.checkoutFeeCalculating}
             </span>
           ) : status === 'error' ? (
-            <span className="text-13.5 font-semibold text-err">{m.checkoutFeeFailed}</span>
+            <span className="text-13.5 font-semibold text-tomato-ink">{m.checkoutFeeFailed}</span>
           ) : ready ? (
             <span className="flex items-center gap-2">
-              {feeChanged ? <Money amount={previousFee as number} struck className="text-13 font-medium text-ink-3" /> : null}
+              {feeChanged ? <Money amount={previousFee as number} struck className="text-13 font-medium text-stone" /> : null}
               {quote.shippingFee === 0 ? m.checkoutFree : <Money amount={quote.shippingFee} />}
             </span>
           ) : null}
@@ -442,7 +442,7 @@ export function DeliverySection({
         </MessageBox>
       ) : null}
 
-      <p className="m-0 text-13 leading-20 text-ink-2">{m.checkoutFeeNote}</p>
+      <p className="m-0 text-13 leading-20 text-stone">{m.checkoutFeeNote}</p>
     </CheckoutSection>
   );
 }
@@ -458,13 +458,13 @@ export function PaymentSection() {
   return (
     <CheckoutSection id="co-payment" step={4} done title={m.checkoutPaymentTitle}>
       <div role="radiogroup" aria-labelledby="co-payment">
-        <label className="flex cursor-pointer items-center gap-3 rounded-16 bg-bottle-tint px-4 py-3.5 shadow-outline-bottle">
+        <label className="flex cursor-pointer items-center gap-3 rounded-16 bg-cobalt/10 px-4 py-3.5 shadow-outline-cobalt">
           <input type="radio" name="co-payment" value="COD" className="sr-only" checked readOnly />
           <RadioMark checked />
-          <Icon name="cash" size={22} className="flex-none text-night" />
+          <Icon name="cash" size={22} className="flex-none text-ink" />
           <span className="flex flex-col gap-0.5">
-            <span className="text-15 font-bold text-night">{m.checkoutCod}</span>
-            <span className="text-13 leading-20 text-ink-2">{m.checkoutCodBody}</span>
+            <span className="text-15 font-bold text-ink">{m.checkoutCod}</span>
+            <span className="text-13 leading-20 text-stone">{m.checkoutCodBody}</span>
           </span>
         </label>
       </div>

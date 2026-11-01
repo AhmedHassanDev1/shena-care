@@ -1,0 +1,16 @@
+{
+  "original": {
+    "status": "ready",
+    "receivedAt": null,
+    "confirmed": 4,
+    "requested": 6
+  },
+  "alternate": [
+    {
+      "id": "4725609a-c579-4cee-94d3-2bb8d2732b76",
+      "status": "sent",
+      "expedited": true,
+      "quantity": 2
+    }
+  ]
+}

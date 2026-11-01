@@ -18,16 +18,14 @@ import { SizePicker } from './SizePicker';
 
 /**
  * ShinaCare · Sahel Product Card
- * Single source of truth: apps/web/docs/design-system/ShinaCare-Design-System-Sahel (boards/04-components.html)
+ * Reference: apps/web/docs/design-system/ShinaCare-Design-System-Sahel (boards/04-components.html)
  *
  * Rules:
- * - Editorial: Image first, no outer box.
- * - 4px crisp frame with painted field and subtle shutter light.
- * - Citron sun badge «جديد» at start edge.
- * - Brand in Instrument Serif Italic.
- * - Product title in Beiruti bold.
- * - Price and tomato rating star.
- * - Pill button (Sahel Ink -> Cobalt hover).
+ * - Editorial: image first, no outer box; 4px crisp frame on the sand field.
+ * - Brand in Instrument Serif Italic (Latin brand names), product name in Beiruti bold.
+ * - Price, then the real pack sizes from the catalog. No ratings, badges or wishlist until the backend has them:
+ *   the board's star and heart are placeholders, never data.
+ * - Pill button (Sahel Ink → Cobalt hover).
  */
 export function ProductCard({
   product,
@@ -58,8 +56,8 @@ export function ProductCard({
       aria-label={`${product.brandName} ${product.name}`}
       className="group/card relative flex h-full w-full min-w-0 flex-col font-display text-ink"
     >
-      {/* 1. Image Frame (100% width, zero inset padding, no bulky card border) */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-image bg-sand/30 shadow-outline-hairline transition-all duration-base ease-standard group-hover/card:shadow-e1">
+      {/* 1. Image frame: full width, no card box around it */}
+      <div className="relative aspect-square w-full overflow-hidden rounded-image bg-sand/30 shadow-outline-hairline transition-shadow duration-base ease-standard group-hover/card:shadow-elevation-1">
         <Link href={href} tabIndex={-1} aria-hidden="true" className="block size-full">
           <ProductTile
             src={product.imageUrl}
@@ -70,21 +68,12 @@ export function ProductCard({
             className={cn('size-full', product.unavailable && '[&_img]:opacity-45 [&_img]:grayscale-[.7]')}
           >
             {product.unavailable ? (
-              <span className="absolute start-3 top-3 inline-flex h-7 items-center rounded-pill bg-ink px-3 text-12 font-semibold text-chalk shadow-e1 z-10">
+              <span className="absolute start-3 top-3 inline-flex h-7 items-center rounded-pill bg-ink px-3 text-12 font-semibold text-chalk shadow-elevation-1 z-10">
                 {m.cardUnavailableBadge}
               </span>
             ) : null}
           </ProductTile>
         </Link>
-
-        {/* Wishlist Heart Icon Button */}
-        <button
-          type="button"
-          aria-label="إضافة للمفضلة"
-          className="absolute top-2.5 start-2.5 z-10 flex size-8 items-center justify-center rounded-full bg-chalk/85 text-ink shadow-e1 transition-transform hover:scale-110 active:scale-95"
-        >
-          <Icon name="heart" size={15} />
-        </button>
       </div>
 
       {multi && pickerOpen ? (
@@ -97,45 +86,34 @@ export function ProductCard({
         />
       ) : null}
 
-      {/* 2. Brand Name */}
-      <div className="mt-2.5">
-        <span lang="en" dir="ltr" className="block font-serif italic text-14 text-stone text-start">
-          {product.brandName}
-        </span>
-      </div>
+      {/* 2. Brand (Latin wordmark in the campaign serif) */}
+      <p className="m-0 mt-3 truncate font-serif text-15 italic leading-20 text-stone">
+        <bdi>{product.brandName}</bdi>
+      </p>
 
-      {/* 3. Product Title */}
-      <Link href={href} className="group/name mt-1 text-ink no-underline">
-        <h3
-          dir="auto"
-          className="line-clamp-2 min-h-[38px] text-15 font-bold leading-snug group-hover/name:text-cobalt transition-colors"
-        >
+      {/* 3. Product name: always two lines tall so prices align across a row */}
+      <Link href={href} className="group/name mt-0.5 text-ink no-underline">
+        <h3 dir="auto" className="text-match-parent m-0 line-clamp-2 min-h-10 text-15 font-bold leading-20 transition-colors duration-fast group-hover/name:text-cobalt">
           {product.name}
         </h3>
       </Link>
 
-      {/* 4. Commercial Price & Rating */}
-      <div className="mt-2 flex items-center justify-between gap-2">
+      {/* 4. Price and pack sizes (catalog data only) */}
+      <div className="mt-2 flex items-baseline justify-between gap-2">
         {priceText ? (
-          <div className="whitespace-nowrap tabular-nums">
-            <span className={cn('text-17 font-extrabold', product.unavailable ? 'text-stone' : 'text-ink')}>
-              {product.priceIsFrom ? <span className="me-1 text-12 font-normal text-stone">{m.cardFrom}</span> : null}
-              <bdi>{priceText}</bdi>
-              <span className="ms-1 text-12 font-medium text-stone">{currencyLabel(locale)}</span>
-            </span>
-          </div>
+          <p className={cn('m-0 whitespace-nowrap tabular-nums text-17 font-extrabold', product.unavailable ? 'text-stone' : 'text-ink')}>
+            {product.priceIsFrom ? <span className="me-1 text-12 font-normal text-stone">{m.cardFrom}</span> : null}
+            <bdi>{priceText}</bdi>
+            <span className="ms-1 text-12 font-medium text-stone">{currencyLabel(locale)}</span>
+          </p>
         ) : (
           <span />
         )}
-
-        <span className="inline-flex items-center gap-1 text-12 font-medium text-stone">
-          <i className="not-italic text-tomato font-bold">★</i>
-          <span>٤٫٨</span>
-        </span>
+        {product.sizeLine ? <span className="truncate text-12 font-medium text-stone">{product.sizeLine}</span> : null}
       </div>
 
-      {/* 5. Action Button */}
-      <div className="mt-2.5">
+      {/* 5. Action: pinned to the bottom so buttons line up in a grid row */}
+      <div className="mt-auto pt-3">
         {product.unavailable ? (
           <div className="flex h-10 w-full items-center justify-center rounded-pill bg-sand text-13 font-semibold text-stone">
             {m.cardUnavailable}
@@ -165,8 +143,8 @@ export function ProductCard({
             aria-describedby={state === 'error' && !multi ? errorId : undefined}
             onClick={start}
             className={cn(
-              'sl inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill px-4 text-13.5 font-bold text-chalk shadow-e1 transition-all duration-fast',
-              'hover:bg-cobalt hover:shadow-e2 active:scale-95',
+              'sl inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill px-4 text-13.5 font-bold text-chalk shadow-elevation-1 transition-all duration-fast',
+              'hover:bg-cobalt hover:shadow-elevation-2 active:scale-95',
               multi && pickerOpen ? 'bg-cobalt-deep' : 'bg-ink'
             )}
           >
@@ -189,7 +167,7 @@ export function ProductCard({
 
       {state === 'error' && !multi ? (
         <p id={errorId} role="alert" className="mt-2 m-0 flex items-start gap-1.5 text-13 font-semibold text-tomato-ink">
-          <span aria-hidden="true" className="mt-1 flex size-3.5 flex-none items-center justify-center rounded-full bg-tomato text-10 font-bold text-ink">!</span>
+          <span aria-hidden="true" className="mt-1 flex size-3.5 flex-none items-center justify-center rounded-full bg-tomato text-10.5 font-bold text-ink">!</span>
           {m.cardAddFailed}
         </p>
       ) : null}
@@ -201,16 +179,16 @@ export function ProductCard({
 export function ProductCardSkeleton() {
   return (
     <div aria-hidden="true" className="flex h-full flex-col font-display">
-      <Skeleton className="aspect-[4/5] w-full rounded-image" />
-      <div className="mt-3 flex flex-col gap-2">
+      <Skeleton className="aspect-square w-full rounded-image" />
+      <div className="mt-3 flex flex-1 flex-col gap-1.5">
         <Skeleton className="h-4 w-[40%] rounded-4" />
-        <Skeleton className="h-5 w-[85%] rounded-4" />
-        <Skeleton className="h-3.5 w-[60%] rounded-4" />
-        <div className="mt-3 flex items-center justify-between">
-          <Skeleton className="h-6 w-20 rounded-4" />
-          <Skeleton className="h-4 w-12 rounded-4" />
+        <Skeleton className="h-4 w-[90%] rounded-4" />
+        <Skeleton className="h-4 w-[65%] rounded-4" />
+        <div className="mt-1.5 flex items-center justify-between">
+          <Skeleton className="h-5 w-20 rounded-4" />
+          <Skeleton className="h-3.5 w-12 rounded-4" />
         </div>
-        <Skeleton className="mt-4 h-control-m w-full rounded-pill" />
+        <Skeleton className="mt-auto h-10 w-full rounded-pill" />
       </div>
     </div>
   );

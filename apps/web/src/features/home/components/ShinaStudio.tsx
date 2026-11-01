@@ -20,7 +20,7 @@ export function ShinaStudio() {
   return (
     <section aria-labelledby="home-studio-title" className="py-10 lg:py-16">
       <PageContainer>
-        <div className="group relative isolate overflow-hidden rounded-card shadow-e2 min-h-[360px] sm:min-h-[380px] lg:min-h-[400px] flex items-center">
+        <div className="group relative isolate overflow-hidden rounded-card shadow-elevation-2 min-h-[360px] sm:min-h-[380px] lg:min-h-[400px] flex items-center">
           {/* Background Photography — Full rich image, no white washout */}
           <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden">
             <Image
@@ -40,16 +40,10 @@ export function ShinaStudio() {
 
           {/* Content & CTAs */}
           <div className="relative z-10 flex max-w-xl flex-col items-start gap-4 p-6 sm:p-10 lg:p-14">
-            {/* Eyebrow */}
-            <div className="flex items-center gap-2 text-chalk/80 text-13 font-semibold tracking-wider">
-              <span className="h-px w-6 bg-chalk/60" aria-hidden="true" />
-              <span>شينا كير</span>
-            </div>
-
             {/* Headline */}
             <h2
               id="home-studio-title"
-              className="m-0 font-display text-28 font-black leading-tight text-chalk sm:text-36 sm:leading-tight lg:text-42 lg:leading-tight"
+              className="m-0 font-display text-28 font-black leading-tight text-chalk sm:text-34 sm:leading-tight lg:text-40 lg:leading-tight"
             >
               {m.homeStudioTitle}
             </h2>
@@ -64,7 +58,7 @@ export function ShinaStudio() {
               {/* Primary: Structured Routine Builder */}
               <Link
                 href={routes.routineBuilder}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-pill bg-chalk px-7 text-14 font-bold text-ink shadow-e1 transition-all duration-fast hover:bg-linen active:scale-95"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-pill bg-chalk px-7 text-14 font-bold text-ink shadow-elevation-1 transition-all duration-fast hover:bg-linen active:scale-95"
               >
                 <span>{m.navBuildRoutine}</span>
                 <Icon name="arrow-forward" size={16} strokeWidth={2.4} />
@@ -73,7 +67,7 @@ export function ShinaStudio() {
               {/* Secondary: Conversational AI Advisor */}
               <Link
                 href={shellRoutes.shina}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-pill bg-chalk/15 backdrop-blur-md border border-chalk/30 px-6 text-14 font-semibold text-chalk shadow-sm transition-all duration-fast hover:bg-chalk/25 active:scale-95"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-pill bg-chalk/15 backdrop-blur-md border border-chalk/30 px-6 text-14 font-semibold text-chalk shadow-elevation-1 transition-all duration-fast hover:bg-chalk/25 active:scale-95"
               >
                 <Icon name="sparkles" size={16} className="text-citron" />
                 <span>{m.footerAskShina}</span>

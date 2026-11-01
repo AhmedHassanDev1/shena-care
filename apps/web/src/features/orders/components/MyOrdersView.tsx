@@ -54,12 +54,12 @@ export function MyOrdersView({ selected }: { selected?: string }) {
           <Link href={routes.account} className="text-link min-h-0">
             {m.myOrdersAccount}
           </Link>
-          <Icon name="chevron-forward" size={14} className="text-ink-3" />
-          <span aria-current="page" className="font-bold text-night">
+          <Icon name="chevron-forward" size={14} className="text-stone" />
+          <span aria-current="page" className="font-bold text-ink">
             {m.myOrdersTitle}
           </span>
         </nav>
-        <h1 className="m-0 mt-2 font-display text-44 font-extrabold leading-50 text-night">{m.myOrdersTitle}</h1>
+        <h1 className="m-0 mt-2 font-display text-44 font-extrabold leading-52 text-ink">{m.myOrdersTitle}</h1>
       </header>
 
       <div className="lg:grid lg:grid-cols-[365px_minmax(0,1fr)] lg:items-start lg:gap-8">

@@ -202,7 +202,7 @@ export function OtpVerificationForm() {
 
   if (!challenge) {
     return (
-      <p role="status" className="flex h-72 items-center justify-center text-15 text-ink-2">
+      <p role="status" className="flex h-72 items-center justify-center text-15 text-stone">
         {m.loading}
       </p>
     );
@@ -237,7 +237,7 @@ export function OtpVerificationForm() {
         description={
           <>
             {m.authOtpSentTo}{' '}
-            <bdi dir="ltr" className="font-semibold tabular-nums text-night">
+            <bdi dir="ltr" className="font-semibold tabular-nums text-ink">
               {displayMobile(challenge.phoneNumber)}
             </bdi>
           </>
@@ -322,9 +322,9 @@ export function OtpVerificationForm() {
           </p>
         ) : resendIn > 0 ? (
           // Not a live region: a per-second announcement would drown the form; the state is announced once below.
-          <p className="m-0 text-14 text-ink-2" aria-hidden="true">
+          <p className="m-0 text-14 text-stone" aria-hidden="true">
             {fillMessage(m.authResendIn, { time: '' })}
-            <bdi dir="ltr" className="font-bold tabular-nums text-night">
+            <bdi dir="ltr" className="font-bold tabular-nums text-ink">
               {countdown}
             </bdi>
           </p>
@@ -336,7 +336,7 @@ export function OtpVerificationForm() {
         <p role="status" className="sr-only">
           {limitNotice && cooling ? limitNotice : countdownNotice}
         </p>
-        <p className="m-0 text-13 leading-20 text-ink-3">{m.authNotReceived}</p>
+        <p className="m-0 text-13 leading-20 text-stone">{m.authNotReceived}</p>
       </div>
     </>
   );

@@ -86,7 +86,7 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
         id="plp-h"
         lang={titleLatin ? 'en' : undefined}
         dir={titleLatin ? 'ltr' : undefined}
-        className={cn('m-0 text-36 font-bold leading-tight text-ink md:text-44', titleLatin && 'font-serif italic font-normal')}
+        className={cn('m-0 text-34 font-bold leading-tight text-ink md:text-44', titleLatin && 'font-serif italic font-normal')}
       >
         {title}
       </h1>

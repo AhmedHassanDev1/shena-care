@@ -15,7 +15,7 @@ export const iconButtonVariants = cva(
     variants: {
       variant: {
         plain: "hover:bg-sand/60",
-        raised: "bg-linen shadow-e1 hover:bg-chalk",
+        raised: "bg-linen shadow-elevation-1 hover:bg-chalk",
       },
     },
     defaultVariants: { variant: "plain" },

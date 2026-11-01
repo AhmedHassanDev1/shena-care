@@ -48,17 +48,17 @@ export function OrderConfirmation({ order }: { order: OrderTracking }) {
         <span aria-hidden="true" className="grid size-14 place-items-center rounded-pill bg-ok-tint text-ok">
           <Icon name="check" size={24} strokeWidth={2.4} />
         </span>
-        <h1 className="m-0 font-display text-34 font-extrabold leading-40 text-night lg:text-52 lg:leading-56">{m.confirmTitle}</h1>
-        <p className="m-0 flex items-center gap-2 text-15 text-ink-2">
+        <h1 className="m-0 font-display text-34 font-extrabold leading-40 text-ink lg:text-52 lg:leading-52">{m.confirmTitle}</h1>
+        <p className="m-0 flex items-center gap-2 text-15 text-stone">
           {m.confirmNumber}
-          <bdi dir="ltr" className="font-bold tabular-nums text-night">
+          <bdi dir="ltr" className="font-bold tabular-nums text-ink">
             {order.orderNumber}
           </bdi>
           <button
             type="button"
             onClick={copy}
             aria-label={m.confirmCopy}
-            className="inline-grid size-9 place-items-center rounded-pill text-ink-2 hover:bg-sand hover:text-night"
+            className="inline-grid size-9 place-items-center rounded-pill text-stone hover:bg-sand hover:text-ink"
           >
             <Icon name={copied ? 'check' : 'copy'} size={18} />
           </button>
@@ -84,19 +84,19 @@ export function OrderConfirmation({ order }: { order: OrderTracking }) {
       </ol>
 
       <section aria-labelledby="confirm-delivery" className="flex flex-col gap-3 rounded-24 bg-linen p-4.5 shadow-outline-hairline lg:p-6">
-        <h2 id="confirm-delivery" className="m-0 font-display text-22 font-bold leading-29 text-night">
+        <h2 id="confirm-delivery" className="m-0 font-display text-22 font-bold leading-29 text-ink">
           {m.orderDeliveryTitle}
         </h2>
         <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2.5 text-14 leading-22">
-          <dt className="font-bold text-night">{m.confirmRecipient}</dt>
-          <dd className="m-0 text-night">{order.customerName}</dd>
-          <dt className="font-bold text-night">{m.confirmAddress}</dt>
-          <dd className="m-0 text-night">{address}</dd>
-          <dt className="font-bold text-night">{m.confirmWhen}</dt>
-          <dd className="m-0 text-ink-2">{when}</dd>
-          <dt className="font-bold text-night">{m.confirmTotal}</dt>
-          <dd className="m-0 text-ink-2">
-            <Money amount={due} className="font-bold text-night" /> · {formatProductCount(count, locale)}
+          <dt className="font-bold text-ink">{m.confirmRecipient}</dt>
+          <dd className="m-0 text-ink">{order.customerName}</dd>
+          <dt className="font-bold text-ink">{m.confirmAddress}</dt>
+          <dd className="m-0 text-ink">{address}</dd>
+          <dt className="font-bold text-ink">{m.confirmWhen}</dt>
+          <dd className="m-0 text-stone">{when}</dd>
+          <dt className="font-bold text-ink">{m.confirmTotal}</dt>
+          <dd className="m-0 text-stone">
+            <Money amount={due} className="font-bold text-ink" /> · {formatProductCount(count, locale)}
           </dd>
         </dl>
       </section>
@@ -133,7 +133,7 @@ function StageRow({
         className={cn(
           'grid size-7 flex-none place-items-center rounded-pill',
           icon === 'done' && 'bg-ok text-white',
-          icon === 'cash' && 'bg-linen text-night shadow-outline-control',
+          icon === 'cash' && 'bg-linen text-ink shadow-outline-control',
           icon === 'wait' && 'bg-linen shadow-outline-warn'
         )}
       >
@@ -142,9 +142,9 @@ function StageRow({
         {icon === 'wait' ? <span className="size-2 rounded-pill bg-warn" /> : null}
       </span>
       <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-15 font-bold text-night">{title}</span>
+        <span className="text-15 font-bold text-ink">{title}</span>
         {detail ? (
-          <span className="text-13 text-ink-2">
+          <span className="text-13 text-stone">
             {ltrDetail ? <bdi>{detail}</bdi> : detail}
           </span>
         ) : null}

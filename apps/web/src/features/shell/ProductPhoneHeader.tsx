@@ -35,7 +35,7 @@ export function ProductPhoneHeader() {
   };
 
   return (
-    <header className="relative flex h-header-m items-center gap-1 bg-chalk border-b border-ink/14 px-2 lg:hidden">
+    <header className="relative flex h-header-m items-center gap-1 bg-chalk border-b border-ink/15 px-2 lg:hidden">
       <button type="button" aria-label={m.back} onClick={back} className={iconButtonVariants()}>
         <Icon name="chevron-back" size={22} strokeWidth={1.9} />
       </button>

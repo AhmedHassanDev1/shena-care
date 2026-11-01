@@ -94,9 +94,9 @@ export function AddressBookView() {
     return (
       <div className="mx-auto max-w-2xl space-y-4 text-center">
         <div className="rounded-input border border-line bg-linen p-8">
-          <Icon name="pin" size={40} className="mx-auto text-ink-3" />
-          <h1 className="mt-3 text-display-3 text-night">{m.addressBookTitle}</h1>
-          <p className="mt-2 text-14 text-ink-2">{m.myOrdersSignIn}</p>
+          <Icon name="pin" size={40} className="mx-auto text-stone" />
+          <h1 className="mt-3 text-display-3 text-ink">{m.addressBookTitle}</h1>
+          <p className="mt-2 text-14 text-stone">{m.myOrdersSignIn}</p>
           <div className="mt-6">
             <Link
               href={`${routes.login}?returnTo=${encodeURIComponent(routes.accountAddresses)}`}
@@ -262,8 +262,8 @@ export function AddressBookView() {
     <div className="mx-auto max-w-2xl space-y-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-display-3 text-night">{m.addressBookTitle}</h1>
-          <p className="text-12 text-ink-2">{m.addressBookSubtitle}</p>
+          <h1 className="text-display-3 text-ink">{m.addressBookTitle}</h1>
+          <p className="text-12 text-stone">{m.addressBookSubtitle}</p>
         </div>
         {!formOpen && (
           <Button onClick={openAddForm} size="s">
@@ -274,7 +274,7 @@ export function AddressBookView() {
       </header>
 
       {successMessage && (
-        <MessageBox tone="ok" className="border-bottle/30 bg-bottle-tint text-bottle">
+        <MessageBox tone="ok" className="border-cobalt/30 bg-cobalt/10 text-cobalt">
           <div className="flex items-center gap-2">
             <Icon name="check" size={18} />
             <p className="text-14">{successMessage}</p>
@@ -294,7 +294,7 @@ export function AddressBookView() {
       {formOpen ? (
         <div className="rounded-card bg-linen shadow-outline-hairline">
           <div className="flex flex-col gap-1.5 px-5 pt-5">
-            <h2 className="m-0 text-display-3 text-night">{editingId ? m.addressBookEdit : m.addressBookAddNew}</h2>
+            <h2 className="m-0 text-display-3 text-ink">{editingId ? m.addressBookEdit : m.addressBookAddNew}</h2>
           </div>
           <div className="px-5 py-4">
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
@@ -354,7 +354,7 @@ export function AddressBookView() {
                 </div>
                 {/* Cairo / Giza quick selector */}
                 <div className="flex items-center gap-2">
-                  <span className="text-12 text-ink-3">{m.checkoutGovernorate}:</span>
+                  <span className="text-12 text-stone">{m.checkoutGovernorate}:</span>
                   <button
                     type="button"
                     onClick={() => {
@@ -365,8 +365,8 @@ export function AddressBookView() {
                     className={cn(
                       'rounded-pill border px-2.5 py-1 text-12 transition-colors',
                       formData.governorate.toLowerCase() === 'cairo' || formData.governorate === 'القاهرة'
-                        ? 'border-bottle bg-bottle-tint text-bottle'
-                        : 'border-line bg-linen text-ink-2 hover:bg-sand',
+                        ? 'border-cobalt bg-cobalt/10 text-cobalt'
+                        : 'border-line bg-linen text-stone hover:bg-sand',
                     )}
                   >
                     <bdi>{locale === 'ar' ? 'القاهرة' : 'Cairo'}</bdi>
@@ -381,8 +381,8 @@ export function AddressBookView() {
                     className={cn(
                       'rounded-pill border px-2.5 py-1 text-12 transition-colors',
                       formData.governorate.toLowerCase() === 'giza' || formData.governorate === 'الجيزة'
-                        ? 'border-bottle bg-bottle-tint text-bottle'
-                        : 'border-line bg-linen text-ink-2 hover:bg-sand',
+                        ? 'border-cobalt bg-cobalt/10 text-cobalt'
+                        : 'border-line bg-linen text-stone hover:bg-sand',
                     )}
                   >
                     <bdi>{locale === 'ar' ? 'الجيزة' : 'Giza'}</bdi>
@@ -424,7 +424,7 @@ export function AddressBookView() {
                   type="checkbox"
                   checked={formData.isDefault}
                   onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                  className="rounded border-line text-bottle focus:ring-bottle"
+                  className="rounded border-line text-cobalt focus:ring-cobalt"
                 />
                 <span>{m.addressBookSetDefault}</span>
               </label>
@@ -449,8 +449,8 @@ export function AddressBookView() {
         </div>
       ) : addresses.length === 0 && !formOpen ? (
         <div className="rounded-input border border-dashed border-line p-8 text-center">
-          <Icon name="pin" size={36} className="mx-auto text-ink-3" />
-          <p className="mt-3 text-14 text-ink-2">{m.addressBookEmpty}</p>
+          <Icon name="pin" size={36} className="mx-auto text-stone" />
+          <p className="mt-3 text-14 text-stone">{m.addressBookEmpty}</p>
           <Button onClick={openAddForm} size="s" className="mt-4">
             <Icon name="plus" size={18} className="me-1.5" />
             {m.addressBookAddNew}
@@ -461,20 +461,20 @@ export function AddressBookView() {
           {addresses.map((addr) => (
             <div
               key={addr.id}
-              className={cn('rounded-card bg-linen shadow-outline-hairline', addr.isDefault && 'shadow-outline-bottle')}
+              className={cn('rounded-card bg-linen shadow-outline-hairline', addr.isDefault && 'shadow-outline-cobalt')}
             >
               <div className="pb-2 flex flex-col gap-1.5 px-5 pt-5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-title text-night font-medium">
+                    <span className="text-title text-ink font-medium">
                       {addr.label || addr.customerName}
                     </span>
                     {addr.isDefault && (
-                      <StatusChip tone="bottle">
+                      <StatusChip tone="cobalt">
                         {m.addressBookDefaultBadge}
                       </StatusChip>
                     )}
-                    <StatusChip tone="gray" className="text-12 text-ink-2 border-line">
+                    <StatusChip tone="gray" className="text-12 text-stone border-line">
                       <Icon name="pin" size={14} className="me-1" />
                       {m.addressBookConfirmedLocation}
                     </StatusChip>
@@ -493,7 +493,7 @@ export function AddressBookView() {
                       type="button"
                       variant="light"
                       size="s"
-                      className="text-err hover:bg-err/10"
+                      className="text-tomato-ink hover:bg-tomato/10"
                       onClick={() => handleDelete(addr.id)}
                       disabled={deletingId === addr.id || isDeleting || formOpen}
                       loading={deletingId === addr.id}
@@ -503,8 +503,8 @@ export function AddressBookView() {
                   </div>
                 </div>
               </div>
-              <div className="space-y-1 text-14 text-ink-2 px-5 py-4">
-                {addr.label && <p className="text-night">{addr.customerName}</p>}
+              <div className="space-y-1 text-14 text-stone px-5 py-4">
+                {addr.label && <p className="text-ink">{addr.customerName}</p>}
                 <p dir="ltr" className="text-start">
                   <bdi>{addr.customerPhone}</bdi>
                 </p>
@@ -512,11 +512,11 @@ export function AddressBookView() {
                   {addr.shippingAddress}, {addr.area}, {addr.governorate}
                 </p>
                 {addr.notes && (
-                  <p className="text-12 text-ink-3">
+                  <p className="text-12 text-stone">
                     {m.checkoutNotes}: {addr.notes}
                   </p>
                 )}
-                <p className="text-12 text-ink-3" dir="ltr">
+                <p className="text-12 text-stone" dir="ltr">
                   {fillMessage(m.checkoutMapCoordinates, {
                     lat: addr.latitude.toFixed(4),
                     lng: addr.longitude.toFixed(4),

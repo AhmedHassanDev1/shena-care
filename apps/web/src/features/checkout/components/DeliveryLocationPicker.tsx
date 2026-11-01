@@ -175,7 +175,7 @@ export function DeliveryLocationPicker({ value, onChange, error, onChooseOther, 
             onClick={locate}
             aria-label={m.checkoutMapUseCurrentLocation}
             aria-busy={locating || undefined}
-            className="absolute start-2.5 top-2.5 grid size-11 place-items-center rounded-pill bg-linen text-night shadow-elevation-2 disabled:opacity-60"
+            className="absolute start-2.5 top-2.5 grid size-11 place-items-center rounded-pill bg-linen text-ink shadow-elevation-2 disabled:opacity-60"
             disabled={locating}
           >
             <Icon name="gps" size={20} />
@@ -206,12 +206,12 @@ export function DeliveryLocationPicker({ value, onChange, error, onChooseOther, 
       ) : pin ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           {improbable ? (
-            <p role="alert" className="m-0 flex items-center gap-2 text-13.5 text-err">
-              <span aria-hidden="true" className="size-1.75 flex-none rounded-full bg-err" />
+            <p role="alert" className="m-0 flex items-center gap-2 text-13.5 text-tomato-ink">
+              <span aria-hidden="true" className="size-1.75 flex-none rounded-full bg-tomato-ink" />
               {m.checkoutMapImprobablePin}
             </p>
           ) : (
-            <p className="m-0 text-13 leading-20 text-ink-2">{m.checkoutMapTapHint}</p>
+            <p className="m-0 text-13 leading-20 text-stone">{m.checkoutMapTapHint}</p>
           )}
           <Button variant="ink" size="s" onClick={confirm} disabled={improbable}>
             <Icon name="check" size={16} strokeWidth={2.4} />
@@ -219,20 +219,20 @@ export function DeliveryLocationPicker({ value, onChange, error, onChooseOther, 
           </Button>
         </div>
       ) : (
-        <p className="m-0 text-13 leading-20 text-ink-2">{m.checkoutMapTapHint}</p>
+        <p className="m-0 text-13 leading-20 text-stone">{m.checkoutMapTapHint}</p>
       )}
 
       {locateError ? (
-        <p role="alert" className="m-0 flex items-center gap-2 text-13.5 text-err">
-          <span aria-hidden="true" className="size-1.75 flex-none rounded-full bg-err" />
+        <p role="alert" className="m-0 flex items-center gap-2 text-13.5 text-tomato-ink">
+          <span aria-hidden="true" className="size-1.75 flex-none rounded-full bg-tomato-ink" />
           {locateError}
         </p>
       ) : null}
 
       {error && !showConfirmed ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p role="alert" tabIndex={-1} data-error-focus className="m-0 flex items-start gap-2 text-13.5 leading-22 text-err">
-            <span aria-hidden="true" className="mt-2 size-1.75 flex-none rounded-full bg-err" />
+          <p role="alert" tabIndex={-1} data-error-focus className="m-0 flex items-start gap-2 text-13.5 leading-22 text-tomato-ink">
+            <span aria-hidden="true" className="mt-2 size-1.75 flex-none rounded-full bg-tomato-ink" />
             {error}
           </p>
           {pin ? null : (
@@ -344,26 +344,26 @@ function TileMap({
           className="pointer-events-none absolute -ms-4 -mt-9 flex flex-col items-center"
           style={{ transform: `translate3d(${pinPx.x - topLeft.x}px, ${pinPx.y - topLeft.y}px, 0)` }}
         >
-          <span className="grid size-8 place-items-center rounded-pill bg-bottle text-white shadow-elevation-2">
+          <span className="grid size-8 place-items-center rounded-pill bg-cobalt text-white shadow-elevation-2">
             <Icon name="pin" size={18} />
           </span>
-          <span className="mt-0.5 size-1.5 rounded-pill bg-night" />
+          <span className="mt-0.5 size-1.5 rounded-pill bg-ink" />
         </span>
       ) : null}
       <a
         href="https://www.openstreetmap.org/copyright"
         target="_blank"
         rel="noreferrer"
-        className="absolute bottom-0 start-0 bg-linen/90 px-1.5 text-11 text-ink-2"
+        className="absolute bottom-0 start-0 bg-linen/90 px-1.5 text-11 text-stone"
       >
         © OpenStreetMap
       </a>
       {interactive ? (
         <span className="absolute bottom-2.5 end-2.5 flex flex-col overflow-hidden rounded-input bg-linen shadow-elevation-2">
-          <button type="button" onClick={() => onZoom(Math.min(18, zoom + 1))} aria-label={m.checkoutMapZoomIn} className="grid size-9 place-items-center text-night">
+          <button type="button" onClick={() => onZoom(Math.min(18, zoom + 1))} aria-label={m.checkoutMapZoomIn} className="grid size-9 place-items-center text-ink">
             <Icon name="plus" size={16} />
           </button>
-          <button type="button" onClick={() => onZoom(Math.max(10, zoom - 1))} aria-label={m.checkoutMapZoomOut} className="grid size-9 place-items-center text-night">
+          <button type="button" onClick={() => onZoom(Math.max(10, zoom - 1))} aria-label={m.checkoutMapZoomOut} className="grid size-9 place-items-center text-ink">
             <Icon name="minus" size={16} />
           </button>
         </span>

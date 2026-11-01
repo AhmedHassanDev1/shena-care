@@ -73,7 +73,7 @@ function SizeOptions({ product, selected, onSelect }: { product: CardModel; sele
             className={cn(
               'flex h-control-m cursor-pointer items-center justify-center gap-1.5 rounded-pill text-15',
               checked
-                ? 'bg-cobalt text-chalk font-bold shadow-e1'
+                ? 'bg-cobalt text-chalk font-bold shadow-elevation-1'
                 : 'bg-linen font-medium text-ink shadow-outline-control hover:bg-chalk'
             )}
           >
@@ -113,7 +113,7 @@ function AddButton({ product, skuId, pending, failed, onAdd, compact }: { produc
       </Button>
       {failed ? (
         <p role="alert" className="m-0 flex items-start gap-2 text-13 font-semibold leading-relaxed text-tomato-ink">
-          <span aria-hidden="true" className="mt-1 flex size-3.5 flex-none items-center justify-center rounded-full bg-tomato text-10 font-bold text-ink">!</span>
+          <span aria-hidden="true" className="mt-1 flex size-3.5 flex-none items-center justify-center rounded-full bg-tomato text-10.5 font-bold text-ink">!</span>
           {m.cardAddFailed}
         </p>
       ) : null}
@@ -136,7 +136,7 @@ function PickerPopover({ product, pending, failed, onAdd, onClose }: SizePickerP
       onKeyDown={(event) => {
         if (event.key === 'Escape') onClose();
       }}
-      className="absolute inset-x-2.5 top-[30%] z-20 flex flex-col gap-3 rounded-card bg-linen p-4 border border-ink/14 shadow-e3 motion-safe:animate-rise-in font-display"
+      className="absolute inset-x-2.5 top-[30%] z-20 flex flex-col gap-3 rounded-card bg-linen p-4 border border-ink/15 shadow-elevation-3 motion-safe:animate-rise-in font-display"
     >
       <span className="flex items-center justify-between">
         <span className="text-16 font-bold leading-tight text-ink">{m.sizeChoose}</span>
@@ -157,7 +157,7 @@ function PickerSheet({ product, pending, failed, onAdd, onClose }: SizePickerPro
     <Sheet open onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-24 pb-safe font-display">
         <span aria-hidden="true" className="mt-2 h-1 w-10 self-center rounded-4 bg-dune" />
-        <div className="flex items-center px-4 pb-2 pt-1 border-b border-ink/14">
+        <div className="flex items-center px-4 pb-2 pt-1 border-b border-ink/15">
           <SheetTitle className="flex h-control-s items-center font-display text-20 font-bold leading-none text-ink">{m.sizeChoose}</SheetTitle>
         </div>
         <div className="flex flex-col gap-3.5 px-4 pt-3">

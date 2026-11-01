@@ -1,0 +1,424 @@
+{
+  "baselineCount": 44,
+  "currentCount": 39,
+  "introduced": [],
+  "baseline": [
+    {
+      "file": "apps/api/src/modules/ingestion/services/offer-batch-commit.service.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'totalActiveOffersCount' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/src/modules/ingestion/services/offer-batch-commit.service.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'options' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/src/modules/ingestion/services/offer-batch-commit.service.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/ingestion/services/offer-batch-commit.service.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/ingestion/services/offer-batch-commit.service.ts",
+      "rule": "prefer-const",
+      "message": "'deactivatedCount' is never reassigned. Use 'const' instead."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'PrismaService' is defined but never used."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'RankingService' is defined but never used."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/ranking.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/ranking.service.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'skuId' is defined but never used."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/ranking.service.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'quantity' is defined but never used."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/ranking.service.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'rankedOffers' is defined but never used."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-var-requires",
+      "message": "Require statement not part of import statement."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-var-requires",
+      "message": "Require statement not part of import statement."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/purchase-order.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-var-requires",
+      "message": "Require statement not part of import statement."
+    },
+    {
+      "file": "apps/api/test/integration/sg05-offer-batch-commit.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'item' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/test/integration/sg05-offer-batch-commit.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg05-offer-batch-commit.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg05-offer-batch-commit.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-full-e2e-verification.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'sourcingService' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-full-e2e-verification.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'catalogService' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-full-e2e-verification.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-full-e2e-verification.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-full-e2e-verification.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-supplier-portal-and-admin-review.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'sourcingService' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-supplier-portal-and-admin-review.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'catalogService' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-supplier-portal-and-admin-review.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/supply-plan.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-var-requires",
+      "message": "Require statement not part of import statement."
+    }
+  ],
+  "current": [
+    {
+      "file": "apps/api/src/modules/ingestion/services/offer-batch-commit.service.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'totalActiveOffersCount' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/src/modules/ingestion/services/offer-batch-commit.service.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'options' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/src/modules/ingestion/services/offer-batch-commit.service.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/ingestion/services/offer-batch-commit.service.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/ingestion/services/offer-batch-commit.service.ts",
+      "rule": "prefer-const",
+      "message": "'deactivatedCount' is never reassigned. Use 'const' instead."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'PrismaService' is defined but never used."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'RankingService' is defined but never used."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/purchase-order.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/src/modules/sourcing/services/ranking.service.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-var-requires",
+      "message": "Require statement not part of import statement."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-var-requires",
+      "message": "Require statement not part of import statement."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/availability-resolution.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg05-offer-batch-commit.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'item' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/test/integration/sg05-offer-batch-commit.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg05-offer-batch-commit.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg05-offer-batch-commit.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-full-e2e-verification.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'sourcingService' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-full-e2e-verification.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'catalogService' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-full-e2e-verification.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-full-e2e-verification.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-full-e2e-verification.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-supplier-portal-and-admin-review.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'sourcingService' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-supplier-portal-and-admin-review.spec.ts",
+      "rule": "@typescript-eslint/no-unused-vars",
+      "message": "'catalogService' is assigned a value but never used."
+    },
+    {
+      "file": "apps/api/test/integration/sg11-supplier-portal-and-admin-review.spec.ts",
+      "rule": "@typescript-eslint/no-explicit-any",
+      "message": "Unexpected any. Specify a different type."
+    },
+    {
+      "file": "apps/api/test/integration/supply-plan.e2e-spec.ts",
+      "rule": "@typescript-eslint/no-var-requires",
+      "message": "Require statement not part of import statement."
+    }
+  ]
+}

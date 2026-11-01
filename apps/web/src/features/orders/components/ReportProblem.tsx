@@ -105,11 +105,11 @@ function ProblemForm({
 
   return (
     <form onSubmit={submit} aria-labelledby={`problem-${itemId}`} className="mt-2 space-y-4 rounded-card border border-line bg-linen p-4">
-      <h3 id={`problem-${itemId}`} className="text-14 font-semibold text-night">
+      <h3 id={`problem-${itemId}`} className="text-14 font-semibold text-ink">
         {m.problemTitle}
       </h3>
 
-      {eligibility.isPending ? <p className="text-14 text-ink-2">{m.problemLoading}</p> : null}
+      {eligibility.isPending ? <p className="text-14 text-stone">{m.problemLoading}</p> : null}
       {eligibility.isError || (eligibility.data && !eligibility.data.isEligible) ? (
         <MessageBox tone="info">
           <p className="text-14">{m.problemUnavailable}</p>
@@ -119,23 +119,23 @@ function ProblemForm({
       {eligibility.data?.isEligible ? (
         <>
           <fieldset className="space-y-2">
-            <legend className="mb-2 text-14 text-night">{m.problemReason}</legend>
+            <legend className="mb-2 text-14 text-ink">{m.problemReason}</legend>
             {eligibility.data.allowedReasons.map((code) => (
               <label
                 key={code}
                 className={cn(
                   'flex min-h-control-s cursor-pointer items-center gap-3 rounded-input border bg-linen px-3',
-                  reason === code ? 'border-night' : 'border-line',
+                  reason === code ? 'border-ink' : 'border-line',
                 )}
               >
                 <input
                   type="radio"
                   name={`reason-${itemId}`}
-                  className="size-4 accent-bottle"
+                  className="size-4 accent-cobalt"
                   checked={reason === code}
                   onChange={() => setReason(code)}
                 />
-                <span className={cn('text-14 text-night', reason === code && 'font-semibold')}>
+                <span className={cn('text-14 text-ink', reason === code && 'font-semibold')}>
                   {m[`problemReason${code}` as keyof Messages] as string}
                 </span>
               </label>
@@ -153,7 +153,7 @@ function ProblemForm({
 
           {maxQuantity > 1 ? (
             <div className="space-y-2">
-              <p className="text-14 text-night">{m.problemQuantity}</p>
+              <p className="text-14 text-ink">{m.problemQuantity}</p>
               <QuantityStepper
                 value={quantity}
                 displayValue={formatNumber(quantity, locale)}
@@ -183,8 +183,8 @@ function ProblemForm({
             />
           ) : null}
 
-          {state === 'failed' ? <p role="alert" className="text-14 text-err">{m.problemFailed}</p> : null}
-          {state === 'conflict' ? <p role="status" className="text-14 text-night">{m.problemConflict}</p> : null}
+          {state === 'failed' ? <p role="alert" className="text-14 text-tomato-ink">{m.problemFailed}</p> : null}
+          {state === 'conflict' ? <p role="status" className="text-14 text-ink">{m.problemConflict}</p> : null}
         </>
       ) : null}
 

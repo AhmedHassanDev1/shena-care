@@ -113,7 +113,7 @@ export function RoutineDraftAssistant() {
       {/* Header with Shina avatar and consultation rationale */}
       <header className="flex flex-col gap-4 rounded-card bg-sand/60 p-6 shadow-outline-hairline lg:p-8">
         <div className="flex items-center gap-4">
-          <span className="flex size-14 flex-none items-center justify-center rounded-card bg-citron text-ink shadow-e1">
+          <span className="flex size-14 flex-none items-center justify-center rounded-card bg-citron text-ink shadow-elevation-1">
             <Icon name="sparkles" size={28} />
           </span>
           <div className="flex flex-col gap-1">
@@ -132,13 +132,13 @@ export function RoutineDraftAssistant() {
         </div>
 
         <div className="flex flex-wrap gap-2 pt-2 shadow-hairline-top">
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-e1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-elevation-1">
             🎯 الهدف: تنظيم الإفرازات ودعم حاجز البشرة
           </span>
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-e1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-elevation-1">
             🧴 نوع البشرة: دهنية إلى مختلطة
           </span>
-          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-cobalt shadow-e1">
+          <span className="rounded-full bg-linen px-3 py-1 text-12 font-semibold text-cobalt shadow-elevation-1">
             ✓ تناغم خطوات الاستخدام
           </span>
         </div>
@@ -146,14 +146,14 @@ export function RoutineDraftAssistant() {
 
       {/* AM / PM Tab Switcher */}
       <div className="flex flex-col gap-4">
-        <div className="flex rounded-full bg-sand/60 p-1 shadow-e1">
+        <div className="flex rounded-full bg-sand/60 p-1 shadow-elevation-1">
           <button
             type="button"
             onClick={() => setActiveTab('am')}
             className={cn(
               'flex-1 rounded-full py-2.5 text-center text-14 font-bold transition-all',
               activeTab === 'am'
-                ? 'bg-ink text-chalk shadow-e1'
+                ? 'bg-ink text-chalk shadow-elevation-1'
                 : 'text-stone hover:text-ink'
             )}
           >
@@ -165,7 +165,7 @@ export function RoutineDraftAssistant() {
             className={cn(
               'flex-1 rounded-full py-2.5 text-center text-14 font-bold transition-all',
               activeTab === 'pm'
-                ? 'bg-ink text-chalk shadow-e1'
+                ? 'bg-ink text-chalk shadow-elevation-1'
                 : 'text-stone hover:text-ink'
             )}
           >
@@ -234,7 +234,7 @@ export function RoutineDraftAssistant() {
       </div>
 
       {/* Floating Action & Question Bar */}
-      <div className="sticky bottom-6 z-sticky flex flex-col gap-3 rounded-card bg-linen/95 p-4 shadow-e3 backdrop-blur-md">
+      <div className="sticky bottom-6 z-sticky flex flex-col gap-3 rounded-card bg-linen/95 p-4 shadow-elevation-3 backdrop-blur-md">
         <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
           <input
             type="text"

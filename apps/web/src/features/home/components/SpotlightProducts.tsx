@@ -42,11 +42,7 @@ export function SpotlightProducts() {
         {/* Editorial Section Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <span aria-hidden="true" className="size-1.5 rounded-full bg-cobalt" />
-              <span className="font-serif italic text-14 text-stone">The Beauty Edit</span>
-            </div>
-            <h2 id="home-products-title" className="m-0 font-display text-24 font-black tracking-tight text-ink sm:text-28 lg:text-34">
+            <h2 id="home-products-title" className="m-0 font-display text-28 font-extrabold text-ink lg:text-34">
               {m.homeProductsTitle}
             </h2>
             <p className="m-0 max-w-xl text-14 leading-22 text-stone lg:text-15 lg:leading-24">
@@ -57,10 +53,10 @@ export function SpotlightProducts() {
           <div className="flex items-center gap-3 self-start sm:self-auto">
             <Link
               href={routes.products}
-              className="group inline-flex items-center gap-1.5 font-serif italic text-14 font-bold text-cobalt transition-colors hover:text-ink"
+              className="link-quiet inline-flex items-center gap-1.5 text-14 font-bold text-ink"
             >
               <span>{m.homeProductsMore}</span>
-              <Icon name="arrow-forward" size={16} className="transition-transform group-hover:translate-x-[-2px] rtl:group-hover:translate-x-[2px]" />
+              <Icon name="arrow-forward" size={16} />
             </Link>
 
             {/* Desktop Navigation Arrows */}
@@ -69,8 +65,8 @@ export function SpotlightProducts() {
                 type="button"
                 onClick={() => swiperRef?.slidePrev()}
                 disabled={isBeginning}
-                aria-label="السابق"
-                className="flex size-9 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-sm transition-all hover:border-cobalt hover:text-cobalt active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label={m.carouselPrev}
+                className="flex size-9 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-elevation-1 transition-all hover:border-cobalt hover:text-cobalt active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Icon name="chevron-back" size={16} />
               </button>
@@ -78,8 +74,8 @@ export function SpotlightProducts() {
                 type="button"
                 onClick={() => swiperRef?.slideNext()}
                 disabled={isEnd}
-                aria-label="التالي"
-                className="flex size-9 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-sm transition-all hover:border-cobalt hover:text-cobalt active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label={m.carouselNext}
+                className="flex size-9 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-elevation-1 transition-all hover:border-cobalt hover:text-cobalt active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Icon name="chevron-forward" size={16} />
               </button>
@@ -114,15 +110,13 @@ export function SpotlightProducts() {
               <h3 className="m-0 font-display text-18 font-bold text-ink">
                 {m.homeProductsEmpty}
               </h3>
-              <p className="m-0 text-13.5 leading-22 text-stone">
-                يجري تجهيز باقة المستحضرات وتحديث المخزون للعلامات التجارية المعتمدة. يمكنك استعراض الكتالوج أو التصفح بحسب المجموعات.
-              </p>
+              <p className="m-0 text-14 leading-22 text-stone">{m.homeProductsEmptyBody}</p>
             </div>
             <Link
               href={routes.products}
-              className="mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-pill bg-ink px-6 text-13.5 font-bold text-chalk shadow-e1 transition-colors hover:bg-cobalt"
+              className="mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-pill bg-ink px-6 text-14 font-bold text-chalk shadow-elevation-1 transition-colors hover:bg-cobalt"
             >
-              <span>استكشاف الكتالوج العام</span>
+              <span>{m.homeProductsBrowse}</span>
               <Icon name="arrow-forward" size={16} />
             </Link>
           </div>

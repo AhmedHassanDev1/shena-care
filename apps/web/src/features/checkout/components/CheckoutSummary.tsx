@@ -60,7 +60,7 @@ export function CheckoutSummary({
       className="flex flex-col gap-4 rounded-24 bg-linen p-4.5 shadow-outline-hairline lg:sticky lg:top-6 lg:rounded-sheet lg:p-6.5 lg:shadow-elevation-3 lg:outline lg:outline-1 lg:outline-line"
     >
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id="co-summary" className="m-0 font-display text-24 font-extrabold leading-30 text-night">
+        <h2 id="co-summary" className="m-0 font-display text-24 font-extrabold leading-30 text-ink">
           {m.checkoutYourOrder}
         </h2>
         <Link href={routes.cart} className="text-link text-13.5">
@@ -76,16 +76,16 @@ export function CheckoutSummary({
           const total = lineTotal(item.skuId, item.subtotal);
           return (
             <li key={item.skuId} className="flex items-center gap-3">
-              <ProductTile size="thumb" className="h-15 w-12 flex-none rounded-10" src={item.sku.image?.url ?? null} alt="" name={name} />
+              <ProductTile size="thumb" className="h-15 w-12 flex-none rounded-8" src={item.sku.image?.url ?? null} alt="" name={name} />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span dir="auto" className="truncate text-match-parent text-13.5 font-semibold text-night">
+                <span dir="auto" className="truncate text-match-parent text-13.5 font-semibold text-ink">
                   {name}
                 </span>
-                <span className="text-12.5 text-ink-2">
+                <span className="text-12.5 text-stone">
                   {fillMessage(m.checkoutLineMeta, { size: size ?? '', qty: formatNumber(item.quantity, locale) })}
                 </span>
               </span>
-              {total !== null ? <Money amount={total} className="text-14 font-bold text-night" /> : null}
+              {total !== null ? <Money amount={total} className="text-14 font-bold text-ink" /> : null}
             </li>
           );
         })}
@@ -98,8 +98,8 @@ export function CheckoutSummary({
           if (code.trim()) onApplyCoupon(code.trim());
         }}
       >
-        <label htmlFor="co-coupon" className="text-13 font-semibold text-night">
-          {m.checkoutCoupon} <span className="font-normal text-ink-2">{m.checkoutCouponOptional}</span>
+        <label htmlFor="co-coupon" className="text-13 font-semibold text-ink">
+          {m.checkoutCoupon} <span className="font-normal text-stone">{m.checkoutCouponOptional}</span>
         </label>
         <span className="flex gap-2">
           <span className="field-box flex h-12 min-w-0 flex-1 items-center px-4">
@@ -112,7 +112,7 @@ export function CheckoutSummary({
               placeholder={m.checkoutCouponPlaceholder}
               onChange={(event) => setCode(event.target.value)}
               readOnly={coupon.status === 'applied'}
-              className="min-w-0 flex-1 bg-transparent text-match-parent text-15 text-night outline-none placeholder:text-ink-3"
+              className="min-w-0 flex-1 bg-transparent text-match-parent text-15 text-ink outline-none placeholder:text-stone"
             />
           </span>
           {coupon.status === 'applied' ? (
@@ -156,14 +156,14 @@ export function CheckoutSummary({
           {quoteStatus === 'ready' && quote ? (
             quote.shippingFee === 0 ? m.checkoutFree : <Money amount={quote.shippingFee} />
           ) : (
-            <span className="text-ink-3">
+            <span className="text-stone">
               {quoteStatus === 'loading' ? m.checkoutFeeCalculating : quoteStatus === 'error' ? m.checkoutFeeFailed : m.cartShippingLater}
             </span>
           )}
         </Row>
         <div aria-hidden="true" className="my-1.5 h-px bg-line" />
         <Row label={m.checkoutTotal} strong>
-          {quoteStatus === 'ready' && quote ? <Money amount={quote.totalAmount} /> : <span className="text-ink-3">—</span>}
+          {quoteStatus === 'ready' && quote ? <Money amount={quote.totalAmount} /> : <span className="text-stone">—</span>}
         </Row>
       </div>
 
@@ -172,14 +172,14 @@ export function CheckoutSummary({
           {placeLabel}
         </AsyncButton>
       </div>
-      <p className="m-0 text-12.5 leading-20 text-ink-3">{m.checkoutLegal}</p>
+      <p className="m-0 text-12.5 leading-20 text-stone">{m.checkoutLegal}</p>
     </aside>
   );
 }
 
 function Row({ label, strong, children }: { label: string; strong?: boolean; children: React.ReactNode }) {
   return (
-    <div className={cn('flex min-h-7.5 items-center justify-between gap-3', strong ? 'text-17 font-bold' : 'text-14.5 font-medium', 'text-night')}>
+    <div className={cn('flex min-h-7.5 items-center justify-between gap-3', strong ? 'text-17 font-bold' : 'text-14.5 font-medium', 'text-ink')}>
       <span>{label}</span>
       <span className="tabular-nums">{children}</span>
     </div>

@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { SearchField } from '@/components/ui/search-field';
-import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { Icon } from '@/components/ui/icon';
-import { routes, shellRoutes } from '@/lib/routes';
+import { routes } from '@/lib/routes';
 import { suggestProducts, type ProductSuggestion } from '../api/discovery';
 
 interface ProductSearchProps {
@@ -17,7 +15,6 @@ interface ProductSearchProps {
 
 /** Full search remains a normal GET form; suggestions are an optional progressive enhancement. */
 export function ProductSearch({ id, label, placeholder, defaultValue = '' }: ProductSearchProps) {
-  const locale = useLocale();
   const [query, setQuery] = useState(defaultValue);
   const [focused, setFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
@@ -51,7 +48,7 @@ export function ProductSearch({ id, label, placeholder, defaultValue = '' }: Pro
         onKeyDown={event => { if (event.key === 'Escape') setFocused(false); }}
       />
       {show ? (
-        <ul aria-label={label} className="absolute inset-x-0 top-full z-overlay mt-2 overflow-hidden rounded-card bg-linen py-1.5 border border-ink/14 shadow-e2 font-display">
+        <ul aria-label={label} className="absolute inset-x-0 top-full z-overlay mt-2 overflow-hidden rounded-card bg-linen py-1.5 border border-ink/15 shadow-elevation-2 font-display">
           {suggestions.map(item => (
             <li key={item.id}>
               <Link

@@ -13,9 +13,10 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
-    "check:design": "node scripts/check-design-system.mjs && node scripts/check-assets.mjs",
+    "check:design": "node scripts/check-design-system.mjs && node scripts/check-classes.cjs && node scripts/check-assets.mjs",
     "check:ui-reset": "node scripts/check-ui-reset.mjs",
-    "check:assets": "node scripts/check-assets.mjs"
+    "check:assets": "node scripts/check-assets.mjs",
+    "check:classes": "node scripts/check-classes.cjs"
   },
   "dependencies": {
     "@fontsource/beiruti": "5.3.0",

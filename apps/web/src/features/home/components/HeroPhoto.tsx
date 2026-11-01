@@ -33,16 +33,10 @@ export function HeroPhoto() {
             alt={t.homeHeroPhotoAlt}
             fill
             priority
-            sizes="(min-width: 1024px) 700px, 100vw"
+            sizes="(min-width: 1360px) 790px, (min-width: 1024px) 58vw, 100vw"
             className="object-cover"
             style={{ objectPosition: hero.position }}
           />
-          {/* Sunlight Through Window / Shutter Shadow Overlay */}
-          <div aria-hidden="true" className="hero-sunlight">
-            <div className="hero-sunlight-ambience" />
-            <div className="hero-sunlight-shadows" />
-            <div className="hero-sunlight-beams" />
-          </div>
         </m.div>
       </div>
     </LazyMotion>

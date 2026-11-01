@@ -33,8 +33,8 @@ export function OrderTrackingView({ orderNumber, placed = false, errorHeadingLev
     const missing = access || status === 404 || status === 400;
     return (
       <section className="flex flex-col items-center gap-3 rounded-card bg-linen px-5 py-10 text-center shadow-outline-hairline">
-        <ErrorHeading className="m-0 text-17 font-bold text-night">{missing ? m.orderNotFoundTitle : m.orderLoadError}</ErrorHeading>
-        {missing ? <p className="m-0 text-14 text-ink-2">{access ? m.orderNeedsAccessBody : m.orderNotFoundBody}</p> : null}
+        <ErrorHeading className="m-0 text-17 font-bold text-ink">{missing ? m.orderNotFoundTitle : m.orderLoadError}</ErrorHeading>
+        {missing ? <p className="m-0 text-14 text-stone">{access ? m.orderNeedsAccessBody : m.orderNotFoundBody}</p> : null}
         {access ? (
           <Link href={signInHref(routes.order(orderNumber))} className={buttonVariants({ variant: 'ink' })}>
             {m.orderSignIn}

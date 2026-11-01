@@ -128,36 +128,6 @@ export function ProductListing() {
         <Skeleton className="h-[160px] rounded-24 lg:h-[212px] lg:rounded-sheet" />
       )}
 
-      {/* Smart Search Understanding Banner from Stitch Screen 9 */}
-      {filters.q ? (
-        <div className="flex flex-col gap-3 rounded-card bg-sand/60 p-4 shadow-outline-hairline lg:p-5">
-          <div className="flex items-center gap-3">
-            <span className="flex size-9 flex-none items-center justify-center rounded-full bg-sand text-ink">
-              <Icon name="sparkles" size={18} />
-            </span>
-            <div className="flex flex-col">
-              <span className="font-display text-15 font-bold leading-22 text-ink">
-                {fillMessage(m.plpSmartSearchQueryUnderstanding, { query: filters.q })}
-              </span>
-              <span className="text-12 leading-18 text-stone">
-                {m.plpSmartSearchTagline}
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-ink shadow-e1">
-              تركيبات خالية من العطور
-            </span>
-            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-ink shadow-e1">
-              تراكيز علاجية مثبتة
-            </span>
-            <span className="rounded-full bg-linen px-2.5 py-1 text-11.5 font-semibold text-ink shadow-e1">
-              مستوى حموضة متوازن pH
-            </span>
-          </div>
-        </div>
-      ) : null}
-
       {/* Phone: quick type pills, then the sticky «فلترة» bar (PLPMobile, PLPMobileScrolled). */}
       <div className="flex flex-col gap-3 lg:hidden">
         {department && groups.type.length ? (
@@ -436,17 +406,17 @@ function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
           setDraft(filters);
           setOpen(true);
         }}
-        className="group relative flex h-13 w-full items-center justify-center gap-2.5 overflow-hidden rounded-pill bg-ink/85 px-6 text-15 font-bold text-chalk backdrop-blur-xl border border-chalk/20 shadow-e2 transition-all hover:bg-ink active:scale-[0.98]"
+        className="group relative flex h-13 w-full items-center justify-center gap-2.5 overflow-hidden rounded-pill bg-ink/85 px-6 text-15 font-bold text-chalk backdrop-blur-xl border border-chalk/20 shadow-elevation-2 transition-all hover:bg-ink active:scale-[0.98]"
       >
         {/* Specular glass reflection highlight */}
         <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-pill bg-gradient-to-b from-chalk/20 to-transparent" />
         <Icon name="filter" size={19} className="transition-transform group-hover:scale-110" />
         <span>{m.plpFilterButton}</span>
         {applied ? (
-          <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-cobalt text-12 font-bold text-chalk shadow-e1">{formatNumber(applied, locale)}</span>
+          <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-cobalt text-12 font-bold text-chalk shadow-elevation-1">{formatNumber(applied, locale)}</span>
         ) : null}
       </button>
-      <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-sheet bg-linen/95 backdrop-blur-2xl border-t border-chalk/50 shadow-e3">
+      <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-sheet bg-linen/95 backdrop-blur-2xl border-t border-chalk/50 shadow-elevation-3">
         <span aria-hidden="true" className="mt-2 h-1 w-10 self-center rounded-image bg-sand" />
         <SheetHeader className="pb-2 pt-2 shadow-hairline-bottom">
           <SheetTitle className="flex items-center gap-2 font-display text-24 font-bold leading-30 text-ink">

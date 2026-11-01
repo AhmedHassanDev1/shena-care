@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 export interface GlassBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  /** `photo` frosted glass for use over photography or night fields; `quiet` hairline on bone; `accent` bottle tint. */
+  /** `photo` frosted glass for use over photography or night fields; `quiet` hairline on chalk; `accent` cobalt tint. */
   tone?: "photo" | "quiet" | "accent"
   /** Leading status dot in the given token colour class (e.g. "bg-citron"). */
   dot?: string
@@ -12,7 +12,7 @@ export interface GlassBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 const tones = {
   photo: "bg-chalk/35 text-ink shadow-outline-hairline backdrop-blur-md",
   quiet: "bg-linen text-stone shadow-outline-hairline",
-  accent: "bg-citron text-ink shadow-e1",
+  accent: "bg-citron text-ink shadow-elevation-1",
 } as const
 
 /**

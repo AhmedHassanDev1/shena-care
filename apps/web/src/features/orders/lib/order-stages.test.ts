@@ -53,7 +53,7 @@ describe('trackingSteps', () => {
 describe('order stage helpers', () => {
   it('maps tones and the finished filter', () => {
     expect(stageTone('DELIVERED')).toBe('ok');
-    expect(stageTone('PREPARING')).toBe('bottle');
+    expect(stageTone('PREPARING')).toBe('cobalt');
     expect(stageTone('CANCELLED')).toBe('gray');
     expect(isFinished('CANCELLED')).toBe(true);
     expect(isFinished('OUT_FOR_DELIVERY')).toBe(false);
