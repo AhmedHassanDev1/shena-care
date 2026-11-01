@@ -31,87 +31,25 @@ describe('PurchaseOrderService', () => {
     service = new PurchaseOrderService(prismaService, rankingService, supplyPlan, events, { openOperationalException: jest.fn() } as any);
   });
 
-  describe('Manual Override', () => {
-    it('should create a purchase order directly bypassing ranking (manual override)', async () => {
-      prismaService.supplier.findUnique.mockResolvedValue({ id: 'sup-manual' });
-      prismaService.supplierPurchaseOrder.create.mockResolvedValue({ id: 'po-1' });
-
-      const dto = {
-        supplierId: 'sup-manual',
-        lines: [{ skuId: 'sku-1', requestedQuantity: 10 }],
-      };
-
-      const result = await service.createPurchaseOrder(dto);
-      
-      expect(result.id).toBe('po-1');
-      expect(prismaService.supplierPurchaseOrder.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ supplierId: 'sup-manual' })
-        })
-      );
+  describe('Legacy procurement gate', () => {
+    it('refuses standalone creation without changing historical records', async () => {
+      await expect(service.createPurchaseOrder({ supplierId: 'sup-manual', lines: [{ skuId: 'sku-1', requestedQuantity: 10 }] }))
+        .rejects.toThrow('allocation lineage');
+      expect(prismaService.supplierPurchaseOrder.create).not.toHaveBeenCalled();
     });
-  });
-
-  describe('Partial Fallback', () => {
-    it('should auto-source shortage if confirmed partially', async () => {
-      // Mock getPurchaseOrder
-      prismaService.supplierPurchaseOrder.findUnique.mockResolvedValue({
-        id: 'po-1',
-        supplierId: 'sup-1',
-        status: PurchaseOrderStatus.sent,
-        lines: [
-          { id: 'line-1', skuId: 'sku-1', requestedQuantity: 10, status: PurchaseOrderLineStatus.pending, allocations: [] }
-        ]
-      });
-
-      // Mock transaction
-      prismaService.$transaction.mockImplementation(async (callback: any) => {
-        const tx = {
-          purchaseOrderLine: { update: jest.fn() },
-          supplierPurchaseOrder: {
-            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-            update: jest.fn().mockResolvedValue({ status: PurchaseOrderStatus.partial }),
-          }
-        };
-        // Run the callback and return the expected custom result map
-        await callback(tx);
-        return { updatedOrder: { id: 'po-1', status: 'partial' }, shortages: [{ skuId: 'sku-1', missingQty: 5 }] };
-      });
-
-      rankingService.rankOffersForSku.mockResolvedValue({
-        decisionLogId: 'log-1',
-        rankedOffers: [
-          { supplierId: 'sup-2', score: 100 }
-        ]
-      });
-
-      const confirmDto = {
-        lines: [
-          { id: 'line-1', status: PurchaseOrderLineStatus.confirmed_partial, confirmedQuantity: 5 }
-        ]
-      };
-
-      await service.confirmPurchaseOrder('po-1', confirmDto);
-
-      // Verify that autoSourceDemand was called which relies on rankingService
-      expect(rankingService.rankOffersForSku).toHaveBeenCalledWith('sku-1', 5);
-      
-      // Verify that a new PO was created for the fallback supplier
-      expect(prismaService.supplierPurchaseOrder.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            supplierId: 'sup-2',
-            notes: expect.stringContaining('Auto-sourced fallback')
-          })
-        })
-      );
+    it('refuses confirming an unlinked legacy commitment', async () => {
+      prismaService.supplierPurchaseOrder.findUnique.mockResolvedValue({ id: 'po-legacy', supplierId: 'sup-1', status: 'sent',
+        lines: [{ id: 'line-1', requestedQuantity: 10, allocations: [] }] });
+      await expect(service.confirmPurchaseOrder('po-legacy', { lines: [{ id: 'line-1', status: PurchaseOrderLineStatus.confirmed_full }] }))
+        .rejects.toThrow('allocation lineage');
+      expect(prismaService.$transaction).not.toHaveBeenCalled();
     });
   });
 
   describe('Confirmation integrity (GLO-206)', () => {
     const order = {
       id: 'po-1', supplierId: 'sup-1', status: PurchaseOrderStatus.sent,
-      lines: [{ id: 'line-1', skuId: 'sku-1', requestedQuantity: 10, status: PurchaseOrderLineStatus.pending, allocations: [] }],
+      lines: [{ id: 'line-1', skuId: 'sku-1', requestedQuantity: 10, status: PurchaseOrderLineStatus.pending, allocations: [{ orderId: 'order-1' }] }],
     };
     beforeEach(() => prismaService.supplierPurchaseOrder.findUnique.mockResolvedValue(order));
 

@@ -4,6 +4,7 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { RankingService } from './ranking.service';
 import { SOURCING_SIGNAL_MAX_AGE_MS } from './availability-policy';
 import { OutboxService } from '../../operations/services/outbox.service';
+import { committedDeliveryDeadline, RecoveryContext, recoveryExclusions } from './procurement-policy';
 
 type Tx = Prisma.TransactionClient;
 type Confirmation = Exclude<SourceConfirmationResult, 'pending'>;
@@ -37,21 +38,35 @@ export class SupplyPlanService {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(44071, hashtext(${orderId}))::text AS locked`;
   }
 
+  async lockOrders(tx: Tx, orderIds: string[]) {
+    for (const id of [...new Set(orderIds)].sort()) await this.lock(tx, id);
+  }
+
+  private recoveryContext(order: { promisedDate: Date | null; currency: string }, item: {
+    price: Prisma.Decimal; lineTotal: Prisma.Decimal | null; quantity: number;
+  }, quantity: number, now = new Date()): RecoveryContext {
+    const margin = Number(process.env.PROCUREMENT_MIN_MARGIN_BPS ?? '0');
+    if (!Number.isSafeInteger(margin) || margin < 0 || margin > 10000) throw new Error('Invalid procurement margin configuration');
+    const net = item.lineTotal === null ? item.price.toNumber() : Math.min(item.price.toNumber(), item.lineTotal.toNumber() / item.quantity);
+    return { now, quantity, currency: order.currency, maximumUnitCost: net * (10000 - margin) / 10000,
+      deliveryDeadline: committedDeliveryDeadline(order.promisedDate) };
+  }
+
   /**
-   * What the supplier can still supply on this offer: its reported quantity minus what was allocated to it after that
-   * count (pending, or confirmed and not released). null = no quantity reported, so no cap. Serialised per offer, so
+   * Physical stock snapshot minus outstanding commitments, including those preceding a newer feed.
+   * null = no quantity reported, so no cap. Serialised per offer, so
    * two orders placed at the same moment can never both take the last units.
    */
   private async offerCapacity(tx: Tx, offer: { id: string; availableQuantity: number | null; quantityUpdatedAt: Date | null }): Promise<number | null> {
-    if (offer.availableQuantity === null) return null;
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(44072, hashtext(${offer.id}))::text AS locked`;
-    const since = offer.quantityUpdatedAt ?? new Date(0);
-    const live = { supplierOfferId: offer.id, selectedAt: { gte: since }, requirement: { releasedAt: null } };
+    const latest = await tx.supplierOffer.findUniqueOrThrow({ where: { id: offer.id } });
+    if (latest.availableQuantity === null) return null;
+    const live = { supplierOfferId: offer.id, requirement: { releasedAt: null } };
     const [pending, confirmed] = await Promise.all([
       tx.sourceAllocation.aggregate({ _sum: { allocatedQuantity: true }, where: { ...live, result: 'pending' } }),
       tx.sourceAllocation.aggregate({ _sum: { confirmedQuantity: true }, where: { ...live, result: { in: ['confirmed_full', 'confirmed_partial'] } } }),
     ]);
-    return Math.max(offer.availableQuantity - (pending._sum.allocatedQuantity ?? 0) - (confirmed._sum.confirmedQuantity ?? 0), 0);
+    return Math.max(latest.availableQuantity - (pending._sum.allocatedQuantity ?? 0) - (confirmed._sum.confirmedQuantity ?? 0), 0);
   }
 
   async initiateForOrder(orderId: string) {
@@ -80,6 +95,8 @@ export class SupplyPlanService {
         requirements: { where: { releasedAt: null }, include: { allocations: { include: { poLink: true } }, actionRequirement: true } },
       } });
       if (!request) throw new NotFoundException('Supply request not found');
+      const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true } });
+      if (!['placed', 'confirmed', 'packing'].includes(order.status) || !request.requirements.length) return this.present(request, request.status);
 
       for (const requirement of request.requirements) {
         const confirmed = requirement.allocations.reduce((sum, a) => sum + a.confirmedQuantity, 0);
@@ -100,13 +117,20 @@ export class SupplyPlanService {
         }
 
         const attempted = requirement.allocations.map(a => a.supplierOfferId);
+        const item = order.items.find(i => i.id === requirement.orderItemId)!;
+        const recovery = attempted.length ? this.recoveryContext(order, item, remaining) : undefined;
         let ranked;
         try {
-          ranked = await this.ranking.rankOffersForSku(requirement.skuId, remaining);
+          ranked = await this.ranking.rankOffersForSku(requirement.skuId, remaining, {
+            tx, requirementId: requirement.id, attemptedOfferIds: attempted, recovery,
+          });
         } catch (error) {
           if (!(error instanceof NotFoundException)) throw error;
         }
         let allocated = false;
+        for (const supplierId of [...new Set((ranked?.rankedOffers ?? []).map(o => o.supplierId))].sort()) {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`commit:supplier:${supplierId}`}))`;
+        }
         for (const candidate of ranked?.rankedOffers ?? []) {
           if (attempted.includes(candidate.id)) continue;
           // Ranking owns selection; verify the winning offer again under the order lock.
@@ -118,6 +142,10 @@ export class SupplyPlanService {
           const capacity = await this.offerCapacity(tx, offer);
           const quantity = capacity === null ? remaining : Math.min(remaining, capacity);
           if (quantity <= 0) continue;
+          if (recovery) {
+            const reasons = recoveryExclusions({ ...offer, costPrice: offer.costPrice.toNumber() }, { ...recovery, quantity });
+            if (reasons.some(reason => reason !== 'SUPPLIER_CLOSED')) continue;
+          }
           await tx.sourceAllocation.create({ data: {
             requirementId: requirement.id, supplierOfferId: offer.id, requestedQuantity: quantity,
             allocatedQuantity: quantity, selectedCost: offer.costPrice, selectedCurrency: offer.currency,
@@ -165,6 +193,49 @@ export class SupplyPlanService {
       }
       return this.present(refreshed, status);
     }, { timeout: 30000 });
+  }
+
+  /** Final issue-time recheck under the same order/supplier locks as allocation and feed commits. */
+  async validatePendingAllocations(tx: Tx, ids: string[], expedited: boolean, now: Date) {
+    const allocations = await tx.sourceAllocation.findMany({
+      where: { id: { in: ids }, result: 'pending', poLink: null, requirement: { releasedAt: null } },
+      include: { supplierOffer: { include: { supplier: true } }, requirement: { include: { supplyRequest: true } } },
+      orderBy: [{ selectedAt: 'asc' }, { id: 'asc' }],
+    });
+    const orders = await tx.order.findMany({ where: { id: { in: [...new Set(allocations.map(a => a.requirement.supplyRequest.orderId))] } }, include: { items: true } });
+    const eligible: typeof allocations = [];
+    const invalidOrderIds = new Set<string>();
+    const offerIds = [...new Set(allocations.map(a => a.supplierOfferId))];
+    const [pending, confirmed] = await Promise.all([
+      tx.sourceAllocation.groupBy({ by: ['supplierOfferId'], where: { supplierOfferId: { in: offerIds }, result: 'pending', requirement: { releasedAt: null } }, _sum: { allocatedQuantity: true } }),
+      tx.sourceAllocation.groupBy({ by: ['supplierOfferId'], where: { supplierOfferId: { in: offerIds }, result: { in: ['confirmed_full', 'confirmed_partial'] }, requirement: { releasedAt: null } }, _sum: { confirmedQuantity: true } }),
+    ]);
+    const outstanding = new Map<string, number>();
+    for (const row of pending) outstanding.set(row.supplierOfferId, row._sum.allocatedQuantity ?? 0);
+    for (const row of confirmed) outstanding.set(row.supplierOfferId, (outstanding.get(row.supplierOfferId) ?? 0) + (row._sum.confirmedQuantity ?? 0));
+    for (const a of allocations) {
+      const offer = a.supplierOffer;
+      const order = orders.find(o => o.id === a.requirement.supplyRequest.orderId)!;
+      const item = order.items.find(i => i.id === a.requirement.orderItemId)!;
+      const reasons: string[] = [];
+      if (!['placed', 'confirmed', 'packing'].includes(order.status) || item.lineState !== 'active') reasons.push('ORDER_NOT_ACTIVE');
+      if (!offer.isAvailable || !offer.supplier.isActive) reasons.push('OFFER_UNAVAILABLE');
+      if (now.getTime() - offer.lastObservedAt.getTime() > SOURCING_SIGNAL_MAX_AGE_MS) reasons.push('STALE_OFFER');
+      if (!offer.costPrice.equals(a.selectedCost) || offer.currency !== a.selectedCurrency) reasons.push('COST_CHANGED');
+      if (a.allocatedQuantity < offer.minimumOrderUnits || a.allocatedQuantity % offer.orderMultipleUnits) reasons.push('ORDER_TERMS');
+      if (offer.availableQuantity !== null && (outstanding.get(offer.id) ?? 0) > offer.availableQuantity) reasons.push('CAPACITY_CHANGED');
+      if (expedited) reasons.push(...recoveryExclusions({ ...offer, costPrice: offer.costPrice.toNumber() }, this.recoveryContext(order, item, a.allocatedQuantity, now)));
+      if (reasons.length === 1 && reasons[0] === 'SUPPLIER_CLOSED') continue;
+      if (reasons.length) {
+        await tx.sourceAllocation.update({ where: { id: a.id }, data: { result: 'unavailable', confirmedAt: now } });
+        if (['placed', 'confirmed', 'packing'].includes(order.status)) invalidOrderIds.add(order.id);
+        await tx.sourcingDecision.create({ data: { skuId: a.requirement.skuId, requirementId: a.requirementId,
+          requiredQuantity: a.allocatedQuantity, rankedOffers: [],
+          excludedOffers: [{ offerId: offer.id, reasonCodes: reasons, stage: 'BEFORE_ISSUE' }],
+        } });
+      } else eligible.push(a);
+    }
+    return { eligible, invalidOrderIds: [...invalidOrderIds] };
   }
 
   async confirmAllocation(allocationId: string, input: {

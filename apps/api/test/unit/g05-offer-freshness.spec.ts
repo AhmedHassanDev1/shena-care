@@ -7,6 +7,12 @@ const t = (sourceObservedAt: string | null, receivedAt: string, workbookModified
   ({ sourceObservedAt, receivedAt, workbookModifiedAt });
 
 describe('GLO-277 Gate 05: assessSourceFreshness', () => {
+  it('does not let an old or undated export erase newer PO shortage evidence', () => {
+    const shortage = new Date('2026-10-22T10:00:00Z');
+    expect(assessSourceFreshness(t('2026-10-21T09:00:00Z', '2026-10-23T10:00:00Z'), null, shortage)).toMatchObject({ verdict: 'STALE' });
+    expect(assessSourceFreshness(t(null, '2026-10-23T10:00:00Z'), null, shortage)).toMatchObject({ verdict: 'UNPROVEN' });
+    expect(assessSourceFreshness(t('2026-10-23T09:00:00Z', '2026-10-23T10:00:00Z'), null, shortage)).toEqual({ verdict: 'FRESH' });
+  });
   it('accepts the first offer for a SKU', () => {
     expect(assessSourceFreshness(t(null, '2026-10-22T10:00:00Z'), null)).toEqual({ verdict: 'FRESH' });
   });

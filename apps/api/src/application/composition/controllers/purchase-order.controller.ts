@@ -7,7 +7,7 @@ import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
 import { PurchaseOrderService } from '../../../modules/sourcing/public';
 import { CatalogService } from '../../../modules/catalog/public';
 import {
-  CreatePurchaseOrderDto, ConfirmPurchaseOrderDto, DistributePurchaseOrderLineDto, FlushProcurementBatchDto, ListPurchaseOrdersQueryDto, RecordShortfallDto,
+  CreatePurchaseOrderDto, PurchaseOrderExpiryDisputeDto, ConfirmPurchaseOrderDto, DistributePurchaseOrderLineDto, FlushProcurementBatchDto, ListPurchaseOrdersQueryDto, RecordShortfallDto,
 } from '../../../modules/sourcing/public';
 
 type RequestUser = { id: string; roles?: string[]; supplierId?: string | null };
@@ -50,12 +50,25 @@ export class PurchaseOrderController {
     return this.purchaseOrderService.createPurchaseOrder(dto);
   }
 
-  /** Consolidate pending order allocations into supplier POs now (manual flush; GLO-237). */
+  /** Consolidate pending order allocations into supplier POs now (manual flush; GLO-237, GLO-283). */
   @Post('batches')
   @Roles('ADMIN', 'HUB_OPERATOR')
   @RequirePermissions('sourcing.manage')
   async flushBatch(@CurrentUser() user: RequestUser, @Body() dto: FlushProcurementBatchDto) {
-    return this.purchaseOrderService.flushProcurementBatch(user.id, dto);
+    return this.purchaseOrderService.flushProcurementBatch(user.id, {
+      supplierId: dto.supplierId,
+      reason: dto.reason,
+      force: dto.force,
+      isEarlyFlush: true,
+    });
+  }
+
+  /** Operational visibility into procurement batch queue and supplier statuses (GLO-283). */
+  @Get('batches/queue')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('sourcing.manage')
+  async getBatchQueue() {
+    return this.purchaseOrderService.getBatchQueueStatus();
   }
 
   /** Supplier inbox (own POs only) or staff list. */
@@ -82,6 +95,14 @@ export class PurchaseOrderController {
       return this.present(user, updated);
     }
     return this.present(user, order);
+  }
+
+  @Post(':id/expiry-dispute')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
+  async reportExpiryDispute(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PurchaseOrderExpiryDisputeDto) {
+    await this.ownedPurchaseOrder(user, id);
+    return this.purchaseOrderService.reportExpiryDispute(id, dto.note);
   }
 
   @Post(':id/confirm')

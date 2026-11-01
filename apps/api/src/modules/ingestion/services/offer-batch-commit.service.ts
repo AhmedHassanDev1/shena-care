@@ -37,7 +37,12 @@ export type FreshnessVerdict = { verdict: 'FRESH' } | { verdict: 'STALE' | 'UNPR
  * freshness: an old export uploaded today must not overwrite newer truth, and a newer export uploaded earlier must not
  * be refused. Source times win; when the previous state had one and this row does not, freshness is unproven (review).
  */
-export function assessSourceFreshness(incoming: SourceTiming, lastAccepted: SourceTiming | null): FreshnessVerdict {
+export function assessSourceFreshness(incoming: SourceTiming, lastAccepted: SourceTiming | null, shortageObservedAt?: Date | null): FreshnessVerdict {
+  if (shortageObservedAt) {
+    const observed = incoming.sourceObservedAt ? Date.parse(incoming.sourceObservedAt) : NaN;
+    if (!Number.isFinite(observed)) return { verdict: 'UNPROVEN', reason: 'dated_stock_evidence_required_after_po_shortage' };
+    if (observed <= shortageObservedAt.getTime()) return { verdict: 'STALE', reason: 'source_time_not_newer_than_po_shortage' };
+  }
   if (!lastAccepted) return { verdict: 'FRESH' };
   if (incoming.sourceObservedAt && lastAccepted.sourceObservedAt) {
     return incoming.sourceObservedAt < lastAccepted.sourceObservedAt
@@ -64,7 +69,7 @@ function sourceTiming(job: TimedJob, enrichment: Prisma.JsonValue | null): Sourc
   };
 }
 
-type OfferWrite = { itemId: string; skuId: string; cost: number; currency: string; available: boolean; priceOnly: boolean };
+type OfferWrite = { itemId: string; skuId: string; cost: number; currency: string; available: boolean; priceOnly: boolean; quantity: number | null };
 type ItemPatch = { status: IngestionStatus | null; patch: Record<string, unknown> };
 const WRITE_CHUNK = 500;
 const chunks = <T>(list: T[]): T[][] =>
@@ -105,7 +110,7 @@ export class OfferBatchCommitService {
       }) : null;
       const lastTiming = last ? sourceTiming(last.job, last.enrichment)
         : { sourceObservedAt: null, workbookModifiedAt: null, receivedAt: existing.lastObservedAt.toISOString() };
-      const freshness = assessSourceFreshness(sourceTiming(item.job, item.enrichment), lastTiming);
+      const freshness = assessSourceFreshness(sourceTiming(item.job, item.enrichment), lastTiming, existing.shortageObservedAt);
       if (freshness.verdict !== 'FRESH') reasons.push(freshness.reason);
       if (existing.currency !== item.currency) reasons.push('currency_change_requires_review');
       const before = existing.costPrice.toNumber();
@@ -151,9 +156,11 @@ export class OfferBatchCommitService {
       await tx.supplierOffer.upsert({
         where: { supplierId_skuId: { supplierId: item.job.supplierId, skuId } },
         create: { supplierId: item.job.supplierId, skuId, costPrice: cost, currency: item.currency,
+          ...(item.reportedQuantity !== null ? { availableQuantity: item.reportedQuantity, quantityUpdatedAt: new Date() } : {}),
           lastIngestionItemId: item.id,
           isAvailable: availability, lastObservedAt: new Date() },
         update: { costPrice: cost, currency: item.currency, isAvailable: availability,
+          ...(item.reportedQuantity !== null ? { availableQuantity: item.reportedQuantity, quantityUpdatedAt: new Date() } : {}),
           lastIngestionItemId: item.id, lastObservedAt: new Date() },
       });
     }, { timeout: 30000, maxWait: 10000 });
@@ -170,17 +177,20 @@ export class OfferBatchCommitService {
     const creates = writes.filter(w => !idBySku.has(w.skuId));
     if (creates.length) {
       await tx.supplierOffer.createMany({ data: creates.map(w => ({ supplierId, skuId: w.skuId, costPrice: w.cost,
+        ...(!w.priceOnly ? { availableQuantity: w.quantity, quantityUpdatedAt: now } : {}),
         currency: w.currency, isAvailable: w.available, lastObservedAt: now, lastIngestionItemId: w.itemId })) });
     }
     const at = Prisma.sql`(${now.toISOString()}::timestamptz AT TIME ZONE 'UTC')`;
     for (const chunk of chunks(writes.filter(w => idBySku.has(w.skuId)))) {
       const values = Prisma.join(chunk.map(w => Prisma.sql`(${idBySku.get(w.skuId)}::uuid, ${w.cost}::numeric,
-        ${w.currency}::varchar, ${w.available}::boolean, ${w.priceOnly}::boolean, ${w.itemId}::uuid)`));
+        ${w.currency}::varchar, ${w.available}::boolean, ${w.priceOnly}::boolean, ${w.itemId}::uuid, ${w.quantity}::integer)`));
       // A price-only row never changes availability.
       await tx.$executeRaw`UPDATE "sourcing"."supplier_offers" AS o SET "cost_price" = v.cost, "currency" = v.currency,
         "is_available" = CASE WHEN v.price_only THEN o."is_available" ELSE v.available END,
+        "available_quantity" = CASE WHEN v.price_only THEN o."available_quantity" ELSE v.quantity END,
+        "quantity_updated_at" = CASE WHEN v.price_only THEN o."quantity_updated_at" ELSE ${at} END,
         "last_observed_at" = ${at}, "last_ingestion_item_id" = v.item_id, "updated_at" = ${at}
-        FROM (VALUES ${values}) AS v(id, cost, currency, available, price_only, item_id) WHERE o."id" = v.id`;
+        FROM (VALUES ${values}) AS v(id, cost, currency, available, price_only, item_id, quantity) WHERE o."id" = v.id`;
     }
   }
 
@@ -421,7 +431,7 @@ export class OfferBatchCommitService {
         ? (existingOffer.lastIngestionItemId && lastAcceptedTiming.get(existingOffer.lastIngestionItemId)) ||
           { sourceObservedAt: null, workbookModifiedAt: null, receivedAt: existingOffer.lastObservedAt.toISOString() }
         : null;
-      const freshness = assessSourceFreshness(sourceTiming(job, item.enrichment), lastTiming);
+      const freshness = assessSourceFreshness(sourceTiming(job, item.enrichment), lastTiming, existingOffer?.shortageObservedAt);
       if (freshness.verdict === 'STALE') {
         rows.push({
           itemId: item.id, supplierSkuCode: item.supplierSkuCode, matchedSkuId: item.matchedSkuId, canonicalSkuCode: null,
@@ -738,7 +748,7 @@ export class OfferBatchCommitService {
             // Two rows for one SKU: the later row wins, as with row-by-row application.
             offerWrites.delete(skuId);
             offerWrites.set(skuId, { itemId: item.id, skuId, cost: targetCost, currency: targetCurrency,
-              available: targetAvailability, priceOnly: row.isPriceOnly });
+              available: targetAvailability, priceOnly: row.isPriceOnly, quantity: item.reportedQuantity });
 
             if (row.action === RowDiffAction.UNCHANGED) {
               unchangedCount++;

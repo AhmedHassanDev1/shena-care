@@ -73,6 +73,35 @@ describe('Supplier offer quantity caps allocation (e2e)', () => {
     expect(await allocated(sku.offerId)).toBe(2);
   });
 
+  it('serializes direct quantity edits with procurement and trusted feed commits', async () => {
+    const sku = await makeSku(4);
+    const offer = await prisma.supplierOffer.findUniqueOrThrow({ where: { id: sku.offerId } });
+    let unlock!: () => void; let acquired!: () => void;
+    const release = new Promise<void>(resolve => { unlock = resolve; });
+    const locked = new Promise<void>(resolve => { acquired = resolve; });
+    const holder = prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'commit:supplier:' + offer.supplierId}))`;
+      acquired(); await release;
+    });
+    await locked;
+    let completed = false;
+    const edit = http().patch(`/sourcing/offers/${sku.offerId}`).set(admin.auth).send({ availableQuantity: 5 })
+      .then(response => { completed = true; return response; });
+    try { await new Promise(resolve => setTimeout(resolve, 1500)); expect(completed).toBe(false); }
+    finally { unlock(); await holder; await edit; }
+    expect((await edit).status).toBe(200);
+  });
+
+  it('21 reported, 10 reserved and confirmed leaves 11, including after a newer physical-stock snapshot', async () => {
+    const sku = await makeSku(21);
+    const first = await plans.initiateForOrder(await orderFor(sku, 10));
+    await plans.confirmAllocation(first.lines[0].allocations[0].id, { result: 'confirmed_full', confirmedQuantity: 10 });
+    await prisma.supplierOffer.update({ where: { id: sku.offerId }, data: { quantityUpdatedAt: new Date() } });
+    const second = await plans.initiateForOrder(await orderFor(sku, 12));
+    expect(second.lines[0].allocations[0].allocatedQuantity).toBe(11);
+    expect((await prisma.supplierOffer.findUniqueOrThrow({ where: { id: sku.offerId } })).availableQuantity).toBe(21);
+  });
+
   it('counts again from the supplier\'s newest number', async () => {
     const sku = await makeSku(1);
     await plans.initiateForOrder(await orderFor(sku, 1));

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { AlertTriangle, ArrowLeft, ShieldAlert, Store } from 'lucide-react'
+import { ArrowLeft, ShieldAlert } from 'lucide-react'
 import { Button, Code, DataTable, Field, Notice, PageHeader, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
 import { CommandError, Egp, Page, Select, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
@@ -35,7 +35,7 @@ interface Payable {
 }
 
 /** A supplier with its working schedule (Cairo time): closed weekdays (0 = Sunday … 6 = Saturday) and optional hours. */
-interface SupplierWithSchedule { id: string; name: string; closedWeekdays?: number[]; opensAt?: string | null; closesAt?: string | null }
+interface SupplierWithSchedule { id: string; name: string; pickupLeadMinutes?: number | null; closedWeekdays?: number[]; opensAt?: string | null; closesAt?: string | null }
 
 const WEEKDAYS: Array<[number, string]> = [[6, 'السبت'], [0, 'الأحد'], [1, 'الإثنين'], [2, 'الثلاثاء'], [3, 'الأربعاء'], [4, 'الخميس'], [5, 'الجمعة']]
 
@@ -45,15 +45,18 @@ const WEEKDAYS: Array<[number, string]> = [[6, 'السبت'], [0, 'الأحد'],
  */
 function SupplierScheduleRow({ supplier, onSaved }: { supplier: SupplierWithSchedule; onSaved: () => void }) {
   const [closed, setClosed] = React.useState<number[]>(supplier.closedWeekdays ?? [5])
+  const [pickupLead, setPickupLead] = React.useState(supplier.pickupLeadMinutes === null || supplier.pickupLeadMinutes === undefined ? '' : String(supplier.pickupLeadMinutes))
+  const pickupOk = pickupLead === '' || (Number.isInteger(Number(pickupLead)) && Number(pickupLead) >= 0 && Number(pickupLead) <= 10080)
   const [opensAt, setOpensAt] = React.useState(supplier.opensAt ?? '')
   const [closesAt, setClosesAt] = React.useState(supplier.closesAt ?? '')
-  const hoursOk = (opensAt === '') === (closesAt === '') && (opensAt === '' || opensAt < closesAt)
+  const hoursOk = (opensAt === '') === (closesAt === '') && (opensAt === '' || opensAt !== closesAt)
   const save = useCommand(() => api(`/sourcing/suppliers/${supplier.id}`, { method: 'PATCH', body: {
     closedWeekdays: [...closed].sort((a, b) => a - b),
-    ...(opensAt !== '' && closesAt !== '' ? { opensAt, closesAt } : {}),
+    pickupLeadMinutes: pickupLead === '' ? null : Number(pickupLead),
+    ...(opensAt !== '' && closesAt !== '' ? { opensAt, closesAt, crossesMidnight: opensAt > closesAt } : {}),
   } }))
   return (
-    <form className="space-y-2 border-t border-bw-line py-3" onSubmit={async (e) => { e.preventDefault(); if (hoursOk && await save.execute()) onSaved() }}>
+    <form className="space-y-2 border-t border-bw-line py-3" onSubmit={async (e) => { e.preventDefault(); if (hoursOk && pickupOk && await save.execute()) onSaved() }}>
       <p className="font-semibold">{supplier.name}</p>
       <fieldset className="flex flex-wrap gap-3 text-bw-small">
         <legend className="mb-1">أيام الإجازة:</legend>
@@ -64,11 +67,15 @@ function SupplierScheduleRow({ supplier, onSaved }: { supplier: SupplierWithSche
           </label>
         ))}
       </fieldset>
-      <div className="grid gap-3 sm:grid-cols-[10rem_10rem_auto] sm:items-end">
+      <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
         <Field label="بيفتح الساعة" type="time" ltr value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
         <Field label="بيقفل الساعة" type="time" ltr value={closesAt} onChange={(e) => setClosesAt(e.target.value)}
-          error={!hoursOk ? 'اكتب الميعادين مع بعض، والفتح قبل القفل' : undefined} />
-        <Button type="submit" loading={save.pending} disabled={!hoursOk}>حفظ المواعيد</Button>
+          error={!hoursOk ? 'اكتب الميعادين مع بعض، وميكنوش زي بعض' : undefined} />
+        <Field label="مدة التجهيز والاستلام والنقل المعتمدة (دقيقة)" type="number" min={0} max={10080} step={1}
+          ltr value={pickupLead} onChange={(e) => setPickupLead(e.target.value)}
+          error={!pickupOk ? 'اكتب عدد دقائق صحيح من صفر إلى 10080' : undefined} />
+        <p className="text-bw-small text-bw-ink-soft">مدة يراجعها مسؤول العمليات. تركها فارغة يمنع التحويل التلقائي لهذا المورد لعدم التأكد من إمكانية الاستلام والتوصيل.</p>
+        <Button type="submit" loading={save.pending} disabled={!hoursOk || !pickupOk}>حفظ المواعيد</Button>
       </div>
       <CommandError error={save.error} />
     </form>

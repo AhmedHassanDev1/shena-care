@@ -29,7 +29,7 @@ describe('Availability confirmation and supply plan (e2e)', () => {
 
   const makeOffer = async (skuId: string, cost: number, observedAt = new Date(), isAvailable = true) => {
     const suffix = randomUUID();
-    const supplier = await prisma.supplier.create({ data: { name: 'Supply ' + suffix, slug: 'supply-' + suffix } });
+    const supplier = await prisma.supplier.create({ data: { name: 'Supply ' + suffix, slug: 'supply-' + suffix, pickupLeadMinutes: 10, opensAt: '00:00', closesAt: '23:59', closedWeekdays: [] } });
     return prisma.supplierOffer.create({ data: {
       supplierId: supplier.id, skuId, costPrice: cost, currency: 'EGP',
       lastObservedAt: observedAt, isAvailable,

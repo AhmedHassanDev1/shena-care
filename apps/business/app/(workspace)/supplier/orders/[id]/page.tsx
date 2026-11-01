@@ -6,7 +6,6 @@ import { useParams } from 'next/navigation'
 import {
   AlertTriangle,
   ArrowRight,
-  Check,
   CheckCircle2,
   Clock,
   Eye,
@@ -14,7 +13,6 @@ import {
   ShieldCheck,
   Truck,
   Warehouse,
-  XCircle,
 } from 'lucide-react'
 import { Button, Code, Field, Notice, PageHeader, Section, Skeleton, Stepper } from '@/components/bw/primitives'
 import { CommandError, Egp, Select, Status, TextArea } from '@/components/workspace/kit'
@@ -81,7 +79,7 @@ function problem(line: SupplierPo['lines'][number], d: Draft): string | null {
 export default function SupplierPoDetailPage() {
   const params = useParams()
   const id = typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : ''
-  const { data, error, loading, reload } = useApi<SupplierPo>(id ? `/purchase-orders/${id}` : null)
+  const { data, error, loading, reload } = useApi<SupplierPo>(id ? `/purchase-orders/${id}` : null, { pollMs: 30000 })
 
   return (
     <RoleShell role="supplier" active="orders" mode="responsive">
@@ -104,7 +102,13 @@ export default function SupplierPoDetailPage() {
         ) : null}
 
         {data ? (
-          OPEN_STATUSES.includes(data.status) ? (
+          data.status === 'expired' || (OPEN_STATUSES.includes(data.status) && data.responseDeadlineAt && Date.parse(data.responseDeadlineAt) <= Date.now()) ? (
+            <div role="alert" className="space-y-4">
+              <PoHeader po={data} />
+              <p>انتهت مهلة تأكيد المخزون. لا تجهّز أو تسلّم بضائع بناءً على أمر التوريد ده. تواصل مع شيناكير لو بدأت التجهيز بالفعل.</p>
+              <ExpiryDispute poId={data.id} />
+            </div>
+          ) : OPEN_STATUSES.includes(data.status) ? (
             <ConfirmForm po={data} onDone={reload} />
           ) : (
             <AnsweredView po={data} onDone={reload} />
@@ -113,6 +117,22 @@ export default function SupplierPoDetailPage() {
       </div>
     </RoleShell>
   )
+}
+
+function ExpiryDispute({ poId }: { poId: string }) {
+  const [note, setNote] = React.useState('')
+  const [recorded, setRecorded] = React.useState(false)
+  const command = useCommand(async () => {
+    await api('/purchase-orders/' + poId + '/expiry-dispute', { method: 'POST', body: { note: note.trim() } })
+    setRecorded(true)
+  })
+  return <div className="space-y-3">
+    {recorded ? <p role="status">تم تسجيل البلاغ للمراجعة. البلاغ لا يسمح بالتجهيز أو التسليم ولا يعيد تفعيل الأمر.</p> : <>
+      <TextArea label="لو حصل تجهيز أو تسليم بالفعل، وضّح التفاصيل للمراجعة" value={note} onChange={(value) => setNote(value.slice(0, 1000))} />
+      <CommandError error={command.error} />
+      <Button disabled={!note.trim() || command.pending} onClick={() => command.execute()}>تسجيل بلاغ للمراجعة</Button>
+    </>}
+  </div>
 }
 
 function PoHeader({ po }: { po: SupplierPo }) {
@@ -137,6 +157,15 @@ function PoHeader({ po }: { po: SupplierPo }) {
       />
 
       {/* Operational Lifecycle Timestamps */}
+      {po.responseDeadlineAt ? (
+        <p className="text-sm text-bw-ink-soft">
+          آخر موعد لتأكيد المخزون: {formatDateTime(po.responseDeadlineAt)}.
+          {OPEN_STATUSES.includes(po.status) || po.status === 'expired'
+            ? ' فتح الأمر لا يؤكد المخزون ولا يمدد المهلة. لا تبدأ التجهيز قبل قبول تأكيدك. لو انتهت المهلة قبل قبول ردك، لا تجهّز أو تسلّم بهذا الأمر.'
+            : ' تم قبول ردك؛ التجهيز والتسليم يكون حسب الكمية المؤكدة. انتهاء مهلة الرد بعد قبول التأكيد لا يلغي الكمية المعتمدة.'}
+          الموعد ده للرد، مش للتجهيز أو الاستلام.
+        </p>
+      ) : null}
       <div className="rounded-2xl border border-white/[0.08] bg-bw-surface/70 p-4 space-y-3">
         <p className="text-xs font-bold text-bw-ink">سجل مراحل أمر الشراء وتوقيتاتها</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">

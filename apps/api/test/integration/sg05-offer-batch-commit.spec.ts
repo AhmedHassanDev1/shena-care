@@ -328,6 +328,8 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
         where: { supplierId_skuId: { supplierId, skuId: sku1Id } },
       });
       expect(offerInDb.isAvailable).toBe(false);
+      expect(offerInDb.availableQuantity).toBe(0);
+      expect(offerInDb.quantityUpdatedAt).not.toBeNull();
     });
   });
 

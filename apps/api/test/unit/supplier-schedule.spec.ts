@@ -1,10 +1,40 @@
-import { cairoDate, cairoWallTime, firstOpenDayAfter, nextOpening, promisedDate } from '../../src/modules/sourcing/services/supplier-schedule';
+import { cairoDate, cairoWallTime, firstOpenDayAfter, nextOpening, promisedDate, isEligibleForScheduledBatch, supplierResponseDeadline } from '../../src/modules/sourcing/services/supplier-schedule';
 
 // January 2027: Cairo is UTC+2. 2027-01-10 is a Sunday; 2027-01-14 Thursday; 2027-01-15 Friday; 2027-01-16 Saturday.
 const at = (iso: string) => new Date(iso);
 const FRIDAY = [5];
 
 describe('supplier schedule and the promised delivery date', () => {
+  it('counts response minutes only in working windows, across midnight and Friday', () => {
+    const schedule = { closedWeekdays: FRIDAY, opensAt: '09:00', closesAt: '01:00' };
+    expect(supplierResponseDeadline(cairoWallTime('2027-01-13', 12 * 60), schedule, 60)).toEqual(cairoWallTime('2027-01-13', 13 * 60));
+    expect(supplierResponseDeadline(cairoWallTime('2027-01-14', 23 * 60 + 45), schedule, 30)).toEqual(cairoWallTime('2027-01-15', 15));
+    expect(supplierResponseDeadline(cairoWallTime('2027-01-15', 45), schedule, 60)).toEqual(cairoWallTime('2027-01-16', 9 * 60 + 45));
+    expect(supplierResponseDeadline(cairoWallTime('2027-01-15', 12 * 60), schedule, 30)).toEqual(cairoWallTime('2027-01-16', 9 * 60 + 30));
+  });
+  it('uses configured timezone and default hours consistently for dispatch and response deadlines', () => {
+    const saved = { zone: process.env.SUPPLIER_TIME_ZONE, opens: process.env.DEFAULT_SUPPLIER_OPENS_AT, closes: process.env.DEFAULT_SUPPLIER_CLOSES_AT };
+    try {
+      process.env.SUPPLIER_TIME_ZONE = 'Asia/Dubai';
+      process.env.DEFAULT_SUPPLIER_OPENS_AT = '10:00'; process.env.DEFAULT_SUPPLIER_CLOSES_AT = '18:00';
+      const issued = new Date('2027-01-13T06:00:00Z');
+      expect(supplierResponseDeadline(issued, { closedWeekdays: [] }, 60)).toEqual(new Date('2027-01-13T07:00:00Z'));
+      expect(isEligibleForScheduledBatch(new Date('2027-01-13T07:59:00Z'), new Date('2027-01-13T08:00:00Z'), { closedWeekdays: [] }, 'Asia/Dubai')).toBe(true);
+      expect(isEligibleForScheduledBatch(new Date('2027-01-13T08:01:00Z'), new Date('2027-01-13T08:02:00Z'), { closedWeekdays: [] }, 'Asia/Dubai')).toBe(false);
+    } finally {
+      for (const [key,value] of Object.entries({ SUPPLIER_TIME_ZONE: saved.zone, DEFAULT_SUPPLIER_OPENS_AT: saved.opens, DEFAULT_SUPPLIER_CLOSES_AT: saved.closes })) {
+        if (value === undefined) delete process.env[key]; else process.env[key] = value;
+      }
+    }
+  });
+  it('holds normal demand until a dispatch checkpoint, including delayed worker runs', () => {
+    const schedule = { closedWeekdays: FRIDAY, opensAt: '09:00', closesAt: '01:00' };
+    const selected = cairoWallTime('2027-01-13', 10 * 60);
+    expect(isEligibleForScheduledBatch(selected, cairoWallTime('2027-01-13', 11 * 60 + 59), schedule)).toBe(false);
+    expect(isEligibleForScheduledBatch(selected, cairoWallTime('2027-01-13', 12 * 60), schedule)).toBe(true);
+    expect(isEligibleForScheduledBatch(selected, cairoWallTime('2027-01-13', 12 * 60 + 2), schedule)).toBe(true);
+    expect(isEligibleForScheduledBatch(cairoWallTime('2027-01-13', 12 * 60 + 1), cairoWallTime('2027-01-13', 12 * 60 + 2), schedule)).toBe(false);
+  });
   it('promises the next day on an ordinary day', () => {
     expect(firstOpenDayAfter(at('2027-01-10T10:00:00Z'), FRIDAY)).toBe('2027-01-11'); // Sunday → Monday
     expect(firstOpenDayAfter(at('2027-01-13T10:00:00Z'), FRIDAY)).toBe('2027-01-14'); // Wednesday → Thursday

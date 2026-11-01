@@ -1,3 +1,4 @@
+import { attachPurchaseOrderLineage } from '../fixtures/purchase-order-lineage';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
@@ -39,6 +40,7 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
   const cleanupProductIds: string[] = [];
   const cleanupBrandIds: string[] = [];
 
+  let cleanupLineage: (() => Promise<void>) | undefined;
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -228,9 +230,11 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
         },
       },
     });
+    cleanupLineage = await attachPurchaseOrderLineage(prisma, poAId);
   });
 
   afterAll(async () => {
+    await cleanupLineage?.();
     if (cleanupCandidateIds.length > 0) {
       await prisma.productContentDraft.deleteMany({ where: { candidateId: { in: cleanupCandidateIds } } });
       await prisma.ingestionItem.deleteMany({ where: { id: { in: cleanupCandidateIds } } });

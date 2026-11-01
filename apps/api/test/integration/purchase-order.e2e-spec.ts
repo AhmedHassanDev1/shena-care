@@ -1,9 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-const request = require('supertest');
+import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
-import { PurchaseOrderStatus, PurchaseOrderLineStatus } from '@prisma/client';
 import { createActor, Actor } from '../fixtures/actors';
 
 describe('Purchase Order Flow (e2e)', () => {
@@ -12,8 +11,6 @@ describe('Purchase Order Flow (e2e)', () => {
   let prisma: PrismaService;
   let supplierId: string;
   let skuId: string;
-  let purchaseOrderId: string;
-  let lineId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -54,42 +51,14 @@ describe('Purchase Order Flow (e2e)', () => {
     await app.close();
   });
 
-  it('should create a grouped purchase order for a supplier', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/purchase-orders').set(admin.auth)
-      .send({
-        supplierId,
-        lines: [
-          { skuId, requestedQuantity: 50 },
-        ],
-      })
-      .expect(201);
-
-    expect(response.body.status).toBe(PurchaseOrderStatus.created);
-    expect(response.body.lines.length).toBe(1);
-    expect(response.body.lines[0].status).toBe(PurchaseOrderLineStatus.pending);
-    expect(response.body.lines[0].requestedQuantity).toBe(50);
-
-    purchaseOrderId = response.body.id;
-    lineId = response.body.lines[0].id;
-  });
-
-  it('should confirm the purchase order with partial quantity', async () => {
-    const response = await request(app.getHttpServer())
-      .post(`/purchase-orders/${purchaseOrderId}/confirm`).set(admin.auth)
-      .send({
-        lines: [
-          {
-            id: lineId,
-            status: PurchaseOrderLineStatus.confirmed_partial,
-            confirmedQuantity: 30,
-          },
-        ],
-      })
-      .expect(201);
-
-    expect(response.body.status).toBe(PurchaseOrderStatus.partial);
-    expect(response.body.lines[0].status).toBe(PurchaseOrderLineStatus.confirmed_partial);
-    expect(response.body.lines[0].confirmedQuantity).toBe(30);
+  it('blocks standalone creation and preserves legacy history for reconciliation', async () => {
+    await request(app.getHttpServer()).post('/purchase-orders').set(admin.auth)
+      .send({ supplierId, lines: [{ skuId, requestedQuantity: 50 }] }).expect(409);
+    const legacy = await prisma.supplierPurchaseOrder.create({ data: { supplierId, status: 'sent',
+      lines: { create: [{ skuId, requestedQuantity: 50 }] } }, include: { lines: true } });
+    await request(app.getHttpServer()).get(`/purchase-orders/${legacy.id}`).set(admin.auth).expect(200);
+    await request(app.getHttpServer()).post(`/purchase-orders/${legacy.id}/confirm`).set(admin.auth)
+      .send({ lines: [{ id: legacy.lines[0].id, status: 'confirmed_partial', confirmedQuantity: 30 }] }).expect(409);
+    expect((await prisma.purchaseOrderLine.findUniqueOrThrow({ where: { id: legacy.lines[0].id } })).confirmedQuantity).toBeNull();
   });
 });

@@ -7,7 +7,16 @@ import { SupportService } from '../../operations/services/support.service';
 import { PurchaseOrderStatus, PurchaseOrderLineStatus, Prisma } from '@prisma/client';
 import { RankingService } from './ranking.service';
 import { SupplyPlanService } from './supply-plan.service';
-import { nextOpening } from './supplier-schedule';
+import {
+  canSupplierReceiveOrder,
+  isEligibleForScheduledBatch,
+  isSupplierOperating,
+  nextDispatchCheckpoint,
+  nextOpening,
+  supplierResponseDeadline,
+} from './supplier-schedule';
+import { getProcurementBatchConfig, getSupplierResponseMinutes } from '../config/procurement-batch.config';
+import { allocateScarceQuantity, committedDeliveryDeadline } from './procurement-policy';
 
 type Tx = Prisma.TransactionClient;
 
@@ -15,10 +24,23 @@ export const PURCHASE_ORDER_ADVANCE_CONSUMER = 'sourcing.supply-plan-advance';
 const OPEN_FOR_CONFIRMATION: PurchaseOrderStatus[] = [PurchaseOrderStatus.created, PurchaseOrderStatus.sent, PurchaseOrderStatus.reviewed];
 const BATCH_LOCK = 44090;
 
+export interface FlushBatchOptions {
+  supplierId?: string;
+  reason?: string;
+  force?: boolean;
+  isEarlyFlush?: boolean;
+  now?: Date;
+  /** Internal event-driven recovery, scoped to the orders whose supplier just answered. */
+  orderIds?: string[];
+  expedited?: boolean;
+  recoveryOnly?: boolean;
+}
+
 /** What a supplier may see: its own lines, quantities and approved costs — no orders, customers or rivals. */
 export interface SupplierPurchaseOrderView {
   id: string; supplierId: string; status: PurchaseOrderStatus; notes: string | null; batchRef: string | null;
   issuedAt: Date | null; openedAt: Date | null; confirmedAt: Date | null; readyAt: Date | null; receivedAt: Date | null; createdAt: Date;
+  responseDeadlineAt: Date | null; expedited: boolean;
   lines: Array<{
     id: string; skuId: string; requestedQuantity: number; confirmedQuantity: number | null;
     status: PurchaseOrderLineStatus; unitCost: number | null; currency: string | null;
@@ -33,6 +55,7 @@ type PurchaseOrderWithLineage = Prisma.SupplierPurchaseOrderGetPayload<{ include
 export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PurchaseOrderService.name);
   private timer?: NodeJS.Timeout;
+  private checking = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -51,14 +74,23 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     this.events.registerHandler(PURCHASE_ORDER_ADVANCE_CONSUMER, async event => {
       const orderIds = (event.payload as { orderIds?: string[] }).orderIds ?? [];
       for (const orderId of orderIds) await this.supplyPlan.advance(orderId);
+      if (orderIds.length) await this.flushProcurementBatch('system:supplier-recovery', {
+        orderIds, expedited: true, isEarlyFlush: true, reason: `Recovery from ${event.eventType}`,
+      });
     });
-    const configured = process.env.PROCUREMENT_BATCH_INTERVAL_MINUTES;
-    const minutes = configured !== undefined ? Number(configured) : process.env.NODE_ENV === 'test' ? 0 : 180;
-    if (minutes > 0) {
+    this.events.registerHandler('sourcing.batch-audit', async () => {});
+
+    const config = getProcurementBatchConfig();
+    if (process.env.NODE_ENV !== 'test' || config.intervalMinutes > 0) {
       this.timer = setInterval(() => {
-        this.flushProcurementBatch('system:procurement-schedule')
-          .catch(error => this.logger.error(`Scheduled procurement batch failed: ${error.message}`));
-      }, minutes * 60_000);
+        if (this.checking) return;
+        this.checking = true;
+        this.distributePendingLines().then(() => this.expireDuePurchaseOrders())
+          .then(() => this.flushProcurementBatch('system:supplier-recovery', { recoveryOnly: true, expedited: true, isEarlyFlush: true }))
+          .then(() => config.intervalMinutes > 0 ? this.flushProcurementBatch('system:procurement-schedule', { isEarlyFlush: false }) : undefined)
+          .catch(error => this.logger.error(`Scheduled procurement batch failed: ${error.message}`))
+          .finally(() => { this.checking = false; });
+      }, 60_000);
     }
   }
 
@@ -66,64 +98,78 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
-  /** Manual PO: the unit cost is snapshotted from the supplier's offer when the PO is created. */
+  /** Standalone procurement has no customer allocation authority; history remains readable. */
   async createPurchaseOrder(dto: CreatePurchaseOrderDto) {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id: dto.supplierId },
-    });
-
-    if (!supplier) {
-      throw new NotFoundException(`Supplier not found with id: ${dto.supplierId}`);
-    }
-    const offers = await this.prisma.supplierOffer.findMany({
-      where: { supplierId: dto.supplierId, skuId: { in: dto.lines.map(line => line.skuId) } },
-    });
-
-    const order = await this.prisma.supplierPurchaseOrder.create({
-      data: {
-        supplierId: dto.supplierId,
-        status: PurchaseOrderStatus.created,
-        lines: {
-          create: dto.lines.map((line) => {
-            const offer = offers.find(o => o.skuId === line.skuId);
-            return {
-              skuId: line.skuId,
-              requestedQuantity: line.requestedQuantity,
-              status: PurchaseOrderLineStatus.pending,
-              unitCost: offer?.costPrice ?? null,
-              currency: offer?.currency ?? null,
-              supplierOfferId: offer?.id ?? null,
-            };
-          }),
-        },
-      },
-      include: {
-        lines: true,
-      },
-    });
-
-    return order;
+    void dto;
+    throw new ConflictException('Purchase orders require allocation lineage; use the procurement batch');
   }
 
   /**
-   * Consolidates every pending, not-yet-issued order allocation into one PO per supplier with one
+   * Consolidates every eligible pending, not-yet-issued order allocation into one PO per supplier with one
    * line per SKU and approved cost; each line keeps N quantity-aware links to the order items it
-   * supplies (GLO-237). Serialized by an advisory lock, and the unique link per allocation makes
-   * double batching impossible even across processes.
+   * supplies (GLO-237, GLO-283). Respects supplier operating windows, working days, and cutoffs.
+   * Serialized by an advisory lock; unique link per allocation guarantees exactly-once PO creation.
    */
-  async flushProcurementBatch(actorId: string, filter: { supplierId?: string } = {}) {
-    const batchRef = 'PB-' + randomUUID();
+  async flushProcurementBatch(actorId: string, filterOrOptions: FlushBatchOptions = {}) {
+    const batchId = randomUUID();
+    const batchRef = 'PB-' + batchId;
+    const now = filterOrOptions.now ?? new Date();
+    const isEarlyFlush = filterOrOptions.isEarlyFlush ?? (actorId !== 'system:procurement-schedule');
+    const config = getProcurementBatchConfig();
+
+    const enforceWindow = filterOrOptions.expedited || !filterOrOptions.force && (
+      process.env.STRICT_OPERATING_WINDOW === 'true' ||
+      process.env.NODE_ENV !== 'test' ||
+      filterOrOptions.now !== undefined
+    );
+
+    if (filterOrOptions.supplierId) {
+      const targetSupplier = await this.prisma.supplier.findUnique({
+        where: { id: filterOrOptions.supplierId },
+      });
+      if (!targetSupplier) {
+        throw new NotFoundException(`Supplier not found with id: ${filterOrOptions.supplierId}`);
+      }
+      if (enforceWindow && isEarlyFlush) {
+        const schedule = {
+          closedWeekdays: targetSupplier.closedWeekdays,
+          closedDates: targetSupplier.closedDates,
+          opensAt: targetSupplier.opensAt,
+          closesAt: targetSupplier.closesAt,
+        };
+        if (!canSupplierReceiveOrder(now, schedule, config.timeZone)) {
+          throw new BadRequestException(
+            `Supplier ${targetSupplier.name} is currently closed and outside operating window; orders will wait for next opening.`,
+          );
+        }
+      }
+    }
+
+    let recoveryRecorded = false;
     const created = await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(${BATCH_LOCK}::int4, 0::int4)::text AS locked`;
-      const candidates = await tx.sourceAllocation.findMany({
+      let candidates = await tx.sourceAllocation.findMany({
+        take: 500,
         where: {
-          result: 'pending', poLink: null, requirement: { releasedAt: null },
-          ...(filter.supplierId ? { supplierOffer: { supplierId: filter.supplierId } } : {}),
+          result: 'pending', poLink: null, requirement: { releasedAt: null,
+            ...(filterOrOptions.recoveryOnly ? { allocations: { some: { result: { not: 'pending' } } } } : {}),
+            ...(filterOrOptions.orderIds ? { supplyRequest: { orderId: { in: filterOrOptions.orderIds } } } : {}) },
+          ...(filterOrOptions.supplierId ? { supplierOffer: { supplierId: filterOrOptions.supplierId } } : {}),
         },
-        include: { supplierOffer: true, requirement: { include: { supplyRequest: true } } },
+        include: { supplierOffer: { include: { supplier: true } }, requirement: { include: { supplyRequest: true } } },
         orderBy: { selectedAt: 'asc' },
       });
       if (!candidates.length) return [];
+      await this.supplyPlan.lockOrders(tx, candidates.map(a => a.requirement.supplyRequest.orderId));
+      for (const supplierId of [...new Set(candidates.map(a => a.supplierOffer.supplierId))].sort()) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`commit:supplier:${supplierId}`}))`;
+      }
+      const checked = await this.supplyPlan.validatePendingAllocations(tx, candidates.map(a => a.id), filterOrOptions.expedited ?? false, now);
+      candidates = checked.eligible;
+      if (checked.invalidOrderIds.length) {
+        await this.recordAdvance(tx, 'purchase_order.recovery_required', batchId, checked.invalidOrderIds);
+        recoveryRecorded = true;
+      }
 
       const bySupplier = new Map<string, typeof candidates>();
       for (const allocation of candidates) {
@@ -134,14 +180,42 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
 
       const purchaseOrderIds: string[] = [];
       for (const [supplierId, allocations] of bySupplier) {
-        const lines = new Map<string, typeof candidates>();
-        for (const allocation of allocations) {
+        const supplier = allocations[0].supplierOffer.supplier;
+        const schedule = {
+          closedWeekdays: supplier.closedWeekdays,
+          closedDates: supplier.closedDates,
+          opensAt: supplier.opensAt,
+          closesAt: supplier.closesAt,
+        };
+
+        let eligibleAllocations = allocations;
+        if (enforceWindow) {
+          if (!canSupplierReceiveOrder(now, schedule, config.timeZone)) {
+            // Closed supplier: pending demand waits for the next eligible batch
+            continue;
+          }
+          if (!isEarlyFlush) {
+            // Scheduled batch: enforce cutoff and 00:00-01:00 hold policy
+            eligibleAllocations = allocations.filter(a =>
+              isEligibleForScheduledBatch(a.selectedAt, now, schedule, config.timeZone)
+            );
+            if (!eligibleAllocations.length) continue;
+          }
+        }
+
+        const lines = new Map<string, typeof eligibleAllocations>();
+        for (const allocation of eligibleAllocations) {
           const key = [allocation.requirement.skuId, allocation.selectedCost.toFixed(2), allocation.selectedCurrency, allocation.supplierOfferId].join('|');
           lines.set(key, [...(lines.get(key) ?? []), allocation]);
         }
+        if (!lines.size) continue;
+
+        const auditReason = filterOrOptions.reason ? ` - ${filterOrOptions.reason}` : (isEarlyFlush ? ' - Early flush' : ' - Scheduled batch');
         const po = await tx.supplierPurchaseOrder.create({ data: {
-          supplierId, status: PurchaseOrderStatus.sent, batchRef, issuedAt: new Date(),
-          notes: `Procurement batch ${batchRef} by ${actorId}`,
+          supplierId, status: PurchaseOrderStatus.sent, batchRef, issuedAt: now,
+          expedited: filterOrOptions.expedited ?? false,
+          responseDeadlineAt: supplierResponseDeadline(now, schedule, getSupplierResponseMinutes(filterOrOptions.expedited)),
+          notes: `Procurement batch ${batchRef} by ${actorId}${auditReason}`,
         } });
         for (const group of lines.values()) {
           const first = group[0];
@@ -158,13 +232,88 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
         }
         purchaseOrderIds.push(po.id);
       }
+
+      if (purchaseOrderIds.length > 0) {
+        await this.events.record(tx, {
+          eventType: 'purchase_order.batch_flushed',
+          aggregateType: 'ProcurementBatch',
+          aggregateId: batchId,
+          payload: {
+            batchRef,
+            actorId,
+            reason: filterOrOptions.reason ?? (isEarlyFlush ? 'Early flush' : 'Scheduled batch'),
+            supplierId: filterOrOptions.supplierId ?? null,
+            purchaseOrderIds,
+            count: purchaseOrderIds.length,
+            timestamp: now.toISOString(),
+            isEarlyFlush,
+          },
+        });
+      }
+
       return purchaseOrderIds;
     }, { timeout: 30000 });
+    if (recoveryRecorded) this.events.dispatchSoon(batchId);
 
     const purchaseOrders = await this.prisma.supplierPurchaseOrder.findMany({
       where: { id: { in: created } }, include: lineInclude, orderBy: { createdAt: 'asc' },
     });
     return { batchRef: created.length ? batchRef : null, purchaseOrders };
+  }
+
+  /**
+   * Operational queue visibility (GLO-283): pending, open, and waiting demand per supplier,
+   * current supplier open/closed status, and next scheduled dispatch checkpoints.
+   */
+  async getBatchQueueStatus(now = new Date()) {
+    const config = getProcurementBatchConfig();
+    const [totalPendingAllocations, activeSuppliers, recentOrders] = await Promise.all([
+      this.prisma.sourceAllocation.count({ where: { result: 'pending', poLink: null, requirement: { releasedAt: null } } }),
+      this.prisma.supplier.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true, closedWeekdays: true, closedDates: true, opensAt: true, closesAt: true },
+        orderBy: { name: 'asc' }, take: 500,
+      }),
+      this.prisma.supplierPurchaseOrder.findMany({
+        where: { batchRef: { not: null } },
+        select: { id: true, batchRef: true, supplierId: true, status: true, issuedAt: true, notes: true },
+        orderBy: { issuedAt: 'desc' },
+        take: 10,
+      }),
+    ]);
+
+    const pending = activeSuppliers.length ? await this.prisma.$queryRaw<Array<{ supplier_id: string; quantity: bigint }>>`
+      SELECT offer.supplier_id, sum(a.allocated_quantity)::bigint AS quantity
+      FROM sourcing.source_allocations a
+      JOIN sourcing.supplier_offers offer ON offer.id = a.supplier_offer_id
+      JOIN sourcing.supply_requirements requirement ON requirement.id = a.requirement_id
+      WHERE a.result = 'pending' AND requirement.released_at IS NULL
+        AND offer.supplier_id IN (${Prisma.join(activeSuppliers.map(s => Prisma.sql`${s.id}::uuid`))})
+        AND NOT EXISTS (SELECT 1 FROM sourcing.purchase_order_line_allocations link WHERE link.source_allocation_id = a.id)
+      GROUP BY offer.supplier_id` : [];
+    const pendingBySupplier = new Map(pending.map(row => [row.supplier_id, Number(row.quantity)]));
+
+    const suppliers = activeSuppliers.map(s => {
+      const schedule = { closedWeekdays: s.closedWeekdays, closedDates: s.closedDates, opensAt: s.opensAt, closesAt: s.closesAt };
+      const operating = isSupplierOperating(now, schedule, config.timeZone);
+      return {
+        id: s.id,
+        name: s.name,
+        operating,
+        canReceive: operating,
+        nextOpening: nextOpening(now, schedule, { defaultToOperatingWindow: true }).toISOString(),
+        pendingQuantity: pendingBySupplier.get(s.id) ?? 0,
+      };
+    });
+
+    return {
+      now: now.toISOString(),
+      timeZone: config.timeZone,
+      nextCheckpoint: nextDispatchCheckpoint(now, config.dispatchCheckpoints, config.timeZone).toISOString(),
+      totalPendingAllocations,
+      suppliers,
+      recentBatches: recentOrders,
+    };
   }
 
   /**
@@ -195,6 +344,43 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       else if (!po.openedAt && waited >= unopenedAfter) unopened.push(view(po, waitingSince, waited));
     }
     return { unopened, unanswered };
+  }
+
+  /** Claim due orders before releasing allocations; a late answer can never race fallback successfully. */
+  async expireDuePurchaseOrders(now = new Date()) {
+    // Upgrade existing issued POs in bounded batches; unsent drafts have no response clock.
+    const legacy = await this.prisma.supplierPurchaseOrder.findMany({
+      where: { status: { in: OPEN_FOR_CONFIRMATION }, issuedAt: { not: null }, responseDeadlineAt: null },
+      include: { supplier: true }, take: 100,
+    });
+    for (const po of legacy) await this.prisma.supplierPurchaseOrder.updateMany({
+      where: { id: po.id, responseDeadlineAt: null, status: { in: OPEN_FOR_CONFIRMATION } },
+      data: { responseDeadlineAt: supplierResponseDeadline(po.issuedAt!, po.supplier, getSupplierResponseMinutes(po.expedited)) },
+    });
+    const due = await this.prisma.supplierPurchaseOrder.findMany({
+      where: { status: { in: OPEN_FOR_CONFIRMATION }, responseDeadlineAt: { lte: now } },
+      select: { id: true }, orderBy: { responseDeadlineAt: 'asc' }, take: 100,
+    });
+    for (const candidate of due) {
+      await this.prisma.$transaction(async tx => {
+        const claimed = await tx.supplierPurchaseOrder.updateMany({
+          where: { id: candidate.id, status: { in: OPEN_FOR_CONFIRMATION }, responseDeadlineAt: { lte: now } },
+          data: { status: PurchaseOrderStatus.expired },
+        });
+        if (!claimed.count) return;
+        const po = await tx.supplierPurchaseOrder.findUniqueOrThrow({ where: { id: candidate.id }, include: lineInclude });
+        const orderIds = new Set<string>();
+        for (const line of po.lines) {
+          await tx.purchaseOrderLine.update({ where: { id: line.id }, data: { status: PurchaseOrderLineStatus.unavailable, confirmedQuantity: 0 } });
+          for (const orderId of await this.applyToAllocations(tx, po.id, line.allocations, PurchaseOrderLineStatus.unavailable, 0)) orderIds.add(orderId);
+        }
+        await this.recordAdvance(tx, 'purchase_order.expired', po.id, [...orderIds]);
+      }, { timeout: 30000 });
+      // Drain each committed expiry in sequence; do not fan out 100 competing DB workers.
+      // A crash here is safe: the event is already durable and the regular dispatcher retries it.
+      await this.events.dispatchPending({ aggregateId: candidate.id });
+    }
+    return due.length;
   }
 
   async getPurchaseOrder(id: string) {
@@ -228,7 +414,8 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
   toSupplierView(order: PurchaseOrderWithLineage): SupplierPurchaseOrderView {
     return {
       id: order.id, supplierId: order.supplierId, status: order.status, notes: null, batchRef: order.batchRef,
-      issuedAt: order.issuedAt, openedAt: order.openedAt, confirmedAt: order.confirmedAt, readyAt: order.readyAt, receivedAt: order.receivedAt,
+      issuedAt: order.issuedAt, responseDeadlineAt: order.responseDeadlineAt, expedited: order.expedited,
+      openedAt: order.openedAt, confirmedAt: order.confirmedAt, readyAt: order.readyAt, receivedAt: order.receivedAt,
       createdAt: order.createdAt,
       lines: order.lines.map(line => ({
         id: line.id, skuId: line.skuId, requestedQuantity: line.requestedQuantity, confirmedQuantity: line.confirmedQuantity,
@@ -254,8 +441,33 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     return { total, items };
   }
 
+  async reportExpiryDispute(id: string, note: string) {
+    await this.prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'po-expiry-dispute:' + id}))`;
+      const po = await tx.supplierPurchaseOrder.findUniqueOrThrow({ where: { id } });
+      if (po.status !== 'expired' && !(OPEN_FOR_CONFIRMATION.includes(po.status) && po.responseDeadlineAt && po.responseDeadlineAt <= new Date())) {
+        throw new ConflictException('Only expired authorizations require expiry reconciliation');
+      }
+      await this.support.openOperationalException(tx, { dedupKey: 'po-expiry-dispute:' + id,
+        category: 'sourcing', priority: 'high', supplierId: po.supplierId,
+        title: 'Disputed handover for expired PO ' + id.slice(0, 8),
+        description: 'PO ' + id + '. Supplier reports: ' + note + '. No procurement or Hub receipt is authorized by this report.',
+      });
+    });
+    return { recorded: true };
+  }
+
   async confirmPurchaseOrder(id: string, dto: ConfirmPurchaseOrderDto) {
     const order = await this.getPurchaseOrder(id);
+    if (order.issuedAt && !order.responseDeadlineAt && OPEN_FOR_CONFIRMATION.includes(order.status)) {
+      const supplier = await this.prisma.supplier.findUniqueOrThrow({ where: { id: order.supplierId } });
+      order.responseDeadlineAt = supplierResponseDeadline(order.issuedAt, supplier, getSupplierResponseMinutes(order.expedited));
+      await this.prisma.supplierPurchaseOrder.updateMany({ where: { id, responseDeadlineAt: null, status: { in: OPEN_FOR_CONFIRMATION } },
+        data: { responseDeadlineAt: order.responseDeadlineAt } });
+    }
+    if (order.status === PurchaseOrderStatus.expired || (OPEN_FOR_CONFIRMATION.includes(order.status) && order.responseDeadlineAt && order.responseDeadlineAt <= new Date())) {
+      throw new ConflictException('Purchase order expired; do not prepare or hand over goods against this PO');
+    }
 
     const lineIds = order.lines.map(l => l.id);
     const dtoLineIds = dto.lines.map(l => l.id);
@@ -281,29 +493,40 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       throw new ConflictException('PurchaseOrder was already confirmed');
     }
 
+    if (order.lines.some(line => !line.allocations.length)) {
+      throw new ConflictException('Legacy purchase order has no allocation lineage; reconcile with operations before new authorization');
+    }
     const result = await this.prisma.$transaction(async tx => {
       let isPartial = false;
-      const shortages: { skuId: string; missingQty: number }[] = [];
       const touchedOrders = new Set<string>();
 
       // Claim the order first so a replayed or concurrent confirmation cannot apply twice.
       const claimed = await tx.supplierPurchaseOrder.updateMany({
-        where: { id, status: { in: OPEN_FOR_CONFIRMATION } },
+        where: { id, status: { in: OPEN_FOR_CONFIRMATION },
+          OR: [{ responseDeadlineAt: null }, { responseDeadlineAt: { gt: new Date() } }] },
         data: { status: PurchaseOrderStatus.confirmed, confirmedAt: new Date() },
       });
       if (claimed.count !== 1) throw new ConflictException('PurchaseOrder was already confirmed');
+      const linkedOrders = order.lines.flatMap(line => line.allocations.map(link => link.orderId));
+      if (linkedOrders.length) await this.supplyPlan.lockOrders(tx, linkedOrders);
 
       for (const { original, status, quantity, exception } of confirmations) {
+        if (quantity < original.requestedQuantity && original.supplierOfferId) {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`commit:supplier:${order.supplierId}`}))`;
+          await tx.supplierOffer.update({ where: { id: original.supplierOfferId },
+            data: { isAvailable: false, shortageObservedAt: new Date() } });
+        }
         if (status !== PurchaseOrderLineStatus.confirmed_full) {
           isPartial = true;
-          const missing = original.requestedQuantity - quantity;
-          if (missing > 0 && !original.allocations.length) shortages.push({ skuId: original.skuId, missingQty: missing });
         }
 
         const needsDistribution = status === PurchaseOrderLineStatus.confirmed_partial && original.allocations.length > 1;
+        const split = needsDistribution ? await this.automaticDistribution(tx, original, quantity) : null;
         await tx.purchaseOrderLine.update({
           where: { id: original.id },
-          data: { status, confirmedQuantity: quantity, distributionRequired: needsDistribution, ...(exception ?? {}) },
+          data: { status, confirmedQuantity: quantity, distributionRequired: needsDistribution && !split,
+            ...(split ? { distributedBy: 'system:delivery-ready-fifo-v1', distributedAt: new Date(), distributionReason: split.audit } : {}),
+            ...(exception ?? {}) },
         });
         if (exception) {
           // Never silently accepted: impossible packs/MOQs and new prices become a procurement decision,
@@ -317,8 +540,8 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
               exception.exceptionNote ?? null].filter(Boolean).join(' '),
           });
         }
-        if (!needsDistribution) {
-          for (const orderId of await this.applyToAllocations(tx, order.id, original.allocations, status, quantity)) touchedOrders.add(orderId);
+        if (!needsDistribution || split) {
+          for (const orderId of await this.applyToAllocations(tx, order.id, original.allocations, status, quantity, split?.quantities)) touchedOrders.add(orderId);
         }
       }
 
@@ -331,22 +554,61 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       });
       await this.recordAdvance(tx, 'purchase_order.confirmed', id, [...touchedOrders]);
 
-      return { updatedOrder, shortages };
+      return { updatedOrder };
     }, { timeout: 30000 });
     this.events.dispatchSoon(id);
 
-    // Legacy manual lines without lineage keep the previous behaviour: queue a fallback PO.
-    if (result.shortages.length > 0) {
-      for (const shortage of result.shortages) {
-        try {
-          await this.autoSourceDemand(shortage.skuId, shortage.missingQty, [order.supplierId], 0);
-        } catch (err) {
-          this.logger.warn(`Failed to auto-source shortage for SKU ${shortage.skuId}: ${(err as Error).message}`);
-        }
-      }
-    }
-
     return result.updatedOrder;
+  }
+
+  private async automaticDistribution(tx: Tx, line: PurchaseOrderWithLineage['lines'][number], quantity: number) {
+    const ids = [...new Set(line.allocations.map(link => link.orderId))];
+    const [orders, requests] = await Promise.all([
+      tx.order.findMany({ where: { id: { in: ids } }, select: { id: true, promisedDate: true, createdAt: true, status: true } }),
+      tx.supplyRequest.findMany({ where: { orderId: { in: ids } }, include: { requirements: { where: { releasedAt: null },
+        include: { allocations: { include: { poLink: { select: { receivedQuantity: true } } } } } } } }),
+    ]);
+    const entries = line.allocations.map(link => {
+      const order = orders.find(o => o.id === link.orderId);
+      const request = requests.find(r => r.orderId === link.orderId);
+      const current = request?.requirements.find(r => r.orderItemId === link.orderItemId);
+      if (!order || !current || !['placed', 'confirmed', 'packing'].includes(order.status)) return null;
+      return { id: link.sourceAllocationId, orderId: order.id, quantity: link.quantity,
+        deliveryDeadline: committedDeliveryDeadline(order.promisedDate)?.getTime() ?? Number.MAX_SAFE_INTEGER,
+        otherwiseReady: request!.requirements.filter(r => r.id !== current.id).every(r =>
+          r.allocations.reduce((sum, a) => sum + (a.poLink?.receivedQuantity ?? 0), 0) >= r.requiredQuantity),
+        orderCreatedAt: order.createdAt.getTime() };
+    });
+    if (entries.some(entry => entry === null)) {
+      await this.support.openOperationalException(tx, { dedupKey: `po-distribution-conflict:${line.id}`,
+        category: 'sourcing', priority: 'high', title: 'Supplier confirmation conflicts with cancelled or amended demand',
+        description: `Line ${line.id}: keep ${quantity} confirmed units held for reconciliation; no replacement commitment issued.` });
+      return null;
+    }
+    const active = entries.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+    const quantities = allocateScarceQuantity(active, quantity);
+    return { quantities, audit: JSON.stringify({ policy: 'delivery-ready-fifo-v1', entries: active.map(entry => ({ ...entry, allocated: quantities.get(entry.id) })) }) };
+  }
+
+  /** Bounded restart recovery for shared partial lines confirmed before the automatic policy was installed. */
+  async distributePendingLines() {
+    const pending = await this.prisma.purchaseOrderLine.findMany({ where: { distributionRequired: true, distributedBy: null,
+      status: PurchaseOrderLineStatus.confirmed_partial }, select: { id: true }, orderBy: { createdAt: 'asc' }, take: 50 });
+    for (const candidate of pending) {
+      await this.prisma.$transaction(async tx => {
+        const claimed = await tx.purchaseOrderLine.updateMany({ where: { id: candidate.id, distributionRequired: true, distributedBy: null },
+          data: { distributedBy: 'system:delivery-ready-fifo-v1' } });
+        if (!claimed.count) return;
+        const line = await tx.purchaseOrderLine.findUniqueOrThrow({ where: { id: candidate.id }, include: { allocations: true } });
+        await this.supplyPlan.lockOrders(tx, line.allocations.map(link => link.orderId));
+        const split = await this.automaticDistribution(tx, line, line.confirmedQuantity ?? 0);
+        if (!split) return;
+        await tx.purchaseOrderLine.update({ where: { id: line.id }, data: { distributionRequired: false, distributedAt: new Date(), distributionReason: split.audit } });
+        const orderIds = await this.applyToAllocations(tx, line.purchaseOrderId, line.allocations, line.status, line.confirmedQuantity ?? 0, split.quantities);
+        await this.recordAdvance(tx, 'purchase_order_line.distributed', line.id, orderIds);
+      }, { timeout: 30000 });
+      await this.events.dispatchPending({ aggregateId: candidate.id });
+    }
   }
 
   /**
@@ -585,41 +847,4 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async autoSourceDemand(skuId: string, quantity: number, excludedSupplierIds: string[] = [], loopCount: number = 0) {
-    if (loopCount >= 3) {
-      throw new BadRequestException(`Maximum auto-sourcing loop reached for SKU ${skuId}. No reliable supplier found.`);
-    }
-
-    const ranking = await this.rankingService.rankOffersForSku(skuId, quantity);
-
-    // Filter out excluded suppliers (those who already rejected/partialed this demand loop)
-    const validOffers = ranking.rankedOffers.filter(o => !excludedSupplierIds.includes(o.supplierId));
-
-    if (validOffers.length === 0) {
-      throw new NotFoundException(`No alternative suppliers found for shortage of SKU ${skuId}`);
-    }
-
-    const bestOffer = validOffers[0];
-
-    const newOrder = await this.prisma.supplierPurchaseOrder.create({
-      data: {
-        supplierId: bestOffer.supplierId,
-        status: PurchaseOrderStatus.created,
-        notes: `Auto-sourced fallback (Log ID: ${ranking.decisionLogId})`,
-        lines: {
-          create: [{
-            skuId,
-            requestedQuantity: quantity,
-            status: PurchaseOrderLineStatus.pending,
-            unitCost: bestOffer.costPrice,
-            currency: bestOffer.currency,
-            supplierOfferId: bestOffer.id,
-          }]
-        }
-      },
-      include: { lines: true }
-    });
-
-    return newOrder;
-  }
 }

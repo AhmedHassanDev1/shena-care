@@ -35,7 +35,7 @@ describe('GLO-237/243 supplier exceptions and receiving shortfalls (e2e)', () =>
   const procure = async (quantity: number, fallbackCost?: number) => {
     const sku = await createSellableSku(prisma); // supplier offer at 50 EGP
     if (fallbackCost) {
-      const fallback = await prisma.supplier.create({ data: { name: 'Fallback ' + randomUUID(), slug: 'fallback-' + randomUUID() } });
+      const fallback = await prisma.supplier.create({ data: { name: 'Fallback ' + randomUUID(), slug: 'fallback-' + randomUUID(), pickupLeadMinutes: 10, opensAt: '00:00', closesAt: '23:59', closedWeekdays: [] } });
       await prisma.supplierOffer.create({ data: { supplierId: fallback.id, skuId: sku.id, costPrice: fallbackCost, currency: 'EGP', lastObservedAt: new Date(), lastConfirmedAt: new Date() } });
     }
     const supplier = await createActor(prisma, 'SUPPLIER', sku.supplierId);

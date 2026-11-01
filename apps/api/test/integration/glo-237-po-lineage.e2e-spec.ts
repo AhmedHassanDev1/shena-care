@@ -56,7 +56,7 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
     events = app.get(DomainEventsService);
     const sku = await createSellableSku(prisma); // its own supplier offer at cost 50 = supplier A
     skuId = sku.id; skuVariant = sku.variantName; skuBarcode = sku.barcode!; supplierAId = sku.supplierId;
-    supplierBId = (await prisma.supplier.create({ data: { name: 'Fallback B ' + randomUUID(), slug: 'fallback-b-' + randomUUID() } })).id;
+    supplierBId = (await prisma.supplier.create({ data: { name: 'Fallback B ' + randomUUID(), slug: 'fallback-b-' + randomUUID(), closedWeekdays: [], opensAt: '00:00', closesAt: '23:59', pickupLeadMinutes: 10 } })).id;
     await prisma.supplierOffer.create({ data: {
       supplierId: supplierBId, skuId, costPrice: 60, currency: 'EGP', lastObservedAt: new Date(), lastConfirmedAt: new Date(),
     } });
@@ -106,7 +106,7 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
     const inboxB = await http().get('/purchase-orders').set(supplierB.auth).expect(200);
     expect(inboxB.body.items.map((p: { id: string }) => p.id)).not.toContain(po.id);
 
-    // Shared partial: 3 of 5 for two orders needs an explicit distribution; nothing is guessed.
+    // Shared partial: 3 of 5 is distributed by the approved delivery/readiness/FIFO policy.
     const confirmed = await http().post(`/purchase-orders/${po.id}/confirm`).set(supplierA.auth)
       .send({ lines: [{ id: po.lines[0].id, status: 'confirmed_partial', confirmedQuantity: 3 }] }).expect(201);
     expect(confirmed.body.status).toBe('partial');
@@ -116,22 +116,15 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
     await http().post(`/purchase-orders/${po.id}/confirm`).set(supplierA.auth)
       .send({ lines: [{ id: po.lines[0].id, status: 'confirmed_full' }] }).expect(409);
     const line = await prisma.purchaseOrderLine.findUniqueOrThrow({ where: { id: po.lines[0].id } });
-    expect(line).toMatchObject({ distributionRequired: true, confirmedQuantity: 3 });
-    expect((await allocationsOf(first.id))[0].result).toBe('pending');
-    expect((await allocationsOf(second.id))[0].result).toBe('pending');
-
+    expect(line).toMatchObject({ distributionRequired: false, confirmedQuantity: 3, distributedBy: 'system:delivery-ready-fifo-v1' });
+    const a1 = (await allocationsOf(first.id))[0].id; const a2 = (await allocationsOf(second.id))[0].id;
+    const valid = { allocations: [{ sourceAllocationId: a1, quantity: 2 }, { sourceAllocationId: a2, quantity: 1 }], reason: 'Already allocated by policy' };
     const distribute = (actor: Actor, body: unknown) =>
       http().post(`/purchase-orders/${po.id}/lines/${line.id}/distribute`).set(actor.auth).send(body);
-    const a1 = (await allocationsOf(first.id))[0].id; const a2 = (await allocationsOf(second.id))[0].id;
-    const valid = { allocations: [{ sourceAllocationId: a1, quantity: 2 }, { sourceAllocationId: a2, quantity: 1 }], reason: 'Oldest order first (owner decision)' };
     await distribute(supplierA, valid).expect(403);
     await distribute(hub, valid).expect(403);
-    await distribute(admin, { ...valid, allocations: [{ sourceAllocationId: a1, quantity: 2 }, { sourceAllocationId: a2, quantity: 2 }] }).expect(400);
-    await distribute(admin, { ...valid, allocations: [{ sourceAllocationId: a1, quantity: 3 }] }).expect(400);
-    await distribute(admin, { ...valid, allocations: [{ sourceAllocationId: a1, quantity: 3 }, { sourceAllocationId: a2, quantity: 0 }] }).expect(400);
-    await distribute(admin, valid).expect(201);
     await distribute(admin, valid).expect(409);
-    await settleEvents(line.id);
+    await settleEvents(po.id);
 
     const firstAllocations = await allocationsOf(first.id);
     expect(firstAllocations).toHaveLength(1);
@@ -145,11 +138,20 @@ describe('GLO-237 supplier PO ↔ allocation lineage (e2e)', () => {
     ]);
     expect((await plan(first)).status).toBe('COVERED');
 
-    // The fallback demand goes out on supplier B's next batch, linked to order 2 only.
-    const fallback = (await flush(supplierBId)).purchaseOrders;
-    expect(fallback).toHaveLength(1);
+    // Distribution triggers immediate durable recovery, linked to order 2 only.
+    await settleEvents(po.id);
+    const alternate = await prisma.supplierPurchaseOrder.findMany({
+      where: {
+        supplierId: supplierBId,
+        lines: { some: { allocations: { some: { orderId: second.id } } } },
+      },
+    });
+    expect(alternate).toHaveLength(1);
+    const fallback = [(await http().get(`/purchase-orders/${alternate[0].id}`).set(admin.auth).expect(200)).body];
+    expect(fallback[0].expedited).toBe(true);
     expect(fallback[0].lines[0]).toMatchObject({ requestedQuantity: 2, unitCost: '60' });
     expect(fallback[0].lines[0].allocations).toEqual([expect.objectContaining({ orderId: second.id, quantity: 2 })]);
+    expect((await flush(supplierBId)).purchaseOrders).toHaveLength(0);
 
     // Supplier Ready is not a Hub receipt.
     await http().post(`/purchase-orders/${po.id}/ready`).set(supplierB.auth).expect(403);

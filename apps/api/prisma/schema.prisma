@@ -408,7 +408,10 @@ model Supplier {
   isActive  Boolean  @default(true) @map("is_active")
   /// Days the warehouse is closed (0 = Sunday … 6 = Saturday); Friday by default.
   closedWeekdays Int[]   @default([5]) @map("closed_weekdays")
-  /// Working hours "HH:MM" (Cairo time); both empty = open all day.
+  closedDates String[]   @default([]) @map("closed_dates")
+  /// Staff-verified preparation, pickup and onward delivery lead after accepted confirmation; null blocks automatic recovery.
+  pickupLeadMinutes Int? @map("pickup_lead_minutes")
+  /// Working hours "HH:MM" in the configured supplier timezone; empty uses the configured defaults.
   opensAt   String?  @map("opens_at") @db.VarChar(5)
   closesAt  String?  @map("closes_at") @db.VarChar(5)
   createdAt DateTime @default(now()) @map("created_at")
@@ -457,6 +460,10 @@ model SupplierOffer {
   /// Quantity the supplier says it can supply now; null = not reported (yes/no availability only).
   availableQuantity Int?    @map("available_quantity")
   quantityUpdatedAt DateTime? @map("quantity_updated_at")
+  /// PO shortage evidence; does not rewrite the supplier's physical stock snapshot.
+  shortageObservedAt DateTime? @map("shortage_observed_at")
+  minimumOrderUnits Int @default(1) @map("minimum_order_units")
+  orderMultipleUnits Int @default(1) @map("order_multiple_units")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -467,6 +474,21 @@ model SupplierOffer {
   @@index([supplierId])
   @@index([skuId])
   @@map("supplier_offers")
+  @@schema("sourcing")
+}
+
+model SourcingDecision {
+  id String @id @default(uuid()) @db.Uuid
+  skuId String @map("sku_id") @db.Uuid
+  requiredQuantity Int @map("required_quantity")
+  requirementId String? @map("requirement_id") @db.Uuid
+  rankedOffers Json @map("ranked_offers")
+  excludedOffers Json @map("excluded_offers")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([requirementId, createdAt])
+  @@index([skuId, createdAt])
+  @@map("sourcing_decisions")
   @@schema("sourcing")
 }
 
@@ -547,6 +569,7 @@ model SourceAllocation {
   @@unique([requirementId, supplierOfferId])
   @@index([requirementId])
   @@map("source_allocations")
+  @@index([result, selectedAt])
   @@schema("sourcing")
 }
 
@@ -580,6 +603,7 @@ enum PurchaseOrderStatus {
   created
   sent
   reviewed
+  expired
   confirmed
   partial
   ready
@@ -607,6 +631,8 @@ model SupplierPurchaseOrder {
   /// Procurement batch run that consolidated this PO (GLO-237); null for manual POs.
   batchRef   String?             @map("batch_ref") @db.VarChar(64)
   issuedAt   DateTime?           @map("issued_at")
+  responseDeadlineAt DateTime?   @map("response_deadline_at")
+  expedited Boolean             @default(false)
   openedAt   DateTime?           @map("opened_at")
   confirmedAt DateTime?          @map("confirmed_at")
   readyAt    DateTime?           @map("ready_at")
@@ -620,6 +646,7 @@ model SupplierPurchaseOrder {
 
   @@index([supplierId])
   @@index([batchRef])
+  @@index([status, responseDeadlineAt])
   @@map("supplier_purchase_orders")
   @@schema("sourcing")
 }
@@ -698,6 +725,7 @@ model PurchaseOrderLine {
   @@index([purchaseOrderId])
   @@index([skuId])
   @@map("purchase_order_lines")
+  @@index([distributionRequired, createdAt])
   @@schema("sourcing")
 }
 

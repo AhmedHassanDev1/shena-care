@@ -10,10 +10,8 @@ import {
   Eye,
   FileSpreadsheet,
   Package,
-  PackageCheck,
   RefreshCw,
   Search,
-  ShoppingBag,
   Truck,
   Warehouse,
 } from 'lucide-react'
@@ -53,6 +51,8 @@ export interface SupplierPo {
   batchRef: string | null
   notes: string | null
   issuedAt: string | null
+  responseDeadlineAt: string | null
+  expedited: boolean
   openedAt: string | null
   confirmedAt: string | null
   readyAt: string | null

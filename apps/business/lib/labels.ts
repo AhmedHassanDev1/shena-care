@@ -37,6 +37,7 @@ export const PO_STATUS: Labelled = {
   created: ['جديد — محتاج رد', 'warn'],
   sent: ['اتبعت — محتاج رد', 'warn'],
   reviewed: ['اتراجع — محتاج رد', 'warn'],
+  expired: ['انتهت مهلة الرد — لا تجهّز أو تسلّم', 'warn'],
   confirmed: ['اتأكد', 'ok'],
   partial: ['اتأكد جزئي', 'warn'],
   ready: ['المورد جهّزه — لسه ماوصلش المخزن', 'neutral'],

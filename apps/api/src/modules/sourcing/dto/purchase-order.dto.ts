@@ -1,4 +1,4 @@
-import { IsString, IsArray, IsInt, IsOptional, ValidateNested, IsEnum, IsUUID, Min, Max, MaxLength, IsNotEmpty, ArrayMinSize, IsIn, IsNumber } from 'class-validator';
+import { IsString, IsArray, IsInt, IsOptional, ValidateNested, IsEnum, IsUUID, Min, Max, MaxLength, IsNotEmpty, ArrayMinSize, IsIn, IsNumber, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PurchaseOrderLineStatus, PurchaseOrderStatus } from '@prisma/client';
 
@@ -91,6 +91,17 @@ export class FlushProcurementBatchDto {
   @IsOptional()
   @IsUUID()
   supplierId?: string;
+
+  /** Stated operational reason for manual / early batch flush (audited). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+
+  /** If true, authorizes force-dispatching even if supplier is currently outside operating window. */
+  @IsOptional()
+  @IsBoolean()
+  force?: boolean;
 }
 
 export class ListPurchaseOrdersQueryDto {
@@ -132,4 +143,12 @@ export class RecordShortfallDto {
   @IsString()
   @MaxLength(500)
   notes?: string;
+}
+
+/** Records a disputed physical preparation/handover; never reauthorizes procurement. */
+export class PurchaseOrderExpiryDisputeDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(1000)
+  note: string;
 }

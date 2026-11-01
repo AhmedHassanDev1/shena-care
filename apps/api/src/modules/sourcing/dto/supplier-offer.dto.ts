@@ -1,6 +1,15 @@
 import { IsString, IsNotEmpty, IsNumber, IsBoolean, IsOptional, IsInt, Min } from 'class-validator';
 
 export class CreateSupplierOfferDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  minimumOrderUnits?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  orderMultipleUnits?: number;
   @IsString()
   @IsNotEmpty()
   supplierId: string;
@@ -29,6 +38,15 @@ export class CreateSupplierOfferDto {
 }
 
 export class UpdateSupplierOfferDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  minimumOrderUnits?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  orderMultipleUnits?: number;
   @IsNumber()
   @Min(0)
   @IsOptional()

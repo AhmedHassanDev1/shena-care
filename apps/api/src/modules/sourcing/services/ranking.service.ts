@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { SupplierOfferDetail } from './sourcing.service';
 import { SOURCING_SIGNAL_MAX_AGE_MS } from './availability-policy';
+import { Prisma } from '@prisma/client';
+import { RecoveryContext, recoveryExclusions } from './procurement-policy';
 
 export interface RankedOffer extends SupplierOfferDetail {
   score: number;
@@ -51,8 +53,12 @@ export class RankingService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async rankOffersForSku(skuId: string, quantity: number): Promise<RankingResult> {
-    const rawOffers = await this.prisma.supplierOffer.findMany({
+  async rankOffersForSku(skuId: string, quantity: number, options: {
+    tx?: Prisma.TransactionClient; requirementId?: string; attemptedOfferIds?: string[]; recovery?: RecoveryContext;
+  } = {}): Promise<RankingResult> {
+    const db = options.tx ?? this.prisma;
+    const rawOffers = await db.supplierOffer.findMany({
+      take: 100, orderBy: { id: 'asc' },
       where: {
         skuId,
         supplier: {
@@ -72,6 +78,7 @@ export class RankingService {
     const exclude = (offer: { id: string; supplierId: string }, reasonCodes: string[]) =>
       excludedOffers.push({ offerId: offer.id, supplierId: offer.supplierId, reasonCodes });
     const now = new Date();
+    const deferred = new Set<string>();
     const daysSince = (offer: { lastObservedAt: Date }) => (now.getTime() - offer.lastObservedAt.getTime()) / (1000 * 3600 * 24);
 
     // Hard filters
@@ -80,6 +87,13 @@ export class RankingService {
       if (!offer.isAvailable) reasons.push('OUT_OF_STOCK');
       if (daysSince(offer) > this.STALE_THRESHOLD_DAYS) reasons.push('STALE_OFFER');
       if (offer.costPrice.toNumber() <= 0) reasons.push('INVALID_COST');
+      if (options.attemptedOfferIds?.includes(offer.id)) reasons.push('ALREADY_ATTEMPTED');
+      if (options.recovery) {
+        const eligibility = recoveryExclusions({ ...offer, costPrice: offer.costPrice.toNumber() }, options.recovery);
+        if (eligibility.length === 1 && eligibility[0] === 'SUPPLIER_CLOSED') {
+          deferred.add(offer.id);
+        } else reasons.push(...eligibility);
+      }
       if (reasons.length) exclude(offer, reasons);
       return reasons.length === 0;
     });
@@ -110,7 +124,7 @@ export class RankingService {
     const reliabilityOf = new Map<string, { reliable: boolean; reliability: number }>();
     for (const offer of candidates) {
       const cost = offer.costPrice.toNumber();
-      const { score: reliability, history } = await this.calculateSupplierReliability(offer.supplierId);
+      const { score: reliability, history } = await this.calculateSupplierReliability(offer.supplierId, db);
       const reliable = history < MIN_RELIABILITY_HISTORY || reliability >= RELIABILITY_FLOOR;
       const freshnessScore = Math.max(0, this.STALE_THRESHOLD_DAYS - daysSince(offer));
       const reasonCodes = [
@@ -119,6 +133,7 @@ export class RankingService {
         `FRESHNESS_SCORE:${freshnessScore.toFixed(2)}`,
         ...(reliable ? [] : ['LOW_CONFIRMATION_RELIABILITY']),
         ...(flags.get(offer.id) ?? []),
+        ...(deferred.has(offer.id) ? ['DEFER_UNTIL_SUPPLIER_OPENS'] : []),
       ];
       reliabilityOf.set(offer.id, { reliable, reliability });
       eligibleOffers.push({ ...offer, costPrice: cost, score: 0, reasonCodes });
@@ -126,6 +141,7 @@ export class RankingService {
 
     const tier = (o: RankedOffer) => reliabilityOf.get(o.id)!;
     eligibleOffers.sort((a, b) =>
+      Number(deferred.has(a.id)) - Number(deferred.has(b.id)) ||
       Number(tier(b).reliable) - Number(tier(a).reliable) ||
       a.costPrice - b.costPrice ||
       tier(b).reliability - tier(a).reliability ||
@@ -133,20 +149,24 @@ export class RankingService {
       a.id.localeCompare(b.id));
     const rankedOffers = eligibleOffers.map((offer, index) => ({ ...offer, score: eligibleOffers.length - index }));
 
-    const decisionLogId = await this.auditRankingDecision(skuId, quantity, rankedOffers);
+    const decision = await db.sourcingDecision.create({ data: { skuId, requiredQuantity: quantity,
+      requirementId: options.requirementId,
+      rankedOffers: rankedOffers.map(o => ({ offerId: o.id, supplierId: o.supplierId, cost: o.costPrice, reasons: o.reasonCodes })),
+      excludedOffers: excludedOffers as unknown as Prisma.InputJsonValue,
+    } });
 
     return {
       skuId,
       requiredQuantity: quantity,
       rankedOffers,
       excludedOffers,
-      decisionLogId
+      decisionLogId: decision.id,
     };
   }
 
-  private async calculateSupplierReliability(supplierId: string): Promise<{ score: number; history: number }> {
+  private async calculateSupplierReliability(supplierId: string, db: Prisma.TransactionClient): Promise<{ score: number; history: number }> {
     // Look at past PO lines for this supplier
-    const totalLines = await this.prisma.purchaseOrderLine.count({
+    const totalLines = await db.purchaseOrderLine.count({
       where: {
         purchaseOrder: { supplierId }
       }
@@ -156,14 +176,14 @@ export class RankingService {
       return { score: 0.5, history: 0 }; // Neutral prior for new suppliers
     }
 
-    const fullConfirmed = await this.prisma.purchaseOrderLine.count({
+    const fullConfirmed = await db.purchaseOrderLine.count({
       where: {
         purchaseOrder: { supplierId },
         status: 'confirmed_full'
       }
     });
 
-    const unavailable = await this.prisma.purchaseOrderLine.count({
+    const unavailable = await db.purchaseOrderLine.count({
       where: {
         purchaseOrder: { supplierId },
         status: 'unavailable'
@@ -178,11 +198,4 @@ export class RankingService {
     return { score: Math.max(0, Math.min(1, baseScore - penalty)), history: totalLines };
   }
 
-  private async auditRankingDecision(skuId: string, quantity: number, rankedOffers: RankedOffer[]): Promise<string> {
-    // In a real app this would write to a specialized audit log or timeseries DB
-    // For MVP, we just return a generated ID representing the snapshot
-    const uuid = crypto.randomUUID();
-    // this.prisma.rankingAuditLog.create(...)
-    return uuid;
-  }
 }

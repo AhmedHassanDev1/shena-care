@@ -14,6 +14,7 @@ describe('RankingService', () => {
       purchaseOrderLine: {
         count: jest.fn(),
       },
+      sourcingDecision: { create: jest.fn().mockResolvedValue({ id: 'decision-1' }) },
     } as any;
 
     service = new RankingService(prismaService);

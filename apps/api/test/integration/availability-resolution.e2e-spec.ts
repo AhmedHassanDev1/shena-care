@@ -241,7 +241,7 @@ describe('Customer availability resolution + order amendment (e2e)', () => {
     const owner = await registerCustomer();
     const { product, original } = await makeProduct();
     // a second supplier for the SAME sku: Sourcing falls back internally
-    const supplier = await prisma.supplier.create({ data: { name: 'Fallback ' + randomUUID(), slug: 'fallback-' + randomUUID() } });
+    const supplier = await prisma.supplier.create({ data: { name: 'Fallback ' + randomUUID(), slug: 'fallback-' + randomUUID(), pickupLeadMinutes: 10, opensAt: '00:00', closesAt: '23:59', closedWeekdays: [] } });
     await prisma.supplierOffer.create({ data: { supplierId: supplier.id, skuId: original.id, costPrice: 70, currency: 'EGP', lastObservedAt: new Date(), isAvailable: true } });
     const order = await makeOrder(owner.id, [{ skuId: original.id, quantity: 1, productId: product.id }]);
     const plan = await plans.initiateForOrder(order.id);

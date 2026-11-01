@@ -1,3 +1,4 @@
+import { attachPurchaseOrderLineage } from '../fixtures/purchase-order-lineage';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -16,7 +17,7 @@ import { createSellableSku } from '../fixtures/sellable-sku';
 describe('GLO-205 security regressions (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let customer: Actor; let hub: Actor; let admin: Actor; let supplierA: Actor; let supplierB: Actor;
+  let customer: Actor; let hub: Actor; let supplierA: Actor; let supplierB: Actor;
   let supplierAId: string; let supplierBId: string;
   let offerA: string; let offerB: string;
   let poA: string; let poB: string;
@@ -42,12 +43,15 @@ describe('GLO-205 security regressions (e2e)', () => {
 
     customer = await createActor(prisma, 'CUSTOMER');
     hub = await createActor(prisma, 'HUB_OPERATOR');
-    admin = await createActor(prisma, 'ADMIN');
     supplierA = await createActor(prisma, 'SUPPLIER', supplierAId);
     supplierB = await createActor(prisma, 'SUPPLIER', supplierBId);
 
-    const po = async (supplierId: string) => (await http().post('/purchase-orders').set(admin.auth)
-      .send({ supplierId, lines: [{ skuId, requestedQuantity: 5 }] }).expect(201)).body;
+    const po = async (supplierId: string) => {
+      const created = await prisma.supplierPurchaseOrder.create({ data: { supplierId,
+        lines: { create: [{ skuId, requestedQuantity: 5 }] } } });
+      await attachPurchaseOrderLineage(prisma, created.id);
+      return created;
+    };
     poA = (await po(supplierAId)).id;
     poB = (await po(supplierBId)).id;
   });

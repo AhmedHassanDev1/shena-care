@@ -38,6 +38,13 @@ describe('Supplier schedule drives the promised delivery date (e2e)', () => {
   });
   afterAll(async () => { await app.close(); });
 
+  it('persists explicit closure dates instead of silently dropping them', async () => {
+    await http().patch(`/sourcing/suppliers/${supplierId}`).set(admin.auth)
+      .send({ closedDates: ['2027-01-17'] }).expect(200);
+    expect(await prisma.supplier.findUniqueOrThrow({ where: { id: supplierId } })).toMatchObject({ closedDates: ['2027-01-17'] });
+    await http().patch(`/sourcing/suppliers/${supplierId}`).set(admin.auth).send({ closedDates: [] }).expect(200);
+  });
+
   it('closes every supplier on Friday by default and quotes the next open day', async () => {
     const supplier = await prisma.supplier.findUniqueOrThrow({ where: { id: supplierId } });
     expect(supplier).toMatchObject({ closedWeekdays: [5], opensAt: null, closesAt: null });
@@ -66,6 +73,8 @@ describe('Supplier schedule drives the promised delivery date (e2e)', () => {
     await patch({ closedWeekdays: [7] }).expect(400);
     await patch({ closedWeekdays: [5, 5] }).expect(400);
     await patch({ opensAt: '9am' }).expect(400);
+    await patch({ closedDates: ['not-a-date'] }).expect(400);
+    await patch({ closedDates: ['2027-02-31'] }).expect(400);
     await patch({ opensAt: '21:00', closesAt: '09:00' }).expect(400);
     await patch({ closedWeekdays: [5] }).expect(200);
   });

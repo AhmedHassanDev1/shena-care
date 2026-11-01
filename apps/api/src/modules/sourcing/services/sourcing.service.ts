@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import {
   Injectable,
   NotFoundException,
@@ -49,6 +50,13 @@ export class SourcingService {
     private readonly commerceService: CommerceService,
   ) {}
 
+  private async mutateSupplier<T>(supplierId: string, write: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'commit:supplier:' + supplierId}))`;
+      return write(tx);
+    }, { timeout: 30000 });
+  }
+
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
   }
@@ -68,12 +76,21 @@ export class SourcingService {
       throw new ConflictException(`Supplier with name or slug already exists.`);
     }
 
+    const opensAt = dto.opensAt ?? null;
+    const closesAt = dto.closesAt ?? null;
+    if ((opensAt === null) !== (closesAt === null) ||
+        (opensAt !== null && closesAt !== null && (opensAt === closesAt || (opensAt > closesAt && !dto.crossesMidnight)))) {
+      throw new BadRequestException('Working hours need both opensAt and closesAt, with opensAt earlier than closesAt (or specify crossesMidnight)');
+    }
+
     const supplier = await this.prisma.supplier.create({
       data: {
         name: dto.name,
         slug: dto.slug,
         isActive: dto.isActive ?? true,
         ...(dto.closedWeekdays !== undefined && { closedWeekdays: dto.closedWeekdays }),
+        ...(dto.closedDates !== undefined && { closedDates: dto.closedDates }),
+        ...(dto.pickupLeadMinutes !== undefined && { pickupLeadMinutes: dto.pickupLeadMinutes }),
         ...(dto.opensAt !== undefined && { opensAt: dto.opensAt }),
         ...(dto.closesAt !== undefined && { closesAt: dto.closesAt }),
       },
@@ -116,20 +133,27 @@ export class SourcingService {
 
     const opensAt = dto.opensAt ?? supplier.opensAt;
     const closesAt = dto.closesAt ?? supplier.closesAt;
-    if ((opensAt === null) !== (closesAt === null) || (opensAt !== null && closesAt !== null && opensAt >= closesAt)) {
-      throw new BadRequestException('Working hours need both opensAt and closesAt, with opensAt earlier than closesAt');
+    if ((opensAt === null) !== (closesAt === null) ||
+        (opensAt !== null && closesAt !== null && (opensAt === closesAt || (opensAt > closesAt && !dto.crossesMidnight)))) {
+      throw new BadRequestException('Working hours need both opensAt and closesAt, with opensAt earlier than closesAt (or specify crossesMidnight)');
     }
 
-    return this.prisma.supplier.update({
+    return this.mutateSupplier(id, async tx => {
+      const current = await tx.supplier.findUniqueOrThrow({ where: { id } });
+      if (current.updatedAt.getTime() !== supplier.updatedAt.getTime()) throw new ConflictException('Supplier data changed; reload before editing');
+      return tx.supplier.update({
       where: { id },
       data: {
         ...(dto.closedWeekdays !== undefined && { closedWeekdays: dto.closedWeekdays }),
+        ...(dto.closedDates !== undefined && { closedDates: dto.closedDates }),
+        ...(dto.pickupLeadMinutes !== undefined && { pickupLeadMinutes: dto.pickupLeadMinutes }),
         ...(dto.opensAt !== undefined && { opensAt: dto.opensAt }),
         ...(dto.closesAt !== undefined && { closesAt: dto.closesAt }),
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.slug !== undefined && { slug: dto.slug }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
+      });
     });
   }
 
@@ -180,6 +204,8 @@ export class SourcingService {
         supplierId: dto.supplierId,
         skuId: dto.skuId,
         costPrice: dto.costPrice,
+        ...(dto.minimumOrderUnits !== undefined && { minimumOrderUnits: dto.minimumOrderUnits }),
+        ...(dto.orderMultipleUnits !== undefined && { orderMultipleUnits: dto.orderMultipleUnits }),
         currency: dto.currency,
         isAvailable: dto.availableQuantity === 0 ? false : dto.isAvailable ?? true,
         ...(dto.availableQuantity !== undefined && { availableQuantity: dto.availableQuantity, quantityUpdatedAt: new Date() }),
@@ -253,12 +279,17 @@ export class SourcingService {
       }
     }
 
-    const updated = await this.prisma.supplierOffer.update({
+    const updated = await this.mutateSupplier(offer.supplierId, async tx => {
+      const current = await tx.supplierOffer.findUniqueOrThrow({ where: { id } });
+      if (current.updatedAt.getTime() !== offer.updatedAt.getTime()) throw new ConflictException('Supplier data changed; reload before editing');
+      return tx.supplierOffer.update({
       where: { id },
       data: {
         ...(dto.costPrice !== undefined && { costPrice: dto.costPrice }),
+        ...(dto.minimumOrderUnits !== undefined && { minimumOrderUnits: dto.minimumOrderUnits }),
+        ...(dto.orderMultipleUnits !== undefined && { orderMultipleUnits: dto.orderMultipleUnits }),
         ...(dto.currency !== undefined && { currency: dto.currency }),
-        // A reported quantity restarts the count (allocations before it are already in the supplier's number);
+        // Physical snapshot; SupplyPlanService separately subtracts all active commitments.
         // zero means out of stock, a positive count brings an out-of-stock offer back unless told otherwise.
         ...(dto.availableQuantity !== undefined && { availableQuantity: dto.availableQuantity, quantityUpdatedAt: new Date() }),
         ...((dto.isAvailable !== undefined || dto.availableQuantity !== undefined) && {
@@ -267,6 +298,7 @@ export class SourcingService {
         lastObservedAt: new Date(), // Always update lastObservedAt on any change
         lastIngestionItemId: null,
       },
+      });
     });
 
     const labels = await this.catalogService.getSkuLabels([updated.skuId]);
@@ -301,7 +333,10 @@ export class SourcingService {
     const offer = await this.prisma.supplierOffer.findUnique({ where: { id } });
     if (!offer) throw new NotFoundException(`Supplier offer ${id} not found`);
 
-    const updated = await this.prisma.supplierOffer.update({
+    const updated = await this.mutateSupplier(offer.supplierId, async tx => {
+      const current = await tx.supplierOffer.findUniqueOrThrow({ where: { id } });
+      if (current.updatedAt.getTime() !== offer.updatedAt.getTime()) throw new ConflictException('Supplier data changed; reload before editing');
+      return tx.supplierOffer.update({
       where: { id },
       data: {
         isAvailable,
@@ -309,6 +344,7 @@ export class SourcingService {
         lastIngestionItemId: null,
         lastConfirmedAt: isAvailable ? new Date() : offer.lastConfirmedAt,
       },
+      });
     });
 
     return {
