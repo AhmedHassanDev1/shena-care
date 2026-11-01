@@ -38,6 +38,11 @@ export class CreateSkuDto {
   @IsOptional()
   barcode?: string;
 
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  estimatedDaysOfUse?: number;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
@@ -70,6 +75,11 @@ export class UpdateSkuDto {
   @IsString()
   @IsOptional()
   barcode?: string | null;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  estimatedDaysOfUse?: number | null;
 
   @IsBoolean()
   @IsOptional()

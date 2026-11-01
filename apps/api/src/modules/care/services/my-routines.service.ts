@@ -1,5 +1,5 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { Prisma, RoutineActivation, RoutineLifecycle, RoutinePurchasePhase, RoutineTier } from '@prisma/client';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { Prisma, RoutineActivation, RoutineLifecycle, RoutinePurchasePhase, RoutineTier, UsageRoutinePeriod } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
 import { areaSlot, buildProposal, crossRoutineConflicts, Tier } from '../engine/routine-engine';
@@ -223,6 +223,56 @@ export class MyRoutinesService {
     });
   }
 
+  /** Personalized weekly schedule entries for a customer's routine (GLO-284 §5). */
+  async getSchedules(routineId: string, customerId: string) {
+    const routine = await this.load(routineId, customerId);
+    return this.prisma.customerUsageSchedule.findMany({
+      where: { customerRoutineId: routine.id },
+      orderBy: [{ phase: 'asc' }, { timingSlot: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  /** Set or update a product's personal usage schedule in the customer's routine. */
+  async setSchedule(
+    routineId: string,
+    customerId: string,
+    input: {
+      routineItemId: string;
+      productId: string;
+      weekdays?: number[];
+      timingSlot?: UsageRoutinePeriod;
+      plannedUsesPerOccurrence?: number;
+      phase?: number;
+      startDate: Date;
+      endDate?: Date | null;
+      sourceUsageRuleId?: string | null;
+      notes?: string | null;
+      isConfirmed?: boolean;
+    },
+  ) {
+    const routine = await this.load(routineId, customerId);
+    const item = routine.items.find(i => i.id === input.routineItemId && i.productId === input.productId);
+    if (!item) throw new BadRequestException('Routine item does not match product or routine');
+
+    return this.prisma.customerUsageSchedule.create({
+      data: {
+        customerRoutineId: routine.id,
+        routineItemId: input.routineItemId,
+        productId: input.productId,
+        weekdays: input.weekdays ?? [],
+        timingSlot: input.timingSlot ?? 'BOTH',
+        plannedUsesPerOccurrence: input.plannedUsesPerOccurrence ?? 1,
+        phase: input.phase ?? 1,
+        startDate: input.startDate,
+        endDate: input.endDate ?? null,
+        sourceUsageRuleId: input.sourceUsageRuleId ?? null,
+        notes: input.notes ?? null,
+        isConfirmed: input.isConfirmed ?? false,
+        routineVersion: routine.version,
+      },
+    });
+  }
+
   private present(r: Prisma.CustomerRoutineGetPayload<{ include: { items: true } }>, facts: Map<string, { name: string; brandName: string; imageUrl: string | null }>) {
     return {
       id: r.id, titleAr: r.titleAr, concernSlug: r.concernSlug, careArea: r.careArea, kind: r.kind, tier: r.tier,
@@ -239,3 +289,4 @@ export class MyRoutinesService {
     };
   }
 }
+

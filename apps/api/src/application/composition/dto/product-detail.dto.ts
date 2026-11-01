@@ -70,6 +70,7 @@ export class PublicVariantDto {
   @ApiProperty() isAvailable: boolean;
   @ApiProperty() canOrder: boolean;
   @ApiProperty({ type: PublicAvailabilityDto }) availability: PublicAvailabilityDto;
+  @ApiPropertyOptional({ type: Number, nullable: true }) estimatedDaysOfUse?: number | null;
   @ApiProperty({ type: [PublicProductMediaDto] }) media: PublicProductMediaDto[];
   @ApiProperty({ type: [PublicFactDto] }) verifiedFacts: PublicFactDto[];
   @ApiProperty({ type: PublicContentDto, nullable: true }) content: PublicContentDto | null;
@@ -84,6 +85,18 @@ export class ProductDetailResponseDto extends PublicIdentityDto {
   @ApiProperty({ type: String, nullable: true }) description: string | null;
   @ApiProperty({ type: String, nullable: true }) usage: string | null;
   @ApiProperty({ type: String, nullable: true }) warnings: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) targetArea?: string | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) texture?: string | null;
+  @ApiPropertyOptional({ type: [String] }) suitableSkinTypes?: string[];
+  @ApiPropertyOptional({ type: [String] }) suitableHairTypes?: string[];
+  @ApiPropertyOptional({ type: Number, nullable: true }) spf?: number | null;
+  @ApiPropertyOptional({ type: Boolean, nullable: true }) broadSpectrum?: boolean | null;
+  @ApiPropertyOptional({ type: String, nullable: true }) uvFilterType?: string | null;
+  @ApiPropertyOptional({ type: Number, nullable: true }) waterResistanceMinutes?: number | null;
+  @ApiPropertyOptional({ type: Boolean, nullable: true }) isFragranceFree?: boolean | null;
+  @ApiPropertyOptional({ type: Boolean, nullable: true }) isNonComedogenic?: boolean | null;
+  @ApiPropertyOptional({ type: Number }) factVersion?: number;
+  @ApiPropertyOptional({ type: String, format: 'date-time', nullable: true }) lastReviewedAt?: string | null;
   @ApiProperty({ type: PublicIdentityDto }) brand: PublicIdentityDto;
   @ApiProperty({ type: PublicIdentityDto, nullable: true }) productLine: PublicIdentityDto | null;
   @ApiProperty({ type: 'object', nullable: true, properties: {

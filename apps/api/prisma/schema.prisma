@@ -85,6 +85,21 @@ model Product {
   usage         String?
   warnings      String?
   concerns      String[] @default([])
+  targetArea    UsageTargetArea? @map("target_area")
+  texture       ProductTexture?
+  suitableSkinTypes String[] @default([]) @map("suitable_skin_types")
+  suitableHairTypes String[] @default([]) @map("suitable_hair_types")
+  spf           Int?
+  broadSpectrum Boolean? @map("broad_spectrum")
+  uvFilterType  UvFilterType? @map("uv_filter_type")
+  waterResistanceMinutes Int? @map("water_resistance_minutes")
+  isFragranceFree  Boolean? @map("is_fragrance_free")
+  isNonComedogenic Boolean? @map("is_non_comedogenic")
+  /// Evidence provenance for claims (fragrance-free, non-comedogenic, etc.)
+  claimsEvidence   Json?    @map("claims_evidence")
+  factVersion   Int      @default(1) @map("fact_version")
+  lastReviewedAt DateTime? @map("last_reviewed_at")
+  lastReviewedBy String? @map("last_reviewed_by")
   isPublished   Boolean  @default(false) @map("is_published")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -97,10 +112,13 @@ model Product {
   careRecommendations RoutineStepRecommendation[]
   productIngredients  ProductIngredient[]
   usageRules          ProductUsageRule[]
+  safetyWarnings      ProductSafetyWarning[]
 
   @@index([brandId])
   @@index([productLineId])
   @@index([categoryId])
+  @@index([targetArea])
+  @@index([texture])
   @@map("products")
   @@schema("catalog")
 }
@@ -114,6 +132,7 @@ model Sku {
   sizeUnit    String?  @map("size_unit")
   packCount   Int?     @map("pack_count")
   barcode     String?  @unique
+  estimatedDaysOfUse Int? @map("estimated_days_of_use")
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -242,6 +261,7 @@ model ProductIngredient {
   concentrationUnit     String?  @map("concentration_unit") @db.VarChar(10)
   /// { sourceUrl, sourceType, evidenceText, reviewedBy, reviewedAt } for the stated concentration.
   concentrationEvidence Json?    @map("concentration_evidence")
+  concentrationStatus   ConcentrationStatus @default(UNKNOWN) @map("concentration_status")
   sortOrder     Int        @default(0) @map("sort_order")
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
@@ -253,6 +273,76 @@ model ProductIngredient {
   @@index([productId])
   @@index([ingredientId])
   @@map("product_ingredients")
+  @@schema("catalog")
+}
+
+enum ProductTexture {
+  GEL
+  CREAM
+  GEL_CREAM
+  LOTION
+  EMULSION
+  SERUM
+  OIL
+  BALM
+  FOAM
+  LIQUID
+  SPRAY
+  PASTE
+  STICK
+  POWDER
+
+  @@schema("catalog")
+}
+
+enum UvFilterType {
+  MINERAL
+  CHEMICAL
+  HYBRID
+
+  @@schema("catalog")
+}
+
+
+enum ConcentrationStatus {
+  STATED          /// Manufacturer/label explicitly states a value
+  UNDISCLOSED     /// Present but amount not published
+  NOT_APPLICABLE  /// Not meaningful for this ingredient role
+  UNKNOWN         /// Not yet evaluated
+
+  @@schema("catalog")
+}
+
+enum SafetyWarningKind {
+  CONTRAINDICATION
+  INTERACTION
+  RESTRICTION
+  ESCALATION
+  PRECAUTION
+
+  @@schema("catalog")
+}
+
+/// A structured safety warning for a product, with evidence (GLO-284 §4D).
+/// Distinguishes ingredient-level cautions from finished-product safety facts.
+model ProductSafetyWarning {
+  id            String            @id @default(uuid()) @db.Uuid
+  productId     String            @map("product_id") @db.Uuid
+  kind          SafetyWarningKind
+  condition     String?           @db.VarChar(80)  /// e.g. "PREGNANT", "COMPROMISED_BARRIER"
+  descriptionEn String            @map("description_en")
+  descriptionAr String?           @map("description_ar")
+  sourceType    String            @map("source_type") @db.VarChar(40)
+  sourceUrl     String?           @map("source_url")
+  reviewedBy    String            @map("reviewed_by")
+  reviewedAt    DateTime          @map("reviewed_at")
+  isActive      Boolean           @default(true) @map("is_active")
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_safety_warnings")
   @@schema("catalog")
 }
 
@@ -306,9 +396,21 @@ model ProductUsageRule {
   frequencyUnit     UsageFrequencyUnit @map("frequency_unit")
   usesMin           Int?               @map("uses_min")
   usesMax           Int?               @map("uses_max")
+  /// Recommended application amount and unit (e.g. 2 drops, 1 pea-sized, 5 ml); null if not stated.
+  applicationQuantity Decimal?         @map("application_quantity") @db.Decimal(7, 3)
+  applicationUnit   String?            @map("application_unit") @db.VarChar(30)
   contactMinutes    Int?               @map("contact_minutes")
   contactIsMaximum  Boolean            @default(false) @map("contact_is_maximum")
+  /// Free-form condition label, e.g. "introductory", "maintenance", "flare", "sun_exposure"
   condition         String?            @db.VarChar(40)
+  /// Whether this rule is for an introductory/escalation phase (true) versus the regular regimen (false).
+  isIntroductory    Boolean            @default(false) @map("is_introductory")
+  /// Ordering of phases when the product has introductory escalation: 1 = first phase, 2 = next, etc.
+  phaseOrder        Int?               @map("phase_order")
+  /// Minimum weeks before transitioning to the next phase (null = not specified).
+  phaseWeeksMin     Int?               @map("phase_weeks_min")
+  /// Maximum weeks this phase should last (null = indefinite or not specified).
+  phaseWeeksMax     Int?               @map("phase_weeks_max")
   evidenceText      String             @map("evidence_text")
   sourceUrl         String             @map("source_url")
   sourceType        String             @map("source_type") @db.VarChar(40)
@@ -2288,6 +2390,7 @@ model CustomerRoutine {
   careProfile CustomerCareProfile      @relation(fields: [careProfileId], references: [id], onDelete: Cascade)
   items       CustomerRoutineItem[]
   versions    CustomerRoutineVersion[]
+  schedules   CustomerUsageSchedule[]
 
   @@index([careProfileId, activation])
   @@map("customer_routines")
@@ -2332,6 +2435,45 @@ model CustomerRoutineVersion {
 
   @@unique([routineId, version])
   @@map("customer_routine_versions")
+  @@schema("care")
+}
+
+/// A personalized usage schedule entry for one product in a customer's routine (GLO-284 §5).
+/// Represents the customer's confirmed weekly plan, derived from but independent of ProductUsageRule.
+/// Supports ISO weekdays (1=Mon..7=Sun), morning/evening assignments, multi-phase schedules, and start dates.
+model CustomerUsageSchedule {
+  id                   String    @id @default(uuid()) @db.Uuid
+  customerRoutineId    String    @map("customer_routine_id") @db.Uuid
+  routineItemId        String    @map("routine_item_id") @db.Uuid
+  productId            String    @map("product_id") @db.Uuid
+  /// ISO weekdays when this product is used: 1=Mon, 2=Tue, ..., 7=Sun. Empty = every day.
+  weekdays             Int[]     @default([])
+  /// AM, PM, or BOTH for this schedule entry.
+  timingSlot           UsageRoutinePeriod @default(BOTH) @map("timing_slot")
+  /// Planned uses per occurrence (e.g. 1 application in the morning).
+  plannedUsesPerOccurrence Int   @default(1) @map("planned_uses_per_occurrence")
+  /// Phase number when the product has gradual escalation (1 = intro, 2 = ramp, 3 = full).
+  phase                Int       @default(1)
+  /// When this schedule entry takes effect.
+  startDate            DateTime  @map("start_date") @db.Date
+  /// When this schedule entry ends (null = open-ended / until next phase).
+  endDate              DateTime? @map("end_date") @db.Date
+  /// The ProductUsageRule this schedule was derived from (provenance link).
+  sourceUsageRuleId    String?   @map("source_usage_rule_id") @db.Uuid
+  /// Free-form notes from the customer or system about this schedule entry.
+  notes                String?
+  /// Whether the customer has confirmed this schedule entry.
+  isConfirmed          Boolean   @default(false) @map("is_confirmed")
+  /// Version of the routine when this schedule was created.
+  routineVersion       Int       @map("routine_version")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  customerRoutine CustomerRoutine @relation(fields: [customerRoutineId], references: [id], onDelete: Cascade)
+
+  @@index([customerRoutineId])
+  @@index([productId])
+  @@map("customer_usage_schedules")
   @@schema("care")
 }
 

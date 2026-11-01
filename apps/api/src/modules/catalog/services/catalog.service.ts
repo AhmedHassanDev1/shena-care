@@ -4,7 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { Prisma, MediaOriginType } from '@prisma/client';
+import { Prisma, MediaOriginType, SafetyWarningKind } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CreateProductDto, UpdateProductDto } from '../dto/product.dto';
 import { CreateSkuDto, UpdateSkuDto } from '../dto/sku.dto';
@@ -22,9 +22,15 @@ export interface ReviewedUsageRuleInput {
   frequencyUnit: 'DAY' | 'WEEK' | 'AS_NEEDED' | 'UNKNOWN';
   usesMin: number | null;
   usesMax: number | null;
+  applicationQuantity?: number | null;
+  applicationUnit?: string | null;
   contactMinutes: number | null;
-  contactIsMaximum: boolean;
+  contactIsMaximum?: boolean;
   condition: string | null;
+  isIntroductory?: boolean;
+  phaseOrder?: number | null;
+  phaseWeeksMin?: number | null;
+  phaseWeeksMax?: number | null;
   evidenceText: string;
   sourceUrl: string;
   sourceType: string;
@@ -59,15 +65,36 @@ export interface RoutineProductFacts {
   productId: string;
   name: string;
   brandName: string;
-  skus: Array<{ id: string; size: number | null; sizeUnit: string | null; isActive: boolean }>;
+  targetArea?: string | null;
+  texture?: string | null;
+  suitableSkinTypes?: string[];
+  suitableHairTypes?: string[];
+  spf?: number | null;
+  broadSpectrum?: boolean | null;
+  uvFilterType?: string | null;
+  waterResistanceMinutes?: number | null;
+  isFragranceFree?: boolean | null;
+  isNonComedogenic?: boolean | null;
+  claimsEvidence?: Record<string, unknown> | null;
+  factVersion?: number;
+  lastReviewedAt?: string | null;
+  skus: Array<{ id: string; size: number | null; sizeUnit: string | null; isActive: boolean; estimatedDaysOfUse?: number | null }>;
   imageUrl: string | null;
   actives: RoutineActiveFact[];
   ingredientIds: string[];
   ingredientSlugs: string[];
   ingredientFamilies: string[];
+  safetyWarnings?: Array<{
+    id: string;
+    kind: string;
+    condition: string | null;
+    descriptionEn: string;
+    descriptionAr: string | null;
+  }>;
   usageRules: Array<{
     skuId: string | null; targetArea: string | null; routinePeriod: string; rinseMode: string; frequencyUnit: string;
-    usesMin: number | null; usesMax: number | null; condition: string | null; reviewedAt: string;
+    usesMin: number | null; usesMax: number | null; applicationQuantity: number | null; applicationUnit: string | null;
+    isIntroductory: boolean; phaseOrder: number | null; condition: string | null; reviewedAt: string;
   }>;
 }
 
@@ -80,6 +107,7 @@ export interface PublishedSku {
   packCount: number | null;
   barcode: string | null;
   isActive: boolean;
+  estimatedDaysOfUse?: number | null;
 }
 
 export interface SkuValidationStatus {
@@ -107,6 +135,20 @@ export interface PublishedProduct {
   usage: string | null;
   warnings: string | null;
   concerns: string[];
+  targetArea?: string | null;
+  texture?: string | null;
+  suitableSkinTypes?: string[];
+  suitableHairTypes?: string[];
+  spf?: number | null;
+  broadSpectrum?: boolean | null;
+  uvFilterType?: string | null;
+  waterResistanceMinutes?: number | null;
+  isFragranceFree?: boolean | null;
+  isNonComedogenic?: boolean | null;
+  claimsEvidence?: Record<string, unknown> | null;
+  factVersion?: number;
+  lastReviewedAt?: string | null;
+  lastReviewedBy?: string | null;
   isPublished: boolean;
   brand: {
     id: string;
@@ -353,6 +395,20 @@ export class CatalogService {
         usage: dto.usage ?? null,
         warnings: dto.warnings ?? null,
         concerns: dto.concerns ?? [],
+        targetArea: dto.targetArea ?? null,
+        texture: dto.texture ?? null,
+        suitableSkinTypes: dto.suitableSkinTypes ?? [],
+        suitableHairTypes: dto.suitableHairTypes ?? [],
+        spf: dto.spf ?? null,
+        broadSpectrum: dto.broadSpectrum ?? null,
+        uvFilterType: dto.uvFilterType ?? null,
+        waterResistanceMinutes: dto.waterResistanceMinutes ?? null,
+        isFragranceFree: dto.isFragranceFree ?? null,
+        isNonComedogenic: dto.isNonComedogenic ?? null,
+        claimsEvidence: (dto.claimsEvidence as Prisma.InputJsonValue) ?? null,
+        factVersion: dto.factVersion ?? 1,
+        lastReviewedAt: dto.lastReviewedAt ? new Date(dto.lastReviewedAt) : null,
+        lastReviewedBy: dto.lastReviewedBy ?? null,
         isPublished: dto.isPublished ?? false,
       },
       ...productWithRelations,
@@ -419,6 +475,26 @@ export class CatalogService {
       }
     }
 
+    if (dto.isFragranceFree === true) {
+      const fragrance = await this.prisma.productIngredient.findFirst({
+        where: {
+          productId: id,
+          ingredient: {
+            OR: [
+              { primaryFunction: { equals: 'Fragrance', mode: 'insensitive' } },
+              { slug: { in: ['fragrance', 'parfum'] } },
+            ],
+          },
+        },
+        include: { ingredient: true },
+      });
+      if (fragrance) {
+        throw new BadRequestException(
+          `Cannot mark product fragrance-free: linked ingredient '${fragrance.ingredient.name}' is fragrance (contradictory fact)`,
+        );
+      }
+    }
+
     const updated = await this.prisma.product.update({
       where: { id },
       data: {
@@ -431,6 +507,24 @@ export class CatalogService {
         ...(dto.usage !== undefined && { usage: dto.usage }),
         ...(dto.warnings !== undefined && { warnings: dto.warnings }),
         ...(dto.concerns !== undefined && { concerns: dto.concerns }),
+        ...(dto.targetArea !== undefined && { targetArea: dto.targetArea }),
+        ...(dto.texture !== undefined && { texture: dto.texture }),
+        ...(dto.suitableSkinTypes !== undefined && { suitableSkinTypes: dto.suitableSkinTypes }),
+        ...(dto.suitableHairTypes !== undefined && { suitableHairTypes: dto.suitableHairTypes }),
+        ...(dto.spf !== undefined && { spf: dto.spf }),
+        ...(dto.broadSpectrum !== undefined && { broadSpectrum: dto.broadSpectrum }),
+        ...(dto.uvFilterType !== undefined && { uvFilterType: dto.uvFilterType }),
+        ...(dto.waterResistanceMinutes !== undefined && { waterResistanceMinutes: dto.waterResistanceMinutes }),
+        ...(dto.isFragranceFree !== undefined && { isFragranceFree: dto.isFragranceFree }),
+        ...(dto.isNonComedogenic !== undefined && { isNonComedogenic: dto.isNonComedogenic }),
+        ...(dto.claimsEvidence !== undefined && {
+          claimsEvidence: dto.claimsEvidence as Prisma.InputJsonValue,
+        }),
+        ...(dto.factVersion !== undefined && { factVersion: dto.factVersion }),
+        ...(dto.lastReviewedAt !== undefined && {
+          lastReviewedAt: dto.lastReviewedAt ? new Date(dto.lastReviewedAt) : null,
+        }),
+        ...(dto.lastReviewedBy !== undefined && { lastReviewedBy: dto.lastReviewedBy }),
         ...(dto.isPublished !== undefined && { isPublished: dto.isPublished }),
       },
       ...productWithRelations,
@@ -442,13 +536,23 @@ export class CatalogService {
   /** Add only reviewer-approved canonical ingredient links; never replace an existing formula. */
   async addReviewedProductIngredients(productId: string, ingredientIds: string[]): Promise<void> {
     if (!ingredientIds.length) return;
-    const product = await this.prisma.product.findUnique({ where: { id: productId }, select: { id: true } });
+    const product = await this.prisma.product.findUnique({ where: { id: productId }, select: { id: true, isFragranceFree: true } });
     if (!product) throw new NotFoundException('Product not found');
     const uniqueIds = [...new Set(ingredientIds)];
     const ingredients = await this.prisma.ingredient.findMany({
-      where: { id: { in: uniqueIds }, status: 'APPROVED' }, select: { id: true },
+      where: { id: { in: uniqueIds }, status: 'APPROVED' }, select: { id: true, name: true, slug: true, primaryFunction: true },
     });
     if (ingredients.length !== uniqueIds.length) throw new BadRequestException('Unapproved or unknown ingredient selection');
+    if (product.isFragranceFree) {
+      const fragrance = ingredients.find(
+        i => i.primaryFunction?.toLowerCase() === 'fragrance' || ['fragrance', 'parfum'].includes(i.slug.toLowerCase()),
+      );
+      if (fragrance) {
+        throw new BadRequestException(
+          `Cannot link fragrance ingredient '${fragrance.name}' to a product declared fragrance-free (contradictory fact)`,
+        );
+      }
+    }
     await this.prisma.productIngredient.createMany({
       data: uniqueIds.map((ingredientId, sortOrder) => ({ productId, ingredientId, isKeyActive: true, sortOrder })),
       skipDuplicates: true,
@@ -474,7 +578,7 @@ export class CatalogService {
       await this.prisma.productIngredient.updateMany({
         where: { productId, ingredientId: entry.ingredientId, concentrationValue: null },
         data: { concentrationValue: entry.value, concentrationUnit: entry.unit, concentration: `${entry.value}${entry.unit}`,
-          concentrationEvidence: entry.evidence as Prisma.InputJsonValue },
+          concentrationEvidence: entry.evidence as Prisma.InputJsonValue, concentrationStatus: 'STATED' },
       });
     }
   }
@@ -494,6 +598,7 @@ export class CatalogService {
         media: { where: { isPrimary: true }, take: 1 },
         productIngredients: { include: { ingredient: true } },
         usageRules: true,
+        safetyWarnings: { where: { isActive: true } },
       },
       orderBy: { id: 'asc' },
     });
@@ -501,7 +606,26 @@ export class CatalogService {
       productId: p.id,
       name: p.name,
       brandName: p.brand.name,
-      skus: p.skus.map(sku => ({ id: sku.id, size: sku.size === null ? null : Number(sku.size), sizeUnit: sku.sizeUnit ?? null, isActive: sku.isActive })),
+      targetArea: p.targetArea ?? null,
+      texture: p.texture ?? null,
+      suitableSkinTypes: p.suitableSkinTypes ?? [],
+      suitableHairTypes: p.suitableHairTypes ?? [],
+      spf: p.spf ?? null,
+      broadSpectrum: p.broadSpectrum ?? null,
+      uvFilterType: p.uvFilterType ?? null,
+      waterResistanceMinutes: p.waterResistanceMinutes ?? null,
+      isFragranceFree: p.isFragranceFree ?? null,
+      isNonComedogenic: p.isNonComedogenic ?? null,
+      claimsEvidence: (p.claimsEvidence as Record<string, unknown> | null) ?? null,
+      factVersion: p.factVersion ?? 1,
+      lastReviewedAt: p.lastReviewedAt ? p.lastReviewedAt.toISOString() : null,
+      skus: p.skus.map(sku => ({
+        id: sku.id,
+        size: sku.size === null ? null : Number(sku.size),
+        sizeUnit: sku.sizeUnit ?? null,
+        isActive: sku.isActive,
+        estimatedDaysOfUse: sku.estimatedDaysOfUse ?? null,
+      })),
       imageUrl: p.media[0]?.url ?? null,
       actives: p.productIngredients
         .filter(pi => pi.isKeyActive && pi.ingredient.status === 'APPROVED')
@@ -520,9 +644,20 @@ export class CatalogService {
       ingredientIds: p.productIngredients.map(pi => pi.ingredientId),
       ingredientSlugs: p.productIngredients.map(pi => pi.ingredient.slug),
       ingredientFamilies: [...new Set(p.productIngredients.map(pi => pi.ingredient.familySlug).filter((f): f is string => !!f))],
+      safetyWarnings: p.safetyWarnings?.map(sw => ({
+        id: sw.id,
+        kind: sw.kind,
+        condition: sw.condition,
+        descriptionEn: sw.descriptionEn,
+        descriptionAr: sw.descriptionAr,
+      })) ?? [],
       usageRules: p.usageRules.map(r => ({
         skuId: r.skuId, targetArea: r.targetArea, routinePeriod: r.routinePeriod, rinseMode: r.rinseMode,
-        frequencyUnit: r.frequencyUnit, usesMin: r.usesMin, usesMax: r.usesMax, condition: r.condition,
+        frequencyUnit: r.frequencyUnit, usesMin: r.usesMin, usesMax: r.usesMax,
+        applicationQuantity: r.applicationQuantity === null ? null : Number(r.applicationQuantity),
+        applicationUnit: r.applicationUnit,
+        isIntroductory: r.isIntroductory, phaseOrder: r.phaseOrder,
+        condition: r.condition,
         reviewedAt: r.reviewedAt.toISOString(),
       })),
     }));
@@ -536,6 +671,42 @@ export class CatalogService {
       orderBy: [{ skuId: 'asc' }, { condition: { sort: 'asc', nulls: 'first' } }, { createdAt: 'asc' }],
       select: { skuId: true, targetArea: true, routinePeriod: true, rinseMode: true, frequencyUnit: true, usesMin: true, usesMax: true,
         contactMinutes: true, contactIsMaximum: true, condition: true, evidenceText: true, sourceUrl: true, reviewedAt: true },
+    });
+  }
+
+  /** Add structured safety warning (GLO-284 §4D). */
+  async addProductSafetyWarning(productId: string, warning: {
+    kind: SafetyWarningKind;
+    condition?: string | null;
+    descriptionEn: string;
+    descriptionAr?: string | null;
+    sourceType: string;
+    sourceUrl?: string | null;
+    reviewedBy: string;
+    reviewedAt?: Date;
+  }) {
+    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!product) throw new NotFoundException('Product not found');
+    return this.prisma.productSafetyWarning.create({
+      data: {
+        productId,
+        kind: warning.kind,
+        condition: warning.condition ?? null,
+        descriptionEn: warning.descriptionEn,
+        descriptionAr: warning.descriptionAr ?? null,
+        sourceType: warning.sourceType,
+        sourceUrl: warning.sourceUrl ?? null,
+        reviewedBy: warning.reviewedBy,
+        reviewedAt: warning.reviewedAt ?? new Date(),
+      },
+    });
+  }
+
+  /** Get active structured safety warnings for a product. */
+  async getProductSafetyWarnings(productId: string) {
+    return this.prisma.productSafetyWarning.findMany({
+      where: { productId, isActive: true },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -710,6 +881,7 @@ export class CatalogService {
         sizeUnit: dto.sizeUnit ?? null,
         packCount: dto.packCount ?? null,
         barcode: dto.barcode ?? null,
+        estimatedDaysOfUse: dto.estimatedDaysOfUse ?? null,
         isActive: dto.isActive ?? true,
       },
     });
@@ -723,6 +895,7 @@ export class CatalogService {
       packCount: sku.packCount,
       barcode: sku.barcode,
       isActive: sku.isActive,
+      estimatedDaysOfUse: sku.estimatedDaysOfUse ?? null,
     };
   }
 
@@ -763,6 +936,7 @@ export class CatalogService {
         ...(dto.sizeUnit !== undefined && { sizeUnit: dto.sizeUnit }),
         ...(dto.packCount !== undefined && { packCount: dto.packCount }),
         ...(dto.barcode !== undefined && { barcode: dto.barcode }),
+        ...(dto.estimatedDaysOfUse !== undefined && { estimatedDaysOfUse: dto.estimatedDaysOfUse }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });
@@ -776,6 +950,7 @@ export class CatalogService {
       packCount: updated.packCount,
       barcode: updated.barcode,
       isActive: updated.isActive,
+      estimatedDaysOfUse: updated.estimatedDaysOfUse ?? null,
     };
   }
 
@@ -995,6 +1170,20 @@ export class CatalogService {
       usage: includeAll ? product.usage : null,
       warnings: includeAll ? product.warnings : null,
       concerns: product.concerns,
+      targetArea: product.targetArea ?? null,
+      texture: product.texture ?? null,
+      suitableSkinTypes: product.suitableSkinTypes ?? [],
+      suitableHairTypes: product.suitableHairTypes ?? [],
+      spf: product.spf ?? null,
+      broadSpectrum: product.broadSpectrum ?? null,
+      uvFilterType: product.uvFilterType ?? null,
+      waterResistanceMinutes: product.waterResistanceMinutes ?? null,
+      isFragranceFree: product.isFragranceFree ?? null,
+      isNonComedogenic: product.isNonComedogenic ?? null,
+      claimsEvidence: (product.claimsEvidence as Record<string, unknown> | null) ?? null,
+      factVersion: product.factVersion ?? 1,
+      lastReviewedAt: product.lastReviewedAt ? product.lastReviewedAt.toISOString() : null,
+      lastReviewedBy: product.lastReviewedBy ?? null,
       isPublished: product.isPublished,
       brand: {
         id: product.brand.id,
@@ -1027,6 +1216,7 @@ export class CatalogService {
           packCount: sku.packCount,
           barcode: sku.barcode,
           isActive: sku.isActive,
+          estimatedDaysOfUse: sku.estimatedDaysOfUse ?? null,
         })),
       media: product.media
         .filter(m => includeAll || this.isReviewedProductMedia(m, product.skus))

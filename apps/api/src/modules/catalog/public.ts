@@ -34,3 +34,4 @@ export type { SkuLabel, ReviewedUsageRuleInput, StatedConcentrationInput } from 
 export type { RoutineProductFacts, RoutineActiveFact } from './services/catalog.service';
 export type { BrandSummary, BrandDetail, ProductLineSummary } from './services/brand.service';
 export type { CategoryNode, CategoryDetail } from './services/category.service';
+export { ProductTexture, UvFilterType, UsageTargetArea, SafetyWarningKind, ConcentrationStatus } from '@prisma/client';
