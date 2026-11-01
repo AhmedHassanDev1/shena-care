@@ -72,6 +72,8 @@ export interface EngineCandidate {
   usageRuleCount: number;
   /** Review dates of the facts that qualify the product (usage rules, stated concentrations). */
   factsReviewedAt: string[];
+  /** Structured product safety warnings (GLO-284 §4D). */
+  safetyWarnings?: Array<{ kind: string; condition: string | null }>;
 }
 
 export interface SafetyAnswers {
@@ -253,6 +255,15 @@ export function exclusionFor(
     }
     if (c.usageRuleCount === 0) return { reason: 'INCOMPLETE_DATA' };
     if (c.factsReviewedAt.some(at => ageInDays(at, ctx.now) > FACT_MAX_AGE_DAYS)) return { reason: 'STALE_DATA' };
+  }
+
+  if (c.safetyWarnings) {
+    for (const warning of c.safetyWarnings) {
+      if ((warning.kind === 'CONTRAINDICATION' || warning.kind === 'RESTRICTION') && warning.condition) {
+        const { applies, unknown } = conditionApplies(warning.condition, ctx);
+        if (applies) return { reason: `CONDITION:${warning.condition}`, unknownSafety: unknown };
+      }
+    }
   }
 
   for (const rule of rules) {

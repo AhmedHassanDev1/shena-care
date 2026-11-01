@@ -342,6 +342,7 @@ model ProductSafetyWarning {
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
+  @@index([condition])
   @@map("product_safety_warnings")
   @@schema("catalog")
 }
@@ -2471,6 +2472,7 @@ model CustomerUsageSchedule {
 
   customerRoutine CustomerRoutine @relation(fields: [customerRoutineId], references: [id], onDelete: Cascade)
 
+  @@unique([customerRoutineId, routineItemId, timingSlot, phase])
   @@index([customerRoutineId])
   @@index([productId])
   @@map("customer_usage_schedules")

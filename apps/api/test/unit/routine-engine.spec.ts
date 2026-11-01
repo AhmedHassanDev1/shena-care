@@ -245,4 +245,48 @@ describe('routine engine (deterministic, ROUTINE_SYSTEM.md §7–§8)', () => {
       [{ routineId: 'r-1', careArea: 'skin', roleKey: 'treatment', productId: 'x', subjects: ['retinoids'] }], rules);
     expect(conflicts).toEqual([{ rule: 'max-one-retinoid', roleKey: 'treatment', otherRoutineId: 'r-1', otherRoleKey: 'treatment' }]);
   });
+
+  describe('ProductSafetyWarning consumption in recommendation eligibility (GLO-284 Condition 1)', () => {
+    it('excludes product with CONTRAINDICATION when condition is confirmed YES', () => {
+      const warnedMoisturizer = candidate({
+        roleKey: 'moisturizer',
+        name: 'Pregnancy-Contraindicated Cream',
+        price: 80, // Cheaper than default 170
+        safetyWarnings: [{ kind: 'CONTRAINDICATION', condition: 'PREGNANT' }],
+      });
+      const all = [...baseline(), warnedMoisturizer];
+      const p = buildProposal(blueprint, all, rules, ctx({ safety: { ...ctx().safety, pregnant: 'YES' } }));
+      // Cheaper warned product must be excluded; fallback to 170 EGP moisturizer
+      expect(item(p, 'moisturizer').product?.name).not.toBe('Pregnancy-Contraindicated Cream');
+      expect(item(p, 'moisturizer').product?.price).toBe(170);
+    });
+
+    it('excludes product with CONTRAINDICATION when condition is UNKNOWN (conservative safety)', () => {
+      const warnedMoisturizer = candidate({
+        roleKey: 'moisturizer',
+        name: 'Pregnancy-Contraindicated Cream',
+        price: 80,
+        safetyWarnings: [{ kind: 'CONTRAINDICATION', condition: 'PREGNANT' }],
+      });
+      const all = [...baseline(), warnedMoisturizer];
+      // When pregnant answer is UNKNOWN, conditionApplies returns { applies: true, unknown: true }
+      const p = buildProposal(blueprint, all, rules, ctx({ safety: { ...ctx().safety, pregnant: 'UNKNOWN' } }));
+      expect(item(p, 'moisturizer').product?.name).not.toBe('Pregnancy-Contraindicated Cream');
+      expect(item(p, 'moisturizer').product?.price).toBe(170);
+    });
+
+    it('permits product with CONTRAINDICATION when condition is confirmed NO', () => {
+      const warnedMoisturizer = candidate({
+        roleKey: 'moisturizer',
+        name: 'Pregnancy-Contraindicated Cream',
+        price: 80,
+        safetyWarnings: [{ kind: 'CONTRAINDICATION', condition: 'PREGNANT' }],
+      });
+      const all = [...baseline(), warnedMoisturizer];
+      const p = buildProposal(blueprint, all, rules, ctx({ safety: { ...ctx().safety, pregnant: 'NO' } }));
+      // When pregnant is NO, the cheaper 80 EGP product is selected
+      expect(item(p, 'moisturizer').product?.name).toBe('Pregnancy-Contraindicated Cream');
+      expect(item(p, 'moisturizer').product?.price).toBe(80);
+    });
+  });
 });

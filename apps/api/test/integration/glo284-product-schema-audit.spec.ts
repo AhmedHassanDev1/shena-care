@@ -7,6 +7,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { CatalogService } from '../../src/modules/catalog/services/catalog.service';
 import { ProductTexture, UvFilterType, UsageTargetArea, SafetyWarningKind } from '../../src/modules/catalog/public';
 import { MyRoutinesService } from '../../src/modules/care/services/my-routines.service';
+import { exclusionFor } from '../../src/modules/care/engine/routine-engine';
 import { createActor, Actor } from '../fixtures/actors';
 
 describe('GLO-284: Product Schema Audit & AI-Ready Foundation (e2e/integration)', () => {
@@ -380,6 +381,62 @@ describe('GLO-284: Product Schema Audit & AI-Ready Foundation (e2e/integration)'
       expect(facts?.safetyWarnings).toBeDefined();
       expect(facts?.safetyWarnings?.some(w => w.condition === 'PREGNANT' && w.kind === 'CONTRAINDICATION')).toBe(true);
     });
+
+    it('proves that structured ProductSafetyWarning conditions are consumed by recommendation eligibility logic (Condition 1)', async () => {
+      const brand = await prisma.brand.create({
+        data: { name: 'SafetyBrand2 ' + randomUUID().slice(0, 8), slug: 'safetybrand2-' + randomUUID().slice(0, 8) },
+      });
+      const product = await catalogService.createProduct({
+        name: 'Pregnancy-Restricted Exfoliant',
+        brandId: brand.id,
+        isPublished: true,
+      });
+      await catalogService.addProductSafetyWarning(product.id, {
+        kind: SafetyWarningKind.CONTRAINDICATION,
+        condition: 'PREGNANT',
+        descriptionEn: 'Contraindicated in pregnancy',
+        sourceType: 'REGULATORY',
+        reviewedBy: admin.id,
+      });
+
+      const factsList = await catalogService.getRoutineProductFacts([product.id]);
+      const facts = factsList.find(f => f.productId === product.id);
+      expect(facts?.safetyWarnings).toHaveLength(1);
+
+      const bp = {
+        id: 'bp-test', key: 'test', version: 1, concernSlug: 'acne', careArea: 'skin' as const, kind: 'TREATMENT' as const,
+        severityMin: 1, severityMax: 3, titleAr: 'روتين تجريبي', goalAr: null, timelineAr: null, safetyNotesAr: [],
+        roles: [{ roleKey: 'treatment', sortOrder: 1, titleAr: 'علاج', isEssential: true, startWeek: 1, requiredActives: [], concentrationRanges: [], usageNoteAr: null }],
+      };
+      const candidateObj = {
+        productId: product.id, skuId: null, name: product.name, brandName: 'SafetyBrand2', imageUrl: null,
+        roleKey: 'treatment', tier: 'SMART' as const, concernSlugs: ['acne'], suitableSkinTypes: [], price: 100, currency: 'EGP',
+        sellable: true, actives: [], ingredientIds: [], ingredientSlugs: [], ingredientFamilies: [], usageRuleCount: 1,
+        factsReviewedAt: [new Date().toISOString()],
+        safetyWarnings: facts!.safetyWarnings!.map(w => ({ kind: w.kind, condition: w.condition })),
+      };
+
+      const now = new Date();
+      // Blocked case: pregnant = YES
+      const ctxBlocked = {
+        severity: 2, skinType: null, ageBand: 'ADULT' as const, experienceLevel: null, fragranceFree: false,
+        safety: { pregnant: 'YES' as const, breastfeeding: 'NO' as const, prescriptionTopical: 'NO' as const, oralRetinoid: 'NO' as const, fragranceSensitive: 'NO' as const },
+        allergyIngredientIds: [], tier: 'SMART' as const, budget: null, ownedRoleKeys: [], overrides: { swaps: {}, removed: [], upgrades: [] },
+        activeRoutineProducts: [], now,
+      };
+      const blocked = exclusionFor(candidateObj, bp.roles[0], bp, ctxBlocked, [], []);
+      expect(blocked).toEqual({ reason: 'CONDITION:PREGNANT', unknownSafety: false });
+
+      // Unknown case: pregnant = UNKNOWN
+      const ctxUnknown = { ...ctxBlocked, safety: { ...ctxBlocked.safety, pregnant: 'UNKNOWN' as const } };
+      const unknownRes = exclusionFor(candidateObj, bp.roles[0], bp, ctxUnknown, [], []);
+      expect(unknownRes).toEqual({ reason: 'CONDITION:PREGNANT', unknownSafety: true });
+
+      // Permitted case: pregnant = NO
+      const ctxPermitted = { ...ctxBlocked, safety: { ...ctxBlocked.safety, pregnant: 'NO' as const } };
+      const permitted = exclusionFor(candidateObj, bp.roles[0], bp, ctxPermitted, [], []);
+      expect(permitted).toBeNull();
+    });
   });
 
   describe('7. Regulatory Claims & Contradictory Fact Rejection (GLO-284 §4E)', () => {
@@ -498,6 +555,157 @@ describe('GLO-284: Product Schema Audit & AI-Ready Foundation (e2e/integration)'
       expect(schedules).toHaveLength(1);
       expect(schedules[0].routineItemId).toBe(item.id);
       expect(schedules[0].weekdays).toEqual([1, 3, 5]);
+    });
+
+    it('rejects invalid weekdays (< 1 or > 7) and non-positive phase at service and database level (Condition 5)', async () => {
+      const customer = await prisma.customer.create({
+        data: { email: 'sched-val-' + randomUUID().slice(0, 6) + '@test.com', name: 'Schedule Val Customer' },
+      });
+      const careProfile = await prisma.customerCareProfile.create({
+        data: { customerId: customer.id, skinType: 'oily' },
+      });
+      const routine = await prisma.customerRoutine.create({
+        data: {
+          careProfileId: careProfile.id, blueprintId: randomUUID(), blueprintVersion: 1, createdFromProposalId: randomUUID(),
+          titleAr: 'روتين التحقق', concernSlug: 'acne', careArea: 'skin', kind: 'TREATMENT', tier: 'SMART',
+        },
+      });
+      const brand = await prisma.brand.create({
+        data: { name: 'ValBrand ' + randomUUID().slice(0, 8), slug: 'valbrand-' + randomUUID().slice(0, 8) },
+      });
+      const product = await catalogService.createProduct({ name: 'Val Product', brandId: brand.id });
+      const item = await prisma.customerRoutineItem.create({
+        data: { routineId: routine.id, roleKey: 'treatment', sortOrder: 1, isEssential: true, productId: product.id, addedAtVersion: 1 },
+      });
+
+      // Service level weekday validation: 0 or 8 rejected
+      await expect(
+        myRoutinesService.setSchedule(routine.id, customer.id, {
+          routineItemId: item.id, productId: product.id, weekdays: [0, 2], startDate: new Date(),
+        }),
+      ).rejects.toThrow(/Invalid weekday '0'/);
+
+      await expect(
+        myRoutinesService.setSchedule(routine.id, customer.id, {
+          routineItemId: item.id, productId: product.id, weekdays: [2, 8], startDate: new Date(),
+        }),
+      ).rejects.toThrow(/Invalid weekday '8'/);
+
+      // Service level phase validation: 0 rejected
+      await expect(
+        myRoutinesService.setSchedule(routine.id, customer.id, {
+          routineItemId: item.id, productId: product.id, phase: 0, startDate: new Date(),
+        }),
+      ).rejects.toThrow(/Schedule phase must be an integer >= 1/);
+
+      // Database CHECK constraint on weekdays: direct SQL bypass rejected
+      await expect(
+        prisma.$executeRawUnsafe(`
+          INSERT INTO "care"."customer_usage_schedules"
+            ("id", "customer_routine_id", "routine_item_id", "product_id", "weekdays", "timing_slot", "planned_uses_per_occurrence", "phase", "start_date", "routine_version", "created_at", "updated_at")
+          VALUES
+            (gen_random_uuid(), '${routine.id}'::uuid, '${item.id}'::uuid, '${product.id}'::uuid, ARRAY[8]::integer[], 'BOTH', 1, 1, CURRENT_DATE, 1, NOW(), NOW())
+        `),
+      ).rejects.toThrow();
+
+      // Database CHECK constraint on phase: direct SQL bypass rejected
+      await expect(
+        prisma.$executeRawUnsafe(`
+          INSERT INTO "care"."customer_usage_schedules"
+            ("id", "customer_routine_id", "routine_item_id", "product_id", "weekdays", "timing_slot", "planned_uses_per_occurrence", "phase", "start_date", "routine_version", "created_at", "updated_at")
+          VALUES
+            (gen_random_uuid(), '${routine.id}'::uuid, '${item.id}'::uuid, '${product.id}'::uuid, ARRAY[1, 2]::integer[], 'BOTH', 1, 0, CURRENT_DATE, 1, NOW(), NOW())
+        `),
+      ).rejects.toThrow();
+    });
+
+    it('enforces ownership and routine-item identity (Condition 5)', async () => {
+      const customer1 = await prisma.customer.create({ data: { email: 'c1-' + randomUUID().slice(0, 6) + '@test.com', name: 'Customer 1' } });
+      const customer2 = await prisma.customer.create({ data: { email: 'c2-' + randomUUID().slice(0, 6) + '@test.com', name: 'Customer 2' } });
+      const cp1 = await prisma.customerCareProfile.create({ data: { customerId: customer1.id, skinType: 'oily' } });
+      const routine1 = await prisma.customerRoutine.create({
+        data: { careProfileId: cp1.id, blueprintId: randomUUID(), blueprintVersion: 1, createdFromProposalId: randomUUID(),
+          titleAr: 'روتين خاص', concernSlug: 'acne', careArea: 'skin', kind: 'TREATMENT', tier: 'SMART' },
+      });
+      const brand = await prisma.brand.create({ data: { name: 'OwnerBrand ' + randomUUID().slice(0, 8), slug: 'ownerbrand-' + randomUUID().slice(0, 8) } });
+      const product = await catalogService.createProduct({ name: 'Owner Product', brandId: brand.id });
+      const item = await prisma.customerRoutineItem.create({
+        data: { routineId: routine1.id, roleKey: 'cleanser', sortOrder: 1, isEssential: true, productId: product.id, addedAtVersion: 1 },
+      });
+
+      // Customer 2 cannot read or set schedule for Customer 1's routine
+      await expect(myRoutinesService.getSchedules(routine1.id, customer2.id)).rejects.toThrow();
+      await expect(myRoutinesService.setSchedule(routine1.id, customer2.id, {
+        routineItemId: item.id, productId: product.id, startDate: new Date(),
+      })).rejects.toThrow();
+
+      // Routine-item mismatch rejected
+      await expect(myRoutinesService.setSchedule(routine1.id, customer1.id, {
+        routineItemId: randomUUID(), productId: product.id, startDate: new Date(),
+      })).rejects.toThrow(/Routine item does not match product or routine/);
+    });
+
+    it('prevents duplicates by idempotent upsert and enforces usage rule consistency (Condition 5)', async () => {
+      const customer = await prisma.customer.create({ data: { email: 'dup-' + randomUUID().slice(0, 6) + '@test.com', name: 'Dup Customer' } });
+      const cp = await prisma.customerCareProfile.create({ data: { customerId: customer.id, skinType: 'oily' } });
+      const routine = await prisma.customerRoutine.create({
+        data: { careProfileId: cp.id, blueprintId: randomUUID(), blueprintVersion: 1, createdFromProposalId: randomUUID(),
+          titleAr: 'روتين عدم التكرار', concernSlug: 'acne', careArea: 'skin', kind: 'TREATMENT', tier: 'SMART' },
+      });
+      const brand = await prisma.brand.create({ data: { name: 'DupBrand ' + randomUUID().slice(0, 8), slug: 'dupbrand-' + randomUUID().slice(0, 8) } });
+      const product = await catalogService.createProduct({ name: 'Retinoid Night Cream', brandId: brand.id });
+      const item = await prisma.customerRoutineItem.create({
+        data: { routineId: routine.id, roleKey: 'treatment', sortOrder: 1, isEssential: true, productId: product.id, addedAtVersion: 1 },
+      });
+
+      // Add a PM-only usage rule with max 3 days per week
+      const usageRule = await prisma.productUsageRule.create({
+        data: {
+          productId: product.id,
+          routinePeriod: 'PM',
+          rinseMode: 'LEAVE_ON',
+          frequencyUnit: 'WEEK',
+          usesMin: 1,
+          usesMax: 3,
+          evidenceText: 'Apply in PM only, up to 3 times weekly',
+          sourceUrl: 'https://directions.test',
+          sourceType: 'PACKAGING',
+          reviewedBy: admin.id,
+          reviewedAt: new Date(),
+        },
+      });
+
+      // Scheduling for AM violates the PM-only rule
+      await expect(
+        myRoutinesService.setSchedule(routine.id, customer.id, {
+          routineItemId: item.id, productId: product.id, sourceUsageRuleId: usageRule.id, timingSlot: 'AM', startDate: new Date(),
+        }),
+      ).rejects.toThrow(/incompatible with approved PM-only usage rule/);
+
+      // Scheduling 4 days violates usesMax: 3
+      await expect(
+        myRoutinesService.setSchedule(routine.id, customer.id, {
+          routineItemId: item.id, productId: product.id, sourceUsageRuleId: usageRule.id, timingSlot: 'PM', weekdays: [1, 2, 4, 6], startDate: new Date(),
+        }),
+      ).rejects.toThrow(/exceed maximum approved weekly frequency \(3\)/);
+
+      // Valid PM schedule with 2 days
+      const s1 = await myRoutinesService.setSchedule(routine.id, customer.id, {
+        routineItemId: item.id, productId: product.id, sourceUsageRuleId: usageRule.id, timingSlot: 'PM', weekdays: [1, 4], phase: 1, startDate: new Date(), notes: 'Initial'
+      });
+      expect(s1.id).toBeDefined();
+
+      // Repeated call with same slot & phase updates the existing row without creating duplicate
+      const s2 = await myRoutinesService.setSchedule(routine.id, customer.id, {
+        routineItemId: item.id, productId: product.id, sourceUsageRuleId: usageRule.id, timingSlot: 'PM', weekdays: [2, 5], phase: 1, startDate: new Date(), notes: 'Updated note'
+      });
+      expect(s2.id).toBe(s1.id);
+      expect(s2.weekdays).toEqual([2, 5]);
+      expect(s2.notes).toBe('Updated note');
+
+      // Verify list has exactly 1 entry
+      const list = await myRoutinesService.getSchedules(routine.id, customer.id);
+      expect(list).toHaveLength(1);
     });
   });
 });

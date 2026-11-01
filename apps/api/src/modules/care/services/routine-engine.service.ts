@@ -103,6 +103,7 @@ export class RoutineEngineService {
         ingredientIds: f.ingredientIds, ingredientSlugs: f.ingredientSlugs, ingredientFamilies: f.ingredientFamilies,
         usageRuleCount: rules.length,
         factsReviewedAt: [...rules.map(r => r.reviewedAt), ...f.actives.map(a => a.concentrationReviewedAt).filter((d): d is string => !!d)],
+        safetyWarnings: f.safetyWarnings?.map(w => ({ kind: w.kind, condition: w.condition })),
       });
     }
     return { candidates, facts };

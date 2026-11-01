@@ -232,7 +232,7 @@ export class MyRoutinesService {
     });
   }
 
-  /** Set or update a product's personal usage schedule in the customer's routine. */
+  /** Set or update a product's personal usage schedule in the customer's routine (GLO-284 §5). */
   async setSchedule(
     routineId: string,
     customerId: string,
@@ -254,15 +254,91 @@ export class MyRoutinesService {
     const item = routine.items.find(i => i.id === input.routineItemId && i.productId === input.productId);
     if (!item) throw new BadRequestException('Routine item does not match product or routine');
 
-    return this.prisma.customerUsageSchedule.create({
-      data: {
+    // 1. Weekday validation (1=Mon .. 7=Sun)
+    if (input.weekdays?.length) {
+      for (const day of input.weekdays) {
+        if (!Number.isInteger(day) || day < 1 || day > 7) {
+          throw new BadRequestException(`Invalid weekday '${day}'. Must be an integer between 1 and 7.`);
+        }
+      }
+    }
+    const cleanWeekdays = input.weekdays ? [...new Set(input.weekdays)].sort((a, b) => a - b) : [];
+
+    // 2. Phase sequencing validation
+    const phase = input.phase ?? 1;
+    if (!Number.isInteger(phase) || phase < 1) {
+      throw new BadRequestException('Schedule phase must be an integer >= 1');
+    }
+
+    // 3. Planned uses per occurrence validation
+    const plannedUses = input.plannedUsesPerOccurrence ?? 1;
+    if (!Number.isInteger(plannedUses) || plannedUses < 1) {
+      throw new BadRequestException('Planned uses per occurrence must be an integer >= 1');
+    }
+
+    // 4. Usage rule consistency check
+    const timingSlot = input.timingSlot ?? 'BOTH';
+    if (input.sourceUsageRuleId) {
+      const rule = await this.prisma.productUsageRule.findUnique({
+        where: { id: input.sourceUsageRuleId },
+      });
+      if (!rule || rule.productId !== input.productId) {
+        throw new BadRequestException('Source usage rule does not exist or does not match this product');
+      }
+      if (rule.routinePeriod === 'AM' && timingSlot !== 'AM') {
+        throw new BadRequestException('Schedule timing slot is incompatible with approved AM-only usage rule');
+      }
+      if (rule.routinePeriod === 'PM' && timingSlot !== 'PM') {
+        throw new BadRequestException('Schedule timing slot is incompatible with approved PM-only usage rule');
+      }
+      if (rule.frequencyUnit === 'WEEK' && rule.usesMax !== null && cleanWeekdays.length > rule.usesMax) {
+        throw new BadRequestException(
+          `Scheduled days (${cleanWeekdays.length}) exceed maximum approved weekly frequency (${rule.usesMax})`,
+        );
+      }
+    } else {
+      const productRules = await this.prisma.productUsageRule.findMany({
+        where: { productId: input.productId },
+      });
+      const pmOnlyRule = productRules.find(r => r.routinePeriod === 'PM');
+      const amOnlyRule = productRules.find(r => r.routinePeriod === 'AM');
+      if (pmOnlyRule && !amOnlyRule && timingSlot !== 'PM') {
+        throw new BadRequestException('Schedule timing slot is incompatible with product approved PM-only usage directions');
+      }
+      if (amOnlyRule && !pmOnlyRule && timingSlot !== 'AM') {
+        throw new BadRequestException('Schedule timing slot is incompatible with product approved AM-only usage directions');
+      }
+    }
+
+    // 5. Upsert to prevent duplicate conflicting schedule records for same (routine, item, timingSlot, phase)
+    return this.prisma.customerUsageSchedule.upsert({
+      where: {
+        customerRoutineId_routineItemId_timingSlot_phase: {
+          customerRoutineId: routine.id,
+          routineItemId: input.routineItemId,
+          timingSlot,
+          phase,
+        },
+      },
+      create: {
         customerRoutineId: routine.id,
         routineItemId: input.routineItemId,
         productId: input.productId,
-        weekdays: input.weekdays ?? [],
-        timingSlot: input.timingSlot ?? 'BOTH',
-        plannedUsesPerOccurrence: input.plannedUsesPerOccurrence ?? 1,
-        phase: input.phase ?? 1,
+        weekdays: cleanWeekdays,
+        timingSlot,
+        plannedUsesPerOccurrence: plannedUses,
+        phase,
+        startDate: input.startDate,
+        endDate: input.endDate ?? null,
+        sourceUsageRuleId: input.sourceUsageRuleId ?? null,
+        notes: input.notes ?? null,
+        isConfirmed: input.isConfirmed ?? false,
+        routineVersion: routine.version,
+      },
+      update: {
+        productId: input.productId,
+        weekdays: cleanWeekdays,
+        plannedUsesPerOccurrence: plannedUses,
         startDate: input.startDate,
         endDate: input.endDate ?? null,
         sourceUsageRuleId: input.sourceUsageRuleId ?? null,

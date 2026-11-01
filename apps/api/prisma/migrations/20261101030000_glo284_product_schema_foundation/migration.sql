@@ -136,3 +136,15 @@ ALTER TABLE "catalog"."products" ADD CONSTRAINT "products_fact_version_positive"
 
 ALTER TABLE "catalog"."skus" ADD CONSTRAINT "skus_estimated_days_positive"
     CHECK (estimated_days_of_use IS NULL OR estimated_days_of_use > 0);
+
+ALTER TABLE "care"."customer_usage_schedules" ADD CONSTRAINT "customer_usage_schedules_unique_entry"
+    UNIQUE ("customer_routine_id", "routine_item_id", "timing_slot", "phase");
+
+ALTER TABLE "care"."customer_usage_schedules" ADD CONSTRAINT "customer_usage_schedules_weekdays_valid"
+    CHECK (weekdays <@ ARRAY[1, 2, 3, 4, 5, 6, 7]);
+
+ALTER TABLE "care"."customer_usage_schedules" ADD CONSTRAINT "customer_usage_schedules_phase_positive"
+    CHECK (phase >= 1);
+
+ALTER TABLE "care"."customer_usage_schedules" ADD CONSTRAINT "customer_usage_schedules_planned_uses_positive"
+    CHECK (planned_uses_per_occurrence >= 1);
