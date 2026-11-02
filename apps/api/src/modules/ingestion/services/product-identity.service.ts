@@ -28,6 +28,8 @@ export enum MatchClassification {
 }
 
 export interface CandidateItemIdentityInput {
+  /** Server-side admission, never accepted by a public DTO. */
+  eligibilityApproved?: boolean;
   supplierId: string;
   supplierSkuCode: string;
   name: string;
@@ -323,7 +325,7 @@ export class ProductIdentityService {
     }
 
     // 0b. Brand validity check
-    if (brandStated && this.isInvalidBrand(input.brand)) {
+    if (!input.eligibilityApproved && brandStated && this.isInvalidBrand(input.brand)) {
       return {
         classification: MatchClassification.INVALID,
         matchedSkuId: null,
@@ -337,7 +339,7 @@ export class ProductIdentityService {
     // 0c. Category & scope evaluation via RowNormalizationService
     if (this.rowNormalizationService) {
       const scope = this.rowNormalizationService.classifyScope(input.name, input.brand);
-      if (!scope.isEligible && scope.category === 'excluded') {
+      if (!input.eligibilityApproved && !scope.isEligible && scope.category === 'excluded') {
         return {
           classification: MatchClassification.OUT_OF_SCOPE,
           matchedSkuId: null,

@@ -21,7 +21,7 @@ export interface TypedDiscount {
 
 export interface ProductScopeClassification {
   isEligible: boolean;
-  category: 'skincare' | 'haircare' | 'unknown' | 'excluded';
+  category: 'skincare' | 'haircare' | 'unknown' | 'excluded' | 'approved';
   confidence: number;
   matchedRules: string[];
   reason?: string;

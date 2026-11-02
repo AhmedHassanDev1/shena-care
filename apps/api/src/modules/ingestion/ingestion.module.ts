@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { EligibilityController } from './eligibility.controller';
+import { IngestionEligibilityService } from './services/ingestion-eligibility.service';
 import { IngestionService } from './services/ingestion.service';
 import { ProductIdentityService } from './services/product-identity.service';
 import { ProductResearchService } from './services/product-research.service';
@@ -20,8 +22,9 @@ import { CareModule } from '../care/public';
 
 @Module({
   imports: [CatalogModule, CareModule, SourcingModule, AiModule, StorageModule],
-  controllers: [IngestionController],
+  controllers: [IngestionController, EligibilityController],
   providers: [
+    IngestionEligibilityService,
     IngestionService,
     ProductIdentityService,
     ProductResearchService,

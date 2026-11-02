@@ -8,6 +8,7 @@ export interface SourceRowSummary {
   invalid: number
   duplicate: number
   outOfScope: number
+  policyHeld?: number
   notAdmitted: Array<{ sourceRow: number; supplierSku: string; outcome: string; reason: string | null }>
 }
 
@@ -15,6 +16,8 @@ const OUTCOME_LABEL: Record<string, string> = {
   INVALID: 'صف غير صالح',
   DUPLICATE: 'مكرر في الملف',
   OUT_OF_SCOPE: 'خارج نطاق المتجر',
+  POLICY_SKIP: 'مستبعد بسياسة العلامة والتصنيف — SKIP',
+  POLICY_HOLD: 'معلق لمراجعة العلامة أو التصنيف — HOLD',
 }
 
 /** Rows that never became catalog candidates or offers; shown so a clean-looking preview is never a silent drop. */
@@ -23,9 +26,9 @@ export function SourceRowOutcomes({ summary }: { summary?: SourceRowSummary }) {
   return (
     <Notice
       tone={summary.invalid > 0 ? 'danger' : 'info'}
-      title={`${summary.notAdmitted.length} من ${summary.total} صفاً في الملف لم يُقبل (${summary.invalid} غير صالح، ${summary.duplicate} مكرر، ${summary.outOfScope} خارج النطاق)`}
+      title={`${summary.notAdmitted.length} من ${summary.total} صفاً في الملف لم يُقبل (${summary.invalid} غير صالح، ${summary.duplicate} مكرر، ${summary.outOfScope} مستبعد، ${summary.policyHeld ?? 0} معلق للمراجعة)`}
     >
-      <p className="mb-2">هذه الصفوف لن تتحول إلى عروض أو منتجات. صحّح الملف وأعد رفعه إذا كانت مقصودة.</p>
+      <p className="mb-2">هذه الصفوف لن تتحول إلى عروض أو منتجات. صفوف HOLD تنتظر مراجعة الإدارة للأسماء أو ربط التصنيف، ثم إعادة الفحص بإصدار معتمد.</p>
       <ul className="space-y-1 text-xs">
         {summary.notAdmitted.slice(0, 50).map((row) => (
           <li key={`${row.sourceRow}-${row.outcome}`} className="flex flex-wrap gap-x-2">

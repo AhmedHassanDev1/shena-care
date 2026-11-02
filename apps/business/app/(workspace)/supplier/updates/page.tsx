@@ -143,6 +143,7 @@ function UpdatesWorkflowContent() {
     price: '',
     barcode: '',
     brand: '',
+    category: '',
     quantity: '',
     retailPrice: '',
     currency: 'EGP',
@@ -191,6 +192,7 @@ function UpdatesWorkflowContent() {
         price: p.price ?? '',
         barcode: p.barcode ?? '',
         brand: p.brand ?? '',
+        category: p.category ?? '',
         quantity: p.quantity ?? '',
         retailPrice: p.retailPrice ?? '',
       }))
@@ -223,6 +225,7 @@ function UpdatesWorkflowContent() {
       price: mapping.price.trim(),
     }
     if (mapping.barcode?.trim()) cleanMapping.barcode = mapping.barcode.trim()
+    if (mapping.category?.trim()) cleanMapping.category = mapping.category.trim()
     if (mapping.brand?.trim()) cleanMapping.brand = mapping.brand.trim()
     if (mapping.quantity?.trim()) cleanMapping.quantity = mapping.quantity.trim()
     if (mapping.retailPrice?.trim()) cleanMapping.retailPrice = mapping.retailPrice.trim()
@@ -741,6 +744,14 @@ function UpdatesWorkflowContent() {
                   </select>
                 </div>
 
+                <div className="space-y-1.5">
+                  <label htmlFor="supplier-category-column" className="block font-semibold text-white">عمود التصنيف — عدم تحديده يعلق الصفوف للمراجعة</label>
+                  <select id="supplier-category-column" value={mapping.category} onChange={e => setMapping({ ...mapping, category: e.target.value })}
+                    className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white">
+                    <option value="">— اختر عمود التصنيف —</option>
+                    {uploadResult.sampleHeaders?.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
                 {/* Optional: Quantity */}
                 <div className="space-y-1.5">
                   <label className="block font-semibold text-white">

@@ -1709,6 +1709,8 @@ model IngestionJob {
   formatFingerprint String?             @map("format_fingerprint")
   profileId         String?             @map("profile_id") @db.Uuid
   rowOutcomes       Json?               @map("row_outcomes")
+  eligibilityPolicyId String?           @map("eligibility_policy_id") @db.Uuid
+  eligibilityPolicy IngestionEligibilityPolicy? @relation(fields: [eligibilityPolicyId], references: [id], onDelete: Restrict)
   createdAt         DateTime            @default(now()) @map("created_at")
   updatedAt         DateTime            @updatedAt @map("updated_at")
 
@@ -1720,7 +1722,26 @@ model IngestionJob {
   @@unique([supplierId, sourceChecksum])
   @@index([supplierId])
   @@index([formatFingerprint])
+  @@index([eligibilityPolicyId])
   @@map("ingestion_jobs")
+  @@schema("ingestion")
+}
+
+/// Immutable approved snapshots. Preview records can only transition once to APPROVED.
+model IngestionEligibilityPolicy {
+  id String @id @default(uuid()) @db.Uuid
+  version Int? @unique
+  baseVersion Int @map("base_version")
+  status String @default("PREVIEW")
+  document Json
+  impact Json
+  actorId String @map("actor_id") @db.Uuid
+  reason String
+  createdAt DateTime @default(now()) @map("created_at")
+  approvedAt DateTime? @map("approved_at")
+  jobs IngestionJob[]
+  @@index([status, version])
+  @@map("eligibility_policies")
   @@schema("ingestion")
 }
 

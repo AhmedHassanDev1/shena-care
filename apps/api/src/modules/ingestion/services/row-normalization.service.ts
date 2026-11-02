@@ -152,6 +152,7 @@ const EXCLUDED_PRODUCT_TYPES = [
 const INGREDIENT_LIKE_WORDS = ['rice', 'tea', 'coffee', 'sugar', 'chocolate', 'juice', 'ارز', 'شاي', 'قهوه', 'سكر', 'شوكولاته', 'عصير'];
 
 export interface RawRowInput {
+  eligibilityApproved?: boolean;
   sourceRowNumber: number;
   supplierSku: string;
   name: string;
@@ -693,7 +694,9 @@ export class RowNormalizationService {
     }
 
     // 7. Category & Brand Scope Classification
-    const scope = this.classifyScope(input.name, input.brand);
+    const scope: ProductScopeClassification = input.eligibilityApproved
+      ? { isEligible: true, category: 'approved', confidence: 1, matchedRules: ['approved_dynamic_policy'] }
+      : this.classifyScope(input.name, input.brand);
 
     // 8. Determine final row status
     let status: NormalizedRowStatus = NormalizedRowStatus.UPDATED_CANDIDATE;

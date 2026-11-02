@@ -9,6 +9,7 @@ export interface ColumnMappingConfig {
   price: string;
   barcode?: string;
   brand?: string;
+  category?: string;
   quantity?: string;
   retailPrice?: string;
   availability?: string;
@@ -187,6 +188,7 @@ const MAPPING_RULES: KeywordRule[] = [
     target: 'availability',
     keywords: ['availability', 'status', 'in stock', 'instock', 'active', 'الحالة', 'حالة الصنف', 'التوفر'],
   },
+  { target: 'category', keywords: ['category', 'product category', 'التصنيف', 'الفئة', 'القسم'] },
   {
     target: 'discount',
     keywords: ['discount', 'rebate', 'خصم التوريد', 'نسبة الخصم', 'خصم'],

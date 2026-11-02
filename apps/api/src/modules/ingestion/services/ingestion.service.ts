@@ -23,6 +23,9 @@ import { NormalizedRowStatus } from '../contracts/row-normalization.contract';
 import * as crypto from 'crypto';
 import { canonicalProductSlug } from './canonical-product-slug';
 import { RoutinePlacementService } from './routine-placement.service';
+import { IngestionEligibilityService } from './ingestion-eligibility.service';
+import { EligibilityDecision } from './ingestion-eligibility.policy';
+import { RecheckEligibilityGroupDto } from '../dto/eligibility-policy.dto';
 import { UsageRule } from '../contracts/routine-placement.contract';
 
 export interface IngestionJobDetail {
@@ -100,7 +103,103 @@ export class IngestionService {
     private readonly offerBatchCommitService: OfferBatchCommitService,
     private readonly careService: CareService,
     private readonly routinePlacementService: RoutinePlacementService,
+    private readonly eligibility: IngestionEligibilityService,
   ) {}
+
+  private assertAdmittedItem(item: { brand: string; enrichment?: unknown }): EligibilityDecision {
+    const source = (item.enrichment as { source?: { eligibility?: EligibilityDecision } } | null)?.source;
+    const decision = source?.eligibility;
+    if (decision?.outcome !== 'ALLOW' || !decision.policyId || !decision.version || !decision.brandId || !decision.categoryId || decision.brandName !== item.brand) {
+      throw new ConflictException('ELIGIBILITY_HOLD: row requires approved Brand AND leaf Category policy admission');
+    }
+    return decision;
+  }
+
+  private classifyAdmittedItem(item: { brand: string; enrichment?: unknown }, input: Parameters<ProductIdentityService['classifyCandidateMatch']>[0]) {
+    const decision = this.assertAdmittedItem(item);
+    if (input.brand !== decision.brandName) throw new ConflictException('Brand correction requires policy re-admission');
+    return this.productIdentityService.classifyCandidateMatch({ ...input, eligibilityApproved: true });
+  }
+
+  /** Explicit Admin retry creates a PARTIAL successor; the original pinned audit and admitted rows never change. */
+  async recheckEligibilityHolds(jobId: string, actorId: string, reason: string, expectedPolicyId?: string) {
+    await this.eligibility.assertAdmin(actorId);
+    if (reason.trim().length < 5) throw new BadRequestException('Meaningful review reason required');
+    const original = await this.prisma.ingestionJob.findUniqueOrThrow({ where: { id: jobId }, include: { exportProfile: true } });
+    let sourceJob = original;
+    const ancestry = new Set([original.id]);
+    while (!sourceJob.sourceKey) {
+      const metadata = (sourceJob.sourceMetadata ?? {}) as { eligibilitySourceJobId?: string; eligibilityRetryOf?: string };
+      const parentId = metadata.eligibilitySourceJobId ?? metadata.eligibilityRetryOf;
+      if (!parentId || parentId === sourceJob.id) break;
+      if (!this.isUuid(parentId) || ancestry.has(parentId)) throw new ConflictException('Invalid retained source ancestry');
+      ancestry.add(parentId);
+      const parent = await this.prisma.ingestionJob.findFirst({ where: { id: parentId, supplierId: original.supplierId }, include: { exportProfile: true } });
+      if (!parent) throw new ConflictException('Retained supplier source is unavailable');
+      sourceJob = parent;
+    }
+    if (sourceJob.sourceKey && !sourceJob.exportProfile?.isApproved) throw new ConflictException('Approve the original column mapping before rechecking');
+    const policy = await this.eligibility.current();
+    if (!policy) throw new ConflictException('Approve a policy before rechecking holds');
+    if (expectedPolicyId && policy.id !== expectedPolicyId) throw new ConflictException('Policy changed during bulk recheck; reload before continuing');
+    const holds = ((original.rowOutcomes ?? []) as Array<{ sourceRow: number; outcome: string; rawRow: Record<string, unknown> }>)
+      .filter(r => r.outcome === 'POLICY_HOLD');
+    if (!holds.length) throw new ConflictException('No held rows to recheck');
+    const successor = await this.prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`eligibility-recheck:${jobId}:${policy.id}`}))`;
+      const existing = await tx.ingestionJob.findFirst({ where: { supplierId: original.supplierId,
+        eligibilityPolicyId: policy.id, sourceMetadata: { path: ['eligibilityRetryOf'], equals: jobId } } });
+      if (existing) return existing;
+      const created = await tx.ingestionJob.create({ data: { supplierId: original.supplierId,
+        mode: IngestionImportMode.PARTIAL_UPDATE, eligibilityPolicyId: policy.id,
+        sourceMetadata: { ...((original.sourceMetadata ?? {}) as Prisma.InputJsonObject),
+          eligibilityRetryOf: jobId, eligibilitySourceJobId: sourceJob.id, actorId, reason, originalChecksum: sourceJob.sourceChecksum,
+          receivedAt: ((original.sourceMetadata ?? {}) as { receivedAt?: string }).receivedAt ?? original.createdAt.toISOString() } } });
+      let items: Prisma.IngestionItemCreateManyInput[];
+      let rowOutcomes: Array<Record<string, unknown>>;
+      if (sourceJob.exportProfile?.isApproved && sourceJob.sourceKey && sourceJob.sourceChecksum) {
+        const parsed = this.spreadsheetParser.parseSpreadsheet(await this.readVerifiedOriginal(sourceJob.sourceKey, sourceJob.sourceChecksum), sourceJob.sourceKey);
+        const rowNumbers = new Set(holds.map(r => r.sourceRow));
+        const extracted = await this.extractItemsFromParsedSpreadsheet({ id: created.id, supplierId: original.supplierId,
+          eligibilityPolicyId: policy.id, sourceKey: sourceJob.sourceKey, sourceChecksum: sourceJob.sourceChecksum },
+          { ...parsed, rows: parsed.rows.filter(r => rowNumbers.has(r.sourceRow)) }, sourceJob.exportProfile.mapping as unknown as ColumnMappingConfig);
+        items = extracted.items;
+        rowOutcomes = extracted.rowOutcomes;
+      } else {
+        const evaluator = await this.eligibility.compile(policy.id, tx);
+        items = [];
+        rowOutcomes = [];
+        for (const hold of holds) {
+          const input = hold.rawRow as unknown as CreateIngestionJobDto['items'][number];
+          const eligibility = evaluator.evaluate(original.supplierId, input.brand ?? '', input.category ?? '');
+          rowOutcomes.push({ ...hold, outcome: eligibility.outcome === 'ALLOW' ? 'IMPORTED_MANUAL' : `POLICY_${eligibility.outcome}`,
+            eligibility, reason: eligibility.reason });
+          if (eligibility.outcome === 'ALLOW') items.push({ jobId: created.id, name: input.name, brand: eligibility.brandName!,
+            supplierSkuCode: input.supplierSkuCode, price: input.price, priceType: input.priceType ?? null,
+            currency: input.currency, barcode: input.barcode, reportedQuantity: input.reportedQuantity ?? null,
+            enrichment: { source: { eligibility, input, categoryInput: input.category ?? '', row: hold.sourceRow } } as unknown as Prisma.InputJsonValue });
+        }
+      }
+      if (items.length) await tx.ingestionItem.createMany({ data: items });
+      return tx.ingestionJob.update({ where: { id: created.id }, data: { rowOutcomes: rowOutcomes as Prisma.InputJsonValue } });
+    }, { timeout: 60000 });
+    const outcomes = (successor.rowOutcomes ?? []) as Array<{ outcome?: string }>;
+    return { jobId: successor.id, matching: await this.matchAdmittedRows(successor.id), counts: {
+      ALLOW: outcomes.filter(r => r.outcome === 'IMPORTED' || r.outcome === 'IMPORTED_MANUAL').length,
+      SKIP: outcomes.filter(r => r.outcome === 'POLICY_SKIP').length,
+      HOLD: outcomes.filter(r => r.outcome === 'POLICY_HOLD').length,
+    } };
+  }
+
+  async recheckEligibilityGroup(dto: RecheckEligibilityGroupDto, actorId: string) {
+    await this.eligibility.assertAdmin(actorId);
+    const policy = await this.eligibility.current();
+    if (!policy || policy.version !== dto.expectedVersion) throw new ConflictException('Policy changed; reload before bulk recheck');
+    const jobs = await this.eligibility.heldGroupJobs(dto.supplierId, dto.brand, dto.category, policy.id);
+    const results = [];
+    for (const job of jobs.slice(0, 20)) results.push(await this.recheckEligibilityHolds(job.jobId, actorId, dto.reason, policy.id));
+    return { policyVersion: policy.version, recheckedJobs: results.length, hasMore: jobs.length > 20, results };
+  }
 
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -170,6 +269,7 @@ export class IngestionService {
 
     const checksum = this.sha256(file.buffer);
     const receipt = {
+      eligibilityPolicyId: (await this.eligibility.current())?.id ?? null,
       uploadedBy: intake.uploadedBy ?? null,
       sourceFileName: this.sanitizeSourceFileName(file.originalname),
       sourceMimeType: file.mimetype,
@@ -205,7 +305,8 @@ export class IngestionService {
             profileId: existing.profileId ?? undefined,
             status: existing.status,
             // Only a job that still holds no rows is waiting for a mapping; one already mapped is just a repeat.
-            requiresMapping: existing.status === IngestionStatus.review_required && existing.items.length === 0,
+            requiresMapping: existing.status === IngestionStatus.review_required && existing.items.length === 0 &&
+              !(Array.isArray(existing.rowOutcomes) && existing.rowOutcomes.length),
             reused: true,
             totalRows: existing.items.length,
             importedItemsCount: existing.items.length,
@@ -241,8 +342,8 @@ export class IngestionService {
               },
             });
 
-            const { items: itemsData, rowOutcomes } = this.extractItemsFromParsedSpreadsheet(
-              { id: job.id, sourceKey, sourceChecksum: checksum, formatFingerprint },
+            const { items: itemsData, rowOutcomes } = await this.extractItemsFromParsedSpreadsheet(
+              { id: job.id, supplierId, eligibilityPolicyId: job.eligibilityPolicyId, sourceKey, sourceChecksum: checksum, formatFingerprint },
               parsed,
               approvedProfile.mapping as any,
             );
@@ -250,14 +351,15 @@ export class IngestionService {
             if (itemsData.length > 0) {
               await tx.ingestionItem.createMany({ data: itemsData });
             }
-            await tx.ingestionJob.update({ where: { id: job.id }, data: { rowOutcomes: rowOutcomes as Prisma.InputJsonValue } });
+            const admittedStatus = rowOutcomes.some(r => r.outcome === 'POLICY_HOLD') ? IngestionStatus.review_required : IngestionStatus.pending;
+            await tx.ingestionJob.update({ where: { id: job.id }, data: { rowOutcomes: rowOutcomes as Prisma.InputJsonValue, status: admittedStatus } });
 
             return {
               jobId: job.id,
               sourceKey,
               formatFingerprint,
               profileId: approvedProfile.id,
-              status: IngestionStatus.pending,
+              status: admittedStatus,
               requiresMapping: false,
               totalRows: parsed.totalDataRows,
               importedItemsCount: itemsData.length,
@@ -409,8 +511,8 @@ export class IngestionService {
     const parsed = parsedSource ?? this.spreadsheetParser.parseSpreadsheet(
       await this.readVerifiedOriginal(job.sourceKey, job.sourceChecksum), job.sourceKey);
     const fingerprint = job.formatFingerprint || this.formatFingerprintService.computeFingerprint(parsed.headers, parsed.sheets);
-    const { items: itemsData, rowOutcomes } = this.extractItemsFromParsedSpreadsheet(
-      { id: job.id, sourceKey: job.sourceKey, sourceChecksum: job.sourceChecksum, formatFingerprint: fingerprint },
+    const { items: itemsData, rowOutcomes } = await this.extractItemsFromParsedSpreadsheet(
+      { id: job.id, supplierId: job.supplierId, eligibilityPolicyId: job.eligibilityPolicyId, sourceKey: job.sourceKey, sourceChecksum: job.sourceChecksum, formatFingerprint: fingerprint },
       parsed,
       mapping,
     );
@@ -465,11 +567,12 @@ export class IngestionService {
     return { ...profile, importedJobs };
   }
 
-  private extractItemsFromParsedSpreadsheet(
-    job: { id: string; sourceKey: string; sourceChecksum: string; formatFingerprint?: string | null },
+  private async extractItemsFromParsedSpreadsheet(
+    job: { id: string; supplierId: string; eligibilityPolicyId: string | null; sourceKey: string; sourceChecksum: string; formatFingerprint?: string | null },
     parsed: ParsedSpreadsheet,
     mapping: ColumnMappingConfig,
   ) {
+    const policy = await this.eligibility.compile(job.eligibilityPolicyId);
     const items: any[] = [];
     const rowOutcomes: Array<Record<string, unknown>> = [];
     const seenSkus = new Set<string>();
@@ -482,10 +585,19 @@ export class IngestionService {
     for (const row of parsed.rows) {
       const rawSku = row.data[mapping.supplierSku];
       const rawName = row.data[mapping.name];
-      const statedBrand = mapping.brand ? String(row.data[mapping.brand] ?? '').trim() : '';
+      let statedBrand = mapping.brand ? String(row.data[mapping.brand] ?? '').trim() : '';
       const rawPrice = row.data[mapping.price];
 
+      const categoryInput = mapping.category ? String(row.data[mapping.category] ?? '') : '';
+      const eligibility = policy.evaluate(job.supplierId, statedBrand, categoryInput);
+      if (eligibility.outcome !== 'ALLOW') {
+        rowOutcomes.push({ sourceRow: row.sourceRow, outcome: `POLICY_${eligibility.outcome}`, reason: eligibility.reason,
+          supplierSku: String(rawSku ?? ''), brand: statedBrand, category: categoryInput, name: String(rawName ?? ''), eligibility, rawRow: row.data });
+        continue;
+      }
+      statedBrand = eligibility.brandName!;
       const norm = this.rowNormalizationService.normalizeRow({
+        eligibilityApproved: true,
         sourceRowNumber: row.sourceRow,
         supplierSku: rawSku,
         name: rawName,
@@ -562,6 +674,8 @@ export class IngestionService {
             row: row.sourceRow,
             formatFingerprint: job.formatFingerprint,
             rawRow: row.data,
+            eligibility,
+            categoryInput,
             normalized: norm,
             // Stored at admission so a concurrent importer's sweep can already see this row (GLO-278).
             fingerprint: this.productIdentityService.rowFingerprint({
@@ -601,58 +715,46 @@ export class IngestionService {
     if (dto.sourceJobId && (dto.items.some(i => !i.sourceRow) || new Set(dto.items.map(i => i.sourceRow)).size !== dto.items.length)) {
       throw new BadRequestException('Each source item requires a unique positive sourceRow');
     }
+    const inputHash = crypto.createHash('sha256').update(JSON.stringify(dto.items)).digest('hex');
     const job = await this.prisma.$transaction(async tx => {
-      if (dto.sourceJobId) {
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`import:${dto.sourceJobId}`}))`;
-        const source = await tx.ingestionJob.findFirst({ where: { id: dto.sourceJobId, supplierId: dto.supplierId }, include: { items: true } });
-        if (!source?.sourceKey || !source.sourceChecksum) throw new NotFoundException('Supplier source job not found');
-        if (!(await this.storageService.exists(source.sourceKey))) throw new NotFoundException('Supplier source object missing');
-        if (source.items.length) {
-          const same = source.items.length === dto.items.length && dto.items.every(input => source.items.some(item => {
-            const original = (item.enrichment as any)?.source?.input;
-            return original && original.supplierSkuCode === input.supplierSkuCode && original.name === input.name &&
-              original.brand === input.brand && original.barcode === (input.barcode ?? null) && original.price === input.price &&
-              (original.priceType ?? null) === (input.priceType ?? null) &&
-              original.currency === input.currency && original.sourceRow === input.sourceRow;
-          }));
-          if (!same) throw new ConflictException('Source rows already imported with different input');
-          return source;
-        }
-        if (source.status !== IngestionStatus.pending && source.status !== IngestionStatus.review_required) {
-          throw new ConflictException('Source job is no longer open for row admission');
-        }
-        await tx.ingestionItem.createMany({ data: dto.items.map(input => ({ jobId: source.id, supplierSkuCode: input.supplierSkuCode,
-          name: input.name, brand: input.brand, barcode: input.barcode, price: input.price,
-          priceType: input.priceType ?? null, reportedQuantity: input.reportedQuantity ?? null, currency: input.currency,
-          enrichment: { source: { objectKey: source.sourceKey!, checksum: source.sourceChecksum!, row: input.sourceRow!,
-            input: { supplierSkuCode: input.supplierSkuCode, name: input.name, brand: input.brand, barcode: input.barcode ?? null,
-              price: input.price, priceType: input.priceType ?? null, reportedQuantity: input.reportedQuantity ?? null, currency: input.currency, sourceRow: input.sourceRow! } } } }),
-        ) });
-        await tx.ingestionJob.update({ where: { id: source.id }, data: {
-          rowOutcomes: dto.items.map(input => ({ sourceRow: input.sourceRow!, outcome: 'IMPORTED_MANUAL',
-            supplierSku: input.supplierSkuCode, rawRow: input })) as unknown as Prisma.InputJsonValue,
-        } });
-        return tx.ingestionJob.findUniqueOrThrow({ where: { id: source.id }, include: { items: true } });
+      const sourceId = dto.sourceJobId;
+      if (sourceId) await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`import:${sourceId}`}))`;
+      const source = sourceId ? await tx.ingestionJob.findFirst({ where: { id: sourceId, supplierId: dto.supplierId }, include: { items: true } }) : null;
+      if (sourceId && (!source?.sourceKey || !source.sourceChecksum)) throw new NotFoundException('Supplier source job not found');
+      const meta = (source?.sourceMetadata ?? {}) as Record<string, Prisma.JsonValue>;
+      if (source && meta.manualInputHash) {
+        if (meta.manualInputHash !== inputHash) throw new ConflictException('Source rows already imported with different input');
+        return source;
       }
-      return tx.ingestionJob.create({
-      data: {
-        supplierId: dto.supplierId,
-        mode: dto.mode ?? IngestionImportMode.PARTIAL_UPDATE,
-        items: {
-          create: dto.items.map((item) => ({
-            supplierSkuCode: item.supplierSkuCode,
-            name: item.name,
-            brand: item.brand,
-            barcode: item.barcode,
-            price: item.price,
-            priceType: item.priceType ?? null,
-            reportedQuantity: item.reportedQuantity ?? null,
-            currency: item.currency,
-          })),
-        },
-      },
-      include: { items: true },
-      });
+      if (source && (source.items.length || ![IngestionStatus.pending, IngestionStatus.review_required].includes(source.status as 'pending' | 'review_required')))
+        throw new ConflictException('Source job is no longer open for row admission');
+      if (source?.sourceKey && !(await this.storageService.exists(source.sourceKey))) throw new NotFoundException('Supplier source object missing');
+      const policyId = source ? source.eligibilityPolicyId : (await this.eligibility.current(tx))?.id ?? null;
+      const policy = await this.eligibility.compile(policyId, tx);
+      const admitted: Prisma.IngestionItemCreateWithoutJobInput[] = [];
+      const outcomes: Array<Record<string, unknown>> = [];
+      for (const [index, input] of dto.items.entries()) {
+        const eligibility = policy.evaluate(dto.supplierId, input.brand, input.category ?? '');
+        const sourceRow = input.sourceRow ?? index + 1;
+        outcomes.push({ sourceRow, supplierSku: input.supplierSkuCode,
+          outcome: eligibility.outcome === 'ALLOW' ? 'IMPORTED_MANUAL' : `POLICY_${eligibility.outcome}`,
+          reason: eligibility.reason, brand: input.brand, category: input.category ?? '', name: input.name, eligibility, rawRow: input });
+        if (eligibility.outcome !== 'ALLOW') continue;
+        admitted.push({ supplierSkuCode: input.supplierSkuCode, name: input.name, brand: eligibility.brandName!,
+          barcode: input.barcode, price: input.price, priceType: input.priceType ?? null,
+          reportedQuantity: input.reportedQuantity ?? null, currency: input.currency,
+          enrichment: { source: { objectKey: source?.sourceKey ?? null, checksum: source?.sourceChecksum ?? null,
+            row: sourceRow, eligibility: eligibility as unknown as Prisma.InputJsonObject,
+            categoryInput: input.category ?? '', input: { ...input, barcode: input.barcode ?? null } } } as unknown as Prisma.InputJsonValue });
+      }
+      const rowOutcomes = outcomes as unknown as Prisma.InputJsonValue;
+      const status = outcomes.some(r => r.outcome === 'POLICY_HOLD') ? IngestionStatus.review_required : IngestionStatus.pending;
+      if (source) return tx.ingestionJob.update({ where: { id: source.id }, data: {
+        items: { create: admitted }, rowOutcomes, status, sourceMetadata: { ...meta, manualInputHash: inputHash } as Prisma.InputJsonValue,
+      }, include: { items: true } });
+      return tx.ingestionJob.create({ data: { supplierId: dto.supplierId, eligibilityPolicyId: policyId, status,
+        mode: dto.mode ?? IngestionImportMode.PARTIAL_UPDATE, rowOutcomes,
+        items: { create: admitted }, sourceMetadata: { manualInputHash: inputHash } }, include: { items: true } });
     }, { timeout: 15000 });
 
     // Persist matching before acknowledging the import; failed matching is retryable.
@@ -744,8 +846,9 @@ export class IngestionService {
     });
 
     if (!item) throw new NotFoundException('Candidate item not found');
+    this.assertAdmittedItem(item);
 
-    const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+    const matchAnalysis = await this.classifyAdmittedItem(item, {
       candidateItemId: item.id, candidateCreatedAt: item.createdAt,
       supplierId: item.job.supplierId,
       supplierSkuCode: item.supplierSkuCode,
@@ -762,7 +865,7 @@ export class IngestionService {
       matchedSku = await this.catalogService.getSkuByBarcode(item.barcode);
     }
 
-    const brandMatch = await this.brandService.getBrand(this.slugify(item.brand)) ||
+    const brandMatch = await this.brandService.getBrand(this.assertAdmittedItem(item).brandId!) ||
       (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.canonicalSku
         ? await this.brandService.getBrand(this.slugify(matchAnalysis.canonicalSku.brandName)) : null);
 
@@ -830,12 +933,13 @@ export class IngestionService {
     });
 
     if (!item) throw new NotFoundException('Candidate item not found');
+    this.assertAdmittedItem(item);
 
     const enrichment = (item.enrichment as Record<string, any>) || {};
     const auditTrail: CandidateAuditEntry[] = Array.isArray(enrichment.auditTrail) ? enrichment.auditTrail : [];
 
     // Recompute match analysis and fingerprint
-    const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+    const matchAnalysis = await this.classifyAdmittedItem(item, {
       candidateItemId: item.id, candidateCreatedAt: item.createdAt,
       supplierId: item.job.supplierId,
       supplierSkuCode: item.supplierSkuCode,
@@ -853,7 +957,7 @@ export class IngestionService {
     }
 
     // Dependencies: Brand & ProductLine
-    const brandMatch = await this.brandService.getBrand(this.slugify(item.brand)) ||
+    const brandMatch = await this.brandService.getBrand(this.assertAdmittedItem(item).brandId!) ||
       (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.canonicalSku
         ? await this.brandService.getBrand(this.slugify(matchAnalysis.canonicalSku.brandName)) : null);
     const brandDraft = await this.prisma.brandDraft.findFirst({
@@ -1076,6 +1180,7 @@ export class IngestionService {
       include: { job: true },
     });
     if (!item) throw new NotFoundException('Candidate item not found');
+    this.assertAdmittedItem(item);
     if (item.status === IngestionStatus.published) {
       throw new BadRequestException('Cannot modify published candidate');
     }
@@ -1111,7 +1216,7 @@ export class IngestionService {
     const newBrand = dto.brand !== undefined ? dto.brand.trim() : item.brand;
     const newBarcode = dto.barcode !== undefined ? dto.barcode.trim() : item.barcode;
 
-    const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+    const matchAnalysis = await this.classifyAdmittedItem(item, {
       candidateItemId: item.id, candidateCreatedAt: item.createdAt,
       supplierId: item.job.supplierId,
       supplierSkuCode: item.supplierSkuCode,
@@ -1180,6 +1285,7 @@ export class IngestionService {
       include: { job: true },
     });
     if (!item) throw new NotFoundException('Candidate item not found');
+    this.assertAdmittedItem(item);
     if (item.status === IngestionStatus.published) {
       throw new BadRequestException('Cannot request info on published candidate');
     }
@@ -1223,6 +1329,7 @@ export class IngestionService {
     });
 
     if (!item) throw new NotFoundException('Candidate item not found');
+    this.assertAdmittedItem(item);
     if (item.job.status === IngestionStatus.published || item.status === IngestionStatus.published) {
       throw new BadRequestException('Cannot modify items of a published job or candidate');
     }
@@ -1232,7 +1339,7 @@ export class IngestionService {
     const newBrand = dto.brand !== undefined ? dto.brand : item.brand;
     const newBarcode = dto.barcode !== undefined ? dto.barcode : item.barcode;
 
-    const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+    const matchAnalysis = await this.classifyAdmittedItem(item, {
       candidateItemId: item.id, candidateCreatedAt: item.createdAt,
       supplierId: item.job.supplierId,
       supplierSkuCode: newSupplierSkuCode,
@@ -1296,11 +1403,12 @@ export class IngestionService {
 
     for (const item of job.items) {
       if (item.status !== IngestionStatus.pending) continue;
+      this.assertAdmittedItem(item);
       const enrichment = (item.enrichment as Record<string, any>) || {};
       const normalized = enrichment.source?.normalized;
       const brand = item.brand?.trim() ? item.brand : (await this.productIdentityService.inferBrandFromName(item.name)) ?? '';
 
-      const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+      const matchAnalysis = await this.classifyAdmittedItem(item, {
         candidateItemId: item.id, candidateCreatedAt: item.createdAt,
         supplierId: job.supplierId,
         supplierSkuCode: item.supplierSkuCode,
@@ -1413,7 +1521,7 @@ export class IngestionService {
       const skuIdentity = await this.catalogService.getSkuIdentity(dto.matchedSkuId);
       if (!skuIdentity?.isActive) throw new NotFoundException('SKU not found in catalog or is inactive');
       const normalized = (item.enrichment as Record<string, any>)?.source?.normalized;
-      const analysis = await this.productIdentityService.classifyCandidateMatch({
+      const analysis = await this.classifyAdmittedItem(item, {
         candidateItemId: item.id, candidateCreatedAt: item.createdAt,
         supplierId: item.job.supplierId, supplierSkuCode: item.supplierSkuCode,
         name: item.name, brand: item.brand, barcode: item.barcode,
@@ -1484,7 +1592,7 @@ export class IngestionService {
     let catalogReview = currentEnrichmentObj.catalogReview;
     if (hasCatalogSelection) {
       if (!reviewerId) throw new BadRequestException('Admin reviewer required for catalog selections');
-      const brand = await this.brandService.getBrand(this.slugify(item.brand));
+      const brand = await this.brandService.getBrand(this.assertAdmittedItem(item).brandId!);
       if (dto!.productLineId) {
         const line = await this.prisma.productLine.findUnique({ where: { id: dto!.productLineId }, include: { brand: true } });
         if (!line?.isActive || this.productIdentityService.canonicalizeBrand(line.brand.name) !==
@@ -1492,6 +1600,7 @@ export class IngestionService {
           throw new BadRequestException('Selected product line does not belong to the candidate brand');
         }
       }
+      if (dto!.categoryId && dto!.categoryId !== this.assertAdmittedItem(item).categoryId) throw new ConflictException('Catalog category must match the approved eligibility leaf');
       if (dto!.categoryId) {
         const category = await this.prisma.category.findUnique({ where: { id: dto!.categoryId } });
         if (!category?.isActive) throw new BadRequestException('Selected category is not active');
@@ -1668,6 +1777,12 @@ export class IngestionService {
     });
     if (!job) return;
 
+    const sourceRows = Array.isArray(job.rowOutcomes) ? job.rowOutcomes as Array<{ outcome?: string }> : [];
+    if (sourceRows.some(r => r.outcome === 'POLICY_HOLD') && job.status !== IngestionStatus.published) {
+      await this.prisma.ingestionJob.update({ where: { id: jobId }, data: { status: IngestionStatus.review_required } });
+      return;
+    }
+
     const allProcessed = job.items.every(
       (i) =>
         i.status === IngestionStatus.approved ||
@@ -1696,6 +1811,8 @@ export class IngestionService {
     brand: string,
     barcode?: string,
   ): Promise<void> {
+    const admitted = await this.prisma.ingestionItem.findUniqueOrThrow({ where: { id: itemId } });
+    this.assertAdmittedItem(admitted);
     await this.prisma.ingestionItem.update({
       where: { id: itemId },
       data: { enrichmentStatus: IngestionItemEnrichmentStatus.pending },
@@ -1779,6 +1896,7 @@ export class IngestionService {
     });
 
     if (!item) throw new NotFoundException('Candidate item not found');
+    this.assertAdmittedItem(item);
 
     // Credit Protection & Caching: if candidate already has research evidence saved, return cached evidence
     const currentEnrichment = (item.enrichment as Record<string, unknown>) || {};
@@ -1814,6 +1932,8 @@ export class IngestionService {
 
   async generateCandidateContent(itemId: string) {
     if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
+    const item = await this.prisma.ingestionItem.findUniqueOrThrow({ where: { id: itemId } });
+    this.assertAdmittedItem(item);
     return this.contentService.generateContent(itemId);
   }
 
@@ -1825,6 +1945,7 @@ export class IngestionService {
     if (!this.isUuid(itemId)) throw new BadRequestException('Invalid candidate item ID');
     const item = await this.prisma.ingestionItem.findUnique({ where: { id: itemId }, include: { job: true } });
     if (!item) throw new NotFoundException('Candidate item not found');
+    this.assertAdmittedItem(item);
 
     if (item.status === IngestionStatus.published) throw new BadRequestException('Published candidates are immutable');
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype)) throw new BadRequestException('Only supported images may be uploaded');
@@ -1905,7 +2026,7 @@ export class IngestionService {
     }
 
     // 3. Perform pre-publish Identity Match Check (Deduplication)
-    const matchAnalysis = await this.productIdentityService.classifyCandidateMatch({
+    const matchAnalysis = await this.classifyAdmittedItem(item, {
       candidateItemId: item.id, candidateCreatedAt: item.createdAt,
       supplierId,
       supplierSkuCode: item.supplierSkuCode,
@@ -1922,15 +2043,10 @@ export class IngestionService {
     }
 
     // 4. Admit only an existing or separately approved canonical brand.
-    const existingBrand = await this.brandService.getBrand(this.slugify(item.brand));
-    const approvedDraft = existingBrand ? null : await this.prisma.brandDraft.findFirst({ where: {
-      status: 'APPROVED', canonicalBrandId: { not: null },
-      OR: [{ name: { equals: item.brand, mode: 'insensitive' } },
-        { canonicalName: { equals: item.brand, mode: 'insensitive' } }],
-    } });
-    const brandId = existingBrand?.id ?? approvedDraft?.canonicalBrandId;
-    if (!brandId) throw new BadRequestException('Canonical brand admission requires review');
-    const brandName = existingBrand?.name ?? item.brand;
+    const existingBrand = await this.brandService.getBrand(this.assertAdmittedItem(item).brandId!);
+    if (!existingBrand) throw new BadRequestException('Approved canonical brand no longer exists; policy review required');
+    const brandId = existingBrand.id;
+    const brandName = existingBrand.name;
     const catalogReview = enrichment.catalogReview as Record<string, any> | undefined;
 
     // 5. Resolve or create Product in Catalog via CatalogService. An existing product is reused only for the same
@@ -2028,6 +2144,7 @@ export class IngestionService {
     });
 
     if (!item) throw new NotFoundException('Candidate item not found');
+    this.assertAdmittedItem(item);
     if (item.status === IngestionStatus.published) {
       throw new BadRequestException('Candidate is already published');
     }
@@ -2163,6 +2280,10 @@ export class IngestionService {
 
     if (job.status === IngestionStatus.published) {
       throw new BadRequestException('Job is already published');
+    }
+
+    if (Array.isArray(job.rowOutcomes) && (job.rowOutcomes as Array<{ outcome?: string }>).some(r => r.outcome === 'POLICY_HOLD')) {
+      throw new ConflictException('Resolve eligibility HOLD rows before publishing the job');
     }
 
     if (job.status !== IngestionStatus.approved || job.items.some(item =>

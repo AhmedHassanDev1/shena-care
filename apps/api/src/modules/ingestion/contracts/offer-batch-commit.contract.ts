@@ -38,6 +38,7 @@ export interface SourceRowSummary {
   invalid: number;
   duplicate: number;
   outOfScope: number;
+  policyHeld?: number;
   /** Rows the system did not admit, in file order, with the reason recorded at intake. */
   notAdmitted: Array<{ sourceRow: number; supplierSku: string; outcome: string; reason: string | null }>;
 }

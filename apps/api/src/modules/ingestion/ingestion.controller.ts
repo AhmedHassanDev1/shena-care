@@ -273,7 +273,7 @@ export class IngestionController {
   @Post('candidates/:id/content/generate')
   @Roles('ADMIN', 'HUB_OPERATOR')
   async generateCandidateContentExplicit(@Param('id', ParseUUIDPipe) id: string) {
-    return this.contentService.generateContent(id);
+    return this.ingestionService.generateCandidateContent(id);
   }
 
   @Post('candidates/:id/content/approve')

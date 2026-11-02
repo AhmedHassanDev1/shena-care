@@ -3,6 +3,8 @@ import { Transform, Type } from 'class-transformer';
 import { IngestionPriceType, IngestionImportMode } from '@prisma/client';
 
 export class IngestionItemInput {
+  @IsOptional() @IsString() @MaxLength(200)
+  category?: string;
   @IsString()
   @IsNotEmpty()
   @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
@@ -259,6 +261,8 @@ export class ApproveExportProfileDto {
 }
 
 export class ColumnMappingInput {
+  @IsOptional() @IsString() @MaxLength(100)
+  category?: string;
   @IsOptional()
   @ValidateNested()
   @Type(() => MappingSemanticsInput)

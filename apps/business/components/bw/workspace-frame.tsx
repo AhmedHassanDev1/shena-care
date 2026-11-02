@@ -28,6 +28,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'attention', label: 'نظرة عامة', icon: Home, href: '/admin' },
       { id: 'catalog', label: 'مراجعة الكتالوج والمنتجات', icon: Store, href: '/admin/catalog' },
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
+      { id: 'ingestion-policy', label: 'سياسة قبول منتجات الموردين', icon: ShieldAlert, href: '/admin/ingestion-policy' },
       { id: 'sourcing', label: 'الموردين والشراء', icon: Store, href: '/admin/sourcing' },
       { id: 'hub', label: 'المخزن والتجهيز', icon: PackageOpen, href: '/hub' },
       { id: 'delivery', label: 'عمليات التوصيل', icon: Truck, href: '/admin/delivery' },

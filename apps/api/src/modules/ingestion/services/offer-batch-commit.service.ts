@@ -136,6 +136,7 @@ export class OfferBatchCommitService {
       if (!item || item.status !== IngestionStatus.approved) {
         throw new ConflictException('Only an approved candidate can commit a supplier offer');
       }
+      this.assertVersionedAdmission(item.job.eligibilityPolicyId, item);
       if (item.priceType !== IngestionPriceType.PURCHASE_COST || item.price.toNumber() <= 0) {
         throw new BadRequestException('An explicit positive PURCHASE_COST is required');
       }
@@ -160,8 +161,9 @@ export class OfferBatchCommitService {
           lastIngestionItemId: item.id,
           isAvailable: availability, lastObservedAt: new Date() },
         update: { costPrice: cost, currency: item.currency, isAvailable: availability,
-          ...(item.reportedQuantity !== null ? { availableQuantity: item.reportedQuantity, quantityUpdatedAt: new Date() } : {}),
-          lastIngestionItemId: item.id, lastObservedAt: new Date() },
+          // A price-only import is not a new stock observation.
+          ...(item.reportedQuantity !== null ? { availableQuantity: item.reportedQuantity, quantityUpdatedAt: new Date(), lastObservedAt: new Date() } : {}),
+          lastIngestionItemId: item.id },
       });
     }, { timeout: 30000, maxWait: 10000 });
   }
@@ -184,14 +186,23 @@ export class OfferBatchCommitService {
     for (const chunk of chunks(writes.filter(w => idBySku.has(w.skuId)))) {
       const values = Prisma.join(chunk.map(w => Prisma.sql`(${idBySku.get(w.skuId)}::uuid, ${w.cost}::numeric,
         ${w.currency}::varchar, ${w.available}::boolean, ${w.priceOnly}::boolean, ${w.itemId}::uuid, ${w.quantity}::integer)`));
-      // A price-only row never changes availability.
+      // A price-only row never changes availability or renews its stock freshness.
       await tx.$executeRaw`UPDATE "sourcing"."supplier_offers" AS o SET "cost_price" = v.cost, "currency" = v.currency,
         "is_available" = CASE WHEN v.price_only THEN o."is_available" ELSE v.available END,
         "available_quantity" = CASE WHEN v.price_only THEN o."available_quantity" ELSE v.quantity END,
         "quantity_updated_at" = CASE WHEN v.price_only THEN o."quantity_updated_at" ELSE ${at} END,
-        "last_observed_at" = ${at}, "last_ingestion_item_id" = v.item_id, "updated_at" = ${at}
+        "last_observed_at" = CASE WHEN v.price_only THEN o."last_observed_at" ELSE ${at} END,
+        "last_ingestion_item_id" = v.item_id, "updated_at" = ${at}
         FROM (VALUES ${values}) AS v(id, cost, currency, available, price_only, item_id, quantity) WHERE o."id" = v.id`;
     }
+  }
+
+  private assertVersionedAdmission(policyId: string | null | undefined, item: { brand: string; enrichment: unknown }): void {
+    // Pre-deployment approved offers retain their existing review/commit semantics. All new receipts are policy gated.
+    if (!policyId) return;
+    const decision = (item.enrichment as { source?: { eligibility?: { policyId: string; outcome: string; brandName: string } } } | null)?.source?.eligibility;
+    if (decision?.policyId !== policyId || decision.outcome !== 'ALLOW' || decision.brandName !== item.brand)
+      throw new ConflictException('Offer requires approved pinned eligibility admission');
   }
 
   /** Sets item status (when given) and merges only the given enrichment keys, leaving concurrently written keys intact. */
@@ -277,6 +288,7 @@ export class OfferBatchCommitService {
     };
 
     for (const item of job.items) {
+      this.assertVersionedAdmission(job.eligibilityPolicyId, item);
       // Check if item was explicitly rejected
       if (item.status === IngestionStatus.rejected) {
         rows.push({
@@ -590,7 +602,8 @@ export class OfferBatchCommitService {
       admitted: admittedItems,
       invalid: count('INVALID'),
       duplicate: count('DUPLICATE'),
-      outOfScope: count('OUT_OF_SCOPE'),
+      outOfScope: count('OUT_OF_SCOPE') + count('POLICY_SKIP'),
+      policyHeld: count('POLICY_HOLD'),
       notAdmitted,
     };
   }
@@ -624,7 +637,7 @@ export class OfferBatchCommitService {
             committedCount: 0,
             unchangedCount: priorOutcomes.filter(outcome => outcome?.status === 'COMMITTED').length,
             heldForReviewCount: 0,
-            skippedCount: 0,
+            skippedCount: this.summarizeSourceRows(job.rowOutcomes, job.items.length)?.notAdmitted.filter(r => r.outcome === 'POLICY_SKIP').length ?? 0,
             errorCount: 0,
             deactivatedCount: 0,
             itemOutcomes: job.items.map((i, index) => priorOutcomes[index] ?? ({
@@ -643,8 +656,8 @@ export class OfferBatchCommitService {
 
         let committedCount = 0;
         let unchangedCount = 0;
-        let heldForReviewCount = 0;
-        let skippedCount = 0;
+        let heldForReviewCount = diff.sourceRows?.policyHeld ?? 0;
+        let skippedCount = diff.sourceRows?.notAdmitted.filter(r => r.outcome === 'POLICY_SKIP').length ?? 0;
         let errorCount = 0;
         // GLO-281: writes are collected and applied in set-based statements below, so a 1,000-row file commits in a
         // handful of round trips instead of ~5 per row (which exceeded the transaction budget on a remote database).
