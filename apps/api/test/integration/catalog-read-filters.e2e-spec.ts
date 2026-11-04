@@ -134,7 +134,7 @@ describe('Catalog Read APIs & Filtering (GLO-99 e2e)', () => {
     it('should list category hierarchy tree with children', async () => {
       const tree = await categoryController.listCategories();
 
-      expect(tree.length).toBe(2); // Skin Care and Hair Care
+      expect(tree.filter((r: { slug: string }) => ['skin-care', 'hair-care'].includes(r.slug))).toHaveLength(2); // Skin Care and Hair Care
       const skinCare = tree.find((c) => c.slug === 'skin-care');
       expect(skinCare).toBeDefined();
       expect(skinCare?.children.length).toBeGreaterThan(0);

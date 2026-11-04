@@ -18,6 +18,8 @@ export { BrandService } from './services/brand.service';
 export { CategoryService } from './services/category.service';
 export { ProductIdentityService, BARCODE_ALIAS_SOURCES } from './services/product-identity.service';
 export { IngredientService } from './services/ingredient.service';
+export { ProductMediaService } from './services/product-media.service';
+export type { MediaReadiness, MediaRoleState } from './services/product-media.service';
 export type { BarcodeResolution } from './services/product-identity.service';
 
 // DTOs
@@ -26,11 +28,13 @@ export { CreateProductLineDto, UpdateProductLineDto } from './dto/product-line.d
 export { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 export { CreateSkuDto, UpdateSkuDto } from './dto/sku.dto';
 export { CreateProductMediaDto, UpdateProductMediaDto } from './dto/media.dto';
+export { RegisterMediaAssetDto, DeriveMediaAssetDto, ReviewMediaAssetDto } from './dto/media-asset.dto';
 
 // Types — بنصدر الـ interfaces عشان الـ Composition Layer
 // يقدر يستخدمها في الـ types بتاعته من غير ما يحتاج يعرف الـ implementation
 export type { PublishedProduct, PublishedSku, PublishedMedia, SkuValidationStatus } from './services/catalog.service';
 export type { SkuLabel, ReviewedUsageRuleInput, StatedConcentrationInput } from './services/catalog.service';
+export type { SkuIdentityCandidate, SkuIdentityCandidateRequest } from './services/catalog.service';
 export type { RoutineProductFacts, RoutineActiveFact } from './services/catalog.service';
 export type { BrandSummary, BrandDetail, ProductLineSummary } from './services/brand.service';
 export type { CategoryNode, CategoryDetail } from './services/category.service';

@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { uniqueGtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe, BadRequestException, ForbiddenException } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -47,6 +49,7 @@ describe('SG-09: Verified Packshots, Brand/Line Media & Evidence-Bound Content (
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    await admitDownstreamRows(app);
 
     prisma = app.get(PrismaService);
     brandEnrichmentService = app.get(BrandEnrichmentService);
@@ -104,7 +107,7 @@ describe('SG-09: Verified Packshots, Brand/Line Media & Evidence-Bound Content (
 
   async function createTestCandidate(overrides?: Partial<any>) {
     const id = randomUUID();
-    const barcode = `BARCODE-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const barcode = uniqueGtin();
     const item = await prisma.ingestionItem.create({
       data: {
         id,

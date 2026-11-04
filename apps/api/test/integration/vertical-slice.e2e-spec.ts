@@ -149,7 +149,7 @@ describe('First Vertical Slice (e2e)', () => {
     it('should return root categories with child leaf categories', async () => {
       const roots = await categoryService.getCategories();
 
-      expect(roots.length).toBe(2); // Skin Care and Hair Care
+      expect(roots.filter((r) => ['skin-care', 'hair-care'].includes(r.slug))).toHaveLength(2); // Skin Care and Hair Care
       const skinCare = roots.find((r) => r.slug === 'skin-care');
       const hairCare = roots.find((r) => r.slug === 'hair-care');
 

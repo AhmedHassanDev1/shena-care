@@ -522,8 +522,10 @@ describe('GLO-284: Final Formula Isolation, SKU Composition & Ingestion Invarian
           barcode: existingSku.barcode,
         });
 
-        // The classifier identifies the verified barcode match or flags conflict if names diverge wildly
-        expect([MatchClassification.EXACT_MATCH, MatchClassification.CONFLICT]).toContain(classification.classification);
+        // The classifier identifies the verified barcode match or flags conflict if names diverge wildly.
+        // Whichever SKU is first may hold a legacy code that fails GS1 validation: that is held, never evidence.
+        expect([MatchClassification.EXACT_MATCH, MatchClassification.CONFLICT, MatchClassification.LIKELY_MATCH]).toContain(classification.classification);
+        if (classification.classification === MatchClassification.LIKELY_MATCH) expect(classification.matchedSkuId).toBeNull();
       }
     });
   });

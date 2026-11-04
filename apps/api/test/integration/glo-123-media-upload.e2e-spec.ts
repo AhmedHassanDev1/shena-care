@@ -1,6 +1,8 @@
 // These specs assert the strict confirmed-only storefront gate (SUPPLIER_PROVISIONAL_ORDERABLE=false); the default now also accepts a fresh supplier signal (see g08).
 process.env.SUPPLIER_PROVISIONAL_ORDERABLE = 'false';
 import { Test } from '@nestjs/testing';
+import { uniqueGtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -49,6 +51,7 @@ describe('GLO-123/124 media, tenant storage and publication invariants (PostgreS
     app.useLogger(false);
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }));
     await app.init();
+    await admitDownstreamRows(app);
     prisma = app.get(PrismaService);
     catalog = app.get(CatalogService);
     ingestion = app.get(IngestionService);
@@ -92,7 +95,7 @@ describe('GLO-123/124 media, tenant storage and publication invariants (PostgreS
     const brand = await prisma.brand.create({ data: { name: `Pipeline Brand ${id}`, slug: `pipeline-brand-${id}` } });
     brands.push(brand.id);
     const job = await prisma.ingestionJob.create({ data: { supplierId: supplierA, items: { create: {
-      supplierSkuCode: `PIPE-${id}`, name: `Pipeline Cream ${id} 50ml`, brand: `Pipeline Brand ${id}`, barcode: id,
+      supplierSkuCode: `PIPE-${id}`, name: `Pipeline Cream ${id} 50ml`, brand: `Pipeline Brand ${id}`, barcode: uniqueGtin(),
       price: 50, priceType: 'PURCHASE_COST', currency: 'SAR', status: 'review_required', enrichment: { research: { fieldEvidences: [{
         fieldName: 'size', sourceUrl, sourceType: 'OFFICIAL_MANUFACTURER', verificationStatus: 'SUPPORTED', proposedValue: { value: 50, unit: 'ml' },
       }] } },

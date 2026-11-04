@@ -39,7 +39,10 @@ export interface SourceRowSummary {
   duplicate: number;
   outOfScope: number;
   policyHeld?: number;
-  /** Rows the system did not admit, in file order, with the reason recorded at intake. */
+  /** Rows the policy excluded; carried as counts per reason, not one record per row. */
+  policySkipped?: number;
+  skippedByReason?: Array<{ reason: string; count: number; rowRanges: Array<[number, number]> }>;
+  /** Rows the system did not admit, in file order, with the reason recorded at intake. Capped; excludes aggregated policy skips. */
   notAdmitted: Array<{ sourceRow: number; supplierSku: string; outcome: string; reason: string | null }>;
 }
 

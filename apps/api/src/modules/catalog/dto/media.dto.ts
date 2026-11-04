@@ -8,8 +8,9 @@ import {
   Min,
   IsUrl,
   IsObject,
+  IsUUID,
 } from 'class-validator';
-import { MediaType, MediaOriginType } from '@prisma/client';
+import { MediaType, MediaOriginType, MediaRole } from '@prisma/client';
 
 export class CreateProductMediaDto {
   @IsEnum(MediaType)
@@ -36,6 +37,14 @@ export class CreateProductMediaDto {
   @IsEnum(MediaOriginType)
   @IsOptional()
   originType?: MediaOriginType;
+
+  @IsEnum(MediaRole)
+  @IsOptional()
+  role?: MediaRole;
+
+  @IsUUID()
+  @IsOptional()
+  assetId?: string;
 
   @IsOptional()
   @IsObject()

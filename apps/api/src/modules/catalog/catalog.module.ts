@@ -4,6 +4,9 @@ import { BrandService } from './services/brand.service';
 import { CategoryService } from './services/category.service';
 import { ProductIdentityService } from './services/product-identity.service';
 import { IngredientService } from './services/ingredient.service';
+import { ProductMediaService } from './services/product-media.service';
+import { BACKGROUND_REMOVAL, MEDIA_PROCESSOR } from '../../platform/storage/media-processor.port';
+import { DisabledBackgroundRemoval, SharpMediaProcessor } from '../../platform/storage/sharp-media-processor';
 import { StorageModule } from '../../platform/storage/storage.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SEARCH_PROVIDER } from './search/search-provider';
@@ -17,6 +20,9 @@ import { PostgresSearchProvider } from './search/postgres-search.provider';
     CategoryService,
     ProductIdentityService,
     IngredientService,
+    ProductMediaService,
+    { provide: MEDIA_PROCESSOR, useClass: SharpMediaProcessor },
+    { provide: BACKGROUND_REMOVAL, useClass: DisabledBackgroundRemoval },
     PostgresSearchProvider,
     {
       provide: SEARCH_PROVIDER,
@@ -28,6 +34,6 @@ import { PostgresSearchProvider } from './search/postgres-search.provider';
       },
     },
   ],
-  exports: [CatalogService, BrandService, CategoryService, ProductIdentityService, IngredientService, SEARCH_PROVIDER],
+  exports: [CatalogService, BrandService, CategoryService, ProductIdentityService, IngredientService, ProductMediaService, SEARCH_PROVIDER],
 })
 export class CatalogModule {}

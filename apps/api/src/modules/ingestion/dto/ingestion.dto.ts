@@ -157,6 +157,12 @@ export class ApproveIngestionItemDto {
   @IsString()
   matchedSkuId?: string;
 
+  /** What the reviewer checked. Required to settle a row matching could not verify on its own. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  identityEvidence?: string;
+
   @IsOptional()
   @IsBoolean()
   createNewProduct?: boolean;
@@ -312,6 +318,11 @@ export class ColumnMappingInput {
   @IsString()
   @MaxLength(100)
   discount?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  priceType?: string;
 
   @IsOptional()
   @IsString()

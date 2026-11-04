@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe, BadRequestException } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -31,6 +32,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    await admitDownstreamRows(app);
 
     prisma = app.get(PrismaService);
     identityService = app.get(ProductIdentityService);
@@ -95,7 +97,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
   describe('1. Acceptance 1: Same product two suppliers differently named → single canonical SKU with two offers', () => {
     it('resolves English and Arabic names to single canonical SKU and creates distinct supplier offers', async () => {
       // Publication requires a reviewed catalog brand; do not depend on another suite having created it.
-      await prisma.brand.upsert({ where: { slug: 'cerave' }, update: {}, create: { name: 'CeraVe', slug: 'cerave' } });
+      await prisma.brand.upsert({ where: { name: 'CeraVe' }, update: {}, create: { name: 'CeraVe', slug: 'cerave' } });
 
       // Step A: Supplier 1 imports "CeraVe Moisturizing Cream 340g" (English name)
       const job1 = await request(app.getHttpServer())
@@ -108,7 +110,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
               supplierSkuCode: 'SUP1-CERAVE-340G',
               name: 'CeraVe Moisturizing Cream 340g',
               brand: 'CeraVe',
-              barcode: '3337875597381',
+              barcode: '3337875597388',
               price: 350,
               priceType: 'PURCHASE_COST',
               currency: 'EGP',
@@ -118,7 +120,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
         .expect(201);
 
       const itemId1 = job1.body.items[0].id;
-      const media1 = await reviewCandidateMedia(app, admin.auth, itemId1, '3337875597381', 340, 'g');
+      const media1 = await reviewCandidateMedia(app, admin.auth, itemId1, '3337875597388', 340, 'g');
       await request(app.getHttpServer())
         .patch(`/ingestion/candidates/${itemId1}/approve`)
         .set(admin.auth)
@@ -144,7 +146,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
               supplierSkuCode: 'SUP2-CERAVE-AR-340',
               name: 'سيرافي كريم مرطب للبشرة الجافة 340 جم',
               brand: 'سيرافي',
-              barcode: '3337875597381',
+              barcode: '3337875597388',
               price: 320,
               priceType: 'PURCHASE_COST',
               currency: 'EGP',
@@ -156,21 +158,21 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
       const itemId2 = job2.body.items[0].id;
       await new Promise((r) => setTimeout(r, 100));
 
-      // Candidate 2 must EXACT_MATCH the canonical SKU created by Supplier 1
+      // Candidate 2 is offered the canonical SKU created by Supplier 1; its Arabic wording needs one reviewer confirmation
       const detail2 = await request(app.getHttpServer())
         .get(`/ingestion/candidates/${itemId2}`)
         .set(admin.auth)
         .expect(200);
 
-      expect(detail2.body.matchedSkuId).toBe(canonicalSkuId);
-      expect(detail2.body.identity.classification).toBe(MatchClassification.EXACT_MATCH);
+      expect(detail2.body.matchedSkuId).toBeNull();
+      expect(detail2.body.identity.classification).toBe(MatchClassification.LIKELY_MATCH);
 
       // Supplier 2 approves and publishes
-      const media2 = await reviewCandidateMedia(app, admin.auth, itemId2, '3337875597381', 340, 'g');
+      const media2 = await reviewCandidateMedia(app, admin.auth, itemId2, '3337875597388', 340, 'g');
       await request(app.getHttpServer())
         .patch(`/ingestion/candidates/${itemId2}/approve`)
         .set(admin.auth)
-        .send({ mediaReviews: media2 })
+        .send({ matchedSkuId: canonicalSkuId, identityEvidence: 'Reviewer compared the Arabic label with the SKU pack', mediaReviews: media2 })
         .expect(200);
 
       await request(app.getHttpServer())
@@ -180,7 +182,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
 
       // Step C: Verify canonical database state
       // Exactly 1 canonical SKU exists with barcode 3337875597381
-      const skuCount = await prisma.sku.count({ where: { barcode: '3337875597381' } });
+      const skuCount = await prisma.sku.count({ where: { barcode: '3337875597388' } });
       expect(skuCount).toBe(1);
 
       // Exactly 2 distinct SupplierOffers exist for this SKU
@@ -218,7 +220,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
           variantName: 'Default',
           size: 236,
           sizeUnit: 'ml',
-          barcode: '3337872412489',
+          barcode: '3337872412486',
           isActive: true,
         },
       });
@@ -231,7 +233,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
         brand: 'SG04 Brand CeraVe',
         size: 473,
         sizeUnit: 'ml',
-        barcode: '3337872412489',
+        barcode: '3337872412486',
       });
 
       expect(matchWithBarcode.classification).toBe(MatchClassification.CONFLICT);
@@ -275,7 +277,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
           variantName: 'Default',
           size: 236,
           sizeUnit: 'ml',
-          barcode: '6221000000001',
+          barcode: '6221000000003',
           isActive: true,
         },
       });
@@ -286,7 +288,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
         supplierSkuCode: 'CETAPHIL-COLLISION',
         name: 'Moisturizing Cream',
         brand: 'Cetaphil',
-        barcode: '6221000000001',
+        barcode: '6221000000003',
       });
 
       expect(match.classification).toBe(MatchClassification.CONFLICT);
@@ -303,7 +305,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
         supplierSkuCode: 'SUP1-BLEMISH-40ML',
         name: 'CeraVe Blemish Control Gel 40ml',
         brand: 'CeraVe',
-        barcode: '3337875794056',
+        barcode: '3337875794053',
         size: 40,
         sizeUnit: 'ml',
       });
@@ -322,7 +324,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
           supplierSkuCode: 'SUP1-BLEMISH-40ML',
           name: 'CeraVe Blemish Control Gel 40ml',
           brand: 'CeraVe',
-          barcode: '3337875794056',
+          barcode: '3337875794053',
           price: 250,
           currency: 'EGP',
           status: 'review_required',
@@ -339,7 +341,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
         supplierSkuCode: 'SUP2-BLEMISH-40ML',
         name: 'CeraVe Blemish Control Gel 40ml',
         brand: 'CeraVe',
-        barcode: '3337875794056',
+        barcode: '3337875794053',
         size: 40,
         sizeUnit: 'ml',
       });
@@ -352,7 +354,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
 
       const secondJob = await app.get(IngestionService).createJob({ supplierId: supplier2Id, items: [{
         supplierSkuCode: 'SUP2-BLEMISH-40ML', name: 'CeraVe Blemish Control Gel 40ml',
-        brand: 'CeraVe', barcode: '3337875794056', price: 200, currency: 'EGP',
+        brand: 'CeraVe', barcode: '3337875794053', price: 200, currency: 'EGP',
       }] });
       const second = await prisma.ingestionItem.findUniqueOrThrow({ where: { id: secondJob.items[0].id } });
       expect((second.enrichment as any)?.evidence?.manufacturerSource).toBeUndefined();
@@ -469,7 +471,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
           variantName: 'Default',
           size: 52,
           sizeUnit: 'ml',
-          barcode: '3337875597200', // Original manufacturer barcode
+          barcode: '3337875597203', // Original manufacturer barcode
           isActive: true,
         },
       });
@@ -477,7 +479,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
       // Approved manufacturer packaging revision barcode alias (GLO-242)
       await prisma.skuBarcodeAlias.create({
         data: {
-          barcode: '3337875597299', // New packaging barcode
+          barcode: '3337875597296', // New packaging barcode
           skuId: sku.id,
           status: 'approved',
           source: 'packaging_revision',
@@ -492,7 +494,7 @@ describe('SG-04: Canonical SKU Identity Matching, Supplier Alias Cache & Dedup (
         supplierSkuCode: 'SUP-CERAVE-PM-REVISION',
         name: 'PM Facial Moisturizing Lotion 52ml',
         brand: 'SG04 Brand CeraVe',
-        barcode: '3337875597299',
+        barcode: '3337875597296',
         size: 52,
         sizeUnit: 'ml',
       });

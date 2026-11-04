@@ -1,200 +1,167 @@
 'use client'
 
 import * as React from 'react'
-import { Button, Code, Field, Notice, PageHeader, Section, StatusLabel } from '@/components/bw/primitives'
+import { Plus, History, Pencil, Check } from 'lucide-react'
+import { Button, Code, Dialog, Notice, PageHeader, Section, Skeleton, StateBlock, StatusLabel, useDialog } from '@/components/bw/primitives'
 import { CommandError, Page, Select, TextArea } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
 import { useApi, useCommand } from '@/lib/use-api'
+import { categoryGroup, createDraft, policyChanges, previewRequest, searchLabel } from '@/lib/ingestion-policy'
+import type { Brand, Category, GroupResponse, HoldGroup, Options, Policy, PolicyDocument } from '@/lib/ingestion-policy'
+import { AddBrand, HistoryView, HoldList, NameEditor, SearchField, supplierName } from './policy-editors'
+import type { MappingTask } from './policy-editors'
 
-type Effect = 'ALLOW' | 'DENY'
-type Brand = { id: string; name: string; isActive: boolean; effect: Effect | null; aliases: string[] }
-type Category = { id: string; name: string; parentId: string | null; isActive: boolean; effect: Effect | null; aliases?: string[] }
-type Mapping = { supplierId: string; label: string; categoryIds: string[] }
-type Document = { brands: Brand[]; categories: Category[]; mappings: Mapping[] }
-type Policy = { id: string; version: number | null; baseVersion: number; document: Document; reason: string; actorId: string; approvedAt: string | null; impact: { existingOffersAffected: number; existingOffersChanged: number; acceptedOrdersChanged: number } }
-type Options = { brands: Brand[]; categories: Category[]; suppliers: Array<{ id: string; name: string }> }
-type HoldGroup = { supplierId: string; brandKey: string; categoryKey: string; count: number; jobCount: number; reasons: string[];
-  examples: Array<{ jobId: string; sourceRow: number; brand: string; category: string; name: string }>;
-  suggestions: Array<{ brandId: string; name: string; score: number; effect: Effect | null }> }
-type GroupResponse = { groups: HoldGroup[]; totalGroups: number; totalRows: number; limit: number }
+type Tab = 'brands' | 'categories' | 'names' | 'exceptions'
+const tabs: Array<[Tab, string]> = [['brands', 'البراندات'], ['categories', 'التصنيفات'], ['names', 'أسماء الموردين'], ['exceptions', 'الاستثناءات']]
 type BulkResult = { recheckedJobs: number; hasMore: boolean; results: Array<{ counts: { ALLOW: number; SKIP: number; HOLD: number } }> }
-const cleanAliases = (aliases: string[]) => aliases.map(a => a.trim()).filter(Boolean)
-const effectLabel = (effect: Effect | null) => effect === 'ALLOW' ? 'داخل السماح' : 'خارج السماح'
 
-function HoldGroupRow({ group, options, doc, approved, onBrandAlias, onCategoryMapping, onRecheck, canRecheck }: {
-  group: HoldGroup; options: Options; doc: Document; approved: Document | null; canRecheck: boolean;
-  onBrandAlias: (brandId: string, alias: string) => void; onCategoryMapping: (supplierId: string, label: string, categoryIds: string[]) => void;
-  onRecheck: (group: HoldGroup) => void;
-}) {
-  const [brandId, setBrandId] = React.useState('')
-  const [categoryId, setCategoryId] = React.useState('')
-  const example = group.examples[0]
-  const parents = new Set(doc.categories.map(c => c.parentId))
-  return <li className="space-y-4 border-b border-bw-line pb-6">
-    <p className="font-semibold">{options.suppliers.find(s => s.id === group.supplierId)?.name ?? group.supplierId} · {group.count} صف في {group.jobCount} ملف</p>
-    <p>{example.brand || 'علامة غير محددة'} · {example.category || 'تصنيف غير محدد'}</p>
-    <p className="text-bw-small"><Code>{group.reasons.join(' / ')}</Code></p>
-    <details className="text-bw-small text-bw-ink-soft"><summary className="cursor-pointer">أمثلة للتأكد من معنى الاسم — مش موافقة على المنتج</summary>
-      <ul className="mt-2 space-y-2">{group.examples.map(e => <li key={`${e.jobId}:${e.sourceRow}`}>{e.name || 'اسم غير متاح في السجل القديم'} · صف {e.sourceRow} · <Code>{e.jobId}</Code></li>)}</ul>
-    </details>
-    {group.reasons.some(r => r.startsWith('BRAND_')) && <div className="space-y-3">
-      <p className="text-bw-small">اقتراحات بحث فقط، مش إثبات للعلامة: {group.suggestions.length ? group.suggestions.map(s => `${s.name} (${effectLabel(s.effect)})`).join(' / ') : 'مفيش اقتراح موثوق. سيب الاسم HOLD لحد التحقق.'}</p>
-      <Select label="اربط الاسم بعلامة canonical موجودة بعد التحقق" value={brandId} onChange={setBrandId}
-        options={[[ '', 'اختار بعد التحقق — مفيش اختيار تلقائي' ], ...(approved?.brands ?? []).map(b => [b.id, `${b.name} — ${effectLabel(b.effect)}`] as [string, string])]} />
-      <Button variant="secondary" disabled={!brandId || !example.brand.trim()} onClick={() => onBrandAlias(brandId, example.brand)}>إضافة اسم العلامة لمسودة الأسماء المشتركة</Button>
-    </div>}
-    {group.reasons.some(r => r.startsWith('CATEGORY_')) && <div className="space-y-3">
-      {example.category.trim() ? <>
-        <Select label="اربط تصنيف المورد بـ leaf موجود بعد التحقق" value={categoryId} onChange={setCategoryId}
-          options={[[ '', 'اختار التصنيف الصحيح بعد التحقق' ], ...doc.categories.filter(c => !parents.has(c.id)).map(c => [c.id, `${c.name} — ${effectLabel(approved?.categories.find(x => x.id === c.id)?.effect ?? null)}`] as [string, string])]} />
-        <Button variant="secondary" disabled={!categoryId} onClick={() => onCategoryMapping(group.supplierId, example.category, [categoryId])}>إضافة / حسم ربط التصنيف في المسودة</Button>
-      </> : <p className="text-bw-small text-bw-ink-soft">التصنيف ناقص: راجع عمود التصنيف في الملف. لا نخمّن من اسم المنتج أو العلامة، ولا نربط تصنيفًا افتراضيًا لكل منتجات المورد.</p>}
-    </div>}
-    <Button variant="secondary" disabled={!canRecheck} onClick={() => onRecheck(group)}>إعادة فحص المجموعة بالإصدار المعتمد</Button>
-  </li>
+function Toggle({ name, checked, disabled, onChange }: { name: string; checked: boolean; disabled?: boolean; onChange: () => void }) {
+  return <Button variant="secondary" role="switch" aria-checked={checked} aria-label={`السماح لـ ${name}`} disabled={disabled} onClick={onChange} className="min-w-28">{checked && <Check className="size-4" aria-hidden />}{checked ? 'مفعّل' : 'غير مفعّل'}</Button>
 }
+function DraftState({ changed }: { changed: boolean }) { return changed ? <StatusLabel tone="warn">تعديل غير محفوظ</StatusLabel> : null }
 
-function Editor({ current, options, onSaved }: { current: Policy | null; options: Options; onSaved: () => void }) {
-  const [doc, setDoc] = React.useState<Document>(() => ({
-    brands: options.brands.map(b => ({ ...b, effect: current?.document.brands.find(x => x.id === b.id)?.effect ?? null, aliases: current?.document.brands.find(x => x.id === b.id)?.aliases ?? [] })),
-    categories: options.categories.map(c => ({ ...c, effect: current?.document.categories.find(x => x.id === c.id)?.effect ?? null, aliases: current?.document.categories.find(x => x.id === c.id)?.aliases ?? [] })),
-    mappings: current?.document.mappings ?? [],
-  }))
+function Editor({ current, options, onSaved, onDraft, tab, setTab }: { current: Policy | null; options: Options; onSaved: (message: string) => void; onDraft: () => void; tab: Tab; setTab: (tab: Tab) => void }) {
+  const [draft, setDraft] = React.useState(() => createDraft(current, options))
   const [query, setQuery] = React.useState('')
+  const [filter, setFilter] = React.useState('all')
+  const [holdLimit, setHoldLimit] = React.useState(10)
+  const [refreshOnDiscard, setRefreshOnDiscard] = React.useState(false)
+  const [adding, setAdding] = React.useState(false)
+  const [nameTask, setNameTask] = React.useState<MappingTask | null>(null)
+  const [history, setHistory] = React.useState(false)
   const [reason, setReason] = React.useState('')
-  const [preview, setPreview] = React.useState<{ policy: Policy; kind: 'CENTRAL' | 'MAPPINGS' } | null>(null)
-  const [aliasBrandId, setAliasBrandId] = React.useState('')
-  const [aliasCategoryId, setAliasCategoryId] = React.useState('')
-  const [supplier, setSupplier] = React.useState(options.suppliers[0]?.id ?? '')
-  const [mappingLabel, setMappingLabel] = React.useState('')
-  const [targets, setTargets] = React.useState<string[]>([])
+  const [preview, setPreview] = React.useState<Policy | null>(null)
   const [feedback, setFeedback] = React.useState('')
-  const edit = (next: Document) => { setDoc(next); setPreview(null); setFeedback('الأسماء والتصنيفات المعدلة مسودة؛ لازم معاينة واعتماد قبل استخدامها.') }
-  const previewCommand = useCommand((kind: 'CENTRAL' | 'MAPPINGS') => kind === 'CENTRAL'
-    ? api<Policy>('/ingestion/eligibility/preview', { method: 'POST', body: {
-      expectedVersion: current?.version ?? 0, reason,
-      brands: doc.brands.filter(b => b.effect || current?.document.brands.find(x => x.id === b.id)?.aliases.length).map(b => ({ id: b.id, effect: b.effect, aliases: current?.document.brands.find(x => x.id === b.id)?.aliases ?? [] })),
-      categories: doc.categories.filter(c => c.effect || current?.document.categories.find(x => x.id === c.id)?.aliases?.length).map(c => ({ id: c.id, effect: c.effect, aliases: current?.document.categories.find(x => x.id === c.id)?.aliases ?? [] })),
-      mappings: current?.document.mappings ?? [],
-    } })
-    : api<Policy>('/ingestion/eligibility/mappings/preview', { method: 'POST', body: {
-      expectedVersion: current?.version ?? 0, reason,
-      brands: doc.brands.filter(b => current?.document.brands.some(x => x.id === b.id)).map(b => ({ id: b.id, aliases: cleanAliases(b.aliases) })),
-      categories: doc.categories.filter(c => current?.document.categories.some(x => x.id === c.id)).map(c => ({ id: c.id, aliases: cleanAliases(c.aliases ?? []) })), mappings: doc.mappings,
-    } }))
-  const approveCommand = useCommand(() => api<Policy>(`/ingestion/eligibility/${preview!.policy.id}/approve`, { method: 'POST' }))
+  const [recheckGroup, setRecheckGroup] = React.useState<HoldGroup | null>(null)
+  const review = useDialog()
+  const discard = useDialog()
+  const recheckDialog = useDialog()
   const holds = useApi<GroupResponse>('/ingestion/eligibility/holds')
-  const recheck = useCommand(async (group: HoldGroup) => {
-    let jobs = 0; const counts = { ALLOW: 0, SKIP: 0, HOLD: 0 }
+  const changes = React.useMemo(() => policyChanges(current, draft), [current, draft])
+  const dirty = changes.length > 0
+  const parents = React.useMemo(() => new Set(draft.categories.map(c => c.parentId)), [draft.categories])
+  const leaves = draft.categories.filter(c => !parents.has(c.id))
+  const changedIds = new Set(changes.map(c => c.key))
+  React.useEffect(() => {
+    if (!dirty) return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
+  const previewCommand = useCommand(async () => {
+    const request = previewRequest(current, draft, reason)
+    return api<Policy>(request.path, { method: 'POST', body: request.body })
+  })
+  const approve = useCommand(async () => {
+    const result = await api<Policy>(`/ingestion/eligibility/${preview!.id}/approve`, { method: 'POST' })
+    review.close()
+    onSaved(`تم حفظ التعديلات وتفعيل الإصدار ${result.version}.`)
+    return result
+  })
+  const recheck = useCommand(async () => {
+    let jobs = 0
+    const counts = { ALLOW: 0, SKIP: 0, HOLD: 0 }
     let result: BulkResult
     do {
       result = await api<BulkResult>('/ingestion/eligibility/holds/recheck', { method: 'POST', body: {
-        supplierId: group.supplierId, brand: group.examples[0].brand, category: group.examples[0].category,
-        expectedVersion: current!.version, reason,
+        supplierId: recheckGroup!.supplierId, brand: recheckGroup!.examples[0].brand, category: recheckGroup!.examples[0].category,
+        expectedVersion: current!.version, reason: reason.trim(),
       } })
       jobs += result.recheckedJobs
       for (const item of result.results) { counts.ALLOW += item.counts.ALLOW; counts.SKIP += item.counts.SKIP; counts.HOLD += item.counts.HOLD }
-      setFeedback(`تم فحص ${jobs} ملف: ALLOW ${counts.ALLOW} · SKIP ${counts.SKIP} · HOLD ${counts.HOLD}`)
-      if (result.hasMore && result.recheckedJobs === 0) throw new Error('إعادة الفحص لم تتقدم؛ حمّل أحدث إصدار قبل المحاولة.')
+      setFeedback(`تم فحص ${jobs} ملف: مسموح ${counts.ALLOW} · مستبعد ${counts.SKIP} · معلّق ${counts.HOLD}`)
+      if (result.hasMore && !result.recheckedJobs) throw new Error('الفحص لم يتقدم. حمّل أحدث إصدار قبل المحاولة تاني.')
     } while (result.hasMore)
-    if (!jobs) setFeedback('الصفوف دي اتفحصت بالفعل بالإصدار الحالي. راجع الأسماء أو ربط التصنيف واعتمد تعديلًا قبل إعادة الفحص.')
+    if (!jobs) setFeedback('المجموعة اتفحصت بالفعل بالإصدار الحالي. اعتمد الربط الصحيح قبل إعادة الفحص.')
     holds.reload()
+    recheckDialog.close()
   })
-  const parents = new Set(doc.categories.map(c => c.parentId))
-  const busy = previewCommand.pending || approveCommand.pending || recheck.pending
-  const matches = (name: string) => name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
-  const chosenBrand = doc.brands.find(b => b.id === aliasBrandId)
-  const chosenCategory = doc.categories.find(c => c.id === aliasCategoryId)
-  const addMapping = (supplierId: string, label: string, categoryIds: string[]) => edit({ ...doc, mappings: [...doc.mappings.filter(m => !(m.supplierId === supplierId && m.label === label.trim())), { supplierId, label: label.trim(), categoryIds }] })
-  const previewPolicy = async (kind: 'CENTRAL' | 'MAPPINGS') => { const policy = await previewCommand.execute(kind); if (policy) setPreview({ policy, kind }) }
-  return <fieldset disabled={busy} className="min-w-0 space-y-6" aria-label="تعديل سياسة قبول الموردين">
-    <PageHeader title="سياسة قبول منتجات الموردين" meta={`الإصدار الحالي: ${current?.version ?? 'لسه مفيش سياسة معتمدة'}`} />
-    <Notice tone="info" title="قائمة سماح واحدة تملكها شيناكير">
-      المورد يرفع ملفه بالكامل. القبول محتاج علامة وتصنيف نهائي معتمدين مع بعض. ربط اسم مورد بعلامة أو تصنيف موجود مش بيضيفه لقائمة السماح، ومش موافقة على SKU.
-      الأسماء غير المحسومة تفضل HOLD؛ تشابه الاسم اقتراح للمراجعة فقط. العروض والطلبات المقبولة والملفات المثبتة على إصدار سابق بتفضل محفوظة.
-    </Notice>
-    <TextArea label="سبب التغيير / إعادة الفحص — مطلوب للسجل" value={reason} onChange={value => { setReason(value); setPreview(null) }} />
-    <CommandError error={previewCommand.error ?? approveCommand.error ?? recheck.error} />
-    <Button variant="secondary" onClick={onSaved}>تحميل أحدث إصدار وإلغاء المسودة</Button>
-    <Section title="أ. قائمة السماح المركزية — اختيار شيناكير">
-      <p className="mb-4 text-bw-small text-bw-ink-soft">السماح لـ leaf بالـ ID فقط؛ سماح الأب مش بيورّث للفروع، ومنع الأب بيمنع فروعه. المورد لا يختار أو يعتمد هذه القائمة.</p>
-      <Field label="ابحث عن علامة أو تصنيف في القائمة المركزية" value={query} onChange={e => setQuery(e.target.value)} />
-      <div className="mt-4 grid gap-4 md:grid-cols-2">{doc.brands.filter(b => matches(b.name)).map(b => <Select key={b.id} label={`${b.name}${b.isActive ? '' : ' — غير نشطة'}`} value={b.effect ?? ''}
-        options={[[ '', 'غير معتمدة — SKIP لو الاسم معروف' ], ['ALLOW', 'سماح'], ['DENY', 'منع صريح']]}
-        onChange={value => edit({ ...doc, brands: doc.brands.map(x => x.id === b.id ? { ...x, effect: value ? value as Effect : null } : x) })} />)}</div>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">{doc.categories.filter(c => matches(c.name)).map(c => <Select key={c.id}
-        label={`${c.name}${parents.has(c.id) ? ' — تصنيف أب' : ' — leaf'}${c.parentId ? ` / ${doc.categories.find(p => p.id === c.parentId)?.name ?? c.parentId}` : ''}`}
-        value={c.effect ?? ''} options={[[ '', 'غير معتمد' ], ...(!parents.has(c.id) && c.isActive ? [['ALLOW', 'سماح']] as Array<[string, string]> : []), ['DENY', 'منع صريح يشمل الفروع']]}
-        onChange={value => edit({ ...doc, categories: doc.categories.map(x => x.id === c.id ? { ...x, effect: value ? value as Effect : null } : x) })} />)}</div>
-      <Button className="mt-5" disabled={reason.trim().length < 5} onClick={() => previewPolicy('CENTRAL')}>معاينة تغيير قائمة السماح فقط</Button>
-    </Section>
-    <Section title="ب. أسماء الموردين — ربط قابل لإعادة الاستخدام">
-      <p className="mb-4 text-bw-small text-bw-ink-soft">أسماء العلامات مشتركة لكل الموردين. أسماء التصنيفات المشتركة أو ربط تصنيف مورد بتشير لـ IDs موجودة فقط. اعتمادها بيحافظ على اختيارات السماح والمنع الحالية.</p>
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className="space-y-3"><Select label="علامة موجودة لمراجعة أسمائها" value={aliasBrandId} onChange={setAliasBrandId} options={[[ '', 'اختار علامة موجودة' ], ...(current?.document.brands ?? []).map(b => [b.id, `${b.name} — ${effectLabel(b.effect)}`] as [string, string])]} />
-          {chosenBrand && <TextArea label={`أسماء ${chosenBrand.name} المُراجعة — اسم في كل سطر`} value={chosenBrand.aliases.join('\n')} onChange={value => edit({ ...doc, brands: doc.brands.map(b => b.id === chosenBrand.id ? { ...b, aliases: value.split('\n') } : b) })} />}</div>
-        <div className="space-y-3"><Select label="تصنيف leaf موجود لمراجعة أسمائه المشتركة" value={aliasCategoryId} onChange={setAliasCategoryId} options={[[ '', 'اختار تصنيفًا موجودًا' ], ...(current?.document.categories ?? []).filter(c => !parents.has(c.id)).map(c => [c.id, c.name] as [string, string])]} />
-          {chosenCategory && <TextArea label={`أسماء ${chosenCategory.name} بالعربي والإنجليزي — اسم في كل سطر`} value={(chosenCategory.aliases ?? []).join('\n')} onChange={value => edit({ ...doc, categories: doc.categories.map(c => c.id === chosenCategory.id ? { ...c, aliases: value.split('\n') } : c) })} />}</div>
+  const busy = previewCommand.pending || approve.pending || recheck.pending
+  const edit = (doc: PolicyDocument) => { setDraft(doc); setPreview(null); setFeedback(''); onDraft() }
+  const toggleBrand = (b: Brand) => edit({ ...draft, brands: draft.brands.map(x => x.id === b.id ? { ...x, effect: x.effect === 'ALLOW' ? null : 'ALLOW' } : x) })
+  const toggleCategory = (c: Category) => edit({ ...draft, categories: draft.categories.map(x => x.id === c.id ? { ...x, effect: x.effect === 'ALLOW' ? null : 'ALLOW' } : x) })
+  const matches = (text: string) => searchLabel(text).includes(searchLabel(query))
+  const listedBrandIds = new Set(current?.document.brands.filter(b => b.effect || b.aliases.length).map(b => b.id))
+  const visibleBrands = draft.brands.filter(b => (listedBrandIds.has(b.id) || b.effect || b.aliases.length) && matches(`${b.name} ${b.aliases.join(' ')}`) && (filter === 'all' || (b.effect === 'ALLOW') === (filter === 'enabled')))
+  const visibleLeaves = leaves.filter(c => matches(`${c.name} ${(c.aliases ?? []).join(' ')}`))
+  const visibleHolds = (holds.data?.groups ?? []).filter(g => matches(`${supplierName(options, g.supplierId)} ${g.examples[0]?.brand} ${g.examples[0]?.category}`))
+  const openResolve = (g: HoldGroup) => {
+    const example = g.examples[0]
+    const brand = g.reasons.some(r => r.startsWith('BRAND_'))
+    if (!brand && !example.category.trim()) { setFeedback('التصنيف ناقص في المصدر. راجع عمود التصنيف في ملف المورد؛ لا يمكن تخمينه من اسم المنتج.'); return }
+    setNameTask({ kind: brand ? 'brand' : 'mapping', supplierId: g.supplierId, label: example.category, group: g })
+  }
+  const changeTab = (next: Tab) => { setTab(next); setQuery(''); setFilter('all'); setHoldLimit(10) }
+  return <>
+    <fieldset disabled={busy} className="min-w-0 space-y-6 pb-24">
+      <PageHeader title="البراندات والتصنيفات المسموحة" meta="قائمة شيناكير المركزية لقبول منتجات الموردين" actions={<><Button variant="ghost" onClick={() => { if (dirty) { setRefreshOnDiscard(true); discard.open() } else onSaved('') }}>تحديث القائمة</Button><Button variant="ghost" onClick={() => setHistory(true)}><History className="size-4" aria-hidden />سجل التعديلات</Button></>} />
+      <div className="flex flex-wrap items-center gap-3 text-bw-small"><StatusLabel tone={current ? 'ok' : 'warn'}>{current ? `قائمة فعّالة · إصدار ${current.version}` : 'لا توجد قائمة معتمدة'}</StatusLabel>{dirty ? <StatusLabel tone="warn">مسودة غير محفوظة · {changes.length} تعديل</StatusLabel> : <span className="text-bw-ink-soft">كل التعديلات محفوظة</span>}</div>
+      <p className="max-w-2xl text-bw-small leading-relaxed text-bw-ink-soft">اختار البراندات والتصنيفات اللي شيناكير بتقبلها. المورد يرفع ملفه عادي، والمنتجات تتفلتر تلقائيًا بالقائمة المعتمدة.</p>
+      {feedback && <Notice tone="info" title="نتيجة المراجعة">{feedback}</Notice>}
+      <div role="tablist" aria-label="إدارة قائمة السماح" className="grid grid-cols-2 gap-1 border-b border-bw-line pb-2 sm:flex sm:gap-2">
+        {tabs.map(([id, title]) => <button key={id} id={`policy-tab-${id}`} role="tab" aria-label={title} aria-selected={tab === id} aria-controls={`policy-panel-${id}`} tabIndex={tab === id ? 0 : -1} onClick={() => changeTab(id)} onKeyDown={e => {
+          const index = tabs.findIndex(t => t[0] === id)
+          const next = e.key === 'ArrowLeft' ? (index + 1) % tabs.length : e.key === 'ArrowRight' ? (index + tabs.length - 1) % tabs.length : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1
+          if (next < 0) return
+          e.preventDefault(); changeTab(tabs[next][0]); document.getElementById(`policy-tab-${tabs[next][0]}`)?.focus()
+        }} className={`min-h-11 rounded-bw-field px-4 py-2 text-bw-small font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bw-action ${tab === id ? 'bg-bw-sunken text-bw-ink ring-1 ring-bw-line-field' : 'text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink'}`}>{title}{id === 'exceptions' && Boolean(holds.data?.totalGroups) && <span className="ms-2 text-bw-ink-soft"><Code>{holds.data!.totalGroups}</Code></span>}</button>)}
       </div>
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <Select label="المورد لربط أسماء التصنيفات" value={supplier} onChange={setSupplier} options={options.suppliers.map(s => [s.id, s.name])} />
-        <Field label="اسم التصنيف في ملف المورد" value={mappingLabel} onChange={e => setMappingLabel(e.target.value)} />
-        <label className="space-y-2">التصنيفات المقصودة — هدف واحد بعد التحقق؛ أكتر من هدف يفضل HOLD
-          <select multiple aria-label="التصنيفات المقصودة" className="block min-h-32 w-full rounded-bw-field border border-bw-line-field bg-bw-surface p-3" value={targets} onChange={e => setTargets(Array.from(e.target.selectedOptions, o => o.value))}>
-            {doc.categories.filter(c => !parents.has(c.id)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </label>
+      <div role="tabpanel" tabIndex={0} id={`policy-panel-${tab}`} aria-labelledby={`policy-tab-${tab}`} className="min-w-0 space-y-5">
+        {tab === 'brands' && <Section title="البراندات" aside={<Button onClick={() => setAdding(true)}><Plus className="size-4" aria-hidden />إضافة براند</Button>}>
+          <div className="flex flex-wrap items-end justify-between gap-4"><div className="min-w-0 flex-1"><SearchField label="ابحث في البراندات والأسماء البديلة" value={query} onChange={setQuery} /></div><Select label="عرض البراندات" value={filter} onChange={setFilter} options={[[ 'all', 'الكل' ], ['enabled', 'المفعّلة'], ['disabled', 'غير المفعّلة']]} /></div>
+          <ul className="mt-5 divide-y divide-bw-line">{visibleBrands.map(b => <li key={b.id} className="flex flex-col items-stretch justify-between gap-4 py-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1 space-y-1"><div className="flex flex-wrap items-center gap-2"><bdi className="text-bw-body font-semibold">{b.name}</bdi><DraftState changed={changedIds.has(`brand:${b.id}`)} /></div><p className="break-words text-bw-small text-bw-ink-soft">{b.aliases.join(' · ') || 'بدون أسماء إضافية'}{!b.isActive && ' · غير نشط في الكتالوج'}{b.effect === 'DENY' && ' · ممنوع صراحةً'}</p></div><div className="flex items-center justify-end gap-2"><Button variant="ghost" aria-label={`تعديل أسماء ${b.name}`} onClick={() => setNameTask({ kind: 'brand', id: b.id })}><Pencil className="size-4" aria-hidden /><span className="hidden sm:inline">الأسماء</span></Button><Toggle name={b.name} checked={b.effect === 'ALLOW'} disabled={!b.isActive && b.effect !== 'ALLOW'} onChange={() => toggleBrand(b)} /></div></li>)}</ul>
+          {!visibleBrands.length && <StateBlock kind="empty" title={query ? 'مفيش نتائج مطابقة' : 'مفيش براندات في العرض ده'} body="ابحث باسم تاني أو أضف براند موجود من الكتالوج." />}
+          <details className="mt-5 border-t border-bw-line pt-4"><summary className="cursor-pointer text-bw-small text-bw-ink-soft">خيارات المنع الصريح</summary><div className="mt-3"><Select label="منع براند محدد" value="" onChange={id => { if (id) edit({ ...draft, brands: draft.brands.map(b => b.id === id ? { ...b, effect: 'DENY' } : b) }) }} options={[[ '', 'اختار براند لمنعه صراحةً' ], ...draft.brands.map(b => [b.id, b.name] as [string, string])]} /></div></details>
+        </Section>}
+        {tab === 'categories' && <>
+          <SearchField label="ابحث في التصنيفات" value={query} onChange={setQuery} />
+          {['البشرة', 'الشعر', 'تصنيفات أخرى'].map(group => {
+            const items = visibleLeaves.filter(c => categoryGroup(c, draft.categories) === group)
+            if (!items.length) return null
+            return <Section key={group} title={group === 'البشرة' ? 'العناية بالبشرة' : group === 'الشعر' ? 'العناية بالشعر' : group}><ul className="divide-y divide-bw-line">{items.map(c => <li key={c.id} className="flex flex-col items-stretch justify-between gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"><div className="min-w-0 flex-1 space-y-1"><div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{c.name}</span><DraftState changed={changedIds.has(`category:${c.id}`)} /></div>{Boolean(c.aliases?.length) && <p className="text-bw-small text-bw-ink-soft">{c.aliases!.join(' · ')}</p>}{!c.isActive && <p className="text-bw-small text-bw-ink-soft">غير نشط في الكتالوج</p>}{c.effect === 'DENY' && <p className="text-bw-small text-bw-danger">ممنوع صراحةً</p>}</div><div className="flex items-center justify-end gap-2"><Button variant="ghost" aria-label={`تعديل أسماء تصنيف ${c.name}`} onClick={() => setNameTask({ kind: 'category', id: c.id })}><Pencil className="size-4" aria-hidden /></Button><Toggle name={c.name} checked={c.effect === 'ALLOW'} disabled={!c.isActive && c.effect !== 'ALLOW'} onChange={() => toggleCategory(c)} /></div></li>)}</ul></Section>
+          })}
+          {!visibleLeaves.length && <StateBlock kind="empty" title="مفيش تصنيفات مطابقة" body="جرّب كلمة بحث تانية. التصنيفات بتُدار من الكتالوج." />}
+          <details className="rounded-bw-card border border-bw-line p-4"><summary className="cursor-pointer text-bw-small font-semibold">إعدادات المنع المتقدمة</summary><p className="my-4 text-bw-small text-bw-ink-soft">السماح لتصنيف لا يفعّل فروعًا أخرى. منع مجموعة رئيسية بيمنع كل فروعها، حتى لو كانت مفعّلة.</p><ul className="divide-y divide-bw-line">{draft.categories.filter(c => parents.has(c.id)).map(c => <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><span>{c.name}</span><Button variant={c.effect === 'DENY' ? 'danger' : 'secondary'} aria-pressed={c.effect === 'DENY'} onClick={() => edit({ ...draft, categories: draft.categories.map(x => x.id === c.id ? { ...x, effect: x.effect === 'DENY' ? null : 'DENY' } : x) })}>{c.effect === 'DENY' ? 'إلغاء منع المجموعة' : 'منع المجموعة'}</Button></li>)}</ul>
+            <Select label="منع تصنيف محدد" value="" onChange={id => { if (id) edit({ ...draft, categories: draft.categories.map(c => c.id === id ? { ...c, effect: 'DENY' } : c) }) }} options={[[ '', 'اختار تصنيفًا لمنعه صراحةً' ], ...leaves.map(c => [c.id, c.name] as [string, string])]} />
+          </details>
+        </>}
+        {(tab === 'names' || tab === 'exceptions') && <>
+          <div className="flex flex-wrap items-end justify-between gap-4"><div className="min-w-0 flex-1"><SearchField label="ابحث باسم المورد أو الاسم المتكرر" value={query} onChange={setQuery} /></div>{tab === 'names' && <Button variant="secondary" onClick={() => setNameTask({ kind: 'mapping' })}><Plus className="size-4" aria-hidden />إضافة ربط اسم</Button>}</div>
+          {holds.error && <LoadError message={holds.error.message} onRetry={holds.reload} />}
+          {holds.loading ? <Skeleton className="h-40" /> : holds.data && <Section title={tab === 'names' ? 'أسماء محتاجة ربط' : 'مجموعات معلّقة'} aside={holds.data.totalGroups ? <span className="text-bw-small text-bw-ink-soft"><Code>{holds.data.totalGroups}</Code> مجموعة</span> : undefined}>
+            {visibleHolds.length ? <><p className="mb-5 text-bw-small text-bw-ink-soft">راجع الاسم مرة واحدة عشان يتطبق على كل مرات ظهوره. المنتجات نفسها مش محتاجة موافقة أهلية فردية.{dirty && ' احفظ التعديلات قبل إعادة فحص المجموعات.'}</p><HoldList groups={visibleHolds.slice(0, holdLimit)} options={options} onResolve={openResolve} onRecheck={g => { setReason(''); setRecheckGroup(g); recheck.clearError(); recheckDialog.open() }} canRecheck={Boolean(current) && !dirty} />{visibleHolds.length > holdLimit && <Button className="mt-5" variant="secondary" onClick={() => setHoldLimit(n => n + 10)}>عرض مجموعات أكثر</Button>}</> : <StateBlock kind="empty" title={query ? 'مفيش نتائج مطابقة' : 'مفيش أسماء معلّقة'} body={query ? 'جرّب اسم المورد أو البراند أو التصنيف.' : 'الأسماء المعروفة بتتطبق تلقائيًا. لو ظهر اسم غير محسوم هتلاقيه هنا.'} />}
+            {holds.data.totalGroups > holds.data.limit && <p className="mt-4 text-bw-small text-bw-ink-soft">المعروض أحدث {holds.data.limit} مجموعة من {holds.data.totalGroups}. حل المجموعات وحدّث القائمة لإظهار الأقدم. البحث داخل المجموعات المحمّلة.</p>}
+          </Section>}
+          {tab === 'names' && <Section title="الروابط المحفوظة والمسودة"><p className="mb-4 text-bw-small text-bw-ink-soft">أسماء البراندات المشتركة متاحة من زر الأسماء في تبويب البراندات. أسماء التصنيفات المشتركة متاحة من تبويب التصنيفات.</p><ul className="divide-y divide-bw-line">{draft.mappings.filter(m => matches(`${m.label} ${supplierName(options, m.supplierId)}`)).map(m => <li key={`${m.supplierId}:${m.label}`} className="flex flex-wrap items-center justify-between gap-3 py-4"><div className="min-w-0 flex-1 space-y-1"><p className="break-words font-semibold">{m.label}</p><p className="text-bw-small text-bw-ink-soft">{supplierName(options, m.supplierId)} · {m.categoryIds.map(id => draft.categories.find(c => c.id === id)?.name ?? 'تصنيف غير متاح').join(' / ')}</p>{m.categoryIds.length > 1 && <StatusLabel tone="warn">ربط ملتبس</StatusLabel>}<DraftState changed={changedIds.has(`${m.supplierId}:${m.label}`)} /></div><div className="flex gap-1"><Button variant="ghost" aria-label={`تعديل ربط ${m.label}`} onClick={() => setNameTask({ kind: 'mapping', supplierId: m.supplierId, label: m.label })}>تعديل</Button><Button variant="ghost" aria-label={`إزالة ربط ${m.label}`} onClick={() => edit({ ...draft, mappings: draft.mappings.filter(x => x !== m) })}>إزالة</Button></div></li>)}</ul>{!draft.mappings.length && <p className="text-bw-small text-bw-ink-soft">لسه مفيش روابط تصنيفات خاصة بالموردين.</p>}</Section>}
+        </>}
       </div>
-      <Button className="mt-3" variant="secondary" disabled={!supplier || !mappingLabel.trim() || !targets.length} onClick={() => { addMapping(supplier, mappingLabel, targets); setMappingLabel(''); setTargets([]) }}>إضافة / تعديل ربط التصنيف في المسودة</Button>
-      <ul className="mt-4 space-y-3">{doc.mappings.map((m, index) => <li key={`${m.supplierId}:${m.label}`} className="flex flex-wrap items-center gap-3">
-        <span>{options.suppliers.find(s => s.id === m.supplierId)?.name}: {m.label} ← {m.categoryIds.map(id => doc.categories.find(c => c.id === id)?.name ?? id).join(' / ')}</span>
-        <StatusLabel tone={m.categoryIds.length === 1 ? 'info' : 'warn'}>{m.categoryIds.length === 1 ? 'ربط محدد' : 'ملتبس — HOLD'}</StatusLabel>
-        <Button variant="secondary" onClick={() => edit({ ...doc, mappings: doc.mappings.filter((_, i) => i !== index) })}>إزالة الربط</Button>
-      </li>)}</ul>
-      <Button className="mt-5" disabled={!current || reason.trim().length < 5} onClick={() => previewPolicy('MAPPINGS')}>معاينة الأسماء والربط فقط — بدون تغيير قائمة السماح</Button>
-    </Section>
-    {preview && <Section title={preview.kind === 'CENTRAL' ? 'معاينة قائمة السماح المركزية' : 'معاينة الأسماء فقط — قائمة السماح محفوظة'}>
-      <div className="space-y-3" role="status">
-        <details open><summary className="cursor-pointer font-semibold">راجع الأسماء والاختيارات قبل الاعتماد</summary>
-          <ul className="mt-3 space-y-2 text-bw-small">
-            {preview.policy.document.brands.filter(b => JSON.stringify(b.aliases) !== JSON.stringify(current?.document.brands.find(x => x.id === b.id)?.aliases ?? []) || b.effect !== (current?.document.brands.find(x => x.id === b.id)?.effect ?? null)).map(b => <li key={b.id}>{b.name} · {effectLabel(b.effect)} · الأسماء: {b.aliases.join(' / ') || 'لا يوجد'}</li>)}
-            {preview.policy.document.categories.filter(c => JSON.stringify(c.aliases ?? []) !== JSON.stringify(current?.document.categories.find(x => x.id === c.id)?.aliases ?? []) || c.effect !== (current?.document.categories.find(x => x.id === c.id)?.effect ?? null)).map(c => <li key={c.id}>{c.name} · {effectLabel(c.effect)} · الأسماء: {(c.aliases ?? []).join(' / ') || 'لا يوجد'}</li>)}
-            {preview.kind === 'MAPPINGS' && <li>ربط أسماء التصنيفات بعد الاعتماد: {preview.policy.document.mappings.length}
-              <ul className="mt-2 space-y-1">{preview.policy.document.mappings.map(m => <li key={`${m.supplierId}:${m.label}`}>{options.suppliers.find(s => s.id === m.supplierId)?.name}: {m.label} ← {m.categoryIds.map(id => preview.policy.document.categories.find(c => c.id === id)?.name ?? id).join(' / ')}</li>)}</ul>
-            </li>}
-          </ul>
-        </details>
-        <p>عروض حالية خارج السماح المقترح: {preview.policy.impact.existingOffersAffected}. عروض هتتغير: {preview.policy.impact.existingOffersChanged}. طلبات مقبولة هتتغير: {preview.policy.impact.acceptedOrdersChanged}.</p>
-        <p>الإصدار المقترح {preview.policy.baseVersion + 1}. المعاينة صالحة 30 دقيقة وتترفض لو السياسة أو taxonomy اتغيرت. كل معاينة تحفظ تغييرات قسمها فقط.</p>
-        <Button variant="danger" onClick={async () => { const result = await approveCommand.execute(); if (result) { setPreview(null); onSaved() } }}>اعتماد الإصدار {preview.policy.baseVersion + 1}</Button>
+    </fieldset>
+    {dirty && <div className="sticky bottom-24 z-10 lg:bottom-4 flex flex-wrap items-center justify-between gap-3 rounded-bw-card border border-bw-line-field bg-bw-surface p-4 shadow-bw-overlay"><div><p className="font-semibold">{changes.length} تعديل غير محفوظ</p><p className="text-bw-small text-bw-ink-soft">القائمة الفعّالة لسه زي ما هي.</p></div><div className="flex flex-wrap gap-2"><Button variant="ghost" disabled={busy} onClick={() => { setRefreshOnDiscard(false); discard.open() }}>تجاهل التعديلات</Button><Button disabled={busy} onClick={() => { setReason(''); setPreview(null); previewCommand.clearError(); approve.clearError(); review.open() }}>مراجعة وحفظ التعديلات</Button></div></div>}
+    <Dialog dialogRef={review.ref} title="مراجعة وحفظ التعديلات" footer={<><Button variant="secondary" disabled={busy} onClick={review.close}>رجوع للتعديل</Button>{preview ? <Button loading={approve.pending} disabled={busy} onClick={() => { void approve.execute() }}>تأكيد وتفعيل الإصدار {preview.baseVersion + 1}</Button> : <Button loading={previewCommand.pending} disabled={busy || reason.trim().length < 5} onClick={async () => { const result = await previewCommand.execute(); if (result) setPreview(result) }}>معاينة التأثير</Button>}</>}>
+      <div className="max-h-[60dvh] space-y-5 overflow-y-auto px-1"><CommandError error={previewCommand.error ?? approve.error} /><p className="text-bw-small text-bw-ink-soft">التعديلات هتسري على الاستيرادات الجديدة بعد التفعيل. الاستيرادات السابقة بتحتفظ بإصدارها.</p><ul className="divide-y divide-bw-line">{changes.map(c => <li key={c.key} className="space-y-1 py-3"><p className="break-words font-semibold">{c.name}</p>{c.supplierId && <p className="text-bw-small text-bw-ink-soft">{supplierName(options, c.supplierId)}</p>}<p className="break-words text-bw-small text-bw-ink-soft">{c.before} ← {c.after}</p></li>)}</ul>
+        <fieldset disabled={busy}><TextArea label="سبب التعديل" rows={3} value={reason} onChange={v => { setReason(v); setPreview(null) }} /></fieldset><p className="text-bw-small text-bw-ink-soft">5 أحرف على الأقل. السبب واسم المسؤول ووقت التفعيل بيتحفظوا في سجل التعديلات.</p>
+        {preview && <Notice tone="warn" title="تأثير القائمة المقترحة"><p>عروض حالية خارج القائمة المقترحة: <Code>{preview.impact.existingOffersAffected}</Code></p><p>عروض هتتغير: <Code>{preview.impact.existingOffersChanged}</Code> · طلبات مقبولة هتتغير: <Code>{preview.impact.acceptedOrdersChanged}</Code></p><p className="mt-2">المعاينة صالحة 30 دقيقة. لو القائمة أو الكتالوج اتغيروا، لازم معاينة جديدة قبل التفعيل.</p></Notice>}
       </div>
-    </Section>}
-    {feedback && <Notice tone="info" title="حالة المراجعة"><span role="status">{feedback}</span></Notice>}
-    <Section title="ج. الأسماء غير المحسومة — مجموعات HOLD">
-      <p className="mb-4 text-bw-small text-bw-ink-soft">{holds.data?.totalRows ?? 0} صف غير محسوم في {holds.data?.totalGroups ?? 0} مجموعة. أحدث {holds.data?.limit ?? 200} مجموعة مع أمثلة؛ الأعداد محسوبة قبل حد العرض. راجع الاسم مرة واحدة، اعتمد الربط من قسم ب، ثم أعد فحص الملفات المتأثرة دفعة واحدة. مفيش موافقة أهلية لكل منتج.</p>
-      {holds.error && <LoadError message={holds.error.message} onRetry={holds.reload} />}
-      {holds.loading && <p>تحميل مجموعات الأسماء…</p>}
-      {holds.data?.groups.length === 0 && <p>مفيش أسماء محتاجة حسم. الاستيرادات المعروفة بتتفلتر تلقائيًا بالقائمة الحالية.</p>}
-      <ul className="space-y-6">{holds.data?.groups.map(group => <HoldGroupRow key={`${group.supplierId}:${group.brandKey}:${group.categoryKey}`} group={group} options={options} doc={doc} approved={current?.document ?? null}
-        canRecheck={Boolean(current) && reason.trim().length >= 5} onRecheck={group => { void recheck.execute(group) }} onCategoryMapping={addMapping}
-        onBrandAlias={(id, alias) => { setAliasBrandId(id); edit({ ...doc, brands: doc.brands.map(b => b.id === id ? { ...b, aliases: [...new Set([...b.aliases, alias])] } : b) }) }} />)}</ul>
-    </Section>
-  </fieldset>
+    </Dialog>
+    <Dialog dialogRef={discard.ref} title="تجاهل التعديلات غير المحفوظة؟" footer={<><Button variant="secondary" onClick={discard.close}>الاحتفاظ بالمسودة</Button><Button variant="danger" onClick={() => { edit(createDraft(current, options)); discard.close(); if (refreshOnDiscard) onSaved('') }}>تجاهل المسودة</Button></>}><p>القائمة الفعّالة مش هتتغير. هيتشال بس اللي عدّلته في الزيارة دي.</p></Dialog>
+    <Dialog dialogRef={recheckDialog.ref} title="إعادة فحص الأسماء المرتبطة" footer={<><Button variant="secondary" disabled={busy} onClick={recheckDialog.close}>إلغاء</Button><Button loading={recheck.pending} disabled={busy || reason.trim().length < 5 || !recheckGroup} onClick={() => { void recheck.execute() }}>فحص المجموعة بالإصدار الفعّال</Button></>}>
+      <div className="space-y-4"><CommandError error={recheck.error} /><p>هيتطبق الإصدار المعتمد {current?.version} على الصفوف المعلّقة في الملفات المتأثرة. الصفوف المقبولة قبل كده مش هتتراجع.</p><fieldset disabled={busy}><TextArea label="سبب إعادة الفحص" value={reason} onChange={setReason} /></fieldset>{recheck.pending && <p role="status">{feedback || 'جاري فحص المجموعة…'}</p>}</div>
+    </Dialog>
+    {adding && <AddBrand options={options} draft={draft} onAdd={id => edit({ ...draft, brands: draft.brands.map(b => b.id === id ? { ...b, effect: 'ALLOW' } : b) })} onClose={() => setAdding(false)} />}
+    {nameTask && <NameEditor task={nameTask} draft={draft} options={options} onApply={edit} onClose={() => setNameTask(null)} />}
+    {history && <HistoryView onClose={() => setHistory(false)} />}
+  </>
 }
 
 function PolicyPage() {
   const current = useApi<Policy | null>('/ingestion/eligibility')
   const options = useApi<Options>('/ingestion/eligibility/options')
-  const history = useApi<Policy[]>('/ingestion/eligibility/history')
-  if (current.error || options.error) return <LoadError message={(current.error ?? options.error)!.message} onRetry={() => { current.reload(); options.reload() }} />
-  if (current.loading || options.loading || current.data === undefined || !options.data) return <p>تحميل السياسة والتصنيفات…</p>
-  return <Page>
-    <Editor key={current.data?.id ?? 'initial'} current={current.data} options={options.data} onSaved={() => { current.reload(); options.reload(); history.reload() }} />
-    <Section title="سجل الإصدارات المعتمدة">
-      {history.error && <LoadError message={history.error.message} onRetry={history.reload} />}
-      <ul className="space-y-3">{history.data?.map(p => <li key={p.id}>إصدار {p.version} · {p.approvedAt ? new Date(p.approvedAt).toLocaleString('ar-EG') : ''} · {p.reason} · المسؤول <Code>{p.actorId}</Code></li>)}</ul>
-    </Section>
-  </Page>
+  const [tab, setTab] = React.useState<Tab>('brands')
+  const [message, setMessage] = React.useState('')
+  if (current.error || options.error) return <Page><LoadError message={(current.error ?? options.error)!.message} onRetry={() => { current.reload(); options.reload() }} /></Page>
+  if (current.loading || options.loading || !options.data) return <Page><p role="status" className="text-bw-small text-bw-ink-soft">تحميل قائمة السماح…</p><Skeleton className="h-16" /><Skeleton className="h-80" /></Page>
+  const currentPolicy = current.data ?? null
+  return <Page><div dir="rtl" className="space-y-5">{message && <Notice tone="ok" title="التعديلات محفوظة">{message}</Notice>}<Editor key={currentPolicy?.id ?? 'initial'} current={currentPolicy} options={options.data} tab={tab} setTab={setTab} onDraft={() => setMessage('')} onSaved={feedback => { setMessage(feedback); current.reload(); options.reload() }} /></div></Page>
 }
 export default function IngestionPolicyPage() { return <RoleShell role="admin" active="ingestion-policy"><PolicyPage /></RoleShell> }

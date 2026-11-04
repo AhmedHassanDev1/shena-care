@@ -26,12 +26,12 @@ export interface ParseSpreadsheetOptions {
   sheetName?: string;
 }
 
-const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const DEFAULT_MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
 const DEFAULT_MAX_SHEETS = 20;
-const DEFAULT_MAX_ROWS = 10000;
+const DEFAULT_MAX_ROWS = 50000;
 const DEFAULT_MAX_COLUMNS = 100;
 // Zip-bomb bounds for XLSX archives, checked from the central directory before decompression.
-// 10k rows x 100 columns of XML stays well below this; real supplier exports are a few MB.
+// 50k rows x 10 columns of XML stays well below this; real supplier exports are a few MB.
 const MAX_ARCHIVE_UNCOMPRESSED_BYTES = 150 * 1024 * 1024;
 const MAX_ARCHIVE_ENTRIES = 1000;
 // Rows scanned for header discovery on top of the data-row limit.
@@ -288,7 +288,7 @@ export class SpreadsheetParserService {
       throw new BadRequestException('Spreadsheet is empty');
     }
 
-    if (rawMatrix.length > maxRows) {
+    if (rawMatrix.length > maxRows + HEADER_SCAN_ROWS) {
       throw new BadRequestException(`Spreadsheet exceeds maximum allowed rows limit of ${maxRows}`);
     }
 
@@ -340,6 +340,10 @@ export class SpreadsheetParserService {
         sourceRow: r + 1, // 1-indexed line in file
         data: rowData,
       });
+    }
+
+    if (rows.length > maxRows) {
+      throw new BadRequestException(`Spreadsheet exceeds maximum allowed rows limit of ${maxRows}`);
     }
 
     const sampleRows = rows.slice(0, 5).map((r) => r.data);

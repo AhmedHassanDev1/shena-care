@@ -1,0 +1,90 @@
+{
+  "profile": "mixed95",
+  "format": "xlsx",
+  "rows": 50000,
+  "fileBytes": 16992877,
+  "fixtureKinds": {
+    "eligible": 2007,
+    "excluded": 47502,
+    "unresolved": 491
+  },
+  "outcome": {
+    "ok": true,
+    "jobId": "9f4b22f9-9cce-474d-9e2a-c8c5f2f08ff3",
+    "status": "review_required",
+    "requiresMapping": false,
+    "totalRows": 50000,
+    "importedItemsCount": 2007,
+    "matching": {
+      "exactMatches": 0,
+      "needsReview": 1982,
+      "newCandidates": 25,
+      "linkedToExistingCandidate": 0,
+      "rejected": 0,
+      "aiEnrichmentRequests": 25,
+      "enrichmentDeferred": 0
+    }
+  },
+  "elapsedMs": 33662,
+  "rowsPerSecond": 1485,
+  "peakRssMb": 604,
+  "baselineRssMb": 533,
+  "peakHeapMb": 331,
+  "counters": {
+    "sql": 6122,
+    "sqlByOperation": {
+      "Product.count": 2,
+      "Sku.count": 2,
+      "SupplierOffer.count": 2,
+      "ProductMedia.count": 2,
+      "Supplier.findUnique": 1,
+      "IngestionEligibilityPolicy.findFirst": 1,
+      "raw.queryRaw": 6051,
+      "raw.executeRaw": 1,
+      "IngestionJob.findFirst": 1,
+      "ExportProfile.findFirst": 1,
+      "IngestionJob.create": 1,
+      "IngestionEligibilityPolicy.findUnique": 2,
+      "IngestionItem.createMany": 3,
+      "IngestionJob.update": 2,
+      "IngestionJob.findUnique": 3,
+      "IngestionItem.findMany": 12,
+      "SupplierSkuAlias.findMany": 11,
+      "IngestionItem.findUniqueOrThrow": 8,
+      "IngestionItem.update": 16
+    },
+    "classify": 2007,
+    "prepareBatch": 11,
+    "normalize": 2007,
+    "fingerprint": 2007,
+    "ai": 8,
+    "aiInFlight": 0,
+    "aiMaxInFlight": 1,
+    "research": 0
+  },
+  "commit": null,
+  "writes": {
+    "products": 0,
+    "skus": 0,
+    "offers": 0,
+    "media": 0
+  },
+  "stored": {
+    "rowOutcomesCompressedBytes": 56393,
+    "rowOutcomeEntries": 2499,
+    "accounted": {
+      "POLICY_SKIP": 47502,
+      "IMPORTED": 2007,
+      "POLICY_HOLD": 491
+    },
+    "itemsByStatus": [
+      {
+        "status": "review_required",
+        "n": 2007
+      }
+    ],
+    "jobStatus": "review_required"
+  },
+  "node": "v24.22.0",
+  "at": "2026-11-04T11:51:42.730Z"
+}

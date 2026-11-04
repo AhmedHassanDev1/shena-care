@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, HttpStatus } from '@nestjs/common';
 const request = require('supertest');
 import { AppModule } from '../../src/app.module';
@@ -46,6 +47,7 @@ describe('GLO-122 Product Content Generation (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    await admitDownstreamRows(app);
 
     prisma = app.get(PrismaService);
 

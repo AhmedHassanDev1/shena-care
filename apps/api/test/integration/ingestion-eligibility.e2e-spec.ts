@@ -115,7 +115,7 @@ describe('Dynamic ingestion eligibility (isolated PostgreSQL + production guards
     const matching = identity.mockResolvedValueOnce({ classification: 'CONFLICT', matchedSkuId: null, reason: 'test_identity_veto', conflicts: ['size'], fingerprint: 'f', canonicalSku: null });
     const result = await http().post('/ingestion/jobs').set(supplierActor.auth).send({ supplierId, items: [row('سِيرافي اختبار', 'غسول اختبار')] }).expect(201);
     expect(result.body.items).toHaveLength(1);
-    expect(matching).toHaveBeenCalledWith(expect.objectContaining({ brand: 'CeraVe Eligibility', eligibilityApproved: true }));
+    expect(matching).toHaveBeenCalledWith(expect.objectContaining({ brand: 'CeraVe Eligibility', eligibilityApproved: true }), expect.anything());
     const item = await db.ingestionItem.findUniqueOrThrow({ where: { id: result.body.items[0].id } });
     expect(item.status).toBe('review_required');
     expect(ai).not.toHaveBeenCalled();
@@ -222,8 +222,12 @@ describe('Dynamic ingestion eligibility (isolated PostgreSQL + production guards
   });
   it('preserves the real known-SKU fast lane and F1 freshness under an approved dynamic policy', async () => {
     const sku = await createSellableSku(db);
+    // This ingestion test needs GTIN evidence, rather than createSellableSku's opaque TEST-BAR marker.
+    const payload = `29${BigInt(`0x${sku.id.replace(/-/g, '').slice(0, 12)}`).toString().padStart(10, '0').slice(-10)}`;
+    const sum = [...payload].reverse().reduce((total, digit, index) => total + Number(digit) * (index % 2 ? 1 : 3), 0);
+    sku.barcode = payload + ((10 - sum % 10) % 10);
     await db.product.update({ where: { id: sku.productId }, data: { brandId, categoryId: leafId, name: 'CeraVe Cleanser' } });
-    await db.sku.update({ where: { id: sku.id }, data: { size: 200, variantName: '200 ml' } });
+    await db.sku.update({ where: { id: sku.id }, data: { size: 200, variantName: '200 ml', barcode: sku.barcode } });
     await db.sellingPrice.updateMany({ where: { skuId: sku.id }, data: { amount: 200 } });
     await db.supplierOffer.updateMany({ where: { supplierId: sku.supplierId, skuId: sku.id }, data: { isAvailable: false } });
     const stale = new Date('2020-01-01T00:00:00Z');

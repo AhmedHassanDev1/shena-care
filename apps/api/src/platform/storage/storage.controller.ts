@@ -24,7 +24,7 @@ export class StorageController {
 
     if (folder !== 'media') throw new NotFoundException('Public asset not approved');
     const records = await this.prisma.productMedia.findMany({
-      where: { originType: 'verified', product: { isPublished: true }, url: { endsWith: `/storage/public/media/${filename}` } },
+      where: { originType: { in: ['verified', 'derived'] }, product: { isPublished: true }, url: { endsWith: `/storage/public/media/${filename}` } },
       include: { product: { include: { skus: true } } },
     });
     const approved = records.some(record => {

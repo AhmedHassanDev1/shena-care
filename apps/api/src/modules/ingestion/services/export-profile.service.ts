@@ -14,6 +14,8 @@ export interface ColumnMappingConfig {
   retailPrice?: string;
   availability?: string;
   discount?: string;
+  /** Column stating, per row, what the price is. A row that is not explicitly a purchase cost never becomes one. */
+  priceType?: string;
   units?: string;
   sourceTimestamp?: string;
   currency?: string;
@@ -56,6 +58,12 @@ export function mappingApprovalProblems(mapping: Partial<ColumnMappingConfig>): 
   }
   if (mapping.discount && !s.discountBasis) problems.push('discountBasis must be confirmed for the mapped discount column');
   return problems;
+}
+
+/** A file that states a price type per row must have it read: ignoring that column could turn a retail price into a cost. */
+function unmappedPriceTypeProblems(mapping: Partial<ColumnMappingConfig>, headers: string[]): string[] {
+  const stated = headers.find(header => /price\s*type|pricetype|نوع السعر/i.test(header));
+  return stated && !mapping.priceType ? [`the "${stated}" column must be mapped as the price type`] : [];
 }
 
 export function currencyFromPriceHeader(header: string): string | null {
@@ -114,6 +122,10 @@ const MAPPING_RULES: KeywordRule[] = [
       'اسم',
       'name',
     ],
+  },
+  {
+    target: 'priceType',
+    keywords: ['price type', 'pricetype', 'نوع السعر'],
   },
   {
     target: 'retailPrice',
@@ -337,7 +349,7 @@ export class ExportProfileService {
     if (!mapping.currency && !mapping.currencyColumn && !currencyFromPriceHeader(mapping.price)) {
       throw new BadRequestException('Mapping requires an explicit currency, currency column, or ISO currency in price header');
     }
-    const problems = isApproved ? mappingApprovalProblems(mapping) : [];
+    const problems = isApproved ? [...mappingApprovalProblems(mapping), ...unmappedPriceTypeProblems(mapping, sampleHeaders)] : [];
     if (problems.length) throw new BadRequestException(`Mapping semantics not approvable: ${problems.join('; ')}`);
 
     const existing = await this.prisma.exportProfile.findFirst({

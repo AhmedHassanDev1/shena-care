@@ -1,5 +1,6 @@
 // GLO-276 Gate 04 — uploaded spreadsheet rows reach canonical SKU matching through the real path (no Prisma-forced matches).
 import { Test, TestingModule } from '@nestjs/testing';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -14,6 +15,7 @@ const HEADER = 'Code,Item,Brand,Barcode,Cost EGP,On Hand';
 const semantics = { documentKind: 'STOCK_FEED', priceBasis: 'UNIT_PURCHASE_COST', quantityBasis: 'ON_HAND' };
 const mapping = { supplierSku: 'Code', name: 'Item', brand: 'Brand', barcode: 'Barcode', price: 'Cost EGP', quantity: 'On Hand', semantics };
 const digits = (n: number) => Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join('');
+const gtin = (payload: string) => payload + (10 - [...payload].reverse().reduce((sum, d, i) => sum + Number(d) * (i % 2 ? 1 : 3), 0) % 10) % 10;
 
 describe('GLO-276 Gate 04: upload → canonical SKU matching (e2e)', () => {
   let app: INestApplication;
@@ -25,8 +27,8 @@ describe('GLO-276 Gate 04: upload → canonical SKU matching (e2e)', () => {
   const supplierB = randomUUID();
   const run = randomUUID().slice(0, 8);
   const brandName = `G04 Brand ${run}`;
-  const bc200 = `29${digits(11)}`;
-  const bc400 = `29${digits(11)}`;
+  const bc200 = gtin(`29${digits(10)}`);
+  const bc400 = gtin(`29${digits(10)}`);
   let brandId: string, productId: string, sku200: string, sku400: string;
   const aiCalls: string[] = [];
   let firstJob: { jobId: string; matching: Record<string, number> };
@@ -46,6 +48,7 @@ describe('GLO-276 Gate 04: upload → canonical SKU matching (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
+    await admitDownstreamRows(app);
     prisma = app.get(PrismaService);
     storagePort = app.get(FILE_STORAGE_PORT);
     identity = app.get(ProductIdentityService);
@@ -92,7 +95,7 @@ describe('GLO-276 Gate 04: upload → canonical SKU matching (e2e)', () => {
       `A-2,منظف هيدرا كالم 200 مل,${brandName},${bc400},90.00,3`, // barcode of the 400ml SKU but 200ml label → conflict
       `A-3,Hydra Calm Cleanser 200ml,${brandName},,95.00,4`, // same name + size, no barcode → suggestion only
       `A-4,Hydra Calm Night Serum 30ml,${brandName},,150.00,2`, // approved brand, no such SKU → new candidate
-      `A-5,Calm Cleansing Gel 200ml,,${bc200},80.00,1`, // barcode with no brand and a different name → uncorroborated
+      `A-5,Calm Cleansing Gel 200ml,,${bc200},80.00,1`, // no brand stated → held by policy, whatever its barcode says
       `A-6,Hydra Calm Cleanser 200ml Pack of 2,${brandName},,180.00,2`, // manufacturer twin pack ≠ single unit
     ]));
     expect(received.status).toBe(201);
@@ -100,24 +103,24 @@ describe('GLO-276 Gate 04: upload → canonical SKU matching (e2e)', () => {
     expect(mapped.status).toBe(201);
     firstJob = { jobId: received.body.jobId, matching: mapped.body.matching };
     expect(mapped.body.matching).toEqual({
-      exactMatches: 1, needsReview: 4, newCandidates: 1, linkedToExistingCandidate: 0, rejected: 0, aiEnrichmentRequests: 1,
-    });
+      exactMatches: 1, needsReview: 3, newCandidates: 1, linkedToExistingCandidate: 0, rejected: 0, aiEnrichmentRequests: 1, enrichmentDeferred: 0 });
 
     await loadItems(firstJob.jobId);
     expect(byCode['A-1'].matchedSkuId).toBe(sku200);
-    for (const code of ['A-2', 'A-3', 'A-4', 'A-5', 'A-6']) expect(byCode[code].matchedSkuId).toBeNull();
+    for (const code of ['A-2', 'A-3', 'A-4', 'A-6']) expect(byCode[code].matchedSkuId).toBeNull();
+    expect(byCode['A-5']).toBeUndefined();
+    expect(((await prisma.ingestionJob.findUniqueOrThrow({ where: { id: firstJob.jobId } })).rowOutcomes as Array<{ supplierSku: string; outcome: string }>).find(row => row.supplierSku === 'A-5')?.outcome).toBe('POLICY_HOLD');
     const identityOf = (code: string) => (byCode[code].enrichment as { identity: Record<string, unknown> }).identity;
     expect(identityOf('A-2')).toMatchObject({ classification: 'CONFLICT' });
     expect(identityOf('A-3')).toMatchObject({ classification: 'LIKELY_MATCH', suggestedSkuId: sku200 });
     expect(identityOf('A-4')).toMatchObject({ classification: 'NO_MATCH' });
-    expect(identityOf('A-5')).toMatchObject({ classification: 'LIKELY_MATCH', suggestedSkuId: sku200 });
     expect(identityOf('A-6')).toMatchObject({ classification: 'LIKELY_MATCH', suggestedSkuId: null });
     expect((byCode['A-1'].enrichment as { source: { rawRow: unknown } }).source.rawRow).toBeDefined(); // provenance kept
   });
 
   it('commits a supplier offer only for the verified exact match', async () => {
     const diff = await request(server()).get(`/ingestion/jobs/${firstJob.jobId}/diff`).set(supplierUserA.auth);
-    expect(diff.body.counters).toMatchObject({ created: 1, skipped: 5 });
+    expect(diff.body.counters).toMatchObject({ created: 1, skipped: 4 });
     const commit = await request(server()).post(`/ingestion/jobs/${firstJob.jobId}/commit-offers`).set(supplierUserA.auth).send({});
     expect(commit.status).toBe(201);
     const offers = await prisma.supplierOffer.findMany({ where: { supplierId: supplierA } });
@@ -128,10 +131,11 @@ describe('GLO-276 Gate 04: upload → canonical SKU matching (e2e)', () => {
 
   it('lets a reviewer confirm only a vetted suggestion, and persists the supplier alias', async () => {
     const wrong = await request(server()).patch(`/ingestion/candidates/${byCode['A-6'].id}/approve`).set(admin.auth).send({ matchedSkuId: sku200 });
-    expect(wrong.status).toBe(400); // twin pack has no suggestion to confirm
+    expect(wrong.status).toBe(409); // twin pack: refused by the identity check before any suggestion is considered
     const conflicted = await request(server()).patch(`/ingestion/candidates/${byCode['A-2'].id}/approve`).set(admin.auth).send({ matchedSkuId: sku400 });
-    expect(conflicted.status).toBe(400);
-    const confirmed = await request(server()).patch(`/ingestion/candidates/${byCode['A-3'].id}/approve`).set(admin.auth).send({ matchedSkuId: sku200 });
+    expect(conflicted.status).toBe(409);
+    expect(await prisma.supplierSkuAlias.count({ where: { supplierId: supplierA, supplierSkuCode: { in: ['A-6', 'A-2'] } } })).toBe(0);
+    const confirmed = await request(server()).patch(`/ingestion/candidates/${byCode['A-3'].id}/approve`).set(admin.auth).send({ matchedSkuId: sku200, identityEvidence: 'Reviewer compared the row with the SKU pack' });
     expect(confirmed.status).toBe(200);
     const alias = await prisma.supplierSkuAlias.findUnique({ where: { supplierId_supplierSkuCode: { supplierId: supplierA, supplierSkuCode: 'A-3' } } });
     expect(alias?.skuId).toBe(sku200);
@@ -145,7 +149,7 @@ describe('GLO-276 Gate 04: upload → canonical SKU matching (e2e)', () => {
       `A-1,G04 Hydra Calm Cleanser 200ml,${brandName},${bc200},102.00,6`,
     ]));
     expect(next.body).toMatchObject({ status: 'pending', requiresMapping: false });
-    expect(next.body.matching).toMatchObject({ exactMatches: 2, needsReview: 0, newCandidates: 0, aiEnrichmentRequests: 0 });
+    expect(next.body.matching).toMatchObject({ exactMatches: 2, needsReview: 0, newCandidates: 0, aiEnrichmentRequests: 0, enrichmentDeferred: 0 });
     await loadItems(next.body.jobId);
     expect(byCode['A-3'].matchedSkuId).toBe(sku200);
     expect(aiCalls.length).toBe(aiBefore);

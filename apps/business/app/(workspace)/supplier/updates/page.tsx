@@ -146,6 +146,7 @@ function UpdatesWorkflowContent() {
     category: '',
     quantity: '',
     retailPrice: '',
+    priceType: '',
     currency: 'EGP',
   })
   const [profileName, setProfileName] = React.useState('')
@@ -195,6 +196,7 @@ function UpdatesWorkflowContent() {
         category: p.category ?? '',
         quantity: p.quantity ?? '',
         retailPrice: p.retailPrice ?? '',
+        priceType: p.priceType ?? '',
       }))
       setProfileName(`قالب ملف ${file.name.replace(/\.[^/.]+$/, '')}`)
       setStep('COLUMN_MAPPING')
@@ -229,6 +231,7 @@ function UpdatesWorkflowContent() {
     if (mapping.brand?.trim()) cleanMapping.brand = mapping.brand.trim()
     if (mapping.quantity?.trim()) cleanMapping.quantity = mapping.quantity.trim()
     if (mapping.retailPrice?.trim()) cleanMapping.retailPrice = mapping.retailPrice.trim()
+    if (mapping.priceType?.trim()) cleanMapping.priceType = mapping.priceType.trim()
     if (mapping.currency?.trim()) cleanMapping.currency = mapping.currency.trim()
 
     const res = await api<{ awaitingApproval?: boolean; status?: string; importedItemsCount?: number }>(`/ingestion/jobs/${currentJobId}/mapping`, {
@@ -749,6 +752,14 @@ function UpdatesWorkflowContent() {
                   <select id="supplier-category-column" value={mapping.category} onChange={e => setMapping({ ...mapping, category: e.target.value })}
                     className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white">
                     <option value="">— اختر عمود التصنيف —</option>
+                    {uploadResult.sampleHeaders?.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="supplier-price-type-column" className="block font-semibold text-white">عمود نوع السعر — مطلوب إن كان الملف يذكره لكل صف؛ الصف الذي لا يقول إنه سعر شراء يُعلق للمراجعة</label>
+                  <select id="supplier-price-type-column" value={mapping.priceType} onChange={e => setMapping({ ...mapping, priceType: e.target.value })}
+                    className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white">
+                    <option value="">— اختر عمود نوع السعر —</option>
                     {uploadResult.sampleHeaders?.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
                 </div>

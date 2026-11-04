@@ -143,6 +143,7 @@ model Sku {
   productIngredients ProductIngredient[]
   usageRules         ProductUsageRule[]
   safetyWarnings     ProductSafetyWarning[]
+  mediaAssets        MediaAsset[]
 
   @@index([productId])
   @@index([barcode])
@@ -197,6 +198,87 @@ enum MediaOriginType {
   @@schema("catalog")
 }
 
+/// What an image is for. Separate from its origin; the same original can yield processed copies in one role.
+enum MediaRole {
+  PRIMARY_PACKSHOT
+  TEXTURE_SENSORY
+  INGREDIENT_STORY
+  PACKAGING_PROOF
+
+  @@schema("catalog")
+}
+
+enum MediaReviewStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+
+  @@schema("catalog")
+}
+
+enum MediaRightsStatus {
+  UNKNOWN
+  MANUFACTURER_PUBLISHED
+  AUTHORIZED_DISTRIBUTOR
+  LICENSED
+  OWN_CAPTURE
+
+  @@schema("catalog")
+}
+
+enum MediaProcessingStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+
+  @@schema("catalog")
+}
+
+/// GLO-285 asset lineage. ProductMedia is what the storefront shows; this is where each image came from and who cleared it.
+/// A database trigger keeps an original's file and hash immutable, and a check keeps generated images out of identity roles.
+model MediaAsset {
+  id                 String                @id @default(uuid()) @db.Uuid
+  skuId              String                @map("sku_id") @db.Uuid
+  role               MediaRole
+  originType         MediaOriginType       @map("origin_type")
+  parentAssetId      String?               @map("parent_asset_id") @db.Uuid
+  transformVersion   String?               @map("transform_version")
+  storageUrl         String?               @map("storage_url")
+  mimeType           String?               @map("mime_type")
+  width              Int?
+  height             Int?
+  byteSize           Int?                  @map("byte_size")
+  contentHash        String?               @map("content_hash") @db.VarChar(64)
+  sourceUrl          String                @map("source_url")
+  sourcePublisher    String                @map("source_publisher")
+  sourceType         String                @map("source_type")
+  rightsStatus       MediaRightsStatus     @default(UNKNOWN) @map("rights_status")
+  capturedAt         DateTime?             @map("captured_at")
+  processingStatus   MediaProcessingStatus @default(PENDING) @map("processing_status")
+  processingError    String?               @map("processing_error")
+  processingAttempts Int                   @default(0) @map("processing_attempts")
+  reviewStatus       MediaReviewStatus     @default(PENDING_REVIEW) @map("review_status")
+  reviewedBy         String?               @map("reviewed_by") @db.Uuid
+  reviewedAt         DateTime?             @map("reviewed_at")
+  reviewNote         String?               @map("review_note")
+  verifiedFacts      Json?                 @map("verified_facts")
+  publishedMediaId   String?               @map("published_media_id") @db.Uuid
+  publishedAt        DateTime?             @map("published_at")
+  createdBy          String                @map("created_by") @db.Uuid
+  createdAt          DateTime              @default(now()) @map("created_at")
+  updatedAt          DateTime              @updatedAt @map("updated_at")
+
+  sku    Sku          @relation(fields: [skuId], references: [id], onDelete: Restrict)
+  parent MediaAsset?  @relation("MediaLineage", fields: [parentAssetId], references: [id], onDelete: Restrict)
+  copies MediaAsset[] @relation("MediaLineage")
+
+  @@unique([parentAssetId, transformVersion])
+  @@index([skuId, role])
+  @@index([contentHash])
+  @@map("media_assets")
+  @@schema("catalog")
+}
+
 model ProductMedia {
   id                 String          @id @default(uuid()) @db.Uuid
   productId          String          @map("product_id") @db.Uuid
@@ -207,6 +289,8 @@ model ProductMedia {
   isPrimary          Boolean         @default(false) @map("is_primary")
   originType         MediaOriginType @default(verified) @map("origin_type")
   generationMetadata Json?           @map("generation_metadata")
+  role               MediaRole?
+  assetId            String?         @map("asset_id") @db.Uuid
   createdAt          DateTime        @default(now()) @map("created_at")
 
   product Product @relation(fields: [productId], references: [id])
@@ -1724,6 +1808,40 @@ model IngestionJob {
   @@index([formatFingerprint])
   @@index([eligibilityPolicyId])
   @@map("ingestion_jobs")
+  @@schema("ingestion")
+}
+
+enum RetailObservationStatus {
+  ACCEPTED
+  REJECTED
+
+  @@schema("ingestion")
+}
+
+/// GLO-285 read-only market evidence: a listed retail price at a named seller on a stated date.
+/// Never a supplier cost, stock or a customer selling price, and nothing reads it to set one.
+model RetailPriceObservation {
+  id              String                  @id @default(uuid()) @db.Uuid
+  skuId           String                  @map("sku_id") @db.Uuid
+  sourceUrl       String                  @map("source_url")
+  sellerName      String                  @map("seller_name")
+  sellerDomain    String                  @map("seller_domain")
+  observedAt      DateTime                @map("observed_at")
+  retrievedAt     DateTime                @map("retrieved_at")
+  priceEgp        Decimal                 @map("price_egp") @db.Decimal(10, 2)
+  regularPriceEgp Decimal?                @map("regular_price_egp") @db.Decimal(10, 2)
+  inStock         Boolean?                @map("in_stock")
+  packText        String                  @map("pack_text")
+  confidence      Decimal                 @db.Decimal(3, 2)
+  evidenceExcerpt String?                 @map("evidence_excerpt")
+  status          RetailObservationStatus
+  rejectReason    String?                 @map("reject_reason")
+  collectedBy     String                  @map("collected_by")
+  dedupeKey       String                  @unique @map("dedupe_key")
+  createdAt       DateTime                @default(now()) @map("created_at")
+
+  @@index([skuId, status, observedAt])
+  @@map("retail_price_observations")
   @@schema("ingestion")
 }
 

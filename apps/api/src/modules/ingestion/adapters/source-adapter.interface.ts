@@ -42,8 +42,11 @@ export class CanonicalNormalizationUtils {
 
   static normalizeBarcode(val: unknown): string | null {
     if (val === null || val === undefined) return null;
-    const clean = String(val).trim().replace(/[^0-9]/g, '');
-    return clean.length >= 8 && clean.length <= 14 ? clean : null;
+    // Formatting is not identity evidence: contaminated cells stay in the raw payload, never become a GTIN.
+    const clean = String(val).normalize('NFKC').trim()
+      .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
+      .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 1776));
+    return /^\d{8,14}$/.test(clean) ? clean : null;
   }
 
   static parseQuantity(raw: unknown): CanonicalInventory {

@@ -1,5 +1,7 @@
 // GLO-278 Gate 06 — one candidate per new product across suppliers; uncertain identity goes to review, never duplicated.
 import { Test, TestingModule } from '@nestjs/testing';
+import { gtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -25,8 +27,8 @@ describe('GLO-278 Gate 06: new product candidates & cross-supplier dedup (e2e)',
   const suppliers: Record<'A' | 'B' | 'C', { id: string; actor?: Actor }> = { A: { id: randomUUID() }, B: { id: randomUUID() }, C: { id: randomUUID() } };
   const run = randomUUID().slice(0, 8);
   const brand = `G06 Brand ${run}`;
-  const bcNew = `29${digits(11)}`;
-  const bcInactive = `29${digits(11)}`;
+  const bcNew = gtin(`29${digits(10)}`);
+  const bcInactive = gtin(`29${digits(10)}`);
   let brandId: string, productId: string;
   const aiCalls: string[] = [];
   const serumIds: string[] = [];
@@ -47,6 +49,7 @@ describe('GLO-278 Gate 06: new product candidates & cross-supplier dedup (e2e)',
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
+    await admitDownstreamRows(app);
     prisma = app.get(PrismaService);
     storagePort = app.get(FILE_STORAGE_PORT);
     jest.spyOn(app.get(AiClient), 'enrichProduct').mockImplementation(async (input) => {
@@ -60,7 +63,7 @@ describe('GLO-278 Gate 06: new product candidates & cross-supplier dedup (e2e)',
     admin = await createActor(prisma, 'ADMIN');
     brandId = (await prisma.brand.create({ data: { name: brand, slug: `g06-brand-${run}` } })).id;
     productId = (await prisma.product.create({ data: { brandId, name: 'Calm Lotion', slug: `g06-calm-lotion-${run}` } })).id;
-    await prisma.sku.create({ data: { productId, code: `G06-200-${run}`, variantName: 'Default', size: 200, sizeUnit: 'ml', barcode: `29${digits(11)}` } });
+    await prisma.sku.create({ data: { productId, code: `G06-200-${run}`, variantName: 'Default', size: 200, sizeUnit: 'ml', barcode: gtin(`29${digits(10)}`) } });
     await prisma.sku.create({ data: { productId, code: `G06-100-${run}`, variantName: 'Default', size: 100, sizeUnit: 'ml', barcode: bcInactive, isActive: false } });
   });
 

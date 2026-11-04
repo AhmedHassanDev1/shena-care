@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
@@ -32,6 +33,7 @@ describe('SG-02: Secure CSV/XLSX Parse, Format Fingerprints & Mapping Approval (
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    await admitDownstreamRows(app, { brandFor: () => 'SG02 Fixture Brand' });
 
     prisma = app.get(PrismaService);
     ingestionService = app.get(IngestionService);

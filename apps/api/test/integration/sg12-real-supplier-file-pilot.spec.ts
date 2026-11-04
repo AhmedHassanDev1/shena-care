@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import * as fs from 'fs';
@@ -11,6 +12,8 @@ import { RowNormalizationService } from '../../src/modules/ingestion/services/ro
 import { createActor, Actor } from '../fixtures/actors';
 import { randomUUID } from 'crypto';
 import { IngestionImportMode } from '@prisma/client';
+
+let catalogBrandName = `CeraVe Pilot ${Date.now()}`;
 
 describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & Automated Mapping', () => {
   let app: INestApplication;
@@ -49,6 +52,7 @@ describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
+    await admitDownstreamRows(app, { brands: ['Pantene', 'Dove', 'The Ordinary', 'La Roche-Posay', "L'Oreal", 'Vatika', 'Tresemme', 'Starville', 'SheaMoisture', 'Nivea', 'Mielle', 'Garnier', 'Eva', 'Bioderma'], brandFor: title => /cerave/i.test(title) ? catalogBrandName : /^[^\s]+/.exec(title)?.[0] });
 
     prisma = app.get(PrismaService);
     exportProfileService = app.get(ExportProfileService);
@@ -84,25 +88,21 @@ describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & 
 
     if (existingBrand) {
       testBrandId = existingBrand.id;
+      catalogBrandName = existingBrand.name; // the file has no brand column: its rows state the brand this fixture ends up with
     } else {
       testBrandId = randomUUID();
       cleanupBrandIds.push(testBrandId);
       await prisma.brand.create({
         data: {
           id: testBrandId,
-          name: `CeraVe Pilot ${Date.now()}`,
+          name: catalogBrandName,
           slug: `cerave-pilot-${Date.now()}`,
         },
       });
     }
 
-    const existingProduct = await prisma.product.findFirst({
-      where: { brandId: testBrandId },
-    });
-
-    if (existingProduct) {
-      testProductId = existingProduct.id;
-    } else {
+    // Other suites leave products under this brand; the SKU below must belong to this file's own product.
+    {
       testProductId = randomUUID();
       cleanupProductIds.push(testProductId);
       await prisma.product.create({
@@ -115,9 +115,9 @@ describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & 
       });
     }
 
-    const existingSku = await prisma.sku.findFirst({
-      where: { barcode: '2000000000015' },
-    });
+    // The file's barcode is fixed and other suites share this database: this suite owns its SKU, so it frees the barcode first.
+    await prisma.sku.updateMany({ where: { barcode: '2000000000015' }, data: { barcode: null } });
+    const existingSku = null as { id: string; productId: string } | null;
 
     if (existingSku) {
       testSku1Id = existingSku.id;
@@ -284,10 +284,8 @@ describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & 
       const item1 = await prisma.ingestionItem.findFirst({
         where: { jobId: fullJobId, supplierSkuCode: 'DEMO-SC-001' },
       });
-      await prisma.ingestionItem.update({
-        where: { id: item1!.id },
-        data: { matchedSkuId: testSku1Id },
-      });
+      await request(app.getHttpServer()).patch(`/ingestion/candidates/${item1!.id}/approve`).set(admin.auth)
+        .send({ matchedSkuId: testSku1Id, identityEvidence: 'Reviewer compared the supplier row with the catalog SKU' }).expect(200);
 
       const diffRes = await request(app.getHttpServer())
         .get(`/ingestion/jobs/${fullJobId}/diff`)
@@ -387,10 +385,8 @@ describe('SG-12 Real Supplier Export File Pilot: Egyptian Distributor Layouts & 
       const item1 = await prisma.ingestionItem.findFirst({
         where: { jobId: priceJobId, supplierSkuCode: 'DEMO-SC-001' },
       });
-      await prisma.ingestionItem.update({
-        where: { id: item1!.id },
-        data: { matchedSkuId: testSku1Id },
-      });
+      await request(app.getHttpServer()).patch(`/ingestion/candidates/${item1!.id}/approve`).set(admin.auth)
+        .send({ matchedSkuId: testSku1Id, identityEvidence: 'Reviewer compared the supplier row with the catalog SKU' }).expect(200);
 
       const diffRes = await request(app.getHttpServer())
         .get(`/ingestion/jobs/${priceJobId}/diff`)

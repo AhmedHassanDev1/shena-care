@@ -60,6 +60,8 @@ describe('GLO-280 Gate 08: offer comparison and pricing safety (e2e)', () => {
     const sku = async (tag: string, size: number) => (await prisma.sku.create({ data: {
       productId, code: `G08-${tag}-${run}`, variantName: 'Default', size, sizeUnit: 'ml' } })).id;
     [skuX, skuZ, skuW, skuY] = [await sku('X', 30), await sku('Z', 50), await sku('W', 100), await sku('Y', 200)];
+    // Model the reviewed identity admission claimed by approvedItem; an approved status alone is not SKU proof.
+    await prisma.supplierSkuAlias.create({ data: { supplierId: sD, supplierSkuCode: `D-${run}`, skuId: skuX } });
     priceX = (await prisma.sellingPrice.create({ data: { skuId: skuX, amount: 300, currency: 'EGP', validFrom: new Date('2026-01-01') } })).id;
     priceZ = (await prisma.sellingPrice.create({ data: { skuId: skuZ, amount: 200, currency: 'EGP', validFrom: new Date('2026-01-01') } })).id;
     offerAZ = (await prisma.supplierOffer.create({ data: { supplierId: sA, skuId: skuZ, costPrice: 150, currency: 'EGP' } })).id;
@@ -81,6 +83,7 @@ describe('GLO-280 Gate 08: offer comparison and pricing safety (e2e)', () => {
     await prisma.supplierOffer.deleteMany({ where: { supplierId: { in: suppliers } } });
     await prisma.ingestionItem.deleteMany({ where: { job: { supplierId: { in: suppliers } } } });
     await prisma.ingestionJob.deleteMany({ where: { supplierId: { in: suppliers } } });
+    await prisma.supplierSkuAlias.deleteMany({ where: { supplierId: { in: suppliers } } });
     await prisma.sellingPrice.deleteMany({ where: { skuId: { in: [skuX, skuZ, skuW, skuY] } } });
     await prisma.sku.deleteMany({ where: { productId } });
     await prisma.product.deleteMany({ where: { id: productId } });

@@ -8,7 +8,9 @@ import {
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
 import { SourcingService } from '../../sourcing/public';
+import { ProductIdentityService, candidateIdentityInput } from './product-identity.service';
 import { IngestionImportMode, IngestionPriceType, IngestionStatus, Prisma } from '@prisma/client';
+import { isRowOutcomeGroup } from '../contracts/row-outcomes.contract';
 import {
   RowDiffAction,
   RowDiff,
@@ -72,6 +74,7 @@ function sourceTiming(job: TimedJob, enrichment: Prisma.JsonValue | null): Sourc
 type OfferWrite = { itemId: string; skuId: string; cost: number; currency: string; available: boolean; priceOnly: boolean; quantity: number | null };
 type ItemPatch = { status: IngestionStatus | null; patch: Record<string, unknown> };
 const WRITE_CHUNK = 500;
+const MAX_NOT_ADMITTED_LISTED = 1000;
 const chunks = <T>(list: T[]): T[][] =>
   Array.from({ length: Math.ceil(list.length / WRITE_CHUNK) }, (_, i) => list.slice(i * WRITE_CHUNK, (i + 1) * WRITE_CHUNK));
 
@@ -81,6 +84,7 @@ export class OfferBatchCommitService {
     private readonly prisma: PrismaService,
     private readonly catalogService: CatalogService,
     private readonly sourcingService: SourcingService,
+    private readonly identity: ProductIdentityService,
   ) {}
 
   private isUuid(val: string): boolean {
@@ -137,6 +141,7 @@ export class OfferBatchCommitService {
         throw new ConflictException('Only an approved candidate can commit a supplier offer');
       }
       this.assertVersionedAdmission(item.job.eligibilityPolicyId, item);
+      await this.identity.assertSkuAssociation(candidateIdentityInput(item, item.job.supplierId), skuId, tx);
       if (item.priceType !== IngestionPriceType.PURCHASE_COST || item.price.toNumber() <= 0) {
         throw new BadRequestException('An explicit positive PURCHASE_COST is required');
       }
@@ -171,9 +176,12 @@ export class OfferBatchCommitService {
   /** Creates/updates this supplier's offers in set-based statements; the caller holds the supplier commit lock. */
   private async applyOfferWrites(tx: Prisma.TransactionClient, supplierId: string, writes: OfferWrite[]): Promise<void> {
     if (!writes.length) return;
-    const existing = await tx.supplierOffer.findMany({
-      where: { supplierId, skuId: { in: writes.map(w => w.skuId) } }, select: { id: true, skuId: true },
-    });
+    const existing: Array<{ id: string; skuId: string }> = [];
+    for (const chunk of chunks(writes)) {
+      existing.push(...await tx.supplierOffer.findMany({
+        where: { supplierId, skuId: { in: chunk.map(w => w.skuId) } }, select: { id: true, skuId: true },
+      }));
+    }
     const idBySku = new Map(existing.map(o => [o.skuId, o.id]));
     const now = new Date();
     const creates = writes.filter(w => !idBySku.has(w.skuId));
@@ -252,29 +260,37 @@ export class OfferBatchCommitService {
       .filter((id): id is string => Boolean(id));
 
     // Live DB snapshot: fetch existing supplier offers for all matched SKUs
-    const existingOffers = await this.prisma.supplierOffer.findMany({
-      where: {
-        supplierId: job.supplierId,
-        skuId: { in: matchedSkuIds },
-      },
-    });
+    const existingOffers: Prisma.SupplierOfferGetPayload<object>[] = [];
+    for (const skuIds of chunks(matchedSkuIds)) {
+      existingOffers.push(...await this.prisma.supplierOffer.findMany({
+        where: {
+          supplierId: job.supplierId,
+          skuId: { in: skuIds },
+        },
+      }));
+    }
     const offerMap = new Map(existingOffers.map((o) => [o.skuId, o]));
 
     // Source timing of the rows that produced the current offers (batched; no per-row queries).
-    const lastAcceptedItems = await this.prisma.ingestionItem.findMany({
-      where: { id: { in: existingOffers.map(o => o.lastIngestionItemId).filter((id): id is string => Boolean(id)) } },
-      select: { id: true, enrichment: true, job: { select: { createdAt: true, sourceMetadata: true } } },
-    });
-    const lastAcceptedTiming = new Map(lastAcceptedItems.map(i => [i.id, sourceTiming(i.job, i.enrichment)]));
+    const lastAcceptedTiming = new Map<string, SourceTiming>();
+    for (const itemIds of chunks(existingOffers.map(o => o.lastIngestionItemId).filter((id): id is string => Boolean(id)))) {
+      const accepted = await this.prisma.ingestionItem.findMany({
+        where: { id: { in: itemIds } },
+        select: { id: true, enrichment: true, job: { select: { createdAt: true, sourceMetadata: true } } },
+      });
+      for (const i of accepted) lastAcceptedTiming.set(i.id, sourceTiming(i.job, i.enrichment));
+    }
 
     // Currently effective approved selling prices: a verified per-unit cost above it is a FINANCIAL_HOLD (GLO-275/277).
     const now = new Date();
-    const sellingPrices = await this.prisma.sellingPrice.findMany({
-      where: { skuId: { in: matchedSkuIds }, isActive: true, validFrom: { lte: now }, OR: [{ validUntil: null }, { validUntil: { gt: now } }] },
-      orderBy: { validFrom: 'desc' },
-    });
-    const sellingPriceBySku = new Map<string, (typeof sellingPrices)[number]>();
-    for (const price of sellingPrices) if (!sellingPriceBySku.has(price.skuId)) sellingPriceBySku.set(price.skuId, price);
+    const sellingPriceBySku = new Map<string, Prisma.SellingPriceGetPayload<object>>();
+    for (const skuIds of chunks(matchedSkuIds)) {
+      const sellingPrices = await this.prisma.sellingPrice.findMany({
+        where: { skuId: { in: skuIds }, isActive: true, validFrom: { lte: now }, OR: [{ validUntil: null }, { validUntil: { gt: now } }] },
+        orderBy: { validFrom: 'desc' },
+      });
+      for (const price of sellingPrices) if (!sellingPriceBySku.has(price.skuId)) sellingPriceBySku.set(price.skuId, price);
+    }
 
     const rows: RowDiff[] = [];
     const counters = {
@@ -587,7 +603,9 @@ export class OfferBatchCommitService {
    */
   private summarizeSourceRows(rowOutcomes: Prisma.JsonValue | null, admittedItems: number): SourceRowSummary | undefined {
     if (!Array.isArray(rowOutcomes)) return undefined;
-    const outcomes = (rowOutcomes as Array<Record<string, unknown>>).map((o) => ({
+    const entries = rowOutcomes as unknown[] as Array<Record<string, unknown>>;
+    const skipGroups = (rowOutcomes as unknown[]).filter(isRowOutcomeGroup);
+    const outcomes = entries.filter(o => !isRowOutcomeGroup(o)).map((o) => ({
       sourceRow: Number(o.sourceRow),
       supplierSku: String(o.supplierSku ?? ''),
       outcome: String(o.outcome ?? ''),
@@ -597,14 +615,17 @@ export class OfferBatchCommitService {
       .filter((o) => !['IMPORTED', 'IMPORTED_MANUAL'].includes(o.outcome))
       .sort((a, b) => a.sourceRow - b.sourceRow);
     const count = (outcome: string) => notAdmitted.filter((o) => o.outcome === outcome).length;
+    const groupedSkips = skipGroups.reduce((sum, group) => sum + group.count, 0);
     return {
-      total: outcomes.length,
+      total: outcomes.length + groupedSkips,
       admitted: admittedItems,
       invalid: count('INVALID'),
       duplicate: count('DUPLICATE'),
-      outOfScope: count('OUT_OF_SCOPE') + count('POLICY_SKIP'),
+      outOfScope: count('OUT_OF_SCOPE') + count('POLICY_SKIP') + groupedSkips,
       policyHeld: count('POLICY_HOLD'),
-      notAdmitted,
+      policySkipped: count('POLICY_SKIP') + groupedSkips,
+      skippedByReason: skipGroups.map(({ reason, count: rows, rowRanges }) => ({ reason, count: rows, rowRanges })),
+      notAdmitted: notAdmitted.slice(0, MAX_NOT_ADMITTED_LISTED),
     };
   }
 
@@ -637,7 +658,7 @@ export class OfferBatchCommitService {
             committedCount: 0,
             unchangedCount: priorOutcomes.filter(outcome => outcome?.status === 'COMMITTED').length,
             heldForReviewCount: 0,
-            skippedCount: this.summarizeSourceRows(job.rowOutcomes, job.items.length)?.notAdmitted.filter(r => r.outcome === 'POLICY_SKIP').length ?? 0,
+            skippedCount: this.summarizeSourceRows(job.rowOutcomes, job.items.length)?.policySkipped ?? 0,
             errorCount: 0,
             deactivatedCount: 0,
             itemOutcomes: job.items.map((i, index) => priorOutcomes[index] ?? ({
@@ -657,7 +678,7 @@ export class OfferBatchCommitService {
         let committedCount = 0;
         let unchangedCount = 0;
         let heldForReviewCount = diff.sourceRows?.policyHeld ?? 0;
-        let skippedCount = diff.sourceRows?.notAdmitted.filter(r => r.outcome === 'POLICY_SKIP').length ?? 0;
+        let skippedCount = diff.sourceRows?.policySkipped ?? 0;
         let errorCount = 0;
         // GLO-281: writes are collected and applied in set-based statements below, so a 1,000-row file commits in a
         // handful of round trips instead of ~5 per row (which exceeded the transaction budget on a remote database).
@@ -754,6 +775,18 @@ export class OfferBatchCommitService {
           // 6. Apply UPDATE, CREATE, or UNCHANGED
           if (row.action === RowDiffAction.CREATE || row.action === RowDiffAction.UPDATE || row.action === RowDiffAction.UNCHANGED) {
             const skuId = item.matchedSkuId;
+            // A malformed barcode cell is one row's data problem: it holds that row, not every other offer in the file.
+            // Any other failure means a stored association contradicts its row, and the whole commit still rolls back.
+            try {
+              await this.identity.assertSkuAssociation(candidateIdentityInput(item, job.supplierId), skuId, tx);
+            } catch (error) {
+              if (!(error instanceof ConflictException) || !error.message.includes('invalid_gtin')) throw error;
+              heldForReviewCount++;
+              const reason = error.message;
+              itemOutcomes.push({ itemId: item.id, supplierSkuCode: item.supplierSkuCode, skuId, action: RowDiffAction.REVIEW, status: 'HELD_FOR_REVIEW', reason });
+              itemPatches.set(item.id, { status: IngestionStatus.review_required, patch: { diff: { action: RowDiffAction.REVIEW, reasons: [reason], before: row.before, after: row.after } } });
+              continue;
+            }
             const targetCost = row.after.costPrice ?? item.price.toNumber();
             const targetCurrency = row.after.currency ?? item.currency;
             const targetAvailability = row.after.isAvailable ?? false;
@@ -837,7 +870,8 @@ export class OfferBatchCommitService {
           itemOutcomes,
         };
       },
-      { timeout: 30000, maxWait: 10000 },
+      // Every row is revalidated inside this transaction, so its budget follows the file.
+      { timeout: Math.max(30000, (await this.prisma.ingestionItem.count({ where: { jobId } })) * 15), maxWait: 10000 },
     );
   }
 

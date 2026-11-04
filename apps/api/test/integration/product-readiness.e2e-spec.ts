@@ -45,7 +45,7 @@ describe('Product readiness: source -> human review -> catalog -> public PDP', (
       .overrideProvider(OutboxService).useValue({ enqueue: async () => undefined }).compile();
     app = module.createNestApplication(); app.useLogger(false);
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }));
-    await app.init(); db = app.get(PrismaService); catalog = app.get(CatalogService); ingestion = app.get(IngestionService);
+    await app.init();
     supplierId = (await db.supplier.create({ data: { name: `Readiness ${run}`, slug: `ready-${run}` } })).id;
     await db.brand.create({ data: { name: `Readiness ${run}`, slug: `readiness-${run}` } });
     for (const role of ['ADMIN', 'CUSTOMER', 'SUPPLIER']) {

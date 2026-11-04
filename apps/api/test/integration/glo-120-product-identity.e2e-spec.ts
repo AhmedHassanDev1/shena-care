@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -24,6 +25,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    await admitDownstreamRows(app);
     admin = await createActor(app.get(PrismaService), 'ADMIN');
 
     prisma = app.get<PrismaService>(PrismaService);
@@ -90,7 +92,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       data: { name: 'Hydrating Lotion', slug: 'glo120-brand-a-hydrating-lotion', brandId: brand.id, isPublished: true },
     });
     await prisma.sku.create({
-      data: { productId: product.id, code: 'SKU-50ML', variantName: 'Default', size: 50, sizeUnit: 'ml', barcode: '6221111111111', isActive: true },
+      data: { productId: product.id, code: 'SKU-50ML', variantName: 'Default', size: 50, sizeUnit: 'ml', barcode: '6221111111117', isActive: true },
     });
 
     // 2. Classify candidate with same product name but 100ml size
@@ -115,7 +117,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       data: { name: 'Serum A', slug: 'glo120-brand-a-serum-a', brandId: brandA.id, isPublished: true },
     });
     await prisma.sku.create({
-      data: { productId: productA.id, code: 'SERUM-A', variantName: 'Default', size: 30, sizeUnit: 'ml', barcode: '6229999999999', isActive: true },
+      data: { productId: productA.id, code: 'SERUM-A', variantName: 'Default', size: 30, sizeUnit: 'ml', barcode: '6229999999995', isActive: true },
     });
 
     // 2. Classify candidate uploading barcode 6229999999999 with Brand B (Conflicting facts!)
@@ -124,7 +126,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       supplierSkuCode: 'SUP-CONFLICT',
       name: 'Shampoo B',
       brand: 'GLO120 Brand B', // Conflicting brand!
-      barcode: '6229999999999',
+      barcode: '6229999999995',
     });
 
     expect(match.classification).toBe(MatchClassification.CONFLICT);
@@ -140,12 +142,12 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId: supplier1Id,
-        items: [{ supplierSkuCode: 'SUP1-SKU', name: 'Shared Lotion 50ml', brand: 'GLO120 Brand A', barcode: '6228888888888', price: 200, priceType: 'PURCHASE_COST', currency: 'EGP' }],
+        items: [{ supplierSkuCode: 'SUP1-SKU', name: 'Shared Lotion 50ml', brand: 'GLO120 Brand A', barcode: '6228888888884', price: 200, priceType: 'PURCHASE_COST', currency: 'EGP' }],
       })
       .expect(201);
 
     const itemId1 = createJob1.body.items[0].id;
-    const reviews1 = await reviewCandidateMedia(app, admin.auth, itemId1, '6228888888888');
+    const reviews1 = await reviewCandidateMedia(app, admin.auth, itemId1, '6228888888884');
     await request(app.getHttpServer()).patch(`/ingestion/candidates/${itemId1}/approve`).set(admin.auth).send({ mediaReviews: reviews1 }).expect(200);
     const pub1 = await request(app.getHttpServer()).post(`/ingestion/candidates/${itemId1}/publish`).set(admin.auth).expect(200);
 
@@ -157,7 +159,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       .post('/ingestion/jobs').set(admin.auth)
       .send({
         supplierId: supplier2Id,
-        items: [{ supplierSkuCode: 'SUP2-SKU', name: 'Shared Lotion 50ml', brand: 'GLO120 Brand A', barcode: '6228888888888', price: 220, priceType: 'PURCHASE_COST', currency: 'EGP' }],
+        items: [{ supplierSkuCode: 'SUP2-SKU', name: 'Shared Lotion 50ml', brand: 'GLO120 Brand A', barcode: '6228888888884', price: 220, priceType: 'PURCHASE_COST', currency: 'EGP' }],
       })
       .expect(201);
 
@@ -170,12 +172,12 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
     expect(detail2.body.status).toBe('review_required');
 
     // Supplier 2 publishes after its own media review against the canonical variant
-    const reviews2 = await reviewCandidateMedia(app, admin.auth, itemId2, '6228888888888');
+    const reviews2 = await reviewCandidateMedia(app, admin.auth, itemId2, '6228888888884');
     await request(app.getHttpServer()).patch(`/ingestion/candidates/${itemId2}/approve`).set(admin.auth).send({ mediaReviews: reviews2 }).expect(200);
     await request(app.getHttpServer()).post(`/ingestion/candidates/${itemId2}/publish`).set(admin.auth).expect(200);
 
     // 3. Assert persisted database records: exactly 1 canonical SKU, but 2 separate SupplierOffers!
-    const skuCount = await prisma.sku.count({ where: { barcode: '6228888888888' } });
+    const skuCount = await prisma.sku.count({ where: { barcode: '6228888888884' } });
     expect(skuCount).toBe(1);
 
     const offers = await prisma.supplierOffer.findMany({ where: { skuId: canonicalSkuId } });
@@ -197,7 +199,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
       data: { name: 'Alias Product', slug: 'glo120-brand-a-alias-product', brandId: brand.id, isPublished: true },
     });
     const sku = await prisma.sku.create({
-      data: { productId: product.id, code: 'CANONICAL-SKU-ALIAS', variantName: 'Default', barcode: '6227777777777', isActive: true },
+      data: { productId: product.id, code: 'CANONICAL-SKU-ALIAS', variantName: 'Default', barcode: '6227777777773', isActive: true },
     });
 
     // 2. Register Supplier SKU Alias: Supplier 1 code 'SUP-CODE-99' -> canonical SKU
@@ -223,7 +225,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
     } });
     const sku = await prisma.sku.create({ data: {
       productId: product.id, code: 'PACK-2-50ML', variantName: 'Blue', size: 50,
-      sizeUnit: 'ml', barcode: '6223333333333', packCount: 2,
+      sizeUnit: 'ml', barcode: '6223333333339', packCount: 2,
     } as any });
     await identityService.createSupplierSkuAlias(supplier1Id, 'SUP-PACK', sku.id);
 
@@ -234,7 +236,7 @@ describe('GLO-120 Product Identity & Deduplication (e2e)', () => {
     ]) {
       const match = await identityService.classifyCandidateMatch({
         supplierId: supplier1Id, supplierSkuCode: 'SUP-PACK', name: 'Hydrating Lotion',
-        brand: 'GLO120 Brand A', barcode: '6223333333333', ...change,
+        brand: 'GLO120 Brand A', barcode: '6223333333339', ...change,
       });
       expect(match.classification).toBe(MatchClassification.CONFLICT);
       expect(match.matchedSkuId).toBeNull();

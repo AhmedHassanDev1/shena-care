@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
@@ -33,6 +34,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    await admitDownstreamRows(app, { brands: ['CeraVe'], brandFor: title => /لاروش/.test(title) ? 'La Roche-Posay' : /cerave/i.test(title) ? 'CeraVe' : undefined });
 
     prisma = app.get(PrismaService);
     normalizationService = app.get(RowNormalizationService);
@@ -407,7 +409,7 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       expect(skincareItem?.status).toBe(IngestionStatus.review_required);
       expect((skincareItem?.enrichment as any)?.identity).toBeUndefined();
       expect((skincareItem?.enrichment as any)?.source?.duplicateConflicts).toHaveLength(1);
-      expect((skincareItem?.enrichment as any)?.source?.normalized?.scope?.category).toBe('skincare');
+      expect((skincareItem?.enrichment as any)?.source?.normalized?.scope?.category).toBe('approved'); // admitted by policy, not the keyword classifier
 
       // Out-of-scope food row -> no candidate item
       expect(items.find((i) => i.supplierSkuCode === 'SKU-02')).toBeUndefined();
@@ -419,8 +421,8 @@ describe('SG-03: Row Normalization, Trusted Semantics & Brand/Line Eligibility (
       const importedJob = await prisma.ingestionJob.findUniqueOrThrow({ where: { id: uploadResult.jobId } });
       const outcomes = importedJob.rowOutcomes as Array<{ sourceRow: number; outcome: string; reason?: string }>;
       expect(outcomes).toHaveLength(5);
-      expect(outcomes.map(o => o.outcome)).toEqual(['IMPORTED', 'OUT_OF_SCOPE', 'IMPORTED', 'INVALID', 'DUPLICATE']);
-      expect(outcomes[1].reason).toMatch(/excluded/);
+      expect(outcomes.map(o => o.outcome)).toEqual(['IMPORTED', 'POLICY_HOLD', 'IMPORTED', 'INVALID', 'DUPLICATE']);
+      expect(outcomes[1].reason).toBe('BRAND_UNKNOWN');
       expect(outcomes[4].reason).toBe('duplicate_supplier_sku_with_conflicting_values');
     });
   });

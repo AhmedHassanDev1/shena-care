@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { gtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -39,6 +41,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    await admitDownstreamRows(app);
     admin = await createActor(app.get(PrismaService), 'ADMIN');
 
     prisma = app.get<PrismaService>(PrismaService);
@@ -95,7 +98,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
         variantName: '50 ml',
         size: 50,
         sizeUnit: 'ml',
-        barcode: '1234567890123',
+        barcode: '1234567890128',
         isActive: true,
       },
     });
@@ -118,9 +121,9 @@ describe('Ingestion Lifecycle (e2e)', () => {
         items: [
           {
             supplierSkuCode: 'SUP-01',
-            name: 'Exact Match Product',
+            name: 'IngestProduct 50 ml',
             brand: 'IngestBrand',
-            barcode: '1234567890123', // should match
+            barcode: '1234567890128', // should match
             price: 150.5,
             priceType: 'PURCHASE_COST',
             currency: 'EGP',
@@ -129,7 +132,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
             supplierSkuCode: 'SUP-02',
             name: 'Unknown Product',
             brand: 'IngestBrand',
-            barcode: '0000000000000', // won't match
+            barcode: '0000000000017', // won't match
             price: 200,
             priceType: 'PURCHASE_COST',
             currency: 'EGP',
@@ -149,12 +152,12 @@ describe('Ingestion Lifecycle (e2e)', () => {
     expect(items.length).toBe(2);
 
     // 2. barcode automatically pre-links the existing SKU but still needs human review
-    const matchedItem = items.find((i) => i.barcode === '1234567890123');
+    const matchedItem = items.find((i) => i.barcode === '1234567890128');
     expect(matchedItem.status).toBe('review_required');
     expect(matchedItem.matchedSkuId).toBe(skuId);
 
     // 3. unknown barcode remains unresolved
-    const unresolvedItem = items.find((i) => i.barcode === '0000000000000');
+    const unresolvedItem = items.find((i) => i.barcode === '0000000000017');
     expect(unresolvedItem.status).toBe('review_required');
     expect(unresolvedItem.matchedSkuId).toBeNull();
 
@@ -167,23 +170,23 @@ describe('Ingestion Lifecycle (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`/ingestion/items/${unresolvedItem.id}/approve`).set(admin.auth)
       .send({ matchedSkuId: '00000000-0000-0000-0000-000000000000' })
-      .expect(404);
+      .expect(409);
 
     // 4. an item whose barcode differs from the SKU cannot be reviewed onto it
-    const mismatched = await reviewCandidateMedia(app, admin.auth, unresolvedItem.id, '0000000000000');
+    const mismatched = await reviewCandidateMedia(app, admin.auth, unresolvedItem.id, '0000000000017');
     await request(app.getHttpServer())
       .patch(`/ingestion/items/${unresolvedItem.id}/approve`).set(admin.auth)
       .send({ matchedSkuId: skuId, mediaReviews: mismatched })
-      .expect(400);
+      .expect(409);
     await request(app.getHttpServer())
-      .patch(`/ingestion/items/${unresolvedItem.id}/reject`).set(admin.auth)
+      .patch(`/ingestion/items/${unresolvedItem.id}/reject`).set(admin.auth).send({ reason: 'Barcode does not match the catalog SKU' })
       .expect(200);
 
     // manual approval of the pre-linked item after media review
-    const reviews = await reviewCandidateMedia(app, admin.auth, matchedItem.id, '1234567890123');
+    const reviews = await reviewCandidateMedia(app, admin.auth, matchedItem.id, '1234567890128');
     await request(app.getHttpServer())
       .patch(`/ingestion/items/${matchedItem.id}/approve`).set(admin.auth)
-      .send({ matchedSkuId: skuId, mediaReviews: reviews })
+      .send({ matchedSkuId: skuId, identityEvidence: 'Reviewer compared the row with the SKU pack', mediaReviews: reviews })
       .expect(200);
 
     // Refresh Job
@@ -223,9 +226,9 @@ describe('Ingestion Lifecycle (e2e)', () => {
         items: [
           {
             supplierSkuCode: 'SUP-01',
-            name: 'Exact Match Product Again',
+            name: 'IngestProduct 50 ml',
             brand: 'IngestBrand',
-            barcode: '1234567890123',
+            barcode: '1234567890128',
             price: 180, // price changed
             priceType: 'PURCHASE_COST',
             currency: 'EGP',
@@ -235,7 +238,7 @@ describe('Ingestion Lifecycle (e2e)', () => {
       .expect(201);
 
     const job2 = await waitForJob(createJobRes2.body.id, (current) => current.items.every((item) => item.status !== 'pending'));
-    const reviews2 = await reviewCandidateMedia(app, admin.auth, job2.items[0].id, '1234567890123');
+    const reviews2 = await reviewCandidateMedia(app, admin.auth, job2.items[0].id, '1234567890128');
     await request(app.getHttpServer())
       .patch(`/ingestion/items/${job2.items[0].id}/approve`).set(admin.auth)
       .send({ mediaReviews: reviews2 })
@@ -267,13 +270,13 @@ describe('Ingestion Lifecycle (e2e)', () => {
   ])('does not publish a %s as a supplier cost', async (_label, priceType) => {
     const created = await request(app.getHttpServer()).post('/ingestion/jobs').set(admin.auth).send({
       supplierId,
-      items: [{ supplierSkuCode: 'SUP-RETAIL', name: 'Exact Match Product', brand: 'IngestBrand',
-        barcode: '1234567890123', price: 150.5, priceType, currency: 'EGP' }],
+      items: [{ supplierSkuCode: 'SUP-RETAIL', name: 'IngestProduct 50 ml', brand: 'IngestBrand',
+        barcode: '1234567890128', price: 150.5, priceType, currency: 'EGP' }],
     }).expect(201);
     const itemId = created.body.items[0].id;
-    const reviews = await reviewCandidateMedia(app, admin.auth, itemId, '1234567890123');
+    const reviews = await reviewCandidateMedia(app, admin.auth, itemId, '1234567890128');
     await request(app.getHttpServer()).patch(`/ingestion/items/${itemId}/approve`).set(admin.auth)
-      .send({ matchedSkuId: skuId, mediaReviews: reviews }).expect(200);
+      .send({ matchedSkuId: skuId, identityEvidence: 'Reviewer compared the row with the SKU pack', mediaReviews: reviews }).expect(200);
 
     await request(app.getHttpServer()).post(`/ingestion/candidates/${itemId}/publish`).set(admin.auth).expect(400);
     await request(app.getHttpServer()).post(`/ingestion/jobs/${created.body.id}/publish`).set(admin.auth).expect(400);
@@ -284,18 +287,18 @@ describe('Ingestion Lifecycle (e2e)', () => {
   it('clears purchase-cost classification when a reviewer changes the price without reclassifying it', async () => {
     const created = await request(app.getHttpServer()).post('/ingestion/jobs').set(admin.auth).send({
       supplierId,
-      items: [{ supplierSkuCode: 'SUP-EDIT', name: 'Exact Match Product', brand: 'IngestBrand',
-        barcode: '1234567890123', price: 100, priceType: 'PURCHASE_COST', currency: 'EGP' }],
+      items: [{ supplierSkuCode: 'SUP-EDIT', name: 'IngestProduct 50 ml', brand: 'IngestBrand',
+        barcode: '1234567890128', price: 100, priceType: 'PURCHASE_COST', currency: 'EGP' }],
     }).expect(201);
     const itemId = created.body.items[0].id;
-    const firstReviews = await reviewCandidateMedia(app, admin.auth, itemId, '1234567890123');
+    const firstReviews = await reviewCandidateMedia(app, admin.auth, itemId, '1234567890128');
     await request(app.getHttpServer()).patch(`/ingestion/items/${itemId}/approve`).set(admin.auth)
-      .send({ matchedSkuId: skuId, mediaReviews: firstReviews }).expect(200);
+      .send({ matchedSkuId: skuId, identityEvidence: 'Reviewer compared the row with the SKU pack', mediaReviews: firstReviews }).expect(200);
 
     const changed = await request(app.getHttpServer()).patch(`/ingestion/candidates/${itemId}`).set(admin.auth)
       .send({ price: 300 }).expect(200);
     expect(changed.body).toMatchObject({ price: 300, priceType: null, status: 'review_required' });
-    const secondReviews = await reviewCandidateMedia(app, admin.auth, itemId, '1234567890123');
+    const secondReviews = await reviewCandidateMedia(app, admin.auth, itemId, '1234567890128');
     await request(app.getHttpServer()).patch(`/ingestion/items/${itemId}/approve`).set(admin.auth)
       .send({ matchedSkuId: skuId, mediaReviews: secondReviews }).expect(200);
 

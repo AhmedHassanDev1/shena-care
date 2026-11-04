@@ -1,5 +1,6 @@
 import { IngestionPriceType } from '@prisma/client';
 import { IsOptional, IsString, IsNumber, Min, Max, IsIn, IsInt, Matches, MaxLength } from 'class-validator';
+import type { CanonicalSkuSnapshot, IdentityCandidate, IdentityRoute, RejectedIdentityCandidate, RowInterpretation } from '../services/product-identity.service';
 
 export class CorrectCandidateDto {
   @IsOptional()
@@ -75,17 +76,48 @@ export interface CandidateAuditEntry {
   newValues?: Record<string, unknown>;
 }
 
+/** What matching stored for this row. Advisory: every confirmation is revalidated by approveItem. */
+export interface CandidateIdentityMatch {
+  route: IdentityRoute | null;
+  suggestedSkuId: string | null;
+  /** Set when the suggestion came from an alias or barcode and therefore is not in the retrieved candidates. */
+  suggestedSku: CanonicalSkuSnapshot | null;
+  /** Stored rank order; never re-sorted when read. `imageUrl` is a verified catalog image when one exists. */
+  candidates: Array<IdentityCandidate & { imageUrl: string | null }>;
+  /** Close SKUs a hard fact rules out, with those facts. They cannot be confirmed. */
+  rejectedCandidates: RejectedIdentityCandidate[];
+  /** How matching read this row, and what stays unknown. */
+  interpretation: RowInterpretation;
+  /** The latest reviewer decision on identity, with its evidence. */
+  review: { decision: string; skuId?: string; reviewedBy: string; reviewedAt: string; evidence?: string } | null;
+  /** Stored reasons a reviewer must resolve: conflict codes, or the free-text barcode collision detail. */
+  conflicts: string[];
+  matchReason: string | null;
+  matchedAt: string | null;
+  /** Whether this row is still awaiting an identity decision a reviewer can settle by picking a SKU. */
+  confirmable: boolean;
+}
+
 export interface CandidateReviewRecord {
   candidateId: string;
   status: string;
+  identityMatch: CandidateIdentityMatch;
   originalSupplierRow: {
     jobId: string;
     supplierId: string;
+    supplierName: string | null;
     supplierSkuCode: string;
+    /** The product text as the supplier wrote it. */
+    statedName: string;
+    barcode: string | null;
+    /** The barcode cell when it is not a valid GTIN. Null with a null barcode means the supplier gave none. */
+    invalidBarcode: string | null;
     sourceFile?: {
       jobId: string;
+      fileName: string | null;
       mode: string;
       createdAt: Date;
+      row: number | null;
     };
     price: number;
     priceType: IngestionPriceType | null;

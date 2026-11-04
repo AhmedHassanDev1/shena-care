@@ -34,8 +34,10 @@ import { Button, Code, DataTable, Field, Notice, PageHeader, Section, Skeleton, 
 import { CommandError, Egp, Page, Select, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api, ApiError } from '@/lib/api'
+import type { ReviewRecord } from '@/lib/candidate-review'
 import { formatDateTime, shortId } from '@/lib/labels'
 import { useApi, useCommand } from '@/lib/use-api'
+import { IdentityCandidates } from './identity-candidates'
 
 export interface CandidateItem {
   id: string
@@ -52,71 +54,6 @@ export interface CandidateItem {
   rejectionReason?: string | null
   createdAt: string
   updatedAt: string
-}
-
-export interface ReviewRecord {
-  candidateId: string
-  supplierId: string
-  sourceFile: {
-    fileName: string
-    jobId: string
-    uploadedAt: string
-  }
-  originalRow: Record<string, unknown>
-  normalizedIdentity: {
-    name: string
-    brand: string
-    category?: string
-    size?: number
-    sizeUnit?: string
-    barcode?: string
-    supplierSkuCode: string
-    costPrice: number
-    currency: string
-  }
-  dependencies: {
-    brandStatus: 'CANONICAL' | 'APPROVED_DRAFT' | 'PENDING_REVIEW' | 'REJECTED' | 'NOT_FOUND'
-    productLineStatus: 'CANONICAL' | 'APPROVED_DRAFT' | 'PENDING_REVIEW' | 'NOT_FOUND' | 'NONE'
-    activeIngredients: Array<{ name: string; inciName?: string; family?: string }>
-    routinePlacement?: {
-      stepOrder: number
-      stepType: string
-      timing: string
-      frequency: string
-      requiresDaytimeSunscreen: boolean
-      warnings?: string[]
-    }
-  }
-  contentDraft?: {
-    titleEn?: string
-    titleAr?: string
-    shortDescriptionAr?: string
-    descriptionAr?: string
-    benefitsAr?: string[]
-    usageInstructionsAr?: string[]
-    isApproved: boolean
-  }
-  mediaDraft?: {
-    verifiedPackshots: Array<{
-      url: string
-      variantName: string
-      size: number
-      sizeUnit: string
-      sourceUrl: string
-      sourceType: string
-      barcode?: string
-    }>
-    hasRequiredVerifiedPackshot: boolean
-  }
-  policyConflicts: string[]
-  canPublish: boolean
-  auditTrail?: Array<{
-    action: string
-    actorId?: string
-    timestamp: string
-    reason?: string
-    requestedInfo?: string
-  }>
 }
 
 export interface BrandDraft {
@@ -534,11 +471,7 @@ function CandidateReviewModal({
 
   const approveCandidateCmd = useCommand(async () => {
     setApprovalErrors([])
-    const allMedia = [
-      ...(record?.mediaDraft?.verifiedPackshots || []),
-      ...packshots,
-    ]
-    const mediaReviews = allMedia.map((m) => ({
+    const mediaReviews = packshots.map((m) => ({
       url: m.url,
       sourceUrl: m.sourceUrl,
       sourceType: m.sourceType as 'OFFICIAL_MANUFACTURER' | 'TRUSTED_DISTRIBUTOR',
@@ -552,7 +485,8 @@ function CandidateReviewModal({
       const res = await api(`/ingestion/candidates/${candidateId}/approve`, {
         method: 'PATCH',
         body: {
-          createNewProduct: true,
+          // createNewProduct unlinks: a row with a confirmed SKU stays on that SKU.
+          ...(record?.normalizedIdentity?.matchedSkuId ? {} : { createNewProduct: true }),
           mediaReviews: mediaReviews.length > 0 ? mediaReviews : undefined,
           confirmUsageRules: true,
         },
@@ -629,20 +563,30 @@ function CandidateReviewModal({
 
         {/* Body content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {error ? <LoadError message={error.message} onRetry={reload} /> : null}
+          <IdentityCandidates
+            candidateId={candidateId}
+            record={record}
+            loading={loading}
+            error={error}
+            onRetry={reload}
+            onConfirmed={() => {
+              reload()
+              onUpdated()
+            }}
+          />
           {loading && !record ? <Skeleton className="h-64 w-full rounded-xl" /> : null}
 
           {record ? (
             <div className="space-y-4">
               {/* Conflicts or blockers alert */}
-              {record.policyConflicts && record.policyConflicts.length > 0 ? (
+              {record.policyAndQualityConflicts.length > 0 ? (
                 <div className="rounded-xl border border-red-500/25 bg-red-500/[0.05] p-3 text-xs space-y-1">
                   <div className="flex items-center gap-2 text-red-400 font-bold">
                     <ShieldAlert className="size-4" />
-                    <span>تنبيهات السياسة أو موانع النشر المكتشفة ({record.policyConflicts.length})</span>
+                    <span>تنبيهات السياسة أو موانع النشر المكتشفة ({record.policyAndQualityConflicts.length})</span>
                   </div>
                   <ul className="list-disc list-inside space-y-0.5 text-bw-ink-soft text-[11px] pr-2">
-                    {record.policyConflicts.map((c, i) => (
+                    {record.policyAndQualityConflicts.map((c, i) => (
                       <li key={i}>{c}</li>
                     ))}
                   </ul>
@@ -668,7 +612,7 @@ function CandidateReviewModal({
                     </div>
                     <div>
                       <span className="text-bw-ink-soft">سعر الشراء: </span>
-                      <span className="font-mono text-white font-bold">{record.normalizedIdentity.costPrice} {record.normalizedIdentity.currency}</span>
+                      <span className="font-mono text-white font-bold">{record.originalSupplierRow.price} {record.originalSupplierRow.currency}</span>
                     </div>
                   </div>
                 </div>
@@ -678,12 +622,12 @@ function CandidateReviewModal({
                   <div className="space-y-1 text-xs">
                     <div>
                       <span className="text-bw-ink-soft">حالة البراند: </span>
-                      <span className="font-semibold text-white">{record.dependencies.brandStatus}</span>
+                      <span className="font-semibold text-white">{record.dependencies.brand.isCanonical ? 'CANONICAL' : record.dependencies.brand.draftStatus ?? 'NOT_FOUND'}</span>
                     </div>
                     <div>
                       <span className="text-bw-ink-soft">المكونات الفعالة: </span>
                       <span className="text-white">
-                        {record.dependencies.activeIngredients.map((i) => i.name).join('، ') || '— لا توجد'}
+                        {record.dependencies.ingredients.activeIngredients.join('، ') || '— لا توجد'}
                       </span>
                     </div>
                     {record.dependencies.routinePlacement ? (
@@ -705,7 +649,7 @@ function CandidateReviewModal({
                     <ImageIcon className="size-4 text-emerald-400" />
                     <p className="text-[11px] font-bold text-bw-ink-subtle">الصور والباك شوت الموثق (Packshots)</p>
                   </div>
-                  {record.mediaDraft?.hasRequiredVerifiedPackshot || packshots.length > 0 ? (
+                  {record.contentAndMedia.hasVerifiedPackshot || packshots.length > 0 ? (
                     <span className="sc-badge t-success text-[10px]">باك شوت موثق مطابق</span>
                   ) : (
                     <span className="sc-badge t-error text-[10px]">مطلوب باك شوت رسمي</span>
@@ -713,12 +657,12 @@ function CandidateReviewModal({
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {record.mediaDraft?.verifiedPackshots?.map((m, idx) => (
+                  {record.contentAndMedia.verifiedPackshots.map((m, idx) => (
                     <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-black/40 border border-white/[0.05] text-xs">
                       <ImageIcon className="size-4 text-emerald-400 shrink-0" />
                       <div>
-                        <p className="text-[11px] text-white font-semibold">{m.variantName} ({m.size}{m.sizeUnit})</p>
-                        <p className="text-[10px] text-bw-ink-subtle truncate max-w-xs">{m.sourceUrl}</p>
+                        <p className="text-[11px] text-white font-semibold">{m.review?.variantName} ({m.review?.size}{m.review?.sizeUnit})</p>
+                        <p className="text-[10px] text-bw-ink-subtle truncate max-w-xs">{m.review?.sourceUrl}</p>
                       </div>
                     </div>
                   ))}
@@ -858,7 +802,7 @@ function CandidateReviewModal({
                       <Sparkles className="size-3.5 text-amber-400" />
                       <span>توليد المحتوى الحتمي</span>
                     </Button>
-                    {record.contentDraft && !record.contentDraft.isApproved ? (
+                    {record.contentAndMedia.contentDraft && !record.contentAndMedia.contentDraft.isApproved ? (
                       <Button
                         variant="secondary"
                         loading={approveContentCmd.pending}
@@ -874,17 +818,17 @@ function CandidateReviewModal({
                   </div>
                 </div>
 
-                {record.contentDraft ? (
+                {record.contentAndMedia.contentDraft ? (
                   <div className="space-y-2 text-xs pt-1">
                     <div className="rounded-lg bg-black/30 p-2.5 border border-white/[0.04]">
                       <p className="text-bw-ink-soft text-[11px]">العنوان بالمتجر:</p>
-                      <p className="text-white font-bold text-xs">{record.contentDraft.titleAr}</p>
-                      <p className="text-bw-ink-subtle text-[11px] font-mono">{record.contentDraft.titleEn}</p>
+                      <p className="text-white font-bold text-xs">{record.contentAndMedia.contentDraft.titleAr}</p>
+                      <p className="text-bw-ink-subtle text-[11px] font-mono">{record.contentAndMedia.contentDraft.titleEn}</p>
                     </div>
-                    {record.contentDraft.shortDescriptionAr ? (
+                    {record.contentAndMedia.contentDraft.shortDescriptionAr ? (
                       <div className="rounded-lg bg-black/30 p-2.5 border border-white/[0.04]">
                         <p className="text-bw-ink-soft text-[11px]">الوصف المختصر:</p>
-                        <p className="text-white text-xs">{record.contentDraft.shortDescriptionAr}</p>
+                        <p className="text-white text-xs">{record.contentAndMedia.contentDraft.shortDescriptionAr}</p>
                       </div>
                     ) : null}
                   </div>
@@ -952,7 +896,7 @@ function CandidateReviewModal({
                         }}
                       >
                         <CheckCircle2 className="size-4 text-emerald-400" />
-                        <span>اعتماد المراجعة</span>
+                        <span>{record.normalizedIdentity.matchedSkuId ? 'اعتماد المراجعة' : 'اعتماد كمنتج جديد'}</span>
                       </Button>
                     </div>
 

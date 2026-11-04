@@ -9,6 +9,7 @@ import { ListingController } from './controllers/listing.controller';
 import { PriceController } from './controllers/price.controller';
 import { PurchaseOrderController } from './controllers/purchase-order.controller';
 import { BarcodeAliasController } from './controllers/barcode-alias.controller';
+import { MediaAssetController } from './controllers/media-asset.controller';
 import { ProductViewService } from './services/product-view.service';
 import { DiscoveryService } from './services/discovery.service';
 import { ProductDetailService } from './services/product-detail.service';
@@ -29,6 +30,7 @@ import { RoutineCartController } from './controllers/routine-cart.controller';
   imports: [CatalogModule, CommerceModule, SourcingModule, CareModule, IngestionModule, OrderingModule],
   controllers: [
     ProductViewController,  // GET /products, GET /products/:slug
+    MediaAssetController,   // /catalog/media-assets (staff only)
     BrandController,        // GET /brands, GET /brands/:slug
     CategoryController,     // GET /categories, GET /categories/:slug
     ListingController,      // /commerce/listings

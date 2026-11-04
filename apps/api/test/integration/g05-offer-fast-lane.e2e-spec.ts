@@ -1,5 +1,7 @@
 // GLO-277 Gate 05 — known-SKU supplier offer fast lane: freshness, idempotency, holds and snapshot safety, via HTTP.
 import { Test, TestingModule } from '@nestjs/testing';
+import { gtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -23,8 +25,8 @@ describe('GLO-277 Gate 05: supplier offer fast lane (e2e)', () => {
   const s2 = randomUUID();
   const run = randomUUID().slice(0, 8);
   const brand = `G05 Brand ${run}`;
-  const bcA = `29${digits(11)}`;
-  const bcB = `29${digits(11)}`;
+  const bcA = gtin(`29${digits(10)}`);
+  const bcB = gtin(`29${digits(10)}`);
   let brandId: string, productId: string, skuA: string, skuB: string, sellingPriceId: string;
   const aiCalls: string[] = [];
 
@@ -50,6 +52,7 @@ describe('GLO-277 Gate 05: supplier offer fast lane (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
+    await admitDownstreamRows(app);
     prisma = app.get(PrismaService);
     storagePort = app.get(FILE_STORAGE_PORT);
     for (const method of ['enrichProduct', 'generateContent', 'recommendRoutine'] as const) {

@@ -136,7 +136,7 @@ describe('GLO-273 Gate 01: secure source intake & file custody (e2e)', () => {
         const res = await upload(supplierUserA.auth, buffer, name, mime);
         expect({ name, status: res.status }).toEqual({ name, status: 400 });
       }
-      const oversize = await upload(supplierUserA.auth, Buffer.alloc(5 * 1024 * 1024 + 1, 0x61), 'huge.csv');
+      const oversize = await upload(supplierUserA.auth, Buffer.alloc(25 * 1024 * 1024 + 1, 0x61), 'huge.csv');
       expect([400, 413]).toContain(oversize.status);
       expect(await jobCount()).toBe(before);
     });

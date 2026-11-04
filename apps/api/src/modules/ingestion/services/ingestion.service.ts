@@ -2,12 +2,12 @@ import { Injectable, BadRequestException, NotFoundException, ConflictException, 
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService, BrandService } from '../../catalog/public';
 import { SourcingService } from '../../sourcing/public';
-import { ProductIdentityService, MatchClassification } from './product-identity.service';
+import { ProductIdentityService, IdentityBatchContext, IdentityCandidate, MatchClassification, ProductIdentityMatchResult, candidateIdentityInput } from './product-identity.service';
 import { ProductResearchService } from './product-research.service';
 import { ProductContentService } from './product-content.service';
 import { CreateIngestionJobDto, ApproveIngestionItemDto, UpdateCandidateDto, ApplyJobMappingDto } from '../dto/ingestion.dto';
-import { CandidateReviewRecord, CorrectCandidateDto, CandidateAuditEntry } from '../contracts/candidate-review.contract';
-import { IngestionStatus, IngestionItemEnrichmentStatus, IngestionPriceType, IngestionImportMode, Prisma } from '@prisma/client';
+import { CandidateIdentityMatch, CandidateReviewRecord, CorrectCandidateDto, CandidateAuditEntry } from '../contracts/candidate-review.contract';
+import { IngestionItem, IngestionStatus, IngestionItemEnrichmentStatus, IngestionPriceType, IngestionImportMode, Prisma } from '@prisma/client';
 import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
 import { StorageService } from '../../../platform/storage/storage.service';
 import { requireMediaReview, isTrustedMediaSource } from '../../../platform/security/media-review';
@@ -27,6 +27,7 @@ import { IngestionEligibilityService } from './ingestion-eligibility.service';
 import { EligibilityDecision } from './ingestion-eligibility.policy';
 import { RecheckEligibilityGroupDto } from '../dto/eligibility-policy.dto';
 import { UsageRule } from '../contracts/routine-placement.contract';
+import { RowAccounting, RowOutcomeSkipCollector, countOutcomeRows, rowAccounting } from '../contracts/row-outcomes.contract';
 
 export interface IngestionJobDetail {
   id: string;
@@ -60,6 +61,8 @@ export interface MatchingSummary {
   rejected: number;
   /** Background AI enrichment requests started (new candidates only). */
   aiEnrichmentRequests: number;
+  /** New candidates beyond this file's enrichment budget: still reviewable, enriched on demand. */
+  enrichmentDeferred: number;
 }
 
 export interface IngestionUploadResult {
@@ -81,11 +84,33 @@ export interface IngestionUploadResult {
   /** True when the file is held on a supplier-proposed mapping awaiting internal approval. */
   awaitingApproval?: boolean;
   /** Identity outcome of the admitted rows (GLO-276); absent when no rows were admitted. */
-  matching?: MatchingSummary | { status: 'FAILED_RETRYABLE'; error: string };
+  matching?: MatchingSummary | { status: 'FAILED_RETRYABLE'; error: string } | { status: 'RUNNING' };
+  /** Every parsed row in exactly one bucket, pinned to the policy version that decided it. */
+  rowAccounting?: RowAccounting;
 }
+
+const MATCHING_BATCH_SIZE = 200;
+const ITEM_INSERT_CHUNK = 1000;
+const MAX_LISTED_JOBS = 200;
+const MAX_ITEMS_PER_LISTED_JOB = 500;
+/** Larger admissions match after the receipt returns; POST jobs/:id/match resumes them after a restart. */
+const SYNC_MATCHING_MAX_ROWS = Number(process.env.INGESTION_SYNC_MATCH_MAX_ROWS ?? 5000);
+/** Concurrent and per-file limits on background AI enrichment; further rows stay reviewable and enrich on demand. */
+const ENRICHMENT_CONCURRENCY = Number(process.env.INGESTION_ENRICHMENT_CONCURRENCY ?? 4);
+const ENRICHMENT_MAX_PER_JOB = Number(process.env.INGESTION_ENRICHMENT_MAX_PER_JOB ?? 200);
+/** Consecutive provider failures that end this file's background enrichment; rows stay pending and retryable. */
+const ENRICHMENT_OUTAGE_THRESHOLD = 5;
+const MIN_IDENTITY_EVIDENCE = 5;
+
+type MatchingUpdate = {
+  id: string; expectedUpdatedAt: string; brand: string; matchedSkuId: string | null; status: IngestionStatus;
+  enrichmentStatus: IngestionItemEnrichmentStatus | null; enrichmentError: string | null; enrichment: Record<string, unknown>;
+};
 
 @Injectable()
 export class IngestionService {
+  private readonly backgroundWork = new Set<Promise<unknown>>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly catalogService: CatalogService,
@@ -115,10 +140,13 @@ export class IngestionService {
     return decision;
   }
 
-  private classifyAdmittedItem(item: { brand: string; enrichment?: unknown }, input: Parameters<ProductIdentityService['classifyCandidateMatch']>[0]) {
+  private classifyAdmittedItem(item: { brand: string; enrichment?: unknown }, input: Parameters<ProductIdentityService['classifyCandidateMatch']>[0], batch?: IdentityBatchContext) {
     const decision = this.assertAdmittedItem(item);
     if (input.brand !== decision.brandName) throw new ConflictException('Brand correction requires policy re-admission');
-    return this.productIdentityService.classifyCandidateMatch({ ...input, eligibilityApproved: true });
+    // A malformed cell stays on the row until a correction replaces it (an explicit null).
+    const invalidBarcode = input.invalidBarcode !== undefined ? input.invalidBarcode :
+      (item.enrichment as { source?: { normalized?: { invalidBarcode?: string } } } | null)?.source?.normalized?.invalidBarcode;
+    return this.productIdentityService.classifyCandidateMatch({ ...input, invalidBarcode, eligibilityApproved: true, brandId: decision.brandId }, batch);
   }
 
   /** Explicit Admin retry creates a PARTIAL successor; the original pinned audit and admitted rows never change. */
@@ -185,9 +213,9 @@ export class IngestionService {
     }, { timeout: 60000 });
     const outcomes = (successor.rowOutcomes ?? []) as Array<{ outcome?: string }>;
     return { jobId: successor.id, matching: await this.matchAdmittedRows(successor.id), counts: {
-      ALLOW: outcomes.filter(r => r.outcome === 'IMPORTED' || r.outcome === 'IMPORTED_MANUAL').length,
-      SKIP: outcomes.filter(r => r.outcome === 'POLICY_SKIP').length,
-      HOLD: outcomes.filter(r => r.outcome === 'POLICY_HOLD').length,
+      ALLOW: countOutcomeRows(outcomes, 'IMPORTED', 'IMPORTED_MANUAL'),
+      SKIP: countOutcomeRows(outcomes, 'POLICY_SKIP'),
+      HOLD: countOutcomeRows(outcomes, 'POLICY_HOLD'),
     } };
   }
 
@@ -288,7 +316,7 @@ export class IngestionService {
         const existing = await tx.ingestionJob.findFirst({
           where: { supplierId, sourceChecksum: checksum },
           orderBy: { createdAt: 'asc' },
-          include: { items: true },
+          include: { _count: { select: { items: true } } },
         });
 
         if (existing?.sourceKey) {
@@ -298,18 +326,23 @@ export class IngestionService {
             // Never overwrite a retained original; a mismatch is surfaced for investigation instead.
             await this.readVerifiedOriginal(existing.sourceKey, checksum);
           }
+          // Only a job that still holds no rows is waiting for a mapping; one already mapped is just a repeat.
+          const requiresMapping = existing.status === IngestionStatus.review_required && existing._count.items === 0 &&
+            !(Array.isArray(existing.rowOutcomes) && existing.rowOutcomes.length);
+          const proposal = requiresMapping && parsed ? this.exportProfileService.proposeMapping(parsed.headers) : null;
           return {
             jobId: existing.id,
             sourceKey: existing.sourceKey,
             formatFingerprint: existing.formatFingerprint ?? undefined,
             profileId: existing.profileId ?? undefined,
             status: existing.status,
-            // Only a job that still holds no rows is waiting for a mapping; one already mapped is just a repeat.
-            requiresMapping: existing.status === IngestionStatus.review_required && existing.items.length === 0 &&
-              !(Array.isArray(existing.rowOutcomes) && existing.rowOutcomes.length),
+            requiresMapping,
             reused: true,
-            totalRows: existing.items.length,
-            importedItemsCount: existing.items.length,
+            totalRows: proposal ? parsed!.totalDataRows : existing._count.items,
+            importedItemsCount: existing._count.items,
+            // A retried upload must reopen the same mapping form, not a blank one.
+            ...(proposal && { sampleHeaders: parsed!.headers, sampleRows: parsed!.sampleRows, proposedMapping: proposal.mapping,
+              confidence: proposal.confidence, unmappedHeaders: proposal.unmappedHeaders, isComplete: proposal.isComplete }),
           };
         }
 
@@ -342,17 +375,16 @@ export class IngestionService {
               },
             });
 
-            const { items: itemsData, rowOutcomes } = await this.extractItemsFromParsedSpreadsheet(
+            const { items: itemsData, rowOutcomes, accounting } = await this.extractItemsFromParsedSpreadsheet(
               { id: job.id, supplierId, eligibilityPolicyId: job.eligibilityPolicyId, sourceKey, sourceChecksum: checksum, formatFingerprint },
               parsed,
               approvedProfile.mapping as any,
             );
 
-            if (itemsData.length > 0) {
-              await tx.ingestionItem.createMany({ data: itemsData });
-            }
+            await this.insertItems(tx, itemsData);
             const admittedStatus = rowOutcomes.some(r => r.outcome === 'POLICY_HOLD') ? IngestionStatus.review_required : IngestionStatus.pending;
-            await tx.ingestionJob.update({ where: { id: job.id }, data: { rowOutcomes: rowOutcomes as Prisma.InputJsonValue, status: admittedStatus } });
+            await tx.ingestionJob.update({ where: { id: job.id }, data: { rowOutcomes: rowOutcomes as Prisma.InputJsonValue, status: admittedStatus,
+              sourceMetadata: { ...(receipt.sourceMetadata as Prisma.JsonObject), rowAccounting: accounting } as unknown as Prisma.InputJsonValue } });
 
             return {
               jobId: job.id,
@@ -363,6 +395,7 @@ export class IngestionService {
               requiresMapping: false,
               totalRows: parsed.totalDataRows,
               importedItemsCount: itemsData.length,
+              rowAccounting: accounting,
             };
           } else {
             // New/unapproved layout -> Requires mapping review & approval
@@ -407,9 +440,9 @@ export class IngestionService {
           await this.storageService.deleteFile(fileUrl);
           throw error;
         }
-        }, { timeout: 25000 });
+        }, { timeout: this.importTimeoutMs(parsed?.totalDataRows ?? 0) });
       // Admitted rows go straight to identity matching (GLO-276); idempotent, so a retried upload resumes it.
-      if (result.importedItemsCount) result.matching = await this.matchAdmittedRows(result.jobId);
+      if (result.importedItemsCount) result.matching = await this.startMatching(result.jobId, result.importedItemsCount);
       return result;
     } catch (error) {
       // The (supplier_id, source_checksum) unique index is the backstop if the advisory lock is ever bypassed:
@@ -511,7 +544,7 @@ export class IngestionService {
     const parsed = parsedSource ?? this.spreadsheetParser.parseSpreadsheet(
       await this.readVerifiedOriginal(job.sourceKey, job.sourceChecksum), job.sourceKey);
     const fingerprint = job.formatFingerprint || this.formatFingerprintService.computeFingerprint(parsed.headers, parsed.sheets);
-    const { items: itemsData, rowOutcomes } = await this.extractItemsFromParsedSpreadsheet(
+    const { items: itemsData, rowOutcomes, accounting } = await this.extractItemsFromParsedSpreadsheet(
       { id: job.id, supplierId: job.supplierId, eligibilityPolicyId: job.eligibilityPolicyId, sourceKey: job.sourceKey, sourceChecksum: job.sourceChecksum, formatFingerprint: fingerprint },
       parsed,
       mapping,
@@ -524,9 +557,7 @@ export class IngestionService {
         throw new ConflictException('Mapped or committed source jobs cannot be remapped');
       }
 
-      if (itemsData.length > 0) {
-        await tx.ingestionItem.createMany({ data: itemsData });
-      }
+      await this.insertItems(tx, itemsData);
 
       await tx.ingestionJob.update({
         where: { id: job.id },
@@ -535,10 +566,21 @@ export class IngestionService {
           formatFingerprint: fingerprint,
           status: IngestionStatus.pending,
           rowOutcomes: rowOutcomes as Prisma.InputJsonValue,
+          sourceMetadata: { ...((current.sourceMetadata ?? {}) as Prisma.JsonObject), rowAccounting: accounting } as unknown as Prisma.InputJsonValue,
         },
       });
       return itemsData.length;
-    });
+    }, { timeout: this.importTimeoutMs(parsed.totalDataRows) });
+  }
+
+  private importTimeoutMs(rows: number): number {
+    return Math.max(25000, rows * 4);
+  }
+
+  private async insertItems(tx: Prisma.TransactionClient, items: Prisma.IngestionItemCreateManyInput[]): Promise<void> {
+    for (let offset = 0; offset < items.length; offset += ITEM_INSERT_CHUNK) {
+      await tx.ingestionItem.createMany({ data: items.slice(offset, offset + ITEM_INSERT_CHUNK) });
+    }
   }
 
   async getProfiles(supplierId?: string) {
@@ -575,6 +617,7 @@ export class IngestionService {
     const policy = await this.eligibility.compile(job.eligibilityPolicyId);
     const items: any[] = [];
     const rowOutcomes: Array<Record<string, unknown>> = [];
+    const skips = new RowOutcomeSkipCollector();
     const seenSkus = new Set<string>();
     const itemIndexBySku = new Map<string, number>();
     // Only an approved stock basis turns the quantity column into availability; invoice/unknown quantities are not stock.
@@ -590,9 +633,14 @@ export class IngestionService {
 
       const categoryInput = mapping.category ? String(row.data[mapping.category] ?? '') : '';
       const eligibility = policy.evaluate(job.supplierId, statedBrand, categoryInput);
-      if (eligibility.outcome !== 'ALLOW') {
-        rowOutcomes.push({ sourceRow: row.sourceRow, outcome: `POLICY_${eligibility.outcome}`, reason: eligibility.reason,
-          supplierSku: String(rawSku ?? ''), brand: statedBrand, category: categoryInput, name: String(rawName ?? ''), eligibility, rawRow: row.data });
+      // The retained original and pinned policy reproduce these rows, so neither outcome stores the raw row.
+      if (eligibility.outcome === 'SKIP') {
+        skips.add(eligibility.reason, row.sourceRow, statedBrand);
+        continue;
+      }
+      if (eligibility.outcome === 'HOLD') {
+        rowOutcomes.push({ sourceRow: row.sourceRow, outcome: 'POLICY_HOLD', reason: eligibility.reason,
+          supplierSku: String(rawSku ?? ''), brand: statedBrand, category: categoryInput, name: String(rawName ?? '') });
         continue;
       }
       statedBrand = eligibility.brandName!;
@@ -605,6 +653,7 @@ export class IngestionService {
         brand: mapping.brand ? row.data[mapping.brand] : undefined,
         barcode: mapping.barcode ? row.data[mapping.barcode] : undefined,
         price: rawPrice,
+        priceType: mapping.priceType ? String(row.data[mapping.priceType] ?? '') : undefined,
         retailPrice: mapping.retailPrice ? row.data[mapping.retailPrice] : undefined,
         quantity: quantityColumn ? row.data[quantityColumn] : undefined,
         hasQuantityColumn: Boolean(quantityColumn),
@@ -612,6 +661,7 @@ export class IngestionService {
         discountBasis,
         currency: mapping.currency || (mapping.currencyColumn ? row.data[mapping.currencyColumn] : undefined) ||
           currencyFromPriceHeader(mapping.price) || undefined,
+        currencyFromRow: !mapping.currency && Boolean(mapping.currencyColumn),
         units: mapping.units ? row.data[mapping.units] : undefined,
         sourceTimestamp: mapping.sourceTimestamp ? row.data[mapping.sourceTimestamp] : undefined,
         extraAttributes: row.data,
@@ -647,8 +697,9 @@ export class IngestionService {
           supplierSku: norm.normalizedSku, rawRow: row.data });
         continue;
       }
+      // The admitted item keeps the raw row in its own source provenance.
       rowOutcomes.push({ sourceRow: row.sourceRow, outcome: 'IMPORTED', status: norm.status, reason: norm.statusReason,
-        supplierSku: norm.normalizedSku, rawRow: row.data });
+        supplierSku: norm.normalizedSku });
 
       // A row held only because its category was not recognised still goes to matching: an exact catalog match proves
       // scope. Field doubts (quantity/price/discount) always stay with a human and never reach the fast lane.
@@ -699,7 +750,9 @@ export class IngestionService {
       });
     }
 
-    return { items, rowOutcomes };
+    const allOutcomes = [...skips.toEntries() as unknown as Array<Record<string, unknown>>, ...rowOutcomes];
+    const pinned = await this.eligibility.pinnedVersion(job.eligibilityPolicyId);
+    return { items, rowOutcomes: allOutcomes, accounting: rowAccounting(allOutcomes, parsed.rows.length, { policyId: job.eligibilityPolicyId, policyVersion: pinned }) };
   }
 
   async createJob(dto: CreateIngestionJobDto): Promise<IngestionJobDetail> {
@@ -740,11 +793,14 @@ export class IngestionService {
           outcome: eligibility.outcome === 'ALLOW' ? 'IMPORTED_MANUAL' : `POLICY_${eligibility.outcome}`,
           reason: eligibility.reason, brand: input.brand, category: input.category ?? '', name: input.name, eligibility, rawRow: input });
         if (eligibility.outcome !== 'ALLOW') continue;
+        // A malformed code is kept as evidence, not as a barcode: the raw row and the identity hold both retain it.
+        const stated = this.rowNormalizationService.normalizeBarcode(input.barcode);
+        const invalidBarcode = input.barcode && !stated.isValid ? String(input.barcode) : undefined;
         admitted.push({ supplierSkuCode: input.supplierSkuCode, name: input.name, brand: eligibility.brandName!,
-          barcode: input.barcode, price: input.price, priceType: input.priceType ?? null,
+          barcode: invalidBarcode ? null : stated.barcode, price: input.price, priceType: input.priceType ?? null,
           reportedQuantity: input.reportedQuantity ?? null, currency: input.currency,
           enrichment: { source: { objectKey: source?.sourceKey ?? null, checksum: source?.sourceChecksum ?? null,
-            row: sourceRow, eligibility: eligibility as unknown as Prisma.InputJsonObject,
+            row: sourceRow, eligibility: eligibility as unknown as Prisma.InputJsonObject, ...(invalidBarcode && { normalized: { invalidBarcode } }),
             categoryInput: input.category ?? '', input: { ...input, barcode: input.barcode ?? null } } } as unknown as Prisma.InputJsonValue });
       }
       const rowOutcomes = outcomes as unknown as Prisma.InputJsonValue;
@@ -790,10 +846,14 @@ export class IngestionService {
   }
 
   async getJobs(supplierId?: string): Promise<IngestionJobDetail[]> {
+    // A list never hydrates per-file outcome reports; a 50,000-row file's detail stays on its own endpoint.
     const jobs = await this.prisma.ingestionJob.findMany({
       where: supplierId ? { supplierId } : {},
       orderBy: { createdAt: 'desc' },
-      include: { items: true },
+      take: MAX_LISTED_JOBS,
+      select: { id: true, supplierId: true, status: true, mode: true, sourceKey: true, sourceChecksum: true, uploadedBy: true,
+        sourceFileName: true, sourceMimeType: true, sourceSizeBytes: true, sourceMetadata: true, formatFingerprint: true,
+        profileId: true, eligibilityPolicyId: true, createdAt: true, updatedAt: true, items: { take: MAX_ITEMS_PER_LISTED_JOB } },
     });
 
     return jobs.map((job) => ({
@@ -812,7 +872,9 @@ export class IngestionService {
 
   async getCandidates(status?: IngestionStatus): Promise<Array<Record<string, unknown>>> {
     const items = await this.prisma.ingestionItem.findMany({
-      where: status ? { status } : {},
+      // The review queue holds decisions. A verified link needs none, so it stays out of it and in the unfiltered list.
+      where: status === IngestionStatus.review_required ? { status, NOT: { AND: [{ matchedSkuId: { not: null } },
+        { enrichment: { path: ['identity', 'route'], equals: 'VERIFIED' } }] } } : status ? { status } : {},
       include: { job: { select: { id: true, supplierId: true, status: true, createdAt: true } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -923,6 +985,7 @@ export class IngestionService {
           select: {
             id: true,
             supplierId: true,
+            sourceFileName: true,
             mode: true,
             status: true,
             createdAt: true,
@@ -1066,14 +1129,21 @@ export class IngestionService {
     return {
       candidateId: item.id,
       status: item.status,
+      identityMatch: await this.storedIdentityMatch(item, enrichment),
       originalSupplierRow: {
         jobId: item.jobId,
         supplierId: item.job.supplierId,
+        supplierName: (await this.prisma.supplier.findUnique({ where: { id: item.job.supplierId }, select: { name: true } }))?.name ?? null,
         supplierSkuCode: item.supplierSkuCode,
+        statedName: enrichment.source?.input?.name ?? item.name,
+        barcode: item.barcode,
+        invalidBarcode: enrichment.source?.normalized?.invalidBarcode ?? null,
         sourceFile: {
           jobId: item.job.id,
+          fileName: item.job.sourceFileName ?? null,
           mode: item.job.mode,
           createdAt: item.job.createdAt,
+          row: enrichment.source?.row ?? null,
         },
         price: item.price.toNumber(),
         priceType: item.priceType,
@@ -1223,6 +1293,7 @@ export class IngestionService {
       name: newName,
       brand: newBrand,
       barcode: newBarcode,
+      ...(dto.barcode !== undefined && { invalidBarcode: null }),
     });
 
     let matchedSkuId: string | null = null;
@@ -1231,7 +1302,9 @@ export class IngestionService {
     }
 
     const updatedEnrichment = {
-      ...currentEnrichment,
+      ...this.withoutReplacedBarcode(currentEnrichment, dto.barcode),
+      // A corrected row is reviewed against its new wording, not the candidates of the old one.
+      identity: this.identityEvidence(matchAnalysis, Boolean(currentEnrichment.identity?.brandInferred)),
       auditTrail,
       catalogReview: null,
       media: (Array.isArray(currentEnrichment.media) ? currentEnrichment.media : []).map((m: any) =>
@@ -1346,6 +1419,7 @@ export class IngestionService {
       name: newName,
       brand: newBrand,
       barcode: newBarcode,
+      ...(dto.barcode !== undefined && { invalidBarcode: null }),
     });
 
     let matchedSkuId: string | null = null;
@@ -1372,11 +1446,13 @@ export class IngestionService {
         ...(dto.currency !== undefined && { currency: dto.currency }),
         matchedSkuId,
         status: IngestionStatus.review_required,
-        enrichment: { ...((item.enrichment as Record<string, any>) || {}),
+        enrichment: { ...this.withoutReplacedBarcode((item.enrichment as Record<string, any>) || {}, dto.barcode),
+          // An edited row is reviewed against its new wording, not the candidates of the old one.
+          identity: this.identityEvidence(matchAnalysis, Boolean((item.enrichment as Record<string, any>)?.identity?.brandInferred)),
           contentReview: null,
           catalogReview: null,
           media: (((item.enrichment as Record<string, any>)?.media) || []).map((m: any) =>
-            ({ ...m, originType: m.isTest ? 'test' : 'unverified', review: null })) },
+            ({ ...m, originType: m.isTest ? 'test' : 'unverified', review: null })) } as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -1392,89 +1468,211 @@ export class IngestionService {
    */
   async processMatching(jobId: string): Promise<MatchingSummary> {
     const summary: MatchingSummary = {
-      exactMatches: 0, needsReview: 0, newCandidates: 0, linkedToExistingCandidate: 0, rejected: 0, aiEnrichmentRequests: 0,
+      exactMatches: 0, needsReview: 0, newCandidates: 0, linkedToExistingCandidate: 0, rejected: 0, aiEnrichmentRequests: 0, enrichmentDeferred: 0,
     };
-    const job = await this.prisma.ingestionJob.findUnique({
-      where: { id: jobId },
-      include: { items: true },
-    });
+    const job = await this.prisma.ingestionJob.findUnique({ where: { id: jobId }, select: { id: true, supplierId: true } });
 
     if (!job) return summary;
 
-    for (const item of job.items) {
-      if (item.status !== IngestionStatus.pending) continue;
-      this.assertAdmittedItem(item);
-      const enrichment = (item.enrichment as Record<string, any>) || {};
-      const normalized = enrichment.source?.normalized;
-      const brand = item.brand?.trim() ? item.brand : (await this.productIdentityService.inferBrandFromName(item.name)) ?? '';
-
-      const matchAnalysis = await this.classifyAdmittedItem(item, {
-        candidateItemId: item.id, candidateCreatedAt: item.createdAt,
-        supplierId: job.supplierId,
-        supplierSkuCode: item.supplierSkuCode,
-        name: item.name,
-        brand,
-        barcode: item.barcode,
-        size: normalized?.extractedSize ?? null,
-        sizeUnit: normalized?.extractedUnit ?? null,
-        packageCount: normalized?.extractedPackCount ?? null,
+    const enrichmentTasks: Array<() => Promise<{ providerReachable: boolean }>> = [];
+    // Identity lookups load per chunk, so a large file does not pay one round of queries per row, and memory stays one chunk.
+    let cursor: string | undefined;
+    for (;;) {
+      const chunk: IngestionItem[] = await this.prisma.ingestionItem.findMany({
+        where: { jobId, status: IngestionStatus.pending, ...(cursor && { id: { gt: cursor } }) },
+        orderBy: { id: 'asc' },
+        take: MATCHING_BATCH_SIZE,
       });
-
-      const identity = {
-        fingerprint: matchAnalysis.fingerprint,
-        classification: matchAnalysis.classification,
-        matchReason: matchAnalysis.reason,
-        conflicts: matchAnalysis.conflicts,
-        canonicalSku: matchAnalysis.canonicalSku || null,
-        suggestedSkuId: matchAnalysis.suggestedSkuId ?? null,
-        existingCandidateId: matchAnalysis.existingCandidateId || null,
-        previouslyRejectedCandidateId: matchAnalysis.previouslyRejectedCandidateId ?? null,
-        possibleDuplicateCandidateIds: matchAnalysis.possibleDuplicateCandidateIds ?? [],
-        brandInferred: brand !== item.brand,
-        matchedAt: new Date().toISOString(),
-      };
-      const rejected = matchAnalysis.classification === MatchClassification.OUT_OF_SCOPE ||
-        matchAnalysis.classification === MatchClassification.INVALID;
-      const exact = matchAnalysis.classification === MatchClassification.EXACT_MATCH && Boolean(matchAnalysis.matchedSkuId);
-
-      const changed = await this.prisma.ingestionItem.updateMany({
-        where: { id: item.id, status: IngestionStatus.pending, updatedAt: item.updatedAt },
-        data: {
+      if (!chunk.length) break;
+      cursor = chunk[chunk.length - 1].id;
+      const inputs = new Map<string, Parameters<ProductIdentityService['classifyCandidateMatch']>[0]>();
+      for (const item of chunk) {
+        const decision = this.assertAdmittedItem(item);
+        const normalized = (item.enrichment as { source?: { normalized?: { extractedSize?: number | null; extractedUnit?: string | null; extractedPackCount?: number | null; invalidBarcode?: string } } } | null)?.source?.normalized;
+        const brand = item.brand?.trim() ? item.brand : (await this.productIdentityService.inferBrandFromName(item.name)) ?? '';
+        inputs.set(item.id, {
+          candidateItemId: item.id, candidateCreatedAt: item.createdAt,
+          supplierId: job.supplierId,
+          supplierSkuCode: item.supplierSkuCode,
+          name: item.name,
           brand,
-          matchedSkuId: exact ? matchAnalysis.matchedSkuId : null,
-          status: rejected ? IngestionStatus.rejected : IngestionStatus.review_required,
-          ...(rejected && { enrichmentStatus: IngestionItemEnrichmentStatus.failed, enrichmentError: matchAnalysis.reason }),
-          // Merge, never replace: the raw source row and its provenance must survive classification.
-          enrichment: { ...enrichment, identity } as unknown as Prisma.InputJsonValue,
-        },
-      });
-      if (!changed.count) continue;
+          brandId: decision.brandId,
+          barcode: item.barcode,
+          invalidBarcode: normalized?.invalidBarcode ?? null,
+          size: normalized?.extractedSize ?? null,
+          sizeUnit: normalized?.extractedUnit ?? null,
+          packageCount: normalized?.extractedPackCount ?? null,
+        });
+      }
+      const batch = await this.productIdentityService.prepareBatch([...inputs.values()]);
+      const classified: Array<{ item: IngestionItem; matchAnalysis: ProductIdentityMatchResult; normalized: any; brand: string; rejected: boolean; exact: boolean; update: MatchingUpdate }> = [];
+      for (const item of chunk) {
+        const enrichment = (item.enrichment as Record<string, any>) || {};
+        const normalized = enrichment.source?.normalized;
+        const input = inputs.get(item.id)!;
+        const brand = input.brand;
 
-      if (rejected) { summary.rejected++; continue; }
-      if (exact) { summary.exactMatches++; continue; }
-      if (matchAnalysis.classification === MatchClassification.NO_MATCH && matchAnalysis.existingCandidateId) {
-        summary.linkedToExistingCandidate++;
-        continue;
+        const matchAnalysis = await this.classifyAdmittedItem(item, input, batch);
+
+        const identity = this.identityEvidence(matchAnalysis, brand !== item.brand);
+        const rejected = matchAnalysis.classification === MatchClassification.OUT_OF_SCOPE ||
+          matchAnalysis.classification === MatchClassification.INVALID;
+        const exact = matchAnalysis.classification === MatchClassification.EXACT_MATCH && Boolean(matchAnalysis.matchedSkuId);
+        classified.push({ item, matchAnalysis, normalized, brand, rejected, exact, update: {
+          id: item.id,
+          expectedUpdatedAt: item.updatedAt.toISOString(),
+          brand,
+          matchedSkuId: exact ? matchAnalysis.matchedSkuId! : null,
+          status: rejected ? IngestionStatus.rejected : IngestionStatus.review_required,
+          enrichmentStatus: rejected ? IngestionItemEnrichmentStatus.failed : null,
+          enrichmentError: rejected ? matchAnalysis.reason : null,
+          // Merge, never replace: the raw source row and its provenance must survive classification.
+          enrichment: { ...enrichment, identity },
+        } });
       }
-      // Only a provably new product earns research spend (GLO-278): stated brand, known net content, recognised scope,
-      // and no rejected or possibly-duplicate candidate with the same identity. Everything else waits for a human.
-      const provablyNew = matchAnalysis.classification === MatchClassification.NO_MATCH &&
-        this.productIdentityService.isStatedBrand(brand) && !normalized?.holds?.scope &&
-        !matchAnalysis.conflicts.includes('missing_net_content') && !matchAnalysis.previouslyRejectedCandidateId &&
-        !matchAnalysis.possibleDuplicateCandidateIds?.length;
-      if (!provablyNew) {
-        summary.needsReview++;
-        continue;
+      const applied = await this.applyMatchingUpdates(classified.map(entry => entry.update));
+      for (const { item, matchAnalysis, normalized, brand, rejected, exact } of classified) {
+        if (!applied.has(item.id)) continue;
+
+        if (rejected) { summary.rejected++; continue; }
+        if (exact) { summary.exactMatches++; continue; }
+        if (matchAnalysis.classification === MatchClassification.NO_MATCH && matchAnalysis.existingCandidateId) {
+          summary.linkedToExistingCandidate++;
+          continue;
+        }
+        // Only a provably new product earns research spend (GLO-278): stated brand, known net content, recognised scope,
+        // and no rejected or possibly-duplicate candidate with the same identity. Everything else waits for a human.
+        const provablyNew = matchAnalysis.classification === MatchClassification.NO_MATCH &&
+          this.productIdentityService.isStatedBrand(brand) && !normalized?.holds?.scope &&
+          !matchAnalysis.conflicts.includes('missing_net_content') && !matchAnalysis.previouslyRejectedCandidateId &&
+          !matchAnalysis.possibleDuplicateCandidateIds?.length;
+        if (!provablyNew) {
+          summary.needsReview++;
+          continue;
+        }
+        summary.newCandidates++;
+        if (summary.aiEnrichmentRequests >= ENRICHMENT_MAX_PER_JOB) {
+          summary.enrichmentDeferred++;
+          continue;
+        }
+        summary.aiEnrichmentRequests++;
+        enrichmentTasks.push(() => this.enrichItemAsync(item.id, item.name, brand, item.barcode ?? undefined));
       }
-      summary.newCandidates++;
-      summary.aiEnrichmentRequests++;
-      this.enrichItemAsync(item.id, item.name, brand, item.barcode ?? undefined).catch((err) =>
-        console.error(`Enrichment background error for item ${item.id}:`, err),
-      );
     }
 
+    this.runEnrichmentInBackground(jobId, enrichmentTasks);
     await this.evaluateJobStatus(jobId);
     return summary;
+  }
+
+  /** One statement per chunk, holding the same per-row guard as a single update: a row changed meanwhile is left alone. */
+  private async applyMatchingUpdates(updates: MatchingUpdate[]): Promise<Set<string>> {
+    if (!updates.length) return new Set();
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      UPDATE ingestion.ingestion_items AS i SET
+        brand = d.brand,
+        matched_sku_id = d."matchedSkuId",
+        status = d.status::ingestion."IngestionStatus",
+        enrichment_status = COALESCE(d."enrichmentStatus"::ingestion."IngestionItemEnrichmentStatus", i.enrichment_status),
+        enrichment_error = CASE WHEN d."enrichmentStatus" IS NULL THEN i.enrichment_error ELSE d."enrichmentError" END,
+        enrichment = d.enrichment,
+        updated_at = now() AT TIME ZONE 'UTC'
+      FROM jsonb_to_recordset(${JSON.stringify(updates)}::jsonb) AS d(
+        id uuid, "expectedUpdatedAt" timestamp(3), brand text, "matchedSkuId" uuid, status text,
+        "enrichmentStatus" text, "enrichmentError" text, enrichment jsonb)
+      WHERE i.id = d.id AND i.status = 'pending' AND i.updated_at = d."expectedUpdatedAt"
+      RETURNING i.id`);
+    return new Set(rows.map(row => row.id));
+  }
+
+  /** Bounded, and a provider outage ends the run instead of walking the rest of the file through failing calls. */
+  private runEnrichmentInBackground(jobId: string, tasks: Array<() => Promise<{ providerReachable: boolean }>>): void {
+    if (!tasks.length) return;
+    let next = 0;
+    let consecutiveFailures = 0;
+    const worker = async () => {
+      while (next < tasks.length && consecutiveFailures < ENRICHMENT_OUTAGE_THRESHOLD) {
+        const task = tasks[next++];
+        try {
+          const { providerReachable } = await task();
+          consecutiveFailures = providerReachable ? 0 : consecutiveFailures + 1;
+        } catch (err) {
+          consecutiveFailures++;
+          console.error(`Enrichment background error for job ${jobId}:`, err instanceof Error ? err.message : String(err));
+        }
+      }
+    };
+    const run = Promise.all(Array.from({ length: Math.min(ENRICHMENT_CONCURRENCY, tasks.length) }, worker)).then(() => undefined);
+    this.backgroundWork.add(run);
+    void run.finally(() => this.backgroundWork.delete(run));
+  }
+
+  /** Matches a large admission after the receipt returns; every step is idempotent and POST jobs/:id/match resumes it. */
+  private async startMatching(jobId: string, admittedRows: number): Promise<NonNullable<IngestionUploadResult['matching']>> {
+    if (admittedRows <= SYNC_MATCHING_MAX_ROWS) return this.matchAdmittedRows(jobId);
+    const run = this.matchAdmittedRows(jobId).then(outcome => {
+      if ('status' in outcome) console.error(`Background matching for job ${jobId} needs a retry: ${outcome.status === 'FAILED_RETRYABLE' ? outcome.error : outcome.status}`);
+    });
+    this.backgroundWork.add(run);
+    void run.finally(() => this.backgroundWork.delete(run));
+    return { status: 'RUNNING' };
+  }
+
+  /** Settles when in-process background matching and enrichment are finished. */
+  async whenBackgroundWorkSettles(): Promise<void> {
+    while (this.backgroundWork.size) await Promise.all(this.backgroundWork);
+  }
+
+  /** The identity evidence a row keeps from its latest classification, read back by the review record. */
+  /** A reviewer's new barcode replaces the malformed cell as identity evidence; the raw source row keeps what was stated. */
+  private withoutReplacedBarcode(enrichment: Record<string, any>, barcode?: string): Record<string, any> {
+    if (barcode === undefined || !enrichment.source?.normalized?.invalidBarcode) return enrichment;
+    const { invalidBarcode: _replaced, ...normalized } = enrichment.source.normalized;
+    return { ...enrichment, source: { ...enrichment.source, normalized } };
+  }
+
+  private identityEvidence(matchAnalysis: ProductIdentityMatchResult, brandInferred: boolean) {
+    return {
+      fingerprint: matchAnalysis.fingerprint,
+      classification: matchAnalysis.classification,
+      matchReason: matchAnalysis.reason,
+      conflicts: matchAnalysis.conflicts,
+      canonicalSku: matchAnalysis.canonicalSku || null,
+      route: matchAnalysis.route ?? null,
+      suggestedSkuId: matchAnalysis.suggestedSkuId ?? null,
+      candidates: matchAnalysis.candidates ?? [],
+      rejectedCandidates: matchAnalysis.rejectedCandidates ?? [],
+      existingCandidateId: matchAnalysis.existingCandidateId || null,
+      previouslyRejectedCandidateId: matchAnalysis.previouslyRejectedCandidateId ?? null,
+      possibleDuplicateCandidateIds: matchAnalysis.possibleDuplicateCandidateIds ?? [],
+      brandInferred,
+      matchedAt: new Date().toISOString(),
+    };
+  }
+
+  private async storedIdentityMatch(item: { status: IngestionStatus; matchedSkuId: string | null; name: string; brand: string; barcode: string | null;
+    supplierSkuCode: string; job: { status: IngestionStatus; supplierId: string } }, enrichment: Record<string, any>): Promise<CandidateIdentityMatch> {
+    const stored = enrichment.identity ?? {};
+    const suggestedSkuId: string | null = stored.suggestedSkuId ?? null;
+    const candidates: IdentityCandidate[] = Array.isArray(stored.candidates) ? stored.candidates : [];
+    const images = await this.catalogService.getVerifiedProductImages([...new Set(candidates.map(candidate => candidate.productId).filter(Boolean))]);
+    return {
+      route: stored.route ?? null,
+      suggestedSkuId,
+      suggestedSku: suggestedSkuId && stored.canonicalSku?.id === suggestedSkuId &&
+        !candidates.some(candidate => candidate.skuId === suggestedSkuId) ? stored.canonicalSku : null,
+      candidates: candidates.map(candidate => ({ ...candidate, imageUrl: images.get(candidate.productId) ?? null })),
+      rejectedCandidates: Array.isArray(stored.rejectedCandidates) ? stored.rejectedCandidates : [],
+      interpretation: this.productIdentityService.interpretRow(candidateIdentityInput({ ...item, enrichment }, item.job.supplierId)),
+      review: enrichment.identityReview ? { decision: enrichment.identityReview.decision ?? 'EXISTING_SKU', skuId: enrichment.identityReview.skuId,
+        reviewedBy: enrichment.identityReview.reviewedBy, reviewedAt: enrichment.identityReview.reviewedAt, evidence: enrichment.identityReview.evidence } : null,
+      conflicts: Array.isArray(stored.conflicts) ? stored.conflicts : [],
+      matchReason: stored.matchReason ?? null,
+      matchedAt: stored.matchedAt ?? null,
+      confirmable: stored.classification === MatchClassification.LIKELY_MATCH && !item.matchedSkuId &&
+        item.status === IngestionStatus.review_required && item.job.status !== IngestionStatus.published &&
+        Boolean(suggestedSkuId || candidates.length),
+    };
   }
 
   /** Runs matching after rows are admitted; a failure is reported as retryable instead of failing the receipt. */
@@ -1510,12 +1708,34 @@ export class IngestionService {
 
     let matchedSkuId: string | null = item.matchedSkuId;
 
+    // Stored associations are proposals, including when the caller omits matchedSkuId.
+    this.assertAdmittedItem(item);
+    const proposedSkuId = dto?.matchedSkuId ?? item.matchedSkuId;
+    if (proposedSkuId) await this.productIdentityService.assertSkuAssociation(
+      candidateIdentityInput(item, item.job.supplierId), proposedSkuId, this.prisma, Boolean(dto?.matchedSkuId));
+
     if (dto?.createNewProduct && dto?.matchedSkuId) {
       throw new BadRequestException('Cannot set both createNewProduct and matchedSkuId');
     }
 
+    // A row matching could not verify is only settled with a stated reason, which then travels with the decision.
+    const evidence = dto?.identityEvidence?.trim();
+    const requireEvidence = () => {
+      if ((evidence?.length ?? 0) < MIN_IDENTITY_EVIDENCE) throw new BadRequestException('identity_evidence_required');
+    };
+
     if (dto?.createNewProduct) {
       matchedSkuId = null;
+      const decided = (item.enrichment as { identityReview?: { decision?: string } } | null)?.identityReview?.decision === 'NEW_PRODUCT';
+      const normalized = (item.enrichment as Record<string, any>)?.source?.normalized;
+      const analysis = await this.classifyAdmittedItem(item, {
+        candidateItemId: item.id, candidateCreatedAt: item.createdAt,
+        supplierId: item.job.supplierId, supplierSkuCode: item.supplierSkuCode,
+        name: item.name, brand: item.brand, barcode: item.barcode,
+        size: normalized?.extractedSize ?? null, sizeUnit: normalized?.extractedUnit ?? null,
+        packageCount: normalized?.extractedPackCount ?? null,
+      });
+      if (analysis.classification === MatchClassification.LIKELY_MATCH && !decided) requireEvidence();
     } else if (dto?.matchedSkuId) {
       if (!this.isUuid(dto.matchedSkuId)) throw new BadRequestException('Invalid SKU ID');
       const skuIdentity = await this.catalogService.getSkuIdentity(dto.matchedSkuId);
@@ -1528,16 +1748,16 @@ export class IngestionService {
         size: normalized?.extractedSize ?? null, sizeUnit: normalized?.extractedUnit ?? null,
         packageCount: normalized?.extractedPackCount ?? null,
       });
-      // A reviewer may confirm the exact match or the single retrieved suggestion whose hard identity facts all agreed;
+      // A reviewer may confirm the exact match or a retrieved candidate whose hard identity facts all agreed;
       // never an arbitrary SKU, and never one that a veto (size, pack, brand, barcode) rejected.
       const confirmable = (analysis.classification === MatchClassification.EXACT_MATCH && analysis.matchedSkuId === dto.matchedSkuId) ||
-        (analysis.classification === MatchClassification.LIKELY_MATCH && analysis.suggestedSkuId === dto.matchedSkuId);
+        (analysis.classification === MatchClassification.LIKELY_MATCH && (analysis.suggestedSkuId === dto.matchedSkuId ||
+          Boolean(analysis.candidates?.some(candidate => candidate.skuId === dto.matchedSkuId))));
       if (!confirmable) {
         throw new BadRequestException('Selected SKU conflicts with canonical identity; resolve identity evidence first');
       }
+      if (analysis.classification !== MatchClassification.EXACT_MATCH) requireEvidence();
       matchedSkuId = dto.matchedSkuId;
-      // Persist the reviewed supplier code → SKU link so later uploads take the deterministic fast path (GLO-276).
-      await this.productIdentityService.createSupplierSkuAlias(item.job.supplierId, item.supplierSkuCode, dto.matchedSkuId);
     }
 
     const currentEnrichment = (item.enrichment as Record<string, unknown>) || {};
@@ -1702,10 +1922,24 @@ export class IngestionService {
         action: 'APPROVED',
         actorId: reviewerId,
         timestamp: new Date().toISOString(),
+        ...(dto?.identityEvidence?.trim() && { reason: dto.identityEvidence.trim() }),
       });
     }
 
-    const updatedEnrichment = { ...currentEnrichmentObj, media, auditTrail, catalogReview };
+    const updatedEnrichment = { ...currentEnrichmentObj, media, auditTrail, catalogReview,
+      // Reusable only for the same supplier code, SKU and wording; a stored match without this proves nothing.
+      ...(dto?.matchedSkuId && reviewerId && { identityReview: { decision: 'EXISTING_SKU', skuId: dto.matchedSkuId, reviewedBy: reviewerId,
+        reviewedAt: new Date().toISOString(), evidence, wordingKey: this.productIdentityService.wordingKeyFor(candidateIdentityInput(item, item.job.supplierId)) } }),
+      ...(dto?.createNewProduct && reviewerId && evidence && { identityReview: { decision: 'NEW_PRODUCT', reviewedBy: reviewerId,
+        reviewedAt: new Date().toISOString(), evidence,
+        rejectedSkuIds: (currentEnrichmentObj.identity?.candidates ?? []).map((candidate: IdentityCandidate) => candidate.skuId) } }) };
+
+    if (matchedSkuId) await this.productIdentityService.assertSkuAssociation(
+      candidateIdentityInput({ ...item, enrichment: updatedEnrichment }, item.job.supplierId),
+      matchedSkuId, this.prisma, Boolean(dto?.matchedSkuId));
+    // Persist a reusable alias only after every identity/media review has succeeded.
+    if (dto?.matchedSkuId) await this.productIdentityService.createSupplierSkuAlias(
+      item.job.supplierId, item.supplierSkuCode, dto.matchedSkuId);
 
     await this.prisma.ingestionItem.update({
       where: { id: itemId },
@@ -1771,10 +2005,7 @@ export class IngestionService {
   }
 
   private async evaluateJobStatus(jobId: string): Promise<void> {
-    const job = await this.prisma.ingestionJob.findUnique({
-      where: { id: jobId },
-      include: { items: true },
-    });
+    const job = await this.prisma.ingestionJob.findUnique({ where: { id: jobId } });
     if (!job) return;
 
     const sourceRows = Array.isArray(job.rowOutcomes) ? job.rowOutcomes as Array<{ outcome?: string }> : [];
@@ -1783,12 +2014,10 @@ export class IngestionService {
       return;
     }
 
-    const allProcessed = job.items.every(
-      (i) =>
-        i.status === IngestionStatus.approved ||
-        i.status === IngestionStatus.rejected ||
-        i.status === IngestionStatus.published,
-    );
+    const allProcessed = !(await this.prisma.ingestionItem.findFirst({
+      where: { jobId, status: { notIn: [IngestionStatus.approved, IngestionStatus.rejected, IngestionStatus.published] } },
+      select: { id: true },
+    }));
 
     if (!allProcessed && job.status === IngestionStatus.approved) {
       await this.prisma.ingestionJob.update({ where: { id: jobId }, data: { status: IngestionStatus.review_required } });
@@ -1810,7 +2039,7 @@ export class IngestionService {
     rawTitle: string,
     brand: string,
     barcode?: string,
-  ): Promise<void> {
+  ): Promise<{ providerReachable: boolean }> {
     const admitted = await this.prisma.ingestionItem.findUniqueOrThrow({ where: { id: itemId } });
     this.assertAdmittedItem(admitted);
     await this.prisma.ingestionItem.update({
@@ -1837,6 +2066,7 @@ export class IngestionService {
           enrichmentError: null,
         },
       });
+      return { providerReachable: true };
     } catch (err) {
       const isKnownAiError = err instanceof AiClientError;
       const isSoftError =
@@ -1861,6 +2091,8 @@ export class IngestionService {
       if (!isSoftError) {
         console.error(`AI enrichment hard failure for item ${itemId}:`, errorMessage);
       }
+      // Only a typed answer from the provider proves it was reachable.
+      return { providerReachable: isKnownAiError && !isSoftError };
     }
   }
 
@@ -1898,10 +2130,12 @@ export class IngestionService {
     if (!item) throw new NotFoundException('Candidate item not found');
     this.assertAdmittedItem(item);
 
-    // Credit Protection & Caching: if candidate already has research evidence saved, return cached evidence
-    const currentEnrichment = (item.enrichment as Record<string, unknown>) || {};
-    if (currentEnrichment.research) {
-      return currentEnrichment.research as Record<string, unknown>;
+    // Credit Protection & Caching: a settled answer is reused. An outage settled nothing, so it is retried.
+    const currentEnrichment = (item.enrichment as Record<string, any>) || {};
+    const previous = currentEnrichment.research;
+    // Reviewer-recorded evidence alone is not a provider answer, and a result stored before statuses existed counts only if a provider answered it.
+    if (previous && (previous.researchStatus === 'COMPLETE' || previous.researchStatus === 'NO_EVIDENCE' || (!previous.researchStatus && previous.providerStatuses?.exa === 'LIVE'))) {
+      return previous as Record<string, unknown>;
     }
 
     // Execute Product Research Pipeline
@@ -1914,16 +2148,21 @@ export class IngestionService {
       existingEnrichment: item.enrichment,
     });
 
-    const updatedEnrichment = {
-      ...currentEnrichment,
-      research: researchResult,
-    };
-
+    // Reviewer-recorded evidence is never replaced by a provider run, and an outage leaves stored research untouched.
+    const latest = await this.prisma.ingestionItem.findUniqueOrThrow({ where: { id: itemId } });
+    const latestEnrichment = (latest.enrichment as Record<string, any>) || {};
+    const settled = researchResult.researchStatus !== 'PROVIDER_UNAVAILABLE';
+    const reviewedEvidence = (latestEnrichment.research?.fieldEvidences ?? []).filter((entry: { reviewedBy?: string }) => entry.reviewedBy);
     await this.prisma.ingestionItem.update({
       where: { id: itemId },
       data: {
-        enrichment: updatedEnrichment as unknown as import('@prisma/client').Prisma.InputJsonValue,
-        enrichmentStatus: IngestionItemEnrichmentStatus.succeeded,
+        enrichment: {
+          ...latestEnrichment,
+          ...(settled && { research: { ...researchResult, fieldEvidences: [...reviewedEvidence, ...researchResult.fieldEvidences] } }),
+          researchAttempt: { status: researchResult.researchStatus, providerStatuses: researchResult.providerStatuses, at: researchResult.researchedAt },
+        } as unknown as Prisma.InputJsonValue,
+        enrichmentStatus: settled ? IngestionItemEnrichmentStatus.succeeded : IngestionItemEnrichmentStatus.pending,
+        enrichmentError: settled ? null : 'RESEARCH_PROVIDER_UNAVAILABLE: retry when providers recover',
       },
     });
 
@@ -2007,6 +2246,7 @@ export class IngestionService {
 
     // 1. Check if item is already matched to existing SKU in Catalog
     if (item.matchedSkuId) {
+      await this.productIdentityService.assertSkuAssociation(candidateIdentityInput(item, supplierId), item.matchedSkuId);
       const existing = await this.catalogService.getSkuIdentity(item.matchedSkuId);
       if (existing) {
         await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, existing.id);
@@ -2019,6 +2259,7 @@ export class IngestionService {
     if (item.barcode) {
       const existingSku = await this.catalogService.getSkuByBarcode(item.barcode);
       if (existingSku) {
+        await this.productIdentityService.assertSkuAssociation(candidateIdentityInput(item, supplierId), existingSku.id);
         await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, existingSku.id);
         await this.publishReviewedMedia(item, existingSku.id, supplierId);
         return existingSku.id;
@@ -2036,10 +2277,27 @@ export class IngestionService {
     });
 
     if (matchAnalysis.classification === MatchClassification.EXACT_MATCH && matchAnalysis.matchedSkuId) {
+      await this.productIdentityService.assertSkuAssociation(candidateIdentityInput(item, supplierId), matchAnalysis.matchedSkuId);
       // Register Supplier SKU Alias for future imports
       await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, matchAnalysis.matchedSkuId);
       await this.publishReviewedMedia(item, matchAnalysis.matchedSkuId, supplierId);
       return matchAnalysis.matchedSkuId;
+    }
+
+    if (matchAnalysis.classification !== MatchClassification.NO_MATCH && !this.productIdentityService.reviewerMayCreateNew(matchAnalysis, enrichment.identityReview)) {
+      throw new ConflictException(`Canonical identity requires review: ${matchAnalysis.reason}`);
+    }
+
+    // Validate the proposed SKU's reviewed physical identity before creating even its Product.
+    const proposed = requireMediaReview(reviewedMedia[0].review);
+    const validation = this.productIdentityService.validateIdentity(candidateIdentityInput(item, supplierId), {
+      id: 'proposed', productId: 'proposed', code: item.supplierSkuCode, isActive: true,
+      product: { name: item.name, brand: { name: item.brand } }, barcode: item.barcode,
+      size: { toNumber: () => proposed.size }, sizeUnit: proposed.sizeUnit,
+      variantName: proposed.variantName, packCount: proposed.packCount ?? null,
+    });
+    if (validation.state !== 'VERIFIED_IDENTITY') {
+      throw new ConflictException(`${validation.state}: ${validation.conflicts.join(', ')}`);
     }
 
     // 4. Admit only an existing or separately approved canonical brand.
@@ -2052,8 +2310,17 @@ export class IngestionService {
     // 5. Resolve or create Product in Catalog via CatalogService. An existing product is reused only for the same
     // brand AND the same normalized base name — never via a slug derived from the title, which collapsed every Arabic
     // title of a brand to "<brand>-" and attached new SKUs to the wrong product (GLO-278).
-    const sameBrandProducts = await this.prisma.product.findMany({ where: { brandId }, select: { id: true, name: true } });
+    const sameBrandProducts = await this.prisma.product.findMany({ where: { brandId }, select: { id: true, name: true }, orderBy: { id: 'asc' } });
     const sameProduct = sameBrandProducts.find(p => this.productIdentityService.sameBaseName(p.name, item.name));
+    // Check code reuse before any catalog update or creation.
+    const skuCode = item.barcode ? `SKU-${item.barcode}` : (item.supplierSkuCode || `SKU-${item.id.slice(0, 8).toUpperCase()}`);
+    const codeMatch = await this.prisma.sku.findUnique({ where: { code: skuCode } });
+    if (codeMatch) {
+      await this.productIdentityService.assertSkuAssociation(candidateIdentityInput(item, supplierId), codeMatch.id);
+      await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, codeMatch.id);
+      await this.publishReviewedMedia(item, codeMatch.id, supplierId);
+      return codeMatch.id;
+    }
     const productSlug = canonicalProductSlug(brandName, item.name,
       `${this.productIdentityService.canonicalizeBrand(brandName)}|${this.productIdentityService.normalizeString(item.name)}`);
     let product = sameProduct ? await this.catalogService.getProduct(sameProduct.id) : null;
@@ -2078,13 +2345,13 @@ export class IngestionService {
     }
 
     // 6. Check if SKU already exists under Product
-    const skuCode = item.barcode ? `SKU-${item.barcode}` : (item.supplierSkuCode || `SKU-${item.id.slice(0, 8).toUpperCase()}`);
     const existingSkus = await this.catalogService.getSkus(product.id);
     const existingSku = existingSkus.find(
       (s) => s.code === skuCode || (item.barcode !== null && s.barcode === item.barcode),
     );
 
     if (existingSku) {
+      await this.productIdentityService.assertSkuAssociation(candidateIdentityInput(item, supplierId), existingSku.id);
       await this.productIdentityService.createSupplierSkuAlias(supplierId, item.supplierSkuCode, existingSku.id);
       await this.publishReviewedMedia(item, existingSku.id, supplierId);
       return existingSku.id;
@@ -2120,7 +2387,7 @@ export class IngestionService {
         throw new BadRequestException('Approved media does not match canonical SKU');
       }
       const url = await this.storageService.copyToPublic(m.url, supplierId);
-      await this.catalogService.addMedia(sku.productId, { type: 'image', url, originType: 'verified',
+      await this.catalogService.addMedia(sku.productId, { type: 'image', url, originType: 'verified', role: 'PRIMARY_PACKSHOT',
         generationMetadata: { ...review, skuId } }, review.reviewedBy);
     }
   }
@@ -2158,6 +2425,18 @@ export class IngestionService {
 
     if (item.status !== IngestionStatus.approved) {
       throw new BadRequestException('Candidate item is not approved for publication yet');
+    }
+
+    const barcode = this.rowNormalizationService.normalizeBarcode(item.barcode);
+    if (item.barcode && !barcode.isValid) throw new ConflictException('EXPLICIT_CONFLICT: invalid_gtin');
+    const target = item.matchedSkuId ?? (barcode.barcode ? (await this.catalogService.getSkuByBarcode(barcode.barcode))?.id : null);
+    if (target) await this.productIdentityService.assertSkuAssociation(candidateIdentityInput(item, item.job.supplierId), target);
+    else {
+      const analysis = await this.classifyAdmittedItem(item, { ...candidateIdentityInput(item, item.job.supplierId),
+        candidateItemId: item.id, candidateCreatedAt: item.createdAt });
+      if ([MatchClassification.CONFLICT, MatchClassification.INVALID, MatchClassification.LIKELY_MATCH].includes(analysis.classification) &&
+          !this.productIdentityService.reviewerMayCreateNew(analysis, (item.enrichment as { identityReview?: { decision?: string } } | null)?.identityReview))
+        throw new ConflictException(`Canonical identity requires review: ${analysis.reason}`);
     }
 
     if (item.priceType !== IngestionPriceType.PURCHASE_COST) {

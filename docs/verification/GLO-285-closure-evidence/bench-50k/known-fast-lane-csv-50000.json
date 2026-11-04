@@ -1,0 +1,95 @@
+{
+  "profile": "known-fast-lane",
+  "format": "csv",
+  "rows": 50000,
+  "fileBytes": 4181927,
+  "fixtureKinds": {
+    "eligible": 50000,
+    "excluded": 0,
+    "unresolved": 0
+  },
+  "outcome": {
+    "ok": true,
+    "jobId": "a79ccb95-95f5-4a8f-9fa0-b1c368d8da66",
+    "status": "pending",
+    "requiresMapping": false,
+    "totalRows": 50000,
+    "importedItemsCount": 50000,
+    "matching": {
+      "status": "RUNNING"
+    }
+  },
+  "elapsedMs": 132811,
+  "rowsPerSecond": 376,
+  "peakRssMb": 2503,
+  "baselineRssMb": 478,
+  "peakHeapMb": 1354,
+  "counters": {
+    "sql": 101307,
+    "sqlByOperation": {
+      "Product.count": 2,
+      "Sku.count": 2,
+      "SupplierOffer.count": 2,
+      "ProductMedia.count": 2,
+      "Supplier.findUnique": 1,
+      "IngestionEligibilityPolicy.findFirst": 1,
+      "raw.executeRaw": 102,
+      "IngestionJob.findFirst": 1,
+      "ExportProfile.findFirst": 1,
+      "IngestionJob.create": 1,
+      "IngestionEligibilityPolicy.findUnique": 2,
+      "raw.queryRaw": 328,
+      "IngestionItem.createMany": 50,
+      "IngestionJob.update": 2,
+      "IngestionJob.findUnique": 5,
+      "IngestionItem.findMany": 251,
+      "SupplierSkuAlias.findMany": 250,
+      "IngestionItem.findFirst": 1,
+      "IngestionItem.count": 1,
+      "IngestionJob.findUniqueOrThrow": 1,
+      "SupplierOffer.findMany": 200,
+      "SellingPrice.findMany": 100,
+      "Sku.findUnique": 50000,
+      "SupplierSkuAlias.findUnique": 50000,
+      "SupplierOffer.createMany": 1
+    },
+    "classify": 50000,
+    "prepareBatch": 250,
+    "normalize": 50000,
+    "fingerprint": 50000,
+    "ai": 0,
+    "aiInFlight": 0,
+    "aiMaxInFlight": 0,
+    "research": 0
+  },
+  "commit": {
+    "ok": true,
+    "elapsedMs": 252836,
+    "committed": 50000,
+    "held": 0,
+    "skipped": 0,
+    "sql": 100456
+  },
+  "writes": {
+    "products": 0,
+    "skus": 0,
+    "offers": 50000,
+    "media": 0
+  },
+  "stored": {
+    "rowOutcomesCompressedBytes": 332437,
+    "rowOutcomeEntries": 50000,
+    "accounted": {
+      "IMPORTED": 50000
+    },
+    "itemsByStatus": [
+      {
+        "status": "published",
+        "n": 50000
+      }
+    ],
+    "jobStatus": "published"
+  },
+  "node": "v24.22.0",
+  "at": "2026-11-04T12:00:55.112Z"
+}

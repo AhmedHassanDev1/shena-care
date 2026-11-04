@@ -4,6 +4,9 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { CatalogService } from '../../src/modules/catalog/public';
 import { SourcingService } from '../../src/modules/sourcing/public';
 import { RankingService } from '../../src/modules/sourcing/services/ranking.service';
+import { ProductIdentityService } from '../../src/modules/ingestion/services/product-identity.service';
+import { BrandService } from '../../src/modules/catalog/public';
+import { RowNormalizationService } from '../../src/modules/ingestion/services/row-normalization.service';
 
 const NOW = new Date('2026-11-02T12:00:00Z');
 const OLD = new Date('2026-10-22T12:00:00Z');
@@ -23,7 +26,7 @@ function fixture(quantity: number | null, mode: IngestionImportMode = IngestionI
     supplier: { isActive: true },
   };
   const item = {
-    id: ITEM, jobId: JOB, supplierSkuCode: 'SUP-1', matchedSkuId: SKU, name: 'Serum 30ml',
+    id: ITEM, jobId: JOB, supplierSkuCode: 'SUP-1', matchedSkuId: SKU, name: 'Serum 30ml', brand: 'CeraVe', barcode: null,
     price: new Prisma.Decimal(110), currency: 'EGP', priceType: 'PURCHASE_COST', reportedQuantity: quantity,
     status: 'approved', enrichment: {}, createdAt: NOW, updatedAt: NOW,
   };
@@ -31,11 +34,16 @@ function fixture(quantity: number | null, mode: IngestionImportMode = IngestionI
     sourceMetadata: null, rowOutcomes: null, items: [item] };
   const queries: Prisma.Sql[] = [];
   const db = {
+    sku: { findUnique: async () => ({ id: SKU, isActive: true, product: { name: 'Serum', brand: { name: 'CeraVe' } },
+      size: new Prisma.Decimal(30), sizeUnit: 'ml', packCount: null, variantName: 'Default', barcode: null }),
+      findFirst: async () => null },
+    supplierSkuAlias: { findUnique: async () => ({ skuId: SKU }) },
     ingestionJob: {
       findUnique: jest.fn(async () => job), findUniqueOrThrow: jest.fn(async () => job),
       update: jest.fn(async ({ data }: { data: { status: string } }) => Object.assign(job, data)),
     },
     ingestionItem: {
+      count: jest.fn().mockResolvedValue(0),
       findUnique: jest.fn(async () => ({ ...item, job })), findMany: jest.fn(async () => []),
     },
     supplierOffer: {
@@ -57,7 +65,8 @@ function fixture(quantity: number | null, mode: IngestionImportMode = IngestionI
   const prisma = db as unknown as PrismaService;
   const sourcing = new SourcingService(prisma, {} as CatalogService, undefined!);
   return { db, offer, item, job, queries, sourcing, ranking: new RankingService(prisma),
-    service: new OfferBatchCommitService(prisma, {} as CatalogService, sourcing) };
+    service: new OfferBatchCommitService(prisma, {} as CatalogService, sourcing,
+      new ProductIdentityService(prisma, {} as CatalogService, {} as BrandService, new RowNormalizationService())) };
 }
 
 describe('GLO-285 F1: price-only imports preserve stock freshness', () => {

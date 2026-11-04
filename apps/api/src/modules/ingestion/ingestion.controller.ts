@@ -17,7 +17,7 @@ import { RolesGuard } from '../accounts/guards/roles.guard';
 import { PermissionsGuard } from '../../platform/auth';
 import { Roles } from '../accounts/decorators/roles.decorator';
 import { IngestionStatus } from '@prisma/client';
-import { multerOptions } from '../../platform/security/upload-validator';
+import { multerOptions, supplierSourceMulterOptions } from '../../platform/security/upload-validator';
 
 export interface AuthenticatedUserRequest {
   user?: {
@@ -63,7 +63,7 @@ export class IngestionController {
   }
 
   @Post('jobs/upload')
-  @UseInterceptors(FileInterceptor('file', multerOptions))
+  @UseInterceptors(FileInterceptor('file', supplierSourceMulterOptions))
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
   async uploadSupplierSpreadsheet(
     @Req() req: AuthenticatedUserRequest,
@@ -411,7 +411,8 @@ export class IngestionController {
     @Param('id') id: string,
     @Body() body?: { reason?: string },
   ) {
-    return this.ingestionService.rejectItem(id, body?.reason, req.user?.id);
+    if (!body?.reason?.trim()) throw new BadRequestException('A rejection reason is required');
+    return this.ingestionService.rejectItem(id, body.reason.trim(), req.user?.id);
   }
 
   @Post('candidates/:id/publish')
@@ -486,7 +487,8 @@ export class IngestionController {
     @Param('id') id: string,
     @Body() body?: { reason?: string },
   ) {
-    return this.ingestionService.rejectItem(id, body?.reason, req.user?.id);
+    if (!body?.reason?.trim()) throw new BadRequestException('A rejection reason is required');
+    return this.ingestionService.rejectItem(id, body.reason.trim(), req.user?.id);
   }
 
   @Post('items/:id/enrich')

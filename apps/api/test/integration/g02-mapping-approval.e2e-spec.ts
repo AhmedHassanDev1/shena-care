@@ -1,5 +1,6 @@
 // GLO-274 Gate 02 — supplier layout recognition and independently approved mapping semantics, via the real HTTP path.
 import { Test, TestingModule } from '@nestjs/testing';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -38,6 +39,7 @@ describe('GLO-274 Gate 02: mapping approval & schema fingerprint (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
+    await admitDownstreamRows(app, { brands: ['Vichy', 'Eucerin', 'CeraVe', 'La Roche-Posay', 'Bioderma', 'Avene', 'Garnier', 'Nivea'] });
     prisma = app.get(PrismaService);
     storagePort = app.get(FILE_STORAGE_PORT);
     const ai = app.get(AiClient);

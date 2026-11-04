@@ -1,5 +1,7 @@
 // GLO-279 Gate 07 — reviewer-confirmed usage rules and evidence-backed concentrations survive publication, via HTTP.
 import { Test, TestingModule } from '@nestjs/testing';
+import { gtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { ConflictException, INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -27,8 +29,8 @@ describe('GLO-279 Gate 07: verified product intelligence through publication (e2
   const run = randomUUID().slice(0, 8);
   const RUN = run.toUpperCase().replace(/[^A-Z0-9]/g, '');
   const brandName = `G07 Brand ${run}`;
-  const bcSerum = `29${digits(11)}`;
-  const bcCream = `29${digits(11)}`;
+  const bcSerum = gtin(`29${digits(10)}`);
+  const bcCream = gtin(`29${digits(10)}`);
   const inci = { A: `G07ACTIVEA${RUN}`, B: `G07ACTIVEB${RUN}`, C: `G07ACTIVEC${RUN}` };
   const ingredientIds: Record<'A' | 'B' | 'C', string> = { A: '', B: '', C: '' };
   let brandId: string;
@@ -52,6 +54,7 @@ describe('GLO-279 Gate 07: verified product intelligence through publication (e2
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
+    await admitDownstreamRows(app);
     prisma = app.get(PrismaService);
     storagePort = app.get(FILE_STORAGE_PORT);
     jest.spyOn(app.get(AiClient), 'enrichProduct').mockRejectedValue(new Error('AI disabled in Gate 07 tests'));

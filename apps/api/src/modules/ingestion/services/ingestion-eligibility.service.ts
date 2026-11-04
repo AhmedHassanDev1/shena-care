@@ -46,6 +46,11 @@ export class IngestionEligibilityService {
   async current(db: Prisma.TransactionClient = this.prisma) {
     return db.ingestionEligibilityPolicy.findFirst({ where: { status: 'APPROVED' }, orderBy: { version: 'desc' } });
   }
+  /** The approved version a receipt was pinned to, for its row accounting. */
+  async pinnedVersion(id: string | null | undefined): Promise<number | null> {
+    if (!id) return null;
+    return (await this.prisma.ingestionEligibilityPolicy.findUnique({ where: { id }, select: { version: true } }))?.version ?? null;
+  }
   async compile(id: string | null | undefined, db: Prisma.TransactionClient = this.prisma) {
     if (id && this.compiled.has(id)) return this.compiled.get(id)!;
     const row = id ? await db.ingestionEligibilityPolicy.findUnique({ where: { id } }) : null;

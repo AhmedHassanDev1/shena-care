@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { MAX_FILE_SIZE } from '../security/upload-validator';
+import { MAX_FILE_SIZE, MAX_SUPPLIER_SPREADSHEET_SIZE } from '../security/upload-validator';
 import { hasValidFileSignature } from '../security/file-signature';
 import { FILE_STORAGE_PORT, FileStoragePort } from './storage.port';
 import { MEDIA_STORAGE_PORT, MediaStoragePort } from './media-storage.port';
@@ -16,8 +16,10 @@ export class StorageService {
   ) {}
 
   validateFile(file: Express.Multer.File): void {
-    if (!file?.buffer?.length || file.buffer.length > MAX_FILE_SIZE) {
-      throw new BadRequestException('File must contain between 1 byte and 5 MB');
+    const spreadsheet = /^(text\/csv|application\/vnd\.(ms-excel|openxmlformats-officedocument\.spreadsheetml\.sheet))$/.test(file?.mimetype ?? '');
+    const limit = spreadsheet ? MAX_SUPPLIER_SPREADSHEET_SIZE : MAX_FILE_SIZE;
+    if (!file?.buffer?.length || file.buffer.length > limit) {
+      throw new BadRequestException(`File must contain between 1 byte and ${limit / (1024 * 1024)} MB`);
     }
     if (!hasValidFileSignature(file)) throw new BadRequestException('Unsupported or malformed file content');
   }
@@ -57,22 +59,22 @@ export class StorageService {
   }
 
   // Parses a URL and returns the object key if valid
-  privateObjectKey(url: string, supplierId: string): string {
+  privateObjectKey(url: string, supplierId: string, folder = 'candidates'): string {
     if (url.startsWith('cloudinary://')) {
       return url;
     }
     let parsed: URL;
     try { parsed = new URL(url); } catch { throw new BadRequestException('Invalid media URL'); }
     const base = new URL(this.baseUrl);
-    const prefix = `/storage/private/${supplierId}/candidates/`;
+    const prefix = `/storage/private/${supplierId}/${folder}/`;
     if (parsed.origin !== base.origin || !parsed.pathname.startsWith(prefix) || parsed.search || parsed.hash) {
       throw new BadRequestException('Media is not owned by this candidate supplier');
     }
     return parsed.pathname.slice('/storage/'.length);
   }
 
-  async copyToPublic(privateUrl: string, supplierId: string): Promise<string> {
-    const objectKey = this.privateObjectKey(privateUrl, supplierId);
+  async copyToPublic(privateUrl: string, supplierId: string, folder = 'candidates'): Promise<string> {
+    const objectKey = this.privateObjectKey(privateUrl, supplierId, folder);
 
     if (objectKey.startsWith('cloudinary://')) {
       return this.mediaStoragePort.publishMedia(objectKey);

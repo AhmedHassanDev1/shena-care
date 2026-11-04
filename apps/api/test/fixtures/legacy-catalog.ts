@@ -29,11 +29,11 @@ export async function ensureLegacyCatalog(prisma: PrismaService) {
   const reviewer = await ensureFixtureReviewer(prisma);
 
   const cerave = await prisma.brand.upsert({
-    where: { slug: 'cerave' }, update: { name: 'CeraVe', isActive: true },
+    where: { name: 'CeraVe' }, update: { isActive: true },
     create: { name: 'CeraVe', slug: 'cerave', description: 'Developed with dermatologists', websiteUrl: 'https://www.cerave.com', countryOfOrigin: 'USA', isActive: true },
   });
   const lrp = await prisma.brand.upsert({
-    where: { slug: 'la-roche-posay' }, update: { name: 'La Roche-Posay', isActive: true },
+    where: { name: 'La Roche-Posay' }, update: { isActive: true },
     create: { name: 'La Roche-Posay', slug: 'la-roche-posay', description: 'Dermatological skincare', websiteUrl: 'https://www.laroche-posay.us', countryOfOrigin: 'France', isActive: true },
   });
   const ceraveLine = await prisma.productLine.upsert({

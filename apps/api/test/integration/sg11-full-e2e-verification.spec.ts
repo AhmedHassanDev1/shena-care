@@ -1,4 +1,6 @@
 import { attachPurchaseOrderLineage } from '../fixtures/purchase-order-lineage';
+import { uniqueGtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
@@ -10,6 +12,9 @@ import { createActor, Actor } from '../fixtures/actors';
 import { reviewCandidateMedia } from '../fixtures/candidate-review';
 import { randomUUID } from 'crypto';
 import { IngestionStatus, IngestionImportMode, IngestionPriceType } from '@prisma/client';
+
+const sku1Barcode = uniqueGtin();
+const catalogBrandName = `Brand Cerave E2E ${Date.now()}`;
 
 describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow, and Admin Catalog Review', () => {
   let app: INestApplication;
@@ -57,6 +62,7 @@ describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow,
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
+    await admitDownstreamRows(app, { brandFor: () => catalogBrandName });
 
     prisma = app.get(PrismaService);
     sourcingService = app.get(SourcingService);
@@ -91,7 +97,7 @@ describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow,
     await prisma.brand.create({
       data: {
         id: testBrandId,
-        name: `Brand Cerave E2E ${Date.now()}`,
+        name: catalogBrandName,
         slug: `cerave-e2e-${Date.now()}`,
       },
     });
@@ -118,7 +124,7 @@ describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow,
         variantName: '50ml',
         size: 50,
         sizeUnit: 'ml',
-        barcode: `622100${Date.now().toString().slice(-7)}`,
+        barcode: sku1Barcode,
         isActive: true,
       },
     });
@@ -133,7 +139,7 @@ describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow,
         variantName: '177ml',
         size: 177,
         sizeUnit: 'ml',
-        barcode: `622200${Date.now().toString().slice(-7)}`,
+        barcode: uniqueGtin(),
         isActive: true,
       },
     });
@@ -148,7 +154,7 @@ describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow,
         variantName: '340ml',
         size: 340,
         sizeUnit: 'ml',
-        barcode: `622300${Date.now().toString().slice(-7)}`,
+        barcode: uniqueGtin(),
         isActive: true,
       },
     });
@@ -403,8 +409,8 @@ describe('SG-11 Full End-to-End Verification: Real Supplier Portal, PO Workflow,
     it('uploads a real CSV file and flags that column mapping is required', async () => {
       const csvData = [
         'كود_المورد,اسم_المستحضر,الباركود,سعر_التكلفة',
-        `SUP-CRV-50,CeraVe Moisturizing Cream 50ml,6221000000001,230.00`,
-        `SUP-NEW-SERUM,ShinaCare Barrier Recovery Serum 30ml,6229990000001,175.00`,
+        `SUP-CRV-50,CeraVe Moisturizing Cream 50ml,${sku1Barcode},230.00`,
+        `SUP-NEW-SERUM,ShinaCare Barrier Recovery Serum 30ml,${uniqueGtin()},175.00`,
       ].join('\n');
 
       const res = await request(app.getHttpServer())

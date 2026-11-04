@@ -9,6 +9,8 @@ export interface SourceRowSummary {
   duplicate: number
   outOfScope: number
   policyHeld?: number
+  policySkipped?: number
+  skippedByReason?: Array<{ reason: string; count: number }>
   notAdmitted: Array<{ sourceRow: number; supplierSku: string; outcome: string; reason: string | null }>
 }
 
@@ -22,13 +24,26 @@ const OUTCOME_LABEL: Record<string, string> = {
 
 /** Rows that never became catalog candidates or offers; shown so a clean-looking preview is never a silent drop. */
 export function SourceRowOutcomes({ summary }: { summary?: SourceRowSummary }) {
-  if (!summary || summary.notAdmitted.length === 0) return null
+  // Excluded rows arrive as counts per reason, so the row list alone cannot say whether anything was left out.
+  const notAdmittedCount = summary ? summary.total - summary.admitted : 0
+  if (!summary || notAdmittedCount <= 0) return null
   return (
     <Notice
       tone={summary.invalid > 0 ? 'danger' : 'info'}
-      title={`${summary.notAdmitted.length} من ${summary.total} صفاً في الملف لم يُقبل (${summary.invalid} غير صالح، ${summary.duplicate} مكرر، ${summary.outOfScope} مستبعد، ${summary.policyHeld ?? 0} معلق للمراجعة)`}
+      title={`${notAdmittedCount} من ${summary.total} صفاً في الملف لم يُقبل (${summary.invalid} غير صالح، ${summary.duplicate} مكرر، ${summary.outOfScope} مستبعد، ${summary.policyHeld ?? 0} معلق للمراجعة)`}
     >
       <p className="mb-2">هذه الصفوف لن تتحول إلى عروض أو منتجات. صفوف HOLD تنتظر مراجعة الإدارة للأسماء أو ربط التصنيف، ثم إعادة الفحص بإصدار معتمد.</p>
+      {summary.skippedByReason?.length ? (
+        <ul className="mb-2 space-y-1 text-xs">
+          {summary.skippedByReason.map((group) => (
+            <li key={group.reason} className="flex flex-wrap gap-x-2">
+              <span className="font-bold">{OUTCOME_LABEL.POLICY_SKIP}</span>
+              <span>{group.count} صف</span>
+              <span dir="auto">— {group.reason}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <ul className="space-y-1 text-xs">
         {summary.notAdmitted.slice(0, 50).map((row) => (
           <li key={`${row.sourceRow}-${row.outcome}`} className="flex flex-wrap gap-x-2">

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -19,6 +20,7 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    await admitDownstreamRows(app);
     admin = await createActor(app.get(PrismaService), 'ADMIN');
 
     prisma = app.get<PrismaService>(PrismaService);
@@ -92,12 +94,14 @@ describe('GLO-121 Product Research Pipeline (e2e)', () => {
     expect(detailRes.body.id).toBe(itemId);
     expect(detailRes.body.evidence).toBeDefined();
 
-    // 4. Verify Credit Caching: Repeating research returns cached evidence without re-querying external APIs
-    const cachedResearchRes = await request(app.getHttpServer())
+    // 4. No provider keys in this suite, so this is an outage: it is reported and retried, never cached as an answer.
+    expect(researchRes.body.researchStatus).toBe('PROVIDER_UNAVAILABLE');
+    const retried = await request(app.getHttpServer())
       .post(`/ingestion/candidates/${itemId}/research`).set(admin.auth)
       .expect(200);
 
-    expect(cachedResearchRes.body.researchedAt).toBe(researchRes.body.researchedAt);
+    expect(retried.body.researchStatus).toBe('PROVIDER_UNAVAILABLE');
+    expect(retried.body.researchedAt >= researchRes.body.researchedAt).toBe(true);
   });
 
   it('handles incomplete product information and safely keeps candidates reviewable', async () => {

@@ -2,11 +2,14 @@
 // re-uploaded with changes and replayed, and concurrency packs; every row reconciled, every stage measured.
 // Scale with G09_SCALE (default 1 = 1,000 rows); the measured report is written to G09_REPORT when set.
 import { Test, TestingModule } from '@nestjs/testing';
+import { gtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
 import { writeFileSync } from 'fs';
 import { AppModule } from '../../src/app.module';
+import { IngestionService } from '../../src/modules/ingestion/services/ingestion.service';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { FILE_STORAGE_PORT, FileStoragePort } from '../../src/platform/storage/storage.port';
 import { AiClient } from '../../src/platform/ai';
@@ -86,6 +89,7 @@ describe(`GLO-281 Gate 09: ${ROWS}-row scale, reconciliation and concurrency (e2
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
+    await admitDownstreamRows(app);
     prisma = app.get(PrismaService);
     storagePort = app.get(FILE_STORAGE_PORT);
     prisma.$use(async (params, next) => {
@@ -105,7 +109,7 @@ describe(`GLO-281 Gate 09: ${ROWS}-row scale, reconciliation and concurrency (e2
       }
       brandId = (await prisma.brand.create({ data: { name: brand, slug: `g09-brand-${run}` } })).id;
       for (let i = 0; i < Math.max(ROWS, 1); i++) {
-        known.push({ productId: randomUUID(), skuId: randomUUID(), name: `G09 ${word(i)} Cream`, barcode: `29${run.replace(/\D/g, '').padEnd(4, '7').slice(0, 4)}${String(i).padStart(7, '0')}` });
+        known.push({ productId: randomUUID(), skuId: randomUUID(), name: `G09 ${word(i)} Cream`, barcode: gtin(`29${run.replace(/\D/g, '').padEnd(4, '7').slice(0, 4)}${String(i).padStart(6, '0')}`) });
       }
       await prisma.product.createMany({ data: known.map((k, i) => ({ id: k.productId, brandId, name: k.name, slug: `g09-${run}-${i}` })) });
       await prisma.sku.createMany({ data: known.map((k, i) => ({ id: k.skuId, productId: k.productId, code: `G09-${run}-${i}`,
@@ -154,7 +158,7 @@ describe(`GLO-281 Gate 09: ${ROWS}-row scale, reconciliation and concurrency (e2
     for (let i = 0; i < MIX.ambiguous; i++) rows.push(`A-${i},${known[i].name} 50ml,${brand},,95.00,4,2026-10-22 09:00`);
     for (let i = 0; i < MIX.invalid; i++) rows.push(`I-${i},G09 Broken ${word(i)} Gel 50ml,${brand},,${i % 2 ? '0' : 'n/a'},2,2026-10-22 09:00`);
     for (let i = 0; i < MIX.duplicate; i++) rows.push(knownRow(i, `K-${i}`, 100 + (i % 50), 5, '2026-10-22 09:00'));
-    for (let i = 0; i < MIX.outOfScope; i++) rows.push(`O-${i},G09 ${word(i)} Hair Dryer 1200W,${brand},,300.00,2,2026-10-22 09:00`);
+    for (let i = 0; i < MIX.outOfScope; i++) rows.push(`O-${i},G09 ${word(i)} Hair Dryer 1200W,Unlisted Appliances,,300.00,2,2026-10-22 09:00`);
     expect(rows).toHaveLength(ROWS);
 
     const received = await measure('mixed:upload', ROWS, () => upload(supMixed, csv(rows), 'mixed.csv'));
@@ -166,10 +170,10 @@ describe(`GLO-281 Gate 09: ${ROWS}-row scale, reconciliation and concurrency (e2
     const outcomes = (job.rowOutcomes as Array<{ outcome: string }>).reduce<Record<string, number>>((acc, o) => ({ ...acc, [o.outcome]: (acc[o.outcome] ?? 0) + 1 }), {});
     report.mixedRowOutcomes = outcomes;
     report.mixedMatching = mapped.body.matching;
-    expect(outcomes).toEqual({ IMPORTED: MIX.known + MIX.novel + MIX.ambiguous, INVALID: MIX.invalid, DUPLICATE: MIX.duplicate, OUT_OF_SCOPE: MIX.outOfScope });
+    expect(outcomes).toEqual({ IMPORTED: MIX.known + MIX.novel + MIX.ambiguous, INVALID: MIX.invalid, DUPLICATE: MIX.duplicate, POLICY_HOLD: MIX.outOfScope });
     expect(Object.values(outcomes).reduce((a, b) => a + b, 0)).toBe(ROWS);
     expect(mapped.body.matching).toEqual({ exactMatches: MIX.known, needsReview: MIX.ambiguous, newCandidates: MIX.novel,
-      linkedToExistingCandidate: 0, rejected: 0, aiEnrichmentRequests: MIX.novel });
+      linkedToExistingCandidate: 0, rejected: 0, aiEnrichmentRequests: MIX.novel, enrichmentDeferred: 0 });
 
     const committed = await measure('mixed:commit', MIX.known, () => commit(supMixed, job.id));
     report.mixedCommit = { status: committed.status, ...(committed.status === 201 ? {
@@ -182,11 +186,12 @@ describe(`GLO-281 Gate 09: ${ROWS}-row scale, reconciliation and concurrency (e2
   });
 
   it(`known-only ${ROWS} rows: first file, changed re-upload on the approved layout with zero AI calls, identical replay`, async () => {
+    await app.get(IngestionService).whenBackgroundWorkSettles(); // the previous file's bounded enrichment may still be finishing
     const aiBefore = aiCalls.length;
     const first = known.map((_, i) => knownRow(i, `B-${i}`, 200, 10, '2026-10-21 09:00'));
     const up1 = await measure('known1:upload', ROWS, () => upload(supKnown, csv(first), 'known.csv'));
     const map1 = await measure('known1:map+admit+match', ROWS, () => mapJob(up1.body.jobId));
-    expect(map1.body.matching).toMatchObject({ exactMatches: ROWS, aiEnrichmentRequests: 0 });
+    expect(map1.body.matching).toMatchObject({ exactMatches: ROWS, aiEnrichmentRequests: 0, enrichmentDeferred: 0 });
     const c1 = await measure('known1:commit', ROWS, () => commit(supKnown, up1.body.jobId));
     report.known1Commit = { status: c1.status, committed: c1.body.committedCount, error: c1.status === 201 ? undefined : c1.body };
     expect(c1.status).toBe(201);
@@ -201,7 +206,7 @@ describe(`GLO-281 Gate 09: ${ROWS}-row scale, reconciliation and concurrency (e2
     const up2 = await measure('known2:upload+admit+match (approved layout)', ROWS, () => upload(supKnown, bytes, 'known.csv'));
     expect(up2.status).toBe(201);
     expect(up2.body).toMatchObject({ requiresMapping: false, importedItemsCount: ROWS });
-    expect(up2.body.matching).toMatchObject({ exactMatches: ROWS, aiEnrichmentRequests: 0 });
+    expect(up2.body.matching).toMatchObject({ exactMatches: ROWS, aiEnrichmentRequests: 0, enrichmentDeferred: 0 });
 
     // Concurrency: the same job committed twice at once applies exactly once.
     const [a, b] = await measure('known2:commit (2 concurrent)', ROWS, () => Promise.all([commit(supKnown, up2.body.jobId), commit(supKnown, up2.body.jobId)]));

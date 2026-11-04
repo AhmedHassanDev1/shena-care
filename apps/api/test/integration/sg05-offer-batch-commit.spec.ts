@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { uniqueGtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -34,6 +36,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
+    await admitDownstreamRows(app);
 
     prisma = app.get(PrismaService);
     storagePort = app.get(FILE_STORAGE_PORT);
@@ -119,7 +122,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
     ownedSupplierIds.push(supplier.id);
 
     const brand = await prisma.brand.create({
-      data: { name: `SG05 Brand ${Date.now()}`, slug: `sg05-brand-${Date.now()}` },
+      data: { name: 'SG05 Brand', slug: `sg05-brand-${Date.now()}` },
     });
     brandId = brand.id;
     ownedBrandIds.push(brand.id);
@@ -129,19 +132,34 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
     });
 
     const s1 = await prisma.sku.create({
-      data: { productId: product.id, code: `SG05-SKU-1-${Date.now()}`, variantName: '50 ml', size: 50, sizeUnit: 'ml', barcode: `622500000001${Date.now().toString().slice(-3)}`, isActive: true },
+      data: { productId: product.id, code: `SG05-SKU-1-${Date.now()}`, variantName: '50 ml', size: 50, sizeUnit: 'ml', barcode: uniqueGtin(), isActive: true },
     });
     sku1Id = s1.id;
 
     const s2 = await prisma.sku.create({
-      data: { productId: product.id, code: `SG05-SKU-2-${Date.now()}`, variantName: '100ml', size: 100, sizeUnit: 'ml', barcode: `622500000002${Date.now().toString().slice(-3)}`, isActive: true },
+      data: { productId: product.id, code: `SG05-SKU-2-${Date.now()}`, variantName: '100ml', size: 100, sizeUnit: 'ml', barcode: uniqueGtin(), isActive: true },
     });
     sku2Id = s2.id;
 
     const s3 = await prisma.sku.create({
-      data: { productId: product.id, code: `SG05-SKU-3-${Date.now()}`, variantName: '200ml', size: 200, sizeUnit: 'ml', barcode: `622500000003${Date.now().toString().slice(-3)}`, isActive: true },
+      data: { productId: product.id, code: `SG05-SKU-3-${Date.now()}`, variantName: '200ml', size: 200, sizeUnit: 'ml', barcode: uniqueGtin(), isActive: true },
     });
     sku3Id = s3.id;
+    // These rows arrive already linked: a reviewed supplier code is what vouches for each link at commit.
+    await prisma.supplierSkuAlias.createMany({ data: [
+      { supplierId, supplierSkuCode: 'CURRENCY-CHANGE', skuId: sku1Id },
+      { supplierId, supplierSkuCode: 'JUMP-1', skuId: sku1Id },
+      { supplierId, supplierSkuCode: 'PRICE-ONLY', skuId: sku1Id },
+      { supplierId, supplierSkuCode: 'RETRY-ONE', skuId: sku1Id },
+      { supplierId, supplierSkuCode: 'SNAP-ONE', skuId: sku1Id },
+      { supplierId, supplierSkuCode: 'SUP-INVALID-PRICE', skuId: sku2Id },
+      { supplierId, supplierSkuCode: 'SUP-REJECTED', skuId: sku1Id },
+      { supplierId, supplierSkuCode: 'SUP-SKU-1', skuId: sku1Id },
+      { supplierId, supplierSkuCode: 'SUP-SKU-1-V2', skuId: sku1Id },
+      { supplierId, supplierSkuCode: 'SUP-VALID', skuId: sku3Id },
+      { supplierId, supplierSkuCode: 'UNKNOWN-TYPE', skuId: sku1Id },
+      { supplierId, supplierSkuCode: 'WRONG-BRAND', skuId: sku1Id },
+    ], skipDuplicates: true });
   });
 
   afterEach(cleanFixture);
@@ -546,12 +564,16 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
       } });
       const media = await reviewCandidateMedia(app, admin.auth, item.id, sku.barcode!, 50, 'ml');
       await request(app.getHttpServer()).patch(`/ingestion/candidates/${item.id}/approve`)
-        .set(admin.auth).send({ mediaReviews: media }).expect(200);
+        .set(admin.auth).send({ mediaReviews: media }).expect(409);
+      await prisma.ingestionItem.update({ where: { id: item.id }, data: { status: IngestionStatus.approved } });
       let review = await ingestionService.getCandidateReviewRecord(item.id);
       expect(review.canPublish).toBe(false);
       await expect(ingestionService.publishCandidate(item.id)).rejects.toThrow(/identity|conflict/i);
+      // With the brand corrected the reviewer's approval succeeds; a forbidden substance found later must still stop publication.
+      await prisma.ingestionItem.update({ where: { id: item.id }, data: { brand: (await prisma.brand.findUniqueOrThrow({ where: { id: brandId } })).name } });
+      await request(app.getHttpServer()).patch(`/ingestion/candidates/${item.id}/approve`)
+        .set(admin.auth).send({ mediaReviews: media }).expect(200);
       await prisma.ingestionItem.update({ where: { id: item.id }, data: {
-        brand: (await prisma.brand.findUniqueOrThrow({ where: { id: brandId } })).name,
         enrichment: { ...((await prisma.ingestionItem.findUniqueOrThrow({ where: { id: item.id } })).enrichment as object),
           ingredients: { hasForbiddenSubstances: true } },
       } });
@@ -643,7 +665,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
         currency: 'SAR', isAvailable: true } });
       const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required } });
       await prisma.ingestionItem.create({ data: { jobId: job.id, supplierSkuCode: 'CURRENCY-CHANGE',
-        name: 'Moisturizing Cream', brand: 'SG05 Brand', price: 100,
+        name: 'Moisturizing Cream 50ml', brand: 'SG05 Brand', price: 100,
         priceType: IngestionPriceType.PURCHASE_COST, currency: 'EGP', matchedSkuId: sku1Id,
         status: IngestionStatus.approved } });
       const change = await offerCommitService.computeJobDiff(job.id);
@@ -679,7 +701,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
     it('retries a partially completed candidate commit idempotently', async () => {
       const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required } });
       const item = await prisma.ingestionItem.create({ data: {
-        jobId: job.id, supplierSkuCode: 'RETRY-ONE', name: 'Moisturizing Cream', brand: 'SG05 Brand',
+        jobId: job.id, supplierSkuCode: 'RETRY-ONE', name: 'Moisturizing Cream 50ml', brand: 'SG05 Brand',
         price: 55, priceType: IngestionPriceType.PURCHASE_COST, reportedQuantity: 0,
         currency: 'SAR', matchedSkuId: sku1Id, status: IngestionStatus.approved,
       } });
@@ -694,7 +716,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
     it('does not treat an untyped price as purchase cost', async () => {
       const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required } });
       await prisma.ingestionItem.create({ data: {
-        jobId: job.id, supplierSkuCode: 'UNKNOWN-TYPE', name: 'Moisturizing Cream', brand: 'SG05 Brand',
+        jobId: job.id, supplierSkuCode: 'UNKNOWN-TYPE', name: 'Moisturizing Cream 50ml', brand: 'SG05 Brand',
         price: 55, priceType: null, currency: 'SAR', matchedSkuId: sku1Id, status: IngestionStatus.approved,
       } });
       const diff = await offerCommitService.computeJobDiff(job.id);
@@ -707,7 +729,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
     it('creates a price-only offer unavailable until stock is explicitly observed', async () => {
       const job = await prisma.ingestionJob.create({ data: { supplierId, status: IngestionStatus.review_required } });
       await prisma.ingestionItem.create({ data: {
-        jobId: job.id, supplierSkuCode: 'PRICE-ONLY', name: 'Moisturizing Cream', brand: 'SG05 Brand',
+        jobId: job.id, supplierSkuCode: 'PRICE-ONLY', name: 'Moisturizing Cream 50ml', brand: 'SG05 Brand',
         price: 55, priceType: IngestionPriceType.PURCHASE_COST, reportedQuantity: null,
         currency: 'SAR', matchedSkuId: sku1Id, status: IngestionStatus.approved,
       } });
@@ -769,7 +791,9 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
             productId: product.id,
             code: `SG05-INV-SKU-${i}-${Date.now()}`,
             variantName: `${i * 10 + 10}ml`,
-            barcode: `62250000010${i}${Date.now().toString().slice(-2)}`,
+            size: i * 10 + 10,
+            sizeUnit: 'ml',
+            barcode: uniqueGtin(),
             isActive: true,
           },
         });
@@ -789,11 +813,12 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
         data: { supplierId, status: IngestionStatus.review_required, mode: IngestionImportMode.FULL_SNAPSHOT },
       });
       for (let i = 0; i < 4; i++) {
+        await prisma.supplierSkuAlias.create({ data: { supplierId, supplierSkuCode: `SUP-INV-${i}`, skuId: extraSkus[i].id } });
         await prisma.ingestionItem.create({
           data: {
             jobId: job.id,
             supplierSkuCode: `SUP-INV-${i}`,
-            name: `Item ${i}`,
+            name: `Moisturizing Cream ${i * 10 + 10}ml`,
             brand: 'SG05 Brand',
             price: 55 + i * 10,
             priceType: IngestionPriceType.PURCHASE_COST,
@@ -1043,7 +1068,7 @@ describe('SG-05: Stage, Diff & Atomic Safe-Commit Supplier Offer Price/Qty Updat
         data: {
           jobId: job.id,
           supplierSkuCode: 'SUP-VALID',
-          name: 'Valid Product 200ml',
+          name: 'Moisturizing Cream 200ml',
           brand: 'SG05 Brand',
           price: 175,
           priceType: IngestionPriceType.PURCHASE_COST,

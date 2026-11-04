@@ -1,4 +1,6 @@
 import { attachPurchaseOrderLineage } from '../fixtures/purchase-order-lineage';
+import { uniqueGtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
@@ -49,6 +51,7 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
+    await admitDownstreamRows(app);
 
     prisma = app.get(PrismaService);
     sourcingService = app.get(SourcingService);
@@ -83,7 +86,7 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
     await prisma.brand.create({
       data: {
         id: brandId,
-        name: `Brand SG11 ${Date.now()}`,
+        name: 'TestBrand',
         slug: `brand-sg11-${Date.now()}`,
       },
     });
@@ -94,7 +97,7 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
       data: {
         id: productId,
         brandId,
-        name: `Product SG11 ${Date.now()}`,
+        name: 'Supplier A Test Serum',
         slug: `product-sg11-${Date.now()}`,
         isPublished: true,
       },
@@ -110,7 +113,7 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
         variantName: '50ml',
         size: 50,
         sizeUnit: 'ml',
-        barcode: `62211${Date.now().toString().slice(-8)}`,
+        barcode: uniqueGtin(),
         isActive: true,
       },
     });
@@ -125,7 +128,7 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
         variantName: '100ml',
         size: 100,
         sizeUnit: 'ml',
-        barcode: `62212${Date.now().toString().slice(-8)}`,
+        barcode: uniqueGtin(),
         isActive: true,
       },
     });
@@ -194,7 +197,7 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
             {
               id: randomUUID(),
               supplierSkuCode: 'SUP-A-001',
-              name: 'Supplier A Test Serum',
+              name: 'Supplier A Test Serum 50ml',
               brand: 'TestBrand',
               price: 110.0,
               priceType: IngestionPriceType.PURCHASE_COST,
@@ -230,6 +233,7 @@ describe('SG-11: Real Supplier Portal, PO Workflow, and Admin Catalog Review (e2
         },
       },
     });
+    await prisma.supplierSkuAlias.create({ data: { supplierId: supplierAId, supplierSkuCode: 'SUP-A-001', skuId: testSku1Id } });
     cleanupLineage = await attachPurchaseOrderLineage(prisma, poAId);
   });
 

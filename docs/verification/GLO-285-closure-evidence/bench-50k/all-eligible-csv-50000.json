@@ -1,0 +1,83 @@
+{
+  "profile": "all-eligible",
+  "format": "csv",
+  "rows": 50000,
+  "fileBytes": 4181927,
+  "fixtureKinds": {
+    "eligible": 50000,
+    "excluded": 0,
+    "unresolved": 0
+  },
+  "outcome": {
+    "ok": true,
+    "jobId": "2f00f96d-86db-4897-a568-e11484b2878f",
+    "status": "pending",
+    "requiresMapping": false,
+    "totalRows": 50000,
+    "importedItemsCount": 50000,
+    "matching": {
+      "status": "RUNNING"
+    }
+  },
+  "elapsedMs": 1431900,
+  "rowsPerSecond": 35,
+  "peakRssMb": 1034,
+  "baselineRssMb": 417,
+  "peakHeapMb": 589,
+  "counters": {
+    "sql": 151383,
+    "sqlByOperation": {
+      "Product.count": 2,
+      "Sku.count": 2,
+      "SupplierOffer.count": 2,
+      "ProductMedia.count": 2,
+      "Supplier.findUnique": 1,
+      "IngestionEligibilityPolicy.findFirst": 1,
+      "raw.executeRaw": 1,
+      "IngestionJob.findFirst": 1,
+      "ExportProfile.findFirst": 1,
+      "IngestionJob.create": 1,
+      "IngestionEligibilityPolicy.findUnique": 2,
+      "raw.queryRaw": 150787,
+      "IngestionItem.createMany": 50,
+      "IngestionJob.update": 1,
+      "IngestionJob.findUnique": 3,
+      "IngestionItem.findMany": 251,
+      "SupplierSkuAlias.findMany": 250,
+      "IngestionItem.findUniqueOrThrow": 8,
+      "IngestionItem.update": 16,
+      "IngestionItem.findFirst": 1
+    },
+    "classify": 50000,
+    "prepareBatch": 250,
+    "normalize": 50000,
+    "fingerprint": 50000,
+    "ai": 8,
+    "aiInFlight": 0,
+    "aiMaxInFlight": 1,
+    "research": 0
+  },
+  "commit": null,
+  "writes": {
+    "products": 0,
+    "skus": 0,
+    "offers": 0,
+    "media": 0
+  },
+  "stored": {
+    "rowOutcomesCompressedBytes": 332437,
+    "rowOutcomeEntries": 50000,
+    "accounted": {
+      "IMPORTED": 50000
+    },
+    "itemsByStatus": [
+      {
+        "status": "review_required",
+        "n": 50000
+      }
+    ],
+    "jobStatus": "pending"
+  },
+  "node": "v24.22.0",
+  "at": "2026-11-04T11:47:35.343Z"
+}

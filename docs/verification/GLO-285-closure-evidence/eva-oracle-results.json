@@ -1,0 +1,2372 @@
+{
+ "byFile": {
+  "01_Baseline_20.xlsx": {
+   "cases": 20,
+   "pass": 20,
+   "fail": 0
+  },
+  "05_Reimport_Changed.xlsx": {
+   "cases": 20,
+   "pass": 20,
+   "fail": 0
+  },
+  "07_Second_Supplier.xlsx": {
+   "cases": 6,
+   "pass": 6,
+   "fail": 0
+  },
+  "06_Partial_Full_Snapshot.xlsx": {
+   "cases": 8,
+   "pass": 8,
+   "fail": 0
+  },
+  "03_Identity_Collisions.xlsx": {
+   "cases": 14,
+   "pass": 14,
+   "fail": 0
+  },
+  "02_Dirty_Supplier.xlsx": {
+   "cases": 34,
+   "pass": 34,
+   "fail": 0
+  },
+  "04_Price_Stock_Edges.xlsx": {
+   "cases": 18,
+   "pass": 18,
+   "fail": 0
+  },
+  "09_Arabic_BOM_Semicolon.csv": {
+   "cases": 6,
+   "pass": 6,
+   "fail": 0
+  }
+ },
+ "metrics": {
+  "firstImport": {
+   "rows": 20,
+   "knownRows": 15,
+   "autoLinks": 0,
+   "falseAutoLinks": 0,
+   "expectedSkuTop1": 15,
+   "expectedSkuTopK": 15,
+   "reviewRate": 1
+  },
+  "reviewerConfirmed": {
+   "attempted": 15,
+   "confirmed": 15,
+   "rejectedConfirmations": []
+  },
+  "firstCommit": {
+   "committed": 15,
+   "held": 0,
+   "status": "review_required"
+  },
+  "reimport": {
+   "rows": 20,
+   "fastLaneLinks": 15,
+   "aiCalls": 0
+  },
+  "secondSupplier": {
+   "rows": 6,
+   "offers": 5
+  },
+  "fullSnapshot": {
+   "rows": 8,
+   "deactivationCandidates": 6
+  },
+  "collisions": {
+   "oracleCases": 14,
+   "admitted": 9,
+   "autoLinks": 0
+  },
+  "dirty": {
+   "invalid": 9,
+   "eligible": 15,
+   "policyId": "e1833930-3215-4a3e-a03b-fb93f9d4a39d",
+   "duplicate": 6,
+   "totalRows": 34,
+   "outOfScope": 0,
+   "policyVersion": 2,
+   "policyExcluded": 2,
+   "unresolvedScope": 2
+  },
+  "retailReferences": {
+   "accepted": 15,
+   "rejected": 0
+  },
+  "oracle": {
+   "evaluated": 126,
+   "passed": 126,
+   "failed": 0,
+   "falseLinks": 0,
+   "autoLinks": 31,
+   "correctAutoLinks": 31,
+   "linkableCases": 81,
+   "linkableAutoLinked": 31,
+   "abstentions": [
+    "BASE-02:IMPORTED/LIKELY_MATCH",
+    "BASE-03:IMPORTED/LIKELY_MATCH",
+    "BASE-04:IMPORTED/LIKELY_MATCH",
+    "BASE-05:IMPORTED/LIKELY_MATCH",
+    "BASE-06:IMPORTED/LIKELY_MATCH",
+    "BASE-07:IMPORTED/LIKELY_MATCH",
+    "BASE-08:IMPORTED/LIKELY_MATCH",
+    "BASE-10:IMPORTED/LIKELY_MATCH",
+    "BASE-11:IMPORTED/LIKELY_MATCH",
+    "BASE-12:IMPORTED/LIKELY_MATCH",
+    "BASE-13:IMPORTED/LIKELY_MATCH",
+    "BASE-14:IMPORTED/LIKELY_MATCH",
+    "BASE-15:IMPORTED/LIKELY_MATCH",
+    "BASE-18:IMPORTED/LIKELY_MATCH",
+    "R01:IMPORTED/Pack description (50g Night Cream + 100ml Combined Wash) disagrees with the size in the product title",
+    "R09:IMPORTED/Pack description (50g Day + 100ml Oily Wash) disagrees with the size in the product title",
+    "R16:IMPORTED/LIKELY_MATCH",
+    "R17:IMPORTED/LIKELY_MATCH",
+    "R19:IMPORTED/LIKELY_MATCH",
+    "I01:IMPORTED/-",
+    "I10:IMPORTED/LIKELY_MATCH",
+    "I12:IMPORTED/Pack description names \"oily\", which the product title does not",
+    "D01:IMPORTED/-",
+    "D26:IMPORTED/Pack description names \"day oily wash\", which the product title does not; Pack description (50g Day + 100ml Oily Wash) disagrees with the size in the product title",
+    "D28:DUPLICATE/duplicate_supplier_sku_with_conflicting_values",
+    "P17:DUPLICATE/duplicate_supplier_sku_with_conflicting_values",
+    "P18:DUPLICATE/duplicate_supplier_sku_with_conflicting_values"
+   ]
+  }
+ },
+ "failures": [],
+ "verdicts": [
+  {
+   "case_id": "BASE-01",
+   "file": "01_Baseline_20.xlsx",
+   "row": 2,
+   "expected": "HOLD_BUNDLE_VERIFICATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description (50g Night Cream + 100ml Combined Wash) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 12,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-02",
+   "file": "01_Baseline_20.xlsx",
+   "row": 3,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 30,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "7e06b0b3-0336-4758-af07-12049b50fd77",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-03",
+   "file": "01_Baseline_20.xlsx",
+   "row": 4,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-04",
+   "file": "01_Baseline_20.xlsx",
+   "row": 5,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 0,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "cafb708a-5b78-461c-b281-5b7aec0b8a74",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-05",
+   "file": "01_Baseline_20.xlsx",
+   "row": 6,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 13,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "5b3eb14a-096b-424a-bd1c-979b4e5b9c72",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-06",
+   "file": "01_Baseline_20.xlsx",
+   "row": 7,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 18,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "57e1cc85-b5d7-4835-ac46-4875fd0870ce",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-07",
+   "file": "01_Baseline_20.xlsx",
+   "row": 8,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 8,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "5ba3184e-f358-463d-b173-7cce34103ad1",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-08",
+   "file": "01_Baseline_20.xlsx",
+   "row": 9,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 3,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "29c2a328-0c6b-4a98-a18b-a937c4685a68",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-09",
+   "file": "01_Baseline_20.xlsx",
+   "row": 10,
+   "expected": "HOLD_BUNDLE_VERIFICATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description (50g Day + 100ml Oily Wash) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-10",
+   "file": "01_Baseline_20.xlsx",
+   "row": 11,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 40,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "df182d93-bc03-4a08-b8b4-c3b85a9699c3",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-11",
+   "file": "01_Baseline_20.xlsx",
+   "row": 12,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 16,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "46f0d800-528c-4a4b-b48b-1dbdeb31e4ef",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-12",
+   "file": "01_Baseline_20.xlsx",
+   "row": 13,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "1810bce1-bd0a-4ded-9e31-9e820340052a",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-13",
+   "file": "01_Baseline_20.xlsx",
+   "row": 14,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "c003abee-8bf2-4820-add9-99a1f7201d96",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-14",
+   "file": "01_Baseline_20.xlsx",
+   "row": 15,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "cccb65d4-862c-42ed-97fc-cfa5182b6cec",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-15",
+   "file": "01_Baseline_20.xlsx",
+   "row": 16,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 0,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "135b093e-f52a-4985-a065-a4c217af909a",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-16",
+   "file": "01_Baseline_20.xlsx",
+   "row": 17,
+   "expected": "REVIEW_PROMO_PRICE_SEMANTICS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 12,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-17",
+   "file": "01_Baseline_20.xlsx",
+   "row": 18,
+   "expected": "REVIEW_PROMO_PRICE_SEMANTICS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 10,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-18",
+   "file": "01_Baseline_20.xlsx",
+   "row": 19,
+   "expected": "MATCH_IF_VERIFIED_ELSE_CANDIDATE_UNPUBLISHED",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 5,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "d031055c-4965-4902-b426-5a3248420d10",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-19",
+   "file": "01_Baseline_20.xlsx",
+   "row": 20,
+   "expected": "REVIEW_PROMO_PRICE_SEMANTICS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 5,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "BASE-20",
+   "file": "01_Baseline_20.xlsx",
+   "row": 21,
+   "expected": "REVIEW_MULTIPACK_IDENTITY",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "6fdd49a4-dc6e-4b65-979f-4276da966be2",
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "R01",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 2,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description (50g Night Cream + 100ml Combined Wash) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 12,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "R02",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 3,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "7e06b0b3-0336-4758-af07-12049b50fd77",
+    "status": "review_required",
+    "reportedQuantity": 30,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "7e06b0b3-0336-4758-af07-12049b50fd77",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R03",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 4,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+    "status": "review_required",
+    "reportedQuantity": 0,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R04",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 5,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "cafb708a-5b78-461c-b281-5b7aec0b8a74",
+    "status": "review_required",
+    "reportedQuantity": 12,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "cafb708a-5b78-461c-b281-5b7aec0b8a74",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R05",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 6,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "5b3eb14a-096b-424a-bd1c-979b4e5b9c72",
+    "status": "review_required",
+    "reportedQuantity": 13,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "5b3eb14a-096b-424a-bd1c-979b4e5b9c72",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R06",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 7,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "57e1cc85-b5d7-4835-ac46-4875fd0870ce",
+    "status": "review_required",
+    "reportedQuantity": 18,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "57e1cc85-b5d7-4835-ac46-4875fd0870ce",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R07",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 8,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "5ba3184e-f358-463d-b173-7cce34103ad1",
+    "status": "review_required",
+    "reportedQuantity": 7,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "5ba3184e-f358-463d-b173-7cce34103ad1",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R08",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 9,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "29c2a328-0c6b-4a98-a18b-a937c4685a68",
+    "status": "review_required",
+    "reportedQuantity": 3,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "29c2a328-0c6b-4a98-a18b-a937c4685a68",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R09",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 10,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description (50g Day + 100ml Oily Wash) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "R10",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 11,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "df182d93-bc03-4a08-b8b4-c3b85a9699c3",
+    "status": "review_required",
+    "reportedQuantity": 28,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "df182d93-bc03-4a08-b8b4-c3b85a9699c3",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R11",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 12,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "46f0d800-528c-4a4b-b48b-1dbdeb31e4ef",
+    "status": "review_required",
+    "reportedQuantity": 16,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "46f0d800-528c-4a4b-b48b-1dbdeb31e4ef",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R12",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 13,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "1810bce1-bd0a-4ded-9e31-9e820340052a",
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "1810bce1-bd0a-4ded-9e31-9e820340052a",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R13",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 14,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "c003abee-8bf2-4820-add9-99a1f7201d96",
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "c003abee-8bf2-4820-add9-99a1f7201d96",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R14",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 15,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "cccb65d4-862c-42ed-97fc-cfa5182b6cec",
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "cccb65d4-862c-42ed-97fc-cfa5182b6cec",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R15",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 16,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "135b093e-f52a-4985-a065-a4c217af909a",
+    "status": "review_required",
+    "reportedQuantity": 0,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "135b093e-f52a-4985-a065-a4c217af909a",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R16",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 17,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 12,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "R17",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 18,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 10,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "R18",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 19,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "d031055c-4965-4902-b426-5a3248420d10",
+    "status": "review_required",
+    "reportedQuantity": 5,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "d031055c-4965-4902-b426-5a3248420d10",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "R19",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 20,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "R20",
+   "file": "05_Reimport_Changed.xlsx",
+   "row": 21,
+   "expected": "UPDATE_EXISTING_OFFERS_NO_NEW_CANONICAL_PRODUCTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "6fdd49a4-dc6e-4b65-979f-4276da966be2",
+    "status": "review_required",
+    "reportedQuantity": 3,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "6fdd49a4-dc6e-4b65-979f-4276da966be2",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "B01",
+   "file": "07_Second_Supplier.xlsx",
+   "row": 2,
+   "expected": "ISOLATED_SUPPLIER_B_OFFER",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 7,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "7e06b0b3-0336-4758-af07-12049b50fd77",
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "B02",
+   "file": "07_Second_Supplier.xlsx",
+   "row": 3,
+   "expected": "ISOLATED_SUPPLIER_B_OFFER",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 8,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "B03",
+   "file": "07_Second_Supplier.xlsx",
+   "row": 4,
+   "expected": "ISOLATED_SUPPLIER_B_OFFER",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 9,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "cafb708a-5b78-461c-b281-5b7aec0b8a74",
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "B04",
+   "file": "07_Second_Supplier.xlsx",
+   "row": 5,
+   "expected": "ISOLATED_SUPPLIER_B_OFFER",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description (50g Day + 100ml Oily Wash) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 14,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "B05",
+   "file": "07_Second_Supplier.xlsx",
+   "row": 6,
+   "expected": "ISOLATED_SUPPLIER_B_OFFER",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 15,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "df182d93-bc03-4a08-b8b4-c3b85a9699c3",
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "B06",
+   "file": "07_Second_Supplier.xlsx",
+   "row": 7,
+   "expected": "ISOLATED_SUPPLIER_B_OFFER",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 16,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "46f0d800-528c-4a4b-b48b-1dbdeb31e4ef",
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "S01",
+   "file": "06_Partial_Full_Snapshot.xlsx",
+   "row": 2,
+   "expected": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "7e06b0b3-0336-4758-af07-12049b50fd77",
+    "status": "review_required",
+    "reportedQuantity": 30,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "7e06b0b3-0336-4758-af07-12049b50fd77",
+   "pass": true,
+   "why": "offer deactivation asserted at file level"
+  },
+  {
+   "case_id": "S02",
+   "file": "06_Partial_Full_Snapshot.xlsx",
+   "row": 3,
+   "expected": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+   "pass": true,
+   "why": "offer deactivation asserted at file level"
+  },
+  {
+   "case_id": "S03",
+   "file": "06_Partial_Full_Snapshot.xlsx",
+   "row": 4,
+   "expected": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "cafb708a-5b78-461c-b281-5b7aec0b8a74",
+    "status": "review_required",
+    "reportedQuantity": 0,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "cafb708a-5b78-461c-b281-5b7aec0b8a74",
+   "pass": true,
+   "why": "offer deactivation asserted at file level"
+  },
+  {
+   "case_id": "S04",
+   "file": "06_Partial_Full_Snapshot.xlsx",
+   "row": 5,
+   "expected": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "5b3eb14a-096b-424a-bd1c-979b4e5b9c72",
+    "status": "review_required",
+    "reportedQuantity": 13,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "5b3eb14a-096b-424a-bd1c-979b4e5b9c72",
+   "pass": true,
+   "why": "offer deactivation asserted at file level"
+  },
+  {
+   "case_id": "S05",
+   "file": "06_Partial_Full_Snapshot.xlsx",
+   "row": 6,
+   "expected": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "57e1cc85-b5d7-4835-ac46-4875fd0870ce",
+    "status": "review_required",
+    "reportedQuantity": 18,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "57e1cc85-b5d7-4835-ac46-4875fd0870ce",
+   "pass": true,
+   "why": "offer deactivation asserted at file level"
+  },
+  {
+   "case_id": "S06",
+   "file": "06_Partial_Full_Snapshot.xlsx",
+   "row": 7,
+   "expected": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "df182d93-bc03-4a08-b8b4-c3b85a9699c3",
+    "status": "review_required",
+    "reportedQuantity": 40,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "df182d93-bc03-4a08-b8b4-c3b85a9699c3",
+   "pass": true,
+   "why": "offer deactivation asserted at file level"
+  },
+  {
+   "case_id": "S07",
+   "file": "06_Partial_Full_Snapshot.xlsx",
+   "row": 8,
+   "expected": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "46f0d800-528c-4a4b-b48b-1dbdeb31e4ef",
+    "status": "review_required",
+    "reportedQuantity": 16,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "46f0d800-528c-4a4b-b48b-1dbdeb31e4ef",
+   "pass": true,
+   "why": "offer deactivation asserted at file level"
+  },
+  {
+   "case_id": "S08",
+   "file": "06_Partial_Full_Snapshot.xlsx",
+   "row": 9,
+   "expected": "REVIEW_REQUIRED_NO_UNATTENDED_DEACTIVATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "6fdd49a4-dc6e-4b65-979f-4276da966be2",
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "6fdd49a4-dc6e-4b65-979f-4276da966be2",
+   "pass": true,
+   "why": "offer deactivation asserted at file level"
+  },
+  {
+   "case_id": "I01",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 2,
+   "expected": "MATCH_IF_ALL_IDENTITY_FIELDS_AGREE",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "I02",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 3,
+   "expected": "HOLD_BARCODE_VARIANT_CONFLICT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 0,
+    "classification": "CONFLICT",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "I03",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 4,
+   "expected": "HOLD_BARCODE_PRODUCT_CONFLICT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 30,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "I04",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 5,
+   "expected": "CANDIDATE_PENDING_REVIEW_NOT_AUTO_LINK",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_with_conflicting_values",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as DUPLICATE/-"
+  },
+  {
+   "case_id": "I05",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 6,
+   "expected": "REJECT_OR_REVIEW_PLAUSIBILITY",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_with_conflicting_values",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as DUPLICATE/-"
+  },
+  {
+   "case_id": "I06",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 7,
+   "expected": "HOLD_VARIANT_CONFLICT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description names \"yoghurt\", which the product title does not",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "I07",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 8,
+   "expected": "HOLD_SIZE_UNIT_CONFLICT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description (4 x 15 g) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "I08",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 9,
+   "expected": "HOLD_PACK_COUNT_CONFLICT",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_in_source",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as DUPLICATE/-"
+  },
+  {
+   "case_id": "I09",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 10,
+   "expected": "HOLD_ALIAS_IDENTITY_CONFLICT",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_with_conflicting_values",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as DUPLICATE/-"
+  },
+  {
+   "case_id": "I10",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 11,
+   "expected": "NO_FALSE_DUPLICATE_OR_WRONG_MATCH",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": "LIKELY_MATCH",
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "I11",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 12,
+   "expected": "NEEDS_HUMAN_REVIEW",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description names \"combined\", which the product title does not",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "I12",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 13,
+   "expected": "MATCH_ONLY_WITH_EVIDENCE_AND_UNIT_VARIANT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description names \"oily\", which the product title does not",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 0,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "I13",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 14,
+   "expected": "HOLD_BUNDLE_CONFLICT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description names \"combined wash\", which the product title does not; Pack description (50g Night Cream + 100ml Combined Wash) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 12,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "I14",
+   "file": "03_Identity_Collisions.xlsx",
+   "row": 15,
+   "expected": "HOLD_FORMULA_VARIANT_CONFLICT",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_in_source",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as DUPLICATE/-"
+  },
+  {
+   "case_id": "D01",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 2,
+   "expected": "ALIAS_MATCH_ONLY_IF_IDENTITY_VALID_ELSE_REVIEW",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 30,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "7e06b0b3-0336-4758-af07-12049b50fd77",
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "D02",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 3,
+   "expected": "REVIEW_IF_NOT_CONFIDENT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "D03",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 4,
+   "expected": "REJECT_DUPLICATE_WITH_ROW_REASON",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_with_conflicting_values",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "reject expected, row ended DUPLICATE/null"
+  },
+  {
+   "case_id": "D04",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 5,
+   "expected": "REJECT_NEGATIVE_PRICE",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Invalid non-positive purchase cost value (-15.00)",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "cafb708a-5b78-461c-b281-5b7aec0b8a74",
+   "pass": true,
+   "why": "reject expected, row ended INVALID/null"
+  },
+  {
+   "case_id": "D05",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 6,
+   "expected": "REJECT_NEGATIVE_PRICE",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Invalid non-positive purchase cost value ('-12.50 EGP)",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "5b3eb14a-096b-424a-bd1c-979b4e5b9c72",
+   "pass": true,
+   "why": "reject expected, row ended INVALID/null"
+  },
+  {
+   "case_id": "D06",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 7,
+   "expected": "HOLD_INCOMPLETE_IDENTITY",
+   "actual": {
+    "outcome": "POLICY_HOLD",
+    "reason": "BRAND_UNKNOWN",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "57e1cc85-b5d7-4835-ac46-4875fd0870ce",
+   "pass": true,
+   "why": "held safely as POLICY_HOLD/-"
+  },
+  {
+   "case_id": "D07",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 8,
+   "expected": "REJECT_OR_EXPLICIT_ROW_INVALID",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Missing mandatory supplier SKU or product title",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as INVALID/-"
+  },
+  {
+   "case_id": "D08",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 9,
+   "expected": "REJECT_PURCHASE_COST_ZERO",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Invalid non-positive purchase cost value (0.00)",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "29c2a328-0c6b-4a98-a18b-a937c4685a68",
+   "pass": true,
+   "why": "reject expected, row ended INVALID/null"
+  },
+  {
+   "case_id": "D09",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 10,
+   "expected": "REJECT_NEGATIVE_QUANTITY",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Negative reported quantity",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "reject expected, row ended INVALID/null"
+  },
+  {
+   "case_id": "D10",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 11,
+   "expected": "PRESERVE_PREVIOUS_AVAILABILITY",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "df182d93-bc03-4a08-b8b4-c3b85a9699c3",
+    "status": "review_required",
+    "reportedQuantity": null,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "df182d93-bc03-4a08-b8b4-c3b85a9699c3",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "D11",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 12,
+   "expected": "ACCEPT_ONLY_WITH_LOCALE_PROVEN_PARSER",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "46f0d800-528c-4a4b-b48b-1dbdeb31e4ef",
+    "status": "review_required",
+    "reportedQuantity": 16,
+    "classification": "EXACT_MATCH",
+    "offerAction": "REVIEW"
+   },
+   "expectedSku": "46f0d800-528c-4a4b-b48b-1dbdeb31e4ef",
+   "pass": true,
+   "why": "parsed; commit action REVIEW"
+  },
+  {
+   "case_id": "D12",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 13,
+   "expected": "REVIEW_AMBIGUOUS_DECIMAL",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Invalid non-positive purchase cost value (12,50)",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "1810bce1-bd0a-4ded-9e31-9e820340052a",
+   "pass": true,
+   "why": "no cost written: INVALID/-"
+  },
+  {
+   "case_id": "D13",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 14,
+   "expected": "DO_NOT_USE_WRONG_ALIAS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description names \"combined\", which the product title does not",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "D14",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 15,
+   "expected": "HOLD_IDENTITY_CONFLICT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description names \"yoghurt\", which the product title does not; Pack description (250 g / Yoghurt) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "cccb65d4-862c-42ed-97fc-cfa5182b6cec",
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "D15",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 16,
+   "expected": "HOLD_VARIANT_UNIT_CONFLICT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description (250 g / Silk) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 12,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "D16",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 17,
+   "expected": "HOLD_PACK_COUNT_CONFLICT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description (1 x 15 ml) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "6fdd49a4-dc6e-4b65-979f-4276da966be2",
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "D17",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 18,
+   "expected": "HOLD_BUNDLE_IDENTITY_CONFLICT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 12,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "D18",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 19,
+   "expected": "VERIFY_FORMAT_NO_AUTO_APPROVAL",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_with_conflicting_values",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "7e06b0b3-0336-4758-af07-12049b50fd77",
+   "pass": true,
+   "why": "held safely as DUPLICATE/-"
+  },
+  {
+   "case_id": "D19",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 20,
+   "expected": "REJECT_SUSPICIOUS_BARCODE_LITERAL",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_in_source",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "7e06b0b3-0336-4758-af07-12049b50fd77",
+   "pass": true,
+   "why": "held safely as DUPLICATE/-"
+  },
+  {
+   "case_id": "D20",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 21,
+   "expected": "BLOCK_UNLESS_EXPLICIT_CURRENCY_POLICY",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_in_source",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+   "pass": true,
+   "why": "no cost written: DUPLICATE/-"
+  },
+  {
+   "case_id": "D21",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 22,
+   "expected": "BLOCK_NO_IMPLICIT_CONVERSION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Cost is stated in USD; no conversion is applied and it requires review",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 0,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "cafb708a-5b78-461c-b281-5b7aec0b8a74",
+   "pass": true,
+   "why": "no cost written: IMPORTED/SKIP"
+  },
+  {
+   "case_id": "D22",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 23,
+   "expected": "NO_SUPPLIER_COST_MUTATION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Row price type is RETAIL_REFERENCE, not a purchase cost",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 13,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "5b3eb14a-096b-424a-bd1c-979b4e5b9c72",
+   "pass": true,
+   "why": "no cost written: IMPORTED/SKIP"
+  },
+  {
+   "case_id": "D23",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 24,
+   "expected": "HOLD_AMBIGUOUS_PRICE_TYPE",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Row price type is missing",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 18,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "57e1cc85-b5d7-4835-ac46-4875fd0870ce",
+   "pass": true,
+   "why": "no cost written: IMPORTED/SKIP"
+  },
+  {
+   "case_id": "D24",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 25,
+   "expected": "REJECT_NAME_MISSING",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Missing mandatory supplier SKU or product title",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "5ba3184e-f358-463d-b173-7cce34103ad1",
+   "pass": true,
+   "why": "reject expected, row ended INVALID/null"
+  },
+  {
+   "case_id": "D25",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 26,
+   "expected": "REJECT_PRICE_MISSING",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Missing purchase cost",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "29c2a328-0c6b-4a98-a18b-a937c4685a68",
+   "pass": true,
+   "why": "reject expected, row ended INVALID/null"
+  },
+  {
+   "case_id": "D26",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 27,
+   "expected": "NORMALIZE_WITHOUT_OVERWRITE",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description names \"day oily wash\", which the product title does not; Pack description (50g Day + 100ml Oily Wash) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "abstained: IMPORTED/review_required"
+  },
+  {
+   "case_id": "D27",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 28,
+   "expected": "SKIP_SCOPE_WITH_REASON",
+   "actual": {
+    "outcome": "POLICY_HOLD",
+    "reason": "BRAND_UNKNOWN",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "scope row ended POLICY_HOLD"
+  },
+  {
+   "case_id": "D28",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 29,
+   "expected": "SET_UNAVAILABLE_ONLY_IF_EXPLICIT_VALID_QTY_ZERO",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_with_conflicting_values",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "abstained: DUPLICATE/-"
+  },
+  {
+   "case_id": "D29",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 30,
+   "expected": "REJECT_OR_REVIEW_INVALID_PRICE_FORMAT",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Invalid non-positive purchase cost value (12.50%)",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "5b3eb14a-096b-424a-bd1c-979b4e5b9c72",
+   "pass": true,
+   "why": "no cost written: INVALID/-"
+  },
+  {
+   "case_id": "D30",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 31,
+   "expected": "REJECT_DUPLICATE_WITH_ROW_REASON",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_with_conflicting_values",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "7e06b0b3-0336-4758-af07-12049b50fd77",
+   "pass": true,
+   "why": "reject expected, row ended DUPLICATE/null"
+  },
+  {
+   "case_id": "D31",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 32,
+   "expected": "SCOPE_FILTER_SKIP_OR_REVIEW",
+   "actual": {
+    "outcome": "POLICY_SKIP",
+    "reason": "CATEGORY_DENIED",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "scope row ended POLICY_SKIP"
+  },
+  {
+   "case_id": "D32",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 33,
+   "expected": "SCOPE_FILTER_SKIP_OR_REVIEW",
+   "actual": {
+    "outcome": "POLICY_SKIP",
+    "reason": "CATEGORY_DENIED",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "scope row ended POLICY_SKIP"
+  },
+  {
+   "case_id": "D33",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 34,
+   "expected": "CANDIDATE_UNPUBLISHED_IF_ELIGIBLE_ELSE_SKIP",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description names \"mixed\", which the product title does not",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "D34",
+   "file": "02_Dirty_Supplier.xlsx",
+   "row": 35,
+   "expected": "HOLD_BRAND_CONFLICT",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description names \"combined\", which the product title does not",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "held safely as IMPORTED/review_required"
+  },
+  {
+   "case_id": "P01",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 2,
+   "expected": "UPDATE_PURCHASE_COST_ONLY",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "7e06b0b3-0336-4758-af07-12049b50fd77",
+    "status": "review_required",
+    "reportedQuantity": 30,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "7e06b0b3-0336-4758-af07-12049b50fd77",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "P02",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 3,
+   "expected": "HOLD_IF_CONFIGURED_PRICE_POLICY",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+   "pass": true,
+   "why": "no cost written: IMPORTED/SKIP"
+  },
+  {
+   "case_id": "P03",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 4,
+   "expected": "SET_ISAVAILABLE_FALSE_IF_DEFINED_SEMANTICS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "cafb708a-5b78-461c-b281-5b7aec0b8a74",
+    "status": "review_required",
+    "reportedQuantity": 0,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "cafb708a-5b78-461c-b281-5b7aec0b8a74",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "P04",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 5,
+   "expected": "PRESERVE_EXISTING_AVAILABILITY",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "5b3eb14a-096b-424a-bd1c-979b4e5b9c72",
+    "status": "review_required",
+    "reportedQuantity": null,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "5b3eb14a-096b-424a-bd1c-979b4e5b9c72",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "P05",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 6,
+   "expected": "REVIEW_LIMITS_NO_OVERFLOW",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Reported quantity 999999 is implausibly large",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 999999,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "57e1cc85-b5d7-4835-ac46-4875fd0870ce",
+   "pass": true,
+   "why": "no cost written: IMPORTED/SKIP"
+  },
+  {
+   "case_id": "P06",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 7,
+   "expected": "NORMALIZE_0_NOT_MISSING",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "5ba3184e-f358-463d-b173-7cce34103ad1",
+    "status": "review_required",
+    "reportedQuantity": 0,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "5ba3184e-f358-463d-b173-7cce34103ad1",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "P07",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 8,
+   "expected": "REJECT",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Negative reported quantity",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "29c2a328-0c6b-4a98-a18b-a937c4685a68",
+   "pass": true,
+   "why": "reject expected, row ended INVALID/null"
+  },
+  {
+   "case_id": "P08",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 9,
+   "expected": "REJECT",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Invalid non-positive purchase cost value (-0.01)",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "reject expected, row ended INVALID/null"
+  },
+  {
+   "case_id": "P09",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 10,
+   "expected": "REJECT",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Invalid non-positive purchase cost value (0.00)",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "df182d93-bc03-4a08-b8b4-c3b85a9699c3",
+   "pass": true,
+   "why": "reject expected, row ended INVALID/null"
+  },
+  {
+   "case_id": "P10",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 11,
+   "expected": "DO_NOT_MUTATE_PURCHASE_COST",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Row price type is RETAIL_REFERENCE, not a purchase cost",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 16,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "46f0d800-528c-4a4b-b48b-1dbdeb31e4ef",
+   "pass": true,
+   "why": "no cost written: IMPORTED/SKIP"
+  },
+  {
+   "case_id": "P11",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 12,
+   "expected": "HOLD_PRICE_TYPE_MISSING",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Row price type is missing",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "1810bce1-bd0a-4ded-9e31-9e820340052a",
+   "pass": true,
+   "why": "no cost written: IMPORTED/SKIP"
+  },
+  {
+   "case_id": "P12",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 13,
+   "expected": "REJECT_OR_REQUIRE_REVIEW_EXPLICIT_CONVERSION",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Cost is stated in SAR; no conversion is applied and it requires review",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": "c003abee-8bf2-4820-add9-99a1f7201d96",
+   "pass": true,
+   "why": "no cost written: IMPORTED/SKIP"
+  },
+  {
+   "case_id": "P13",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 14,
+   "expected": "HOLD_AMBIGUOUS_DISCOUNT",
+   "actual": {
+    "outcome": "INVALID",
+    "reason": "Invalid non-positive purchase cost value (55%)",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "cccb65d4-862c-42ed-97fc-cfa5182b6cec",
+   "pass": true,
+   "why": "no cost written: INVALID/-"
+  },
+  {
+   "case_id": "P14",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 15,
+   "expected": "NO_AUTOMATIC_DISCOUNT_INFERENCE",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "135b093e-f52a-4985-a065-a4c217af909a",
+    "status": "review_required",
+    "reportedQuantity": 2,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UPDATE"
+   },
+   "expectedSku": "135b093e-f52a-4985-a065-a4c217af909a",
+   "pass": true,
+   "why": "parsed; commit action UPDATE"
+  },
+  {
+   "case_id": "P15",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 16,
+   "expected": "COUNT_PACK_UNITS_NOT_COMPONENTS",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": null,
+    "matchedSkuId": "6fdd49a4-dc6e-4b65-979f-4276da966be2",
+    "status": "review_required",
+    "reportedQuantity": 1,
+    "classification": "EXACT_MATCH",
+    "offerAction": "UNCHANGED"
+   },
+   "expectedSku": "6fdd49a4-dc6e-4b65-979f-4276da966be2",
+   "pass": true,
+   "why": "linked to the expected SKU"
+  },
+  {
+   "case_id": "P16",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 17,
+   "expected": "DO_NOT_MUTATE_COMPONENT_STOCK_AUTOMATICALLY",
+   "actual": {
+    "outcome": "IMPORTED",
+    "reason": "Pack description (50g Night Cream + 100ml Combined Wash) disagrees with the size in the product title",
+    "matchedSkuId": null,
+    "status": "review_required",
+    "reportedQuantity": 4,
+    "classification": null,
+    "offerAction": "SKIP"
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "no cost written: IMPORTED/SKIP"
+  },
+  {
+   "case_id": "P17",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 18,
+   "expected": "PARSE_IF_VALID_AND_CURRENCY_EGP",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_with_conflicting_values",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+   "pass": true,
+   "why": "abstained: DUPLICATE/-"
+  },
+  {
+   "case_id": "P18",
+   "file": "04_Price_Stock_Edges.xlsx",
+   "row": 19,
+   "expected": "PARSE_SAFELY_OR_ROW_LEVEL_REVIEW",
+   "actual": {
+    "outcome": "DUPLICATE",
+    "reason": "duplicate_supplier_sku_with_conflicting_values",
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": "469c7f4a-ebc7-43a8-ae83-54ee52c1851f",
+   "pass": true,
+   "why": "abstained: DUPLICATE/-"
+  },
+  {
+   "case_id": "C02",
+   "file": "09_Arabic_BOM_Semicolon.csv",
+   "row": 2,
+   "expected": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+   "actual": {
+    "outcome": "MAPPED_COLUMNS_PARSED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "parsed and staged for mapping"
+  },
+  {
+   "case_id": "C03",
+   "file": "09_Arabic_BOM_Semicolon.csv",
+   "row": 3,
+   "expected": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+   "actual": {
+    "outcome": "MAPPED_COLUMNS_PARSED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "parsed and staged for mapping"
+  },
+  {
+   "case_id": "C04",
+   "file": "09_Arabic_BOM_Semicolon.csv",
+   "row": 4,
+   "expected": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+   "actual": {
+    "outcome": "MAPPED_COLUMNS_PARSED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "parsed and staged for mapping"
+  },
+  {
+   "case_id": "C10",
+   "file": "09_Arabic_BOM_Semicolon.csv",
+   "row": 5,
+   "expected": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+   "actual": {
+    "outcome": "MAPPED_COLUMNS_PARSED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "parsed and staged for mapping"
+  },
+  {
+   "case_id": "C13",
+   "file": "09_Arabic_BOM_Semicolon.csv",
+   "row": 6,
+   "expected": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+   "actual": {
+    "outcome": "MAPPED_COLUMNS_PARSED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "parsed and staged for mapping"
+  },
+  {
+   "case_id": "C20",
+   "file": "09_Arabic_BOM_Semicolon.csv",
+   "row": 7,
+   "expected": "MAP_AND_STAGE_OR_EXPLAIN_UNSUPPORTED_DELIMITER",
+   "actual": {
+    "outcome": "MAPPED_COLUMNS_PARSED",
+    "reason": null,
+    "matchedSkuId": null,
+    "status": null,
+    "reportedQuantity": null,
+    "classification": null
+   },
+   "expectedSku": null,
+   "pass": true,
+   "why": "parsed and staged for mapping"
+  }
+ ]
+}

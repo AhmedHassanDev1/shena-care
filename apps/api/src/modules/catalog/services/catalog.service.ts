@@ -4,12 +4,13 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { Prisma, MediaOriginType, SafetyWarningKind } from '@prisma/client';
+import { Prisma, MediaOriginType, MediaRole, SafetyWarningKind } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CreateProductDto, UpdateProductDto } from '../dto/product.dto';
 import { CreateSkuDto, UpdateSkuDto } from '../dto/sku.dto';
 import { CreateProductMediaDto, UpdateProductMediaDto } from '../dto/media.dto';
 import { slugify } from '../utils/slug.util';
+import { normalizeSearchText } from '../search/search-text';
 import { requireMediaReview } from '../../../platform/security/media-review';
 import { MEDIA_STORAGE_PORT, MediaStoragePort } from '../../../platform/storage/media-storage.port';
 import { Inject } from '@nestjs/common';
@@ -197,6 +198,31 @@ export interface SkuLabel {
   size?: number | null;
   sizeUnit?: string | null;
   imageUrl?: string | null;
+}
+
+export interface SkuIdentityCandidateRequest {
+  key: string;
+  brandId: string;
+  query: string;
+  size: number | null;
+  sizeUnit: string | null;
+}
+
+export interface SkuIdentityCandidate {
+  skuId: string;
+  code: string;
+  productId: string;
+  productName: string;
+  brandName: string;
+  spf: number | null;
+  variantName: string;
+  size: number | null;
+  sizeUnit: string | null;
+  packCount: number | null;
+  barcode: string | null;
+  isActive: boolean;
+  barcodeAliases: string[];
+  textScore: number;
 }
 
 @Injectable()
@@ -832,6 +858,15 @@ export class CatalogService {
     };
   }
 
+  /** The identity facts of a SKU with its product and brand names, for evidence checks by other modules. */
+  async getSkuEvidenceFacts(skuId: string): Promise<{ size: number | null; sizeUnit: string | null; packCount: number | null; productName: string; brandName: string } | null> {
+    if (!this.isUuid(skuId)) return null;
+    const sku = await this.prisma.sku.findUnique({ where: { id: skuId }, select: {
+      size: true, sizeUnit: true, packCount: true, product: { select: { name: true, brand: { select: { name: true } } } } } });
+    if (!sku) return null;
+    return { size: sku.size ? sku.size.toNumber() : null, sizeUnit: sku.sizeUnit, packCount: sku.packCount, productName: sku.product.name, brandName: sku.product.brand.name };
+  }
+
   async validateSku(skuId: string): Promise<boolean> {
     if (!this.isUuid(skuId)) {
       return false;
@@ -843,6 +878,58 @@ export class CatalogService {
     });
 
     return sku !== null && sku.product.isPublished;
+  }
+
+  /**
+   * Top-K canonical SKUs per identity block, one SQL statement for the whole batch: the SKUs of the brand's K closest
+   * products by trigram similarity, plus the K closest in the stated packaging (the only reachable block when an Arabic
+   * row meets a Latin title). Retrieval only; callers rank and veto, and it proves nothing. Ties break on stable IDs.
+   */
+  async findSkuIdentityCandidates(requests: SkuIdentityCandidateRequest[], limit: number): Promise<Map<string, SkuIdentityCandidate[]>> {
+    const result = new Map<string, SkuIdentityCandidate[]>();
+    if (!requests.length) return result;
+    const payload = requests.map(request => ({ ...request, query: normalizeSearchText(request.query) }));
+    const score = Prisma.sql`public.similarity(catalog.search_normalize(p.name), r.query)`;
+    const columns = Prisma.sql`s.id AS "skuId", s.code, s.product_id AS "productId", p.name AS "productName", p.spf,
+      s.variant_name AS "variantName", s.size::float8 AS size, s.size_unit AS "sizeUnit", s.pack_count AS "packCount", s.barcode, s.is_active AS "isActive"`;
+    // LIMIT gives the planner the true row count (a set-returning function otherwise estimates 100, enough to pay for JIT).
+    // OFFSET 0 keeps the SKU probe a per-product index lookup instead of a hash join over every SKU in the catalog.
+    const rows = await this.prisma.$queryRaw<Array<SkuIdentityCandidate & { key: string }>>(Prisma.sql`
+      SELECT r.key, (SELECT b.name FROM catalog.brands b WHERE b.id = r."brandId") AS "brandName", c.*,
+        COALESCE((SELECT array_agg(a.barcode ORDER BY a.barcode) FROM catalog.sku_barcode_aliases a WHERE a.sku_id = c."skuId" AND a.status = 'approved'), ARRAY[]::varchar[]) AS "barcodeAliases"
+      FROM (SELECT * FROM jsonb_to_recordset(${JSON.stringify(payload)}::jsonb) AS x("key" text, "brandId" uuid, query text, size numeric, "sizeUnit" text) LIMIT ${payload.length}) r
+      CROSS JOIN LATERAL (
+        (SELECT ${columns}, p.score::float8 AS "textScore"
+          FROM (SELECT p.id, p.name, p.spf, ${score} AS score FROM catalog.products p WHERE p.brand_id = r."brandId" ORDER BY score DESC, p.id LIMIT ${limit}) p
+          CROSS JOIN LATERAL (SELECT * FROM catalog.skus s WHERE s.product_id = p.id OFFSET 0) s)
+        UNION ALL
+        (SELECT ${columns}, ${score}::float8 AS "textScore"
+          FROM catalog.products p
+          CROSS JOIN LATERAL (SELECT * FROM catalog.skus s WHERE s.product_id = p.id AND
+            ((s.size = r.size AND lower(s.size_unit) = lower(r."sizeUnit")) OR (s.size * 1000 = r.size AND lower(s.size_unit) IN ('l', 'kg'))) OFFSET 0) s
+          WHERE p.brand_id = r."brandId" AND r.size IS NOT NULL
+          ORDER BY ${score} DESC, p.id, s.id LIMIT ${limit})
+      ) c`);
+    const seen = new Set<string>();
+    for (const { key, ...candidate } of rows) {
+      if (seen.has(`${key}|${candidate.skuId}`)) continue;
+      seen.add(`${key}|${candidate.skuId}`);
+      if (!result.has(key)) result.set(key, []);
+      result.get(key)!.push(candidate);
+    }
+    return result;
+  }
+
+  /** The first verified image of each product, for reviewers. Never generated or derived media. */
+  async getVerifiedProductImages(productIds: string[]): Promise<Map<string, string>> {
+    if (!productIds.length) return new Map();
+    const media = await this.prisma.productMedia.findMany({
+      where: { productId: { in: productIds }, type: 'image', originType: MediaOriginType.verified },
+      select: { productId: true, url: true }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { id: 'asc' }],
+    });
+    const images = new Map<string, string>();
+    for (const { productId, url } of media) if (!images.has(productId)) images.set(productId, url);
+    return images;
   }
 
   async getSkuByBarcode(barcode: string): Promise<PublishedSku | null> {
@@ -1032,7 +1119,10 @@ export class CatalogService {
     }
 
     if (!dto.originType) throw new BadRequestException('Explicit media origin required; uploads are not automatically verified');
-    if (dto.originType === MediaOriginType.verified) {
+    if (dto.originType === MediaOriginType.generated && (dto.role === MediaRole.PRIMARY_PACKSHOT || dto.role === MediaRole.PACKAGING_PROOF)) {
+      throw new BadRequestException('Generated images can never be packaging or identity proof');
+    }
+    if (dto.originType === MediaOriginType.verified || dto.originType === MediaOriginType.derived) {
       await this.validateVerifiedMedia(productId, dto.generationMetadata, reviewerId);
     }
 
@@ -1047,9 +1137,10 @@ export class CatalogService {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${productId + ':' + dto.url}))`;
       const existing = await tx.productMedia.findFirst({ where: { productId, url: dto.url } });
       if (existing) {
-        if (dto.originType === MediaOriginType.verified) {
+        if (dto.originType === MediaOriginType.verified || dto.originType === MediaOriginType.derived) {
           return tx.productMedia.update({ where: { id: existing.id }, data: {
             originType: dto.originType, generationMetadata: dto.generationMetadata as Prisma.InputJsonValue,
+            ...(dto.role && { role: dto.role }), ...(dto.assetId && { assetId: dto.assetId }),
           } });
         }
         return existing;
@@ -1064,6 +1155,8 @@ export class CatalogService {
         isPrimary: dto.isPrimary ?? false,
         originType: dto.originType,
         generationMetadata: (dto.generationMetadata as Prisma.InputJsonValue) ?? undefined,
+        role: dto.role ?? null,
+        assetId: dto.assetId ?? null,
         },
       });
     });
@@ -1173,7 +1266,7 @@ export class CatalogService {
 
   private isReviewedProductMedia(media: { originType: string; generationMetadata: unknown }, skus: ProductWithRelations['skus']): boolean {
     try {
-      if (media.originType !== MediaOriginType.verified) return false;
+      if (media.originType !== MediaOriginType.verified && media.originType !== MediaOriginType.derived) return false;
       const review = requireMediaReview(media.generationMetadata);
       return skus.some(sku => sku.id === review.skuId && sku.isActive && sku.barcode === review.barcode &&
         sku.size?.toNumber() === review.size && sku.sizeUnit === review.sizeUnit && sku.variantName === review.variantName);

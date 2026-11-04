@@ -5,6 +5,8 @@ import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer
 
 // 5MB limit for MVP
 export const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// A 50,000-row supplier spreadsheet (GLO-285); the parser's row, column and archive bounds still apply.
+export const MAX_SUPPLIER_SPREADSHEET_SIZE = 25 * 1024 * 1024;
 
 const ALLOWED_MIME_TYPES = new Set([
   'image/jpeg',
@@ -39,4 +41,9 @@ export const multerOptions: MulterOptions = {
   // In a real production app, we would use memory storage or a secure S3 bucket
   // rather than disk storage to avoid arbitrary file writing. For MVP:
   storage: multer.memoryStorage(),
+};
+
+export const supplierSourceMulterOptions: MulterOptions = {
+  ...multerOptions,
+  limits: { fileSize: MAX_SUPPLIER_SPREADSHEET_SIZE },
 };

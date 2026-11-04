@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { uniqueGtin } from '../fixtures/gtin';
+import { admitDownstreamRows } from '../fixtures/downstream-admission';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
@@ -50,6 +52,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
+    await admitDownstreamRows(app);
 
     prisma = app.get(PrismaService);
     ingestionService = app.get(IngestionService);
@@ -204,7 +207,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
     createdIngredientIds.push(ingredient.id);
     const candidateId = randomUUID();
     createdCandidateIds.push(candidateId);
-    const barcode = `622${unique.slice(-10)}`;
+    const barcode = uniqueGtin();
     const packshot = await createVerifiedPackshot(supplierAId, candidateId, barcode);
     await prisma.ingestionItem.create({ data: {
       id: candidateId, jobId: jobAId, supplierSkuCode: `REVIEW-${unique}`,
@@ -231,7 +234,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
   // ───────────────────────────────────────────────────────────────────────────
   describe('1. Acceptance 1: Two Suppliers Submitting Same New Product (Final Dedup)', () => {
     it('creates exactly ONE Product and ONE Sku, but links TWO distinct supplier offers', async () => {
-      const sharedBarcode = `333787${Date.now().toString().slice(-7)}`;
+      const sharedBarcode = uniqueGtin();
       const brandName = `BrandDedup${Date.now()}`;
       const brandSlug = brandName.toLowerCase();
       createdBrandSlugs.push(brandSlug);
@@ -282,7 +285,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
           id: candidateBId,
           jobId: jobBId,
           supplierSkuCode: `SUP-B-SKU-${candidateBId.slice(0, 6)}`,
-          name: `${brandName} Nettoyant Hydratant 236ml`,
+          name: `${brandName} Hydrating Cleanser 236ml`,
           brand: brandName,
           barcode: sharedBarcode,
           price: 11.5,
@@ -375,7 +378,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
     it('blocks publication when verified packshot is missing', async () => {
       const candidateId = randomUUID();
       createdCandidateIds.push(candidateId);
-      const barcode = `BARCODE-${Date.now()}`;
+      const barcode = uniqueGtin();
 
       await prisma.ingestionItem.create({
         data: {
@@ -420,7 +423,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
 
       const candidateId = randomUUID();
       createdCandidateIds.push(candidateId);
-      const barcode = `BRAND-DRAFT-${Date.now()}`;
+      const barcode = uniqueGtin();
       const packshot = await createVerifiedPackshot(supplierAId, candidateId, barcode, 50, 'ml');
 
       await prisma.ingestionItem.create({
@@ -470,7 +473,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
     it('persists rejection reason and audit entry, and blocks subsequent publication', async () => {
       const candidateId = randomUUID();
       createdCandidateIds.push(candidateId);
-      const barcode = `REJECT-${Date.now()}`;
+      const barcode = uniqueGtin();
 
       await prisma.ingestionItem.create({
         data: {
@@ -515,7 +518,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
           supplierSkuCode: `RBAC-${candidateId.slice(0, 6)}`,
           name: 'RBAC Test Cleanser 200ml',
           brand: 'CeraVe',
-          barcode: `RBAC-${Date.now()}`,
+          barcode: uniqueGtin(),
           price: 25.0,
           priceType: IngestionPriceType.PURCHASE_COST,
           currency: 'USD',
@@ -552,7 +555,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
           supplierSkuCode: `REV-${candidateId.slice(0, 6)}`,
           name: 'Original Cleanser 150ml',
           brand: 'CeraVe',
-          barcode: `REV-${Date.now()}`,
+          barcode: uniqueGtin(),
           price: 20.0,
           priceType: IngestionPriceType.PURCHASE_COST,
           currency: 'USD',
@@ -595,7 +598,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
           supplierSkuCode: `RBAC2-${candidateId.slice(0, 6)}`,
           name: 'RBAC Gate Test Lotion 100ml',
           brand: 'CeraVe',
-          barcode: `RBAC2-${Date.now()}`,
+          barcode: uniqueGtin(),
           price: 18.0,
           priceType: IngestionPriceType.PURCHASE_COST,
           currency: 'USD',
@@ -635,7 +638,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
     it('preserves candidate state and recovers safely from publication failure without duplicate records', async () => {
       const candidateId = randomUUID();
       createdCandidateIds.push(candidateId);
-      const barcode = `RECOV-${Date.now()}`;
+      const barcode = uniqueGtin();
       const brandName = `BrandRecov${Date.now()}`;
       createdBrandSlugs.push(brandName.toLowerCase());
       await brandService.createBrand({ name: brandName });
@@ -713,7 +716,7 @@ describe('SG-10: Dependency-Aware Candidate Review, Final Dedup & Authorized Pub
           supplierSkuCode: `REQ-${candidateId.slice(0, 6)}`,
           name: 'Clarification Needed Cream 50ml',
           brand: 'CeraVe',
-          barcode: `REQ-${Date.now()}`,
+          barcode: uniqueGtin(),
           price: 15.0,
           currency: 'USD',
           status: IngestionStatus.pending,

@@ -7,8 +7,25 @@ import {
   TypedDiscount,
 } from '../contracts/row-normalization.contract';
 import { QuantityPresence, CanonicalPriceType } from '../contracts/canonical-supplier-record.contract';
+import { foldIdentityText } from './identity-text';
+
+const MEASURE_UNITS = 'ml|milli?liters?|millilitres?|cc|مل|ملي|ملل|مللي|l|liters?|litres?|لتر|g|gm|gr|grams?|جم|جرام|غم|غرام|kg|kilos?|كيلو|كجم|كغ';
 
 const SUPPORTED_CURRENCIES = new Set(['SAR', 'EGP', 'AED', 'USD', 'EUR', 'KWD', 'BHD', 'OMR', 'QAR']);
+/** Stored as stated and never converted; costs in another currency wait for a person. */
+const OPERATING_CURRENCY = 'EGP';
+/** A reported quantity beyond this is far more likely a placeholder or a typo than stock. */
+const MAX_PLAUSIBLE_QUANTITY = 100000;
+const PURCHASE_COST_LABELS = new Set(['purchase_cost', 'purchase cost', 'unit_purchase_cost', 'cost', 'wholesale', 'سعر الشراء', 'تكلفة', 'جملة']);
+const SPEC_NOISE_WORDS = new Set(['ml', 'g', 'gm', 'kg', 'l', 'oz', 'x', 'pack', 'pcs', 'pc', 'free', 'and', 'with', 'for', 'skin', 'only', 'plain', 'set', 'مل', 'جم', 'كجم', 'لتر', 'عبوة', 'قطعة']);
+
+/** Words of a pack description that its own title never mentions, within one script; another script cannot be compared. */
+function packSpecWordsAbsentFromTitle(spec: string, title: string): string[] {
+  const wordsOf = (value: string) => value.toLowerCase().normalize('NFKC').split(/[^\p{L}]+/u).filter(word => word.length > 1);
+  const titleWords = new Set(wordsOf(title));
+  const titleIsArabic = /[\u0600-\u06FF]/.test(title);
+  return wordsOf(spec).filter(word => !SPEC_NOISE_WORDS.has(word) && /[\u0600-\u06FF]/.test(word) === titleIsArabic && !titleWords.has(word));
+}
 
 // Curated skincare keywords (EN + normalized AR)
 const SKINCARE_KEYWORDS = [
@@ -168,6 +185,8 @@ export interface RawRowInput {
   /** Reviewed meaning of the discount column from the approved mapping profile. */
   discountBasis?: 'PERCENT' | 'AMOUNT_PER_UNIT';
   currency?: string;
+  /** The currency came from a cell in this row, not from the mapping an Admin approved for the whole file. */
+  currencyFromRow?: boolean;
   units?: string;
   /** Raw "last updated / effective" cell from the approved mapping's sourceTimestamp column. */
   sourceTimestamp?: unknown;
@@ -227,20 +246,15 @@ export class RowNormalizationService {
    * Normalizes Arabic and English text deterministically.
    * Cleans punctuation, normalizes Alef/Yaa/Taa Marbuta, strips Tashkeel, converts Eastern numerals.
    */
-  normalizeText(str: string): string {
+  normalizeText(str: string, fold: (value: unknown) => string = foldIdentityText): string {
     if (!str) return '';
 
-    return String(str)
-      .toLowerCase()
+    // NFKC, invisible marks, Arabic letter variants, tashkeel/tatweel and Arabic/Persian digits.
+    return fold(str)
       .trim()
-      // Convert Eastern Arabic numerals (٠-٩) to Western (0-9)
-      .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632))
-      // Normalize Arabic letter variants
-      .replace(/[أإآ]/g, 'ا')
-      .replace(/ة/g, 'ه')
-      .replace(/[ىي]/g, 'ي')
-      // Strip Tashkeel & Tatweel (ـ)
-      .replace(/[\u064B-\u065F\u0640]/g, '')
+      // A multiplication sign separates quantities; deleting it would fuse "2*100" into 2100.
+      .replace(/(\d\s*\p{L}*\s*)[×*](?=\s*\d)/gu, '$1 x ')
+      .replace(/[×*]/g, ' ')
       // Protect decimal dots between digits (e.g. 1.5L)
       .replace(/(\d)\.(\d)/g, '$1\uFFF0$2')
       // Replace noise, dots, and punctuation with space
@@ -271,14 +285,19 @@ export class RowNormalizationService {
       return { barcode: null, isValid: true };
     }
 
-    const digitsOnly = String(rawBarcode).replace(/\D/g, '');
-    if (!digitsOnly) {
+    // Formatting is not identity evidence. Preserve leading zeroes and reject contamination.
+    const digitsOnly = String(rawBarcode).normalize('NFKC').trim()
+      .replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
+      .replace(/[۰-۹]/g, d => String(d.charCodeAt(0) - 1776));
+    if (!/^\d+$/.test(digitsOnly)) {
       return { barcode: null, isValid: false };
     }
 
     // Standard valid barcode lengths
     if ([8, 12, 13, 14].includes(digitsOnly.length)) {
-      return { barcode: digitsOnly, isValid: true };
+      const payload = digitsOnly.slice(0, -1).split('').reverse();
+      const sum = payload.reduce((total, digit, index) => total + Number(digit) * (index % 2 === 0 ? 3 : 1), 0);
+      return { barcode: digitsOnly, isValid: (10 - sum % 10) % 10 === Number(digitsOnly.at(-1)) };
     }
 
     return { barcode: digitsOnly, isValid: false };
@@ -287,7 +306,7 @@ export class RowNormalizationService {
   /**
    * Extracts volume (ml/l), weight (g/kg), or pack count from a product title or packaging string.
    */
-  extractSizeAndPack(title: string, units?: string): {
+  extractSizeAndPack(title: string, units?: string, fold?: (value: unknown) => string): {
     size: number | null;
     unit: string | null;
     packCount: number | null;
@@ -297,17 +316,31 @@ export class RowNormalizationService {
     let unit: string | null = null;
     let packCount: number | null = null;
 
-    let cleanTitle = this.normalizeText(title);
-    const textToScan = `${cleanTitle} ${units ? this.normalizeText(units) : ''}`;
+    let cleanTitle = this.normalizeText(title, fold);
+    const textToScan = `${cleanTitle} ${units ? this.normalizeText(units, fold) : ''}`;
+
+    // 0. Multipacks: "2 x 100 ml", "100ml x 2". The count is a pack fact, the rest is the unit's measure.
+    const multipack = cleanTitle.match(new RegExp(`(?:^|\\s)(\\d+)\\s*x\\s*(\\d+(?:\\.\\d+)?\\s*(?:${MEASURE_UNITS}))(?:\\s|$)`, 'i'));
+    const reversedMultipack = multipack ? null : cleanTitle.match(new RegExp(`(?:^|\\s)(\\d+(?:\\.\\d+)?\\s*(?:${MEASURE_UNITS}))\\s*x\\s*(\\d+)(?:\\s|$)`, 'i'));
+    if (multipack || reversedMultipack) {
+      packCount = parseInt(multipack ? multipack[1] : reversedMultipack![2], 10);
+      cleanTitle = cleanTitle.replace((multipack ?? reversedMultipack)![0].trim(), multipack ? multipack[2] : reversedMultipack![1]).trim();
+    }
+    // Named units: "4 Ampoules * 15 Ml", "6 sachets 10 g". The noun already says these are countable, so a separator is optional.
+    const namedUnits = packCount === null ? cleanTitle.match(new RegExp(`(?:^|\\s)(\\d+)\\s*(?:ampoules?|amps?|vials?|sachets?|capsules?|tubes?|امبولات?|امبوله|كبسولات?|كبسوله|اكياس|فيال)\\s*(?:[x*×]\\s*)?(\\d+(?:\\.\\d+)?\\s*(?:${MEASURE_UNITS}))(?:\\s|$)`, 'i')) : null;
+    if (namedUnits) {
+      packCount = parseInt(namedUnits[1], 10);
+      cleanTitle = cleanTitle.replace(namedUnits[0].trim(), namedUnits[2]).trim();
+    }
 
     // 1. Pack count (e.g. "Pack of 3", "علبه من 2 حبه", "2 pcs", "2 حبه")
     const packRegex = /(?:^|\s)(?:pack\s*of|علبه\s*من|عبوه\s*من)\s*(\d+)(?:\s*حبه)?(?:\s|$)/i;
-    const packMatch = textToScan.match(packRegex);
+    const packMatch = packCount === null ? textToScan.match(packRegex) : null;
     if (packMatch) {
       packCount = parseInt(packMatch[1], 10);
       cleanTitle = cleanTitle.replace(packMatch[0].trim(), ' ').trim();
-    } else {
-      const pcsRegex = /(?:^|\s)(\d+)\s*(?:pack|pcs|pieces?|حبه|حبات|قطع|قطعه)(?:\s|$)/i;
+    } else if (packCount === null) {
+      const pcsRegex = /(?:^|\s)(\d+)\s*(?:pack|pcs|pc|pieces?|حبه|حبات|قطع|قطعه|عبوات|علب)(?:\s|$)/i;
       const pcsMatch = textToScan.match(pcsRegex);
       if (pcsMatch) {
         packCount = parseInt(pcsMatch[1], 10);
@@ -316,7 +349,7 @@ export class RowNormalizationService {
     }
 
     // 2. Volume in ml or l
-    const mlRegex = /(?:^|\s)(\d+(?:\.\d+)?)\s*(?:ml|milli?liters?|مل|ملي|ملل)(?:\s|$)/i;
+    const mlRegex = /(?:^|\s)(\d+(?:\.\d+)?)\s*(?:ml|milli?liters?|millilitres?|cc|مل|ملي|ملل|مللي|م\s?ل|سي\s?سي)(?:\s|$)/i;
     const mlMatch = cleanTitle.match(mlRegex);
     if (mlMatch) {
       size = parseFloat(mlMatch[1]);
@@ -334,14 +367,14 @@ export class RowNormalizationService {
 
     // 3. Weight in g or kg
     if (!size) {
-      const gRegex = /(?:^|\s)(\d+(?:\.\d+)?)\s*(?:g|gm|grams?|جم|جرام)(?:\s|$)/i;
+      const gRegex = /(?:^|\s)(\d+(?:\.\d+)?)\s*(?:g|gm|gr|grams?|جم|جرام|غم|غرام)(?:\s|$)/i;
       const gMatch = cleanTitle.match(gRegex);
       if (gMatch) {
         size = parseFloat(gMatch[1]);
         unit = 'g';
         cleanTitle = cleanTitle.replace(gMatch[0].trim(), ' ').trim();
       } else {
-        const kgRegex = /(?:^|\s)(\d+(?:\.\d+)?)\s*(?:kg|kilos?|كيلو|كجم)(?:\s|$)/i;
+        const kgRegex = /(?:^|\s)(\d+(?:\.\d+)?)\s*(?:kg|kilos?|كيلو|كجم|كغ)(?:\s|$)/i;
         const kgMatch = cleanTitle.match(kgRegex);
         if (kgMatch) {
           size = parseFloat(kgMatch[1]) * 1000;
@@ -589,10 +622,9 @@ export class RowNormalizationService {
     }
 
     // 2. Barcode normalization & check
+    // A bad barcode cell is not a bad row: it proves nothing, so identity waits for a reviewer and the rest stays usable.
     const barcodeResult = this.normalizeBarcode(input.barcode);
-    if (input.barcode && !barcodeResult.isValid) {
-      return this.createInvalidRow(input.sourceRowNumber, `Malformed barcode value: ${input.barcode}`, rawEvidence);
-    }
+    const invalidBarcode = input.barcode && !barcodeResult.isValid ? String(input.barcode) : undefined;
 
     // 3. Size / Volume extraction
     const sizePack = this.extractSizeAndPack(input.name, input.units);
@@ -622,6 +654,12 @@ export class RowNormalizationService {
     }
     const reviewReasons: string[] = [];
     const hasExplicitCost = input.price !== undefined && input.price !== null && input.price !== '';
+    if (input.priceType !== undefined && !PURCHASE_COST_LABELS.has(String(input.priceType ?? '').trim().toLowerCase())) {
+      reviewReasons.push(input.priceType ? `Row price type is ${input.priceType}, not a purchase cost` : 'Row price type is missing');
+    }
+    if (input.currencyFromRow && currencyStr !== OPERATING_CURRENCY) {
+      reviewReasons.push(`Cost is stated in ${currencyStr}; no conversion is applied and it requires review`);
+    }
     if (discountProblem === 'AMBIGUOUS') {
       // A bare number could be a percent or a currency amount; deriving cost from it would be a guess.
       if (!hasExplicitCost) {
@@ -688,6 +726,20 @@ export class RowNormalizationService {
     if (inventory.problem) {
       reviewReasons.push(`Quantity is not a plain unit count (${input.quantity}); stock left unknown`);
     }
+    if ((inventory.reportedQuantity ?? 0) > MAX_PLAUSIBLE_QUANTITY) {
+      reviewReasons.push(`Reported quantity ${inventory.reportedQuantity} is implausibly large`);
+    }
+    const absentWords = input.units ? packSpecWordsAbsentFromTitle(input.units, input.name) : [];
+    if (absentWords.length) {
+      reviewReasons.push(`Pack description names "${absentWords.join(' ')}", which the product title does not`);
+    }
+    if (input.units) {
+      const fromTitle = this.extractSizeAndPack(input.name);
+      const fromSpec = this.extractSizeAndPack(input.units);
+      const differs = fromTitle.size !== null && fromSpec.size !== null && (fromTitle.size !== fromSpec.size || fromTitle.unit !== fromSpec.unit);
+      const packDiffers = fromSpec.packCount !== null && (fromTitle.packCount ?? 1) !== fromSpec.packCount;
+      if (differs || packDiffers) reviewReasons.push(`Pack description (${input.units}) disagrees with the size in the product title`);
+    }
     const sourceTime = this.parseSourceTimestamp(input.sourceTimestamp);
     if (sourceTime.problem) {
       reviewReasons.push(`Source timestamp is ${sourceTime.problem.toLowerCase()} (${String(input.sourceTimestamp)}); freshness unproven`);
@@ -724,8 +776,12 @@ export class RowNormalizationService {
       status = NormalizedRowStatus.REVIEW;
       statusReason = [statusReason, ...reviewReasons].filter(Boolean).join('; ');
     }
+    if (invalidBarcode && status !== NormalizedRowStatus.OUT_OF_SCOPE) {
+      status = NormalizedRowStatus.REVIEW;
+      statusReason = [statusReason, `Malformed barcode value: ${invalidBarcode}`].filter(Boolean).join('; ');
+    }
     const holds = status === NormalizedRowStatus.REVIEW
-      ? { scope: scopeHold, fields: reviewReasons.length > 0 } : undefined;
+      ? { scope: scopeHold, fields: reviewReasons.length > 0, ...(invalidBarcode && { identity: true }) } : undefined;
 
     return {
       sourceRowNumber: input.sourceRowNumber,
@@ -736,7 +792,8 @@ export class RowNormalizationService {
       normalizedBrand,
       normalizedTitle: normalizedName,
       cleanBaseTitle: sizePack.cleanTitle,
-      normalizedBarcode: barcodeResult.barcode,
+      normalizedBarcode: invalidBarcode ? null : barcodeResult.barcode,
+      ...(invalidBarcode && { invalidBarcode }),
       extractedSize: sizePack.size,
       extractedUnit: sizePack.unit,
       extractedPackCount: sizePack.packCount,

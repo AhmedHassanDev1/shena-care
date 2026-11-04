@@ -1,3 +1,5 @@
+import { identityWords, phoneticSkeleton } from './identity-text';
+
 export type PolicyEffect = 'ALLOW' | 'DENY';
 export interface EligibilityDocument {
   /** Absent on historical snapshots: retain the original exact-label semantics. */
@@ -23,7 +25,8 @@ export function eligibilityMappingKey(value: string): string {
 // Context words qualify a stated brand; unknown words, alternatives and competing brands never corroborate it.
 const BRAND_CONTEXT = new Set(['ماركة', 'براند', 'منتجات', 'منتج', 'شركة', 'اصلي', 'مستورد',
   'كريم', 'غسول', 'مرطب', 'لوشن', 'سيروم', 'شامبو', 'بلسم', 'واقي', 'شمس', 'جل', 'فوم', 'للبشرة', 'الدهنية', 'الجافة', 'الحساسة',
-  'brand', 'original', 'imported', 'products', 'cream', 'cleanser', 'moisturizer', 'lotion', 'serum', 'shampoo', 'conditioner', 'gel', 'foam', 'face', 'wash',
+  'تونر', 'ماسك', 'مقشر', 'واش', 'فيس', 'للوجه', 'للشعر', 'للجسم',
+  'brand', 'original', 'imported', 'products', 'cream', 'cleanser', 'moisturizer', 'lotion', 'serum', 'shampoo', 'conditioner', 'gel', 'foam', 'face', 'wash', 'toner', 'mask', 'scrub', 'sunscreen',
   'ml', 'g', 'kg', 'l', 'مل', 'جم', 'ملي', 'لتر'].map(eligibilityMappingKey));
 const MEASUREMENT_UNITS = new Set(['ml', 'g', 'kg', 'l', 'مل', 'جم', 'ملي', 'لتر']);
 function isBrandContext(words: string[]): boolean {
@@ -35,6 +38,15 @@ const trigrams = (value: string) => {
   const text = `^${value}$`;
   return new Set(Array.from({ length: Math.max(0, text.length - 2) }, (_, i) => text.slice(i, i + 3)));
 };
+const SPELLING_SUGGESTION_SCORE = 0.5;
+/** Whole-label skeleton, word skeletons long enough to mean something, and initials ("LRP"). */
+function spellingKeys(label: string): string[] {
+  const words = identityWords(label);
+  const whole = phoneticSkeleton(words.join(''));
+  return [...new Set([...(whole.length >= 3 ? [`s:${whole}`] : []),
+    ...words.map(word => phoneticSkeleton(word)).filter(skeleton => skeleton.length >= 3).map(skeleton => `s:${skeleton}`),
+    ...(words.length >= 2 ? [`i:${words.map(word => word[0]).join('')}`] : words[0]?.length >= 2 && words[0].length <= 4 ? [`i:${words[0]}`] : [])])];
+}
 export function compileEligibilityPolicy(policy: { id: string; version: number; document: EligibilityDocument } | null) {
   const brands = new Map<string, Set<string>>();
   const categories = new Map<string, Set<string>>();
@@ -53,7 +65,10 @@ export function compileEligibilityPolicy(policy: { id: string; version: number; 
   const gramIndex = new Map<string, Set<string>>();
   const labelEvidence = new Map<string, { grams: Set<string>; label: string }>();
   const suggestionBrands = new Map<string, Set<string>>();
+  // Phonetic and shorthand keys reach across scripts and common spellings. Suggestions only: evaluate() never reads them.
+  const spellingIndex = new Map<string, Set<string>>();
   for (const b of doc?.brands ?? []) for (const label of [b.name, ...b.aliases]) {
+    for (const spelling of spellingKeys(label)) add(spellingIndex, spelling, eligibilityMappingKey(label));
     add(brands, key(label), b.id);
     const labelKey = eligibilityMappingKey(label);
     add(suggestionBrands, labelKey, b.id);
@@ -122,6 +137,11 @@ export function compileEligibilityPolicy(policy: { id: string; version: number; 
       const candidates = new Set<string>();
       for (const gram of query) for (const candidate of gramIndex.get(gram) ?? []) candidates.add(candidate);
       const best = new Map<string, BrandSuggestion>();
+      const spelled = new Set(spellingKeys(label.slice(0, 200)).flatMap(spelling => [...(spellingIndex.get(spelling) ?? [])]));
+      for (const candidate of spelled) for (const brandId of suggestionBrands.get(candidate) ?? []) {
+        const b = byBrand.get(brandId)!;
+        if ((best.get(b.id)?.score ?? 0) < SPELLING_SUGGESTION_SCORE) best.set(b.id, { brandId: b.id, name: b.name, matchedLabel: labelEvidence.get(candidate)!.label, score: SPELLING_SUGGESTION_SCORE, effect: b.effect });
+      }
       for (const candidate of candidates) {
         const evidence = labelEvidence.get(candidate)!;
         const overlap = [...query].filter(gram => evidence.grams.has(gram)).length;
