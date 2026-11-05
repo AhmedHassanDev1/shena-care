@@ -118,20 +118,20 @@ export function IdentityCandidates({
   const [evidence, setEvidence] = React.useState('')
   const confirm = useCommand(async (skuId: string) => {
     setPickedSkuId(skuId)
-    await api(`/ingestion/candidates/${candidateId}/approve`, { method: 'PATCH', body: { matchedSkuId: skuId, identityEvidence: evidence.trim() } })
+    await api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/approve`, { method: 'PATCH', body: { matchedSkuId: skuId, identityEvidence: evidence.trim() } })
     return skuId
   })
   // These endpoints may answer with no body, so success is stated here rather than read from the response.
   const differentProduct = useCommand(async () => {
-    await api(`/ingestion/candidates/${candidateId}/approve`, { method: 'PATCH', body: { createNewProduct: true, identityEvidence: evidence.trim() } })
+    await api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/approve`, { method: 'PATCH', body: { createNewProduct: true, identityEvidence: evidence.trim() } })
     return true
   })
   const hold = useCommand(async () => {
-    await api(`/ingestion/candidates/${candidateId}/request-more`, { method: 'POST', body: { requestedInfo: evidence.trim() } })
+    await api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/request-more`, { method: 'POST', body: { requestedInfo: evidence.trim() } })
     return true
   })
   const reject = useCommand(async () => {
-    await api(`/ingestion/candidates/${candidateId}/reject`, { method: 'PATCH', body: { reason: evidence.trim() } })
+    await api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/reject`, { method: 'PATCH', body: { reason: evidence.trim() } })
     return true
   })
   const anyPending = confirm.pending || differentProduct.pending || hold.pending || reject.pending

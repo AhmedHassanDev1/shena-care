@@ -86,7 +86,7 @@ export default function AdminCatalogReview() {
   const [selectedCandidateId, setSelectedCandidateId] = React.useState<string | null>(null)
   React.useEffect(() => {
     const candidate = new URLSearchParams(window.location.search).get('candidate')
-    if (candidate) setSelectedCandidateId(candidate)
+    if (candidate && /^[A-Za-z0-9_-]{1,64}$/.test(candidate)) setSelectedCandidateId(candidate)
   }, [])
 
   // Candidates query
@@ -379,7 +379,7 @@ function CandidateReviewModal({
   onUpdated: () => void
 }) {
   const { data: record, error, loading, reload } = useApi<ReviewRecord>(
-    `/ingestion/candidates/${candidateId}/review-record`
+    `/ingestion/candidates/${encodeURIComponent(candidateId)}/review-record`
   )
 
   const [activeTab, setActiveTab] = React.useState<'overview' | 'correction' | 'requestMore'>('overview')
@@ -432,7 +432,7 @@ function CandidateReviewModal({
     try {
       const formData = new FormData()
       formData.append('file', file)
-      const res = await api<{ url: string; type: string }>(`/ingestion/candidates/${candidateId}/media`, {
+      const res = await api<{ url: string; type: string }>(`/ingestion/candidates/${encodeURIComponent(candidateId)}/media`, {
         method: 'POST',
         body: formData,
       })
@@ -449,7 +449,7 @@ function CandidateReviewModal({
   }
 
   const correctCmd = useCommand(async () => {
-    return api(`/ingestion/candidates/${candidateId}/correct`, {
+    return api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/correct`, {
       method: 'PATCH',
       body: {
         name: correctName.trim() || undefined,
@@ -461,7 +461,7 @@ function CandidateReviewModal({
   })
 
   const requestMoreCmd = useCommand(async () => {
-    return api(`/ingestion/candidates/${candidateId}/request-more`, {
+    return api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/request-more`, {
       method: 'POST',
       body: { requestedInfo: requestedInfo.trim() },
     })
@@ -480,7 +480,7 @@ function CandidateReviewModal({
     }))
 
     try {
-      const res = await api(`/ingestion/candidates/${candidateId}/approve`, {
+      const res = await api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/approve`, {
         method: 'PATCH',
         body: {
           // createNewProduct unlinks: a row with a confirmed SKU stays on that SKU.
@@ -499,14 +499,14 @@ function CandidateReviewModal({
   })
 
   const rejectCandidateCmd = useCommand(async () => {
-    return api(`/ingestion/candidates/${candidateId}/reject`, {
+    return api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/reject`, {
       method: 'PATCH',
       body: { reason: rejectReason.trim() },
     })
   })
 
   const publishCmd = useCommand(async () => {
-    const res = await api(`/ingestion/candidates/${candidateId}/publish`, {
+    const res = await api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/publish`, {
       method: 'POST',
       body: {},
     })
@@ -515,14 +515,14 @@ function CandidateReviewModal({
   })
 
   const generateContentCmd = useCommand(async () => {
-    return api(`/ingestion/candidates/${candidateId}/content/generate`, {
+    return api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/content/generate`, {
       method: 'POST',
       body: {},
     })
   })
 
   const approveContentCmd = useCommand(async () => {
-    return api(`/ingestion/candidates/${candidateId}/content/approve`, {
+    return api(`/ingestion/candidates/${encodeURIComponent(candidateId)}/content/approve`, {
       method: 'POST',
       body: {},
     })
@@ -1125,7 +1125,7 @@ function MappingProfileApprovalCard({
     setErrors([])
     setSuccessReceipt(null)
     try {
-      const res = await api<{ id: string; importedJobs?: string[] }>(`/ingestion/profiles/${profile.id}/approve`, {
+      const res = await api<{ id: string; importedJobs?: string[] }>(`/ingestion/profiles/${encodeURIComponent(profile.id)}/approve`, {
         method: 'POST',
         body: {
           supplierId: profile.supplierId,
