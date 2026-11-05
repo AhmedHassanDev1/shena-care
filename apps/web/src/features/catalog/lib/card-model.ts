@@ -35,6 +35,16 @@ export interface CardModel {
   variants: CardVariant[];
   /** No variant can be ordered: «غير متوفر حاليًا». */
   unavailable: boolean;
+  /** Catalog-owned product line (e.g. «Golden Radiance», «Solar Defense»). */
+  productLine?: string | null;
+  /** Genuine usage instructions from catalog. */
+  usage?: string | null;
+  /** Genuine product description. */
+  description?: string | null;
+  /** Genuine compare-at price when on promotional discount. */
+  compareAtPrice?: { amount: number; currency: string } | null;
+  /** Calculated discount percentage (e.g. 20 for 20% off). */
+  discountPercent?: number | null;
 }
 
 type Sku = ProductView['skus'][number];
@@ -80,6 +90,15 @@ export function toCardModel(product: ProductView, locale: Locale, or = ' أو ')
   const sameUnit = sizes.length > 1 && sizes.every((s) => s.endsWith(` ${unit}`));
   const sizeLine = sizes.length === 0 ? null : sameUnit ? `${sizes.map((s) => s.split(' ')[0]).join(or)} ${unit}` : sizes.join(or);
 
+  const compareAt = cheapest?.price?.compareAtAmount;
+  const hasDiscount = Boolean(compareAt && cheapest && compareAt > cheapest.price.amount);
+  const discountPercent = hasDiscount && cheapest?.price?.amount
+    ? Math.round(((compareAt! - cheapest.price.amount) / compareAt!) * 100)
+    : null;
+  const compareAtPrice = hasDiscount && cheapest?.price?.currency
+    ? { amount: compareAt!, currency: cheapest.price.currency }
+    : null;
+
   return {
     id: product.id,
     slug: product.slug,
@@ -98,5 +117,10 @@ export function toCardModel(product: ProductView, locale: Locale, or = ' أو ')
       canOrder: true,
     })),
     unavailable: orderable.length === 0,
+    productLine: product.productLine?.name ?? null,
+    usage: product.usage ?? null,
+    description: product.description ?? null,
+    compareAtPrice,
+    discountPercent,
   };
 }
