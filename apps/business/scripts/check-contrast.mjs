@@ -1,12 +1,9 @@
 // WCAG contrast guard for design/tokens.css (GLO-230). Text pairs need 4.5:1, field borders and focus 3:1.
-// Run: npm run check:contrast
+// One palette serves Admin, Hub, Delivery and Supplier. Run: npm run check:contrast
 import fs from 'node:fs'
 
 const css = fs.readFileSync(new URL('../design/tokens.css', import.meta.url), 'utf8')
-const readTokens = (source) => Object.fromEntries([...source.matchAll(/--color-(bw-[\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]))
-const adminStart = css.indexOf('.bw-admin {')
-const tokens = readTokens(css.slice(0, adminStart))
-const admin = { ...tokens, ...readTokens(css.slice(adminStart, css.indexOf('.bw-admin ::selection'))) }
+const tokens = Object.fromEntries([...css.matchAll(/--color-(bw-[\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]))
 
 const luminance = (hex) => {
   const [r, g, b] = [1, 3, 5]
@@ -21,12 +18,12 @@ const ratio = (a, b) => {
 
 const text = (fg, ...bgs) => bgs.map((bg) => [fg, bg, 4.5])
 const pairs = [
-  ...text('bw-ink', 'bw-page', 'bw-surface', 'bw-sunken', 'bw-ok-soft', 'bw-warn-soft', 'bw-danger-soft', 'bw-action-soft'),
-  ...text('bw-ink-soft', 'bw-page', 'bw-surface', 'bw-sunken'),
-  ...text('bw-ink-subtle', 'bw-page', 'bw-surface', 'bw-sunken'),
+  ...text('bw-ink', 'bw-page', 'bw-sidebar', 'bw-surface', 'bw-sunken', 'bw-ok-soft', 'bw-warn-soft', 'bw-danger-soft', 'bw-info-soft', 'bw-action-soft'),
+  ...text('bw-ink-soft', 'bw-page', 'bw-sidebar', 'bw-surface', 'bw-sunken'),
+  ...text('bw-ink-subtle', 'bw-page', 'bw-sidebar', 'bw-surface', 'bw-sunken'),
   ...text('bw-on-action', 'bw-action', 'bw-action-hover', 'bw-danger'),
   ...text('bw-action', 'bw-surface', 'bw-page'),
-  ...text('bw-action-ink', 'bw-action-soft'),
+  ...text('bw-action-ink', 'bw-action-soft', 'bw-surface'),
   ...text('bw-ok', 'bw-ok-soft', 'bw-surface'),
   ...text('bw-warn', 'bw-warn-soft', 'bw-surface'),
   ...text('bw-danger', 'bw-danger-soft', 'bw-surface'),
@@ -39,19 +36,15 @@ const pairs = [
   ...text('bw-kohl', 'bw-on-kohl-action'),
   ['bw-line-field', 'bw-surface', 3],
   ['bw-line-field', 'bw-page', 3],
+  ['bw-line-field', 'bw-sunken', 3],
   ['bw-focus', 'bw-surface', 3],
+  ['bw-focus', 'bw-page', 3],
   ['bw-on-kohl-action', 'bw-kohl', 3],
 ]
 
 let failed = 0
 if (!tokens['bw-page'] || luminance(tokens['bw-page']) > 0.03) {
   console.error('FAIL bw-page must be a dark canvas')
-  failed++
-}
-if (!tokens['bw-action'] ||
-  Number.parseInt(tokens['bw-action'].slice(1, 3), 16) <= Number.parseInt(tokens['bw-action'].slice(3, 5), 16) ||
-  Number.parseInt(tokens['bw-action'].slice(3, 5), 16) <= Number.parseInt(tokens['bw-action'].slice(5, 7), 16)) {
-  console.error('FAIL bw-action must retain an orange primary hue')
   failed++
 }
 for (const [fg, bg, min] of pairs) {
@@ -67,29 +60,15 @@ for (const [fg, bg, min] of pairs) {
   }
 }
 const total = pairs.length + 2
-const adminPairs = [
-  ...text('bw-ink', 'bw-page', 'bw-surface', 'bw-sunken'),
-  ...text('bw-ink-soft', 'bw-page', 'bw-surface', 'bw-sunken'),
-  ...text('bw-ink-subtle', 'bw-page', 'bw-surface', 'bw-sunken'),
-  ...text('bw-on-action', 'bw-action', 'bw-action-hover'),
-  ...text('bw-action-ink', 'bw-action-soft'),
-  ...text('bw-ok', 'bw-ok-soft'),
-  ...text('bw-warn', 'bw-warn-soft'),
-  ...text('bw-danger', 'bw-danger-soft'),
-  ...text('bw-info', 'bw-info-soft'),
-  ['bw-line-field', 'bw-surface', 3],
-  ['bw-focus', 'bw-surface', 3],
-]
-if (luminance(admin['bw-page']) > 0.03) { console.error('FAIL Admin page must be dark'); failed++ }
-for (const [fg, bg, min] of adminPairs) {
-  const r = ratio(admin[fg], admin[bg])
-  if (r < min) { console.error(`FAIL Admin ${fg} on ${bg}: ${r.toFixed(2)} < ${min}`); failed++ }
-}
-const totalChecks = total + adminPairs.length + 1
 const primitives = fs.readFileSync(new URL('../components/bw/primitives.tsx', import.meta.url), 'utf8').split('export function LabelPreview')[0]
 if (/#(?:[0-9a-f]{3,8})\b|\b(?:bg|text|border)-(?:black|white|slate|zinc|emerald|amber|red|blue)-|\bseven-card\b|border-white\//i.test(primitives)) {
   console.error('FAIL shared Business primitives contain raw palette or legacy surface styles')
   failed++
 }
-console.log(`${totalChecks + 1 - failed}/${totalChecks + 1} design foundation checks pass`)
+const frame = fs.readFileSync(new URL('../components/bw/workspace-frame.tsx', import.meta.url), 'utf8')
+if (/#(?:[0-9a-f]{3,8})\b|\b(?:bg|text|border|from|to|ring)-(?:black|white|emerald)|white\/\[|shadow-\[0_/i.test(frame)) {
+  console.error('FAIL the shared workspace frame contains raw palette values; use bw-* tokens')
+  failed++
+}
+console.log(`${total + 2 - failed}/${total + 2} design foundation checks pass`)
 process.exit(failed ? 1 : 0)

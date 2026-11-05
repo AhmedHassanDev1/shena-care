@@ -18,10 +18,10 @@ type ButtonSize = 'md' | 'touch'
 
 const buttonClass: Record<ButtonVariant, string> = {
   primary: 'bg-bw-action text-bw-on-action hover:bg-bw-action-hover active:scale-[0.98] disabled:bg-bw-sunken disabled:text-bw-ink-subtle disabled:shadow-none',
-  secondary: 'border border-bw-line-field/70 bg-bw-surface text-bw-ink hover:bg-bw-sunken hover:border-bw-line-field active:scale-[0.98] disabled:text-bw-ink-subtle',
+  secondary: 'border border-bw-line bg-bw-surface text-bw-ink hover:bg-bw-sunken hover:border-bw-line-field active:scale-[0.98] disabled:text-bw-ink-subtle',
   danger: 'border border-bw-danger/40 bg-bw-danger-soft/60 text-bw-danger hover:bg-bw-danger-soft hover:brightness-110 active:scale-[0.98]',
   ghost: 'text-bw-ink-soft hover:text-bw-ink hover:bg-bw-sunken active:scale-[0.98]',
-  onKohl: 'bg-bw-on-kohl-action text-bw-on-action hover:brightness-110 shadow-sm active:scale-[0.98] disabled:opacity-60',
+  onKohl: 'bg-bw-on-kohl-action text-bw-on-action hover:brightness-90 active:scale-[0.98] disabled:opacity-60',
 }
 
 export interface BwButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -38,7 +38,7 @@ export function Button({ variant = 'primary', size = 'md', loading, className, c
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-bw-field px-4 font-semibold whitespace-nowrap transition-all duration-150 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 rounded-bw-field px-4 font-semibold whitespace-nowrap transition-[color,background-color,border-color,transform] duration-150 disabled:cursor-not-allowed',
         size === 'touch' ? 'h-bw-touch text-bw-body' : 'h-bw-control text-bw-small',
         buttonClass[variant],
         className,
@@ -161,7 +161,7 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={message ? `${id}-msg` : undefined}
         className={cn(
-          'h-bw-control w-full rounded-bw-field border bg-bw-surface/90 px-3.5 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle shadow-inner transition-all',
+          'h-bw-control w-full rounded-bw-field border bg-bw-surface px-3.5 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle transition-colors duration-150',
           'focus:border-bw-action focus:ring-1 focus:ring-bw-action/30 focus:outline-none',
           ltr && 'bw-code text-start',
           error ? 'border-bw-danger focus:border-bw-danger focus:ring-bw-danger/30' : 'border-bw-line-field hover:border-bw-ink-subtle',

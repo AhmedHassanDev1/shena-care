@@ -4,7 +4,7 @@ import * as React from 'react'
 import {
   Button, Checkbox, Code, DataTable, Dialog, Field, Notice, PageHeader, Search, Section, Select, Skeleton, StateBlock, StatusLabel, Switch, Tabs, Toast, useDialog,
 } from '@/components/bw/primitives'
-import { WorkspaceFrame } from '@/components/bw/workspace-frame'
+import { type Role, type WorkspaceMode, WorkspaceFrame } from '@/components/bw/workspace-frame'
 
 const colors = [
   ['Canvas', 'bg-bw-page', 'bw-page'],
@@ -16,6 +16,13 @@ const colors = [
   ['Danger', 'bg-bw-danger', 'bw-danger'],
   ['Info', 'bg-bw-info', 'bw-info'],
 ] as const
+
+const shellPreviews: Array<{ role: Role; active: string; mode: WorkspaceMode; label: string }> = [
+  { role: 'admin', active: 'orders', mode: 'desktop', label: 'الإدارة' },
+  { role: 'hub', active: 'receive', mode: 'desktop', label: 'المخزن' },
+  { role: 'supplier', active: 'rfq', mode: 'desktop', label: 'المورد' },
+  { role: 'driver', active: 'run', mode: 'mobile', label: 'التوصيل' },
+]
 
 export function Playground() {
   const [tab, setTab] = React.useState('one')
@@ -135,14 +142,21 @@ export function Playground() {
         </div>
       </Section>
 
-      <Section title="غلاف الإدارة" aside={<span className="text-bw-small text-bw-ink-soft">معاينة غير تفاعلية</span>}>
-        <div aria-label="معاينة غلاف الإدارة" className="bw-admin max-h-[33rem] overflow-auto rounded-bw-card border border-bw-line [&_.min-h-dvh]:min-h-[25rem]" inert>
-          <WorkspaceFrame role="admin" active="attention" mode="desktop" operator="معاينة التصميم">
-            <div className="p-6">
-              <p className="text-bw-heading font-semibold">منطقة محتوى الصفحة</p>
-              <p className="text-bw-small text-bw-ink-soft">تتغير الملاحة حسب الدور. لا توجد بيانات تشغيلية في هذه المعاينة.</p>
+      <Section title="غلاف مساحات العمل" aside={<span className="text-bw-small text-bw-ink-soft">معاينة غير تفاعلية · نفس النظام للأدوار الأربعة</span>}>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {shellPreviews.map(({ role, active, mode, label }) => (
+            <div key={role} className="space-y-2">
+              <p className="text-bw-small font-semibold text-bw-ink-soft">{label}</p>
+              <div aria-label={`معاينة غلاف ${label}`} className="max-h-[28rem] overflow-auto rounded-bw-card border border-bw-line [&_.min-h-dvh]:min-h-[22rem]" inert>
+                <WorkspaceFrame role={role} active={active} mode={mode} operator="معاينة التصميم">
+                  <div className="p-6">
+                    <p className="text-bw-heading font-semibold">منطقة محتوى الصفحة</p>
+                    <p className="text-bw-small text-bw-ink-soft">تتغير الملاحة حسب الدور. لا توجد بيانات تشغيلية في هذه المعاينة.</p>
+                  </div>
+                </WorkspaceFrame>
+              </div>
             </div>
-          </WorkspaceFrame>
+          ))}
         </div>
       </Section>
     </div>

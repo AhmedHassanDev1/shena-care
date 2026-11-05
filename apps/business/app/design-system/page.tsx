@@ -8,14 +8,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export const viewport: Viewport = { colorScheme: 'dark', themeColor: '#0b0b0e' }
+export const viewport: Viewport = { colorScheme: 'dark', themeColor: '#0a0a0b' }
 
 /** The playground is an authoring tool, never a production route. */
 export default function DesignSystemPage() {
   if (process.env.NODE_ENV !== 'development') notFound()
 
   return (
-    <div lang="ar" dir="rtl" className={`bw bw-admin ${bwFontVariables}`}>
+    <div lang="ar" dir="rtl" className={`bw ${bwFontVariables}`}>
       <Playground />
     </div>
   )
