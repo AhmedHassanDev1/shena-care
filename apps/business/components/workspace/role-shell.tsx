@@ -74,6 +74,7 @@ export function RoleShell({
   const operator = me.supplierName ? `${me.name} · ${me.supplierName}` : me.name
   return (
     <MeContext.Provider value={me}>
+      <div className={role === 'admin' ? 'bw-admin' : undefined}>
       <WorkspaceFrame
         role={role}
         active={active}
@@ -90,6 +91,7 @@ export function RoleShell({
       >
         {children}
       </WorkspaceFrame>
+      </div>
     </MeContext.Provider>
   )
 }

@@ -1,4 +1,38 @@
-# Business Design System v1 — Antigravity handoff
+# Business design foundation — Admin dark context
+
+The active Admin foundation is scoped to `apps/business`. The Storefront is independent and is never imported here. The visual direction uses the [Geist design system](https://vercel.com/geist/introduction) for operational clarity, contrast, and restraint. The user-provided dark dashboard reference sets the palette: charcoal layers, quiet gray borders, white primary actions, and Arabic type. It does not install a Geist component package.
+
+## Source and scope
+
+- `design/tokens.css` defines the existing `bw-*` semantic scale and the refined dark `.bw-admin` context. `design/admin.css` styles the Admin shell. `RoleShell` applies `.bw-admin` only for the Admin role.
+- `app/globals.css` still holds legacy console selectors. Their dark styles are not the foundation for new Admin surfaces. `design/glow.css`, the supplier, hub, driver, login, print, and old `/design/*` experiences are separate contexts.
+- All new Admin UI imports controls from `@/components/bw/primitives`. `components/ui` is low-level shadcn scaffolding and is not an alternate Admin component API. Do not add page-local colors or another theme provider.
+- `/design-system` is a development-only Admin component showcase, excluded from production routing and navigation.
+
+## Tokens and interaction rules
+
+The Admin context maps `bw-page` to a deep charcoal canvas, `bw-surface` to a raised graphite surface, `bw-sunken` to a quiet inset surface, `bw-ink*` to text hierarchy, and `bw-line*` to boundaries. `bw-action*` is off-white, with dark text on the filled action. There is no green Admin accent. `bw-ok|warn|danger|info` are semantic states with text and icons; success stays neutral, while warning and danger retain restrained alert color. Use `font-bw-display` for headings and `font-bw-text` for content; Alexandria and IBM Plex Sans Arabic support Arabic and Latin. Keep Western digits and codes in `<Code>` or `<bdi>`.
+
+Use `h-bw-control` (44px) and `h-bw-touch` (52px), `gap-bw-section`, `p-bw-page`, `rounded-bw-field`, `rounded-bw-card`, `rounded-bw-pill`, and `shadow-bw-card|overlay`. Admin cards use a border and restrained shadow. At narrow widths, stack content and retain the mobile navigation; at `lg` the sidebar becomes persistent. Use logical spacing and positioning for RTL/LTR. Limit transitions to the fast/normal scale and respect reduced motion.
+
+Controls provide visible keyboard focus, hover feedback, disabled styling, error text, pending state, empty state, and loading skeletons. Dialog and drawer use native `<dialog>` focus and Escape behavior. `Tabs` uses tab roles and arrow/Home/End keyboard selection. Search, select, checkbox, and switch use native controls and labels. The source of truth for colors and contrast checks is `design/tokens.css`; `scripts/check-contrast.mjs` checks both the established role palette and the Admin palette.
+
+## Core components
+
+| Need | Canonical export |
+| --- | --- |
+| Button | `Button` with primary, secondary, danger, ghost, onKohl variants |
+| Input and search | `Field`, `Search` |
+| Selection | `Select`, `Checkbox`, `Switch`, `Tabs` |
+| Badge and feedback | `StatusLabel`, `Notice`, `Toast` |
+| Card and layout | `Section` (also exported as `Card`), `PageHeader` |
+| Dialog and drawer | `Dialog` with `variant="dialog"` or `variant="drawer"`, `useDialog` |
+| Table | `DataTable` |
+| Empty, error and loading | `StateBlock`, `Skeleton` |
+
+## Migration boundary
+
+Existing Admin pages retain their current workflows and some page-local styling. The legacy `seven-*` styles, obsolete selectors in `globals.css`, and hardcoded colors in the shared `workspace-frame.tsx` and page implementations need targeted migration as each page is rebuilt. This foundation applies semantic charcoal tokens to shared components and isolates the Admin shell; it does not certify every legacy page as migrated. New pages should use only the canonical exports and semantic classes above.
 
 Scope: `apps/business` only. The live `/admin`, `/hub`, `/supplier`, and `/driver` routes keep their API calls, authorization, and business rules. The storefront design system is independent.
 

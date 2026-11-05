@@ -1,11 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { Monitor, Smartphone } from 'lucide-react'
 import {
-  Button, Code, DataTable, Field, Notice, PageHeader, Section, Skeleton, StateBlock, StatusLabel,
+  Button, Checkbox, Code, DataTable, Dialog, Field, Notice, PageHeader, Search, Section, Select, Skeleton, StateBlock, StatusLabel, Switch, Tabs, Toast, useDialog,
 } from '@/components/bw/primitives'
-import { type Role, WorkspaceFrame } from '@/components/bw/workspace-frame'
+import { WorkspaceFrame } from '@/components/bw/workspace-frame'
 
 const colors = [
   ['Canvas', 'bg-bw-page', 'bw-page'],
@@ -18,22 +17,14 @@ const colors = [
   ['Info', 'bg-bw-info', 'bw-info'],
 ] as const
 
-const roles: Array<{ id: Role; title: string; mode: 'desktop' | 'mobile'; active: string }> = [
-  { id: 'admin', title: 'الإدارة · سطح المكتب', mode: 'desktop', active: 'attention' },
-  { id: 'hub', title: 'المخزن · سطح المكتب', mode: 'desktop', active: 'receive' },
-  { id: 'supplier', title: 'المورد · الجوال', mode: 'mobile', active: 'pos' },
-  { id: 'driver', title: 'المندوب · الجوال', mode: 'mobile', active: 'run' },
-]
-
 export function Playground() {
-  const [role, setRole] = React.useState<Role>('admin')
-  const selected = roles.find((item) => item.id === role) ?? roles[0]
+  const [tab, setTab] = React.useState('one')
+  const dialog = useDialog()
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
-        eyebrow="Business Design System / v1"
-        title="لوحة نظام التصميم"
+        title="نظام تصميم الإدارة"
         meta="معاينة تطوير فقط · المكوّنات هنا لا ترسل بيانات ولا تنفّذ إجراءات تشغيلية."
       />
 
@@ -67,8 +58,8 @@ export function Playground() {
         <Section title="الأزرار والحقول">
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              <Button disabled>أساسي</Button>
-              <Button variant="secondary" disabled>ثانوي</Button>
+              <Button>أساسي</Button>
+              <Button variant="secondary">ثانوي</Button>
               <Button variant="danger" disabled>تحذيري</Button>
               <Button variant="ghost" disabled>هادئ</Button>
               <Button loading>جارٍ التنفيذ</Button>
@@ -78,6 +69,28 @@ export function Playground() {
               <Field label="حقل جاهز" placeholder="أدخل قيمة" readOnly />
               <Field label="حقل بخطأ" error="تحقّق من القيمة" value="" readOnly />
             </div>
+          </div>
+        </Section>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Section title="الاختيار والبحث">
+          <div className="space-y-4">
+            <Search label="بحث" placeholder="ابحث عن عنصر" />
+            <Select label="التصفية" options={[{ value: 'all', label: 'كل العناصر' }, { value: 'active', label: 'النشطة' }]} />
+            <Checkbox label="إظهار العناصر النشطة" defaultChecked />
+            <Switch label="التنبيهات" defaultChecked />
+          </div>
+        </Section>
+        <Section title="التبويبات والطبقات">
+          <div className="space-y-4">
+            <Tabs id="showcase-tabs" label="أقسام المعاينة" value={tab} onChange={setTab} items={[{ value: 'one', label: 'الأول' }, { value: 'two', label: 'الثاني' }]} />
+            <p id="showcase-tabs-panel" role="tabpanel" aria-labelledby={`showcase-tabs-${tab}`} className="text-bw-small text-bw-ink-soft">{tab === 'one' ? 'محتوى التبويب الأول' : 'محتوى التبويب الثاني'}</p>
+            <Button variant="secondary" onClick={dialog.open}>افتح الحوار</Button>
+            <Dialog dialogRef={dialog.ref} title="حوار توضيحي" footer={<Button onClick={dialog.close}>إغلاق</Button>}>
+              لا تُنفّذ هذه المعاينة أي إجراء تشغيلي.
+            </Dialog>
+            <Toast tone="ok" title="تم الحفظ">مثال على رسالة الحالة.</Toast>
           </div>
         </Section>
       </div>
@@ -122,23 +135,9 @@ export function Playground() {
         </div>
       </Section>
 
-      <Section title="غلاف التطبيق حسب الدور" aside={<span className="text-bw-small text-bw-ink-soft">معاينة غير تفاعلية للهيكل المشترك</span>}>
-        <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="اختر الدور للمعاينة">
-          {roles.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setRole(item.id)}
-              aria-pressed={role === item.id}
-              className={`inline-flex h-bw-control items-center gap-2 rounded-bw-field border px-3 text-bw-small ${role === item.id ? 'border-bw-action bg-bw-action-soft text-bw-action-ink' : 'border-bw-line bg-bw-sunken'}`}
-            >
-              {item.mode === 'desktop' ? <Monitor className="size-4" aria-hidden /> : <Smartphone className="size-4" aria-hidden />}
-              {item.title}
-            </button>
-          ))}
-        </div>
-        <div aria-label={`معاينة ${selected.title}`} className="max-h-[33rem] overflow-auto rounded-bw-card border border-bw-line [&_.min-h-dvh]:min-h-[25rem]" inert>
-          <WorkspaceFrame role={selected.id} active={selected.active} mode={selected.mode} operator="معاينة التصميم">
+      <Section title="غلاف الإدارة" aside={<span className="text-bw-small text-bw-ink-soft">معاينة غير تفاعلية</span>}>
+        <div aria-label="معاينة غلاف الإدارة" className="bw-admin max-h-[33rem] overflow-auto rounded-bw-card border border-bw-line [&_.min-h-dvh]:min-h-[25rem]" inert>
+          <WorkspaceFrame role="admin" active="attention" mode="desktop" operator="معاينة التصميم">
             <div className="p-6">
               <p className="text-bw-heading font-semibold">منطقة محتوى الصفحة</p>
               <p className="text-bw-small text-bw-ink-soft">تتغير الملاحة حسب الدور. لا توجد بيانات تشغيلية في هذه المعاينة.</p>

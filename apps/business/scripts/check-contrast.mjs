@@ -3,7 +3,10 @@
 import fs from 'node:fs'
 
 const css = fs.readFileSync(new URL('../design/tokens.css', import.meta.url), 'utf8')
-const tokens = Object.fromEntries([...css.matchAll(/--color-(bw-[\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]))
+const readTokens = (source) => Object.fromEntries([...source.matchAll(/--color-(bw-[\w-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1], m[2]]))
+const adminStart = css.indexOf('.bw-admin {')
+const tokens = readTokens(css.slice(0, adminStart))
+const admin = { ...tokens, ...readTokens(css.slice(adminStart, css.indexOf('.bw-admin ::selection'))) }
 
 const luminance = (hex) => {
   const [r, g, b] = [1, 3, 5]
@@ -64,5 +67,29 @@ for (const [fg, bg, min] of pairs) {
   }
 }
 const total = pairs.length + 2
-console.log(`${total - failed}/${total} design token checks pass`)
+const adminPairs = [
+  ...text('bw-ink', 'bw-page', 'bw-surface', 'bw-sunken'),
+  ...text('bw-ink-soft', 'bw-page', 'bw-surface', 'bw-sunken'),
+  ...text('bw-ink-subtle', 'bw-page', 'bw-surface', 'bw-sunken'),
+  ...text('bw-on-action', 'bw-action', 'bw-action-hover'),
+  ...text('bw-action-ink', 'bw-action-soft'),
+  ...text('bw-ok', 'bw-ok-soft'),
+  ...text('bw-warn', 'bw-warn-soft'),
+  ...text('bw-danger', 'bw-danger-soft'),
+  ...text('bw-info', 'bw-info-soft'),
+  ['bw-line-field', 'bw-surface', 3],
+  ['bw-focus', 'bw-surface', 3],
+]
+if (luminance(admin['bw-page']) > 0.03) { console.error('FAIL Admin page must be dark'); failed++ }
+for (const [fg, bg, min] of adminPairs) {
+  const r = ratio(admin[fg], admin[bg])
+  if (r < min) { console.error(`FAIL Admin ${fg} on ${bg}: ${r.toFixed(2)} < ${min}`); failed++ }
+}
+const totalChecks = total + adminPairs.length + 1
+const primitives = fs.readFileSync(new URL('../components/bw/primitives.tsx', import.meta.url), 'utf8').split('export function LabelPreview')[0]
+if (/#(?:[0-9a-f]{3,8})\b|\b(?:bg|text|border)-(?:black|white|slate|zinc|emerald|amber|red|blue)-|\bseven-card\b|border-white\//i.test(primitives)) {
+  console.error('FAIL shared Business primitives contain raw palette or legacy surface styles')
+  failed++
+}
+console.log(`${totalChecks + 1 - failed}/${totalChecks + 1} design foundation checks pass`)
 process.exit(failed ? 1 : 0)

@@ -17,10 +17,10 @@ type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'onKohl'
 type ButtonSize = 'md' | 'touch'
 
 const buttonClass: Record<ButtonVariant, string> = {
-  primary: 'bg-bw-action text-bw-on-action hover:bg-bw-action-hover shadow-[0_2px_12px_rgba(255,120,61,0.25)] hover:shadow-[0_4px_16px_rgba(255,120,61,0.35)] active:scale-[0.98] disabled:bg-bw-sunken disabled:text-bw-ink-subtle disabled:shadow-none',
+  primary: 'bg-bw-action text-bw-on-action hover:bg-bw-action-hover active:scale-[0.98] disabled:bg-bw-sunken disabled:text-bw-ink-subtle disabled:shadow-none',
   secondary: 'border border-bw-line-field/70 bg-bw-surface text-bw-ink hover:bg-bw-sunken hover:border-bw-line-field active:scale-[0.98] disabled:text-bw-ink-subtle',
   danger: 'border border-bw-danger/40 bg-bw-danger-soft/60 text-bw-danger hover:bg-bw-danger-soft hover:brightness-110 active:scale-[0.98]',
-  ghost: 'text-bw-ink-soft hover:text-bw-ink hover:bg-white/[0.04] active:scale-[0.98]',
+  ghost: 'text-bw-ink-soft hover:text-bw-ink hover:bg-bw-sunken active:scale-[0.98]',
   onKohl: 'bg-bw-on-kohl-action text-bw-on-action hover:brightness-110 shadow-sm active:scale-[0.98] disabled:opacity-60',
 }
 
@@ -62,10 +62,10 @@ export function Code({ children, className }: { children: React.ReactNode; class
 export type Tone = 'ok' | 'warn' | 'danger' | 'info' | 'neutral' | 'pending'
 
 const toneClass: Record<Tone, string> = {
-  ok: 'bg-emerald-500/10 text-[#79dfb3] border border-emerald-500/25',
-  warn: 'bg-amber-500/10 text-[#ffd486] border border-amber-500/25',
-  danger: 'bg-red-500/10 text-[#ff9eaa] border border-red-500/25',
-  info: 'bg-blue-500/10 text-[#9bc1ff] border border-blue-500/25',
+  ok: 'bg-bw-ok-soft text-bw-ok border border-bw-ok/25',
+  warn: 'bg-bw-warn-soft text-bw-warn border border-bw-warn/25',
+  danger: 'bg-bw-danger-soft text-bw-danger border border-bw-danger/25',
+  info: 'bg-bw-info-soft text-bw-info border border-bw-info/25',
   neutral: 'bg-bw-sunken text-bw-ink border border-bw-line/70',
   pending: 'bg-bw-sunken text-bw-ink-soft border border-bw-line/70',
 }
@@ -126,9 +126,9 @@ export function PageHeader({ eyebrow, title, meta, actions }: { eyebrow?: string
 
 export function Section({ title, aside, children, className }: { title?: React.ReactNode; aside?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn('seven-card', className)}>
+    <section className={cn('bw-panel', className)}>
       {title ? (
-        <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-5 py-4">
+        <div className="flex items-center justify-between gap-3 border-b border-bw-line px-5 py-4">
           <h2 className="text-bw-heading font-bold text-bw-ink">{title}</h2>
           {aside}
         </div>
@@ -164,7 +164,7 @@ export function Field({
           'h-bw-control w-full rounded-bw-field border bg-bw-surface/90 px-3.5 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle shadow-inner transition-all',
           'focus:border-bw-action focus:ring-1 focus:ring-bw-action/30 focus:outline-none',
           ltr && 'bw-code text-start',
-          error ? 'border-bw-danger focus:border-bw-danger focus:ring-bw-danger/30' : 'border-white/[0.08] hover:border-white/[0.15]',
+          error ? 'border-bw-danger focus:border-bw-danger focus:ring-bw-danger/30' : 'border-bw-line-field hover:border-bw-ink-subtle',
         )}
         {...input}
       />
@@ -177,6 +177,77 @@ export function Field({
     </div>
   )
 }
+
+/* Native controls share the Field geometry and browser keyboard behavior. */
+const controlClass = 'h-bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-surface px-3.5 text-bw-body text-bw-ink focus:border-bw-action focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-bw-danger'
+
+export function Select({ label, options, error, className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & {
+  label: string
+  options: Array<{ value: string; label: string }>
+  error?: string
+}) {
+  const id = React.useId()
+  return <div className={cn('space-y-1.5', className)}>
+    <label htmlFor={id} className="block text-bw-small font-semibold text-bw-ink">{label}</label>
+    <select id={id} aria-invalid={!!error || undefined} aria-describedby={error ? `${id}-error` : undefined} className={controlClass} {...props}>
+      {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+    {error ? <p id={`${id}-error`} className="text-bw-small text-bw-danger">{error}</p> : null}
+  </div>
+}
+
+export function Checkbox({ label, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+  return <label className={cn('inline-flex min-h-bw-control items-center gap-2 text-bw-small text-bw-ink', className)}>
+    <input type="checkbox" className="size-4 accent-bw-action" {...props} />{label}
+  </label>
+}
+
+export function Switch({ label, className, ...props }: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> & { label: string }) {
+  return <label className={cn('inline-flex min-h-bw-control items-center gap-3 text-bw-small text-bw-ink', className)}>
+    <span className="relative inline-flex">
+      <input type="checkbox" role="switch" className="peer sr-only" {...props} />
+      <span className="h-6 w-11 rounded-full bg-bw-line-field transition-colors peer-checked:bg-bw-action peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-bw-focus peer-disabled:opacity-50" />
+      <span className="pointer-events-none absolute start-1 top-1 size-4 rounded-full bg-bw-surface transition-transform peer-checked:translate-x-5 rtl:peer-checked:-translate-x-5" />
+    </span>{label}
+  </label>
+}
+
+export function Search({ label, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+  return <label className={cn('block space-y-1.5', className)}>
+    <span className="block text-bw-small font-semibold text-bw-ink">{label}</span>
+    <input type="search" className={controlClass} {...props} />
+  </label>
+}
+
+export function Tabs({ items, value, onChange, label, id }: {
+  items: Array<{ value: string; label: string }>
+  value: string
+  onChange: (value: string) => void
+  label: string
+  id: string
+}) {
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'Home' && event.key !== 'End') return
+    event.preventDefault()
+    const index = items.findIndex((item) => item.value === value)
+    const direction = getComputedStyle(event.currentTarget).direction === 'rtl' ? -1 : 1
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowRight' ? direction : -direction) + items.length) % items.length
+    onChange(items[next].value)
+    ;(event.currentTarget.querySelectorAll('[role="tab"]')[next] as HTMLButtonElement | undefined)?.focus()
+  }
+  return <div role="tablist" aria-label={label} onKeyDown={onKeyDown} className="inline-flex flex-wrap gap-1 rounded-bw-field border border-bw-line bg-bw-sunken p-1">
+    {items.map((item) => <button key={item.value} id={`${id}-${item.value}`} type="button" role="tab" aria-controls={`${id}-panel`} aria-selected={item.value === value} tabIndex={item.value === value ? 0 : -1} onClick={() => onChange(item.value)} className={cn('min-h-bw-control rounded-bw-field px-3 text-bw-small transition-colors', item.value === value ? 'bg-bw-surface font-semibold text-bw-ink shadow-bw-card' : 'text-bw-ink-soft hover:text-bw-ink')}>{item.label}</button>)}
+  </div>
+}
+
+export function Toast({ tone, title, children }: { tone: Exclude<Tone, 'pending'>; title: string; children?: React.ReactNode }) {
+  return <div role={tone === 'danger' ? 'alert' : 'status'} className="max-w-sm rounded-bw-card border border-bw-line bg-bw-surface p-4 text-bw-ink shadow-bw-overlay">
+    <StatusLabel tone={tone}>{title}</StatusLabel>
+    {children ? <div className="mt-2 text-bw-small text-bw-ink-soft">{children}</div> : null}
+  </div>
+}
+
+export const Card = Section
 
 /* ── Quantity stepper (touch) ────────────────────────────────────────── */
 
@@ -323,7 +394,7 @@ export function Dialog({
       aria-labelledby={titleId}
       onClose={onClose}
       className={cn(
-        'bw-dialog border border-bw-line bg-bw-surface text-bw-ink shadow-bw-overlay backdrop:bg-black/70',
+        'bw-dialog border border-bw-line bg-bw-surface text-bw-ink shadow-bw-overlay backdrop:bg-bw-kohl/70',
         variant === 'dialog' && 'm-auto w-[min(32rem,calc(100%-2rem))] rounded-bw-card',
         variant === 'drawer' && 'ms-auto me-0 h-dvh max-h-dvh w-[min(28rem,100%)] max-w-full',
         variant === 'sheet' && 'mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-md rounded-t-bw-card',
@@ -357,7 +428,7 @@ export function DataTable({ caption, head, children }: { caption: string; head: 
     <div className="overflow-x-auto">
       <table className="w-full min-w-[44rem] border-collapse text-start text-xs">
         <caption className="sr-only">{caption}</caption>
-        <thead className="border-b border-white/[0.06] bg-bw-sunken/40 text-bw-small text-bw-ink-subtle">
+        <thead className="border-b border-bw-line bg-bw-sunken/40 text-bw-small text-bw-ink-subtle">
           <tr>
             {head.map((h, i) => (
               <th key={i} scope="col" className="px-4 py-3 text-start font-semibold">
@@ -366,7 +437,7 @@ export function DataTable({ caption, head, children }: { caption: string; head: 
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/[0.04] [&_td]:px-4 [&_td]:py-3.5 [&_tr]:transition-colors [&_tr:hover]:bg-white/[0.02]">{children}</tbody>
+        <tbody className="divide-y divide-bw-line [&_td]:px-4 [&_td]:py-3.5 [&_tr]:transition-colors [&_tr:hover]:bg-bw-sunken/50">{children}</tbody>
       </table>
     </div>
   )
