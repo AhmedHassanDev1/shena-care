@@ -8,6 +8,7 @@ import { CategoryController } from './controllers/category.controller';
 import { ListingController } from './controllers/listing.controller';
 import { PriceController } from './controllers/price.controller';
 import { PurchaseOrderController } from './controllers/purchase-order.controller';
+import { RfqController } from './controllers/rfq.controller';
 import { BarcodeAliasController } from './controllers/barcode-alias.controller';
 import { MediaAssetController } from './controllers/media-asset.controller';
 import { ProductViewService } from './services/product-view.service';
@@ -37,6 +38,7 @@ import { RoutineCartController } from './controllers/routine-cart.controller';
     PriceController,        // /commerce/prices
     // /sourcing/* is served by the guarded SourcingController in the Sourcing module
     PurchaseOrderController,// /purchase-orders
+    RfqController,          // /rfq (BROADCAST_ON_DEMAND supplier workspace + staff)
     BarcodeAliasController, // /catalog/barcode-aliases (GLO-242)
     RoutineCartController,  // /care/me/routines/:id/cart, /care/workspace/proposals/:id/cart
   ],

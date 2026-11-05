@@ -13,6 +13,7 @@ import {
 } from './availability-policy';
 import { CreateSupplierDto, UpdateSupplierDto } from '../dto/supplier.dto';
 import { CreateSupplierOfferDto, UpdateSupplierOfferDto } from '../dto/supplier-offer.dto';
+import { isBroadcastMode } from '../config/procurement-batch.config';
 
 export interface SupplierDetail {
   id: string;
@@ -22,6 +23,8 @@ export interface SupplierDetail {
   closedWeekdays: number[];
   opensAt: string | null;
   closesAt: string | null;
+  rfqEnrolledAt?: Date | null;
+  rfqScopeSkuIds?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -93,6 +96,8 @@ export class SourcingService {
         ...(dto.pickupLeadMinutes !== undefined && { pickupLeadMinutes: dto.pickupLeadMinutes }),
         ...(dto.opensAt !== undefined && { opensAt: dto.opensAt }),
         ...(dto.closesAt !== undefined && { closesAt: dto.closesAt }),
+        ...(dto.rfqEnrolled !== undefined && { rfqEnrolledAt: dto.rfqEnrolled ? new Date() : null }),
+        ...(dto.rfqScopeSkuIds !== undefined && { rfqScopeSkuIds: dto.rfqScopeSkuIds }),
       },
     });
 
@@ -152,6 +157,8 @@ export class SourcingService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.slug !== undefined && { slug: dto.slug }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.rfqEnrolled !== undefined && { rfqEnrolledAt: dto.rfqEnrolled ? (current.rfqEnrolledAt ?? new Date()) : null }),
+        ...(dto.rfqScopeSkuIds !== undefined && { rfqScopeSkuIds: dto.rfqScopeSkuIds }),
       },
       });
     });
@@ -363,6 +370,9 @@ export class SourcingService {
    * order. Whether a signal alone is orderable is one owner-controlled switch, not per-surface logic.
    */
   async getPurchaseAvailability(skuId: string, at = new Date()): Promise<PurchaseAvailability> {
+    // BROADCAST_ON_DEMAND: no supplier stock or offer is required; the catalog/commerce listing gates sellability and
+    // suppliers answer an RFQ after the order. Nothing here claims stock, so there is no confirmed/observed time.
+    if (isBroadcastMode()) return { state: 'PROVISIONAL', orderable: true, confirmedAt: null, observedAt: null, validUntil: null };
     const offers = this.isUuid(skuId) ? await this.prisma.supplierOffer.findMany({
       where: { skuId, isAvailable: true, supplier: { isActive: true } },
       select: { lastConfirmedAt: true, lastObservedAt: true },

@@ -155,8 +155,19 @@ export function isEligibleForScheduledBatch(
   if (!isSupplierOperating(batchRunAt, schedule, timeZone)) {
     return false;
   }
+  return isDemandDueForCheckpoint(allocationSelectedAt, batchRunAt, timeZone);
+}
 
-  const allocLocal = local(allocationSelectedAt, timeZone);
+/**
+ * Checkpoint cutoff shared by PO batching and RFQ broadcast: demand placed after the latest elapsed checkpoint waits for
+ * the next one, and demand arriving between 00:00 and 01:00 waits for the morning (unless an authorized early flush).
+ */
+export function isDemandDueForCheckpoint(
+  demandCreatedAt: Date,
+  batchRunAt: Date,
+  timeZone = getProcurementBatchConfig().timeZone,
+): boolean {
+  const allocLocal = local(demandCreatedAt, timeZone);
   const runLocal = local(batchRunAt, timeZone);
 
   // If order was selected between 00:00 and 01:00 (0 <= minutes < 60)
@@ -171,7 +182,7 @@ export function isEligibleForScheduledBatch(
   const elapsed = checkpoints.filter(checkpoint => checkpoint <= runLocal.minutes);
   if (!elapsed.length) return false;
   const cutoff = wallTime(runLocal.date, elapsed[elapsed.length - 1], timeZone);
-  return allocationSelectedAt.getTime() <= cutoff.getTime();
+  return demandCreatedAt.getTime() <= cutoff.getTime();
 }
 
 /** First day strictly after `orderedAt` (Cairo) on which a supplier with this schedule is open. */

@@ -18,6 +18,8 @@ export const DOMAIN_EVENT_SUBSCRIPTIONS: Record<string, string[]> = {
   'purchase_order_line.distributed': ['sourcing.supply-plan-advance'],
   'purchase_order.shortfall': ['sourcing.supply-plan-advance'],
   'purchase_order.batch_flushed': ['sourcing.batch-audit'],
+  // BROADCAST_ON_DEMAND: unmet RFQ demand re-plans the affected orders (action required / customer decision).
+  'rfq.exhausted': ['sourcing.supply-plan-advance'],
 };
 
 export interface DomainEventInput {

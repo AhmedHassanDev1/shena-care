@@ -9,3 +9,6 @@ export * from './dto/supplier.dto';
 export * from './dto/supplier-offer.dto';
 export * from './dto/purchase-order.dto';
 export * from './services/supplier-schedule';
+export * from './services/rfq.service';
+export * from './dto/rfq.dto';
+export { getSourcingMode, isBroadcastMode } from './config/procurement-batch.config';

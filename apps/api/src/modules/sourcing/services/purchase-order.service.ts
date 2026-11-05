@@ -151,7 +151,7 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       let candidates = await tx.sourceAllocation.findMany({
         take: 500,
         where: {
-          result: 'pending', poLink: null, requirement: { releasedAt: null,
+          result: 'pending', poLink: null, supplierOfferId: { not: null }, requirement: { releasedAt: null,
             ...(filterOrOptions.recoveryOnly ? { allocations: { some: { result: { not: 'pending' } } } } : {}),
             ...(filterOrOptions.orderIds ? { supplyRequest: { orderId: { in: filterOrOptions.orderIds } } } : {}) },
           ...(filterOrOptions.supplierId ? { supplierOffer: { supplierId: filterOrOptions.supplierId } } : {}),
@@ -161,7 +161,7 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       });
       if (!candidates.length) return [];
       await this.supplyPlan.lockOrders(tx, candidates.map(a => a.requirement.supplyRequest.orderId));
-      for (const supplierId of [...new Set(candidates.map(a => a.supplierOffer.supplierId))].sort()) {
+      for (const supplierId of [...new Set(candidates.map(a => a.supplierOffer!.supplierId))].sort()) {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`commit:supplier:${supplierId}`}))`;
       }
       const checked = await this.supplyPlan.validatePendingAllocations(tx, candidates.map(a => a.id), filterOrOptions.expedited ?? false, now);
@@ -173,14 +173,14 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
 
       const bySupplier = new Map<string, typeof candidates>();
       for (const allocation of candidates) {
-        const list = bySupplier.get(allocation.supplierOffer.supplierId) ?? [];
+        const list = bySupplier.get(allocation.supplierOffer!.supplierId) ?? [];
         list.push(allocation);
-        bySupplier.set(allocation.supplierOffer.supplierId, list);
+        bySupplier.set(allocation.supplierOffer!.supplierId, list);
       }
 
       const purchaseOrderIds: string[] = [];
       for (const [supplierId, allocations] of bySupplier) {
-        const supplier = allocations[0].supplierOffer.supplier;
+        const supplier = allocations[0].supplierOffer!.supplier;
         const schedule = {
           closedWeekdays: supplier.closedWeekdays,
           closedDates: supplier.closedDates,
@@ -205,7 +205,7 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
 
         const lines = new Map<string, typeof eligibleAllocations>();
         for (const allocation of eligibleAllocations) {
-          const key = [allocation.requirement.skuId, allocation.selectedCost.toFixed(2), allocation.selectedCurrency, allocation.supplierOfferId].join('|');
+          const key = [allocation.requirement.skuId, allocation.selectedCost!.toFixed(2), allocation.selectedCurrency, allocation.supplierOfferId].join('|');
           lines.set(key, [...(lines.get(key) ?? []), allocation]);
         }
         if (!lines.size) continue;

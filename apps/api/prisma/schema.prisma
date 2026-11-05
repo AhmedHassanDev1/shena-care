@@ -609,9 +609,14 @@ model Supplier {
   /// Working hours "HH:MM" in the configured supplier timezone; empty uses the configured defaults.
   opensAt   String?  @map("opens_at") @db.VarChar(5)
   closesAt  String?  @map("closes_at") @db.VarChar(5)
+  /// BROADCAST_ON_DEMAND: set when staff approve the supplier to receive RFQs; null = not participating.
+  rfqEnrolledAt DateTime? @map("rfq_enrolled_at")
+  /// Optional product scope for RFQs (canonical SKU ids); empty = every SKU.
+  rfqScopeSkuIds String[] @default([]) @map("rfq_scope_sku_ids") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  rfqRecipients  RfqRecipient[]
   offers         SupplierOffer[]
   ingestionJobs  IngestionJob[]
   purchaseOrders SupplierPurchaseOrder[]
@@ -743,22 +748,25 @@ model SupplyRequirement {
 model SourceAllocation {
   id                String                    @id @default(uuid()) @db.Uuid
   requirementId     String                    @map("requirement_id") @db.Uuid
-  supplierOfferId   String                    @map("supplier_offer_id") @db.Uuid
+  supplierOfferId   String?                   @map("supplier_offer_id") @db.Uuid
   requestedQuantity Int                       @map("requested_quantity")
   allocatedQuantity Int                       @map("allocated_quantity")
   confirmedQuantity Int                       @default(0) @map("confirmed_quantity")
-  selectedCost      Decimal                   @map("selected_cost") @db.Decimal(10, 2)
-  selectedCurrency  String                    @map("selected_currency") @db.VarChar(3)
-  rankingDecisionId String                    @map("ranking_decision_id") @db.Uuid
+  selectedCost      Decimal?                  @map("selected_cost") @db.Decimal(10, 2)
+  selectedCurrency  String?                   @map("selected_currency") @db.VarChar(3)
+  rankingDecisionId String?                   @map("ranking_decision_id") @db.Uuid
   result            SourceConfirmationResult  @default(pending)
   reportedResult    SourceConfirmationResult? @map("reported_result")
   reportedQuantity  Int?                      @map("reported_quantity")
   selectedAt        DateTime                  @default(now()) @map("selected_at")
   confirmedAt       DateTime?                 @map("confirmed_at")
   evidenceRef       String?                   @map("evidence_ref") @db.VarChar(255)
+  /// BROADCAST_ON_DEMAND award: the supplier and RFQ demand source this allocation came from (no offer, no cost).
+  supplierId        String?                   @map("supplier_id") @db.Uuid
+  rfqDemandSourceId String?                   @map("rfq_demand_source_id") @db.Uuid
 
   requirement   SupplyRequirement            @relation(fields: [requirementId], references: [id], onDelete: Cascade)
-  supplierOffer SupplierOffer                @relation(fields: [supplierOfferId], references: [id])
+  supplierOffer SupplierOffer?               @relation(fields: [supplierOfferId], references: [id], onDelete: Restrict)
   poLink        PurchaseOrderLineAllocation?
 
   @@unique([requirementId, supplierOfferId])
@@ -923,6 +931,181 @@ model PurchaseOrderLine {
   @@index([distributionRequired, createdAt])
   @@schema("sourcing")
 }
+
+// ---------------------------------------------------------------------------
+// BROADCAST_ON_DEMAND procurement: non-binding RFQs, atomic per-line allocation, durable demand events
+// ---------------------------------------------------------------------------
+
+enum RfqStatus {
+  open
+  fulfilled
+  /// Every eligible supplier answered or timed out and demand remained: escalated to Admin / customer decision.
+  exhausted
+  closed
+
+  @@schema("sourcing")
+}
+
+enum RfqRecipientStatus {
+  pending
+  responded
+  timed_out
+
+  @@schema("sourcing")
+}
+
+enum RfqAnswer {
+  FULL
+  PARTIAL
+  UNAVAILABLE
+
+  @@schema("sourcing")
+}
+
+/// A working request for aggregated canonical-SKU demand. NOT a purchase order: a binding PO exists only after an allocation.
+model ProcurementRfq {
+  id          String    @id @default(uuid()) @db.Uuid
+  batchRef    String    @unique @map("batch_ref") @db.VarChar(64)
+  status      RfqStatus @default(open)
+  mode        String    @default("BROADCAST_ON_DEMAND") @db.VarChar(30)
+  expedited   Boolean   @default(false)
+  createdBy   String    @map("created_by")
+  reason      String?
+  closedAt    DateTime? @map("closed_at")
+  closeReason String?   @map("close_reason") @db.VarChar(40)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  recipients RfqRecipient[]
+  lines      RfqDemandLine[]
+  responses  RfqResponse[]
+  events     RfqEvent[]
+
+  @@index([status, createdAt])
+  @@map("procurement_rfqs")
+  @@schema("sourcing")
+}
+
+model RfqRecipient {
+  id          String             @id @default(uuid()) @db.Uuid
+  rfqId       String             @map("rfq_id") @db.Uuid
+  supplierId  String             @map("supplier_id") @db.Uuid
+  status      RfqRecipientStatus @default(pending)
+  /// INITIAL | RECOVERY (added later because the first audience could not cover the demand)
+  addedReason String             @default("INITIAL") @map("added_reason") @db.VarChar(20)
+  deadlineAt  DateTime           @map("deadline_at")
+  openedAt    DateTime?          @map("opened_at")
+  respondedAt DateTime?          @map("responded_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+
+  rfq      ProcurementRfq @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplier Supplier       @relation(fields: [supplierId], references: [id])
+
+  @@unique([rfqId, supplierId])
+  @@index([supplierId, status])
+  @@map("rfq_recipients")
+  @@schema("sourcing")
+}
+
+/// Authoritative demand for one canonical SKU in one RFQ. `version` bumps on every change; remaining quantity is
+/// derived from the active sources, so cancellations and awards can never drift apart.
+model RfqDemandLine {
+  id               String   @id @default(uuid()) @db.Uuid
+  rfqId            String   @map("rfq_id") @db.Uuid
+  skuId            String   @map("sku_id") @db.Uuid
+  requiredQuantity Int      @map("required_quantity")
+  awardedQuantity  Int      @default(0) @map("awarded_quantity")
+  version          Int      @default(1)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  rfq           ProcurementRfq    @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sources       RfqDemandSource[]
+  responseLines RfqResponseLine[]
+
+  @@unique([rfqId, skuId])
+  @@map("rfq_demand_lines")
+  @@schema("sourcing")
+}
+
+/// OrderItem-to-procurement lineage of a demand line; never exposed to suppliers.
+model RfqDemandSource {
+  id              String   @id @default(uuid()) @db.Uuid
+  demandLineId    String   @map("demand_line_id") @db.Uuid
+  requirementId   String   @map("requirement_id") @db.Uuid
+  orderId         String   @map("order_id") @db.Uuid
+  orderItemId     String   @map("order_item_id") @db.Uuid
+  quantity        Int
+  awardedQuantity Int      @default(0) @map("awarded_quantity")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  demandLine RfqDemandLine @relation(fields: [demandLineId], references: [id], onDelete: Cascade)
+
+  @@unique([demandLineId, requirementId])
+  @@index([requirementId])
+  @@map("rfq_demand_sources")
+  @@schema("sourcing")
+}
+
+model RfqResponse {
+  id              String   @id @default(uuid()) @db.Uuid
+  rfqId           String   @map("rfq_id") @db.Uuid
+  supplierId      String   @map("supplier_id") @db.Uuid
+  idempotencyKey  String   @map("idempotency_key") @db.VarChar(80)
+  requestHash     String   @map("request_hash") @db.VarChar(64)
+  purchaseOrderId String?  @map("purchase_order_id") @db.Uuid
+  createdBy       String   @map("created_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  rfq   ProcurementRfq    @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  lines RfqResponseLine[]
+
+  @@unique([rfqId, supplierId, idempotencyKey])
+  @@map("rfq_responses")
+  @@schema("sourcing")
+}
+
+model RfqResponseLine {
+  id              String    @id @default(uuid()) @db.Uuid
+  responseId      String    @map("response_id") @db.Uuid
+  demandLineId    String    @map("demand_line_id") @db.Uuid
+  supplierId      String    @map("supplier_id") @db.Uuid
+  answer          RfqAnswer
+  offeredQuantity Int       @map("offered_quantity")
+  awardedQuantity Int       @map("awarded_quantity")
+  basedOnVersion  Int       @map("based_on_version")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  response   RfqResponse   @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  demandLine RfqDemandLine @relation(fields: [demandLineId], references: [id], onDelete: Cascade)
+
+  /// A supplier answers each demand line once; a later change is new demand, never an edit of an accepted answer.
+  @@unique([demandLineId, supplierId])
+  @@index([responseId])
+  @@map("rfq_response_lines")
+  @@schema("sourcing")
+}
+
+/// Append-only stream and audit trail. `supplierId` null = every recipient of the RFQ. Payloads carry no customer
+/// data and never reveal which competitor was awarded. `seq` is the SSE resume cursor.
+model RfqEvent {
+  seq        BigInt   @id @default(autoincrement())
+  rfqId      String   @map("rfq_id") @db.Uuid
+  supplierId String?  @map("supplier_id") @db.Uuid
+  type       String   @db.VarChar(40)
+  actorId    String   @map("actor_id")
+  reason     String?
+  payload    Json
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  rfq ProcurementRfq @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+
+  @@index([rfqId, seq])
+  @@index([supplierId, seq])
+  @@map("rfq_events")
+  @@schema("sourcing")
+}
+
 
 enum PayableStatus {
   open

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import {
   Heart, HelpCircle, History,
   Home, LogOut, PackageOpen, Printer, RefreshCw, Route, ScanLine, Search,
-  ShieldAlert, ShoppingBag, Store, Truck, UserRound, Wallet,
+  Radio, ShieldAlert, ShoppingBag, Store, Truck, UserRound, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +39,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   supplier: {
     title: 'بوابة المورد',
     items: [
+      { id: 'rfq', label: 'طلبات التوريد المفتوحة', icon: Radio, href: '/supplier/rfq' },
       { id: 'orders', label: 'طلبات شيناكير', icon: ShoppingBag, href: '/supplier/orders' },
       { id: 'products', label: 'منتجاتي وأسعاري', icon: Store, href: '/supplier/products' },
       { id: 'updates', label: 'تحديث المخزون والأسعار', icon: RefreshCw, href: '/supplier/updates' },

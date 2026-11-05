@@ -11,13 +11,14 @@ import { SourcingController } from './controllers/sourcing.controller';
 import { SourcingEventListener } from './services/sourcing-event.listener';
 import { SupplyPlanService } from './services/supply-plan.service';
 import { SupplyPlanController } from './controllers/supply-plan.controller';
+import { RfqService } from './services/rfq.service';
 
 import { OperationsModule } from '../operations/operations.module';
 
 @Module({
   imports: [DomainEventsModule, DatabaseModule, CatalogModule, CommerceModule, OperationsModule],
   controllers: [SourcingController, SupplyPlanController],
-  providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener],
-  exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService],
+  providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener, RfqService],
+  exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, RfqService],
 })
 export class SourcingModule {}

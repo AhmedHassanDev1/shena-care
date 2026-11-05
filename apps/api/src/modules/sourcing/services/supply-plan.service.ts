@@ -5,6 +5,8 @@ import { RankingService } from './ranking.service';
 import { SOURCING_SIGNAL_MAX_AGE_MS } from './availability-policy';
 import { OutboxService } from '../../operations/services/outbox.service';
 import { committedDeliveryDeadline, RecoveryContext, recoveryExclusions } from './procurement-policy';
+import { RfqService } from './rfq.service';
+import { isBroadcastMode } from '../config/procurement-batch.config';
 
 type Tx = Prisma.TransactionClient;
 type Confirmation = Exclude<SourceConfirmationResult, 'pending'>;
@@ -32,6 +34,7 @@ export class SupplyPlanService {
     private readonly prisma: PrismaService,
     private readonly ranking: RankingService,
     private readonly outbox: OutboxService,
+    private readonly rfq: RfqService,
   ) {}
 
   private async lock(tx: Tx, orderId: string) {
@@ -98,25 +101,27 @@ export class SupplyPlanService {
       const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true } });
       if (!['placed', 'confirmed', 'packing'].includes(order.status) || !request.requirements.length) return this.present(request, request.status);
 
-      for (const requirement of request.requirements) {
+      // BROADCAST_ON_DEMAND: no offer ranking or stock caps; the RFQ service owns coverage and exhaustion for these requirements.
+      for (const requirement of isBroadcastMode() ? [] : request.requirements) {
         const confirmed = requirement.allocations.reduce((sum, a) => sum + a.confirmedQuantity, 0);
         const remaining = requirement.requiredQuantity - confirmed;
         if (remaining <= 0) continue;
         const pending = requirement.allocations.find(a => a.result === 'pending');
         // Issued on a purchase order: the supplier answers through the PO at its approved cost (GLO-237).
         if (pending?.poLink) continue;
+        if (pending && !pending.supplierOfferId) continue;
         if (pending) {
-          const offer = await tx.supplierOffer.findUnique({ where: { id: pending.supplierOfferId }, include: { supplier: true } });
+          const offer = await tx.supplierOffer.findUnique({ where: { id: pending.supplierOfferId! }, include: { supplier: true } });
           const stale = !offer || Date.now() - offer.lastObservedAt.getTime() > SOURCING_SIGNAL_MAX_AGE_MS;
           if (offer?.isAvailable && offer.supplier.isActive && !stale &&
-              offer.costPrice.equals(pending.selectedCost) && offer.currency === pending.selectedCurrency) continue;
+              offer.costPrice.equals(pending.selectedCost!) && offer.currency === pending.selectedCurrency) continue;
           await tx.sourceAllocation.update({ where: { id: pending.id }, data: {
-            result: offer && (!offer.costPrice.equals(pending.selectedCost) || offer.currency !== pending.selectedCurrency)
+            result: offer && (!offer.costPrice.equals(pending.selectedCost!) || offer.currency !== pending.selectedCurrency)
               ? 'price_changed' : 'unavailable', confirmedAt: new Date(),
           } });
         }
 
-        const attempted = requirement.allocations.map(a => a.supplierOfferId);
+        const attempted = requirement.allocations.map(a => a.supplierOfferId).filter((id): id is string => id !== null);
         const item = order.items.find(i => i.id === requirement.orderItemId)!;
         const recovery = attempted.length ? this.recoveryContext(order, item, remaining) : undefined;
         let ranked;
@@ -169,8 +174,10 @@ export class SupplyPlanService {
         r.allocations.reduce((sum, a) => sum + a.confirmedQuantity, 0) === r.requiredQuantity);
       const anyPending = refreshed.requirements.some(r => r.allocations.some(a => a.result === 'pending'));
       const anyConfirmed = refreshed.requirements.some(r => r.allocations.some(a => a.confirmedQuantity > 0));
-      const status: SupplyPlanStatus = allCovered ? 'COVERED' : anyPending ? 'CONFIRMING'
-        : anyConfirmed ? 'PARTIALLY_UNAVAILABLE' : 'UNAVAILABLE';
+      const anyAction = refreshed.requirements.some(r => r.actionRequirement);
+      const status: SupplyPlanStatus = allCovered ? 'COVERED'
+        : isBroadcastMode() ? (!anyAction ? 'CONFIRMING' : anyConfirmed ? 'PARTIALLY_UNAVAILABLE' : 'UNAVAILABLE')
+        : anyPending ? 'CONFIRMING' : anyConfirmed ? 'PARTIALLY_UNAVAILABLE' : 'UNAVAILABLE';
       if (status !== refreshed.status) {
         await tx.supplyRequest.update({ where: { id: request.id }, data: { status } });
         await tx.supplyPlanEvent.create({ data: { supplyRequestId: request.id, status } });
@@ -205,23 +212,23 @@ export class SupplyPlanService {
     const orders = await tx.order.findMany({ where: { id: { in: [...new Set(allocations.map(a => a.requirement.supplyRequest.orderId))] } }, include: { items: true } });
     const eligible: typeof allocations = [];
     const invalidOrderIds = new Set<string>();
-    const offerIds = [...new Set(allocations.map(a => a.supplierOfferId))];
+    const offerIds = [...new Set(allocations.map(a => a.supplierOfferId).filter((id): id is string => id !== null))];
     const [pending, confirmed] = await Promise.all([
       tx.sourceAllocation.groupBy({ by: ['supplierOfferId'], where: { supplierOfferId: { in: offerIds }, result: 'pending', requirement: { releasedAt: null } }, _sum: { allocatedQuantity: true } }),
       tx.sourceAllocation.groupBy({ by: ['supplierOfferId'], where: { supplierOfferId: { in: offerIds }, result: { in: ['confirmed_full', 'confirmed_partial'] }, requirement: { releasedAt: null } }, _sum: { confirmedQuantity: true } }),
     ]);
     const outstanding = new Map<string, number>();
-    for (const row of pending) outstanding.set(row.supplierOfferId, row._sum.allocatedQuantity ?? 0);
-    for (const row of confirmed) outstanding.set(row.supplierOfferId, (outstanding.get(row.supplierOfferId) ?? 0) + (row._sum.confirmedQuantity ?? 0));
+    for (const row of pending) outstanding.set(row.supplierOfferId!, row._sum.allocatedQuantity ?? 0);
+    for (const row of confirmed) outstanding.set(row.supplierOfferId!, (outstanding.get(row.supplierOfferId!) ?? 0) + (row._sum.confirmedQuantity ?? 0));
     for (const a of allocations) {
-      const offer = a.supplierOffer;
+      const offer = a.supplierOffer!;
       const order = orders.find(o => o.id === a.requirement.supplyRequest.orderId)!;
       const item = order.items.find(i => i.id === a.requirement.orderItemId)!;
       const reasons: string[] = [];
       if (!['placed', 'confirmed', 'packing'].includes(order.status) || item.lineState !== 'active') reasons.push('ORDER_NOT_ACTIVE');
       if (!offer.isAvailable || !offer.supplier.isActive) reasons.push('OFFER_UNAVAILABLE');
       if (now.getTime() - offer.lastObservedAt.getTime() > SOURCING_SIGNAL_MAX_AGE_MS) reasons.push('STALE_OFFER');
-      if (!offer.costPrice.equals(a.selectedCost) || offer.currency !== a.selectedCurrency) reasons.push('COST_CHANGED');
+      if (!offer.costPrice.equals(a.selectedCost!) || offer.currency !== a.selectedCurrency) reasons.push('COST_CHANGED');
       if (a.allocatedQuantity < offer.minimumOrderUnits || a.allocatedQuantity % offer.orderMultipleUnits) reasons.push('ORDER_TERMS');
       if (offer.availableQuantity !== null && (outstanding.get(offer.id) ?? 0) > offer.availableQuantity) reasons.push('CAPACITY_CHANGED');
       if (expedited) reasons.push(...recoveryExclusions({ ...offer, costPrice: offer.costPrice.toNumber() }, this.recoveryContext(order, item, a.allocatedQuantity, now)));
@@ -265,10 +272,10 @@ export class SupplyPlanService {
           : input.result === 'confirmed_partial' ? quantity > 0 && quantity < allocation.allocatedQuantity
           : quantity === 0);
       if (!valid) throw new BadRequestException('Confirmation quantity does not match the result or allocation');
-      const costChanged = !allocation.supplierOffer.costPrice.equals(allocation.selectedCost) ||
-        allocation.supplierOffer.currency !== allocation.selectedCurrency;
-      const offerUnavailable = !allocation.supplierOffer.isAvailable || !allocation.supplierOffer.supplier.isActive ||
-        Date.now() - allocation.supplierOffer.lastObservedAt.getTime() > SOURCING_SIGNAL_MAX_AGE_MS;
+      const costChanged = !allocation.supplierOffer!.costPrice.equals(allocation.selectedCost!) ||
+        allocation.supplierOffer!.currency !== allocation.selectedCurrency;
+      const offerUnavailable = !allocation.supplierOffer!.isAvailable || !allocation.supplierOffer!.supplier.isActive ||
+        Date.now() - allocation.supplierOffer!.lastObservedAt.getTime() > SOURCING_SIGNAL_MAX_AGE_MS;
       if ((costChanged || offerUnavailable) &&
           (input.result === 'confirmed_full' || input.result === 'confirmed_partial')) {
         await tx.sourceAllocation.update({ where: { id: allocationId }, data: {
@@ -393,10 +400,12 @@ export class SupplyPlanService {
     await this.lock(tx, orderId);
     const request = await tx.supplyRequest.findUnique({ where: { orderId } });
     if (!request) return; // sourcing has not started; nothing to release
+    const releasing = await tx.supplyRequirement.findMany({ where: { supplyRequestId: request.id, orderItemId: { in: change.releaseOrderItemIds }, releasedAt: null }, select: { id: true } });
     await tx.supplyRequirement.updateMany({
       where: { supplyRequestId: request.id, orderItemId: { in: change.releaseOrderItemIds }, releasedAt: null },
       data: { releasedAt: new Date() },
     });
+    await this.rfq.touchForRequirements(tx, releasing.map(r => r.id));
     await tx.availabilityActionRequirement.deleteMany({
       where: { requirement: { supplyRequestId: request.id, orderItemId: { in: change.releaseOrderItemIds } } },
     });
@@ -417,7 +426,9 @@ export class SupplyPlanService {
     await this.lock(tx, orderId);
     const request = await tx.supplyRequest.findUnique({ where: { orderId } });
     if (!request) return { supplierCommitments: [] };
+    const releasing = await tx.supplyRequirement.findMany({ where: { supplyRequestId: request.id, releasedAt: null }, select: { id: true } });
     await tx.supplyRequirement.updateMany({ where: { supplyRequestId: request.id, releasedAt: null }, data: { releasedAt: new Date() } });
+    await this.rfq.touchForRequirements(tx, releasing.map(r => r.id), 'system:order-cancelled');
     await tx.availabilityActionRequirement.deleteMany({ where: { requirement: { supplyRequestId: request.id } } });
     const links = await tx.purchaseOrderLineAllocation.findMany({ where: { orderId }, include: { line: true } });
     return { supplierCommitments: links
@@ -435,6 +446,8 @@ export class SupplyPlanService {
 
   /** Availability contract for candidate proposals: a ranked eligible source exists for this SKU/quantity. */
   async canSupply(skuId: string, quantity: number): Promise<boolean> {
+    // On-demand sourcing never knows supplier stock; whether a SKU can be bought is decided when suppliers answer the RFQ.
+    if (isBroadcastMode()) return true;
     try {
       const ranked = await this.ranking.rankOffersForSku(skuId, quantity);
       return ranked.rankedOffers.length > 0;
@@ -480,11 +493,11 @@ export class SupplyPlanService {
 
   private present(request: { id: string; orderId: string; requirements: Array<{
     orderItemId: string; skuId: string; requiredQuantity: number; allocations: Array<{
-      id: string; supplierOfferId: string; allocatedQuantity: number; confirmedQuantity: number;
-      result: SourceConfirmationResult; selectedCost: Prisma.Decimal; selectedCurrency: string;
+      id: string; supplierOfferId: string | null; allocatedQuantity: number; confirmedQuantity: number;
+      result: SourceConfirmationResult; selectedCost: Prisma.Decimal | null; selectedCurrency: string | null;
       reportedResult: SourceConfirmationResult | null;
       reportedQuantity: number | null;
-      selectedAt: Date; confirmedAt: Date | null; evidenceRef: string | null; rankingDecisionId: string;
+      selectedAt: Date; confirmedAt: Date | null; evidenceRef: string | null; rankingDecisionId: string | null;
     }>; actionRequirement: { category: string; unresolvedQuantity: number; createdAt: Date } | null;
   }> }, status: SupplyPlanStatus) {
     return { id: request.id, orderId: request.orderId, status,
@@ -494,7 +507,7 @@ export class SupplyPlanService {
           coveredQuantity, unresolvedQuantity: r.requiredQuantity - coveredQuantity,
           status: r.actionRequirement ? 'ACTION_REQUIRED' : coveredQuantity === r.requiredQuantity ? 'COVERED' : 'CONFIRMING',
           actionRequirement: r.actionRequirement,
-          allocations: r.allocations.map(a => ({ ...a, selectedCost: Number(a.selectedCost) })),
+          allocations: r.allocations.map(a => ({ ...a, selectedCost: a.selectedCost === null ? null : Number(a.selectedCost) })),
         };
       }),
     };

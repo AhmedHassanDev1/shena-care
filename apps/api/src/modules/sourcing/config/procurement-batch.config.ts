@@ -9,6 +9,23 @@ export const DEFAULT_SUPPLIER_OPENS_AT = '09:00';
 export const DEFAULT_SUPPLIER_CLOSES_AT = '01:00'; // Following day
 export const DEFAULT_SCHEDULE_TIME_ZONE = 'Africa/Cairo';
 
+/**
+ * Active sourcing mode (GLO-283). BROADCAST_ON_DEMAND is the MVP mode: demand goes out as non-binding RFQs to every
+ * enrolled supplier, with no SupplierOffer, stock signal or wholesale price needed. OFFER_BASED (offer ranking + stock
+ * caps from supplier files) stays in the code, inactive. Production must set SOURCING_MODE explicitly; an unset value
+ * keeps the legacy mode so no environment changes behaviour silently, and an unknown value refuses to start.
+ */
+export type SourcingMode = 'BROADCAST_ON_DEMAND' | 'OFFER_BASED';
+
+export function getSourcingMode(env: NodeJS.ProcessEnv = process.env): SourcingMode {
+  const value = env.SOURCING_MODE?.trim();
+  if (!value) return 'OFFER_BASED';
+  if (value === 'BROADCAST_ON_DEMAND' || value === 'OFFER_BASED') return value;
+  throw new Error(`Invalid SOURCING_MODE "${value}"; use BROADCAST_ON_DEMAND or OFFER_BASED`);
+}
+
+export const isBroadcastMode = () => getSourcingMode() === 'BROADCAST_ON_DEMAND';
+
 export function getSupplierResponseMinutes(expedited = false): number {
   const value = Number(process.env[expedited ? 'PO_EXPEDITED_RESPONSE_MINUTES' : 'PO_NORMAL_RESPONSE_MINUTES']);
   return Number.isSafeInteger(value) && value > 0 && value <= 10080 ? value : expedited ? 30 : 60;
