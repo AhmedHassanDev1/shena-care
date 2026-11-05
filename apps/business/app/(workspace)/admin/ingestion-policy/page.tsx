@@ -1,167 +1,190 @@
 'use client'
 
 import * as React from 'react'
-import { Plus, History, Pencil, Check } from 'lucide-react'
-import { Button, Code, Dialog, Notice, PageHeader, Section, Skeleton, StateBlock, StatusLabel, useDialog } from '@/components/bw/primitives'
-import { CommandError, Page, Select, TextArea } from '@/components/workspace/kit'
+import Link from 'next/link'
+import { ArrowUpLeft, History, Plus, Search } from 'lucide-react'
+import { Button, Code, Dialog, PageHeader, Skeleton, StateBlock, Switch, Toast, useDialog } from '@/components/bw/primitives'
+import { CommandError } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
-import { api } from '@/lib/api'
-import { useApi, useCommand } from '@/lib/use-api'
-import { categoryGroup, createDraft, policyChanges, previewRequest, searchLabel } from '@/lib/ingestion-policy'
-import type { Brand, Category, GroupResponse, HoldGroup, Options, Policy, PolicyDocument } from '@/lib/ingestion-policy'
-import { AddBrand, HistoryView, HoldList, NameEditor, SearchField, supplierName } from './policy-editors'
-import type { MappingTask } from './policy-editors'
+import { api, ApiError } from '@/lib/api'
+import { useApi } from '@/lib/use-api'
+import { cn } from '@/lib/utils'
+import { brandMatches, formatDate, sortBrands } from '@/lib/catalog-policy'
+import type { CatalogPolicy, PolicyBrand, PolicyChange } from '@/lib/catalog-policy'
+import { BrandDetail, Monogram } from './brand-detail'
+import { AddBrandDrawer } from './add-brand'
+import { HistoryView } from './policy-editors'
 
-type Tab = 'brands' | 'categories' | 'names' | 'exceptions'
-const tabs: Array<[Tab, string]> = [['brands', 'البراندات'], ['categories', 'التصنيفات'], ['names', 'أسماء الموردين'], ['exceptions', 'الاستثناءات']]
-type BulkResult = { recheckedJobs: number; hasMore: boolean; results: Array<{ counts: { ALLOW: number; SKIP: number; HOLD: number } }> }
+/*
+ * Catalog Policy (قائمة السماح): which canonical Brands may enter the catalog, in which exact leaf categories, and which
+ * of their products never may. Each change is saved at once as the next approved policy version; the API decides every row.
+ */
 
-function Toggle({ name, checked, disabled, onChange }: { name: string; checked: boolean; disabled?: boolean; onChange: () => void }) {
-  return <Button variant="secondary" role="switch" aria-checked={checked} aria-label={`السماح لـ ${name}`} disabled={disabled} onClick={onChange} className="min-w-28">{checked && <Check className="size-4" aria-hidden />}{checked ? 'مفعّل' : 'غير مفعّل'}</Button>
+export type ChangeBody = { enabled?: boolean; categoryIds?: string[]; excludeProductId?: string; reason?: string; restoreProductId?: string }
+export type Commit = (brand: PolicyBrand, body: ChangeBody, key: string, success: string) => Promise<boolean>
+
+function brandStatus(brand: PolicyBrand): { text: string; tone: 'live' | 'quiet' | 'warn' } {
+  if (!brand.isActive) return { text: 'غير نشط في الكتالوج', tone: 'quiet' }
+  if (brand.denied) return { text: 'ممنوع', tone: 'quiet' }
+  if (!brand.enabled) return { text: 'موقوف', tone: 'quiet' }
+  if (!brand.categoryIds.length) return { text: 'بدون تصنيفات بعد', tone: 'warn' }
+  return { text: `${brand.categoryIds.length} ${brand.categoryIds.length === 1 ? 'تصنيف' : brand.categoryIds.length <= 10 ? 'تصنيفات' : 'تصنيف'}`, tone: 'live' }
 }
-function DraftState({ changed }: { changed: boolean }) { return changed ? <StatusLabel tone="warn">تعديل غير محفوظ</StatusLabel> : null }
 
-function Editor({ current, options, onSaved, onDraft, tab, setTab }: { current: Policy | null; options: Options; onSaved: (message: string) => void; onDraft: () => void; tab: Tab; setTab: (tab: Tab) => void }) {
-  const [draft, setDraft] = React.useState(() => createDraft(current, options))
+function CatalogPolicyView() {
+  const policy = useApi<CatalogPolicy>('/ingestion/eligibility/catalog-policy')
   const [query, setQuery] = React.useState('')
-  const [filter, setFilter] = React.useState('all')
-  const [holdLimit, setHoldLimit] = React.useState(10)
-  const [refreshOnDiscard, setRefreshOnDiscard] = React.useState(false)
+  const [selectedId, setSelectedId] = React.useState<string | null>(null)
+  const [showDetailOnMobile, setShowDetailOnMobile] = React.useState(false)
+  const [pending, setPending] = React.useState<string | null>(null)
+  const [awaitVersion, setAwaitVersion] = React.useState<number | null>(null)
+  const [error, setError] = React.useState<ApiError | null>(null)
+  const [toast, setToast] = React.useState<{ title: string; body: string } | null>(null)
+  const [confirming, setConfirming] = React.useState<PolicyBrand | null>(null)
   const [adding, setAdding] = React.useState(false)
-  const [nameTask, setNameTask] = React.useState<MappingTask | null>(null)
   const [history, setHistory] = React.useState(false)
-  const [reason, setReason] = React.useState('')
-  const [preview, setPreview] = React.useState<Policy | null>(null)
-  const [feedback, setFeedback] = React.useState('')
-  const [recheckGroup, setRecheckGroup] = React.useState<HoldGroup | null>(null)
-  const review = useDialog()
-  const discard = useDialog()
-  const recheckDialog = useDialog()
-  const holds = useApi<GroupResponse>('/ingestion/eligibility/holds')
-  const changes = React.useMemo(() => policyChanges(current, draft), [current, draft])
-  const dirty = changes.length > 0
-  const parents = React.useMemo(() => new Set(draft.categories.map(c => c.parentId)), [draft.categories])
-  const leaves = draft.categories.filter(c => !parents.has(c.id))
-  const changedIds = new Set(changes.map(c => c.key))
+  const disableDialog = useDialog()
+
   React.useEffect(() => {
-    if (!dirty) return
-    const warn = (e: BeforeUnloadEvent) => { e.preventDefault() }
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [dirty])
-  const previewCommand = useCommand(async () => {
-    const request = previewRequest(current, draft, reason)
-    return api<Policy>(request.path, { method: 'POST', body: request.body })
-  })
-  const approve = useCommand(async () => {
-    const result = await api<Policy>(`/ingestion/eligibility/${preview!.id}/approve`, { method: 'POST' })
-    review.close()
-    onSaved(`تم حفظ التعديلات وتفعيل الإصدار ${result.version}.`)
-    return result
-  })
-  const recheck = useCommand(async () => {
-    let jobs = 0
-    const counts = { ALLOW: 0, SKIP: 0, HOLD: 0 }
-    let result: BulkResult
-    do {
-      result = await api<BulkResult>('/ingestion/eligibility/holds/recheck', { method: 'POST', body: {
-        supplierId: recheckGroup!.supplierId, brand: recheckGroup!.examples[0].brand, category: recheckGroup!.examples[0].category,
-        expectedVersion: current!.version, reason: reason.trim(),
-      } })
-      jobs += result.recheckedJobs
-      for (const item of result.results) { counts.ALLOW += item.counts.ALLOW; counts.SKIP += item.counts.SKIP; counts.HOLD += item.counts.HOLD }
-      setFeedback(`تم فحص ${jobs} ملف: مسموح ${counts.ALLOW} · مستبعد ${counts.SKIP} · معلّق ${counts.HOLD}`)
-      if (result.hasMore && !result.recheckedJobs) throw new Error('الفحص لم يتقدم. حمّل أحدث إصدار قبل المحاولة تاني.')
-    } while (result.hasMore)
-    if (!jobs) setFeedback('المجموعة اتفحصت بالفعل بالإصدار الحالي. اعتمد الربط الصحيح قبل إعادة الفحص.')
-    holds.reload()
-    recheckDialog.close()
-  })
-  const busy = previewCommand.pending || approve.pending || recheck.pending
-  const edit = (doc: PolicyDocument) => { setDraft(doc); setPreview(null); setFeedback(''); onDraft() }
-  const toggleBrand = (b: Brand) => edit({ ...draft, brands: draft.brands.map(x => x.id === b.id ? { ...x, effect: x.effect === 'ALLOW' ? null : 'ALLOW' } : x) })
-  const toggleCategory = (c: Category) => edit({ ...draft, categories: draft.categories.map(x => x.id === c.id ? { ...x, effect: x.effect === 'ALLOW' ? null : 'ALLOW' } : x) })
-  const matches = (text: string) => searchLabel(text).includes(searchLabel(query))
-  const listedBrandIds = new Set(current?.document.brands.filter(b => b.effect || b.aliases.length).map(b => b.id))
-  const visibleBrands = draft.brands.filter(b => (listedBrandIds.has(b.id) || b.effect || b.aliases.length) && matches(`${b.name} ${b.aliases.join(' ')}`) && (filter === 'all' || (b.effect === 'ALLOW') === (filter === 'enabled')))
-  const visibleLeaves = leaves.filter(c => matches(`${c.name} ${(c.aliases ?? []).join(' ')}`))
-  const visibleHolds = (holds.data?.groups ?? []).filter(g => matches(`${supplierName(options, g.supplierId)} ${g.examples[0]?.brand} ${g.examples[0]?.category}`))
-  const openResolve = (g: HoldGroup) => {
-    const example = g.examples[0]
-    const brand = g.reasons.some(r => r.startsWith('BRAND_'))
-    if (!brand && !example.category.trim()) { setFeedback('التصنيف ناقص في المصدر. راجع عمود التصنيف في ملف المورد؛ لا يمكن تخمينه من اسم المنتج.'); return }
-    setNameTask({ kind: brand ? 'brand' : 'mapping', supplierId: g.supplierId, label: example.category, group: g })
+    if (!toast) return
+    const id = window.setTimeout(() => setToast(null), 4000)
+    return () => window.clearTimeout(id)
+  }, [toast])
+
+  const data = policy.data
+  // A saved change is shown only once the server's own read model has caught up with it. Never optimistic.
+  const syncing = awaitVersion !== null && (data?.version ?? 0) < awaitVersion
+  const busy = pending !== null || syncing
+
+  const commit: Commit = React.useCallback(async (brand, body, key, success) => {
+    if (!data) return false
+    setPending(key)
+    setError(null)
+    try {
+      const result = await api<PolicyChange>(`/ingestion/eligibility/brands/${brand.id}`, { method: 'PATCH', body: { expectedVersion: data.version, ...body } })
+      if (result.changed) setAwaitVersion(result.version)
+      setToast({ title: success, body: result.changed ? `اتحفظ كإصدار ${result.version}. الملفات الجديدة بتتقرا بيه فورًا.` : 'مفيش تغيير يتحفظ.' })
+      policy.reload()
+      return true
+    } catch (err) {
+      const apiError = err instanceof ApiError ? err : new ApiError(String(err), 0)
+      setError(apiError.status === 409 && apiError.code === 'POLICY_CHANGED'
+        ? new ApiError('في تعديل تاني اتحفظ من شوية. الصفحة اتحدثت بآخر نسخة، راجعها وجرّب تاني.', 409, apiError.code) : apiError)
+      policy.reload()
+      return false
+    } finally {
+      setPending(null)
+    }
+  }, [data, policy])
+
+  if (policy.error && !data) return <LoadError message={policy.error.message} onRetry={policy.reload} />
+  if (!data) return <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]" aria-busy>
+    <p role="status" className="sr-only">تحميل قائمة السماح…</p>
+    <Skeleton className="h-[28rem]" /><Skeleton className="h-[28rem]" />
+  </div>
+
+  const brands = sortBrands(data.brands)
+  const visible = brands.filter(b => brandMatches(b, query))
+  const selected = brands.find(b => b.id === selectedId) ?? brands.find(b => b.enabled) ?? brands[0]
+  const enabledCount = brands.filter(b => b.enabled).length
+  const select = (brand: PolicyBrand) => {
+    setSelectedId(brand.id)
+    setShowDetailOnMobile(true)
+    setError(null)
   }
-  const changeTab = (next: Tab) => { setTab(next); setQuery(''); setFilter('all'); setHoldLimit(10) }
+  const toggle = (brand: PolicyBrand) => {
+    if (brand.enabled) { setConfirming(brand); disableDialog.open(); return }
+    void commit(brand, { enabled: true }, `enable:${brand.id}`, `${brand.name} مفعّل`)
+  }
+
   return <>
-    <fieldset disabled={busy} className="min-w-0 space-y-6 pb-24">
-      <PageHeader title="البراندات والتصنيفات المسموحة" meta="قائمة شيناكير المركزية لقبول منتجات الموردين" actions={<><Button variant="ghost" onClick={() => { if (dirty) { setRefreshOnDiscard(true); discard.open() } else onSaved('') }}>تحديث القائمة</Button><Button variant="ghost" onClick={() => setHistory(true)}><History className="size-4" aria-hidden />سجل التعديلات</Button></>} />
-      <div className="flex flex-wrap items-center gap-3 text-bw-small"><StatusLabel tone={current ? 'ok' : 'warn'}>{current ? `قائمة فعّالة · إصدار ${current.version}` : 'لا توجد قائمة معتمدة'}</StatusLabel>{dirty ? <StatusLabel tone="warn">مسودة غير محفوظة · {changes.length} تعديل</StatusLabel> : <span className="text-bw-ink-soft">كل التعديلات محفوظة</span>}</div>
-      <p className="max-w-2xl text-bw-small leading-relaxed text-bw-ink-soft">اختار البراندات والتصنيفات اللي شيناكير بتقبلها. المورد يرفع ملفه عادي، والمنتجات تتفلتر تلقائيًا بالقائمة المعتمدة.</p>
-      {feedback && <Notice tone="info" title="نتيجة المراجعة">{feedback}</Notice>}
-      <div role="tablist" aria-label="إدارة قائمة السماح" className="grid grid-cols-2 gap-1 border-b border-bw-line pb-2 sm:flex sm:gap-2">
-        {tabs.map(([id, title]) => <button key={id} id={`policy-tab-${id}`} role="tab" aria-label={title} aria-selected={tab === id} aria-controls={`policy-panel-${id}`} tabIndex={tab === id ? 0 : -1} onClick={() => changeTab(id)} onKeyDown={e => {
-          const index = tabs.findIndex(t => t[0] === id)
-          const next = e.key === 'ArrowLeft' ? (index + 1) % tabs.length : e.key === 'ArrowRight' ? (index + tabs.length - 1) % tabs.length : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1
-          if (next < 0) return
-          e.preventDefault(); changeTab(tabs[next][0]); document.getElementById(`policy-tab-${tabs[next][0]}`)?.focus()
-        }} className={`min-h-11 rounded-bw-field px-4 py-2 text-bw-small font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bw-action ${tab === id ? 'bg-bw-sunken text-bw-ink ring-1 ring-bw-line-field' : 'text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink'}`}>{title}{id === 'exceptions' && Boolean(holds.data?.totalGroups) && <span className="ms-2 text-bw-ink-soft"><Code>{holds.data!.totalGroups}</Code></span>}</button>)}
-      </div>
-      <div role="tabpanel" tabIndex={0} id={`policy-panel-${tab}`} aria-labelledby={`policy-tab-${tab}`} className="min-w-0 space-y-5">
-        {tab === 'brands' && <Section title="البراندات" aside={<Button onClick={() => setAdding(true)}><Plus className="size-4" aria-hidden />إضافة براند</Button>}>
-          <div className="flex flex-wrap items-end justify-between gap-4"><div className="min-w-0 flex-1"><SearchField label="ابحث في البراندات والأسماء البديلة" value={query} onChange={setQuery} /></div><Select label="عرض البراندات" value={filter} onChange={setFilter} options={[[ 'all', 'الكل' ], ['enabled', 'المفعّلة'], ['disabled', 'غير المفعّلة']]} /></div>
-          <ul className="mt-5 divide-y divide-bw-line">{visibleBrands.map(b => <li key={b.id} className="flex flex-col items-stretch justify-between gap-4 py-4 sm:flex-row sm:items-center"><div className="min-w-0 flex-1 space-y-1"><div className="flex flex-wrap items-center gap-2"><bdi className="text-bw-body font-semibold">{b.name}</bdi><DraftState changed={changedIds.has(`brand:${b.id}`)} /></div><p className="break-words text-bw-small text-bw-ink-soft">{b.aliases.join(' · ') || 'بدون أسماء إضافية'}{!b.isActive && ' · غير نشط في الكتالوج'}{b.effect === 'DENY' && ' · ممنوع صراحةً'}</p></div><div className="flex items-center justify-end gap-2"><Button variant="ghost" aria-label={`تعديل أسماء ${b.name}`} onClick={() => setNameTask({ kind: 'brand', id: b.id })}><Pencil className="size-4" aria-hidden /><span className="hidden sm:inline">الأسماء</span></Button><Toggle name={b.name} checked={b.effect === 'ALLOW'} disabled={!b.isActive && b.effect !== 'ALLOW'} onChange={() => toggleBrand(b)} /></div></li>)}</ul>
-          {!visibleBrands.length && <StateBlock kind="empty" title={query ? 'مفيش نتائج مطابقة' : 'مفيش براندات في العرض ده'} body="ابحث باسم تاني أو أضف براند موجود من الكتالوج." />}
-          <details className="mt-5 border-t border-bw-line pt-4"><summary className="cursor-pointer text-bw-small text-bw-ink-soft">خيارات المنع الصريح</summary><div className="mt-3"><Select label="منع براند محدد" value="" onChange={id => { if (id) edit({ ...draft, brands: draft.brands.map(b => b.id === id ? { ...b, effect: 'DENY' } : b) }) }} options={[[ '', 'اختار براند لمنعه صراحةً' ], ...draft.brands.map(b => [b.id, b.name] as [string, string])]} /></div></details>
-        </Section>}
-        {tab === 'categories' && <>
-          <SearchField label="ابحث في التصنيفات" value={query} onChange={setQuery} />
-          {['البشرة', 'الشعر', 'تصنيفات أخرى'].map(group => {
-            const items = visibleLeaves.filter(c => categoryGroup(c, draft.categories) === group)
-            if (!items.length) return null
-            return <Section key={group} title={group === 'البشرة' ? 'العناية بالبشرة' : group === 'الشعر' ? 'العناية بالشعر' : group}><ul className="divide-y divide-bw-line">{items.map(c => <li key={c.id} className="flex flex-col items-stretch justify-between gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"><div className="min-w-0 flex-1 space-y-1"><div className="flex flex-wrap items-center gap-2"><span className="font-semibold">{c.name}</span><DraftState changed={changedIds.has(`category:${c.id}`)} /></div>{Boolean(c.aliases?.length) && <p className="text-bw-small text-bw-ink-soft">{c.aliases!.join(' · ')}</p>}{!c.isActive && <p className="text-bw-small text-bw-ink-soft">غير نشط في الكتالوج</p>}{c.effect === 'DENY' && <p className="text-bw-small text-bw-danger">ممنوع صراحةً</p>}</div><div className="flex items-center justify-end gap-2"><Button variant="ghost" aria-label={`تعديل أسماء تصنيف ${c.name}`} onClick={() => setNameTask({ kind: 'category', id: c.id })}><Pencil className="size-4" aria-hidden /></Button><Toggle name={c.name} checked={c.effect === 'ALLOW'} disabled={!c.isActive && c.effect !== 'ALLOW'} onChange={() => toggleCategory(c)} /></div></li>)}</ul></Section>
+    <PageHeader eyebrow="مساحة الإدارة / الكتالوج" title="قائمة السماح"
+      meta="البراندات والتصنيفات اللي ممكن تدخل الكتالوج من أي ملف منتجات."
+      actions={<Button onClick={() => setAdding(true)} disabled={busy}><Plus className="size-4" aria-hidden />إضافة براند</Button>} />
+
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-bw-small text-bw-ink-soft">
+      {data.version
+        ? <span>الإصدار <Code>{data.version}</Code>{data.approvedAt && <> · آخر تعديل <bdi>{formatDate(data.approvedAt)}</bdi></>}</span>
+        : <span className="text-bw-warn">مفيش قائمة مفعّلة لسه — كل الصفوف هتتعلّق لحد ما تفعّل أول براند.</span>}
+      {data.version > 0 && <button type="button" onClick={() => setHistory(true)} className="inline-flex min-h-bw-control items-center gap-1.5 rounded-bw-field px-1 hover:text-bw-ink"><History className="size-4" aria-hidden />سجل التعديلات</button>}
+      {syncing && <span role="status">بيتحدث…</span>}
+    </div>
+
+    {error && <CommandError error={error} />}
+
+    <div className="grid gap-6 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start">
+      <section aria-label="البراندات" className={cn('bw-panel overflow-hidden lg:sticky lg:top-6', showDetailOnMobile && 'hidden lg:block')}>
+        <div className="space-y-3 border-b border-bw-line p-4">
+          <label className="relative block">
+            <span className="sr-only">ابحث عن براند</span>
+            <Search className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-bw-ink-subtle" aria-hidden />
+            <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="ابحث بالاسم بالعربي أو الإنجليزي"
+              className="h-bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-sunken ps-9 pe-3 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-action focus:outline-none" />
+          </label>
+          <p className="text-bw-small text-bw-ink-soft"><Code>{enabledCount}</Code> مفعّل من <Code>{brands.length}</Code> براند</p>
+        </div>
+        {visible.length ? <ul className="max-h-[calc(100dvh-16rem)] space-y-0.5 overflow-y-auto p-2">
+          {visible.map(brand => {
+            const status = brandStatus(brand)
+            const isSelected = brand.id === selected?.id
+            return <li key={brand.id} className={cn('flex items-center gap-2 rounded-bw-field pe-2 transition-colors', isSelected ? 'bg-bw-sunken ring-1 ring-bw-line-field' : 'hover:bg-bw-sunken/60')}>
+              <button type="button" onClick={() => select(brand)} aria-current={isSelected ? 'true' : undefined}
+                className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-bw-field px-2.5 py-2 text-start">
+                <Monogram name={brand.name} muted={!brand.enabled} logoUrl={brand.logoUrl} />
+                <span className="min-w-0">
+                  <bdi className={cn('block truncate font-semibold', !brand.enabled && 'text-bw-ink-soft')}>{brand.name}</bdi>
+                  <span className={cn('block text-bw-small', status.tone === 'warn' ? 'text-bw-warn' : 'text-bw-ink-subtle')}>{status.text}</span>
+                </span>
+              </button>
+              <Switch label="" aria-label={`قبول منتجات ${brand.name}`} checked={brand.enabled} onChange={() => toggle(brand)}
+                disabled={busy || (!brand.isActive && !brand.enabled)} className="min-h-0" />
+            </li>
           })}
-          {!visibleLeaves.length && <StateBlock kind="empty" title="مفيش تصنيفات مطابقة" body="جرّب كلمة بحث تانية. التصنيفات بتُدار من الكتالوج." />}
-          <details className="rounded-bw-card border border-bw-line p-4"><summary className="cursor-pointer text-bw-small font-semibold">إعدادات المنع المتقدمة</summary><p className="my-4 text-bw-small text-bw-ink-soft">السماح لتصنيف لا يفعّل فروعًا أخرى. منع مجموعة رئيسية بيمنع كل فروعها، حتى لو كانت مفعّلة.</p><ul className="divide-y divide-bw-line">{draft.categories.filter(c => parents.has(c.id)).map(c => <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><span>{c.name}</span><Button variant={c.effect === 'DENY' ? 'danger' : 'secondary'} aria-pressed={c.effect === 'DENY'} onClick={() => edit({ ...draft, categories: draft.categories.map(x => x.id === c.id ? { ...x, effect: x.effect === 'DENY' ? null : 'DENY' } : x) })}>{c.effect === 'DENY' ? 'إلغاء منع المجموعة' : 'منع المجموعة'}</Button></li>)}</ul>
-            <Select label="منع تصنيف محدد" value="" onChange={id => { if (id) edit({ ...draft, categories: draft.categories.map(c => c.id === id ? { ...c, effect: 'DENY' } : c) }) }} options={[[ '', 'اختار تصنيفًا لمنعه صراحةً' ], ...leaves.map(c => [c.id, c.name] as [string, string])]} />
-          </details>
-        </>}
-        {(tab === 'names' || tab === 'exceptions') && <>
-          <div className="flex flex-wrap items-end justify-between gap-4"><div className="min-w-0 flex-1"><SearchField label="ابحث باسم المورد أو الاسم المتكرر" value={query} onChange={setQuery} /></div>{tab === 'names' && <Button variant="secondary" onClick={() => setNameTask({ kind: 'mapping' })}><Plus className="size-4" aria-hidden />إضافة ربط اسم</Button>}</div>
-          {holds.error && <LoadError message={holds.error.message} onRetry={holds.reload} />}
-          {holds.loading ? <Skeleton className="h-40" /> : holds.data && <Section title={tab === 'names' ? 'أسماء محتاجة ربط' : 'مجموعات معلّقة'} aside={holds.data.totalGroups ? <span className="text-bw-small text-bw-ink-soft"><Code>{holds.data.totalGroups}</Code> مجموعة</span> : undefined}>
-            {visibleHolds.length ? <><p className="mb-5 text-bw-small text-bw-ink-soft">راجع الاسم مرة واحدة عشان يتطبق على كل مرات ظهوره. المنتجات نفسها مش محتاجة موافقة أهلية فردية.{dirty && ' احفظ التعديلات قبل إعادة فحص المجموعات.'}</p><HoldList groups={visibleHolds.slice(0, holdLimit)} options={options} onResolve={openResolve} onRecheck={g => { setReason(''); setRecheckGroup(g); recheck.clearError(); recheckDialog.open() }} canRecheck={Boolean(current) && !dirty} />{visibleHolds.length > holdLimit && <Button className="mt-5" variant="secondary" onClick={() => setHoldLimit(n => n + 10)}>عرض مجموعات أكثر</Button>}</> : <StateBlock kind="empty" title={query ? 'مفيش نتائج مطابقة' : 'مفيش أسماء معلّقة'} body={query ? 'جرّب اسم المورد أو البراند أو التصنيف.' : 'الأسماء المعروفة بتتطبق تلقائيًا. لو ظهر اسم غير محسوم هتلاقيه هنا.'} />}
-            {holds.data.totalGroups > holds.data.limit && <p className="mt-4 text-bw-small text-bw-ink-soft">المعروض أحدث {holds.data.limit} مجموعة من {holds.data.totalGroups}. حل المجموعات وحدّث القائمة لإظهار الأقدم. البحث داخل المجموعات المحمّلة.</p>}
-          </Section>}
-          {tab === 'names' && <Section title="الروابط المحفوظة والمسودة"><p className="mb-4 text-bw-small text-bw-ink-soft">أسماء البراندات المشتركة متاحة من زر الأسماء في تبويب البراندات. أسماء التصنيفات المشتركة متاحة من تبويب التصنيفات.</p><ul className="divide-y divide-bw-line">{draft.mappings.filter(m => matches(`${m.label} ${supplierName(options, m.supplierId)}`)).map(m => <li key={`${m.supplierId}:${m.label}`} className="flex flex-wrap items-center justify-between gap-3 py-4"><div className="min-w-0 flex-1 space-y-1"><p className="break-words font-semibold">{m.label}</p><p className="text-bw-small text-bw-ink-soft">{supplierName(options, m.supplierId)} · {m.categoryIds.map(id => draft.categories.find(c => c.id === id)?.name ?? 'تصنيف غير متاح').join(' / ')}</p>{m.categoryIds.length > 1 && <StatusLabel tone="warn">ربط ملتبس</StatusLabel>}<DraftState changed={changedIds.has(`${m.supplierId}:${m.label}`)} /></div><div className="flex gap-1"><Button variant="ghost" aria-label={`تعديل ربط ${m.label}`} onClick={() => setNameTask({ kind: 'mapping', supplierId: m.supplierId, label: m.label })}>تعديل</Button><Button variant="ghost" aria-label={`إزالة ربط ${m.label}`} onClick={() => edit({ ...draft, mappings: draft.mappings.filter(x => x !== m) })}>إزالة</Button></div></li>)}</ul>{!draft.mappings.length && <p className="text-bw-small text-bw-ink-soft">لسه مفيش روابط تصنيفات خاصة بالموردين.</p>}</Section>}
-        </>}
+        </ul> : <StateBlock kind="empty" title="مفيش براند بالاسم ده" body="جرّب كتابة تانية، أو أضفه كبراند جديد."
+          action={<Button variant="secondary" onClick={() => setAdding(true)}><Plus className="size-4" aria-hidden />إضافة براند</Button>} />}
+      </section>
+
+      <div className={cn('min-w-0', !showDetailOnMobile && 'hidden lg:block')}>
+        {selected
+          ? <BrandDetail key={selected.id} brand={selected} categories={data.categories} busy={busy} pending={pending}
+              onToggle={() => toggle(selected)} commit={commit} onBack={() => setShowDetailOnMobile(false)} />
+          : <div className="bw-panel"><StateBlock kind="empty" title="لسه مفيش براندات" body="أضف أول براند عشان تبدأ تحدد إيه اللي يدخل الكتالوج."
+              action={<Button onClick={() => setAdding(true)}><Plus className="size-4" aria-hidden />إضافة براند</Button>} /></div>}
       </div>
-    </fieldset>
-    {dirty && <div className="sticky bottom-24 z-10 lg:bottom-4 flex flex-wrap items-center justify-between gap-3 rounded-bw-card border border-bw-line-field bg-bw-surface p-4 shadow-bw-overlay"><div><p className="font-semibold">{changes.length} تعديل غير محفوظ</p><p className="text-bw-small text-bw-ink-soft">القائمة الفعّالة لسه زي ما هي.</p></div><div className="flex flex-wrap gap-2"><Button variant="ghost" disabled={busy} onClick={() => { setRefreshOnDiscard(false); discard.open() }}>تجاهل التعديلات</Button><Button disabled={busy} onClick={() => { setReason(''); setPreview(null); previewCommand.clearError(); approve.clearError(); review.open() }}>مراجعة وحفظ التعديلات</Button></div></div>}
-    <Dialog dialogRef={review.ref} title="مراجعة وحفظ التعديلات" footer={<><Button variant="secondary" disabled={busy} onClick={review.close}>رجوع للتعديل</Button>{preview ? <Button loading={approve.pending} disabled={busy} onClick={() => { void approve.execute() }}>تأكيد وتفعيل الإصدار {preview.baseVersion + 1}</Button> : <Button loading={previewCommand.pending} disabled={busy || reason.trim().length < 5} onClick={async () => { const result = await previewCommand.execute(); if (result) setPreview(result) }}>معاينة التأثير</Button>}</>}>
-      <div className="max-h-[60dvh] space-y-5 overflow-y-auto px-1"><CommandError error={previewCommand.error ?? approve.error} /><p className="text-bw-small text-bw-ink-soft">التعديلات هتسري على الاستيرادات الجديدة بعد التفعيل. الاستيرادات السابقة بتحتفظ بإصدارها.</p><ul className="divide-y divide-bw-line">{changes.map(c => <li key={c.key} className="space-y-1 py-3"><p className="break-words font-semibold">{c.name}</p>{c.supplierId && <p className="text-bw-small text-bw-ink-soft">{supplierName(options, c.supplierId)}</p>}<p className="break-words text-bw-small text-bw-ink-soft">{c.before} ← {c.after}</p></li>)}</ul>
-        <fieldset disabled={busy}><TextArea label="سبب التعديل" rows={3} value={reason} onChange={v => { setReason(v); setPreview(null) }} /></fieldset><p className="text-bw-small text-bw-ink-soft">5 أحرف على الأقل. السبب واسم المسؤول ووقت التفعيل بيتحفظوا في سجل التعديلات.</p>
-        {preview && <Notice tone="warn" title="تأثير القائمة المقترحة"><p>عروض حالية خارج القائمة المقترحة: <Code>{preview.impact.existingOffersAffected}</Code></p><p>عروض هتتغير: <Code>{preview.impact.existingOffersChanged}</Code> · طلبات مقبولة هتتغير: <Code>{preview.impact.acceptedOrdersChanged}</Code></p><p className="mt-2">المعاينة صالحة 30 دقيقة. لو القائمة أو الكتالوج اتغيروا، لازم معاينة جديدة قبل التفعيل.</p></Notice>}
+    </div>
+
+    <p className="border-t border-bw-line pt-5 text-bw-small text-bw-ink-soft">
+      أسماء البراندات والتصنيفات زي ما الموردين بيكتبوها، والصفوف اللي اتعلّقت بسببها:{' '}
+      <Link href="/admin/ingestion-policy/names" className="inline-flex items-center gap-1 font-semibold text-bw-ink underline-offset-4 hover:underline">أسماء الموردين والصفوف المعلّقة<ArrowUpLeft className="size-3.5" aria-hidden /></Link>
+    </p>
+
+    <Dialog dialogRef={disableDialog.ref} title={confirming ? `إيقاف ${confirming.name}؟` : 'إيقاف البراند؟'} onClose={() => setConfirming(null)}
+      footer={<><Button variant="secondary" onClick={disableDialog.close}>إلغاء</Button>
+        <Button variant="danger" loading={pending === `disable:${confirming?.id}`} onClick={async () => {
+          if (!confirming) return
+          const ok = await commit(confirming, { enabled: false }, `disable:${confirming.id}`, `${confirming.name} موقوف`)
+          if (ok) disableDialog.close()
+        }}>إيقاف البراند</Button></>}>
+      <div className="space-y-3 text-bw-body">
+        <p>أي منتج من <bdi className="font-semibold">{confirming?.name}</bdi> في ملفات جديدة هيتخطّى تلقائيًا من غير بحث أو صور.</p>
+        <p className="text-bw-small text-bw-ink-soft">المنتجات الموجودة في الكتالوج والطلبات السابقة مش هتتأثر، والتصنيفات المختارة هتفضل محفوظة لو فعّلته تاني.</p>
       </div>
     </Dialog>
-    <Dialog dialogRef={discard.ref} title="تجاهل التعديلات غير المحفوظة؟" footer={<><Button variant="secondary" onClick={discard.close}>الاحتفاظ بالمسودة</Button><Button variant="danger" onClick={() => { edit(createDraft(current, options)); discard.close(); if (refreshOnDiscard) onSaved('') }}>تجاهل المسودة</Button></>}><p>القائمة الفعّالة مش هتتغير. هيتشال بس اللي عدّلته في الزيارة دي.</p></Dialog>
-    <Dialog dialogRef={recheckDialog.ref} title="إعادة فحص الأسماء المرتبطة" footer={<><Button variant="secondary" disabled={busy} onClick={recheckDialog.close}>إلغاء</Button><Button loading={recheck.pending} disabled={busy || reason.trim().length < 5 || !recheckGroup} onClick={() => { void recheck.execute() }}>فحص المجموعة بالإصدار الفعّال</Button></>}>
-      <div className="space-y-4"><CommandError error={recheck.error} /><p>هيتطبق الإصدار المعتمد {current?.version} على الصفوف المعلّقة في الملفات المتأثرة. الصفوف المقبولة قبل كده مش هتتراجع.</p><fieldset disabled={busy}><TextArea label="سبب إعادة الفحص" value={reason} onChange={setReason} /></fieldset>{recheck.pending && <p role="status">{feedback || 'جاري فحص المجموعة…'}</p>}</div>
-    </Dialog>
-    {adding && <AddBrand options={options} draft={draft} onAdd={id => edit({ ...draft, brands: draft.brands.map(b => b.id === id ? { ...b, effect: 'ALLOW' } : b) })} onClose={() => setAdding(false)} />}
-    {nameTask && <NameEditor task={nameTask} draft={draft} options={options} onApply={edit} onClose={() => setNameTask(null)} />}
+
+    {adding && <AddBrandDrawer policy={data} busy={busy} commit={commit} onClose={() => setAdding(false)}
+      onPick={brandId => { setSelectedId(brandId); setShowDetailOnMobile(true) }}
+      onCreated={(brandId, version, name) => {
+        setAwaitVersion(version); setSelectedId(brandId); setShowDetailOnMobile(true)
+        setToast({ title: `${name} اتضاف`, body: 'اختار التصنيفات المسموحة عشان منتجاته تبدأ تدخل.' })
+        policy.reload()
+      }} />}
     {history && <HistoryView onClose={() => setHistory(false)} />}
+    {toast && <div className="fixed inset-x-4 bottom-20 z-40 flex justify-center lg:bottom-6 lg:start-auto lg:end-6 lg:justify-end"><Toast tone="ok" title={toast.title}>{toast.body}</Toast></div>}
   </>
 }
 
-function PolicyPage() {
-  const current = useApi<Policy | null>('/ingestion/eligibility')
-  const options = useApi<Options>('/ingestion/eligibility/options')
-  const [tab, setTab] = React.useState<Tab>('brands')
-  const [message, setMessage] = React.useState('')
-  if (current.error || options.error) return <Page><LoadError message={(current.error ?? options.error)!.message} onRetry={() => { current.reload(); options.reload() }} /></Page>
-  if (current.loading || options.loading || !options.data) return <Page><p role="status" className="text-bw-small text-bw-ink-soft">تحميل قائمة السماح…</p><Skeleton className="h-16" /><Skeleton className="h-80" /></Page>
-  const currentPolicy = current.data ?? null
-  return <Page><div dir="rtl" className="space-y-5">{message && <Notice tone="ok" title="التعديلات محفوظة">{message}</Notice>}<Editor key={currentPolicy?.id ?? 'initial'} current={currentPolicy} options={options.data} tab={tab} setTab={setTab} onDraft={() => setMessage('')} onSaved={feedback => { setMessage(feedback); current.reload(); options.reload() }} /></div></Page>
+export default function CatalogPolicyPage() {
+  return <RoleShell role="admin" active="ingestion-policy">
+    <main dir="rtl" className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-8 sm:py-9"><CatalogPolicyView /></main>
+  </RoleShell>
 }
-export default function IngestionPolicyPage() { return <RoleShell role="admin" active="ingestion-policy"><PolicyPage /></RoleShell> }

@@ -4,14 +4,21 @@ export type PolicyEffect = 'ALLOW' | 'DENY';
 export interface EligibilityDocument {
   /** Absent on historical snapshots: retain the original exact-label semantics. */
   resolutionVersion?: number;
-  brands: Array<{ id: string; name: string; isActive: boolean; effect: PolicyEffect | null; aliases: string[] }>;
+  /**
+   * categoryIds: the exact leaf categories this Brand may bring in. Absent on brands configured before brand scoping,
+   * which keep the central leaf ALLOW list. A parent never stands in for its children.
+   */
+  brands: Array<{ id: string; name: string; isActive: boolean; effect: PolicyEffect | null; aliases: string[]; categoryIds?: string[] }>;
   categories: Array<{ id: string; name: string; parentId: string | null; isActive: boolean; effect: PolicyEffect | null; aliases?: string[] }>;
   mappings: Array<{ supplierId: string; label: string; categoryIds: string[] }>;
+  /** Canonical products an Admin keeps out of intake. Applied only once identity has resolved a row to that product. */
+  exclusions?: PolicyExclusion[];
 }
+export interface PolicyExclusion { productId: string; brandId: string; name: string; reason: string; actorId: string; at: string }
 export interface BrandSuggestion { brandId: string; name: string; matchedLabel: string; score: number; effect: PolicyEffect | null }
 export interface EligibilityDecision {
   outcome: 'ALLOW' | 'SKIP' | 'HOLD'; reason: string; policyId: string | null; version: number | null;
-  brandId?: string; brandName?: string; categoryId?: string;
+  brandId?: string; brandName?: string; categoryId?: string; productId?: string;
 }
 /** Exact reviewed labels only. Normalization never supplies fuzzy identity evidence. */
 export function eligibilityLabel(value: string): string {
@@ -94,30 +101,41 @@ export function compileEligibilityPolicy(policy: { id: string; version: number; 
     }
     return found.size > 1 ? found : verified;
   };
+  type BrandRule = EligibilityDocument['brands'][number];
+  type CategoryRule = EligibilityDocument['categories'][number];
+  // Leaves some enabled Brand may bring in. A known leaf outside all of them is a definite exclusion, whatever the brand.
+  const scopedLeaves = new Set((doc?.brands ?? []).filter(b => b.effect === 'ALLOW' && b.isActive).flatMap(b => b.categoryIds ?? []));
+  const excluded = new Set((doc?.exclusions ?? []).map(e => e.productId));
+  const allowedFor = (b: BrandRule, c: CategoryRule) => b.categoryIds ? b.categoryIds.includes(c.id) : c.effect === 'ALLOW';
+  const decision = (outcome: EligibilityDecision['outcome'], reason: string, extra = {}): EligibilityDecision =>
+    ({ outcome, reason, policyId: policy?.id ?? null, version: policy?.version ?? null, ...extra });
+  /** The one rule set, shared by text-stated rows and identity-resolved rows. Undefined means unknown; `ambiguous` says why. */
+  const judge = (b: BrandRule | undefined, c: CategoryRule | undefined, ambiguous: { brand: boolean; category: boolean }): EligibilityDecision => {
+    if (!policy) return decision('HOLD', 'POLICY_NOT_CONFIGURED');
+    // A definite denial is sufficient; unknown evidence cannot turn an explicit exclusion into an allowance.
+    if (b && (b.effect === 'DENY' || !b.isActive || b.effect === null)) return decision('SKIP', 'BRAND_NOT_ALLOWED');
+    let ancestor = c;
+    const visited = new Set<string>();
+    while (ancestor) {
+      if (visited.has(ancestor.id)) return decision('HOLD', 'CATEGORY_HIERARCHY_AMBIGUOUS');
+      visited.add(ancestor.id);
+      if (ancestor.effect === 'DENY' || !ancestor.isActive) return decision('SKIP', 'CATEGORY_DENIED');
+      if (ancestor.parentId && !byCategory.has(ancestor.parentId)) return decision('HOLD', 'CATEGORY_HIERARCHY_UNKNOWN');
+      ancestor = ancestor.parentId ? byCategory.get(ancestor.parentId) : undefined;
+    }
+    if (c && !parents.has(c.id) && c.effect !== 'ALLOW' && !scopedLeaves.has(c.id)) return decision('SKIP', 'CATEGORY_NOT_ALLOWED');
+    if (!b) return decision('HOLD', ambiguous.brand ? 'BRAND_AMBIGUOUS' : 'BRAND_UNKNOWN');
+    if (!c) return decision('HOLD', ambiguous.category ? 'CATEGORY_AMBIGUOUS' : 'CATEGORY_UNKNOWN');
+    if (parents.has(c.id)) return decision('HOLD', 'CATEGORY_REQUIRES_LEAF');
+    if (!allowedFor(b, c)) return decision('SKIP', 'CATEGORY_NOT_ALLOWED_FOR_BRAND');
+    return decision('ALLOW', 'BRAND_AND_LEAF_APPROVED', { brandId: b.id, brandName: b.name, categoryId: c.id });
+  };
   const evaluate = (supplierId: string, brand: string, category: string): EligibilityDecision => {
-      const decision = (outcome: EligibilityDecision['outcome'], reason: string, extra = {}): EligibilityDecision =>
-        ({ outcome, reason, policyId: policy?.id ?? null, version: policy?.version ?? null, ...extra });
-      if (!policy) return decision('HOLD', 'POLICY_NOT_CONFIGURED');
-      const bs = resolveBrand(brand);
-      const cs = mappings.get(`${supplierId}:${key(category)}`) ?? categories.get(key(category));
-      const b = bs?.size === 1 ? byBrand.get([...bs][0]) : undefined;
-      const c = cs?.size === 1 ? byCategory.get([...cs][0]) : undefined;
-      // A definite denial is sufficient; unknown evidence cannot turn an explicit exclusion into an allowance.
-      if (b && (b.effect === 'DENY' || !b.isActive || b.effect === null)) return decision('SKIP', 'BRAND_NOT_ALLOWED');
-      let ancestor = c;
-      const visited = new Set<string>();
-      while (ancestor) {
-        if (visited.has(ancestor.id)) return decision('HOLD', 'CATEGORY_HIERARCHY_AMBIGUOUS');
-        visited.add(ancestor.id);
-        if (ancestor.effect === 'DENY' || !ancestor.isActive) return decision('SKIP', 'CATEGORY_DENIED');
-        if (ancestor.parentId && !byCategory.has(ancestor.parentId)) return decision('HOLD', 'CATEGORY_HIERARCHY_UNKNOWN');
-        ancestor = ancestor.parentId ? byCategory.get(ancestor.parentId) : undefined;
-      }
-      if (c && !parents.has(c.id) && c.effect !== 'ALLOW') return decision('SKIP', 'CATEGORY_NOT_ALLOWED');
-      if (!b) return decision('HOLD', bs?.size ? 'BRAND_AMBIGUOUS' : 'BRAND_UNKNOWN');
-      if (!c) return decision('HOLD', cs?.size ? 'CATEGORY_AMBIGUOUS' : 'CATEGORY_UNKNOWN');
-      if (parents.has(c.id)) return decision('HOLD', 'CATEGORY_REQUIRES_LEAF');
-      return decision('ALLOW', 'BRAND_AND_LEAF_APPROVED', { brandId: b.id, brandName: b.name, categoryId: c.id });
+    const bs = resolveBrand(brand);
+    const cs = mappings.get(`${supplierId}:${key(category)}`) ?? categories.get(key(category));
+    const b = bs?.size === 1 ? byBrand.get([...bs][0]) : undefined;
+    const c = cs?.size === 1 ? byCategory.get([...cs][0]) : undefined;
+    return judge(b, c, { brand: Boolean(bs?.size), category: Boolean(cs?.size) });
   };
   const memo = new Map<string, EligibilityDecision>();
   return {
@@ -131,6 +149,17 @@ export function compileEligibilityPolicy(policy: { id: string; version: number; 
       memo.set(cacheKey, decision);
       return decision;
     },
+    /**
+     * A row whose identity already resolved to a canonical product: that product's own Brand and Category are authoritative,
+     * and an explicit exclusion wins over every allowance.
+     */
+    evaluateIdentity(product: { productId?: string | null; brandId: string | null; categoryId: string | null }): EligibilityDecision {
+      if (policy && product.productId && excluded.has(product.productId)) return decision('SKIP', 'PRODUCT_EXCLUDED', { productId: product.productId });
+      const b = product.brandId ? byBrand.get(product.brandId) : undefined;
+      const c = product.categoryId ? byCategory.get(product.categoryId) : undefined;
+      return { ...judge(b, c, { brand: false, category: false }), ...(product.productId ? { productId: product.productId } : {}) };
+    },
+    isExcluded(productId: string): boolean { return excluded.has(productId); },
     /** Retrieval only. This method is never used by evaluate(), matching or SKU association. */
     suggestBrands(label: string): BrandSuggestion[] {
       const query = trigrams(eligibilityMappingKey(label.slice(0, 200)));

@@ -15,11 +15,13 @@ import { IngredientOntologyService } from './services/ingredient-ontology.servic
 import { RoutinePlacementService } from './services/routine-placement.service';
 import { IngestionController } from './ingestion.controller';
 import { AdminCatalogImportController } from './admin-catalog-import.controller';
+import { BrandResearchService } from './services/brand-research.service';
 import { AdminCatalogImportService } from './services/admin-catalog-import.service';
 import { RetailPriceController } from './retail-price.controller';
 import { RetailPriceObservationService } from './services/retail-price-observation.service';
 import { CatalogModule } from '../catalog/public';
 import { SourcingModule } from '../sourcing/public';
+import { ResearchSourceFetcher, RESEARCH_TRANSPORT, NodeResearchTransport } from './services/research-source-fetcher';
 import { AiModule } from '../../platform/ai';
 import { StorageModule } from '../../platform/storage/storage.module';
 import { CareModule } from '../care/public';
@@ -29,6 +31,9 @@ import { CareModule } from '../care/public';
   controllers: [IngestionController, EligibilityController, RetailPriceController, AdminCatalogImportController],
   providers: [
     AdminCatalogImportService,
+    BrandResearchService,
+    ResearchSourceFetcher,
+    { provide: RESEARCH_TRANSPORT, useClass: NodeResearchTransport },
     IngestionEligibilityService,
     IngestionService,
     ProductIdentityService,

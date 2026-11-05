@@ -1506,18 +1506,29 @@ export class IngestionService {
       }
       const batch = await this.productIdentityService.prepareBatch([...inputs.values()]);
       const classified: Array<{ item: IngestionItem; matchAnalysis: ProductIdentityMatchResult; normalized: any; brand: string; rejected: boolean; exact: boolean; update: MatchingUpdate }> = [];
+      const analyses = new Map<string, ProductIdentityMatchResult>();
+      for (const item of chunk) analyses.set(item.id, await this.classifyAdmittedItem(item, inputs.get(item.id)!, batch));
+      // Once identity resolves to a canonical product, the pinned policy judges that product itself: an explicit exclusion,
+      // or a product whose real Brand/Category the policy does not admit, is skipped before any offer, research or media work.
+      const resolvedProducts = await this.eligibility.productsForSkus([...analyses.values()]
+        .filter(a => a.classification === MatchClassification.EXACT_MATCH && a.matchedSkuId).map(a => a.matchedSkuId!));
       for (const item of chunk) {
         const enrichment = (item.enrichment as Record<string, any>) || {};
         const normalized = enrichment.source?.normalized;
         const input = inputs.get(item.id)!;
         const brand = input.brand;
 
-        const matchAnalysis = await this.classifyAdmittedItem(item, input, batch);
+        const matchAnalysis = analyses.get(item.id)!;
 
         const identity = this.identityEvidence(matchAnalysis, brand !== item.brand);
-        const rejected = matchAnalysis.classification === MatchClassification.OUT_OF_SCOPE ||
+        const product = matchAnalysis.matchedSkuId ? resolvedProducts.get(matchAnalysis.matchedSkuId) : undefined;
+        const productDecision = product
+          ? (await this.eligibility.compilePinned(this.assertAdmittedItem(item).policyId))?.evaluateIdentity(product) ?? null : null;
+        const policySkip = productDecision?.outcome === 'SKIP';
+        const rejected = policySkip || matchAnalysis.classification === MatchClassification.OUT_OF_SCOPE ||
           matchAnalysis.classification === MatchClassification.INVALID;
-        const exact = matchAnalysis.classification === MatchClassification.EXACT_MATCH && Boolean(matchAnalysis.matchedSkuId);
+        const exact = !rejected && productDecision?.outcome !== 'HOLD' &&
+          matchAnalysis.classification === MatchClassification.EXACT_MATCH && Boolean(matchAnalysis.matchedSkuId);
         classified.push({ item, matchAnalysis, normalized, brand, rejected, exact, update: {
           id: item.id,
           expectedUpdatedAt: item.updatedAt.toISOString(),
@@ -1525,9 +1536,9 @@ export class IngestionService {
           matchedSkuId: exact ? matchAnalysis.matchedSkuId! : null,
           status: rejected ? IngestionStatus.rejected : IngestionStatus.review_required,
           enrichmentStatus: rejected ? IngestionItemEnrichmentStatus.failed : null,
-          enrichmentError: rejected ? matchAnalysis.reason : null,
+          enrichmentError: policySkip ? `POLICY_${productDecision!.reason}` : rejected ? matchAnalysis.reason : null,
           // Merge, never replace: the raw source row and its provenance must survive classification.
-          enrichment: { ...enrichment, identity },
+          enrichment: { ...enrichment, identity, ...(productDecision && { productEligibility: productDecision }) },
         } });
       }
       const applied = await this.applyMatchingUpdates(classified.map(entry => entry.update));

@@ -12,7 +12,12 @@ function isPrivateIpv6(address: string): boolean {
   return PRIVATE_IPV4.test(`${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`);
 }
 
-/** Static check of a provider-supplied URL. It does not resolve DNS, so URLs are only ever fetched by the remote provider, never directly. */
+/** True for an address no outbound research request may reach (a hostname's resolved address, IPv4 or IPv6). */
+export function isPrivateAddress(address: string): boolean {
+  return address.includes(':') ? isPrivateIpv6(address.toLowerCase()) : PRIVATE_IPV4.test(address);
+}
+
+/** Static check of a provider-supplied URL. It does not resolve DNS: a direct read must also check resolved addresses with isPrivateAddress. */
 export function validateSafeUrl(urlString: string): void {
   try {
     const url = new URL(urlString);

@@ -9,6 +9,7 @@ import { createHash, randomUUID } from 'crypto';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { StorageService } from '../../src/platform/storage/storage.service';
+import { IngestionEligibilityService } from '../../src/modules/ingestion/services/ingestion-eligibility.service';
 import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
@@ -35,6 +36,9 @@ describe('Admin catalog import (e2e)', () => {
   const brandName = `Lumera${run}`;
   let existing: { id: string; barcode: string };
   let otherSku: { id: string };
+  let zenthraBrand: { id: string };
+  const cleanserLeaf = `Cleanser ${run}`;
+  const serumLeaf = `Serum ${run}`;
 
   const api = () => request(app.getHttpServer());
   const csv = (rows: string[][]) => Buffer.from(rows.map(row => row.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n'), 'utf-8');
@@ -65,14 +69,23 @@ describe('Admin catalog import (e2e)', () => {
     const supplier = await prisma.supplier.create({ data: { name: `Import Supplier ${run}`, slug: `import-supplier-${run}-${randomUUID()}` } });
     supplierActor = await createActor(prisma, 'SUPPLIER', supplier.id);
 
+    // The Catalog Policy admits these brands for exact leaves; intake of everything else is held or skipped by that policy.
+    const skin = await prisma.category.create({ data: { name: `Skin ${run}`, slug: `skin-${run}-${randomUUID().slice(0, 4)}` } });
+    const cleanser = await prisma.category.create({ data: { name: cleanserLeaf, slug: `cleanser-${run}-${randomUUID().slice(0, 4)}`, parentId: skin.id } });
+    const serum = await prisma.category.create({ data: { name: serumLeaf, slug: `serum-${run}-${randomUUID().slice(0, 4)}`, parentId: skin.id } });
     const brand = await prisma.brand.create({ data: { name: brandName, slug: `lumera-${run}-${randomUUID().slice(0, 4)}` } });
-    const product = await prisma.product.create({ data: { brandId: brand.id, name: `${brandName} Hydra Gel Cleanser`, slug: `hydra-gel-${run}-${randomUUID()}`, isPublished: true } });
+    const product = await prisma.product.create({ data: { brandId: brand.id, categoryId: cleanser.id, name: `${brandName} Hydra Gel Cleanser`, slug: `hydra-gel-${run}-${randomUUID()}`, isPublished: true } });
     const barcode = ean13(String(Math.floor(100000000000 + Math.random() * 899999999999)));
     const sku = await prisma.sku.create({ data: { productId: product.id, code: `LUM-${run}-${randomUUID()}`, variantName: '200 ml', size: 200, sizeUnit: 'ml', barcode } });
     existing = { id: sku.id, barcode };
     const otherBrand = await prisma.brand.create({ data: { name: `Orvane${run}`, slug: `orvane-${run}-${randomUUID().slice(0, 4)}` } });
-    const otherProduct = await prisma.product.create({ data: { brandId: otherBrand.id, name: `Orvane Barrier Cream`, slug: `barrier-${run}-${randomUUID()}`, isPublished: true } });
+    const otherProduct = await prisma.product.create({ data: { brandId: otherBrand.id, categoryId: cleanser.id, name: `Orvane Barrier Cream`, slug: `barrier-${run}-${randomUUID()}`, isPublished: true } });
     otherSku = await prisma.sku.create({ data: { productId: otherProduct.id, code: `ORV-${run}-${randomUUID()}`, variantName: '50 ml', size: 50, sizeUnit: 'ml', barcode: ean13(String(Math.floor(100000000000 + Math.random() * 899999999999))) } });
+    zenthraBrand = await prisma.brand.create({ data: { name: `Zenthra${run}`, slug: `zenthra-${run}-${randomUUID().slice(0, 4)}` } });
+    const policy = app.get(IngestionEligibilityService);
+    for (const [id, leaf] of [[brand.id, cleanser.id], [otherBrand.id, cleanser.id], [zenthraBrand.id, serum.id]]) {
+      await policy.updateBrand(id, { expectedVersion: (await policy.current())?.version ?? 0, enabled: true, categoryIds: [leaf] }, admin.id);
+    }
   }, 120000);
 
   afterAll(async () => {
@@ -82,9 +95,9 @@ describe('Admin catalog import (e2e)', () => {
   const header = ['Product Name', 'Brand', 'Size', 'Barcode', 'Category', 'URL', 'Price', 'Stock'];
   const firstFile = () => csv([
     header,
-    [`${brandName} Hydra Gel Cleanser`, brandName, '200 ml', existing.barcode, 'Cleanser', 'https://example.com/hydra', '120', '40'], // 2: existing SKU
-    ['Zenthra Glow Serum 30ml', `Zenthra${run}`, '30 ml', '', 'Serum', 'https://zenthra.example/glow', '300', '10'], // 3: unknown, complete
-    ['Zenthra Glow Serum 30ml', `Zenthra${run}`, '30 ml', '', '', '', '299', '5'], // 4: same product again
+    [`${brandName} Hydra Gel Cleanser`, brandName, '200 ml', existing.barcode, cleanserLeaf, 'https://example.com/hydra', '120', '40'], // 2: existing SKU
+    ['Zenthra Glow Serum 30ml', `Zenthra${run}`, '30 ml', '', serumLeaf, 'https://zenthra.example/glow', '300', '10'], // 3: unknown, complete
+    ['Zenthra Glow Serum 30ml', `Zenthra${run}`, '30 ml', '', serumLeaf, '', '299', '5'], // 4: same product again
     [`Kerrin Toner ${run}`, `Kerrin${run}`, '100 ml', '6221234567895', '', '', '', ''], // 5: malformed barcode
     ['', `Zenthra${run}`, '', '', '', '', '', ''], // 6: no name
     [`Plain Moisturiser ${run}`, '', '', '', '', '', '', ''], // 7: no brand, no size
@@ -112,7 +125,7 @@ describe('Admin catalog import (e2e)', () => {
     const rows = await rowsOf(res.body.jobId);
     const linked = byNumber(rows, 2);
     expect(linked).toMatchObject({ outcome: 'LINKED_EXISTING', matchedSkuId: existing.id, reasonCode: 'VERIFIED_EXISTING_SKU' });
-    expect(byNumber(rows, 3)).toMatchObject({ outcome: 'NEW_CANDIDATE', reasonCode: 'UNKNOWN_PRODUCT', matchedSkuId: null, sourceUrl: 'https://zenthra.example/glow', categoryHint: 'Serum' });
+    expect(byNumber(rows, 3)).toMatchObject({ outcome: 'NEW_CANDIDATE', reasonCode: 'UNKNOWN_PRODUCT', matchedSkuId: null, sourceUrl: 'https://zenthra.example/glow', categoryHint: serumLeaf });
     expect(byNumber(rows, 4)).toMatchObject({ outcome: 'REJECTED', reasonCode: 'DUPLICATE_OF_ROW' });
     expect(byNumber(rows, 4).identity.duplicateOfRowId).toBe(byNumber(rows, 3).id);
     expect(byNumber(rows, 5)).toMatchObject({ outcome: 'HOLD', invalidBarcode: '6221234567895' });
@@ -155,9 +168,9 @@ describe('Admin catalog import (e2e)', () => {
     const first = await prisma.adminCatalogImportJob.findUniqueOrThrow({ where: { sourceChecksum: checksumOf(firstFile()) } });
     const firstRows = await rowsOf(first.id);
     const second = (await upload(csv([
-      ['Name', 'Brand', 'Size'],
-      ['Zenthra Glow Serum 30ml', `Zenthra${run}`, '30 ml'], // same unknown product as the first file
-      [`Orvane Barrier Cream`, `Orvane${run}`, '50 ml'], // an existing SKU found by wording, not by barcode
+      ['Name', 'Brand', 'Size', 'Category'],
+      ['Zenthra Glow Serum 30ml', `Zenthra${run}`, '30 ml', serumLeaf], // same unknown product as the first file
+      [`Orvane Barrier Cream`, `Orvane${run}`, '50 ml', cleanserLeaf], // an existing SKU found by wording, not by barcode
     ]), admin, 'second.csv').expect(201)).body;
     expect(second).toMatchObject({ reused: false, status: 'COMPLETED', totalRows: 2 });
     const rows = await rowsOf(second.jobId);
@@ -198,8 +211,7 @@ describe('Admin catalog import (e2e)', () => {
     expect((await prisma.adminCatalogImportRow.findUniqueOrThrow({ where: { id: candidate.id } })).outcome).toBe('NEW_CANDIDATE');
 
     // The Admin created the real SKU in the workbench; linking the candidate to it passes the same identity check.
-    const zenthra = await prisma.brand.create({ data: { name: `Zenthra${run}`, slug: `zenthra-${run}-${randomUUID().slice(0, 4)}` } });
-    const zenthraProduct = await prisma.product.create({ data: { brandId: zenthra.id, name: 'Zenthra Glow Serum', slug: `zenthra-glow-${run}-${randomUUID()}` } });
+    const zenthraProduct = await prisma.product.create({ data: { brandId: zenthraBrand.id, name: 'Zenthra Glow Serum', slug: `zenthra-glow-${run}-${randomUUID()}` } });
     const zenthraSku = await prisma.sku.create({ data: { productId: zenthraProduct.id, code: `ZEN-${run}-${randomUUID()}`, variantName: '30 ml', size: 30, sizeUnit: 'ml' } });
     const linkedByAdmin = await decide(candidate.id, { action: 'LINK_SKU', skuId: zenthraSku.id, note: 'SKU created in the workbench' }).expect(200);
     expect(linkedByAdmin.body).toMatchObject({ outcome: 'LINKED_EXISTING', matchedSkuId: zenthraSku.id, reasonCode: 'ADMIN_LINKED', resolvedBy: admin.id });

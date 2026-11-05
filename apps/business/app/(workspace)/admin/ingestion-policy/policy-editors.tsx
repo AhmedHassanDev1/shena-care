@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Button, Code, Dialog, Field, Notice, Skeleton, StateBlock, StatusLabel, useDialog } from '@/components/bw/primitives'
 import { Select, TextArea } from '@/components/workspace/kit'
 import { LoadError } from '@/components/workspace/role-shell'
@@ -15,20 +15,6 @@ const reasonLabel = (reason: string) => ({ BRAND_UNKNOWN: 'اسم البراند
 
 export function SearchField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return <div className="relative max-w-xl"><Field label={label} value={value} onChange={e => onChange(e.target.value)} placeholder="اكتب الاسم بالعربي أو الإنجليزي…" className="[&_input]:pe-10" /><Search className="pointer-events-none absolute bottom-3 end-3 size-4 text-bw-ink-soft" aria-hidden /></div>
-}
-
-export function AddBrand({ options, draft, onAdd, onClose }: { options: Options; draft: PolicyDocument; onAdd: (id: string) => void; onClose: () => void }) {
-  const dialog = useDialog()
-  const [query, setQuery] = React.useState('')
-  React.useEffect(() => { dialog.ref.current?.showModal() }, [dialog.ref])
-  const matches = options.brands.filter(b => b.isActive && draft.brands.find(x => x.id === b.id)?.effect !== 'ALLOW' && searchLabel(`${b.name} ${draft.brands.find(x => x.id === b.id)?.aliases.join(' ') ?? ''}`).includes(searchLabel(query)))
-  return <Dialog dialogRef={dialog.ref} title="إضافة براند للقائمة" onClose={onClose}>
-    <p className="mb-5 text-bw-small text-bw-ink-soft">اختار براند موجود في الكتالوج. الإضافة هتفضل مسودة لحد مراجعة وحفظ التعديلات.</p>
-    <SearchField label="ابحث عن براند موجود" value={query} onChange={setQuery} />
-    <ul className="mt-4 max-h-80 divide-y divide-bw-line overflow-y-auto">{matches.slice(0, 50).map(b => <li key={b.id} className="flex items-center justify-between gap-4 py-3"><bdi className="font-semibold">{b.name}</bdi><Button variant="secondary" aria-label={`إضافة ${b.name}`} onClick={() => { onAdd(b.id); dialog.close() }}><Plus className="size-4" aria-hidden />إضافة</Button></li>)}</ul>
-    {!matches.length && <StateBlock kind="empty" title="مفيش براند مطابق" body="جرّب اسمًا تاني. إنشاء براند جديد بيتم من الكتالوج، مش من قائمة السماح." />}
-    {matches.length > 50 && <p className="mt-3 text-bw-small text-bw-ink-soft">أول 50 نتيجة. ضيّق البحث للوصول للاسم المطلوب.</p>}
-  </Dialog>
 }
 
 /** Reusable names are edited separately from central ALLOW/DENY choices. */

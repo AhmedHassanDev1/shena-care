@@ -9,7 +9,7 @@
     "start": "node ./node_modules/next/dist/bin/next start -p 3002",
     "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
     "lint": "node ../../node_modules/eslint/bin/eslint.js app components lib --ext .ts,.tsx",
-    "test": "node scripts/check-contrast.mjs && node --test scripts/ingestion-policy.test.mjs scripts/candidate-review.test.mjs",
+    "test": "node scripts/check-contrast.mjs && node --test scripts/ingestion-policy.test.mjs scripts/candidate-review.test.mjs scripts/catalog-policy.test.mjs",
     "test:ingestion-policy": "node --test scripts/ingestion-policy.test.mjs",
     "check:contrast": "node scripts/check-contrast.mjs"
   },

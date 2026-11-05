@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CreateBrandDto, UpdateBrandDto } from '../dto/brand.dto';
 import { CreateProductLineDto, UpdateProductLineDto } from '../dto/product-line.dto';
@@ -131,7 +132,7 @@ export class BrandService {
     };
   }
 
-  async createBrand(dto: CreateBrandDto): Promise<BrandSummary> {
+  async createBrand(dto: CreateBrandDto, extra: { logoMetadata?: Prisma.InputJsonValue } = {}): Promise<BrandSummary> {
     const slug = dto.slug ? dto.slug.toLowerCase() : slugify(dto.name);
 
     const existingName = await this.prisma.brand.findUnique({
@@ -154,6 +155,7 @@ export class BrandService {
         slug,
         description: dto.description ?? null,
         logoUrl: dto.logoUrl ?? null,
+        ...(extra.logoMetadata !== undefined && { logoMetadata: extra.logoMetadata }),
         websiteUrl: dto.websiteUrl ?? null,
         countryOfOrigin: dto.countryOfOrigin ?? null,
         isActive: dto.isActive ?? true,

@@ -15,5 +15,7 @@ export * from './contracts/row-normalization.contract';
 export * from './services/row-normalization.service';
 export * from './contracts/brand-enrichment.contract';
 export * from './services/brand-enrichment.service';
+export { ResearchSourceFetcher, RESEARCH_TRANSPORT } from './services/research-source-fetcher';
+export type { ResearchTransport, TransportResponse } from './services/research-source-fetcher';
 export { AdminCatalogImportService, ADMIN_IMPORT_MAX_ROWS } from './services/admin-catalog-import.service';
 export type { AdminImportReceipt, ColumnMap as AdminImportColumnMap, ResolveRowInput as AdminImportResolveInput } from './services/admin-catalog-import.service';
