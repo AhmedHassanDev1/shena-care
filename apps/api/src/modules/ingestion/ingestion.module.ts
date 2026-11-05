@@ -14,6 +14,8 @@ import { BrandEnrichmentService } from './services/brand-enrichment.service';
 import { IngredientOntologyService } from './services/ingredient-ontology.service';
 import { RoutinePlacementService } from './services/routine-placement.service';
 import { IngestionController } from './ingestion.controller';
+import { AdminCatalogImportController } from './admin-catalog-import.controller';
+import { AdminCatalogImportService } from './services/admin-catalog-import.service';
 import { RetailPriceController } from './retail-price.controller';
 import { RetailPriceObservationService } from './services/retail-price-observation.service';
 import { CatalogModule } from '../catalog/public';
@@ -24,8 +26,9 @@ import { CareModule } from '../care/public';
 
 @Module({
   imports: [CatalogModule, CareModule, SourcingModule, AiModule, StorageModule],
-  controllers: [IngestionController, EligibilityController, RetailPriceController],
+  controllers: [IngestionController, EligibilityController, RetailPriceController, AdminCatalogImportController],
   providers: [
+    AdminCatalogImportService,
     IngestionEligibilityService,
     IngestionService,
     ProductIdentityService,
@@ -42,6 +45,7 @@ import { CareModule } from '../care/public';
     RetailPriceObservationService,
   ],
   exports: [
+    AdminCatalogImportService,
     IngestionService,
     ProductIdentityService,
     ProductResearchService,

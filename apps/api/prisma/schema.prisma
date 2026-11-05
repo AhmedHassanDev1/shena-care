@@ -2068,6 +2068,92 @@ model IngestionJob {
   @@schema("ingestion")
 }
 
+/// Admin catalog bootstrap (GLO-285): a plain product list the Admin uploads to grow the catalog. It carries no supplier, offer, price or stock meaning,
+/// and absence from a later list never deactivates anything.
+enum AdminCatalogImportStatus {
+  RECEIVED
+  MATCHING
+  COMPLETED
+  FAILED
+
+  @@schema("ingestion")
+}
+
+enum AdminCatalogImportRowOutcome {
+  PENDING
+  LINKED_EXISTING
+  NEW_CANDIDATE
+  HOLD
+  REJECTED
+
+  @@schema("ingestion")
+}
+
+model AdminCatalogImportJob {
+  id             String                   @id @default(uuid()) @db.Uuid
+  /// Private storage object of the retained original; sourceChecksum makes a retried upload resolve to the same job.
+  sourceKey      String                   @map("source_key")
+  sourceChecksum String                   @unique @map("source_checksum")
+  sourceFileName String                   @map("source_file_name")
+  sourceMimeType String                   @map("source_mime_type")
+  sourceSizeBytes Int                     @map("source_size_bytes")
+  uploadedBy     String                   @map("uploaded_by")
+  status         AdminCatalogImportStatus @default(RECEIVED)
+  /// Which file header fed which field, and which headers were deliberately ignored.
+  columnMap      Json                     @map("column_map")
+  totals         Json?
+  lastError      String?                  @map("last_error")
+  createdAt      DateTime                 @default(now()) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @map("updated_at")
+  completedAt    DateTime?                @map("completed_at")
+
+  rows AdminCatalogImportRow[]
+
+  @@index([status])
+  @@map("admin_catalog_import_jobs")
+  @@schema("ingestion")
+}
+
+model AdminCatalogImportRow {
+  id             String                       @id @default(uuid()) @db.Uuid
+  jobId          String                       @map("job_id") @db.Uuid
+  /// 1-indexed line in the original file: row-level provenance.
+  rowNumber      Int                          @map("row_number")
+  name           String
+  brand          String?
+  size           Decimal?                     @db.Decimal(10, 3)
+  sizeUnit       String?                      @map("size_unit")
+  barcode        String?
+  /// A barcode cell that is not a valid GTIN, kept as stated; identity then waits for an Admin.
+  invalidBarcode String?                      @map("invalid_barcode")
+  categoryHint   String?                      @map("category_hint")
+  sourceUrl      String?                      @map("source_url")
+  /// The mapped cells exactly as received, so a decision can always be traced to the file.
+  sourceCells    Json                         @map("source_cells")
+  fingerprint    String?
+  outcome        AdminCatalogImportRowOutcome @default(PENDING)
+  reasonCode     String?                      @map("reason_code")
+  reason         String?
+  /// Identity evidence from the shared matching engine (route, candidates, conflicts).
+  identity       Json?
+  /// A canonical SKU ID owned by the catalog schema: a plain reference, no relation across contexts.
+  matchedSkuId   String?                      @map("matched_sku_id") @db.Uuid
+  resolvedBy     String?                      @map("resolved_by")
+  resolvedAt     DateTime?                    @map("resolved_at")
+  resolutionNote String?                      @map("resolution_note")
+  createdAt      DateTime                     @default(now()) @map("created_at")
+  updatedAt      DateTime                     @updatedAt @map("updated_at")
+
+  job AdminCatalogImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, rowNumber])
+  @@index([jobId, outcome])
+  @@index([fingerprint])
+  @@index([matchedSkuId])
+  @@map("admin_catalog_import_rows")
+  @@schema("ingestion")
+}
+
 enum RetailObservationStatus {
   ACCEPTED
   REJECTED

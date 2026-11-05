@@ -33,8 +33,9 @@ export interface CandidateItemIdentityInput {
   eligibilityApproved?: boolean;
   /** The canonical Brand ID the pinned policy resolved; authoritative over the brand label. */
   brandId?: string | null;
-  supplierId: string;
-  supplierSkuCode: string;
+  /** Absent for Admin catalog lists: no supplier means no supplier-code alias and no supplier-scoped review history. */
+  supplierId?: string | null;
+  supplierSkuCode?: string;
   name: string;
   brand: string;
   barcode?: string | null;
@@ -449,9 +450,9 @@ export class ProductIdentityService {
       product: { include: { brand: true } }, barcodeAliases: { where: { status: 'approved' } },
     } });
     if (!sku) throw new ConflictException('EXPLICIT_CONFLICT: canonical SKU unavailable');
-    const alias = await db.supplierSkuAlias.findUnique({ where: { supplierId_supplierSkuCode: {
+    const alias = input.supplierId && input.supplierSkuCode ? await db.supplierSkuAlias.findUnique({ where: { supplierId_supplierSkuCode: {
       supplierId: input.supplierId, supplierSkuCode: input.supplierSkuCode,
-    } } });
+    } } }) : null;
     if (alias && alias.skuId !== skuId) throw new ConflictException('EXPLICIT_CONFLICT: supplier code reuse');
     let decision = this.validateIdentity(input, sku as IdentitySku, alias?.skuId === skuId, reviewerConfirmation);
     const heldBarcode = Boolean(input.invalidBarcode) && !reviewerConfirmation;
@@ -504,6 +505,7 @@ export class ProductIdentityService {
 
   /** Did a reviewer confirm this exact supplier wording for this code and SKU? Only explicit confirmations count. */
   private async wordingWasReviewed(db: Prisma.TransactionClient, input: CandidateItemIdentityInput, skuId: string): Promise<boolean> {
+    if (!input.supplierId || !input.supplierSkuCode) return false;
     const reviewed = await db.ingestionItem.findMany({
       where: { supplierSkuCode: input.supplierSkuCode, job: { supplierId: input.supplierId },
         enrichment: { path: ['identityReview', 'skuId'], equals: skuId } },
@@ -564,7 +566,7 @@ export class ProductIdentityService {
     if (!raw) return result;
     const conflicts = [...result.conflicts, 'invalid_gtin'];
     if (result.classification === MatchClassification.EXACT_MATCH && result.matchedSkuId) {
-      if (lookups.reviewedWordings.has(this.reviewedWordingKey(input.supplierSkuCode, result.matchedSkuId, { ...input, invalidBarcode: raw }))) return result;
+      if (lookups.reviewedWordings.has(this.reviewedWordingKey(input.supplierSkuCode ?? '', result.matchedSkuId, { ...input, invalidBarcode: raw }))) return result;
       return { ...result, classification: MatchClassification.LIKELY_MATCH, identityState: 'INSUFFICIENT_EVIDENCE', matchedSkuId: null,
         suggestedSkuId: result.matchedSkuId, reason: 'invalid_gtin_held', conflicts };
     }
@@ -643,11 +645,11 @@ export class ProductIdentityService {
     }
 
     // 1. Verified supplier alias: the cheapest reuse of a reviewed mapping, still revalidated against this row.
-    const alias = lookups.aliases.get(input.supplierSkuCode);
+    const alias = input.supplierSkuCode ? lookups.aliases.get(input.supplierSkuCode) : undefined;
 
     if (alias && alias.sku.isActive) {
       const validation = this.validateIdentity(input, alias.sku, true, false,
-        lookups.reviewedWordings.has(this.reviewedWordingKey(input.supplierSkuCode, alias.skuId, input)));
+        lookups.reviewedWordings.has(this.reviewedWordingKey(input.supplierSkuCode ?? '', alias.skuId, input)));
       const conflicts = validation.state === 'EXPLICIT_CONFLICT' ? [...validation.conflicts] : [];
       if (input.barcode && !conflicts.includes('barcode_mismatch')) {
         const known = lookups.barcodes.get(gtinKey(input.barcode.trim()));
@@ -853,7 +855,7 @@ export class ProductIdentityService {
   }
 
   private retrievalKey(input: CandidateItemIdentityInput): string {
-    return `${input.supplierSkuCode}|${input.name}`;
+    return `${input.supplierSkuCode ?? ''}|${input.name}`;
   }
 
   private reviewedWordingKey(code: string, skuId: string, input: CandidateItemIdentityInput): string {
@@ -869,10 +871,10 @@ export class ProductIdentityService {
     if (!inputs.length) return batch;
     const include = { barcodeAliases: { where: { status: 'approved' as const } }, product: { include: { brand: true } } };
     const supplierId = inputs[0].supplierId;
-    const aliases = await this.prisma.supplierSkuAlias.findMany({
-      where: { supplierId, supplierSkuCode: { in: [...new Set(inputs.map(input => input.supplierSkuCode))] } },
+    const aliases = supplierId ? await this.prisma.supplierSkuAlias.findMany({
+      where: { supplierId, supplierSkuCode: { in: [...new Set(inputs.flatMap(input => input.supplierSkuCode ? [input.supplierSkuCode] : []))] } },
       include: { sku: { include } },
-    });
+    }) : [];
     for (const alias of aliases) batch.aliases.set(alias.supplierSkuCode, alias as unknown as AliasWithSku);
 
     const valid = (input: CandidateItemIdentityInput) => {
@@ -904,7 +906,7 @@ export class ProductIdentityService {
 
     // Only wording no rule can read needs a reviewer's earlier confirmation: most batches never run this query.
     const unread = inputs.filter(input => {
-      const alias = batch.aliases.get(input.supplierSkuCode);
+      const alias = input.supplierSkuCode ? batch.aliases.get(input.supplierSkuCode) : undefined;
       return alias?.sku.isActive && (this.malformedBarcode(input) || this.validateIdentity({ ...input, barcode: valid(input) }, alias.sku, true)
         .conflicts.includes('identity_requires_independent_evidence'));
     });
@@ -919,7 +921,7 @@ export class ProductIdentityService {
     }
 
     const unsettled = inputs.filter(input => {
-      const alias = batch.aliases.get(input.supplierSkuCode);
+      const alias = input.supplierSkuCode ? batch.aliases.get(input.supplierSkuCode) : undefined;
       const barcode = valid(input);
       return !(alias?.sku.isActive) && !(barcode && batch.barcodes.has(gtinKey(barcode))) &&
         input.name?.trim() && this.isStatedBrand(input.brand);
