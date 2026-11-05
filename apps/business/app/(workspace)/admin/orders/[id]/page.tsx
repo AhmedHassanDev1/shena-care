@@ -3,9 +3,9 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ExternalLink, MapPin } from 'lucide-react'
+import { AlertTriangle, ArrowRight, ExternalLink, MapPin, RefreshCw } from 'lucide-react'
 import { Button, Code, DataTable, Field, Notice, PageHeader, Section, Skeleton, StatusLabel } from '@/components/bw/primitives'
-import { CommandError, Egp, KeyValues, Page, Select, Status } from '@/components/workspace/kit'
+import { CommandError, Egp, KeyValues, Select, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
 import {
@@ -55,13 +55,13 @@ export default function AdminOrderDetail() {
   const { data, error, loading, reload } = useApi<Detail>(`/admin/orders/${encodeURIComponent(id)}`)
 
   return (
-    <RoleShell role="admin" active="orders" mode="desktop">
-      <Page>
-        <Link href="/admin/orders" className="text-bw-small text-bw-ink-soft underline">← كل الطلبات</Link>
+    <RoleShell role="admin" active="orders" mode="responsive">
+      <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-8 sm:py-9" dir="rtl">
+        <Link href="/admin/orders" className="inline-flex items-center gap-2 text-bw-small text-bw-ink-soft hover:text-bw-ink"><ArrowRight className="size-4" />كل الطلبات</Link>
         {error ? <LoadError message={error.message} onRetry={reload} /> : null}
         {!data && loading ? <Skeleton className="h-96 w-full" /> : null}
         {data ? <OrderBody d={data} reload={reload} /> : null}
-      </Page>
+      </main>
     </RoleShell>
   )
 }
@@ -69,14 +69,24 @@ export default function AdminOrderDetail() {
 function OrderBody({ d, reload }: { d: Detail; reload: () => void }) {
   const o = d.order
   const shipment = d.fulfillment.shipment
+  const shortages = d.purchaseOrderLines.filter((line) => line.shortQuantity > 0 || line.exceptionCode || line.distributionRequired)
+  const activeCases = d.supportCases.filter((supportCase) => !['closed', 'resolved'].includes(supportCase.status.toLowerCase()))
+  const missingPin = o.latitude === null || o.longitude === null
   return (
     <>
       <PageHeader
-        eyebrow="طلب"
+        eyebrow="تفاصيل الطلب"
         title={o.orderNumber}
-        meta={<span className="flex flex-wrap items-center gap-2"><Status map={ORDER_STATUS} value={o.status} /> اتطلب {formatDateTime(o.createdAt)}</span>}
-        actions={<Button variant="secondary" onClick={reload}>تحديث</Button>}
+        meta={<span className="flex flex-wrap items-center gap-2"><Status map={ORDER_STATUS} value={o.status} /><span>أنشئ {formatDateTime(o.createdAt)}</span></span>}
+        actions={<Button variant="secondary" onClick={reload}><RefreshCw className="size-4" />تحديث</Button>}
       />
+      {(missingPin || shortages.length || activeCases.length) ? <div className="rounded-bw-card border border-bw-warn/35 bg-bw-warn-soft/50 p-4 sm:p-5" role="status">
+        <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 size-5 shrink-0 text-bw-warn" aria-hidden /><div className="space-y-2"><h2 className="font-semibold text-bw-ink">يحتاج متابعة</h2>
+          {missingPin ? <p className="text-bw-small text-bw-ink-soft">موقع التسليم غير مؤكد. راجع العنوان قبل خروج الطرد.</p> : null}
+          {shortages.length ? <p className="text-bw-small text-bw-ink-soft"><Code>{shortages.length}</Code> بنود توريد بها نقص أو استثناء. التفاصيل في قسم التوريد.</p> : null}
+          {activeCases.length ? <p className="text-bw-small text-bw-ink-soft"><Code>{activeCases.length}</Code> حالات دعم مفتوحة.</p> : null}
+        </div></div>
+      </div> : <div className="rounded-bw-card border border-bw-line bg-bw-surface p-4 text-bw-small text-bw-ink-soft">لا توجد استثناءات ظاهرة في بيانات الطلب الحالية.</div>}
       <div className="grid gap-4 lg:grid-cols-3">
         <Section title="العميل والتوصيل" className="lg:col-span-2">
           <KeyValues rows={[
@@ -100,18 +110,20 @@ function OrderBody({ d, reload }: { d: Detail; reload: () => void }) {
           <InstructionForm orderId={o.id} disabled={['delivered', 'cancelled', 'returned'].includes(o.status)} onDone={reload} />
         </Section>
 
-        <Section title="المبلغ">
+        <Section title="ملخص الدفع">
           <KeyValues rows={[
             ['المنتجات', <Egp key="s" value={o.subtotal} />],
             ['التوصيل', <Egp key="f" value={o.shippingFee} />],
             ['الإجمالي', <Egp key="t" value={o.totalAmount} />],
             ['عند الاستلام', <Egp key="c" value={o.codAmount} />],
+          ]} />
+          <details className="mt-5 border-t border-bw-line pt-4 text-bw-small"><summary className="cursor-pointer font-semibold text-bw-ink-soft hover:text-bw-ink">تفاصيل التحصيل والتسوية</summary><div className="mt-4"><KeyValues rows={[
             ['التحصيل', d.money.collection ? <Status key="cs" map={COLLECTION_STATUS} value={d.money.collection.status} /> : 'لسه ماتسجّلش (قبل خروج الطرد)'],
             ['متوقع', <Egp key="e" value={d.money.collection?.expectedAmount} />],
             ['أعلن المندوب', <Egp key="d" value={d.money.collection?.declaredAmount} />],
             ['اتعدّ في المخزن', <Egp key="n" value={d.money.collection?.countedAmount} />],
             ['التسوية', d.money.collection?.settlement ? <Code key="r">{d.money.collection.settlement.reference}</Code> : '—'],
-          ]} />
+          ]} /></div></details>
         </Section>
       </div>
 
@@ -128,7 +140,9 @@ function OrderBody({ d, reload }: { d: Detail; reload: () => void }) {
         </DataTable>
       </Section>
 
-      <Section title="التوفير من الموردين" aside={d.supplyPlan ? <StatusLabel tone="neutral">خطة التوفير: {d.supplyPlan.status}</StatusLabel> : <StatusLabel tone="pending">لسه مافيش خطة</StatusLabel>}>
+      <details className="group rounded-bw-card border border-bw-line bg-bw-surface">
+        <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-3 p-5 font-semibold text-bw-ink">التوريد من الموردين <span className="flex items-center gap-2 text-bw-small font-normal">{shortages.length ? <StatusLabel tone="warn">{shortages.length} استثناء</StatusLabel> : null}{d.supplyPlan ? <StatusLabel tone="neutral">{d.supplyPlan.status}</StatusLabel> : <StatusLabel tone="pending">لا توجد خطة بعد</StatusLabel>}</span></summary>
+      <div className="border-t border-bw-line p-5">
         {d.purchaseOrderLines.length === 0 ? (
           <p className="text-bw-small text-bw-ink-soft">مفيش أمر شراء مرتبط لسه. الطلبات بتتجمّع في أوامر شراء من صفحة الموردين.</p>
         ) : (
@@ -159,9 +173,9 @@ function OrderBody({ d, reload }: { d: Detail; reload: () => void }) {
             ))}
           </ul>
         ) : null}
-      </Section>
+      </div></details>
 
-      <Section title="المخزن والتوصيل" aside={shipment ? <Status map={SHIPMENT_STATUS} value={shipment.status} /> : null}>
+      <details className="rounded-bw-card border border-bw-line bg-bw-surface"><summary className="flex cursor-pointer items-center justify-between gap-3 p-5 font-semibold text-bw-ink">المخزن والتوصيل {shipment ? <Status map={SHIPMENT_STATUS} value={shipment.status} /> : <StatusLabel tone="pending">لم يجهز الطرد</StatusLabel>}</summary><div className="border-t border-bw-line p-5">
         {d.fulfillment.receipts.length ? (
           <div className="mb-3">
             <p className="mb-1 text-bw-small font-semibold">الاستلام في المخزن</p>
@@ -187,11 +201,14 @@ function OrderBody({ d, reload }: { d: Detail; reload: () => void }) {
             </div>
           </div>
         )}
-      </Section>
+      </div></details>
 
-      <Resolutions d={d} reload={reload} />
+      <details className="rounded-bw-card border border-bw-line bg-bw-surface"><summary className="cursor-pointer p-5 font-semibold text-bw-ink">المرتجعات والاستردادات {d.money.resolutions.length ? <Code className="text-bw-ink-soft">({d.money.resolutions.length})</Code> : null}</summary><div className="border-t border-bw-line p-3"><Resolutions d={d} reload={reload} /></div></details>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <details className="rounded-bw-card border border-bw-line bg-bw-surface"><summary className="cursor-pointer p-5 font-semibold text-bw-ink">السجل والأحداث</summary><div className="grid gap-4 border-t border-bw-line p-3 lg:grid-cols-2">
+        <Section title="تغيرات الحالة">
+          {d.timeline.statusEvents.length ? <ol className="space-y-2 text-bw-small">{d.timeline.statusEvents.map((event, index) => <li key={`${event.status}-${event.at}-${index}`} className="flex flex-wrap items-center justify-between gap-2 border-b border-bw-line pb-2"><Status map={ORDER_STATUS} value={event.status} /><span className="text-bw-ink-soft">{formatDateTime(event.at)}</span></li>)}</ol> : <p className="text-bw-small text-bw-ink-soft">لا توجد أحداث حالة مسجلة.</p>}
+        </Section>
         <Section title="الحالات والاستثناءات">
           {d.supportCases.length === 0 ? <p className="text-bw-small text-bw-ink-soft">مافيش.</p> : (
             <ul className="space-y-1 text-bw-small">{d.supportCases.map((c) => <li key={c.id}>{c.title} · {c.status} · {c.priority}</li>)}</ul>
@@ -200,9 +217,9 @@ function OrderBody({ d, reload }: { d: Detail; reload: () => void }) {
         <Section title="أحداث النظام">
           <ul className="space-y-1 text-bw-small">{d.events.map((e) => <li key={e.id}><Code>{e.eventType}</Code> → {e.consumer}: {e.status}{e.lastError ? ` · ${e.lastError}` : ''}</li>)}</ul>
         </Section>
-      </div>
+      </div></details>
 
-      <CancelOrder orderId={o.id} status={o.status} onDone={reload} />
+      <details className="rounded-bw-card border border-bw-line bg-bw-surface"><summary className="cursor-pointer p-5 text-bw-small font-semibold text-bw-danger">إجراءات إضافية</summary><div className="border-t border-bw-line p-3"><CancelOrder orderId={o.id} status={o.status} onDone={reload} /></div></details>
     </>
   )
 }

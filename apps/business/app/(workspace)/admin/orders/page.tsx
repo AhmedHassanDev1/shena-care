@@ -2,464 +2,82 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import {
-  ArrowLeft,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  CreditCard,
-  ExternalLink,
-  Filter,
-  MapPin,
-  MapPinOff,
-  Package,
-  RefreshCw,
-  Search,
-  ShoppingBag,
-  Store,
-  Truck,
-  User,
-  Wallet,
-  X,
-} from 'lucide-react'
-import { Code, PageHeader, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
-import { Egp, Page, Select, Status } from '@/components/workspace/kit'
+import { ArrowLeft, MapPinOff, RefreshCw, Search, ShoppingBag } from 'lucide-react'
+import { Button, Code, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
+import { Egp, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { ORDER_STATUS, formatDateTime } from '@/lib/labels'
 import { useApi } from '@/lib/use-api'
-import { cn } from '@/lib/utils'
 
-interface OrderRow {
-  id: string
-  orderNumber: string
-  status: string
-  customerName: string
-  customerPhone?: string
-  governorate: string | null
-  area: string | null
-  paymentMethod: string
-  totalAmount: number
-  codAmount: number | null
-  itemCount: number
-  hasPin: boolean
-  createdAt: string
+type OrderRow = {
+  id: string; orderNumber: string; status: string; customerName: string
+  governorate: string | null; area: string | null; totalAmount: number
+  itemCount: number; hasPin: boolean; createdAt: string
 }
-
 const PAGE_SIZE = 25
+// Values are the API's OrderStatus enum (lowercase); the query DTO rejects anything else.
+const filters = [
+  { value: '', label: 'كل الطلبات' }, { value: 'placed', label: 'بانتظار التوفير' },
+  { value: 'confirmed', label: 'تأكد التوفر' }, { value: 'packing', label: 'في المخزن' },
+  { value: 'shipped', label: 'مع المندوب' }, { value: 'delivered', label: 'مكتملة' },
+  { value: 'cancelled', label: 'ملغاة' }, { value: 'returned', label: 'مرتجعة' },
+]
+const CLOSED = ['delivered', 'cancelled', 'returned']
 
 export default function AdminOrders() {
   const [status, setStatus] = React.useState('')
   const [query, setQuery] = React.useState('')
-  const [q, setQ] = React.useState('')
-  const [paymentFilter, setPaymentFilter] = React.useState<string>('all')
-  const [locationFilter, setLocationFilter] = React.useState<string>('all')
-  const [pinFilter, setPinFilter] = React.useState<string>('all')
+  const [search, setSearch] = React.useState('')
   const [skip, setSkip] = React.useState(0)
+  const params = new URLSearchParams({ take: String(PAGE_SIZE), skip: String(skip), ...(status ? { status } : {}), ...(search ? { q: search } : {}) })
+  const orders = useApi<{ total: number; items: OrderRow[] }>(`/admin/orders?${params}`, { pollMs: 30000 })
+  const rows = orders.data?.items ?? []
+  const total = orders.data?.total ?? 0
+  const attention = rows.filter((order) => !order.hasPin && !CLOSED.includes(order.status)).length
+  const reset = () => { setStatus(''); setQuery(''); setSearch(''); setSkip(0) }
 
-  const params = new URLSearchParams({
-    take: String(PAGE_SIZE),
-    skip: String(skip),
-    ...(status ? { status } : {}),
-    ...(q ? { q } : {}),
-  })
-
-  const { data, error, loading, reload } = useApi<{ total: number; items: OrderRow[] }>(
-    `/admin/orders?${params}`,
-    { pollMs: 30000 }
-  )
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setSkip(0)
-    setQ(query.trim())
-  }
-
-  const handleResetFilters = () => {
-    setStatus('')
-    setQuery('')
-    setQ('')
-    setPaymentFilter('all')
-    setLocationFilter('all')
-    setPinFilter('all')
-    setSkip(0)
-  }
-
-  // Client-side sub-filtering for secondary dimensions (location/pin/payment) if selected
-  const items = React.useMemo(() => {
-    if (!data?.items) return []
-    return data.items.filter((item) => {
-      if (paymentFilter !== 'all') {
-        const isCod = item.paymentMethod?.toLowerCase().includes('cod') || item.paymentMethod === 'نقد عند الاستلام'
-        if (paymentFilter === 'cod' && !isCod) return false
-        if (paymentFilter === 'electronic' && isCod) return false
-      }
-      if (locationFilter !== 'all') {
-        const gov = item.governorate?.toLowerCase() || ''
-        const area = item.area?.toLowerCase() || ''
-        if (locationFilter === 'cairo' && !gov.includes('قاهر') && !area.includes('قاهر') && !area.includes('معادي') && !area.includes('تجمع')) return false
-        if (locationFilter === 'giza' && !gov.includes('جيز') && !area.includes('جيز') && !area.includes('دقي') && !area.includes('أكتوبر')) return false
-      }
-      if (pinFilter !== 'all') {
-        if (pinFilter === 'with_pin' && !item.hasPin) return false
-        if (pinFilter === 'no_pin' && item.hasPin) return false
-      }
-      return true
-    })
-  }, [data?.items, paymentFilter, locationFilter, pinFilter])
-
-  // Count summaries from returned data
-  const totalOrders = data?.total ?? 0
-
-  return (
-    <RoleShell role="admin" active="orders" mode="desktop">
-      <Page>
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="sc-badge t-success flex items-center gap-1.5">
-                <ShoppingBag className="size-3.5" />
-                سجل طلبات العملاء المركزي
-              </span>
-              <span className="text-xs text-bw-ink-soft">
-                تحديث لحظي لكافة طلبات القاهرة والجيزة
-              </span>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
-              إدارة الطلبات
-              {data && (
-                <span className="sc-badge font-mono text-sm bg-white/[0.06] text-emerald-400 border-white/10">
-                  {totalOrders} طلب إجمالي
-                </span>
-              )}
-            </h1>
-            <p className="text-xs text-bw-ink-soft mt-1 leading-relaxed max-w-3xl">
-              استعراض ومتابعة رحلة طلبات العملاء من التأكيد الأولي، التوريد من الصيدليات والمستودعات، التجهيز في مخزن المعادي، وحتى التسليم النهائي والتحصيل.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => reload()}
-              disabled={loading}
-              className="sc-btn md secondary flex items-center gap-2 cursor-pointer"
-            >
-              <RefreshCw className={cn('size-4 text-emerald-400', loading && 'animate-spin')} />
-              <span>تحديث البيانات</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Status Pipeline Fast Filters */}
-        <div className="flex flex-wrap items-center gap-1.5 py-1">
-          {[
-            { id: '', label: 'كافة الطلبات' },
-            { id: 'PLACED', label: 'بانتظار التوريد' },
-            { id: 'SOURCING', label: 'جاري التوريد' },
-            { id: 'PREPARING', label: 'في مخزن المعادي' },
-            { id: 'DISPATCHED', label: 'خرجت للتوصيل' },
-            { id: 'DELIVERED', label: 'تم التسليم' },
-            { id: 'CANCELLED', label: 'ملغاة / مسترجعة' },
-          ].map((tab) => {
-            const active = status === tab.id
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setStatus(tab.id)
-                  setSkip(0)
-                }}
-                className={cn(
-                  'px-3.5 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-colors border',
-                  active
-                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                    : 'text-bw-ink-soft border-transparent hover:text-white hover:bg-white/[0.04]'
-                )}
-              >
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Filter & Search Bar */}
-        <div className="sc-card p-4 space-y-3 border-white/[0.08] bg-bw-surface">
-          <form
-            onSubmit={handleSearchSubmit}
-            className="flex flex-col md:flex-row items-stretch md:items-center gap-3"
-          >
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 size-4 text-bw-ink-muted" />
-              <input
-                id="order-search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="البحث برقم الطلب (مثال: 1042)، اسم العميل، أو رقم الهاتف..."
-                className="w-full pl-3 pr-10 py-2.5 text-xs rounded-xl bg-black/40 border border-white/[0.08] text-white placeholder-bw-ink-muted focus:outline-none focus:border-emerald-500 transition-colors"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuery('')
-                    setQ('')
-                    setSkip(0)
-                  }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-bw-ink-muted hover:text-white"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Payment Method Selector */}
-            <div className="w-full md:w-44">
-              <select
-                aria-label="طريقة الدفع"
-                value={paymentFilter}
-                onChange={(e) => setPaymentFilter(e.target.value)}
-                className="w-full py-2.5 px-3 text-xs rounded-xl bg-black/40 border border-white/[0.08] text-white focus:outline-none focus:border-emerald-500 transition-colors"
-              >
-                <option value="all">كافة طرق الدفع</option>
-                <option value="cod">دفع عند الاستلام (COD)</option>
-                <option value="electronic">دفع إلكتروني / بطاقة</option>
-              </select>
-            </div>
-
-            {/* Zone Selector */}
-            <div className="w-full md:w-36">
-              <select
-                aria-label="النطاق الجغرافي"
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="w-full py-2.5 px-3 text-xs rounded-xl bg-black/40 border border-white/[0.08] text-white focus:outline-none focus:border-emerald-500 transition-colors"
-              >
-                <option value="all">كافة المناطق</option>
-                <option value="cairo">القاهرة</option>
-                <option value="giza">الجيزة</option>
-              </select>
-            </div>
-
-            {/* GPS Pin Selector */}
-            <div className="w-full md:w-36">
-              <select
-                aria-label="تحديد العنوان الجغرافي"
-                value={pinFilter}
-                onChange={(e) => setPinFilter(e.target.value)}
-                className="w-full py-2.5 px-3 text-xs rounded-xl bg-black/40 border border-white/[0.08] text-white focus:outline-none focus:border-emerald-500 transition-colors"
-              >
-                <option value="all">كل العناوين</option>
-                <option value="with_pin">مثبت بدبوس GPS</option>
-                <option value="no_pin">بدون دبوس</option>
-              </select>
-            </div>
-
-            <button
-              type="submit"
-              className="sc-btn md primary shrink-0 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Filter className="size-3.5" />
-              <span>تطبيق</span>
-            </button>
-
-            {(status || q || paymentFilter !== 'all' || locationFilter !== 'all' || pinFilter !== 'all') && (
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="sc-btn md ghost shrink-0 text-bw-ink-soft hover:text-white"
-                title="إعادة تعيين الفلاتر"
-              >
-                <X className="size-4" />
-                <span className="hidden lg:inline text-xs">مسح الفلاتر</span>
-              </button>
-            )}
+  return <RoleShell role="admin" active="orders">
+    <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-6 sm:px-8 sm:py-9" dir="rtl">
+      <PageHeader eyebrow="مساحة الإدارة / الطلبات" title="الطلبات" meta="ما الذي يحدث الآن، وما الذي يحتاج تدخلًا؟"
+        actions={<Button variant="secondary" onClick={orders.reload} loading={orders.loading}><RefreshCw className="size-4" />تحديث</Button>} />
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-bw-line py-5 text-bw-small">
+        <p className="text-bw-ink-soft"><strong className="text-bw-ink"><Code>{total}</Code></strong> طلب مطابق للعرض الحالي</p>
+        {attention ? <p className="flex items-center gap-2 text-bw-warn"><MapPinOff className="size-4" /><strong><Code>{attention}</Code></strong> من الطلبات المعروضة بلا موقع مؤكد</p> : null}
+      </div>
+      <section className="space-y-5" aria-label="البحث والتصفية">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <form className="relative w-full max-w-lg" onSubmit={(event) => { event.preventDefault(); setSearch(query.trim()); setSkip(0) }}>
+            <Search className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-bw-ink-subtle" aria-hidden />
+            <label htmlFor="order-search" className="sr-only">ابحث برقم الطلب أو العميل أو الهاتف</label>
+            <input id="order-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="رقم الطلب، العميل أو الهاتف"
+              className="h-bw-control w-full rounded-bw-field border border-bw-line bg-bw-surface pe-20 ps-10 text-bw-small text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-focus focus:outline-none" />
+            <button type="submit" className="absolute inset-y-1 end-1 rounded-bw-field bg-bw-sunken px-3 text-bw-small font-semibold text-bw-ink hover:bg-bw-action-soft">بحث</button>
           </form>
+          {(status || search) ? <Button variant="ghost" onClick={reset}>مسح التصفية</Button> : null}
         </div>
-
-        {/* Load Error Handling */}
-        {error ? <LoadError message={error.message} onRetry={reload} /> : null}
-
-        {/* Loading Skeleton */}
-        {!data && loading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-12 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-          </div>
-        ) : null}
-
-        {/* Empty State */}
-        {data && items.length === 0 ? (
-          <div className="sc-card p-12 text-center border-white/[0.08] bg-bw-surface space-y-3">
-            <ShoppingBag className="size-10 text-bw-ink-muted mx-auto" />
-            <h3 className="text-base font-bold text-white">لم يتم العثور على طلبات مطابقة</h3>
-            <p className="text-xs text-bw-ink-soft max-w-md mx-auto">
-              جرب تغيير معايير البحث أو تصفية الحالات لاستعراض طلبات أخرى في النظام.
-            </p>
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="sc-btn sm secondary inline-flex items-center gap-1.5 mt-2"
-            >
-              مسح الفلاتر وإعادة المحاولة
-            </button>
-          </div>
-        ) : null}
-
-        {/* Orders Table */}
-        {data && items.length > 0 ? (
-          <div className="sc-card overflow-hidden border-white/[0.08] bg-bw-surface shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
-                <thead>
-                  <tr className="border-b border-white/[0.08] bg-black/20 text-bw-ink-soft font-semibold">
-                    <th className="py-3 px-4">رقم الطلب</th>
-                    <th className="py-3 px-4">العميل والموقع</th>
-                    <th className="py-3 px-4">الحالة التشغيلية</th>
-                    <th className="py-3 px-4">المبلغ والدفع</th>
-                    <th className="py-3 px-4">الأصناف</th>
-                    <th className="py-3 px-4">توقيت الطلب</th>
-                    <th className="py-3 px-4 text-center">إجراءات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.05]">
-                  {items.map((order) => {
-                    const isCod =
-                      order.paymentMethod?.toLowerCase().includes('cod') ||
-                      order.paymentMethod === 'نقد عند الاستلام'
-
-                    return (
-                      <tr
-                        key={order.id}
-                        className="hover:bg-white/[0.02] transition-colors group"
-                      >
-                        {/* Order Number */}
-                        <td className="py-3.5 px-4 font-mono">
-                          <Link
-                            href={`/admin/orders/${order.id}`}
-                            className="font-bold text-emerald-400 group-hover:underline flex items-center gap-1.5"
-                          >
-                            <span>#{order.orderNumber}</span>
-                            <ExternalLink className="size-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </Link>
-                        </td>
-
-                        {/* Customer & Location */}
-                        <td className="py-3.5 px-4">
-                          <div className="space-y-1">
-                            <div className="font-semibold text-white flex items-center gap-1.5">
-                              <span className="size-5 rounded-full bg-white/[0.08] flex items-center justify-center text-[10px] text-bw-ink-soft">
-                                {order.customerName.charAt(0) || 'ع'}
-                              </span>
-                              <span>{order.customerName}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-bw-ink-soft">
-                              {order.hasPin ? (
-                                <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
-                                  <MapPin className="size-3 shrink-0" />
-                                  <span>{[order.area, order.governorate].filter(Boolean).join('، ') || 'القاهرة'}</span>
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-amber-400/90 font-medium">
-                                  <MapPinOff className="size-3 shrink-0" />
-                                  <span>{[order.area, order.governorate].filter(Boolean).join('، ') || 'بدون إحداثيات GPS'}</span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-3.5 px-4">
-                          <Status map={ORDER_STATUS} value={order.status} />
-                        </td>
-
-                        {/* Payment & Amount */}
-                        <td className="py-3.5 px-4">
-                          <div className="space-y-0.5">
-                            <div className="font-bold font-mono text-white text-sm">
-                              <Egp value={order.codAmount ?? order.totalAmount} />
-                            </div>
-                            <div className="flex items-center gap-1 text-[10px]">
-                              {isCod ? (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-[#f5a524] border border-amber-500/20">
-                                  <Wallet className="size-2.5" />
-                                  تحصيل عند الاستلام
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                  <CreditCard className="size-2.5" />
-                                  مدفوع إلكترونياً
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Item Count */}
-                        <td className="py-3.5 px-4">
-                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/[0.05] text-white font-mono text-xs">
-                            <Package className="size-3 text-bw-ink-soft" />
-                            <span>{order.itemCount} قطع</span>
-                          </div>
-                        </td>
-
-                        {/* Time */}
-                        <td className="py-3.5 px-4 text-bw-ink-soft text-[11px]">
-                          <div className="flex items-center gap-1">
-                            <Clock className="size-3 text-bw-ink-muted" />
-                            <span>{formatDateTime(order.createdAt)}</span>
-                          </div>
-                        </td>
-
-                        {/* Detail Link */}
-                        <td className="py-3.5 px-4 text-center">
-                          <Link
-                            href={`/admin/orders/${order.id}`}
-                            className="sc-btn sm secondary inline-flex items-center gap-1.5 text-[11px] py-1 px-2.5"
-                          >
-                            <span>التفاصيل</span>
-                            <ArrowLeft className="size-3" />
-                          </Link>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            <div className="flex items-center justify-between p-4 border-t border-white/[0.08] bg-black/20 text-xs">
-              <button
-                type="button"
-                disabled={skip === 0}
-                onClick={() => setSkip(Math.max(0, skip - PAGE_SIZE))}
-                className="sc-btn sm secondary disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                السابق
-              </button>
-
-              <span className="text-bw-ink-soft font-mono">
-                {skip + 1}–{Math.min(skip + PAGE_SIZE, totalOrders)} من أصل {totalOrders} طلب
-              </span>
-
-              <button
-                type="button"
-                disabled={skip + PAGE_SIZE >= totalOrders}
-                onClick={() => setSkip(skip + PAGE_SIZE)}
-                className="sc-btn sm secondary disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                التالي
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </Page>
-    </RoleShell>
-  )
+        <div className="flex gap-1 overflow-x-auto border-b border-bw-line pb-1" role="group" aria-label="حالة الطلب">
+          {filters.map((filter) => <button key={filter.value} type="button" aria-pressed={status === filter.value}
+            onClick={() => { setStatus(filter.value); setSkip(0) }}
+            className={`shrink-0 rounded-bw-field px-3 py-2 text-bw-small transition-colors ${status === filter.value ? 'bg-bw-sunken font-semibold text-bw-ink' : 'text-bw-ink-soft hover:text-bw-ink'}`}>{filter.label}</button>)}
+        </div>
+      </section>
+      <section aria-label="قائمة الطلبات" className="space-y-4">
+        {orders.error ? <LoadError message={orders.error.message} onRetry={orders.reload} /> : null}
+        {orders.loading && !orders.data ? <div className="space-y-2"><Skeleton className="h-20 w-full" /><Skeleton className="h-20 w-full" /><Skeleton className="h-20 w-full" /></div> : null}
+        {orders.data && rows.length === 0 ? <StateBlock kind="empty" title="لا توجد طلبات مطابقة" body="غيّر البحث أو الحالة لعرض طلبات أخرى." action={<Button variant="secondary" onClick={reset}>عرض كل الطلبات</Button>} /> : null}
+        {rows.length ? <div className="overflow-hidden rounded-bw-card border border-bw-line bg-bw-surface divide-y divide-bw-line">
+          {rows.map((order) => {
+            const needsLocation = !order.hasPin && !CLOSED.includes(order.status)
+            return <Link key={order.id} href={`/admin/orders/${order.id}`} className="group flex flex-col gap-3 p-4 transition-colors hover:bg-bw-sunken sm:flex-row sm:items-center sm:gap-5 sm:p-5">
+              <span className="hidden size-11 shrink-0 place-items-center rounded-bw-field bg-bw-sunken sm:grid"><ShoppingBag className="size-5 text-bw-ink-soft" aria-hidden /></span>
+              <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><strong className="text-bw-ink"><Code>#{order.orderNumber}</Code></strong><Status map={ORDER_STATUS} value={order.status} />{needsLocation ? <StatusLabel tone="warn">الموقع غير مؤكد</StatusLabel> : null}</span><span className="mt-1 block truncate text-bw-small text-bw-ink-soft"><bdi>{order.customerName}</bdi> · {[order.area, order.governorate].filter(Boolean).join('، ') || 'عنوان غير محدد'}</span></span>
+              <span className="flex items-center justify-between gap-4 sm:block sm:text-end"><span className="block font-semibold text-bw-ink"><Egp value={order.totalAmount} /></span><span className="block text-bw-small text-bw-ink-subtle"><Code>{order.itemCount}</Code> أصناف · {formatDateTime(order.createdAt)}</span></span>
+              <ArrowLeft className="hidden size-4 shrink-0 text-bw-ink-subtle transition-transform group-hover:-translate-x-1 sm:block" aria-hidden />
+            </Link>
+          })}
+        </div> : null}
+        {orders.data && total > PAGE_SIZE ? <nav aria-label="صفحات الطلبات" className="flex items-center justify-between gap-3 text-bw-small"><Button variant="secondary" disabled={skip === 0} onClick={() => setSkip(Math.max(0, skip - PAGE_SIZE))}>السابق</Button><span className="text-bw-ink-soft"><Code>{skip + 1}–{Math.min(skip + PAGE_SIZE, total)}</Code> من <Code>{total}</Code></span><Button variant="secondary" disabled={skip + PAGE_SIZE >= total} onClick={() => setSkip(skip + PAGE_SIZE)}>التالي</Button></nav> : null}
+      </section>
+    </main>
+  </RoleShell>
 }

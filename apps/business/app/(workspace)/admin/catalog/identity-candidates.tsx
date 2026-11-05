@@ -162,7 +162,7 @@ export function IdentityCandidates({
   const open = !linkedSkuId && record.status === 'review_required'
 
   return (
-    <section aria-labelledby="identity-candidates-title" className="sc-card space-y-3 border-white/[0.06] bg-white/[0.02] p-3.5">
+    <section aria-labelledby="identity-candidates-title" className="sc-card space-y-3 border-bw-line bg-bw-sunken p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 id="identity-candidates-title" className="text-bw-small font-bold text-bw-ink">
           <Both text={{ ar: 'مطابقة الهوية', en: 'Identity match' }} />

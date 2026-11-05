@@ -32,7 +32,7 @@
 .bw-admin > div > aside a[aria-current="page"] svg,
 .bw-admin > div > nav a[aria-current="page"] svg { color: var(--color-bw-ink); filter: none; }
 .bw-admin > div > aside a[aria-current="page"] span.rounded-full,
-.bw-admin > div > nav a[aria-current="page"] span.rounded-full { background: var(--color-bw-action); box-shadow: none; }
+.bw-admin > div > nav a[aria-current="page"] span.rounded-full { background: var(--color-bw-action); color: var(--color-bw-on-action); border-color: transparent; box-shadow: none; }
 .bw-admin :is(aside, header, nav) [class*="text-[#34d27b]"],
 .bw-admin :is(aside, header, nav) [class*="text-emerald"] { color: var(--color-bw-ink); filter: none; }
 .bw-admin :is(aside, header, nav) [class*="bg-[#34d27b]"],
