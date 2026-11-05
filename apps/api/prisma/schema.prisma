@@ -617,6 +617,8 @@ model Supplier {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   rfqRecipients  RfqRecipient[]
+  enrollmentEvents SupplierEnrollmentEvent[]
+  acquisitionCostLots AcquisitionCostLot[]
   offers         SupplierOffer[]
   ingestionJobs  IngestionJob[]
   purchaseOrders SupplierPurchaseOrder[]
@@ -846,6 +848,7 @@ model SupplierPurchaseOrder {
   supplier Supplier            @relation(fields: [supplierId], references: [id])
   lines    PurchaseOrderLine[]
   payables SupplierPayable[]
+  acquisitionCostLots AcquisitionCostLot[]
 
   @@index([supplierId])
   @@index([batchRef])
@@ -924,6 +927,7 @@ model PurchaseOrderLine {
 
   purchaseOrder SupplierPurchaseOrder         @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   allocations   PurchaseOrderLineAllocation[]
+  costLots      AcquisitionCostLot[]
 
   @@index([purchaseOrderId])
   @@index([skuId])
@@ -1114,6 +1118,76 @@ enum PayableStatus {
   disputed
   adjusted
 
+  @@schema("sourcing")
+}
+
+/// Append-only audit of a supplier's RFQ participation: registration, enrolment, scope and working calendar.
+model SupplierEnrollmentEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  supplierId String   @map("supplier_id") @db.Uuid
+  /// REGISTERED | ENROLLED | WITHDRAWN | ACTIVATED | DEACTIVATED | SCOPE_CHANGED | CALENDAR_CHANGED | DETAILS_CHANGED
+  action     String   @db.VarChar(40)
+  actorId    String   @map("actor_id")
+  reason     String?
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+
+  @@index([supplierId, createdAt])
+  @@map("supplier_enrollment_events")
+  @@schema("sourcing")
+}
+
+/// Actual acquisition cost of received units, from the supplier invoice captured at the Hub: one row per invoice line / consistent cost lot.
+/// A received unit with no lot is COST_PENDING; retail prices, assumed discounts and SupplierOffers are never a cost source.
+model AcquisitionCostLot {
+  id                  String   @id @default(uuid()) @db.Uuid
+  purchaseOrderId     String   @map("purchase_order_id") @db.Uuid
+  purchaseOrderLineId String   @map("purchase_order_line_id") @db.Uuid
+  supplierId          String   @map("supplier_id") @db.Uuid
+  skuId               String   @map("sku_id") @db.Uuid
+  invoiceRef          String   @map("invoice_ref") @db.VarChar(80)
+  invoiceLineRef      String   @default("") @map("invoice_line_ref") @db.VarChar(40)
+  quantity            Int
+  unitCost            Decimal  @map("unit_cost") @db.Decimal(10, 2)
+  currency            String   @default("EGP") @db.VarChar(3)
+  version             Int      @default(1)
+  idempotencyKey      String   @unique @map("idempotency_key") @db.Uuid
+  capturedBy          String   @map("captured_by")
+  capturedAt          DateTime @default(now()) @map("captured_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  purchaseOrder SupplierPurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  line          PurchaseOrderLine      @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
+  supplier      Supplier               @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  events        AcquisitionCostEvent[]
+
+  @@unique([supplierId, invoiceRef, invoiceLineRef, purchaseOrderLineId], map: "acquisition_cost_lots_one_invoice_line")
+  @@index([purchaseOrderId])
+  @@index([purchaseOrderLineId])
+  @@index([skuId])
+  @@map("acquisition_cost_lots")
+  @@schema("sourcing")
+}
+
+/// Append-only history of every capture and correction of a cost lot.
+model AcquisitionCostEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  lotId     String   @map("lot_id") @db.Uuid
+  /// CAPTURED | CORRECTED
+  action    String   @db.VarChar(20)
+  actorId   String   @map("actor_id")
+  reason    String?
+  previous  Json?
+  current   Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lot AcquisitionCostLot @relation(fields: [lotId], references: [id], onDelete: Restrict)
+
+  @@index([lotId, createdAt])
+  @@map("acquisition_cost_events")
   @@schema("sourcing")
 }
 

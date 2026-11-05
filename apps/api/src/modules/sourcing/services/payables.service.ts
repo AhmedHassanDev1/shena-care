@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { PayableStatus, Prisma, PurchaseOrderStatus, SupplierPayable } from '@prisma/client';
+import { COST_CORRECTION_REASON_PREFIX, summarizeLineCost } from './acquisition-cost.service';
 
 type Tx = Prisma.TransactionClient;
 
@@ -10,8 +11,11 @@ export interface PayableBasisLine {
   skuId: string;
   quantity: number;
   quantitySource: 'received_at_hub' | 'supplier_confirmed';
+  /** The approved snapshot, or the quantity-weighted invoice cost when several cost lots cover the line. */
   unitCost: string;
   lineAmount: string;
+  costSource: 'hub_invoice' | 'approved_snapshot';
+  costLots?: Array<{ lotId: string; invoiceRef: string; quantity: number; unitCost: string }>;
 }
 
 const PAYABLE_PO_STATUSES: PurchaseOrderStatus[] = [
@@ -53,7 +57,7 @@ export class PayablesService {
 
     const po = await tx.supplierPurchaseOrder.findUnique({
       where: { id: purchaseOrderId },
-      include: { lines: { include: { allocations: true }, orderBy: { createdAt: 'asc' } } },
+      include: { lines: { include: { allocations: true, costLots: { orderBy: { capturedAt: 'asc' } } }, orderBy: { createdAt: 'asc' } } },
     });
     if (!po) throw new NotFoundException('PO not found');
     if (!PAYABLE_PO_STATUSES.includes(po.status)) {
@@ -74,16 +78,23 @@ export class PayablesService {
         }
       }
       const quantity = linked ? line.allocations.reduce((sum, link) => sum + link.receivedQuantity, 0) : confirmed;
-      if (quantity > 0 && line.unitCost === null) {
-        throw new ConflictException({ code: 'MISSING_COST_SNAPSHOT', message: `Line ${line.id} has no approved unit cost` });
+      const cost = summarizeLineCost(line);
+      if (quantity > 0 && line.unitCost === null && line.costLots.length === 0) {
+        throw new ConflictException({ code: 'MISSING_COST_SNAPSHOT', message: `Line ${line.id} has no invoice cost; ${quantity} received unit(s) are cost pending` });
       }
-      if (line.currency) currencies.add(line.currency);
-      const unitCost = line.unitCost ?? new Prisma.Decimal(0);
-      const lineAmount = unitCost.mul(quantity);
+      if (cost.status === 'COST_PENDING') {
+        throw new ConflictException({ code: 'COST_PENDING', message: `Line ${line.id} still has ${cost.pending} received unit(s) without an invoice cost` });
+      }
+      const fromLots = line.costLots.length > 0;
+      if (fromLots) currencies.add('EGP');
+      else if (line.currency) currencies.add(line.currency);
+      const lineAmount = cost.capturedValue;
+      const unitCost = fromLots && quantity > 0 ? lineAmount.div(quantity) : line.unitCost ?? new Prisma.Decimal(0);
       amount = amount.plus(lineAmount);
       basis.push({
         lineId: line.id, skuId: line.skuId, quantity, quantitySource: linked ? 'received_at_hub' : 'supplier_confirmed',
-        unitCost: unitCost.toFixed(2), lineAmount: lineAmount.toFixed(2),
+        unitCost: unitCost.toFixed(2), lineAmount: lineAmount.toFixed(2), costSource: fromLots ? 'hub_invoice' : 'approved_snapshot',
+        ...(fromLots && { costLots: line.costLots.map(lot => ({ lotId: lot.id, invoiceRef: lot.invoiceRef, quantity: lot.quantity, unitCost: lot.unitCost.toFixed(2) })) }),
       });
     }
     if (currencies.size > 1) throw new ConflictException('Purchase order lines are in more than one currency');
@@ -122,8 +133,9 @@ export class PayablesService {
     return {
       total,
       items: rows.map(p => {
+        // A cost correction restates the goods value (already in the basis); only real credits count as credit.
         const creditApplied = p.adjustments
-          .filter(a => Number(a.amount) < 0)
+          .filter(a => Number(a.amount) < 0 && !a.reason.startsWith(COST_CORRECTION_REASON_PREFIX))
           .reduce((sum, a) => sum + Math.abs(Number(a.amount)), 0);
         const basisLines = Array.isArray(p.basis) ? (p.basis as Array<{ lineAmount: string }>) : [];
         const grossAmount = basisLines.length
@@ -224,6 +236,14 @@ export class PayablesService {
     });
   }
 
+  /** A later correction can reopen a gap between received units and invoice evidence; closure re-checks it. */
+  private async assertCostEvidenceComplete(purchaseOrderId: string) {
+    const lines = await this.prisma.purchaseOrderLine.findMany({ where: { purchaseOrderId }, include: { allocations: true, costLots: true } });
+    const pending = lines.map(line => summarizeLineCost(line)).filter(cost => cost.status === 'COST_PENDING');
+    const unknown = lines.filter(line => line.unitCost === null && line.costLots.length === 0 && summarizeLineCost(line).received > 0);
+    if (pending.length || unknown.length) throw new ConflictException({ code: 'COST_PENDING', message: 'Received units on this purchase order still have no invoice cost' });
+  }
+
   /** Paid once, with the operator's payment proof; a replay with the same reference is harmless. */
   async markAsPaid(payableId: string, paymentRef: string): Promise<SupplierPayable> {
     if (!this.isUuid(payableId)) throw new BadRequestException('Invalid payable ID');
@@ -234,6 +254,7 @@ export class PayablesService {
       throw new ConflictException('Payable was already paid with a different reference');
     }
     if (!PAYABLE_OPEN.includes(payable.status)) throw new ConflictException(`A ${payable.status} payable cannot be paid`);
+    await this.assertCostEvidenceComplete(payable.purchaseOrderId);
     const claimed = await this.prisma.supplierPayable.updateMany({
       where: { id: payableId, status: payable.status },
       data: { status: 'paid', paidAt: new Date(), paymentRef },

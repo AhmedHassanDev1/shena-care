@@ -1,3 +1,4 @@
+import { SupplierFileIntakeFrozenGuard } from './guards/supplier-file-intake-frozen.guard';
 import { Controller, Post, Body, Get, Param, Patch, Query, Req, HttpCode, HttpStatus, UseGuards, ForbiddenException, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { IngestionService } from './services/ingestion.service';
@@ -47,6 +48,7 @@ export class IngestionController {
     throw new ForbiddenException('Supplier account is not linked to a supplier');
   }
 
+  @UseGuards(SupplierFileIntakeFrozenGuard)
   @Post('jobs')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
   async createJob(
@@ -62,6 +64,7 @@ export class IngestionController {
     return this.ingestionService.createJob(dto);
   }
 
+  @UseGuards(SupplierFileIntakeFrozenGuard)
   @Post('jobs/upload')
   @UseInterceptors(FileInterceptor('file', supplierSourceMulterOptions))
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
@@ -103,6 +106,7 @@ export class IngestionController {
     return this.ingestionService.getJob(id, this.supplierReadScope(req.user));
   }
 
+  @UseGuards(SupplierFileIntakeFrozenGuard)
   @Post('jobs/:id/mapping')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
   async applyJobMapping(
@@ -122,6 +126,7 @@ export class IngestionController {
   }
 
   /** Re-runs identity matching for rows still pending (e.g. after a matching outage). Idempotent. */
+  @UseGuards(SupplierFileIntakeFrozenGuard)
   @Post('jobs/:id/match')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
   @HttpCode(HttpStatus.OK)
@@ -142,6 +147,7 @@ export class IngestionController {
     return this.ingestionService.getProfile(id, this.supplierReadScope(req.user));
   }
 
+  @UseGuards(SupplierFileIntakeFrozenGuard)
   @Post('profiles/:id/approve')
   @Roles('ADMIN', 'HUB_OPERATOR')
   async approveProfile(
@@ -153,6 +159,7 @@ export class IngestionController {
     return this.ingestionService.approveProfile(body.supplierId, id, req.user.id, body.semantics);
   }
 
+  @UseGuards(SupplierFileIntakeFrozenGuard)
   @Post('jobs/:id/publish')
   @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
@@ -181,6 +188,7 @@ export class IngestionController {
     return this.offerBatchCommitService.computeJobDiff(id);
   }
 
+  @UseGuards(SupplierFileIntakeFrozenGuard)
   @Post('jobs/:id/commit-offers')
   @Roles('ADMIN', 'HUB_OPERATOR', 'SUPPLIER')
   async commitJobOffers(
@@ -201,6 +209,7 @@ export class IngestionController {
     });
   }
 
+  @UseGuards(SupplierFileIntakeFrozenGuard)
   @Post('jobs/:id/approve-deactivations')
   @Roles('ADMIN')
   async approveDeactivations(

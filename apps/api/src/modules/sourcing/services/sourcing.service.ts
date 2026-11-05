@@ -45,6 +45,8 @@ export interface SupplierOfferDetail {
   sku?: SkuLabel;
 }
 
+export interface SupplierAuditContext { actorId: string; reason?: string }
+
 @Injectable()
 export class SourcingService {
   constructor(
@@ -60,6 +62,28 @@ export class SourcingService {
     }, { timeout: 30000 });
   }
 
+  /** One append-only row per kind of participation change; a change with no effect writes nothing. */
+  private async auditEnrollment(tx: Prisma.TransactionClient, before: Prisma.SupplierGetPayload<object> | null, after: Prisma.SupplierGetPayload<object>, audit: SupplierAuditContext) {
+    const view = (s: Prisma.SupplierGetPayload<object>) => ({
+      name: s.name, slug: s.slug, isActive: s.isActive, enrolled: s.rfqEnrolledAt !== null, scopeSkuIds: s.rfqScopeSkuIds,
+      closedWeekdays: s.closedWeekdays, closedDates: s.closedDates, opensAt: s.opensAt, closesAt: s.closesAt, pickupLeadMinutes: s.pickupLeadMinutes,
+    });
+    const next = view(after);
+    const prev = before ? view(before) : null;
+    const same = (keys: Array<keyof ReturnType<typeof view>>) => prev !== null && keys.every(key => JSON.stringify(prev[key]) === JSON.stringify(next[key]));
+    const actions: string[] = [];
+    if (!prev) actions.push('REGISTERED');
+    if (!same(['enrolled']) && (prev || next.enrolled)) actions.push(next.enrolled ? 'ENROLLED' : 'WITHDRAWN');
+    if (prev && !same(['isActive'])) actions.push(next.isActive ? 'ACTIVATED' : 'DEACTIVATED');
+    if (prev && !same(['scopeSkuIds'])) actions.push('SCOPE_CHANGED');
+    if (prev && !same(['closedWeekdays', 'closedDates', 'opensAt', 'closesAt', 'pickupLeadMinutes'])) actions.push('CALENDAR_CHANGED');
+    if (prev && !same(['name', 'slug'])) actions.push('DETAILS_CHANGED');
+    for (const action of actions) {
+      await tx.supplierEnrollmentEvent.create({ data: { supplierId: after.id, action, actorId: audit.actorId, reason: audit.reason ?? null,
+        before: (prev ?? Prisma.JsonNull) as Prisma.InputJsonValue, after: next as Prisma.InputJsonValue } });
+    }
+  }
+
   private isUuid(val: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
   }
@@ -68,7 +92,7 @@ export class SourcingService {
   // Supplier Management
   // ---------------------------------------------------------------------------
 
-  async createSupplier(dto: CreateSupplierDto): Promise<SupplierDetail> {
+  async createSupplier(dto: CreateSupplierDto, audit: SupplierAuditContext = { actorId: 'system' }): Promise<SupplierDetail> {
     const existing = await this.prisma.supplier.findFirst({
       where: {
         OR: [{ name: dto.name }, { slug: dto.slug }],
@@ -86,7 +110,8 @@ export class SourcingService {
       throw new BadRequestException('Working hours need both opensAt and closesAt, with opensAt earlier than closesAt (or specify crossesMidnight)');
     }
 
-    const supplier = await this.prisma.supplier.create({
+    const supplier = await this.prisma.$transaction(async tx => {
+      const created = await tx.supplier.create({
       data: {
         name: dto.name,
         slug: dto.slug,
@@ -99,6 +124,9 @@ export class SourcingService {
         ...(dto.rfqEnrolled !== undefined && { rfqEnrolledAt: dto.rfqEnrolled ? new Date() : null }),
         ...(dto.rfqScopeSkuIds !== undefined && { rfqScopeSkuIds: dto.rfqScopeSkuIds }),
       },
+      });
+      await this.auditEnrollment(tx, null, created, audit);
+      return created;
     });
 
     return supplier;
@@ -115,7 +143,7 @@ export class SourcingService {
     });
   }
 
-  async updateSupplier(id: string, dto: UpdateSupplierDto): Promise<SupplierDetail> {
+  async updateSupplier(id: string, dto: UpdateSupplierDto, audit: SupplierAuditContext = { actorId: 'system' }): Promise<SupplierDetail> {
     if (!this.isUuid(id)) throw new BadRequestException('Invalid supplier ID');
 
     const supplier = await this.getSupplier(id);
@@ -146,7 +174,7 @@ export class SourcingService {
     return this.mutateSupplier(id, async tx => {
       const current = await tx.supplier.findUniqueOrThrow({ where: { id } });
       if (current.updatedAt.getTime() !== supplier.updatedAt.getTime()) throw new ConflictException('Supplier data changed; reload before editing');
-      return tx.supplier.update({
+      const updated = await tx.supplier.update({
       where: { id },
       data: {
         ...(dto.closedWeekdays !== undefined && { closedWeekdays: dto.closedWeekdays }),
@@ -161,6 +189,8 @@ export class SourcingService {
         ...(dto.rfqScopeSkuIds !== undefined && { rfqScopeSkuIds: dto.rfqScopeSkuIds }),
       },
       });
+      await this.auditEnrollment(tx, current, updated, audit);
+      return updated;
     });
   }
 

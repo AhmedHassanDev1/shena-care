@@ -30,6 +30,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
       { id: 'ingestion-policy', label: 'سياسة قبول منتجات الموردين', icon: ShieldAlert, href: '/admin/ingestion-policy' },
       { id: 'sourcing', label: 'الموردين والشراء', icon: Store, href: '/admin/sourcing' },
+      { id: 'enrollment', label: 'مشاركة الموردين', icon: Radio, href: '/admin/sourcing/enrollment' },
       { id: 'hub', label: 'المخزن والتجهيز', icon: PackageOpen, href: '/hub' },
       { id: 'delivery', label: 'عمليات التوصيل', icon: Truck, href: '/admin/delivery' },
       { id: 'exceptions', label: 'مركز الاستثناءات', icon: ShieldAlert, href: '/admin/exceptions' },
@@ -49,6 +50,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
     title: 'المخزن',
     items: [
       { id: 'receive', label: 'الاستلام', icon: PackageOpen, href: '/hub/receive' },
+      { id: 'costs', label: 'تكلفة الفواتير', icon: Wallet, href: '/hub/costs' },
       { id: 'pick', label: 'التجهيز', icon: ScanLine, href: '/hub/prepare' },
       { id: 'pack', label: 'التغليف والطباعة', icon: Printer, href: '/hub/pack' },
       { id: 'handoff', label: 'التسليم للمندوب', icon: Truck, href: '/hub/dispatch' },
@@ -105,6 +107,7 @@ export function WorkspaceFrame({
   task,
   counts,
   exitHref = '/hub',
+  hiddenNavIds,
   onLogout,
   children,
 }: {
@@ -116,10 +119,12 @@ export function WorkspaceFrame({
   /** Live counts from the API per nav id; never shown when absent. */
   counts?: Record<string, number | undefined>
   exitHref?: string
+  /** Entries of a capability that is switched off (the API refuses those routes regardless). */
+  hiddenNavIds?: string[]
   onLogout?: () => void
   children: React.ReactNode
 }) {
-  const nav = roleNav[role]
+  const nav = { ...roleNav[role], items: roleNav[role].items.filter((item) => !hiddenNavIds?.includes(item.id)) }
   const isItemActive = (itemId: string) => {
     if (itemId === active) return true
     if (itemId === 'orders' && (active === 'pos' || active === 'orders')) return true

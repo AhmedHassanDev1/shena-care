@@ -47,10 +47,19 @@ export class SourcingController {
     return offer;
   }
 
+  /** Who takes part in supplier RFQs is an Admin decision; the Hub may still maintain working calendars. */
+  private assertParticipationAuthority(user: { roles?: string[] }, dto: { isActive?: boolean; rfqEnrolled?: boolean; rfqScopeSkuIds?: string[] }) {
+    if (user.roles?.includes('ADMIN')) return;
+    if (dto.isActive !== undefined || dto.rfqEnrolled !== undefined || dto.rfqScopeSkuIds !== undefined) {
+      throw new ForbiddenException('Only an Admin can change supplier participation');
+    }
+  }
+
   @Post('suppliers')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async createSupplier(@Body() dto: CreateSupplierDto) {
-    return this.sourcingService.createSupplier(dto);
+  async createSupplier(@CurrentUser() user: { id: string; roles?: string[] }, @Body() dto: CreateSupplierDto) {
+    this.assertParticipationAuthority(user, dto);
+    return this.sourcingService.createSupplier(dto, { actorId: user.id });
   }
 
   @Get('suppliers')
@@ -68,8 +77,9 @@ export class SourcingController {
 
   @Patch('suppliers/:id')
   @Roles('ADMIN', 'HUB_OPERATOR')
-  async updateSupplier(@Param('id') id: string, @Body() dto: UpdateSupplierDto) {
-    return this.sourcingService.updateSupplier(id, dto);
+  async updateSupplier(@CurrentUser() user: { id: string; roles?: string[] }, @Param('id') id: string, @Body() dto: UpdateSupplierDto) {
+    this.assertParticipationAuthority(user, dto);
+    return this.sourcingService.updateSupplier(id, dto, { actorId: user.id });
   }
 
   /** GLO-280: linking a supplier to a canonical SKU is staff-only; suppliers reach new SKUs through reviewed files. */

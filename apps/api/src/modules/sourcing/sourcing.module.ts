@@ -6,6 +6,8 @@ import { CommerceModule } from '../commerce/public';
 import { SourcingService } from './services/sourcing.service';
 import { PurchaseOrderService } from './services/purchase-order.service';
 import { PayablesService } from './services/payables.service';
+import { AcquisitionCostService } from './services/acquisition-cost.service';
+import { SupplierEnrollmentService } from './services/supplier-enrollment.service';
 import { RankingService } from './services/ranking.service';
 import { SourcingController } from './controllers/sourcing.controller';
 import { SourcingEventListener } from './services/sourcing-event.listener';
@@ -18,7 +20,7 @@ import { OperationsModule } from '../operations/operations.module';
 @Module({
   imports: [DomainEventsModule, DatabaseModule, CatalogModule, CommerceModule, OperationsModule],
   controllers: [SourcingController, SupplyPlanController],
-  providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener, RfqService],
-  exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, RfqService],
+  providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener, RfqService, AcquisitionCostService, SupplierEnrollmentService],
+  exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, RfqService, AcquisitionCostService, SupplierEnrollmentService],
 })
 export class SourcingModule {}

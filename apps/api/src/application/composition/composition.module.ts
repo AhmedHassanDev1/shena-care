@@ -9,6 +9,7 @@ import { ListingController } from './controllers/listing.controller';
 import { PriceController } from './controllers/price.controller';
 import { PurchaseOrderController } from './controllers/purchase-order.controller';
 import { RfqController } from './controllers/rfq.controller';
+import { AcquisitionCostController, SupplierEnrollmentController } from './controllers/procurement-closure.controller';
 import { BarcodeAliasController } from './controllers/barcode-alias.controller';
 import { MediaAssetController } from './controllers/media-asset.controller';
 import { ProductViewService } from './services/product-view.service';
@@ -39,6 +40,8 @@ import { RoutineCartController } from './controllers/routine-cart.controller';
     // /sourcing/* is served by the guarded SourcingController in the Sourcing module
     PurchaseOrderController,// /purchase-orders
     RfqController,          // /rfq (BROADCAST_ON_DEMAND supplier workspace + staff)
+    SupplierEnrollmentController, // /procurement/enrollment (Admin)
+    AcquisitionCostController,    // /procurement/acquisition-costs (Hub capture, Admin corrections)
     BarcodeAliasController, // /catalog/barcode-aliases (GLO-242)
     RoutineCartController,  // /care/me/routines/:id/cart, /care/workspace/proposals/:id/cart
   ],
