@@ -31,9 +31,18 @@ async function bootstrap() {
     }),
   );
 
-  const allowedOrigins = process.env.FRONTEND_URL
+  const configuredOrigins = process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(',').map((u) => u.trim())
-    : ['http://localhost:3000', 'http://localhost:3002'];
+    : [];
+  const defaultOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3002',
+    'http://localhost:3005',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3002',
+    'http://127.0.0.1:3005',
+  ];
+  const allowedOrigins = Array.from(new Set([...defaultOrigins, ...configuredOrigins]));
   
   app.enableCors({
     origin: (origin, callback) => {

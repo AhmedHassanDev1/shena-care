@@ -188,7 +188,7 @@ export function AddBrandDrawer({ policy, busy, commit, onPick, onCreated, onClos
       </div>
 
       {r?.logo && <ReviewRow label="اللوجو" field={r.logo} value={r.logo.value} on={draft.useLogo} onToggle={on => update({ useLogo: on })} note="بيتحفظ نفس الملف اللي على الموقع الرسمي، من غير أي تعديل.">
-        <img src={r.logo.value} alt={`لوجو ${draft.name}`} referrerPolicy="no-referrer" className="h-16 max-w-48 rounded-bw-field bg-white object-contain p-2" />
+        <img src={r.logo.value} alt={`لوجو ${draft.name}`} referrerPolicy="no-referrer" className="h-16 max-w-48 rounded-bw-field bg-bw-action object-contain p-2" />
       </ReviewRow>}
 
       <ReviewRow label="الموقع الرسمي" field={r?.website} value={draft.website} on={draft.useWebsite} onToggle={on => update({ useWebsite: on })}>

@@ -1,6 +1,9 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { createHash } from 'crypto';
+import { lookup as dnsLookup, LookupAddress } from 'dns';
 import { lookup } from 'dns/promises';
+import * as https from 'https';
+import { isIP } from 'net';
 import { isPrivateAddress, validateSafeUrl } from '../../../platform/security/url-validator';
 
 export type FetchOutcome =
@@ -29,12 +32,53 @@ export interface ResearchTransport {
 }
 
 const USER_AGENT = 'ShinaCareResearch/1.0 (+product-information-review)';
+/** Hard ceiling for any body the transport buffers; the fetcher applies the tighter per-kind limit. */
+const TRANSPORT_MAX_BYTES = 15 * 1024 * 1024 + 1;
+
+/**
+ * DNS lookup used by the socket itself. The address that is checked is the address that is connected to, so a name that answers
+ * with a public address for the pre-check and a private one for the connection (DNS rebinding) is refused at connect time.
+ */
+export function safeLookup(hostname: string, options: { all?: boolean; family?: number | string }, callback: (...args: any[]) => void): void {
+  dnsLookup(hostname, { ...options, family: options.family as never, all: true }, (error, addresses) => {
+    const list = (addresses ?? []) as LookupAddress[];
+    if (error || !list.length) return callback(error ?? new Error('NO_ADDRESS'));
+    if (list.some(entry => isPrivateAddress(entry.address))) return callback(Object.assign(new Error('PRIVATE_ADDRESS'), { code: 'PRIVATE_ADDRESS' }));
+    return options.all ? callback(null, list) : callback(null, list[0].address, list[0].family);
+  });
+}
+
 export class NodeResearchTransport implements ResearchTransport {
   async resolve(hostname: string) {
     return (await lookup(hostname, { all: true })).map(entry => entry.address);
   }
   async get(url: string, init: { accept: string; timeoutMs: number }): Promise<TransportResponse> {
-    return fetch(url, { redirect: 'manual', headers: { 'User-Agent': USER_AGENT, Accept: init.accept }, signal: AbortSignal.timeout(init.timeoutMs) });
+    // An IP-literal URL never goes through DNS, so it is checked here as well.
+    const host = new URL(url).hostname.replace(/^[|]$/g, '');
+    if (isIP(host) && isPrivateAddress(host)) throw Object.assign(new Error('PRIVATE_ADDRESS'), { code: 'PRIVATE_ADDRESS' });
+    const signal = AbortSignal.timeout(init.timeoutMs);
+    return new Promise<TransportResponse>((resolve, reject) => {
+      const request = https.request(url, { method: 'GET', headers: { 'User-Agent': USER_AGENT, Accept: init.accept }, lookup: safeLookup, signal }, response => {
+        const chunks: Buffer[] = [];
+        let size = 0;
+        response.on('data', (chunk: Buffer) => {
+          size += chunk.length;
+          if (size > TRANSPORT_MAX_BYTES) { request.destroy(new Error('BODY_TOO_LARGE')); return; }
+          chunks.push(chunk);
+        });
+        response.on('error', reject);
+        response.on('end', () => {
+          const body = Buffer.concat(chunks);
+          resolve({
+            status: response.statusCode ?? 0,
+            headers: { get: (name: string) => { const value = response.headers[name.toLowerCase()]; return Array.isArray(value) ? value[0] ?? null : value ?? null; } },
+            arrayBuffer: async () => body.buffer.slice(body.byteOffset, body.byteOffset + body.length) as ArrayBuffer,
+          });
+        });
+      });
+      request.on('error', error => reject(signal.aborted ? Object.assign(new Error('timeout'), { name: 'TimeoutError' }) : error));
+      request.end();
+    });
   }
 }
 

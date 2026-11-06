@@ -1,5 +1,5 @@
-/* ShinaCare Glow · tokens v1.0.0 — generated from tokens.json. Scope: .sc-glow */
-.sc-glow {
+/* ShinaCare Glow · tokens v1.0.0 — generated from tokens.json. Scope: .sc-glow (legacy /design screens). Inside .bw the colours below are re-pointed at the shared bw-* tokens (see end of file). */
+.sc-glow, .bw {
   color-scheme: dark;
   --sc-bg-void: #050506;
   --sc-bg-canvas: #0b0b0d;
@@ -449,80 +449,123 @@
   animation: sc-pulse-ring 3s ease-in-out infinite;
 }
 
-/* ===== Refined ShinaCare Login Mockup Styles (Emerald Identity) ===== */
+/* ===== Login: same shared tokens as every workspace (class names kept for the page markup) ===== */
 .sc-login-card-emerald {
-  background: linear-gradient(180deg, rgba(16, 23, 19, 0.88) 0%, rgba(9, 13, 11, 0.94) 100%);
-  border: 1px solid rgba(52, 210, 123, 0.18);
-  box-shadow: 
-    0 24px 48px -12px rgba(0, 0, 0, 0.8),
-    0 0 32px -8px rgba(52, 210, 123, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  border-radius: 22px;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: var(--color-bw-surface);
+  border: 1px solid var(--color-bw-line);
+  box-shadow: var(--shadow-bw-overlay);
+  border-radius: var(--radius-bw-card);
 }
 .sc-login-btn-emerald {
-  background: linear-gradient(135deg, #34d27b 0%, #10b981 100%);
-  color: #03140a;
+  background: var(--color-bw-action);
+  color: var(--color-bw-on-action);
   font-weight: 600;
-  border-radius: 12px;
-  height: 44px;
+  border-radius: var(--radius-bw-field);
+  height: var(--spacing-bw-control);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 18px -2px rgba(52, 210, 123, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  transition: all var(--sc-duration-base) var(--sc-ease);
+  transition: background-color var(--duration-bw-fast) var(--ease-bw-standard), transform var(--duration-bw-fast) var(--ease-bw-standard);
   cursor: pointer;
 }
-.sc-login-btn-emerald:hover:not(:disabled) {
-  filter: brightness(1.06);
-  box-shadow: 0 6px 24px -2px rgba(52, 210, 123, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  transform: translateY(-0.5px);
-}
-.sc-login-btn-emerald:active:not(:disabled) {
-  transform: translateY(0);
-  filter: brightness(0.96);
-}
-.sc-login-btn-emerald:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  filter: grayscale(0.5);
-  transform: none;
-}
+.sc-login-btn-emerald:hover:not(:disabled) { background: var(--color-bw-action-hover); }
+.sc-login-btn-emerald:active:not(:disabled) { transform: scale(0.98); }
+.sc-login-btn-emerald:disabled { background: var(--color-bw-sunken); color: var(--color-bw-ink-subtle); cursor: not-allowed; }
 .sc-login-tab-emerald {
-  border: 1px solid rgba(52, 210, 123, 0.35);
-  background: rgba(52, 210, 123, 0.12);
-  color: #34d27b;
+  border: 1px solid var(--color-bw-line);
+  background: var(--color-bw-sunken);
+  color: var(--color-bw-ink);
   font-weight: 600;
-  box-shadow: 0 0 14px -3px rgba(52, 210, 123, 0.22);
 }
+@layer components {
 .sc-login-input-emerald {
-  background: rgba(14, 20, 17, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 12px;
-  color: #f4f4f5;
-  height: 44px;
-  padding: 0 14px;
-  font-size: 13.5px;
-  transition: all var(--sc-duration-fast) var(--sc-ease);
+  background: var(--color-bw-surface);
+  border: 1px solid var(--color-bw-line-field);
+  border-radius: var(--radius-bw-field);
+  color: var(--color-bw-ink);
+  height: var(--spacing-bw-control);
+  padding-block: 0;
+  padding-inline: 14px;
+  font-size: var(--text-bw-body);
+  transition: border-color var(--duration-bw-fast) var(--ease-bw-standard);
 }
-.sc-login-input-emerald:hover {
-  background: rgba(18, 26, 22, 0.85);
-  border-color: rgba(255, 255, 255, 0.18);
 }
+.sc-login-input-emerald:hover { border-color: var(--color-bw-ink-subtle); }
 .sc-login-input-emerald:focus {
   outline: none;
-  background: rgba(20, 28, 24, 0.95);
-  border-color: rgba(52, 210, 123, 0.6);
-  box-shadow: 0 0 0 2px #070b09, 0 0 0 4px rgba(52, 210, 123, 0.2);
+  border-color: var(--color-bw-focus);
+  box-shadow: 0 0 0 1px var(--color-bw-focus);
 }
 @media (prefers-reduced-motion: reduce) {
   .sc-login-btn-emerald,
-  .sc-login-input-emerald {
-    transition: none !important;
-    transform: none !important;
-  }
+  .sc-login-input-emerald { transition: none !important; transform: none !important; }
 }
 
-
+/* ===== Inside the Business workspace the Glow classes (sc-card, sc-btn, sc-badge, sc-stage…) read the shared tokens ===== */
+.bw {
+  --sc-bg-void: var(--color-bw-page);
+  --sc-bg-canvas: var(--color-bw-page);
+  --sc-bg-panel: var(--color-bw-surface);
+  --sc-bg-surface: var(--color-bw-surface);
+  --sc-bg-raised: var(--color-bw-sunken);
+  --sc-bg-overlay: var(--color-bw-sunken);
+  --sc-bg-hover: var(--color-bw-sunken);
+  --sc-bg-active: var(--color-bw-sunken);
+  --sc-border-subtle: var(--color-bw-line);
+  --sc-border-default: var(--color-bw-line);
+  --sc-border-control: var(--color-bw-line-field);
+  --sc-border-strong: var(--color-bw-line-field);
+  --sc-text-primary: var(--color-bw-ink);
+  --sc-text-secondary: var(--color-bw-ink-soft);
+  --sc-text-tertiary: var(--color-bw-ink-subtle);
+  --sc-text-on-accent: var(--color-bw-on-action);
+  --sc-green: var(--color-bw-ok);
+  --sc-green-line: var(--color-bw-line-field);
+  --sc-green-glow: transparent;
+  --sc-green-soft: var(--color-bw-ok-soft);
+  --sc-orange: var(--color-bw-action);
+  --sc-orange-line: var(--color-bw-line-field);
+  --sc-orange-glow: transparent;
+  --sc-orange-soft: var(--color-bw-action-soft);
+  --sc-amber: var(--color-bw-warn);
+  --sc-amber-line: var(--color-bw-warn);
+  --sc-amber-glow: transparent;
+  --sc-amber-soft: var(--color-bw-warn-soft);
+  --sc-rose: var(--color-bw-danger);
+  --sc-rose-line: var(--color-bw-danger);
+  --sc-rose-glow: transparent;
+  --sc-rose-soft: var(--color-bw-danger-soft);
+  --sc-purple: var(--color-bw-info);
+  --sc-purple-line: var(--color-bw-line-field);
+  --sc-purple-glow: transparent;
+  --sc-purple-soft: var(--color-bw-info-soft);
+  --sc-blue: var(--color-bw-info);
+  --sc-blue-line: var(--color-bw-line-field);
+  --sc-blue-glow: transparent;
+  --sc-blue-soft: var(--color-bw-info-soft);
+  --sc-accent: var(--color-bw-action);
+  --sc-accent-hover: var(--color-bw-action-hover);
+  --sc-success: var(--color-bw-ok);
+  --sc-warning: var(--color-bw-warn);
+  --sc-danger: var(--color-bw-danger);
+  --sc-info: var(--color-bw-info);
+  --sc-chart-grid: var(--color-bw-line);
+  --sc-chart-track: var(--color-bw-sunken);
+  --sc-chart-muted: var(--color-bw-line-field);
+  --sc-chart-compare: var(--color-bw-ink-subtle);
+  --sc-card-grad: linear-gradient(transparent, transparent);
+  --sc-panel-grad: linear-gradient(transparent, transparent);
+  --sc-void-glow: linear-gradient(transparent, transparent);
+  --sc-shadow-frame: none;
+  --sc-shadow-overlay: var(--shadow-bw-overlay);
+  --sc-shadow-focus: 0 0 0 2px var(--color-bw-page), 0 0 0 4px var(--color-bw-focus);
+  --sc-focus-ring: var(--sc-shadow-focus);
+  --sc-radius-xs: var(--radius-bw-field);
+  --sc-radius-sm: var(--radius-bw-field);
+  --sc-radius-md: var(--radius-bw-field);
+  --sc-radius-lg: var(--radius-bw-card);
+  --sc-radius-card: var(--radius-bw-card);
+  --sc-radius-panel: var(--radius-bw-card);
+  --sc-radius-frame: var(--radius-bw-card);
+}

@@ -74,7 +74,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     throw new ApiError('تعذر الاتصال بالخادم. تأكد من الإنترنت وحاول تاني.', 0, 'NETWORK')
   }
   const text = await response.text()
-  const body = text ? (JSON.parse(text) as unknown) : undefined
+  const body = text ? (JSON.parse(text) as unknown) : null
   if (!response.ok) {
     const { message, code } = describe(body as Envelope | undefined, response.status)
     if (response.status === 401) unauthorizedListeners.forEach((listener) => listener())

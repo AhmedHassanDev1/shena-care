@@ -5,20 +5,20 @@ const chip = (id: string) => CONCERN_CHIPS.find((c) => c.id === id)!;
 
 describe('homepage concern chips', () => {
   it('are the six customer concerns, not product categories', () => {
-    expect(CONCERN_CHIPS.map((c) => c.id)).toEqual(['acne', 'dryness', 'pigmentation', 'hair-loss', 'wrinkles', 'frizz']);
+    expect(CONCERN_CHIPS.map((c) => c.id)).toEqual(['acne', 'pigmentation', 'dryness', 'sensitivity', 'hair-loss', 'dandruff']);
     for (const c of CONCERN_CHIPS) expect(c.match.every((fragment) => !['cleansers', 'serums', 'shampoos', 'moisturizers', 'sunscreens'].includes(fragment))).toBe(true);
   });
 
   it('open the concern filter when the taxonomy defines the concern', () => {
-    const taxonomy = [concern('acne-prone', 'Acne', 'skin'), concern('frizz-control', 'Frizz', 'hair')];
+    const taxonomy = [concern('acne-prone', 'Acne', 'skin'), concern('hair-fall', 'Hair Fall', 'hair')];
     expect(concernHref(chip('acne'), 'حب الشباب', taxonomy)).toEqual({ href: '/products?concern=acne-prone', filtered: true });
-    expect(concernHref(chip('frizz'), 'الهيشان', taxonomy)).toEqual({ href: '/products?concern=frizz-control', filtered: true });
+    expect(concernHref(chip('hair-loss'), 'تساقط الشعر', taxonomy)).toEqual({ href: '/products?concern=hair-fall', filtered: true });
   });
 
   it('fall back to the catalog search for the label until the taxonomy defines the concern', () => {
-    const result = concernHref(chip('wrinkles'), 'التجاعيد', []);
+    const result = concernHref(chip('dandruff'), 'القشرة', []);
     expect(result.filtered).toBe(false);
-    expect(result.href).toBe(`/products?q=${encodeURIComponent('التجاعيد')}`);
+    expect(result.href).toBe(`/products?q=${encodeURIComponent('القشرة')}`);
   });
 
   it('never match a concern of the other care area', () => {

@@ -55,7 +55,7 @@ export default function SupplierRfqListPage() {
               <li key={item.rfqId}>
                 <Link
                   href={`/supplier/rfq/${item.rfqId}`}
-                  className="seven-card flex items-center gap-3 p-4 transition-colors hover:bg-white/[0.03]"
+                  className="seven-card flex items-center gap-3 p-4 transition-colors hover:bg-bw-sunken"
                 >
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">

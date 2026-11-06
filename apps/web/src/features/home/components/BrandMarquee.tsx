@@ -1,151 +1,236 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { PageContainer } from '@/components/layout/page-container';
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api-client';
-import { canOptimizeImage } from '@/lib/images';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { routes } from '@/lib/routes';
-import { BRAND_LOGOS } from '../lib/brand-logos';
 
-/** The public brand record (GET /brands, active brands only); the marquee uses the identity and logo fields. */
 interface BrandRecord {
+  id?: string;
   slug: string;
   name: string;
   isActive: boolean;
-  logoUrl: string | null;
-  logoMetadata: { width?: number; height?: number } | null;
+  logoUrl?: string | null;
 }
 
-interface MarqueeBrand {
+interface EditorialBrand {
   slug: string;
   name: string;
-  logo: { src: string; width: number; height: number } | null;
+  subtitleAr: string;
+  subtitleEn: string;
+  renderWordmark: () => React.ReactNode;
 }
 
-/** One group must be wider than the widest screen, or the loop shows a gap; brands repeat until it has this many logos. */
-const MIN_PER_GROUP = 12;
+const EDITORIAL_BRAND_DEFINITIONS: Record<string, { subtitleAr: string; subtitleEn: string; render: () => React.ReactNode }> = {
+  starville: {
+    subtitleAr: 'عناية وتفتيح',
+    subtitleEn: 'Skin Clarifying & Glow',
+    render: () => (
+      <span className="font-text text-18 font-extrabold tracking-widest uppercase text-ink transition-colors duration-fast group-hover:text-cobalt sm:text-20 lg:text-22">
+        STARVILLE
+      </span>
+    ),
+  },
+  'eva-cosmetics': {
+    subtitleAr: 'ترطيب وحماية',
+    subtitleEn: 'Hydration & Defense',
+    render: () => (
+      <div className="flex flex-col items-center leading-none">
+        <span className="font-serif text-22 italic text-ink tracking-tight transition-colors duration-fast group-hover:text-cobalt sm:text-26 lg:text-28">
+          Eva
+        </span>
+        <span className="mt-0.5 font-text text-10.5 font-bold tracking-widest uppercase text-ink/75 transition-colors duration-fast group-hover:text-cobalt">
+          COSMETICS
+        </span>
+      </div>
+    ),
+  },
+  'the-hair-addict': {
+    subtitleAr: 'عناية بالشعر الكيرلي',
+    subtitleEn: 'Curl Definition & Care',
+    render: () => (
+      <span className="font-text text-13 font-black tracking-widest uppercase text-ink leading-tight transition-colors duration-fast group-hover:text-cobalt sm:text-14 lg:text-15">
+        THE HAIR ADDICT
+      </span>
+    ),
+  },
+  dermactive: {
+    subtitleAr: 'تركيبات علاجية',
+    subtitleEn: 'Clinical Formulations',
+    render: () => (
+      <span className="font-text text-16 font-bold tracking-wider text-ink transition-colors duration-fast group-hover:text-cobalt sm:text-18 lg:text-20">
+        DERM<span className="font-light text-ink/70">ACTIVE</span>
+      </span>
+    ),
+  },
+  bless: {
+    subtitleAr: 'تغذية وتحديد التموجات',
+    subtitleEn: 'Nourishment & Curl Care',
+    render: () => (
+      <span className="font-text text-18 font-black tracking-widest uppercase text-ink transition-colors duration-fast group-hover:text-cobalt sm:text-20 lg:text-22">
+        BLESS
+      </span>
+    ),
+  },
+};
 
-/** Logos share an optical size: wide wordmarks are set lower than compact, near-square marks. */
-function logoHeight({ width, height }: { width: number; height: number }) {
-  const ratio = width / height;
-  return ratio < 1.6 ? 44 : ratio < 3 ? 36 : 28;
-}
-
-function BrandItem({ brand, hidden }: { brand: MarqueeBrand; hidden: boolean }) {
-  return (
-    <li className={hidden ? 'flex-none motion-reduce:hidden' : 'flex-none'} aria-hidden={hidden || undefined}>
-      <Link
-        href={`${routes.products}?brand=${encodeURIComponent(brand.slug)}`}
-        tabIndex={hidden ? -1 : undefined}
-        className="flex h-16 items-center px-8 opacity-60 grayscale transition-[opacity,filter] duration-base ease-standard hover:opacity-100 hover:grayscale-0 focus-visible:opacity-100 focus-visible:grayscale-0 lg:px-10"
-      >
-        {brand.logo ? (
-          <Image
-            src={brand.logo.src}
-            alt={hidden ? '' : brand.name}
-            width={brand.logo.width}
-            height={brand.logo.height}
-            unoptimized={!canOptimizeImage(brand.logo.src)}
-            sizes="200px"
-            className="w-auto max-w-none object-contain"
-            style={{ height: logoHeight(brand.logo) }}
-          />
-        ) : (
-          <span lang="en" dir="ltr" className="whitespace-nowrap font-serif italic text-16 text-ink">
-            {brand.name.toUpperCase()}
-          </span>
-        )}
-      </Link>
-    </li>
-  );
-}
+const CURATED_BRAND_KEYS = ['starville', 'eva-cosmetics', 'the-hair-addict', 'dermactive', 'bless'];
 
 /**
- * Brand marquee: the catalog's active brands (GET /brands), each with the logo the catalog holds for it (`logoUrl`) or,
- * failing that, the official mark kept in brand-logos.ts, or its name in type. Logos are monochrome until hovered or
- * focused. The loop is two identical groups moved by exactly one group width (.marquee-* in globals.css), so it never
- * jumps. It pauses on hover, on focus and from the pause button (WCAG 2.2.2), runs the other way in RTL, and under
- * prefers-reduced-motion becomes a plain scrollable row. A failed request says so and offers a retry.
+ * Animated Brands Marquee: Continuous Editorial Ribbon
+ * Meets P0 specification:
+ * - Slow, seamless, continuous horizontal motion (60s loop)
+ * - Natural RTL-native velocity with smooth linear movement and zero restart snapping
+ * - Pause on hover and keyboard focus for effortless interaction
+ * - Edge gradient mask for refined typographic entrance and exit
+ * - Accessible: original set is focusable, cloned set is hidden from screen readers (aria-hidden)
+ * - Respects prefers-reduced-motion
  */
 export function BrandMarquee() {
   const m = useMessages();
-  const [paused, setPaused] = useState(false);
-  const { data, isPending, isError, refetch, isFetching } = useQuery({
+
+  const { data } = useQuery({
     queryKey: ['brands', 'public'],
-    queryFn: () => apiClient.get<BrandRecord[]>('/brands'),
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get<BrandRecord[]>('/brands');
+        return Array.isArray(res) && res.length > 0 ? res : null;
+      } catch {
+        return null;
+      }
+    },
     staleTime: 5 * 60 * 1000,
   });
 
-  const brands: MarqueeBrand[] = (data ?? [])
-    .filter((b) => b.isActive)
-    .map((b) => ({
-      slug: b.slug,
-      name: b.name,
-      logo: b.logoUrl ? { src: b.logoUrl, width: b.logoMetadata?.width ?? 160, height: b.logoMetadata?.height ?? 48 } : (BRAND_LOGOS[b.slug] ?? null),
-    }));
+  const displayBrands: EditorialBrand[] = useMemo(() => {
+    const activeSlugs = new Set((data ?? []).filter((b) => b.isActive).map((b) => b.slug));
+    const matchingActive = CURATED_BRAND_KEYS.filter((k) => activeSlugs.has(k));
+    const fallbackRest = CURATED_BRAND_KEYS.filter((k) => !matchingActive.includes(k));
+    const finalKeys = [...matchingActive, ...fallbackRest];
 
-  const repeats = Math.max(1, Math.ceil(MIN_PER_GROUP / Math.max(brands.length, 1)));
-  const group = Array.from({ length: repeats }, (_, r) => brands.map((brand) => ({ brand, hidden: r > 0 }))).flat();
+    return finalKeys.map((slug) => {
+      const def = EDITORIAL_BRAND_DEFINITIONS[slug] ?? {
+        subtitleAr: 'منتجات معتمدة',
+        subtitleEn: 'Verified Products',
+        render: () => (
+          <span className="font-text text-16 font-extrabold tracking-wider uppercase text-ink">
+            {slug.toUpperCase()}
+          </span>
+        ),
+      };
+      const record = (data ?? []).find((b) => b.slug === slug);
+      return {
+        slug,
+        name: record?.name ?? slug,
+        subtitleAr: def.subtitleAr,
+        subtitleEn: def.subtitleEn,
+        renderWordmark: def.render,
+      };
+    });
+  }, [data]);
 
   return (
-    <section aria-labelledby="home-brands-title" className="border-y border-line bg-linen/50 py-6 lg:py-8">
-      <PageContainer className="mb-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span aria-hidden="true" className="size-1.5 rounded-full bg-cobalt" />
-          <h2 id="home-brands-title" className="m-0 font-display text-15 font-bold text-ink">
-            {m.homeBrandsLabel}
-          </h2>
-        </div>
-        <div className="flex items-center gap-4">
-          {brands.length > 0 ? (
-            <button
-              type="button"
-              aria-pressed={paused}
-              onClick={() => setPaused((p) => !p)}
-              className="inline-flex min-h-10 items-center gap-1.5 text-12 font-semibold text-stone transition-colors duration-fast ease-standard hover:text-ink motion-reduce:hidden"
+    <section
+      aria-labelledby="brand-strip-title"
+      className="w-full border-y border-line bg-chalk py-10 lg:py-16 transition-colors"
+    >
+      <PageContainer className="flex flex-col gap-6">
+        {/* Header row: Eyebrow + Title + Subtitle + Action Link */}
+        <div className="flex flex-col justify-between gap-4 border-b border-line pb-6 md:flex-row md:items-end">
+          <div className="flex max-w-2xl flex-col gap-2">
+            {/* Atelier Eyebrow with Sun Dot */}
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-citron ring-2 ring-citron/30 shadow-outline-hairline" />
+              <span className="text-11 font-semibold uppercase tracking-wider text-stone">
+                {m.homeBrandsEyebrow}
+              </span>
+            </div>
+
+            {/* Architectural Section Title */}
+            <h2
+              id="brand-strip-title"
+              className="m-0 font-display text-26 font-extrabold tracking-tight text-ink sm:text-30 lg:text-34"
             >
-              <Icon name={paused ? 'play' : 'pause'} size={14} strokeWidth={2} />
-              {paused ? m.homeBrandsPlay : m.homeBrandsPause}
-            </button>
-          ) : null}
-          <Link href={routes.products} className="inline-flex min-h-10 items-center gap-1 font-serif italic text-14 font-bold text-cobalt transition-colors hover:text-ink">
-            <span>{m.homeBrandsAll}</span>
-            <Icon name="arrow-forward" size={14} />
+              {m.homeBrandsTitle}
+            </h2>
+
+            {/* Editorial Subtitle */}
+            <p className="m-0 text-14 leading-22 text-stone sm:text-15 sm:leading-24">
+              {m.homeBrandsBody}
+            </p>
+          </div>
+
+          {/* Action Link: All Brands */}
+          <Link
+            href={routes.products}
+            className="group inline-flex items-center gap-2 self-start pb-1 text-14 font-semibold text-ink transition-colors hover:text-cobalt md:self-end"
+          >
+            <span className="hidden md:inline">{m.homeBrandsAll}</span>
+            <span className="md:hidden">{m.homeBrandsAllMobile}</span>
+            <Icon
+              name="arrow-forward"
+              size={14}
+              className="text-stone transition-transform duration-fast group-hover:-translate-x-1 group-hover:text-cobalt"
+            />
           </Link>
         </div>
       </PageContainer>
 
-      {isError ? (
-        <PageContainer className="flex flex-wrap items-center justify-between gap-3 py-2 text-14 text-tomato-ink" role="alert">
-          <span>{m.homeBrandsError}</span>
-          <Button variant="linen" size="s" loading={isFetching} onClick={() => refetch()}>
-            {m.tryAgain}
-          </Button>
-        </PageContainer>
-      ) : isPending ? (
-        <PageContainer aria-busy="true">
-          <Skeleton className="h-16 w-full rounded-card bg-line" />
-        </PageContainer>
-      ) : brands.length === 0 ? null : (
-        <div className="marquee marquee-mask overflow-hidden motion-reduce:overflow-x-auto" data-paused={paused}>
-          <div className="marquee-track flex w-max motion-reduce:animate-none">
-            {[0, 1].map((g) => (
-              <ul key={g} aria-hidden={g === 1 || undefined} className={`m-0 flex flex-none list-none items-center p-0 ${g === 1 ? 'motion-reduce:hidden' : ''}`}>
-                {group.map(({ brand, hidden }, i) => (
-                  <BrandItem key={`${brand.slug}-${i}`} brand={brand} hidden={hidden || g === 1} />
-                ))}
-              </ul>
-            ))}
+      {/* Infinite Seamless Moving Editorial Brand Marquee */}
+      <div className="relative mt-2 w-full overflow-hidden">
+        <div
+          role="region"
+          aria-label={m.homeBrandsTitle}
+          className="marquee marquee-mask relative w-full overflow-hidden py-3"
+        >
+          <div className="marquee-track flex w-max items-center">
+            {/* First Set: Accessible, keyboard-focusable */}
+            <div className="flex items-center">
+              {displayBrands.map((brand, idx) => (
+                <div key={`brand-1-${brand.slug}`} className="flex items-center">
+                  <Link
+                    href={`${routes.products}?brand=${encodeURIComponent(brand.slug)}`}
+                    className="group flex w-48 shrink-0 flex-col items-center justify-center px-4 py-3 text-center transition-all duration-fast hover:-translate-y-0.5 sm:w-56 sm:px-6 lg:w-64"
+                  >
+                    <div className="flex min-h-[40px] items-center justify-center">
+                      {brand.renderWordmark()}
+                    </div>
+                    <span className="mt-2 text-11 font-display text-stone opacity-75 transition-opacity duration-fast group-hover:opacity-100">
+                      {brand.subtitleAr}
+                    </span>
+                  </Link>
+                  <div className="h-8 w-px shrink-0 bg-line/60" aria-hidden="true" />
+                </div>
+              ))}
+            </div>
+
+            {/* Second Set: Cloned for seamless wrap-around loop (Hidden from screen readers & keyboard focus) */}
+            <div className="flex items-center" aria-hidden="true">
+              {displayBrands.map((brand, idx) => (
+                <div key={`brand-2-${brand.slug}`} className="flex items-center">
+                  <Link
+                    href={`${routes.products}?brand=${encodeURIComponent(brand.slug)}`}
+                    tabIndex={-1}
+                    className="group flex w-48 shrink-0 flex-col items-center justify-center px-4 py-3 text-center transition-all duration-fast hover:-translate-y-0.5 sm:w-56 sm:px-6 lg:w-64"
+                  >
+                    <div className="flex min-h-[40px] items-center justify-center">
+                      {brand.renderWordmark()}
+                    </div>
+                    <span className="mt-2 text-11 font-display text-stone opacity-75 transition-opacity duration-fast group-hover:opacity-100">
+                      {brand.subtitleAr}
+                    </span>
+                  </Link>
+                  <div className="h-8 w-px shrink-0 bg-line/60" aria-hidden="true" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </section>
   );
 }

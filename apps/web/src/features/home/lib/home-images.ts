@@ -15,4 +15,5 @@ export const HOME_IMAGES = {
   routineSkin: { src: '/images/home/routine-skin.jpg', width: 1200, height: 896, position: '78% 55%' },
   routineHair: { src: '/images/home/routine-hair.jpg', width: 1200, height: 896, position: '50% 40%' },
   studio: { src: '/images/home/studio.jpg', width: 1376, height: 768, position: '75% 55%' },
+  atelier: { src: '/images/home/routine-atelier.png', width: 486, height: 320, position: '50% 50%' },
 } as const satisfies Record<string, HomeImage>;

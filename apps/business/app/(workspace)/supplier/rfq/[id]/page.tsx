@@ -240,7 +240,7 @@ export default function SupplierRfqDetailPage() {
   return (
     <RoleShell role="supplier" active="rfq" mode="responsive">
       <div className="mx-auto max-w-3xl space-y-5 p-4 pb-40 sm:p-6 lg:p-8 lg:pb-24">
-        <Link href="/supplier/rfq" className="inline-flex items-center gap-1.5 text-xs text-bw-ink-soft transition-colors hover:text-white">
+        <Link href="/supplier/rfq" className="inline-flex items-center gap-1.5 text-xs text-bw-ink-soft transition-colors hover:text-bw-ink">
           <ArrowRight className="size-4" aria-hidden />
           <span>كل طلبات التوريد</span>
         </Link>
@@ -279,7 +279,7 @@ export default function SupplierRfqDetailPage() {
                   tone={banner.tone}
                   title={banner.title}
                   action={
-                    <button type="button" aria-label="إخفاء التنبيه" className="grid size-8 place-items-center rounded-full hover:bg-white/10" onClick={() => setBanners((list) => list.filter((b) => b.key !== banner.key))}>
+                    <button type="button" aria-label="إخفاء التنبيه" className="grid size-8 place-items-center rounded-full hover:bg-bw-sunken" onClick={() => setBanners((list) => list.filter((b) => b.key !== banner.key))}>
                       <X className="size-4" aria-hidden />
                     </button>
                   }
@@ -323,7 +323,7 @@ export default function SupplierRfqDetailPage() {
                     className={cn(
                       'seven-card space-y-3 p-4 transition-colors',
                       !open && 'opacity-70',
-                      change && open && 'border-amber-400/60 bg-amber-500/[0.06]',
+                      change && open && 'border-bw-warn/40 bg-bw-warn-soft',
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -336,7 +336,7 @@ export default function SupplierRfqDetailPage() {
                       </div>
                       <div className="shrink-0 text-center">
                         <p className="text-[11px] text-bw-ink-soft">المطلوب دلوقتي</p>
-                        <p data-testid="rfq-requested" className={cn('text-2xl font-bold tabular-nums', change && open && 'text-amber-300')}>{line.requestedQuantity}</p>
+                        <p data-testid="rfq-requested" className={cn('text-2xl font-bold tabular-nums', change && open && 'text-bw-warn')}>{line.requestedQuantity}</p>
                         {line.requestedQuantity !== line.originalQuantity ? <p className="text-[11px] text-bw-ink-subtle">كان {line.originalQuantity}</p> : null}
                       </div>
                     </div>
@@ -349,7 +349,7 @@ export default function SupplierRfqDetailPage() {
 
                     {line.state === 'answered' && line.myAnswer ? (
                       <p className="flex items-center gap-2 text-bw-small">
-                        <CheckCircle2 className="size-4 text-emerald-300" aria-hidden />
+                        <CheckCircle2 className="size-4 text-bw-ok" aria-hidden />
                         رديت: {ANSWER_LABEL[line.myAnswer.answer]}
                         {line.myAnswer.awardedQuantity > 0 ? ` — اتوزّع عليك ${line.myAnswer.awardedQuantity}` : ''}
                       </p>
@@ -420,9 +420,9 @@ export default function SupplierRfqDetailPage() {
             ) : null}
 
             {!windowClosed && actionable.length ? (
-              <div className="sticky bottom-[4.5rem] z-10 -mx-4 space-y-2 border-t border-white/[0.08] bg-[#090b0e]/95 p-4 backdrop-blur-md lg:bottom-0 lg:mx-0 lg:rounded-bw-card lg:border">
+              <div className="sticky bottom-[4.5rem] z-10 -mx-4 space-y-2 border-t border-bw-line bg-bw-page p-4 lg:bottom-0 lg:mx-0 lg:rounded-bw-card lg:border">
                 {reviewNeeded.length ? (
-                  <p role="alert" className="text-bw-small text-amber-300">
+                  <p role="alert" className="text-bw-small text-bw-warn">
                     {reviewNeeded.length} بند كميته اتغيّرت — راجعه الأول عشان تقدر تأكّد.
                   </p>
                 ) : null}

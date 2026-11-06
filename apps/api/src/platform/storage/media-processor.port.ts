@@ -1,3 +1,5 @@
+import { CutoutOptions, QualityReport, TemplateRules } from './product-compositor';
+
 export const MEDIA_PROCESSOR = 'MEDIA_PROCESSOR';
 export const BACKGROUND_REMOVAL = 'BACKGROUND_REMOVAL';
 
@@ -24,7 +26,11 @@ export interface MediaProcessorPort {
   optimize(buffer: Buffer): Promise<ProcessedImage>;
   /** Template 01: a transparent cut-out on a solid field, square, with no added text or decoration. */
   composeOnField(cutout: Buffer, fieldColor: string): Promise<ProcessedImage>;
+  /** An authentic pack on an approved template: the pack's pixels are kept, only the scene around it changes. */
+  composeOnTemplate(source: Buffer, template: Buffer, rules: TemplateRules, options?: CutoutOptions): Promise<ComposedImage>;
 }
+
+export interface ComposedImage extends ProcessedImage { report: QualityReport }
 
 export class BackgroundRemovalUnavailableError extends Error {
   constructor() {

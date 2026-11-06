@@ -15,3 +15,5 @@ node_modules
 .DS_Store
 /next-env.d.ts
 STAFF_CREDENTIALS.md
+.next-real10
+.next-shot

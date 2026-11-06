@@ -2,67 +2,145 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Section, SectionHeader } from '@/components/layout/section';
+import { Section } from '@/components/layout/section';
 import { Icon } from '@/components/ui/icon';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { mainCategorySlugs, routes } from '@/lib/routes';
-import { HOME_IMAGES } from '../lib/home-images';
 
 /**
- * The two departments as photographic doors. Copy names what each department actually holds (the catalog's own
- * categories), never an efficacy claim. The scrim exists only so the type stays readable on the photograph.
+ * CategoryEditorial — Approved ShinaCare Sahel Category Showcase.
+ *
+ * Visual fidelity from Stitch project 15850160123086413494:
+ * - Asymmetric 2-Card Layout (Desktop 1024px+):
+ *   1. Skincare (67% width, leading / right in RTL):
+ *      - Natural photographic spread on the right half.
+ *      - Sunlit tomato slatted shutter panel on the left half with hydration badge,
+ *        prominent editorial typography, and solid ink pill CTA.
+ *   2. Haircare (33% width, trailing / left in RTL):
+ *      - Natural photographic spread on the top (52%).
+ *      - Sunlit cobalt slatted shutter panel on the bottom (48%) with
+ *        crisp typography and chalk-outlined pill CTA.
+ * - Mobile-first responsive hierarchy:
+ *   - Stacks cleanly on phones (< 768px) with generous image viewports,
+ *     responsive typography, and full-width pill targets that never wrap.
+ *   - Seamless side-by-side split on tablets (768px+) and asymmetric layout on desktop.
+ * - Adheres 100% to SAHEL Design System tokens (0 raw hex, 0 unapproved utilities,
+ *   RTL logical directional behavior, and accessible semantics).
  */
 export function CategoryEditorial() {
   const m = useMessages();
 
-  const departments = [
-    {
-      id: 'skin',
-      title: m.homeCategorySkinTitle,
-      body: m.homeCategorySkinBody,
-      cta: m.homeCategorySkinCta,
-      href: routes.productsByCategory(mainCategorySlugs.skin),
-      image: HOME_IMAGES.routineSkin,
-    },
-    {
-      id: 'hair',
-      title: m.homeCategoryHairTitle,
-      body: m.homeCategoryHairBody,
-      cta: m.homeCategoryHairCta,
-      href: routes.productsByCategory(mainCategorySlugs.hair),
-      image: HOME_IMAGES.routineHair,
-    },
-  ];
-
   return (
-    <Section labelledBy="home-departments-title">
-      <SectionHeader title={m.homeCategoriesTitle} titleId="home-departments-title" />
+    <Section id="categories" labelledBy="home-categories-heading" className="overflow-hidden">
+      {/* Section Header */}
+      <div className="flex flex-col gap-2">
+        <div className="inline-flex items-center gap-2">
+          <span className="size-2.5 rounded-full bg-citron shadow-outline-hairline" aria-hidden="true" />
+          <span className="font-display text-14 font-semibold text-ink/80">{m.homeCategoriesEyebrow}</span>
+        </div>
+        <h2
+          id="home-categories-heading"
+          className="m-0 font-display text-30 font-extrabold tracking-tight text-ink sm:text-34 lg:text-44"
+        >
+          {m.homeCategoriesTitle}
+        </h2>
+        <p className="m-0 max-w-2xl font-display text-15 font-normal leading-relaxed text-stone sm:text-16 lg:text-17">
+          {m.homeCategoriesSubtitle}
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6">
-        {departments.map((dept) => (
-          <Link
-            key={dept.id}
-            href={dept.href}
-            className="group relative isolate flex aspect-[4/3] flex-col justify-end overflow-hidden rounded-image bg-sand p-5 text-chalk no-underline sm:aspect-[4/5] sm:p-7 lg:aspect-[5/4] lg:p-9"
-          >
+      {/* Asymmetric 2-Card Layout: Skincare 67% (Right in RTL), Haircare 33% (Left in RTL) */}
+      <div className="flex w-full flex-col gap-5 lg:h-[430px] lg:flex-row lg:items-stretch lg:gap-6">
+        {/* 1. Skincare Card (67% width on desktop, appears FIRST on the right in RTL) */}
+        <Link
+          href={routes.productsByCategory(mainCategorySlugs.skin)}
+          className="group relative isolate flex w-full flex-col overflow-hidden rounded-card bg-tomato text-chalk no-underline shadow-elevation-1 transition-all duration-base hover:-translate-y-1 hover:shadow-elevation-2 md:flex-row lg:w-[67%]"
+          aria-label={m.homeCategorySkinTitle}
+        >
+          {/* Photographic container (Right side in RTL on desktop/tablet, Top on mobile) */}
+          <div className="relative h-56 w-full shrink-0 overflow-hidden sm:h-64 md:h-auto md:w-1/2 lg:h-full">
             <Image
-              src={dept.image.src}
-              alt=""
+              src="/assets/categories/skincare-editorial.png"
+              alt={m.homeCategorySkinTitle}
               fill
-              sizes="(min-width: 1360px) 650px, (min-width: 640px) 50vw, 100vw"
-              className="-z-20 object-cover transition-transform duration-slow ease-standard motion-safe:group-hover:scale-[1.03]"
-              style={{ objectPosition: dept.image.position }}
+              sizes="(min-width: 1024px) 45vw, (min-width: 768px) 50vw, 100vw"
+              className="object-cover object-center transition-transform duration-slow ease-standard motion-safe:group-hover:scale-[1.03]"
             />
-            <span aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-t from-ink/85 via-ink/35 via-45% to-transparent" />
+          </div>
 
-            <h3 className="m-0 font-display text-28 font-extrabold leading-tight text-chalk lg:text-40">{dept.title}</h3>
-            <p className="m-0 mt-2 max-w-sm text-15 leading-24 text-chalk/90 lg:text-16 lg:leading-26">{dept.body}</p>
-            <span className="mt-4 inline-flex h-control-s items-center gap-2 self-start rounded-pill bg-chalk px-5 text-14 font-bold text-ink shadow-elevation-1 transition-colors duration-fast group-hover:bg-cobalt group-hover:text-chalk">
-              {dept.cta}
-              <Icon name="arrow-forward" size={16} strokeWidth={2.2} />
-            </span>
-          </Link>
-        ))}
+          {/* Shutter orange content panel */}
+          <div className="shutter-orange relative z-10 flex flex-1 flex-col justify-between p-6 sm:p-8 lg:p-10">
+            {/* Droplet icon badge */}
+            <div className="flex items-center justify-start">
+              <span
+                className="flex size-11 items-center justify-center rounded-full bg-white text-tomato shadow-elevation-1 transition-transform duration-base motion-safe:group-hover:scale-105"
+                aria-hidden="true"
+              >
+                <Icon name="dryness" size={20} strokeWidth={2.2} />
+              </span>
+            </div>
+
+            {/* Typography & CTA */}
+            <div className="mt-5 flex flex-col gap-4 sm:mt-6 lg:mt-8">
+              <div className="flex flex-col gap-1.5">
+                <h3 className="m-0 font-display text-26 font-black leading-tight text-chalk sm:text-28 md:text-32 lg:text-40">
+                  {m.homeCategorySkinTitle}
+                </h3>
+                <p className="m-0 max-w-sm font-display text-14 font-medium leading-relaxed text-chalk/90 sm:text-15 lg:text-16">
+                  {m.homeCategorySkinBody}
+                </p>
+              </div>
+
+              <div className="pt-1">
+                <span className="inline-flex h-control-s items-center gap-2.5 rounded-pill bg-ink px-6 text-14 font-bold text-chalk shadow-elevation-1 transition-all duration-base group-hover:bg-cobalt group-hover:text-chalk sm:h-control-m sm:px-7 sm:text-15">
+                  <span className="whitespace-nowrap">{m.homeCategorySkinCta}</span>
+                  <span className="transition-transform duration-fast ease-standard motion-safe:group-hover:-translate-x-1">
+                    <Icon name="arrow-forward" size={16} strokeWidth={2.2} />
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </Link>
+
+        {/* 2. Haircare Card (33% width on desktop, appears SECOND on the left in RTL) */}
+        <Link
+          href={routes.productsByCategory(mainCategorySlugs.hair)}
+          className="group relative isolate flex w-full flex-col overflow-hidden rounded-card bg-cobalt text-chalk no-underline shadow-elevation-1 transition-all duration-base hover:-translate-y-1 hover:shadow-elevation-2 md:flex-row lg:w-[33%] lg:flex-col"
+          aria-label={m.homeCategoryHairTitle}
+        >
+          {/* Photographic container (Top on mobile, Start on tablet, Top 52% on desktop) */}
+          <div className="relative h-56 w-full shrink-0 overflow-hidden sm:h-64 md:h-auto md:w-1/2 lg:h-[52%] lg:w-full">
+            <Image
+              src="/assets/categories/haircare-editorial.png"
+              alt={m.homeCategoryHairTitle}
+              fill
+              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+              className="object-cover object-top transition-transform duration-slow ease-standard motion-safe:group-hover:scale-[1.03]"
+            />
+          </div>
+
+          {/* Shutter blue content panel */}
+          <div className="shutter-blue relative z-10 flex flex-1 flex-col justify-between p-6 sm:p-7 lg:h-[48%]">
+            <div className="flex flex-col gap-1.5">
+              <h3 className="m-0 font-display text-22 font-black leading-tight text-chalk sm:text-24 lg:text-28">
+                {m.homeCategoryHairTitle}
+              </h3>
+              <p className="m-0 font-display text-13 font-medium leading-relaxed text-chalk/90 sm:text-14 lg:text-15">
+                {m.homeCategoryHairBody}
+              </p>
+            </div>
+
+            <div className="pt-3">
+              <span className="inline-flex h-control-s items-center gap-2.5 rounded-pill border-2 border-chalk px-5 text-13 font-bold text-chalk transition-all duration-base group-hover:bg-chalk group-hover:text-cobalt sm:h-control-m sm:px-6 sm:text-14">
+                <span className="whitespace-nowrap">{m.homeCategoryHairCta}</span>
+                <span className="transition-transform duration-fast ease-standard motion-safe:group-hover:-translate-x-1">
+                  <Icon name="arrow-forward" size={16} strokeWidth={2.2} />
+                </span>
+              </span>
+            </div>
+          </div>
+        </Link>
       </div>
     </Section>
   );

@@ -340,9 +340,9 @@ export function SpotlightProducts() {
 
           <div className="flex flex-wrap items-center gap-5 self-stretch border-t border-line/40 pt-3 md:self-auto md:border-t-0 md:pt-0">
             <div className="flex items-center gap-2">
-              <Icon name="science" size={18} className="text-cobalt" />
+              <Icon name="payment" size={18} className="text-cobalt" />
               <span className="text-12 font-bold text-ink">
-                {m.homeProductsTrustClinicallyTested}
+                {m.homeProductsTrustCod}
               </span>
             </div>
             <div className="flex items-center gap-2">

@@ -14,18 +14,19 @@ export interface ConcernChip {
   icon: IconName;
   image: string;
   label: keyof Messages;
+  desc: keyof Messages;
   area: Concern['careArea'];
   /** Lower-case fragments matched against a taxonomy concern's slug and name. */
   match: readonly string[];
 }
 
 export const CONCERN_CHIPS: readonly ConcernChip[] = [
-  { id: 'acne', icon: 'acne', image: '/images/concerns/acne.jpg', label: 'homeConcernAcne', area: 'skin', match: ['acne', 'breakout', 'pimple', 'حب'] },
-  { id: 'dryness', icon: 'dryness', image: '/images/concerns/dryness.jpg', label: 'homeConcernDryness', area: 'skin', match: ['dryness', 'dry-skin', 'dry skin', 'dehydrat', 'جفاف'] },
-  { id: 'pigmentation', icon: 'pigmentation', image: '/images/concerns/pigmentation.jpg', label: 'homeConcernPigmentation', area: 'skin', match: ['pigment', 'dark-spot', 'dark spot', 'discolo', 'تصبغ'] },
-  { id: 'hair-loss', icon: 'hair-loss', image: '/images/concerns/hair-loss.jpg', label: 'homeConcernHairLoss', area: 'hair', match: ['hair-loss', 'hair loss', 'hair-fall', 'hair fall', 'shedding', 'thinning', 'تساقط'] },
-  { id: 'wrinkles', icon: 'wrinkles', image: '/images/concerns/wrinkles.jpg', label: 'homeConcernWrinkles', area: 'skin', match: ['wrinkle', 'fine-line', 'fine line', 'aging', 'ageing', 'تجاعيد'] },
-  { id: 'frizz', icon: 'frizz', image: '/images/concerns/frizz.jpg', label: 'homeConcernFrizz', area: 'hair', match: ['frizz', 'هيشان'] },
+  { id: 'acne', icon: 'acne', image: '/assets/concerns/acne.webp', label: 'homeConcernAcne', desc: 'homeConcernAcneDesc', area: 'skin', match: ['acne', 'breakout', 'pimple', 'حب'] },
+  { id: 'pigmentation', icon: 'pigmentation', image: '/assets/concerns/pigmentation.webp', label: 'homeConcernPigmentation', desc: 'homeConcernPigmentationDesc', area: 'skin', match: ['pigment', 'dark-spot', 'dark spot', 'discolo', 'تصبغ', 'بقع'] },
+  { id: 'dryness', icon: 'dryness', image: '/assets/concerns/dryness.webp', label: 'homeConcernDryness', desc: 'homeConcernDrynessDesc', area: 'skin', match: ['dryness', 'dry-skin', 'dry skin', 'dehydrat', 'جفاف'] },
+  { id: 'sensitivity', icon: 'sparkles', image: '/assets/concerns/sensitivity.webp', label: 'homeConcernSensitivity', desc: 'homeConcernSensitivityDesc', area: 'skin', match: ['sensitiv', 'redness', 'irritat', 'حساسية', 'احمرار'] },
+  { id: 'hair-loss', icon: 'hair-loss', image: '/assets/concerns/hair-loss.webp', label: 'homeConcernHairLoss', desc: 'homeConcernHairLossDesc', area: 'hair', match: ['hair-loss', 'hair loss', 'hair-fall', 'hair fall', 'shedding', 'thinning', 'تساقط'] },
+  { id: 'dandruff', icon: 'sparkles', image: '/assets/concerns/dandruff.webp', label: 'homeConcernDandruff', desc: 'homeConcernDandruffDesc', area: 'hair', match: ['dandruff', 'scalp', 'flak', 'قشرة', 'فروة'] },
 ] as const;
 
 /** The taxonomy concern a chip stands for, if the catalog defines one (same care area, slug or name contains a fragment). */

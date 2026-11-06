@@ -294,7 +294,7 @@ function UpdatesWorkflowContent() {
           />
           <Link
             href="/supplier/updates/history"
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-bw-surface px-3.5 text-xs font-semibold text-bw-ink-soft hover:bg-white/[0.04] hover:text-white transition-all shadow-xs self-start sm:self-auto"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-bw-line bg-bw-surface px-3.5 text-xs font-semibold text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink transition-all shadow-xs self-start sm:self-auto"
           >
             <History className="size-4 text-bw-ink-subtle" />
             <span>سجل العمليات السابقة</span>
@@ -302,7 +302,7 @@ function UpdatesWorkflowContent() {
         </div>
 
         {/* Stepper Component */}
-        <div className="rounded-2xl border border-white/[0.08] bg-bw-surface/80 p-3 sm:p-4 backdrop-blur-xs">
+        <div className="rounded-2xl border border-bw-line bg-bw-surface/80 p-3 sm:p-4 ">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             {[
               { id: 'MODE_SELECT', stepNum: 1, title: 'نمط التحديث', desc: 'جزئي أو شامل' },
@@ -321,25 +321,25 @@ function UpdatesWorkflowContent() {
                   key={s.id}
                   className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all ${
                     isCurrent
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-white shadow-xs'
+                      ? 'bg-bw-ok-soft border-bw-ok/40 text-bw-ink shadow-xs'
                       : isCompleted
-                      ? 'bg-white/[0.02] border-emerald-500/20 text-emerald-400'
+                      ? 'bg-bw-surface border-bw-ok/40 text-bw-ok'
                       : 'border-transparent text-bw-ink-subtle'
                   }`}
                 >
                   <span
                     className={`flex size-6 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold ${
                       isCurrent
-                        ? 'bg-[#34d27b] text-black shadow-xs'
+                        ? 'bg-bw-action text-bw-on-action shadow-xs'
                         : isCompleted
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-white/[0.05] text-bw-ink-subtle'
+                        ? 'bg-bw-ok-soft text-bw-ok'
+                        : 'bg-bw-surface text-bw-ink-subtle'
                     }`}
                   >
                     {isCompleted ? <Check className="size-3.5" /> : s.stepNum}
                   </span>
                   <div className="min-w-0">
-                    <p className={`font-bold text-xs truncate ${isCurrent ? 'text-white' : ''}`}>
+                    <p className={`font-bold text-xs truncate ${isCurrent ? 'text-bw-ink' : ''}`}>
                       {s.title}
                     </p>
                     <p className="text-[10px] text-bw-ink-subtle truncate">{s.desc}</p>
@@ -351,27 +351,27 @@ function UpdatesWorkflowContent() {
         </div>
 
         {/* Guidance Panel: Streamlined and Operational */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-black/30 p-3.5 text-xs text-bw-ink-soft">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-bw-line bg-bw-page p-3.5 text-xs text-bw-ink-soft">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-bw-ok-soft text-bw-ok">
               <ShieldCheck className="size-4" />
             </div>
             <div>
-              <p className="font-bold text-white text-xs">معالجة آمنة ومعاينة فورية قبل النشر</p>
+              <p className="font-bold text-bw-ink text-xs">معالجة آمنة ومعاينة فورية قبل النشر</p>
               <p className="text-[11px] text-bw-ink-subtle">
                 يتم تحليل الملف وعرض الفروقات بالكامل؛ لن يطبق أي تعديل فعلي على الكتالوج إلا بعد تأكيدك النهائي.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold text-bw-ink-subtle shrink-0">
-            <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-0.5 border border-white/[0.06]">
-              <Check className="size-3 text-emerald-400" /> معاينة الفروقات
+            <span className="inline-flex items-center gap-1 rounded-md bg-bw-surface px-2 py-0.5 border border-bw-line">
+              <Check className="size-3 text-bw-ok" /> معاينة الفروقات
             </span>
-            <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-0.5 border border-white/[0.06]">
-              <AlertTriangle className="size-3 text-amber-400" /> كشف قفزات الأسعار
+            <span className="inline-flex items-center gap-1 rounded-md bg-bw-surface px-2 py-0.5 border border-bw-line">
+              <AlertTriangle className="size-3 text-bw-warn" /> كشف قفزات الأسعار
             </span>
-            <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-0.5 border border-white/[0.06]">
-              <Tag className="size-3 text-purple-400" /> تدقيق الأصناف الجديدة
+            <span className="inline-flex items-center gap-1 rounded-md bg-bw-surface px-2 py-0.5 border border-bw-line">
+              <Tag className="size-3 text-bw-info" /> تدقيق الأصناف الجديدة
             </span>
           </div>
         </div>
@@ -381,7 +381,7 @@ function UpdatesWorkflowContent() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-white text-base">الخطوة الأولى: تحديد نمط التحديث</h3>
+                <h3 className="font-bold text-bw-ink text-base">الخطوة الأولى: تحديد نمط التحديث</h3>
                 <p className="text-xs text-bw-ink-subtle mt-0.5">
                   اختر بين تحديث جزئي سريع للأصناف الواردة بالملف، أو فحص شامل لكامل تشكيلة منتجاتكم.
                 </p>
@@ -394,35 +394,35 @@ function UpdatesWorkflowContent() {
                 onClick={() => setMode('PARTIAL_UPDATE')}
                 className={`cursor-pointer rounded-2xl border p-5 transition-all space-y-3 relative ${
                   mode === 'PARTIAL_UPDATE'
-                    ? 'border-[#34d27b] bg-[#34d27b]/[0.08] shadow-[0_0_24px_rgba(52,210,123,0.12)]'
-                    : 'border-white/[0.08] bg-bw-surface hover:border-white/20'
+                    ? 'border-bw-ok bg-bw-ok-soft '
+                    : 'border-bw-line bg-bw-surface hover:border-bw-line-field'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-bold">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-bw-ok-soft text-bw-ok border border-bw-ok/40 px-2.5 py-0.5 text-[10px] font-bold">
                     ✓ الخيار الموصى به
                   </span>
                   {mode === 'PARTIAL_UPDATE' ? (
-                    <CheckCircle2 className="size-5 text-[#34d27b]" />
+                    <CheckCircle2 className="size-5 text-bw-ok" />
                   ) : (
-                    <div className="size-5 rounded-full border border-white/20" />
+                    <div className="size-5 rounded-full border border-bw-line" />
                   )}
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
+                    <div className="flex size-7 items-center justify-center rounded-lg bg-bw-ok-soft text-bw-ok">
                       <Tag className="size-4" />
                     </div>
-                    <h4 className="font-bold text-sm text-white">تحديث جزئي للأسعار والمخزون</h4>
+                    <h4 className="font-bold text-sm text-bw-ink">تحديث جزئي للأسعار والمخزون</h4>
                   </div>
                   <p className="text-xs text-bw-ink-soft leading-relaxed pt-1">
                     تحديث سريع للأصناف المذكورة في ملفكم فقط دون المساس بباقي منتجاتكم السابقة.
                   </p>
                 </div>
 
-                <div className="space-y-1.5 pt-2 border-t border-white/[0.06] text-xs text-bw-ink-subtle">
-                  <p className="flex items-center gap-1.5 text-emerald-300/90 text-[11px]">
+                <div className="space-y-1.5 pt-2 border-t border-bw-line text-xs text-bw-ink-subtle">
+                  <p className="flex items-center gap-1.5 text-bw-ok text-[11px]">
                     <span className="font-bold">✓</span> آمن 100%: لا يحذف أو يعطل أي منتج غير مذكور بالملف.
                   </p>
                   <p className="flex items-center gap-1.5 text-bw-ink-soft text-[11px]">
@@ -439,35 +439,35 @@ function UpdatesWorkflowContent() {
                 onClick={() => setMode('FULL_SNAPSHOT')}
                 className={`cursor-pointer rounded-2xl border p-5 transition-all space-y-3 relative ${
                   mode === 'FULL_SNAPSHOT'
-                    ? 'border-purple-500 bg-purple-500/[0.08] shadow-[0_0_24px_rgba(168,85,247,0.12)]'
-                    : 'border-white/[0.08] bg-bw-surface hover:border-white/20'
+                    ? 'border-bw-info bg-bw-info-soft '
+                    : 'border-bw-line bg-bw-surface hover:border-bw-line-field'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2.5 py-0.5 text-[10px] font-bold">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-bw-info-soft text-bw-info border border-bw-info/40 px-2.5 py-0.5 text-[10px] font-bold">
                     متقدم · فحص كامل التشكيلة
                   </span>
                   {mode === 'FULL_SNAPSHOT' ? (
-                    <CheckCircle2 className="size-5 text-purple-400" />
+                    <CheckCircle2 className="size-5 text-bw-info" />
                   ) : (
-                    <div className="size-5 rounded-full border border-white/20" />
+                    <div className="size-5 rounded-full border border-bw-line" />
                   )}
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <div className="flex size-7 items-center justify-center rounded-lg bg-purple-500/20 text-purple-400">
+                    <div className="flex size-7 items-center justify-center rounded-lg bg-bw-info-soft text-bw-info">
                       <Layers className="size-4" />
                     </div>
-                    <h4 className="font-bold text-sm text-white">لقطة كاملة للمخزون (Full Snapshot)</h4>
+                    <h4 className="font-bold text-sm text-bw-ink">لقطة كاملة للمخزون (Full Snapshot)</h4>
                   </div>
                   <p className="text-xs text-bw-ink-soft leading-relaxed pt-1">
                     مقارنة شاملة لكامل تشكيلة منتجاتكم مع رصد أي أصناف سابقة غائبة عن الملف.
                   </p>
                 </div>
 
-                <div className="space-y-1.5 pt-2 border-t border-white/[0.06] text-xs text-bw-ink-subtle">
-                  <p className="flex items-center gap-1.5 text-purple-300/90 text-[11px]">
+                <div className="space-y-1.5 pt-2 border-t border-bw-line text-xs text-bw-ink-subtle">
+                  <p className="flex items-center gap-1.5 text-bw-info text-[11px]">
                     <span className="font-bold">✓</span> فحص شامل: الأصناف الغائبة تدرج كمرشحة للتعطيل للمراجعة.
                   </p>
                   <p className="flex items-center gap-1.5 text-bw-ink-soft text-[11px]">
@@ -481,16 +481,16 @@ function UpdatesWorkflowContent() {
             </div>
 
             {/* Mode Select CTA Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/[0.06]">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-bw-line">
               <div className="flex items-center gap-2 text-xs text-bw-ink-subtle">
                 <span>النمط المختار حالياً:</span>
-                <span className={`font-bold ${mode === 'PARTIAL_UPDATE' ? 'text-emerald-400' : 'text-purple-400'}`}>
+                <span className={`font-bold ${mode === 'PARTIAL_UPDATE' ? 'text-bw-ok' : 'text-bw-info'}`}>
                   {mode === 'PARTIAL_UPDATE' ? 'تحديث جزئي (الآمن والموصى به)' : 'لقطة كاملة للمخزون (فحص تشكيلة)'}
                 </span>
               </div>
               <Button
                 type="button"
-                className="bg-[#34d27b] text-black font-bold h-11 px-7 hover:bg-[#2eb96c] shadow-[0_2px_12px_rgba(52,210,123,0.25)] w-full sm:w-auto"
+                className="bg-bw-action text-bw-on-action font-bold h-11 px-7 hover:bg-bw-action-hover w-full sm:w-auto"
                 onClick={() => setStep('FILE_UPLOAD')}
               >
                 <span>المتابعة إلى رفع الملف</span>
@@ -504,11 +504,11 @@ function UpdatesWorkflowContent() {
         {step === 'FILE_UPLOAD' ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white text-base">الخطوة الثانية: رفع ملف Excel أو CSV</h3>
+              <h3 className="font-bold text-bw-ink text-base">الخطوة الثانية: رفع ملف Excel أو CSV</h3>
               <button
                 type="button"
                 onClick={() => setStep('MODE_SELECT')}
-                className="text-xs text-bw-ink-subtle hover:text-white"
+                className="text-xs text-bw-ink-subtle hover:text-bw-ink"
               >
                 تغيير النمط ({mode === 'PARTIAL_UPDATE' ? 'تحديث جزئي' : 'لقطة كاملة'})
               </button>
@@ -520,30 +520,30 @@ function UpdatesWorkflowContent() {
                 onClick={() => setDocumentKind('PRICE_LIST')}
                 className={`cursor-pointer rounded-xl border p-3.5 text-xs transition-all flex items-center justify-between ${
                   documentKind === 'PRICE_LIST'
-                    ? 'border-[#34d27b] bg-[#34d27b]/10 text-white shadow-xs'
-                    : 'border-white/[0.08] bg-black/30 text-bw-ink-soft hover:border-white/20'
+                    ? 'border-bw-ok bg-bw-ok-soft text-bw-ink shadow-xs'
+                    : 'border-bw-line bg-bw-page text-bw-ink-soft hover:border-bw-line-field'
                 }`}
               >
                 <div className="space-y-0.5">
-                  <p className="font-bold text-white text-xs">قائمة أسعار وتوريد (Price List)</p>
+                  <p className="font-bold text-bw-ink text-xs">قائمة أسعار وتوريد (Price List)</p>
                   <p className="text-[11px] text-bw-ink-subtle">تتضمن أسعار الشراء وتحديثات التكلفة للأصناف</p>
                 </div>
-                {documentKind === 'PRICE_LIST' ? <CheckCircle2 className="size-4 text-[#34d27b] shrink-0" /> : null}
+                {documentKind === 'PRICE_LIST' ? <CheckCircle2 className="size-4 text-bw-ok shrink-0" /> : null}
               </div>
 
               <div
                 onClick={() => setDocumentKind('STOCK_FEED')}
                 className={`cursor-pointer rounded-xl border p-3.5 text-xs transition-all flex items-center justify-between ${
                   documentKind === 'STOCK_FEED'
-                    ? 'border-[#34d27b] bg-[#34d27b]/10 text-white shadow-xs'
-                    : 'border-white/[0.08] bg-black/30 text-bw-ink-soft hover:border-white/20'
+                    ? 'border-bw-ok bg-bw-ok-soft text-bw-ink shadow-xs'
+                    : 'border-bw-line bg-bw-page text-bw-ink-soft hover:border-bw-line-field'
                 }`}
               >
                 <div className="space-y-0.5">
-                  <p className="font-bold text-white text-xs">تغذية مخزون وتوافر (Stock Feed)</p>
+                  <p className="font-bold text-bw-ink text-xs">تغذية مخزون وتوافر (Stock Feed)</p>
                   <p className="text-[11px] text-bw-ink-subtle">تحديث كميات المخزون المتوفرة بالمستودع والجاهزة للطلب</p>
                 </div>
-                {documentKind === 'STOCK_FEED' ? <CheckCircle2 className="size-4 text-[#34d27b] shrink-0" /> : null}
+                {documentKind === 'STOCK_FEED' ? <CheckCircle2 className="size-4 text-bw-ok shrink-0" /> : null}
               </div>
             </div>
 
@@ -564,10 +564,10 @@ function UpdatesWorkflowContent() {
               onClick={() => fileInputRef.current?.click()}
               className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all ${
                 isDragging
-                  ? 'border-[#34d27b] bg-[#34d27b]/10'
+                  ? 'border-bw-ok bg-bw-ok-soft'
                   : file
-                  ? 'border-emerald-500/50 bg-emerald-500/[0.04]'
-                  : 'border-white/[0.15] bg-bw-surface/70 hover:border-[#34d27b]/40 hover:bg-bw-surface'
+                  ? 'border-bw-ok/40 bg-bw-ok-soft'
+                  : 'border-bw-line bg-bw-surface/70 hover:border-bw-ok/40 hover:bg-bw-surface'
               }`}
             >
               <input
@@ -580,11 +580,11 @@ function UpdatesWorkflowContent() {
                 }}
               />
 
-              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-[#34d27b] border border-emerald-500/20 mb-3 shadow-[0_0_20px_rgba(52,210,123,0.15)]">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-bw-ok-soft text-bw-ok border border-bw-ok/40 mb-3 ">
                 <UploadCloud className="size-7" />
               </div>
 
-              <p className="text-sm sm:text-base font-bold text-white">
+              <p className="text-sm sm:text-base font-bold text-bw-ink">
                 {file ? file.name : 'اسحب ملف الأسعار والمخزون إلى هنا أو انقر للاختيار'}
               </p>
               <p className="text-xs text-bw-ink-subtle mt-1.5">
@@ -596,13 +596,13 @@ function UpdatesWorkflowContent() {
 
             {/* Selected File Card */}
             {file ? (
-              <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-bw-surface p-3.5 text-xs">
+              <div className="flex items-center justify-between rounded-xl border border-bw-line bg-bw-surface p-3.5 text-xs">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+                  <div className="flex size-9 items-center justify-center rounded-lg bg-bw-ok-soft text-bw-ok">
                     <FileSpreadsheet className="size-5" />
                   </div>
                   <div>
-                    <p className="font-bold text-white">{file.name}</p>
+                    <p className="font-bold text-bw-ink">{file.name}</p>
                     <p className="text-[10px] text-bw-ink-subtle font-mono">
                       {(file.size / 1024).toFixed(1)} KB · صيغة صالحة
                     </p>
@@ -611,7 +611,7 @@ function UpdatesWorkflowContent() {
                 <button
                   type="button"
                   onClick={() => setFile(null)}
-                  className="rounded-lg p-1.5 text-bw-ink-subtle hover:bg-white/[0.05] hover:text-white"
+                  className="rounded-lg p-1.5 text-bw-ink-subtle hover:bg-bw-sunken hover:text-bw-ink"
                 >
                   <X className="size-4" />
                 </button>
@@ -632,7 +632,7 @@ function UpdatesWorkflowContent() {
                 type="button"
                 disabled={!file}
                 loading={upload.pending}
-                className="bg-[#34d27b] text-black font-bold h-11 px-6 hover:bg-[#2eb96c]"
+                className="bg-bw-action text-bw-on-action font-bold h-11 px-6 hover:bg-bw-action-hover"
                 onClick={async () => {
                   await upload.execute()
                 }}
@@ -649,28 +649,28 @@ function UpdatesWorkflowContent() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-white text-base">الخطوة الثالثة: مطابقة أعمدة الملف</h3>
+                <h3 className="font-bold text-bw-ink text-base">الخطوة الثالثة: مطابقة أعمدة الملف</h3>
                 <p className="text-xs text-bw-ink-subtle">
                   لم يتم التعرف التلقائي على تخطيط هذا الملف من قبل. يرجى مطابقة الأعمدة الأساسية لحفظ القالب للاستخدام المستقبلي.
                 </p>
               </div>
-              <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+              <span className="text-xs font-mono text-bw-ok font-bold bg-bw-ok-soft px-2.5 py-1 rounded-lg border border-bw-ok/40">
                 {uploadResult.totalRows ?? 0} صف بالملف
               </span>
             </div>
 
             {/* Mapping Grid */}
-            <div className="rounded-2xl border border-white/[0.08] bg-bw-surface p-4 sm:p-5 space-y-4">
+            <div className="rounded-2xl border border-bw-line bg-bw-surface p-4 sm:p-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 {/* Required: SKU */}
                 <div className="space-y-1.5">
-                  <label className="block font-semibold text-white">
-                    عمود كود الصنف للمورد (Supplier SKU) <span className="text-red-400">*</span>
+                  <label className="block font-semibold text-bw-ink">
+                    عمود كود الصنف للمورد (Supplier SKU) <span className="text-bw-danger">*</span>
                   </label>
                   <select
                     value={mapping.supplierSku}
                     onChange={(e) => setMapping({ ...mapping, supplierSku: e.target.value })}
-                    className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white focus:outline-none focus:border-[#34d27b]"
+                    className="h-10 w-full rounded-xl border border-bw-line bg-bw-page px-3 text-xs text-bw-ink focus:outline-none focus:border-bw-ok"
                   >
                     <option value="">— اختر العمود من الملف —</option>
                     {uploadResult.sampleHeaders?.map((h) => (
@@ -681,13 +681,13 @@ function UpdatesWorkflowContent() {
 
                 {/* Required: Name */}
                 <div className="space-y-1.5">
-                  <label className="block font-semibold text-white">
-                    عمود اسم المنتج (Product Name) <span className="text-red-400">*</span>
+                  <label className="block font-semibold text-bw-ink">
+                    عمود اسم المنتج (Product Name) <span className="text-bw-danger">*</span>
                   </label>
                   <select
                     value={mapping.name}
                     onChange={(e) => setMapping({ ...mapping, name: e.target.value })}
-                    className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white focus:outline-none focus:border-[#34d27b]"
+                    className="h-10 w-full rounded-xl border border-bw-line bg-bw-page px-3 text-xs text-bw-ink focus:outline-none focus:border-bw-ok"
                   >
                     <option value="">— اختر العمود من الملف —</option>
                     {uploadResult.sampleHeaders?.map((h) => (
@@ -698,13 +698,13 @@ function UpdatesWorkflowContent() {
 
                 {/* Required: Price */}
                 <div className="space-y-1.5">
-                  <label className="block font-semibold text-white">
-                    عمود سعر الشراء للمورد (Purchase Cost) <span className="text-red-400">*</span>
+                  <label className="block font-semibold text-bw-ink">
+                    عمود سعر الشراء للمورد (Purchase Cost) <span className="text-bw-danger">*</span>
                   </label>
                   <select
                     value={mapping.price}
                     onChange={(e) => setMapping({ ...mapping, price: e.target.value })}
-                    className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white focus:outline-none focus:border-[#34d27b]"
+                    className="h-10 w-full rounded-xl border border-bw-line bg-bw-page px-3 text-xs text-bw-ink focus:outline-none focus:border-bw-ok"
                   >
                     <option value="">— اختر العمود من الملف —</option>
                     {uploadResult.sampleHeaders?.map((h) => (
@@ -715,13 +715,13 @@ function UpdatesWorkflowContent() {
 
                 {/* Optional: Barcode */}
                 <div className="space-y-1.5">
-                  <label className="block font-semibold text-white">
+                  <label className="block font-semibold text-bw-ink">
                     عمود الباركود الدولي (Barcode / EAN) <span className="text-bw-ink-subtle text-[11px]">(موصى به للمطابقة الدقيقة)</span>
                   </label>
                   <select
                     value={mapping.barcode}
                     onChange={(e) => setMapping({ ...mapping, barcode: e.target.value })}
-                    className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white focus:outline-none focus:border-[#34d27b]"
+                    className="h-10 w-full rounded-xl border border-bw-line bg-bw-page px-3 text-xs text-bw-ink focus:outline-none focus:border-bw-ok"
                   >
                     <option value="">— اختياري: اختر عمود الباركود —</option>
                     {uploadResult.sampleHeaders?.map((h) => (
@@ -732,13 +732,13 @@ function UpdatesWorkflowContent() {
 
                 {/* Optional: Brand */}
                 <div className="space-y-1.5">
-                  <label className="block font-semibold text-white">
+                  <label className="block font-semibold text-bw-ink">
                     عمود العلامة التجارية (Brand)
                   </label>
                   <select
                     value={mapping.brand}
                     onChange={(e) => setMapping({ ...mapping, brand: e.target.value })}
-                    className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white focus:outline-none focus:border-[#34d27b]"
+                    className="h-10 w-full rounded-xl border border-bw-line bg-bw-page px-3 text-xs text-bw-ink focus:outline-none focus:border-bw-ok"
                   >
                     <option value="">— اختياري: اختر عمود العلامة —</option>
                     {uploadResult.sampleHeaders?.map((h) => (
@@ -748,30 +748,30 @@ function UpdatesWorkflowContent() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="supplier-category-column" className="block font-semibold text-white">عمود التصنيف — عدم تحديده يعلق الصفوف للمراجعة</label>
+                  <label htmlFor="supplier-category-column" className="block font-semibold text-bw-ink">عمود التصنيف — عدم تحديده يعلق الصفوف للمراجعة</label>
                   <select id="supplier-category-column" value={mapping.category} onChange={e => setMapping({ ...mapping, category: e.target.value })}
-                    className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white">
+                    className="h-10 w-full rounded-xl border border-bw-line bg-bw-page px-3 text-xs text-bw-ink">
                     <option value="">— اختر عمود التصنيف —</option>
                     {uploadResult.sampleHeaders?.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="supplier-price-type-column" className="block font-semibold text-white">عمود نوع السعر — مطلوب إن كان الملف يذكره لكل صف؛ الصف الذي لا يقول إنه سعر شراء يُعلق للمراجعة</label>
+                  <label htmlFor="supplier-price-type-column" className="block font-semibold text-bw-ink">عمود نوع السعر — مطلوب إن كان الملف يذكره لكل صف؛ الصف الذي لا يقول إنه سعر شراء يُعلق للمراجعة</label>
                   <select id="supplier-price-type-column" value={mapping.priceType} onChange={e => setMapping({ ...mapping, priceType: e.target.value })}
-                    className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white">
+                    className="h-10 w-full rounded-xl border border-bw-line bg-bw-page px-3 text-xs text-bw-ink">
                     <option value="">— اختر عمود نوع السعر —</option>
                     {uploadResult.sampleHeaders?.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
                 </div>
                 {/* Optional: Quantity */}
                 <div className="space-y-1.5">
-                  <label className="block font-semibold text-white">
+                  <label className="block font-semibold text-bw-ink">
                     عمود الكمية المتاحة (Reported Quantity)
                   </label>
                   <select
                     value={mapping.quantity}
                     onChange={(e) => setMapping({ ...mapping, quantity: e.target.value })}
-                    className="h-10 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white focus:outline-none focus:border-[#34d27b]"
+                    className="h-10 w-full rounded-xl border border-bw-line bg-bw-page px-3 text-xs text-bw-ink focus:outline-none focus:border-bw-ok"
                   >
                     <option value="">— اختياري: اختر عمود الكمية —</option>
                     {uploadResult.sampleHeaders?.map((h) => (
@@ -782,7 +782,7 @@ function UpdatesWorkflowContent() {
               </div>
 
               {/* Save Profile Name */}
-              <div className="pt-3 border-t border-white/[0.06] space-y-1.5">
+              <div className="pt-3 border-t border-bw-line space-y-1.5">
                 <label className="block font-semibold text-xs text-bw-ink">
                   اسم القالب لحفظه واستخدامه تلقائياً في المرات القادمة:
                 </label>
@@ -791,7 +791,7 @@ function UpdatesWorkflowContent() {
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
                   placeholder="مثال: قالب شركة الأمل لمنتجات العناية"
-                  className="h-9.5 w-full rounded-xl border border-white/[0.08] bg-black/30 px-3 text-xs text-white focus:outline-none focus:border-[#34d27b]"
+                  className="h-9.5 w-full rounded-xl border border-bw-line bg-bw-page px-3 text-xs text-bw-ink focus:outline-none focus:border-bw-ok"
                 />
               </div>
             </div>
@@ -810,7 +810,7 @@ function UpdatesWorkflowContent() {
                 type="button"
                 disabled={!mapping.supplierSku || !mapping.name || !mapping.price}
                 loading={applyMapping.pending}
-                className="bg-[#34d27b] text-black font-bold h-11 px-6 hover:bg-[#2eb96c]"
+                className="bg-bw-action text-bw-on-action font-bold h-11 px-6 hover:bg-bw-action-hover"
                 onClick={async () => {
                   await applyMapping.execute()
                 }}
@@ -825,17 +825,17 @@ function UpdatesWorkflowContent() {
         {/* STEP: Awaiting Admin Approval */}
         {step === 'AWAITING_APPROVAL' ? (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.06] p-6 sm:p-8 text-center space-y-4">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-[0_0_24px_rgba(245,158,11,0.15)]">
+            <div className="rounded-2xl border border-bw-warn/40 bg-bw-warn-soft p-6 sm:p-8 text-center space-y-4">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-bw-warn-soft text-bw-warn border border-bw-warn/40 ">
                 <Clock className="size-7" />
               </div>
 
               <div className="space-y-1.5 max-w-lg mx-auto">
-                <h3 className="text-base sm:text-lg font-bold text-white">قالب الملف قيد المراجعة والاعتماد</h3>
+                <h3 className="text-base sm:text-lg font-bold text-bw-ink">قالب الملف قيد المراجعة والاعتماد</h3>
                 <p className="text-xs text-bw-ink-soft leading-relaxed">
                   تم إرسال القالب ومقترح مطابقة الأعمدة لإدارة شيناكير لمراجعته واعتماده لضمان دقة دلالات أسعار الشراء والكميات.
                 </p>
-                <div className="rounded-xl border border-amber-500/20 bg-black/40 p-3 text-xs text-amber-300 font-semibold mt-2">
+                <div className="rounded-xl border border-bw-warn/40 bg-bw-page p-3 text-xs text-bw-warn font-semibold mt-2">
                   تم إرسال القالب للمراجعة — لن تظهر الأصناف في المعاينة حتى تتم الموافقة الرسمية من قبل الإدارة.
                 </div>
               </div>
@@ -861,7 +861,7 @@ function UpdatesWorkflowContent() {
                       setCheckingApproval(false)
                     }
                   }}
-                  className="bg-[#34d27b] text-black font-bold h-10 px-5 hover:bg-[#2eb96c]"
+                  className="bg-bw-action text-bw-on-action font-bold h-10 px-5 hover:bg-bw-action-hover"
                 >
                   <RefreshCw className="size-4 ms-1" />
                   <span>التحقق من حالة الاعتماد الآن</span>
@@ -875,7 +875,7 @@ function UpdatesWorkflowContent() {
                     setCurrentJobId(null)
                     setUploadResult(null)
                   }}
-                  className="text-xs text-bw-ink-soft hover:text-white"
+                  className="text-xs text-bw-ink-soft hover:text-bw-ink"
                 >
                   بدء عملية تحديث جديدة
                 </Button>
@@ -887,43 +887,43 @@ function UpdatesWorkflowContent() {
         {/* STEP 4: Preview Diff & Validation */}
         {step === 'PREVIEW_DIFF' ? (
           diffLoading ? (
-            <div className="space-y-4 p-8 text-center rounded-2xl border border-white/[0.08] bg-bw-surface">
-              <Loader2 className="size-8 text-[#34d27b] animate-spin mx-auto" />
-              <p className="text-sm font-bold text-white">جاري حساب الفروقات السعرية ومطابقة الأصناف مع الكتالوج...</p>
+            <div className="space-y-4 p-8 text-center rounded-2xl border border-bw-line bg-bw-surface">
+              <Loader2 className="size-8 text-bw-ok animate-spin mx-auto" />
+              <p className="text-sm font-bold text-bw-ink">جاري حساب الفروقات السعرية ومطابقة الأصناف مع الكتالوج...</p>
               <p className="text-xs text-bw-ink-subtle">نطابق الأكواد والباركودات ونفحص أي قفزات غير اعتيادية بالأسعار.</p>
             </div>
           ) : diff ? (
             <div className="space-y-6">
               {/* Diff Summary Counters Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-3 text-center space-y-0.5">
-                  <span className="text-[10px] font-bold uppercase text-emerald-400">تحديث أسعار</span>
-                  <p className="font-mono text-xl font-extrabold text-white">{diff.counters.updated}</p>
+                <div className="rounded-xl border border-bw-ok/40 bg-bw-ok-soft p-3 text-center space-y-0.5">
+                  <span className="text-[10px] font-bold uppercase text-bw-ok">تحديث أسعار</span>
+                  <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.updated}</p>
                 </div>
 
-                <div className="rounded-xl border border-blue-500/30 bg-blue-500/[0.04] p-3 text-center space-y-0.5">
-                  <span className="text-[10px] font-bold uppercase text-blue-400">إضافة لأول مرة</span>
-                  <p className="font-mono text-xl font-extrabold text-white">{diff.counters.created}</p>
+                <div className="rounded-xl border border-bw-info/40 bg-bw-info-soft p-3 text-center space-y-0.5">
+                  <span className="text-[10px] font-bold uppercase text-bw-info">إضافة لأول مرة</span>
+                  <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.created}</p>
                 </div>
 
-                <div className="rounded-xl border border-white/[0.08] bg-bw-surface p-3 text-center space-y-0.5">
+                <div className="rounded-xl border border-bw-line bg-bw-surface p-3 text-center space-y-0.5">
                   <span className="text-[10px] font-bold uppercase text-bw-ink-subtle">بدون تغيير</span>
-                  <p className="font-mono text-xl font-extrabold text-white">{diff.counters.unchanged}</p>
+                  <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.unchanged}</p>
                 </div>
 
-                <div className="rounded-xl border border-purple-500/30 bg-purple-500/[0.04] p-3 text-center space-y-0.5">
-                  <span className="text-[10px] font-bold uppercase text-purple-400">مرشحون جدد</span>
-                  <p className="font-mono text-xl font-extrabold text-white">{diff.counters.skipped}</p>
+                <div className="rounded-xl border border-bw-info/40 bg-bw-info-soft p-3 text-center space-y-0.5">
+                  <span className="text-[10px] font-bold uppercase text-bw-info">مرشحون جدد</span>
+                  <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.skipped}</p>
                 </div>
 
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-3 text-center space-y-0.5">
-                  <span className="text-[10px] font-bold uppercase text-amber-400">قفزات سعرية</span>
-                  <p className="font-mono text-xl font-extrabold text-white">{diff.counters.review}</p>
+                <div className="rounded-xl border border-bw-warn/40 bg-bw-warn-soft p-3 text-center space-y-0.5">
+                  <span className="text-[10px] font-bold uppercase text-bw-warn">قفزات سعرية</span>
+                  <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.review}</p>
                 </div>
 
-                <div className="rounded-xl border border-red-500/30 bg-red-500/[0.04] p-3 text-center space-y-0.5">
-                  <span className="text-[10px] font-bold uppercase text-red-400">أخطاء بالملف</span>
-                  <p className="font-mono text-xl font-extrabold text-white">{diff.counters.error + (diff.sourceRows?.invalid ?? 0)}</p>
+                <div className="rounded-xl border border-bw-danger/40 bg-bw-danger-soft p-3 text-center space-y-0.5">
+                  <span className="text-[10px] font-bold uppercase text-bw-danger">أخطاء بالملف</span>
+                  <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.error + (diff.sourceRows?.invalid ?? 0)}</p>
                 </div>
               </div>
 
@@ -944,8 +944,8 @@ function UpdatesWorkflowContent() {
 
               {/* Absent Snapshot Products Warning */}
               {diff.deactivationCandidates && diff.deactivationCandidates.length > 0 ? (
-                <div className="rounded-2xl border border-amber-500/40 bg-amber-500/[0.06] p-4 space-y-2">
-                  <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                <div className="rounded-2xl border border-bw-warn/40 bg-bw-warn-soft p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-bw-warn font-bold text-xs">
                     <AlertTriangle className="size-4" />
                     <span>تنبيه اللقطة الكاملة: {diff.deactivationCandidates.length} صنفاً مسجلاً بحسابكم لم يذكر في هذا الملف</span>
                   </div>
@@ -957,7 +957,7 @@ function UpdatesWorkflowContent() {
 
               {/* Diff Filters Toolbar */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                <div className="flex rounded-xl border border-white/[0.08] bg-bw-surface p-1 text-xs">
+                <div className="flex rounded-xl border border-bw-line bg-bw-surface p-1 text-xs">
                   {(
                     [
                       ['all', `الكل (${diff.rows.length})`],
@@ -972,8 +972,8 @@ function UpdatesWorkflowContent() {
                       onClick={() => setDiffFilter(fKey)}
                       className={`rounded-lg px-3 py-1 font-semibold transition-all ${
                         diffFilter === fKey
-                          ? 'bg-[#34d27b] text-black shadow-xs'
-                          : 'text-bw-ink-soft hover:text-white'
+                          ? 'bg-bw-action text-bw-on-action shadow-xs'
+                          : 'text-bw-ink-soft hover:text-bw-ink'
                       }`}
                     >
                       {fLabel}
@@ -988,17 +988,17 @@ function UpdatesWorkflowContent() {
                     placeholder="بحث في نتائج المعاينة..."
                     value={diffSearch}
                     onChange={(e) => setDiffSearch(e.target.value)}
-                    className="h-8.5 w-full rounded-xl border border-white/[0.08] bg-bw-surface pe-3 ps-8.5 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-[#34d27b] focus:outline-none"
+                    className="h-8.5 w-full rounded-xl border border-bw-line bg-bw-surface pe-3 ps-8.5 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-ok focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Diff Table */}
-              <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-bw-surface shadow-md">
+              <div className="overflow-hidden rounded-2xl border border-bw-line bg-bw-surface shadow-md">
                 <div className="overflow-x-auto">
                   <table className="w-full text-start text-xs border-collapse">
                     <thead>
-                      <tr className="border-b border-white/[0.08] bg-black/30 text-bw-ink-subtle font-semibold text-[11px]">
+                      <tr className="border-b border-bw-line bg-bw-page text-bw-ink-subtle font-semibold text-[11px]">
                         <th className="py-3 px-4 text-start">المنتج وكود الصنف</th>
                         <th className="py-3 px-4 text-start">الإجراء المقترح</th>
                         <th className="py-3 px-4 text-end">السعر قبل</th>
@@ -1007,7 +1007,7 @@ function UpdatesWorkflowContent() {
                         <th className="py-3 px-4 text-start">تفاصيل المطابقة أو الخطأ</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/[0.04]">
+                    <tbody className="divide-y divide-bw-line">
                       {filteredDiffRows.slice(0, 50).map((row) => {
                         const isError = row.action === 'ERROR'
                         const isCandidate = row.action === 'SKIP'
@@ -1016,27 +1016,27 @@ function UpdatesWorkflowContent() {
                         return (
                           <tr
                             key={row.itemId}
-                            className={`hover:bg-white/[0.02] transition-colors ${
+                            className={`hover:bg-bw-sunken transition-colors ${
                               isError
-                                ? 'bg-red-500/[0.04]'
+                                ? 'bg-bw-danger-soft'
                                 : row.isLargePriceJump
-                                ? 'bg-amber-500/[0.04]'
+                                ? 'bg-bw-warn-soft'
                                 : ''
                             }`}
                           >
                             {/* Product & SKU */}
                             <td className="py-3 px-4 max-w-sm">
                               <div className="space-y-1">
-                                <p className="font-bold text-white truncate text-xs leading-snug">
+                                <p className="font-bold text-bw-ink truncate text-xs leading-snug">
                                   {row.productName}
                                 </p>
                                 <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-                                  <span className="font-mono font-semibold px-1.5 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.08] text-emerald-300">
+                                  <span className="font-mono font-semibold px-1.5 py-0.5 rounded-md bg-bw-sunken border border-bw-line text-bw-ok">
                                     SKU: {row.supplierSkuCode}
                                   </span>
                                   {row.canonicalSkuCode ? (
                                     <span className="font-mono text-bw-ink-subtle">
-                                      كتالوج: <Code className="text-[10px] text-white/80">{row.canonicalSkuCode}</Code>
+                                      كتالوج: <Code className="text-[10px] text-bw-ink-soft">{row.canonicalSkuCode}</Code>
                                     </span>
                                   ) : null}
                                 </div>
@@ -1046,25 +1046,25 @@ function UpdatesWorkflowContent() {
                             {/* Action Badge */}
                             <td className="py-3 px-4 whitespace-nowrap">
                               {row.action === 'UPDATE' ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 text-emerald-300 px-2 py-0.5 text-[10px] font-bold">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-bw-ok-soft text-bw-ok px-2 py-0.5 text-[10px] font-bold">
                                   <Check className="size-3" />
                                   تحديث السعر
                                 </span>
                               ) : row.action === 'CREATE' ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/20 text-blue-300 px-2 py-0.5 text-[10px] font-bold">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-bw-info-soft text-bw-info px-2 py-0.5 text-[10px] font-bold">
                                   <Plus className="size-3" />
                                   إضافة جديدة
                                 </span>
                               ) : row.action === 'UNCHANGED' ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] text-bw-ink-subtle px-2 py-0.5 text-[10px] font-bold">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-bw-sunken text-bw-ink-subtle px-2 py-0.5 text-[10px] font-bold">
                                   بدون تغيير
                                 </span>
                               ) : row.action === 'SKIP' ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/20 text-purple-300 px-2 py-0.5 text-[10px] font-bold">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-bw-info-soft text-bw-info px-2 py-0.5 text-[10px] font-bold">
                                   مرشح للمراجعة
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-red-500/20 text-red-300 px-2 py-0.5 text-[10px] font-bold">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-bw-danger-soft text-bw-danger px-2 py-0.5 text-[10px] font-bold">
                                   <AlertCircle className="size-3" />
                                   خطأ بالبيانات
                                 </span>
@@ -1077,7 +1077,7 @@ function UpdatesWorkflowContent() {
                             </td>
 
                             {/* Price After */}
-                            <td className="py-3 px-4 text-end font-mono font-bold text-white whitespace-nowrap">
+                            <td className="py-3 px-4 text-end font-mono font-bold text-bw-ink whitespace-nowrap">
                               {row.after.costPrice ? <Egp value={row.after.costPrice} /> : '—'}
                             </td>
 
@@ -1087,10 +1087,10 @@ function UpdatesWorkflowContent() {
                                 <span
                                   className={`font-bold ${
                                     row.isLargePriceJump
-                                      ? 'text-amber-400 underline decoration-amber-400'
+                                      ? 'text-bw-warn underline decoration-bw-warn'
                                       : row.priceChangePercent > 0
-                                      ? 'text-emerald-400'
-                                      : 'text-blue-400'
+                                      ? 'text-bw-ok'
+                                      : 'text-bw-info'
                                   }`}
                                 >
                                   {row.priceChangePercent > 0 ? '+' : ''}
@@ -1114,7 +1114,7 @@ function UpdatesWorkflowContent() {
                                   ))}
                                 </div>
                               ) : (
-                                <span className="text-emerald-400 text-[10px]">مطابق وجاهز للاعتماد</span>
+                                <span className="text-bw-ok text-[10px]">مطابق وجاهز للاعتماد</span>
                               )}
                             </td>
                           </tr>
@@ -1125,23 +1125,23 @@ function UpdatesWorkflowContent() {
                 </div>
 
                 {filteredDiffRows.length > 50 ? (
-                  <div className="p-3 text-center text-xs text-bw-ink-subtle border-t border-white/[0.06]">
+                  <div className="p-3 text-center text-xs text-bw-ink-subtle border-t border-bw-line">
                     يتم عرض أول 50 صنفاً من إجمالي {filteredDiffRows.length} صنف بالمعاينة.
                   </div>
                 ) : null}
               </div>
 
               {/* Confirmation Checkbox & Commit Bar */}
-              <div className="rounded-2xl border border-white/[0.12] bg-[#090b0e]/95 p-5 space-y-4 shadow-xl">
+              <div className="rounded-2xl border border-bw-line bg-bw-page p-5 space-y-4 shadow-xl">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={confirmedRisk}
                     onChange={(e) => setConfirmedRisk(e.target.checked)}
-                    className="size-4.5 rounded border-white/20 bg-bw-surface text-emerald-500 focus:ring-0 mt-0.5 cursor-pointer"
+                    className="size-4.5 rounded border-bw-line bg-bw-surface text-bw-ok focus:ring-0 mt-0.5 cursor-pointer"
                   />
                   <div className="space-y-0.5 text-xs">
-                    <p className="font-bold text-white">
+                    <p className="font-bold text-bw-ink">
                       أؤكد مراجعة التغييرات السعرية وأوافق على اعتماد وتطبيق تحديثات المخزون لشيناكير
                     </p>
                     <p className="text-[11px] text-bw-ink-subtle">
@@ -1152,7 +1152,7 @@ function UpdatesWorkflowContent() {
 
                 <CommandError error={commit.error} />
 
-                <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/[0.06]">
+                <div className="flex items-center justify-between gap-3 pt-2 border-t border-bw-line">
                   <Button
                     type="button"
                     variant="secondary"
@@ -1165,7 +1165,7 @@ function UpdatesWorkflowContent() {
                     type="button"
                     disabled={!confirmedRisk}
                     loading={commit.pending}
-                    className="bg-[#34d27b] text-black font-bold h-12 px-8 text-sm hover:bg-[#2eb96c] shadow-[0_4px_16px_rgba(52,210,123,0.3)]"
+                    className="bg-bw-action text-bw-on-action font-bold h-12 px-8 text-sm hover:bg-bw-action-hover "
                     onClick={async () => {
                       await commit.execute()
                     }}
@@ -1182,41 +1182,41 @@ function UpdatesWorkflowContent() {
         {/* STEP 5: Receipt Results */}
         {step === 'RECEIPT' && commitResult ? (
           <div className="space-y-6">
-            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.05] p-6 text-center space-y-3">
-              <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-[#34d27b] border border-emerald-500/30 shadow-[0_0_24px_rgba(52,210,123,0.25)]">
+            <div className="rounded-2xl border border-bw-ok/40 bg-bw-ok-soft p-6 text-center space-y-3">
+              <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-bw-ok-soft text-bw-ok border border-bw-ok/40 ">
                 <CheckCircle2 className="size-8" />
               </div>
 
-              <h2 className="text-xl font-bold text-white">تم تطبيق وتحديث العروض بنجاح!</h2>
+              <h2 className="text-xl font-bold text-bw-ink">تم تطبيق وتحديث العروض بنجاح!</h2>
               <p className="text-xs text-bw-ink-soft max-w-lg mx-auto">
                 تم اعتماد التعديلات وتحديث جداول التوريد وشراء شيناكير فورياً.
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 max-w-2xl mx-auto text-xs">
-                <div className="rounded-xl border border-white/[0.08] bg-black/30 p-3 space-y-1">
+                <div className="rounded-xl border border-bw-line bg-bw-page p-3 space-y-1">
                   <span className="text-[10px] text-bw-ink-subtle">عروض محدثة ومفعلة</span>
-                  <p className="font-mono text-2xl font-extrabold text-emerald-400">
+                  <p className="font-mono text-2xl font-extrabold text-bw-ok">
                     {commitResult.committedCount}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/[0.08] bg-black/30 p-3 space-y-1">
+                <div className="rounded-xl border border-bw-line bg-bw-page p-3 space-y-1">
                   <span className="text-[10px] text-bw-ink-subtle">بدون تغيير</span>
-                  <p className="font-mono text-2xl font-extrabold text-white">
+                  <p className="font-mono text-2xl font-extrabold text-bw-ink">
                     {commitResult.unchangedCount}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/[0.08] bg-black/30 p-3 space-y-1">
+                <div className="rounded-xl border border-bw-line bg-bw-page p-3 space-y-1">
                   <span className="text-[10px] text-bw-ink-subtle">مرشحون للمراجعة</span>
-                  <p className="font-mono text-2xl font-extrabold text-purple-400">
+                  <p className="font-mono text-2xl font-extrabold text-bw-info">
                     {commitResult.heldForReviewCount + commitResult.skippedCount}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/[0.08] bg-black/30 p-3 space-y-1">
+                <div className="rounded-xl border border-bw-line bg-bw-page p-3 space-y-1">
                   <span className="text-[10px] text-bw-ink-subtle">أخطاء مستبعدة</span>
-                  <p className="font-mono text-2xl font-extrabold text-red-400">
+                  <p className="font-mono text-2xl font-extrabold text-bw-danger">
                     {commitResult.errorCount}
                   </p>
                 </div>
@@ -1226,7 +1226,7 @@ function UpdatesWorkflowContent() {
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
               <Link
                 href="/supplier/products"
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#34d27b] px-6 text-xs font-bold text-black hover:bg-[#2eb96c] shadow-[0_2px_12px_rgba(52,210,123,0.3)]"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-bw-action px-6 text-xs font-bold text-bw-on-action hover:bg-bw-action-hover "
               >
                 <Store className="size-4" />
                 <span>عرض قائمة منتجاتي المحدثة</span>
@@ -1235,7 +1235,7 @@ function UpdatesWorkflowContent() {
               {currentJobId ? (
                 <Link
                   href={`/supplier/updates/${currentJobId}`}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.1] bg-bw-surface px-5 text-xs font-bold text-white hover:bg-white/[0.04]"
+                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-bw-line bg-bw-surface px-5 text-xs font-bold text-bw-ink hover:bg-bw-sunken"
                 >
                   <Eye className="size-4" />
                   <span>فحص تفاصيل هذه العملية</span>
@@ -1252,7 +1252,7 @@ function UpdatesWorkflowContent() {
                   setDiff(null)
                   setCommitResult(null)
                 }}
-                className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] px-5 text-xs font-semibold text-bw-ink-soft hover:text-white"
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-bw-line bg-bw-surface px-5 text-xs font-semibold text-bw-ink-soft hover:text-bw-ink"
               >
                 <span>رفع ملف جديد</span>
               </button>

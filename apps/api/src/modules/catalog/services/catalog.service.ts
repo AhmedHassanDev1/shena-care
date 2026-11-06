@@ -137,6 +137,8 @@ export interface PublishedMedia {
   sortOrder: number;
   isPrimary: boolean;
   originType: string;
+  /** Explicit display role: CATEGORY_EDITORIAL leads the PDP, PRIMARY_PACKSHOT identifies the product in compact contexts. */
+  role: string | null;
 }
 
 export interface PublishedProduct {
@@ -1170,6 +1172,7 @@ export class CatalogService {
       sortOrder: media.sortOrder,
       isPrimary: media.isPrimary,
       originType: media.originType,
+      role: media.role,
     };
   }
 
@@ -1219,6 +1222,7 @@ export class CatalogService {
       sortOrder: updated.sortOrder,
       isPrimary: updated.isPrimary,
       originType: updated.originType,
+      role: updated.role,
     };
   }
 
@@ -1261,6 +1265,7 @@ export class CatalogService {
       sortOrder: m.sortOrder,
       isPrimary: m.isPrimary,
       originType: m.originType,
+      role: m.role,
     }));
   }
 
@@ -1363,6 +1368,7 @@ export class CatalogService {
           sortOrder: m.sortOrder,
           isPrimary: m.isPrimary,
           originType: m.originType,
+          role: m.role,
         })),
     };
   }

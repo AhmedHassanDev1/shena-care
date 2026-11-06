@@ -25,6 +25,14 @@ export class OperationsController {
     return this.dashboardService.getKpis(user);
   }
 
+  @Get('dashboard/overview')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('dashboard.read')
+  async getDashboardOverview(@CurrentUser() user: any, @Query('days') days?: string) {
+    const daysNum = days === '30' ? 30 : 7;
+    return this.dashboardService.getOverview(user, daysNum);
+  }
+
   // --- Finance / Accounting Export ---
   
   @Post('finance/exports')

@@ -116,7 +116,7 @@ function CashBody() {
   return (
     <Page>
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-bw-line pb-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="sc-badge t-success flex items-center gap-1.5">
@@ -127,10 +127,10 @@ function CashBody() {
               تسوية نقدية طلبات الدفع عند الاستلام (COD)
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight text-bw-ink flex items-center gap-3">
             المالية والتحصيل
             {collections.data && (
-              <span className="sc-badge font-mono text-sm bg-white/[0.06] text-emerald-400 border-white/10">
+              <span className="sc-badge font-mono text-sm bg-bw-sunken text-bw-ok border-bw-line">
                 {collections.data.total} تحصيل مسجل
               </span>
             )}
@@ -156,7 +156,7 @@ function CashBody() {
               </>
             ) : (
               <>
-                <Eye className="size-4 text-emerald-400" />
+                <Eye className="size-4 text-bw-ok" />
                 <span className="text-xs">وضع الخصوصية</span>
               </>
             )}
@@ -169,7 +169,7 @@ function CashBody() {
             disabled={isExporting || !collections.data?.items.length}
             className="sc-btn md secondary flex items-center gap-2 cursor-pointer disabled:opacity-40"
           >
-            <Download className="size-4 text-emerald-400" />
+            <Download className="size-4 text-bw-ok" />
             <span className="text-xs">تصدير للمحاسبة (CSV)</span>
           </button>
 
@@ -183,7 +183,7 @@ function CashBody() {
             disabled={collections.loading}
             className="sc-btn md secondary flex items-center gap-2 cursor-pointer"
           >
-            <RefreshCw className={cn('size-4 text-emerald-400', collections.loading && 'animate-spin')} />
+            <RefreshCw className={cn('size-4 text-bw-ok', collections.loading && 'animate-spin')} />
           </button>
         </div>
       </div>
@@ -191,11 +191,11 @@ function CashBody() {
       {/* Financial Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 my-4">
         {/* Total Expected */}
-        <div className="sc-card p-4 space-y-1 border-white/[0.08] bg-bw-surface">
+        <div className="sc-card p-4 space-y-1 border-bw-line bg-bw-surface">
           <div className="text-xs text-bw-ink-soft">إجمالي التحصيل المتوقع</div>
           <div
             className={cn(
-              'text-2xl font-bold font-mono text-white transition-all',
+              'text-2xl font-bold font-mono text-bw-ink transition-all',
               financialPrivacy && 'blur-md select-none'
             )}
           >
@@ -205,11 +205,11 @@ function CashBody() {
         </div>
 
         {/* Counted at Hub */}
-        <div className="sc-card p-4 space-y-1 border-emerald-500/20 bg-emerald-500/[0.03]">
-          <div className="text-xs text-emerald-400">النقد المعتمد والمعدود</div>
+        <div className="sc-card p-4 space-y-1 border-bw-ok/40 bg-bw-ok-soft">
+          <div className="text-xs text-bw-ok">النقد المعتمد والمعدود</div>
           <div
             className={cn(
-              'text-2xl font-bold font-mono text-emerald-400 transition-all',
+              'text-2xl font-bold font-mono text-bw-ok transition-all',
               financialPrivacy && 'blur-md select-none'
             )}
           >
@@ -223,20 +223,20 @@ function CashBody() {
           className={cn(
             'sc-card p-4 space-y-1 transition-all',
             varianceItems.length > 0
-              ? 'border-red-500/20 bg-red-500/[0.04]'
-              : 'border-white/[0.08] bg-bw-surface'
+              ? 'border-bw-danger/40 bg-bw-danger-soft'
+              : 'border-bw-line bg-bw-surface'
           )}
         >
           <div className="flex items-center justify-between text-xs text-bw-ink-soft">
             <span>فروق وعجز التحصيل</span>
-            {varianceItems.length > 0 && <AlertTriangle className="size-3.5 text-[#fb7185]" />}
+            {varianceItems.length > 0 && <AlertTriangle className="size-3.5 text-bw-danger" />}
           </div>
-          <div className="text-2xl font-bold font-mono text-[#fb7185]">
+          <div className="text-2xl font-bold font-mono text-bw-danger">
             {varianceItems.length}
           </div>
           <div className="text-[11px] text-bw-ink-muted">
             {varianceItems.length > 0 ? (
-              <Link href="/admin/exceptions" className="text-amber-400 hover:underline">
+              <Link href="/admin/exceptions" className="text-bw-warn hover:underline">
                 تتطلب تحقيقاً في مركز الاستثناءات ←
               </Link>
             ) : (
@@ -246,9 +246,9 @@ function CashBody() {
         </div>
 
         {/* Settled Batches */}
-        <div className="sc-card p-4 space-y-1 border-white/[0.08] bg-bw-surface">
+        <div className="sc-card p-4 space-y-1 border-bw-line bg-bw-surface">
           <div className="text-xs text-bw-ink-soft">دفعات التسوية المقفلة</div>
-          <div className="text-2xl font-bold font-mono text-white">
+          <div className="text-2xl font-bold font-mono text-bw-ink">
             {batches.data?.total ?? 0}
           </div>
           <div className="text-[11px] text-bw-ink-muted">أقفلت بالخزينة وإيصال التسليم</div>
@@ -257,13 +257,13 @@ function CashBody() {
 
       {/* Discrepancy Warning Callout if needed */}
       {varianceItems.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-red-500/25 bg-red-500/[0.05]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-bw-danger/40 bg-bw-danger-soft">
           <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-lg bg-red-500/15 text-[#fb7185] flex items-center justify-center shrink-0">
+            <div className="size-8 rounded-lg bg-bw-danger-soft text-bw-danger flex items-center justify-center shrink-0">
               <ShieldAlert className="size-4.5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white">يوجد {varianceItems.length} حالات عدم تطابق في نقدية المندوب</h4>
+              <h4 className="text-xs font-bold text-bw-ink">يوجد {varianceItems.length} حالات عدم تطابق في نقدية المندوب</h4>
               <p className="text-[11px] text-bw-ink-soft">
                 الفروق المالية بين إقرار المندوب والعدّ الفعلي تتطلب مراجعة إدارية وتدوين تسوية استثنائية.
               </p>
@@ -271,7 +271,7 @@ function CashBody() {
           </div>
           <Link
             href="/admin/exceptions"
-            className="sc-btn sm secondary shrink-0 flex items-center gap-1.5 text-xs text-[#fb7185]"
+            className="sc-btn sm secondary shrink-0 flex items-center gap-1.5 text-xs text-bw-danger"
           >
             <span>مراجعة الاستثناءات المالية</span>
           </Link>
@@ -307,7 +307,7 @@ function CashBody() {
         {collections.data?.items.length ? (
           <div
             className={cn(
-              'sc-card overflow-hidden border-white/[0.08] bg-bw-surface shadow-xl transition-all',
+              'sc-card overflow-hidden border-bw-line bg-bw-surface shadow-xl transition-all',
               financialPrivacy && '[&_td:nth-child(4)]:blur-md [&_td:nth-child(5)]:blur-md [&_td:nth-child(6)]:blur-md [&_td:nth-child(7)]:blur-md'
             )}
           >
@@ -319,26 +319,26 @@ function CashBody() {
                 const hasVariance = c.variance && Number(c.variance) !== 0
 
                 return (
-                  <tr key={c.orderId} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={c.orderId} className="hover:bg-bw-sunken transition-colors">
                     <td>
-                      <Link className="font-mono font-bold text-emerald-400 underline" href={`/admin/orders/${c.orderId}`}>
+                      <Link className="font-mono font-bold text-bw-ok underline" href={`/admin/orders/${c.orderId}`}>
                         <Code>{c.orderNumber}</Code>
                       </Link>
                     </td>
                     <td>{c.locationId ? hubName.get(c.locationId) ?? shortId(c.locationId) : 'المعادي'}</td>
                     <td>{c.courierId ? driverName.get(c.courierId) ?? shortId(c.courierId) : '—'}</td>
-                    <td className="font-mono font-semibold text-white">
+                    <td className="font-mono font-semibold text-bw-ink">
                       <Egp value={c.expectedAmount} />
                     </td>
                     <td className="font-mono text-bw-ink-soft">
                       <Egp value={c.declaredAmount} />
                     </td>
-                    <td className="font-mono text-white">
+                    <td className="font-mono text-bw-ink">
                       <Egp value={c.countedAmount} />
                     </td>
                     <td>
                       {hasVariance ? (
-                        <span className="font-mono font-bold text-[#fb7185] bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
+                        <span className="font-mono font-bold text-bw-danger bg-bw-danger-soft px-2 py-0.5 rounded border border-bw-danger/40">
                           <Egp value={c.variance} />
                         </span>
                       ) : (
@@ -367,7 +367,7 @@ function CashBody() {
         {batches.data?.items.length ? (
           <div
             className={cn(
-              'sc-card overflow-hidden border-white/[0.08] bg-bw-surface shadow-xl transition-all',
+              'sc-card overflow-hidden border-bw-line bg-bw-surface shadow-xl transition-all',
               financialPrivacy && '[&_td:nth-child(4)]:blur-md [&_td:nth-child(5)]:blur-md [&_td:nth-child(6)]:blur-md'
             )}
           >
@@ -376,7 +376,7 @@ function CashBody() {
               head={['رقم المرجع', 'المخزن', 'المندوب', 'المتوقع', 'المعدود الفعلي', 'الصافي المسوى', 'وقت التسوية']}
             >
               {batches.data.items.map((b) => (
-                <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
+                <tr key={b.id} className="hover:bg-bw-sunken transition-colors">
                   <td>
                     <Code>{b.reference}</Code>
                   </td>
@@ -385,10 +385,10 @@ function CashBody() {
                   <td className="font-mono text-bw-ink-soft">
                     <Egp value={b.totalExpected} />
                   </td>
-                  <td className="font-mono text-white">
+                  <td className="font-mono text-bw-ink">
                     <Egp value={b.totalCollected} />
                   </td>
-                  <td className="font-mono font-bold text-emerald-400">
+                  <td className="font-mono font-bold text-bw-ok">
                     <Egp value={b.netSettled} />
                   </td>
                   <td className="text-bw-small text-bw-ink-soft">{formatDateTime(b.settledAt)}</td>

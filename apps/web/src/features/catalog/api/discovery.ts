@@ -105,6 +105,7 @@ export interface PublicMedia {
   sortOrder: number;
   isPrimary: boolean;
   originType: string;
+  role: string | null;
 }
 
 export interface PublicContent {

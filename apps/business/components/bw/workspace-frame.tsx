@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import {
-  Heart, History,
-  Home, LogOut, PackageOpen, Printer, RefreshCw, Route, ScanLine,
+  Heart, History, LayoutDashboard,
+  LogOut, PackageOpen, Printer, RefreshCw, Route, ScanLine,
   Radio, ShieldAlert, ShoppingBag, Store, Truck, UserRound, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -25,16 +25,11 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   admin: {
     title: 'الإدارة',
     items: [
-      { id: 'attention', label: 'نظرة عامة', icon: Home, href: '/admin' },
-      { id: 'catalog', label: 'مراجعة الكتالوج والمنتجات', icon: Store, href: '/admin/catalog' },
+      { id: 'attention', label: 'نظرة عامة', icon: LayoutDashboard, href: '/admin' },
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
-      { id: 'ingestion-policy', label: 'سياسة قبول منتجات الموردين', icon: ShieldAlert, href: '/admin/ingestion-policy' },
-      { id: 'sourcing', label: 'الموردين والشراء', icon: Store, href: '/admin/sourcing' },
-      { id: 'enrollment', label: 'مشاركة الموردين', icon: Radio, href: '/admin/sourcing/enrollment' },
-      { id: 'hub', label: 'المخزن والتجهيز', icon: PackageOpen, href: '/hub' },
-      { id: 'delivery', label: 'عمليات التوصيل', icon: Truck, href: '/admin/delivery' },
-      { id: 'exceptions', label: 'مركز الاستثناءات', icon: ShieldAlert, href: '/admin/exceptions' },
-      { id: 'cod', label: 'المالية والتحصيل', icon: Wallet, href: '/admin/cash' },
+      { id: 'suppliers', label: 'الموردون', icon: Store, href: '/admin/sourcing/enrollment' },
+      { id: 'catalog', label: 'الكتالوج', icon: PackageOpen, href: '/admin/catalog' },
+      { id: 'ingestion-policy', label: 'قائمة السماح', icon: ShieldAlert, href: '/admin/ingestion-policy' },
     ],
   },
   supplier: {
@@ -127,6 +122,8 @@ export function WorkspaceFrame({
   const nav = { ...roleNav[role], items: roleNav[role].items.filter((item) => !hiddenNavIds?.includes(item.id)) }
   const isItemActive = (itemId: string) => {
     if (itemId === active) return true
+    if (role === 'admin' && itemId === 'suppliers' && (active === 'sourcing' || active === 'enrollment')) return true
+    if (role === 'admin' && itemId === 'catalog' && (active === 'workbench' || active === 'media-templates')) return true
     if (itemId === 'orders' && (active === 'pos' || active === 'orders')) return true
     if (itemId === 'products' && (active === 'catalog' || active === 'products')) return true
     if (itemId === 'updates' && active === 'updates') return true

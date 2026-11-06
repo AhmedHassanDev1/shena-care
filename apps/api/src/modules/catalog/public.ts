@@ -17,6 +17,11 @@ export { CatalogService } from './services/catalog.service';
 export { BrandService } from './services/brand.service';
 export { CategoryService } from './services/category.service';
 export { ProductIdentityService, BARCODE_ALIAS_SOURCES } from './services/product-identity.service';
+export { MediaTemplateService } from './services/media-template.service';
+export { CatalogIntakeService } from './services/catalog-intake.service';
+export type { ManualIntakeInput, IdentityVerificationInput } from './services/catalog-intake.service';
+export { VERIFIED_IDENTITY_STATES } from './services/catalog-intake.service';
+export { DEFAULT_TEMPLATE_KEY } from './services/media-template.service';
 export { IngredientService } from './services/ingredient.service';
 export { ProductMediaService } from './services/product-media.service';
 export type { MediaReadiness, MediaRoleState } from './services/product-media.service';
@@ -28,7 +33,7 @@ export { CreateProductLineDto, UpdateProductLineDto } from './dto/product-line.d
 export { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 export { CreateSkuDto, UpdateSkuDto } from './dto/sku.dto';
 export { CreateProductMediaDto, UpdateProductMediaDto } from './dto/media.dto';
-export { RegisterMediaAssetDto, DeriveMediaAssetDto, ReviewMediaAssetDto } from './dto/media-asset.dto';
+export { RegisterMediaAssetDto, DeriveMediaAssetDto, ReviewMediaAssetDto, RegisterMediaTemplateDto, SetMediaTemplateStateDto, ReprocessMediaTemplateDto } from './dto/media-asset.dto';
 
 // Types — بنصدر الـ interfaces عشان الـ Composition Layer
 // يقدر يستخدمها في الـ types بتاعته من غير ما يحتاج يعرف الـ implementation

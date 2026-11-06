@@ -267,7 +267,7 @@ function SummaryRow({ label, strong, children }: { label: string; strong?: boole
 function MobileCheckoutBar({ total, blocked, onCheckout }: { total: number; blocked: boolean; onCheckout: () => void }) {
   const m = useMessages();
   return (
-    <div className="fixed inset-x-0 bottom-0 z-nav flex items-center gap-3 bg-chalk/95 px-4 pt-3 shadow-hairline-top backdrop-blur-sm lg:hidden pdp-bar">
+    <div className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-nav flex items-center gap-3 bg-chalk/95 px-4 pt-3 pb-2 shadow-hairline-top backdrop-blur-sm lg:hidden pdp-bar">
       <span className="flex flex-col">
         <span className="text-12 leading-17 text-stone">{m.cartWithoutDelivery}</span>
         <Money amount={total} className="text-17 font-bold leading-24 text-ink" />

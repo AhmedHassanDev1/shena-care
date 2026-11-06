@@ -58,6 +58,27 @@ const BRAND_ALIASES: Record<string, { canonicalName: string; slug: string }> = {
   'isdin': { canonicalName: 'ISDIN', slug: 'isdin' },
 };
 
+/** Folding used for every alias key; the same function backs the resolver and the pure lookup below. */
+function normalizeBrandKey(str: string): string {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632))
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/[ىي]/g, 'ي')
+    .replace(/[ً-ٟـ]/g, '')
+    .replace(/[^p{L}p{N}]+/gu, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
+/** The reviewed Arabic/English dictionary entry for a spelling, if there is one. Read-only: creates nothing. */
+export function curatedBrandAlias(raw: string): { canonicalName: string; slug: string } | null {
+  const trimmed = (raw ?? '').trim();
+  return BRAND_ALIASES[normalizeBrandKey(trimmed)] ?? BRAND_ALIASES[trimmed.toLowerCase()] ?? null;
+}
+
 // Known marketing/functional adjectives that must NEVER be auto-created as official product lines
 const MARKETING_ADJECTIVES = new Set([
   'whitening',
@@ -103,17 +124,7 @@ export class BrandEnrichmentService {
   }
 
   normalizeString(str: string): string {
-    if (!str) return '';
-    return str
-      .toLowerCase()
-      .trim()
-      .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632))
-      .replace(/[أإآ]/g, 'ا')
-      .replace(/ة/g, 'ه')
-      .replace(/[ىي]/g, 'ي')
-      .replace(/[\u064B-\u065F\u0640]/g, '')
-      .replace(/[^\p{L}\p{N}]+/gu, '-')
-      .replace(/(^-|-$)+/g, '');
+    return normalizeBrandKey(str);
   }
 
   isInvalidBrand(brand: string): boolean {

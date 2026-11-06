@@ -305,14 +305,14 @@ function ProductsContent() {
                 productsApi.reload()
               }}
               disabled={offersApi.loading}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-bw-surface px-3 text-xs font-semibold text-bw-ink-soft hover:bg-white/[0.04] hover:text-white transition-all shadow-xs"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-bw-line bg-bw-surface px-3 text-xs font-semibold text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink transition-all shadow-xs"
             >
               <RefreshCw className={`size-3.5 ${offersApi.loading ? 'animate-spin' : ''}`} />
               <span>تحديث العروض</span>
             </button>
             <Link
               href="/supplier/updates"
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#34d27b] px-3.5 text-xs font-bold text-black hover:bg-[#2eb96c] transition-all shadow-[0_2px_12px_rgba(52,210,123,0.3)]"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-bw-action px-3.5 text-xs font-bold text-bw-on-action hover:bg-bw-action-hover transition-all "
             >
               <FileSpreadsheet className="size-3.5" />
               <span>تحديث جماعي عبر Excel/CSV</span>
@@ -322,11 +322,11 @@ function ProductsContent() {
 
         {/* Operational KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="rounded-2xl border border-white/[0.08] bg-bw-surface/70 p-4 space-y-1">
+          <div className="rounded-2xl border border-bw-line bg-bw-surface/70 p-4 space-y-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-bw-ink-subtle">
               إجمالي الأصناف المسجلة
             </span>
-            <p className="font-mono text-2xl sm:text-3xl font-extrabold text-white">
+            <p className="font-mono text-2xl sm:text-3xl font-extrabold text-bw-ink">
               {enrichedOffers.length}
             </p>
             <p className="text-[11px] text-bw-ink-subtle">
@@ -334,14 +334,14 @@ function ProductsContent() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.04] p-4 space-y-1">
+          <div className="rounded-2xl border border-bw-ok/40 bg-bw-ok-soft p-4 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-bw-ok">
                 متوفر للطلب
               </span>
-              <CheckCircle2 className="size-4 text-emerald-400" />
+              <CheckCircle2 className="size-4 text-bw-ok" />
             </div>
-            <p className="font-mono text-2xl sm:text-3xl font-extrabold text-white">
+            <p className="font-mono text-2xl sm:text-3xl font-extrabold text-bw-ink">
               {availableCount}
             </p>
             <p className="text-[11px] text-bw-ink-subtle">
@@ -349,14 +349,14 @@ function ProductsContent() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.04] p-4 space-y-1">
+          <div className="rounded-2xl border border-bw-danger/40 bg-bw-danger-soft p-4 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-red-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-bw-danger">
                 غير متوفر / نافد
               </span>
-              <XCircle className="size-4 text-red-400" />
+              <XCircle className="size-4 text-bw-danger" />
             </div>
-            <p className="font-mono text-2xl sm:text-3xl font-extrabold text-white">
+            <p className="font-mono text-2xl sm:text-3xl font-extrabold text-bw-ink">
               {unavailableCount}
             </p>
             <p className="text-[11px] text-bw-ink-subtle">
@@ -364,11 +364,11 @@ function ProductsContent() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.08] bg-bw-surface/70 p-4 space-y-1">
+          <div className="rounded-2xl border border-bw-line bg-bw-surface/70 p-4 space-y-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-bw-ink-subtle">
               متوسط سعر الشراء
             </span>
-            <p className="font-mono text-2xl sm:text-3xl font-extrabold text-white">
+            <p className="font-mono text-2xl sm:text-3xl font-extrabold text-bw-ink">
               <Egp value={avgCostPrice} />
             </p>
             <p className="text-[11px] text-bw-ink-subtle">
@@ -388,14 +388,14 @@ function ProductsContent() {
                 placeholder="بحث باسم المنتج، الماركة، الحجم، كود الصنف، أو الباركود..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 w-full rounded-xl border border-white/[0.08] bg-bw-surface/90 pe-3 ps-9 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-[#34d27b] focus:outline-none focus:ring-1 focus:ring-[#34d27b]/30 transition-all shadow-inner"
+                className="h-10 w-full rounded-xl border border-bw-line bg-bw-surface/90 pe-3 ps-9 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-ok focus:outline-none focus:ring-1 focus:ring-bw-focus/30 transition-all shadow-inner"
               />
             </div>
 
             {/* Filter & Sort Controls */}
             <div className="flex flex-wrap items-center gap-2">
               {/* Availability Filter Buttons */}
-              <div className="flex rounded-xl border border-white/[0.08] bg-bw-surface p-1">
+              <div className="flex rounded-xl border border-bw-line bg-bw-surface p-1">
                 {(
                   [
                     ['all', 'الكل'],
@@ -409,8 +409,8 @@ function ProductsContent() {
                     onClick={() => setAvailabilityFilter(key)}
                     className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
                       availabilityFilter === key
-                        ? 'bg-[#34d27b] text-black shadow-xs'
-                        : 'text-bw-ink-soft hover:text-white'
+                        ? 'bg-bw-action text-bw-on-action shadow-xs'
+                        : 'text-bw-ink-soft hover:text-bw-ink'
                     }`}
                   >
                     {label}
@@ -419,17 +419,17 @@ function ProductsContent() {
               </div>
 
               {/* Sort Selector */}
-              <div className="flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-bw-surface px-2.5 py-1 text-xs">
+              <div className="flex items-center gap-1.5 rounded-xl border border-bw-line bg-bw-surface px-2.5 py-1 text-xs">
                 <ArrowUpDown className="size-3.5 text-bw-ink-subtle" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortField)}
                   className="bg-transparent text-xs text-bw-ink font-medium focus:outline-none cursor-pointer"
                 >
-                  <option value="updated" className="bg-[#14171d] text-white">آخر تحديث</option>
-                  <option value="name" className="bg-[#14171d] text-white">اسم المنتج (أ - ي)</option>
-                  <option value="price_asc" className="bg-[#14171d] text-white">سعر الشراء: الأقل للأعلى</option>
-                  <option value="price_desc" className="bg-[#14171d] text-white">سعر الشراء: الأعلى للأقل</option>
+                  <option value="updated" className="bg-bw-surface text-bw-ink">آخر تحديث</option>
+                  <option value="name" className="bg-bw-surface text-bw-ink">اسم المنتج (أ - ي)</option>
+                  <option value="price_asc" className="bg-bw-surface text-bw-ink">سعر الشراء: الأقل للأعلى</option>
+                  <option value="price_desc" className="bg-bw-surface text-bw-ink">سعر الشراء: الأعلى للأقل</option>
                 </select>
               </div>
             </div>
@@ -437,9 +437,9 @@ function ProductsContent() {
 
           {/* Bulk Actions Bar (Shown when rows are selected) */}
           {selectedOfferIds.size > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs shadow-sm">
-              <div className="flex items-center gap-2 font-bold text-white">
-                <span className="flex size-5 items-center justify-center rounded-full bg-emerald-500 text-black text-[11px] font-mono">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-bw-ok/40 bg-bw-ok-soft p-3 text-xs shadow-sm">
+              <div className="flex items-center gap-2 font-bold text-bw-ink">
+                <span className="flex size-5 items-center justify-center rounded-full bg-bw-action text-bw-on-action text-[11px] font-mono">
                   {selectedOfferIds.size}
                 </span>
                 <span>أصناف محددة</span>
@@ -448,7 +448,7 @@ function ProductsContent() {
               <div className="flex items-center gap-2">
                 <Button
                   size="md"
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-8 text-xs"
+                  className="bg-bw-action hover:bg-bw-action text-bw-on-action font-bold h-8 text-xs"
                   loading={bulkPending}
                   onClick={() => handleBulkSetAvailability(true)}
                 >
@@ -458,7 +458,7 @@ function ProductsContent() {
                 <Button
                   size="md"
                   variant="secondary"
-                  className="border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20 font-bold h-8 text-xs"
+                  className="border-bw-danger/40 bg-bw-danger-soft text-bw-danger hover:bg-bw-danger-soft font-bold h-8 text-xs"
                   loading={bulkPending}
                   onClick={() => handleBulkSetAvailability(false)}
                 >
@@ -468,7 +468,7 @@ function ProductsContent() {
                 <button
                   type="button"
                   onClick={() => setSelectedOfferIds(new Set())}
-                  className="text-bw-ink-subtle hover:text-white px-2 py-1 text-xs"
+                  className="text-bw-ink-subtle hover:text-bw-ink px-2 py-1 text-xs"
                 >
                   إلغاء التحديد
                 </button>
@@ -510,7 +510,7 @@ function ProductsContent() {
               ) : (
                 <Link
                   href="/supplier/updates"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#34d27b] px-4 text-xs font-bold text-black hover:bg-[#2eb96c]"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-bw-action px-4 text-xs font-bold text-bw-on-action hover:bg-bw-action-hover"
                 >
                   <FileSpreadsheet className="size-3.5" />
                   <span>رفع أول ملف أسعار</span>
@@ -523,11 +523,11 @@ function ProductsContent() {
         {/* Scalable Desktop Table (>= 768px) */}
         {paginatedOffers.length > 0 ? (
           <>
-            <div className="hidden md:block overflow-hidden rounded-2xl border border-white/[0.08] bg-bw-surface shadow-md">
+            <div className="hidden md:block overflow-hidden rounded-2xl border border-bw-line bg-bw-surface shadow-md">
               <div className="overflow-x-auto">
                 <table className="w-full text-start text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-white/[0.08] bg-black/40 text-bw-ink-subtle font-semibold text-[11px]">
+                    <tr className="border-b border-bw-line bg-bw-page text-bw-ink-subtle font-semibold text-[11px]">
                       <th className="py-3 px-3 text-center w-10">
                         <input
                           type="checkbox"
@@ -536,7 +536,7 @@ function ProductsContent() {
                             paginatedOffers.every((o) => selectedOfferIds.has(o.id))
                           }
                           onChange={handleSelectAllCurrentPage}
-                          className="rounded border-white/20 bg-bw-surface text-emerald-500 focus:ring-0 cursor-pointer"
+                          className="rounded border-bw-line bg-bw-surface text-bw-ok focus:ring-0 cursor-pointer"
                         />
                       </th>
                       <th className="py-3 px-4 text-start">المنتج ورمز الصنف (SKU)</th>
@@ -546,7 +546,7 @@ function ProductsContent() {
                       <th className="py-3 px-4 text-center w-28">إجراءات</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
+                  <tbody className="divide-y divide-bw-line">
                     {paginatedOffers.map((offer) => {
                       const isSelected = selectedOfferIds.has(offer.id)
                       const displaySku = offer.skuCode || shortId(offer.skuId)
@@ -554,8 +554,8 @@ function ProductsContent() {
                       return (
                         <tr
                           key={offer.id}
-                          className={`hover:bg-white/[0.02] transition-colors ${
-                            isSelected ? 'bg-emerald-500/[0.04]' : ''
+                          className={`hover:bg-bw-sunken transition-colors ${
+                            isSelected ? 'bg-bw-ok-soft' : ''
                           }`}
                         >
                           {/* Row Checkbox */}
@@ -564,7 +564,7 @@ function ProductsContent() {
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleSelectOffer(offer.id)}
-                              className="rounded border-white/20 bg-bw-surface text-emerald-500 focus:ring-0 cursor-pointer"
+                              className="rounded border-bw-line bg-bw-surface text-bw-ok focus:ring-0 cursor-pointer"
                             />
                           </td>
 
@@ -575,10 +575,10 @@ function ProductsContent() {
                                 <img
                                   src={offer.imageUrl}
                                   alt=""
-                                  className="size-11 rounded-xl object-cover border border-white/[0.08] shrink-0 mt-0.5 shadow-xs"
+                                  className="size-11 rounded-xl object-cover border border-bw-line shrink-0 mt-0.5 shadow-xs"
                                 />
                               ) : (
-                                <div className="flex size-11 items-center justify-center rounded-xl border border-white/[0.08] bg-black/40 text-bw-ink-subtle shrink-0 mt-0.5">
+                                <div className="flex size-11 items-center justify-center rounded-xl border border-bw-line bg-bw-page text-bw-ink-subtle shrink-0 mt-0.5">
                                   <Package className="size-5 text-bw-ink-subtle" />
                                 </div>
                               )}
@@ -586,20 +586,20 @@ function ProductsContent() {
                                 {/* Line 1: Brand Badge + Product Name */}
                                 <div className="flex flex-wrap items-center gap-1.5 leading-snug">
                                   {offer.brandName ? (
-                                    <span className="inline-flex items-center rounded-md bg-emerald-500/15 border border-emerald-500/25 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300 shrink-0">
+                                    <span className="inline-flex items-center rounded-md bg-bw-ok-soft border border-bw-ok/40 px-1.5 py-0.5 text-[10px] font-bold text-bw-ok shrink-0">
                                       {offer.brandName}
                                     </span>
                                   ) : null}
-                                  <span className="font-bold text-white text-xs leading-snug break-words" title={offer.productName}>
+                                  <span className="font-bold text-bw-ink text-xs leading-snug break-words" title={offer.productName}>
                                     {offer.productName}
                                   </span>
                                 </div>
 
                                 {/* Line 2: Prominent Monospace SKU Badge + Variant/Size */}
                                 <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                                  <span className="inline-flex items-center gap-1 rounded-md bg-black/50 border border-white/[0.12] px-2 py-0.5 font-mono text-[11px] font-semibold text-bw-ink tracking-wide shadow-xs">
+                                  <span className="inline-flex items-center gap-1 rounded-md bg-bw-kohl/50 border border-bw-line px-2 py-0.5 font-mono text-[11px] font-semibold text-bw-ink tracking-wide shadow-xs">
                                     <span className="text-bw-ink-subtle text-[9px] font-sans">SKU:</span>
-                                    <span className="text-emerald-400 font-bold">{displaySku}</span>
+                                    <span className="text-bw-ok font-bold">{displaySku}</span>
                                   </span>
 
                                   {offer.variantName || offer.size ? (
@@ -621,8 +621,8 @@ function ProductsContent() {
                           </td>
 
                           {/* Purchase Price */}
-                          <td className="py-3 px-4 text-end align-middle font-mono font-bold text-white whitespace-nowrap text-sm">
-                            <span className="text-emerald-300">
+                          <td className="py-3 px-4 text-end align-middle font-mono font-bold text-bw-ink whitespace-nowrap text-sm">
+                            <span className="text-bw-ok">
                               <Egp value={offer.costPrice} />
                             </span>
                           </td>
@@ -645,9 +645,9 @@ function ProductsContent() {
                             <button
                               type="button"
                               onClick={() => setEditingOffer(offer)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-white hover:bg-white/[0.08] hover:border-emerald-500/30 transition-all shadow-xs"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-bw-line bg-bw-surface px-2.5 py-1 text-xs font-semibold text-bw-ink hover:bg-bw-sunken hover:border-bw-ok/40 transition-all shadow-xs"
                             >
-                              <Edit2 className="size-3 text-emerald-400" />
+                              <Edit2 className="size-3 text-bw-ok" />
                               <span>تعديل</span>
                             </button>
                           </td>
@@ -670,8 +670,8 @@ function ProductsContent() {
                     key={offer.id}
                     className={`rounded-2xl border p-4 space-y-3 transition-all ${
                       isSelected
-                        ? 'border-emerald-500/40 bg-emerald-500/[0.03]'
-                        : 'border-white/[0.08] bg-bw-surface'
+                        ? 'border-bw-ok/40 bg-bw-ok-soft'
+                        : 'border-bw-line bg-bw-surface'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -680,33 +680,33 @@ function ProductsContent() {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelectOffer(offer.id)}
-                          className="rounded border-white/20 bg-bw-surface text-emerald-500 focus:ring-0 cursor-pointer mt-1"
+                          className="rounded border-bw-line bg-bw-surface text-bw-ok focus:ring-0 cursor-pointer mt-1"
                         />
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-1.5">
                             {offer.brandName ? (
-                              <span className="inline-flex items-center rounded-md bg-emerald-500/15 border border-emerald-500/25 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
+                              <span className="inline-flex items-center rounded-md bg-bw-ok-soft border border-bw-ok/40 px-1.5 py-0.5 text-[10px] font-bold text-bw-ok">
                                 {offer.brandName}
                               </span>
                             ) : null}
-                            <p className="font-bold text-white text-sm leading-snug">
+                            <p className="font-bold text-bw-ink text-sm leading-snug">
                               {offer.productName}
                             </p>
                           </div>
 
                           {/* Distinct Mobile SKU Badge */}
-                          <div className="inline-flex items-center gap-1 rounded-md bg-black/50 border border-white/[0.1] px-1.5 py-0.5 font-mono text-[10px] text-bw-ink">
+                          <div className="inline-flex items-center gap-1 rounded-md bg-bw-kohl/50 border border-bw-line px-1.5 py-0.5 font-mono text-[10px] text-bw-ink">
                             <span className="text-bw-ink-subtle text-[9px]">SKU:</span>
-                            <span className="text-emerald-400 font-bold">{displaySku}</span>
+                            <span className="text-bw-ok font-bold">{displaySku}</span>
                           </div>
                         </div>
                       </div>
-                      <span className="font-mono font-bold text-emerald-300 text-sm shrink-0">
+                      <span className="font-mono font-bold text-bw-ok text-sm shrink-0">
                         <Egp value={offer.costPrice} />
                       </span>
                     </div>
 
-                    <div className="rounded-xl border border-white/[0.06] bg-black/20 p-2.5 space-y-1 text-xs">
+                    <div className="rounded-xl border border-bw-line bg-bw-page p-2.5 space-y-1 text-xs">
                       <div className="flex items-center justify-between text-bw-ink-subtle">
                         <span>
                           {offer.variantName} {offer.size ? `(${offer.size} ${offer.sizeUnit ?? ''})` : ''}
@@ -717,7 +717,7 @@ function ProductsContent() {
                           </span>
                         ) : null}
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-bw-ink-subtle pt-1 border-t border-white/[0.04]">
+                      <div className="flex items-center justify-between text-[11px] text-bw-ink-subtle pt-1 border-t border-bw-line">
                         <span>تحديث: {formatDateTime(offer.lastObservedAt ?? offer.updatedAt)}</span>
                       </div>
                     </div>
@@ -730,9 +730,9 @@ function ProductsContent() {
                       <button
                         type="button"
                         onClick={() => setEditingOffer(offer)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/[0.08] transition-all"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-bw-line bg-bw-surface px-3 py-1.5 text-xs font-semibold text-bw-ink hover:bg-bw-sunken transition-all"
                       >
-                        <Edit2 className="size-3 text-emerald-400" />
+                        <Edit2 className="size-3 text-bw-ok" />
                         <span>تعديل السعر</span>
                       </button>
                     </div>
@@ -748,11 +748,11 @@ function ProductsContent() {
                 <select
                   value={pageSize}
                   onChange={(e) => setPageSize(Number(e.target.value))}
-                  className="rounded-lg border border-white/[0.08] bg-bw-surface px-2 py-1 text-xs text-white focus:outline-none cursor-pointer font-mono"
+                  className="rounded-lg border border-bw-line bg-bw-surface px-2 py-1 text-xs text-bw-ink focus:outline-none cursor-pointer font-mono"
                 >
-                  <option value={25} className="bg-[#14171d]">25</option>
-                  <option value={50} className="bg-[#14171d]">50</option>
-                  <option value={100} className="bg-[#14171d]">100</option>
+                  <option value={25} className="bg-bw-surface">25</option>
+                  <option value={50} className="bg-bw-surface">50</option>
+                  <option value={100} className="bg-bw-surface">100</option>
                 </select>
                 <span>صنف لكل صفحة · إجمالي {totalItems} صنف</span>
               </div>
@@ -762,18 +762,18 @@ function ProductsContent() {
                   type="button"
                   disabled={currentPage <= 1}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="inline-flex size-8 items-center justify-center rounded-lg border border-white/[0.08] bg-bw-surface text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/[0.04]"
+                  className="inline-flex size-8 items-center justify-center rounded-lg border border-bw-line bg-bw-surface text-bw-ink disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bw-sunken"
                 >
                   <ChevronRight className="size-4" />
                 </button>
-                <span className="px-2 font-bold text-white">
+                <span className="px-2 font-bold text-bw-ink">
                   {currentPage} / {totalPages}
                 </span>
                 <button
                   type="button"
                   disabled={currentPage >= totalPages}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="inline-flex size-8 items-center justify-center rounded-lg border border-white/[0.08] bg-bw-surface text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/[0.04]"
+                  className="inline-flex size-8 items-center justify-center rounded-lg border border-bw-line bg-bw-surface text-bw-ink disabled:opacity-30 disabled:cursor-not-allowed hover:bg-bw-sunken"
                 >
                   <ChevronLeft className="size-4" />
                 </button>
@@ -823,20 +823,20 @@ function InlineAvailabilityToggle({
       onClick={handleToggle}
       className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-semibold transition-all shadow-xs ${
         offer.isAvailable
-          ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
-          : 'border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20'
+          ? 'border border-bw-ok/40 bg-bw-ok-soft text-bw-ok hover:bg-bw-ok-soft'
+          : 'border border-bw-danger/40 bg-bw-danger-soft text-bw-danger hover:bg-bw-danger-soft'
       }`}
     >
       {toggle.pending ? (
         <Loader2 className="size-3 animate-spin" />
       ) : offer.isAvailable ? (
         <>
-          <CheckCircle2 className="size-3 text-emerald-400" />
+          <CheckCircle2 className="size-3 text-bw-ok" />
           <span>متوفر للطلب</span>
         </>
       ) : (
         <>
-          <XCircle className="size-3 text-red-400" />
+          <XCircle className="size-3 text-bw-danger" />
           <span>غير متوفر</span>
         </>
       )}
@@ -882,23 +882,23 @@ function EditOfferModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-md rounded-2xl border border-white/[0.1] bg-[#14171d] p-5 sm:p-6 space-y-4 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-          <h3 className="font-bold text-white text-sm sm:text-base">تعديل سعر وتوفر الصنف</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bw-kohl/75 p-4 ">
+      <div className="w-full max-w-md rounded-2xl border border-bw-line bg-bw-surface p-5 sm:p-6 space-y-4 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-bw-line pb-3">
+          <h3 className="font-bold text-bw-ink text-sm sm:text-base">تعديل سعر وتوفر الصنف</h3>
           <button
             type="button"
             onClick={onClose}
-            className="text-bw-ink-subtle hover:text-white"
+            className="text-bw-ink-subtle hover:text-bw-ink"
           >
             <X className="size-4.5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-xl border border-white/[0.06] bg-black/30 p-3 space-y-1 text-xs">
-            <p className="font-bold text-white text-sm">{offer.productName}</p>
-            {offer.brandName ? <p className="text-emerald-400 font-medium">{offer.brandName}</p> : null}
+          <div className="rounded-xl border border-bw-line bg-bw-page p-3 space-y-1 text-xs">
+            <p className="font-bold text-bw-ink text-sm">{offer.productName}</p>
+            {offer.brandName ? <p className="text-bw-ok font-medium">{offer.brandName}</p> : null}
             <div className="flex items-center gap-2 text-[10px] text-bw-ink-subtle pt-1 font-mono">
               {offer.skuCode ? <span>كود: {offer.skuCode}</span> : null}
               {offer.barcode ? <span>· باركود: {offer.barcode}</span> : null}
@@ -925,8 +925,8 @@ function EditOfferModal({
                 onClick={() => setIsAvailable(true)}
                 className={`h-10 rounded-xl border text-xs font-bold transition-all ${
                   isAvailable
-                    ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
-                    : 'border-white/[0.08] bg-bw-surface text-bw-ink-soft hover:border-white/20'
+                    ? 'border-bw-ok bg-bw-ok-soft text-bw-ok'
+                    : 'border-bw-line bg-bw-surface text-bw-ink-soft hover:border-bw-line-field'
                 }`}
               >
                 متوفر للطلب
@@ -936,8 +936,8 @@ function EditOfferModal({
                 onClick={() => setIsAvailable(false)}
                 className={`h-10 rounded-xl border text-xs font-bold transition-all ${
                   !isAvailable
-                    ? 'border-red-500 bg-red-500/20 text-red-300'
-                    : 'border-white/[0.08] bg-bw-surface text-bw-ink-soft hover:border-white/20'
+                    ? 'border-bw-danger bg-bw-danger-soft text-bw-danger'
+                    : 'border-bw-line bg-bw-surface text-bw-ink-soft hover:border-bw-line-field'
                 }`}
               >
                 غير متوفر / نافد
@@ -959,7 +959,7 @@ function EditOfferModal({
 
           <CommandError error={save.error} />
 
-          <div className="flex gap-2.5 pt-3 border-t border-white/[0.08]">
+          <div className="flex gap-2.5 pt-3 border-t border-bw-line">
             <Button
               type="button"
               variant="secondary"
@@ -970,7 +970,7 @@ function EditOfferModal({
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-[#34d27b] text-black font-bold hover:bg-[#2eb96c]"
+              className="flex-1 bg-bw-action text-bw-on-action font-bold hover:bg-bw-action-hover"
               loading={save.pending}
               disabled={!isValidPrice || !isValidQuantity}
             >

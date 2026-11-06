@@ -136,14 +136,14 @@ export default function SupplierOrdersPage() {
               type="button"
               onClick={() => reload()}
               disabled={loading}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-bw-surface px-3 text-xs font-semibold text-bw-ink-soft hover:bg-white/[0.04] hover:text-white transition-all shadow-xs"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-bw-line bg-bw-surface px-3 text-xs font-semibold text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink transition-all shadow-xs"
             >
               <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>تحديث البيانات</span>
             </button>
             <Link
               href="/supplier/updates"
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition-all shadow-xs"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-bw-ok-soft border border-bw-ok/40 px-3 text-xs font-bold text-bw-ok hover:bg-bw-ok-soft transition-all shadow-xs"
             >
               <ArrowUpRight className="size-3.5" />
               <span>تحديث الأسعار والمخزون</span>
@@ -153,29 +153,29 @@ export default function SupplierOrdersPage() {
 
         {/* Operational KPI Strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="rounded-xl border border-amber-500/35 bg-amber-500/[0.05] p-3.5 space-y-1 relative overflow-hidden shadow-xs">
+          <div className="rounded-xl border border-bw-warn/40 bg-bw-warn-soft p-3.5 space-y-1 relative overflow-hidden shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-bw-warn">
                 تتطلب الرد الآن
               </span>
-              <AlertCircle className="size-4 text-amber-400" />
+              <AlertCircle className="size-4 text-bw-warn" />
             </div>
-            <p className="font-mono text-2xl font-extrabold text-white">
+            <p className="font-mono text-2xl font-extrabold text-bw-ink">
               {needsResponseCount}
             </p>
             <p className="text-[11px] text-bw-ink-subtle">
-              إجمالي القيمة: <span className="font-bold text-amber-300 font-mono"><Egp value={totalOpenValue} /></span>
+              إجمالي القيمة: <span className="font-bold text-bw-warn font-mono"><Egp value={totalOpenValue} /></span>
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/[0.08] bg-bw-surface/70 p-3.5 space-y-1 shadow-xs">
+          <div className="rounded-xl border border-bw-line bg-bw-surface/70 p-3.5 space-y-1 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-bw-ink-subtle">
                 أوامر مؤكدة
               </span>
-              <CheckCircle2 className="size-4 text-emerald-400" />
+              <CheckCircle2 className="size-4 text-bw-ok" />
             </div>
-            <p className="font-mono text-2xl font-extrabold text-white">
+            <p className="font-mono text-2xl font-extrabold text-bw-ink">
               {confirmedCount}
             </p>
             <p className="text-[11px] text-bw-ink-subtle">
@@ -183,14 +183,14 @@ export default function SupplierOrdersPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/[0.08] bg-bw-surface/70 p-3.5 space-y-1 shadow-xs">
+          <div className="rounded-xl border border-bw-line bg-bw-surface/70 p-3.5 space-y-1 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-bw-ink-subtle">
                 جاهزة للتسليم
               </span>
-              <Truck className="size-4 text-blue-400" />
+              <Truck className="size-4 text-bw-info" />
             </div>
-            <p className="font-mono text-2xl font-extrabold text-white">
+            <p className="font-mono text-2xl font-extrabold text-bw-ink">
               {readyCount}
             </p>
             <p className="text-[11px] text-bw-ink-subtle">
@@ -198,14 +198,14 @@ export default function SupplierOrdersPage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-white/[0.08] bg-bw-surface/70 p-3.5 space-y-1 shadow-xs">
+          <div className="rounded-xl border border-bw-line bg-bw-surface/70 p-3.5 space-y-1 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-bw-ink-subtle">
                 استلمت بالمخزن
               </span>
-              <Warehouse className="size-4 text-purple-400" />
+              <Warehouse className="size-4 text-bw-info" />
             </div>
-            <p className="font-mono text-2xl font-extrabold text-white">
+            <p className="font-mono text-2xl font-extrabold text-bw-ink">
               {receivedCount}
             </p>
             <p className="text-[11px] text-bw-ink-subtle">
@@ -216,16 +216,16 @@ export default function SupplierOrdersPage() {
 
         {/* Toolbar & Filters */}
         <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-bw-surface/60 border border-white/[0.06] p-2 rounded-2xl shadow-xs">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-bw-surface/60 border border-bw-line p-2 rounded-2xl shadow-xs">
             {/* Filter Tabs */}
             <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
               {(
                 [
-                  ['needs_response', 'تتطلب الرد', needsResponseCount, 'text-amber-400 border-amber-500/50 bg-amber-500/15 font-bold shadow-xs'],
-                  ['all', 'كل الطلبات', items.length, 'border-white/20 bg-white/10 text-white font-bold'],
-                  ['confirmed', 'مؤكدة', confirmedCount, 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300 font-bold'],
-                  ['ready', 'جاهزة للشحن', readyCount, 'border-blue-500/40 bg-blue-500/15 text-blue-300 font-bold'],
-                  ['received', 'مستلمة بالمخزن', receivedCount, 'border-purple-500/40 bg-purple-500/15 text-purple-300 font-bold'],
+                  ['needs_response', 'تتطلب الرد', needsResponseCount, 'text-bw-warn border-bw-warn/40 bg-bw-warn-soft font-bold shadow-xs'],
+                  ['all', 'كل الطلبات', items.length, 'border-bw-line bg-bw-sunken text-bw-ink font-bold'],
+                  ['confirmed', 'مؤكدة', confirmedCount, 'border-bw-ok/40 bg-bw-ok-soft text-bw-ok font-bold'],
+                  ['ready', 'جاهزة للشحن', readyCount, 'border-bw-info/40 bg-bw-info-soft text-bw-info font-bold'],
+                  ['received', 'مستلمة بالمخزن', receivedCount, 'border-bw-info/40 bg-bw-info-soft text-bw-info font-bold'],
                 ] as const
               ).map(([tabId, label, count, activeAccent]) => {
                 const isSelected = activeTab === tabId
@@ -237,13 +237,13 @@ export default function SupplierOrdersPage() {
                     className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs transition-all ${
                       isSelected
                         ? `${activeAccent} border`
-                        : 'border border-transparent text-bw-ink-soft hover:bg-white/[0.04] hover:text-white'
+                        : 'border border-transparent text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink'
                     }`}
                   >
                     <span>{label}</span>
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono font-bold ${
-                        isSelected ? 'bg-black/30 text-white' : 'bg-white/[0.06] text-bw-ink-subtle'
+                        isSelected ? 'bg-bw-page text-bw-ink' : 'bg-bw-sunken text-bw-ink-subtle'
                       }`}
                     >
                       {count}
@@ -261,7 +261,7 @@ export default function SupplierOrdersPage() {
                 placeholder="بحث برقم الطلب، المنتج، أو الباركود..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-full rounded-xl border border-white/[0.08] bg-black/30 pe-3 ps-9 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-[#34d27b] focus:outline-none focus:ring-1 focus:ring-[#34d27b]/30 transition-all shadow-inner"
+                className="h-9 w-full rounded-xl border border-bw-line bg-bw-page pe-3 ps-9 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-ok focus:outline-none focus:ring-1 focus:ring-bw-focus/30 transition-all shadow-inner"
               />
             </div>
           </div>
@@ -293,12 +293,12 @@ export default function SupplierOrdersPage() {
               }
             />
           ) : activeTab === 'needs_response' ? (
-            <div className="rounded-2xl border border-white/[0.08] bg-bw-surface/70 p-6 sm:p-8 space-y-6 text-center shadow-md">
+            <div className="rounded-2xl border border-bw-line bg-bw-surface/70 p-6 sm:p-8 space-y-6 text-center shadow-md">
               <div className="flex flex-col items-center max-w-md mx-auto space-y-2">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-bw-ok-soft border border-bw-ok/40 text-bw-ok">
                   <CheckCircle2 className="size-6" />
                 </div>
-                <h3 className="font-bold text-white text-base sm:text-lg">
+                <h3 className="font-bold text-bw-ink text-base sm:text-lg">
                   لا توجد أوامر توريد تنتظر ردك حالياً
                 </h3>
                 <p className="text-xs text-bw-ink-soft leading-relaxed">
@@ -308,30 +308,30 @@ export default function SupplierOrdersPage() {
 
               {/* Operational Guidance Flow */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-start pt-2">
-                <div className="rounded-xl border border-white/[0.06] bg-black/30 p-3.5 space-y-1.5">
+                <div className="rounded-xl border border-bw-line bg-bw-page p-3.5 space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-[11px] font-bold">1</span>
-                    <span className="font-bold text-xs text-white">إصدار أوامر الشراء</span>
+                    <span className="flex size-5 items-center justify-center rounded-full bg-bw-ok-soft text-bw-ok font-mono text-[11px] font-bold">1</span>
+                    <span className="font-bold text-xs text-bw-ink">إصدار أوامر الشراء</span>
                   </div>
                   <p className="text-[11px] text-bw-ink-subtle leading-relaxed">
                     يتم تجميع وتوجيه الطلبات تلقائياً وفقاً للأسعار والكميات المتاحة المسجلة في كتالوجكم.
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/[0.06] bg-black/30 p-3.5 space-y-1.5">
+                <div className="rounded-xl border border-bw-line bg-bw-page p-3.5 space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-[11px] font-bold">2</span>
-                    <span className="font-bold text-xs text-white">الاستجابة والمهلة</span>
+                    <span className="flex size-5 items-center justify-center rounded-full bg-bw-ok-soft text-bw-ok font-mono text-[11px] font-bold">2</span>
+                    <span className="font-bold text-xs text-bw-ink">الاستجابة والمهلة</span>
                   </div>
                   <p className="text-[11px] text-bw-ink-subtle leading-relaxed">
                     يُرجى تأكيد الكميات بدقة وسعر الشراء خلال مهلة التوريد المحددة لضمان أولوية التسليم.
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/[0.06] bg-black/30 p-3.5 space-y-1.5">
+                <div className="rounded-xl border border-bw-line bg-bw-page p-3.5 space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-[11px] font-bold">3</span>
-                    <span className="font-bold text-xs text-white">استمرار التوريد</span>
+                    <span className="flex size-5 items-center justify-center rounded-full bg-bw-ok-soft text-bw-ok font-mono text-[11px] font-bold">3</span>
+                    <span className="font-bold text-xs text-bw-ink">استمرار التوريد</span>
                   </div>
                   <p className="text-[11px] text-bw-ink-subtle leading-relaxed">
                     حافظ على تحديث أسعار الشراء وحالة التوفر بانتظام لضمان ظهور أصنافك كخيار أول في التوزيع.
@@ -343,16 +343,16 @@ export default function SupplierOrdersPage() {
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <Link
                   href="/supplier/products"
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#34d27b] px-4 text-xs font-bold text-black hover:bg-[#2eb96c] transition-all shadow-xs"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-bw-action px-4 text-xs font-bold text-bw-on-action hover:bg-bw-action-hover transition-all shadow-xs"
                 >
                   <Package className="size-4" />
                   <span>مراجعة منتجاتي وأسعاري</span>
                 </Link>
                 <Link
                   href="/supplier/updates"
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 text-xs font-semibold text-white hover:bg-white/[0.08] transition-all shadow-xs"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-bw-line bg-bw-surface px-4 text-xs font-semibold text-bw-ink hover:bg-bw-sunken transition-all shadow-xs"
                 >
-                  <FileSpreadsheet className="size-4 text-emerald-400" />
+                  <FileSpreadsheet className="size-4 text-bw-ok" />
                   <span>تحديث المخزون عبر Excel</span>
                 </Link>
               </div>
@@ -374,11 +374,11 @@ export default function SupplierOrdersPage() {
         {/* Desktop & Tablet Table (>= 768px) */}
         {filteredItems.length > 0 ? (
           <>
-            <div className="hidden md:block overflow-hidden rounded-2xl border border-white/[0.08] bg-bw-surface shadow-md">
+            <div className="hidden md:block overflow-hidden rounded-2xl border border-bw-line bg-bw-surface shadow-md">
               <div className="overflow-x-auto">
                 <table className="w-full text-start text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-white/[0.08] bg-black/30 text-bw-ink-subtle font-semibold text-[11px]">
+                    <tr className="border-b border-bw-line bg-bw-page text-bw-ink-subtle font-semibold text-[11px]">
                       <th className="py-3 px-4 text-start">رقم أمر الشراء</th>
                       <th className="py-3 px-4 text-start">تاريخ الإصدار</th>
                       <th className="py-3 px-4 text-start">الحالة التشغيلية</th>
@@ -388,7 +388,7 @@ export default function SupplierOrdersPage() {
                       <th className="py-3 px-4 text-center">الإجراء</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
+                  <tbody className="divide-y divide-bw-line">
                     {filteredItems.map((po) => {
                       const isActionRequired = OPEN_STATUSES.includes(po.status)
                       const totalUnits = po.lines.reduce((s, l) => s + l.requestedQuantity, 0)
@@ -403,14 +403,14 @@ export default function SupplierOrdersPage() {
                       return (
                         <tr
                           key={po.id}
-                          className={`hover:bg-white/[0.02] transition-colors ${
-                            isActionRequired ? 'bg-amber-500/[0.02]' : ''
+                          className={`hover:bg-bw-sunken transition-colors ${
+                            isActionRequired ? 'bg-bw-warn-soft' : ''
                           }`}
                         >
                           {/* PO ID & Batch */}
-                          <td className="py-3.5 px-4 font-mono font-bold text-white whitespace-nowrap">
+                          <td className="py-3.5 px-4 font-mono font-bold text-bw-ink whitespace-nowrap">
                             <div className="space-y-0.5">
-                              <span className="text-white hover:text-[#34d27b] transition-colors">
+                              <span className="text-bw-ink hover:text-bw-ok transition-colors">
                                 #{shortId(po.id)}
                               </span>
                               {po.batchRef ? (
@@ -437,7 +437,7 @@ export default function SupplierOrdersPage() {
                           {/* Product Summary */}
                           <td className="py-3.5 px-4 max-w-xs">
                             <div className="space-y-0.5">
-                              <p className="font-medium text-white truncate text-xs" title={sampleProducts}>
+                              <p className="font-medium text-bw-ink truncate text-xs" title={sampleProducts}>
                                 {sampleProducts}
                                 {remainingCount > 0 ? (
                                   <span className="text-bw-ink-subtle ms-1 font-mono text-[10px]">
@@ -455,16 +455,16 @@ export default function SupplierOrdersPage() {
                           <td className="py-3.5 px-4 text-center font-mono whitespace-nowrap">
                             {['confirmed', 'partial', 'ready', 'received_at_hub'].includes(po.status) ? (
                               <div className="space-y-0.5">
-                                <span className="font-bold text-emerald-300">{totalConfirmedUnits}</span>
+                                <span className="font-bold text-bw-ok">{totalConfirmedUnits}</span>
                                 <span className="text-bw-ink-subtle text-[10px]"> / {totalUnits} قط</span>
                               </div>
                             ) : (
-                              <span className="font-bold text-white">{totalUnits} قط</span>
+                              <span className="font-bold text-bw-ink">{totalUnits} قط</span>
                             )}
                           </td>
 
                           {/* Total Purchase Value */}
-                          <td className="py-3.5 px-4 text-end font-mono font-bold text-white whitespace-nowrap">
+                          <td className="py-3.5 px-4 text-end font-mono font-bold text-bw-ink whitespace-nowrap">
                             <Egp value={totalCost} />
                           </td>
 
@@ -474,8 +474,8 @@ export default function SupplierOrdersPage() {
                               href={`/supplier/orders/${po.id}`}
                               className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all shadow-xs ${
                                 isActionRequired
-                                  ? 'bg-[#34d27b] text-black hover:bg-[#2eb96c] shadow-[0_2px_10px_rgba(52,210,123,0.3)]'
-                                  : 'border border-white/[0.1] bg-white/[0.04] text-white hover:bg-white/[0.08]'
+                                  ? 'bg-bw-action text-bw-on-action hover:bg-bw-action-hover '
+                                  : 'border border-bw-line bg-bw-surface text-bw-ink hover:bg-bw-sunken'
                               }`}
                             >
                               {isActionRequired ? (
@@ -513,13 +513,13 @@ export default function SupplierOrdersPage() {
                     key={po.id}
                     className={`rounded-2xl border p-4 space-y-3 transition-all ${
                       isActionRequired
-                        ? 'border-amber-500/40 bg-amber-500/[0.03] shadow-[0_4px_16px_rgba(245,158,11,0.08)]'
-                        : 'border-white/[0.08] bg-bw-surface'
+                        ? 'border-bw-warn/40 bg-bw-warn-soft '
+                        : 'border-bw-line bg-bw-surface'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <span className="font-mono font-bold text-white text-sm">
+                        <span className="font-mono font-bold text-bw-ink text-sm">
                           #{shortId(po.id)}
                         </span>
                         <div className="flex items-center gap-1.5 text-[10px] text-bw-ink-subtle">
@@ -530,8 +530,8 @@ export default function SupplierOrdersPage() {
                       <Status map={PO_STATUS} value={po.status} />
                     </div>
 
-                    <div className="rounded-xl border border-white/[0.06] bg-black/20 p-2.5 space-y-1">
-                      <p className="font-medium text-white text-xs truncate">
+                    <div className="rounded-xl border border-bw-line bg-bw-page p-2.5 space-y-1">
+                      <p className="font-medium text-bw-ink text-xs truncate">
                         {firstProduct}
                         {moreCount > 0 ? (
                           <span className="text-bw-ink-subtle ms-1 font-mono text-[10px]">
@@ -539,9 +539,9 @@ export default function SupplierOrdersPage() {
                           </span>
                         ) : null}
                       </p>
-                      <div className="flex items-center justify-between text-[11px] text-bw-ink-subtle pt-1 border-t border-white/[0.04]">
-                        <span>الكمية المطلوبة: <b className="text-white font-mono">{totalUnits}</b> قطعة</span>
-                        <span>القيمة: <b className="text-emerald-300 font-mono"><Egp value={totalCost} /></b></span>
+                      <div className="flex items-center justify-between text-[11px] text-bw-ink-subtle pt-1 border-t border-bw-line">
+                        <span>الكمية المطلوبة: <b className="text-bw-ink font-mono">{totalUnits}</b> قطعة</span>
+                        <span>القيمة: <b className="text-bw-ok font-mono"><Egp value={totalCost} /></b></span>
                       </div>
                     </div>
 
@@ -549,8 +549,8 @@ export default function SupplierOrdersPage() {
                       href={`/supplier/orders/${po.id}`}
                       className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition-all ${
                         isActionRequired
-                          ? 'bg-[#34d27b] text-black shadow-[0_2px_12px_rgba(52,210,123,0.3)]'
-                          : 'border border-white/[0.1] bg-white/[0.04] text-white hover:bg-white/[0.08]'
+                          ? 'bg-bw-action text-bw-on-action '
+                          : 'border border-bw-line bg-bw-surface text-bw-ink hover:bg-bw-sunken'
                       }`}
                     >
                       {isActionRequired ? (

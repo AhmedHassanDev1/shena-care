@@ -117,7 +117,7 @@ export default function SupplierJobDetailPage() {
         <div className="flex items-center justify-between">
           <Link
             href="/supplier/updates/history"
-            className="inline-flex items-center gap-1.5 text-xs text-bw-ink-soft transition-colors hover:text-white"
+            className="inline-flex items-center gap-1.5 text-xs text-bw-ink-soft transition-colors hover:text-bw-ink"
           >
             <ArrowRight className="size-4" />
             <span>العودة إلى سجل التحديثات</span>
@@ -125,7 +125,7 @@ export default function SupplierJobDetailPage() {
 
           <Link
             href="/supplier/updates"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-bw-ok hover:text-bw-ok"
           >
             <span>رفع ملف جديد</span>
           </Link>
@@ -143,20 +143,20 @@ export default function SupplierJobDetailPage() {
         {job ? (
           <div className="space-y-6">
             {/* Job Header */}
-            <div className="rounded-2xl border border-white/[0.08] bg-bw-surface p-5 sm:p-6 space-y-4 shadow-md">
+            <div className="rounded-2xl border border-bw-line bg-bw-surface p-5 sm:p-6 space-y-4 shadow-md">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-white text-base">
+                    <span className="font-mono font-bold text-bw-ink text-base">
                       عملية استيراد #{shortId(job.id)}
                     </span>
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
                         job.status === 'completed' || job.status === 'published'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          ? 'bg-bw-ok-soft text-bw-ok border border-bw-ok/40'
                           : job.status === 'review_required'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                          ? 'bg-bw-warn-soft text-bw-warn border border-bw-warn/40'
+                          : 'bg-bw-info-soft text-bw-info border border-bw-info/40'
                       }`}
                     >
                       {job.status === 'completed' || job.status === 'published'
@@ -168,7 +168,7 @@ export default function SupplierJobDetailPage() {
                   </div>
                   <p className="text-xs text-bw-ink-subtle">
                     نمط العملية:{' '}
-                    <span className="text-white font-semibold">
+                    <span className="text-bw-ink font-semibold">
                       {job.mode === 'FULL_SNAPSHOT' ? 'لقطة كاملة للتشكيلة' : 'تحديث جزئي'}
                     </span>{' '}
                     · تم الرفع: <span className="font-mono">{formatDateTime(job.createdAt)}</span>
@@ -182,7 +182,7 @@ export default function SupplierJobDetailPage() {
                       jobApi.reload()
                       diffApi.reload()
                     }}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-xs font-semibold text-bw-ink-soft hover:bg-white/[0.06] hover:text-white"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-bw-line bg-bw-surface px-3 text-xs font-semibold text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink"
                   >
                     <RefreshCw className="size-3.5" />
                     <span>تحديث</span>
@@ -192,35 +192,35 @@ export default function SupplierJobDetailPage() {
 
               {/* Diff Counters Strip */}
               {diff ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 border-t border-white/[0.06] pt-4">
-                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-3 text-center space-y-0.5">
-                    <span className="text-[10px] font-bold uppercase text-emerald-400">تحديث أسعار</span>
-                    <p className="font-mono text-xl font-extrabold text-white">{diff.counters.updated}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 border-t border-bw-line pt-4">
+                  <div className="rounded-xl border border-bw-ok/40 bg-bw-ok-soft p-3 text-center space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase text-bw-ok">تحديث أسعار</span>
+                    <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.updated}</p>
                   </div>
 
-                  <div className="rounded-xl border border-blue-500/30 bg-blue-500/[0.04] p-3 text-center space-y-0.5">
-                    <span className="text-[10px] font-bold uppercase text-blue-400">إضافة لأول مرة</span>
-                    <p className="font-mono text-xl font-extrabold text-white">{diff.counters.created}</p>
+                  <div className="rounded-xl border border-bw-info/40 bg-bw-info-soft p-3 text-center space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase text-bw-info">إضافة لأول مرة</span>
+                    <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.created}</p>
                   </div>
 
-                  <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3 text-center space-y-0.5">
+                  <div className="rounded-xl border border-bw-line bg-bw-page p-3 text-center space-y-0.5">
                     <span className="text-[10px] font-bold uppercase text-bw-ink-subtle">بدون تغيير</span>
-                    <p className="font-mono text-xl font-extrabold text-white">{diff.counters.unchanged}</p>
+                    <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.unchanged}</p>
                   </div>
 
-                  <div className="rounded-xl border border-purple-500/30 bg-purple-500/[0.04] p-3 text-center space-y-0.5">
-                    <span className="text-[10px] font-bold uppercase text-purple-400">مرشحون جدد</span>
-                    <p className="font-mono text-xl font-extrabold text-white">{diff.counters.skipped}</p>
+                  <div className="rounded-xl border border-bw-info/40 bg-bw-info-soft p-3 text-center space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase text-bw-info">مرشحون جدد</span>
+                    <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.skipped}</p>
                   </div>
 
-                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-3 text-center space-y-0.5">
-                    <span className="text-[10px] font-bold uppercase text-amber-400">قفزات سعرية</span>
-                    <p className="font-mono text-xl font-extrabold text-white">{diff.counters.review}</p>
+                  <div className="rounded-xl border border-bw-warn/40 bg-bw-warn-soft p-3 text-center space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase text-bw-warn">قفزات سعرية</span>
+                    <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.review}</p>
                   </div>
 
-                  <div className="rounded-xl border border-red-500/30 bg-red-500/[0.04] p-3 text-center space-y-0.5">
-                    <span className="text-[10px] font-bold uppercase text-red-400">أخطاء بالملف</span>
-                    <p className="font-mono text-xl font-extrabold text-white">{diff.counters.error + (diff.sourceRows?.invalid ?? 0)}</p>
+                  <div className="rounded-xl border border-bw-danger/40 bg-bw-danger-soft p-3 text-center space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase text-bw-danger">أخطاء بالملف</span>
+                    <p className="font-mono text-xl font-extrabold text-bw-ink">{diff.counters.error + (diff.sourceRows?.invalid ?? 0)}</p>
                   </div>
                 </div>
               ) : null}
@@ -229,18 +229,18 @@ export default function SupplierJobDetailPage() {
 
             {/* Commit Success Receipt if newly committed */}
             {commitResult ? (
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.05] p-5 text-center space-y-2">
-                <div className="inline-flex size-12 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
+              <div className="rounded-2xl border border-bw-ok/40 bg-bw-ok-soft p-5 text-center space-y-2">
+                <div className="inline-flex size-12 items-center justify-center rounded-xl bg-bw-ok-soft text-bw-ok">
                   <CheckCircle2 className="size-6" />
                 </div>
-                <h3 className="font-bold text-white text-base">تم اعتماد هذه العملية وتطبيق الأسعار بنجاح!</h3>
+                <h3 className="font-bold text-bw-ink text-base">تم اعتماد هذه العملية وتطبيق الأسعار بنجاح!</h3>
                 <p className="text-xs text-bw-ink-subtle">
                   تم تحديث {commitResult.committedCount} عرض، وبقاء {commitResult.unchangedCount} بدون تغيير.
                 </p>
                 <div className="pt-2">
                   <Link
                     href="/supplier/products"
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#34d27b] px-4 text-xs font-bold text-black hover:bg-[#2eb96c]"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-bw-action px-4 text-xs font-bold text-bw-on-action hover:bg-bw-action-hover"
                   >
                     <Store className="size-3.5" />
                     <span>عرض قائمة المنتجات</span>
@@ -253,7 +253,7 @@ export default function SupplierJobDetailPage() {
             {diff ? (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                  <div className="flex rounded-xl border border-white/[0.08] bg-bw-surface p-1 text-xs">
+                  <div className="flex rounded-xl border border-bw-line bg-bw-surface p-1 text-xs">
                     {(
                       [
                         ['all', `الكل (${diff.rows.length})`],
@@ -268,8 +268,8 @@ export default function SupplierJobDetailPage() {
                         onClick={() => setFilterAction(fKey)}
                         className={`rounded-lg px-3 py-1 font-semibold transition-all ${
                           filterAction === fKey
-                            ? 'bg-[#34d27b] text-black shadow-xs'
-                            : 'text-bw-ink-soft hover:text-white'
+                            ? 'bg-bw-action text-bw-on-action shadow-xs'
+                            : 'text-bw-ink-soft hover:text-bw-ink'
                         }`}
                       >
                         {fLabel}
@@ -284,16 +284,16 @@ export default function SupplierJobDetailPage() {
                       placeholder="بحث في تفاصيل العملية..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="h-8.5 w-full rounded-xl border border-white/[0.08] bg-bw-surface pe-3 ps-8.5 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-[#34d27b] focus:outline-none"
+                      className="h-8.5 w-full rounded-xl border border-bw-line bg-bw-surface pe-3 ps-8.5 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-ok focus:outline-none"
                     />
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-bw-surface shadow-md">
+                <div className="overflow-hidden rounded-2xl border border-bw-line bg-bw-surface shadow-md">
                   <div className="overflow-x-auto">
                     <table className="w-full text-start text-xs border-collapse">
                       <thead>
-                        <tr className="border-b border-white/[0.08] bg-black/30 text-bw-ink-subtle font-semibold text-[11px]">
+                        <tr className="border-b border-bw-line bg-bw-page text-bw-ink-subtle font-semibold text-[11px]">
                           <th className="py-3 px-4 text-start">المنتج وكود الصنف</th>
                           <th className="py-3 px-4 text-start">الإجراء</th>
                           <th className="py-3 px-4 text-end">السعر قبل</th>
@@ -302,19 +302,19 @@ export default function SupplierJobDetailPage() {
                           <th className="py-3 px-4 text-start">الأسباب والتفاصيل</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/[0.04]">
+                      <tbody className="divide-y divide-bw-line">
                         {filteredRows.slice(0, 100).map((row) => (
-                          <tr key={row.itemId} className="hover:bg-white/[0.02] transition-colors">
+                          <tr key={row.itemId} className="hover:bg-bw-sunken transition-colors">
                             <td className="py-3.5 px-4 max-w-sm">
                               <div className="space-y-1">
-                                <p className="font-bold text-white truncate text-xs leading-snug">{row.productName}</p>
+                                <p className="font-bold text-bw-ink truncate text-xs leading-snug">{row.productName}</p>
                                 <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-                                  <span className="font-mono font-semibold px-1.5 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.08] text-emerald-300">
+                                  <span className="font-mono font-semibold px-1.5 py-0.5 rounded-md bg-bw-sunken border border-bw-line text-bw-ok">
                                     SKU: {row.supplierSkuCode}
                                   </span>
                                   {row.canonicalSkuCode ? (
                                     <span className="font-mono text-bw-ink-subtle">
-                                      كتالوج: <Code className="text-[10px] text-white/80">{row.canonicalSkuCode}</Code>
+                                      كتالوج: <Code className="text-[10px] text-bw-ink-soft">{row.canonicalSkuCode}</Code>
                                     </span>
                                   ) : null}
                                 </div>
@@ -325,14 +325,14 @@ export default function SupplierJobDetailPage() {
                               <span
                                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
                                   row.action === 'UPDATE'
-                                    ? 'bg-emerald-500/20 text-emerald-300'
+                                    ? 'bg-bw-ok-soft text-bw-ok'
                                     : row.action === 'CREATE'
-                                    ? 'bg-blue-500/20 text-blue-300'
+                                    ? 'bg-bw-info-soft text-bw-info'
                                     : row.action === 'SKIP'
-                                    ? 'bg-purple-500/20 text-purple-300'
+                                    ? 'bg-bw-info-soft text-bw-info'
                                     : row.action === 'ERROR'
-                                    ? 'bg-red-500/20 text-red-300'
-                                    : 'bg-white/[0.06] text-bw-ink-subtle'
+                                    ? 'bg-bw-danger-soft text-bw-danger'
+                                    : 'bg-bw-sunken text-bw-ink-subtle'
                                 }`}
                               >
                                 {row.action === 'UPDATE'
@@ -351,7 +351,7 @@ export default function SupplierJobDetailPage() {
                               {row.before?.costPrice ? <Egp value={row.before.costPrice} /> : '—'}
                             </td>
 
-                            <td className="py-3.5 px-4 text-end font-mono font-bold text-white whitespace-nowrap">
+                            <td className="py-3.5 px-4 text-end font-mono font-bold text-bw-ink whitespace-nowrap">
                               {row.after.costPrice ? <Egp value={row.after.costPrice} /> : '—'}
                             </td>
 
@@ -359,7 +359,7 @@ export default function SupplierJobDetailPage() {
                               {row.priceChangePercent !== null ? (
                                 <span
                                   className={`font-bold ${
-                                    row.isLargePriceJump ? 'text-amber-400' : 'text-emerald-400'
+                                    row.isLargePriceJump ? 'text-bw-warn' : 'text-bw-ok'
                                   }`}
                                 >
                                   {row.priceChangePercent > 0 ? '+' : ''}
@@ -378,7 +378,7 @@ export default function SupplierJobDetailPage() {
                                     : row.reasons[0].replace(/_/g, ' ')}
                                 </p>
                               ) : (
-                                <span className="text-emerald-400 text-[10px]">مطابق</span>
+                                <span className="text-bw-ok text-[10px]">مطابق</span>
                               )}
                             </td>
                           </tr>
@@ -390,9 +390,9 @@ export default function SupplierJobDetailPage() {
 
                 {/* If job not committed yet, offer commit button */}
                 {job.status === 'pending' && !commitResult ? (
-                  <div className="rounded-2xl border border-white/[0.1] bg-[#090b0e] p-4 flex items-center justify-between">
+                  <div className="rounded-2xl border border-bw-line bg-bw-page p-4 flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-white text-xs">هذه العملية بانتظار الاعتماد النهائي</p>
+                      <p className="font-bold text-bw-ink text-xs">هذه العملية بانتظار الاعتماد النهائي</p>
                       <p className="text-[11px] text-bw-ink-subtle">
                         يمكنك اعتماد وتطبيق العروض المحدثة فورياً.
                       </p>
@@ -401,7 +401,7 @@ export default function SupplierJobDetailPage() {
                     <Button
                       type="button"
                       loading={commit.pending}
-                      className="bg-[#34d27b] text-black font-bold h-10 px-5 text-xs hover:bg-[#2eb96c]"
+                      className="bg-bw-action text-bw-on-action font-bold h-10 px-5 text-xs hover:bg-bw-action-hover"
                       onClick={async () => {
                         await commit.execute()
                       }}

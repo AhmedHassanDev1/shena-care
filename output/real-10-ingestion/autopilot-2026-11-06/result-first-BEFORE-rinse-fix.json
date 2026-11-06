@@ -1,0 +1,134 @@
+{
+  "upload": {
+    "jobId": "a4153cfd-89d8-49d9-9e6b-5031a9f13c91",
+    "reused": false,
+    "totalRows": 10
+  },
+  "autopilot": {
+    "PENDING": 0,
+    "LINKED_EXISTING": 0,
+    "NEW_CANDIDATE": 10,
+    "HOLD": 0,
+    "REJECTED": 0,
+    "total": 10,
+    "AUTO_ACCEPT": 8,
+    "AUTO_LINK": 0,
+    "SKIP": 0,
+    "HOLD_CRITICAL": 2,
+    "RETRY_AUTOMATIC": 0,
+    "UNDECIDED": 0
+  },
+  "seconds": 34,
+  "rows": [
+    {
+      "row": 2,
+      "name": "CeraVe Hydrating Cleanser 236ml",
+      "brand": "Cerave",
+      "decision": "AUTO_ACCEPT",
+      "reason": "IDENTITY_VERIFIED_BY_SOURCE",
+      "skuId": "77e771a4-46ed-47ae-a339-efd252236680",
+      "stage": "COMPLETE",
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 3,
+      "name": "CeraVe Foaming Cleanser 236ml",
+      "brand": "Cerave",
+      "decision": "AUTO_ACCEPT",
+      "reason": "IDENTITY_VERIFIED_BY_SOURCE",
+      "skuId": "b0ef687f-a889-4071-90d4-7f82ee6daf85",
+      "stage": "COMPLETE",
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 4,
+      "name": "CeraVe SA Smoothing Cleanser 236ml",
+      "brand": "Cerave",
+      "decision": "AUTO_ACCEPT",
+      "reason": "IDENTITY_VERIFIED_BY_SOURCE",
+      "skuId": "d8ccbb8b-7cf2-4717-848a-c425eeb31abc",
+      "stage": "COMPLETE",
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 5,
+      "name": "CeraVe Moisturising Cream 454g",
+      "brand": "Cerave",
+      "decision": "AUTO_ACCEPT",
+      "reason": "IDENTITY_VERIFIED_BY_SOURCE",
+      "skuId": "d13d1e6e-17d1-4f61-8788-96315d11c833",
+      "stage": "COMPLETE",
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 6,
+      "name": "CeraVe Moisturising Lotion 236ml",
+      "brand": "Cerave",
+      "decision": "AUTO_ACCEPT",
+      "reason": "IDENTITY_VERIFIED_BY_SOURCE",
+      "skuId": "1e2cec41-2949-43b2-852f-fbcfe1e6899d",
+      "stage": "COMPLETE",
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 7,
+      "name": "Clary Hair Shampoo 300ml",
+      "brand": "Clary Corporation",
+      "decision": "AUTO_ACCEPT",
+      "reason": "IDENTITY_VERIFIED_BY_SOURCE",
+      "skuId": "ea9c469a-a148-4bde-8d1e-dc756711f318",
+      "stage": "COMPLETE",
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 8,
+      "name": "Clary Hair Conditioner 300ml",
+      "brand": "Clary Corporation",
+      "decision": "HOLD_CRITICAL",
+      "reason": "USAGE_INSTRUCTIONS_CONTRADICT",
+      "skuId": "f49fbc70-1604-4d45-8009-2663b3fd27b9",
+      "stage": "COMPLETE",
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 9,
+      "name": "Clary Hair Mask 300ml",
+      "brand": "Clary Corporation",
+      "decision": "HOLD_CRITICAL",
+      "reason": "USAGE_INSTRUCTIONS_CONTRADICT",
+      "skuId": "6cd7b572-9390-4570-8c36-182e49231fb2",
+      "stage": "COMPLETE",
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 10,
+      "name": "Capixy Shampoo 250ml",
+      "brand": "capixy",
+      "decision": "AUTO_ACCEPT",
+      "reason": "IDENTITY_VERIFIED_BY_SOURCE",
+      "skuId": "321c85e3-bf2c-493f-b3ef-7316a6cb81d4",
+      "stage": "COMPLETE",
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 11,
+      "name": "Capixy Hair Hydrating Conditioner 250ml",
+      "brand": "capixy",
+      "decision": "AUTO_ACCEPT",
+      "reason": "IDENTITY_VERIFIED_BY_SOURCE",
+      "skuId": "94365fca-8b1d-410b-8dba-0c8d2ba1498f",
+      "stage": "COMPLETE",
+      "attempts": 0,
+      "lastError": null
+    }
+  ]
+}

@@ -20,7 +20,7 @@ graphify-out
 # Environment
 .env
 .env*.local
-
+scratch
 # IDE
 .vscode/
 .idea/

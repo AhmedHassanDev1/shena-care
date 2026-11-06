@@ -4,141 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { discoverProducts, type DiscoveryPage } from '@/features/catalog/api/discovery';
 
 /**
- * Authentic showcase items inspired by the approved Stitch project (8441884584643557256)
- * and verified catalog products. Every product maps to an authentic, individual packshot.
+ * Authentic showcase items backed by real catalog products from seed data.
+ * Every product maps to an authentic, individual packshot.
  * Slugs, brands, and categories match actual product identities with zero fallback reuse.
  */
 export const FALLBACK_HOME_PRODUCTS: DiscoveryPage = {
   items: [
     {
-      id: 'prod-aura-serum',
-      name: 'سيروم إكسير الذهب فايتامين سي',
-      slug: 'aura-golden-radiance-serum-30',
-      description: 'سيروم مركز لإشراق ونضارة البشرة وتوحيد اللون ومقاومة الإجهاد التأكسدي',
-      usage: 'استخدام صباحي يومي على بشرة نظيفة قبل المرطب وواقي الشمس',
-      warnings: null,
-      brand: { id: 'b-aura', name: 'AURA', slug: 'aura' },
-      productLine: { id: 'pl-radiance', name: 'Golden Radiance', slug: 'golden-radiance' },
-      category: { id: 'c-serum', name: 'Serums & Treatments', slug: 'serums-treatments', parentId: null },
-      skus: [
-        {
-          id: 'sku-aura-1',
-          code: 'AURA-VITC-30',
-          variantName: '30 ml',
-          size: 30,
-          sizeUnit: 'ml',
-          price: { amount: 840, currency: 'EGP', compareAtAmount: null },
-          canOrder: true,
-        },
-      ],
-      media: [
-        {
-          id: 'm-aura-1',
-          type: 'image',
-          url: 'https://lh3.googleusercontent.com/aida/AEtjO1UL5FXFOcKBTlMot3OQMK6jSMn7Ovf35ee--G9bbfIl-b-TNjxuGfg2UzEMTZmwpLMk-p31G3Dvo2JIRHm-SXWjtaGtVr56UZlj_U7cZCvxC9-pXfriTSPhOukf3PP14xXZ89qTpTR12kMxk0QGq7kA5oDl-on-Z0uH3Kgc06WTn3cJ9NGizQHiYE1XVmBKDGEfty91J2xWUcNyCnzXwVSmqJnKdIv91OsXn9Dk0luX',
-          altText: 'سيروم إكسير الذهب فايتامين سي من أورا',
-          isPrimary: true,
-        },
-      ],
-    },
-    {
-      id: 'prod-soleil-sunscreen',
-      name: 'فلويد الحماية الفائقة SPF 50+',
-      slug: 'soleil-sun-defense-fluid-50',
-      description: 'حماية متقدمة واسعة المدى من أشعة الشمس للبشرة الساحلية الحساسة والمختلطة',
-      usage: 'يوزع بسخاء كل ساعتين تحت شمس البحر المباشرة',
-      warnings: null,
-      brand: { id: 'b-soleil', name: "SOLEIL D'ÉGYPTE", slug: 'soleil-degypte' },
-      productLine: { id: 'pl-solar', name: 'Solar Defense', slug: 'solar-defense' },
-      category: { id: 'c-sun', name: 'Sunscreens', slug: 'sunscreens', parentId: null },
-      skus: [
-        {
-          id: 'sku-soleil-1',
-          code: 'SOLEIL-SPF50-50',
-          variantName: '50 ml',
-          size: 50,
-          sizeUnit: 'ml',
-          price: { amount: 760, currency: 'EGP', compareAtAmount: 950 },
-          canOrder: true,
-        },
-      ],
-      media: [
-        {
-          id: 'm-soleil-1',
-          type: 'image',
-          url: 'https://lh3.googleusercontent.com/aida/AEtjO1UzWwEB9EhzDFunH2UQ-JGvclvDtrW639zbexwALHlz5df2iAnlt8vnVq5luKIMVk7N80yHh8yrsHQ00UW1FWAD6_zhKrLTgKM8-DHhI7CJr-iNosN2z_HlxU4KMuy6PpfmWSxXm4UAS726to3p1X4rE70wsLHOoNueyzdlWt2XUxUa5aDjxEm4RJ4hQDQmhATmjBMUswtBKLnrrKmhHGWneawlDvzd_l-OVLfjOjvC',
-          altText: 'فلويد الحماية الفائقة SPF 50+ سولاي ديجيبت',
-          isPrimary: true,
-        },
-      ],
-    },
-    {
-      id: 'prod-aurea-repair',
-      name: 'كريم أوريا الترميمي بعد التعرض للشمس',
-      slug: 'aurea-barrier-repair-cream-75',
-      description: 'ترميم حاجز البشرة وترطيب عميق بعد البحر والسباحة بمستخلص الصبار والبابونج',
-      usage: 'عناية مسائية مكثفة بعد التعرض لأشعة الشمس وملوحة البحر',
-      warnings: null,
-      brand: { id: 'b-aurea', name: 'AUREA', slug: 'aurea' },
-      productLine: { id: 'pl-recovery', name: 'Barrier Repair', slug: 'barrier-repair' },
-      category: { id: 'c-moist', name: 'Moisturizers', slug: 'moisturizers', parentId: null },
-      skus: [
-        {
-          id: 'sku-aurea-1',
-          code: 'AUREA-CREAM-75',
-          variantName: '75 ml',
-          size: 75,
-          sizeUnit: 'ml',
-          price: { amount: 690, currency: 'EGP', compareAtAmount: null },
-          canOrder: true,
-        },
-      ],
-      media: [
-        {
-          id: 'm-aurea-1',
-          type: 'image',
-          url: 'https://lh3.googleusercontent.com/aida/AEtjO1Vf7h0j0TqtfLnfHC_DeYq-Y-_hc3h_WAAC331w_YyC-mq_jniPwWD7dwbDN0z0lej7peY3cHgzf9Ce8ipyW-DuXy7tvYf9ISjyOK06sCC9Q2GE5bNB0QMjEr-2nTcZjXMtaX9SpS3okiHwSOwxkEnacBEuiUkV7Iqc3h7rLisfoaNuPqpsztwPCflnd3cWwinBW-jMTu45_WrvFCMB0vnw3HLEP2BN9ffNjZkkb_bu',
-          altText: 'كريم أوريا الترميمي بعد التعرض للشمس',
-          isPrimary: true,
-        },
-      ],
-    },
-    {
-      id: 'prod-aura-hair',
-      name: 'إكسير ترميم الشعر وحمايته من الملح',
-      slug: 'aura-rejuvenating-hair-elixir-50',
-      description: 'حماية ألياف الشعر من الجفاف والتكسر الناتج عن ملوحة البحر ومياه المسابح',
-      usage: 'قطرات خفيفة على أطراف الشعر الرطبة أو الجافة مرتان إلى ٣ أسبوعيًا',
-      warnings: null,
-      brand: { id: 'b-aura', name: 'AURA', slug: 'aura' },
-      productLine: { id: 'pl-hair-elixir', name: 'Hair Rituals', slug: 'hair-rituals' },
-      category: { id: 'c-hair-treatment', name: 'Hair Treatments & Styling', slug: 'hair-treatments-styling', parentId: null },
-      skus: [
-        {
-          id: 'sku-aura-hair-1',
-          code: 'AURA-HAIR-50',
-          variantName: '50 ml',
-          size: 50,
-          sizeUnit: 'ml',
-          price: { amount: 580, currency: 'EGP', compareAtAmount: null },
-          canOrder: true,
-        },
-      ],
-      media: [
-        {
-          id: 'm-aura-hair-1',
-          type: 'image',
-          url: 'https://lh3.googleusercontent.com/aida/AEtjO1Wa4GdwRY1IfHbjthJg3RLKE4p49DwgV4-fhN2SKb2SmdEGMpX9OtVM5TDN19IYRxf_pvguDYHRVvHiFp-paADJmGN1Id1LsnBnIqT4-l3MsuswGODkP3PRvznjW7vfNMe2qx5EM-6avYG6IGP_uW4U1nJgs_CYfQrUpqBRfCJa7BvgzCS7ej_3jB7d7rwZZj9Gcan-U7h0UZ5IaWdiZ-QVieC5LRIITvm-IENeivBo',
-          altText: 'إكسير ترميم الشعر وحمايته من الملح',
-          isPrimary: true,
-        },
-      ],
-    },
-    {
-      id: 'prod-eva-vitc',
+      id: 'prod-eva-vitc-serum-20',
       name: 'سيروم فيتامين سي للوجه من إيفا سكين كلينيك',
       slug: 'eva-vitc-serum-20',
-      description: 'سيروم مركز بفيتامين C لتوحيد لون البشرة واستعادة إشراقتها الطبيعية',
+      description: 'سيروم مركز بفيتامين C لتوحيد لون البشرة واستعادة إشراقتها الطبيعية ومقاومة الإجهاد التأكسدي',
       usage: 'يوزع صباحًا ومساءً على بشرة نظيفة قبل المرطب',
       warnings: null,
       brand: { id: 'b-eva', name: 'Eva Cosmetics', slug: 'eva-cosmetics' },
@@ -166,11 +42,104 @@ export const FALLBACK_HOME_PRODUCTS: DiscoveryPage = {
       ],
     },
     {
-      id: 'prod-sv-acne',
+      id: 'prod-eva-ha-serum-30',
+      name: 'سيروم الهيالورونيك للوجه من إيفا سكين كلينيك',
+      slug: 'eva-ha-serum-30',
+      description: 'سيروم الهيالورونيك المركز لترطيب عميق ودعم حاجز البشرة ومرونتها',
+      usage: 'قطرات خفيفة على بشرة رطبة صباحاً ومساءً متبوعاً بالمرطب',
+      warnings: null,
+      brand: { id: 'b-eva', name: 'Eva Cosmetics', slug: 'eva-cosmetics' },
+      productLine: { id: 'pl-eva-ha', name: 'Hyaluronic Acid', slug: 'eva-hyaluronic-acid' },
+      category: { id: 'c-serums', name: 'Serums & Treatments', slug: 'serums-treatments', parentId: null },
+      skus: [
+        {
+          id: 'sku-eva-ha-30',
+          code: 'EVA-HA-SRM',
+          variantName: '30 ml',
+          size: 30,
+          sizeUnit: 'ml',
+          price: { amount: 220, currency: 'EGP', compareAtAmount: null },
+          canOrder: true,
+        },
+      ],
+      media: [
+        {
+          id: 'm-eva-ha-1',
+          type: 'image',
+          url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/91856.jpg?v=1767721058',
+          altText: 'سيروم الهيالورونيك من إيفا سكين كلينيك',
+          isPrimary: true,
+        },
+      ],
+    },
+    {
+      id: 'prod-eva-collagen-wash-150',
+      name: 'غسول كولاجين للوجه المقاوم لعلامات التقدم بالسن',
+      slug: 'eva-collagen-wash-150',
+      description: 'غسول لطيف بالكولاجين ينظف بعمق ويحافظ على توازن الرطوبة الطبيعي للبشرة',
+      usage: 'يغسل به الوجه صباحاً ومساءً بحركات دائرية خفيفة ثم يشطف',
+      warnings: null,
+      brand: { id: 'b-eva', name: 'Eva Cosmetics', slug: 'eva-cosmetics' },
+      productLine: { id: 'pl-eva-col', name: 'Collagen', slug: 'eva-collagen' },
+      category: { id: 'c-cleansers', name: 'Cleansers', slug: 'cleansers', parentId: null },
+      skus: [
+        {
+          id: 'sku-eva-col-wash-150',
+          code: 'EVA-COL-WASH',
+          variantName: '150 ml',
+          size: 150,
+          sizeUnit: 'ml',
+          price: { amount: 135, currency: 'EGP', compareAtAmount: null },
+          canOrder: true,
+        },
+      ],
+      media: [
+        {
+          id: 'm-eva-col-wash-1',
+          type: 'image',
+          url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/DKahM3hCkfl60u6I2OkFdPCpC8asK4UjMBIkKWOh.webp?v=1759434293',
+          altText: 'غسول الكولاجين من إيفا سكين كلينيك',
+          isPrimary: true,
+        },
+      ],
+    },
+    {
+      id: 'prod-eva-collagen-filler-50',
+      name: 'كريم فيلر كولاجين لملء الخطوط الدقيقة (+30)',
+      slug: 'eva-collagen-filler-50',
+      description: 'كريم مخصص لملء الخطوط التعبيرية وترطيب البشرة وتحسين مظهر الامتلاء',
+      usage: 'يوضع على الوجه والرقبة صباحاً ومساءً مع تدليك لطيف',
+      warnings: null,
+      brand: { id: 'b-eva', name: 'Eva Cosmetics', slug: 'eva-cosmetics' },
+      productLine: { id: 'pl-eva-col', name: 'Collagen', slug: 'eva-collagen' },
+      category: { id: 'c-moisturizers', name: 'Moisturizers', slug: 'moisturizers', parentId: null },
+      skus: [
+        {
+          id: 'sku-eva-col-fill-50',
+          code: 'EVA-COL-FILL',
+          variantName: '50 ml',
+          size: 50,
+          sizeUnit: 'ml',
+          price: { amount: 210, currency: 'EGP', compareAtAmount: null },
+          canOrder: true,
+        },
+      ],
+      media: [
+        {
+          id: 'm-eva-col-fill-1',
+          type: 'image',
+          url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/pFcjqe2VVqhd75VTkbV2QwfY6qOtH8vxIyXVT6An.webp?v=1759692407',
+          altText: 'كريم فيلر كولاجين إيفا',
+          isPrimary: true,
+        },
+      ],
+    },
+    {
+      id: 'prod-sv-acne-cleanser-200',
       name: 'غسول ستارفيل المنقي للبشرة المعرضة للحبوب',
       slug: 'sv-acne-cleanser-200',
-      description: 'غسول رغوي لطيف بحمض الساليسيليك لتنقية المسام وموازنة إفراز الدهون',
-      usage: 'يغسل به الوجه مرتين يوميًا مع تجنب منطقة حول العينين',
+      description: 'غسول رغوي بحمض الساليسيليك وشجرة الشاي لتنقية المسام وموازنة إفراز الدهون',
+      usage: 'يغسل به الوجه مرتين يومياً مع تجنب محيط العينين',
       warnings: null,
       brand: { id: 'b-starville', name: 'StarVille', slug: 'starville' },
       productLine: { id: 'pl-sv-acne', name: 'Acne Prone', slug: 'starville-acne-prone' },
@@ -197,10 +166,41 @@ export const FALLBACK_HOME_PRODUCTS: DiscoveryPage = {
       ],
     },
     {
-      id: 'prod-ha-frizz',
+      id: 'prod-sv-acne-cream-60',
+      name: 'كريم ستارفيل للبشرة المعرضة للحبوب',
+      slug: 'sv-acne-cream-60',
+      description: 'كريم مرطب ومهدئ للبشرة المعرضة للحبوب يقلل من الشوائب ويهدئ الاحمرار',
+      usage: 'يوضع على بشرة نظيفة وجافة مرة إلى مرتين يومياً',
+      warnings: null,
+      brand: { id: 'b-starville', name: 'StarVille', slug: 'starville' },
+      productLine: { id: 'pl-sv-acne', name: 'Acne Prone', slug: 'starville-acne-prone' },
+      category: { id: 'c-moisturizers', name: 'Moisturizers', slug: 'moisturizers', parentId: null },
+      skus: [
+        {
+          id: 'sku-sv-acne-60',
+          code: 'SV-ACNE-CRM',
+          variantName: '60 gm',
+          size: 60,
+          sizeUnit: 'gm',
+          price: { amount: 120, currency: 'EGP', compareAtAmount: null },
+          canOrder: true,
+        },
+      ],
+      media: [
+        {
+          id: 'm-sv-acne-crm-1',
+          type: 'image',
+          url: 'https://cdn.shopify.com/s/files/1/0700/9488/0959/files/natural_glow_white_bg_1.png?v=1776525610',
+          altText: 'كريم ستارفيل للبشرة المعرضة للحبوب',
+          isPrimary: true,
+        },
+      ],
+    },
+    {
+      id: 'prod-ha-frizz-leavein-250',
       name: 'كريم ليف إن فريز أوف لترطيب وتحديد الشعر',
       slug: 'ha-frizz-off-leavein-250',
-      description: 'بلسم يترك على الشعر لتقليل الهيشان وحماية الخصل من الرطوبة الساحلية',
+      description: 'بلسم يترك على الشعر لتقليل الهيشان وحماية الخصل من الرطوبة والعوامل الخارجية',
       usage: 'يوزع على الشعر الرطب بعد الاستحمام ويصفف حسب الرغبة',
       warnings: null,
       brand: { id: 'b-hairaddict', name: 'The Hair Addict', slug: 'the-hair-addict' },
@@ -228,7 +228,7 @@ export const FALLBACK_HOME_PRODUCTS: DiscoveryPage = {
       ],
     },
     {
-      id: 'prod-bless-cream',
+      id: 'prod-bless-activator-cream-250',
       name: 'كريم بليس أكتيفاتور لتغذية وتحديد تموجات الشعر',
       slug: 'bless-activator-cream-250',
       description: 'تركيبة غنية بزبدة الشيا والزيوت الطبيعية لتحديد الكيرلز ومنحها لمعانًا صحيًا',
@@ -262,20 +262,16 @@ export const FALLBACK_HOME_PRODUCTS: DiscoveryPage = {
   total: 8,
   facets: {
     brands: [
-      { slug: 'aura', name: 'AURA', count: 2 },
-      { slug: 'soleil-degypte', name: "SOLEIL D'ÉGYPTE", count: 1 },
-      { slug: 'aurea', name: 'AUREA', count: 1 },
-      { slug: 'eva-cosmetics', name: 'Eva Cosmetics', count: 1 },
-      { slug: 'starville', name: 'StarVille', count: 1 },
+      { slug: 'eva-cosmetics', name: 'Eva Cosmetics', count: 4 },
+      { slug: 'starville', name: 'StarVille', count: 2 },
       { slug: 'the-hair-addict', name: 'The Hair Addict', count: 1 },
       { slug: 'bless', name: 'BLESS', count: 1 },
     ],
     categories: [
       { slug: 'serums-treatments', name: 'Serums & Treatments', count: 2 },
-      { slug: 'sunscreens', name: 'Sunscreens', count: 1 },
-      { slug: 'moisturizers', name: 'Moisturizers', count: 1 },
-      { slug: 'cleansers', name: 'Cleansers', count: 1 },
-      { slug: 'hair-treatments-styling', name: 'Hair Treatments & Styling', count: 3 },
+      { slug: 'cleansers', name: 'Cleansers', count: 2 },
+      { slug: 'moisturizers', name: 'Moisturizers', count: 2 },
+      { slug: 'hair-treatments-styling', name: 'Hair Treatments & Styling', count: 2 },
     ],
     productLines: [],
   },
@@ -308,6 +304,7 @@ export function useHomeProducts() {
         return FALLBACK_HOME_PRODUCTS;
       }
     },
+    placeholderData: FALLBACK_HOME_PRODUCTS,
     staleTime: 60_000,
   });
 }

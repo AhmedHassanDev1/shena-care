@@ -10,6 +10,8 @@ module.exports = {
   ],
   coverageDirectory: './coverage',
   testEnvironment: 'node',
+  // Real research-provider keys from .env must never reach a test.
+  setupFiles: ['<rootDir>/test/isolate-providers.ts'],
   setupFilesAfterEnv: ['<rootDir>/test/test-database-guard.ts'],
   // Booting AppModule in beforeAll occasionally exceeds 15 s on a loaded Windows host (hook timeouts, not test failures).
   testTimeout: 30000,

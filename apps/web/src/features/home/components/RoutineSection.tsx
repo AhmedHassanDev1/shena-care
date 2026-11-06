@@ -1,101 +1,156 @@
 'use client';
 
+import * as React from 'react';
 import Link from 'next/link';
-import { Section, SectionHeader } from '@/components/layout/section';
 import { Icon } from '@/components/ui/icon';
-import { categoryLabel } from '@/features/catalog/lib/card-model';
-import { ROUTINE_ORDER } from '@/features/catalog/lib/routine-order';
-import { formatNumber } from '@/lib/i18n/format';
-import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
-import { fillMessage } from '@/lib/i18n/messages';
-import { routes, shellRoutes } from '@/lib/routes';
-
-const SKIN_STEPS = ROUTINE_ORDER.skin.steps;
-const HAIR_STEPS = ROUTINE_ORDER.hair.steps;
+import { routes } from '@/lib/routes';
+import { useFeaturedRoutines } from '@/features/routine/hooks/useRoutines';
+import { RoutineCard } from './RoutineCard';
 
 /**
- * Two ready-made routine outlines. A routine is an order of steps, so the steps are numbered; each step names a real
- * catalog category and links to it. No per-step efficacy claims: the catalog has none to back them.
+ * Approved Routine Discovery Section from Stitch (project 9294589212687541881).
+ * Features authentic care routines with dual-column layout on desktop, snap-carousel
+ * on mobile, directional RTL navigation, and SAHEL design system tokens.
  */
 export function RoutineSection() {
-  const locale = useLocale();
-  const m = useMessages();
+  const { data: routines = [], isLoading } = useFeaturedRoutines();
+  const carouselRef = React.useRef<HTMLDivElement>(null);
 
-  const routines = [
-    {
-      id: 'skin',
-      title: m.homeRoutineSkinTitle,
-      meta: fillMessage(m.homeRoutineSkinMeta, { n: formatNumber(SKIN_STEPS.length, locale) }),
-      body: m.homeRoutineSkinBody,
-      steps: SKIN_STEPS,
-      detailHref: routes.routineDetail('morning-radiance'),
-      builderHref: `${routes.routineBuilder}?template=morning-radiance`,
-    },
-    {
-      id: 'hair',
-      title: m.homeRoutineHairTitle,
-      meta: fillMessage(m.homeRoutineHairMeta, { n: formatNumber(HAIR_STEPS.length, locale) }),
-      body: m.homeRoutineHairBody,
-      steps: HAIR_STEPS,
-      detailHref: routes.routineDetail('frizz-curl-definition'),
-      builderHref: `${routes.routineBuilder}?template=frizz-curl-definition`,
-    },
-  ];
+  const scrollRtl = React.useCallback((direction: 'next' | 'prev') => {
+    if (!carouselRef.current) return;
+    // In RTL, scrollLeft is negative or decreasing when advancing forward (to the left)
+    const step = 580;
+    const scrollAmount = direction === 'next' ? -step : step;
+    carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  }, []);
 
   return (
-    <Section labelledBy="home-routine-title" band>
-      <SectionHeader
-        title={m.homeRoutineTitle}
-        titleId="home-routine-title"
-        lead={m.homeRoutineBody}
-        aside={
-          <Link href={shellRoutes.routines} className="link-quiet inline-flex items-center gap-1.5 text-14 font-bold text-ink">
-            <span>{m.homeRoutinesAll}</span>
-            <Icon name="arrow-forward" size={16} />
-          </Link>
-        }
-      />
+    <section
+      id="routines"
+      aria-labelledby="home-routine-title"
+      className="w-full bg-chalk py-8 md:py-12 border-t border-line"
+    >
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 md:px-10">
+        {/* Editorial Section Header */}
+        <div className="mb-6 border-b border-line pb-5 md:mb-8">
+          {/* Mobile top strip: Eyebrow + All routines link */}
+          <div className="flex items-center justify-between md:hidden mb-2">
+            <div className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-sand/40 px-2.5 py-1">
+              <span className="size-2 rounded-full bg-citron" />
+              <span className="font-serif italic text-11 uppercase tracking-wider text-stone">
+                ROUTINES / THE CARE EDIT
+              </span>
+            </div>
+            <Link
+              href={routes.routines}
+              className="inline-flex items-center gap-1 text-12 font-bold text-cobalt hover:underline"
+            >
+              <span>كل الروتينات</span>
+              <Icon name="arrow-forward" size={14} />
+            </Link>
+          </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-        {routines.map((r) => (
-          <article key={r.id} className="flex flex-col rounded-card bg-chalk p-5 shadow-outline-hairline sm:p-7">
-            <p className="m-0 text-13 font-semibold text-stone">{r.meta}</p>
-            <h3 className="m-0 mt-1 font-display text-26 font-extrabold text-ink lg:text-28">{r.title}</h3>
-            <p className="m-0 mt-2 max-w-md text-15 leading-24 text-stone">{r.body}</p>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              {/* Desktop Eyebrow */}
+              <div className="hidden md:inline-flex items-center gap-2 mb-2 rounded-pill border border-line bg-sand/40 px-3 py-1">
+                <span className="size-2 rounded-full bg-citron" />
+                <span className="font-serif italic text-11 font-bold uppercase tracking-widest text-ink">
+                  ROUTINES / THE CARE EDIT
+                </span>
+              </div>
 
-            <ol className="m-0 mt-5 flex list-none flex-col p-0">
-              {r.steps.map((st, idx) => (
-                <li key={st.slug} className="shadow-hairline-top">
-                  <Link
-                    href={routes.productsByCategory(st.slug)}
-                    className="group flex min-h-12 items-center gap-3.5 py-2 text-ink no-underline"
-                  >
-                    <span className="flex size-7 flex-none items-center justify-center rounded-full bg-sand font-display text-13 font-bold tabular-nums">
-                      {formatNumber(idx + 1, locale)}
-                    </span>
-                    <span className="flex-1 font-display text-16 font-bold transition-colors duration-fast group-hover:text-cobalt">
-                      {categoryLabel(st, locale)}
-                    </span>
-                    <Icon name="arrow-forward" size={16} className="text-stone transition-colors duration-fast group-hover:text-cobalt" />
-                  </Link>
-                </li>
-              ))}
-            </ol>
-
-            <div className="mt-auto flex flex-wrap items-center gap-x-5 gap-y-3 pt-6">
-              <Link
-                href={r.detailHref}
-                className="inline-flex h-control-s items-center justify-center gap-2 rounded-pill bg-ink px-5 text-14 font-bold text-chalk shadow-elevation-1 transition-colors duration-fast hover:bg-cobalt"
+              {/* Main Heading */}
+              <h2
+                id="home-routine-title"
+                className="font-display text-24 md:text-34 font-extrabold tracking-tight text-ink leading-tight"
               >
-                {m.homeRoutineOpen}
-              </Link>
-              <Link href={r.builderHref} className="link-quiet text-14 font-semibold text-ink">
-                {m.homeRoutineCustomize}
+                روتينات <span className="text-cobalt">جاهزة</span> ليك.
+              </h2>
+
+              {/* Subtitle */}
+              <p className="mt-1 text-13 md:text-15 text-stone leading-relaxed">
+                <span className="hidden md:inline">
+                  خطوات عناية مرتبة ومفصلة لشمس ورطوبة الساحل وبحر المتوسط.
+                </span>
+                <span className="md:hidden">خطوات عناية مرتبة لبشرتك وشعرك.</span>
+              </p>
+            </div>
+
+            {/* Desktop Controls: Prev/Next Buttons + View All Button */}
+            <div className="hidden md:flex items-center gap-3">
+              <div className="flex items-center gap-1.5 rounded-pill border border-line bg-sand/30 p-1">
+                <button
+                  type="button"
+                  aria-label="السابق"
+                  onClick={() => scrollRtl('prev')}
+                  className="flex size-8 items-center justify-center rounded-full bg-chalk text-ink shadow-elevation-1 transition-all duration-fast hover:bg-cobalt hover:text-chalk active:scale-95"
+                >
+                  <Icon name="chevron-back" size={16} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="التالي"
+                  onClick={() => scrollRtl('next')}
+                  className="flex size-8 items-center justify-center rounded-full bg-chalk text-ink shadow-elevation-1 transition-all duration-fast hover:bg-cobalt hover:text-chalk active:scale-95"
+                >
+                  <Icon name="chevron-forward" size={16} />
+                </button>
+              </div>
+
+              <Link
+                href={routes.routines}
+                className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-chalk px-4 py-2 font-display text-13 font-bold text-cobalt shadow-elevation-1 transition-all duration-fast hover:bg-cobalt hover:text-chalk"
+              >
+                <span>كل الروتينات</span>
+                <Icon name="arrow-forward" size={16} />
               </Link>
             </div>
-          </article>
-        ))}
+          </div>
+        </div>
+
+        {/* Loading Skeleton */}
+        {isLoading && routines.length === 0 && (
+          <div className="flex gap-4 overflow-hidden md:gap-6">
+            {[1, 2].map((k) => (
+              <div
+                key={k}
+                className="h-[360px] flex-1 rounded-card border border-line bg-linen/50 animate-pulse"
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Empty State (when production API has no published routines) */}
+        {!isLoading && routines.length === 0 && (
+          <div className="rounded-card border border-line bg-linen p-8 text-center">
+            <p className="font-display text-16 font-bold text-ink">لا توجد روتينات منشورة حالياً.</p>
+            <p className="mt-1 text-13 text-stone">تابعنا قريباً لاستكشاف بروتوكولات العناية المعتمدة.</p>
+          </div>
+        )}
+
+        {/* Cards Presentation */}
+        {routines.length > 0 && (
+          <>
+            {/* Desktop Carousel / Dual Column Display */}
+            <div
+              ref={carouselRef}
+              className="hidden md:flex gap-6 overflow-x-auto no-scrollbar scroll-smooth pb-3"
+            >
+              {routines.map((routine) => (
+                <RoutineCard key={routine.id} routine={routine} />
+              ))}
+            </div>
+
+            {/* Mobile Horizontal Snap-Carousel with card peek */}
+            <div className="flex md:hidden gap-3.5 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2 snap-x snap-mandatory scroll-smooth">
+              {routines.map((routine) => (
+                <RoutineCard key={routine.id} routine={routine} isMobileOnly />
+              ))}
+            </div>
+          </>
+        )}
       </div>
-    </Section>
+    </section>
   );
 }

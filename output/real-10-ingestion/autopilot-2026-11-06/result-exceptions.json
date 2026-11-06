@@ -1,0 +1,138 @@
+{
+  "exceptions": [
+    {
+      "id": "c5805d29-3f1a-474a-8af1-37016aa4088e",
+      "reason": "COMPETING_IDENTITIES",
+      "severity": "CRITICAL",
+      "field": null,
+      "row": "CeraVe Cleanser 236ml",
+      "summary": "More than one catalog SKU could be this product",
+      "recommended": {
+        "label": "Pick the SKU this row is",
+        "action": "RESOLVE"
+      }
+    },
+    {
+      "id": "e05db60e-3909-4945-91d2-033fd4f25e21",
+      "reason": "COMPETING_IDENTITIES",
+      "severity": "CRITICAL",
+      "field": null,
+      "row": "CeraVe Cleanser 236ml",
+      "summary": "More than one catalog SKU could be this product",
+      "recommended": {
+        "label": "Pick the SKU this row is",
+        "action": "RESOLVE"
+      }
+    },
+    {
+      "id": "095ac240-db7a-4321-ba58-91cb21e23989",
+      "reason": "NO_IDENTITY_SOURCE",
+      "severity": "HIGH",
+      "field": null,
+      "row": "CeraVe Hydrating Cleanser 473ml",
+      "summary": "A new product needs a manufacturer or trusted product page to verify its identity; none was given or found",
+      "recommended": {
+        "label": "Add the official product page URL, then retry",
+        "action": "CORRECT"
+      }
+    },
+    {
+      "id": "68599ca4-19be-43fc-8222-c311c03df249",
+      "reason": "BRAND_SPELLING_UNCONFIRMED",
+      "severity": "HIGH",
+      "field": null,
+      "row": "Capixxy Hair Hydrating Conditioner 250ml",
+      "summary": "The brand is not on the Catalog Policy but closely resembles an allowed brand",
+      "recommended": {
+        "label": "Use \"capixy\"",
+        "action": "CORRECT",
+        "payload": {
+          "score": 0.7692307692307693,
+          "correction": {
+            "brand": "capixy"
+          }
+        }
+      }
+    }
+  ],
+  "summary": {
+    "decisions": [
+      {
+        "subjectType": "SKU",
+        "decision": "FACTS_VERIFIED",
+        "actorType": "SYSTEM",
+        "count": 10
+      },
+      {
+        "subjectType": "IMPORT_ROW",
+        "decision": "HOLD_CRITICAL",
+        "actorType": "SYSTEM",
+        "count": 4
+      },
+      {
+        "subjectType": "MEDIA",
+        "decision": "APPROVED",
+        "actorType": "SYSTEM",
+        "count": 9
+      },
+      {
+        "subjectType": "IMPORT_ROW",
+        "decision": "SOURCE_HOLD_CRITICAL",
+        "actorType": "SYSTEM",
+        "count": 1
+      },
+      {
+        "subjectType": "IMPORT_ROW",
+        "decision": "AUTO_LINK",
+        "actorType": "SYSTEM",
+        "count": 5
+      },
+      {
+        "subjectType": "SKU",
+        "decision": "RESEARCH_COMPLETE",
+        "actorType": "SYSTEM",
+        "count": 10
+      },
+      {
+        "subjectType": "MEDIA",
+        "decision": "REJECTED",
+        "actorType": "SYSTEM",
+        "count": 3
+      },
+      {
+        "subjectType": "IMPORT_ROW",
+        "decision": "AUTO_ACCEPT",
+        "actorType": "SYSTEM",
+        "count": 10
+      },
+      {
+        "subjectType": "SKU",
+        "decision": "MEDIA_MISSING",
+        "actorType": "SYSTEM",
+        "count": 4
+      },
+      {
+        "subjectType": "IMPORT_ROW",
+        "decision": "SOURCE_AUTO_ACCEPT",
+        "actorType": "SYSTEM",
+        "count": 10
+      },
+      {
+        "subjectType": "IMPORT_ROW",
+        "decision": "SKIP",
+        "actorType": "SYSTEM",
+        "count": 2
+      },
+      {
+        "subjectType": "SKU",
+        "decision": "IDENTITY_EVIDENCE_VERIFIED",
+        "actorType": "SYSTEM",
+        "count": 10
+      }
+    ],
+    "openExceptions": {
+      "CRITICAL": 2,
+      "HIGH": 2
+    }
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "sameFile": {
+    "jobId": "5843adf6-35be-451f-84fa-7a80641164e1",
+    "reusedSameJob": true,
+    "reused": true
+  },
+  "reimport": {
+    "PENDING": 0,
+    "LINKED_EXISTING": 5,
+    "NEW_CANDIDATE": 1,
+    "HOLD": 2,
+    "REJECTED": 0,
+    "total": 8,
+    "AUTO_ACCEPT": 0,
+    "AUTO_LINK": 5,
+    "SKIP": 0,
+    "HOLD_CRITICAL": 3,
+    "RETRY_AUTOMATIC": 0,
+    "UNDECIDED": 0
+  },
+  "reimportRows": [
+    {
+      "row": 2,
+      "name": "CeraVe Hydrating Cleanser 236ml",
+      "brand": "سيرافى",
+      "decision": "AUTO_LINK",
+      "reason": "AUTO_LINK_PIPELINE_PROVENANCE",
+      "skuId": "9eb669c9-adcd-42b2-9630-7167c63eaa21",
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 3,
+      "name": "CeraVe Foaming Cleanser 236ml",
+      "brand": "CeraVe",
+      "decision": "AUTO_LINK",
+      "reason": "AUTO_LINK_PIPELINE_PROVENANCE",
+      "skuId": "7d7c978c-b967-4ced-adc3-551461551d83",
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 4,
+      "name": "Clary Hair Shampoo 300ml",
+      "brand": "clary",
+      "decision": "AUTO_LINK",
+      "reason": "AUTO_LINK_PIPELINE_PROVENANCE",
+      "skuId": "6c47362f-d2dd-40cb-a6ee-78f72d904b66",
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 5,
+      "name": "Clary Hair Conditioner 300ml",
+      "brand": "Clary Corporation",
+      "decision": "AUTO_LINK",
+      "reason": "AUTO_LINK_PIPELINE_PROVENANCE",
+      "skuId": "2a1b7596-91e8-4ad2-b20d-0a3c2ee43833",
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 6,
+      "name": "Capixy Shampoo 250ml",
+      "brand": "capixy",
+      "decision": "AUTO_LINK",
+      "reason": "AUTO_LINK_PIPELINE_PROVENANCE",
+      "skuId": "99ffc69a-20ad-443f-aea5-cf0fc37561a9",
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 7,
+      "name": "CeraVe Cleanser 236ml",
+      "brand": "Cerave",
+      "decision": "HOLD_CRITICAL",
+      "reason": "COMPETING_IDENTITIES",
+      "skuId": null,
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 8,
+      "name": "CeraVe Hydrating Cleanser 473ml",
+      "brand": "Cerave",
+      "decision": "HOLD_CRITICAL",
+      "reason": "NO_IDENTITY_SOURCE",
+      "skuId": null,
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 9,
+      "name": "Capixxy Hair Hydrating Conditioner 250ml",
+      "brand": "Capixxy",
+      "decision": "HOLD_CRITICAL",
+      "reason": "BRAND_SPELLING_UNCONFIRMED",
+      "skuId": null,
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    }
+  ],
+  "negative": {
+    "PENDING": 0,
+    "LINKED_EXISTING": 0,
+    "NEW_CANDIDATE": 0,
+    "HOLD": 1,
+    "REJECTED": 2,
+    "total": 3,
+    "AUTO_ACCEPT": 0,
+    "AUTO_LINK": 0,
+    "SKIP": 2,
+    "HOLD_CRITICAL": 1,
+    "RETRY_AUTOMATIC": 0,
+    "UNDECIDED": 0
+  },
+  "negativeRows": [
+    {
+      "row": 2,
+      "name": "Eva Cosmetics Test Wash 100ml",
+      "brand": "Eva Cosmetics",
+      "decision": "SKIP",
+      "reason": "POLICY_BRAND_NOT_ALLOWED",
+      "skuId": null,
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 3,
+      "name": "CeraVe Test Shampoo 250ml",
+      "brand": "Cerave",
+      "decision": "SKIP",
+      "reason": "POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND",
+      "skuId": null,
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    },
+    {
+      "row": 4,
+      "name": "CeraVe Cleanser 236ml",
+      "brand": "Cerave",
+      "decision": "HOLD_CRITICAL",
+      "reason": "COMPETING_IDENTITIES",
+      "skuId": null,
+      "stage": null,
+      "attempts": 0,
+      "lastError": null
+    }
+  ]
+}

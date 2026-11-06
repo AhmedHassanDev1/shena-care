@@ -143,11 +143,8 @@ export default function LoginPage() {
   return (
     <div
       dir={language === 'ar' ? 'rtl' : 'ltr'}
-      className="sc-glow min-h-dvh bg-[#070b09] text-[#f4f4f5] font-sans antialiased flex flex-col justify-between selection:bg-[#34d27b]/30 selection:text-white"
+      className="min-h-dvh bg-bw-page text-bw-ink font-sans antialiased flex flex-col justify-between"
     >
-      {/* Background Radial Glow Accents */}
-      <div className="pointer-events-none fixed top-0 left-1/3 h-[500px] w-[500px] rounded-full bg-[#34d27b]/10 blur-[150px]" />
-      <div className="pointer-events-none fixed bottom-0 right-1/4 h-[400px] w-[400px] rounded-full bg-[#10b981]/8 blur-[130px]" />
 
       {/* Main Split Layout: 55% Visual, 45% Auth */}
       <div className="w-full flex-1 flex flex-col lg:flex-row min-h-dvh">
@@ -155,7 +152,7 @@ export default function LoginPage() {
             LEFT SIDE (Desktop 55%): Clean Cinematic Logistics Visual
             Hidden on mobile, prominently displayed on desktop
             ===================================================================== */}
-        <div className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-8 xl:p-12 border-e border-white/[0.08] overflow-hidden bg-black select-none">
+        <div className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-8 xl:p-12 border-e border-bw-line overflow-hidden bg-bw-kohl select-none">
           {/* Pristine Environmental Background Image Layer */}
           <div className="absolute inset-0 z-0">
             <Image
@@ -166,16 +163,16 @@ export default function LoginPage() {
               className="object-cover object-center"
             />
             {/* Elegant Contrast Vignette & Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/75" />
-            <div className="absolute inset-0 bg-gradient-to-l from-black/50 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-bw-kohl/85 via-bw-kohl/20 to-bw-kohl/75" />
+            <div className="absolute inset-0 bg-gradient-to-l from-bw-kohl/50 via-transparent to-transparent" />
           </div>
 
           {/* Top Brand Bar */}
           <div className="relative z-10 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               {/* Green Two-Leaf Brand Icon */}
-              <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-[#34d27b]/15 border border-[#34d27b]/40 shadow-[0_0_16px_rgba(52,210,123,0.3)] backdrop-blur-md">
-                <svg className="w-5 h-5 text-[#34d27b]" viewBox="0 0 24 24" fill="currentColor">
+              <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-bw-ok-soft border border-bw-ok/40 ">
+                <svg className="w-5 h-5 text-bw-ok" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" opacity="0.3" />
                   <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66C7.5 17.5 9.5 12 17 10V8z" />
                   <path d="M20.18 3.82C11.18 5.82 9.08 12 7 17.17l1.89.66C10.68 13.33 12.68 7.82 20.18 5.82v-2z" />
@@ -183,31 +180,31 @@ export default function LoginPage() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-bold tracking-tight text-white">ShinaCare</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#34d27b]/20 text-[#34d27b] border border-[#34d27b]/40">
+                  <span className="text-xl font-bold tracking-tight text-bw-ink">ShinaCare</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-bw-ok-soft text-bw-ok border border-bw-ok/40">
                     Business
                   </span>
                 </div>
-                <span className="text-[11px] text-gray-400 block">منظومة تشغيل تجارة الجمال</span>
+                <span className="text-[11px] text-bw-ink-subtle block">منظومة تشغيل تجارة الجمال</span>
               </div>
             </div>
 
             {/* Active System Pill */}
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-md">
-              <span className="h-2 w-2 rounded-full bg-[#34d27b] animate-pulse" />
-              <span className="text-[11px] font-mono text-[#34d27b]">نظام لوجستي نشط</span>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-bw-kohl/60 border border-bw-line ">
+              <span className="h-2 w-2 rounded-full bg-bw-ok animate-pulse" />
+              <span className="text-[11px] font-mono text-bw-ok">نظام لوجستي نشط</span>
             </div>
           </div>
 
           {/* Hero Headline Copy (Rendered as clean HTML with contrast) */}
           <div className="relative z-10 max-w-lg space-y-2.5 pt-6">
             <h1 className="text-3xl xl:text-4xl font-extrabold tracking-tight leading-tight">
-              <span className="text-white block">من المورد إلى العميل</span>
-              <span className="text-[#34d27b] block mt-1 drop-shadow-[0_0_24px_rgba(52,210,123,0.35)]">
+              <span className="text-bw-ink block">من المورد إلى العميل</span>
+              <span className="text-bw-ok block mt-1 ">
                 منظومة واحدة، عمليات أذكى
               </span>
             </h1>
-            <p className="text-sm text-gray-300/90 leading-relaxed max-w-md">
+            <p className="text-sm text-bw-ink-soft leading-relaxed max-w-md">
               نربط الموردين والتجهيز والمركز والتوصيل في نظام واحد لعمليات أسرع وتجربة أفضل.
             </p>
           </div>
@@ -216,9 +213,9 @@ export default function LoginPage() {
           <div className="relative z-10 my-auto min-h-[140px]" />
 
           {/* Bottom subtle assurance */}
-          <div className="relative z-10 text-[11px] text-gray-400/80 flex items-center justify-between border-t border-white/[0.08] pt-3">
+          <div className="relative z-10 text-[11px] text-bw-ink-subtle flex items-center justify-between border-t border-bw-line pt-3">
             <span>منظومة متكاملة لربط سلاسل التوريد والعمليات اللوجستية الميدانية</span>
-            <span className="font-mono text-zinc-500">Cairo · Giza Ops</span>
+            <span className="font-mono text-bw-ink-subtle">Cairo · Giza Ops</span>
           </div>
         </div>
 
@@ -231,26 +228,26 @@ export default function LoginPage() {
           <div className="flex items-center justify-between w-full mb-4">
             {/* Mobile-only logo mark */}
             <div className="flex items-center gap-2 lg:hidden">
-              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-[#34d27b]/20 border border-[#34d27b]/40">
-                <svg className="w-4 h-4 text-[#34d27b]" viewBox="0 0 24 24" fill="currentColor">
+              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-bw-ok-soft border border-bw-ok/40">
+                <svg className="w-4 h-4 text-bw-ok" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" opacity="0.3" />
                   <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66C7.5 17.5 9.5 12 17 10V8z" />
                   <path d="M20.18 3.82C11.18 5.82 9.08 12 7 17.17l1.89.66C10.68 13.33 12.68 7.82 20.18 5.82v-2z" />
                 </svg>
               </div>
-              <span className="font-bold text-sm text-white">ShinaCare</span>
-              <span className="px-1.5 py-0.2 rounded text-[10px] bg-[#34d27b]/20 text-[#34d27b] border border-[#34d27b]/30">Business</span>
+              <span className="font-bold text-sm text-bw-ink">ShinaCare</span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-bw-ok-soft text-bw-ok border border-bw-ok/40">Business</span>
             </div>
 
             {/* Language Selector */}
             <button
               type="button"
               onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
-              className="ms-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 border border-white/10 hover:border-[#34d27b]/40 text-xs text-gray-300 transition-colors cursor-pointer"
+              className="ms-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-bw-page border border-bw-line hover:border-bw-ok/40 text-xs text-bw-ink-soft transition-colors cursor-pointer"
             >
-              <Globe className="h-3.5 w-3.5 text-[#34d27b]" />
+              <Globe className="h-3.5 w-3.5 text-bw-ok" />
               <span>{language === 'ar' ? 'العربية' : 'English'}</span>
-              <ChevronDown className="h-3 w-3 text-gray-500" />
+              <ChevronDown className="h-3 w-3 text-bw-ink-subtle" />
             </button>
           </div>
 
@@ -262,25 +259,25 @@ export default function LoginPage() {
             <div className="text-center space-y-2">
               <div className="flex flex-col items-center justify-center">
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-[#34d27b]/15 border border-[#34d27b]/40 shadow-[0_0_16px_rgba(52,210,123,0.3)]">
-                    <svg className="w-5 h-5 text-[#34d27b]" viewBox="0 0 24 24" fill="currentColor">
+                  <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-bw-ok-soft border border-bw-ok/40 ">
+                    <svg className="w-5 h-5 text-bw-ok" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" opacity="0.3" />
                       <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66C7.5 17.5 9.5 12 17 10V8z" />
                       <path d="M20.18 3.82C11.18 5.82 9.08 12 7 17.17l1.89.66C10.68 13.33 12.68 7.82 20.18 5.82v-2z" />
                     </svg>
                   </div>
-                  <span className="text-xl font-bold tracking-tight text-white">ShinaCare</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#34d27b]/20 text-[#34d27b] border border-[#34d27b]/30">
+                  <span className="text-xl font-bold tracking-tight text-bw-ink">ShinaCare</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-bw-ok-soft text-bw-ok border border-bw-ok/40">
                     Business
                   </span>
                 </div>
-                <span className="text-[11px] text-[#9ca3af] mt-1">منظومة تشغيل تجارة الجمال</span>
+                <span className="text-[11px] text-bw-ink-subtle mt-1">منظومة تشغيل تجارة الجمال</span>
               </div>
 
-              <h2 className="text-2xl font-bold text-white pt-1">
+              <h2 className="text-2xl font-bold text-bw-ink pt-1">
                 {language === 'ar' ? 'مرحبًا بعودتك' : 'Welcome back'}
               </h2>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-bw-ink-subtle">
                 {language === 'ar'
                   ? 'سجل الدخول للوصول إلى لوحة التحكم وإدارة العمليات.'
                   : 'Sign in to access your operations dashboard.'}
@@ -289,7 +286,7 @@ export default function LoginPage() {
 
             {/* Error Notification */}
             {error && (
-              <div className="flex items-start gap-2.5 rounded-xl border border-[#fb7185]/30 bg-[#fb7185]/10 p-3 text-xs text-[#fb7185] animate-in fade-in">
+              <div className="flex items-start gap-2.5 rounded-xl border border-bw-danger/40 bg-bw-danger-soft p-3 text-xs text-bw-danger animate-in fade-in">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <span className="flex-1 leading-relaxed">{error}</span>
               </div>
@@ -297,31 +294,31 @@ export default function LoginPage() {
 
             {/* Active Session Notice & Resume Options */}
             {state.status === 'ready' && (
-              <div className="rounded-xl border border-[#34d27b]/40 bg-[#34d27b]/10 p-3.5 text-xs space-y-2.5 animate-in fade-in">
+              <div className="rounded-xl border border-bw-ok/40 bg-bw-ok-soft p-3.5 text-xs space-y-2.5 animate-in fade-in">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34d27b] opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34d27b]"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-bw-ok opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-bw-ok"></span>
                     </span>
-                    <span className="font-semibold text-white">
+                    <span className="font-semibold text-bw-ink">
                       {language === 'ar' ? 'أنت مسجل الدخول حالياً' : 'Currently signed in'}
                     </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-black/50 text-[#34d27b] border border-[#34d27b]/30 font-mono">
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-bw-kohl/50 text-bw-ok border border-bw-ok/40 font-mono">
                     {state.me.roles.join(', ')}
                   </span>
                 </div>
-                <div className="text-gray-300 text-[11px]">
+                <div className="text-bw-ink-soft text-[11px]">
                   <span>{state.me.name}</span>
-                  <span className="mx-1 text-gray-500">·</span>
-                  <span className="text-gray-400 font-mono" dir="ltr">{state.me.email}</span>
+                  <span className="mx-1 text-bw-ink-subtle">·</span>
+                  <span className="text-bw-ink-subtle font-mono" dir="ltr">{state.me.email}</span>
                 </div>
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => router.push(homeFor(state.me))}
-                    className="flex-1 py-2 px-3 rounded-lg bg-[#34d27b] hover:bg-[#2ebc6e] text-black font-semibold text-xs text-center transition-colors shadow-sm cursor-pointer"
+                    className="flex-1 py-2 px-3 rounded-lg bg-bw-action hover:bg-bw-action-hover text-bw-on-action font-semibold text-xs text-center transition-colors shadow-sm cursor-pointer"
                   >
                     {language === 'ar' ? 'المتابعة لمساحة العمل' : 'Go to workspace'}
                   </button>
@@ -331,7 +328,7 @@ export default function LoginPage() {
                       await logout()
                       setError(null)
                     }}
-                    className="py-2 px-3 rounded-lg bg-black/50 hover:bg-black/70 border border-white/10 text-gray-300 hover:text-white text-xs transition-colors cursor-pointer"
+                    className="py-2 px-3 rounded-lg bg-bw-kohl/50 hover:bg-bw-kohl/70 border border-bw-line text-bw-ink-soft hover:text-bw-ink text-xs transition-colors cursor-pointer"
                   >
                     {language === 'ar' ? 'تسجيل الخروج' : 'Log out'}
                   </button>
@@ -340,7 +337,7 @@ export default function LoginPage() {
             )}
 
             {/* Mutually Exclusive Tabs: البريد الإلكتروني (Email) vs رقم الهاتف (Phone Number) */}
-            <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-black/40 border border-white/10" role="tablist">
+            <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-bw-page border border-bw-line" role="tablist">
               <button
                 type="button"
                 role="tab"
@@ -353,7 +350,7 @@ export default function LoginPage() {
                   'flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer',
                   authMethod === 'password'
                     ? 'sc-login-tab-emerald'
-                    : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
+                    : 'text-bw-ink-subtle hover:text-bw-ink hover:bg-bw-sunken'
                 )}
               >
                 <Mail className="h-4 w-4" />
@@ -371,7 +368,7 @@ export default function LoginPage() {
                   'flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-medium transition-all cursor-pointer',
                   authMethod === 'phone_otp'
                     ? 'sc-login-tab-emerald'
-                    : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
+                    : 'text-bw-ink-subtle hover:text-bw-ink hover:bg-bw-sunken'
                 )}
               >
                 <Phone className="h-4 w-4" />
@@ -384,7 +381,7 @@ export default function LoginPage() {
               <form onSubmit={handleEmailSubmit} className="space-y-3.5" noValidate>
                 {/* Email Field */}
                 <div className="space-y-1.5 text-start">
-                  <label htmlFor="login-email" className="block text-xs font-medium text-gray-300">
+                  <label htmlFor="login-email" className="block text-xs font-medium text-bw-ink-soft">
                     {language === 'ar' ? 'البريد الإلكتروني' : 'Email address'}
                   </label>
                   <div className="relative">
@@ -397,9 +394,9 @@ export default function LoginPage() {
                       placeholder="name@company.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="sc-login-input-emerald w-full pe-10"
+                      className="sc-login-input-emerald w-full ps-10"
                     />
-                    <div className="absolute inset-y-0 end-3 flex items-center pointer-events-none text-gray-400">
+                    <div className="absolute inset-y-0 end-3 flex items-center pointer-events-none text-bw-ink-subtle">
                       <Mail className="h-4 w-4" />
                     </div>
                   </div>
@@ -407,7 +404,7 @@ export default function LoginPage() {
 
                 {/* Password Field */}
                 <div className="space-y-1.5 text-start">
-                  <label htmlFor="login-password" className="block text-xs font-medium text-gray-300">
+                  <label htmlFor="login-password" className="block text-xs font-medium text-bw-ink-soft">
                     {language === 'ar' ? 'كلمة المرور' : 'Password'}
                   </label>
                   <div className="relative">
@@ -422,13 +419,13 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       className="sc-login-input-emerald w-full pe-10 ps-10"
                     />
-                    <div className="absolute inset-y-0 end-3 flex items-center pointer-events-none text-gray-400">
+                    <div className="absolute inset-y-0 end-3 flex items-center pointer-events-none text-bw-ink-subtle">
                       <Lock className="h-4 w-4" />
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 start-3 flex items-center text-gray-400 hover:text-white transition-colors cursor-pointer"
+                      className="absolute inset-y-0 start-3 flex items-center text-bw-ink-subtle hover:text-bw-ink transition-colors cursor-pointer"
                       aria-label={showPassword ? (language === 'ar' ? 'إخفاء كلمة المرور' : 'Hide password') : (language === 'ar' ? 'إظهار كلمة المرور' : 'Show password')}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -438,12 +435,12 @@ export default function LoginPage() {
 
                 {/* Remember Me & Forgot Password Row */}
                 <div className="flex items-center justify-between text-xs pt-0.5">
-                  <label className="flex items-center gap-2 cursor-pointer select-none text-gray-300 hover:text-white transition-colors">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-bw-ink-soft hover:text-bw-ink transition-colors">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="h-4 w-4 rounded border-white/20 bg-black text-[#34d27b] focus:ring-[#34d27b] focus:ring-offset-black cursor-pointer"
+                      className="h-4 w-4 rounded border-bw-line bg-bw-kohl text-bw-ok focus:ring-bw-focus/30 focus:ring-offset-black cursor-pointer"
                     />
                     <span>{language === 'ar' ? 'تذكرني' : 'Remember me'}</span>
                   </label>
@@ -451,7 +448,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setIsForgotPasswordOpen(true)}
-                    className="text-[#34d27b] hover:text-[#2ebc6e] hover:underline cursor-pointer"
+                    className="text-bw-ok hover:text-bw-ink hover:underline cursor-pointer"
                   >
                     {language === 'ar' ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
                   </button>
@@ -465,7 +462,7 @@ export default function LoginPage() {
                 >
                   {pending ? (
                     <div className="flex items-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-bw-line border-t-transparent" />
                       <span>{language === 'ar' ? 'جاري التحقق...' : 'Signing in...'}</span>
                     </div>
                   ) : (
@@ -485,8 +482,8 @@ export default function LoginPage() {
             {/* Tab 2: Egyptian Phone Number with OTP */}
             {authMethod === 'phone_otp' && (
               <div className="space-y-4">
-                <div className="rounded-xl border border-[#34d27b]/25 bg-[#34d27b]/5 p-3 text-xs text-gray-300">
-                  <b className="text-[#34d27b] block mb-1">
+                <div className="rounded-xl border border-bw-ok/40 bg-bw-ok-soft p-3 text-xs text-bw-ink-soft">
+                  <b className="text-bw-ok block mb-1">
                     {language === 'ar' ? 'التحقق الميداني لمناديب وموردي العمليات' : 'Field Operations Verification'}
                   </b>
                   {language === 'ar'
@@ -497,11 +494,11 @@ export default function LoginPage() {
                 {!otpSent ? (
                   <form onSubmit={handleSendOtp} className="space-y-3.5">
                     <div className="space-y-1.5 text-start">
-                      <label htmlFor="phone-input" className="block text-xs font-medium text-gray-300">
+                      <label htmlFor="phone-input" className="block text-xs font-medium text-bw-ink-soft">
                         {language === 'ar' ? 'رقم الهاتف المحمول' : 'Mobile Number'}
                       </label>
-                      <div className="relative flex items-center rounded-xl border border-white/10 bg-[rgba(14,20,17,0.75)] focus-within:border-[#34d27b] focus-within:ring-2 focus-within:ring-[#34d27b]/20 transition-all overflow-hidden" dir="ltr">
-                        <span className="px-3 py-2.5 text-xs font-mono font-bold text-[#34d27b] bg-white/[0.04] border-e border-white/10 select-none">
+                      <div className="relative flex items-center rounded-xl border border-bw-line bg-bw-surface focus-within:border-bw-ok focus-within:ring-2 focus-within:ring-bw-focus/30 transition-all overflow-hidden" dir="ltr">
+                        <span className="px-3 py-2.5 text-xs font-mono font-bold text-bw-ok bg-bw-surface border-e border-bw-line select-none">
                           +20
                         </span>
                         <input
@@ -511,9 +508,9 @@ export default function LoginPage() {
                           placeholder="01012345678"
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
-                          className="w-full bg-transparent px-3 py-2.5 text-sm text-[#f4f4f5] placeholder:text-gray-500 focus:outline-none"
+                          className="w-full bg-transparent px-3 py-2.5 text-sm text-bw-ink placeholder:text-bw-ink-subtle focus:outline-none"
                         />
-                        <div className="pe-3 text-gray-400">
+                        <div className="pe-3 text-bw-ink-subtle">
                           <Phone className="h-4 w-4" />
                         </div>
                       </div>
@@ -531,10 +528,10 @@ export default function LoginPage() {
                 ) : (
                   <div className="space-y-4">
                     <div className="text-center space-y-1">
-                      <span className="text-xs text-gray-400 block">
+                      <span className="text-xs text-bw-ink-subtle block">
                         {language === 'ar' ? 'أدخل الرمز المكون من 6 أرقام المرسل إلى:' : 'Enter 6-digit code sent to:'}
                       </span>
-                      <b className="font-mono text-sm text-[#34d27b] inline-block" dir="ltr">
+                      <b className="font-mono text-sm text-bw-ok inline-block" dir="ltr">
                         +20 {phoneNumber}
                       </b>
                     </div>
@@ -562,7 +559,7 @@ export default function LoginPage() {
                               document.getElementById(`mob-otp-${idx - 1}`)?.focus()
                             }
                           }}
-                          className="h-11 w-10 sm:w-11 rounded-xl border border-white/20 bg-black/60 text-center font-mono text-lg font-bold text-white focus:border-[#34d27b] focus:outline-none focus:ring-2 focus:ring-[#34d27b]/30 transition-all"
+                          className="h-11 w-10 sm:w-11 rounded-xl border border-bw-line bg-bw-kohl/60 text-center font-mono text-lg font-bold text-bw-ink focus:border-bw-ok focus:outline-none focus:ring-2 focus:ring-bw-focus/30 transition-all"
                         />
                       ))}
                     </div>
@@ -582,23 +579,23 @@ export default function LoginPage() {
                       <ShieldCheck className="h-4 w-4" />
                     </button>
 
-                    <div className="flex items-center justify-between text-xs text-gray-400 pt-1">
+                    <div className="flex items-center justify-between text-xs text-bw-ink-subtle pt-1">
                       <button
                         type="button"
                         onClick={() => setOtpSent(false)}
-                        className="hover:text-white transition-colors cursor-pointer"
+                        className="hover:text-bw-ink transition-colors cursor-pointer"
                       >
                         {language === 'ar' ? '← تغيير الرقم' : '← Change number'}
                       </button>
                       {otpCountdown > 0 ? (
-                        <span className="font-mono text-gray-400">
+                        <span className="font-mono text-bw-ink-subtle">
                           {language === 'ar' ? `إعادة الإرسال بعد ${otpCountdown}ث` : `Resend in ${otpCountdown}s`}
                         </span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => setOtpCountdown(60)}
-                          className="text-[#34d27b] hover:underline cursor-pointer"
+                          className="text-bw-ok hover:underline cursor-pointer"
                         >
                           {language === 'ar' ? 'إعادة الإرسال' : 'Resend code'}
                         </button>
@@ -611,14 +608,14 @@ export default function LoginPage() {
 
             {/* Dev Test Presets: Visible ONLY in Development Mode */}
             {process.env.NODE_ENV !== 'production' && (
-              <div className="pt-2 border-t border-white/[0.08]">
+              <div className="pt-2 border-t border-bw-line">
                 <button
                   type="button"
                   onClick={() => setShowDevPresets(!showDevPresets)}
-                  className="w-full flex items-center justify-between text-[11px] text-gray-400 hover:text-white px-1 py-1 cursor-pointer transition-colors"
+                  className="w-full flex items-center justify-between text-[11px] text-bw-ink-subtle hover:text-bw-ink px-1 py-1 cursor-pointer transition-colors"
                 >
                   <span>{language === 'ar' ? 'بيانات الدخول السريع للاختبار (Test Presets)' : 'Quick Test Accounts'}</span>
-                  <span className="text-[10px] text-[#34d27b] font-mono">{showDevPresets ? 'إخفاء' : 'عرض'}</span>
+                  <span className="text-[10px] text-bw-ok font-mono">{showDevPresets ? 'إخفاء' : 'عرض'}</span>
                 </button>
 
                 {showDevPresets && (
@@ -626,34 +623,34 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setPreset('admin@shenacare.com', '')}
-                      className="p-2.5 rounded-lg bg-black/60 border border-white/10 hover:border-[#34d27b]/50 text-start transition-colors cursor-pointer"
+                      className="p-2.5 rounded-lg bg-bw-kohl/60 border border-bw-line hover:border-bw-ok/40 text-start transition-colors cursor-pointer"
                     >
-                      <b className="text-white block text-[11px]">مدير النظام (Admin)</b>
-                      <span className="text-[10px] text-gray-400 font-mono">admin@shenacare.com</span>
+                      <b className="text-bw-ink block text-[11px]">مدير النظام (Admin)</b>
+                      <span className="text-[10px] text-bw-ink-subtle font-mono">admin@shenacare.com</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setPreset('hub@shenacare.com', '')}
-                      className="p-2.5 rounded-lg bg-black/60 border border-white/10 hover:border-[#34d27b]/50 text-start transition-colors cursor-pointer"
+                      className="p-2.5 rounded-lg bg-bw-kohl/60 border border-bw-line hover:border-bw-ok/40 text-start transition-colors cursor-pointer"
                     >
-                      <b className="text-white block text-[11px]">مشرف المخزن (Hub)</b>
-                      <span className="text-[10px] text-gray-400 font-mono">hub@shenacare.com</span>
+                      <b className="text-bw-ink block text-[11px]">مشرف المخزن (Hub)</b>
+                      <span className="text-[10px] text-bw-ink-subtle font-mono">hub@shenacare.com</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setPreset('supplier@shenacare.com', '')}
-                      className="p-2.5 rounded-lg bg-black/60 border border-white/10 hover:border-[#34d27b]/50 text-start transition-colors cursor-pointer"
+                      className="p-2.5 rounded-lg bg-bw-kohl/60 border border-bw-line hover:border-bw-ok/40 text-start transition-colors cursor-pointer"
                     >
-                      <b className="text-white block text-[11px]">مورد معتمد (Supplier)</b>
-                      <span className="text-[10px] text-gray-400 font-mono">supplier@shenacare.com</span>
+                      <b className="text-bw-ink block text-[11px]">مورد معتمد (Supplier)</b>
+                      <span className="text-[10px] text-bw-ink-subtle font-mono">supplier@shenacare.com</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setPreset('driver@shenacare.com', '')}
-                      className="p-2.5 rounded-lg bg-black/60 border border-white/10 hover:border-[#34d27b]/50 text-start transition-colors cursor-pointer"
+                      className="p-2.5 rounded-lg bg-bw-kohl/60 border border-bw-line hover:border-bw-ok/40 text-start transition-colors cursor-pointer"
                     >
-                      <b className="text-white block text-[11px]">مندوب توصيل (Driver)</b>
-                      <span className="text-[10px] text-gray-400 font-mono">driver@shenacare.com</span>
+                      <b className="text-bw-ink block text-[11px]">مندوب توصيل (Driver)</b>
+                      <span className="text-[10px] text-bw-ink-subtle font-mono">driver@shenacare.com</span>
                     </button>
                   </div>
                 )}
@@ -664,23 +661,23 @@ export default function LoginPage() {
           {/* =====================================================================
               FOOTER: Security & Help Links
               ===================================================================== */}
-          <div className="flex items-center justify-between text-xs text-gray-400 mt-5 pt-3.5 border-t border-white/10">
+          <div className="flex items-center justify-between text-xs text-bw-ink-subtle mt-5 pt-3.5 border-t border-bw-line">
             {/* Help / مساعدة */}
             <button
               type="button"
               onClick={() => setIsHelpOpen(true)}
-              className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 hover:text-bw-ink transition-colors cursor-pointer"
             >
-              <HelpCircle className="h-4 w-4 text-gray-400" />
+              <HelpCircle className="h-4 w-4 text-bw-ink-subtle" />
               <span>{language === 'ar' ? 'مساعدة' : 'Help'}</span>
             </button>
 
             {/* Platform Branding */}
-            <span className="text-[11px] text-gray-500 font-medium">ShinaCare Business</span>
+            <span className="text-[11px] text-bw-ink-subtle font-medium">ShinaCare Business</span>
 
             {/* Secure Login Badge / دخول آمن */}
-            <div className="flex items-center gap-1.5 text-gray-300">
-              <ShieldCheck className="h-4 w-4 text-[#34d27b]" />
+            <div className="flex items-center gap-1.5 text-bw-ink-soft">
+              <ShieldCheck className="h-4 w-4 text-bw-ok" />
               <span>{language === 'ar' ? 'دخول آمن' : 'Secure Login'}</span>
             </div>
           </div>
@@ -694,40 +691,40 @@ export default function LoginPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bw-kohl/80 animate-in fade-in"
         >
           <div className="sc-login-card-emerald w-full max-w-md p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between border-b border-bw-line pb-3">
               <div className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5 text-[#34d27b]" />
-                <h3 className="text-base font-bold text-white">
+                <KeyRound className="h-5 w-5 text-bw-ok" />
+                <h3 className="text-base font-bold text-bw-ink">
                   {language === 'ar' ? 'استعادة كلمة المرور للموظفين' : 'Staff Password Recovery'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsForgotPasswordOpen(false)}
-                className="text-gray-400 hover:text-white p-1 cursor-pointer"
+                className="text-bw-ink-subtle hover:text-bw-ink p-1 cursor-pointer"
                 aria-label="إغلاق"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-gray-300 leading-relaxed text-start">
+            <div className="space-y-3 text-xs text-bw-ink-soft leading-relaxed text-start">
               <p>
                 {language === 'ar'
                   ? 'يتم إدارة وتعيين كلمات المرور لجميع موظفي ومناديب وموردي شينا كير مركزياً عبر إدارة العمليات:'
                   : 'Passwords for all operations staff, drivers, and suppliers are centrally managed by Operations:'}
               </p>
-              <div className="rounded-xl bg-black/50 p-3 border border-white/10 space-y-1.5 font-mono text-[11px]">
-                <div className="text-white font-semibold">{language === 'ar' ? 'قنوات الدعم الفني الداخلي:' : 'Internal Support Channels:'}</div>
-                <div className="text-[#34d27b]" dir="ltr">ops-admin@shenacare.com</div>
-                <div className="text-gray-300">{language === 'ar' ? 'الخط الساخن للعمليات: 19822 (تحويلة 401)' : 'Operations Hotline: 19822 (Ext. 401)'}</div>
+              <div className="rounded-xl bg-bw-kohl/50 p-3 border border-bw-line space-y-1.5 font-mono text-[11px]">
+                <div className="text-bw-ink font-semibold">{language === 'ar' ? 'قنوات الدعم الفني الداخلي:' : 'Internal Support Channels:'}</div>
+                <div className="text-bw-ok" dir="ltr">ops-admin@shenacare.com</div>
+                <div className="text-bw-ink-soft">{language === 'ar' ? 'الخط الساخن للعمليات: 19822 (تحويلة 401)' : 'Operations Hotline: 19822 (Ext. 401)'}</div>
               </div>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-white/10">
+            <div className="flex justify-end pt-2 border-t border-bw-line">
               <button
                 type="button"
                 onClick={() => setIsForgotPasswordOpen(false)}
@@ -747,33 +744,33 @@ export default function LoginPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bw-kohl/80 animate-in fade-in"
         >
           <div className="sc-login-card-emerald w-full max-w-md p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between border-b border-bw-line pb-3">
               <div className="flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-[#34d27b]" />
-                <h3 className="text-base font-bold text-white">
+                <HelpCircle className="h-5 w-5 text-bw-ok" />
+                <h3 className="text-base font-bold text-bw-ink">
                   {language === 'ar' ? 'مركز مساعدة مساحة الأعمال' : 'Business Help Center'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsHelpOpen(false)}
-                className="text-gray-400 hover:text-white p-1 cursor-pointer"
+                className="text-bw-ink-subtle hover:text-bw-ink p-1 cursor-pointer"
                 aria-label="إغلاق"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-gray-300 leading-relaxed text-start">
+            <div className="space-y-3 text-xs text-bw-ink-soft leading-relaxed text-start">
               <p>
                 {language === 'ar'
                   ? 'مساحة الأعمال مخصصة فقط للكوادر التشغيلية المعتمدة في القاهرة والجيزة.'
                   : 'The Business Workspace is exclusively for authorized operations personnel in Cairo and Giza.'}
               </p>
-              <ul className="list-disc list-inside space-y-1 text-gray-400">
+              <ul className="list-disc list-inside space-y-1 text-bw-ink-subtle">
                 {language === 'ar' ? (
                   <>
                     <li>مديرو العمليات: تسجيل الدخول لمتابعة لوحة القيادة والموردين.</li>
@@ -792,7 +789,7 @@ export default function LoginPage() {
               </ul>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-white/10">
+            <div className="flex justify-end pt-2 border-t border-bw-line">
               <button
                 type="button"
                 onClick={() => setIsHelpOpen(false)}

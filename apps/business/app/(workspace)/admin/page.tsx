@@ -1,144 +1,199 @@
 'use client'
 
 import * as React from 'react'
-import Link from 'next/link'
-import { AlertTriangle, ArrowLeft, Package, RefreshCw, ShieldAlert, Truck, Wallet } from 'lucide-react'
-import { Code, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
-import { Egp, Page, Status } from '@/components/workspace/kit'
-import { LoadError, RoleShell } from '@/components/workspace/role-shell'
-import { formatDateTime, ORDER_STATUS } from '@/lib/labels'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Hourglass,
+  RefreshCw,
+  ShoppingBag,
+} from 'lucide-react'
+import { Button, Notice, PageHeader } from '@/components/bw/primitives'
+import { RoleShell } from '@/components/workspace/role-shell'
 import { useApi } from '@/lib/use-api'
+import type { AdminOverviewData } from './overview-types'
+import { OrdersActivityChart } from './overview-chart'
+import {
+  ActionRequiredPanel,
+  FinancialSummarySection,
+  KpiCard,
+  OperationalStageBoard,
+} from './overview-components'
 
-type Paged<T> = { total: number; items: T[] }
-
-interface AttentionQueue {
-  supplyActionRequired: Paged<{ orderId: string; orderNumber: string | null }>
-  customerDecisionsPending: Paged<{ orderId: string; orderNumber: string }>
-  distributionRequired: Paged<{ purchaseOrderId: string; lineId: string }>
-  failedDeliveries: Paged<{ orderId: string; orderNumber: string | null; reasonCode: string | null; failedAt: string }>
-  cashVariances?: { short: Paged<Record<string, unknown>>; over: Paged<Record<string, unknown>> }
-  openCases?: Paged<{ id: string; title: string; priority: string; orderId: string | null; createdAt: string }>
+function formatRelativeTime(dateString: string | undefined): string {
+  if (!dateString) return 'منذ لحظات'
+  const then = new Date(dateString).getTime()
+  const now = Date.now()
+  const diffSec = Math.floor((now - then) / 1000)
+  if (diffSec < 60) return 'منذ لحظات'
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin === 1) return 'منذ دقيقة'
+  if (diffMin === 2) return 'منذ دقيقتين'
+  if (diffMin >= 3 && diffMin <= 10) return `منذ ${diffMin} دقائق`
+  if (diffMin < 60) return `منذ ${diffMin} دقيقة`
+  const diffHours = Math.floor(diffMin / 60)
+  if (diffHours === 1) return 'منذ ساعة'
+  if (diffHours === 2) return 'منذ ساعتين'
+  if (diffHours >= 3 && diffHours <= 10) return `منذ ${diffHours} ساعات`
+  return `منذ ${diffHours} ساعة`
 }
 
-interface DashboardKpis {
-  revenueToday: number | null
-  ordersToday: number
-  totalOrders: number
-  activeOrders: number
-  pipeline: { placed: number; confirmed: number; packing: number; shipped: number; delivered: number; terminal: number; total: number }
-}
-
-interface OrderRow {
-  id: string
-  orderNumber: string
-  status: string
-  customerName: string
-  governorate: string | null
-  area: string | null
-  totalAmount: number
-  itemCount?: number
-  createdAt: string
-}
-
-/**
- * Founder Admin overview: only numbers and queues the API actually returns (GLO-223). Anything that needs a decision opens the
- * owning order or queue; nothing is resolved from this page.
- */
 export function AdminOverview() {
-  const kpis = useApi<DashboardKpis>('/operations/dashboard/kpis', { pollMs: 30000 })
-  const attention = useApi<AttentionQueue>('/operations/queues/attention', { pollMs: 30000 })
-  const orders = useApi<Paged<OrderRow>>('/admin/orders?take=20', { pollMs: 30000 })
+  const [days, setDays] = React.useState<number>(7)
+  const { data, error, loading, reload } = useApi<AdminOverviewData>(
+    `/operations/dashboard/overview?days=${days}`,
+    { pollMs: 30000 }
+  )
 
-  const error = kpis.error ?? attention.error ?? orders.error
-  const reload = () => { kpis.reload(); attention.reload(); orders.reload() }
+  const [relativeTime, setRelativeTime] = React.useState<string>('منذ لحظات')
 
-  const queues = attention.data
-    ? [
-        { key: 'supply', title: 'نقص توريد يحتاج قرار', count: queues_total(attention.data.supplyActionRequired), href: '/admin/exceptions' },
-        { key: 'customer', title: 'قرارات عملاء معلّقة', count: queues_total(attention.data.customerDecisionsPending), href: '/admin/exceptions' },
-        { key: 'distribution', title: 'بضاعة موردين محتاجة توزيع', count: queues_total(attention.data.distributionRequired), href: '/admin/sourcing' },
-        { key: 'failed', title: 'توصيلات فاشلة', count: queues_total(attention.data.failedDeliveries), href: '/admin/delivery' },
-        { key: 'cash', title: 'فروق نقدية', count: queues_total(attention.data.cashVariances?.short) + queues_total(attention.data.cashVariances?.over), href: '/admin/cash' },
-        { key: 'cases', title: 'حالات دعم مفتوحة', count: queues_total(attention.data.openCases), href: '/admin/exceptions' },
-      ]
-    : []
-  const needsAttention = queues.reduce((sum, q) => sum + q.count, 0)
+  React.useEffect(() => {
+    if (data?.lastUpdated) {
+      setRelativeTime(formatRelativeTime(data.lastUpdated))
+      const interval = setInterval(() => {
+        setRelativeTime(formatRelativeTime(data.lastUpdated))
+      }, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [data?.lastUpdated])
 
   return (
-    <Page>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="sc-page-title">نظرة عامة</h1>
-          <p className="text-bw-small text-bw-ink-soft">
-            {attention.data ? (needsAttention > 0 ? `${needsAttention} حاجة محتاجة تدخّل` : 'مفيش حاجة محتاجة تدخّل دلوقتي') : 'بنحمّل الطوابير…'}
-          </p>
-        </div>
-        <button type="button" onClick={reload} className="sc-btn sm flex items-center gap-1.5"><RefreshCw className="size-3.5" />تحديث</button>
-      </div>
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-8 sm:py-9">
+      <PageHeader
+        eyebrow="مساحة الإدارة / نظرة عامة"
+        title="نظرة عامة"
+        meta={<>لوحة العمليات · آخر تحديث: {relativeTime}</>}
+        actions={
+          <Button variant="secondary" onClick={reload} disabled={loading}>
+            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} aria-hidden />
+            تحديث
+          </Button>
+        }
+      />
 
-      {error ? <LoadError message={error.message} onRetry={reload} /> : null}
+      {error ? (
+        <Notice
+          tone="danger"
+          title="تعذر تحديث بعض بيانات لوحة العمليات"
+          action={<Button variant="secondary" onClick={reload}>إعادة المحاولة</Button>}
+        >
+          {error.message}
+        </Notice>
+      ) : null}
 
-      <section aria-label="مؤشرات اليوم" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi icon={<Package className="size-4" />} label="طلبات اليوم" value={kpis.data ? kpis.data.ordersToday : null} />
-        <Kpi icon={<Truck className="size-4" />} label="طلبات شغّالة" value={kpis.data ? kpis.data.activeOrders : null} />
-        <Kpi icon={<Truck className="size-4" />} label="مع المناديب" value={kpis.data ? kpis.data.pipeline.shipped : null} />
-        <Kpi icon={<Wallet className="size-4" />} label="إيراد اليوم" value={kpis.data ? kpis.data.revenueToday : null} money />
+      {(data || loading) ? <>
+      {/* ── Row 1: Four Minimal KPI Cards ── */}
+      <section aria-label="المؤشرات الرئيسية للعمليات" className="order-2 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* KPI 1: طلبات اليوم */}
+        <KpiCard
+          title="طلبات اليوم"
+          icon={<ShoppingBag className="size-4.5" />}
+          metric={data?.kpis.ordersToday}
+          unit="طلب"
+          comparison={{
+            text: `مقارنة بالأمس: ${(data?.kpis.ordersToday.yesterdayCount ?? 0).toLocaleString()} طلب`,
+            changePercent: data?.kpis.ordersToday.changePercent,
+          }}
+          loading={loading && !data}
+        />
+
+        {/* KPI 2: طلبات مفتوحة الآن */}
+        <KpiCard
+          title="طلبات مفتوحة الآن"
+          icon={<Hourglass className="size-4.5" />}
+          metric={data?.kpis.openOrders}
+          unit="نشط"
+          subtext="قيد المعالجة والتجهيز بالمستودع"
+          badge={data?.kpis.openOrders.status}
+          badgeTone="neutral"
+          loading={loading && !data}
+        />
+
+        {/* KPI 3: تم التسليم اليوم */}
+        <KpiCard
+          title="تم التسليم اليوم"
+          icon={<CheckCircle2 className="size-4.5 text-bw-ok" />}
+          metric={data?.kpis.deliveredToday}
+          unit="مكتمل"
+          subtext="تم تسليمها للعملاء بنجاح"
+          badge={
+            data?.kpis.deliveredToday.deliveredRate !== null && data?.kpis.deliveredToday.deliveredRate !== undefined
+              ? `${data.kpis.deliveredToday.deliveredRate}% نسبة التسليم`
+              : undefined
+          }
+          badgeTone="ok"
+          loading={loading && !data}
+        />
+
+        {/* KPI 4: تحتاج تدخلك */}
+        <KpiCard
+          title="تحتاج تدخلك"
+          icon={
+            <span className="relative flex items-center justify-center">
+              <AlertTriangle className="size-4.5 text-bw-warn" />
+            </span>
+          }
+          metric={data?.kpis.needsIntervention}
+          unit="حرجة"
+          subtext="حالات تتطلب إجراءً فورياً"
+          badge={
+            data?.kpis.needsIntervention.criticalCount !== undefined
+              ? `${data.kpis.needsIntervention.criticalCount} معطلة`
+              : undefined
+          }
+          badgeTone="warn"
+          loading={loading && !data}
+        />
       </section>
 
-      <Section title={<span className="flex items-center gap-2"><ShieldAlert className="size-4" />طوابير التدخّل</span>}>
-        {!attention.data && attention.loading ? <Skeleton className="h-24 w-full" /> : null}
-        {attention.data ? (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {queues.map((q) => (
-              <li key={q.key}>
-                <Link href={q.href} className="sc-card flex items-center justify-between p-3.5 hover:border-[#34d27b]/40">
-                  <span className="flex items-center gap-2 text-bw-small">
-                    {q.count > 0 ? <AlertTriangle className="size-4 text-[#f5a524]" /> : null}
-                    {q.title}
-                  </span>
-                  <span className="flex items-center gap-2"><b className="sc-num">{q.count}</b><ArrowLeft className="size-4" /></span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </Section>
+      {/* The action queue leads; trends and cash remain available on demand. */}
+      <section aria-label="طابور التدخل" className="order-1">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="mb-1 text-bw-small text-bw-ink-soft">الأولوية الآن</p>
+            <h2 className="font-bw-display text-bw-heading font-semibold">قرارات تحتاج متابعة</h2>
+          </div>
+          <span className="rounded-bw-pill border border-bw-line px-3 py-1 text-xs text-bw-ink-soft">
+            {data ? `${data.actionRequired.total} حالة مفتوحة` : 'جارٍ تحميل الحالات'}
+          </span>
+        </div>
+        <div>
+          <ActionRequiredPanel
+            items={data?.actionRequired.items ?? []}
+            total={data?.actionRequired.total ?? 0}
+            criticalCount={data?.actionRequired.criticalCount ?? 0}
+            loading={loading && !data}
+          />
+        </div>
+      </section>
 
-      <Section title="آخر الطلبات" aside={<Link href="/admin/orders" className="text-bw-small underline">كل الطلبات</Link>}>
-        {!orders.data && orders.loading ? <Skeleton className="h-32 w-full" /> : null}
-        {orders.data && orders.data.items.length === 0 ? <StateBlock kind="empty" title="مافيش طلبات لسه" body="الطلبات بتظهر هنا أول ما عميل يأكّد طلب." /> : null}
-        {orders.data && orders.data.items.length > 0 ? (
-          <table className="w-full text-start text-bw-small">
-            <thead><tr><th className="py-2 text-start">الطلب</th><th className="text-start">العميل</th><th className="text-start">المنطقة</th><th className="text-start">الإجمالي</th><th className="text-start">الحالة</th><th className="text-start">الوقت</th></tr></thead>
-            <tbody>
-              {orders.data.items.map((o) => (
-                <tr key={o.id} className="border-t border-bw-line">
-                  <td className="py-2"><Link href={`/admin/orders/${o.id}`} className="underline"><Code>{o.orderNumber}</Code></Link></td>
-                  <td>{o.customerName}</td>
-                  <td>{[o.governorate, o.area].filter(Boolean).join(' - ') || '—'}</td>
-                  <td><Egp value={o.totalAmount} /></td>
-                  <td><Status map={ORDER_STATUS} value={o.status} /></td>
-                  <td>{formatDateTime(o.createdAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : null}
-      </Section>
-    </Page>
-  )
-}
+      {/* ── Row 3: Operational Stage Board (5 Cards) ── */}
+      <section aria-label="لوحة مسار الطلبات" className="order-3">
+        <OperationalStageBoard
+          stageBoard={data?.stageBoard}
+          loading={loading && !data}
+        />
+      </section>
 
-function queues_total(page: Paged<unknown> | undefined): number {
-  return page?.total ?? 0
-}
-
-function Kpi({ icon, label, value, money }: { icon: React.ReactNode; label: string; value: number | null; money?: boolean }) {
-  return (
-    <div className="sc-card space-y-2 p-4">
-      <div className="flex items-center justify-between text-xs text-bw-ink-subtle"><span>{label}</span>{icon}</div>
-      <div className="sc-num text-2xl font-bold">{value === null ? '—' : money ? <Egp value={value} /> : value}</div>
-    </div>
+      {/* ── Row 4: Financial & Cash Reconciliation Summary ── */}
+      <section className="order-4" aria-label="تحليل إضافي">
+        <details className="group rounded-xl border border-bw-line bg-bw-surface p-4 open:p-5">
+          <summary className="cursor-pointer text-sm font-semibold text-bw-ink marker:text-bw-ok">حركة الطلبات والمالية</summary>
+          <div className="mt-5 grid gap-4 xl:grid-cols-2">
+            <OrdersActivityChart
+              series={data?.activityChart.series ?? []}
+              days={days}
+              onDaysChange={setDays}
+            />
+            <FinancialSummarySection
+              summary={data?.financialSummary}
+              loading={loading && !data}
+            />
+          </div>
+        </details>
+      </section>
+      </> : null}
+    </main>
   )
 }
 

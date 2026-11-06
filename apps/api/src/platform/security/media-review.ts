@@ -7,7 +7,10 @@ export interface MediaReview {
   reviewedAt: string;
   skuId?: string;
   candidateId?: string;
-  barcode: string;
+  /** Present when known; identity may instead be verified by evidence (manufacturer page) or by an Admin. */
+  barcode?: string | null;
+  /** How the SKU's identity is verified, when it is: EVIDENCE_VERIFIED | BARCODE_VERIFIED | ADMIN_VERIFIED. */
+  identityVerification?: string | null;
   size: number;
   sizeUnit: string;
   variantName: string;
@@ -33,7 +36,7 @@ export function requireMediaReview(value: unknown): MediaReview {
   const m = value as MediaReview | undefined;
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!m || m.isTest !== false || !m.reviewedBy || !uuid.test(m.reviewedBy) || (m.skuId !== undefined && !uuid.test(m.skuId)) || !m.reviewedAt ||
-      !Number.isFinite(Date.parse(m.reviewedAt)) || !m.barcode ||
+      !Number.isFinite(Date.parse(m.reviewedAt)) || (!m.barcode && !['EVIDENCE_VERIFIED', 'BARCODE_VERIFIED', 'ADMIN_VERIFIED'].includes(m.identityVerification ?? '')) ||
       !Number.isFinite(m.size) || m.size <= 0 || !m.sizeUnit || !m.variantName ||
       (m.packCount !== undefined && (!Number.isInteger(m.packCount) || m.packCount <= 0)) ||
       !['OFFICIAL_MANUFACTURER', 'TRUSTED_DISTRIBUTOR'].includes(m.sourceType) ||

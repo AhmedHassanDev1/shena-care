@@ -1,0 +1,2585 @@
+{
+  "job": {
+    "id": "a1f80035-76a5-48ae-a968-bb4f5ed16b99",
+    "status": "COMPLETED",
+    "totals": {
+      "HOLD": 0,
+      "total": 10,
+      "PENDING": 0,
+      "REJECTED": 0,
+      "NEW_CANDIDATE": 0,
+      "LINKED_EXISTING": 10
+    },
+    "rows": [
+      {
+        "number": 2,
+        "outcome": "LINKED_EXISTING",
+        "reasonCode": "ADMIN_LINKED",
+        "matchedSkuId": "b485d6d9-dd25-432d-8a9a-a98334485777",
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      },
+      {
+        "number": 3,
+        "outcome": "LINKED_EXISTING",
+        "reasonCode": "ADMIN_LINKED",
+        "matchedSkuId": "60e6df87-3ea0-43b5-9c0d-f48e48e66140",
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      },
+      {
+        "number": 4,
+        "outcome": "LINKED_EXISTING",
+        "reasonCode": "ADMIN_LINKED",
+        "matchedSkuId": "7d046b45-70a2-4f8c-bb9e-190e02826001",
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      },
+      {
+        "number": 5,
+        "outcome": "LINKED_EXISTING",
+        "reasonCode": "ADMIN_LINKED",
+        "matchedSkuId": "c35b8c7c-7814-46b6-bac1-236559abf76b",
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      },
+      {
+        "number": 6,
+        "outcome": "LINKED_EXISTING",
+        "reasonCode": "ADMIN_LINKED",
+        "matchedSkuId": "92653b7f-b712-42a1-8f8f-a7fe9a1fa403",
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      },
+      {
+        "number": 7,
+        "outcome": "LINKED_EXISTING",
+        "reasonCode": "ADMIN_LINKED",
+        "matchedSkuId": "fc5b95d6-a0ac-4d45-b1c0-58bf5edeb6c4",
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      },
+      {
+        "number": 8,
+        "outcome": "LINKED_EXISTING",
+        "reasonCode": "ADMIN_LINKED",
+        "matchedSkuId": "e71a4e50-b98d-4814-800d-ffa2170ae894",
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      },
+      {
+        "number": 9,
+        "outcome": "LINKED_EXISTING",
+        "reasonCode": "ADMIN_LINKED",
+        "matchedSkuId": "a846a1cb-ed16-40f1-a938-2e4391ab3d22",
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      },
+      {
+        "number": 10,
+        "outcome": "LINKED_EXISTING",
+        "reasonCode": "ADMIN_LINKED",
+        "matchedSkuId": "8365dac2-23ba-4ba8-b053-137e52fc478e",
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      },
+      {
+        "number": 11,
+        "outcome": "LINKED_EXISTING",
+        "reasonCode": "ADMIN_LINKED",
+        "matchedSkuId": "c33d89ec-6caa-4e3d-9fb3-a0ce49af80fd",
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      }
+    ]
+  },
+  "negativeJob": {
+    "id": "4219ce6b-cc50-4959-b18b-be258dda1376",
+    "status": "COMPLETED",
+    "totals": {
+      "HOLD": 1,
+      "total": 3,
+      "PENDING": 0,
+      "REJECTED": 2,
+      "NEW_CANDIDATE": 0,
+      "LINKED_EXISTING": 0
+    },
+    "rows": [
+      {
+        "number": 2,
+        "outcome": "REJECTED",
+        "reasonCode": "POLICY_BRAND_NOT_ALLOWED",
+        "matchedSkuId": null,
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_NOT_ALLOWED",
+          "outcome": "SKIP",
+          "version": 14
+        }
+      },
+      {
+        "number": 3,
+        "outcome": "REJECTED",
+        "reasonCode": "POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND",
+        "matchedSkuId": null,
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "CATEGORY_NOT_ALLOWED_FOR_BRAND",
+          "outcome": "SKIP",
+          "version": 14
+        }
+      },
+      {
+        "number": 4,
+        "outcome": "HOLD",
+        "reasonCode": "AMBIGUOUS_IDENTITY",
+        "matchedSkuId": null,
+        "policy": {
+          "id": "a2621485-1b83-41f0-a51e-8dc1ed43c847",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 14
+        }
+      }
+    ]
+  },
+  "productCount": 10,
+  "offerCount": 0,
+  "listingCount": 0,
+  "templates": [
+    {
+      "id": "2c31fc87-2737-4a83-92d1-888ad3fbed3c",
+      "templateKey": "sahel-soft-plinth",
+      "version": 1,
+      "isActive": true,
+      "categoryIds": []
+    }
+  ],
+  "skus": [
+    {
+      "code": "REAL10-CAP-COND-250",
+      "skuId": "c33d89ec-6caa-4e3d-9fb3-a0ce49af80fd",
+      "productId": "7c76e86b-3416-4a75-af00-a3ecc4818b85",
+      "name": "Capixy Hair Hydrating Conditioner 250ml",
+      "brand": "capixy",
+      "category": "Conditioners",
+      "barcode": null,
+      "published": false,
+      "texture": null,
+      "targetArea": "HAIR",
+      "hasOuterCarton": null,
+      "runs": [
+        {
+          "id": "57be594d-c150-40be-aebb-a559d90078bd",
+          "status": "COMPLETE",
+          "sources": [
+            {
+              "url": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml",
+              "tier": "TRUSTED_DISTRIBUTOR",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 8,
+              "fetchedAt": "2026-11-06T00:58:21.029Z",
+              "contentHash": "24fe384021d52e223bda8d1e03c95ef84bff0953353b68c9c963cfbf10a41fd2"
+            }
+          ],
+          "rejected": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "1c9d3281-18aa-4345-879e-405aaeffb1fc",
+          "field": "identity.name",
+          "value": "Capixy Hair Hydrating Conditioner 250ml",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Capixy Hair Hydrating Conditioner 250ml",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml",
+              "observedAt": "2026-11-06T00:58:21.029Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "24fe384021d52e223bda8d1e03c95ef84bff0953353b68c9c963cfbf10a41fd2"
+            }
+          ]
+        },
+        {
+          "id": "0aa45024-7253-421a-b933-5e4a2166737c",
+          "field": "identity.brand",
+          "value": "Capixy",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "brand: Capixy",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml",
+              "observedAt": "2026-11-06T00:58:21.029Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "24fe384021d52e223bda8d1e03c95ef84bff0953353b68c9c963cfbf10a41fd2"
+            }
+          ]
+        },
+        {
+          "id": "1027814f-475a-47c3-9d28-2029ac254707",
+          "field": "composition.fragrance",
+          "value": "FREE",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Capixy Hair Hydrating Conditioner 250ml - Majestic\nSkip to content\nFree shipping on orders above 1500 EGP — Shop Now!\nالعربية\ne-majestic .com\n0\n−50%\nCapixy\nIn stock, ready to ship\n",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml",
+              "observedAt": "2026-11-06T00:58:21.029Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "24fe384021d52e223bda8d1e03c95ef84bff0953353b68c9c963cfbf10a41fd2"
+            }
+          ]
+        },
+        {
+          "id": "ef0eeff3-e9e9-4d81-b7a0-5c02e7815fd3",
+          "field": "usage.instructions",
+          "value": [
+            "Use after washing hair with Capixy Shampoo. Apply suitable amount of Capixy Conditioner to hair shaft, comb through to distribute evenly and leave it for 1-2 minutes, then rinse with warm to cold water."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Use after washing hair with Capixy Shampoo. Apply suitable amount of Capixy Conditioner to hair shaft, comb through to distribute evenly and leave it for 1-2 minutes, then rinse with warm to cold water.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml",
+              "observedAt": "2026-11-06T00:58:21.029Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "24fe384021d52e223bda8d1e03c95ef84bff0953353b68c9c963cfbf10a41fd2"
+            }
+          ]
+        },
+        {
+          "id": "cf80f79d-fc35-4d44-9bb1-cf295425b5ee",
+          "field": "marketing.description",
+          "value": "Say goodbye to frizz and hello to smooth, healthy hair with Capixy Hair Conditioner. Enriched with Capixyl and refreshing peppermint oil, this conditioner is designed to restore, retain, and renew your hair's beauty and health.Free from sodium, sulfates, and parabens, Capixy Hair Conditioner delivers professional-grade care without harsh chemicals.",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Say goodbye to frizz and hello to smooth, healthy hair with Capixy Hair Conditioner. Enriched with Capixyl and refreshing peppermint oil, this conditioner is designed to restore, retain, and renew your hair's beauty and health.Free from sodium, sulfates, and parabens, Capixy Hair Conditioner delivers professional-grade care without harsh chemicals.\n",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml",
+              "observedAt": "2026-11-06T00:58:21.029Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "24fe384021d52e223bda8d1e03c95ef84bff0953353b68c9c963cfbf10a41fd2"
+            }
+          ]
+        },
+        {
+          "id": "60746a44-b66e-4c7c-815e-a94febf82b69",
+          "field": "media.sourceImages",
+          "value": [
+            "https://e-majestic.com/cdn/shop/files/conditinoerwhbg.png?v=1773308281&width=1024"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://e-majestic.com/cdn/shop/files/conditinoerwhbg.png?v=1773308281&width=1024",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml",
+              "observedAt": "2026-11-06T00:58:21.029Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "24fe384021d52e223bda8d1e03c95ef84bff0953353b68c9c963cfbf10a41fd2"
+            }
+          ]
+        },
+        {
+          "id": "d8bfab4e-4302-4ad8-b1ea-85a8ab8359c2",
+          "field": "usage.targetArea",
+          "value": "HAIR",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Capixy Hair Hydrating Conditioner 250ml",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml",
+              "observedAt": "2026-11-06T00:58:21.029Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "24fe384021d52e223bda8d1e03c95ef84bff0953353b68c9c963cfbf10a41fd2"
+            }
+          ]
+        },
+        {
+          "id": "3f7c8a84-89da-4464-8e30-659a16634191",
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 250
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Capixy Hair Hydrating Conditioner 250ml - Majestic\nSkip to content\nFree shipping on orders above 1500 EGP — Shop Now!\nالعربية\ne",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml",
+              "observedAt": "2026-11-06T00:58:21.029Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "24fe384021d52e223bda8d1e03c95ef84bff0953353b68c9c963cfbf10a41fd2"
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "id": "4e2b2052-92fd-4b52-8854-92735795b651",
+          "role": "PRIMARY_PACKSHOT",
+          "parentAssetId": null,
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "APPROVED",
+          "publishedMediaId": null,
+          "templateId": null,
+          "qualityReport": null,
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/ef292fbc-3997-4778-a9bc-b0c4474b71d4.png",
+          "contentHash": "1f6ca1df08451b6a3d113506b1ef485c00f1751f93e2d06926d7a6b4223596ec",
+          "width": 1024,
+          "height": 1024,
+          "sourceUrl": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml"
+        },
+        {
+          "id": "b9b2a9c2-9305-42da-af99-889336006a34",
+          "role": "CATEGORY_EDITORIAL",
+          "parentAssetId": "4e2b2052-92fd-4b52-8854-92735795b651",
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "REJECTED",
+          "publishedMediaId": null,
+          "templateId": "2c31fc87-2737-4a83-92d1-888ad3fbed3c",
+          "qualityReport": {
+            "coverage": 0.144,
+            "warnings": [
+              "SOURCE_SHADOW_REMOVED"
+            ],
+            "sourceWidth": 1024,
+            "productWidth": 278,
+            "sourceHeight": 1024,
+            "productHeight": 724,
+            "backgroundMode": "PLAIN_BACKGROUND",
+            "placementScale": 0.866,
+            "backgroundColor": [
+              255,
+              255,
+              255
+            ],
+            "enclosedBackgroundRatio": 0.0063
+          },
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/74e1cf41-e4f0-4504-be51-a6f14df40bf8.webp",
+          "contentHash": "cba8599abbea7b120ae3ef295c03a7d4ed8b3d61196ca53e0bdc6a4777b7c0a8",
+          "width": 1254,
+          "height": 1254,
+          "sourceUrl": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml"
+        }
+      ]
+    },
+    {
+      "code": "REAL10-CAP-SHAM-250",
+      "skuId": "8365dac2-23ba-4ba8-b053-137e52fc478e",
+      "productId": "19a5c725-a7d3-484b-af82-8ea660a17b7a",
+      "name": "Capixy Shampoo 250ml",
+      "brand": "capixy",
+      "category": "Shampoos",
+      "barcode": null,
+      "published": false,
+      "texture": null,
+      "targetArea": null,
+      "hasOuterCarton": null,
+      "runs": [
+        {
+          "id": "6799ce9d-c981-437a-9df3-12a06ca6a37d",
+          "status": "COMPLETE",
+          "sources": [
+            {
+              "url": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "tier": "TRUSTED_DISTRIBUTOR",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 9,
+              "fetchedAt": "2026-11-06T00:58:19.134Z",
+              "contentHash": "3f33fc6e72edb23a67936c245b9c40a059f4dff157981a8fe6e7ef877b9e94fa"
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "id": "24f14a44-b1d7-48f2-bb36-2296857b3448",
+          "status": "NO_EVIDENCE",
+          "sources": [
+            {
+              "url": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "tier": "TRUSTED_DISTRIBUTOR",
+              "detail": "robots.txt could not be read",
+              "origin": "ADMIN",
+              "outcome": "ROBOTS_DISALLOWED",
+              "fetchedAt": "2026-11-06T00:53:21.496Z"
+            }
+          ],
+          "rejected": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "76d6b490-5c43-41a1-9f53-0c38158c9ec8",
+          "field": "identity.name",
+          "value": "Capixy Shampoo 250ml",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Capixy Shampoo 250ml",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "observedAt": "2026-11-06T00:58:19.134Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "3f33fc6e72edb23a67936c245b9c40a059f4dff157981a8fe6e7ef877b9e94fa"
+            }
+          ]
+        },
+        {
+          "id": "c9bdf58d-cb2e-4b47-b644-2050a0a6e835",
+          "field": "identity.brand",
+          "value": "Capixy",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "brand: Capixy",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "observedAt": "2026-11-06T00:58:19.134Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "3f33fc6e72edb23a67936c245b9c40a059f4dff157981a8fe6e7ef877b9e94fa"
+            }
+          ]
+        },
+        {
+          "id": "c1b9dd6f-a04b-4021-a324-ed3425423f2b",
+          "field": "composition.inci",
+          "value": [
+            "Capixyl ™ (Butylene glycol",
+            "Dextran",
+            "Acetyl Tetrapeptide-3",
+            "Trifolium Pratense(Clover)flower extract",
+            "Decyl Glucoside",
+            "Cocamidopropyl",
+            "betaine",
+            "Glycol distearate",
+            "Cocamide DEA",
+            "Tea tree oil",
+            "Thyme extract",
+            "Rosemary extract",
+            "Aloe vera extract",
+            "Green tea extract",
+            "Biotin",
+            "Keratin",
+            "Jojoba oil",
+            "L-Arginine",
+            "Saw Palmetto Extract"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Capixyl ™ (Butylene glycol, Dextran, Acetyl Tetrapeptide-3, Trifolium Pratense(Clover)flower extract, Decyl Glucoside, Cocamidopropyl, betaine, Glycol distearate, Cocamide DEA, Tea tree oil, Thyme extract, Rosemary extract, Aloe vera extract, Green tea extract, Biotin, Keratin, Jojoba oil, L-Arginine, Saw Palmetto Extract.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "observedAt": "2026-11-06T00:58:19.134Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "3f33fc6e72edb23a67936c245b9c40a059f4dff157981a8fe6e7ef877b9e94fa"
+            }
+          ]
+        },
+        {
+          "id": "ff55bd02-0d7d-449b-aa30-1ca45aa541a6",
+          "field": "composition.fragrance",
+          "value": "FREE",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Capixy Shampoo 250ml - Majestic\nSkip to content\nFree shipping on orders above 1500 EGP — Shop Now!\nالعربية\ne-majestic .com\n0\n−50%\nCapixy\nIn stock, ready to ship\nCapixy Shampoo 250m",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "observedAt": "2026-11-06T00:58:19.134Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "3f33fc6e72edb23a67936c245b9c40a059f4dff157981a8fe6e7ef877b9e94fa"
+            }
+          ]
+        },
+        {
+          "id": "31be4334-eb43-4f25-a7fc-ca9bad4396c9",
+          "field": "usage.instructions",
+          "value": [
+            "Apply a proper amount of shampoo to your palms and work it into a lather.",
+            "Gently massage Capixy Anti-Hair Loss Shampoo into your scalp, focusing on the roots.",
+            "Rinse thoroughly with water.",
+            "For best results, use regularly as part of your hair care routine."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Apply a proper amount of shampoo to your palms and work it into a lather. Gently massage Capixy Anti-Hair Loss Shampoo into your scalp, focusing on the roots. Rinse thoroughly with water. For best results, use regularly as part of your hair care routine.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "observedAt": "2026-11-06T00:58:19.134Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "3f33fc6e72edb23a67936c245b9c40a059f4dff157981a8fe6e7ef877b9e94fa"
+            }
+          ]
+        },
+        {
+          "id": "7a5f76de-2aaf-4e4d-a048-20788f416c90",
+          "field": "safety.warnings",
+          "value": [
+            "For external use only .",
+            "Avoid contact with eyes. If contact occurs, rinse thoroughly with water.",
+            "Discontinue use if irritation or allergic reactions occur.",
+            "Store in a cool, dry place , away from direct sunlight.",
+            "Keep out of reach of children."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "For external use only . Avoid contact with eyes. If contact occurs, rinse thoroughly with water. Discontinue use if irritation or allergic reactions occur. Store in a cool, dry place , away from direct sunlight. Keep out of reach of children.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "observedAt": "2026-11-06T00:58:19.134Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "3f33fc6e72edb23a67936c245b9c40a059f4dff157981a8fe6e7ef877b9e94fa"
+            }
+          ]
+        },
+        {
+          "id": "691979d0-1d12-40bc-989b-67a4551bcd76",
+          "field": "marketing.description",
+          "value": "YOU HAVE TO KNOW Combat hair loss and regain hair vitality with Capixy Anti-Hair Loss Shampoo (250ml). This sulfate-free, paraben-free shampoo is formulated to prevent temporary and premature hair loss caused by stress, fatigue, and even genetic factors. Powered by Capixyl™, it targets the root causes of hair loss while providing deep nourishment and care to your scalp and hair. The shampoo regulates scalp sebum production, promoting a balanced and healthy environment for hair growth. Additionally, it stimulates keratin production, the key protein for strong, resilient hair, and offers antibacterial properties to keep your scalp clean and healthy. Ideal for both men and women, Capixy Shampoo promotes thicker, stronger hair with regular use, leaving your hair feeling soft, refreshed, and nourished.",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "\n\nYOU HAVE TO KNOW\nCombat hair loss and regain hair vitality with Capixy Anti-Hair Loss Shampoo (250ml). This sulfate-free, paraben-free shampoo is formulated to prevent temporary and premature hair loss caused by stress, fatigue, and even genetic factors. Powered by Capixyl™, it targets the root causes of hair loss while providing deep nourishment and care to your scalp and hair. The shampoo regu",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "observedAt": "2026-11-06T00:58:19.134Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "3f33fc6e72edb23a67936c245b9c40a059f4dff157981a8fe6e7ef877b9e94fa"
+            }
+          ]
+        },
+        {
+          "id": "244d348e-97eb-4fb9-b431-3ef69c70d6fb",
+          "field": "media.sourceImages",
+          "value": [
+            "https://e-majestic.com/cdn/shop/files/1_jpg.png?v=1773308645&width=1024"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://e-majestic.com/cdn/shop/files/1_jpg.png?v=1773308645&width=1024",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "observedAt": "2026-11-06T00:58:19.134Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "3f33fc6e72edb23a67936c245b9c40a059f4dff157981a8fe6e7ef877b9e94fa"
+            }
+          ]
+        },
+        {
+          "id": "e39461af-74c7-4a9d-a2e2-96191273ab0a",
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 250
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Capixy Shampoo 250ml - Majestic\nSkip to content\nFree shipping on orders above 1500 EGP — Shop Now!\nالعربية\ne",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml",
+              "observedAt": "2026-11-06T00:58:19.134Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "3f33fc6e72edb23a67936c245b9c40a059f4dff157981a8fe6e7ef877b9e94fa"
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "id": "5b5b63e9-f3ff-46fe-afc4-d2e485aa9e7a",
+          "role": "PRIMARY_PACKSHOT",
+          "parentAssetId": null,
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "APPROVED",
+          "publishedMediaId": null,
+          "templateId": null,
+          "qualityReport": null,
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/d5f9aa0c-26e4-44ad-a407-3413505370ae.png",
+          "contentHash": "0b8d03a853d8e395b2e67200f9c39a594730204cbd2fce2230d8164849fa5a3a",
+          "width": 1024,
+          "height": 1024,
+          "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml"
+        },
+        {
+          "id": "2b34a50a-111b-4bbd-8b61-ed3b089d8757",
+          "role": "CATEGORY_EDITORIAL",
+          "parentAssetId": "5b5b63e9-f3ff-46fe-afc4-d2e485aa9e7a",
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "APPROVED",
+          "publishedMediaId": null,
+          "templateId": "2c31fc87-2737-4a83-92d1-888ad3fbed3c",
+          "qualityReport": {
+            "coverage": 0.1493,
+            "warnings": [
+              "SOURCE_SHADOW_REMOVED",
+              "ENCLOSED_BACKGROUND"
+            ],
+            "sourceWidth": 1024,
+            "productWidth": 241,
+            "sourceHeight": 1024,
+            "productHeight": 838,
+            "backgroundMode": "PLAIN_BACKGROUND",
+            "placementScale": 0.7482,
+            "backgroundColor": [
+              255,
+              255,
+              255
+            ],
+            "enclosedBackgroundRatio": 0.1784
+          },
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/28727b1d-ada6-40a2-b498-3827e0f1505b.webp",
+          "contentHash": "272583f5c365b13cdeec4afca4749d1316fafc2e71cbd34575116920e73dac61",
+          "width": 1254,
+          "height": 1254,
+          "sourceUrl": "https://e-majestic.com/products/capixy-shampoo-250ml"
+        }
+      ]
+    },
+    {
+      "code": "REAL10-CER-CREAM-454",
+      "skuId": "c35b8c7c-7814-46b6-bac1-236559abf76b",
+      "productId": "eb5f9e8c-3f37-44bf-8e5e-e26422130237",
+      "name": "CeraVe Moisturising Cream 454g",
+      "brand": "Cerave",
+      "category": "Moisturizers",
+      "barcode": null,
+      "published": false,
+      "texture": "CREAM",
+      "targetArea": null,
+      "hasOuterCarton": null,
+      "runs": [
+        {
+          "id": "25f4fcc1-a86a-44dd-81b5-d4e80551aa00",
+          "status": "COMPLETE",
+          "sources": [
+            {
+              "url": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 9,
+              "fetchedAt": "2026-11-06T00:58:09.479Z",
+              "contentHash": "033753fbfa0a09fda8f248f3ad81bbbcc23d07ccb91a12a0818c4bf05b27628a"
+            }
+          ],
+          "rejected": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "df20c819-53b7-4a54-97cc-cbc9525d7216",
+          "field": "identity.name",
+          "value": "CeraVe Moisturising Cream",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Moisturising Cream",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-06T00:58:09.479Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "033753fbfa0a09fda8f248f3ad81bbbcc23d07ccb91a12a0818c4bf05b27628a"
+            }
+          ]
+        },
+        {
+          "id": "cebbf171-6e95-41e8-aab9-6df4595dccf7",
+          "field": "composition.inci",
+          "value": [
+            "AQUA / WATER",
+            "GLYCERIN",
+            "CETEARYL ALCOHOL",
+            "CAPRYLIC/CAPRIC TRIGLYCERIDE",
+            "CETYL ALCOHOL",
+            "CETEARETH-20",
+            "PETROLATUM",
+            "DIMETHICONE",
+            "PHENOXYETHANOL",
+            "BEHENTRIMONIUM METHOSULFATE",
+            "POTASSIUM PHOSPHATE",
+            "ETHYLHEXYLGLYCERIN",
+            "SODIUM LAUROYL LACTYLATE",
+            "DISODIUM EDTA",
+            "DIPOTASSIUM PHOSPHATE",
+            "CERAMIDE NP",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "XANTHAN GUM",
+            "CARBOMER",
+            "SODIUM HYALURONATE",
+            "TOCOPHEROL",
+            ". CERAMIDE EOP"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "AQUA / WATER, GLYCERIN, CETEARYL ALCOHOL, CAPRYLIC/CAPRIC TRIGLYCERIDE, CETYL ALCOHOL, CETEARETH-20, PETROLATUM, DIMETHICONE, PHENOXYETHANOL, BEHENTRIMONIUM METHOSULFATE, POTASSIUM PHOSPHATE, ETHYLHEXYLGLYCERIN, SODIUM LAUROYL LACTYLATE, DISODIUM EDTA, DIPOTASSIUM PHOSPHATE, CERAMIDE NP, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, XANTHAN GUM, CARBOMER, SODIUM HYALURONATE, TOCOPHEROL,. CERAMIDE EO",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-06T00:58:09.479Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "033753fbfa0a09fda8f248f3ad81bbbcc23d07ccb91a12a0818c4bf05b27628a"
+            }
+          ]
+        },
+        {
+          "id": "60fa60ba-b2cf-46f2-9ed9-3d7262a9aa80",
+          "field": "composition.fragrance",
+          "value": "FREE",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "ains the protective skin barrier.\nRicher formula locks in moisture for 24 hour hydration.\nFragrance free, non-comedogenic and hypoallergenic.\nWith 3 essential ceramides to protect skin's na",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-06T00:58:09.479Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "033753fbfa0a09fda8f248f3ad81bbbcc23d07ccb91a12a0818c4bf05b27628a"
+            }
+          ]
+        },
+        {
+          "id": "a098fc33-1209-40f1-bac1-47a5e6faf954",
+          "field": "usage.instructions",
+          "value": [
+            "A protective moisturising body cream. All day hydration for dry skin. Specifically formulated to moisturise sensitive skin that is dry. Also suitable to use on eczema-prone skin. Moisturises the protective skin barrier of the face and body."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "A protective moisturising body cream. All day hydration for dry skin. Specifically formulated to moisturise sensitive skin that is dry. Also suitable to use on eczema-prone skin. Moisturises the protective skin barrier of the face and body.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-06T00:58:09.479Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "033753fbfa0a09fda8f248f3ad81bbbcc23d07ccb91a12a0818c4bf05b27628a"
+            }
+          ]
+        },
+        {
+          "id": "08feab60-4a29-4bb2-b889-edead59aecfa",
+          "field": "suitability.skinTypes",
+          "value": [
+            "normal",
+            "dry"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Moisturising Cream\nFor Dry Skin\nA rich moisturising cream for all day hydration with 3 essential ceramides to help protec",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-06T00:58:09.479Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "033753fbfa0a09fda8f248f3ad81bbbcc23d07ccb91a12a0818c4bf05b27628a"
+            }
+          ]
+        },
+        {
+          "id": "a38c7e37-2373-4652-8710-3217c882492b",
+          "field": "marketing.description",
+          "value": "Product Page for CeraVe Moisturising Cream",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Moisturising Cream",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-06T00:58:09.479Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "033753fbfa0a09fda8f248f3ad81bbbcc23d07ccb91a12a0818c4bf05b27628a"
+            }
+          ]
+        },
+        {
+          "id": "a6255455-1290-45c4-955f-5d848916d898",
+          "field": "media.sourceImages",
+          "value": [
+            "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/New-Product-Images/Moisturising-Cream-Winner-Logo.png"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/New-Product-Images/Moisturising-Cream-Winner-Logo.png",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-06T00:58:09.479Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "033753fbfa0a09fda8f248f3ad81bbbcc23d07ccb91a12a0818c4bf05b27628a"
+            }
+          ]
+        },
+        {
+          "id": "3e81327d-6d2a-4d2b-b94f-f8f68edfba09",
+          "field": "attributes.texture",
+          "value": "CREAM",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Moisturising Cream",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-06T00:58:09.479Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "033753fbfa0a09fda8f248f3ad81bbbcc23d07ccb91a12a0818c4bf05b27628a"
+            }
+          ]
+        },
+        {
+          "id": "fedff7ed-9b33-4fc5-8086-b5875eba0a3f",
+          "field": "identity.size",
+          "value": {
+            "unit": "g",
+            "value": 454
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "3 essential ceramides to help protect the skin’s natural barrier.\nSizes available: 340g, 454g.\ncerave_find_in_stores\nBuy Online\nSizes available: 340g, 454g.\nShare this product:\nPRODU",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-06T00:58:09.479Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "033753fbfa0a09fda8f248f3ad81bbbcc23d07ccb91a12a0818c4bf05b27628a"
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "id": "60ac7ddd-4476-4d21-a7c6-bd8e1fb7a706",
+          "role": "PRIMARY_PACKSHOT",
+          "parentAssetId": null,
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "APPROVED",
+          "publishedMediaId": null,
+          "templateId": null,
+          "qualityReport": null,
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/3f19868d-5d87-42b7-a94d-68c0c058fcaf.png",
+          "contentHash": "e5fffd5c1247fa346d3c86ea82206c119a4ff61e058864d0197e1e0b87ba6ccf",
+          "width": 400,
+          "height": 450,
+          "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+        },
+        {
+          "id": "45d29483-e11a-480d-a2b6-442cec9f78e2",
+          "role": "CATEGORY_EDITORIAL",
+          "parentAssetId": "60ac7ddd-4476-4d21-a7c6-bd8e1fb7a706",
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "APPROVED",
+          "publishedMediaId": null,
+          "templateId": "2c31fc87-2737-4a83-92d1-888ad3fbed3c",
+          "qualityReport": {
+            "coverage": 0.5345,
+            "warnings": [
+              "SOURCE_SHADOW_REMOVED",
+              "SMALL_SOURCE",
+              "UPSCALED"
+            ],
+            "sourceWidth": 400,
+            "productWidth": 314,
+            "sourceHeight": 450,
+            "productHeight": 329,
+            "backgroundMode": "PLAIN_BACKGROUND",
+            "placementScale": 1.1981,
+            "backgroundColor": [
+              255,
+              255,
+              255
+            ],
+            "enclosedBackgroundRatio": 0.0002
+          },
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/9e3e5499-3ab0-47c1-a90e-f2d21fe497e6.webp",
+          "contentHash": "ccf0d8b8859b516a6f04ac21336b3ac4ef2db877702ecebeb9ec4e962902391a",
+          "width": 1254,
+          "height": 1254,
+          "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+        }
+      ]
+    },
+    {
+      "code": "REAL10-CER-FOAM-236",
+      "skuId": "60e6df87-3ea0-43b5-9c0d-f48e48e66140",
+      "productId": "a078403e-1e81-4f37-a253-2fb40e4340bb",
+      "name": "CeraVe Foaming Cleanser 236ml",
+      "brand": "Cerave",
+      "category": "Cleansers",
+      "barcode": null,
+      "published": false,
+      "texture": null,
+      "targetArea": null,
+      "hasOuterCarton": null,
+      "runs": [
+        {
+          "id": "a6d01f17-8273-4a54-952e-aec5c29bc0ed",
+          "status": "COMPLETE",
+          "sources": [
+            {
+              "url": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 8,
+              "fetchedAt": "2026-11-06T00:58:04.693Z",
+              "contentHash": "cc05307306753d3c98a239f96d50574f036a41dff36afe922587394865e87732"
+            }
+          ],
+          "rejected": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "f2d5c3b4-6107-4041-93d1-eed9675f64eb",
+          "field": "identity.name",
+          "value": "CeraVe Foaming Cleanser",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Foaming Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-06T00:58:04.693Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "cc05307306753d3c98a239f96d50574f036a41dff36afe922587394865e87732"
+            }
+          ]
+        },
+        {
+          "id": "95f94299-9e0e-466f-83c3-d5240bcecc1f",
+          "field": "composition.inci",
+          "value": [
+            "AQUA/WATER",
+            "GLYCERIN",
+            "COCO-BETAINE",
+            "PROPYLENE GLYCOL",
+            "SODIUM COCOYL",
+            "GLYCINATE",
+            "PEG-120 METHYL GLUCOSE DIOLEATE",
+            "SODIUM CHLORIDE",
+            "ACRYLATES COPOLYMER",
+            "CITRIC ACID",
+            "CAPRYLOYL GLYCINE",
+            "CAPRYLOYL GLYCOL",
+            "SODIUM HYDROXIDE",
+            "NIACINAIDE",
+            "DISODIUM EDTA",
+            "SODIUM HYALURONATE",
+            "SODIUM LAUOYL",
+            "LACTYLATE",
+            "CERAMIDE NP",
+            "PHENOXYETHANOL",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "XANTHAN GUM",
+            "CARBOMER",
+            "ETHLHEXYLGLYERIN",
+            "CERAMIDE EOP"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "AQUA/WATER, GLYCERIN, COCO-BETAINE, PROPYLENE GLYCOL, SODIUM COCOYL, GLYCINATE, PEG-120 METHYL GLUCOSE DIOLEATE, SODIUM CHLORIDE, ACRYLATES COPOLYMER, CITRIC ACID, CAPRYLOYL GLYCINE, CAPRYLOYL GLYCOL, SODIUM HYDROXIDE, NIACINAIDE, DISODIUM EDTA, SODIUM HYALURONATE, SODIUM LAUOYL, LACTYLATE, CERAMIDE NP, PHENOXYETHANOL, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, XANTHAN GUM, CARBOMER, ETHLHEXYLGLY",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-06T00:58:04.693Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "cc05307306753d3c98a239f96d50574f036a41dff36afe922587394865e87732"
+            }
+          ]
+        },
+        {
+          "id": "7f6b6582-f2e9-4ba6-8136-76ef14d64a8a",
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 236
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "with 3 essential ceramides to help protect skin’s natural barrier.\nSizes available: 88ml, 236 ml, 473 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 88ml, 236 ml, 473 ml.\nShare",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-06T00:58:04.693Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "cc05307306753d3c98a239f96d50574f036a41dff36afe922587394865e87732"
+            }
+          ]
+        },
+        {
+          "id": "3e820733-1813-46b4-a440-2bafac6f1bbe",
+          "field": "composition.fragrance",
+          "value": "FREE",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "ective skin barrier of the face.\nSuitable for normal to oily skin.\nCleanses and purifies.\nFragrance free, soap free and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-06T00:58:04.693Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "cc05307306753d3c98a239f96d50574f036a41dff36afe922587394865e87732"
+            }
+          ]
+        },
+        {
+          "id": "f9b6e181-9616-48a8-a0f7-f6db401bb76c",
+          "field": "usage.instructions",
+          "value": [
+            "Recommended use in conjunction with CeraVe Moisturising Lotion."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Recommended use in conjunction with CeraVe Moisturising Lotion.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-06T00:58:04.693Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "cc05307306753d3c98a239f96d50574f036a41dff36afe922587394865e87732"
+            }
+          ]
+        },
+        {
+          "id": "2f8bbb03-7081-4004-9089-6f454be91658",
+          "field": "suitability.skinTypes",
+          "value": [
+            "normal",
+            "dry",
+            "oily",
+            "sensitive"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Foaming Facial Cleanser\nFor Normal to Oily Skin\nA purifying, foaming cleanser for normal to oily skin enriched with 3 essential ceramides",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-06T00:58:04.693Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "cc05307306753d3c98a239f96d50574f036a41dff36afe922587394865e87732"
+            }
+          ]
+        },
+        {
+          "id": "c2fda803-1b7c-417d-8a96-d712602b031c",
+          "field": "marketing.description",
+          "value": "Product Page for CeraVe Foaming Facial Cleanser",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Foaming Facial Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-06T00:58:04.693Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "cc05307306753d3c98a239f96d50574f036a41dff36afe922587394865e87732"
+            }
+          ]
+        },
+        {
+          "id": "1902debe-62ee-40c6-b2ab-890d452525c0",
+          "field": "media.sourceImages",
+          "value": [
+            "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_FoamingCleanser_NEW_v021.png"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_FoamingCleanser_NEW_v021.png",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-06T00:58:04.693Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "cc05307306753d3c98a239f96d50574f036a41dff36afe922587394865e87732"
+            }
+          ]
+        }
+      ],
+      "assets": []
+    },
+    {
+      "code": "REAL10-CER-HYD-236",
+      "skuId": "b485d6d9-dd25-432d-8a9a-a98334485777",
+      "productId": "87c77d9e-28e3-4804-a086-eb67d75a1811",
+      "name": "CeraVe Hydrating Cleanser 236ml",
+      "brand": "Cerave",
+      "category": "Cleansers",
+      "barcode": null,
+      "published": false,
+      "texture": null,
+      "targetArea": null,
+      "hasOuterCarton": null,
+      "runs": [
+        {
+          "id": "c00db691-efc8-466a-93d5-8527f84b7ab4",
+          "status": "COMPLETE",
+          "sources": [
+            {
+              "url": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 8,
+              "fetchedAt": "2026-11-06T00:58:03.980Z",
+              "contentHash": "3f9a743e3ac15f2f6937ecc1833111cbe087caf93979a24a1e03097254e3be8e"
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "id": "f889c849-a125-4ef8-ae02-adfef45ccbf8",
+          "status": "NO_EVIDENCE",
+          "sources": [
+            {
+              "url": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "detail": "robots.txt could not be read",
+              "origin": "ADMIN",
+              "outcome": "ROBOTS_DISALLOWED",
+              "fetchedAt": "2026-11-06T00:52:22.619Z"
+            }
+          ],
+          "rejected": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "5cd6ef23-ca91-412c-a6ba-e85d7a31d249",
+          "field": "identity.name",
+          "value": "CeraVe Hydrating Cleanser",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Hydrating Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-06T00:58:03.980Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "3f9a743e3ac15f2f6937ecc1833111cbe087caf93979a24a1e03097254e3be8e"
+            }
+          ]
+        },
+        {
+          "id": "8e6efb7f-d79f-414e-81ba-fe4adc4a09d2",
+          "field": "composition.inci",
+          "value": [
+            "AQUA/WATER",
+            "GLYCERIN",
+            "CETEARYL ALCOHOL",
+            "PHENOXYETHANOL",
+            "STEARYL ALCOHOL",
+            "CETYLE ALCOHOL",
+            "PEG-40 STEARATE",
+            "BEHENTRIMONIUM METHOSULFATE",
+            "GLYCERYL STEARATE",
+            "POLYSORBATE 20",
+            "ETHLYHEXYLGLYCERIN",
+            "POTASSIUM PHOSPHATE",
+            "DISODIUM EDTA",
+            "DIPOTASSIUM PHOSPHATE",
+            "SODIUM LAUROYL LACTYLATE",
+            "CERAMIDE NP",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "SODIUM HYALURONATE",
+            "XANTHUM GUM",
+            "CARBOMER",
+            "TOCOPHEROL",
+            "CERAMIDE EOP"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "AQUA/WATER, GLYCERIN, CETEARYL ALCOHOL, PHENOXYETHANOL, STEARYL ALCOHOL, CETYLE ALCOHOL, PEG-40 STEARATE, BEHENTRIMONIUM METHOSULFATE, GLYCERYL STEARATE, POLYSORBATE 20, ETHLYHEXYLGLYCERIN, POTASSIUM PHOSPHATE, DISODIUM EDTA, DIPOTASSIUM PHOSPHATE, SODIUM LAUROYL LACTYLATE, CERAMIDE NP, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, SODIUM HYALURONATE, XANTHUM GUM, CARBOMER, TOCOPHEROL, CERAMIDE EOP",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-06T00:58:03.980Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "3f9a743e3ac15f2f6937ecc1833111cbe087caf93979a24a1e03097254e3be8e"
+            }
+          ]
+        },
+        {
+          "id": "5274eaca-544a-4f19-b6c6-ddbcd14d15a1",
+          "field": "composition.fragrance",
+          "value": "FREE",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "kin hydration after just one use.\nSuitable for normal to dry skin.\nCleanses and hydrates.\nFragrance free, soap free and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-06T00:58:03.980Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "3f9a743e3ac15f2f6937ecc1833111cbe087caf93979a24a1e03097254e3be8e"
+            }
+          ]
+        },
+        {
+          "id": "3cfff135-c191-433e-9807-4dcce82d6f41",
+          "field": "usage.instructions",
+          "value": [
+            "A hydrating and soothing facial cleansing lotion for normal to dry skin on the face and body. This soap free, non-foaming lotion gently removes dirt and oil while increasing skin hydration after just one use.",
+            "Recommended use in conjunction with CeraVe Moisturizing Cream"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "A hydrating and soothing facial cleansing lotion for normal to dry skin on the face and body. This soap free, non-foaming lotion gently removes dirt and oil while increasing skin hydration after just one use. Recommended use in conjunction with CeraVe Moisturizing Cream",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-06T00:58:03.980Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "3f9a743e3ac15f2f6937ecc1833111cbe087caf93979a24a1e03097254e3be8e"
+            }
+          ]
+        },
+        {
+          "id": "fbe45bca-bbe3-4655-a60c-2844084e3e1d",
+          "field": "suitability.skinTypes",
+          "value": [
+            "normal",
+            "dry",
+            "sensitive"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Hydrating Facial Cleanser\nFor Normal to Dry Skin\nA moisturising cleansing lotion for normal to dry skin with 3 essential ceramides to help",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-06T00:58:03.980Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "3f9a743e3ac15f2f6937ecc1833111cbe087caf93979a24a1e03097254e3be8e"
+            }
+          ]
+        },
+        {
+          "id": "2cec61ab-d363-4088-9231-92bd91b02ddb",
+          "field": "marketing.description",
+          "value": "Product Page for CeraVe Hydrating Facial Cleanser",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Hydrating Facial Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-06T00:58:03.980Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "3f9a743e3ac15f2f6937ecc1833111cbe087caf93979a24a1e03097254e3be8e"
+            }
+          ]
+        },
+        {
+          "id": "9d5797e9-ebed-4442-bf6c-01f5a3ad28ce",
+          "field": "media.sourceImages",
+          "value": [
+            "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_HydratingCleanser_NEW_v021.jpg"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_HydratingCleanser_NEW_v021.jpg",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-06T00:58:03.980Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "3f9a743e3ac15f2f6937ecc1833111cbe087caf93979a24a1e03097254e3be8e"
+            }
+          ]
+        },
+        {
+          "id": "1a2d099f-56c2-4c93-b740-98892fe1fee2",
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 236
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "with 3 essential ceramides to help protect skin’s natural barrier.\nSizes available: 88ml, 236 ml, 473 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 88ml, 236 ml, 473 ml.\nShare",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-06T00:58:03.980Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "3f9a743e3ac15f2f6937ecc1833111cbe087caf93979a24a1e03097254e3be8e"
+            }
+          ]
+        }
+      ],
+      "assets": []
+    },
+    {
+      "code": "REAL10-CER-LOTION-236",
+      "skuId": "92653b7f-b712-42a1-8f8f-a7fe9a1fa403",
+      "productId": "9fe87bdc-8dc2-4dd5-8926-dcca7d7f667b",
+      "name": "CeraVe Moisturising Lotion 236ml",
+      "brand": "Cerave",
+      "category": "Moisturizers",
+      "barcode": null,
+      "published": false,
+      "texture": "LOTION",
+      "targetArea": null,
+      "hasOuterCarton": null,
+      "runs": [
+        {
+          "id": "13720ae9-b565-43be-8575-874f07304b7e",
+          "status": "COMPLETE",
+          "sources": [
+            {
+              "url": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 9,
+              "fetchedAt": "2026-11-06T00:58:11.898Z",
+              "contentHash": "ee5f159d7cb01bf45b8d93386858e7b2633c80438b3c726cf4de75152b7802a6"
+            }
+          ],
+          "rejected": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "654e1135-1f80-493e-8ade-3a8a4cf470f5",
+          "field": "identity.name",
+          "value": "CeraVe Moisturising Lotion",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Moisturising Lotion",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion",
+              "observedAt": "2026-11-06T00:58:11.898Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ee5f159d7cb01bf45b8d93386858e7b2633c80438b3c726cf4de75152b7802a6"
+            }
+          ]
+        },
+        {
+          "id": "6f36b344-3355-451b-917c-7a2a2be3e964",
+          "field": "composition.inci",
+          "value": [
+            "AQUA / WATER",
+            "GLYCERIN",
+            "CAPRYLIC/CAPRIC TRIGLYCERIDE",
+            "CETEARYL ALCOHOL",
+            "CETYL ALCOHOL",
+            "DIMETHICONE",
+            "PHENOXYETHANOL",
+            "POLYSORBATE 20",
+            "CETEARETH-20",
+            "BEHENTRIMONIUM METHOSULFATE",
+            "POLYGLYCERYL-3 DIISOSTEARATE",
+            "SODIUM LAUROYL LACTYLATE",
+            "ETHYLHEXYLGLYCERIN",
+            "POTASSIUM PHOSPHATE",
+            "DISODIUM EDTA",
+            "DIPOTASSIUM PHOSPHATE",
+            "CERAMIDE NP",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "XANTHAN GUM",
+            "CARBOMER",
+            "SODIUM HYALURONATE",
+            "TOCOPHEROL",
+            "CERAMIDE EOP"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "AQUA / WATER, GLYCERIN, CAPRYLIC/CAPRIC TRIGLYCERIDE, CETEARYL ALCOHOL, CETYL ALCOHOL, DIMETHICONE, PHENOXYETHANOL, POLYSORBATE 20 , CETEARETH-20, BEHENTRIMONIUM METHOSULFATE, POLYGLYCERYL-3 DIISOSTEARATE, SODIUM LAUROYL LACTYLATE, ETHYLHEXYLGLYCERIN, POTASSIUM PHOSPHATE, DISODIUM EDTA, DIPOTASSIUM PHOSPHATE, CERAMIDE NP, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, XANTHAN GUM, CARBOMER, SODIUM HY",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion",
+              "observedAt": "2026-11-06T00:58:11.898Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ee5f159d7cb01bf45b8d93386858e7b2633c80438b3c726cf4de75152b7802a6"
+            }
+          ]
+        },
+        {
+          "id": "7d0259b0-c7e1-46db-a4ce-b9b4091b2b58",
+          "field": "composition.fragrance",
+          "value": "FREE",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "the protective skin barrier.\nLightweight formula locks in moisture for 24 hour hydration.\nFragrance-free, non-irritating, non-comedogenic.\nWith 3 essential ceramides to protect skin's natur",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion",
+              "observedAt": "2026-11-06T00:58:11.898Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ee5f159d7cb01bf45b8d93386858e7b2633c80438b3c726cf4de75152b7802a6"
+            }
+          ]
+        },
+        {
+          "id": "bfa479d9-f43a-4833-9dc6-43b68e0b627b",
+          "field": "usage.instructions",
+          "value": [
+            "A lightweight moisturising body lotion that provides up to 24-hour hydration and helps protect the skin barrier. Specifically formulated, lightweight formula to moisturise sensitive skin that is dry. Also suitable for use on eczema-prone skin."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "A lightweight moisturising body lotion that provides up to 24-hour hydration and helps protect the skin barrier. Specifically formulated, lightweight formula to moisturise sensitive skin that is dry. Also suitable for use on eczema-prone skin.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion",
+              "observedAt": "2026-11-06T00:58:11.898Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ee5f159d7cb01bf45b8d93386858e7b2633c80438b3c726cf4de75152b7802a6"
+            }
+          ]
+        },
+        {
+          "id": "290e1207-945c-454b-8787-1c4fa1097535",
+          "field": "suitability.skinTypes",
+          "value": [
+            "normal",
+            "dry"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Daily Moisturising Lotion\nFor Dry Skin\nSuitable for dry skin.\nRecommended use in conjunction with CeraVe cleansers.\nA moisturisi",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion",
+              "observedAt": "2026-11-06T00:58:11.898Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ee5f159d7cb01bf45b8d93386858e7b2633c80438b3c726cf4de75152b7802a6"
+            }
+          ]
+        },
+        {
+          "id": "ec4eeb63-8794-4fee-89fd-bf03536cf7b7",
+          "field": "marketing.description",
+          "value": "Product Page for CeraVe Daily Moisturising Lotion",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Daily Moisturising Lotion",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion",
+              "observedAt": "2026-11-06T00:58:11.898Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ee5f159d7cb01bf45b8d93386858e7b2633c80438b3c726cf4de75152b7802a6"
+            }
+          ]
+        },
+        {
+          "id": "86d7997b-bd72-4ecf-8434-326335d57658",
+          "field": "media.sourceImages",
+          "value": [
+            "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/Moisturizers/CeraVe_MoisturizingLotion_NEW_v021.png"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/Moisturizers/CeraVe_MoisturizingLotion_NEW_v021.png",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion",
+              "observedAt": "2026-11-06T00:58:11.898Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ee5f159d7cb01bf45b8d93386858e7b2633c80438b3c726cf4de75152b7802a6"
+            }
+          ]
+        },
+        {
+          "id": "f34ac5e6-2457-4e68-81bb-8a5836cbe2f9",
+          "field": "attributes.texture",
+          "value": "LOTION",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Moisturising Lotion",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion",
+              "observedAt": "2026-11-06T00:58:11.898Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ee5f159d7cb01bf45b8d93386858e7b2633c80438b3c726cf4de75152b7802a6"
+            }
+          ]
+        },
+        {
+          "id": "6bfb4edb-e17a-4c0c-a95e-44c1124e77f1",
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 236
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "ation with 3 essential ceramides to help protect skin’s natural barrier.\nSizes available: 236 ml, 473 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 236 ml, 473 ml.\nShare this",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion",
+              "observedAt": "2026-11-06T00:58:11.898Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ee5f159d7cb01bf45b8d93386858e7b2633c80438b3c726cf4de75152b7802a6"
+            }
+          ]
+        }
+      ],
+      "assets": []
+    },
+    {
+      "code": "REAL10-CER-SA-236",
+      "skuId": "7d046b45-70a2-4f8c-bb9e-190e02826001",
+      "productId": "2cf1ea55-fac7-4104-8036-f0be163d6fb9",
+      "name": "CeraVe SA Smoothing Cleanser 236ml",
+      "brand": "Cerave",
+      "category": "Cleansers",
+      "barcode": null,
+      "published": false,
+      "texture": null,
+      "targetArea": null,
+      "hasOuterCarton": null,
+      "runs": [
+        {
+          "id": "093000bf-f7df-47cb-bd1f-7465af6edfcd",
+          "status": "COMPLETE",
+          "sources": [
+            {
+              "url": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 8,
+              "fetchedAt": "2026-11-06T00:58:07.388Z",
+              "contentHash": "ce9137b563145b46726e6b77dc1cd92dfae12183d632ca9d4b6e6f05cfb6ae67"
+            }
+          ],
+          "rejected": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "66f2a8d9-4630-494b-9d6d-23ff6fded5b2",
+          "field": "identity.name",
+          "value": "CeraVe SA Smoothing Cleanser",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe SA Smoothing Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-06T00:58:07.388Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ce9137b563145b46726e6b77dc1cd92dfae12183d632ca9d4b6e6f05cfb6ae67"
+            }
+          ]
+        },
+        {
+          "id": "4542ae56-ef45-4644-9e86-f121a649e4b0",
+          "field": "composition.inci",
+          "value": [
+            "AQUA / WATER",
+            "SODIUM LAUROYL SARCOSINATE",
+            "COCAMIDOPROPYL HYDROXYSULTAINE",
+            "GLYCERIN",
+            "NIACINAMIDE",
+            "GLUCONOLACTONE",
+            "SODIUM METHYL COCOYL TAURATE",
+            "PEG-150 PENTAERYTHRITYL TETRASTEARATE",
+            "CERAMIDE NP",
+            "CERAMIDE AP",
+            "CERAMIDE EOP",
+            "CARBOMER",
+            "CALCIUM GLUCONATE",
+            "SALICYLIC ACID",
+            "SODIUM BENZOATE",
+            "SODIUM LAUROYL LACTYLATE",
+            "CHOLESTEROL",
+            "PHENOXYETHANOL",
+            "DISODIUM EDTA",
+            "TETRASODIUM EDTA",
+            "HYDROLYZED HYALURONIC ACID",
+            "PHYTOSPHINGOSINE",
+            "XANTHAN GUM",
+            "ETHYLHEXYLGLYCERIN"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "AQUA / WATER, SODIUM LAUROYL SARCOSINATE, COCAMIDOPROPYL HYDROXYSULTAINE, GLYCERIN, NIACINAMIDE, GLUCONOLACTONE, SODIUM METHYL COCOYL TAURATE, PEG-150 PENTAERYTHRITYL TETRASTEARATE, CERAMIDE NP, CERAMIDE AP, CERAMIDE EOP, CARBOMER, CALCIUM GLUCONATE, SALICYLIC ACID, SODIUM BENZOATE, SODIUM LAUROYL LACTYLATE, CHOLESTEROL, PHENOXYETHANOL, DISODIUM EDTA, TETRASODIUM EDTA, HYDROLYZED HYALURONIC ACID, ",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-06T00:58:07.388Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ce9137b563145b46726e6b77dc1cd92dfae12183d632ca9d4b6e6f05cfb6ae67"
+            }
+          ]
+        },
+        {
+          "id": "2428ed41-20f3-4786-87e1-b1546b9a45a5",
+          "field": "composition.fragrance",
+          "value": "FREE",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "d makeup.\nStar ingredients: Salicylic Acid, Hyaluronic Acid.\nFree of physical exfoliants.\nFragrance-free, non-irritating, non-comedogenic.\nWith 3 essential ceramides to protect skin's natur",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-06T00:58:07.388Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ce9137b563145b46726e6b77dc1cd92dfae12183d632ca9d4b6e6f05cfb6ae67"
+            }
+          ]
+        },
+        {
+          "id": "7b4b2750-aaaf-44f9-8bb5-1960746132b7",
+          "field": "usage.instructions",
+          "value": [
+            "CeraVe SA Smoothing Cleanser for the face and body. This cleanser helps to alleviate rough and bumpy skin texture, leaving skin feeling smoother. The Salicyclic Acid in the formula gently exfoliates the skin, without compromising the skin's natural barrier. Developed with dermatologists, this daily foaming cleanser helps protect the skin's natural barrier with three essential ceramides and hydrates the skin with Hyaluronic Acid."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe SA Smoothing Cleanser for the face and body. This cleanser helps to alleviate rough and bumpy skin texture, leaving skin feeling smoother. The Salicyclic Acid in the formula gently exfoliates the skin, without compromising the skin's natural barrier. Developed with dermatologists, this daily foaming cleanser helps protect the skin's natural barrier with three essential ceramides and hydrate",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-06T00:58:07.388Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ce9137b563145b46726e6b77dc1cd92dfae12183d632ca9d4b6e6f05cfb6ae67"
+            }
+          ]
+        },
+        {
+          "id": "fa7e380a-ba34-4352-8296-4224e466ba02",
+          "field": "suitability.skinTypes",
+          "value": [
+            "sensitive"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe SA Smoothing Cleanser\nFor Dry, Rough, Bumpy Skin\nSuitable for rough and bumpy skin. Also suitable for skin prone to Keratosis Piliaris.\nRe",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-06T00:58:07.388Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ce9137b563145b46726e6b77dc1cd92dfae12183d632ca9d4b6e6f05cfb6ae67"
+            }
+          ]
+        },
+        {
+          "id": "e4021294-f83d-4758-9f60-cf18ff931fa1",
+          "field": "marketing.description",
+          "value": "Product Page for CeraVe SA Smoothing Cleanser",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe SA Smoothing Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-06T00:58:07.388Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ce9137b563145b46726e6b77dc1cd92dfae12183d632ca9d4b6e6f05cfb6ae67"
+            }
+          ]
+        },
+        {
+          "id": "3e437566-8e62-4ab9-abd0-b0197235a4eb",
+          "field": "media.sourceImages",
+          "value": [
+            "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/Moisturizers/sa-smoothing-cleanser2.png"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/Moisturizers/sa-smoothing-cleanser2.png",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-06T00:58:07.388Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ce9137b563145b46726e6b77dc1cd92dfae12183d632ca9d4b6e6f05cfb6ae67"
+            }
+          ]
+        },
+        {
+          "id": "d18f3421-3230-41bb-a8cb-1c1348266c12",
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 236
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "y, Rough, Bumpy Skin\nSalicylic acid foaming gel cleanser for smooth skin\nSizes available: 236 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 236 ml.\nShare this product:\nPRODUCT",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-06T00:58:07.388Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ce9137b563145b46726e6b77dc1cd92dfae12183d632ca9d4b6e6f05cfb6ae67"
+            }
+          ]
+        }
+      ],
+      "assets": []
+    },
+    {
+      "code": "REAL10-CLA-COND-300",
+      "skuId": "e71a4e50-b98d-4814-800d-ffa2170ae894",
+      "productId": "84e036ea-c53a-46ca-9465-72f1f3738fad",
+      "name": "Clary Hair Conditioner 300ml",
+      "brand": "Clary Corporation",
+      "category": "Conditioners",
+      "barcode": null,
+      "published": false,
+      "texture": null,
+      "targetArea": "HAIR",
+      "hasOuterCarton": null,
+      "runs": [
+        {
+          "id": "68c38fe9-81b2-4091-9a88-e70ac7f43100",
+          "status": "COMPLETE",
+          "sources": [
+            {
+              "url": "https://eparkville.com/products/clary-hair-conditioner-300ml",
+              "tier": "TRUSTED_DISTRIBUTOR",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 9,
+              "fetchedAt": "2026-11-06T00:58:14.231Z",
+              "contentHash": "4cc62694082b93f25f7c99fb82b6da31246dfb9f1e0389168146db4412a83181"
+            }
+          ],
+          "rejected": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "961f0b77-1cb6-42d6-a5ae-5436cb05ab10",
+          "field": "identity.name",
+          "value": "Clary Hair Conditioner 300 ml",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Conditioner 300 ml",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml",
+              "observedAt": "2026-11-06T00:58:14.231Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "4cc62694082b93f25f7c99fb82b6da31246dfb9f1e0389168146db4412a83181"
+            }
+          ]
+        },
+        {
+          "id": "d78d85cd-cbca-41fc-8bf0-45a0c1e992c7",
+          "field": "identity.brand",
+          "value": "Clary",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "brand: Clary",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml",
+              "observedAt": "2026-11-06T00:58:14.231Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "4cc62694082b93f25f7c99fb82b6da31246dfb9f1e0389168146db4412a83181"
+            }
+          ]
+        },
+        {
+          "id": "7449c103-1795-4797-a5df-766d2a47bc26",
+          "field": "usage.instructions",
+          "value": [
+            "After shampooing, apply to damp hair, focusing on mid-lengths and ends.",
+            "Leave on for 3-5 minutes for deep hydration.",
+            "Rinse thoroughly.",
+            "Use regularly for best results & for your hair's deep hydration. Use it as a part of your hair sandwich technique.",
+            "Apply to your hair for 1:2 minutes and then rinse. Apply to locks only"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "After shampooing, apply to damp hair, focusing on mid-lengths and ends. Leave on for 3-5 minutes for deep hydration. Rinse thoroughly. Use regularly for best results & for your hair's deep hydration. Use it as a part of your hair sandwich technique. Apply to your hair for 1:2 minutes and then rinse. Apply to locks only After shampooing, apply to damp hair, focusing on mid-lengths and ends. Leave o",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml",
+              "observedAt": "2026-11-06T00:58:14.231Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "4cc62694082b93f25f7c99fb82b6da31246dfb9f1e0389168146db4412a83181"
+            }
+          ]
+        },
+        {
+          "id": "94aaafe5-6e23-4e55-af0c-e8616d6d4d27",
+          "field": "suitability.hairTypes",
+          "value": [
+            "all"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Clary Conditioner – Hydrate, Nourish & Combat DrynessPerfect Partner for Your Hair Care Shampoo\nBring balance back to your hair with Clary Conditioner, designed to work per",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml",
+              "observedAt": "2026-11-06T00:58:14.231Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "4cc62694082b93f25f7c99fb82b6da31246dfb9f1e0389168146db4412a83181"
+            }
+          ]
+        },
+        {
+          "id": "45ba2cac-7cbc-4601-9026-edb278d1eae5",
+          "field": "marketing.description",
+          "value": "Clary Conditioner – Hydrate, Nourish & Combat DrynessPerfect Partner for Your Hair Care Shampoo Bring balance back to your hair with Clary Conditioner, designed to work perfectly with Clary Shampoo to combat dryness and restore moisture. Its gentle yet effective formula hydrates, softens, and detangles hair, leaving it smooth, manageable, and healthy-looking. Key Benefits:Fights DrynessReplenishes moisture to hair strands, preventing brittleness and dullness.Soft & Manageable HairDetangles knots and smooths the hair for effortless styling.Complements Clary ShampooEnhances the benefits of your hair care routine for maximum hydration.Gentle FormulaSuitable for daily use on all hair types, including dry and sensitive hair. Why You’ll Love It:Clary Conditioner ensures your hair stays hydrated, smooth, and soft after every wash. When used with Clary Shampoo, it creates a complete hair care system that combats dryness, leaving your hair healthy, shiny, and nourished. How to Use:After shampooing, apply to damp hair, focusing on mid-lengths and ends.Leave on for 3-5 minutes for deep hydration.Rinse thoroughly.Use regularly for best results & for your hair's deep hydration. Use it as a part of your hair sandwich technique. Ideal For:All hair types, especially dry hairCombating hair dryness and brittlenessDaily hair hydration and softnessEnhancing your shampoo’s effectiveness Product Details:Product Name: Clary ConditionerBenefits: Hydrates, softens, detangles, combats drynessHair Type: All hair typesPair With: Clary Shampoo",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Clary Conditioner – Hydrate, Nourish & Combat DrynessPerfect Partner for Your Hair Care Shampoo\nBring balance back to your hair with Clary Conditioner, designed to work perfectly with Clary Shampoo to combat dryness and restore moisture. Its gentle yet effective formula hydrates, softens, and detangles hair, leaving it smooth, manageable, and healthy-looking.\nKey Benefits:Fights DrynessReplenishes",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml",
+              "observedAt": "2026-11-06T00:58:14.231Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "4cc62694082b93f25f7c99fb82b6da31246dfb9f1e0389168146db4412a83181"
+            }
+          ]
+        },
+        {
+          "id": "2115558f-9a2c-4a40-8e5f-81ac7a8a80f4",
+          "field": "claims.manufacturerStated",
+          "value": [
+            "Replenishes moisture to hair strands, preventing brittleness and dullness.",
+            "Detangles knots and smooths the hair for effortless styling.",
+            "Complements Clary Shampoo",
+            "Enhances the benefits of your hair care routine for maximum hydration."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Replenishes moisture to hair strands, preventing brittleness and dullness. Detangles knots and smooths the hair for effortless styling. Complements Clary Shampoo Enhances the benefits of your hair care routine for maximum hydration. Replenishes moisture to hair strands, preventing brittleness and dullness. Detangles knots and smooths the hair for effortless styling. Complements Clary Shampoo Enhan",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml",
+              "observedAt": "2026-11-06T00:58:14.231Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "4cc62694082b93f25f7c99fb82b6da31246dfb9f1e0389168146db4412a83181"
+            }
+          ]
+        },
+        {
+          "id": "c8511ef9-668d-4873-90a9-5bbece1ff4ad",
+          "field": "media.sourceImages",
+          "value": [
+            "https://eparkville.com/cdn/shop/files/ClaryHairConditioner300ml.png?v=1733875683&width=1080"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://eparkville.com/cdn/shop/files/ClaryHairConditioner300ml.png?v=1733875683&width=1080",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml",
+              "observedAt": "2026-11-06T00:58:14.231Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "4cc62694082b93f25f7c99fb82b6da31246dfb9f1e0389168146db4412a83181"
+            }
+          ]
+        },
+        {
+          "id": "ae634f6b-e905-4971-a94e-206b9a39f2aa",
+          "field": "usage.targetArea",
+          "value": "HAIR",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Conditioner 300 ml",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml",
+              "observedAt": "2026-11-06T00:58:14.231Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "4cc62694082b93f25f7c99fb82b6da31246dfb9f1e0389168146db4412a83181"
+            }
+          ]
+        },
+        {
+          "id": "22cdaaa7-77fc-4910-b68d-63ffa700ae4e",
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 300
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Conditioner 300ml — Repair & Hydrate Treatment\n- E Parkville\nSkip to content\nSearch within:\nAll products",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml",
+              "observedAt": "2026-11-06T00:58:14.231Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "4cc62694082b93f25f7c99fb82b6da31246dfb9f1e0389168146db4412a83181"
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "id": "d07d284b-8fc0-4879-8296-cb148a8aaafc",
+          "role": "PRIMARY_PACKSHOT",
+          "parentAssetId": null,
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "APPROVED",
+          "publishedMediaId": null,
+          "templateId": null,
+          "qualityReport": null,
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/d8fad876-b73f-4be8-b892-61cc783f5702.png",
+          "contentHash": "348024dd61946016cd5522ec8e7fbf7f6d572fda03abc615158749809e040b9b",
+          "width": 1080,
+          "height": 1080,
+          "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml"
+        },
+        {
+          "id": "2725dfec-ef44-44a8-a5ff-373c140f55ed",
+          "role": "CATEGORY_EDITORIAL",
+          "parentAssetId": "d07d284b-8fc0-4879-8296-cb148a8aaafc",
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "REJECTED",
+          "publishedMediaId": null,
+          "templateId": "2c31fc87-2737-4a83-92d1-888ad3fbed3c",
+          "qualityReport": {
+            "coverage": 0.3085,
+            "warnings": [
+              "SOURCE_SHADOW_REMOVED",
+              "LOW_EDGE_CONTRAST"
+            ],
+            "sourceWidth": 1080,
+            "productWidth": 453,
+            "sourceHeight": 1080,
+            "productHeight": 991,
+            "backgroundMode": "PLAIN_BACKGROUND",
+            "placementScale": 0.6327,
+            "backgroundColor": [
+              255,
+              255,
+              255
+            ],
+            "enclosedBackgroundRatio": 0.0031
+          },
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/235b4881-bcc5-4498-a05a-f020b2c600c6.webp",
+          "contentHash": "ffaf56d7f5e6ae62b0442a5cccf45ce932e75f50e9f647ad73c5fc1255dc1b1b",
+          "width": 1254,
+          "height": 1254,
+          "sourceUrl": "https://eparkville.com/products/clary-hair-conditioner-300ml"
+        }
+      ]
+    },
+    {
+      "code": "REAL10-CLA-MASK-300",
+      "skuId": "a846a1cb-ed16-40f1-a938-2e4391ab3d22",
+      "productId": "5dbfbb1e-d22a-4c6e-968a-1157ea1948a7",
+      "name": "Clary Hair Mask 300ml",
+      "brand": "Clary Corporation",
+      "category": "Hair Treatments & Styling",
+      "barcode": null,
+      "published": false,
+      "texture": null,
+      "targetArea": "HAIR",
+      "hasOuterCarton": null,
+      "runs": [
+        {
+          "id": "0d5e744a-c69d-4c6b-b663-72584d423c19",
+          "status": "COMPLETE",
+          "sources": [
+            {
+              "url": "https://eparkville.com/products/clary-hair-mask-300ml",
+              "tier": "TRUSTED_DISTRIBUTOR",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 9,
+              "fetchedAt": "2026-11-06T00:58:16.437Z",
+              "contentHash": "48503e0120d02fa6973f39ce4e89f084e604b5b773b9891b82d5e5b53965221c"
+            }
+          ],
+          "rejected": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "96e808dd-c275-45fa-a016-aa2120b6795e",
+          "field": "identity.name",
+          "value": "Clary Hair Mask 300 ml",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Mask 300 ml",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml",
+              "observedAt": "2026-11-06T00:58:16.437Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "48503e0120d02fa6973f39ce4e89f084e604b5b773b9891b82d5e5b53965221c"
+            }
+          ]
+        },
+        {
+          "id": "25796900-c4ef-4fda-a187-74ef5cc67d51",
+          "field": "identity.brand",
+          "value": "Clary",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "brand: Clary",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml",
+              "observedAt": "2026-11-06T00:58:16.437Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "48503e0120d02fa6973f39ce4e89f084e604b5b773b9891b82d5e5b53965221c"
+            }
+          ]
+        },
+        {
+          "id": "e2499744-a664-41aa-9ade-1350b7e57396",
+          "field": "usage.instructions",
+          "value": [
+            "Apply to clean, damp hair, focusing on mid-lengths and ends.",
+            "Leave on for 10–15 minutes to allow deep absorption. You can use it for the hair sandwich technique.",
+            "Rinse thoroughly and style as usual.",
+            "Use 1–2 times per week for optimal results.",
+            "Wash your hair with Clary shampoo. Apply a palm-sized amount of Clary Hair Mask to wet hair starting at the ends and heading toward the roots. Let it be absorbed for 1:2 minutes and then rinse thoroughly with water. For intensive care: Apply to dry hair and leave it on for 15 minutes while wrapping your head with a towel. Use once a week (for normal to oily hair) or a maximum of twice a week (if you have dry or damaged hair)"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Apply to clean, damp hair, focusing on mid-lengths and ends. Leave on for 10–15 minutes to allow deep absorption. You can use it for the hair sandwich technique. Rinse thoroughly and style as usual. Use 1–2 times per week for optimal results. Wash your hair with Clary shampoo. Apply a palm-sized amount of Clary Hair Mask to wet hair starting at the ends and heading toward the roots. Let it be abso",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml",
+              "observedAt": "2026-11-06T00:58:16.437Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "48503e0120d02fa6973f39ce4e89f084e604b5b773b9891b82d5e5b53965221c"
+            }
+          ]
+        },
+        {
+          "id": "3838a59e-47b8-442a-80a9-f71b92b25e44",
+          "field": "suitability.hairTypes",
+          "value": [
+            "all"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Mask – Nourish, Repair & ShineDeep Conditioning Treatment for Healthy, Smooth HairTransfo",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml",
+              "observedAt": "2026-11-06T00:58:16.437Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "48503e0120d02fa6973f39ce4e89f084e604b5b773b9891b82d5e5b53965221c"
+            }
+          ]
+        },
+        {
+          "id": "515edd7f-333f-4898-b72a-f010069f71cd",
+          "field": "usage.targetArea",
+          "value": "HAIR",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Mask 300 ml",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml",
+              "observedAt": "2026-11-06T00:58:16.437Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "48503e0120d02fa6973f39ce4e89f084e604b5b773b9891b82d5e5b53965221c"
+            }
+          ]
+        },
+        {
+          "id": "c5346f03-bca6-4052-accc-1b8017dd79e4",
+          "field": "marketing.description",
+          "value": "Clary Hair Mask – Nourish, Repair & ShineDeep Conditioning Treatment for Healthy, Smooth HairTransform your hair with Clary Hair Mask, a rich and effective formula designed to nourish, repair, and rejuvenate your strands. Enriched with 3% Procapil, this mask helps strengthen hair follicles, reduce breakage, and enhance hair density, leaving your hair smooth, shiny, and healthy, with no dandruff. Its deeply moisturizing formula allows your hair to breathe and recover, making it the perfect complement to your hair care routine for soft, sleek, and resilient hair. Key Benefits:Nourishes & Repairs HairDeep conditioning restores vitality, strengthens strands, and prevents damage.Enriched with 3% ProcapilSupports hair follicle health, strengthens roots, and reduces hair loss.Smooth & Shiny FinishLeaves hair sleek, soft, and naturally radiant.Breathable FormulaAllows hair to recover, promoting healthier, stronger strands.Complements Hair Care RoutinePerfect as a weekly treatment to boost overall hair health and resilience. Why You’ll Love It:Clary Hair Mask delivers luxurious care for dry, damaged, or weak hair, providing intense nourishment and repair while leaving hair visibly smoother, shinier, and more manageable. It’s your go-to solution for strong, healthy, and beautiful hair. How to Use:Apply to clean, damp hair, focusing on mid-lengths and ends.Leave on for 10–15 minutes to allow deep absorption. You can use it for the hair sandwich technique. Rinse thoroughly and style as usual.Use 1–2 times per week for optimal results. Ideal For:All hair types, especially dry or damaged hairStrengthening hair follicles and preventing breakageAdding shine, smoothness, and manageabilityWeekly deep conditioning and repair Product Details:Product Name: Clary Hair MaskKey Ingredient: 3% ProcapilBenefits: Nourishing, repairing, strengthens follicles, smooths, adds shineHair Type: All hair types",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Mask – Nourish, Repair & ShineDeep Conditioning Treatment for Healthy, Smooth HairTransform your hair with Clary Hair Mask, a rich and effective formula designed to nourish, repair, and rejuvenate your strands. Enriched with 3% Procapil, this mask helps strengthen hair follicles, reduce breakage, and enhance hair density, leaving your hair smooth, shiny, and healthy, with no dandruff. I",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml",
+              "observedAt": "2026-11-06T00:58:16.437Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "48503e0120d02fa6973f39ce4e89f084e604b5b773b9891b82d5e5b53965221c"
+            }
+          ]
+        },
+        {
+          "id": "a18f37d6-4aaa-4a72-b509-ee141d9403f0",
+          "field": "claims.manufacturerStated",
+          "value": [
+            "Deep conditioning restores vitality, strengthens strands, and prevents damage.",
+            "Enriched with 3% Procapil",
+            "Supports hair follicle health, strengthens roots, and reduces hair loss.",
+            "Leaves hair sleek, soft, and naturally radiant."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Deep conditioning restores vitality, strengthens strands, and prevents damage. Enriched with 3% Procapil Supports hair follicle health, strengthens roots, and reduces hair loss. Leaves hair sleek, soft, and naturally radiant. Deep conditioning restores vitality, strengthens strands, and prevents damage. Enriched with 3% Procapil Supports hair follicle health, strengthens roots, and reduces hair lo",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml",
+              "observedAt": "2026-11-06T00:58:16.437Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "48503e0120d02fa6973f39ce4e89f084e604b5b773b9891b82d5e5b53965221c"
+            }
+          ]
+        },
+        {
+          "id": "9bbab433-f65c-4709-a3e7-272928968840",
+          "field": "media.sourceImages",
+          "value": [
+            "https://eparkville.com/cdn/shop/files/ClaryHairMask300ml_589e1244-6b8f-4c9c-81ff-589101436655.png?v=1733876305&width=1080"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://eparkville.com/cdn/shop/files/ClaryHairMask300ml_589e1244-6b8f-4c9c-81ff-589101436655.png?v=1733876305&width=1080",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml",
+              "observedAt": "2026-11-06T00:58:16.437Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "48503e0120d02fa6973f39ce4e89f084e604b5b773b9891b82d5e5b53965221c"
+            }
+          ]
+        },
+        {
+          "id": "e2237faf-b7b8-4935-9114-8dd137783b42",
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 300
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Mask 300ml — Intensive Repair & Shine Mask\n- E Parkville\nSkip to content\nSearch within:\nAll produc",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml",
+              "observedAt": "2026-11-06T00:58:16.437Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "48503e0120d02fa6973f39ce4e89f084e604b5b773b9891b82d5e5b53965221c"
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "id": "72fa72b6-3c2c-4368-8c6b-29b6586f8916",
+          "role": "PRIMARY_PACKSHOT",
+          "parentAssetId": null,
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "APPROVED",
+          "publishedMediaId": null,
+          "templateId": null,
+          "qualityReport": null,
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/68f85423-75d2-4fc6-ba44-0df9ce29062e.png",
+          "contentHash": "9fb78bf8cb8fe1975f8803122d34a6131d0d233aa6424a5646f764aa0dea028e",
+          "width": 1080,
+          "height": 1080,
+          "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml"
+        },
+        {
+          "id": "4c0bd9e3-5a98-4b95-bccf-32f4c18a8558",
+          "role": "CATEGORY_EDITORIAL",
+          "parentAssetId": "72fa72b6-3c2c-4368-8c6b-29b6586f8916",
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "APPROVED",
+          "publishedMediaId": null,
+          "templateId": "2c31fc87-2737-4a83-92d1-888ad3fbed3c",
+          "qualityReport": {
+            "coverage": 0.4038,
+            "warnings": [
+              "SOURCE_SHADOW_REMOVED",
+              "LOW_EDGE_CONTRAST"
+            ],
+            "sourceWidth": 1080,
+            "productWidth": 657,
+            "sourceHeight": 1080,
+            "productHeight": 741,
+            "backgroundMode": "PLAIN_BACKGROUND",
+            "placementScale": 0.5726,
+            "backgroundColor": [
+              255,
+              255,
+              255
+            ],
+            "enclosedBackgroundRatio": 0
+          },
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/296d0800-f6b4-4ffa-8566-de312283e219.webp",
+          "contentHash": "2e10393c6b04777a27e661cac5f8702f858862a96d07fc59bbc190758c03b486",
+          "width": 1254,
+          "height": 1254,
+          "sourceUrl": "https://eparkville.com/products/clary-hair-mask-300ml"
+        }
+      ]
+    },
+    {
+      "code": "REAL10-CLA-SHAM-300",
+      "skuId": "fc5b95d6-a0ac-4d45-b1c0-58bf5edeb6c4",
+      "productId": "db6e148e-e547-4c3f-a810-5c9be4e83494",
+      "name": "Clary Hair Shampoo 300ml",
+      "brand": "Clary Corporation",
+      "category": "Shampoos",
+      "barcode": null,
+      "published": false,
+      "texture": null,
+      "targetArea": "HAIR",
+      "hasOuterCarton": null,
+      "runs": [
+        {
+          "id": "57a5e499-d599-4476-8ab5-2fcb25b58f2d",
+          "status": "COMPLETE",
+          "sources": [
+            {
+              "url": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "tier": "TRUSTED_DISTRIBUTOR",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 9,
+              "fetchedAt": "2026-11-06T00:57:44.391Z",
+              "contentHash": "ad1cfa80ba933fcb2ad7faed55cac59e166b5af42b66d4749dfd46165b286425"
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "id": "e511a0da-efa6-408c-83e5-3ed399c0d0a8",
+          "status": "NO_EVIDENCE",
+          "sources": [
+            {
+              "url": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "tier": "TRUSTED_DISTRIBUTOR",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 0,
+              "fetchedAt": "2026-11-06T00:54:32.136Z",
+              "contentHash": "2a9dd5d347a588e4b777a984c970bb2375dc9afc69cccbbc3431823810e989d4"
+            }
+          ],
+          "rejected": [
+            {
+              "field": "*",
+              "detail": "Page is about \"Clary Hair Shampoo 300 ml\", not Clary Corporation Clary Hair Shampoo 300ml",
+              "reason": "IDENTITY_MISMATCH",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml"
+            }
+          ]
+        },
+        {
+          "id": "6ff94170-a42e-45bf-8dd0-e75aa8b0d987",
+          "status": "NO_EVIDENCE",
+          "sources": [
+            {
+              "url": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "tier": "TRUSTED_DISTRIBUTOR",
+              "detail": "robots.txt could not be read",
+              "origin": "ADMIN",
+              "outcome": "ROBOTS_DISALLOWED",
+              "fetchedAt": "2026-11-06T00:53:13.901Z"
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "id": "9587322b-8b3f-4027-883a-258d1c272ca7",
+          "status": "NO_EVIDENCE",
+          "sources": [
+            {
+              "url": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "tier": "RETAILER",
+              "detail": "eparkville.com",
+              "origin": "ADMIN",
+              "outcome": "HOST_NOT_APPROVED",
+              "fetchedAt": "2026-11-06T00:52:30.182Z"
+            }
+          ],
+          "rejected": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "c1c25994-bded-4c58-a8d5-d764fbf4bd9e",
+          "field": "identity.name",
+          "value": "Clary Hair Shampoo 300 ml",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Shampoo 300 ml",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "observedAt": "2026-11-06T00:57:44.391Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "ad1cfa80ba933fcb2ad7faed55cac59e166b5af42b66d4749dfd46165b286425"
+            }
+          ]
+        },
+        {
+          "id": "d69eeedd-998f-4c17-854c-0e4bf1bd0ff0",
+          "field": "identity.brand",
+          "value": "Clary",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "brand: Clary",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "observedAt": "2026-11-06T00:57:44.391Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "ad1cfa80ba933fcb2ad7faed55cac59e166b5af42b66d4749dfd46165b286425"
+            }
+          ]
+        },
+        {
+          "id": "44d60bcd-3d94-4d35-889b-72441494a7d3",
+          "field": "usage.instructions",
+          "value": [
+            "Apply a generous amount to wet hair.",
+            "Massage gently into the scalp and hair for 2–3 minutes.",
+            "Rinse thoroughly.",
+            "Use daily or as part of your hair care routine for best results.",
+            "Apply a good amount of Clary shampoo to wet hair. Massage the hair gently and rinse thoroughly."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Apply a generous amount to wet hair. Massage gently into the scalp and hair for 2–3 minutes. Rinse thoroughly. Use daily or as part of your hair care routine for best results. Apply a good amount of Clary shampoo to wet hair. Massage the hair gently and rinse thoroughly. Apply a generous amount to wet hair. Massage gently into the scalp and hair for 2–3 minutes. Rinse thoroughly. Use daily or as p",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "observedAt": "2026-11-06T00:57:44.391Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "ad1cfa80ba933fcb2ad7faed55cac59e166b5af42b66d4749dfd46165b286425"
+            }
+          ]
+        },
+        {
+          "id": "e27c6f64-7b32-49b8-ad35-dfc9a5c65de2",
+          "field": "suitability.hairTypes",
+          "value": [
+            "all"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Shampoo—Strengthen Hair & Reduce Hair LossRevitalize Your Hair from Root to Tip\nTake cont",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "observedAt": "2026-11-06T00:57:44.391Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "ad1cfa80ba933fcb2ad7faed55cac59e166b5af42b66d4749dfd46165b286425"
+            }
+          ]
+        },
+        {
+          "id": "ddf4722e-42f7-4e06-9610-42ce192d2dab",
+          "field": "marketing.description",
+          "value": "Clary Hair Shampoo—Strengthen Hair & Reduce Hair LossRevitalize Your Hair from Root to Tip Take control of your hair care routine with Clary Hair Shampoo, formulated with Procapil, a powerful active ingredient that strengthens hair follicles and reduces hair loss. This advanced shampoo fights hair follicle aging and activates dormant hair follicles, promoting healthier, stronger, and fuller-looking hair. Key Benefits:Reduces Hair LossProcapil helps prevent hair thinning by targeting follicle aging at the root.Stimulates Dormant FolliclesEncourages hair growth for stronger, healthier strands.Strengthens Hair from the RootFortifies hair follicles to improve resilience and reduce breakage.Supports Hair HealthThe gentle cleansing formula keeps hair and scalp balanced and refreshed. Why You’ll Love It:Clary Hair Shampoo is more than just a cleanser—it’s a targeted treatment for thinning hair. With regular use, it reinforces hair follicles, promotes hair growth, and reduces breakage, helping you achieve thicker, healthier, and more resilient hair. How to Use:Apply a generous amount to wet hair.Massage gently into the scalp and hair for 2–3 minutes.Rinse thoroughly.Use daily or as part of your hair care routine for best results. Ideal For:All hair types, especially thinning or weak hairReducing hair loss and strengthening folliclesPromoting hair growth and scalp healthDaily use for fuller, healthier-looking hair Product Details:Product Name: Clary Hair ShampooKey Ingredient: ProcapilBenefits: Reduces hair loss, strengthens follicles, stimulates dormant hair growthHair Type: All hair types",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Shampoo—Strengthen Hair & Reduce Hair LossRevitalize Your Hair from Root to Tip\nTake control of your hair care routine with Clary Hair Shampoo, formulated with Procapil, a powerful active ingredient that strengthens hair follicles and reduces hair loss. This advanced shampoo fights hair follicle aging and activates dormant hair follicles, promoting healthier, stronger, and fuller-lookin",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "observedAt": "2026-11-06T00:57:44.391Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "ad1cfa80ba933fcb2ad7faed55cac59e166b5af42b66d4749dfd46165b286425"
+            }
+          ]
+        },
+        {
+          "id": "d19721d5-16ed-4c8e-8825-fdc23382c340",
+          "field": "claims.manufacturerStated",
+          "value": [
+            "Procapil helps prevent hair thinning by targeting follicle aging at the root.",
+            "Stimulates Dormant Follicles",
+            "Encourages hair growth for stronger, healthier strands.",
+            "Strengthens Hair from the Root",
+            "Fortifies hair follicles to improve resilience and reduce breakage."
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "Procapil helps prevent hair thinning by targeting follicle aging at the root. Stimulates Dormant Follicles Encourages hair growth for stronger, healthier strands. Strengthens Hair from the Root Fortifies hair follicles to improve resilience and reduce breakage. Procapil helps prevent hair thinning by targeting follicle aging at the root. Stimulates Dormant Follicles Encourages hair growth for stro",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "observedAt": "2026-11-06T00:57:44.391Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "ad1cfa80ba933fcb2ad7faed55cac59e166b5af42b66d4749dfd46165b286425"
+            }
+          ]
+        },
+        {
+          "id": "7c8b6c0a-0786-4704-a437-1fbb16eff4e9",
+          "field": "media.sourceImages",
+          "value": [
+            "https://eparkville.com/cdn/shop/files/ClaryHairShampoo300ml.png?v=1733876091&width=1080"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://eparkville.com/cdn/shop/files/ClaryHairShampoo300ml.png?v=1733876091&width=1080",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "observedAt": "2026-11-06T00:57:44.391Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "ad1cfa80ba933fcb2ad7faed55cac59e166b5af42b66d4749dfd46165b286425"
+            }
+          ]
+        },
+        {
+          "id": "a02cffb1-643a-4918-8707-2d9375baf6c3",
+          "field": "usage.targetArea",
+          "value": "HAIR",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Shampoo 300 ml",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "observedAt": "2026-11-06T00:57:44.391Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "ad1cfa80ba933fcb2ad7faed55cac59e166b5af42b66d4749dfd46165b286425"
+            }
+          ]
+        },
+        {
+          "id": "c684a2a9-f52e-43c2-afa0-abb37699102a",
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 300
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Clary Hair Shampoo 300ml — Procapil Anti-Hair Loss Cleanse\n- E Parkville\nSkip to content\nSearch within:\nAll prod",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml",
+              "observedAt": "2026-11-06T00:57:44.391Z",
+              "sourceTier": "TRUSTED_DISTRIBUTOR",
+              "contentHash": "ad1cfa80ba933fcb2ad7faed55cac59e166b5af42b66d4749dfd46165b286425"
+            }
+          ]
+        }
+      ],
+      "assets": [
+        {
+          "id": "758dd036-1e5c-418b-8199-05fca201110f",
+          "role": "PRIMARY_PACKSHOT",
+          "parentAssetId": null,
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "APPROVED",
+          "publishedMediaId": null,
+          "templateId": null,
+          "qualityReport": null,
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/d02948d8-17eb-4590-9983-f5baeec4f92c.png",
+          "contentHash": "303417fbd2f2df7b1b8247b7d36a769de1d1d4e466f3c4617278de50b5cb3b70",
+          "width": 1080,
+          "height": 1080,
+          "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml"
+        },
+        {
+          "id": "fdfc965d-3df5-43b1-9682-cbe1352b21a1",
+          "role": "CATEGORY_EDITORIAL",
+          "parentAssetId": "758dd036-1e5c-418b-8199-05fca201110f",
+          "processingStatus": "SUCCEEDED",
+          "processingError": null,
+          "reviewStatus": "APPROVED",
+          "publishedMediaId": null,
+          "templateId": "2c31fc87-2737-4a83-92d1-888ad3fbed3c",
+          "qualityReport": {
+            "coverage": 0.3068,
+            "warnings": [
+              "SOURCE_SHADOW_REMOVED",
+              "LOW_EDGE_CONTRAST"
+            ],
+            "sourceWidth": 1080,
+            "productWidth": 446,
+            "sourceHeight": 1080,
+            "productHeight": 989,
+            "backgroundMode": "PLAIN_BACKGROUND",
+            "placementScale": 0.634,
+            "backgroundColor": [
+              255,
+              255,
+              255
+            ],
+            "enclosedBackgroundRatio": 0.0028
+          },
+          "storageUrl": "http://localhost:3101/storage/private/catalog-media/assets/fb42a9c9-e006-455d-b1e1-256d45871004.webp",
+          "contentHash": "41232e78087212220634d9df5b0079aef879eced661f87610fecfc0ea0a3cf74",
+          "width": 1254,
+          "height": 1254,
+          "sourceUrl": "https://eparkville.com/products/clary-hair-shampoo-300ml"
+        }
+      ]
+    }
+  ]
+}

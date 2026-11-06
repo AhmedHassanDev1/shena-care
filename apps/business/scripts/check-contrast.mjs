@@ -70,5 +70,22 @@ if (/#(?:[0-9a-f]{3,8})\b|\b(?:bg|text|border|from|to|ring)-(?:black|white|emera
   console.error('FAIL the shared workspace frame contains raw palette values; use bw-* tokens')
   failed++
 }
-console.log(`${total + 2 - failed}/${total + 2} design foundation checks pass`)
+
+// Every live workspace page and shared component must use bw-* tokens, never raw palette classes.
+const RAW = /(?<![\w-])(?:bg|text|border|ring|divide|fill|stroke|from|to|via|outline|placeholder:text)-(?:\[#|white\b|black\b|(?:emerald|neutral|gray|zinc|slate|stone|red|rose|amber|yellow|orange|green|teal|lime|blue|sky|indigo|violet|purple|pink|cyan)-[0-9])|backdrop-blur|shadow-\[|drop-shadow-\[/
+const RAW_ALLOWED = [/brand-detail\.tsx$/, /bw[\/]primitives\.tsx$/] // supplier logo plate and the printed-label preview are real white paper
+const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+  const full = new URL(e.name + (e.isDirectory() ? '/' : ''), dir)
+  return e.isDirectory() ? walk(full) : /\.tsx$/.test(e.name) ? [full] : []
+})
+const root = new URL('../', import.meta.url)
+const scanned = [...walk(new URL('app/(workspace)/', root)), ...walk(new URL('components/bw/', root)), ...walk(new URL('components/workspace/', root))]
+let rawFiles = 0
+for (const file of scanned) {
+  const path = file.pathname
+  if (RAW_ALLOWED.some((re) => re.test(path))) continue
+  const hit = fs.readFileSync(file, 'utf8').split('\n').findIndex((line) => RAW.test(line))
+  if (hit >= 0) { console.error(`FAIL raw palette class in ${path.split('/apps/business/')[1]}:${hit + 1}; use bw-* tokens`); failed++; rawFiles++ }
+}
+console.log(`${total + 2 + scanned.length - failed}/${total + 2 + scanned.length} design foundation checks pass`)
 process.exit(failed ? 1 : 0)

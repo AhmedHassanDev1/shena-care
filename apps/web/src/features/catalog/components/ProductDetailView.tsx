@@ -23,6 +23,7 @@ import { routes, shellRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { getSavedCustomerRoutine } from '@/features/routine/lib/routineStorage';
 import { getProductDetail, type ProductDetail, type PublicMedia, type PublicVariant } from '../api/discovery';
+import { compactImage, galleryImages } from '../lib/media-roles';
 import { categoryLabel } from '../lib/card-model';
 import { ROUTINE_ORDER, routineStepFor } from '../lib/routine-order';
 import { useCategoryTree } from '../lib/listing';
@@ -134,7 +135,7 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
   const description = (content?.description ?? product.description)?.trim() || null;
 
   return (
-    <article className="flex flex-col gap-16 pb-10 lg:gap-24">
+    <article className="flex flex-col gap-16 pb-28 lg:pb-10 lg:gap-24">
       <nav aria-label={m.plpBreadcrumb} className="hidden lg:block">
         <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-13 leading-20">
           <Crumb href={routes.home} label={m.plpHome} />
@@ -336,7 +337,7 @@ function Crumb({ href, label }: { href: string; label: string }) {
 
 function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
   const m = useMessages();
-  const images = media.filter((item) => item.type === 'image').sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.sortOrder - b.sortOrder);
+  const images = galleryImages(media);
   const [index, setIndex] = useState(0);
   const [zoom, setZoom] = useState(false);
   useEffect(() => setIndex(0), [images[0]?.id]);
@@ -538,7 +539,7 @@ function BuyRow({ product, variant, buy, disabled, name }: { product: ProductDet
 function AddedPopover({ variant, name, brand, quantity, onClose }: { variant: PublicVariant; name: string; brand: string; quantity: number; onClose: () => void }) {
   const m = useMessages();
   const locale = useLocale();
-  const image = variant.media.find((x) => x.type === 'image');
+  const image = compactImage(variant.media);
   const size = formatPackSize(variant.size, variant.sizeUnit, locale) ?? variant.variantName;
   return (
     <div role="status" className="absolute inset-x-0 top-full z-overlay mt-3 hidden flex-col gap-3 rounded-card bg-linen p-4 shadow-elevation-3 lg:flex">
@@ -603,7 +604,7 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
   const locale = useLocale();
   const router = useRouter();
   const [sizeOpen, setSizeOpen] = useState(false);
-  const image = variant.media.find((x) => x.type === 'image') ?? product.media.find((x) => x.type === 'image');
+  const image = compactImage(variant.media) ?? compactImage(product.media);
   const size = formatPackSize(variant.size, variant.sizeUnit, locale) ?? variant.variantName;
   const added = buy.state === 'added';
   const orderable = variant.canOrder && variant.price;
@@ -611,7 +612,7 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
   return (
     <div
       className={cn(
-        'pdp-bar fixed inset-x-0 bottom-0 z-nav flex flex-col gap-2 bg-chalk/95 px-3 pt-2.5 shadow-hairline-top backdrop-blur-sm transition-transform duration-base ease-standard lg:hidden',
+        'pdp-bar fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-nav flex flex-col gap-2 bg-chalk/95 px-3 pt-2.5 pb-2 shadow-hairline-top backdrop-blur-sm transition-transform duration-base ease-standard lg:hidden',
         visible ? 'translate-y-0' : 'pointer-events-none translate-y-full'
       )}
       aria-hidden={!visible}

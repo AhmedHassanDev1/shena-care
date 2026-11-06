@@ -6,7 +6,7 @@ import { Skeleton, StateBlock } from '@/components/bw/primitives'
 import { api } from '@/lib/api'
 
 /** Nav entries for supplier files and stock updates, shown only outside BROADCAST_ON_DEMAND. */
-export const FROZEN_NAV_IDS = ['products', 'updates', 'ingestion-policy']
+export const FROZEN_NAV_IDS = ['products', 'updates']
 
 /** The active sourcing mode, or null until the API answers. The API itself refuses frozen routes; this only keeps the UI honest. */
 export function useSourcingMode(enabled = true): string | null {

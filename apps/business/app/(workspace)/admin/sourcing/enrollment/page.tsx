@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { Button, Code, Field, Notice, PageHeader, Section, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { CommandError, Page, TextArea } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
@@ -29,15 +30,20 @@ const ACTIONS: Record<string, string> = {
 /** Who receives supplier requests. Every change needs a reason and applies to future requests; awarded purchase orders never change. */
 export default function SupplierEnrollmentPage() {
   const { data, error, loading, reload } = useApi<EnrolledSupplier[]>('/procurement/enrollment')
+  const [query, setQuery] = React.useState('')
+  const search = query.normalize('NFKC').trim().toLocaleLowerCase()
+  const visible = (data ?? []).filter((supplier) => `${supplier.name} ${supplier.slug}`.normalize('NFKC').toLocaleLowerCase().includes(search))
   return (
     <RoleShell role="admin" active="enrollment" mode="desktop">
       <Page>
-        <PageHeader title="مشاركة الموردين في طلبات التوريد" meta="التغيير بيأثر على الطلبات الجاية. أوامر الشراء اللي اتأكدت بتفضل ملزمة زي ما هي." />
+        <PageHeader title="الموردون" meta="التغييرات على المشاركة تسري على الطلبات القادمة. أوامر الشراء المؤكدة تبقى محفوظة." actions={<Link className="text-bw-action-ink underline underline-offset-4" href="/admin/sourcing">أوامر الشراء</Link>} />
         <RegisterSupplier onDone={reload} />
+        {data && data.length > 0 ? <Field label="ابحث عن مورد بالاسم أو المعرّف" type="search" value={query} onChange={(event) => setQuery(event.target.value)} /> : null}
         {error ? <LoadError message={error.message} onRetry={reload} /> : null}
         {!data && loading ? <Skeleton className="h-40 w-full" /> : null}
         {data && data.length === 0 ? <StateBlock kind="empty" title="مفيش موردين مسجلين" body="سجّل أول مورد من النموذج اللي فوق." /> : null}
-        {(data ?? []).map((supplier) => <SupplierRow key={`${supplier.id}-${supplier.rfqEnrolledAt}-${supplier.isActive}`} supplier={supplier} onSaved={reload} />)}
+        {data && data.length > 0 && visible.length === 0 ? <StateBlock kind="empty" title="لا يوجد مورد بهذا الاسم" body="جرّب جزءًا من الاسم أو المعرّف." /> : null}
+        {visible.map((supplier) => <SupplierRow key={`${supplier.id}-${supplier.rfqEnrolledAt}-${supplier.isActive}`} supplier={supplier} onSaved={reload} />)}
       </Page>
     </RoleShell>
   )
@@ -66,6 +72,7 @@ function RegisterSupplier({ onDone }: { onDone: () => void }) {
 }
 
 function SupplierRow({ supplier, onSaved }: { supplier: EnrolledSupplier; onSaved: () => void }) {
+  const [name, setName] = React.useState(supplier.name)
   const [closed, setClosed] = React.useState<number[]>(supplier.closedWeekdays)
   const [closedDates, setClosedDates] = React.useState(supplier.closedDates.join('\n'))
   const [opensAt, setOpensAt] = React.useState(supplier.opensAt ?? '')
@@ -81,6 +88,7 @@ function SupplierRow({ supplier, onSaved }: { supplier: EnrolledSupplier; onSave
 
   const participation = useCommand((body: Record<string, unknown>) => api(`/procurement/enrollment/${supplier.id}`, { method: 'PATCH', body: { ...body, reason: reason.trim() } }))
   const saveDetails = useCommand(() => api(`/procurement/enrollment/${supplier.id}`, { method: 'PATCH', body: {
+    name: name.trim(),
     closedWeekdays: [...closed].sort((a, b) => a - b), closedDates: dates,
     ...(opensAt && closesAt ? { opensAt, closesAt, crossesMidnight: opensAt > closesAt } : {}),
     scopeSkuCodes: scope.split(/\s+/).map((v) => v.trim()).filter(Boolean), reason: reason.trim(),
@@ -100,7 +108,8 @@ function SupplierRow({ supplier, onSaved }: { supplier: EnrolledSupplier; onSave
           </Notice>
         ) : null}
         {saved ? <Notice tone="ok" title={saved} /> : null}
-        <form className="grid gap-3 md:grid-cols-2" onSubmit={async (e) => { e.preventDefault(); if (reasonOk && datesOk && hoursOk && await saveDetails.execute()) afterChange('اتحفظ نطاق المنتجات والمواعيد') }}>
+        <form className="grid gap-3 md:grid-cols-2" onSubmit={async (e) => { e.preventDefault(); if (name.trim() && reasonOk && datesOk && hoursOk && await saveDetails.execute()) afterChange('اتحفظت بيانات المورد ونطاقه ومواعيده') }}>
+          <Field className="md:col-span-2" label="اسم المورد" value={name} onChange={(e) => setName(e.target.value)} />
           <fieldset className="flex flex-wrap gap-3 text-bw-small md:col-span-2">
             <legend className="mb-1 font-semibold">أيام الإجازة</legend>
             {WEEKDAYS.map(([day, text]) => (
@@ -116,7 +125,7 @@ function SupplierRow({ supplier, onSaved }: { supplier: EnrolledSupplier; onSave
           <TextArea label="نطاق المنتجات: كود SKU أو باركود في كل سطر. فاضي يعني كل المنتجات" value={scope} onChange={setScope} rows={3} />
           <Field className="md:col-span-2" label="سبب التغيير (بيتسجل في السجل)" value={reason} onChange={(e) => setReason(e.target.value)} />
           <div className="flex flex-wrap items-center gap-2 md:col-span-2">
-            <Button type="submit" loading={saveDetails.pending} disabled={!reasonOk || !datesOk || !hoursOk}>حفظ النطاق والمواعيد</Button>
+            <Button type="submit" loading={saveDetails.pending} disabled={!name.trim() || !reasonOk || !datesOk || !hoursOk}>حفظ بيانات المورد</Button>
             <Button type="button" variant="secondary" loading={participation.pending} disabled={!reasonOk}
               onClick={async () => { const enroll = !supplier.rfqEnrolledAt; if (await participation.execute({ rfqEnrolled: enroll })) afterChange(enroll ? 'المورد اشترك في طلبات التوريد' : 'اتوقف اشتراك المورد. طلباته المفتوحة راحت لموردين تانيين') }}>
               {supplier.rfqEnrolledAt ? 'إيقاف الاشتراك في الطلبات' : 'اشتراك في الطلبات'}

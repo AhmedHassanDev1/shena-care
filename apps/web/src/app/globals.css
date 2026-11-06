@@ -110,6 +110,42 @@ bdi {
     position: relative;
   }
 
+  /*
+   * Sahel Category Showcase Shutter Variants:
+   * Repeating diagonal slatted sunlight across tomato and cobalt department fields.
+   */
+  .shutter-orange {
+    background-color: var(--tomato);
+    background-image: repeating-linear-gradient(
+      -42deg,
+      rgba(0, 0, 0, 0.05) 0px,
+      rgba(0, 0, 0, 0.05) 28px,
+      rgba(255, 255, 255, 0.05) 28px,
+      rgba(255, 255, 255, 0.05) 56px,
+      rgba(0, 0, 0, 0.03) 56px,
+      rgba(0, 0, 0, 0.03) 84px,
+      rgba(255, 255, 255, 0.03) 84px,
+      rgba(255, 255, 255, 0.03) 112px
+    );
+    position: relative;
+  }
+
+  .shutter-blue {
+    background-color: var(--cobalt);
+    background-image: repeating-linear-gradient(
+      -42deg,
+      rgba(0, 0, 0, 0.06) 0px,
+      rgba(0, 0, 0, 0.06) 28px,
+      rgba(255, 255, 255, 0.06) 28px,
+      rgba(255, 255, 255, 0.06) 56px,
+      rgba(0, 0, 0, 0.04) 56px,
+      rgba(0, 0, 0, 0.04) 84px,
+      rgba(255, 255, 255, 0.04) 84px,
+      rgba(255, 255, 255, 0.04) 112px
+    );
+    position: relative;
+  }
+
 
   /*
    * Sahel Assistant Sun Presence:
@@ -317,6 +353,46 @@ bdi {
   to {
     transform: translate3d(50%, 0, 0);
   }
+}
+
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes heroSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-fade {
+  animation: heroFadeIn 0.5s ease-out both;
+}
+
+.animate-hero-slide-1 {
+  animation: heroSlideUp 0.5s ease-out 0.05s both;
+}
+
+.animate-hero-slide-2 {
+  animation: heroSlideUp 0.5s ease-out 0.12s both;
+}
+
+.animate-hero-slide-3 {
+  animation: heroSlideUp 0.5s ease-out 0.2s both;
+}
+
+.animate-hero-slide-4 {
+  animation: heroSlideUp 0.5s ease-out 0.28s both;
 }
 
 @media (prefers-reduced-motion: reduce) {

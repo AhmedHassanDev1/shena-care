@@ -100,13 +100,13 @@ export default function AdminSourcing() {
         <PageHeader title="الموردين وأوامر الشراء" meta="أمر الشراء الواحد ممكن يغطي كذا طلب عميل؛ كل كمية مربوطة بطلبها." />
 
         {/* Exceptions Intervention Banner */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-amber-500/25 bg-amber-500/[0.04]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-bw-warn/40 bg-bw-warn-soft">
           <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-lg bg-amber-500/15 text-[#f5a524] flex items-center justify-center shrink-0">
+            <div className="size-8 rounded-lg bg-bw-warn-soft text-bw-warn flex items-center justify-center shrink-0">
               <ShieldAlert className="size-4.5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white">استنفاد مسارات التوريد الآلية؟</h4>
+              <h4 className="text-xs font-bold text-bw-ink">استنفاد مسارات التوريد الآلية؟</h4>
               <p className="text-[11px] text-bw-ink-soft">
                 في حال رفض الموردين أو انتهاء مهلة التأكيد دون بديل تلقائي متاح، يتم تصعيد الحالة فوراً لمركز الاستثناءات.
               </p>
@@ -114,7 +114,7 @@ export default function AdminSourcing() {
           </div>
           <Link
             href="/admin/exceptions"
-            className="sc-btn sm secondary shrink-0 flex items-center gap-1.5 text-xs text-amber-400"
+            className="sc-btn sm secondary shrink-0 flex items-center gap-1.5 text-xs text-bw-warn"
           >
             <span>مركز الاستثناءات</span>
             <ArrowLeft className="size-3.5" />
@@ -257,10 +257,10 @@ function PayableRow({ p, onChanged }: { p: Payable; onChanged: () => void }) {
       <td><Egp value={p.grossAmount ?? p.amount} /></td>
       <td>
         {p.creditApplied ? (
-          <span className="text-emerald-400 font-mono font-bold">-<Egp value={p.creditApplied} /></span>
+          <span className="text-bw-ok font-mono font-bold">-<Egp value={p.creditApplied} /></span>
         ) : '—'}
       </td>
-      <td><Egp value={p.netAmount ?? p.amount} className="font-bold text-white" /></td>
+      <td><Egp value={p.netAmount ?? p.amount} className="font-bold text-bw-ink" /></td>
       <td><Status map={PAYABLE_STATUS} value={p.status} /></td>
       <td>{p.paymentRef ? <Code>{p.paymentRef}</Code> : '—'}</td>
       <td className="space-y-1">
@@ -276,12 +276,12 @@ function PayableRow({ p, onChanged }: { p: Payable; onChanged: () => void }) {
               <button
                 type="button"
                 onClick={() => setShowCreditForm(true)}
-                className="text-[11px] text-emerald-400 hover:underline text-start"
+                className="text-[11px] text-bw-ok hover:underline text-start"
               >
                 + خصم رصيد مرتجع سابق
               </button>
             ) : (
-              <form className="flex items-center gap-1.5 p-1.5 rounded-lg bg-black/40 border border-emerald-500/30 text-xs" onSubmit={async (e) => {
+              <form className="flex items-center gap-1.5 p-1.5 rounded-lg bg-bw-page border border-bw-ok/40 text-xs" onSubmit={async (e) => {
                 e.preventDefault()
                 if (await creditCmd.execute()) {
                   setShowCreditForm(false)
@@ -293,14 +293,14 @@ function PayableRow({ p, onChanged }: { p: Payable; onChanged: () => void }) {
                   placeholder="رقم إذن المرتجع"
                   value={creditRef}
                   onChange={(e) => setCreditRef(e.target.value)}
-                  className="h-7 w-24 rounded border border-white/[0.1] bg-black/50 px-1.5 text-[11px] text-white"
+                  className="h-7 w-24 rounded border border-bw-line bg-bw-kohl/50 px-1.5 text-[11px] text-bw-ink"
                 />
                 <input
                   type="number"
                   placeholder="المبلغ"
                   value={creditAmount}
                   onChange={(e) => setCreditAmount(e.target.value)}
-                  className="h-7 w-16 rounded border border-white/[0.1] bg-black/50 px-1.5 text-[11px] text-white"
+                  className="h-7 w-16 rounded border border-bw-line bg-bw-kohl/50 px-1.5 text-[11px] text-bw-ink"
                 />
                 <Button type="submit" variant="primary" loading={creditCmd.pending} disabled={!creditRef.trim() || !(Number(creditAmount) > 0)}>تطبيق</Button>
                 <button type="button" onClick={() => setShowCreditForm(false)} className="text-[10px] text-bw-ink-soft">إلغاء</button>

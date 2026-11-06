@@ -29,10 +29,10 @@ describe('Brand page extractor', () => {
     expect(broken.description).toBeNull();
   });
 
-  it('accepts only raster https logos that the page calls a logo', () => {
+  it('accepts only https logos (raster or SVG) that the page calls a logo, from its own domain', () => {
     const facts = extractBrandPage(`<header><a href="/"><img class="site-logo" src="/img/brand-logo.webp" alt="Lumora"></a>
       <img src="http://insecure.example/logo.png" alt="logo"><img src="/vector-logo.svg" alt="logo"><img src="/img/hero.jpg" alt="Summer campaign"></header>`, PAGE);
-    expect(facts.logoCandidates.map(c => c.value)).toEqual(['https://www.lumora.example/img/brand-logo.webp']);
+    expect(facts.logoCandidates.map(c => c.value)).toEqual(['https://www.lumora.example/img/brand-logo.webp', 'https://www.lumora.example/vector-logo.svg']);
   });
 
   it('strips markup and control characters from excerpts and values', () => {

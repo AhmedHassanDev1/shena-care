@@ -1,4 +1,5 @@
 // GLO-285 independent media service. Images are generated here as synthetic test pixels: this proves the pipeline, not any real product's packshot.
+process.env.MEDIA_BACKGROUND_REMOVAL = 'disabled'; // this suite proves a provider outage fails safely
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'crypto';

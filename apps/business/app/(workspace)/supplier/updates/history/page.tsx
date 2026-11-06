@@ -79,7 +79,7 @@ export default function SupplierUpdatesHistoryPage() {
               type="button"
               onClick={() => reload()}
               disabled={loading}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-bw-surface px-3 text-xs font-semibold text-bw-ink-soft hover:bg-white/[0.04] hover:text-white transition-all shadow-xs"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-bw-line bg-bw-surface px-3 text-xs font-semibold text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink transition-all shadow-xs"
             >
               <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>تحديث السجل</span>
@@ -87,7 +87,7 @@ export default function SupplierUpdatesHistoryPage() {
 
             <Link
               href="/supplier/updates"
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#34d27b] px-4 text-xs font-bold text-black hover:bg-[#2eb96c] transition-all shadow-[0_2px_12px_rgba(52,210,123,0.3)]"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-bw-action px-4 text-xs font-bold text-bw-on-action hover:bg-bw-action-hover transition-all "
             >
               <Plus className="size-3.5" />
               <span>رفع ملف جديد</span>
@@ -97,7 +97,7 @@ export default function SupplierUpdatesHistoryPage() {
 
         {/* Toolbar & Filters */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="flex rounded-xl border border-white/[0.08] bg-bw-surface p-1 text-xs">
+          <div className="flex rounded-xl border border-bw-line bg-bw-surface p-1 text-xs">
             {(
               [
                 ['all', `كل العمليات (${jobs.length})`],
@@ -111,8 +111,8 @@ export default function SupplierUpdatesHistoryPage() {
                 onClick={() => setModeFilter(mKey)}
                 className={`rounded-lg px-3 py-1 font-semibold transition-all ${
                   modeFilter === mKey
-                    ? 'bg-[#34d27b] text-black shadow-xs'
-                    : 'text-bw-ink-soft hover:text-white'
+                    ? 'bg-bw-action text-bw-on-action shadow-xs'
+                    : 'text-bw-ink-soft hover:text-bw-ink'
                 }`}
               >
                 {mLabel}
@@ -127,7 +127,7 @@ export default function SupplierUpdatesHistoryPage() {
               placeholder="بحث برقم العملية..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8.5 w-full rounded-xl border border-white/[0.08] bg-bw-surface pe-3 ps-8.5 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-[#34d27b] focus:outline-none"
+              className="h-8.5 w-full rounded-xl border border-bw-line bg-bw-surface pe-3 ps-8.5 text-xs text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-ok focus:outline-none"
             />
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function SupplierUpdatesHistoryPage() {
             action={
               <Link
                 href="/supplier/updates"
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#34d27b] px-4 text-xs font-bold text-black hover:bg-[#2eb96c]"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-bw-action px-4 text-xs font-bold text-bw-on-action hover:bg-bw-action-hover"
               >
                 <FileSpreadsheet className="size-3.5" />
                 <span>رفع أول ملف تحديث</span>
@@ -166,11 +166,11 @@ export default function SupplierUpdatesHistoryPage() {
 
         {/* History Table (Desktop & Tablet) */}
         {filteredJobs.length > 0 ? (
-          <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-bw-surface shadow-md">
+          <div className="overflow-hidden rounded-2xl border border-bw-line bg-bw-surface shadow-md">
             <div className="overflow-x-auto">
               <table className="w-full text-start text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-white/[0.08] bg-black/30 text-bw-ink-subtle font-semibold text-[11px]">
+                  <tr className="border-b border-bw-line bg-bw-page text-bw-ink-subtle font-semibold text-[11px]">
                     <th className="py-3 px-4 text-start">رقم العملية</th>
                     <th className="py-3 px-4 text-start">تاريخ الرفع</th>
                     <th className="py-3 px-4 text-start">النمط</th>
@@ -179,12 +179,12 @@ export default function SupplierUpdatesHistoryPage() {
                     <th className="py-3 px-4 text-center">الإجراء</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.04]">
+                <tbody className="divide-y divide-bw-line">
                   {filteredJobs.map((job) => (
-                    <tr key={job.id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={job.id} className="hover:bg-bw-sunken transition-colors">
                       {/* Job ID */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-white whitespace-nowrap">
-                        <span className="text-white hover:text-[#34d27b] transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-bold text-bw-ink whitespace-nowrap">
+                        <span className="text-bw-ink hover:text-bw-ok transition-colors">
                           #{shortId(job.id)}
                         </span>
                       </td>
@@ -200,12 +200,12 @@ export default function SupplierUpdatesHistoryPage() {
                       {/* Mode Badge */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         {job.mode === 'FULL_SNAPSHOT' ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 px-2 py-0.5 text-[10px] font-bold">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-bw-info-soft border border-bw-info/40 text-bw-info px-2 py-0.5 text-[10px] font-bold">
                             <Layers className="size-3" />
                             لقطة كاملة
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 text-[10px] font-bold">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-bw-ok-soft border border-bw-ok/40 text-bw-ok px-2 py-0.5 text-[10px] font-bold">
                             <Tag className="size-3" />
                             تحديث جزئي
                           </span>
@@ -213,7 +213,7 @@ export default function SupplierUpdatesHistoryPage() {
                       </td>
 
                       {/* Total Rows */}
-                      <td className="py-3.5 px-4 text-center font-mono font-bold text-white whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-bw-ink whitespace-nowrap">
                         {job.items?.length ?? 0}
                       </td>
 
@@ -222,10 +222,10 @@ export default function SupplierUpdatesHistoryPage() {
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                             job.status === 'completed' || job.status === 'published'
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              ? 'bg-bw-ok-soft text-bw-ok border border-bw-ok/40'
                               : job.status === 'review_required'
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                              : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                              ? 'bg-bw-warn-soft text-bw-warn border border-bw-warn/40'
+                              : 'bg-bw-info-soft text-bw-info border border-bw-info/40'
                           }`}
                         >
                           {job.status === 'completed' || job.status === 'published'
@@ -240,7 +240,7 @@ export default function SupplierUpdatesHistoryPage() {
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <Link
                           href={`/supplier/updates/${job.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/[0.08] transition-all"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-bw-line bg-bw-surface px-3 py-1.5 text-xs font-semibold text-bw-ink hover:bg-bw-sunken transition-all"
                         >
                           <Eye className="size-3.5" />
                           <span>معاينة الفروقات</span>

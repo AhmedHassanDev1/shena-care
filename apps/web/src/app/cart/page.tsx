@@ -15,7 +15,7 @@ export default function CartPage() {
   const m = getMessages(getLocale());
   return (
     <StorefrontShell phoneFocus={{ back: { href: routes.home, label: m.back }, title: <CartHeaderTitle /> }}>
-      <PageContainer className="pt-1 lg:pt-8 lg:pb-24">
+      <PageContainer className="pt-1 pb-44 lg:pt-8 lg:pb-24">
         <CartView />
       </PageContainer>
     </StorefrontShell>

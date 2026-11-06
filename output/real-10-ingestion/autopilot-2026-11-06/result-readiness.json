@@ -1,0 +1,299 @@
+{
+  "readiness": [
+    {
+      "name": "CeraVe Hydrating Cleanser 236ml",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "blockers": [
+        "PRIMARY_PACKSHOT_NOT_APPROVED",
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "warnings": [
+        "BARCODE_MISSING",
+        "EDITORIAL_IMAGE_NOT_APPROVED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "MISSING",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "MISSING"
+      },
+      "facts": {
+        "applied": 6,
+        "pending": [],
+        "conflicts": []
+      }
+    },
+    {
+      "name": "CeraVe Foaming Cleanser 236ml",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "blockers": [
+        "PRIMARY_PACKSHOT_NOT_APPROVED",
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "warnings": [
+        "BARCODE_MISSING",
+        "EDITORIAL_IMAGE_NOT_APPROVED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "MISSING",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "MISSING"
+      },
+      "facts": {
+        "applied": 6,
+        "pending": [],
+        "conflicts": []
+      }
+    },
+    {
+      "name": "CeraVe SA Smoothing Cleanser 236ml",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "blockers": [
+        "PRIMARY_PACKSHOT_NOT_APPROVED",
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "warnings": [
+        "BARCODE_MISSING",
+        "EDITORIAL_IMAGE_NOT_APPROVED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "MISSING",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "MISSING"
+      },
+      "facts": {
+        "applied": 6,
+        "pending": [],
+        "conflicts": []
+      }
+    },
+    {
+      "name": "CeraVe Moisturising Cream 454g",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "blockers": [
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "warnings": [
+        "BARCODE_MISSING",
+        "EDITORIAL_IMAGE_NOT_APPROVED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "APPROVED",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "REJECTED"
+      },
+      "facts": {
+        "applied": 7,
+        "pending": [],
+        "conflicts": []
+      }
+    },
+    {
+      "name": "CeraVe Moisturising Lotion 236ml",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "blockers": [
+        "PRIMARY_PACKSHOT_NOT_APPROVED",
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "warnings": [
+        "BARCODE_MISSING",
+        "EDITORIAL_IMAGE_NOT_APPROVED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "MISSING",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "MISSING"
+      },
+      "facts": {
+        "applied": 7,
+        "pending": [],
+        "conflicts": []
+      }
+    },
+    {
+      "name": "Clary Hair Shampoo 300ml",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "blockers": [
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "warnings": [
+        "BARCODE_MISSING",
+        "INGREDIENTS_NOT_REVIEWED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "APPROVED",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "APPROVED"
+      },
+      "facts": {
+        "applied": 5,
+        "pending": [],
+        "conflicts": []
+      }
+    },
+    {
+      "name": "Clary Hair Conditioner 300ml",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "blockers": [
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "warnings": [
+        "BARCODE_MISSING",
+        "INGREDIENTS_NOT_REVIEWED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "APPROVED",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "APPROVED"
+      },
+      "facts": {
+        "applied": 5,
+        "pending": [],
+        "conflicts": []
+      }
+    },
+    {
+      "name": "Clary Hair Mask 300ml",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "blockers": [
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "warnings": [
+        "BARCODE_MISSING",
+        "EDITORIAL_IMAGE_NOT_APPROVED",
+        "INGREDIENTS_NOT_REVIEWED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "APPROVED",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "REJECTED"
+      },
+      "facts": {
+        "applied": 5,
+        "pending": [],
+        "conflicts": []
+      }
+    },
+    {
+      "name": "Capixy Shampoo 250ml",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "blockers": [
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "warnings": [
+        "BARCODE_MISSING",
+        "EDITORIAL_IMAGE_NOT_APPROVED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "APPROVED",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "REJECTED"
+      },
+      "facts": {
+        "applied": 5,
+        "pending": [],
+        "conflicts": []
+      }
+    },
+    {
+      "name": "Capixy Hair Hydrating Conditioner 250ml",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "blockers": [
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "warnings": [
+        "BARCODE_MISSING",
+        "INGREDIENTS_NOT_REVIEWED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "APPROVED",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "APPROVED"
+      },
+      "facts": {
+        "applied": 5,
+        "pending": [],
+        "conflicts": []
+      }
+    }
+  ]
+}

@@ -9,7 +9,7 @@ export interface BrandPageFacts {
   names: Array<BrandPageFact>;
   alternateNames: Array<BrandPageFact>;
   description: BrandPageFact | null;
-  /** Absolute https image URLs that the page presents as its logo, raster formats only. */
+  /** Absolute https image URLs that the page presents as its logo (PNG, JPEG, WebP or SVG; SVG is only ever rasterized, never stored). */
   logoCandidates: Array<BrandPageFact>;
   /** Where the brand was founded (structured `foundingLocation`). */
   foundingCountry: BrandPageFact | null;
@@ -20,7 +20,7 @@ export interface BrandPageFacts {
 
 const MAX_HTML = 4 * 1024 * 1024;
 const MAX_DESCRIPTION = 320;
-const RASTER = /\.(png|jpe?g|webp)(?:[?#].*)?$/i;
+const RASTER = /\.(png|jpe?g|webp|svg)(?:[?#].*)?$/i;
 
 const decodeEntities = (value: string) => value
   .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')

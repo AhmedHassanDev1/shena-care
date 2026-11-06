@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { PageContainer } from "./page-container"
 
 export interface SectionProps {
+  id?: string
   /** id of the section's heading (every section is a labelled landmark). */
   labelledBy: string
   /** Full-width linen band behind the section (used to separate a product shelf from the smoke-white ground). */
@@ -18,9 +19,9 @@ export interface SectionProps {
  * Page section: one labelled landmark, one container, one vertical rhythm. Pages compose Sections instead of choosing
  * their own padding, which is what keeps spacing consistent from page to page.
  */
-export function Section({ labelledBy, band, rhythm = "default", className, children }: SectionProps) {
+export function Section({ id, labelledBy, band, rhythm = "default", className, children }: SectionProps) {
   return (
-    <section aria-labelledby={labelledBy} className={band ? "bg-linen" : undefined}>
+    <section id={id} aria-labelledby={labelledBy} className={band ? "bg-linen" : undefined}>
       <PageContainer className={cn("flex flex-col gap-5 lg:gap-6", rhythm === "default" ? "py-6 lg:py-10" : "py-4 lg:py-6", className)}>{children}</PageContainer>
     </section>
   )

@@ -12,6 +12,7 @@ import { AiClient } from '../../src/platform/ai';
 import { RESEARCH_TRANSPORT, ResearchTransport } from '../../src/modules/ingestion/public';
 import { ResearchSourceFetcher } from '../../src/modules/ingestion/services/research-source-fetcher';
 import { ProductResearchService } from '../../src/modules/ingestion/services/product-research.service';
+import { StorageService } from '../../src/platform/storage/storage.service';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
 
@@ -232,8 +233,7 @@ describe('Smart Add Brand (e2e)', () => {
     // Arabic letters only (a Latin letter anywhere would make the name researchable).
     const arabic = `ماركة ${[...run].map(c => 'ابتثجحخدذرز'[c.charCodeAt(0) - 97]).join('')}`;
     const none = (await research(arabic, undefined, await createActor(prisma, 'ADMIN'))).body;
-    expect(none.research).toMatchObject({ outcome: 'NOT_FOUND', site: null, references: [], notes: ['NEEDS_LATIN_NAME'] });
-    expect(search).not.toHaveBeenCalled();
+    expect(none.research).toMatchObject({ outcome: 'NOT_FOUND', site: null, candidates: [], notes: ['NEEDS_LATIN_NAME'] });
 
     const name = `Valmora${run}`;
     const host = `www.valmora${run}.example`;
@@ -250,6 +250,77 @@ describe('Smart Add Brand (e2e)', () => {
     // The Arabic spelling now resolves to the same Brand: it cannot be added again.
     const again = await research(arabic, undefined, await createActor(prisma, 'ADMIN'));
     expect([again.status, again.body.code]).toEqual([409, 'BRAND_EXISTS']);
+  }, 60000);
+
+  it('offers candidates for an Arabic-only name, reads nothing on its own, and lets the Admin choose', async () => {
+    const arabic = `ماركة ${[...run].map(c => 'ابتثجحخدذرز'[c.charCodeAt(0) - 97]).join('')}`;
+    const candidate = `Candora${run}`;
+    const host = `www.candora${run}.example`;
+    await publish(host, candidate);
+    search.mockResolvedValue([
+      { url: 'https://ar.wikipedia.org/wiki/x', title: 'ويكيبيديا' },
+      { url: `https://shop.other-reseller${run}.example/`, title: 'متجر' },
+      { url: `https://${host}/ar/products`, title: `${arabic} - ${candidate}` },
+    ]);
+    const found = (await research(arabic, undefined, await createActor(prisma, 'ADMIN'))).body.research;
+    expect(found).toMatchObject({ outcome: 'NOT_FOUND', site: null, name: null, logo: null, notes: ['NEEDS_LATIN_NAME'] });
+    // The page that states the Arabic name leads; a marketplace-style page and an encyclopedia are never offered as a brand site.
+    expect(found.candidates[0]).toMatchObject({ name: candidate, nameSource: 'TITLE', host, url: `https://${host}/`, arabicMatch: true });
+    expect(found.candidates.map((c: any) => c.host)).not.toContain('ar.wikipedia.org');
+    expect(found.candidates[1]).toMatchObject({ nameSource: 'DOMAIN', arabicMatch: false });
+    expect(search).toHaveBeenCalledTimes(1);
+
+    // Choosing a candidate runs the normal research on that site; the Arabic spelling is kept as the Admin's own alias.
+    const chosen = await api().post('/ingestion/eligibility/brands/research').set((await createActor(prisma, 'ADMIN')).auth).send({ name: candidate, websiteUrl: `https://${host}/`, alias: arabic });
+    expect(chosen.status).toBe(201);
+    expect(chosen.body.research).toMatchObject({ outcome: 'FOUND', site: { verifiedOfficial: true, origin: 'ADMIN' } });
+    expect(chosen.body.research.aliases).toEqual(expect.arrayContaining([expect.objectContaining({ value: arabic, origin: 'ADMIN', status: 'UNVERIFIED' })]));
+    expect((await save({ draftId: chosen.body.draftId, name: candidate, aliases: [arabic] })).status).toBe(201);
+    const again = await research(arabic, undefined, await createActor(prisma, 'ADMIN'));
+    expect([again.status, again.body.code]).toEqual([409, 'BRAND_EXISTS']);
+  }, 60000);
+
+  it('resolves a reviewed Arabic spelling to the brand we already hold before searching anything', async () => {
+    const held = (await prisma.brand.findFirst({ where: { name: 'CeraVe' } })) ?? (await prisma.brand.create({ data: { name: 'CeraVe', slug: `cerave-${run}-${randomUUID().slice(0, 4)}` } }));
+    const res = await research('سيرافي', undefined, await createActor(prisma, 'ADMIN'));
+    expect([res.status, res.body.code, res.body.brandId]).toEqual([409, 'BRAND_EXISTS', held.id]);
+    expect(search).not.toHaveBeenCalled();
+    // Search being down never blocks the manual path.
+    search.mockResolvedValue(null);
+    const down = (await research(`ماركة ${[...run].map(c => 'ابتثجحخدذرز'[c.charCodeAt(0) - 97]).join('')}ي`, undefined, await createActor(prisma, 'ADMIN'))).body;
+    expect(down.research).toMatchObject({ outcome: 'UNAVAILABLE', candidates: [], notes: expect.arrayContaining(['NEEDS_LATIN_NAME', 'SEARCH_UNAVAILABLE']) });
+  });
+
+  it('stores an SVG-only logo as a rasterized PNG, and never keeps an unsafe SVG', async () => {
+    const publishSvg = (host: string, name: string, svg: string) => {
+      site.pages.set(`https://${host}/robots.txt`, { status: 404 });
+      site.pages.set(`https://${host}/`, { status: 200, body: `<html><head><script type="application/ld+json">{"@type":"Organization","name":"${name}","description":"Skincare made for sensitive skin.","logo":"https://${host}/logo.svg"}</script></head></html>` });
+      site.pages.set(`https://${host}/logo.svg`, { status: 200, body: svg, type: 'image/svg+xml' });
+    };
+    const name = `Svgora${run}`;
+    const host = `www.svgora${run}.example`;
+    publishSvg(host, name, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" width="200" height="80"><rect width="200" height="80" fill="#14507a"/><circle cx="40" cy="40" r="24" fill="#fff"/></svg>');
+    search.mockResolvedValue([{ url: `https://${host}/`, title: name }]);
+    const found = (await research(name, undefined, await createActor(prisma, 'ADMIN'))).body;
+    expect(found.research.logo).toMatchObject({ status: 'VERIFIED', mediaType: 'image/svg+xml', storedAs: 'image/png', value: `https://${host}/logo.svg` });
+    const saved = await save({ draftId: found.draftId, name, useLogo: true });
+    expect(saved.body).toMatchObject({ logoSaved: true });
+    const brand = await prisma.brand.findFirstOrThrow({ where: { name } });
+    expect(brand.logoUrl).toMatch(/\/storage\/public\/brand-logos\/.+\.png$/);
+    expect(brand.logoMetadata).toMatchObject({ mediaType: 'image/png', sourceMediaType: 'image/svg+xml', isVerifiedOfficial: true });
+    const stored = await app.get(StorageService).getFileBuffer(brand.logoUrl!.slice(brand.logoUrl!.indexOf('/storage/') + '/storage/'.length));
+    expect(stored.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    expect(stored.includes(Buffer.from('<svg'))).toBe(false);
+
+    // A hostile SVG is not a logo: the rest of the research still works and the brand is saved without one.
+    const hostile = `Evilgo${run}`;
+    const hostileHost = `www.evilgo${run}.example`;
+    publishSvg(hostileHost, hostile, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 9"><script>alert(1)</script><image href="https://evil.example/x.png" width="9" height="9"/></svg>');
+    search.mockResolvedValue([{ url: `https://${hostileHost}/`, title: hostile }]);
+    const refused = (await research(hostile, undefined, await createActor(prisma, 'ADMIN'))).body;
+    expect(refused.research.logo).toBeNull();
+    expect(refused.research.notes).toContain('LOGO_UNUSABLE');
+    expect(refused.research.description).toMatchObject({ status: 'VERIFIED' });
   }, 60000);
 
   it('keeps unsafe input out: non-https and private websites are refused before any request', async () => {
