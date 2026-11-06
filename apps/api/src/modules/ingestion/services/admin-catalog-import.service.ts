@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { AdminCatalogImportRowOutcome as Outcome, AdminCatalogImportStatus as Status, Prisma } from '@prisma/client';
+import { AdminCatalogImportRowOutcome as Outcome, AdminCatalogImportStatus as Status, CatalogDecision, Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { StorageService } from '../../../platform/storage/storage.service';
@@ -8,6 +8,8 @@ import { RowNormalizationService } from './row-normalization.service';
 import { MatchClassification, ProductIdentityMatchResult, ProductIdentityService, CandidateItemIdentityInput } from './product-identity.service';
 import { IngestionEligibilityService } from './ingestion-eligibility.service';
 import { compileEligibilityPolicy, EligibilityDecision } from './ingestion-eligibility.policy';
+import { CatalogIntakeService } from '../../catalog/public';
+import { independentLinkSupport } from './catalog-decision-engine';
 
 type Policy = ReturnType<typeof compileEligibilityPolicy>;
 type Decision = { outcome: Outcome; reasonCode: string; reason: string; matchedSkuId?: string; identity?: Record<string, unknown> };
@@ -18,7 +20,11 @@ const POLICY_TEXT: Record<string, string> = {
   CATEGORY_NOT_ALLOWED_FOR_BRAND: 'This category is not allowed for the brand', CATEGORY_UNKNOWN: 'The category is missing or unknown',
   CATEGORY_AMBIGUOUS: 'The category name has more than one meaning', CATEGORY_REQUIRES_LEAF: 'A precise sub-category is required',
   PRODUCT_EXCLUDED: 'The product is explicitly excluded in the Catalog Policy',
+  BRAND_NOT_IN_ALLOWLIST: 'The brand is not on the Catalog Policy allowlist',
+  BRAND_SPELLING_UNCONFIRMED: 'The brand is not on the Catalog Policy but closely resembles an allowed brand',
 };
+/** Suggestion score at which an unknown brand is treated as a probable misspelling of an allowed one (asked about) rather than an unlisted brand (skipped). */
+const SPELLING_HOLD_SCORE = 0.5;
 /** Policy SKIP is a settled REJECTED row; policy HOLD waits for a person. Both keep the policy version that decided them. */
 const policyDecision = (d: EligibilityDecision): Decision => ({
   outcome: d.outcome === 'SKIP' ? Outcome.REJECTED : Outcome.HOLD, reasonCode: `POLICY_${d.reason}`, reason: POLICY_TEXT[d.reason] ?? d.reason,
@@ -80,6 +86,14 @@ interface PreparedRow {
 
 export interface ResolveRowInput { action: 'LINK_SKU' | 'REJECT'; skuId?: string; note: string }
 
+/** The canonical identity a row was admitted under, for intake and research. */
+export interface RowAdmission { brandId: string; brandName: string; brandAliases: string[]; websiteUrl: string | null; categoryId: string; policyVersion: number | null }
+
+export interface RowCorrection { name?: string; brand?: string; size?: number; sizeUnit?: string; categoryHint?: string; sourceUrl?: string; barcode?: string | null }
+
+/** Identity key independent of the brand label used: the same product listed as "Clary" or "Clary Corporation" has one key. */
+export const identityKeyOf = (brandId: string, baseName: string, size: number | null, unit: string | null) => `k1:${brandId}:${baseName}:${size ?? 'nosize'}${unit ?? ''}`;
+
 // eslint-disable-next-line no-control-regex -- stripping control characters from spreadsheet cells is the point
 const cell = (value: unknown): string => (value === null || value === undefined ? '' : String(value)).normalize('NFKC').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -98,7 +112,26 @@ export class AdminCatalogImportService {
     private readonly normalizer: RowNormalizationService,
     private readonly identity: ProductIdentityService,
     private readonly eligibility: IngestionEligibilityService,
+    private readonly catalogIntake: CatalogIntakeService,
   ) {}
+
+  /**
+   * Policy for a stated brand, with two deterministic rescues before anything is skipped: the curated alias dictionary (e.g. "سيرافي" is CeraVe) and the policy's own
+   * spelling suggestions. A brand that resolves to nothing allowed is skipped (not on the allowlist); one that closely resembles an allowed brand is held for a person,
+   * because a spelling guess must never admit a product on its own.
+   */
+  private judgeBrand(policy: Policy, brand: string, category: string): { decision: EligibilityDecision; brandLabel: string; suggestion?: { brandId: string; name: string; score: number } } {
+    const first = policy.evaluate('', brand, category);
+    if (first.reason !== 'BRAND_UNKNOWN' || !this.identity.isStatedBrand(brand)) return { decision: first, brandLabel: brand };
+    const suggestions = policy.suggestBrands(brand);
+    const curated = this.identity.canonicalizeBrand(brand);
+    const sameBrand = suggestions.find(s => this.identity.canonicalizeBrand(s.name) === curated);
+    if (sameBrand) return { decision: policy.evaluate('', sameBrand.name, category), brandLabel: sameBrand.name };
+    const top = suggestions.find(s => s.effect === 'ALLOW' && s.score >= SPELLING_HOLD_SCORE);
+    const synthetic = (outcome: EligibilityDecision['outcome'], reason: string): EligibilityDecision => ({ ...first, outcome, reason });
+    if (top) return { decision: synthetic('HOLD', 'BRAND_SPELLING_UNCONFIRMED'), brandLabel: brand, suggestion: { brandId: top.brandId, name: top.name, score: top.score } };
+    return { decision: synthetic('SKIP', 'BRAND_NOT_IN_ALLOWLIST'), brandLabel: brand };
+  }
 
   /** Maps headers to fields by exact folded name; everything else is ignored and reported, never read. */
   mapColumns(headers: string[]): ColumnMap {
@@ -228,7 +261,7 @@ export class AdminCatalogImportService {
    * Classifies every PENDING row with the shared identity engine. Safe to repeat: a decided row is never rewritten, so a retry, a crash or two
    * concurrent calls converge. With recheck, rows still waiting on a person (HOLD, NEW_CANDIDATE) are looked at again, e.g. after their SKU was created.
    */
-  async match(jobId: string, options: { recheck?: boolean } = {}): Promise<Record<string, number>> {
+  async match(jobId: string, options: { recheck?: boolean; rowIds?: string[]; keepNew?: boolean } = {}): Promise<Record<string, number>> {
     const job = await this.prisma.adminCatalogImportJob.findUnique({ where: { id: jobId } });
     if (!job) throw new NotFoundException('Import not found');
     try {
@@ -236,11 +269,14 @@ export class AdminCatalogImportService {
       if (options.recheck) {
         // A Catalog Policy change can settle earlier policy outcomes either way, so policy skips are looked at again too.
         await this.prisma.adminCatalogImportRow.updateMany({
-          where: { jobId, resolvedBy: null, OR: [
-            { outcome: { in: [Outcome.HOLD, Outcome.NEW_CANDIDATE] }, reasonCode: { not: 'SIZE_UNREADABLE' } },
+          // A settled automatic decision is never reopened by a recheck (NULL-safe: an undecided row is always eligible).
+          where: { jobId, resolvedBy: null, ...(options.rowIds && { id: { in: options.rowIds } }), AND: [{ OR: [{ decision: null }, { decision: { notIn: [CatalogDecision.AUTO_ACCEPT, CatalogDecision.AUTO_LINK] } }] }], OR: [
+            { outcome: { in: [Outcome.HOLD, Outcome.NEW_CANDIDATE] }, reasonCode: { not: 'SIZE_UNREADABLE' }, ...(options.keepNew && { NOT: { outcome: Outcome.NEW_CANDIDATE } }) },
             { outcome: Outcome.REJECTED, reasonCode: { startsWith: 'POLICY_' } },
+            // Repeats of an earlier row are looked at again only when the pipeline asks for them, once their product exists.
+            ...(options.rowIds ? [{ outcome: Outcome.REJECTED, reasonCode: 'DUPLICATE_OF_ROW' }] : []),
           ] },
-          data: { outcome: Outcome.PENDING, reasonCode: null, reason: null },
+          data: { outcome: Outcome.PENDING, reasonCode: null, reason: null, decision: null, stage: null },
         });
       }
       // The policy active when matching runs decides every row of this pass.
@@ -267,6 +303,11 @@ export class AdminCatalogImportService {
     const totals: Record<string, number> = { PENDING: 0, LINKED_EXISTING: 0, NEW_CANDIDATE: 0, HOLD: 0, REJECTED: 0 };
     for (const group of grouped) totals[group.outcome] = group._count._all;
     totals.total = Object.values(totals).reduce((sum, count) => sum + count, 0);
+    // The automatic pipeline's ends, alongside the matcher's outcomes.
+    const decisions = await this.prisma.adminCatalogImportRow.groupBy({ by: ['decision'], where: { jobId }, _count: { _all: true } });
+    for (const name of Object.values(CatalogDecision)) totals[name] = 0;
+    totals.UNDECIDED = 0;
+    for (const group of decisions) totals[group.decision ?? 'UNDECIDED'] = group._count._all;
     return totals;
   }
 
@@ -274,25 +315,52 @@ export class AdminCatalogImportService {
     const inputs = new Map<string, CandidateItemIdentityInput>();
     const brands = new Map<string, string | null>();
     const stated = new Map<string, EligibilityDecision>();
+    const suggestions = new Map<string, { brandId: string; name: string; score: number }>();
     const skipped: typeof rows = [];
     for (const row of rows) {
       const isStated = this.identity.isStatedBrand(row.brand);
       const inferred = isStated ? null : await this.identity.inferBrandFromName(row.name);
-      const brand = isStated ? row.brand! : inferred ?? '';
+      const judged = this.judgeBrand(policy, isStated ? row.brand! : inferred ?? '', row.categoryHint ?? '');
+      // Once the policy resolved the brand (by name or an approved alias such as "clary"), matching uses the canonical brand, never the raw label.
+      const brand = judged.decision.outcome === 'ALLOW' && judged.decision.brandName ? judged.decision.brandName : judged.brandLabel;
       // Policy before identity: a disallowed brand or a known disallowed category is settled here, with no matching spend.
-      const decision = policy.evaluate('', brand, row.categoryHint ?? '');
+      const decision = judged.decision;
       stated.set(row.id, decision);
+      if (judged.suggestion) suggestions.set(row.id, judged.suggestion);
       if (decision.outcome === 'SKIP') { skipped.push(row); continue; }
       brands.set(row.id, inferred);
-      inputs.set(row.id, { name: row.name, brand, barcode: row.barcode, invalidBarcode: row.invalidBarcode,
+      // An Admin list's barcode cell that is not a valid GTIN (often a merchant code) proves nothing and contradicts nothing: it is kept on the row and ignored as evidence.
+      inputs.set(row.id, { name: row.name, brand, brandId: decision.outcome === 'ALLOW' ? decision.brandId ?? null : null, barcode: row.barcode, invalidBarcode: null,
         size: row.size?.toNumber() ?? null, sizeUnit: row.sizeUnit, category: row.categoryHint, rawName: row.name, rawBrand: row.brand });
     }
     const batch = await this.identity.prepareBatch([...inputs.values()]);
     const results = new Map<string, ProductIdentityMatchResult>();
     for (const row of rows) if (inputs.has(row.id)) results.set(row.id, await this.identity.classifyCandidateMatch(inputs.get(row.id)!, batch));
+    // Same brand, name and packaging as exactly one SKU: linked automatically only with support that is not the row's own wording.
+    const linkable = new Map<string, string>();
+    for (const row of rows) {
+      const result = results.get(row.id);
+      if (result?.classification === MatchClassification.LIKELY_MATCH && result.reason === 'brand_name_size_match_requires_review' && result.suggestedSkuId &&
+          (result.candidates ?? []).filter(candidate => candidate.exactName && candidate.samePackaging).length <= 1) linkable.set(row.id, result.suggestedSkuId);
+    }
+    const snapshots = linkable.size ? await this.catalogIntake.identitySnapshot([...new Set(linkable.values())]) : new Map();
+    const support = new Map<string, string>();
+    for (const [rowId, skuId] of linkable) {
+      const row = rows.find(item => item.id === rowId)!;
+      const result = results.get(rowId)!;
+      const sku = snapshots.get(skuId);
+      if (!sku) continue;
+      const admittedBrandId = stated.get(rowId)?.brandId;
+      const keys = [result.fingerprint, ...(admittedBrandId ? [identityKeyOf(admittedBrandId, this.identity.wordingKey(row.name, null), row.size?.toNumber() ?? null, row.sizeUnit)] : [])];
+      const provenanceRows = await this.prisma.adminCatalogImportRow.count({ where: { fingerprint: result.fingerprint, matchedSkuId: skuId, id: { not: rowId },
+        decision: { in: [CatalogDecision.AUTO_ACCEPT, CatalogDecision.AUTO_LINK] } } });
+      const verdict = keys.map(key => independentLinkSupport({ rowFingerprint: key, rowSourceUrl: row.sourceUrl, rowBarcode: row.barcode, sku, provenanceRows }))
+        .find(item => item.supported);
+      if (verdict) support.set(rowId, verdict.basis!);
+    }
     // A row that resolved to a canonical product is judged as that product: its own Brand/Category, and any explicit exclusion.
-    const products = await this.eligibility.productsForSkus([...results.values()]
-      .filter(r => r.classification === MatchClassification.EXACT_MATCH && r.matchedSkuId).map(r => r.matchedSkuId!));
+    const products = await this.eligibility.productsForSkus([...new Set([...[...results.values()]
+      .filter(r => r.classification === MatchClassification.EXACT_MATCH && r.matchedSkuId).map(r => r.matchedSkuId!), ...[...support.keys()].map(id => linkable.get(id)!)])]);
     const policyEvidence = (d: EligibilityDecision) => ({ policy: { id: d.policyId, version: d.version, outcome: d.outcome, reason: d.reason } });
 
     for (const row of skipped) {
@@ -305,8 +373,9 @@ export class AdminCatalogImportService {
     await this.prisma.$transaction(async tx => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${MATCH_LOCK}))`;
       const fingerprints = [...new Set([...results.values()].map(result => result.fingerprint))];
+      // Only a candidate still being worked on blocks: one that ended held (no page, a contradiction) must not stop a later row that brings better evidence.
       const peers = await tx.adminCatalogImportRow.findMany({
-        where: { fingerprint: { in: fingerprints }, outcome: Outcome.NEW_CANDIDATE },
+        where: { fingerprint: { in: fingerprints }, outcome: Outcome.NEW_CANDIDATE, OR: [{ decision: null }, { decision: CatalogDecision.RETRY_AUTOMATIC }] },
         select: { id: true, fingerprint: true, rowNumber: true, jobId: true, job: { select: { createdAt: true } } },
       });
       type Peer = { id: string; rowNumber: number; jobId: string; createdAt: Date };
@@ -318,9 +387,14 @@ export class AdminCatalogImportService {
         const result = results.get(row.id);
         if (!result) continue;
         const text = stated.get(row.id)!;
-        const product = result.classification === MatchClassification.EXACT_MATCH && result.matchedSkuId ? products.get(result.matchedSkuId) : undefined;
+        const supportedSku = support.has(row.id) ? linkable.get(row.id)! : null;
+        const linkedSku = result.classification === MatchClassification.EXACT_MATCH && result.matchedSkuId ? result.matchedSkuId : supportedSku;
+        const product = linkedSku ? products.get(linkedSku) : undefined;
         const judged = product ? policy.evaluateIdentity(product) : text;
-        let decision: Decision = judged.outcome === 'ALLOW' ? this.decide(inputs.get(row.id)!, result) : policyDecision(judged);
+        let decision: Decision = judged.outcome !== 'ALLOW' ? policyDecision(judged)
+          : supportedSku ? { outcome: Outcome.LINKED_EXISTING, reasonCode: `AUTO_LINK_${support.get(row.id)}`, reason: 'Same brand, name and packaging as one catalog SKU, with independent support', matchedSkuId: supportedSku }
+          : this.decide(inputs.get(row.id)!, result);
+        if (suggestions.has(row.id)) decision = { ...decision, identity: { ...decision.identity, brandSuggestion: suggestions.get(row.id) } };
         // No brand at all is the more useful reason than "unknown brand".
         if (!product && judged.reason === 'BRAND_UNKNOWN' && !this.identity.isStatedBrand(inputs.get(row.id)!.brand))
           decision = { outcome: Outcome.HOLD, reasonCode: 'MISSING_BRAND', reason: 'No brand could be read or inferred for an unknown product' };
@@ -353,6 +427,12 @@ export class AdminCatalogImportService {
       case MatchClassification.CONFLICT:
         return { outcome: Outcome.HOLD, reasonCode: 'IDENTITY_CONFLICT', reason: result.reason };
       case MatchClassification.LIKELY_MATCH:
+        // Another size or variant of a known product is a distinct SKU, never a merge: it goes through the same source verification as any new product, which must
+        // state this exact size before anything is created.
+        if (result.reason === 'brand_and_product_name_match_different_size_or_variant' && !result.candidates?.length && !result.conflicts.some(c => c !== 'different_size_or_variant_requires_review')
+            && this.identity.isStatedBrand(input.brand) && !result.conflicts.includes('missing_net_content') && input.size != null) {
+          return { outcome: Outcome.NEW_CANDIDATE, reasonCode: 'NEW_SIZE_OF_KNOWN_PRODUCT', reason: 'Another size or variant of a catalog product; verified as its own SKU' };
+        }
         return { outcome: Outcome.HOLD, reasonCode: result.reason === 'invalid_gtin_held' ? 'INVALID_BARCODE' : 'AMBIGUOUS_IDENTITY', reason: result.reason };
       default: {
         if (result.existingCandidateId || result.previouslyRejectedCandidateId || result.possibleDuplicateCandidateIds?.length) {
@@ -385,8 +465,8 @@ export class AdminCatalogImportService {
       if (judged?.outcome === 'SKIP') throw new ConflictException({ code: `POLICY_${judged.reason}`, message: POLICY_TEXT[judged.reason] ?? judged.reason });
     }
     const data = input.action === 'LINK_SKU'
-      ? { outcome: Outcome.LINKED_EXISTING, matchedSkuId: input.skuId!, reasonCode: 'ADMIN_LINKED', reason: 'Linked to a canonical SKU by an Admin' }
-      : { outcome: Outcome.REJECTED, reasonCode: 'ADMIN_REJECTED', reason: 'Rejected by an Admin' };
+      ? { outcome: Outcome.LINKED_EXISTING, matchedSkuId: input.skuId!, reasonCode: 'ADMIN_LINKED', reason: 'Linked to a canonical SKU by an Admin', decision: CatalogDecision.AUTO_LINK, stage: 'COMPLETE' }
+      : { outcome: Outcome.REJECTED, reasonCode: 'ADMIN_REJECTED', reason: 'Rejected by an Admin', decision: CatalogDecision.SKIP, stage: 'COMPLETE' };
     const written = await this.prisma.adminCatalogImportRow.updateMany({
       where: { id: rowId, outcome: row.outcome },
       data: { ...data, resolvedBy: actorId, resolvedAt: new Date(), resolutionNote: input.note.trim() },
@@ -398,6 +478,119 @@ export class AdminCatalogImportService {
 
   private async refreshTotals(jobId: string): Promise<void> {
     await this.prisma.adminCatalogImportJob.update({ where: { id: jobId }, data: { totals: await this.totals(jobId) } });
+  }
+
+  // ─── Automatic pipeline support ────────────────────────────────────────────
+
+  /** Rows the pipeline should look at now: matched but undecided, or a due automatic retry. */
+  async rowsForAutopilot(jobId: string, now = new Date()) {
+    return this.prisma.adminCatalogImportRow.findMany({ where: { jobId, outcome: { not: Outcome.PENDING }, OR: [
+      { decision: null }, { decision: CatalogDecision.RETRY_AUTOMATIC, OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] },
+    ] }, orderBy: { rowNumber: 'asc' } });
+  }
+
+  /** Jobs with automatic retries that are due, for the background runner. */
+  async jobsWithDueRetries(now = new Date()): Promise<string[]> {
+    const rows = await this.prisma.adminCatalogImportRow.findMany({ where: { decision: CatalogDecision.RETRY_AUTOMATIC, OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] },
+      select: { jobId: true }, distinct: ['jobId'], take: 20 });
+    return rows.map(row => row.jobId);
+  }
+
+  async getRow(rowId: string) {
+    const row = await this.prisma.adminCatalogImportRow.findUnique({ where: { id: rowId } });
+    if (!row) throw new NotFoundException('Row not found');
+    return row;
+  }
+
+  /** A short lease so two runners (or a retry and a person) never work the same row at once. */
+  async claimRow(rowId: string, ms = 5 * 60_000): Promise<boolean> {
+    const now = new Date();
+    const claimed = await this.prisma.adminCatalogImportRow.updateMany({ where: { id: rowId, OR: [{ leaseUntil: null }, { leaseUntil: { lt: now } }] },
+      data: { leaseUntil: new Date(now.getTime() + ms) } });
+    return claimed.count === 1;
+  }
+
+  async updateRowProgress(rowId: string, data: { decision?: CatalogDecision | null; stage?: string | null; matchedSkuId?: string | null; attempts?: number;
+    nextAttemptAt?: Date | null; lastError?: string | null; reasonCode?: string; reason?: string; releaseLease?: boolean }) {
+    const { releaseLease, ...rest } = data;
+    const row = await this.prisma.adminCatalogImportRow.update({ where: { id: rowId }, data: { ...rest, ...(releaseLease && { leaseUntil: null }) } });
+    if (data.decision !== undefined) await this.refreshTotals(row.jobId);
+    return row;
+  }
+
+  /** The canonical brand and exact leaf a row was admitted under by the current Catalog Policy. */
+  async admission(rowId: string): Promise<RowAdmission | null> {
+    const row = await this.getRow(rowId);
+    const current = await this.eligibility.current();
+    const policy = await this.eligibility.compile(current?.id);
+    const brand = this.identity.isStatedBrand(row.brand) ? row.brand! : (await this.identity.inferBrandFromName(row.name)) ?? '';
+    const judged = this.judgeBrand(policy, brand, row.categoryHint ?? '').decision;
+    if (judged.outcome !== 'ALLOW' || !judged.brandId || !judged.categoryId) return null;
+    const document = current?.document as { brands?: Array<{ id: string; aliases?: string[] }> } | undefined;
+    const record = await this.prisma.brand.findUnique({ where: { id: judged.brandId }, select: { name: true, websiteUrl: true } });
+    return { brandId: judged.brandId, brandName: record?.name ?? judged.brandName ?? brand, brandAliases: document?.brands?.find(b => b.id === judged.brandId)?.aliases ?? [],
+      websiteUrl: record?.websiteUrl ?? null, categoryId: judged.categoryId, policyVersion: judged.version };
+  }
+
+  identityKey(row: { name: string; size: Prisma.Decimal | null; sizeUnit: string | null }, brandId: string): string {
+    return identityKeyOf(brandId, this.identity.wordingKey(row.name, null), row.size?.toNumber() ?? null, row.sizeUnit);
+  }
+
+  /** The name a new canonical product takes: the row's own wording and casing, without its size (size makes the SKU, not the product). */
+  productNameOf(name: string): string {
+    const extracted = this.normalizer.extractSizeAndPack(name);
+    if (extracted.size === null) return name.trim();
+    const stripped = name.replace(/(?<![\p{L}\p{N}])\d+(?:[.,]\d+)?\s?(?:fl\.?\s?oz|ml|g|gm|gr|kg|l|oz|مل|ملي|جم|جرام|لتر)(?![\p{L}\p{N}])/giu, ' ').replace(/\s+/g, ' ').trim();
+    return stripped.length >= 2 ? stripped : name.trim();
+  }
+
+  /**
+   * Binds a row to a new SKU, atomically per SKU: the first row bound owns it (its research and media run once); any other row that reached the same SKU (a concurrent
+   * import of the same product) is a link to it. Exactly one owner, whatever the timing.
+   */
+  async bindRowToSku(rowId: string, skuId: string): Promise<'OWNER' | 'LINKED'> {
+    return this.prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`sku-owner:${skuId}`}))`;
+      const other = await tx.adminCatalogImportRow.findFirst({ where: { matchedSkuId: skuId, id: { not: rowId }, outcome: Outcome.NEW_CANDIDATE,
+        OR: [{ decision: null }, { decision: { notIn: [CatalogDecision.SKIP] } }] }, select: { id: true } });
+      await tx.adminCatalogImportRow.update({ where: { id: rowId }, data: { matchedSkuId: skuId } });
+      return other ? 'LINKED' : 'OWNER';
+    });
+  }
+
+  /** A person corrects what a row states (brand, size, category, page URL); the row goes back through matching and the pipeline as if new. */
+  async correctRow(rowId: string, correction: RowCorrection, actorId: string, note: string) {
+    const row = await this.getRow(rowId);
+    if (row.decision === CatalogDecision.AUTO_ACCEPT || row.decision === CatalogDecision.AUTO_LINK) {
+      throw new ConflictException({ code: 'ROW_SETTLED', message: 'This row already produced a catalog product; correct the product instead' });
+    }
+    let sourceUrl = row.sourceUrl;
+    if (correction.sourceUrl !== undefined) {
+      const url = new URL(correction.sourceUrl);
+      if (url.protocol !== 'https:' || url.username || url.password) throw new BadRequestException('Only https product pages are read');
+      sourceUrl = url.toString();
+    }
+    let barcode = row.barcode;
+    if (correction.barcode !== undefined) {
+      const normalized = correction.barcode ? this.normalizer.normalizeBarcode(correction.barcode) : null;
+      if (correction.barcode && !normalized?.isValid) throw new BadRequestException('Not a valid GTIN');
+      barcode = normalized?.barcode ?? null;
+    }
+    await this.prisma.adminCatalogImportRow.update({ where: { id: rowId }, data: {
+      name: correction.name?.trim() || row.name, brand: correction.brand?.trim() || row.brand, categoryHint: correction.categoryHint?.trim() || row.categoryHint, sourceUrl, barcode,
+      ...(correction.size !== undefined && { size: new Prisma.Decimal(correction.size), sizeUnit: correction.sizeUnit ?? row.sizeUnit }),
+      outcome: Outcome.PENDING, reasonCode: null, reason: null, decision: null, stage: null, attempts: 0, nextAttemptAt: null, lastError: null, leaseUntil: null,
+      resolutionNote: `Corrected by ${actorId}: ${note}`.slice(0, 500),
+    } });
+    await this.match(row.jobId);
+    return this.getRow(rowId);
+  }
+
+  /** Puts a held or failed row back to the automatic pipeline. */
+  async retryRow(rowId: string) {
+    const row = await this.getRow(rowId);
+    if (row.decision === CatalogDecision.AUTO_ACCEPT || row.decision === CatalogDecision.AUTO_LINK || row.decision === CatalogDecision.SKIP) return row;
+    return this.prisma.adminCatalogImportRow.update({ where: { id: rowId }, data: { decision: null, attempts: 0, nextAttemptAt: null, lastError: null, leaseUntil: null } });
   }
 
   async listJobs(limit = 50) {

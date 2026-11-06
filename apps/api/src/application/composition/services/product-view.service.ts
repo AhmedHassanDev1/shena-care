@@ -51,6 +51,7 @@ export interface ProductView {
     isPrimary: boolean;
     sortOrder: number;
     originType: string;
+    role: string | null;
   }>;
 }
 

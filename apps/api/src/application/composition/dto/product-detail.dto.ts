@@ -38,6 +38,7 @@ export class PublicProductMediaDto {
   @ApiProperty() sortOrder: number;
   @ApiProperty() isPrimary: boolean;
   @ApiProperty() originType: string;
+  @ApiProperty({ type: String, nullable: true }) role: string | null;
 }
 
 export class PublicFactDto {

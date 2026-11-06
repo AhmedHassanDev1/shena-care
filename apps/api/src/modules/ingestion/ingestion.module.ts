@@ -16,11 +16,13 @@ import { RoutinePlacementService } from './services/routine-placement.service';
 import { IngestionController } from './ingestion.controller';
 import { AdminCatalogImportController } from './admin-catalog-import.controller';
 import { BrandResearchService } from './services/brand-research.service';
+import { CatalogDecisionLogService } from './services/catalog-decision-log.service';
 import { AdminCatalogImportService } from './services/admin-catalog-import.service';
 import { RetailPriceController } from './retail-price.controller';
 import { RetailPriceObservationService } from './services/retail-price-observation.service';
 import { CatalogModule } from '../catalog/public';
 import { SourcingModule } from '../sourcing/public';
+import { CanonicalResearchService } from './services/canonical-research.service';
 import { ResearchSourceFetcher, RESEARCH_TRANSPORT, NodeResearchTransport } from './services/research-source-fetcher';
 import { AiModule } from '../../platform/ai';
 import { StorageModule } from '../../platform/storage/storage.module';
@@ -31,7 +33,9 @@ import { CareModule } from '../care/public';
   controllers: [IngestionController, EligibilityController, RetailPriceController, AdminCatalogImportController],
   providers: [
     AdminCatalogImportService,
+    CatalogDecisionLogService,
     BrandResearchService,
+    CanonicalResearchService,
     ResearchSourceFetcher,
     { provide: RESEARCH_TRANSPORT, useClass: NodeResearchTransport },
     IngestionEligibilityService,
@@ -51,6 +55,9 @@ import { CareModule } from '../care/public';
   ],
   exports: [
     AdminCatalogImportService,
+    CatalogDecisionLogService,
+    CanonicalResearchService,
+    ResearchSourceFetcher,
     IngestionService,
     ProductIdentityService,
     ProductResearchService,

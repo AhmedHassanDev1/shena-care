@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import sharp, { Metadata, Sharp } from 'sharp';
 import {
-  BackgroundRemovalPort, BackgroundRemovalUnavailableError, InspectedImage, MediaProcessorPort, ProcessedImage,
+  BackgroundRemovalPort, BackgroundRemovalUnavailableError, ComposedImage, InspectedImage, MediaProcessorPort, ProcessedImage,
 } from './media-processor.port';
+import { composeOnTemplate, CutoutOptions, cutOutProduct, TemplateRules } from './product-compositor';
 
 const MAX_INPUT_PIXELS = 50_000_000;
 const MAX_DELIVERY_EDGE = 1600;
@@ -40,12 +41,26 @@ export class SharpMediaProcessor implements MediaProcessorPort {
     return this.toWebp(this.open(buffer).rotate().resize({ width: MAX_DELIVERY_EDGE, height: MAX_DELIVERY_EDGE, fit: 'inside', withoutEnlargement: true }));
   }
 
+  async composeOnTemplate(source: Buffer, template: Buffer, rules: TemplateRules, options: CutoutOptions = {}): Promise<ComposedImage> {
+    const output = await composeOnTemplate(source, template, rules, options);
+    return { buffer: output.buffer, mimeType: 'image/webp', width: output.width, height: output.height, report: output.report };
+  }
+
   async composeOnField(cutout: Buffer, fieldColor: string): Promise<ProcessedImage> {
     const { width = 0, height = 0, hasAlpha } = await this.open(cutout).metadata();
     if (!hasAlpha) throw new BadRequestException('Template 01 needs a transparent cut-out');
     const edge = Math.min(Math.max(width, height), MAX_DELIVERY_EDGE);
     const fitted = await this.open(cutout).rotate().resize({ width: edge, height: edge, fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 }, withoutEnlargement: true }).png().toBuffer();
     return this.toWebp(sharp({ create: { width: edge, height: edge, channels: 3, background: fieldColor } }).composite([{ input: fitted, gravity: 'center' }]));
+  }
+}
+
+@Injectable()
+export class DeterministicBackgroundRemoval implements BackgroundRemovalPort {
+  /** Plain or transparent sources only; a busy background fails with a recorded reason instead of producing a damaged pack. */
+  async removeBackground(buffer: Buffer): Promise<Buffer> {
+    const cut = await cutOutProduct(buffer);
+    return sharp(cut.rgba, { raw: { width: cut.width, height: cut.height, channels: 4 } }).png().toBuffer();
   }
 }
 

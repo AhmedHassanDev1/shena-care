@@ -11,7 +11,10 @@ import { PurchaseOrderController } from './controllers/purchase-order.controller
 import { RfqController } from './controllers/rfq.controller';
 import { AcquisitionCostController, SupplierEnrollmentController } from './controllers/procurement-closure.controller';
 import { BarcodeAliasController } from './controllers/barcode-alias.controller';
-import { MediaAssetController } from './controllers/media-asset.controller';
+import { MediaAssetController, MediaTemplateController } from './controllers/media-asset.controller';
+import { CatalogWorkbenchController } from './controllers/catalog-workbench.controller';
+import { CatalogPublicationService } from './services/catalog-publication.service';
+import { CatalogAutopilotService } from './services/catalog-autopilot.service';
 import { ProductViewService } from './services/product-view.service';
 import { DiscoveryService } from './services/discovery.service';
 import { ProductDetailService } from './services/product-detail.service';
@@ -33,6 +36,8 @@ import { RoutineCartController } from './controllers/routine-cart.controller';
   controllers: [
     ProductViewController,  // GET /products, GET /products/:slug
     MediaAssetController,   // /catalog/media-assets (staff only)
+    MediaTemplateController, // /catalog/media-templates (Admin)
+    CatalogWorkbenchController, // /catalog/workbench (Admin: intake, research review, publication)
     BrandController,        // GET /brands, GET /brands/:slug
     CategoryController,     // GET /categories, GET /categories/:slug
     ListingController,      // /commerce/listings
@@ -45,7 +50,7 @@ import { RoutineCartController } from './controllers/routine-cart.controller';
     BarcodeAliasController, // /catalog/barcode-aliases (GLO-242)
     RoutineCartController,  // /care/me/routines/:id/cart, /care/workspace/proposals/:id/cart
   ],
-  providers: [ProductViewService, DiscoveryService, ProductDetailService],
+  providers: [CatalogPublicationService, CatalogAutopilotService, ProductViewService, DiscoveryService, ProductDetailService],
 })
 export class CompositionModule {}
 

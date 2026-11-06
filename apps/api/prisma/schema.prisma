@@ -132,6 +132,14 @@ model Sku {
   sizeUnit    String?  @map("size_unit")
   packCount   Int?     @map("pack_count")
   barcode     String?  @unique
+  /// Whether this SKU is sold in an outer retail carton; null = not decided yet. A true value makes a genuine carton image required for publication.
+  hasOuterCarton Boolean? @map("has_outer_carton")
+  /// How this SKU's identity is known: UNVERIFIED | EVIDENCE_VERIFIED (a manufacturer or trusted page states brand, product and size) | BARCODE_VERIFIED | ADMIN_VERIFIED.
+  identityStatus   String  @default("UNVERIFIED") @map("identity_status") @db.VarChar(30)
+  /// Sources, fingerprint and rule version behind identityStatus.
+  identityEvidence Json?   @map("identity_evidence")
+  /// Separate from identity: UNKNOWN (none) | RECORDED (stored before tracking) | VERIFIED (manufacturer structured data) | ADMIN_ASSERTED | CONFLICT.
+  barcodeStatus    String  @default("UNKNOWN") @map("barcode_status") @db.VarChar(30)
   estimatedDaysOfUse Int? @map("estimated_days_of_use")
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -204,6 +212,7 @@ enum MediaRole {
   TEXTURE_SENSORY
   INGREDIENT_STORY
   PACKAGING_PROOF
+  CATEGORY_EDITORIAL
 
   @@schema("catalog")
 }
@@ -262,20 +271,58 @@ model MediaAsset {
   reviewedAt         DateTime?             @map("reviewed_at")
   reviewNote         String?               @map("review_note")
   verifiedFacts      Json?                 @map("verified_facts")
+  /// True when the automatic checks (source, resolution, identity, output quality) decided this asset rather than a person.
+  reviewedAutomatically Boolean           @default(false) @map("reviewed_automatically")
   publishedMediaId   String?               @map("published_media_id") @db.Uuid
   publishedAt        DateTime?             @map("published_at")
+  /// Set when a newer publication of this role replaced this one; the file and lineage stay.
+  supersededAt       DateTime?             @map("superseded_at")
+  /// The exact template version that generated this derivative.
+  templateId         String?               @map("template_id") @db.Uuid
+  /// Measured facts about the cut-out (coverage, scale, warnings) for the reviewer.
+  qualityReport      Json?                 @map("quality_report")
   createdBy          String                @map("created_by") @db.Uuid
   createdAt          DateTime              @default(now()) @map("created_at")
   updatedAt          DateTime              @updatedAt @map("updated_at")
 
-  sku    Sku          @relation(fields: [skuId], references: [id], onDelete: Restrict)
-  parent MediaAsset?  @relation("MediaLineage", fields: [parentAssetId], references: [id], onDelete: Restrict)
-  copies MediaAsset[] @relation("MediaLineage")
+  sku      Sku            @relation(fields: [skuId], references: [id], onDelete: Restrict)
+  parent   MediaAsset?    @relation("MediaLineage", fields: [parentAssetId], references: [id], onDelete: Restrict)
+  copies   MediaAsset[]   @relation("MediaLineage")
+  template MediaTemplate? @relation(fields: [templateId], references: [id], onDelete: Restrict)
 
   @@unique([parentAssetId, transformVersion])
   @@index([skuId, role])
   @@index([contentHash])
+  @@index([templateId])
   @@map("media_assets")
+  @@schema("catalog")
+}
+
+/// A versioned, replaceable scene for CATEGORY_EDITORIAL images. A version's file and rules are immutable; replacing a template adds a version.
+model MediaTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  templateKey String   @map("template_key") @db.VarChar(80)
+  version     Int
+  name        String
+  /// Catalog categories this template serves; empty = the fallback for any category.
+  categoryIds String[] @default([]) @map("category_ids") @db.Uuid
+  storageUrl  String   @map("storage_url")
+  contentHash String   @map("content_hash") @db.VarChar(64)
+  mimeType    String   @map("mime_type")
+  width       Int
+  height      Int
+  byteSize    Int      @map("byte_size")
+  /// Placement, shadow and output rules (platform/storage/product-compositor.ts TemplateRules).
+  rules       Json
+  isActive    Boolean  @default(true) @map("is_active")
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  assets MediaAsset[]
+
+  @@unique([templateKey, version])
+  @@map("media_templates")
   @@schema("catalog")
 }
 
@@ -2141,6 +2188,14 @@ model AdminCatalogImportRow {
   resolvedBy     String?                      @map("resolved_by")
   resolvedAt     DateTime?                    @map("resolved_at")
   resolutionNote String?                      @map("resolution_note")
+  /// The automatic pipeline's final state for this row; null until decided.
+  decision       CatalogDecision?
+  /// Resume cursor: MATCHED, INTAKE_DONE, RESEARCHED, FACTS_DONE, COMPLETE.
+  stage          String?                      @db.VarChar(30)
+  attempts       Int                          @default(0)
+  nextAttemptAt  DateTime?                    @map("next_attempt_at")
+  leaseUntil     DateTime?                    @map("lease_until")
+  lastError      String?                      @map("last_error")
   createdAt      DateTime                     @default(now()) @map("created_at")
   updatedAt      DateTime                     @updatedAt @map("updated_at")
 
@@ -2150,6 +2205,7 @@ model AdminCatalogImportRow {
   @@index([jobId, outcome])
   @@index([fingerprint])
   @@index([matchedSkuId])
+  @@index([decision, nextAttemptAt])
   @@map("admin_catalog_import_rows")
   @@schema("ingestion")
 }
@@ -3237,4 +3293,160 @@ model AccountingExportJob {
 
   @@map("accounting_export_jobs")
   @@schema("operations")
+}
+
+// ---------------------------------------------------------------------------
+// Canonical-SKU research (GLO-121): evidence and proposals only. Catalog changes happen one reviewed fact at a time through Catalog's services.
+// ---------------------------------------------------------------------------
+
+enum ResearchRunStatus {
+  RUNNING
+  COMPLETE
+  NO_EVIDENCE
+  PROVIDER_UNAVAILABLE
+  FAILED
+
+  @@schema("ingestion")
+}
+
+enum ProductFactStatus {
+  PROPOSED
+  CONFLICT
+  REJECTED
+  APPLIED
+
+  @@schema("ingestion")
+}
+
+model ProductResearchRun {
+  id               String            @id @default(uuid()) @db.Uuid
+  skuId            String            @map("sku_id") @db.Uuid
+  status           ResearchRunStatus @default(RUNNING)
+  schemaVersion    Int               @map("schema_version")
+  sources          Json              @default("[]")
+  rejected         Json              @default("[]")
+  providerStatuses Json?             @map("provider_statuses")
+  errorReason      String?           @map("error_reason")
+  attempts         Int               @default(1)
+  requestedBy      String            @map("requested_by") @db.Uuid
+  startedAt        DateTime          @default(now()) @map("started_at")
+  completedAt      DateTime?         @map("completed_at")
+  /// Per field: FOUND | UNKNOWN | CONFLICT. Unknown is never turned into a negative fact.
+  fieldCoverage    Json?             @map("field_coverage")
+
+  facts ProductFactProposal[]
+
+  @@index([skuId, startedAt])
+  @@map("product_research_runs")
+  @@schema("ingestion")
+}
+
+/// One field value proposed for one SKU, with every source that states it. The same value found again adds evidence, never a row.
+model ProductFactProposal {
+  id            String            @id @default(uuid()) @db.Uuid
+  skuId         String            @map("sku_id") @db.Uuid
+  runId         String            @map("run_id") @db.Uuid
+  field         String            @db.VarChar(60)
+  value         Json
+  valueHash     String            @map("value_hash") @db.VarChar(64)
+  status        ProductFactStatus @default(PROPOSED)
+  evidence      Json
+  confidence    Float
+  schemaVersion Int               @map("schema_version")
+  reviewedBy    String?           @map("reviewed_by") @db.Uuid
+  reviewedAt    DateTime?         @map("reviewed_at")
+  reviewNote    String?           @map("review_note")
+  appliedAt     DateTime?         @map("applied_at")
+  /// VERIFIED | UNVERIFIED | CONFLICT | REJECTED: the field-level verdict, independent of whether it was written to Catalog.
+  verification   String?          @db.VarChar(20)
+  /// Why two readings disagree, or why the value was not accepted.
+  conflictReason String?          @map("conflict_reason")
+  /// AUTO (rule) or ADMIN (person), and the rule that decided.
+  decidedBy      String?          @map("decided_by") @db.VarChar(10)
+  decisionRule   String?          @map("decision_rule") @db.VarChar(80)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  run ProductResearchRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+
+  @@unique([skuId, field, valueHash])
+  @@index([skuId, status])
+  @@map("product_fact_proposals")
+  @@schema("ingestion")
+}
+
+/// The five ends of the automatic catalog pipeline. Every row ends in exactly one.
+enum CatalogDecision {
+  AUTO_ACCEPT
+  AUTO_LINK
+  SKIP
+  HOLD_CRITICAL
+  RETRY_AUTOMATIC
+
+  @@schema("ingestion")
+}
+
+enum CatalogExceptionStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+  RETRYING
+
+  @@schema("ingestion")
+}
+
+/// Append-only audit of every automatic and manual pipeline decision.
+model CatalogDecisionRecord {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// IMPORT_ROW | SKU | FACT | MEDIA | EXCEPTION
+  subjectType String   @map("subject_type") @db.VarChar(20)
+  subjectId   String   @map("subject_id") @db.Uuid
+  /// Catalog SKU reference, no relation across contexts.
+  skuId       String?  @map("sku_id") @db.Uuid
+  decision    String   @db.VarChar(40)
+  reasonCode  String   @map("reason_code") @db.VarChar(80)
+  ruleVersion String   @map("rule_version") @db.VarChar(40)
+  evidence    Json     @default("{}")
+  /// SYSTEM or ADMIN
+  actorType   String   @map("actor_type") @db.VarChar(10)
+  actorId     String?  @map("actor_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([subjectType, subjectId])
+  @@index([skuId])
+  @@index([createdAt])
+  @@map("catalog_decisions")
+  @@schema("ingestion")
+}
+
+/// One genuinely critical case a person must settle. Everything not listed here was decided automatically.
+model CatalogException {
+  id             String                 @id @default(uuid()) @db.Uuid
+  /// One exception per subject, field and reason: re-runs refresh it instead of piling up duplicates.
+  dedupeKey      String                 @unique @map("dedupe_key") @db.VarChar(240)
+  skuId          String?                @map("sku_id") @db.Uuid
+  importRowId    String?                @map("import_row_id") @db.Uuid
+  subjectType    String                 @map("subject_type") @db.VarChar(20)
+  subjectId      String                 @map("subject_id") @db.Uuid
+  field          String?                @db.VarChar(60)
+  reasonCode     String                 @map("reason_code") @db.VarChar(80)
+  /// CRITICAL (identity, safety) or HIGH (input the pipeline cannot settle without a person).
+  severity       String                 @db.VarChar(10)
+  summary        String
+  evidence       Json                   @default("{}")
+  /// Precomputed safe resolution: { action, label, payload }.
+  recommended    Json?
+  status         CatalogExceptionStatus @default(OPEN)
+  resolution     String?                @db.VarChar(20)
+  resolutionNote String?                @map("resolution_note")
+  resolvedBy     String?                @map("resolved_by") @db.Uuid
+  resolvedAt     DateTime?              @map("resolved_at")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@index([skuId])
+  @@index([importRowId])
+  @@map("catalog_exceptions")
+  @@schema("ingestion")
 }

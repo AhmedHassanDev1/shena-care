@@ -78,6 +78,20 @@ export class IngredientService {
     });
   }
 
+  /**
+   * The canonical ingredient for a name a person just approved on a source-backed INCI list. A new one starts unclassified: its function is unknown until reviewed, and no benefit
+   * or rating is implied. The match deliberately ignores case and punctuation only.
+   */
+  async ensureReviewedIngredient(inci: string) {
+    const known = await this.findByInciOrAlias(inci);
+    if (known) {
+      if (known.status === 'APPROVED') return known;
+      return this.prisma.ingredient.update({ where: { id: known.id }, data: { status: 'APPROVED' } });
+    }
+    const name = inci.trim();
+    return this.createOrUpdateIngredient({ name, slug: '', inciName: name, primaryFunction: 'unclassified', functions: [], aliases: [], isActiveIngredient: false });
+  }
+
   async getIngredient(id: string) {
     const item = await this.prisma.ingredient.findUnique({ where: { id } });
     if (!item) throw new NotFoundException(`Ingredient with ID ${id} not found`);
