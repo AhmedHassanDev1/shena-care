@@ -337,6 +337,14 @@ export class CommerceService {
     };
   }
 
+  async getListingStates(skuIds: string[]): Promise<Record<string, boolean>> {
+    if (!skuIds.length) return {};
+    const listings = await this.prisma.listing.findMany({
+      where: { skuId: { in: skuIds } }, select: { skuId: true, isListed: true },
+    });
+    return Object.fromEntries(listings.map((listing) => [listing.skuId, listing.isListed]));
+  }
+
   async getListings(filters?: {
     isListed?: boolean;
     page?: number;

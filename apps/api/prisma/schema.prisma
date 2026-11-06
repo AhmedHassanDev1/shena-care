@@ -101,6 +101,7 @@ model Product {
   lastReviewedAt DateTime? @map("last_reviewed_at")
   lastReviewedBy String? @map("last_reviewed_by")
   isPublished   Boolean  @default(false) @map("is_published")
+  archivedAt    DateTime? @map("archived_at")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -115,6 +116,7 @@ model Product {
   safetyWarnings      ProductSafetyWarning[]
 
   @@index([brandId])
+  @@index([archivedAt])
   @@index([productLineId])
   @@index([categoryId])
   @@index([targetArea])

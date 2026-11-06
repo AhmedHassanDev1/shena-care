@@ -459,8 +459,9 @@ export class CatalogService {
   async updateProduct(id: string, dto: UpdateProductDto): Promise<PublishedProduct> {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      ...productWithRelations,
+      select: { ...productWithRelations.select, archivedAt: true },
     });
+    if (product?.archivedAt && dto.isPublished) throw new ConflictException('Archived product must be restored before publication');
     if (!product) {
       throw new NotFoundException(`Product not found with id: ${id}`);
     }
@@ -535,7 +536,7 @@ export class CatalogService {
     }
 
     const updated = await this.prisma.product.update({
-      where: { id },
+      where: dto.isPublished ? { id, archivedAt: null } : { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(slug !== product.slug && { slug }),

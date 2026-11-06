@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CatalogService } from './services/catalog.service';
+import { CatalogItemManagementService } from './services/catalog-item-management.service';
 import { BrandService } from './services/brand.service';
 import { CategoryService } from './services/category.service';
 import { ProductIdentityService } from './services/product-identity.service';
@@ -18,6 +19,7 @@ import { PostgresSearchProvider } from './search/postgres-search.provider';
   imports: [StorageModule, ConfigModule],
   providers: [
     CatalogService,
+    CatalogItemManagementService,
     BrandService,
     CategoryService,
     ProductIdentityService,
@@ -38,6 +40,6 @@ import { PostgresSearchProvider } from './search/postgres-search.provider';
       },
     },
   ],
-  exports: [CatalogService, BrandService, CategoryService, ProductIdentityService, IngredientService, ProductMediaService, MediaTemplateService, CatalogIntakeService, SEARCH_PROVIDER],
+  exports: [CatalogService, CatalogItemManagementService, BrandService, CategoryService, ProductIdentityService, IngredientService, ProductMediaService, MediaTemplateService, CatalogIntakeService, SEARCH_PROVIDER],
 })
 export class CatalogModule {}

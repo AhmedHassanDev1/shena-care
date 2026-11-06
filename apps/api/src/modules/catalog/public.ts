@@ -14,6 +14,7 @@ export { SEARCH_PROVIDER } from './search/search-provider';
 export type { SearchProvider, SearchFilters } from './search/search-provider';
 export { normalizeSearchText } from './search/search-text';
 export { CatalogService } from './services/catalog.service';
+export { CatalogItemManagementService } from './services/catalog-item-management.service';
 export { BrandService } from './services/brand.service';
 export { CategoryService } from './services/category.service';
 export { ProductIdentityService, BARCODE_ALIAS_SOURCES } from './services/product-identity.service';

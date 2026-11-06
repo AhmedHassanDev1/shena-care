@@ -152,7 +152,11 @@ export class CatalogIntakeService {
 
   /** The one-time editorial sign-off that puts a checked product live. */
   async publishReviewed(productId: string, actorId: string) {
-    return this.prisma.product.update({ where: { id: productId }, data: { isPublished: true, lastReviewedAt: new Date(), lastReviewedBy: actorId } });
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.product.updateMany({ where: { id: productId, archivedAt: null }, data: { isPublished: true, lastReviewedAt: new Date(), lastReviewedBy: actorId } });
+      if (!updated.count) throw new ConflictException('Archived product must be restored before publication');
+      return tx.product.findUniqueOrThrow({ where: { id: productId } });
+    });
   }
 
   async unpublish(productId: string) {
