@@ -34,7 +34,7 @@ const candidateStates: Record<string, string> = {
 
 export default function AdminCatalog() {
   const [query, setQuery] = React.useState('')
-  const [view, setView] = React.useState<'published' | 'review' | 'items'>('published')
+  const [view, setView] = React.useState<'published' | 'review' | 'items'>('items')
   const [selected, setSelected] = React.useState<CatalogProduct | null>(null)
   const drawer = useDialog()
   const inspect = (product: CatalogProduct) => { setSelected(product); drawer.open() }
@@ -51,7 +51,7 @@ export default function AdminCatalog() {
   return <RoleShell role="admin" active="catalog" counts={{ catalog: candidatesApi.data?.length }}>
     <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-6 sm:px-8 sm:py-9" dir="rtl">
       <PageHeader eyebrow="مساحة الإدارة / الكتالوج" title="الكتالوج"
-        meta="المنتجات المنشورة والمراجعات التي تنتظر قرارك."
+        meta="تحكّم في ظهور المنتجات ونسخها وتوافرها، وراجع العناصر التي تنتظر قرارك."
         actions={<Link href="/admin/catalog/imports" className="inline-flex h-bw-control items-center justify-center gap-2 rounded-bw-field bg-bw-action px-4 text-bw-small font-semibold text-bw-on-action transition-colors hover:bg-bw-action-hover"><FileUp className="size-4" />رفع ملف منتجات</Link>} />
 
       <div className="grid gap-4 border-y border-bw-line py-5 sm:grid-cols-[1fr_auto] sm:items-center">
@@ -63,12 +63,12 @@ export default function AdminCatalog() {
             className="h-bw-control w-full rounded-bw-field border border-bw-line bg-bw-surface pe-4 ps-10 text-bw-small text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-focus focus:outline-none" />
         </label>
         <div className="flex flex-wrap items-center gap-1 rounded-bw-field bg-bw-sunken p-1" role="group" aria-label="عرض الكتالوج">
+          <button type="button" aria-pressed={view === 'items'} onClick={() => setView('items')}
+            className={`rounded-bw-field px-3 py-2 text-bw-small transition-colors ${view === 'items' ? 'bg-bw-surface font-semibold text-bw-ink shadow-bw-card' : 'text-bw-ink-soft hover:text-bw-ink'}`}>إدارة العناصر</button>
           <button type="button" aria-pressed={view === 'published'} onClick={() => setView('published')}
             className={`rounded-bw-field px-3 py-2 text-bw-small transition-colors ${view === 'published' ? 'bg-bw-surface font-semibold text-bw-ink shadow-bw-card' : 'text-bw-ink-soft hover:text-bw-ink'}`}>المعروض</button>
           <button type="button" aria-pressed={view === 'review'} onClick={() => setView('review')}
             className={`rounded-bw-field px-3 py-2 text-bw-small transition-colors ${view === 'review' ? 'bg-bw-surface font-semibold text-bw-ink shadow-bw-card' : 'text-bw-ink-soft hover:text-bw-ink'}`}>بانتظار المراجعة <Code>{candidatesApi.data?.length ?? '—'}</Code></button>
-          <button type="button" aria-pressed={view === 'items'} onClick={() => setView('items')}
-            className={`rounded-bw-field px-3 py-2 text-bw-small transition-colors ${view === 'items' ? 'bg-bw-surface font-semibold text-bw-ink shadow-bw-card' : 'text-bw-ink-soft hover:text-bw-ink'}`}>إدارة العناصر</button>
         </div>
       </div>
 
@@ -80,12 +80,16 @@ export default function AdminCatalog() {
         {products.length ? <div className="overflow-hidden rounded-bw-card border border-bw-line bg-bw-surface divide-y divide-bw-line">
           {products.map((product) => {
             const image = product.media.find((media) => media.isPrimary) ?? product.media[0]
-            return <button key={product.id} type="button" onClick={() => inspect(product)}
-              className="group flex w-full items-center gap-4 p-3 text-start transition-colors hover:bg-bw-sunken sm:p-4">
+            return <article key={product.id}
+              className="flex flex-wrap items-center gap-4 p-3 sm:p-4">
               <ProductImage image={image} name={product.name} />
               <span className="min-w-0 flex-1"><span className="block text-bw-small text-bw-ink-soft">{product.brand.name}</span><span className="line-clamp-2 font-semibold text-bw-ink"><bdi>{product.name}</bdi></span><span className="block truncate text-bw-small text-bw-ink-subtle"><bdi>{product.skus.map((sku) => sku.variantName).filter(Boolean).join(' · ') || product.category?.name || '—'}</bdi></span></span>
-              <StatusLabel tone="ok">منشور</StatusLabel><ArrowLeft className="hidden size-4 text-bw-ink-subtle transition-transform group-hover:-translate-x-1 sm:block" aria-hidden />
-            </button>
+              <StatusLabel tone="ok">منشور</StatusLabel>
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <Button variant="secondary" onClick={() => { setQuery(product.name); setView('items') }}>إدارة الظهور والتوافر</Button>
+                <Button variant="ghost" onClick={() => inspect(product)} aria-label={`تفاصيل ${product.name}`}><ArrowLeft className="size-4" aria-hidden /></Button>
+              </div>
+            </article>
           })}
         </div> : null}
       </section> : view === 'review' ? <section aria-label="منتجات تحتاج المراجعة" className="space-y-4">
