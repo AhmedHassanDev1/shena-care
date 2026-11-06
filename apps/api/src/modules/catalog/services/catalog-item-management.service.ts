@@ -26,7 +26,7 @@ export class CatalogItemManagementService {
         where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * limit, take: limit,
         select: {
-          id: true, name: true, isPublished: true, archivedAt: true,
+          id: true, name: true, description: true, isPublished: true, archivedAt: true,
           brand: { select: { name: true } },
           media: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1, select: { url: true, altText: true } },
           skus: { orderBy: { createdAt: 'asc' }, select: { id: true, code: true, variantName: true, isActive: true } },

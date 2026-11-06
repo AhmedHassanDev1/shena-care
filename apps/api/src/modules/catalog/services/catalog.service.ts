@@ -501,7 +501,7 @@ export class CatalogService {
     if (dto.slug) {
       slug = dto.slug.toLowerCase();
     } else if (dto.name && dto.name !== product.name) {
-      const brand = await this.prisma.brand.findUnique({ where: { id: targetBrandId } });
+      const brand = await this.prisma.brand.findUnique({ where: { id: targetBrandId }, select: { name: true } });
       const brandPrefix = brand ? `${brand.name}-` : '';
       slug = slugify(`${brandPrefix}${dto.name}`);
     }
@@ -509,6 +509,7 @@ export class CatalogService {
     if (slug !== product.slug) {
       const existingSlug = await this.prisma.product.findFirst({
         where: { slug, NOT: { id } },
+        select: { id: true },
       });
       if (existingSlug) {
         throw new ConflictException(`A product with slug '${slug}' already exists`);

@@ -1,4 +1,7 @@
 import { CatalogItemManagementService } from '../../src/modules/catalog/services/catalog-item-management.service';
+import { CatalogService } from '../../src/modules/catalog/services/catalog.service';
+import { PrismaService } from '../../src/platform/database/prisma.service';
+import { MediaStoragePort } from '../../src/platform/storage/media-storage.port';
 import { CatalogIntakeService } from '../../src/modules/catalog/services/catalog-intake.service';
 import { CatalogItemsController, ItemQueryDto, VisibilityDto } from '../../src/application/composition/controllers/catalog-items.controller';
 import { AuthGuard } from '../../src/modules/accounts/guards/auth.guard';
@@ -81,5 +84,36 @@ describe('Catalog item API security', () => {
     const pipe = new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true });
     await expect(pipe.transform({ isVisible: 'yes' }, { type: 'body', metatype: VisibilityDto })).rejects.toThrow();
     await expect(pipe.transform({ page: 0, limit: 500 }, { type: 'query', metatype: ItemQueryDto })).rejects.toThrow();
+  });
+});
+
+describe('Catalog item editing on the current schema', () => {
+  it('updates a product name without reading columns from a pending migration', async () => {
+    const product = {
+      id: 'product-1', brandId: 'brand-1', name: 'Old name', slug: 'brand-old-name',
+      description: null, concerns: [], isPublished: false,
+      brand: { id: 'brand-1', name: 'Brand', slug: 'brand' },
+      productLine: null, category: null, skus: [], media: [],
+    };
+    const prisma = {
+      product: {
+        findUnique: jest.fn().mockResolvedValue(product),
+        findFirst: jest.fn(async (args: { select?: { id?: boolean } }) => {
+          if (!args.select?.id) throw new Error('P2022: unmigrated product column');
+          return null;
+        }),
+        update: jest.fn().mockResolvedValue({ ...product, name: 'New name' }),
+      },
+      brand: {
+        findUnique: jest.fn(async (args: { select?: { name?: boolean } }) => {
+          if (!args.select?.name) throw new Error('P2022: unmigrated brand column');
+          return { name: 'Brand' };
+        }),
+      },
+    };
+    const catalog = new CatalogService(prisma as unknown as PrismaService, {} as MediaStoragePort);
+
+    await expect(catalog.updateProduct('product-1', { name: 'New name' })).resolves.toMatchObject({ name: 'New name' });
+    expect(prisma.product.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ name: 'New name' }) }));
   });
 });
