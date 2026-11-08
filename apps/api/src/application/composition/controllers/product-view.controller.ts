@@ -24,6 +24,8 @@ import { CareService } from '../../../modules/care/public';
 import { ProductDetailService } from '../services/product-detail.service';
 import { ApiOkResponse, ApiNotFoundResponse, ApiBadRequestResponse, ApiTags } from '@nestjs/swagger';
 import { ProductDetailQueryDto, ProductDetailResponseDto } from '../dto/product-detail.dto';
+import { ProductReviewsQueryDto } from '../dto/product-reviews.dto';
+import { ProductReviewService } from '../../../modules/commerce/public';
 import {
   CatalogService,
   CreateProductDto,
@@ -43,6 +45,7 @@ export class ProductViewController {
     private readonly discoveryService: DiscoveryService,
     private readonly productDetailService: ProductDetailService,
     private readonly careService: CareService,
+    private readonly productReviewService: ProductReviewService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -192,6 +195,16 @@ export class ProductViewController {
   // ---------------------------------------------------------------------------
 
   // GET /products/:slugOrId
+  // GET /products/:slugOrId/reviews — published reviews + rating summary of a publicly visible product.
+  @Get(':slugOrId/reviews')
+  @ApiNotFoundResponse({ description: 'Product is not publicly visible' })
+  @ApiBadRequestResponse({ description: 'Invalid query' })
+  async getProductReviews(@Param('slugOrId') slugOrId: string, @Query() query: ProductReviewsQueryDto) {
+    const product = await this.productViewService.getProductView(slugOrId);
+    if (!product) throw new NotFoundException('Product not found');
+    return this.productReviewService.listPublished(product.id, query);
+  }
+
   @Get(':slugOrId/detail')
   @ApiOkResponse({ type: ProductDetailResponseDto })
   @ApiNotFoundResponse({ description: 'Product or selected variant is not publicly eligible' })

@@ -10,6 +10,17 @@ export interface ProductView {
   description: string | null;
   usage: string | null;
   warnings: string | null;
+  /** Reviewed product facts (catalog identity), as declared by ProductDetailResponseDto. Empty/null when not reviewed. */
+  targetArea?: string | null;
+  texture?: string | null;
+  suitableSkinTypes?: string[];
+  suitableHairTypes?: string[];
+  spf?: number | null;
+  broadSpectrum?: boolean | null;
+  uvFilterType?: string | null;
+  waterResistanceMinutes?: number | null;
+  isFragranceFree?: boolean | null;
+  isNonComedogenic?: boolean | null;
   brand: {
     id: string;
     name: string;
@@ -105,6 +116,16 @@ export class ProductViewService {
       description: product.description,
       usage: product.usage,
       warnings: product.warnings,
+      targetArea: product.targetArea ?? null,
+      texture: product.texture ?? null,
+      suitableSkinTypes: product.suitableSkinTypes ?? [],
+      suitableHairTypes: product.suitableHairTypes ?? [],
+      spf: product.spf ?? null,
+      broadSpectrum: product.broadSpectrum ?? null,
+      uvFilterType: product.uvFilterType ?? null,
+      waterResistanceMinutes: product.waterResistanceMinutes ?? null,
+      isFragranceFree: product.isFragranceFree ?? null,
+      isNonComedogenic: product.isNonComedogenic ?? null,
       brand: product.brand,
       productLine: product.productLine ?? null,
       category: product.category ?? null,

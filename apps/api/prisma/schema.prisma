@@ -616,6 +616,39 @@ model SellingPrice {
   @@schema("commerce")
 }
 
+/// Customer review of a product. Commerce owns it (it describes a purchase experience). productId/skuId are plain
+/// catalog ids (no cross-context FK). Only PUBLISHED reviews are public; `source` marks where a row came from
+/// ("customer", or a tagged seed such as "ui-test-seed-2026-11-08" that a cleanup script can remove).
+model ProductReview {
+  id                 String              @id @default(uuid()) @db.Uuid
+  productId          String              @map("product_id") @db.Uuid
+  skuId              String?             @map("sku_id") @db.Uuid
+  rating             Int                 @db.SmallInt
+  title              String?             @db.VarChar(120)
+  body               String
+  authorName         String              @map("author_name") @db.VarChar(60)
+  skinType           String?             @map("skin_type") @db.VarChar(20)
+  isVerifiedPurchase Boolean             @default(false) @map("is_verified_purchase")
+  helpfulCount       Int                 @default(0) @map("helpful_count")
+  status             ProductReviewStatus @default(PENDING)
+  source             String              @default("customer") @db.VarChar(60)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  @@index([productId, status, createdAt])
+  @@index([source])
+  @@map("product_reviews")
+  @@schema("commerce")
+}
+
+enum ProductReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+
+  @@schema("commerce")
+}
+
 enum BenefitType {
   item_discount
   order_discount
