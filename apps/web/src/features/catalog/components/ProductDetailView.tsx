@@ -4,8 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { PageContainer } from '@/components/layout/page-container';
+import { Section } from '@/components/layout/section';
 import { AsyncButton, Button, buttonVariants } from '@/components/ui/button';
+import { cardVariants } from '@/components/ui/card-variants';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { GlassBadge } from '@/components/ui/glass-badge';
 import { Icon } from '@/components/ui/icon';
 import { iconButtonVariants } from '@/components/ui/icon-button';
 import { ProductTile } from '@/components/ui/product-tile';
@@ -21,21 +25,25 @@ import { currencyLabel, formatAmount, formatEgp, formatNumber, formatPackSize } 
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes, shellRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
-import { getSavedCustomerRoutine } from '@/features/routine/lib/routineStorage';
 import { getProductDetail, type ProductDetail, type PublicMedia, type PublicVariant } from '../api/discovery';
-import { compactImage, galleryImages } from '../lib/media-roles';
 import { categoryLabel } from '../lib/card-model';
-import { ROUTINE_ORDER, routineStepFor } from '../lib/routine-order';
 import { useCategoryTree } from '../lib/listing';
+import { compactImage, galleryImages } from '../lib/media-roles';
+import { knownSkinTypes } from '../lib/product-facts';
+import { skinTypeLabel } from './product-fact-labels';
+import { HeroRating, ProductReviews } from './ProductReviews';
+import { ProductAbout, ProductHighlights, ProductIngredients, ProductSuitability, ProductUsage, RelatedProducts, RoutinePlacement } from './ProductDetailSections';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 type AddState = 'idle' | 'pending' | 'added' | 'error';
+/** The async button shows the add cycle; «added» is rendered by the button's own label instead of its success state. */
+const buttonState = (state: AddState) => (state === 'added' ? 'idle' : state);
 
 /**
- * Product page (boards PDP, PDPMobile, PDPMobileFirst/Scrolled, PDPStates) over GET /products/:slug/detail. The selected
- * variant lives in `?sku=` so a size switch reloads price, availability, media and reviewed content together from the
- * backend. Only catalog-provided content is shown: the boards' concern claims, texture, key ingredients, routine
- * placement and «قبله وبعده» need data the API does not have and are not rendered.
+ * Product page over GET /products/:slug/detail, composed of Sahel `Section`s in the reference order: gallery + buy box,
+ * at a glance, about, ingredients, how to use, routine placement, suitability, related products. Every section renders
+ * only the reviewed catalog data it has; the selected variant lives in `?sku=` so a size switch reloads price,
+ * availability, media and content together from the backend.
  */
 export function ProductDetailView({ slug }: { slug: string }) {
   const m = useMessages();
@@ -56,20 +64,22 @@ export function ProductDetailView({ slug }: { slug: string }) {
   if (query.status === 'error') {
     const missing = query.error instanceof ApiError && (query.error.status === 404 || query.error.status === 400);
     return (
-      <section className="mx-auto my-10 flex max-w-narrow flex-col items-center gap-4 rounded-card bg-linen px-6 py-10 text-center shadow-outline-hairline">
-        <h1 className="m-0 text-display-3">{missing ? m.pdpNotFoundTitle : m.pdpLoadError}</h1>
-        {missing ? <p className="m-0 text-15 leading-25 text-stone">{m.pdpNotFoundBody}</p> : null}
-        <div className="flex flex-wrap justify-center gap-3">
-          {missing ? null : (
-            <Button variant="light" size="m" onClick={() => query.refetch()}>
-              {m.tryAgain}
-            </Button>
-          )}
-          <Link href={routes.products} className={buttonVariants({ variant: missing ? 'cobalt' : 'light', size: 'm' })}>
-            {m.pdpBackToProducts}
-          </Link>
-        </div>
-      </section>
+      <PageContainer>
+        <section role="alert" className={cn(cardVariants(), 'mx-auto my-10 flex max-w-narrow flex-col items-center gap-4 px-6 py-10 text-center')}>
+          <h1 className="m-0 font-display text-28 font-bold leading-36 text-ink">{missing ? m.pdpNotFoundTitle : m.pdpLoadError}</h1>
+          {missing ? <p className="m-0 text-15 leading-25 text-stone">{m.pdpNotFoundBody}</p> : null}
+          <div className="flex flex-wrap justify-center gap-3">
+            {missing ? null : (
+              <Button variant="ink" size="m" onClick={() => query.refetch()}>
+                {m.tryAgain}
+              </Button>
+            )}
+            <Link href={routes.products} className={buttonVariants({ variant: missing ? 'cobalt' : 'linen', size: 'm' })}>
+              {m.pdpBackToProducts}
+            </Link>
+          </div>
+        </section>
+      </PageContainer>
     );
   }
 
@@ -87,31 +97,31 @@ function useAddToCart(variant: PublicVariant) {
   }, [variant.id]);
   const inCart = cart?.items.find((item) => item.skuId === variant.id)?.quantity ?? 0;
   const add = async () => {
-    if (state === 'pending') return;
+    if (state === 'pending') return false;
     setState('pending');
     try {
       await addItem({ skuId: variant.id, quantity });
       setState('added');
+      return true;
     } catch {
       setState('error');
+      return false;
     }
   };
   return { state, setState, quantity, setQuantity, inCart, add };
 }
 
+type Buy = ReturnType<typeof useAddToCart>;
+
 function Detail({ product, switching, onSelectVariant }: { product: ProductDetail; switching: boolean; onSelectVariant: (id: string) => void }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const tree = useCategoryTree();
   const variant = product.selectedVariant;
-  const content = variant.content;
-  const name = content?.name || product.name;
+  const name = variant.content?.name || product.name;
   const media = variant.media.length ? variant.media : product.media.filter((item) => item.skuId === variant.id);
   const buy = useAddToCart(variant);
   const buyRowRef = useRef<HTMLDivElement>(null);
   const [barVisible, setBarVisible] = useState(false);
 
-  // The phone purchase bar appears only once the page's own buy buttons scroll out of view (PDPMobileScrolled).
+  // The phone purchase bar appears only once the page's own buy buttons have scrolled away above the viewport.
   useEffect(() => {
     const el = buyRowRef.current;
     if (!el) return;
@@ -124,287 +134,275 @@ function Detail({ product, switching, onSelectVariant }: { product: ProductDetai
     return () => document.documentElement.removeAttribute('data-pdp-bar');
   }, [barVisible]);
 
-  const department = product.category ? tree.data?.find((r) => r.id === product.category!.parentId || r.id === product.category!.id) : undefined;
-  const categoryName = product.category ? categoryLabel(product.category, locale) : null;
-  const sizes = [...new Set(product.skus.map((s) => formatPackSize(s.size, s.sizeUnit, locale)).filter(Boolean))].join(m.sizeOr);
-  const sections: Array<{ key: string; title: string; body: string }> = [
-    { key: 'usage', title: m.pdpUsage, body: (content?.usage ?? product.usage) || '' },
-    { key: 'ingredients', title: m.pdpIngredients, body: content?.ingredients || '' },
-    { key: 'warnings', title: m.pdpWarnings, body: (content?.warnings ?? product.warnings) || '' },
-  ].filter((s) => s.body.trim());
-  const description = (content?.description ?? product.description)?.trim() || null;
-
   return (
-    <article className="flex flex-col gap-16 pb-28 lg:pb-10 lg:gap-24">
-      <nav aria-label={m.plpBreadcrumb} className="hidden lg:block">
-        <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-13 leading-20">
-          <Crumb href={routes.home} label={m.plpHome} />
-          {department ? <Crumb href={routes.productsByCategory(department.slug)} label={categoryLabel(department, locale) ?? department.name} /> : null}
-          {product.category && categoryName && product.category.slug !== department?.slug ? (
-            <Crumb href={routes.productsByCategory(product.category.slug)} label={categoryName} />
-          ) : null}
-          <li aria-current="page" dir="auto" className="font-semibold">
-            {name}
-          </li>
-        </ol>
-      </nav>
-
-      <div className="grid gap-6 lg:-mt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,600px)] lg:gap-16">
-        <div className="lg:order-2">
+    <article className="pb-28 lg:pb-10">
+      <Section labelledBy="pdp-title" rhythm="compact" className="pt-2 lg:pt-4">
+        <Breadcrumb product={product} name={name} />
+        <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start lg:gap-8">
           <Gallery media={media} name={name} />
-        </div>
-
-        <div className="flex flex-col gap-5 lg:order-1 lg:pt-6" aria-busy={switching || undefined}>
-          <div className="flex flex-col gap-3">
-            <Link
-              href={`${routes.products}?brand=${encodeURIComponent(product.brand.slug)}`}
-              lang="en"
-              dir="ltr"
-              className="-my-3.5 min-w-10 self-end py-3.5 font-serif italic text-14 text-stone hover:text-ink underline decoration-1 underline-offset-4"
-            >
-              {product.brand.name.toUpperCase()}
-            </Link>
-            <h1 dir="auto" className="m-0 font-display text-32 font-bold leading-40 text-ink text-match-parent lg:text-40 lg:leading-45">
-              {name}
-            </h1>
-          </div>
-
-          <SizeOptions product={product} variant={variant} onSelect={onSelectVariant} />
-
-          <PriceRow variant={variant} />
-
-          <div ref={buyRowRef}>
-            <BuyRow product={product} variant={variant} buy={buy} disabled={switching} name={name} />
-          </div>
-
-          <DeliveryDisclosure />
-
-          <Link href={shellRoutes.shina} className="flex min-h-10 items-center gap-2 self-start text-15 font-semibold text-ink hover:text-cobalt no-underline transition-colors">
-            <span className="underline decoration-1 underline-offset-4">{m.pdpAskShina}</span>
-          </Link>
-        </div>
-      </div>
-
-      {description || sections.length || sizes || categoryName ? (
-        <section aria-labelledby="about-h" className="grid gap-10 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-20">
-          <div className="flex flex-col gap-4">
-            <h2 id="about-h" className="m-0 font-display text-28 font-bold leading-tight text-ink lg:text-32">
-              {description ? m.pdpBrandSays : m.pdpAboutEyebrow}
-            </h2>
-            {description ? (
-              <>
-                <blockquote dir="auto" className="m-0 whitespace-pre-line text-17 leading-30 text-ink text-match-parent">
-                  «{description}»
-                </blockquote>
-                <span className="flex items-center gap-2 text-13 text-stone">
-                  <span className="rounded-image bg-sand px-2 py-0.5 text-12 font-semibold text-ink">{m.pdpBrandBadge}</span>
-                  <span>{fillMessage(m.pdpBrandDescription, { brand: product.brand.name })}</span>
-                </span>
-              </>
-            ) : null}
-            <dl className="m-0 grid grid-cols-2 gap-x-6">
-              {[
-                { k: m.pdpSpecSize, v: sizes },
-                { k: m.pdpSpecStep, v: categoryName },
-                { k: m.pdpSpecLine, v: product.productLine?.name ?? null, latin: true },
-                { k: m.pdpSpecCode, v: variant.code, latin: true },
-              ]
-                .filter((row) => row.v)
-                .map((row) => (
-                  <div key={row.k} className="flex flex-col gap-0.5 py-3 shadow-hairline-bottom">
-                    <dt className="text-12 font-semibold leading-17 text-stone">{row.k}</dt>
-                    <dd dir={row.latin ? 'ltr' : undefined} className="m-0 text-15 font-semibold leading-24 text-match-parent text-ink">
-                      {row.v}
-                    </dd>
-                  </div>
-                ))}
-            </dl>
-          </div>
-          {sections.length ? (
-            <div className="flex flex-col shadow-hairline-top">
-              {sections.map((section, index) => (
-                <details key={section.key} open={index === 0} className="group shadow-hairline-bottom">
-                  <summary className="flex min-h-15 cursor-pointer list-none items-center justify-between gap-3 font-display text-21 font-bold leading-27 text-ink [&::-webkit-details-marker]:hidden">
-                    {section.title}
-                    <Icon name="chevron-down" size={18} strokeWidth={2} className="transition-transform duration-fast group-open:rotate-180" />
-                  </summary>
-                  <p dir="auto" className="m-0 whitespace-pre-line pb-5 text-15 leading-27 text-stone text-match-parent">
-                    {section.body}
-                  </p>
-                </details>
-              ))}
+          <div className="flex min-w-0 flex-col gap-3.5" aria-busy={switching || undefined}>
+            <Identity product={product} variant={variant} name={name} />
+            <PriceRow variant={variant} />
+            <SizeOptions product={product} variant={variant} onSelect={onSelectVariant} />
+            <div ref={buyRowRef}>
+              <BuyRow product={product} variant={variant} buy={buy} disabled={switching} name={name} />
             </div>
-          ) : null}
-        </section>
-      ) : null}
+            <DeliveryDisclosure />
+          </div>
+        </div>
+      </Section>
 
+      <ProductHighlights product={product} />
+      <ProductAbout product={product} name={name} />
+      <ProductIngredients product={product} />
+      <ProductUsage product={product} />
       <RoutinePlacement product={product} />
+      <ProductSuitability product={product} />
+      <ProductReviews slug={product.slug} />
+      <RelatedProducts product={product} />
 
-      <MobilePurchaseBar product={product} variant={variant} buy={buy} visible={barVisible} onSelect={onSelectVariant} name={name} />
+      <MobilePurchaseBar product={product} variant={variant} buy={buy} visible={barVisible} onSelect={onSelectVariant} />
     </article>
   );
 }
 
-/**
- * Where the product sits in the storefront's routine outline (features/catalog/lib/routine-order), matched by category
- * slug. Rendered only for categories that belong to an outline; no efficacy claims, usage or ingredient copy here (the
- * catalog's own usage and ingredients are in the sections above).
- */
-function RoutinePlacement({ product }: { product: ProductDetail }) {
+function Breadcrumb({ product, name }: { product: ProductDetail; name: string }) {
   const m = useMessages();
   const locale = useLocale();
-  const [inSavedRoutine, setInSavedRoutine] = useState(false);
-
-  useEffect(() => {
-    const saved = getSavedCustomerRoutine();
-    setInSavedRoutine(Boolean(saved && [...saved.morningSteps, ...saved.eveningSteps].some((step) => step.productSlug === product.slug)));
-  }, [product.slug]);
-
-  const placement = routineStepFor(product.category?.slug);
-  if (!placement || !product.category) return null;
-  const outline = ROUTINE_ORDER[placement.kind];
-  const category = categoryLabel(product.category, locale) ?? product.category.name;
-  const department = categoryLabel({ slug: outline.department, name: outline.department }, locale) ?? outline.department;
-
+  const tree = useCategoryTree();
+  const category = product.category;
+  const department = category ? tree.data?.find((root) => root.id === category.parentId || root.id === category.id) : undefined;
+  const categoryName = category ? categoryLabel(category, locale) : null;
   return (
-    <section aria-labelledby="routine-h" className="flex flex-col gap-5 shadow-hairline-top pt-8">
-      <div className="flex flex-col gap-1">
-        <h2 id="routine-h" className="m-0 font-display text-28 font-bold text-ink">
-          {m.pdpRoutineStepTitle}
-        </h2>
-        <p className="m-0 text-15 leading-24 text-stone">
-          {fillMessage(m.pdpRoutineStepLead, {
-            n: formatNumber(placement.index + 1, locale),
-            total: formatNumber(outline.steps.length, locale),
-            department,
-          })}
-        </p>
-      </div>
-
-      <ol className="m-0 grid list-none gap-2 p-0" style={{ gridTemplateColumns: `repeat(${outline.steps.length}, minmax(0, 1fr))` }}>
-        {outline.steps.map((step, index) => {
-          const current = index === placement.index;
-          return (
-            <li
-              key={step.slug}
-              aria-current={current ? 'step' : undefined}
-              className={cn(
-                'flex min-h-20 flex-col justify-between gap-2 rounded-card p-3',
-                current ? 'bg-ink text-chalk' : 'bg-linen text-ink shadow-outline-hairline'
-              )}
-            >
-              <span className={cn('font-display text-13 font-bold tabular-nums', current ? 'text-citron' : 'text-stone')}>
-                {formatNumber(index + 1, locale)}
-              </span>
-              <span className="text-14 font-bold leading-20">{categoryLabel(step, locale)}</span>
-              {current ? <span className="sr-only">{m.pdpRoutineThisProduct}</span> : null}
-            </li>
-          );
-        })}
+    <nav aria-label={m.plpBreadcrumb} className="hidden lg:block">
+      <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-13 leading-20 text-stone">
+        <Crumb href={routes.home} label={m.plpHome} />
+        {department ? <Crumb href={routes.productsByCategory(department.slug)} label={categoryLabel(department, locale) ?? department.name} /> : null}
+        {category && categoryName && category.slug !== department?.slug ? <Crumb href={routes.productsByCategory(category.slug)} label={categoryName} /> : null}
+        <li aria-current="page" dir="auto" className="font-semibold text-ink">
+          {name}
+        </li>
       </ol>
-
-      {inSavedRoutine ? (
-        <p className="m-0 flex items-center gap-2 text-14 font-semibold text-ok">
-          <Icon name="check" size={16} />
-          {m.pdpRoutineInSaved}
-        </p>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-        <Link href={`${routes.routineBuilder}?product=${encodeURIComponent(product.slug)}`} className={buttonVariants({ variant: 'ink', size: 'm' })}>
-          {m.pdpRoutineBuild}
-        </Link>
-        <Link href={routes.productsByCategory(product.category.slug)} className="link-quiet text-14 font-semibold text-ink">
-          {fillMessage(m.pdpMoreInCategory, { category })}
-        </Link>
-      </div>
-    </section>
+    </nav>
   );
 }
 
 function Crumb({ href, label }: { href: string; label: string }) {
   return (
     <li className="inline-flex items-center gap-2">
-      <Link href={href} className="font-medium text-stone hover:text-ink underline decoration-1 underline-offset-4">
+      <Link href={href} className="link-quiet font-medium text-stone hover:text-ink">
         {label}
       </Link>
-      <span aria-hidden="true" className="opacity-70">
-        ›
-      </span>
+      <Icon name="chevron-forward" size={12} strokeWidth={2} className="opacity-70" />
     </li>
   );
 }
 
+/**
+ * Swipeable stage (scroll-snap, so touch, trackpad and keyboard scrolling all work) with a counter over the photo and
+ * thumbnails beside it on desktop / under it on the phone. The counter follows the visible slide.
+ */
 function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
   const m = useMessages();
+  const locale = useLocale();
   const images = galleryImages(media);
   const [index, setIndex] = useState(0);
   const [zoom, setZoom] = useState(false);
-  useEffect(() => setIndex(0), [images[0]?.id]);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const slideRefs = useRef<Array<HTMLLIElement | null>>([]);
+  const firstId = images[0]?.id;
+
+  useEffect(() => {
+    setIndex(0);
+    const track = trackRef.current;
+    if (!track) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) if (entry.isIntersecting) setIndex(Number((entry.target as HTMLElement).dataset.index));
+      },
+      { root: track, threshold: 0.6 }
+    );
+    slideRefs.current.forEach((slide) => slide && io.observe(slide));
+    return () => io.disconnect();
+  }, [firstId, images.length]);
+
+  const show = (i: number) => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    slideRefs.current[i]?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest', inline: 'start' });
+    setIndex(i);
+  };
   const current = images[index] ?? null;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="relative">
-        <ProductTile
-          src={current?.url ?? null}
-          alt={current?.altText?.trim() || name}
-          name={name}
-          priority
-          sizes="(min-width: 1024px) 600px, 100vw"
-          className="rounded-card shadow-elevation-3 lg:aspect-[600/750]"
-        />
-        <div className="pointer-events-none absolute bottom-4 inset-x-4 flex flex-wrap items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-ink/85 px-3 py-1 text-12 font-semibold text-chalk backdrop-blur-sm shadow-elevation-1">
-            <Icon name="shield" size={14} className="text-citron" />
-            <span>{m.pdpAuthenticRibbon}</span>
-          </span>
-        </div>
+    <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
+      <div className="relative min-w-0 flex-1">
+        {images.length ? (
+          <div ref={trackRef} role="group" aria-label={m.pdpGalleryLabel} className="flex snap-x snap-mandatory overflow-x-auto rounded-image bg-linen shadow-outline-hairline scrollbar-none">
+            <ul className="m-0 flex w-full list-none p-0">
+              {images.map((image, i) => (
+                <li
+                  key={image.id}
+                  ref={(el) => {
+                    slideRefs.current[i] = el;
+                  }}
+                  data-index={i}
+                  aria-label={fillMessage(m.pdpImageCount, { i: formatNumber(i + 1, locale), n: formatNumber(images.length, locale) })}
+                  className="w-full flex-none snap-start"
+                >
+                  <ProductTile
+                    src={image.url}
+                    alt={image.altText?.trim() || name}
+                    name={name}
+                    priority={i === 0}
+                    sizes="(min-width: 1024px) 560px, 100vw"
+                    className="bg-linen [&_img]:object-contain [&_img]:p-6 lg:[&_img]:p-10"
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <ProductTile src={null} alt={name} name={name} className="bg-linen shadow-outline-hairline" />
+        )}
+        {images.length > 1 ? (
+          <GlassBadge tone="photo" dot="bg-citron" className="pointer-events-none absolute bottom-3 start-3" aria-hidden="true">
+            {fillMessage(m.pdpGalleryCount, { i: formatNumber(index + 1, locale), n: formatNumber(images.length, locale) })}
+          </GlassBadge>
+        ) : null}
         {current ? (
-          <button type="button" aria-label={m.pdpZoom} onClick={() => setZoom(true)} className={cn(iconButtonVariants({ variant: 'raised' }), 'absolute start-4 top-4 size-11')}>
+          <button type="button" aria-label={m.pdpZoom} onClick={() => setZoom(true)} className={cn(iconButtonVariants({ variant: 'raised' }), 'absolute end-3 top-3')}>
             <Icon name="zoom" size={20} />
           </button>
         ) : null}
       </div>
+
       {images.length > 1 ? (
-        <ul className="m-0 flex list-none gap-2 overflow-x-auto p-0 pb-1 scrollbar-none">
+        <ul className="m-0 flex list-none gap-2 overflow-x-auto p-0 pb-1 scrollbar-none lg:order-first lg:flex-col lg:overflow-visible lg:pb-0">
           {images.map((image, i) => (
             <li key={image.id} className="flex-none">
               <button
                 type="button"
-                aria-label={fillMessage(m.pdpShowImage, { i: i + 1 })}
+                aria-label={fillMessage(m.pdpShowImage, { i: formatNumber(i + 1, locale) })}
                 aria-current={i === index}
-                onClick={() => setIndex(i)}
-                className={cn('block rounded-image p-0.5', i === index ? 'ring-2 ring-cobalt shadow-elevation-1' : 'shadow-none')}
+                onClick={() => show(i)}
+                className={cn(
+                  'block rounded-image p-0.5 transition-shadow duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
+                  i === index ? 'ring-2 ring-cobalt' : 'shadow-outline-hairline hover:shadow-outline-control'
+                )}
               >
-                <ProductTile size="thumb" className="size-16" src={image.url} alt="" name={name} />
+                <ProductTile size="thumb" className="size-16 bg-linen lg:size-20 [&_img]:object-contain [&_img]:p-1" src={image.url} alt="" name={name} />
               </button>
             </li>
           ))}
         </ul>
       ) : null}
+
       <Dialog open={zoom} onOpenChange={setZoom}>
-        <DialogContent closeLabel={m.pdpCloseZoom} className="max-w-[720px] p-3">
+        <DialogContent closeLabel={m.pdpCloseZoom} className="max-w-narrow p-3">
           <DialogTitle className="sr-only">{name}</DialogTitle>
-          <ProductTile src={current?.url ?? null} alt={current?.altText?.trim() || name} name={name} sizes="720px" />
+          <ProductTile src={current?.url ?? null} alt={current?.altText?.trim() || name} name={name} sizes="720px" className="bg-linen [&_img]:object-contain" />
         </DialogContent>
       </Dialog>
     </div>
   );
 }
 
-/** «الحجم: ٣٠ مل» + radio cards (size + price; unavailable sizes struck with «غير متوفر حاليًا»), PDPStates §١. */
+/** Brand (Latin names in the serif campaign voice), availability, title, the brand's own short description and tags. */
+function Identity({ product, variant, name }: { product: ProductDetail; variant: PublicVariant; name: string }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const brandIsArabic = /[؀-ۿ]/.test(product.brand.name);
+  const description = (variant.content?.description ?? product.description)?.trim() || null;
+  const tags = [
+    product.category ? categoryLabel(product.category, locale) : null,
+    product.productLine?.name ?? null,
+    ...knownSkinTypes(product.suitableSkinTypes).map((type) => fillMessage(m.pdpSuitableSkin, { type: skinTypeLabel(m, type) })),
+  ].filter((tag): tag is string => Boolean(tag));
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <Link
+          href={`${routes.products}?brand=${encodeURIComponent(product.brand.slug)}`}
+          dir="auto"
+          className={cn('link-quiet text-cobalt', brandIsArabic ? 'font-display text-20 font-bold' : 'font-serif text-24 italic')}
+        >
+          {product.brand.name}
+        </Link>
+        <GlassBadge dot={variant.canOrder ? 'bg-ok' : 'bg-tomato'}>{variant.canOrder ? m.pdpAvailable : m.pdpUnavailableNow}</GlassBadge>
+      </div>
+      <h1 id="pdp-title" dir="auto" className="m-0 font-display text-32 font-bold leading-36 text-ink text-match-parent lg:text-40 lg:leading-45">
+        {name}
+      </h1>
+      {description ? (
+        <p dir="auto" className="m-0 line-clamp-3 max-w-prose text-15 leading-25 text-stone text-match-parent">
+          {description}
+        </p>
+      ) : null}
+      <HeroRating slug={product.slug} />
+      {tags.length ? (
+        <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+          {tags.map((tag, i) => (
+            <li key={tag}>
+              <GlassBadge tone={i === 0 ? 'accent' : 'quiet'}>
+                <bdi>{tag}</bdi>
+              </GlassBadge>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function PriceRow({ variant }: { variant: PublicVariant }) {
+  const m = useMessages();
+  const locale = useLocale();
+  const price = variant.price;
+  // A reference price is shown only when the backend supplies one above the current price.
+  const compareAt = price && price.compareAtAmount !== null && price.compareAtAmount > price.amount ? price.compareAtAmount : null;
+  const discount = variant.promotions?.orderDiscountAmount ?? 0;
+  if (!price) return <p className="m-0 text-15 text-stone">{m.productPriceUnavailable}</p>;
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="m-0 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="font-display text-40 font-bold leading-45 tabular-nums text-ink">
+          <bdi>{formatAmount(price.amount, locale)}</bdi>
+          <span className="ms-1.5 text-16 font-medium text-stone">{currencyLabel(locale)}</span>
+        </span>
+        {compareAt ? (
+          <span className="text-16 text-stone line-through">
+            <span className="sr-only">{fillMessage(m.pdpWas, { price: formatEgp(compareAt, price.currency, locale) ?? '' })}</span>
+            <bdi aria-hidden>{formatAmount(compareAt, locale)}</bdi>
+          </span>
+        ) : null}
+      </p>
+      {discount > 0 ? (
+        <p className="m-0 text-13 leading-20 text-ok">{fillMessage(m.pdpOrderDiscount, { amount: formatEgp(discount, price.currency, locale) ?? '' })}</p>
+      ) : null}
+    </div>
+  );
+}
+
+/** Size choice as pill radios (size + price, unavailable sizes struck through). A single size is stated, not offered. */
 function SizeOptions({ product, variant, onSelect, compact = false }: { product: ProductDetail; variant: PublicVariant; onSelect: (id: string) => void; compact?: boolean }) {
   const m = useMessages();
   const locale = useLocale();
-  if (product.skus.length < 2) return null;
   const label = (s: PublicVariant) => formatPackSize(s.size, s.sizeUnit, locale) ?? s.variantName;
+  if (product.skus.length < 2) {
+    const size = formatPackSize(variant.size, variant.sizeUnit, locale);
+    return size ? (
+      <p className="m-0 text-14 font-bold text-ink">
+        {m.pdpSizeLabel} <span className="font-normal text-stone">{size}</span>
+      </p>
+    ) : null;
+  }
   return (
     <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
       <legend className="mb-2 p-0 text-14 font-bold text-ink">
         {m.pdpSizeLabel} <span className="font-normal text-stone">{label(variant)}</span>
       </legend>
-      <div role="radiogroup" aria-label={m.pdpSpecSize} className="grid grid-cols-2 gap-3">
+      <div role="radiogroup" aria-label={m.pdpSpecSize} className="grid grid-cols-2 gap-2">
         {product.skus.map((sku) => {
           const checked = sku.id === variant.id;
           const price = sku.price ? formatEgp(sku.price.amount, sku.price.currency, locale) : null;
@@ -416,16 +414,14 @@ function SizeOptions({ product, variant, onSelect, compact = false }: { product:
               aria-checked={checked}
               onClick={() => !checked && onSelect(sku.id)}
               className={cn(
-                'flex items-center gap-2.5 rounded-image px-3.5 text-start transition-all',
-                compact ? 'h-12' : 'h-15',
-                checked ? 'bg-sand shadow-outline-hairline ring-2 ring-cobalt' : sku.canOrder ? 'bg-linen shadow-outline-hairline hover:bg-sand/30' : 'bg-linen opacity-50 shadow-outline-hairline'
+                'flex min-w-0 items-center gap-2 rounded-pill px-4 text-start transition-[background-color,box-shadow] duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt focus-visible:ring-offset-2',
+                compact ? 'h-12' : 'h-14',
+                checked ? 'bg-cobalt text-chalk shadow-elevation-1' : sku.canOrder ? 'bg-linen text-ink shadow-outline-control hover:bg-chalk' : 'bg-linen text-stone opacity-70 shadow-outline-hairline'
               )}
             >
-              <span aria-hidden="true" className={cn('flex size-5 flex-none items-center justify-center rounded-full', checked ? 'bg-cobalt text-chalk' : 'shadow-outline-check')}>
-                {checked ? <Icon name="check" size={13} strokeWidth={3} /> : null}
-              </span>
-              <span className={cn('text-16 font-bold text-ink', !sku.canOrder && 'text-stone line-through')}>{label(sku)}</span>
-              <span className={cn('ms-auto text-12.5', sku.canOrder ? 'text-stone' : 'font-medium text-tomato-ink')}>
+              {checked ? <Icon name="check" size={16} strokeWidth={2.4} /> : null}
+              <span className={cn('min-w-0 truncate text-15 font-bold', !sku.canOrder && 'line-through')}>{label(sku)}</span>
+              <span className={cn('ms-auto flex-none text-12.5', checked ? 'text-chalk' : sku.canOrder ? 'text-stone' : 'font-medium text-tomato-ink')}>
                 {sku.canOrder ? price : m.pdpUnavailableNow}
               </span>
             </button>
@@ -436,44 +432,11 @@ function SizeOptions({ product, variant, onSelect, compact = false }: { product:
   );
 }
 
-function PriceRow({ variant }: { variant: PublicVariant }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const price = variant.price;
-  // The reference price is shown only when the backend supplies one above the current price.
-  const compareAt = price && price.compareAtAmount !== null && price.compareAtAmount > price.amount ? price.compareAtAmount : null;
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      {price ? (
-        <p className="m-0 flex items-baseline gap-2">
-          <span className="text-32 font-bold leading-36 tabular-nums text-ink">
-            <bdi>{formatAmount(price.amount, locale)}</bdi>
-            <span className="ms-1.5 text-14 font-medium text-stone">{currencyLabel(locale)}</span>
-          </span>
-          {compareAt ? (
-            <span className="text-15 text-stone line-through">
-              <span className="sr-only">{fillMessage(m.pdpWas, { price: formatEgp(compareAt, price.currency, locale) ?? '' })}</span>
-              <bdi aria-hidden>{formatAmount(compareAt, locale)}</bdi>
-            </span>
-          ) : null}
-        </p>
-      ) : (
-        <p className="m-0 text-15 text-stone">{m.productPriceUnavailable}</p>
-      )}
-      <p className={cn('m-0 flex items-center gap-2 text-15 font-semibold', variant.canOrder ? 'text-ok' : 'text-tomato-ink')}>
-        <span aria-hidden="true" className={cn('size-2 rounded-full', variant.canOrder ? 'bg-ok' : 'bg-tomato')} />
-        {variant.canOrder ? m.pdpAvailable : m.pdpUnavailableNow}
-      </p>
-    </div>
-  );
-}
-
-type Buy = ReturnType<typeof useAddToCart>;
-
 function BuyRow({ product, variant, buy, disabled, name }: { product: ProductDetail; variant: PublicVariant; buy: Buy; disabled: boolean; name: string }) {
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
+  const [buying, setBuying] = useState(false);
   if (!variant.canOrder || !variant.price) {
     return (
       <div className="flex flex-col gap-3">
@@ -489,9 +452,15 @@ function BuyRow({ product, variant, buy, disabled, name }: { product: ProductDet
     );
   }
   const added = buy.state === 'added';
+  const buyNow = async () => {
+    setBuying(true);
+    const ok = await buy.add();
+    if (ok) router.push(routes.checkout);
+    else setBuying(false);
+  };
   return (
-    <div className="relative flex flex-col gap-2">
-      <div className="flex items-center gap-3">
+    <div className="relative flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <QuantityStepper
           value={buy.quantity}
           displayValue={formatNumber(buy.quantity, locale)}
@@ -499,43 +468,49 @@ function BuyRow({ product, variant, buy, disabled, name }: { product: ProductDet
           onChange={buy.setQuantity}
           disabled={disabled || buy.state === 'pending'}
           labels={{ group: m.pdpQuantity, decrease: m.pdpDecrease, increase: m.pdpIncrease }}
-          className="h-14 [&_button]:h-14 [&_button]:w-11"
+          className="h-control-l [&_button]:h-control-l [&_button]:w-11"
         />
         <AsyncButton
-          state={buy.state === 'added' ? 'idle' : buy.state}
-          variant="ink"
+          state={buying ? 'idle' : buttonState(buy.state)}
+          variant="cobalt"
           size="l"
-          className={cn('flex-1', added && 'bg-cobalt hover:bg-cobalt-deep text-chalk')}
+          className="min-w-0 flex-1"
           pendingLabel={m.pdpAdding}
           retryLabel={m.pdpAddCta}
-          disabled={disabled}
+          disabled={disabled || buying}
           onClick={() => (added ? router.push(routes.cart) : buy.add())}
         >
-          {added ? (
-            <>
-              <Icon name="check" size={18} strokeWidth={2.4} />
-              {fillMessage(m.pdpAddedGo, { n: formatNumber(buy.inCart, locale) })}
-            </>
-          ) : (
-            <>
-              <Icon name="plus" size={18} strokeWidth={2.25} />
-              {m.pdpAddCta}
-            </>
-          )}
+          <Icon name={added ? 'check' : 'bag'} size={18} strokeWidth={2.2} />
+          {added ? fillMessage(m.pdpAddedGo, { n: formatNumber(buy.inCart, locale) }) : m.pdpAddCta}
+        </AsyncButton>
+        <AsyncButton
+          state={buying ? 'pending' : 'idle'}
+          variant="ink"
+          size="l"
+          className="w-full md:w-auto"
+          pendingLabel={m.pdpAdding}
+          disabled={disabled || buy.state === 'pending'}
+          onClick={buyNow}
+        >
+          {m.pdpBuyNow}
         </AsyncButton>
       </div>
       {buy.state === 'error' ? (
         <p role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-21 text-tomato-ink">
-          <span aria-hidden="true" className="mt-1.5 size-1.75 flex-none rounded-full bg-tomato" />
+          <Icon name="alert" size={16} className="mt-0.5 flex-none" />
           {m.pdpAddFailed}
         </p>
       ) : null}
       {added ? <AddedPopover variant={variant} name={name} brand={product.brand.name} quantity={buy.inCart} onClose={() => buy.setState('idle')} /> : null}
+      <Link href={shellRoutes.shina} className="link-quiet flex min-h-control-s items-center gap-2 self-start text-14 font-semibold text-stone hover:text-cobalt">
+        <Icon name="sparkles" size={16} />
+        {m.pdpAskShina}
+      </Link>
     </div>
   );
 }
 
-/** Desktop confirmation (PDPStates «رسالة التأكيد»): stays while hovered or focused, never steals focus. */
+/** Desktop confirmation after adding: stays while hovered or focused, never steals focus. */
 function AddedPopover({ variant, name, brand, quantity, onClose }: { variant: PublicVariant; name: string; brand: string; quantity: number; onClose: () => void }) {
   const m = useMessages();
   const locale = useLocale();
@@ -555,10 +530,10 @@ function AddedPopover({ variant, name, brand, quantity, onClose }: { variant: Pu
       <div className="flex items-center gap-3">
         <ProductTile size="thumb" className="size-14 flex-none" src={image?.url ?? null} alt="" name={name} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span lang="en" dir="ltr" className="font-serif italic text-14 text-stone text-match-parent">
-            {brand.toUpperCase()}
+          <span dir="auto" className="font-serif text-14 italic text-stone text-match-parent">
+            {brand}
           </span>
-          <span dir="auto" className="truncate text-14 font-semibold text-match-parent text-ink">
+          <span dir="auto" className="truncate text-14 font-semibold text-ink text-match-parent">
             {name}
           </span>
           <span className="text-12.5 text-stone">{fillMessage(m.pdpQtyLine, { size, n: formatNumber(quantity, locale) })}</span>
@@ -579,14 +554,13 @@ function AddedPopover({ variant, name, brand, quantity, onClose }: { variant: Pu
 function DeliveryDisclosure() {
   const m = useMessages();
   return (
-    <details className="group rounded-input bg-linen shadow-outline-hairline">
-      <summary className="flex min-h-13 cursor-pointer list-none items-center gap-2.5 px-4 [&::-webkit-details-marker]:hidden text-ink">
+    <details className="group shadow-hairline-top">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2.5 text-ink [&::-webkit-details-marker]:hidden">
         <Icon name="truck" size={20} />
         <span className="text-15 font-semibold">{m.pdpDelivery}</span>
-        <span className="ms-auto text-13 text-stone">{m.pdpNotConfirmed}</span>
-        <Icon name="chevron-down" size={16} strokeWidth={2} className="transition-transform duration-fast group-open:rotate-180" />
+        <Icon name="chevron-down" size={16} strokeWidth={2} className="ms-auto transition-transform duration-fast group-open:rotate-180" />
       </summary>
-      <div className="flex flex-col gap-1 px-4 pb-4 text-14 leading-22 text-stone">
+      <div className="flex flex-col gap-1 pb-4 text-14 leading-22 text-stone">
         <p className="m-0">{m.pdpDeliveryBody}</p>
         <p className="m-0">{m.pdpReturnsBody}</p>
       </div>
@@ -595,24 +569,24 @@ function DeliveryDisclosure() {
 }
 
 /**
- * Phone purchase bar (PDPMobileScrolled, PDPStates §٢): appears once the page's buy buttons scroll away — product
- * thumb, a size/price chip that opens the same size chooser, and «أضف للسلة» / «روح للسلة (١)». After adding, a dark
- * toast «اتضاف للسلة: ٣٠ مل · روح للسلة» sits above it. Bottom padding follows the device's real safe-area inset.
+ * Phone purchase bar: appears once the page's buy buttons scroll away — the line total (price × quantity) and
+ * «أضف للسلة»; with several sizes the total opens the same size chooser. After adding, a toast sits above it.
  */
-function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: { product: ProductDetail; variant: PublicVariant; buy: Buy; visible: boolean; onSelect: (id: string) => void; name: string }) {
+function MobilePurchaseBar({ product, variant, buy, visible, onSelect }: { product: ProductDetail; variant: PublicVariant; buy: Buy; visible: boolean; onSelect: (id: string) => void }) {
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
   const [sizeOpen, setSizeOpen] = useState(false);
-  const image = compactImage(variant.media) ?? compactImage(product.media);
   const size = formatPackSize(variant.size, variant.sizeUnit, locale) ?? variant.variantName;
   const added = buy.state === 'added';
   const orderable = variant.canOrder && variant.price;
+  const multi = product.skus.length > 1;
+  const tab = visible ? 0 : -1;
 
   return (
     <div
       className={cn(
-        'pdp-bar fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-nav flex flex-col gap-2 bg-chalk/95 px-3 pt-2.5 pb-2 shadow-hairline-top backdrop-blur-sm transition-transform duration-base ease-standard lg:hidden',
+        'pdp-bar fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-nav flex flex-col gap-2 bg-chalk/95 px-4 pt-2.5 shadow-hairline-top backdrop-blur-sm transition-transform duration-base ease-standard motion-reduce:transition-none lg:hidden',
         visible ? 'translate-y-0' : 'pointer-events-none translate-y-full'
       )}
       aria-hidden={!visible}
@@ -625,51 +599,43 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
           </span>
         </Toast>
       ) : null}
-      <div className="flex items-center gap-2.5">
-        <ProductTile size="thumb" className="h-12.5 w-10 flex-none rounded-image" src={image?.url ?? null} alt="" name={name} />
+      <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => product.skus.length > 1 && setSizeOpen(true)}
-          aria-label={product.skus.length > 1 ? fillMessage(m.pdpBarSize, { size }) : undefined}
-          className="flex h-12.5 flex-none flex-col items-start justify-center rounded-input bg-sand px-3 text-start"
+          tabIndex={tab}
+          disabled={!multi}
+          onClick={() => setSizeOpen(true)}
+          aria-label={multi ? fillMessage(m.pdpBarSize, { size }) : undefined}
+          className="flex min-h-control-l flex-none flex-col items-start justify-center rounded-input px-1 text-start disabled:cursor-default"
         >
-          <span className="flex items-center gap-1 text-12.5 font-semibold text-ink">
-            {product.skus.length > 1 ? <Icon name="chevron-down" size={12} strokeWidth={2} /> : null}
-            {size}
+          <span className="flex items-center gap-1 text-12.5 font-semibold text-stone">
+            {multi ? <Icon name="chevron-down" size={12} strokeWidth={2} /> : null}
+            {multi ? size : m.pdpTotal}
           </span>
           {variant.price ? (
-            <span className="text-15 font-bold leading-20 tabular-nums text-ink">
-              <bdi>{formatAmount(variant.price.amount, locale)}</bdi>
-              <span className="ms-1 text-11 font-medium text-stone">{currencyLabel(locale)}</span>
+            <span className="font-display text-20 font-bold leading-24 tabular-nums text-ink">
+              <bdi>{formatAmount(variant.price.amount * buy.quantity, locale)}</bdi>
+              <span className="ms-1 text-12 font-medium text-stone">{currencyLabel(locale)}</span>
             </span>
           ) : null}
         </button>
         {orderable ? (
           <AsyncButton
-            state={buy.state === 'added' ? 'idle' : buy.state}
-            variant="ink"
-            size="m"
-            className={cn('h-12.5 flex-1', added && 'bg-cobalt hover:bg-cobalt-deep text-chalk')}
+            state={buttonState(buy.state)}
+            variant="cobalt"
+            size="l"
+            className="min-w-0 flex-1"
             pendingLabel={m.cardAdding}
             retryLabel={m.pdpAddCta}
-            tabIndex={visible ? 0 : -1}
+            tabIndex={tab}
             onClick={() => (added ? router.push(routes.cart) : buy.add())}
           >
-            {added ? (
-              <>
-                <Icon name="check" size={16} strokeWidth={2.4} />
-                {fillMessage(m.pdpGoToCart, { n: formatNumber(buy.inCart, locale) })}
-              </>
-            ) : (
-              <>
-                <Icon name="plus" size={16} strokeWidth={2.25} />
-                {m.pdpAddCta}
-              </>
-            )}
+            <Icon name={added ? 'check' : 'bag'} size={18} strokeWidth={2.2} />
+            {added ? fillMessage(m.pdpGoToCart, { n: formatNumber(buy.inCart, locale) }) : m.pdpAddCta}
           </AsyncButton>
         ) : (
-          <Button asChild variant="linen" size="m" className="h-12.5 flex-1">
-            <Link href={product.category ? routes.productsByCategory(product.category.slug) : routes.products} tabIndex={visible ? 0 : -1}>
+          <Button asChild variant="linen" size="l" className="min-w-0 flex-1">
+            <Link href={product.category ? routes.productsByCategory(product.category.slug) : routes.products} tabIndex={tab}>
               {m.pdpSeeAlternatives}
             </Link>
           </Button>
@@ -677,38 +643,23 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
       </div>
       <Sheet open={sizeOpen} onOpenChange={setSizeOpen}>
         <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-sheet">
-          <span aria-hidden="true" className="mt-2 h-1 w-10 self-center rounded-image bg-sand" />
-          <div className="px-4 pb-2 pt-1 shadow-hairline-bottom">
+          <div className="px-4 pb-2 pt-3 shadow-hairline-bottom">
             <SheetTitle className="flex h-10 items-center font-display text-22 font-bold leading-28 text-ink">{m.pdpChooseSize}</SheetTitle>
           </div>
           <div className="flex flex-col gap-4 px-4 pb-5 pt-4">
-            <SizeOptions
-              product={product}
-              variant={variant}
-              compact
-              onSelect={(id) => {
-                onSelect(id);
-              }}
-            />
+            <SizeOptions product={product} variant={variant} compact onSelect={onSelect} />
             <AsyncButton
-              state={buy.state === 'added' ? 'idle' : buy.state}
-              variant="ink"
-              size="m"
-              className="h-12.5 w-full"
+              state={buttonState(buy.state)}
+              variant="cobalt"
+              size="l"
+              className="w-full"
               pendingLabel={m.cardAdding}
               disabled={!orderable}
               onClick={async () => {
-                await buy.add();
-                setSizeOpen(false);
+                if (await buy.add()) setSizeOpen(false);
               }}
             >
               {m.pdpAddCta}
-              {variant.price ? (
-                <>
-                  <span aria-hidden="true" className="size-1 rounded-full bg-chalk/70" />
-                  <bdi>{formatEgp(variant.price.amount, variant.price.currency, locale)}</bdi>
-                </>
-              ) : null}
             </AsyncButton>
           </div>
         </SheetContent>
@@ -719,15 +670,17 @@ function MobilePurchaseBar({ product, variant, buy, visible, onSelect, name }: {
 
 function DetailSkeleton() {
   return (
-    <div aria-busy="true" className="grid gap-6 pb-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,600px)] lg:gap-16">
-      <Skeleton className="aspect-[4/5] w-full rounded-card lg:order-2" />
-      <div className="flex flex-col gap-4 lg:order-1 lg:pt-6">
-        <Skeleton className="h-4 w-28 rounded-image bg-line" />
-        <Skeleton className="h-10 w-4/5 rounded-card bg-line" />
-        <Skeleton className="h-15 w-full rounded-image bg-line" />
-        <Skeleton className="h-9 w-40 rounded-card bg-line" />
-        <Skeleton className="h-14 w-full rounded-pill bg-line" />
+    <PageContainer className="py-6 lg:py-10">
+      <div aria-busy="true" className="grid gap-6 lg:grid-cols-2 lg:gap-12">
+        <Skeleton className="aspect-square w-full rounded-image" />
+        <div className="flex flex-col gap-4 lg:pt-4">
+          <Skeleton className="h-6 w-36 rounded-pill" />
+          <Skeleton className="h-10 w-4/5 rounded-image" />
+          <Skeleton className="h-12 w-full rounded-image" />
+          <Skeleton className="h-10 w-40 rounded-image" />
+          <Skeleton className="h-14 w-full rounded-pill" />
+        </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

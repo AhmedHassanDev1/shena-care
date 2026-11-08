@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import type { ProductView } from './products';
+import type { ProductFactFields } from '../lib/product-facts';
 
 /**
  * Public discovery and product detail, exactly as the API composes them
@@ -117,6 +118,14 @@ export interface PublicContent {
   warnings: string | null;
 }
 
+export interface PublicUsageRule {
+  skuId: string;
+  evidenceText: string;
+  condition: string | null;
+  sourceUrl: string;
+  reviewedAt: string;
+}
+
 export interface PublicVariant {
   id: string;
   code: string;
@@ -130,6 +139,7 @@ export interface PublicVariant {
   availability: { isAvailable: boolean; isFresh: boolean; confirmedAt: string | null; observedAt: string | null; validUntil: string | null };
   media: PublicMedia[];
   content: PublicContent | null;
+  usageRules?: PublicUsageRule[];
   promotions: {
     orderDiscountAmount?: number;
     subtotalAfterDiscount?: number;
@@ -138,7 +148,7 @@ export interface PublicVariant {
   } | null;
 }
 
-export interface ProductDetail {
+export interface ProductDetail extends ProductFactFields {
   id: string;
   name: string;
   slug: string;
@@ -152,12 +162,53 @@ export interface ProductDetail {
   media: PublicMedia[];
   selectedSkuId: string;
   selectedVariant: PublicVariant;
+  routinePlacements?: Array<{
+    source: 'manual' | 'expert';
+    routine: { id: string; title: string; careArea: string };
+    step: { title: string; instructions: string | null; order: number; timing: string | null; isOptional: boolean };
+  }>;
   evaluatedAt: string;
 }
 
 export async function getProductDetail(slugOrId: string, skuId?: string): Promise<ProductDetail> {
   const query = skuId ? `?skuId=${encodeURIComponent(skuId)}` : '';
   return apiClient.get<ProductDetail>(`/products/${encodeURIComponent(slugOrId)}/detail${query}`);
+}
+
+export interface ProductReviewSummary {
+  average: number | null;
+  count: number;
+  distribution: Record<'1' | '2' | '3' | '4' | '5', number>;
+  recommendPercent: number | null;
+  verifiedCount: number;
+}
+
+export interface ProductReview {
+  id: string;
+  rating: number;
+  title: string | null;
+  body: string;
+  authorName: string;
+  skinType: string | null;
+  isVerifiedPurchase: boolean;
+  helpfulCount: number;
+  createdAt: string;
+}
+
+export type ReviewSort = 'recent' | 'helpful' | 'rating_high' | 'rating_low';
+
+export interface ProductReviewPage {
+  summary: ProductReviewSummary;
+  items: ProductReview[];
+  pageInfo: { page: number; limit: number; hasNextPage: boolean };
+}
+
+/** Published reviews and the rating summary (GET /products/:slugOrId/reviews, commerce-owned). */
+export async function getProductReviews(slugOrId: string, query: { page?: number; limit?: number; sort?: ReviewSort; rating?: number } = {}): Promise<ProductReviewPage> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) if (value !== undefined) params.set(key, String(value));
+  const qs = params.toString();
+  return apiClient.get<ProductReviewPage>(`/products/${encodeURIComponent(slugOrId)}/reviews${qs ? `?${qs}` : ''}`);
 }
 
 /** A care concern as the public taxonomy `GET /care/concerns` returns it (active concerns only). */

@@ -9,8 +9,8 @@ export interface SectionProps {
   labelledBy: string
   /** Full-width linen band behind the section (used to separate a product shelf from the smoke-white ground). */
   band?: boolean
-  /** Vertical rhythm: `default` 24/40, `tight` 16/24 (chip rows, the brand marquee). */
-  rhythm?: "default" | "tight"
+  /** Vertical rhythm: `default` 24/40, `tight` 16/24 (chip rows, the brand marquee), `compact` 14/24 with a 12/16 content gap (dense information pages such as the product page). */
+  rhythm?: "default" | "tight" | "compact"
   className?: string
   children: React.ReactNode
 }
@@ -19,10 +19,16 @@ export interface SectionProps {
  * Page section: one labelled landmark, one container, one vertical rhythm. Pages compose Sections instead of choosing
  * their own padding, which is what keeps spacing consistent from page to page.
  */
+const RHYTHM = {
+  default: "gap-5 py-6 lg:gap-6 lg:py-10",
+  tight: "gap-5 py-4 lg:gap-6 lg:py-6",
+  compact: "gap-3 py-3.5 lg:gap-4 lg:py-6",
+} as const
+
 export function Section({ id, labelledBy, band, rhythm = "default", className, children }: SectionProps) {
   return (
     <section id={id} aria-labelledby={labelledBy} className={band ? "bg-linen" : undefined}>
-      <PageContainer className={cn("flex flex-col gap-5 lg:gap-6", rhythm === "default" ? "py-6 lg:py-10" : "py-4 lg:py-6", className)}>{children}</PageContainer>
+      <PageContainer className={cn("flex flex-col", RHYTHM[rhythm], className)}>{children}</PageContainer>
     </section>
   )
 }

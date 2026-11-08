@@ -98,7 +98,7 @@ export function SiteFooter({
       {showServices ? (
         <section aria-label="Customer service pillars" className="border-t border-line bg-chalk py-8 lg:py-12">
           <PageContainer>
-            <ul className="m-0 grid list-none grid-cols-2 gap-x-4 gap-y-6 p-0 sm:grid-cols-4 sm:gap-6 font-display">
+            <ul className="m-0 grid list-none grid-cols-2 gap-x-4 gap-y-6 p-0 md:grid-cols-4 md:gap-6 font-display">
               {servicesList.map((s) => (
                 <li key={s.title} className="flex items-start gap-3">
                   <span className="flex size-10 flex-none items-center justify-center rounded-full bg-sand text-ink">

@@ -237,7 +237,7 @@ export function ProductListing() {
 }
 
 function Grid({ children }: { children: ReactNode }) {
-  return <div className="grid grid-cols-2 gap-x-3 gap-y-8 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-12">{children}</div>;
+  return <div className="grid grid-cols-1 gap-x-3 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-12">{children}</div>;
 }
 
 function InfiniteStatus({ shown, total, hasNext, loading, failed, onMore, where }: {

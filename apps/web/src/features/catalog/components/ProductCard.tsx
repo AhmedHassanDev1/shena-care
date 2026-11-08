@@ -22,21 +22,8 @@ export interface ProductCardProps {
   feature?: boolean;
 }
 
-/**
- * ShinaCare · Sahel Product Card (Stitch Editorial Visual Direction)
- * - Zero outer padding around product media: connects directly to card boundaries.
- * - 4:5 portrait media stage with subtle limestone ground.
- * - Gentle scale-105 hover transition.
- * - Genuine discount badge and category solution tag.
- * - Tactile wishlist control.
- * - Brand in campaign Instrument Serif Italic, title in Beiruti bold.
- * - Prominent Cobalt CTA with real cart quantity stepper.
- */
-export function ProductCard({
-  product,
-  priority = false,
-  feature = false,
-}: ProductCardProps) {
+/** Shared catalog and home card. Product and commerce state come from the catalog and cart. */
+export function ProductCard({ product, priority = false, feature = false }: ProductCardProps) {
   const m = useMessages();
   const locale = useLocale();
   const [wishlisted, setWishlisted] = useState(false);
@@ -44,8 +31,8 @@ export function ProductCard({
   const addRef = useRef<HTMLButtonElement>(null);
   const errorId = useId();
   const href = routes.product(product.slug);
-
   const wasOpen = useRef(false);
+
   useEffect(() => {
     if (wasOpen.current && !pickerOpen && !line) addRef.current?.focus();
     wasOpen.current = pickerOpen;
@@ -55,152 +42,78 @@ export function ProductCard({
 
   return (
     <article
+      dir={locale === 'ar' ? 'rtl' : 'ltr'}
       aria-label={`${product.brandName} ${product.name}`}
-      className="group/card relative flex h-full w-full min-w-0 flex-col overflow-hidden rounded-card border border-line/80 bg-linen font-display text-ink shadow-elevation-1 transition-all duration-base hover:-translate-y-1 hover:border-cobalt/40 hover:bg-chalk hover:shadow-elevation-2"
+      className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-card bg-linen font-display text-ink shadow-elevation-1 transition-shadow duration-base hover:shadow-elevation-2 focus-within:shadow-elevation-2 motion-reduce:transition-none"
     >
-      {/* 1. Full-Bleed Media Frame (Zero outer padding) */}
-      <div className="relative aspect-[4/5] w-full overflow-hidden border-b border-line/50 bg-sand/20">
+      <div className="relative aspect-[6/5] w-full overflow-hidden rounded-image bg-chalk">
         <Link href={href} tabIndex={-1} aria-hidden="true" className="block size-full">
           <ProductTile
             src={product.imageUrl}
             alt={product.imageAlt}
             name={product.name}
             priority={priority}
-            sizes={feature ? '(min-width: 1024px) 564px, 100vw' : undefined}
+            sizes={feature ? '(min-width: 1024px) 288px, (min-width: 640px) 46vw, 78vw' : undefined}
             className={cn(
-              'size-full rounded-none aspect-auto [&_img]:object-cover group-hover/card:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-500 [&_img]:ease-out',
-              product.unavailable && '[&_img]:opacity-45 [&_img]:grayscale-[.7]'
+              'size-full aspect-auto rounded-none bg-chalk [&_img]:object-contain',
+              product.unavailable && '[&_img]:opacity-50'
             )}
-          >
-            {/* Top Start: Genuine Discount Badge or Category Type */}
-            {product.discountPercent ? (
-              <span className="absolute start-3 top-3 z-10 inline-flex h-6.5 items-center rounded-pill bg-tomato px-2.5 text-11 font-bold text-chalk shadow-elevation-1">
-                {fillMessage(m.cardSaveDiscount, { n: String(product.discountPercent) })}
-              </span>
-            ) : product.type ? (
-              <span className="absolute start-3 top-3 z-10 inline-flex h-6.5 items-center rounded-pill border border-line/60 bg-chalk/90 px-2.5 text-11 font-semibold text-ink shadow-elevation-1 backdrop-blur-md">
-                {product.type}
-              </span>
-            ) : null}
-
-            {product.unavailable ? (
-              <span className="absolute end-12 top-3 z-10 inline-flex h-6.5 items-center rounded-pill bg-ink px-2.5 text-11 font-semibold text-chalk shadow-elevation-1">
-                {m.cardUnavailableBadge}
-              </span>
-            ) : null}
-
-            {product.sizeLine ? (
-              <span className="absolute bottom-2.5 end-2.5 z-10 inline-flex h-5.5 items-center rounded-4 bg-ink/80 px-2 text-11 font-medium tabular-nums text-chalk backdrop-blur-md">
-                {product.sizeLine}
-              </span>
-            ) : null}
-          </ProductTile>
+          />
         </Link>
-
-        {/* Top End: Wishlist Button */}
         <button
           type="button"
           aria-label={wishlisted ? m.wishlistRemove : m.wishlistAdd}
           aria-pressed={wishlisted}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setWishlisted(!wishlisted);
-          }}
+          onClick={() => setWishlisted((current) => !current)}
           className={cn(
-            'absolute end-3 top-3 z-10 flex size-8 items-center justify-center rounded-full bg-chalk/90 backdrop-blur-md shadow-elevation-1 transition-all duration-fast hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
-            wishlisted ? 'text-tomato' : 'text-stone hover:text-tomato'
+            'absolute start-3 top-3 z-10 flex size-9 items-center justify-center rounded-full bg-linen text-ink shadow-elevation-1 transition-colors duration-fast hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
+            wishlisted && 'text-cobalt'
           )}
         >
-          <Icon name="heart" size={16} />
+          <Icon name="heart" size={19} />
         </button>
       </div>
 
       {multi && pickerOpen ? (
-        <SizePicker
-          product={product}
-          pending={state === 'pending'}
-          failed={state === 'error'}
-          onAdd={add}
-          onClose={closePicker}
-        />
+        <SizePicker product={product} pending={state === 'pending'} failed={state === 'error'} onAdd={add} onClose={closePicker} />
       ) : null}
 
-      {/* 2. Editorial Information Body */}
-      <div className="flex flex-1 flex-col p-4 sm:p-4.5">
-        {/* Brand attribution */}
-        <div className="flex items-center justify-between gap-2">
-          <p className="m-0 truncate font-serif text-14 italic leading-18 text-stone">
-            <bdi>{product.brandName}</bdi>
-          </p>
-          {product.sizeLine ? (
-            <span className="truncate text-11 font-normal text-stone/80 tabular-nums">
-              {product.sizeLine}
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
+        <p className="m-0 truncate text-14 font-bold leading-18 text-cobalt sm:text-16">
+          <bdi>{product.brandName}</bdi>
+        </p>
+        <Link href={href} className="text-ink no-underline hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt">
+          <h3 dir="auto" className="m-0 line-clamp-2 min-h-[44px] text-16 font-bold leading-22 sm:text-18 sm:leading-22">
+            {product.name}
+          </h3>
+        </Link>
+        <div className="min-h-7 min-w-0">
+          {product.categoryChip ? (
+            <span className="inline-flex max-w-full items-center rounded-pill bg-sand/50 px-2.5 py-1 text-11 font-semibold leading-16 text-ink sm:text-12">
+              <span className="truncate">{product.categoryChip}</span>
             </span>
           ) : null}
         </div>
 
-        {/* Product Name */}
-        <Link href={href} className="group/name mt-1 text-ink no-underline">
-          <h3
-            dir="auto"
-            className="text-match-parent m-0 min-h-[44px] line-clamp-2 text-15 font-bold leading-22 transition-colors duration-fast group-hover/name:text-cobalt"
-          >
-            {product.name}
-          </h3>
-        </Link>
-
-        {/* Semantic Category / Type Pill */}
-        {product.type ? (
-          <div className="mt-2 flex items-center gap-1.5 truncate">
-            <span className="inline-flex max-w-full items-center gap-1 truncate rounded-pill border border-line/50 bg-sand/35 px-2.5 py-0.5 text-11 font-medium text-stone">
-              <span className="truncate">{product.type}</span>
-            </span>
-          </div>
-        ) : null}
-
-        {/* Pricing & Delivery Reassurance */}
-        <div className="mt-auto flex items-baseline justify-between gap-2 border-t border-line/40 pt-3">
-          <div className="flex items-baseline gap-1">
+        <div className="mt-auto flex min-w-0 items-center gap-2 border-t border-line/60 pt-3">
+          <div className="flex flex-none items-baseline gap-0.5 whitespace-nowrap">
             {priceText ? (
               <>
-                {product.priceIsFrom ? (
-                  <span className="me-0.5 text-11 font-normal text-stone">{m.cardFrom}</span>
-                ) : null}
-                <span
-                  className={cn(
-                    'text-18 sm:text-20 font-extrabold tabular-nums',
-                    product.discountPercent ? 'text-tomato' : 'text-ink'
-                  )}
-                >
+                {product.priceIsFrom ? <span className="text-11 text-stone">{m.cardFrom}</span> : null}
+                <strong className="min-w-0 text-16 font-extrabold tabular-nums leading-none text-ink sm:text-20">
                   <bdi>{priceText}</bdi>
-                </span>
-                <span className="ms-0.5 text-11 font-medium text-stone">{currencyLabel(locale)}</span>
-                {product.compareAtPrice ? (
-                  <span className="ms-1.5 line-through text-12 font-normal tabular-nums text-stone/70">
-                    <bdi>{formatAmount(product.compareAtPrice.amount, locale)} {currencyLabel(locale)}</bdi>
-                  </span>
-                ) : null}
+                </strong>
+                <span className="text-11 font-semibold text-ink sm:text-12">{currencyLabel(locale)}</span>
               </>
-            ) : (
-              <span />
-            )}
+            ) : null}
           </div>
-          <span className="truncate text-11 font-medium text-ok">{m.cardFastDelivery}</span>
-        </div>
-
-        {/* Purchase Action Button */}
-        <div className="pt-3">
+          <span aria-hidden="true" className="h-7 w-px flex-none bg-line" />
           {product.unavailable ? (
-            <div className="flex h-11 w-full items-center justify-center rounded-pill bg-sand text-13 font-semibold text-stone cursor-not-allowed">
+            <span className="flex h-10 min-w-0 flex-1 items-center justify-center rounded-pill bg-sand px-2 text-center text-11 font-semibold text-stone sm:h-11 sm:text-13">
               {m.cardUnavailable}
-            </div>
+            </span>
           ) : line ? (
-            <div className="flex h-11 w-full items-center justify-between rounded-pill border border-line-2/40 bg-linen px-2 shadow-elevation-1">
-              <span className="flex items-center gap-1 ps-2 text-11 font-bold text-cobalt">
-                <Icon name="check" size={14} className="flex-none" />
-                <span className="truncate">{m.cardInCartActive}</span>
-              </span>
+            <div className="flex h-10 min-w-0 flex-1 items-center justify-center rounded-pill bg-chalk px-1 sm:h-11">
               <QuantityStepper
                 tone="commerce"
                 value={line.quantity}
@@ -216,83 +129,38 @@ export function ProductCard({
             <button
               ref={addRef}
               type="button"
-              aria-label={
-                state === 'pending'
-                  ? m.cardAdding
-                  : fillMessage(multi ? m.cardChooseAddLabel : m.cardAddLabel, { name: product.name })
-              }
+              aria-label={state === 'pending' ? m.cardAdding : fillMessage(multi ? m.cardChooseAddLabel : m.cardAddLabel, { name: product.name })}
               aria-haspopup={multi ? 'dialog' : undefined}
               aria-expanded={multi ? pickerOpen : undefined}
               aria-busy={state === 'pending' && !multi ? true : undefined}
-              aria-disabled={state === 'pending' && !multi ? true : undefined}
+              disabled={state === 'pending' && !multi}
               aria-describedby={state === 'error' && !multi ? errorId : undefined}
               onClick={start}
               className={cn(
-                'sl group/btn inline-flex h-11 w-full items-center justify-center gap-2 rounded-pill bg-cobalt hover:bg-cobalt-deep px-4 text-13.5 font-bold text-chalk shadow-elevation-1 transition-all duration-fast active:scale-95',
+                'sl flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-pill bg-cobalt px-2 text-11 font-bold text-chalk transition-colors duration-fast hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt-deep disabled:cursor-wait sm:h-11 sm:gap-2 sm:text-13',
                 multi && pickerOpen && 'bg-cobalt-deep'
               )}
             >
-              {state === 'pending' && !multi ? (
-                <span>{m.cardAdding}</span>
-              ) : state === 'error' && !multi ? (
-                <>
-                  <Icon name="retry" size={15} strokeWidth={2} />
-                  <span>{m.cardRetry}</span>
-                </>
-              ) : (
-                <>
-                  <Icon
-                    name="bag"
-                    size={15}
-                    strokeWidth={2}
-                    className="transition-transform group-hover/btn:-translate-y-0.5"
-                  />
-                  <span>
-                    {multi
-                      ? m.pdpChooseSize
-                      : product.discountPercent
-                      ? fillMessage(m.cardSaveDiscount, { n: String(product.discountPercent) })
-                      : m.cardAdd}
-                  </span>
-                </>
-              )}
+              <Icon name={state === 'error' && !multi ? 'retry' : 'cart'} size={15} className="flex-none" />
+              <span className="truncate">{state === 'pending' && !multi ? m.cardAdding : state === 'error' && !multi ? m.cardRetry : multi ? m.pdpChooseSize : m.cardAddToCart}</span>
             </button>
           )}
         </div>
-
-        {state === 'error' && !multi ? (
-          <p
-            id={errorId}
-            role="alert"
-            className="m-0 mt-2 flex items-start gap-1.5 text-13 font-semibold text-tomato-ink"
-          >
-            <span
-              aria-hidden="true"
-              className="mt-1 flex size-3.5 flex-none items-center justify-center rounded-full bg-tomato text-10.5 font-bold text-ink"
-            >
-              !
-            </span>
-            {m.cardAddFailed}
-          </p>
-        ) : null}
+        {state === 'error' && !multi ? <p id={errorId} role="alert" className="m-0 text-12 font-semibold text-tomato-ink">{m.cardAddFailed}</p> : null}
       </div>
     </article>
   );
 }
 
-/** Loading card in Sahel format */
 export function ProductCardSkeleton() {
   return (
-    <div aria-hidden="true" className="flex h-full flex-col overflow-hidden rounded-card border border-line/60 bg-linen/50 font-display">
-      <Skeleton className="aspect-[4/5] w-full rounded-none" />
-      <div className="flex flex-1 flex-col p-4 gap-2">
-        <Skeleton className="h-3.5 w-1/3 rounded-4" />
-        <Skeleton className="h-4 w-5/6 rounded-4" />
-        <Skeleton className="h-4 w-2/3 rounded-4" />
-        <div className="mt-auto flex items-center justify-between border-t border-line/30 pt-3">
-          <Skeleton className="h-5 w-20 rounded-4" />
-          <Skeleton className="h-3.5 w-16 rounded-4" />
-        </div>
+    <div aria-hidden="true" className="flex h-full flex-col overflow-hidden rounded-card bg-linen shadow-elevation-1">
+      <Skeleton className="aspect-[6/5] w-full rounded-none" />
+      <div className="flex flex-1 flex-col gap-2 px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
+        <Skeleton className="h-4 w-1/3 rounded-4" />
+        <Skeleton className="h-6 w-5/6 rounded-4" />
+        <Skeleton className="h-6 w-2/3 rounded-4" />
+        <Skeleton className="h-7 w-3/4 rounded-pill" />
         <Skeleton className="mt-3 h-11 w-full rounded-pill" />
       </div>
     </div>

@@ -37,6 +37,7 @@ describe('toCardModel', () => {
     expect(card.priceIsFrom).toBe(true);
     expect(card.variants).toHaveLength(2);
     expect(card.type).toBe('سيرم وعلاج');
+    expect(card.categoryChip).toBe('العناية بالبشرة · سيروم');
   });
 
   it('marks a product with no orderable priced SKU as unavailable, with no price', () => {
@@ -50,6 +51,19 @@ describe('toCardModel', () => {
     const card = toCardModel(product([sku()]), 'en', ' or ');
     expect(card.sizeLine).toBe('30 ml');
     expect(card.type).toBe('Serums & Treatments');
+    expect(card.categoryChip).toBe('Skin care · Serums & Treatments');
+  });
+
+  it.each([
+    ['cleansers', 'العناية بالبشرة · غسول'],
+    ['shampoos', 'العناية بالشعر · شامبو'],
+    ['hair-treatments-styling', 'العناية بالشعر · علاج وتصفيف الشعر'],
+  ])('builds one category chip for %s', (slug, chip) => {
+    expect(toCardModel(product([sku()], { category: { id: slug, slug, name: slug, parentId: 'root' } }), 'ar').categoryChip).toBe(chip);
+  });
+
+  it('omits the chip when taxonomy is missing', () => {
+    expect(toCardModel(product([sku()], { category: null }), 'ar').categoryChip).toBeNull();
   });
 });
 

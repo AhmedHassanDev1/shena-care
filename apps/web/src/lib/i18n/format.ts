@@ -17,6 +17,11 @@ export function formatNumber(value: number, locale: Locale): string {
   return new Intl.NumberFormat(numberLocale(locale), { maximumFractionDigits: 2 }).format(value);
 }
 
+/** Whole percent from 0–100 in the active language: ٨٣٪ / 83%. */
+export function formatPercent(value: number, locale: Locale): string {
+  return new Intl.NumberFormat(numberLocale(locale), { style: 'percent', maximumFractionDigits: 0 }).format(value / 100);
+}
+
 /** Amount without the currency label, for layouts that set «ج.م» / "EGP" in a smaller, lighter style. */
 export function formatAmount(amount: number, locale: Locale): string {
   return new Intl.NumberFormat(numberLocale(locale), { maximumFractionDigits: 2 }).format(amount);

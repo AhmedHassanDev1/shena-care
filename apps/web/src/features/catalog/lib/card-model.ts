@@ -23,6 +23,8 @@ export interface CardModel {
   brandName: string;
   /** Display label of the product's category («سيرم», «شامبو»), or null. */
   type: string | null;
+  /** Catalog category rendered as a single department and type chip. */
+  categoryChip: string | null;
   /** «٣٠ أو ٦٠ مل»; null when no SKU has a size. */
   sizeLine: string | null;
   imageUrl: string | null;
@@ -75,6 +77,23 @@ export function categoryLabel(category: { slug: string; name: string } | null | 
   return CATEGORY_LABELS[locale][category.slug] ?? category.name;
 }
 
+const CATEGORY_DEPARTMENTS: Record<string, 'skin' | 'hair'> = {
+  'skin-care': 'skin', cleansers: 'skin', moisturizers: 'skin', 'serums-treatments': 'skin', sunscreens: 'skin',
+  'hair-care': 'hair', shampoos: 'hair', conditioners: 'hair', 'hair-treatments-styling': 'hair',
+};
+
+export function categoryChip(category: ProductView['category'], locale: Locale): string | null {
+  const type = categoryLabel(category, locale);
+  if (!type) return null;
+  const department = category && CATEGORY_DEPARTMENTS[category.slug];
+  if (!department || category?.slug === 'skin-care' || category?.slug === 'hair-care') return type;
+  const parent = locale === 'ar'
+    ? department === 'skin' ? 'العناية بالبشرة' : 'العناية بالشعر'
+    : department === 'skin' ? 'Skin care' : 'Hair care';
+  const displayType = locale === 'ar' && category?.slug === 'serums-treatments' ? 'سيروم' : type;
+  return `${parent} · ${displayType}`;
+}
+
 function pickImage(media: ProductView['media']) {
   const images = media.filter((item) => item.type === 'image' && item.url);
   return images.find((item) => item.isPrimary) ?? images[0] ?? null;
@@ -105,6 +124,7 @@ export function toCardModel(product: ProductView, locale: Locale, or = ' أو ')
     name: product.name,
     brandName: product.brand.name,
     type: categoryLabel(product.category, locale),
+    categoryChip: categoryChip(product.category, locale),
     sizeLine,
     imageUrl: image?.url ?? null,
     imageAlt: image?.altText?.trim() || `${product.brand.name} ${product.name}`,
