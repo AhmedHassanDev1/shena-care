@@ -3,7 +3,7 @@
  * Everything returned is literally on that page and carries the excerpt that states it. Nothing is inferred, translated or
  * completed from memory; what the page does not say stays absent.
  */
-export interface BrandPageFact<T = string> { value: T; excerpt: string; source: 'JSON_LD' | 'META' | 'HTML' }
+export interface BrandPageFact<T = string> { value: T; excerpt: string; source: 'JSON_LD' | 'META' | 'HTML' | 'TITLE' }
 export interface BrandPageFacts {
   /** Names the site gives itself, strongest evidence first. */
   names: Array<BrandPageFact>;
@@ -126,6 +126,10 @@ export function extractBrandPage(htmlInput: string, pageUrl: string): BrandPageF
   const meta = (key: string) => metas.find(m => (m.a.property ?? m.a.name ?? '').toLowerCase() === key && m.a.content);
   const siteName = meta('og:site_name') ?? meta('application-name');
   if (siteName) addName(facts.names, cleanSiteName(siteName.a.content), siteName.raw, 'META');
+  // The homepage's own <title> ("Dermactive – Feel better in your skin"): its leading segment is how the site names itself. Weakest evidence, so it comes last;
+  // research still counts it only when it agrees with the brand being looked up (regression from the real derm-active.com homepage, 2026-11-07).
+  const title = clean(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '', 200);
+  if (title && !facts.names.length) addName(facts.names, cleanSiteName(title), `<title>${title}</title>`, 'TITLE');
   const metaDescription = meta('description') ?? meta('og:description');
   if (!facts.description && metaDescription && clean(metaDescription.a.content, MAX_DESCRIPTION).length >= 20) {
     facts.description = { value: clean(metaDescription.a.content, MAX_DESCRIPTION), excerpt: clean(metaDescription.raw, 200), source: 'META' };

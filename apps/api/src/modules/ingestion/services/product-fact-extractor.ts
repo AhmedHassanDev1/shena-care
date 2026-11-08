@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { readProductType } from './product-type';
 
 /**
  * Deterministic extraction of product facts from one fetched page. Everything returned is literally on that page and carries the excerpt that states it; anything else
@@ -8,14 +9,18 @@ export const RESEARCH_SCHEMA_VERSION = 1;
 
 export type FactField =
   | 'identity.name' | 'identity.brand' | 'identity.gtin' | 'identity.size'
-  | 'composition.inci' | 'composition.activeConcentrations' | 'composition.fragrance'
+  | 'composition.inci' | 'composition.activeConcentrations' | 'composition.fragrance' | 'composition.keyIngredients'
   | 'attributes.texture' | 'usage.instructions' | 'usage.routinePeriod' | 'usage.targetArea'
-  | 'suitability.skinTypes' | 'suitability.hairTypes' | 'safety.warnings' | 'marketing.description' | 'claims.manufacturerStated' | 'media.sourceImages';
+  | 'suitability.skinTypes' | 'suitability.hairTypes' | 'safety.warnings' | 'marketing.description' | 'claims.manufacturerStated' | 'media.sourceImages'
+  // Schema fields of catalog.products that only a page can state (2026-11-07): never inferred from the product type.
+  | 'attributes.spf' | 'attributes.broadSpectrum' | 'attributes.waterResistanceMinutes' | 'attributes.uvFilterType' | 'attributes.nonComedogenic'
+  | 'merchandising.productLine';
 
 export const ALL_FACT_FIELDS: readonly FactField[] = [
-  'identity.name', 'identity.brand', 'identity.gtin', 'identity.size', 'composition.inci', 'composition.activeConcentrations', 'composition.fragrance',
+  'identity.name', 'identity.brand', 'identity.gtin', 'identity.size', 'composition.inci', 'composition.activeConcentrations', 'composition.fragrance', 'composition.keyIngredients',
   'attributes.texture', 'usage.instructions', 'usage.routinePeriod', 'usage.targetArea', 'suitability.skinTypes', 'suitability.hairTypes', 'safety.warnings',
   'marketing.description', 'claims.manufacturerStated', 'media.sourceImages',
+  'attributes.spf', 'attributes.broadSpectrum', 'attributes.waterResistanceMinutes', 'attributes.uvFilterType', 'attributes.nonComedogenic', 'merchandising.productLine',
 ];
 
 /** Facts a reviewer must settle before a product can go live. */
@@ -54,14 +59,14 @@ function structuredLines(html: string): string[] {
   return decode(body).split('\n').map(line => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
 }
 
-function jsonLdProducts(html: string): Array<Record<string, unknown>> {
+function jsonLdNodes(html: string, wanted: string): Array<Record<string, unknown>> {
   const found: Array<Record<string, unknown>> = [];
   const visit = (node: unknown) => {
     if (Array.isArray(node)) { node.forEach(visit); return; }
     if (!node || typeof node !== 'object') return;
     const record = node as Record<string, unknown>;
     const type = record['@type'];
-    if (type === 'Product' || (Array.isArray(type) && type.includes('Product'))) found.push(record);
+    if (type === wanted || (Array.isArray(type) && type.includes(wanted))) found.push(record);
     if (record['@graph']) visit(record['@graph']);
     if (record.mainEntity) visit(record.mainEntity);
   };
@@ -70,6 +75,35 @@ function jsonLdProducts(html: string): Array<Record<string, unknown>> {
   }
   return found;
 }
+const jsonLdProducts = (html: string) => jsonLdNodes(html, 'Product');
+
+/** Breadcrumb names from structured data, in order. */
+function breadcrumbNames(html: string): string[] {
+  return jsonLdNodes(html, 'BreadcrumbList').flatMap(list => (Array.isArray(list.itemListElement) ? list.itemListElement : []) as Array<Record<string, unknown>>)
+    .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0))
+    .map(item => item.name ?? (item.item as { name?: unknown } | undefined)?.name)
+    .filter((name): name is string => typeof name === 'string').map(name => decode(name).replace(/\s+/g, ' ').trim());
+}
+
+/** Navigation words a breadcrumb or "Collection:" label uses that are never a product line. */
+const NOT_A_LINE = /^(home|shop|store|all|all products|products?|brands?|collections?|categories|catalog|skin ?care|hair ?care|body ?care|face ?care|face|body|hair|makeup|beauty|new|new arrivals|best ?sellers?|sale|offers?|deals|gifts?|الرئيسيه|الرئيسية|المتجر|المنتجات|منتجات|العروض|الماركات)$/i;
+/** Marketing adjectives that describe a product and are not the name of a range (shared meaning with BrandEnrichmentService). */
+const MARKETING_WORDS = new Set(['whitening', 'moisturizing', 'moisturising', 'hydrating', 'anti', 'aging', 'ageing', 'brightening', 'acne', 'smoothing', 'cleansing', 'repairing', 'daily', 'gentle',
+  'intensive', 'sunscreen', 'glow', 'matte', 'nourishing', 'natural', 'organic', 'professional', 'original', 'تفتيح', 'ترطيب', 'تنقية', 'اشراقة', 'يومي', 'لطيف', 'اصلاح', 'مغذي']);
+const LINE_LABEL = /^(?:product )?(?:line|range|collection|series)\s*[:：]\s*(.{2,40})$|^(?:المجموعة|السلسلة|خط المنتج|الخط)\s*[:：]\s*(.{2,40})$/i;
+
+const SPF_PATTERN = /\bSPF\s?-?(\d{1,3})\s?\+?(?!\d)|عامل (?:ال)?حماية\s*(\d{1,3})/gi;
+/** Qualifiers that name a different product of the same range. Each is checked in both directions (row ↔ page title). */
+const VARIANT_QUALIFIERS: Array<[string, RegExp]> = [
+  ['tinted', /\b(tinted|tint|teint[ée]e?)\b|ملون|بلون/i], ['night', /\bnight\b|ليلي|ليلى/i], ['day', /\bday\b|نهاري|نهارى/i],
+  ['men', /\b(men|for him)\b|للرجال|رجالي/i], ['kids', /\b(kids?|children|baby|babies|junior)\b|للاطفال|للأطفال|بيبي/i], ['refill', /\brefill\b/i],
+];
+const BROAD_SPECTRUM = /\bbroad[- ]spectrum\b|واسع(?:ة)? الطيف/i;
+const WATER_RESISTANCE = /\bwater[- ]resistan(?:t|ce)\b[^.\n]{0,25}?\(?(\d{2,3})\s*(?:min|minutes)\b|(\d{2,3})\s*(?:min|minutes)\b[^.\n]{0,20}?water[- ]resistan/i;
+const NON_COMEDOGENIC = /\bnon[- ]?comedogenic\b|لا يسد المسام|غير مسبب لانسداد المسام/i;
+/** UV filters by INCI name. Only read from a single ingredient list of a product that states an SPF. */
+const MINERAL_FILTERS = /^(zinc oxide|titanium dioxide|ci 77947|ci 77891)(\s*\(nano\))?$/i;
+const CHEMICAL_FILTERS = /^(butyl methoxydibenzoylmethane|avobenzone|ethylhexyl methoxycinnamate|octinoxate|octocrylene|homosalate|ethylhexyl salicylate|octisalate|benzophenone-3|oxybenzone|bis-ethylhexyloxyphenol methoxyphenyl triazine|bemotrizinol|methylene bis-benzotriazolyl tetramethylbutylphenol(\s*\(nano\))?|diethylamino hydroxybenzoyl hexyl benzoate|ethylhexyl triazone|diethylhexyl butamido triazone|drometrizole trisiloxane|terephthalylidene dicamphor sulfonic acid|phenylbenzimidazole sulfonic acid|ensulizole|isoamyl p-methoxycinnamate|polysilicone-15|4-methylbenzylidene camphor|tris-biphenyl triazine(\s*\(nano\))?|disodium phenyl dibenzimidazole tetrasulfonate)$/i;
 
 const meta = (html: string, name: string): string | null => {
   const pattern = new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*>`, 'i');
@@ -83,11 +117,12 @@ const titleText = (html: string) => decode((html.match(/<title\b[^>]*>([\s\S]*?)
 const fold = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 const tokens = (value: string) => fold(value).split(' ').filter(token => token.length > 2);
 
-const SIZE_PATTERN = /(?<![\p{L}\p{N}.,])(\d+(?:[.,]\d+)?)\s?(ml|mL|ML|fl\.?\s?oz|oz|g|gm|kg|l|L|مل|جم|جرام)(?![\p{L}\p{N}])/gu;
+// Units in any letter case ("30 Ml", "50 GM": regression from the real Eva shop titles, 2026-11-07).
+const SIZE_PATTERN = /(?<![\p{L}\p{N}.,])(\d+(?:[.,]\d+)?)\s?(ml|mL|ML|Ml|fl\.?\s?oz|FL\.?\s?OZ|oz|OZ|g|G|gm|Gm|GM|gr|Gr|GR|kg|Kg|KG|l|L|مل|ملل|جم|جرام|غ)(?![\p{L}\p{N}])/gu;
 function canonicalUnit(unit: string): string | null {
   const folded = unit.toLowerCase().replace(/[.\s]/g, '');
-  if (folded === 'ml' || folded === 'مل') return 'ml';
-  if (folded === 'g' || folded === 'gm' || folded === 'جم' || folded === 'جرام') return 'g';
+  if (folded === 'ml' || folded === 'مل' || folded === 'ملل') return 'ml';
+  if (folded === 'g' || folded === 'gm' || folded === 'gr' || folded === 'جم' || folded === 'جرام' || folded === 'غ') return 'g';
   if (folded === 'floz' || folded === 'oz') return 'oz';
   if (folded === 'l') return 'l';
   if (folded === 'kg') return 'kg';
@@ -108,7 +143,7 @@ const SECTION_HEADINGS = {
   ingredients: /^(full |complete |all )?(ingredients?|ingredient list|ingredients list|inci|composition|المكونات|مكونات)(\s*list)?\s*:?$/i,
   usage: /^(how to use|how to apply|directions?( for use)?|usage|application|instructions?( for use)?|طريقة الاستخدام|الاستخدام|طريقة الاستعمال)\s*:?$/i,
   warnings: /^(warnings?|cautions?|precautions?|safety information|تحذيرات?|احتياطات)\s*:?$/i,
-  benefits: /^((key )?benefits|what it does|تعمل على|الفوائد)\s*:?$/i,
+  benefits: /^((key )?benefits|what it does|ideal for|product features ?(?:&|\+|and)? ?benefits|features (?:&|\+|and) benefits|تعمل على|الفوائد)\s*:?$/i,
 };
 const ANY_HEADING = new RegExp(Object.values(SECTION_HEADINGS).map(pattern => pattern.source).join('|'), 'i');
 const INCI_OPENING = /^(aqua|water|eau)\b/i;
@@ -145,6 +180,8 @@ const TEXTURES: Array<[RegExp, string]> = [
   [/\bserum\b/i, 'SERUM'], [/\b(face |facial |body |hair )?oil\b/i, 'OIL'], [/\bbalm\b|\bbaume\b/i, 'BALM'], [/\bfoam\b|\bmousse\b/i, 'FOAM'], [/\bspray\b|\bmist\b/i, 'SPRAY'],
   [/\bpaste\b/i, 'PASTE'], [/\bstick\b/i, 'STICK'], [/\bpowder\b/i, 'POWDER'],
 ];
+/** The state the skin or hair should be in when the product is applied; never a skin type. */
+const APPLICATION_SURFACE = /\b(?:(?:clean|cleansed|washed|damp|wet|freshly\s+\w+|towel[- ]dried)\s*(?:,|and|or|&)?\s*)+(?:(?:dry|clean|damp)\s*(?:,|and|or|&)?\s*)*(?:skin|hair)\b|\b(?:apply|applied|applying|use|massage)\b[^.\n]{0,40}\b(?:on|to|onto|over)\s+(?:clean\s*,?\s*)?dry\s+(?:skin|hair)\b/gi;
 const SKIN_TYPES: Array<[RegExp, string]> = [
   [/\b(all|every) skin types?\b/i, 'all'], [/\bnormal(?: to [a-z]+)? skin\b/i, 'normal'], [/\b(?:very )?dry(?: to [a-z ]+)? skin\b/i, 'dry'], [/\boily(?: to [a-z]+)? skin\b/i, 'oily'],
   [/\bcombination skin\b/i, 'combination'], [/\bsensitive skin\b/i, 'sensitive'], [/\bacne[- ]prone skin\b/i, 'acne-prone'], [/\bmature skin\b/i, 'mature'],
@@ -154,11 +191,28 @@ const HAIR_TYPES: Array<[RegExp, string]> = [
 ];
 const TARGET_AREAS: Array<[RegExp, string]> = [[/\bface\b|\bfacial\b/i, 'FACE'], [/\beye (?:area|contour|cream)\b/i, 'EYE_CONTOUR'], [/\blips?\b/i, 'LIPS'], [/\bbody\b/i, 'BODY'], [/\bscalp\b/i, 'SCALP'], [/\bhair\b/i, 'HAIR']];
 /** A line under "how to use" or "warnings" only counts if it reads like one; navigation and promotions often sit there. */
-const USAGE_SIGNAL = /\b(apply|use|massage|rinse|shake|dispense|pump|smooth|spread|wash|leave|morning|evening|night|daily|twice|week)\w*\b|ضع|يوضع|استخدم|يستخدم|دلك|اشطف|صباح|مساء/i;
+const USAGE_SIGNAL = /\b(apply|use|massage|rinse|shake|dispense|pump|smooth|spread|wash|wet|lather|leave|morning|evening|night|daily|twice|week)\w*\b|ضع|يوضع|استخدم|يستخدم|دلك|اشطف|صباح|مساء/i;
 const WARNING_SIGNAL = /\b(avoid|external|caution|discontinue|irritation|consult|keep out|keep away|eyes|children|pregnan|breastfeed|do not|don't|stop use|sun|broken skin|allerg|doctor|physician)\w*\b|تجنب|الخارجي|بعيد|الأطفال|الحمل|الطبيب|توقف/i;
-const SUITABILITY_STATEMENT = /\b(suitable|ideal|recommended|designed|formulated|skin types?:|hair types?:)\b|\bfor (all|normal|dry|oily|combination|sensitive|acne[- ]prone|mature|curly|damaged|fine)\b/i;
+const SUITABILITY_STATEMENT = /\b(suitable|ideal|recommended|designed|formulated)\b|\b(?:skin|hair) types?\s*:|\bfor (all|normal|dry|oily|combination|sensitive|acne[- ]prone|mature|curly|damaged|fine)\b/i;
 const CAUTION_LINE = /\b(irritation|consult|cease use|discontinue|patch test|keep out|keep away|external use|avoid contact|unbroken skin)\b/i;
 const NOT_AN_INSTRUCTION = /\?\s*$|^\*|\?\s/;
+/**
+ * A direction is an instruction only when a sentence of it tells the user what to do: it starts with an imperative ("Apply", "Use 1-2 times a week", "Rinse") or
+ * names an application act ("massage into wet hair"). Marketing copy under a "How to use" heading ("A hydrating lotion for normal to dry skin", "this daily foaming
+ * cleanser") states no instruction, so no rinse mode, period or frequency is ever read from it (regression from the real CeraVe pages, 2026-11-06).
+ */
+const IMPERATIVE_START = /^(?:(?:for (?:best|optimal) results|to use|then|next|after (?:shampooing|cleansing|washing)|morning and (?:evening|night)|(?:in the )?(?:morning|evening)|at night|daily|gently|once|twice)[,:]?\s+)*(apply|use|massage|rinse|shake|dispense|pump|smooth|spread|wash|leave|wet|lather|pat|squeeze|work|remove|reapply|cleanse|avoid|do not|don't|start|finish|follow|wipe|soak|saturate|comb|distribute|towel|blot)\b/i;
+const APPLICATION_ACT = /\b(apply|massage|rinse (?:off|out|thoroughly|well)|dispense|lather|reapply|wet (?:skin|face|hair)|onto (?:wet|damp|dry|clean))\b/i;
+const ARABIC_INSTRUCTION = /(^|\s)(ضع|ضعي|يوضع|استخدم|استخدمي|يستخدم|دلك|دلكي|اشطف|اشطفي|وزع|وزعي|يطبق|طبقي|اتركي|اترك)(\s|$)/;
+export function instructionSentences(line: string): string[] {
+  return line.split(/(?<=[.!؟])\s+|\n+/).map(sentence => sentence.trim().replace(/^[-•*\d.)\s]+/, '')).filter(sentence =>
+    sentence.length >= 4 && (IMPERATIVE_START.test(sentence) || APPLICATION_ACT.test(sentence) || ARABIC_INSTRUCTION.test(sentence)));
+}
+export const isInstructionLine = (line: string) => instructionSentences(line).length > 0;
+/** Where a page stops describing this product: related products, bundles and reviews describe others. */
+const RELATED_SECTION = /^(products? you may (?:also )?like|you may also like|related products|frequently bought together|customers also|recently viewed|reviews?\b|منتجات (?:مشابهة|ذات صلة))/i;
+/** Ingredient names a brand features by name (feature headings, "Key ingredient:" lines). A bounded vocabulary: other words are never read as ingredients. */
+const KEY_INGREDIENT_NAME = /\b(ceramides?|hyaluronic|sodium hyaluronate|niacinamide|retinol|retinal|salicylic|glycolic|lactic|mandelic|azelaic|vitamin [a-z]\d?|panthenol|procapil|capixyl|redensyl|keravis|keratin|biotin|argan|peptides?|caffeine|urea|zinc|squalane|aloe|tea tree|rosemary|collagen|green coffee|jojoba|centella|cica|allantoin|bakuchiol|arginine|saw palmetto|thyme|green tea|shea|probiotics?)\b/i;
 const MORNING = /\bmorning\b|\bAM\b|صباح/;
 const EVENING = /\bevening\b|\bnight\b|\bbedtime\b|\bPM\b|مساء|ليل/;
 
@@ -192,8 +246,14 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   const sections = structuredLines(html);
   const lines = sections.filter(line => line !== HEADING_BOUNDARY);
   const text = lines.join('\n');
+  const relatedAt = lines.findIndex(line => RELATED_SECTION.test(line));
+  const productLines = relatedAt < 0 ? lines : lines.slice(0, relatedAt);
   const products = jsonLdProducts(html);
-  const product = products[0] ?? null;
+  // Several Product entries (related items, bundles): only the one the page's own heading names describes this page; none matching → no structured facts.
+  const heading = headingText(html) || meta(html, 'og:title') || titleText(html);
+  const nodeName = (node: Record<string, unknown>) => (typeof node.name === 'string' ? fold(decode(node.name)) : '');
+  const product = products.length <= 1 ? products[0] ?? null
+    : products.find(node => { const name = nodeName(node); const head = fold(heading); return Boolean(name) && (name === head || head.includes(name) || name.includes(head)); }) ?? null;
   const facts: ExtractedFact[] = [];
   const rejected: PageExtraction['rejected'] = [];
   const add = (field: FactField, value: unknown, excerpt: string) => facts.push({ field, value, excerpt: excerpt.slice(0, 400) });
@@ -208,9 +268,16 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   const brandEvidence = fold(`${identityText} ${brandName ?? ''} ${pageUrl}`);
   const brandFound = [sku.brand, ...(sku.brandAliases ?? [])].some(name =>
     brandEvidence.includes(fold(name)) || tokens(name).every(token => brandEvidence.includes(token)));
-  const identityMatched = overlap >= 0.5 && brandFound;
+  // Words that make a different product of the same range (tinted vs not, day vs night, an SPF number): the row and the page must agree on each, whichever side
+  // states it. Half the words in common is not enough when the half that differs is one of these (regression from the real Bobai "Tinted" row, 2026-11-07).
+  const variantClash = VARIANT_QUALIFIERS.find(([, pattern]) => pattern.test(sku.productName) !== pattern.test(identityText));
+  const spfOf = (value: string) => [...new Set([...value.matchAll(SPF_PATTERN)].map(match => Number(match[1] ?? match[2])))];
+  const [rowSpf, pageSpf] = [spfOf(sku.productName), spfOf(identityText)];
+  const spfClash = rowSpf.length === 1 && pageSpf.length === 1 && rowSpf[0] !== pageSpf[0];
+  const identityMatched = overlap >= 0.5 && brandFound && !variantClash && !spfClash;
   if (!identityMatched) {
-    rejected.push({ field: '*', reason: 'IDENTITY_MISMATCH', detail: `Page is about "${title.slice(0, 120)}", not ${sku.brand} ${sku.productName}` });
+    const why = variantClash ? ` (${variantClash[0]}: stated by ${variantClash[1].test(sku.productName) ? 'the row' : 'the page'} only)` : spfClash ? ` (SPF ${rowSpf[0]} vs ${pageSpf[0]})` : '';
+    rejected.push({ field: '*', reason: 'IDENTITY_MISMATCH', detail: `Page is about "${title.slice(0, 120)}", not ${sku.brand} ${sku.productName}${why}` });
     return { facts: [], rejected, identityMatched: false };
   }
 
@@ -286,19 +353,77 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   // Fragrance: the ingredient list outranks a claim; if they disagree, a person decides.
   const inciList = distinctInci.length === 1 ? distinctInci[0].list : [];
   const hasFragrance = inciList.some(item => /^(parfum|fragrance|aroma)$/i.test(item) || /\b(parfum|fragrance)\b/i.test(item));
-  const claimsFree = /\b(fragrance[- ]free|perfume[- ]free|without fragrance|no fragrance|sans parfum|unscented)\b/i.test(text);
+  // A "fragrance-free" claim counts only in this product's own words: its title, description, feature and benefit text, its own sections, or a short claim line that
+  // names no other product (a site-wide tile such as "Unscented Deodorant 50 ml" is another product; regression from the real e-majestic page, 2026-11-06).
+  const ownText = [title, (typeof product?.description === 'string' ? decode(product.description) : '') || meta(html, 'og:description') || '',
+    ...[SECTION_HEADINGS.benefits, SECTION_HEADINGS.usage, SECTION_HEADINGS.ingredients, SECTION_HEADINGS.warnings].flatMap(heading => sectionLines(sections, heading, 8).map(entry => entry.text)),
+    ...productLines.filter(line => line.length <= 60 && !sizesIn(line).length)].join('\n');
+  const FREE_CLAIM = /\b(fragrance[- ]free|perfume[- ]free|without fragrance|no fragrance|sans parfum|unscented)\b/i;
+  const claimsFree = FREE_CLAIM.test(ownText);
   if (inciList.length && hasFragrance) add('composition.fragrance', 'PRESENT', excerptAround(distinctInci[0].raw, 'parfum') || 'INCI lists fragrance');
-  if (claimsFree) add('composition.fragrance', 'FREE', excerptAround(text, 'fragrance'));
+  if (claimsFree) add('composition.fragrance', 'FREE', excerptAround(ownText, ownText.match(FREE_CLAIM)![0]));
 
   const texture = TEXTURES.find(([pattern]) => pattern.test(title));
   if (texture) add('attributes.texture', texture[1], title);
   const area = TARGET_AREAS.find(([pattern]) => pattern.test(title));
   if (area) add('usage.targetArea', area[1], title);
 
+  // Sun protection, in this product's own words: the title first, else its description and its own sections. Short page lines are left out here, because other
+  // products' tiles ("Sun Fluid SPF 30") sit among them. Nothing is inferred from the product type: a sunscreen whose page states no SPF keeps it unknown.
+  const ownProse = [title, (typeof product?.description === 'string' ? decode(product.description) : '') || meta(html, 'og:description') || '',
+    ...[SECTION_HEADINGS.benefits, SECTION_HEADINGS.usage, SECTION_HEADINGS.ingredients, SECTION_HEADINGS.warnings].flatMap(heading => sectionLines(sections, heading, 8).map(entry => entry.text))].join('\n');
+  const spfIn = (value: string) => [...new Set([...value.matchAll(SPF_PATTERN)].map(match => Number(match[1] ?? match[2])).filter(n => n >= 2 && n <= 100))];
+  const spfs = spfIn(title).length ? spfIn(title) : spfIn(ownProse);
+  if (spfs.length === 1) add('attributes.spf', spfs[0], excerptAround(ownProse, `${spfs[0]}`));
+  else if (spfs.length > 1) rejected.push({ field: 'attributes.spf', reason: 'SEVERAL_SPF_VALUES', detail: spfs.join(', ') });
+  if (spfs.length === 1) {
+    const broad = ownProse.match(BROAD_SPECTRUM);
+    if (broad) add('attributes.broadSpectrum', true, excerptAround(ownProse, broad[0]));
+    const water = ownProse.match(WATER_RESISTANCE);
+    const minutes = water ? Number(water[1] ?? water[2]) : null;
+    if (minutes && minutes >= 20 && minutes <= 240) add('attributes.waterResistanceMinutes', minutes, excerptAround(ownProse, water![0]));
+    // The filter type is what the one ingredient list contains: mineral filters only, organic filters only, or both. Without a list it stays unknown.
+    if (inciList.length) {
+      const mineral = inciList.some(item => MINERAL_FILTERS.test(item.trim()));
+      const chemical = inciList.some(item => CHEMICAL_FILTERS.test(item.trim()));
+      if (mineral || chemical) add('attributes.uvFilterType', mineral && chemical ? 'HYBRID' : mineral ? 'MINERAL' : 'CHEMICAL',
+        inciList.filter(item => MINERAL_FILTERS.test(item.trim()) || CHEMICAL_FILTERS.test(item.trim())).join(', '));
+    }
+  }
+  const comedogenic = ownText.match(NON_COMEDOGENIC);
+  if (comedogenic) add('attributes.nonComedogenic', true, excerptAround(ownText, comedogenic[0]));
+
+  // Product line (range): a breadcrumb step whose words are part of this product's own name, or an explicit "Collection: …" label. Brand, category, product-type,
+  // navigation and marketing words are never a line. Two different readings stay unknown.
+  const titleWords = ` ${fold(title)} `;
+  const brandKeys = new Set([sku.brand, ...(sku.brandAliases ?? [])].map(fold));
+  const lines_ = new Map<string, { value: string; excerpt: string }>();
+  const considerLine = (raw: string, excerpt: string, mustBeInName: boolean) => {
+    const value = raw.replace(/[™®©]/g, '').replace(/\s+/g, ' ').trim();
+    const key = fold(value);
+    const words = key.split(' ').filter(Boolean);
+    if (value.length < 2 || value.length > 40 || !words.length || words.length > 4 || key === fold(title) || brandKeys.has(key)) return;
+    if (NOT_A_LINE.test(key) || words.every(word => MARKETING_WORDS.has(word) || brandKeys.has(word)) || sizesIn(value).length || /\d{2,}/.test(value)) return;
+    if (readProductType(value).types.length) return;
+    if (mustBeInName && !titleWords.includes(` ${key} `)) return;
+    lines_.set(key, { value, excerpt });
+  };
+  const crumbs = breadcrumbNames(html);
+  for (const crumb of crumbs) considerLine(crumb, `breadcrumb: ${crumbs.join(' > ')}`, true);
+  for (const line of productLines) { const label = line.match(LINE_LABEL); if (label) considerLine(label[1] ?? label[2], line, false); }
+  if (lines_.size === 1) { const [only] = lines_.values(); add('merchandising.productLine', only.value, only.excerpt); }
+  else if (lines_.size > 1) rejected.push({ field: 'merchandising.productLine', reason: 'SEVERAL_LINE_READINGS', detail: [...lines_.values()].map(item => item.value).join(', ') });
+
   // Brands often put cautions under "Directions": those lines are warnings, not steps.
   const directionLines = sectionLines(sections, SECTION_HEADINGS.usage, 6).map(entry => entry.text).filter(line => line.length >= 12 && line.length <= 600 && !NOT_AN_INSTRUCTION.test(line));
   const cautionsInDirections = directionLines.filter(line => CAUTION_LINE.test(line));
-  const usage = directionLines.filter(line => USAGE_SIGNAL.test(line) && !CAUTION_LINE.test(line));
+  let usage = directionLines.filter(line => USAGE_SIGNAL.test(line) && !CAUTION_LINE.test(line) && isInstructionLine(line));
+  if (!usage.length && sectionLines(sections, SECTION_HEADINGS.usage, 1).length) {
+    // Tabbed layouts list the tab labels first and the tab contents later: the instruction is on the page but not under its label. Only a line that states an
+    // application act, before any related-products section, counts (regression from the real CeraVe Africa pages, 2026-11-06).
+    usage = productLines.filter(line => line.length >= 12 && line.length <= 400 && !CAUTION_LINE.test(line) && !NOT_AN_INSTRUCTION.test(line)
+      && instructionSentences(line).some(sentence => APPLICATION_ACT.test(sentence))).slice(0, 4);
+  }
   if (usage.length) {
     add('usage.instructions', [...new Set(usage)], usage.join(' ').slice(0, 400));
     const joined = usage.join(' ');
@@ -310,16 +435,52 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   if (warnings.length) add('safety.warnings', [...new Set(warnings)], warnings.join(' ').slice(0, 400));
 
   const pageDescription = (typeof product?.description === 'string' ? decode(product.description) : '') || meta(html, 'og:description') || meta(html, 'description') || '';
-  const statedSuitability = [pageDescription, ...lines.filter(line => line.length <= 200 && SUITABILITY_STATEMENT.test(line))].join('\n');
+  // "Apply to clean, dry skin" says what the product goes on, not whom it suits: those surface phrases are removed before skin and hair types are read
+  // (found on three real pages, whose meta description carries the whole "How to use" text, 2026-11-08).
+  const statedSuitability = [pageDescription, ...lines.filter(line => line.length <= 200 && SUITABILITY_STATEMENT.test(line))].join('\n').replace(APPLICATION_SURFACE, ' ');
   const skinTypes = SKIN_TYPES.filter(([pattern]) => pattern.test(statedSuitability)).map(([, value]) => value);
   if (skinTypes.length) add('suitability.skinTypes', skinTypes, excerptAround(statedSuitability, 'skin'));
   const hairTypes = HAIR_TYPES.filter(([pattern]) => pattern.test(statedSuitability)).map(([, value]) => value);
   if (hairTypes.length) add('suitability.hairTypes', hairTypes, excerptAround(statedSuitability, 'hair'));
 
   const description = (typeof product?.description === 'string' ? decode(product.description) : '') || meta(html, 'og:description') || meta(html, 'description');
-  if (description && description.length >= 30) add('marketing.description', description.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000), description);
-  const benefits = sectionLines(sections, SECTION_HEADINGS.benefits, 6).map(entry => entry.text).filter(line => line.length >= 25 && line.length <= 300);
-  if (benefits.length) add('claims.manufacturerStated', [...new Set(benefits)], benefits.join(' ').slice(0, 400));
+  // Some sites encode their meta description twice ("face &amp;amp; body"): one more pass when entities are still left, so no "&amp;" reaches the catalog.
+  const plain = description ? (/&(?:amp|lt|gt|quot|apos|nbsp|#\d+|#x[0-9a-f]+);/i.test(decode(description)) ? decode(decode(description)) : decode(description)) : '';
+  if (plain && plain.length >= 30) add('marketing.description', plain.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000), plain);
+  // Feature cards: a short heading followed by one line ("3 Essential Ceramides" / "To help protect the natural skin barrier"), within the product's own part of the page.
+  const pairs: Array<{ heading: string; body: string }> = [];
+  const relatedSectionAt = sections.findIndex(line => RELATED_SECTION.test(line));
+  const productSections = relatedSectionAt < 0 ? sections : sections.slice(0, relatedSectionAt);
+  for (let i = 0; i + 2 < productSections.length; i++) {
+    if (productSections[i] !== HEADING_BOUNDARY) continue;
+    const [heading, body] = [productSections[i + 1], productSections[i + 2]];
+    if (body === HEADING_BOUNDARY || heading.length > 50 || body.length < 8 || body.length > 200 || ANY_HEADING.test(heading) || heading === title || ANY_HEADING.test(body)) continue;
+    pairs.push({ heading: heading.replace(/[™®]/g, '').replace(/\s+/g, ' ').trim(), body });
+  }
+  const benefits = [...sectionLines(sections, SECTION_HEADINGS.benefits, 8).map(entry => entry.text).filter(line => line.length >= 8 && line.length <= 300 && !ANY_HEADING.test(line)),
+    ...pairs.map(pair => `${pair.heading}: ${pair.body}`)];
+  if (benefits.length) add('claims.manufacturerStated', [...new Set(benefits)].slice(0, 16), benefits.join(' ').slice(0, 400));
+
+  // Key ingredients the manufacturer names, with what it says each does. A short ingredient list that is not a full INCI is exactly this, never a formula.
+  const keyIngredients = new Map<string, { name: string; function: string | null }>();
+  const addKey = (name: string, fn: string | null) => {
+    const clean = name.replace(/[™®]/g, '').replace(/\s+/g, ' ').trim();
+    if (clean.length < 3 || clean.length > 40 || !KEY_INGREDIENT_NAME.test(clean)) return;
+    const key = fold(clean);
+    if (!keyIngredients.has(key) || (fn && !keyIngredients.get(key)!.function)) keyIngredients.set(key, { name: clean, function: fn });
+  };
+  for (const line of productLines) {
+    const stated = line.match(/^key ingredients?\s*:\s*(.{3,200})$/i);
+    if (stated) for (const name of stated[1].split(/\s*(?:,|،|\band\b|&)\s*/i)) addKey(name, null);
+  }
+  if (!distinctInci.length) {
+    for (const entry of sectionLines(sections, SECTION_HEADINGS.ingredients, 10)) if (entry.text.split(' ').length <= 4 && !/\d{2,}/.test(entry.text)) addKey(entry.text, null);
+  }
+  for (const pair of pairs) if (pair.heading.split(' ').length <= 4) addKey(pair.heading.replace(/^\d+\s+(?:essential\s+)?/i, ''), pair.body);
+  if (keyIngredients.size) {
+    const list = [...keyIngredients.values()].slice(0, 12);
+    add('composition.keyIngredients', list, list.map(item => (item.function ? `${item.name}: ${item.function}` : item.name)).join('; '));
+  }
 
   const images = new Set<string>();
   const addImage = (value: unknown) => {

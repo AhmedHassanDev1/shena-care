@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { createHash } from 'crypto';
 import { PrismaService } from '../../../platform/database/prisma.service';
 
 export interface ManualIntakeInput {
@@ -106,7 +107,8 @@ export class CatalogIntakeService {
   async getSkuDetail(skuId: string) {
     const sku = await this.prisma.sku.findUnique({ where: { id: skuId }, include: { product: { include: {
       brand: { select: { id: true, name: true, websiteUrl: true } }, category: { select: { id: true, name: true } },
-      productIngredients: { where: { OR: [{ skuId }, { skuId: null }] }, orderBy: { sortOrder: 'asc' }, include: { ingredient: { select: { id: true, name: true, inciName: true } } } },
+      productIngredients: { where: { OR: [{ skuId }, { skuId: null }] }, orderBy: { sortOrder: 'asc' }, include: { ingredient: { select: { id: true, name: true, inciName: true, family: true, primaryFunction: true, functions: true, isActiveIngredient: true } } } },
+      productLine: { select: { id: true, name: true } },
       safetyWarnings: { where: { isActive: true, OR: [{ skuId }, { skuId: null }] } }, usageRules: { where: { OR: [{ skuId }, { skuId: null }] } },
     } } } });
     if (!sku) throw new NotFoundException('Canonical SKU not found');
@@ -142,6 +144,120 @@ export class CatalogIntakeService {
     const skus = await this.prisma.sku.findMany({ where: { id: { in: skuIds } }, select: { id: true, identityStatus: true, identityEvidence: true, barcode: true, barcodeStatus: true } });
     return new Map(skus.map(sku => [sku.id, { identityStatus: sku.identityStatus, barcode: sku.barcode, barcodeStatus: sku.barcodeStatus,
       identityEvidence: sku.identityEvidence as { fingerprints?: string[]; sourceUrls?: string[] } | null }]));
+  }
+
+  /** A brand's SKUs whose identity was verified, with the pages that verified them. Identity evidence only; no commercial data. */
+  async verifiedSkusForBrand(brandId: string) {
+    const skus = await this.prisma.sku.findMany({
+      where: { isActive: true, identityStatus: { in: ['EVIDENCE_VERIFIED', 'ADMIN_VERIFIED', 'BARCODE_VERIFIED'] }, product: { brandId } },
+      select: { id: true, size: true, sizeUnit: true, packCount: true, barcode: true, barcodeStatus: true, identityStatus: true, identityEvidence: true,
+        product: { select: { id: true, name: true, categoryId: true } } }, take: 2000,
+    });
+    return skus.map(sku => ({ skuId: sku.id, productId: sku.product.id, productName: sku.product.name, categoryId: sku.product.categoryId, size: sku.size?.toNumber() ?? null,
+      sizeUnit: sku.sizeUnit, packCount: sku.packCount, barcode: sku.barcode, barcodeStatus: sku.barcodeStatus, identityStatus: sku.identityStatus,
+      sourceUrls: ((sku.identityEvidence as { sourceUrls?: string[] } | null)?.sourceUrls ?? []) }));
+  }
+
+  /** The deterministic product type and how the leaf category was settled. Rule output, kept apart from verified facts. */
+  async setProductClassification(productId: string, input: { productType: string | null; productSubtype: string | null; classification: Record<string, unknown> }) {
+    return this.prisma.product.update({ where: { id: productId }, data: { productType: input.productType, productSubtype: input.productSubtype,
+      classification: input.classification as Prisma.InputJsonValue } });
+  }
+
+  /** Replaces one SKU's routine profile with a freshly computed one. The profile is derived data: recomputing it is always safe. */
+  async saveRoutineProfile(skuId: string, data: Omit<Prisma.SkuRoutineProfileUncheckedCreateInput, 'id' | 'skuId' | 'computedAt'>) {
+    return this.prisma.skuRoutineProfile.upsert({ where: { skuId }, create: { ...data, skuId, computedAt: new Date() }, update: { ...data, computedAt: new Date() } });
+  }
+
+  async getRoutineProfile(skuId: string) {
+    return this.prisma.skuRoutineProfile.findUnique({ where: { skuId } });
+  }
+
+  /** Routine profiles for many SKUs at once, for the Routine Builder, the Recommendation Engine and Ask Shina. */
+  async routineProfiles(skuIds: string[]) {
+    return this.prisma.skuRoutineProfile.findMany({ where: { skuId: { in: skuIds.slice(0, 200) } } });
+  }
+
+  /** Whether a SKU's product is live; public consumers only ever see live products. */
+  async isPublishedSku(skuId: string): Promise<boolean> {
+    const sku = await this.prisma.sku.findUnique({ where: { id: skuId }, select: { isActive: true, product: { select: { isPublished: true } } } });
+    return Boolean(sku?.isActive && sku.product.isPublished);
+  }
+
+  /** What a brand's verified catalog SKUs actually cover: the evidence for the portfolio part of a brand profile. */
+  async brandPortfolio(brandId: string) {
+    const brand = await this.prisma.brand.findUnique({ where: { id: brandId }, select: { id: true, name: true, slug: true, description: true, websiteUrl: true, countryOfOrigin: true,
+      logoUrl: true, logoMetadata: true, profile: true, profileUpdatedAt: true, productLines: { select: { id: true, name: true } } } });
+    if (!brand) throw new NotFoundException('Brand not found');
+    const products = await this.prisma.product.findMany({ where: { brandId }, select: { id: true, name: true, productType: true, productSubtype: true, concerns: true,
+      productLine: { select: { name: true } }, category: { select: { id: true, name: true, parent: { select: { id: true, name: true } } } },
+      skus: { where: { isActive: true }, select: { id: true, identityStatus: true, identityEvidence: true } } } });
+    return { brand, products };
+  }
+
+  /** Fills canonical Brand fields that are still empty; a recorded value is never replaced here. */
+  async fillBrandIdentityIfEmpty(brandId: string, values: { websiteUrl?: string; description?: string; countryOfOrigin?: string }) {
+    const brand = await this.prisma.brand.findUnique({ where: { id: brandId }, select: { websiteUrl: true, description: true, countryOfOrigin: true } });
+    if (!brand) throw new NotFoundException('Brand not found');
+    const data = {
+      ...(values.websiteUrl && !brand.websiteUrl && { websiteUrl: values.websiteUrl }),
+      ...(values.description && !brand.description && { description: values.description.slice(0, 1000) }),
+      ...(values.countryOfOrigin && !brand.countryOfOrigin && { countryOfOrigin: values.countryOfOrigin }),
+    };
+    if (Object.keys(data).length) await this.prisma.brand.update({ where: { id: brandId }, data });
+    return Object.keys(data);
+  }
+
+  /**
+   * Puts a product in the brand's named line (range), creating the line under that brand when it does not exist yet. The name is the brand's own wording, kept as
+   * stated; description and image stay empty until a source states them. A product already in a different line is refused, never moved.
+   */
+  async assignProductLine(productId: string, lineName: string, evidence: Record<string, unknown>): Promise<{ lineId: string; created: boolean }> {
+    const name = lineName.normalize('NFKC').replace(/\s+/g, ' ').trim();
+    if (name.length < 2 || name.length > 80) throw new BadRequestException('A product line name is 2 to 80 characters');
+    return this.prisma.$transaction(async tx => {
+      const product = await tx.product.findUnique({ where: { id: productId }, include: { productLine: true, brand: { select: { name: true } } } });
+      if (!product) throw new NotFoundException('Product not found');
+      if (product.productLine) {
+        if (normalize(product.productLine.name) === normalize(name)) return { lineId: product.productLine.id, created: false };
+        throw new ConflictException({ code: 'CATALOG_VALUE_EXISTS', message: `This product is already in the ${product.productLine.name} line`, current: product.productLine.name });
+      }
+      // One line per brand and name, also when two products of the same range are researched at once.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`product-line:${product.brandId}`}))`;
+      const lines = await tx.productLine.findMany({ where: { brandId: product.brandId }, select: { id: true, name: true } });
+      let line = lines.find(item => normalize(item.name) === normalize(name));
+      let created = false;
+      if (!line) {
+        const base = slugify(`${product.brand.name} ${name}`);
+        // Non-Latin names fold to the brand part only, so a taken slug gets a stable suffix from the brand and the line's own name.
+        const slug = (await tx.productLine.findUnique({ where: { slug: base }, select: { id: true } }))
+          ? `${base}-${createHash('sha256').update(`${product.brandId}:${normalize(name)}`).digest('hex').slice(0, 10)}` : base;
+        line = await tx.productLine.create({ data: { brandId: product.brandId, name, slug, isActive: true }, select: { id: true, name: true } });
+        created = true;
+      }
+      const claims = { ...((product.claimsEvidence as Record<string, unknown> | null) ?? {}), productLine: { value: name, ...evidence, appliedAt: new Date().toISOString() } };
+      await tx.product.update({ where: { id: productId }, data: { productLineId: line.id, claimsEvidence: claims as Prisma.InputJsonValue } });
+      return { lineId: line.id, created };
+    });
+  }
+
+  async saveBrandProfile(brandId: string, profile: Record<string, unknown>) {
+    return this.prisma.brand.update({ where: { id: brandId }, data: { profile: profile as Prisma.InputJsonValue, profileUpdatedAt: new Date() } });
+  }
+
+  /**
+   * Replaces a product's usage text only while it still equals what the caller read (compare-and-set): invalidating text an older rule applied never wipes a
+   * value someone has since corrected. null clears it.
+   */
+  async replaceUsageIf(productId: string, expected: string, next: string | null): Promise<boolean> {
+    const written = await this.prisma.product.updateMany({ where: { id: productId, usage: expected }, data: { usage: next } });
+    return written.count === 1;
+  }
+
+  /** Every SKU whose identity is verified, for rebuilding derived profiles. */
+  async verifiedSkuIds(limit = 2000): Promise<string[]> {
+    const skus = await this.prisma.sku.findMany({ where: { isActive: true, identityStatus: { in: ['EVIDENCE_VERIFIED', 'ADMIN_VERIFIED', 'BARCODE_VERIFIED'] } }, select: { id: true }, take: limit, orderBy: { createdAt: 'asc' } });
+    return skus.map(sku => sku.id);
   }
 
   async setOuterCarton(skuId: string, hasOuterCarton: boolean) {

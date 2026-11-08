@@ -10,6 +10,7 @@ import { useAuthedImage } from '@/lib/authed-image'
 import { formatDateTime, shortId } from '@/lib/labels'
 import { useApi, useCommand } from '@/lib/use-api'
 import { ExceptionsQueue } from './exceptions-queue'
+import { ProfilePanel } from './profile-panel'
 
 interface SkuRow { skuId: string; productId: string; productName: string; brandName: string; code: string; variantName: string; size: number | null; sizeUnit: string | null; barcode: string | null; isPublished: boolean }
 interface Evidence { sourceUrl: string; sourceTier: string; excerpt: string; observedAt: string; extractor: string }
@@ -145,6 +146,7 @@ function SkuWorkspace({ skuId }: { skuId: string }) {
   return (
     <>
       <ReadinessPanel data={data} onChange={reload} />
+      <ProfilePanel skuId={skuId} />
       <ResearchPanel data={data} onChange={reload} />
       <MediaPanel data={data} onChange={reload} />
     </>

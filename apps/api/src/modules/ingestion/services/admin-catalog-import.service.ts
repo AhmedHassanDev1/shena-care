@@ -7,9 +7,10 @@ import { SpreadsheetParserService, ParsedSpreadsheet } from './spreadsheet-parse
 import { RowNormalizationService } from './row-normalization.service';
 import { MatchClassification, ProductIdentityMatchResult, ProductIdentityService, CandidateItemIdentityInput } from './product-identity.service';
 import { IngestionEligibilityService } from './ingestion-eligibility.service';
-import { compileEligibilityPolicy, EligibilityDecision } from './ingestion-eligibility.policy';
+import { compileEligibilityPolicy, EligibilityDecision, eligibilityMappingKey } from './ingestion-eligibility.policy';
 import { CatalogIntakeService } from '../../catalog/public';
-import { independentLinkSupport } from './catalog-decision-engine';
+import { independentLinkSupport, sameGtin, sameUrl } from './catalog-decision-engine';
+import { parseIdentityTitle, physicalMeasure, titleFactConflict } from './identity-text';
 
 type Policy = ReturnType<typeof compileEligibilityPolicy>;
 type Decision = { outcome: Outcome; reasonCode: string; reason: string; matchedSkuId?: string; identity?: Record<string, unknown> };
@@ -18,10 +19,14 @@ const POLICY_TEXT: Record<string, string> = {
   BRAND_UNKNOWN: 'The brand is not a known canonical brand or alias', BRAND_AMBIGUOUS: 'The brand name points to more than one brand',
   CATEGORY_DENIED: 'The category is excluded', CATEGORY_NOT_ALLOWED: 'No enabled brand allows this category',
   CATEGORY_NOT_ALLOWED_FOR_BRAND: 'This category is not allowed for the brand', CATEGORY_UNKNOWN: 'The category is missing or unknown',
-  CATEGORY_AMBIGUOUS: 'The category name has more than one meaning', CATEGORY_REQUIRES_LEAF: 'A precise sub-category is required',
+  CATEGORY_AMBIGUOUS: 'The category or product type fits more than one approved leaf category', CATEGORY_REQUIRES_LEAF: 'A precise sub-category is required',
+  CATEGORY_CONFLICTS_PRODUCT_TYPE: 'The stated category contradicts the product type the name states',
+  PRODUCT_TYPE_NOT_IN_TAXONOMY: 'The product type has no approved leaf category, so no brand can allow it',
   PRODUCT_EXCLUDED: 'The product is explicitly excluded in the Catalog Policy',
   BRAND_NOT_IN_ALLOWLIST: 'The brand is not on the Catalog Policy allowlist',
   BRAND_SPELLING_UNCONFIRMED: 'The brand is not on the Catalog Policy but closely resembles an allowed brand',
+  BRAND_NEW: 'The brand is new to the catalog: it is verified on its official website and added automatically for this category',
+  CATEGORY_HIERARCHY_AMBIGUOUS: 'The category hierarchy loops', CATEGORY_HIERARCHY_UNKNOWN: 'The category hierarchy is not fully in the Catalog Policy',
 };
 /** Suggestion score at which an unknown brand is treated as a probable misspelling of an allowed one (asked about) rather than an unlisted brand (skipped). */
 const SPELLING_HOLD_SCORE = 0.5;
@@ -120,17 +125,26 @@ export class AdminCatalogImportService {
    * spelling suggestions. A brand that resolves to nothing allowed is skipped (not on the allowlist); one that closely resembles an allowed brand is held for a person,
    * because a spelling guess must never admit a product on its own.
    */
-  private judgeBrand(policy: Policy, brand: string, category: string): { decision: EligibilityDecision; brandLabel: string; suggestion?: { brandId: string; name: string; score: number } } {
-    const first = policy.evaluate('', brand, category);
-    if (first.reason !== 'BRAND_UNKNOWN' || !this.identity.isStatedBrand(brand)) return { decision: first, brandLabel: brand };
+  private judgeBrand(policy: Policy, brand: string, category: string, productName: string): { decision: EligibilityDecision; brandLabel: string; suggestion?: { brandId: string; name: string; score: number } } {
+    const first = policy.evaluate('', brand, category, productName);
+    // Only a stated brand that the policy does not know at all is looked at again. "No enabled brand allows this leaf" is the same situation for a new brand:
+    // the leaf may simply be one no brand brings in yet.
+    const unknownBrand = this.identity.isStatedBrand(brand) && !policy.brandOf(brand) && (first.reason === 'BRAND_UNKNOWN' || first.reason === 'CATEGORY_NOT_ALLOWED');
+    if (!unknownBrand) return { decision: first, brandLabel: brand };
     const suggestions = policy.suggestBrands(brand);
     const curated = this.identity.canonicalizeBrand(brand);
     const sameBrand = suggestions.find(s => this.identity.canonicalizeBrand(s.name) === curated);
-    if (sameBrand) return { decision: policy.evaluate('', sameBrand.name, category), brandLabel: sameBrand.name };
+    if (sameBrand) return { decision: policy.evaluate('', sameBrand.name, category, productName), brandLabel: sameBrand.name };
     const top = suggestions.find(s => s.effect === 'ALLOW' && s.score >= SPELLING_HOLD_SCORE);
-    const synthetic = (outcome: EligibilityDecision['outcome'], reason: string): EligibilityDecision => ({ ...first, outcome, reason });
-    if (top) return { decision: synthetic('HOLD', 'BRAND_SPELLING_UNCONFIRMED'), brandLabel: brand, suggestion: { brandId: top.brandId, name: top.name, score: top.score } };
-    return { decision: synthetic('SKIP', 'BRAND_NOT_IN_ALLOWLIST'), brandLabel: brand };
+    const synthetic = (outcome: EligibilityDecision['outcome'], reason: string, extra: Partial<EligibilityDecision> = {}): EligibilityDecision => ({ ...first, outcome, reason, ...extra });
+    // A probable misspelling of an allowed brand is asked about; correcting it cannot admit a leaf no brand allows, so that stays the definite skip it was.
+    if (top) return first.reason === 'CATEGORY_NOT_ALLOWED' ? { decision: first, brandLabel: brand }
+      : { decision: synthetic('HOLD', 'BRAND_SPELLING_UNCONFIRMED'), brandLabel: brand, suggestion: { brandId: top.brandId, name: top.name, score: top.score } };
+    // A brand new to the catalog (owner decision 2026-11-07): the pipeline verifies it on its official website and adds it for exactly this row's leaf. The leaf is
+    // settled first, by the same rules as every row; without a leaf there is nothing to add the brand for.
+    const leaf = policy.leafFor('', category, productName);
+    if (leaf.outcome === 'ALLOW') return { decision: synthetic('HOLD', 'BRAND_NEW', { categoryId: leaf.categoryId, category: leaf.category }), brandLabel: brand };
+    return { decision: synthetic(leaf.outcome, leaf.reason, { category: leaf.category }), brandLabel: brand };
   }
 
   /** Maps headers to fields by exact folded name; everything else is ignored and reported, never read. */
@@ -174,6 +188,10 @@ export class AdminCatalogImportService {
       const extracted = this.normalizer.extractSizeAndPack(sizeText);
       if (extracted.size !== null && extracted.unit) { prepared.size = extracted.size; prepared.sizeUnit = extracted.unit; }
       else settle(Outcome.HOLD, 'SIZE_UNREADABLE', `Size "${sizeText.slice(0, 60)}" is not a readable quantity and unit`);
+    } else if (name) {
+      // No size cell: the size the Admin wrote in the product name ("… Cleanser 200 ml") is the row's size, as the identity engine already reads it.
+      const fromName = this.normalizer.extractSizeAndPack(name);
+      if (fromName.size !== null && fromName.unit) { prepared.size = fromName.size; prepared.sizeUnit = fromName.unit; }
     }
     if (urlText) {
       try {
@@ -316,21 +334,26 @@ export class AdminCatalogImportService {
     const brands = new Map<string, string | null>();
     const stated = new Map<string, EligibilityDecision>();
     const suggestions = new Map<string, { brandId: string; name: string; score: number }>();
+    const canonicalBrands = new Map<string, string>();
     const skipped: typeof rows = [];
     for (const row of rows) {
       const isStated = this.identity.isStatedBrand(row.brand);
       const inferred = isStated ? null : await this.identity.inferBrandFromName(row.name);
-      const judged = this.judgeBrand(policy, isStated ? row.brand! : inferred ?? '', row.categoryHint ?? '');
-      // Once the policy resolved the brand (by name or an approved alias such as "clary"), matching uses the canonical brand, never the raw label.
-      const brand = judged.decision.outcome === 'ALLOW' && judged.decision.brandName ? judged.decision.brandName : judged.brandLabel;
+      const judged = this.judgeBrand(policy, isStated ? row.brand! : inferred ?? '', row.categoryHint ?? '', row.name);
+      // Once the policy resolved the brand (by name or an approved alias such as "clary"), matching uses the canonical brand, never the raw label, whatever the
+      // category outcome: a row held for its category must still find the SKU it already is (that SKU's verified category then decides).
+      const canonical = policy.brandOf(judged.brandLabel);
+      const allowedBrand = canonical && canonical.effect === 'ALLOW' && canonical.isActive ? canonical : undefined;
+      const brand = judged.decision.outcome === 'ALLOW' && judged.decision.brandName ? judged.decision.brandName : canonical?.name ?? judged.brandLabel;
       // Policy before identity: a disallowed brand or a known disallowed category is settled here, with no matching spend.
       const decision = judged.decision;
       stated.set(row.id, decision);
       if (judged.suggestion) suggestions.set(row.id, judged.suggestion);
       if (decision.outcome === 'SKIP') { skipped.push(row); continue; }
       brands.set(row.id, inferred);
+      if (allowedBrand) canonicalBrands.set(row.id, allowedBrand.id);
       // An Admin list's barcode cell that is not a valid GTIN (often a merchant code) proves nothing and contradicts nothing: it is kept on the row and ignored as evidence.
-      inputs.set(row.id, { name: row.name, brand, brandId: decision.outcome === 'ALLOW' ? decision.brandId ?? null : null, barcode: row.barcode, invalidBarcode: null,
+      inputs.set(row.id, { name: row.name, brand, brandId: decision.outcome === 'ALLOW' ? decision.brandId ?? null : allowedBrand?.id ?? null, barcode: row.barcode, invalidBarcode: null,
         size: row.size?.toNumber() ?? null, sizeUnit: row.sizeUnit, category: row.categoryHint, rawName: row.name, rawBrand: row.brand });
     }
     const batch = await this.identity.prepareBatch([...inputs.values()]);
@@ -350,7 +373,7 @@ export class AdminCatalogImportService {
       const result = results.get(rowId)!;
       const sku = snapshots.get(skuId);
       if (!sku) continue;
-      const admittedBrandId = stated.get(rowId)?.brandId;
+      const admittedBrandId = stated.get(rowId)?.brandId ?? canonicalBrands.get(rowId);
       const keys = [result.fingerprint, ...(admittedBrandId ? [identityKeyOf(admittedBrandId, this.identity.wordingKey(row.name, null), row.size?.toNumber() ?? null, row.sizeUnit)] : [])];
       const provenanceRows = await this.prisma.adminCatalogImportRow.count({ where: { fingerprint: result.fingerprint, matchedSkuId: skuId, id: { not: rowId },
         decision: { in: [CatalogDecision.AUTO_ACCEPT, CatalogDecision.AUTO_LINK] } } });
@@ -358,10 +381,27 @@ export class AdminCatalogImportService {
         .find(item => item.supported);
       if (verdict) support.set(rowId, verdict.basis!);
     }
+    // The page the row names is the verified identity page of exactly one SKU of this brand and size: the page, not the wording, is the evidence. This links rows
+    // written in another script ("كلاري شامبو شعر") or with a misspelt brand that resembles an allowed one, when they point at an already verified product page.
+    for (const row of rows) {
+      const result = results.get(row.id);
+      if (!result || !row.sourceUrl || support.has(row.id) || row.size === null || !row.sizeUnit) continue;
+      if (result.classification === MatchClassification.EXACT_MATCH || result.classification === MatchClassification.CONFLICT ||
+          result.classification === MatchClassification.INVALID || result.classification === MatchClassification.OUT_OF_SCOPE) continue;
+      const suggestion = suggestions.get(row.id);
+      const brandId = canonicalBrands.get(row.id) ?? (suggestion && suggestion.score >= SPELLING_HOLD_SCORE ? suggestion.brandId : undefined);
+      if (!brandId) continue;
+      const skuId = await this.samePageSku(row, brandId);
+      if (!skuId) continue;
+      linkable.set(row.id, skuId);
+      support.set(row.id, canonicalBrands.has(row.id) ? 'SAME_VERIFIED_SOURCE_PAGE' : 'SAME_VERIFIED_SOURCE_PAGE_BRAND_CORRECTED');
+      if (!canonicalBrands.has(row.id)) suggestions.delete(row.id);
+    }
     // A row that resolved to a canonical product is judged as that product: its own Brand/Category, and any explicit exclusion.
     const products = await this.eligibility.productsForSkus([...new Set([...[...results.values()]
       .filter(r => r.classification === MatchClassification.EXACT_MATCH && r.matchedSkuId).map(r => r.matchedSkuId!), ...[...support.keys()].map(id => linkable.get(id)!)])]);
-    const policyEvidence = (d: EligibilityDecision) => ({ policy: { id: d.policyId, version: d.version, outcome: d.outcome, reason: d.reason } });
+    const policyEvidence = (d: EligibilityDecision, text?: EligibilityDecision) => ({ policy: { id: d.policyId, version: d.version, outcome: d.outcome, reason: d.reason,
+      category: (text ?? d).category ?? null, categoryId: d.categoryId ?? null, ...(text && text !== d && { statedOutcome: text.outcome, statedReason: text.reason }) } });
 
     for (const row of skipped) {
       const d = stated.get(row.id)!;
@@ -392,13 +432,13 @@ export class AdminCatalogImportService {
         const product = linkedSku ? products.get(linkedSku) : undefined;
         const judged = product ? policy.evaluateIdentity(product) : text;
         let decision: Decision = judged.outcome !== 'ALLOW' ? policyDecision(judged)
-          : supportedSku ? { outcome: Outcome.LINKED_EXISTING, reasonCode: `AUTO_LINK_${support.get(row.id)}`, reason: 'Same brand, name and packaging as one catalog SKU, with independent support', matchedSkuId: supportedSku }
+          : supportedSku ? { outcome: Outcome.LINKED_EXISTING, reasonCode: `AUTO_LINK_${support.get(row.id)}`, reason: support.get(row.id)!.startsWith('SAME_VERIFIED_SOURCE_PAGE') ? 'The row names the verified product page of exactly one catalog SKU of this brand and size' : 'Same brand, name and packaging as one catalog SKU, with independent support', matchedSkuId: supportedSku }
           : this.decide(inputs.get(row.id)!, result);
         if (suggestions.has(row.id)) decision = { ...decision, identity: { ...decision.identity, brandSuggestion: suggestions.get(row.id) } };
         // No brand at all is the more useful reason than "unknown brand".
         if (!product && judged.reason === 'BRAND_UNKNOWN' && !this.identity.isStatedBrand(inputs.get(row.id)!.brand))
           decision = { outcome: Outcome.HOLD, reasonCode: 'MISSING_BRAND', reason: 'No brand could be read or inferred for an unknown product' };
-        decision = { ...decision, identity: { ...decision.identity, ...policyEvidence(judged) } };
+        decision = { ...decision, identity: { ...decision.identity, ...policyEvidence(judged, text) } };
         if (decision.outcome === Outcome.NEW_CANDIDATE) {
           // Oldest wins: a product waiting from an earlier row (this file or an earlier one) is the single candidate.
           const earlier = (claimed.get(result.fingerprint) ?? []).find(peer => peer.id !== row.id &&
@@ -414,6 +454,24 @@ export class AdminCatalogImportService {
         if (written.count && decision.outcome === Outcome.NEW_CANDIDATE) claim(result.fingerprint, { id: row.id, rowNumber: row.rowNumber, jobId: row.jobId, createdAt: jobCreatedAt });
       }
     }, { timeout: 60000 });
+  }
+
+  /**
+   * The one verified SKU of this brand whose identity page is the page the row names, with the row's exact size and nothing in the row's wording that contradicts
+   * it (another type, area, active or target). None, or more than one, returns null.
+   */
+  private async samePageSku(row: Prisma.AdminCatalogImportRowGetPayload<object>, brandId: string): Promise<string | null> {
+    const stated = physicalMeasure(row.size?.toNumber() ?? null, row.sizeUnit);
+    if (!stated || !row.sourceUrl) return null;
+    const skus = (await this.catalogIntake.verifiedSkusForBrand(brandId)).filter(sku => sku.sourceUrls.some(url => sameUrl(url, row.sourceUrl!)) && (sku.packCount ?? 1) === 1);
+    const sameSize = skus.filter(sku => { const m = physicalMeasure(sku.size, sku.sizeUnit); return m?.dimension === stated.dimension && Math.abs(m.value - stated.value) < 1e-6; });
+    if (sameSize.length !== 1) return null;
+    const sku = sameSize[0];
+    if (row.barcode && sku.barcode && sku.barcodeStatus === 'VERIFIED' && !sameGtin(row.barcode, sku.barcode)) return null;
+    const labels = [row.brand ?? '', sku.productName.split(' ')[0]];
+    const strip = (name: string) => this.productNameOf(name);
+    if (titleFactConflict(parseIdentityTitle(strip(row.name), labels), parseIdentityTitle(strip(sku.productName), labels))) return null;
+    return sku.skuId;
   }
 
   private decide(input: CandidateItemIdentityInput, result: ProductIdentityMatchResult): Decision {
@@ -511,11 +569,42 @@ export class AdminCatalogImportService {
   }
 
   async updateRowProgress(rowId: string, data: { decision?: CatalogDecision | null; stage?: string | null; matchedSkuId?: string | null; attempts?: number;
-    nextAttemptAt?: Date | null; lastError?: string | null; reasonCode?: string; reason?: string; releaseLease?: boolean }) {
-    const { releaseLease, ...rest } = data;
-    const row = await this.prisma.adminCatalogImportRow.update({ where: { id: rowId }, data: { ...rest, ...(releaseLease && { leaseUntil: null }) } });
+    nextAttemptAt?: Date | null; lastError?: string | null; reasonCode?: string; reason?: string; releaseLease?: boolean; verifiedSourceUrl?: string }) {
+    const { releaseLease, verifiedSourceUrl, ...rest } = data;
+    // The page that verified a new product's identity, kept on the row so a resumed run researches the same page.
+    const identity = verifiedSourceUrl ? { identity: { ...(((await this.getRow(rowId)).identity ?? {}) as Record<string, unknown>), verifiedSourceUrl } as Prisma.InputJsonValue } : {};
+    const row = await this.prisma.adminCatalogImportRow.update({ where: { id: rowId }, data: { ...rest, ...identity, ...(releaseLease && { leaseUntil: null }) } });
     if (data.decision !== undefined) await this.refreshTotals(row.jobId);
     return row;
+  }
+
+  /**
+   * A row that named no size gets the one size a trusted page states for it. Never replaces a stated size. The row is then matched again with that size, so an
+   * existing SKU of that size is linked rather than duplicated.
+   */
+  async fillRowSizeFromSource(rowId: string, size: { value: number; unit: string }): Promise<boolean> {
+    const written = await this.prisma.adminCatalogImportRow.updateMany({ where: { id: rowId, size: null }, data: { size: size.value, sizeUnit: size.unit } });
+    if (!written.count) return false;
+    const row = await this.getRow(rowId);
+    await this.match(row.jobId, { recheck: true, rowIds: [rowId] });
+    return true;
+  }
+
+  /**
+   * The rows of this row's job that wait for the same new brand (same folded label), with the leaves and pages they bring. The brand is added once, for all of
+   * these leaves; a later file for another leaf goes through the Catalog Policy like any known brand.
+   */
+  async newBrandGroup(rowId: string): Promise<{ label: string; rowIds: string[]; categoryIds: string[]; pageUrls: string[] }> {
+    const row = await this.getRow(rowId);
+    const label = row.brand ?? '';
+    const key = eligibilityMappingKey(label);
+    const rows = await this.prisma.adminCatalogImportRow.findMany({ where: { jobId: row.jobId, outcome: Outcome.HOLD, reasonCode: 'POLICY_BRAND_NEW' },
+      select: { id: true, brand: true, sourceUrl: true, identity: true } });
+    const same = rows.filter(item => eligibilityMappingKey(item.brand ?? '') === key);
+    const leafOf = (identity: Prisma.JsonValue) => ((identity ?? {}) as { policy?: { categoryId?: string | null } }).policy?.categoryId ?? null;
+    return { label, rowIds: same.map(item => item.id),
+      categoryIds: [...new Set(same.map(item => leafOf(item.identity)).filter((id): id is string => Boolean(id)))],
+      pageUrls: [...new Set(same.map(item => item.sourceUrl).filter((url): url is string => Boolean(url)))] };
   }
 
   /** The canonical brand and exact leaf a row was admitted under by the current Catalog Policy. */
@@ -524,12 +613,23 @@ export class AdminCatalogImportService {
     const current = await this.eligibility.current();
     const policy = await this.eligibility.compile(current?.id);
     const brand = this.identity.isStatedBrand(row.brand) ? row.brand! : (await this.identity.inferBrandFromName(row.name)) ?? '';
-    const judged = this.judgeBrand(policy, brand, row.categoryHint ?? '').decision;
+    const judged = this.judgeBrand(policy, brand, row.categoryHint ?? '', row.name).decision;
     if (judged.outcome !== 'ALLOW' || !judged.brandId || !judged.categoryId) return null;
     const document = current?.document as { brands?: Array<{ id: string; aliases?: string[] }> } | undefined;
     const record = await this.prisma.brand.findUnique({ where: { id: judged.brandId }, select: { name: true, websiteUrl: true } });
     return { brandId: judged.brandId, brandName: record?.name ?? judged.brandName ?? brand, brandAliases: document?.brands?.find(b => b.id === judged.brandId)?.aliases ?? [],
       websiteUrl: record?.websiteUrl ?? null, categoryId: judged.categoryId, policyVersion: judged.version };
+  }
+
+  /**
+   * Pages that verified another size of the same product (same brand, same base name). A row with no page of its own may be checked against them: the page must state
+   * this row's exact size, so a sibling's evidence never stands in for a size it does not name.
+   */
+  async siblingSources(rowId: string, brandId: string): Promise<string[]> {
+    const row = await this.getRow(rowId);
+    const base = this.productNameOf(row.name);
+    const urls = (await this.catalogIntake.verifiedSkusForBrand(brandId)).filter(sku => this.identity.sameBaseName(sku.productName, base)).flatMap(sku => sku.sourceUrls);
+    return [...new Set(urls)].filter(url => url.startsWith('https://')).slice(0, 3);
   }
 
   identityKey(row: { name: string; size: Prisma.Decimal | null; sizeUnit: string | null }, brandId: string): string {

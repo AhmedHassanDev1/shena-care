@@ -98,9 +98,9 @@ describe('Admin catalog import (e2e)', () => {
     [`${brandName} Hydra Gel Cleanser`, brandName, '200 ml', existing.barcode, cleanserLeaf, 'https://example.com/hydra', '120', '40'], // 2: existing SKU
     ['Zenthra Glow Serum 30ml', `Zenthra${run}`, '30 ml', '', serumLeaf, 'https://zenthra.example/glow', '300', '10'], // 3: unknown, complete
     ['Zenthra Glow Serum 30ml', `Zenthra${run}`, '30 ml', '', serumLeaf, '', '299', '5'], // 4: same product again
-    [`Kerrin Toner ${run}`, `Kerrin${run}`, '100 ml', '6221234567895', '', '', '', ''], // 5: malformed barcode
+    [`Kerrin Glow ${run}`, `Kerrin${run}`, '100 ml', '6221234567895', '', '', '', ''], // 5: malformed barcode (no product type: a type with no approved leaf would be an early policy skip)
     ['', `Zenthra${run}`, '', '', '', '', '', ''], // 6: no name
-    [`Plain Moisturiser ${run}`, '', '', '', '', '', '', ''], // 7: no brand, no size
+    [`Plain Essentials ${run}`, '', '', '', '', '', '', ''], // 7: no brand, no size (no product type, see row 5)
     [`Vexa Mist ${run}`, `Vexa${run}`, 'big bottle', '', '', 'http://insecure.example/x', '', ''], // 8: unreadable size, insecure url
   ]);
 

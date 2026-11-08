@@ -3,7 +3,7 @@ import { CatalogException, CatalogExceptionStatus, Prisma } from '@prisma/client
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { DECISION_RULE_VERSION, HoldReason } from './catalog-decision-engine';
 
-export type DecisionSubject = 'IMPORT_ROW' | 'SKU' | 'FACT' | 'MEDIA' | 'EXCEPTION';
+export type DecisionSubject = 'IMPORT_ROW' | 'SKU' | 'FACT' | 'MEDIA' | 'EXCEPTION' | 'BRAND';
 
 export interface DecisionEntry {
   subjectType: DecisionSubject;

@@ -293,6 +293,9 @@ export class RowNormalizationService {
       return { barcode: null, isValid: false };
     }
 
+    // Placeholders ("0000000000000", "1111111111111") pass the check digit but identify nothing.
+    if (/^(\d)\1*$/.test(digitsOnly)) return { barcode: digitsOnly, isValid: false };
+
     // Standard valid barcode lengths
     if ([8, 12, 13, 14].includes(digitsOnly.length)) {
       const payload = digitsOnly.slice(0, -1).split('').reverse();

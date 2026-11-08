@@ -14,8 +14,41 @@ import { cleanSiteName } from './brand-page-extractor';
 import { normalizeLogo } from './brand-logo';
 import { hostIsBrandDomain, registrableLabel } from './research-evidence';
 import { ResearchSourceFetcher } from './research-source-fetcher';
+import { htmlToLines } from './product-fact-extractor';
+import { productTypeRule, readProductType } from './product-type';
+
+/** Where a range page sits relative to the brand: its own site, the company that owns it, an approved distributor, or anyone else. */
+export type RangeSourceTier = 'OFFICIAL_BRAND_SITE' | 'OWNER_SITE' | 'TRUSTED_DISTRIBUTOR' | 'OTHER';
+/**
+ * Research on a brand we already hold. Only what the pages read literally state is recorded, each with its page; VERIFIED means the brand's own domain, or the
+ * owner's own domain naming the brand. The range is the brand's offer as the sources list it: never ShinaCare's imported products, never claimed complete.
+ */
+export interface BrandEnrichment {
+  schema: 1; researchedAt: string; brandId: string; brandName: string;
+  site: { url: string; host: string; verifiedOfficial: boolean; outcome: string } | null;
+  name: ResearchedField | null; description: ResearchedField | null; country: ResearchedField | null; logo: ResearchedField | null; aliases: ResearchedField[];
+  owner: { name: ResearchedField; country: ResearchedField | null; brandOrigin: ResearchedField | null; namesBrand: boolean; ownDomain: boolean } | null;
+  range: {
+    sources: Array<{ url: string; tier: RangeSourceTier; outcome: string; products: number }>;
+    products: Array<{ name: string; productType: string | null; domain: string | null; sourceUrl: string; tier: RangeSourceTier }>;
+    productTypes: Array<{ value: string; products: number }>; domains: string[]; lines: Array<{ value: string; products: number }>;
+    complete: false; note: string;
+  };
+  notes: string[];
+}
+
+const DEMONYMS: Record<string, string> = { egyptian: 'Egypt', french: 'France', american: 'United States', german: 'Germany', korean: 'South Korea', 'south korean': 'South Korea',
+  japanese: 'Japan', italian: 'Italy', spanish: 'Spain', british: 'United Kingdom', swiss: 'Switzerland', turkish: 'Turkey', saudi: 'Saudi Arabia', emirati: 'United Arab Emirates', jordanian: 'Jordan', lebanese: 'Lebanon' };
+const COUNTRIES = ['Egypt', 'France', 'United States', 'USA', 'Germany', 'South Korea', 'Korea', 'Japan', 'Italy', 'Spain', 'United Kingdom', 'UK', 'Switzerland', 'Turkey', 'Saudi Arabia', 'UAE', 'Jordan', 'Lebanon'];
+const BUNDLE = /\b(offer|pack|bundle|set|kit|range|routine|collection|box)\b/i;
 
 export type FieldStatus = 'VERIFIED' | 'UNVERIFIED';
+/** What happened to a brand an import row names that the catalog did not hold. */
+export type BrandOnboarding =
+  | { kind: 'CREATED'; brandId: string; name: string; policyVersion: number; fields: Record<string, unknown>; logoSaved: boolean; site: string }
+  | { kind: 'EXISTS'; brandId: string; name: string }
+  | { kind: 'HOLD'; reasonCode: 'BRAND_NOT_VERIFIED' | 'BRAND_MATCHES_EXISTING' | 'BRAND_EXISTS_NOT_ENABLED'; summary: string; evidence: Record<string, unknown> }
+  | { kind: 'RETRY'; reason: string };
 /** One researched value with the page that states it. VERIFIED only ever means "stated on a page of the brand's own domain". */
 export interface ResearchedField { value: string; status: FieldStatus; origin: 'PAGE' | 'ADMIN'; sourceUrl: string; excerpt: string; note?: string }
 /** The logo as fetched (mediaType/contentHash describe the original bytes); what gets stored is always a re-encoded PNG. */
@@ -82,7 +115,7 @@ export class BrandResearchService {
   }
 
   /** Reads the web for one brand name. Persists only the evidence (on the brand's draft record); the canonical Brand is untouched. */
-  async research(dto: ResearchBrandDto, actorId: string): Promise<{ draftId: string; research: BrandResearch }> {
+  async research(dto: ResearchBrandDto, actorId: string, options: { throttle?: boolean } = {}): Promise<{ draftId: string; research: BrandResearch }> {
     await this.eligibility.assertAdmin(actorId);
     const query = clip(dto.name, 120);
     if (query.length < 2) throw new BadRequestException('Brand name is required');
@@ -94,7 +127,8 @@ export class BrandResearchService {
       if (held) throw new ConflictException({ code: 'BRAND_EXISTS', message: `${held.name} already exists`, brandId: held.id, name: held.name });
     }
     if (dto.alias) await this.eligibility.assertNewBrand(clip(dto.alias, 120));
-    this.throttle(actorId);
+    // The limit protects the interactive lookup; the import pipeline reads one site per new brand and is bounded by the file.
+    if (options.throttle !== false) this.throttle(actorId);
 
     const research: BrandResearch = { schema: 1, researchedAt: new Date().toISOString(), query, outcome: 'NOT_FOUND', site: null,
       name: null, website: null, description: null, country: null, parentCompany: null, aliases: [], logo: null, candidates: [], references: [], notes: [] };
@@ -258,8 +292,83 @@ export class BrandResearchService {
     return draft.id;
   }
 
-  /** Saves the Admin's reviewed brand as ONE canonical Brand, enabled in the Catalog Policy with no categories yet. */
-  async saveBrand(dto: SaveResearchedBrandDto, actorId: string) {
+  /**
+   * A brand an Admin product list names that the catalog does not hold (owner decision 2026-11-07): research it, and create it automatically only when its official
+   * website is verified (the site's domain is the brand's name and the site states that name). Only VERIFIED fields are stored; anything the site does not state stays
+   * empty. The brand is enabled for exactly the leaves its rows need. Anything less than a verified site comes back as one hold with its reason; a transient failure
+   * comes back as a retry. Never guesses a site, a name, a country or a logo.
+   */
+  async onboardFromImport(input: { label: string; pageUrls: string[]; categoryIds: string[] }, actorId: string): Promise<BrandOnboarding> {
+    const label = clip(input.label, 120);
+    const existing = await this.eligibility.findExistingBrand(label);
+    if (existing) {
+      // In the catalog, but not on the policy: enabling a brand someone already holds back is not this pipeline's decision.
+      const rule = ((await this.eligibility.current())?.document as { brands?: Array<{ id: string; effect: string | null }> } | undefined)?.brands?.find(b => b.id === existing.id);
+      if (rule?.effect === 'ALLOW') return { kind: 'EXISTS', brandId: existing.id, name: existing.name };
+      return { kind: 'HOLD', reasonCode: 'BRAND_EXISTS_NOT_ENABLED', summary: `${existing.name} is in the catalog but not enabled in the Catalog Policy`, evidence: { brandId: existing.id, name: existing.name } };
+    }
+    // A page the row names on a domain that is the brand's own name is where to look; otherwise the search provider looks for the site.
+    const own = input.pageUrls.map(url => this.safeHttps(url)).find((url): url is URL => Boolean(url && hostIsBrandDomain(url.hostname, label)));
+    let researched: { draftId: string; research: BrandResearch };
+    try {
+      researched = await this.research({ name: label, ...(own && { websiteUrl: own.origin }) }, actorId, { throttle: false });
+    } catch (error) {
+      const response = error instanceof ConflictException ? (error.getResponse() as { code?: string; brandId?: string; name?: string }) : null;
+      if (response?.code === 'BRAND_EXISTS') {
+        return { kind: 'HOLD', reasonCode: 'BRAND_MATCHES_EXISTING', summary: `The official name of "${label}" is ${response.name}, which the catalog already holds`, evidence: { brandId: response.brandId, name: response.name } };
+      }
+      throw error;
+    }
+    const { research, draftId } = researched;
+    const noSearch = !own && !this.providers.discoveryConfigured();
+    if (noSearch) {
+      return { kind: 'HOLD', reasonCode: 'BRAND_NOT_VERIFIED', summary: 'No web search is configured and no row names a page on the brand\'s own website',
+        evidence: { draftId, notes: research.notes } };
+    }
+    if (research.outcome === 'UNAVAILABLE') return { kind: 'RETRY', reason: `BRAND_RESEARCH_UNAVAILABLE:${research.notes.join(',')}`.slice(0, 200) };
+    const site = research.site;
+    if (site && !site.verifiedOfficial) {
+      // The site found is the recorded website of a brand the catalog already holds ("Eva Skin Clinic" on eva-cosmetics.com): most likely a line of that brand.
+      // Suggested, never applied: a person confirms the brand.
+      const host = bare(site.host);
+      const holders = (await this.prisma.brand.findMany({ where: { websiteUrl: { not: null } }, select: { id: true, name: true, websiteUrl: true } }))
+        .filter(brand => { try { return bare(new URL(brand.websiteUrl!).hostname) === host; } catch { return false; } });
+      if (holders.length === 1) {
+        return { kind: 'HOLD', reasonCode: 'BRAND_MATCHES_EXISTING', summary: `"${label}" is found on ${host}, the website of ${holders[0].name}: probably a line of that brand`,
+          evidence: { brandId: holders[0].id, name: holders[0].name, site, references: research.references, draftId } };
+      }
+    }
+    if (!site?.verifiedOfficial || !research.name || research.name.status !== 'VERIFIED') {
+      const why = research.notes.includes('NEEDS_LATIN_NAME') ? 'The brand is written only in Arabic; its English name is needed to find its official site'
+        : !site ? 'No official website was found for this brand'
+          : !site.verifiedOfficial ? `The site found (${site.host}) is not on the brand's own domain`
+            : 'The official site does not state this brand name';
+      return { kind: 'HOLD', reasonCode: 'BRAND_NOT_VERIFIED', summary: why, evidence: { draftId, site, notes: research.notes, references: research.references } };
+    }
+    const verified = (field: ResearchedField | null | undefined) => (field?.status === 'VERIFIED' ? field.value : undefined);
+    const name = research.name.value;
+    const aliases = [...new Set([...(fold(label) !== fold(name) ? [label] : []), ...research.aliases.filter(alias => alias.status === 'VERIFIED').map(alias => alias.value)])].slice(0, 10);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const saved = await this.saveBrand({ expectedVersion: (await this.eligibility.current())?.version ?? 0, draftId, name, websiteUrl: verified(research.website),
+          // Passed exactly as researched, so the server's own check keeps each one VERIFIED.
+          description: verified(research.description), countryOfOrigin: verified(research.country), parentCompany: verified(research.parentCompany),
+          aliases, useLogo: research.logo?.status === 'VERIFIED' }, actorId, { categoryIds: input.categoryIds, origin: 'IMPORT_AUTO_ONBOARDED' });
+        return { kind: 'CREATED', brandId: saved.brandId, name, policyVersion: saved.version, fields: saved.fields, logoSaved: saved.logoSaved, site: site.url };
+      } catch (error) {
+        const response = error instanceof ConflictException ? (error.getResponse() as { code?: string; brandId?: string; name?: string }) : null;
+        // Another policy edit landed in between: read it again and retry once.
+        if (response?.code === 'POLICY_CHANGED' && attempt === 0) continue;
+        if (response?.code === 'BRAND_EXISTS' || response?.code === 'ALIAS_CONFLICT') {
+          return { kind: 'HOLD', reasonCode: 'BRAND_MATCHES_EXISTING', summary: `"${label}" (${name}) collides with ${response.name} already in the catalog`, evidence: { brandId: response.brandId, name: response.name } };
+        }
+        throw error;
+      }
+    }
+  }
+
+  /** Saves the Admin's reviewed brand as ONE canonical Brand, enabled in the Catalog Policy with no categories yet (or, from the import pipeline, the leaves its rows need). */
+  async saveBrand(dto: SaveResearchedBrandDto, actorId: string, options: { categoryIds?: string[]; origin?: 'IMPORT_AUTO_ONBOARDED' } = {}) {
     await this.eligibility.assertAdmin(actorId);
     const name = clip(dto.name, 120);
     if (name.length < 2) throw new BadRequestException('Brand name is required');
@@ -313,8 +422,8 @@ export class BrandResearchService {
         ...(decided.country && { countryOfOrigin: decided.country.value }), ...(logo && { logoUrl: logo.url }),
       }, logo ? { logoMetadata: logo.metadata as Prisma.InputJsonValue } : {});
       brandId = brand.id;
-      const policy = await this.eligibility.updateBrand(brand.id, { expectedVersion: dto.expectedVersion, enabled: true, categoryIds: [], addAliases: aliases }, actorId);
-      await this.recordApproval(draft?.id ?? null, brand.id, name, aliases, { decided, logo, research, actorId, description: dto.description });
+      const policy = await this.eligibility.updateBrand(brand.id, { expectedVersion: dto.expectedVersion, enabled: true, categoryIds: options.categoryIds ?? [], addAliases: aliases }, actorId);
+      await this.recordApproval(draft?.id ?? null, brand.id, name, aliases, { decided, logo, research, actorId, description: dto.description, origin: options.origin });
       return { brandId: brand.id, version: policy.version, changed: policy.changed, logoSaved: Boolean(logo), logoNote,
         fields: Object.fromEntries(Object.entries(decided).map(([key, value]) => [key, Array.isArray(value) ? value.map(item => item.status) : value?.status ?? null])) };
     } catch (error) {
@@ -326,8 +435,9 @@ export class BrandResearchService {
   }
 
   private async recordApproval(draftId: string | null, brandId: string, name: string, aliases: string[],
-    input: { decided: Record<string, unknown>; logo: { url: string; metadata: Record<string, unknown> } | null; research: BrandResearch | null; actorId: string; description?: string }) {
-    const approval = { decidedBy: input.actorId, decidedAt: new Date().toISOString(), fields: input.decided, logo: input.logo?.metadata ?? null, manual: !input.research };
+    input: { decided: Record<string, unknown>; logo: { url: string; metadata: Record<string, unknown> } | null; research: BrandResearch | null; actorId: string; description?: string; origin?: string }) {
+    const approval = { decidedBy: input.actorId, decidedAt: new Date().toISOString(), fields: input.decided, logo: input.logo?.metadata ?? null, manual: !input.research,
+      ...(input.origin && { origin: input.origin }) };
     const base = { name, canonicalName: name, aliases: [...new Set([name, ...aliases])], status: 'APPROVED', canonicalBrandId: brandId, reviewedBy: input.actorId, reviewedAt: new Date(),
       logoUrl: input.logo?.url ?? null, ...(input.logo && { logoMetadata: input.logo.metadata as Prisma.InputJsonValue }) };
     if (draftId) {
@@ -338,6 +448,109 @@ export class BrandResearchService {
     const slug = this.eligibility.brandSlug(name);
     await this.prisma.brandDraft.upsert({ where: { slug }, update: { ...base, evidence: { approval } as unknown as Prisma.InputJsonValue },
       create: { ...base, slug, evidence: { approval } as unknown as Prisma.InputJsonValue } });
+  }
+
+  /**
+   * Enriches a brand we already hold from pages an Admin names: its own site, the page of the company that owns it, and pages listing its range. Reads only those
+   * hosts through the shared safe fetcher; stores nothing itself (the caller keeps the result on the brand profile). Never creates or renames a Brand.
+   */
+  async enrichExisting(brandId: string, input: { websiteUrl?: string; ownerPageUrl?: string; rangeUrls?: string[] }, actorId: string): Promise<BrandEnrichment> {
+    await this.eligibility.assertAdmin(actorId);
+    const brand = await this.prisma.brand.findUnique({ where: { id: brandId }, select: { id: true, name: true } });
+    if (!brand) throw new NotFoundException('Brand not found');
+    const current = await this.eligibility.current();
+    const aliases = ((current?.document as { brands?: Array<{ id: string; aliases?: string[] }> } | undefined)?.brands?.find(b => b.id === brandId)?.aliases) ?? [];
+    const labels = [brand.name, ...aliases].filter(label => fold(label).length >= 3);
+    const names = (text: string) => labels.some(label => fold(text).includes(fold(label)));
+    const out: BrandEnrichment = { schema: 1, researchedAt: new Date().toISOString(), brandId, brandName: brand.name, site: null, name: null, description: null, country: null, logo: null,
+      aliases: [], owner: null, range: { sources: [], products: [], productTypes: [], domains: [], lines: [], complete: false, note: '' }, notes: [] };
+    const read = async (raw: string) => {
+      const url = this.safeHttps(raw);
+      if (!url) return { url: null as URL | null, outcome: 'INVALID_URL', html: null as string | null, finalUrl: raw };
+      const host = bare(url.hostname);
+      const fetched = await this.fetcher.fetch(url.toString(), { kind: 'page', isApprovedHost: h => bare(h) === host || bare(h).endsWith(`.${host}`) });
+      return { url, outcome: fetched.outcome as string, html: fetched.outcome === 'OK' && fetched.body ? fetched.body.toString('utf8') : null, finalUrl: fetched.finalUrl ?? url.toString() };
+    };
+
+    // 1. The brand's own site.
+    if (input.websiteUrl) {
+      const page = await read(input.websiteUrl);
+      const verified = Boolean(page.url) && labels.some(label => hostIsBrandDomain(page.url!.hostname, label));
+      out.site = page.url ? { url: page.url.toString(), host: page.url.hostname, verifiedOfficial: verified, outcome: page.outcome } : null;
+      if (!verified) out.notes.push('SITE_NOT_ON_BRAND_DOMAIN');
+      if (page.html) {
+        const research: BrandResearch = { schema: 1, researchedAt: out.researchedAt, query: brand.name, outcome: 'PARTIAL', site: null, name: null, website: null, description: null, country: null,
+          parentCompany: null, aliases: [], logo: null, candidates: [], references: [], notes: [] };
+        await this.fill(research, page.html, page.finalUrl, brand.name, verified);
+        Object.assign(out, { name: research.name, description: research.description, country: research.country, logo: research.logo, aliases: research.aliases });
+        if (research.parentCompany && !out.owner) out.owner = { name: research.parentCompany, country: null, brandOrigin: null, namesBrand: true, ownDomain: verified };
+      } else out.notes.push(`SITE_${page.outcome}`);
+    }
+
+    // 2. The owner's page: the company's name from its own page, accepted only when that page names the brand and sits on the company's own domain.
+    if (input.ownerPageUrl) {
+      const page = await read(input.ownerPageUrl);
+      if (page.html && page.url) {
+        const lines = htmlToLines(page.html);
+        const text = lines.join('\n');
+        const about = lines.map(line => line.match(/^(?:\/\s*)?about(?:\s+us)?\s+(?:\/\s*)?([\p{L}][\p{L}\p{N}&'’. -]{2,60})$/iu)?.[1]?.trim()).find(Boolean);
+        const facts = extractBrandPage(page.html, page.finalUrl);
+        const ownerName = about ?? facts.names[0]?.value ?? null;
+        if (ownerName && fold(ownerName) !== fold(brand.name)) {
+          const host = registrableLabel(page.url.hostname).replace(/[^a-z0-9]/g, '');
+          const ownDomain = ownerName.normalize('NFKC').toLowerCase().split(/[^\p{L}\p{N}]+/u).some(token => token.length >= 4 && host.includes(token.replace(/[^a-z0-9]/g, '')));
+          const namesBrand = names(text.replace(new RegExp(ownerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' '));
+          const status: FieldStatus = ownDomain && namesBrand ? 'VERIFIED' : 'UNVERIFIED';
+          const at = (needle: string) => { const i = text.toLowerCase().indexOf(needle.toLowerCase()); return i < 0 ? '' : text.slice(Math.max(0, i - 80), i + needle.length + 120).replace(/\s+/g, ' '); };
+          const field = (value: string, excerpt: string, note?: string): ResearchedField => ({ value, status, origin: 'PAGE', sourceUrl: page.finalUrl, excerpt: excerpt.slice(0, 300), ...(note && { note }) });
+          const demonym = text.match(new RegExp(`\\b(?:an?|the)\\s+(${Object.keys(DEMONYMS).join('|')})\\b[^.\\n]{0,80}?\\b(company|manufacturer|group|laborator(?:y|ies)|corporation)\\b`, 'i'));
+          const developed = text.match(new RegExp(`\\b(?:developed|made|manufactured|produced) in (${COUNTRIES.join('|')})\\b`, 'i'));
+          out.owner = { name: field(ownerName, at(ownerName), status === 'VERIFIED' ? undefined : !namesBrand ? 'BRAND_NOT_NAMED_ON_OWNER_PAGE' : 'PAGE_NOT_ON_OWNER_DOMAIN'),
+            country: demonym ? field(DEMONYMS[demonym[1].toLowerCase()], demonym[0], 'COUNTRY_OF_THE_COMPANY') : null,
+            brandOrigin: developed && namesBrand ? field(developed[1] === 'USA' ? 'United States' : developed[1], developed[0], 'STATED_FOR_THE_COMPANY_BRANDS') : null,
+            namesBrand, ownDomain };
+        } else out.notes.push('OWNER_NAME_NOT_FOUND');
+      } else out.notes.push(`OWNER_PAGE_${page.outcome}`);
+    }
+
+    // 3. The range, as the sources list it.
+    const allowed = (process.env.RESEARCH_ALLOWED_HOSTS ?? '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean);
+    const ownerHost = input.ownerPageUrl && out.owner?.name.status === 'VERIFIED' ? this.safeHttps(input.ownerPageUrl)?.hostname : null;
+    const seen = new Set<string>();
+    for (const raw of (input.rangeUrls ?? []).slice(0, 4)) {
+      const page = await read(raw);
+      const hostname = page.url?.hostname ?? '';
+      const tier: RangeSourceTier = labels.some(label => hostIsBrandDomain(hostname, label)) ? 'OFFICIAL_BRAND_SITE' : ownerHost && bare(ownerHost) === bare(hostname) ? 'OWNER_SITE'
+        : allowed.some(h => bare(hostname) === h || bare(hostname).endsWith(`.${h}`)) ? 'TRUSTED_DISTRIBUTOR' : 'OTHER';
+      let count = 0;
+      if (page.html) {
+        for (const line of htmlToLines(page.html)) {
+          if (line.length > 90 || !names(line) || BUNDLE.test(line) || fold(line) === fold(brand.name)) continue;
+          const reading = readProductType(line);
+          if (reading.types.length !== 1 && !/\d\s?(ml|g|gm|mg)\b/i.test(line)) continue;
+          const key = fold(line.replace(/\d+(?:[.,]\d+)?\s?(ml|g|gm|mg|l)\b/gi, ''));
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const type = reading.types.length === 1 ? reading.types[0].key : null;
+          out.range.products.push({ name: line, productType: type, domain: type ? productTypeRule(type)?.domain ?? null : null, sourceUrl: page.finalUrl, tier });
+          count++;
+        }
+      }
+      out.range.sources.push({ url: raw, tier, outcome: page.outcome, products: count });
+      if (page.outcome === 'OK' && !count) out.notes.push(`RANGE_NOT_IN_PAGE_HTML:${hostname}`);
+    }
+    const tally = (values: string[]) => Object.entries(values.reduce<Record<string, number>>((m, v) => ({ ...m, [v]: (m[v] ?? 0) + 1 }), {})).map(([value, products]) => ({ value, products })).sort((a, b) => b.products - a.products);
+    out.range.productTypes = tally(out.range.products.map(p => p.productType).filter((v): v is string => Boolean(v)));
+    out.range.domains = [...new Set(out.range.products.map(p => p.domain).filter((v): v is string => Boolean(v)))];
+    // A product line is a qualifier the brand repeats across several products ("Advance Repair", "Anti-Dandruff"), as the listing words it.
+    const qualifiers = out.range.products.map(product => {
+      const words = product.name.replace(new RegExp(labels.map(l => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gi'), ' ').replace(/\d+(?:[.,]\d+)?\s?(ml|g|gm|mg|l)\b/gi, ' ').split(/\s+/).filter(Boolean);
+      const typeAt = words.findIndex(word => readProductType(word).types.length > 0 || /^(hair|shampoo|conditioner|mask|serum|cream|spray|oil|vials?)$/i.test(word));
+      return typeAt > 0 ? words.slice(0, typeAt).join(' ').replace(/[-–]\s*$/, '').trim() : '';
+    }).filter(q => q.length >= 3);
+    out.range.lines = tally(qualifiers.map(q => q.replace(/\s+/g, ' '))).filter(line => line.products >= 2);
+    out.range.note = out.range.products.length ? `${out.range.products.length} products listed on ${out.range.sources.filter(s => s.products).length} page(s); the brand's full range is not claimed.` : 'No range page listed products in a readable form.';
+    return out;
   }
 
   /** Stored identity of one Brand with the evidence behind each field. Read-only; brands created elsewhere simply have no evidence. */

@@ -37,9 +37,10 @@ const ROW_HOLDS: Record<string, Omit<HoldReason, 'recommended'> & { action: Exce
   SIZE_NOT_CONFIRMED: { reasonCode: 'SIZE_NOT_CONFIRMED', severity: 'HIGH', summary: 'The product page names the product but not this size, so the variant is not proven', action: 'CORRECT', label: 'Add the page for this exact size' },
   BRAND_SPELLING_UNCONFIRMED: { reasonCode: 'BRAND_SPELLING_UNCONFIRMED', severity: 'HIGH', summary: 'The brand is not on the Catalog Policy but closely resembles an allowed brand', action: 'RESOLVE', label: 'Confirm the brand spelling' },
   POLICY_BRAND_AMBIGUOUS: { reasonCode: 'POLICY_BRAND_AMBIGUOUS', severity: 'HIGH', summary: 'The brand name points to more than one allowed brand', action: 'CORRECT', label: 'Choose the brand' },
-  POLICY_CATEGORY_AMBIGUOUS: { reasonCode: 'POLICY_CATEGORY_AMBIGUOUS', severity: 'HIGH', summary: 'The category name has more than one meaning', action: 'CORRECT', label: 'Choose the category' },
+  POLICY_CATEGORY_AMBIGUOUS: { reasonCode: 'POLICY_CATEGORY_AMBIGUOUS', severity: 'HIGH', summary: 'The category or product type fits more than one approved leaf category (e.g. a 2-in-1)', action: 'CORRECT', label: 'Choose the category' },
   POLICY_CATEGORY_REQUIRES_LEAF: { reasonCode: 'POLICY_CATEGORY_REQUIRES_LEAF', severity: 'HIGH', summary: 'A precise sub-category is required by the Catalog Policy', action: 'CORRECT', label: 'Choose the sub-category' },
-  POLICY_CATEGORY_UNKNOWN: { reasonCode: 'POLICY_CATEGORY_UNKNOWN', severity: 'HIGH', summary: 'The category is missing or unknown, so the Catalog Policy cannot be applied', action: 'CORRECT', label: 'Choose the category' },
+  POLICY_CATEGORY_UNKNOWN: { reasonCode: 'POLICY_CATEGORY_UNKNOWN', severity: 'HIGH', summary: 'Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it', action: 'CORRECT', label: 'Choose the category' },
+  POLICY_CATEGORY_CONFLICTS_PRODUCT_TYPE: { reasonCode: 'POLICY_CATEGORY_CONFLICTS_PRODUCT_TYPE', severity: 'HIGH', summary: 'The stated category contradicts the product type the name states, and one of the readings would be admitted', action: 'CORRECT', label: 'Correct the category or the name' },
   POLICY_NOT_CONFIGURED: { reasonCode: 'POLICY_NOT_CONFIGURED', severity: 'HIGH', summary: 'No Catalog Policy is active yet', action: 'RETRY', label: 'Publish a Catalog Policy, then retry' },
   POLICY_CATEGORY_HIERARCHY_UNKNOWN: { reasonCode: 'POLICY_CATEGORY_HIERARCHY_UNKNOWN', severity: 'HIGH', summary: 'The category hierarchy is not fully in the Catalog Policy', action: 'CORRECT', label: 'Fix the category' },
   NO_IDENTITY_SOURCE: { reasonCode: 'NO_IDENTITY_SOURCE', severity: 'HIGH', summary: 'A new product needs a manufacturer or trusted product page to verify its identity; none was given or found', action: 'CORRECT', label: 'Add the official product page URL, then retry' },
@@ -47,6 +48,9 @@ const ROW_HOLDS: Record<string, Omit<HoldReason, 'recommended'> & { action: Exce
   SOURCE_NOT_TRUSTED: { reasonCode: 'SOURCE_NOT_TRUSTED', severity: 'HIGH', summary: 'The only page found is not the manufacturer or a trusted distributor', action: 'CORRECT', label: 'Add an official product page URL' },
   BARCODE_CONFLICT: { reasonCode: 'BARCODE_CONFLICT', severity: 'CRITICAL', summary: 'A verified barcode disagrees with the barcode stated for this product', action: 'CORRECT', label: 'Settle which barcode is right' },
   RETRY_EXHAUSTED: { reasonCode: 'RETRY_EXHAUSTED', severity: 'HIGH', summary: 'The product page kept failing after automatic retries', action: 'RETRY', label: 'Retry now' },
+  BRAND_NOT_VERIFIED: { reasonCode: 'BRAND_NOT_VERIFIED', severity: 'HIGH', summary: 'The brand is new and its official website could not be verified, so it was not created', action: 'CORRECT', label: 'Give the brand\'s English name or an official product page URL, then retry' },
+  BRAND_MATCHES_EXISTING: { reasonCode: 'BRAND_MATCHES_EXISTING', severity: 'HIGH', summary: 'The brand\'s official name is a brand the catalog already holds', action: 'CORRECT', label: 'Use the existing brand name' },
+  BRAND_EXISTS_NOT_ENABLED: { reasonCode: 'BRAND_EXISTS_NOT_ENABLED', severity: 'HIGH', summary: 'The brand is in the catalog but not enabled in the Catalog Policy', action: 'RETRY', label: 'Enable the brand in the Catalog Policy, then retry' },
 };
 
 export function rowHold(code: keyof typeof ROW_HOLDS | string, recommendedPayload?: Record<string, unknown>, summary?: string): HoldReason {
@@ -57,7 +61,7 @@ export function rowHold(code: keyof typeof ROW_HOLDS | string, recommendedPayloa
 
 /** Policy outcomes that are a deterministic "not in our catalog": skipped with no person involved. */
 const POLICY_SKIPS = new Set(['POLICY_BRAND_NOT_ALLOWED', 'POLICY_CATEGORY_DENIED', 'POLICY_CATEGORY_NOT_ALLOWED', 'POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND',
-  'POLICY_PRODUCT_EXCLUDED', 'POLICY_BRAND_NOT_IN_ALLOWLIST']);
+  'POLICY_PRODUCT_EXCLUDED', 'POLICY_BRAND_NOT_IN_ALLOWLIST', 'POLICY_PRODUCT_TYPE_NOT_IN_TAXONOMY']);
 
 export interface MatchedRowFacts {
   outcome: 'PENDING' | 'LINKED_EXISTING' | 'NEW_CANDIDATE' | 'HOLD' | 'REJECTED';
@@ -119,7 +123,9 @@ export function sameUrl(a: string, b: string): boolean {
   const canon = (value: string) => {
     try {
       const url = new URL(value);
-      return `${url.hostname.replace(/^www\./, '').toLowerCase()}${url.pathname.replace(/\/+$/, '').toLowerCase()}`;
+      // A storefront serves one product page under any collection: /collections/<any>/products/<handle> is /products/<handle>.
+      const path = url.pathname.replace(/\/+$/, '').toLowerCase().replace(/^\/collections\/[^/]+(\/products\/[^/]+)$/, '$1');
+      return `${url.hostname.replace(/^www\./, '').toLowerCase()}${path}`;
     } catch { return value.trim().toLowerCase(); }
   };
   return canon(a) === canon(b);
@@ -141,6 +147,28 @@ export interface SourceCheck {
   rejectedReasons: string[];
   /** A GTIN in the page's structured data, if any. */
   pageGtin: string | null;
+  /** Only when the row stated no size: the single size the page's own title names, with its words. */
+  pageSize?: { value: number; unit: string };
+  pageSizeExcerpt?: string;
+}
+
+/**
+ * Verdict from pages the pipeline found itself (a sibling size's pages, search results): only a page that verifies the row counts. A page about another product is
+ * just a wrong search hit, never a contradiction of the row; with no verifying page the row has no identity source yet.
+ */
+export function decideFromFoundPages(checks: SourceCheck[], row: { barcode: string | null }): ReturnType<typeof decideNewProduct> {
+  const relevant = checks.filter(check => !check.rejectedReasons.includes('IDENTITY_MISMATCH') && !check.rejectedReasons.includes('SIZE_MISMATCH'));
+  const verdict = decideNewProduct(relevant, row);
+  if (verdict.decision === 'AUTO_ACCEPT' || verdict.decision === 'RETRY_AUTOMATIC' || verdict.reasonCode === 'BARCODE_CONFLICT') return verdict;
+  return { decision: 'HOLD_CRITICAL', reasonCode: 'NO_IDENTITY_SOURCE', hold: rowHold('NO_IDENTITY_SOURCE', { tried: checks.map(check => ({ url: check.url, outcome: check.outcome, reasons: check.rejectedReasons })) },
+    checks.length ? 'No page found on the brand\'s site or a trusted distributor states this product and this size' : 'No product page was given, and none was found on the brand\'s site or a trusted distributor') };
+}
+
+/** The single size trusted pages state for a row that named none; several different sizes, or none, leave it unknown. */
+export function sizeFromFoundPages(checks: SourceCheck[]): { size: { value: number; unit: string }; check: SourceCheck } | null {
+  const stating = checks.filter(check => check.tier !== 'RETAILER' && check.outcome === 'OK' && check.identityMatched && check.pageSize);
+  const distinct = [...new Map(stating.map(check => [`${check.pageSize!.value}${check.pageSize!.unit}`, check])).values()];
+  return distinct.length === 1 ? { size: distinct[0].pageSize!, check: distinct[0] } : null;
 }
 
 /**
@@ -194,7 +222,7 @@ export type FactVerdict =
 export interface FactReading { id: string; field: string; value: unknown; tiers: SourceTier[]; status: 'PROPOSED' | 'CONFLICT' | 'REJECTED' | 'APPLIED' }
 
 /** Fields whose disagreement can hurt someone or change what the product is. */
-const CRITICAL_ON_CONFLICT = new Set(['identity.size', 'identity.gtin', 'composition.inci', 'composition.activeConcentrations', 'usage.instructions', 'safety.warnings']);
+const CRITICAL_ON_CONFLICT = new Set(['identity.size', 'identity.gtin', 'composition.inci', 'composition.activeConcentrations', 'usage.instructions', 'safety.warnings', 'attributes.spf']);
 /** Evidence that is kept for people and never written to the catalog as a fact. */
 const EVIDENCE_ONLY = new Set(['identity.name', 'identity.brand', 'claims.manufacturerStated', 'media.sourceImages']);
 
@@ -202,12 +230,12 @@ const TIER_RANK: Record<SourceTier, number> = { OFFICIAL_MANUFACTURER: 3, TRUSTE
 const bestTier = (reading: FactReading) => Math.max(0, ...reading.tiers.map(tier => TIER_RANK[tier] ?? 0));
 
 /** Medical or treatment wording a cosmetic description may not carry into the storefront. */
-const MEDICAL_CLAIM = /\b(cures?|treats?|treatment of|heals?|prevents? (?:hair loss|acne|eczema|psoriasis)|stops? hair loss|anti[- ]?hair[- ]?loss|regrow|clinically proven to (?:cure|treat|stop)|eczema|psoriasis|dermatitis|alopecia|infection|antibacterial|antifungal|prescription)\b|علاج|يعالج|يشفي|تساقط الشعر|الصلع|الاكزيما/i;
+const MEDICAL_CLAIM = /\b(cures?|treats?|treatment of|acne treatment|treat(?:s|ing)? (?:mild |moderate |severe )*acne|heals?|prevents? (?:hair loss|acne|eczema|psoriasis)|stops? hair loss|anti[- ]?hair[- ]?loss|regrow|clinically proven to (?:cure|treat|stop)|eczema|psoriasis|dermatitis|alopecia|infection|antibacterial|antifungal|prescription)\b|علاج|يعالج|يشفي|تساقط الشعر|الصلع|الاكزيما/i;
 /**
  * Instructions that say the product stays on, and ones that say it comes off. "Leave on for 3-5 minutes, then rinse" is a contact time of a rinse-off product, not a
  * leave-in: "leave (it) on" followed by a duration never counts as leave-on (regression from the real Clary Conditioner and Mask pages, 2026-11-06).
  */
-const LEAVE_ON = /\b(leave[- ]in|do not rinse|don't rinse|no rinse|without rinsing|no need to rinse|leave (?:it |them )?on(?!\s+(?:the\s+hair\s+|hair\s+|skin\s+)?(?:for|about|approximately|around|up to|between)?\s*\d))\b|بدون شطف|لا يشطف|لا تشطف/i;
+const LEAVE_ON = /\b(leave[- ]in|do not rinse|don't rinse|no rinse|without rinsing|no need to rinse|until (?:fully |completely |totally )?absorbed|leave (?:it |them )?on(?!\s+(?:the\s+hair\s+|hair\s+|skin\s+)?(?:for|about|approximately|around|up to|between)?\s*\d))\b|بدون شطف|لا يشطف|لا تشطف|حتى (?:يتم )?الامتصاص|حتى يمتص/i;
 const RINSE_OFF = /\b(rinse(?: off| out| thoroughly| well)?|wash off|wash out)\b|اشطف|يشطف/i;
 
 export function rinseMode(lines: string[]): 'LEAVE_ON' | 'RINSE_OFF' | 'CONTRADICTORY' | 'UNKNOWN' {

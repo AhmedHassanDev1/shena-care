@@ -253,7 +253,8 @@ describe('Smart Add Brand (e2e)', () => {
   }, 60000);
 
   it('offers candidates for an Arabic-only name, reads nothing on its own, and lets the Admin choose', async () => {
-    const arabic = `ماركة ${[...run].map(c => 'ابتثجحخدذرز'[c.charCodeAt(0) - 97]).join('')}`;
+    // Its own letters: the previous test already turned its Arabic name into a Brand alias.
+    const arabic = `ماركة ${[...run].map(c => 'سشصضطظعغفق'[c.charCodeAt(0) - 97]).join('')}`;
     const candidate = `Candora${run}`;
     const host = `www.candora${run}.example`;
     await publish(host, candidate);

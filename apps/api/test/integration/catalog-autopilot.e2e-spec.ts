@@ -194,7 +194,9 @@ describe('Automatic catalog decisions: real HTTP, real PostgreSQL, adversarial l
     // Deterministic policy skips: no person.
     expect([decision(N.eva), reason(N.eva)]).toEqual(['SKIP', 'POLICY_BRAND_NOT_ALLOWED']);
     expect([decision(N.ceraveShampoo), reason(N.ceraveShampoo)]).toEqual(['SKIP', 'POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND']);
-    expect([decision(N.unknown), reason(N.unknown)]).toEqual(['SKIP', 'POLICY_BRAND_NOT_IN_ALLOWLIST']);
+    // A brand the catalog does not hold is looked up, not skipped (owner decision 2026-11-07); with no official site found it is one hold, and no brand is created.
+    expect([decision(N.unknown), reason(N.unknown)]).toEqual(['HOLD_CRITICAL', 'BRAND_NOT_VERIFIED']);
+    expect(await prisma.brand.count({ where: { name: 'Zorblax' } })).toBe(0);
 
     // Genuine risks: held, with the reason.
     expect([decision(N.sa), reason(N.sa)]).toEqual(['HOLD_CRITICAL', 'SOURCE_CONTRADICTS_IDENTITY']);
@@ -301,7 +303,7 @@ describe('Automatic catalog decisions: real HTTP, real PostgreSQL, adversarial l
   it('shows only critical exceptions, each with evidence, sources and a precomputed resolution, and records an audit trail', async () => {
     const items = await openExceptions();
     const mine = items.filter(item => item.evidence?.row?.name && Object.values(N).includes(item.evidence.row.name));
-    expect(mine.map(item => item.evidence.row.name).sort()).toEqual([N.claryMask, N.claryShampoo, N.foaming, N.misspelt, N.sa].sort());
+    expect(mine.map(item => item.evidence.row.name).sort()).toEqual([N.claryMask, N.claryShampoo, N.foaming, N.misspelt, N.sa, N.unknown].sort());
     for (const item of mine) {
       expect(item).toMatchObject({ status: 'OPEN', severity: expect.stringMatching(/^(CRITICAL|HIGH)$/), summary: expect.any(String), recommended: { action: expect.any(String), label: expect.any(String) } });
     }

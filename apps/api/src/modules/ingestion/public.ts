@@ -17,7 +17,7 @@ export * from './contracts/brand-enrichment.contract';
 export * from './services/brand-enrichment.service';
 
 export { CanonicalResearchService } from './services/canonical-research.service';
-export { CRITICAL_FACT_PREFIXES, RESEARCH_SCHEMA_VERSION } from './services/product-fact-extractor';
+export { CRITICAL_FACT_PREFIXES, RESEARCH_SCHEMA_VERSION, isInstructionLine } from './services/product-fact-extractor';
 export { ResearchSourceFetcher, RESEARCH_TRANSPORT } from './services/research-source-fetcher';
 export type { ResearchTransport, TransportResponse } from './services/research-source-fetcher';
 export { AdminCatalogImportService, ADMIN_IMPORT_MAX_ROWS } from './services/admin-catalog-import.service';
@@ -25,9 +25,18 @@ export type { AdminImportReceipt, ColumnMap as AdminImportColumnMap, ResolveRowI
 export { CatalogDecisionLogService } from './services/catalog-decision-log.service';
 export type { DecisionEntry, DecisionSubject, OpenExceptionInput } from './services/catalog-decision-log.service';
 export {
-  DECISION_RULE_VERSION, MAX_AUTOMATIC_ATTEMPTS, MIN_IDENTITY_EDGE, chooseIdentityImage, decideEditorial, decideFacts, decideMatchedRow, decideNewProduct, independentLinkSupport,
+  DECISION_RULE_VERSION, MAX_AUTOMATIC_ATTEMPTS, MIN_IDENTITY_EDGE, chooseIdentityImage, decideEditorial, decideFacts, decideMatchedRow, decideNewProduct, decideFromFoundPages, sizeFromFoundPages, independentLinkSupport,
   nextAttemptDelayMs, rowHold,
 } from './services/catalog-decision-engine';
 export type { CatalogDecisionState, ExceptionAction, FactVerdict, HoldReason, ImageCandidate, Recommendation, SourceCheck } from './services/catalog-decision-engine';
 export type { AutoVerifyResult } from './services/canonical-research.service';
 export type { RowAdmission, RowCorrection } from './services/admin-catalog-import.service';
+export { readProductType, productTypeRule, PRODUCT_TYPES, PRODUCT_TYPE_RULE_VERSION } from './services/product-type';
+export type { ProductTypeReading, ProductDomain } from './services/product-type';
+export { buildRoutineProfile, orderRoutine, ROLE_BY_TYPE, ROUTINE_RULE_VERSION } from './services/routine-profile';
+export type { RoutineProfile, RoutineProfileInput, RoutineRole, FieldState, PlacementConstraint, RoutineStepInput, OrderedRoutine } from './services/routine-profile';
+export { RoutinePlacementService } from './services/routine-placement.service';
+export { BrandResearchService } from './services/brand-research.service';
+export type { BrandOnboarding } from './services/brand-research.service';
+export type { BrandEnrichment, RangeSourceTier } from './services/brand-research.service';
+export { IngestionEligibilityService } from './services/ingestion-eligibility.service';

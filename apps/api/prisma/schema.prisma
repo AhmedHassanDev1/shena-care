@@ -23,6 +23,9 @@ model Brand {
   logoMetadata    Json?    @map("logo_metadata")
   websiteUrl      String?  @map("website_url")
   countryOfOrigin String?  @map("country_of_origin")
+  /// Evidence-backed brand profile (aliases, manufacturer, portfolio from verified SKUs, sources, coverage). Rebuilt by the catalog pipeline; never claimed exhaustive.
+  profile          Json?
+  profileUpdatedAt DateTime? @map("profile_updated_at")
   isActive        Boolean  @default(true) @map("is_active")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -97,6 +100,11 @@ model Product {
   isNonComedogenic Boolean? @map("is_non_comedogenic")
   /// Evidence provenance for claims (fragrance-free, non-comedogenic, etc.)
   claimsEvidence   Json?    @map("claims_evidence")
+  /// Deterministic product type read from the canonical name/category (product-type@N), e.g. "cleanser" / "foaming". RULE_DERIVED; see classification.
+  productType    String?  @map("product_type") @db.VarChar(40)
+  productSubtype String?  @map("product_subtype") @db.VarChar(60)
+  /// { rule, basis, categoryBasis, matched, at }: how type and leaf category were settled.
+  classification Json?
   factVersion   Int      @default(1) @map("fact_version")
   lastReviewedAt DateTime? @map("last_reviewed_at")
   lastReviewedBy String? @map("last_reviewed_by")
@@ -154,6 +162,7 @@ model Sku {
   usageRules         ProductUsageRule[]
   safetyWarnings     ProductSafetyWarning[]
   mediaAssets        MediaAsset[]
+  routineProfile     SkuRoutineProfile?
 
   @@index([productId])
   @@index([barcode])
@@ -3451,4 +3460,55 @@ model CatalogException {
   @@index([importRowId])
   @@map("catalog_exceptions")
   @@schema("ingestion")
+}
+
+/// Recommendation- and routine-ready metadata for one SKU. Every field carries a status: VERIFIED (manufacturer or trusted source, with evidence),
+/// RULE_DERIVED (deterministic system rule, never a product claim), UNKNOWN, or CONFLICT. Rebuilt from verified facts by the catalog pipeline.
+model SkuRoutineProfile {
+  id                  String   @id @default(uuid()) @db.Uuid
+  skuId               String   @unique @map("sku_id") @db.Uuid
+  productId           String   @map("product_id") @db.Uuid
+  ruleVersion         String   @map("rule_version") @db.VarChar(40)
+  productType         String?  @map("product_type") @db.VarChar(40)
+  primaryRole         String?  @map("primary_role") @db.VarChar(40)
+  primaryRoleStatus   String   @map("primary_role_status") @db.VarChar(20)
+  /// [{ role, basis, status }]: secondary roles, each with what justifies it.
+  secondaryRoles      Json     @default("[]") @map("secondary_roles")
+  routineDomain       String?  @map("routine_domain") @db.VarChar(10)
+  stepOrder           Int?     @map("step_order")
+  /// AM | PM | BOTH | UNKNOWN as the manufacturer states it; never defaulted from the type.
+  routinePeriod       String   @default("UNKNOWN") @map("routine_period") @db.VarChar(10)
+  routinePeriodStatus String   @default("UNKNOWN") @map("routine_period_status") @db.VarChar(20)
+  /// AM | PM | BOTH by system rule (e.g. sunscreen is a morning step). Guidance, not a product instruction.
+  periodEligibility   String?  @map("period_eligibility") @db.VarChar(10)
+  cadenceUnit         String   @default("UNKNOWN") @map("cadence_unit") @db.VarChar(15)
+  cadenceMin          Int?     @map("cadence_min")
+  cadenceMax          Int?     @map("cadence_max")
+  cadenceStatus       String   @default("UNKNOWN") @map("cadence_status") @db.VarChar(20)
+  rinseMode           String   @default("UNKNOWN") @map("rinse_mode") @db.VarChar(15)
+  rinseModeStatus     String   @default("UNKNOWN") @map("rinse_mode_status") @db.VarChar(20)
+  expectedRinseMode   String?  @map("expected_rinse_mode") @db.VarChar(15)
+  contactMinutes      Int?     @map("contact_minutes")
+  targetArea          String?  @map("target_area") @db.VarChar(20)
+  targetAreaStatus    String   @default("UNKNOWN") @map("target_area_status") @db.VarChar(20)
+  /// [{ inci, family, function, concentration, concentrationStatus, status }]: functional actives present in the verified INCI.
+  activeIngredients   Json     @default("[]") @map("active_ingredients")
+  /// Ingredients the product features by name, confirmed present in the verified INCI. Not treatments.
+  featuredIngredients Json     @default("[]") @map("featured_ingredients")
+  prerequisites       Json     @default("[]")
+  sequencingRules     Json     @default("[]") @map("sequencing_rules")
+  /// [{ kind, text, status, source, uncertainty }]: manufacturer warnings (VERIFIED) and ingredient-class guidance (RULE_DERIVED).
+  cautions            Json     @default("[]")
+  suitability         Json     @default("{}")
+  conflicts           Json     @default("[]")
+  /// Field -> { status, source? }.
+  fieldStatus         Json     @default("{}") @map("field_status")
+  computedAt          DateTime @default(now()) @map("computed_at")
+
+  sku Sku @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([primaryRole])
+  @@map("sku_routine_profiles")
+  @@schema("catalog")
 }

@@ -3,9 +3,10 @@ import { AdminCatalogImportRow, CatalogDecision, CatalogExceptionStatus, MediaAs
 import * as crypto from 'crypto';
 import sharp from 'sharp';
 import { CatalogIntakeService, MediaTemplateService, ProductMediaService } from '../../../modules/catalog/public';
+import { CatalogProfileService } from './catalog-profile.service';
 import {
-  AdminCatalogImportService, CanonicalResearchService, CatalogDecisionLogService, chooseIdentityImage, decideEditorial, decideMatchedRow, decideNewProduct, HoldReason,
-  ImageCandidate, MAX_AUTOMATIC_ATTEMPTS, nextAttemptDelayMs, rowHold,
+  AdminCatalogImportService, BrandResearchService, CanonicalResearchService, CatalogDecisionLogService, chooseIdentityImage, decideEditorial, decideFromFoundPages, decideMatchedRow,
+  decideNewProduct, HoldReason, ImageCandidate, MAX_AUTOMATIC_ATTEMPTS, nextAttemptDelayMs, rowHold, SourceCheck, sizeFromFoundPages,
 } from '../../../modules/ingestion/public';
 
 type Row = AdminCatalogImportRow;
@@ -41,6 +42,8 @@ export class CatalogAutopilotService implements OnModuleInit, OnModuleDestroy {
     private readonly media: ProductMediaService,
     private readonly templates: MediaTemplateService,
     private readonly log: CatalogDecisionLogService,
+    private readonly profiles: CatalogProfileService,
+    private readonly brands: BrandResearchService,
   ) {}
 
   /** Optional background runner for due automatic retries: CATALOG_AUTOPILOT_INTERVAL_SECONDS (off by default). */
@@ -86,8 +89,19 @@ export class CatalogAutopilotService implements OnModuleInit, OnModuleDestroy {
     const done = (decision: AutopilotRowResult['decision'], reasonCode: string, skuId: string | null = row.matchedSkuId): AutopilotRowResult =>
       ({ rowId, rowNumber: row.rowNumber, decision, reasonCode, skuId });
     if (row.decision && row.decision !== CatalogDecision.RETRY_AUTOMATIC) return done(row.decision, row.reasonCode ?? '');
+    // A retry another row of the same brand scheduled during this run is not due yet.
+    if (row.decision === CatalogDecision.RETRY_AUTOMATIC && row.nextAttemptAt && row.nextAttemptAt > new Date()) return done(CatalogDecision.RETRY_AUTOMATIC, row.lastError ?? 'RETRY_SCHEDULED');
     if (!(await this.imports.claimRow(rowId))) return done('BUSY', 'ROW_IN_PROGRESS');
     try {
+      if (row.outcome === 'HOLD' && row.reasonCode === 'POLICY_BRAND_NEW') {
+        const onboarded = await this.onboardBrand(row, actorId);
+        if (onboarded) return done(onboarded.decision, onboarded.reasonCode);
+        row = await this.imports.getRow(rowId);
+      }
+      // No size anywhere on the row: the one size a trusted page states for this product, or the row stays held for its size.
+      if (row.outcome === 'HOLD' && row.reasonCode === 'MISSING_NET_CONTENT' && row.size === null && (await this.sizeFromSource(row))) {
+        row = await this.imports.getRow(rowId);
+      }
       const identity = (row.identity ?? {}) as { suggestedSkuId?: string | null; candidates?: unknown[]; brandSuggestion?: { name: string; brandId: string; score: number } };
       const matched = decideMatchedRow({ outcome: row.outcome, reasonCode: row.reasonCode, matchedSkuId: row.matchedSkuId, resolvedByAdmin: Boolean(row.resolvedBy), suggestedSkuId: identity.suggestedSkuId ?? null });
       if (matched?.hold && matched.reasonCode === 'BRAND_SPELLING_UNCONFIRMED' && identity.brandSuggestion) {
@@ -132,9 +146,25 @@ export class CatalogAutopilotService implements OnModuleInit, OnModuleDestroy {
 
     if (!skuId || !reached(row, 'INTAKE_DONE')) {
       const productName = this.imports.productNameOf(row.name);
-      const checks = row.sourceUrl ? [await this.research.checkSource({ brand: admission.brandName, brandAliases: admission.brandAliases, productName, size, sizeUnit: row.sizeUnit,
-        barcode: row.barcode, websiteUrl: admission.websiteUrl }, row.sourceUrl)] : [];
-      const verdict = decideNewProduct(checks, { barcode: row.barcode });
+      const expected = { brand: admission.brandName, brandAliases: admission.brandAliases, productName, size, sizeUnit: row.sizeUnit, barcode: row.barcode, websiteUrl: admission.websiteUrl };
+      const checks: SourceCheck[] = [];
+      let verdict: ReturnType<typeof decideNewProduct>;
+      if (row.sourceUrl) {
+        // The row's own page: whatever it says, including a contradiction, is about this row.
+        checks.push(await this.research.checkSource(expected, row.sourceUrl));
+        verdict = decideNewProduct(checks, { barcode: row.barcode });
+      } else {
+        // No page given: the pages that verified another size of the same product, then the product's page searched for on the brand's site and trusted
+        // distributors. Pages found this way only count when they verify the row (this exact size); a wrong hit is not a contradiction.
+        const siblings = await this.imports.siblingSources(row.id, admission.brandId);
+        for (const page of siblings) checks.push(await this.research.checkSource(expected, page));
+        verdict = decideFromFoundPages(checks, { barcode: row.barcode });
+        if (verdict.decision !== 'AUTO_ACCEPT') {
+          const found = (await this.research.discoverProductPages(expected)).filter(url => !siblings.includes(url));
+          for (const page of found) checks.push(await this.research.checkSource(expected, page));
+          if (found.length) verdict = decideFromFoundPages(checks, { barcode: row.barcode });
+        }
+      }
       await this.log.record({ subjectType: 'IMPORT_ROW', subjectId: row.id, decision: `SOURCE_${verdict.decision}`, reasonCode: verdict.reasonCode, evidence: { checks }, actorType: 'SYSTEM' });
       if (verdict.decision === 'RETRY_AUTOMATIC') return { decision: await this.retryLater(row, checks.map(check => check.outcome).join(',')), reasonCode: verdict.reasonCode };
       if (verdict.decision !== 'AUTO_ACCEPT') {
@@ -167,11 +197,12 @@ export class CatalogAutopilotService implements OnModuleInit, OnModuleDestroy {
         rule: verdict.reasonCode, actorId });
       await this.log.record({ subjectType: 'SKU', subjectId: skuId, skuId, decision: 'IDENTITY_EVIDENCE_VERIFIED', reasonCode: verdict.reasonCode,
         evidence: { source: verdict.verifiedBy, barcode: row.barcode ? 'CLAIMED_NOT_VERIFIED' : 'NONE', importRowId: row.id }, actorType: 'SYSTEM' });
-      row = await this.imports.updateRowProgress(row.id, { matchedSkuId: skuId, stage: 'INTAKE_DONE' });
+      row = await this.imports.updateRowProgress(row.id, { matchedSkuId: skuId, stage: 'INTAKE_DONE', verifiedSourceUrl: verdict.verifiedBy!.url });
     }
 
     if (!reached(row, 'RESEARCHED')) {
-      const run = await this.research.startRun(skuId!, { sourceUrls: [row.sourceUrl!] }, actorId);
+      const verifiedPage = ((row.identity ?? {}) as { verifiedSourceUrl?: string }).verifiedSourceUrl;
+      const run = await this.research.startRun(skuId!, { sourceUrls: [...new Set([verifiedPage, row.sourceUrl].filter((url): url is string => Boolean(url)))] }, actorId);
       await this.log.record({ subjectType: 'SKU', subjectId: skuId!, skuId, decision: `RESEARCH_${run.status}`, reasonCode: run.status, evidence: { runId: run.id, sources: run.sources }, actorType: 'SYSTEM' });
       if (run.status === 'PROVIDER_UNAVAILABLE' || run.status === 'FAILED') return { decision: await this.retryLater(row, `RESEARCH_${run.status}`), reasonCode: `RESEARCH_${run.status}` };
       row = await this.imports.updateRowProgress(row.id, { stage: 'RESEARCHED' });
@@ -189,6 +220,9 @@ export class CatalogAutopilotService implements OnModuleInit, OnModuleDestroy {
 
     if (!reached(row, 'COMPLETE')) {
       await this.prepareMedia(skuId!, actorId);
+      // Classification, routine-ready metadata and the brand profile, from what was just verified. Derived data: never a reason to hold on its own,
+      // except an application mode the product type contradicts (opened as a critical exception by the profile service).
+      await this.profiles.refresh(skuId!, actorId, ((row.identity ?? {}) as { policy?: { category?: unknown } }).policy?.category ?? null);
       row = await this.imports.updateRowProgress(row.id, { stage: 'COMPLETE' });
     }
 
@@ -199,6 +233,69 @@ export class CatalogAutopilotService implements OnModuleInit, OnModuleDestroy {
     }
     await this.settle(row, CatalogDecision.AUTO_ACCEPT, 'IDENTITY_VERIFIED_BY_SOURCE');
     return { decision: CatalogDecision.AUTO_ACCEPT, reasonCode: 'IDENTITY_VERIFIED_BY_SOURCE' };
+  }
+
+  /**
+   * A row whose brand the catalog does not hold: the brand is verified on its official website and created from verified fields only, enabled for the leaves its
+   * rows in this file need, then the row is matched again under it and continues like any other row (returns null). A brand that cannot be verified is one hold;
+   * a transient research failure is retried automatically.
+   */
+  private async onboardBrand(row: Row, actorId: string): Promise<{ decision: CatalogDecision; reasonCode: string } | null> {
+    const group = await this.imports.newBrandGroup(row.id);
+    const result = await this.brands.onboardFromImport({ label: group.label, pageUrls: group.pageUrls, categoryIds: group.categoryIds }, actorId);
+    if (result.kind === 'RETRY') {
+      // The brand's site or the search is down: every row of this file waiting for the same brand waits for the same retry, so the site is not
+      // researched again for each of them (found on the real derm-active.com run, 2026-11-07).
+      const decision = await this.retryLater(row, result.reason);
+      for (const rowId of group.rowIds.filter(id => id !== row.id)) {
+        const peer = await this.imports.getRow(rowId);
+        if (peer.decision && peer.decision !== CatalogDecision.RETRY_AUTOMATIC) continue;
+        // Same attempt count as this row, so the group retries together and gives up together.
+        await this.retryLater({ ...peer, attempts: row.attempts }, result.reason);
+      }
+      return { decision, reasonCode: 'BRAND_RESEARCH_UNAVAILABLE' };
+    }
+    if (result.kind === 'HOLD') {
+      await this.log.record({ subjectType: 'IMPORT_ROW', subjectId: row.id, decision: 'BRAND_NOT_ONBOARDED', reasonCode: result.reasonCode, evidence: result.evidence, actorType: 'SYSTEM' });
+      const hold = rowHold(result.reasonCode, result.evidence, result.summary);
+      if (result.reasonCode === 'BRAND_MATCHES_EXISTING' && typeof result.evidence.name === 'string') {
+        hold.recommended = { action: 'CORRECT', label: `Use "${result.evidence.name}"`, payload: { correction: { brand: result.evidence.name } } };
+      }
+      // Every row of this file that waits for the same brand gets the same answer now, so the site is not researched again for each of them.
+      for (const rowId of new Set([row.id, ...group.rowIds])) {
+        const peer = rowId === row.id ? row : await this.imports.getRow(rowId);
+        if (peer.decision && peer.decision !== CatalogDecision.RETRY_AUTOMATIC) continue;
+        await this.settle(peer, CatalogDecision.HOLD_CRITICAL, result.reasonCode, hold, { brand: group.label });
+      }
+      return { decision: CatalogDecision.HOLD_CRITICAL, reasonCode: result.reasonCode };
+    }
+    if (result.kind === 'CREATED') {
+      await this.log.record({ subjectType: 'BRAND', subjectId: result.brandId, decision: 'BRAND_AUTO_ONBOARDED', reasonCode: 'OFFICIAL_SITE_VERIFIED',
+        evidence: { label: group.label, name: result.name, site: result.site, fields: result.fields, logoSaved: result.logoSaved, categoryIds: group.categoryIds,
+          policyVersion: result.policyVersion, importRowIds: group.rowIds }, actorType: 'SYSTEM', actorId });
+    }
+    // Every row of this file waiting for the brand is matched again under it now (the policy names it); this row then continues in the normal pipeline.
+    await this.imports.match(row.jobId, { recheck: true, rowIds: group.rowIds.length ? group.rowIds : [row.id] });
+    return null;
+  }
+
+  /**
+   * A row with no size: its page (or the product's page found on the brand's site / a trusted distributor) is read with no size expected. When trusted pages name
+   * exactly one size in their own title for this product, that size is the row's, recorded with its page; several sizes or none leave the size unknown.
+   */
+  private async sizeFromSource(row: Row): Promise<boolean> {
+    const admission = await this.imports.admission(row.id);
+    if (!admission) return false;
+    const expected = { brand: admission.brandName, brandAliases: admission.brandAliases, productName: this.imports.productNameOf(row.name), size: null, sizeUnit: null,
+      barcode: row.barcode, websiteUrl: admission.websiteUrl };
+    const pages = row.sourceUrl ? [row.sourceUrl] : await this.research.discoverProductPages(expected);
+    const checks: SourceCheck[] = [];
+    for (const page of pages) checks.push(await this.research.checkSource(expected, page));
+    const found = sizeFromFoundPages(checks);
+    await this.log.record({ subjectType: 'IMPORT_ROW', subjectId: row.id, decision: found ? 'SIZE_FROM_SOURCE' : 'SIZE_NOT_STATED_BY_SOURCES', reasonCode: found ? 'SINGLE_SIZE_ON_TRUSTED_PAGE' : 'NO_SINGLE_SIZE',
+      evidence: { checks: checks.map(check => ({ url: check.url, tier: check.tier, outcome: check.outcome, identityMatched: check.identityMatched, pageSize: check.pageSize ?? null, excerpt: check.pageSizeExcerpt ?? null })) },
+      actorType: 'SYSTEM' });
+    return found ? this.imports.fillRowSizeFromSource(row.id, found.size) : false;
   }
 
   private async existingSku(error: unknown, skuCode: string): Promise<{ skuId: string; code: string } | null> {
@@ -370,10 +467,13 @@ export class CatalogAutopilotService implements OnModuleInit, OnModuleDestroy {
 
   /** Re-runs research, fact verification and media for an existing SKU, e.g. after a person resolved an exception or supplied a better page. */
   async refreshSku(skuId: string, actorId: string, sourceUrls: string[]) {
+    // Description text an older rule applied as usage is invalidated first, so the page's real instruction can be applied by this run.
+    await this.profiles.repairUsage(skuId, actorId);
     if (sourceUrls.length) await this.research.startRun(skuId, { sourceUrls }, actorId);
     const verified = await this.research.autoVerify(skuId, actorId);
     for (const hold of verified.holds) await this.log.open({ subjectType: 'SKU', subjectId: skuId, skuId, hold, evidence: { factIds: hold.factIds } });
     const media = await this.prepareMedia(skuId, actorId);
-    return { verified, media, openExceptions: await this.log.openForSku(skuId) };
+    const profile = await this.profiles.refresh(skuId, actorId);
+    return { verified, media, profile, openExceptions: await this.log.openForSku(skuId) };
   }
 }

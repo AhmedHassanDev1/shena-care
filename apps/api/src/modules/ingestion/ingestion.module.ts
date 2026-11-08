@@ -70,6 +70,8 @@ import { CareModule } from '../care/public';
     BrandEnrichmentService,
     IngredientOntologyService,
     RoutinePlacementService,
+    BrandResearchService,
+    IngestionEligibilityService,
   ],
 })
 export class IngestionModule {}

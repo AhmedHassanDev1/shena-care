@@ -185,7 +185,38 @@ export interface PublishedProduct {
 }
 
 const productWithRelations = Prisma.validator<Prisma.ProductDefaultArgs>()({
-  include: { brand: true, skus: true, media: true, productLine: true, category: true },
+  // Keep catalog reads scoped to the published contract. Selecting every scalar
+  // also selects columns introduced by a pending catalog migration.
+  select: {
+    id: true,
+    brandId: true,
+    name: true,
+    slug: true,
+    description: true,
+    usage: true,
+    warnings: true,
+    concerns: true,
+    targetArea: true,
+    texture: true,
+    suitableSkinTypes: true,
+    suitableHairTypes: true,
+    spf: true,
+    broadSpectrum: true,
+    uvFilterType: true,
+    waterResistanceMinutes: true,
+    isFragranceFree: true,
+    isNonComedogenic: true,
+    claimsEvidence: true,
+    factVersion: true,
+    lastReviewedAt: true,
+    lastReviewedBy: true,
+    isPublished: true,
+    brand: { select: { id: true, name: true, slug: true } },
+    productLine: { select: { id: true, name: true, slug: true } },
+    category: { select: { id: true, name: true, slug: true, parentId: true } },
+    skus: true,
+    media: true,
+  },
 });
 
 type ProductWithRelations = Prisma.ProductGetPayload<typeof productWithRelations>;
@@ -965,7 +996,7 @@ export class CatalogService {
 
     const sku = await this.prisma.sku.findUnique({
       where: { id: skuId },
-      include: { product: { include: { skus: true, media: true } } },
+      include: { product: { select: { isPublished: true, media: true } } },
     });
 
     if (!sku) {

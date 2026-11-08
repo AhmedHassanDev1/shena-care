@@ -4,7 +4,9 @@ import { CatalogService, IngredientService, UpdateProductDto } from '../../catal
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { isTrustedMediaSource } from '../../../platform/security/media-review';
 import { ALL_FACT_FIELDS, ExtractedFact, extractProductFacts, FactField, hashFactValue, RESEARCH_SCHEMA_VERSION, SkuExpectation } from './product-fact-extractor';
-import { decideFacts, DECISION_RULE_VERSION, FactReading, HoldReason, SourceCheck } from './catalog-decision-engine';
+import { decideFacts, DECISION_RULE_VERSION, FactReading, hasMedicalClaim, HoldReason, SourceCheck } from './catalog-decision-engine';
+import { isInstructionLine } from './product-fact-extractor';
+import { CatalogIntakeService } from '../../catalog/public';
 import { ProductResearchService } from './product-research.service';
 import { hostIsBrandDomain, ValidatedFacts } from './research-evidence';
 import { FetchedSource, RETRYABLE_OUTCOMES, ResearchSourceFetcher } from './research-source-fetcher';
@@ -23,7 +25,8 @@ export interface FactEvidence { sourceUrl: string; sourceTier: SourceTier; excer
 
 const CONFIDENCE: Record<SourceTier, number> = { OFFICIAL_MANUFACTURER: 0.95, TRUSTED_DISTRIBUTOR: 0.75, RETAILER: 0.5 };
 /** Fields with one true value per SKU: two different values cannot both be proposed quietly. */
-const SINGLE_VALUE_FIELDS: ReadonlySet<FactField> = new Set(['identity.gtin', 'identity.size', 'composition.inci', 'composition.fragrance', 'attributes.texture', 'usage.targetArea', 'usage.routinePeriod']);
+const SINGLE_VALUE_FIELDS: ReadonlySet<FactField> = new Set(['identity.gtin', 'identity.size', 'composition.inci', 'composition.fragrance', 'attributes.texture', 'usage.targetArea', 'usage.routinePeriod',
+  'attributes.spf', 'attributes.waterResistanceMinutes', 'attributes.uvFilterType', 'merchandising.productLine']);
 /** Two lists differing by a few spellings are the same formula read twice, not a conflict. */
 const INCI_SAME_FORMULA = 0.9;
 const MAX_SOURCES = 6;
@@ -53,7 +56,36 @@ export class CanonicalResearchService {
     private readonly ingredients: IngredientService,
     private readonly fetcher: ResearchSourceFetcher,
     private readonly providers: ProductResearchService,
+    private readonly intake: CatalogIntakeService,
   ) {}
+
+  /**
+   * Usage an older rule applied from description text ("A hydrating cleansing lotion for normal to dry skin…") is not an instruction. Such a fact is rejected
+   * with its reason; lines that do instruct are kept. The catalog's usage text is corrected only while it still equals what that fact wrote (compare-and-set),
+   * so verified instructions and later corrections are never destroyed. Returns what changed, for the audit trail.
+   */
+  async invalidateNonInstructionUsage(skuId: string, actorId: string) {
+    const sku = await this.skuContext(skuId);
+    const applied = await this.prisma.productFactProposal.findMany({ where: { skuId, field: 'usage.instructions', status: ProductFactStatus.APPLIED } });
+    const changes: Array<{ factId: string; action: 'REJECTED' | 'TRIMMED'; removedLines: string[] }> = [];
+    for (const fact of applied) {
+      const lines = fact.value as string[];
+      const kept = lines.filter(line => isInstructionLine(line));
+      if (kept.length === lines.length) continue;
+      const removed = lines.filter(line => !kept.includes(line));
+      if (!kept.length) {
+        await this.prisma.productFactProposal.update({ where: { id: fact.id }, data: { status: ProductFactStatus.REJECTED, verification: 'REJECTED', decidedBy: 'AUTO',
+          decisionRule: `${DECISION_RULE_VERSION}:NOT_AN_INSTRUCTION`, conflictReason: 'The applied text describes the product; it gives no instruction', reviewedAt: new Date(), reviewNote: `Invalidated automatically by ${actorId}` } });
+        await this.intake.replaceUsageIf(sku.productId, lines.join('\n'), null);
+        changes.push({ factId: fact.id, action: 'REJECTED', removedLines: removed });
+      } else {
+        await this.prisma.productFactProposal.update({ where: { id: fact.id }, data: { value: kept as Prisma.InputJsonValue, reviewNote: `Description lines removed automatically: ${removed.length}` } });
+        await this.intake.replaceUsageIf(sku.productId, lines.join('\n'), kept.join('\n'));
+        changes.push({ factId: fact.id, action: 'TRIMMED', removedLines: removed });
+      }
+    }
+    return changes;
+  }
 
   private async skuContext(skuId: string) {
     const sku = await this.prisma.sku.findUnique({ where: { id: skuId }, include: { product: { include: { brand: true } } } });
@@ -84,6 +116,15 @@ export class CanonicalResearchService {
         || hostIsBrandDomain(host, sku.product.brand.name)
         || isTrustedMediaSource(`https://${host}/`);
     };
+  }
+
+  /** A page on the brand's own website: its recorded site, or a domain that is the brand's name. Trusted distributors and media hosts are not. */
+  private isBrandOwnPage(url: string, brand: { name: string; websiteUrl: string | null }): boolean {
+    try {
+      const host = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+      const site = brand.websiteUrl ? new URL(brand.websiteUrl).hostname.toLowerCase().replace(/^www\./, '') : null;
+      return (site !== null && (host === site || host.endsWith(`.${site}`))) || hostIsBrandDomain(host, brand.name);
+    } catch { return false; }
   }
 
   private tierOf(url: string, brand: string): SourceTier {
@@ -130,7 +171,36 @@ export class CanonicalResearchService {
     const sizeFact = extraction.facts.find(fact => fact.field === 'identity.size');
     const sizeConfirmed = reasons.includes('SIZE_MISMATCH') ? false : sizeFact ? true : null;
     const gtin = extraction.facts.find(fact => fact.field === 'identity.gtin')?.value as string | undefined;
-    return { ...base, identityMatched: extraction.identityMatched, sizeConfirmed, rejectedReasons: reasons, pageGtin: gtin ?? null };
+    return { ...base, identityMatched: extraction.identityMatched, sizeConfirmed, rejectedReasons: reasons, pageGtin: gtin ?? null,
+      // The one size the page itself names for this product (its title), when the row had none to compare.
+      ...(expected.size === null && sizeFact && { pageSize: sizeFact.value as { value: number; unit: string }, pageSizeExcerpt: sizeFact.excerpt }) };
+  }
+
+  /**
+   * Candidate product pages for a list row that names none: the configured search, first inside the brand's own website, then anywhere, keeping only hosts research
+   * may read and that are the manufacturer or a trusted distributor (never a retailer). Official pages first. Nothing is read here; each page is still checked
+   * against the row by checkSource before it can verify anything. No search configured → no candidates.
+   */
+  async discoverProductPages(expected: { brand: string; productName: string; size: number | null; sizeUnit: string | null; websiteUrl: string | null }, limit = 4): Promise<string[]> {
+    if (!this.providers.discoveryConfigured()) return [];
+    const site = (() => { try { return expected.websiteUrl ? new URL(expected.websiteUrl).hostname.replace(/^www\./, '') : null; } catch { return null; } })();
+    const name = expected.productName.toLowerCase().includes(expected.brand.toLowerCase()) ? expected.productName : `${expected.brand} ${expected.productName}`;
+    const query = `${name}${expected.size !== null && expected.sizeUnit ? ` ${expected.size} ${expected.sizeUnit}` : ''}`;
+    const found = [...(site ? (await this.providers.discoverPages(query, 6, { includeDomains: [site] })) ?? [] : []), ...((await this.providers.discoverPages(query, 8)) ?? [])];
+    const isApproved = this.approvedHostFor({ name: expected.brand, websiteUrl: expected.websiteUrl });
+    const rank: Record<SourceTier, number> = { OFFICIAL_MANUFACTURER: 0, TRUSTED_DISTRIBUTOR: 1, RETAILER: 2 };
+    const urls: Array<{ url: string; tier: SourceTier }> = [];
+    for (const page of found) {
+      let url: URL;
+      try { url = new URL(page.url); } catch { continue; }
+      if (url.protocol !== 'https:' || !isApproved(url.hostname)) continue;
+      // A brochure or an image is not a product page; fetching it only spends the host's failure budget (a PDF opened the eva-cosmetics.com breaker, 2026-11-07).
+      if (/\.(pdf|jpe?g|png|webp|gif|svg|zip|docx?|xlsx?)$/i.test(url.pathname)) continue;
+      const tier = this.tierOf(url.toString(), expected.brand);
+      if (tier === 'RETAILER' || urls.some(item => item.url === url.toString())) continue;
+      urls.push({ url: url.toString(), tier });
+    }
+    return urls.sort((a, b) => rank[a.tier] - rank[b.tier]).slice(0, limit).map(item => item.url);
   }
 
   /**
@@ -388,6 +458,9 @@ export class CanonicalResearchService {
       if (!overwrite || SAFE_OVERWRITE_NEVER.has(field)) throw new ConflictException({ code: 'CATALOG_VALUE_EXISTS', message: `${label} already has a value; approve with an explicit overwrite if this should replace it`, current });
     };
     const update = (dto: UpdateProductDto) => this.catalog.updateProduct(product.id, { ...dto, lastReviewedAt: new Date().toISOString(), lastReviewedBy: actorId, factVersion: product.factVersion + 1 });
+    /** The claim's provenance beside the value, as for fragrance: the page and the words that state it. */
+    const claimed = (key: string) => ({ ...(product.claimsEvidence as Record<string, unknown> | null ?? {}),
+      [key]: { value: fact.value, sourceUrl: best.sourceUrl, sourceTier: best.sourceTier, excerpt: best.excerpt, reviewedBy: actorId, appliedAt: new Date().toISOString() } });
 
     switch (field) {
       case 'identity.name':
@@ -467,10 +540,47 @@ export class CanonicalResearchService {
         if (!product.warnings) await update({ warnings: list.join('\n') });
         return;
       }
+      case 'composition.keyIngredients': {
+        // What the manufacturer names as key ingredients, with what it says each does. Stated claims, not a formula: never written as INCI, and treatment
+        // wording is withheld from the stated function.
+        const items = (fact.value as Array<{ name: string; function: string | null }>).map(item => (item.function && hasMedicalClaim(item.function)
+          ? { name: item.name, function: null, functionWithheld: 'MEDICAL_CLAIM' } : item));
+        const claims = { ...(product.claimsEvidence as Record<string, unknown> | null ?? {}), keyIngredients: { items, sourceUrl: best.sourceUrl, sourceTier: best.sourceTier, excerpt: best.excerpt, appliedAt: new Date().toISOString() } };
+        await update({ claimsEvidence: claims });
+        return;
+      }
       case 'marketing.description':
         refuseOverwrite(product.description === fact.value ? null : product.description, 'Description');
         await update({ description: fact.value as string });
         return;
+      case 'attributes.spf':
+        refuseOverwrite(product.spf === fact.value ? null : product.spf, 'SPF');
+        await update({ spf: fact.value as number, claimsEvidence: claimed('spf') });
+        return;
+      case 'attributes.broadSpectrum':
+        // Only ever stated as true; "not broad spectrum" is never read from silence.
+        refuseOverwrite(product.broadSpectrum === true ? null : product.broadSpectrum, 'Broad spectrum');
+        await update({ broadSpectrum: true, claimsEvidence: claimed('broadSpectrum') });
+        return;
+      case 'attributes.waterResistanceMinutes':
+        refuseOverwrite(product.waterResistanceMinutes === fact.value ? null : product.waterResistanceMinutes, 'Water resistance');
+        await update({ waterResistanceMinutes: fact.value as number, claimsEvidence: claimed('waterResistance') });
+        return;
+      case 'attributes.uvFilterType':
+        refuseOverwrite(product.uvFilterType === fact.value ? null : product.uvFilterType, 'UV filter type');
+        await update({ uvFilterType: fact.value as UpdateProductDto['uvFilterType'], claimsEvidence: claimed('uvFilterType') });
+        return;
+      case 'attributes.nonComedogenic':
+        refuseOverwrite(product.isNonComedogenic === true ? null : product.isNonComedogenic, 'Non-comedogenic');
+        await update({ isNonComedogenic: true, claimsEvidence: claimed('nonComedogenic') });
+        return;
+      case 'merchandising.productLine': {
+        // A range is the brand's own naming: only a page on the brand's own site names it. A distributor's breadcrumb leaves the line unknown.
+        const own = evidence.find(item => this.isBrandOwnPage(item.sourceUrl, product.brand));
+        if (!own) throw new ConflictException({ code: 'LINE_NEEDS_BRAND_SITE', message: 'A product line is taken only from a page on the brand\'s own website' });
+        await this.intake.assignProductLine(product.id, fact.value as string, { sourceUrl: own.sourceUrl, excerpt: own.excerpt, factId: fact.id, actorId });
+        return;
+      }
       default:
         throw new BadRequestException(`Unknown fact field ${String(field)}`);
     }

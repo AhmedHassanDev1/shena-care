@@ -142,15 +142,20 @@ export class ProductResearchService {
     };
   }
 
+  /** Whether a search provider is configured at all: without one, "no answer" is permanent, not a transient outage worth retrying. */
+  discoveryConfigured(): boolean {
+    return Boolean(process.env.EXA_API_KEY);
+  }
+
   /** Narrow search for read-only retail evidence. Null means the provider did not answer, which is different from no results. */
-  async discoverPages(query: string, limit: number): Promise<Array<{ url: string; title: string }> | null> {
+  async discoverPages(query: string, limit: number, options: { includeDomains?: string[] } = {}): Promise<Array<{ url: string; title: string }> | null> {
     const key = process.env.EXA_API_KEY;
     if (!key) return null;
     try {
       const res = await fetch('https://api.exa.ai/search', {
         method: 'POST',
         headers: { 'x-api-key': key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, numResults: limit }),
+        body: JSON.stringify({ query, numResults: limit, ...(options.includeDomains?.length && { includeDomains: options.includeDomains }) }),
         signal: AbortSignal.timeout(5000),
       });
       if (!res.ok) return null;

@@ -11,6 +11,7 @@ import { CatalogIntakeService } from '../../../modules/catalog/public';
 import { CanonicalResearchService } from '../../../modules/ingestion/public';
 import { CatalogPublicationService } from '../services/catalog-publication.service';
 import { CatalogAutopilotService, ExceptionResolution } from '../services/catalog-autopilot.service';
+import { CatalogProfileService } from '../services/catalog-profile.service';
 import { CatalogDecisionLogService } from '../../../modules/ingestion/public';
 import { CatalogExceptionStatus } from '@prisma/client';
 import { ValidateNested } from 'class-validator';
@@ -80,6 +81,20 @@ export class RefreshSkuDto {
   @IsOptional() @IsArray() @ArrayMaxSize(6) @IsUrl({ protocols: ['https'], require_protocol: true }, { each: true }) sourceUrls?: string[];
 }
 
+export class BrandResearchDto {
+  /** The brand's own site (homepage). */
+  @IsOptional() @IsUrl({ protocols: ['https'], require_protocol: true }) websiteUrl?: string;
+  /** A page of the company that owns or makes the brand (e.g. its "about us"). */
+  @IsOptional() @IsUrl({ protocols: ['https'], require_protocol: true }) ownerPageUrl?: string;
+  /** Pages listing the brand's range (its own site, its owner's store, an approved distributor). */
+  @IsOptional() @IsArray() @ArrayMaxSize(4) @IsUrl({ protocols: ['https'], require_protocol: true }, { each: true }) rangeUrls?: string[];
+}
+
+export class SequenceDto {
+  @IsArray() @ArrayMaxSize(30) @IsUUID('all', { each: true }) skuIds: string[];
+  @IsOptional() @IsIn(['AM', 'PM']) period?: 'AM' | 'PM';
+}
+
 export class CartonDecisionDto {
   @IsBoolean() hasOuterCarton: boolean;
 }
@@ -96,6 +111,7 @@ export class CatalogWorkbenchController {
     private readonly catalog: CatalogIntakeService,
     private readonly autopilot: CatalogAutopilotService,
     private readonly decisions: CatalogDecisionLogService,
+    private readonly profiles: CatalogProfileService,
   ) {}
 
   /** Runs the automatic pipeline over an Admin list: every row ends AUTO_ACCEPT, AUTO_LINK, SKIP, HOLD_CRITICAL or RETRY_AUTOMATIC. Safe to call again. */
@@ -152,6 +168,53 @@ export class CatalogWorkbenchController {
   @Get('skus/:skuId')
   workbench(@Param('skuId', ParseUUIDPipe) skuId: string) {
     return this.publication.workbench(skuId);
+  }
+
+  /** The enriched SKU: identity, classification, composition, usage, routine metadata, safety, media, sources, field coverage and publication blockers. */
+  @Get('skus/:skuId/profile')
+  skuProfile(@Param('skuId', ParseUUIDPipe) skuId: string) {
+    return this.profiles.skuProfile(skuId);
+  }
+
+  /** Recomputes classification and routine metadata from the SKU's verified facts (derived data; safe to repeat). */
+  @Post('skus/:skuId/profile/rebuild')
+  @HttpCode(HttpStatus.OK)
+  rebuildProfile(@CurrentUser() user: RequestUser, @Param('skuId', ParseUUIDPipe) skuId: string) {
+    return this.profiles.refresh(skuId, user.id);
+  }
+
+  /** Recomputes every verified SKU's derived profiles, e.g. after a rule version change. */
+  @Post('profiles/rebuild')
+  @HttpCode(HttpStatus.OK)
+  rebuildAll(@CurrentUser() user: RequestUser) {
+    return this.profiles.refreshAll(user.id);
+  }
+
+  /** Researches a brand we hold from the pages named (its site, its owner's page, range pages); keeps the evidence on the brand profile. */
+  @Post('brands/:brandId/research')
+  @HttpCode(HttpStatus.OK)
+  researchBrand(@CurrentUser() user: RequestUser, @Param('brandId', ParseUUIDPipe) brandId: string, @Body() dto: BrandResearchDto) {
+    if (!dto.websiteUrl && !dto.ownerPageUrl && !dto.rangeUrls?.length) throw new BadRequestException('Name at least one page to read');
+    return this.profiles.enrichBrand(brandId, dto, user.id);
+  }
+
+  /** The persisted routine profile with its machine-readable product context, for unpublished SKUs too (Admin). */
+  @Get('skus/:skuId/routine-profile')
+  routineProfile(@Param('skuId', ParseUUIDPipe) skuId: string) {
+    return this.profiles.routineProfileWithContext(skuId);
+  }
+
+  /** Orders SKUs into one routine from their persisted placement constraints (Admin; unpublished SKUs allowed). */
+  @Post('routines/sequence')
+  @HttpCode(HttpStatus.OK)
+  sequence(@Body() dto: SequenceDto) {
+    return this.profiles.sequence(dto.skuIds, dto.period, false);
+  }
+
+  /** The brand profile: identity with evidence, aliases, and the (explicitly partial) portfolio its verified SKUs show. */
+  @Get('brands/:brandId/profile')
+  brandProfile(@Param('brandId', ParseUUIDPipe) brandId: string) {
+    return this.profiles.brandProfile(brandId);
   }
 
   @Get('skus/:skuId/readiness')
