@@ -1,6 +1,6 @@
 import {
   chooseIdentityImage, decideEditorial, decideFacts, decideMatchedRow, decideNewProduct, FactReading, FactVerdict, hasMedicalClaim, independentLinkSupport, rinseMode, SourceCheck,
-} from '../../src/modules/ingestion/services/catalog-decision-engine';
+} from '../../src/modules/catalog/research/catalog-decision-engine';
 
 const check = (overrides: Partial<SourceCheck> = {}): SourceCheck => ({
   url: 'https://www.brand.example/p', tier: 'OFFICIAL_MANUFACTURER', outcome: 'OK', retryable: false, identityMatched: true, sizeConfirmed: true, rejectedReasons: [], pageGtin: null, ...overrides,

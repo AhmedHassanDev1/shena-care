@@ -16,13 +16,11 @@ import { CatalogWorkbenchController } from './controllers/catalog-workbench.cont
 import { CatalogItemsController } from './controllers/catalog-items.controller';
 import { RoutineProfileController } from './controllers/routine-profile.controller';
 import { CatalogPublicationService } from './services/catalog-publication.service';
-import { CatalogAutopilotService } from './services/catalog-autopilot.service';
 import { CatalogProfileService } from './services/catalog-profile.service';
 import { ProductViewService } from './services/product-view.service';
 import { DiscoveryService } from './services/discovery.service';
 import { ProductDetailService } from './services/product-detail.service';
 import { CareModule } from '../../modules/care/public';
-import { IngestionModule } from '../../modules/ingestion/public';
 import { OrderingModule } from '../../modules/ordering/public';
 import { RoutineCartController } from './controllers/routine-cart.controller';
 
@@ -35,7 +33,7 @@ import { RoutineCartController } from './controllers/routine-cart.controller';
 // القاعدة: الـ Controllers هنا بس — مش جوا الـ Business Modules
 
 @Module({
-  imports: [CatalogModule, CommerceModule, SourcingModule, CareModule, IngestionModule, OrderingModule],
+  imports: [CatalogModule, CommerceModule, SourcingModule, CareModule, OrderingModule],
   controllers: [
     RoutineProfileController, // GET /catalog/skus/:id/routine-profile, /catalog/routine-profiles (live products only)
     ProductViewController,  // GET /products, GET /products/:slug
@@ -55,7 +53,6 @@ import { RoutineCartController } from './controllers/routine-cart.controller';
     BarcodeAliasController, // /catalog/barcode-aliases (GLO-242)
     RoutineCartController,  // /care/me/routines/:id/cart, /care/workspace/proposals/:id/cart
   ],
-  providers: [CatalogPublicationService, CatalogAutopilotService, CatalogProfileService, ProductViewService, DiscoveryService, ProductDetailService],
+  providers: [CatalogPublicationService, CatalogProfileService, ProductViewService, DiscoveryService, ProductDetailService],
 })
 export class CompositionModule {}
-

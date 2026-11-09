@@ -1,4 +1,4 @@
-import { NodeResearchTransport, safeLookup } from '../../src/modules/ingestion/services/research-source-fetcher';
+import { NodeResearchTransport, safeLookup } from '../../src/modules/catalog/research/research-source-fetcher';
 
 /** The connection itself refuses private addresses, so a hostname cannot pass a public pre-check and then connect inward. */
 describe('Research transport connect-time guard', () => {

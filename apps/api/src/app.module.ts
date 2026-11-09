@@ -8,7 +8,7 @@ import { DatabaseModule } from './platform/database/database.module';
 import { SourcingModule } from './modules/sourcing/sourcing.module';
 import { OrderingModule } from './modules/ordering/ordering.module';
 import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
-import { IngestionModule } from './modules/ingestion/ingestion.module';
+
 import { CareModule } from './modules/care/care.module';
 import { AiModule } from './platform/ai/ai.module';
 import { GuidanceModule } from './modules/guidance/guidance.module';
@@ -41,7 +41,7 @@ import { DomainEventsModule } from './platform/events/domain-events.module';
     SourcingModule,
     OrderingModule,
     FulfillmentModule,
-    IngestionModule,
+
     CareModule,
     GuidanceModule,
     AccountsModule,

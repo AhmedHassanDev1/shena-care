@@ -5,7 +5,7 @@ import {
   CanonicalIngredientData,
   EvidenceLevel,
   VisualStatus,
-} from '../../ingestion/contracts/ingredient-ontology.contract';
+} from '../research/contracts/ingredient-ontology.contract';
 import { slugify } from '../utils/slug.util';
 
 @Injectable()

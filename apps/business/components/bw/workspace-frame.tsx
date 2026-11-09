@@ -120,14 +120,12 @@ export function WorkspaceFrame({
   const isItemActive = (itemId: string) => {
     if (itemId === active) return true
     if (role === 'admin' && itemId === 'suppliers' && (active === 'sourcing' || active === 'enrollment')) return true
-    if (role === 'admin' && itemId === 'catalog' && (active === 'workbench' || active === 'media-templates')) return true
+    if (role === 'admin' && itemId === 'catalog' && active === 'media-templates') return true
     if (itemId === 'orders' && (active === 'pos' || active === 'orders')) return true
-    if (itemId === 'products' && (active === 'catalog' || active === 'products')) return true
-    if (itemId === 'updates' && active === 'updates') return true
     return false
   }
   const getItemCount = (itemId: string) => {
-    return counts?.[itemId] ?? (itemId === 'orders' ? counts?.pos : undefined) ?? (itemId === 'products' ? counts?.catalog : undefined)
+    return counts?.[itemId] ?? (itemId === 'orders' ? counts?.pos : undefined)
   }
 
   const logout = onLogout ? (

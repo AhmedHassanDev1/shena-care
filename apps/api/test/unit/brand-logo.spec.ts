@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { assertSafeSvg, normalizeLogo } from '../../src/modules/ingestion/services/brand-logo';
+import { assertSafeSvg, normalizeLogo } from '../../src/modules/catalog/research/brand-logo';
 
 const svg = (inner: string, attrs = 'viewBox="0 0 200 80" width="200" height="80"') =>
   Buffer.from(`<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ${attrs}>${inner}</svg>`);

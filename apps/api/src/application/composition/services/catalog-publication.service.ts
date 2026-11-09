@@ -3,7 +3,7 @@ import { MediaOriginType, MediaRightsStatus, MediaRole } from '@prisma/client';
 import { MediaReviewStatus } from '@prisma/client';
 import { CatalogIntakeService, ManualIntakeInput, ProductMediaService, VERIFIED_IDENTITY_STATES } from '../../../modules/catalog/public';
 import { CommerceService } from '../../../modules/commerce/public';
-import { CanonicalResearchService, CatalogDecisionLogService, CRITICAL_FACT_PREFIXES } from '../../../modules/ingestion/public';
+import { CanonicalResearchService, CatalogDecisionLogService, CRITICAL_FACT_PREFIXES } from '../../../modules/catalog/public';
 
 export type PublicationBlocker =
   | 'IDENTITY_INCOMPLETE' | 'IDENTITY_NOT_VERIFIED' | 'CATEGORY_MISSING' | 'NO_REVIEWED_FACTS' | 'FACT_CONFLICT_UNRESOLVED' | 'CRITICAL_FACT_NOT_REVIEWED'

@@ -2,10 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ProductFactStatus } from '@prisma/client';
 import { CatalogIntakeService, ProductMediaService } from '../../../modules/catalog/public';
 import {
-  BrandResearchService, buildRoutineProfile, CanonicalResearchService, CatalogDecisionLogService, IngestionEligibilityService, isInstructionLine, PRODUCT_TYPE_RULE_VERSION, readProductType, RoutinePlacementService,
+  BrandResearchService, buildRoutineProfile, CanonicalResearchService, CatalogDecisionLogService, isInstructionLine, PRODUCT_TYPE_RULE_VERSION, readProductType, RoutinePlacementService,
   RoutineProfile, ROUTINE_RULE_VERSION, orderRoutine,
-} from '../../../modules/ingestion/public';
-import type { BrandEnrichment, PlacementConstraint, RoutineRole, RoutineStepInput } from '../../../modules/ingestion/public';
+} from '../../../modules/catalog/public';
+import type { BrandEnrichment, PlacementConstraint, RoutineRole, RoutineStepInput } from '../../../modules/catalog/public';
 import { CatalogPublicationService } from './catalog-publication.service';
 
 type Evidence = { sourceUrl: string; sourceTier: string; excerpt: string; observedAt: string };
@@ -34,7 +34,7 @@ export class CatalogProfileService {
     private readonly research: CanonicalResearchService,
     private readonly decisions: CatalogDecisionLogService,
     private readonly placement: RoutinePlacementService,
-    private readonly eligibility: IngestionEligibilityService,
+
     private readonly media: ProductMediaService,
     private readonly publication: CatalogPublicationService,
     private readonly brandResearch: BrandResearchService,
@@ -163,8 +163,8 @@ export class CatalogProfileService {
     const { brand, products } = await this.catalog.brandPortfolio(brandId);
     const prior = (brand.profile as { research?: BrandEnrichment } | null)?.research ?? null;
     const evidence = research ?? prior;
-    const current = await this.eligibility.current();
-    const rule = (current?.document as { brands?: Array<{ id: string; aliases?: string[]; categoryIds?: string[] }> } | undefined)?.brands?.find(b => b.id === brandId);
+    const rule = undefined;
+
     const verifiedSkus = products.filter(p => p.skus.some(s => s.identityStatus === 'EVIDENCE_VERIFIED' || s.identityStatus === 'ADMIN_VERIFIED' || s.identityStatus === 'BARCODE_VERIFIED'));
     const count = <T extends string>(values: T[]) => Object.entries(values.reduce<Record<string, number>>((m, v) => ({ ...m, [v]: (m[v] ?? 0) + 1 }), {})).map(([value, n]) => ({ value, products: n }));
     const sources = [...new Set(verifiedSkus.flatMap(p => p.skus.flatMap(s => ((s.identityEvidence as { sourceUrls?: string[] } | null)?.sourceUrls ?? []))))];
@@ -178,7 +178,7 @@ export class CatalogProfileService {
       rule: 'brand-profile@2',
       identity: {
         canonicalName: { value: brand.name, status: 'VERIFIED', basis: 'CANONICAL_BRAND_RECORD' },
-        aliases: { value: [...new Set([...(rule?.aliases ?? []), ...researchedAliases])], status: rule || researchedAliases.length ? 'VERIFIED' : 'UNKNOWN', basis: 'APPROVED_POLICY_ALIASES_AND_OFFICIAL_NAMES' },
+        aliases: { value: researchedAliases, status: researchedAliases.length ? 'VERIFIED' : 'UNKNOWN', basis: 'OFFICIAL_NAMES' },
         officialWebsite: evidence?.site?.verifiedOfficial ? { value: evidence.site.url, status: 'VERIFIED', basis: 'BRAND_DOMAIN_READ', source: evidence.site.url } : recorded(brand.websiteUrl),
         parentCompany: fromResearch(evidence?.owner?.name, 'OWNER_PAGE') ?? { value: null, status: 'UNKNOWN', basis: evidence ? 'NO_OWNER_PAGE_NAMES_THE_BRAND' : 'NOT_RESEARCHED' },
         manufacturerCountry: fromResearch(evidence?.owner?.country, 'OWNER_PAGE_STATES_COMPANY_COUNTRY') ?? { value: null, status: 'UNKNOWN', basis: evidence ? 'NOT_STATED_ON_PAGES_READ' : 'NOT_RESEARCHED' },
@@ -196,7 +196,7 @@ export class CatalogProfileService {
         categories: count(verifiedSkus.map(p => p.category?.name).filter((v): v is string => Boolean(v))),
         productTypes: count(verifiedSkus.map(p => p.productType).filter((v): v is string => Boolean(v))),
         productLines: [...new Set([...brand.productLines.map(l => l.name), ...verifiedSkus.map(p => p.productLine?.name).filter((v): v is string => Boolean(v))])],
-        allowedLeafCategories: rule?.categoryIds?.length ?? 0,
+        allowedLeafCategories: 0,
       },
       sources: [...new Set([...sources, ...(evidence?.site ? [evidence.site.url] : []), ...(evidence?.owner ? [evidence.owner.name.sourceUrl] : []), ...(evidence?.range.sources.map(s => s.url) ?? [])])],
       research: evidence,

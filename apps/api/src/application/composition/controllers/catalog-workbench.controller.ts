@@ -7,14 +7,10 @@ import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
 import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
-import { CatalogIntakeService } from '../../../modules/catalog/public';
-import { CanonicalResearchService } from '../../../modules/ingestion/public';
+import { CatalogIntakeService, CanonicalResearchService, CatalogDecisionLogService } from '../../../modules/catalog/public';
 import { CatalogPublicationService } from '../services/catalog-publication.service';
-import { CatalogAutopilotService, ExceptionResolution } from '../services/catalog-autopilot.service';
 import { CatalogProfileService } from '../services/catalog-profile.service';
-import { CatalogDecisionLogService } from '../../../modules/ingestion/public';
 import { CatalogExceptionStatus } from '@prisma/client';
-import { ValidateNested } from 'class-validator';
 
 type RequestUser = { id: string };
 
@@ -50,31 +46,14 @@ export class ImportSourceImageDto {
   @IsUrl({ protocols: ['https'], require_protocol: true }) imageUrl: string;
   @IsEnum(MediaRole) role: MediaRole;
   @IsEnum(MediaRightsStatus) rightsStatus: MediaRightsStatus;
-  @IsString() @MinLength(2) @MaxLength(200) sourcePublisher: string;
+  @IsString() @MinLength(2) @MaxLength(120) sourcePublisher: string;
+  @IsOptional() @IsString() @MaxLength(300) licenseUrl?: string;
+  @IsOptional() @IsString() @MaxLength(500) copyrightNotice?: string;
 }
 
 export class PublishSkuDto {
-  /** The approved customer price; needed unless this SKU already has an active one. */
-  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @IsPositive() priceEgp?: number;
-  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @IsPositive() compareAtEgp?: number;
-}
-
-export class RowCorrectionDto {
-  @IsOptional() @IsString() @MinLength(2) @MaxLength(300) name?: string;
-  @IsOptional() @IsString() @MinLength(2) @MaxLength(200) brand?: string;
-  @IsOptional() @Type(() => Number) @IsNumber() @IsPositive() size?: number;
-  @IsOptional() @IsIn(['ml', 'g', 'l', 'kg', 'oz', 'piece']) sizeUnit?: string;
-  @IsOptional() @IsString() @MinLength(2) @MaxLength(200) categoryHint?: string;
-  @IsOptional() @IsUrl({ protocols: ['https'], require_protocol: true }) sourceUrl?: string;
-  @IsOptional() @Matches(/^\d{8,14}$/, { message: 'Barcode must be 8 to 14 digits' }) barcode?: string;
-}
-
-export class ResolveExceptionDto {
-  @IsIn(['RESOLVE', 'CORRECT', 'REJECT', 'RETRY']) action: ExceptionResolution['action'];
-  @IsString() @MinLength(3) @MaxLength(500) note: string;
-  @IsOptional() @IsUUID() skuId?: string;
-  @IsOptional() @IsUUID() factId?: string;
-  @IsOptional() @ValidateNested() @Type(() => RowCorrectionDto) correction?: RowCorrectionDto;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) priceEgp?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) compareAtEgp?: number;
 }
 
 export class RefreshSkuDto {
@@ -109,32 +88,15 @@ export class CatalogWorkbenchController {
     private readonly publication: CatalogPublicationService,
     private readonly research: CanonicalResearchService,
     private readonly catalog: CatalogIntakeService,
-    private readonly autopilot: CatalogAutopilotService,
     private readonly decisions: CatalogDecisionLogService,
     private readonly profiles: CatalogProfileService,
   ) {}
-
-  /** Runs the automatic pipeline over an Admin list: every row ends AUTO_ACCEPT, AUTO_LINK, SKIP, HOLD_CRITICAL or RETRY_AUTOMATIC. Safe to call again. */
-  @Post('imports/:jobId/autopilot')
-  @HttpCode(HttpStatus.OK)
-  runAutopilot(@CurrentUser() user: RequestUser, @Param('jobId', ParseUUIDPipe) jobId: string, @Query('limit') limit?: string) {
-    return this.autopilot.runJob(jobId, user.id, { limit: limit ? Math.min(Math.max(Number(limit) || 1, 1), 500) : undefined });
-  }
 
   /** The Critical Exceptions Queue: only what needs a person. */
   @Get('exceptions')
   exceptions(@Query('status') status?: string, @Query('skuId') skuId?: string) {
     const wanted = status && status in CatalogExceptionStatus ? (status as CatalogExceptionStatus) : CatalogExceptionStatus.OPEN;
     return this.decisions.list({ status: wanted, ...(skuId && { skuId }) });
-  }
-
-  @Post('exceptions/:id/resolve')
-  @HttpCode(HttpStatus.OK)
-  resolveException(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: ResolveExceptionDto) {
-    if (dto.action === 'CORRECT' && !dto.correction) throw new BadRequestException('A correction needs the corrected values');
-    const input = (dto.action === 'CORRECT' ? { action: 'CORRECT', note: dto.note, correction: dto.correction }
-      : { action: dto.action, note: dto.note, skuId: dto.skuId, factId: dto.factId }) as ExceptionResolution;
-    return this.autopilot.resolveException(id, input, user.id);
   }
 
   /** Every automatic and manual decision about a row or SKU, oldest first. */
@@ -151,8 +113,13 @@ export class CatalogWorkbenchController {
   /** Reads an existing SKU's sources again (optionally new pages), re-verifies its facts and prepares its media. */
   @Post('skus/:skuId/refresh')
   @HttpCode(HttpStatus.OK)
-  refresh(@CurrentUser() user: RequestUser, @Param('skuId', ParseUUIDPipe) skuId: string, @Body() dto: RefreshSkuDto) {
-    return this.autopilot.refreshSku(skuId, user.id, dto.sourceUrls ?? []);
+  async refresh(@CurrentUser() user: RequestUser, @Param('skuId', ParseUUIDPipe) skuId: string, @Body() dto: RefreshSkuDto) {
+    await this.profiles.repairUsage(skuId, user.id);
+    if (dto.sourceUrls?.length) await this.research.startRun(skuId, { sourceUrls: dto.sourceUrls }, user.id);
+    const verified = await this.research.autoVerify(skuId, user.id);
+    for (const hold of verified.holds) await this.decisions.open({ subjectType: 'SKU', subjectId: skuId, skuId, hold, evidence: { factIds: hold.factIds } });
+    const profile = await this.profiles.refresh(skuId, user.id);
+    return { verified, profile, openExceptions: await this.decisions.openForSku(skuId) };
   }
 
   @Get('skus')

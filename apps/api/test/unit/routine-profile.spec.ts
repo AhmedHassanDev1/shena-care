@@ -1,7 +1,7 @@
-import { buildRoutineProfile, orderRoutine, RoutineProfileInput } from '../../src/modules/ingestion/services/routine-profile';
-import { RoutinePlacementService } from '../../src/modules/ingestion/services/routine-placement.service';
-import { readProductType } from '../../src/modules/ingestion/services/product-type';
-import { isInstructionLine } from '../../src/modules/ingestion/services/product-fact-extractor';
+import { buildRoutineProfile, orderRoutine, RoutineProfileInput } from '../../src/modules/catalog/research/routine-profile';
+import { RoutinePlacementService } from '../../src/modules/catalog/research/routine-placement.service';
+import { readProductType } from '../../src/modules/catalog/research/product-type';
+import { isInstructionLine } from '../../src/modules/catalog/research/product-fact-extractor';
 
 const placement = new RoutinePlacementService();
 const URL = 'https://brand.example/product';

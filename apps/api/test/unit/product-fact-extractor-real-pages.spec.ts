@@ -1,4 +1,4 @@
-import { extractProductFacts } from '../../src/modules/ingestion/services/product-fact-extractor';
+import { extractProductFacts } from '../../src/modules/catalog/research/product-fact-extractor';
 
 /** Page shapes recorded from the real sources on 2026-11-06 (structure and the decisive lines only). */
 const ceraveTabbed = `<html><head><title>Hydrating Cleanser</title></head><body>

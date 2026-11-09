@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import Link from 'next/link'
 import { ImageOff, Pencil, RefreshCw } from 'lucide-react'
 import { api, ApiError } from '@/lib/api'
 import { Button, Code, Dialog, Field, Skeleton, StateBlock, StatusLabel, useDialog } from '@/components/bw/primitives'
@@ -161,7 +160,7 @@ export function CatalogItems({ query }: { query: string }) {
             <Field label="اسم المنتج" value={name} onChange={event => setName(event.target.value)} required minLength={2} />
             <div className="space-y-1.5"><label htmlFor="catalog-item-description" className="block text-bw-small font-semibold">الوصف</label><textarea id="catalog-item-description" value={description} onChange={event => setDescription(event.target.value)} rows={4} className="w-full rounded-bw-field border border-bw-line-field bg-bw-surface p-3 text-bw-body text-bw-ink focus:border-bw-action focus:outline-none" /></div>
           </form>
-          {!selected.isPublished ? <div className="border-t border-bw-line pt-4"><p className="mb-2 text-bw-small text-bw-ink-soft">النشر يحتاج مراجعة الجاهزية والهوية والصور.</p><Link href="/admin/catalog/workbench" className="text-bw-small text-bw-action-ink underline underline-offset-4">افتح مراجعة النشر</Link></div> : null}
+          {!selected.isPublished ? <div className="border-t border-bw-line pt-4"><p className="text-bw-small text-bw-ink-soft">النشر يحتاج مراجعة الجاهزية والهوية والصور قبل إتاحة المنتج للعملاء.</p></div> : null}
         </div> : <div className="divide-y divide-bw-line">
           {selected.skus.length === 0 ? <StateBlock kind="empty" title="لا توجد نسخ" body="أضف نسخة من تجهيز المنتج قبل عرضه." /> : null}
           {selected.skus.map(sku => <div key={sku.id} className="space-y-3 py-3">

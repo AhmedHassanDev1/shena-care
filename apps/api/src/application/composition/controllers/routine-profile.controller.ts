@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { SequenceDto } from './catalog-workbench.controller';
-import { ROUTINE_RULE_VERSION } from '../../../modules/ingestion/public';
+import { ROUTINE_RULE_VERSION } from '../../../modules/catalog/public';
 import { CatalogProfileService } from '../services/catalog-profile.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

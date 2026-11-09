@@ -1,5 +1,5 @@
-import { extractProductFacts, hashFactValue, htmlToLines, SkuExpectation } from '../../src/modules/ingestion/services/product-fact-extractor';
-import { NodeResearchTransport, parseRobots, ResearchSourceFetcher, ResearchTransport, robotsAllows } from '../../src/modules/ingestion/services/research-source-fetcher';
+import { extractProductFacts, hashFactValue, htmlToLines, SkuExpectation } from '../../src/modules/catalog/research/product-fact-extractor';
+import { NodeResearchTransport, parseRobots, ResearchSourceFetcher, ResearchTransport, robotsAllows } from '../../src/modules/catalog/research/research-source-fetcher';
 import { isPrivateAddress } from '../../src/platform/security/url-validator';
 
 const SKU: SkuExpectation = { brand: 'Acme Derma', productName: 'Hydra Barrier Cream', size: 50, sizeUnit: 'ml', barcode: null };

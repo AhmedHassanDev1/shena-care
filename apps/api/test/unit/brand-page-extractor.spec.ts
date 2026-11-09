@@ -1,4 +1,4 @@
-import { cleanSiteName, extractBrandPage } from '../../src/modules/ingestion/services/brand-page-extractor';
+import { cleanSiteName, extractBrandPage } from '../../src/modules/catalog/research/brand-page-extractor';
 
 const PAGE = 'https://www.lumora.example/';
 

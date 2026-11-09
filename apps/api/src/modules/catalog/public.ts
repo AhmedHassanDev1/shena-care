@@ -28,6 +28,53 @@ export { ProductMediaService } from './services/product-media.service';
 export type { MediaReadiness, MediaRoleState } from './services/product-media.service';
 export type { BarcodeResolution } from './services/product-identity.service';
 
+// Research & Fact Services
+export { BrandResearchService } from './research/brand-research.service';
+export type { BrandEnrichment, RangeSourceTier, BrandOnboarding } from './research/brand-research.service';
+export { CanonicalResearchService } from './research/canonical-research.service';
+export type { AutoVerifyResult } from './research/canonical-research.service';
+export { ProductContentService } from './research/product-content.service';
+export type { PublishedContent } from './research/product-content.service';
+export { RoutinePlacementService } from './research/routine-placement.service';
+export { IngredientOntologyService } from './research/ingredient-ontology.service';
+export { CatalogDecisionLogService } from './research/catalog-decision-log.service';
+export type { DecisionEntry, DecisionSubject, OpenExceptionInput } from './research/catalog-decision-log.service';
+export { ResearchSourceFetcher, RESEARCH_TRANSPORT } from './research/research-source-fetcher';
+export type { ResearchTransport, TransportResponse } from './research/research-source-fetcher';
+export { ProductResearchService } from './research/product-research.service';
+export { BrandEnrichmentService } from './research/brand-enrichment.service';
+
+export { CRITICAL_FACT_PREFIXES, RESEARCH_SCHEMA_VERSION, isInstructionLine } from './research/product-fact-extractor';
+export {
+  DECISION_RULE_VERSION,
+  MAX_AUTOMATIC_ATTEMPTS,
+  MIN_IDENTITY_EDGE,
+  chooseIdentityImage,
+  decideEditorial,
+  decideFacts,
+  decideMatchedRow,
+  decideNewProduct,
+  decideFromFoundPages,
+  sizeFromFoundPages,
+  independentLinkSupport,
+  nextAttemptDelayMs,
+  rowHold,
+} from './research/catalog-decision-engine';
+export type {
+  CatalogDecisionState,
+  ExceptionAction,
+  FactVerdict,
+  HoldReason,
+  ImageCandidate,
+  Recommendation,
+  SourceCheck,
+} from './research/catalog-decision-engine';
+
+export { readProductType, productTypeRule, PRODUCT_TYPES, PRODUCT_TYPE_RULE_VERSION } from './research/product-type';
+export type { ProductTypeReading, ProductDomain } from './research/product-type';
+export { buildRoutineProfile, orderRoutine, ROLE_BY_TYPE, ROUTINE_RULE_VERSION } from './research/routine-profile';
+export type { RoutineProfile, RoutineProfileInput, RoutineRole, FieldState, PlacementConstraint, RoutineStepInput, OrderedRoutine } from './research/routine-profile';
+
 // DTOs
 export { CreateBrandDto, UpdateBrandDto } from './dto/brand.dto';
 export { CreateProductLineDto, UpdateProductLineDto } from './dto/product-line.dto';
@@ -35,6 +82,7 @@ export { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 export { CreateSkuDto, UpdateSkuDto } from './dto/sku.dto';
 export { CreateProductMediaDto, UpdateProductMediaDto } from './dto/media.dto';
 export { RegisterMediaAssetDto, DeriveMediaAssetDto, ReviewMediaAssetDto, RegisterMediaTemplateDto, SetMediaTemplateStateDto, ReprocessMediaTemplateDto } from './dto/media-asset.dto';
+export { ResearchBrandDto, SaveResearchedBrandDto } from './research/dto/brand-research.dto';
 
 // Types — بنصدر الـ interfaces عشان الـ Composition Layer
 // يقدر يستخدمها في الـ types بتاعته من غير ما يحتاج يعرف الـ implementation

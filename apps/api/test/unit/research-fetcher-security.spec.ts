@@ -1,6 +1,6 @@
 import { isPrivateAddress, validateSafeUrl } from '../../src/platform/security/url-validator';
-import { ResearchSourceFetcher, ResearchTransport } from '../../src/modules/ingestion/services/research-source-fetcher';
-import { curatedBrandAlias } from '../../src/modules/ingestion/services/brand-enrichment.service';
+import { ResearchSourceFetcher, ResearchTransport } from '../../src/modules/catalog/research/research-source-fetcher';
+import { curatedBrandAlias } from '../../src/modules/catalog/research/brand-enrichment.service';
 
 /** SSRF audit of the direct research reader: what an address, a redirect or a DNS answer is allowed to reach. */
 describe('Research reader SSRF protections', () => {

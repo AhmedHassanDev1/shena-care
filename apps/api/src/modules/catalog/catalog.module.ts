@@ -8,6 +8,15 @@ import { MediaTemplateService } from './services/media-template.service';
 import { CatalogIntakeService } from './services/catalog-intake.service';
 import { IngredientService } from './services/ingredient.service';
 import { ProductMediaService } from './services/product-media.service';
+import { BrandResearchService } from './research/brand-research.service';
+import { CanonicalResearchService } from './research/canonical-research.service';
+import { ProductContentService } from './research/product-content.service';
+import { RoutinePlacementService } from './research/routine-placement.service';
+import { IngredientOntologyService } from './research/ingredient-ontology.service';
+import { CatalogDecisionLogService } from './research/catalog-decision-log.service';
+import { ResearchSourceFetcher, RESEARCH_TRANSPORT, NodeResearchTransport } from './research/research-source-fetcher';
+import { ProductResearchService } from './research/product-research.service';
+import { BrandEnrichmentService } from './research/brand-enrichment.service';
 import { BACKGROUND_REMOVAL, MEDIA_PROCESSOR } from '../../platform/storage/media-processor.port';
 import { DeterministicBackgroundRemoval, DisabledBackgroundRemoval, SharpMediaProcessor } from '../../platform/storage/sharp-media-processor';
 import { StorageModule } from '../../platform/storage/storage.module';
@@ -27,6 +36,16 @@ import { PostgresSearchProvider } from './search/postgres-search.provider';
     CatalogIntakeService,
     IngredientService,
     ProductMediaService,
+    BrandResearchService,
+    CanonicalResearchService,
+    ProductContentService,
+    RoutinePlacementService,
+    IngredientOntologyService,
+    CatalogDecisionLogService,
+    ProductResearchService,
+    BrandEnrichmentService,
+    ResearchSourceFetcher,
+    { provide: RESEARCH_TRANSPORT, useClass: NodeResearchTransport },
     { provide: MEDIA_PROCESSOR, useClass: SharpMediaProcessor },
     { provide: BACKGROUND_REMOVAL, useFactory: () => process.env.MEDIA_BACKGROUND_REMOVAL === 'disabled' ? new DisabledBackgroundRemoval() : new DeterministicBackgroundRemoval() },
     PostgresSearchProvider,
@@ -40,6 +59,27 @@ import { PostgresSearchProvider } from './search/postgres-search.provider';
       },
     },
   ],
-  exports: [CatalogService, CatalogItemManagementService, BrandService, CategoryService, ProductIdentityService, IngredientService, ProductMediaService, MediaTemplateService, CatalogIntakeService, SEARCH_PROVIDER],
+  exports: [
+    CatalogService,
+    CatalogItemManagementService,
+    BrandService,
+    CategoryService,
+    ProductIdentityService,
+    IngredientService,
+    ProductMediaService,
+    MediaTemplateService,
+    CatalogIntakeService,
+    SEARCH_PROVIDER,
+    BrandResearchService,
+    CanonicalResearchService,
+    ProductContentService,
+    RoutinePlacementService,
+    IngredientOntologyService,
+    CatalogDecisionLogService,
+    ProductResearchService,
+    BrandEnrichmentService,
+    ResearchSourceFetcher,
+    RESEARCH_TRANSPORT,
+  ],
 })
 export class CatalogModule {}

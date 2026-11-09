@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CatalogService } from '../../../modules/catalog/public';
 import { CareService } from '../../../modules/care/public';
 import { ProductViewService } from './product-view.service';
-import { ProductContentService } from '../../../modules/ingestion/public';
+import { ProductContentService } from '../../../modules/catalog/public';
 import { PromotionService } from '../../../modules/commerce/public';
 
 @Injectable()
