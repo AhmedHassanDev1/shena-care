@@ -4,7 +4,6 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Skeleton, StateBlock } from '@/components/bw/primitives'
 import { type Role, type WorkspaceMode, WorkspaceFrame } from '@/components/bw/workspace-frame'
-import { FROZEN_NAV_IDS, useSourcingMode } from '@/components/workspace/frozen-intake-gate'
 import { type StaffRole, type WorkspaceMe, homeFor, useSession } from '@/lib/session'
 
 const MeContext = React.createContext<WorkspaceMe | null>(null)
@@ -46,7 +45,6 @@ export function RoleShell({
 }) {
   const { state, logout } = useSession()
   const router = useRouter()
-  const sourcingMode = useSourcingMode(state.status === 'ready' && (role === 'supplier' || role === 'admin'))
 
   React.useEffect(() => {
     if (state.status === 'anonymous') router.replace('/login')
@@ -82,7 +80,6 @@ export function RoleShell({
         counts={counts}
         task={task}
         exitHref={exitHref}
-        hiddenNavIds={sourcingMode === 'BROADCAST_ON_DEMAND' ? FROZEN_NAV_IDS : undefined}
         onLogout={async () => {
           await logout()
           router.replace('/login')

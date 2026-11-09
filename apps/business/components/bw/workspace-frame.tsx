@@ -29,7 +29,6 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
       { id: 'suppliers', label: 'الموردون', icon: Store, href: '/admin/sourcing/enrollment' },
       { id: 'catalog', label: 'الكتالوج', icon: PackageOpen, href: '/admin/catalog' },
-      { id: 'ingestion-policy', label: 'قائمة السماح', icon: ShieldAlert, href: '/admin/ingestion-policy' },
     ],
   },
   supplier: {
@@ -37,8 +36,6 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
     items: [
       { id: 'rfq', label: 'طلبات التوريد المفتوحة', icon: Radio, href: '/supplier/rfq' },
       { id: 'orders', label: 'طلبات شيناكير', icon: ShoppingBag, href: '/supplier/orders' },
-      { id: 'products', label: 'منتجاتي وأسعاري', icon: Store, href: '/supplier/products' },
-      { id: 'updates', label: 'تحديث المخزون والأسعار', icon: RefreshCw, href: '/supplier/updates' },
     ],
   },
   hub: {
