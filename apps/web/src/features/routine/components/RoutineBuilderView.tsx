@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/icon';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useCart } from '@/features/cart/hooks/useCart';
 import { saveCustomerRoutine, type CustomerSavedRoutine } from '../lib/routineStorage';
 import { getCuratedRoutineBySlug } from '../data/curatedRoutines';
@@ -35,6 +36,7 @@ interface ProposalItem {
 export function RoutineBuilderView() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { withAuth } = useAuth();
   const templateSlug = searchParams.get('template');
   const initialProductSlug = searchParams.get('product');
 
@@ -293,18 +295,31 @@ export function RoutineBuilderView() {
   const totalPrice = selectedItems.reduce((sum, it) => sum + it.price, 0);
 
   const handleSaveRoutine = () => {
-    const routineTitle = focusArea === 'skin' ? 'روتيني المخصص للعناية بالبشرة' : 'روتيني المخصص للعناية بالشعر';
-    const savedObj: CustomerSavedRoutine = {
-      id: `cr-${Date.now()}`,
-      title: routineTitle,
-      category: focusArea,
-      concern: selectedConcerns.join(', '),
-      savedAt: new Date().toISOString(),
-      morningSteps: selectedItems.filter((i) => i.period === 'morning'),
-      eveningSteps: selectedItems.filter((i) => i.period === 'evening'),
-    };
-    saveCustomerRoutine(savedObj);
-    setIsSaved(true);
+    withAuth(
+      () => {
+        const routineTitle =
+          focusArea === 'skin'
+            ? 'روتيني المخصص للعناية بالبشرة'
+            : 'روتيني المخصص للعناية بالشعر';
+        const savedObj: CustomerSavedRoutine = {
+          id: `cr-${Date.now()}`,
+          title: routineTitle,
+          category: focusArea,
+          concern: selectedConcerns.join(', '),
+          savedAt: new Date().toISOString(),
+          morningSteps: selectedItems.filter((i) => i.period === 'morning'),
+          eveningSteps: selectedItems.filter((i) => i.period === 'evening'),
+        };
+        saveCustomerRoutine(savedObj);
+        setIsSaved(true);
+      },
+      {
+        title: 'احفظ روتينك المخصص',
+        description:
+          'سجّل دخولك لحفظ ومتابعة روتينك في حسابك والوصول إليه من أي جهاز.',
+        intent: 'save-routine',
+      }
+    );
   };
 
   const handleAddToCart = async () => {

@@ -65,3 +65,12 @@ export function signInHref(returnTo: string, reason?: 'expired'): string {
   if (reason) params.set('reason', reason);
   return `/auth?${params}`;
 }
+
+/**
+ * The registration page for new customers, preserving the destination task via `returnTo`.
+ */
+export function registerHref(returnTo?: string | null): string {
+  if (!returnTo) return '/auth/register';
+  const safe = safeReturnTo(returnTo);
+  return `/auth/register?returnTo=${encodeURIComponent(safe)}`;
+}

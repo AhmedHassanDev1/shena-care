@@ -47,4 +47,9 @@ export class VerifyOtpDto {
   @IsUUID()
   @IsOptional()
   guestId?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  name?: string;
 }

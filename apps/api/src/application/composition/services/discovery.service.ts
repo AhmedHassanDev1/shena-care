@@ -37,12 +37,9 @@ export class DiscoveryService {
       const batch = await this.catalog.getPublishedProductsByIds(ids.slice(start, start + 50));
       const byId = new Map(batch.map(p => [p.id, p]));
       for (let i = start; i < Math.min(start + 50, ids.length) && items.length < (query.limit ?? 8); i += 10) {
-        const visible = await Promise.all(ids.slice(i, i + 10).map(async id => {
-          const product = byId.get(id);
-          if (!product) return null;
-          const view = await this.views.composeProduct(product);
-          return view && this.matchesVisible(product, view, filters) ? view : null;
-        }));
+        const selected = ids.slice(i, i + 10).map(id => byId.get(id)).filter((p): p is PublishedProduct => !!p);
+        const composed = await this.views.composeProducts(selected);
+        const visible = composed.map((view, index) => view && this.matchesVisible(selected[index], view, filters) ? view : null);
         for (const view of visible) {
           if (view) items.push({ id: view.id, name: view.name, slug: view.slug,
             brand: { name: view.brand.name, slug: view.brand.slug } });
@@ -78,13 +75,10 @@ export class DiscoveryService {
       for (let start = 0; start < ids.length; start += 100) {
         const batch = await this.catalog.getPublishedProductsByIds(ids.slice(start, start + 100));
         const byId = new Map(batch.map(p => [p.id, p]));
-        for (let i = start; i < Math.min(start + 100, ids.length); i += 10) {
-          const composed = await Promise.all(ids.slice(i, i + 10).map(async id => {
-            const product = byId.get(id);
-            if (!product) return null;
-            const view = await this.views.composeProduct(product, evaluatedAt);
-            return view && this.matchesVisible(product, view, searchFilters) ? view : null;
-          }));
+        for (let i = start; i < Math.min(start + 100, ids.length); i += 100) {
+          const selected = ids.slice(i, i + 100).map(id => byId.get(id)).filter((p): p is PublishedProduct => !!p);
+          const views = await this.views.composeProducts(selected, evaluatedAt);
+          const composed = views.map((view, index) => view && this.matchesVisible(selected[index], view, searchFilters) ? view : null);
           visible.push(...composed.filter((p): p is ProductView => p !== null));
         }
       }
@@ -92,8 +86,8 @@ export class DiscoveryService {
       let scanAfter: string | undefined;
       do {
         const batch = await this.catalog.scanPublishedProducts(filters, snapshotAt, scanAfter);
-        for (let start = 0; start < batch.products.length; start += 10) {
-          const composed = await Promise.all(batch.products.slice(start, start + 10).map(p => this.views.composeProduct(p, evaluatedAt)));
+        for (let start = 0; start < batch.products.length; start += 100) {
+          const composed = await this.views.composeProducts(batch.products.slice(start, start + 100), evaluatedAt);
           visible.push(...composed.filter((p): p is ProductView => p !== null));
         }
         scanAfter = batch.nextAfterId ?? undefined;

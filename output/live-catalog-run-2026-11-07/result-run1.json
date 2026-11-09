@@ -1,0 +1,3312 @@
+{
+  "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+  "minutes": 0.47278333333333333,
+  "upload": {
+    "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+    "status": "COMPLETED",
+    "reused": false,
+    "totalRows": 33,
+    "columnMap": {
+      "mapped": {
+        "name": "name",
+        "brand": "brand"
+      },
+      "ignored": []
+    },
+    "totals": {
+      "HOLD": 25,
+      "SKIP": 0,
+      "total": 33,
+      "PENDING": 0,
+      "REJECTED": 5,
+      "AUTO_LINK": 0,
+      "UNDECIDED": 33,
+      "AUTO_ACCEPT": 0,
+      "HOLD_CRITICAL": 0,
+      "NEW_CANDIDATE": 3,
+      "LINKED_EXISTING": 0,
+      "RETRY_AUTOMATIC": 0
+    },
+    "matching": {
+      "status": "COMPLETED"
+    }
+  },
+  "passes": [
+    {
+      "PENDING": 0,
+      "LINKED_EXISTING": 0,
+      "NEW_CANDIDATE": 3,
+      "HOLD": 25,
+      "REJECTED": 5,
+      "total": 33,
+      "AUTO_ACCEPT": 0,
+      "AUTO_LINK": 0,
+      "SKIP": 5,
+      "HOLD_CRITICAL": 28,
+      "RETRY_AUTOMATIC": 0,
+      "UNDECIDED": 0
+    },
+    {
+      "PENDING": 0,
+      "LINKED_EXISTING": 0,
+      "NEW_CANDIDATE": 3,
+      "HOLD": 25,
+      "REJECTED": 5,
+      "total": 33,
+      "AUTO_ACCEPT": 0,
+      "AUTO_LINK": 0,
+      "SKIP": 5,
+      "HOLD_CRITICAL": 28,
+      "RETRY_AUTOMATIC": 0,
+      "UNDECIDED": 0
+    }
+  ],
+  "rows": [
+    {
+      "rowNumber": 2,
+      "brand": "StarVille",
+      "name": "Acne Prone Skin Facial Cleanser 200 ml",
+      "size": "200",
+      "sizeUnit": "ml",
+      "outcome": "REJECTED",
+      "reasonCode": "POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND",
+      "decision": "SKIP",
+      "reason": "This category is not allowed for the brand",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "CATEGORY_NOT_ALLOWED_FOR_BRAND",
+          "outcome": "SKIP",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "cleanser",
+            "productSubtype": null
+          },
+          "categoryId": null
+        }
+      }
+    },
+    {
+      "rowNumber": 3,
+      "brand": "StarVille",
+      "name": "Whitening Cleanser 200 ml",
+      "size": "200",
+      "sizeUnit": "ml",
+      "outcome": "REJECTED",
+      "reasonCode": "POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND",
+      "decision": "SKIP",
+      "reason": "This category is not allowed for the brand",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "CATEGORY_NOT_ALLOWED_FOR_BRAND",
+          "outcome": "SKIP",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "cleanser",
+            "productSubtype": null
+          },
+          "categoryId": null
+        }
+      }
+    },
+    {
+      "rowNumber": 4,
+      "brand": "StarVille",
+      "name": "Facial Cleanser Hydro",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "REJECTED",
+      "reasonCode": "POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND",
+      "decision": "SKIP",
+      "reason": "This category is not allowed for the brand",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "CATEGORY_NOT_ALLOWED_FOR_BRAND",
+          "outcome": "SKIP",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "cleanser",
+            "productSubtype": null
+          },
+          "categoryId": null
+        }
+      }
+    },
+    {
+      "rowNumber": 5,
+      "brand": "StarVille",
+      "name": "Acne Prone Skin Cream 60 gm",
+      "size": "60",
+      "sizeUnit": "g",
+      "outcome": "REJECTED",
+      "reasonCode": "POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND",
+      "decision": "SKIP",
+      "reason": "This category is not allowed for the brand",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "CATEGORY_NOT_ALLOWED_FOR_BRAND",
+          "outcome": "SKIP",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "moisturizer",
+            "productSubtype": null
+          },
+          "categoryId": null
+        }
+      }
+    },
+    {
+      "rowNumber": 6,
+      "brand": "StarVille",
+      "name": "Acne Prone Skin Gel 30 gm",
+      "size": "30",
+      "sizeUnit": "g",
+      "outcome": "HOLD",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "decision": "HOLD_CRITICAL",
+      "reason": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "CATEGORY_UNKNOWN",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "NONE",
+            "stated": null,
+            "productType": null,
+            "productSubtype": null
+          },
+          "categoryId": null
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 7,
+      "brand": "Shaan",
+      "name": "Antioxidant Facial Cleanser 250 ml",
+      "size": "250",
+      "sizeUnit": "ml",
+      "outcome": "NEW_CANDIDATE",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "decision": "HOLD_CRITICAL",
+      "reason": "No product page was given, and none was found on the brand's site or a trusted distributor",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "cleanser",
+            "productSubtype": null
+          },
+          "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 8,
+      "brand": "Shaan",
+      "name": "Soothing Gel 120 gm",
+      "size": "120",
+      "sizeUnit": "g",
+      "outcome": "HOLD",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "decision": "HOLD_CRITICAL",
+      "reason": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "CATEGORY_UNKNOWN",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "NONE",
+            "stated": null,
+            "productType": null,
+            "productSubtype": null
+          },
+          "categoryId": null
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 9,
+      "brand": "Shaan",
+      "name": "Rejuvenation Cream 120 gm",
+      "size": "120",
+      "sizeUnit": "g",
+      "outcome": "NEW_CANDIDATE",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "decision": "HOLD_CRITICAL",
+      "reason": "No product page was given, and none was found on the brand's site or a trusted distributor",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "moisturizer",
+            "productSubtype": null
+          },
+          "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 10,
+      "brand": "Shaan",
+      "name": "Oily Matte Cream-Gel 60 gm",
+      "size": "60",
+      "sizeUnit": "g",
+      "outcome": "NEW_CANDIDATE",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "decision": "HOLD_CRITICAL",
+      "reason": "No product page was given, and none was found on the brand's site or a trusted distributor",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "moisturizer",
+            "productSubtype": null
+          },
+          "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 11,
+      "brand": "Shaan",
+      "name": "Dry S Cream Fragrance Free",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "MISSING_NET_CONTENT",
+      "decision": "HOLD_CRITICAL",
+      "reason": "Size and unit are needed to tell this product apart from its other sizes",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "moisturizer",
+            "productSubtype": null
+          },
+          "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d"
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 12,
+      "brand": "Bobai",
+      "name": "Sunscreen Extra Lightening Gel SPF 50 50 gm",
+      "size": "50",
+      "sizeUnit": "g",
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The site found (www.parkvillepharma.com) is not on the brand's own domain",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "sunscreen",
+            "productSubtype": null
+          },
+          "categoryId": "86b2f262-379b-4b94-a6fb-485cd654d0b2"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 13,
+      "brand": "Bobai",
+      "name": "Sunscreen Tinted Extra Lightening Gel SPF 50 50 gm",
+      "size": "50",
+      "sizeUnit": "g",
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The site found (www.parkvillepharma.com) is not on the brand's own domain",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "sunscreen",
+            "productSubtype": null
+          },
+          "categoryId": "86b2f262-379b-4b94-a6fb-485cd654d0b2"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 14,
+      "brand": "Bobai",
+      "name": "Sunscreen Oil Defense Fluid SPF 50 75 ml",
+      "size": "75",
+      "sizeUnit": "ml",
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The site found (www.parkvillepharma.com) is not on the brand's own domain",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "sunscreen",
+            "productSubtype": null
+          },
+          "categoryId": "86b2f262-379b-4b94-a6fb-485cd654d0b2"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 15,
+      "brand": "Dermactive",
+      "name": "ACTI-CLEAR Gentle Cleansing Gel",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The official site does not state this brand name",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "cleanser",
+            "productSubtype": "gel"
+          },
+          "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6"
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 16,
+      "brand": "Dermactive",
+      "name": "ACTI-CLEAR Hydra-Mattifying Gel",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "decision": "HOLD_CRITICAL",
+      "reason": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "CATEGORY_UNKNOWN",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "NONE",
+            "stated": null,
+            "productType": null,
+            "productSubtype": null
+          },
+          "categoryId": null
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 17,
+      "brand": "Dermactive",
+      "name": "ACTI-WHITE Foaming Gel",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "decision": "HOLD_CRITICAL",
+      "reason": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "CATEGORY_UNKNOWN",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "NONE",
+            "stated": null,
+            "productType": null,
+            "productSubtype": null
+          },
+          "categoryId": null
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 18,
+      "brand": "Dermactive",
+      "name": "ACTI-WHITE Brightening Correcting Serum",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The official site does not state this brand name",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "serum",
+            "productSubtype": null
+          },
+          "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb"
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 19,
+      "brand": "Dermactive",
+      "name": "ACTI-SOLAIRE SPF50+ Ultra Fluid",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "decision": "HOLD_CRITICAL",
+      "reason": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "CATEGORY_UNKNOWN",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "NONE",
+            "stated": null,
+            "productType": null,
+            "productSubtype": null
+          },
+          "categoryId": null
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 20,
+      "brand": "Dermactive",
+      "name": "ACTI-SOLAIRE SPF50+ Melting Cream",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The official site does not state this brand name",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "moisturizer",
+            "productSubtype": null
+          },
+          "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d"
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 21,
+      "brand": "Dermactive",
+      "name": "ACTI-REPAIR CICA Cream",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The official site does not state this brand name",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "moisturizer",
+            "productSubtype": null
+          },
+          "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d"
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 22,
+      "brand": "Dermactive",
+      "name": "TRICHO-ACT Anti-Dandruff Shampoo DS",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The official site does not state this brand name",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "shampoo",
+            "productSubtype": null
+          },
+          "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a"
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 23,
+      "brand": "Dermactive",
+      "name": "TRICHO-ACT Hair Repairing Mask",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The official site does not state this brand name",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "hair-mask",
+            "productSubtype": null
+          },
+          "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa"
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 24,
+      "brand": "Eva Skin Clinic",
+      "name": "Niacinamide Facial Serum 30 ml",
+      "size": "30",
+      "sizeUnit": "ml",
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "serum",
+            "productSubtype": null
+          },
+          "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 25,
+      "brand": "Eva Skin Clinic",
+      "name": "Hyaluronic Acid Facial Serum 30 ml",
+      "size": "30",
+      "sizeUnit": "ml",
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "serum",
+            "productSubtype": null
+          },
+          "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 26,
+      "brand": "Eva Skin Clinic",
+      "name": "Vitamin C Facial Serum 20 ml",
+      "size": "20",
+      "sizeUnit": "ml",
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "serum",
+            "productSubtype": null
+          },
+          "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 27,
+      "brand": "Eva Skin Clinic",
+      "name": "Hyaluronic Acid Facial Wash 160 ml",
+      "size": "160",
+      "sizeUnit": "ml",
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "cleanser",
+            "productSubtype": null
+          },
+          "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 28,
+      "brand": "Eva Skin Clinic",
+      "name": "Hyaluronic Acid Day Gel 45 ml",
+      "size": "45",
+      "sizeUnit": "ml",
+      "outcome": "HOLD",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "decision": "HOLD_CRITICAL",
+      "reason": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "CATEGORY_UNKNOWN",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "NONE",
+            "stated": null,
+            "productType": null,
+            "productSubtype": null
+          },
+          "categoryId": null
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 29,
+      "brand": "Eva Skin Clinic",
+      "name": "Hyaluronic Acid Night Cream 45 ml",
+      "size": "45",
+      "sizeUnit": "ml",
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "moisturizer",
+            "productSubtype": null
+          },
+          "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 30,
+      "brand": "Eva Skin Clinic",
+      "name": "Hyaluronic Acid Micellar Water 200 ml",
+      "size": "200",
+      "sizeUnit": "ml",
+      "outcome": "HOLD",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "decision": "HOLD_CRITICAL",
+      "reason": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_NEW",
+          "outcome": "HOLD",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "makeup-remover",
+            "productSubtype": null
+          },
+          "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6"
+        },
+        "conflicts": [
+          "missing_barcode"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 31,
+      "brand": "Eva Skin Clinic",
+      "name": "Collagen Toner 200 ml",
+      "size": "200",
+      "sizeUnit": "ml",
+      "outcome": "REJECTED",
+      "reasonCode": "POLICY_PRODUCT_TYPE_NOT_IN_TAXONOMY",
+      "decision": "SKIP",
+      "reason": "The product type has no approved leaf category, so no brand can allow it",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "PRODUCT_TYPE_NOT_IN_TAXONOMY",
+          "outcome": "SKIP",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "toner",
+            "productSubtype": null
+          },
+          "categoryId": null
+        }
+      }
+    },
+    {
+      "rowNumber": 32,
+      "brand": "CeraVe",
+      "name": "Foaming Facial Cleanser",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "MISSING_NET_CONTENT",
+      "decision": "HOLD_CRITICAL",
+      "reason": "Size and unit are needed to tell this product apart from its other sizes",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "cleanser",
+            "productSubtype": null
+          },
+          "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6"
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 33,
+      "brand": "CeraVe",
+      "name": "Hydrating Facial Cleanser",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "MISSING_NET_CONTENT",
+      "decision": "HOLD_CRITICAL",
+      "reason": "Size and unit are needed to tell this product apart from its other sizes",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "cleanser",
+            "productSubtype": null
+          },
+          "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6"
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    },
+    {
+      "rowNumber": 34,
+      "brand": "CeraVe",
+      "name": "Blemish Control Cleanser",
+      "size": null,
+      "sizeUnit": null,
+      "outcome": "HOLD",
+      "reasonCode": "MISSING_NET_CONTENT",
+      "decision": "HOLD_CRITICAL",
+      "reason": "Size and unit are needed to tell this product apart from its other sizes",
+      "matchedSkuId": null,
+      "lastError": null,
+      "identity": {
+        "route": "NEW",
+        "policy": {
+          "id": "03aad7e0-9699-4100-aef0-222bc6723687",
+          "reason": "BRAND_AND_LEAF_APPROVED",
+          "outcome": "ALLOW",
+          "version": 18,
+          "category": {
+            "rule": "product-type@1",
+            "basis": "PRODUCT_TYPE",
+            "stated": null,
+            "productType": "cleanser",
+            "productSubtype": null
+          },
+          "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6"
+        },
+        "conflicts": [
+          "missing_barcode",
+          "missing_net_content"
+        ],
+        "candidates": [],
+        "matchReason": "no_canonical_match_found",
+        "inferredBrand": null,
+        "classification": "NO_MATCH",
+        "suggestedSkuId": null
+      }
+    }
+  ],
+  "brands": [
+    {
+      "id": "f32d7b9d-e667-46c5-be80-2136a48aa12b",
+      "name": "Eva Cosmetics",
+      "slug": "eva-cosmetics",
+      "description": "Eva Skin Clinic products",
+      "logoUrl": null,
+      "logoMetadata": null,
+      "websiteUrl": "https://eva-cosmetics.com",
+      "countryOfOrigin": "Egypt",
+      "profile": null,
+      "profileUpdatedAt": null,
+      "isActive": true,
+      "createdAt": "2026-10-21T12:44:26.712Z",
+      "updatedAt": "2026-10-21T12:44:26.712Z",
+      "productLines": []
+    },
+    {
+      "id": "8dcbdbdc-3dac-45f3-a710-e2025244ad7d",
+      "name": "StarVille",
+      "slug": "starville",
+      "description": "Dermatological skincare by Parkville",
+      "logoUrl": null,
+      "logoMetadata": null,
+      "websiteUrl": "https://parkville.com.eg",
+      "countryOfOrigin": "Egypt",
+      "profile": null,
+      "profileUpdatedAt": null,
+      "isActive": true,
+      "createdAt": "2026-10-21T12:44:27.711Z",
+      "updatedAt": "2026-10-21T12:44:27.711Z",
+      "productLines": []
+    },
+    {
+      "id": "d06af69e-eba6-4111-b575-4d29f3a2fbc8",
+      "name": "The Hair Addict",
+      "slug": "the-hair-addict",
+      "description": "Natural hair care for curls and frizz",
+      "logoUrl": null,
+      "logoMetadata": null,
+      "websiteUrl": "https://thehairaddict.net",
+      "countryOfOrigin": "Egypt",
+      "profile": null,
+      "profileUpdatedAt": null,
+      "isActive": true,
+      "createdAt": "2026-10-21T12:44:28.300Z",
+      "updatedAt": "2026-10-21T12:44:28.300Z",
+      "productLines": []
+    },
+    {
+      "id": "7eb8f700-f6a9-4321-96a2-32a2ad30d040",
+      "name": "BLESS",
+      "slug": "bless",
+      "description": "Bless hair care products",
+      "logoUrl": null,
+      "logoMetadata": null,
+      "websiteUrl": "https://blessbotanicals.com",
+      "countryOfOrigin": "Egypt",
+      "profile": null,
+      "profileUpdatedAt": null,
+      "isActive": true,
+      "createdAt": "2026-10-21T12:44:28.886Z",
+      "updatedAt": "2026-10-21T12:44:28.886Z",
+      "productLines": []
+    },
+    {
+      "id": "13dd3087-7eae-4072-b60d-78e4d2c6cce0",
+      "name": "Cerave",
+      "slug": "cerave",
+      "description": "Developed with Dermatologists",
+      "logoUrl": null,
+      "logoMetadata": null,
+      "websiteUrl": "https://www.cerave.com/",
+      "countryOfOrigin": null,
+      "profile": null,
+      "profileUpdatedAt": null,
+      "isActive": true,
+      "createdAt": "2026-11-05T23:09:25.351Z",
+      "updatedAt": "2026-11-05T23:09:25.351Z",
+      "productLines": []
+    },
+    {
+      "id": "fe79ae65-d2f1-4835-9248-38d69676fc72",
+      "name": "Clary Corporation",
+      "slug": "clary-corporation",
+      "description": null,
+      "logoUrl": null,
+      "logoMetadata": null,
+      "websiteUrl": "https://www.clary.com/",
+      "countryOfOrigin": null,
+      "profile": null,
+      "profileUpdatedAt": null,
+      "isActive": true,
+      "createdAt": "2026-11-05T23:41:30.415Z",
+      "updatedAt": "2026-11-05T23:41:30.415Z",
+      "productLines": []
+    },
+    {
+      "id": "4b2706a8-4f36-4b0a-8c95-1adbd872c1cd",
+      "name": "capixy",
+      "slug": "capixy",
+      "description": null,
+      "logoUrl": null,
+      "logoMetadata": null,
+      "websiteUrl": null,
+      "countryOfOrigin": null,
+      "profile": null,
+      "profileUpdatedAt": null,
+      "isActive": true,
+      "createdAt": "2026-11-05T23:48:13.418Z",
+      "updatedAt": "2026-11-05T23:48:13.418Z",
+      "productLines": []
+    },
+    {
+      "id": "9452185a-8d7b-4f3e-9d33-24ed9db923f5",
+      "name": "shaan",
+      "slug": "shaan",
+      "description": null,
+      "logoUrl": null,
+      "logoMetadata": null,
+      "websiteUrl": null,
+      "countryOfOrigin": null,
+      "profile": null,
+      "profileUpdatedAt": null,
+      "isActive": true,
+      "createdAt": "2026-11-06T09:12:17.459Z",
+      "updatedAt": "2026-11-06T09:12:17.459Z",
+      "productLines": []
+    }
+  ],
+  "products": [],
+  "media": [],
+  "facts": [],
+  "exceptions": [
+    {
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "summary": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "fb1f3568-5579-427e-aef2-af1386d7c68e",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Choose the category",
+        "action": "CORRECT"
+      }
+    },
+    {
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "summary": "No product page was given, and none was found on the brand's site or a trusted distributor",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "b8c18428-d614-425a-b959-aad5919d392c",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Add the official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "tried": []
+        }
+      }
+    },
+    {
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "summary": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "c4d70f0c-8b38-4a36-b2eb-be9604431a42",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Choose the category",
+        "action": "CORRECT"
+      }
+    },
+    {
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "summary": "No product page was given, and none was found on the brand's site or a trusted distributor",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "0f6a08fc-7f9c-47ef-a749-46ea6a075588",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Add the official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "tried": []
+        }
+      }
+    },
+    {
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "summary": "No product page was given, and none was found on the brand's site or a trusted distributor",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "0f498048-4fc4-4337-b5fb-a6ddf4397abc",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Add the official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "tried": []
+        }
+      }
+    },
+    {
+      "reasonCode": "MISSING_NET_CONTENT",
+      "summary": "Size and unit are needed to tell this product apart from its other sizes",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "4941817d-764c-43cb-b4f0-44e00126ccae",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Add the size",
+        "action": "CORRECT"
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The site found (www.parkvillepharma.com) is not on the brand's own domain",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "5dffbea1-f990-4e5e-9d05-2ea0a4b21d3b",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://www.parkvillepharma.com/",
+            "host": "www.parkvillepharma.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": false
+          },
+          "notes": [
+            "DOMAIN_NOT_BRAND",
+            "LOGO_NOT_FOUND"
+          ],
+          "draftId": "3db4a406-53d8-4e9f-8459-72a1cc8f82a1",
+          "references": [
+            {
+              "url": "https://www.parkvillepharma.com/brand/bobai",
+              "host": "www.parkvillepharma.com",
+              "title": "Bobai"
+            },
+            {
+              "url": "https://eparkville.com/collections/bobai",
+              "host": "eparkville.com",
+              "title": "Bobai E Parkville"
+            },
+            {
+              "url": "https://www.parkvillepharma.com/brands",
+              "host": "www.parkvillepharma.com",
+              "title": "Brands"
+            },
+            {
+              "url": "https://sourcebeauty.com/collections/bobai",
+              "host": "sourcebeauty.com",
+              "title": "Bobai Products - Shop Online | Source Beauty Egypt"
+            },
+            {
+              "url": "https://bobaiusa.com/",
+              "host": "bobaiusa.com",
+              "title": "Bobai USA"
+            },
+            {
+              "url": "https://www.elegantstoreeg.com/brand/parkville/bobai/",
+              "host": "www.elegantstoreeg.com",
+              "title": "Bobai - Elegant Store"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The site found (www.parkvillepharma.com) is not on the brand's own domain",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "f0570371-7529-4942-9244-4619066fb3b1",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://www.parkvillepharma.com/",
+            "host": "www.parkvillepharma.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": false
+          },
+          "notes": [
+            "DOMAIN_NOT_BRAND",
+            "LOGO_NOT_FOUND"
+          ],
+          "draftId": "3db4a406-53d8-4e9f-8459-72a1cc8f82a1",
+          "references": [
+            {
+              "url": "https://www.parkvillepharma.com/brand/bobai",
+              "host": "www.parkvillepharma.com",
+              "title": "Bobai"
+            },
+            {
+              "url": "https://eparkville.com/collections/bobai",
+              "host": "eparkville.com",
+              "title": "Bobai E Parkville"
+            },
+            {
+              "url": "https://www.parkvillepharma.com/brands",
+              "host": "www.parkvillepharma.com",
+              "title": "Brands"
+            },
+            {
+              "url": "https://sourcebeauty.com/collections/bobai",
+              "host": "sourcebeauty.com",
+              "title": "Bobai Products - Shop Online | Source Beauty Egypt"
+            },
+            {
+              "url": "https://bobaiusa.com/",
+              "host": "bobaiusa.com",
+              "title": "Bobai USA"
+            },
+            {
+              "url": "https://www.elegantstoreeg.com/brand/parkville/bobai/",
+              "host": "www.elegantstoreeg.com",
+              "title": "Bobai - Elegant Store"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The site found (www.parkvillepharma.com) is not on the brand's own domain",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "1cb240ae-549e-406c-aa02-874478df2895",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://www.parkvillepharma.com/",
+            "host": "www.parkvillepharma.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": false
+          },
+          "notes": [
+            "DOMAIN_NOT_BRAND",
+            "LOGO_NOT_FOUND"
+          ],
+          "draftId": "3db4a406-53d8-4e9f-8459-72a1cc8f82a1",
+          "references": [
+            {
+              "url": "https://www.parkvillepharma.com/brand/bobai",
+              "host": "www.parkvillepharma.com",
+              "title": "Bobai"
+            },
+            {
+              "url": "https://eparkville.com/collections/bobai",
+              "host": "eparkville.com",
+              "title": "Bobai E Parkville"
+            },
+            {
+              "url": "https://www.parkvillepharma.com/brands",
+              "host": "www.parkvillepharma.com",
+              "title": "Brands"
+            },
+            {
+              "url": "https://sourcebeauty.com/collections/bobai",
+              "host": "sourcebeauty.com",
+              "title": "Bobai Products - Shop Online | Source Beauty Egypt"
+            },
+            {
+              "url": "https://bobaiusa.com/",
+              "host": "bobaiusa.com",
+              "title": "Bobai USA"
+            },
+            {
+              "url": "https://www.elegantstoreeg.com/brand/parkville/bobai/",
+              "host": "www.elegantstoreeg.com",
+              "title": "Bobai - Elegant Store"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The official site does not state this brand name",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "a6b8b774-0683-4267-8cd0-ab6e37ccd8f1",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://derm-active.com/",
+            "host": "derm-active.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": true
+          },
+          "notes": [
+            "LOGO_NOT_FOUND"
+          ],
+          "draftId": "ca902a5b-390f-4273-b150-52fc851b96ca",
+          "references": [
+            {
+              "url": "https://derm-active.com/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/shop/",
+              "host": "derm-active.com",
+              "title": "Shop - Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/ar/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/ar/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/product/acti-clear-gentle-cleansing-gel/",
+              "host": "derm-active.com",
+              "title": "ACTI-CLEAR Gentle Cleansing Gel – Dermactive"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The official site does not state this brand name",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "8d017a73-94ba-437b-ab2e-f261c3f83a1f",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://derm-active.com/",
+            "host": "derm-active.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": true
+          },
+          "notes": [
+            "LOGO_NOT_FOUND"
+          ],
+          "draftId": "ca902a5b-390f-4273-b150-52fc851b96ca",
+          "references": [
+            {
+              "url": "https://derm-active.com/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/shop/",
+              "host": "derm-active.com",
+              "title": "Shop - Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/ar/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/ar/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/product/acti-clear-gentle-cleansing-gel/",
+              "host": "derm-active.com",
+              "title": "ACTI-CLEAR Gentle Cleansing Gel – Dermactive"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The official site does not state this brand name",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "eaabfabd-729b-4d25-8a77-d5b0055a7a73",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://derm-active.com/",
+            "host": "derm-active.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": true
+          },
+          "notes": [
+            "LOGO_NOT_FOUND"
+          ],
+          "draftId": "ca902a5b-390f-4273-b150-52fc851b96ca",
+          "references": [
+            {
+              "url": "https://derm-active.com/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/shop/",
+              "host": "derm-active.com",
+              "title": "Shop - Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/ar/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/ar/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/product/acti-clear-gentle-cleansing-gel/",
+              "host": "derm-active.com",
+              "title": "ACTI-CLEAR Gentle Cleansing Gel – Dermactive"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The official site does not state this brand name",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "a52b0991-9699-446e-b589-ae328aafea74",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://derm-active.com/",
+            "host": "derm-active.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": true
+          },
+          "notes": [
+            "LOGO_NOT_FOUND"
+          ],
+          "draftId": "ca902a5b-390f-4273-b150-52fc851b96ca",
+          "references": [
+            {
+              "url": "https://derm-active.com/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/shop/",
+              "host": "derm-active.com",
+              "title": "Shop - Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/ar/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/ar/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/product/acti-clear-gentle-cleansing-gel/",
+              "host": "derm-active.com",
+              "title": "ACTI-CLEAR Gentle Cleansing Gel – Dermactive"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The official site does not state this brand name",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "3839042a-2d2a-4b8d-a65b-ac98e17cb46e",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://derm-active.com/",
+            "host": "derm-active.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": true
+          },
+          "notes": [
+            "LOGO_NOT_FOUND"
+          ],
+          "draftId": "ca902a5b-390f-4273-b150-52fc851b96ca",
+          "references": [
+            {
+              "url": "https://derm-active.com/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/shop/",
+              "host": "derm-active.com",
+              "title": "Shop - Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/ar/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/ar/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/product/acti-clear-gentle-cleansing-gel/",
+              "host": "derm-active.com",
+              "title": "ACTI-CLEAR Gentle Cleansing Gel – Dermactive"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The official site does not state this brand name",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "f89c69e2-d10c-498b-86d5-f54bcb985a9e",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://derm-active.com/",
+            "host": "derm-active.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": true
+          },
+          "notes": [
+            "LOGO_NOT_FOUND"
+          ],
+          "draftId": "ca902a5b-390f-4273-b150-52fc851b96ca",
+          "references": [
+            {
+              "url": "https://derm-active.com/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/shop/",
+              "host": "derm-active.com",
+              "title": "Shop - Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/ar/",
+              "host": "derm-active.com",
+              "title": "Dermactive – Feel better in your skin"
+            },
+            {
+              "url": "https://derm-active.com/ar/about-us/",
+              "host": "derm-active.com",
+              "title": "About US – Dermactive"
+            },
+            {
+              "url": "https://derm-active.com/product/acti-clear-gentle-cleansing-gel/",
+              "host": "derm-active.com",
+              "title": "ACTI-CLEAR Gentle Cleansing Gel – Dermactive"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "summary": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "13dce291-de55-4e36-8e40-504832fb809f",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Choose the category",
+        "action": "CORRECT"
+      }
+    },
+    {
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "summary": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "f287ba03-45e9-4b20-b066-f37fefb95696",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Choose the category",
+        "action": "CORRECT"
+      }
+    },
+    {
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "summary": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "d47e815a-e7c4-4eef-a179-b10591c0d787",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Choose the category",
+        "action": "CORRECT"
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "4c31ca65-134e-4917-b663-668a9f32c0ce",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://eva-cosmetics.com/",
+            "host": "eva-cosmetics.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": false
+          },
+          "notes": [
+            "DOMAIN_NOT_BRAND"
+          ],
+          "draftId": "651e6d91-04cf-4c23-8cf1-ae88d066c7ea",
+          "references": [
+            {
+              "url": "https://eva-cosmetics.com/skin-care/skin-clinic/",
+              "host": "eva-cosmetics.com",
+              "title": "Skin Clinic – Eva"
+            },
+            {
+              "url": "https://www.shop.eva-cosmetics.com/collections/eva-skin-clinic",
+              "host": "www.shop.eva-cosmetics.com",
+              "title": "Eva Skin Clinic – EVA Shop"
+            },
+            {
+              "url": "https://eva-cosmetics.com/eva-skin-care/",
+              "host": "eva-cosmetics.com",
+              "title": "brand Eva Skin Care - eva | eva"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-hyaluronic-acid-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Hyaluronic Acid Facial Serum - eva | eva"
+            },
+            {
+              "url": "https://eva-skin.com/",
+              "host": "eva-skin.com",
+              "title": "Eva Skin Clinic"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-niacinamide-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Niacinamide Facial serum - eva | eva"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "f06c6576-ac9c-493e-b8fd-075fb5efdf11",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://eva-cosmetics.com/",
+            "host": "eva-cosmetics.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": false
+          },
+          "notes": [
+            "DOMAIN_NOT_BRAND"
+          ],
+          "draftId": "651e6d91-04cf-4c23-8cf1-ae88d066c7ea",
+          "references": [
+            {
+              "url": "https://eva-cosmetics.com/skin-care/skin-clinic/",
+              "host": "eva-cosmetics.com",
+              "title": "Skin Clinic – Eva"
+            },
+            {
+              "url": "https://www.shop.eva-cosmetics.com/collections/eva-skin-clinic",
+              "host": "www.shop.eva-cosmetics.com",
+              "title": "Eva Skin Clinic – EVA Shop"
+            },
+            {
+              "url": "https://eva-cosmetics.com/eva-skin-care/",
+              "host": "eva-cosmetics.com",
+              "title": "brand Eva Skin Care - eva | eva"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-hyaluronic-acid-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Hyaluronic Acid Facial Serum - eva | eva"
+            },
+            {
+              "url": "https://eva-skin.com/",
+              "host": "eva-skin.com",
+              "title": "Eva Skin Clinic"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-niacinamide-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Niacinamide Facial serum - eva | eva"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "aa987c2f-5d1e-40ba-836a-34f8905942c7",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://eva-cosmetics.com/",
+            "host": "eva-cosmetics.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": false
+          },
+          "notes": [
+            "DOMAIN_NOT_BRAND"
+          ],
+          "draftId": "651e6d91-04cf-4c23-8cf1-ae88d066c7ea",
+          "references": [
+            {
+              "url": "https://eva-cosmetics.com/skin-care/skin-clinic/",
+              "host": "eva-cosmetics.com",
+              "title": "Skin Clinic – Eva"
+            },
+            {
+              "url": "https://www.shop.eva-cosmetics.com/collections/eva-skin-clinic",
+              "host": "www.shop.eva-cosmetics.com",
+              "title": "Eva Skin Clinic – EVA Shop"
+            },
+            {
+              "url": "https://eva-cosmetics.com/eva-skin-care/",
+              "host": "eva-cosmetics.com",
+              "title": "brand Eva Skin Care - eva | eva"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-hyaluronic-acid-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Hyaluronic Acid Facial Serum - eva | eva"
+            },
+            {
+              "url": "https://eva-skin.com/",
+              "host": "eva-skin.com",
+              "title": "Eva Skin Clinic"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-niacinamide-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Niacinamide Facial serum - eva | eva"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "36bf55bb-d7f8-47b5-b96d-794153563c4d",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://eva-cosmetics.com/",
+            "host": "eva-cosmetics.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": false
+          },
+          "notes": [
+            "DOMAIN_NOT_BRAND"
+          ],
+          "draftId": "651e6d91-04cf-4c23-8cf1-ae88d066c7ea",
+          "references": [
+            {
+              "url": "https://eva-cosmetics.com/skin-care/skin-clinic/",
+              "host": "eva-cosmetics.com",
+              "title": "Skin Clinic – Eva"
+            },
+            {
+              "url": "https://www.shop.eva-cosmetics.com/collections/eva-skin-clinic",
+              "host": "www.shop.eva-cosmetics.com",
+              "title": "Eva Skin Clinic – EVA Shop"
+            },
+            {
+              "url": "https://eva-cosmetics.com/eva-skin-care/",
+              "host": "eva-cosmetics.com",
+              "title": "brand Eva Skin Care - eva | eva"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-hyaluronic-acid-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Hyaluronic Acid Facial Serum - eva | eva"
+            },
+            {
+              "url": "https://eva-skin.com/",
+              "host": "eva-skin.com",
+              "title": "Eva Skin Clinic"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-niacinamide-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Niacinamide Facial serum - eva | eva"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "bb98f842-a3c6-4006-896c-32a1d5ae11e9",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://eva-cosmetics.com/",
+            "host": "eva-cosmetics.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": false
+          },
+          "notes": [
+            "DOMAIN_NOT_BRAND"
+          ],
+          "draftId": "651e6d91-04cf-4c23-8cf1-ae88d066c7ea",
+          "references": [
+            {
+              "url": "https://eva-cosmetics.com/skin-care/skin-clinic/",
+              "host": "eva-cosmetics.com",
+              "title": "Skin Clinic – Eva"
+            },
+            {
+              "url": "https://www.shop.eva-cosmetics.com/collections/eva-skin-clinic",
+              "host": "www.shop.eva-cosmetics.com",
+              "title": "Eva Skin Clinic – EVA Shop"
+            },
+            {
+              "url": "https://eva-cosmetics.com/eva-skin-care/",
+              "host": "eva-cosmetics.com",
+              "title": "brand Eva Skin Care - eva | eva"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-hyaluronic-acid-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Hyaluronic Acid Facial Serum - eva | eva"
+            },
+            {
+              "url": "https://eva-skin.com/",
+              "host": "eva-skin.com",
+              "title": "Eva Skin Clinic"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-niacinamide-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Niacinamide Facial serum - eva | eva"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "summary": "The site found (eva-cosmetics.com) is not on the brand's own domain",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "b2397174-7ac1-4cd3-b92d-c15ca0a924ef",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Give the brand's English name or an official product page URL, then retry",
+        "action": "CORRECT",
+        "payload": {
+          "site": {
+            "url": "https://eva-cosmetics.com/",
+            "host": "eva-cosmetics.com",
+            "origin": "SEARCH",
+            "verifiedOfficial": false
+          },
+          "notes": [
+            "DOMAIN_NOT_BRAND"
+          ],
+          "draftId": "651e6d91-04cf-4c23-8cf1-ae88d066c7ea",
+          "references": [
+            {
+              "url": "https://eva-cosmetics.com/skin-care/skin-clinic/",
+              "host": "eva-cosmetics.com",
+              "title": "Skin Clinic – Eva"
+            },
+            {
+              "url": "https://www.shop.eva-cosmetics.com/collections/eva-skin-clinic",
+              "host": "www.shop.eva-cosmetics.com",
+              "title": "Eva Skin Clinic – EVA Shop"
+            },
+            {
+              "url": "https://eva-cosmetics.com/eva-skin-care/",
+              "host": "eva-cosmetics.com",
+              "title": "brand Eva Skin Care - eva | eva"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-hyaluronic-acid-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Hyaluronic Acid Facial Serum - eva | eva"
+            },
+            {
+              "url": "https://eva-skin.com/",
+              "host": "eva-skin.com",
+              "title": "Eva Skin Clinic"
+            },
+            {
+              "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-niacinamide-facial-serum/",
+              "host": "eva-cosmetics.com",
+              "title": "Eva Skin Clinic Niacinamide Facial serum - eva | eva"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "summary": "Neither the category cell nor the product name says what kind of product this is, and no catalog SKU or verified page settles it",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "62d44d7c-75c5-4e97-a7d6-b546a2c3d89b",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Choose the category",
+        "action": "CORRECT"
+      }
+    },
+    {
+      "reasonCode": "MISSING_NET_CONTENT",
+      "summary": "Size and unit are needed to tell this product apart from its other sizes",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "d96d29d9-3340-487d-a0be-49e29c3a1dd6",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Add the size",
+        "action": "CORRECT"
+      }
+    },
+    {
+      "reasonCode": "MISSING_NET_CONTENT",
+      "summary": "Size and unit are needed to tell this product apart from its other sizes",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "46c9c5ad-5b83-4fe9-b4c9-a0ddab2dc812",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Add the size",
+        "action": "CORRECT"
+      }
+    },
+    {
+      "reasonCode": "MISSING_NET_CONTENT",
+      "summary": "Size and unit are needed to tell this product apart from its other sizes",
+      "subjectType": "IMPORT_ROW",
+      "importRowId": "669d35fb-6b6a-4f93-a9b4-8019f52fe599",
+      "skuId": null,
+      "field": null,
+      "recommended": {
+        "label": "Add the size",
+        "action": "CORRECT"
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "16d0ab1a-6397-4e17-8756-d6c5024f02ff",
+      "decision": "SKIP",
+      "reasonCode": "POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 2
+      },
+      "createdAt": "2026-11-07T13:08:49.092Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "f51971c0-d146-4067-8417-aa1ea900a45d",
+      "decision": "SKIP",
+      "reasonCode": "POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 3
+      },
+      "createdAt": "2026-11-07T13:08:49.122Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "012510ec-74e5-4a0b-9c4e-d05b544f96bf",
+      "decision": "SKIP",
+      "reasonCode": "POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 4
+      },
+      "createdAt": "2026-11-07T13:08:49.141Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "1f9e2780-6f72-4973-9e28-74831beec72e",
+      "decision": "SKIP",
+      "reasonCode": "POLICY_CATEGORY_NOT_ALLOWED_FOR_BRAND",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 5
+      },
+      "createdAt": "2026-11-07T13:08:49.171Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "fb1f3568-5579-427e-aef2-af1386d7c68e",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 6
+      },
+      "createdAt": "2026-11-07T13:08:49.191Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "b8c18428-d614-425a-b959-aad5919d392c",
+      "decision": "SOURCE_HOLD_CRITICAL",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "evidence": {
+        "checks": []
+      },
+      "createdAt": "2026-11-07T13:08:50.342Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "b8c18428-d614-425a-b959-aad5919d392c",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "checks": [],
+        "rowNumber": 7
+      },
+      "createdAt": "2026-11-07T13:08:50.353Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "c4d70f0c-8b38-4a36-b2eb-be9604431a42",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 8
+      },
+      "createdAt": "2026-11-07T13:08:50.372Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "0f6a08fc-7f9c-47ef-a749-46ea6a075588",
+      "decision": "SOURCE_HOLD_CRITICAL",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "evidence": {
+        "checks": []
+      },
+      "createdAt": "2026-11-07T13:08:51.008Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "0f6a08fc-7f9c-47ef-a749-46ea6a075588",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "checks": [],
+        "rowNumber": 9
+      },
+      "createdAt": "2026-11-07T13:08:51.112Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "0f498048-4fc4-4337-b5fb-a6ddf4397abc",
+      "decision": "SOURCE_HOLD_CRITICAL",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "evidence": {
+        "checks": []
+      },
+      "createdAt": "2026-11-07T13:08:51.671Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "0f498048-4fc4-4337-b5fb-a6ddf4397abc",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "checks": [],
+        "rowNumber": 10
+      },
+      "createdAt": "2026-11-07T13:08:51.678Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "4941817d-764c-43cb-b4f0-44e00126ccae",
+      "decision": "SIZE_NOT_STATED_BY_SOURCES",
+      "reasonCode": "NO_SINGLE_SIZE",
+      "evidence": {
+        "checks": []
+      },
+      "createdAt": "2026-11-07T13:08:52.294Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "4941817d-764c-43cb-b4f0-44e00126ccae",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "MISSING_NET_CONTENT",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 11
+      },
+      "createdAt": "2026-11-07T13:08:52.303Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "5dffbea1-f990-4e5e-9d05-2ea0a4b21d3b",
+      "decision": "BRAND_NOT_ONBOARDED",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "site": {
+          "url": "https://www.parkvillepharma.com/",
+          "host": "www.parkvillepharma.com",
+          "origin": "SEARCH",
+          "verifiedOfficial": false
+        },
+        "notes": [
+          "DOMAIN_NOT_BRAND",
+          "LOGO_NOT_FOUND"
+        ],
+        "draftId": "3db4a406-53d8-4e9f-8459-72a1cc8f82a1",
+        "references": [
+          {
+            "url": "https://www.parkvillepharma.com/brand/bobai",
+            "host": "www.parkvillepharma.com",
+            "title": "Bobai"
+          },
+          {
+            "url": "https://eparkville.com/collections/bobai",
+            "host": "eparkville.com",
+            "title": "Bobai E Parkville"
+          },
+          {
+            "url": "https://www.parkvillepharma.com/brands",
+            "host": "www.parkvillepharma.com",
+            "title": "Brands"
+          },
+          {
+            "url": "https://sourcebeauty.com/collections/bobai",
+            "host": "sourcebeauty.com",
+            "title": "Bobai Products - Shop Online | Source Beauty Egypt"
+          },
+          {
+            "url": "https://bobaiusa.com/",
+            "host": "bobaiusa.com",
+            "title": "Bobai USA"
+          },
+          {
+            "url": "https://www.elegantstoreeg.com/brand/parkville/bobai/",
+            "host": "www.elegantstoreeg.com",
+            "title": "Bobai - Elegant Store"
+          }
+        ]
+      },
+      "createdAt": "2026-11-07T13:08:55.243Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "5dffbea1-f990-4e5e-9d05-2ea0a4b21d3b",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Bobai",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 12
+      },
+      "createdAt": "2026-11-07T13:08:55.249Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "f0570371-7529-4942-9244-4619066fb3b1",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Bobai",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 13
+      },
+      "createdAt": "2026-11-07T13:08:55.258Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "1cb240ae-549e-406c-aa02-874478df2895",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Bobai",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 14
+      },
+      "createdAt": "2026-11-07T13:08:55.268Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "a6b8b774-0683-4267-8cd0-ab6e37ccd8f1",
+      "decision": "BRAND_NOT_ONBOARDED",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "site": {
+          "url": "https://derm-active.com/",
+          "host": "derm-active.com",
+          "origin": "SEARCH",
+          "verifiedOfficial": true
+        },
+        "notes": [
+          "LOGO_NOT_FOUND"
+        ],
+        "draftId": "ca902a5b-390f-4273-b150-52fc851b96ca",
+        "references": [
+          {
+            "url": "https://derm-active.com/",
+            "host": "derm-active.com",
+            "title": "Dermactive – Feel better in your skin"
+          },
+          {
+            "url": "https://derm-active.com/about-us/",
+            "host": "derm-active.com",
+            "title": "About US – Dermactive"
+          },
+          {
+            "url": "https://derm-active.com/shop/",
+            "host": "derm-active.com",
+            "title": "Shop - Dermactive"
+          },
+          {
+            "url": "https://derm-active.com/ar/",
+            "host": "derm-active.com",
+            "title": "Dermactive – Feel better in your skin"
+          },
+          {
+            "url": "https://derm-active.com/ar/about-us/",
+            "host": "derm-active.com",
+            "title": "About US – Dermactive"
+          },
+          {
+            "url": "https://derm-active.com/product/acti-clear-gentle-cleansing-gel/",
+            "host": "derm-active.com",
+            "title": "ACTI-CLEAR Gentle Cleansing Gel – Dermactive"
+          }
+        ]
+      },
+      "createdAt": "2026-11-07T13:08:59.900Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "a6b8b774-0683-4267-8cd0-ab6e37ccd8f1",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Dermactive",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 15
+      },
+      "createdAt": "2026-11-07T13:08:59.910Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "8d017a73-94ba-437b-ab2e-f261c3f83a1f",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Dermactive",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 18
+      },
+      "createdAt": "2026-11-07T13:08:59.924Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "eaabfabd-729b-4d25-8a77-d5b0055a7a73",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Dermactive",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 20
+      },
+      "createdAt": "2026-11-07T13:08:59.941Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "a52b0991-9699-446e-b589-ae328aafea74",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Dermactive",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 21
+      },
+      "createdAt": "2026-11-07T13:08:59.966Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "3839042a-2d2a-4b8d-a65b-ac98e17cb46e",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Dermactive",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 22
+      },
+      "createdAt": "2026-11-07T13:08:59.982Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "f89c69e2-d10c-498b-86d5-f54bcb985a9e",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Dermactive",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 23
+      },
+      "createdAt": "2026-11-07T13:09:00.008Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "13dce291-de55-4e36-8e40-504832fb809f",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 16
+      },
+      "createdAt": "2026-11-07T13:09:00.041Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "f287ba03-45e9-4b20-b066-f37fefb95696",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 17
+      },
+      "createdAt": "2026-11-07T13:09:00.077Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "d47e815a-e7c4-4eef-a179-b10591c0d787",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 19
+      },
+      "createdAt": "2026-11-07T13:09:00.129Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "4c31ca65-134e-4917-b663-668a9f32c0ce",
+      "decision": "BRAND_NOT_ONBOARDED",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "site": {
+          "url": "https://eva-cosmetics.com/",
+          "host": "eva-cosmetics.com",
+          "origin": "SEARCH",
+          "verifiedOfficial": false
+        },
+        "notes": [
+          "DOMAIN_NOT_BRAND"
+        ],
+        "draftId": "651e6d91-04cf-4c23-8cf1-ae88d066c7ea",
+        "references": [
+          {
+            "url": "https://eva-cosmetics.com/skin-care/skin-clinic/",
+            "host": "eva-cosmetics.com",
+            "title": "Skin Clinic – Eva"
+          },
+          {
+            "url": "https://www.shop.eva-cosmetics.com/collections/eva-skin-clinic",
+            "host": "www.shop.eva-cosmetics.com",
+            "title": "Eva Skin Clinic – EVA Shop"
+          },
+          {
+            "url": "https://eva-cosmetics.com/eva-skin-care/",
+            "host": "eva-cosmetics.com",
+            "title": "brand Eva Skin Care - eva | eva"
+          },
+          {
+            "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-hyaluronic-acid-facial-serum/",
+            "host": "eva-cosmetics.com",
+            "title": "Eva Skin Clinic Hyaluronic Acid Facial Serum - eva | eva"
+          },
+          {
+            "url": "https://eva-skin.com/",
+            "host": "eva-skin.com",
+            "title": "Eva Skin Clinic"
+          },
+          {
+            "url": "https://eva-cosmetics.com/evaproducts/eva-skin-clinic-niacinamide-facial-serum/",
+            "host": "eva-cosmetics.com",
+            "title": "Eva Skin Clinic Niacinamide Facial serum - eva | eva"
+          }
+        ]
+      },
+      "createdAt": "2026-11-07T13:09:02.182Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "4c31ca65-134e-4917-b663-668a9f32c0ce",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Eva Skin Clinic",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 24
+      },
+      "createdAt": "2026-11-07T13:09:02.191Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "f06c6576-ac9c-493e-b8fd-075fb5efdf11",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Eva Skin Clinic",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 25
+      },
+      "createdAt": "2026-11-07T13:09:02.206Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "aa987c2f-5d1e-40ba-836a-34f8905942c7",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Eva Skin Clinic",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 26
+      },
+      "createdAt": "2026-11-07T13:09:02.221Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "36bf55bb-d7f8-47b5-b96d-794153563c4d",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Eva Skin Clinic",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 27
+      },
+      "createdAt": "2026-11-07T13:09:02.235Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "bb98f842-a3c6-4006-896c-32a1d5ae11e9",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Eva Skin Clinic",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 29
+      },
+      "createdAt": "2026-11-07T13:09:02.248Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "b2397174-7ac1-4cd3-b92d-c15ca0a924ef",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "evidence": {
+        "brand": "Eva Skin Clinic",
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 30
+      },
+      "createdAt": "2026-11-07T13:09:02.261Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "62d44d7c-75c5-4e97-a7d6-b546a2c3d89b",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "POLICY_CATEGORY_UNKNOWN",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 28
+      },
+      "createdAt": "2026-11-07T13:09:02.645Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "b4bea80e-f717-42f7-afc2-0fdd9bc2fda4",
+      "decision": "SKIP",
+      "reasonCode": "POLICY_PRODUCT_TYPE_NOT_IN_TAXONOMY",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 31
+      },
+      "createdAt": "2026-11-07T13:09:02.708Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "d96d29d9-3340-487d-a0be-49e29c3a1dd6",
+      "decision": "SIZE_NOT_STATED_BY_SOURCES",
+      "reasonCode": "NO_SINGLE_SIZE",
+      "evidence": {
+        "checks": [
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/foaming-facial-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/foaming-facial-cleansers",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.cerave.com/skin-smarts/skincare-tips-advice/how-to-choose-face-wash-cleanser-for-skin-type",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          }
+        ]
+      },
+      "createdAt": "2026-11-07T13:09:08.585Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "d96d29d9-3340-487d-a0be-49e29c3a1dd6",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "MISSING_NET_CONTENT",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 32
+      },
+      "createdAt": "2026-11-07T13:09:08.601Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "46c9c5ad-5b83-4fe9-b4c9-a0ddab2dc812",
+      "decision": "SIZE_NOT_STATED_BY_SOURCES",
+      "reasonCode": "NO_SINGLE_SIZE",
+      "evidence": {
+        "checks": [
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser-refill",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.cerave.com/skin-smarts/skincare-tips-advice/best-facial-cleanser-for-dry-skin",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          }
+        ]
+      },
+      "createdAt": "2026-11-07T13:09:13.277Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "46c9c5ad-5b83-4fe9-b4c9-a0ddab2dc812",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "MISSING_NET_CONTENT",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 33
+      },
+      "createdAt": "2026-11-07T13:09:13.284Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "669d35fb-6b6a-4f93-a9b4-8019f52fe599",
+      "decision": "SIZE_NOT_STATED_BY_SOURCES",
+      "reasonCode": "NO_SINGLE_SIZE",
+      "evidence": {
+        "checks": [
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/acne-salicylic-acid-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/our-products/moisturizers/blemish-control-gel",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/our-products/cleansers/blemish-control-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/our-products/concern/anti-imperfections",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "excerpt": null,
+            "outcome": "OK",
+            "pageSize": null,
+            "identityMatched": false
+          }
+        ]
+      },
+      "createdAt": "2026-11-07T13:09:17.367Z"
+    },
+    {
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "669d35fb-6b6a-4f93-a9b4-8019f52fe599",
+      "decision": "HOLD_CRITICAL",
+      "reasonCode": "MISSING_NET_CONTENT",
+      "evidence": {
+        "jobId": "f845d686-3fe3-45fa-a7d3-20bf1d959c1d",
+        "rowNumber": 34
+      },
+      "createdAt": "2026-11-07T13:09:17.375Z"
+    }
+  ],
+  "policy": {
+    "brands": [
+      {
+        "id": "13dd3087-7eae-4072-b60d-78e4d2c6cce0",
+        "name": "Cerave",
+        "effect": "ALLOW",
+        "aliases": [],
+        "isActive": true,
+        "categoryIds": [
+          "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+          "6cb0932b-94c3-487f-b70f-4a5e7e859dd6"
+        ]
+      },
+      {
+        "id": "4b2706a8-4f36-4b0a-8c95-1adbd872c1cd",
+        "name": "capixy",
+        "effect": "ALLOW",
+        "aliases": [],
+        "isActive": true,
+        "categoryIds": [
+          "8348236c-bf76-4216-abfb-e7d9cd989341",
+          "54be8317-71b3-440d-92e7-14d630d96a7a"
+        ]
+      },
+      {
+        "id": "7eb8f700-f6a9-4321-96a2-32a2ad30d040",
+        "name": "BLESS",
+        "effect": "ALLOW",
+        "aliases": [],
+        "isActive": true,
+        "categoryIds": [
+          "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+          "6cb0932b-94c3-487f-b70f-4a5e7e859dd6"
+        ]
+      },
+      {
+        "id": "8dcbdbdc-3dac-45f3-a710-e2025244ad7d",
+        "name": "StarVille",
+        "effect": "ALLOW",
+        "aliases": [],
+        "isActive": true
+      },
+      {
+        "id": "9452185a-8d7b-4f3e-9d33-24ed9db923f5",
+        "name": "shaan",
+        "effect": "ALLOW",
+        "aliases": [],
+        "isActive": true,
+        "categoryIds": [
+          "6cb0932b-94c3-487f-b70f-4a5e7e859dd6",
+          "06fd62be-5e4c-4b8a-aa36-498c8c78152d"
+        ]
+      },
+      {
+        "id": "d06af69e-eba6-4111-b575-4d29f3a2fbc8",
+        "name": "The Hair Addict",
+        "effect": null,
+        "aliases": [],
+        "isActive": true
+      },
+      {
+        "id": "f32d7b9d-e667-46c5-be80-2136a48aa12b",
+        "name": "Eva Cosmetics",
+        "effect": null,
+        "aliases": [],
+        "isActive": true,
+        "categoryIds": []
+      },
+      {
+        "id": "fe79ae65-d2f1-4835-9248-38d69676fc72",
+        "name": "Clary Corporation",
+        "effect": "ALLOW",
+        "aliases": [
+          "clary"
+        ],
+        "isActive": true,
+        "categoryIds": [
+          "54be8317-71b3-440d-92e7-14d630d96a7a",
+          "8348236c-bf76-4216-abfb-e7d9cd989341",
+          "79853ea7-a892-4985-9818-bfe7aa8312aa"
+        ]
+      }
+    ],
+    "mappings": [],
+    "categories": [
+      {
+        "id": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+        "name": "Moisturizers",
+        "effect": null,
+        "aliases": [],
+        "isActive": true,
+        "parentId": "652d3f74-3aa5-46f9-8c3e-51f7341ac635"
+      },
+      {
+        "id": "54be8317-71b3-440d-92e7-14d630d96a7a",
+        "name": "Shampoos",
+        "effect": null,
+        "aliases": [],
+        "isActive": true,
+        "parentId": "c9667c39-1a63-4db5-8cb6-3b009faad354"
+      },
+      {
+        "id": "652d3f74-3aa5-46f9-8c3e-51f7341ac635",
+        "name": "Skin Care",
+        "effect": null,
+        "aliases": [],
+        "isActive": true,
+        "parentId": null
+      },
+      {
+        "id": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6",
+        "name": "Cleansers",
+        "effect": null,
+        "aliases": [],
+        "isActive": true,
+        "parentId": "652d3f74-3aa5-46f9-8c3e-51f7341ac635"
+      },
+      {
+        "id": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+        "name": "Hair Treatments & Styling",
+        "effect": null,
+        "aliases": [],
+        "isActive": true,
+        "parentId": "c9667c39-1a63-4db5-8cb6-3b009faad354"
+      },
+      {
+        "id": "8348236c-bf76-4216-abfb-e7d9cd989341",
+        "name": "Conditioners",
+        "effect": null,
+        "aliases": [],
+        "isActive": true,
+        "parentId": "c9667c39-1a63-4db5-8cb6-3b009faad354"
+      },
+      {
+        "id": "86b2f262-379b-4b94-a6fb-485cd654d0b2",
+        "name": "Sunscreens",
+        "effect": null,
+        "aliases": [],
+        "isActive": true,
+        "parentId": "652d3f74-3aa5-46f9-8c3e-51f7341ac635"
+      },
+      {
+        "id": "c9667c39-1a63-4db5-8cb6-3b009faad354",
+        "name": "Hair Care",
+        "effect": null,
+        "aliases": [],
+        "isActive": true,
+        "parentId": null
+      },
+      {
+        "id": "d97b6c27-034e-4d80-810b-59270da1efdb",
+        "name": "Serums & Treatments",
+        "effect": null,
+        "aliases": [],
+        "isActive": true,
+        "parentId": "652d3f74-3aa5-46f9-8c3e-51f7341ac635"
+      }
+    ],
+    "resolutionVersion": 2
+  },
+  "queries": [
+    "shaan Antioxidant Facial Cleanser 250 ml -> https://beauty-911.com/products/shaan-antioxidant-facial-cleanser-250-ml , https://eparkville.com/products/shaan-facial-cleanser-250-gm , https://kayanek.com/shop/shaan-antioxidant-facial-cleanser-250-ml/ , https://medimixegypt.com/product/shaan-facial-cleanser-antioxidant-250ml/ , https://gomyz.com/saudi-en/skincare/cleansers-scrubs/washes/shaan-antioxidant-facial-cleanser-250ml.html , https://www.jumia.com.eg/shaan-facial-cleanser-250-ml-130645291.html , https://www.belamoon.com/products/shaan-antioxidant-facial-cleanser-250-ml , https://www.khalilpharmacy.com/en/shaan-facial-cleanser-250gmparkvill",
+    "shaan Rejuvenation Cream 120 g -> https://www.bloompharmacy.com/products/shaan-rejuvenation-cream-for-dry-and-sensitive-skin-120gm , https://eg.feel22.com/products/shaan-rejuvenation-cream-120g , https://eparkville.com/products/shaan-rejuvenation-cream-120-gm , https://www.amazon.eg/-/en/Shaan-Rejuvenation-cream-120-gm/dp/B08WJMQ22D , https://seif-online.com/en/shaan-rejuvenation-120-gm-cream , https://www.jumia.com.eg/shaan-rejuvenation-cream-120-gm-130010352.html , https://www.lotusonline.com/products/shaan-rejuvenation-cream-120gm , https://dokan.com/products/shaan-rejuvenation-cream-120-gm",
+    "shaan Oily Matte Cream-Gel 60 g -> https://maipharmacy.co/products/shaan-oily-matte-cream-gel-60gm , https://anwar.store/products/shaan-oily-matte-mattifying-gel-cream-60gm , https://www.jumia.com.eg/shaan-oily-matte-cream-gel-60-gm-134176912.html , https://deoora.com/products/shaan-oily-matte-cream-gel-for-oily-face-skin , https://glowroom-eg.com/products/shaan-oily-matte-cream-gel-60-gm , https://stuhm.com/product/shaan-oily-matte/ , https://shakshakpharmacy.myeasyorders.com/products/shaan-oily-matte-cream-gel-60g-oily-combination-skin , https://chancestoreegy.com/products/shaan-oily-matte-cream-gel-60-gm",
+    "shaan Dry S Cream Fragrance Free -> https://www.jumia.com.eg/shaan-dry-s-fragrance-free-cream-for-dry-skin-100g-134516085.html , https://nourpharmacies.com/products/shaan-dry-s-pentavitin-with-centella-100gm-cream , https://deoora.com/products/shaan-dry-s-cream-fragrance-free-for-dry-face , https://ladyy.com/products/shaan-dry-s-cream-fragrance-free-for-dry-face , https://www.jumia.com.eg/shaan-dry-s-intensive-hydrating-moisturizing-face-cream-for-dry-to-very-dry-skin-100g-134696455.html , https://eparkville.com/products/shaan-dry-s-cream-fragrance-free-for-dry-face , https://alzad-cosmetics.com/shop/skin-care/%d8%b4%d8%a7%d9%86-%d9%83%d8%b1%d9%8a%d9%85-%d8%af%d8%b1%d8%a7%d9%8a-%d8%a7%d8%b3-%d8%a8%d8%af%d9%88%d9%86-%d8%b1%d8%a7%d8%a6%d8%ad%d9%87-100-%d8%ac%d8%b1%d8%a7%d9%85 , https://tagmelle.com/products/shaan-dry-s-cream-fragrance-free-for-dry-face-48295",
+    "Bobai official website brand -> https://www.parkvillepharma.com/brand/bobai , https://eparkville.com/collections/bobai , https://www.parkvillepharma.com/brands , https://sourcebeauty.com/collections/bobai , https://bobaiusa.com/ , https://www.elegantstoreeg.com/brand/parkville/bobai/ , https://elprofstore.com/collections/bobai",
+    "Dermactive official website brand -> https://derm-active.com/ , https://derm-active.com/about-us/ , https://derm-active.com/shop/ , https://derm-active.com/ar/ , https://derm-active.com/ar/about-us/ , https://derm-active.com/product/acti-clear-gentle-cleansing-gel/ , https://derm-active.com/product/acti-clear-global-ac-cream/ , https://derm-active.com/product-tag/face-care/",
+    "Eva Skin Clinic official website brand -> https://eva-cosmetics.com/skin-care/skin-clinic/ , https://www.shop.eva-cosmetics.com/collections/eva-skin-clinic , https://eva-cosmetics.com/eva-skin-care/ , https://eva-cosmetics.com/evaproducts/eva-skin-clinic-hyaluronic-acid-facial-serum/ , https://eva-skin.com/ , https://eva-cosmetics.com/evaproducts/eva-skin-clinic-niacinamide-facial-serum/ , https://morgeana.com/products/eva-cosmetics , https://www.brandizer.com/projects/eva",
+    "Cerave Foaming Facial Cleanser [site:cerave.com] -> https://www.cerave.com/skincare/cleansers/foaming-facial-cleanser , https://www.cerave.com/skincare/cleansers/foaming-facial-cleansers , https://www.cerave.com/skin-smarts/skincare-tips-advice/how-to-choose-face-wash-cleanser-for-skin-type , https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser , https://www.cerave.com/skincare/cleansers/gel-facial-cleansers , https://www.cerave.com/en-us/goat",
+    "Cerave Foaming Facial Cleanser -> https://www.cerave.com/skincare/cleansers/foaming-facial-cleanser , https://www.cerave.ca/en-ca/skincare/cleansers/foaming-facial-cleanser , https://www.target.com/p/cerave-foaming-face-wash-facial-cleanser-for-normal-to-oily-skin/-/A-81616315 , https://www.dermstore.com/p/cerave-foaming-facial-cleanser-12-fl.-oz./12901350/ , https://www.cerave.co.uk/skincare/cleansers/foaming-cleanser-refill , https://www.amazon.com/CeraVe-Foaming-Facial-Cleanser-Ounce/dp/B00I2WJ0XG , https://www.amazon.com/CeraVe-Hyaluronic-Ceramides-Niacinamide-Non-Drying/dp/B07RJ18VMF , https://www.ralphs.com/p/cerave-foaming-facial-cleanser-face-wash-for-oily-skin-fragrance-paraben-free-non-comedogenic/0360600053770",
+    "Cerave Hydrating Facial Cleanser [site:cerave.com] -> https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser , https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser , https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser-refill , https://www.cerave.com/skin-smarts/skincare-tips-advice/best-facial-cleanser-for-dry-skin , https://www.cerave.com/skin-smarts/skincare-tips-advice/how-to-choose-face-wash-cleanser-for-skin-type , https://www.cerave.com/skin-smarts/skincare-tips-advice/oil-based-cleanser-vs-water-based-cleanser",
+    "Cerave Hydrating Facial Cleanser -> https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser/ , https://www.cerave.ca/en-ca/skincare/cleansers/hydrating-facial-cleanser , https://www.cvs.com/shop/cerave-hydrating-facial-cleanser-16-oz-prodid-1140320?skuId= , https://www.amazon.com/CeraVe-Hydrating-Facial-Cleanser-Washing/dp/B00D7BZJ3C , https://us.oliveyoung.com/products/UA37085562 , https://www.cerave.co.uk/skincare/cleansers/hydrating-cleanser , https://www.mydadthechemist.com/reviews/cerave-hydrating-facial-cleanser-review/ , https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser-refill",
+    "Cerave Blemish Control Cleanser [site:cerave.com] -> https://www.cerave.com/skincare/cleansers/acne-salicylic-acid-cleanser , https://africa.cerave.com/en/our-products/moisturizers/blemish-control-gel , https://africa.cerave.com/en/our-products/cleansers/blemish-control-cleanser , https://africa.cerave.com/en/our-products/concern/anti-imperfections , https://africa.cerave.com/our-products/cleansers/blemish-control-cleanser , https://www.cerave.com/skincare/cleansers/clay-to-foam-cleanser",
+    "Cerave Blemish Control Cleanser -> https://www.cerave.co.uk/skincare/moisturisers/blemish-control-cleanser , https://www.cerave.com.au/ceramides-skin-care/cleansers/blemish-control-cleanser-for-acne-prone-skin , https://www.superdrug.com/skin/face-wash/cerave-blemish-control-cleanser-with-salicylic-acid-236ml/p/819340 , https://www.ceraveindia.com/ceramides-skin-care/cleansers/blemish-control-cleanser , https://www.cerave.eg/en/skincare/cleansers/blemish-control-cleanser , https://africa.cerave.com/en/our-products/cleansers/blemish-control-cleanser , https://www.ceravemy.com/en/ceramides-skin-care/cleansers/blemish-control-cleanser-for-acne-prone-skin , https://www.yesstyle.com/en/cerave-blemish-control-cleanser-236ml/info.html/pid.1129717743"
+  ]
+}

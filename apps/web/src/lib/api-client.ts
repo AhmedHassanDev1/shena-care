@@ -88,7 +88,7 @@ async function fetchApi<T>(
   const { token, ...fetchOptions } = options;
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(fetchOptions.body != null && { 'Content-Type': 'application/json' }),
   };
 
   if (token) {

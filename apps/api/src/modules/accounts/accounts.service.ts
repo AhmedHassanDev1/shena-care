@@ -181,7 +181,7 @@ export class AccountsService {
     throw new ServiceUnavailableException('OTP delivery provider is not configured for this environment');
   }
 
-  async verifyOtp(phoneNumber: string, code: string, guestId?: string) {
+  async verifyOtp(phoneNumber: string, code: string, guestId?: string, name?: string) {
     const canonicalPhone = this.normalizeEgyptianPhone(phoneNumber);
 
     const challenge = await this.prisma.otpChallenge.findFirst({
@@ -260,7 +260,7 @@ export class AccountsService {
     if (!identity) {
       const customer = await this.prisma.customer.create({
         data: {
-          name: PHONE_SIGNUP_NAME,
+          name: name?.trim() ? name.trim() : PHONE_SIGNUP_NAME,
           email: `${canonicalPhone.replace(/[^0-9]/g, '')}@placeholder.com`,
           roles: ['CUSTOMER'],
           identities: {
@@ -274,6 +274,12 @@ export class AccountsService {
       customerId = customer.id;
     } else {
       customerId = identity.customerId;
+      if (name?.trim() && identity.customer.name === PHONE_SIGNUP_NAME) {
+        await this.prisma.customer.update({
+          where: { id: customerId },
+          data: { name: name.trim() }
+        });
+      }
     }
 
     // The account now controls this number: guest orders placed with it can join the account.

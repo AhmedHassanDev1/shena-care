@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AsyncButton, type AsyncState } from '@/components/ui/button';
 import { PhoneField } from '@/components/ui/field';
@@ -19,6 +20,7 @@ import {
   displayMobile,
   isForeignNumber,
   normalizeEgyptianMobile,
+  registerHref,
   safeReturnTo,
   toLatinDigits,
 } from '../lib/auth-helpers';
@@ -26,8 +28,8 @@ import { challengeFrom, readOtpChallenge, saveOtpChallenge, secondsUntil, type O
 import { AuthHeader } from './auth-ui';
 
 /**
- * Phone step (AuthEntryD, AuthMobile ١–١هـ, AuthStates §١–§٢). One field, «ابعت الكود». The server normalises the
- * number and answers the same for any valid number; the response carries the challenge contract the code step reads.
+ * Phone step (AuthEntryD, AuthMobile, SAHEL Design System).
+ * Egyptian mobile number input with +20 selector, validation, and OTP request.
  */
 export function PhoneLoginForm() {
   const m = useMessages();
@@ -46,10 +48,8 @@ export function PhoneLoginForm() {
   const [fieldError, setFieldError] = useState('');
   const [state, setState] = useState<AsyncState>('idle');
   const [blockedUntil, setBlockedUntil] = useState(0);
-  // Announced once when the limit starts; the visible countdown is not a live region (one announcement per state).
   const [blockedNotice, setBlockedNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
-  // A ref, not state: two taps inside one render must still send a single request.
   const sendingRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -59,12 +59,12 @@ export function PhoneLoginForm() {
     if (pending) setPhone(displayMobile(pending.phoneNumber));
   }, []);
 
-  // Desktop: focus on load. Phone: the keyboard opens on its own only when arriving from «إتمام الطلب».
+  // Desktop: focus on load. Phone: auto-focus only when arriving from checkout.
   useEffect(() => {
     if (fromCheckout || window.matchMedia('(min-width: 1024px)').matches) inputRef.current?.focus();
   }, [fromCheckout]);
 
-  // Already signed in: continue where the customer was going instead of asking again.
+  // Already signed in: continue where the customer was going.
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) router.replace(target);
   }, [isAuthLoading, isAuthenticated, target, router]);
@@ -98,17 +98,17 @@ export function PhoneLoginForm() {
     sendingRef.current = true;
     setState('pending');
     setFieldError('');
+
     try {
       const challenge = await auth.sendOtp(phoneNumber, returnTo ? target : undefined);
       saveOtpChallenge(challengeFrom(phoneNumber, challenge));
       toVerification();
-      // Stays pending until the code step mounts.
     } catch (err) {
       sendingRef.current = false;
       const code = apiErrorCode(err);
       const retryAfter = apiRetryAfter(err);
+
       if (code === 'OTP_COOLDOWN' && retryAfter) {
-        // A code for this number went out moments ago and is still the one to type.
         const data = (err as { data?: Partial<OtpChallengeResponse> & { message?: Partial<OtpChallengeResponse> } }).data;
         const active = { ...data?.message, ...data } as Partial<OtpChallengeResponse>;
         if (active.codeLength && active.expiresAt) {
@@ -130,7 +130,7 @@ export function PhoneLoginForm() {
         setBlockedNotice(fillMessage(m.authRateLimited, { time: isolateLtr(formatClock(retryAfter, locale)) }));
         return;
       }
-      // Network or server failure: the number stays, the same button retries.
+      // Network, server, or SMS gateway failure
       setState('error');
     }
   };
@@ -138,14 +138,23 @@ export function PhoneLoginForm() {
   const savedCount = fromCheckout ? (cart?.itemCount ?? 0) : 0;
 
   return (
-    <>
+    <div className="flex flex-col gap-5">
       {sessionExpired ? (
         <MessageBox tone="warn" role="status">
           {m.authSessionExpired}
         </MessageBox>
       ) : null}
 
-      <AuthHeader title={m.authPhoneTitle} description={m.authPhoneDescription} />
+      <AuthHeader
+        title={m.authMobileTitle}
+        desktopTitle={
+          <>
+            {m.authCardWelcome}{' '}
+            <span className="font-serif italic text-cobalt">ShinaCare</span>
+          </>
+        }
+        description={m.authCardSubtitle}
+      />
 
       {savedCount > 0 ? (
         <div role="status" className="flex items-start gap-3 rounded-16 bg-linen px-4 py-3.5 shadow-outline-hairline">
@@ -161,11 +170,12 @@ export function PhoneLoginForm() {
         </div>
       ) : null}
 
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <PhoneField
           ref={inputRef}
           id="phone"
           name="phone"
+          withCountrySelector
           label={m.authPhoneLabel}
           hint={m.authPhoneHint}
           error={fieldError || undefined}
@@ -180,34 +190,50 @@ export function PhoneLoginForm() {
           readOnly={state === 'pending'}
         />
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 pt-1">
           <AsyncButton
             type="submit"
             size="l"
             state={state}
             pendingLabel={m.authSending}
             disabled={waitSeconds > 0}
-            className="w-full"
+            className="w-full bg-cobalt text-white hover:bg-cobalt-deep rounded-pill h-control-xl font-bold text-17 shadow-elevation-1 transition-colors"
           >
             {m.authSendCta}
           </AsyncButton>
+
           {state === 'error' ? (
             <MessageBox tone="err" role="alert">
               {m.authSendFailed}
             </MessageBox>
           ) : null}
+
           {waitSeconds > 0 ? (
             <MessageBox tone="warn" aria-hidden="true">
               {fillMessage(m.authRateLimited, { time: isolateLtr(formatClock(waitSeconds, locale)) })}
             </MessageBox>
           ) : null}
         </div>
+
         <p role="alert" className="sr-only">
           {waitSeconds > 0 ? blockedNotice : ''}
         </p>
       </form>
 
-      <p className="m-0 text-13 leading-20 text-stone">{m.authLegal}</p>
-    </>
+      {/* Switch to registration link */}
+      <div className="pt-1 text-center">
+        <span className="text-14 text-stone">{m.authNewUserQuestion} </span>
+        <Link
+          href={registerHref(target)}
+          className="text-14 font-display font-bold text-cobalt hover:text-cobalt-deep transition-colors no-underline"
+        >
+          {m.authCreateAccountAction}
+        </Link>
+      </div>
+
+      <p className="m-0 text-center text-12 leading-18 text-stone/80">
+        {m.authLegalAgreement}
+      </p>
+    </div>
   );
 }

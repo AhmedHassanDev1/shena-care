@@ -1,0 +1,10 @@
+[
+  {
+    "reason": "COMPETING_IDENTITIES",
+    "severity": "CRITICAL",
+    "field": null,
+    "row": "CeraVe Cleanser",
+    "summary": "More than one catalog SKU could be this product",
+    "recommended": "Pick the SKU this row is"
+  }
+]

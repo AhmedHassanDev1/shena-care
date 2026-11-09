@@ -33,6 +33,9 @@ export const ICON_PATHS = {
   // Status
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', // ok-ic.svg / check.svg
   alert: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v4.5"/><path d="M12 16h.01"/>', // icon-078
+  clock: '<circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/>', // lucide clock
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', // lucide calendar
+  package: '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>', // lucide package
 
   // Commerce
   pin: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>', // icon-027
@@ -71,6 +74,14 @@ export const ICON_PATHS = {
   attach: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>', // lucide paperclip
   'more-vertical': '<circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>', // lucide more-vertical
   'arrow-up': '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>', // lucide arrow-up
+  zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>', // lucide zap
+  target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>', // lucide target
+  pipette: '<path d="m2 22 1-1h3l9-9"/><path d="M9 8 5 4h4l4 4"/><path d="m15 2 7 7-2 2-7-7 2-2Z"/><path d="m9 15 4 4"/>', // lucide pipette
+  'thumbs-up': '<path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3"/>', // lucide thumbs-up
+  atom: '<circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/><path d="M15.7 20.2c4.54-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"/>', // lucide atom
+  droplet: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>', // lucide droplet
+  'sun-moon': '<path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4Z"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/>', // lucide sun-moon
+  expand: '<path d="m15 15 6 6m-6 0h6v-6M9 9 3 3m6 0H3v6m0 6v6h6m6-18h6v6"/>', // lucide expand
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

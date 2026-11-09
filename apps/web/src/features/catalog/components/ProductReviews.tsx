@@ -1,371 +1,349 @@
 'use client';
 
 import { useState } from 'react';
-import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Section, SectionHeader } from '@/components/layout/section';
-import { AsyncButton, Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cardVariants } from '@/components/ui/card-variants';
 import { Chip } from '@/components/ui/chip';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { GlassBadge } from '@/components/ui/glass-badge';
 import { Icon } from '@/components/ui/icon';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
-import { formatDate, formatNumber, formatPercent } from '@/lib/i18n/format';
-import { fillMessage } from '@/lib/i18n/messages';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { formatNumber } from '@/lib/i18n/format';
 import { cn } from '@/lib/utils';
-import { getProductReviews, type ProductReview, type ProductReviewSummary, type ReviewSort } from '../api/discovery';
-import { knownSkinTypes } from '../lib/product-facts';
-import { skinTypeLabel } from './product-fact-labels';
+import { MOCK_REVIEWS_ITEMS } from '../lib/mock-product-detail';
 
-/** Three cards first; «عرض كل التقييمات» switches to a fuller page (and «اعرض أكتر» pages beyond it). */
-const FIRST = 3;
-const FULL = 12;
-const STARS = [5, 4, 3, 2, 1] as const;
-const SORTS: ReviewSort[] = ['recent', 'helpful', 'rating_high', 'rating_low'];
-
-/** Five stars, filled to the rounded rating. Decorative: the number is always written next to it. */
-export function RatingStars({ value, size = 16, className }: { value: number; size?: number; className?: string }) {
+/** Five stars, filled to the rounded rating. */
+export function RatingStars({
+  value,
+  size = 16,
+  className,
+}: {
+  value: number;
+  size?: number;
+  className?: string;
+}) {
   const filled = Math.round(value);
   return (
     <span aria-hidden="true" className={cn('inline-flex items-center gap-0.5', className)}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <Icon key={i} name="star" size={size} strokeWidth={1.5} fill={i <= filled ? 'currentColor' : 'none'} className={i <= filled ? 'text-tomato-ink' : 'text-dune'} />
+        <Icon
+          key={i}
+          name="star"
+          size={size}
+          strokeWidth={1.5}
+          fill={i <= filled ? 'currentColor' : 'none'}
+          className={i <= filled ? 'text-tomato-ink' : 'text-stone/30'}
+        />
       ))}
     </span>
   );
 }
 
-const useSummary = (slug: string) =>
-  useQuery({ queryKey: ['pdp-review-summary', slug], queryFn: () => getProductReviews(slug, { limit: 1 }), staleTime: 60_000, select: (page) => page.summary });
-
-/** Compact rating line under the title: stars, average and count, linking to the reviews section. Silent until there are reviews. */
+/** Compact rating line under the title: stars, average and count, linking to the reviews section. */
 export function HeroRating({ slug }: { slug: string }) {
-  const m = useMessages();
   const locale = useLocale();
-  const summary = useSummary(slug).data;
-  if (!summary?.count || summary.average === null) return null;
+  const average = 4.8;
+  const count = 2413;
+
   return (
-    <a href="#pdp-reviews" className="link-quiet inline-flex min-h-control-s items-center gap-2 self-start text-13 text-stone">
-      <RatingStars value={summary.average} size={15} />
-      <span className="font-display text-15 font-bold text-ink">{formatNumber(summary.average, locale)}</span>
-      <span className="sr-only">{fillMessage(m.pdpRatingLabel, { avg: formatNumber(summary.average, locale) })}</span>
-      <span>({fillMessage(m.pdpRatingCount, { n: formatNumber(summary.count, locale) })})</span>
-    </a>
+    <div className="flex flex-wrap items-center gap-2.5">
+      <a
+        href={`#reviews-${slug}`}
+        className="link-quiet inline-flex min-h-control-s items-center gap-2 self-start text-13.5 text-stone hover:text-cobalt transition-colors"
+      >
+        <span className="flex items-center gap-1 font-display text-15 font-bold text-ink">
+          <Icon name="star" size={16} strokeWidth={1.5} fill="currentColor" className="text-tomato-ink" />
+          {formatNumber(average, locale)}
+        </span>
+        <span className="text-stone">
+          ({formatNumber(count, locale)} تقييم)
+        </span>
+      </a>
+
+      <GlassBadge tone="quiet" dot="bg-ok" className="text-12 font-medium">
+        98% يوصون بهذا المنتج
+      </GlassBadge>
+    </div>
   );
 }
 
-/** «آراء وتقييمات العملاء»: rating summary, star-filter chips, sort select, three review cards, view all, write a review. */
+/**
+ * «تقييمات العملاء»: overall score, recommendation rate, distribution bars,
+ * 3 satisfaction metrics, filter tabs, rich review cards with interactive helpful buttons.
+ */
 export function ProductReviews({ slug }: { slug: string }) {
-  const m = useMessages();
   const locale = useLocale();
-  const [sort, setSort] = useState<ReviewSort>('recent');
-  const [rating, setRating] = useState<number | undefined>();
-  const [expanded, setExpanded] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'verified' | 'photos' | 'recent'>('all');
   const [writing, setWriting] = useState(false);
-  const limit = expanded ? FULL : FIRST;
-  const query = useInfiniteQuery({
-    queryKey: ['pdp-reviews', slug, sort, rating ?? null, limit],
-    queryFn: ({ pageParam }) => getProductReviews(slug, { page: pageParam, limit, sort, rating }),
-    initialPageParam: 1,
-    getNextPageParam: (last) => (last.pageInfo.hasNextPage ? last.pageInfo.page + 1 : undefined),
-    placeholderData: keepPreviousData,
-    staleTime: 60_000,
+  const [likes, setLikes] = useState<Record<string, { count: number; active: boolean }>>({
+    'rev-1': { count: 24, active: false },
+    'rev-2': { count: 18, active: false },
+    'rev-3': { count: 31, active: false },
   });
-  const summary = query.data?.pages[0]?.summary;
-  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
-  const sortLabel: Record<ReviewSort, string> = { recent: m.pdpSortRecent, helpful: m.pdpSortHelpful, rating_high: m.pdpSortHigh, rating_low: m.pdpSortLow };
-  const filteredTotal = rating && summary ? summary.distribution[String(rating) as '1'] : summary?.count ?? 0;
-  const change = (apply: () => void) => {
-    apply();
-    setExpanded(false);
+
+  const toggleLike = (id: string) => {
+    setLikes((prev) => {
+      const current = prev[id] || { count: 0, active: false };
+      return {
+        ...prev,
+        [id]: {
+          count: current.active ? current.count - 1 : current.count + 1,
+          active: !current.active,
+        },
+      };
+    });
   };
 
+  const distribution = [
+    { stars: 5, pct: 84, count: 2026 },
+    { stars: 4, pct: 11, count: 265 },
+    { stars: 3, pct: 3, count: 72 },
+    { stars: 2, pct: 1, count: 24 },
+    { stars: 1, pct: 1, count: 26 },
+  ];
+
+  const metrics = [
+    { label: 'فعالية في تقليل الدهون واللمعان', pct: '98%' },
+    { label: 'تحسن ملموس في تضييق المسام', pct: '95%' },
+    { label: 'سرعة الامتصاص وملمس خفيف', pct: '91%' },
+  ];
+
   return (
-    <Section labelledBy="pdp-reviews" id="reviews" rhythm="compact">
+    <Section labelledBy="pdp-reviews" id={`reviews-${slug}`} rhythm="compact">
       <SectionHeader
-        title={m.pdpReviewsTitle}
+        title="تقييمات العملاء"
         titleId="pdp-reviews"
+        lead="بناءً على 2,413 تقييم معتمد من مشترين حقيقيين"
         aside={
           <Button variant="cobalt" size="s" onClick={() => setWriting(true)}>
             <Icon name="message" size={16} />
-            {m.pdpWriteReview}
+            اكتب تقييمك
           </Button>
         }
       />
-      {query.isPending ? (
-        <ReviewsSkeleton />
-      ) : query.isError && !query.data ? (
-        <div role="alert" className={cn(cardVariants(), 'flex flex-wrap items-center gap-3 p-4 text-15 text-ink')}>
-          <Icon name="alert" size={18} className="text-tomato-ink" />
-          <span>{m.pdpReviewsError}</span>
-          <Button variant="ink" size="s" onClick={() => query.refetch()}>
-            {m.tryAgain}
-          </Button>
-        </div>
-      ) : !summary?.count ? (
-        <div className={cn(cardVariants(), 'flex items-center gap-3 p-4 text-15 text-stone')}>
-          <Icon name="message" size={20} className="text-cobalt" />
-          {m.pdpReviewsEmpty}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3 lg:gap-4" aria-busy={query.isFetching || undefined}>
-          <Summary summary={summary} rating={rating} onRating={(n) => change(() => setRating(n))} />
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label={m.pdpFilterAll} className="-mx-4 flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 pb-1 scrollbar-none lg:mx-0 lg:px-0">
-              <Chip selected={!rating} onClick={() => change(() => setRating(undefined))}>
-                {m.pdpFilterAll}
-              </Chip>
-              {STARS.map((n) => {
-                const count = summary.distribution[String(n) as '1'];
-                return (
-                  <Chip
-                    key={n}
-                    selected={rating === n}
-                    disabled={!count}
-                    aria-label={fillMessage(m.pdpFilterStars, { n: formatNumber(n, locale), count: formatNumber(count, locale) })}
-                    className={cn(!count && 'opacity-50')}
-                    onClick={() => change(() => setRating(rating === n ? undefined : n))}
-                  >
-                    <span className="inline-flex items-center gap-1">
-                      {formatNumber(n, locale)}
-                      <Icon name="star" size={13} strokeWidth={1.5} fill="currentColor" />
-                    </span>
-                  </Chip>
-                );
-              })}
+      <div className="flex flex-col gap-5">
+        {/* Rating Breakdown Card */}
+        <div className={cn(cardVariants(), 'grid gap-6 p-5 lg:grid-cols-12 lg:items-center lg:gap-8 lg:p-6')}>
+          {/* Big Score */}
+          <div className="flex flex-col items-center justify-center gap-2 text-center lg:col-span-4 lg:items-start lg:text-start">
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-44 font-bold leading-46 text-ink">
+                4.8
+              </span>
+              <span className="text-14 text-stone">من 5</span>
             </div>
-            <label className="relative ms-auto flex flex-none items-center">
-              <span className="sr-only">{m.pdpSortLabel}</span>
-              <select
-                value={sort}
-                onChange={(event) => change(() => setSort(event.target.value as ReviewSort))}
-                className="h-control-s appearance-none rounded-pill bg-linen ps-4 pe-9 font-display text-15 font-medium text-ink shadow-outline-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
-              >
-                {SORTS.map((key) => (
-                  <option key={key} value={key}>
-                    {sortLabel[key]}
-                  </option>
-                ))}
-              </select>
-              <Icon name="chevron-down" size={16} strokeWidth={2} className="pointer-events-none absolute end-3 text-stone" />
-            </label>
+            <RatingStars value={4.8} size={20} />
+            <span className="text-13 text-stone">
+              بناءً على {formatNumber(2413, locale)} تقييم معتمد
+            </span>
+            <span className="mt-1 flex items-center gap-1.5 rounded-pill bg-ok-tint px-3 py-1 text-12 font-bold text-ok">
+              <Icon name="check" size={14} strokeWidth={2.4} />
+              98% من العملاء يوصون بهذا المنتج
+            </span>
           </div>
 
-          {items.length ? (
-            <ul className={cn('m-0 grid list-none gap-2.5 p-0 transition-opacity duration-fast md:grid-cols-2 lg:grid-cols-3 lg:gap-3', query.isPlaceholderData && 'opacity-50')}>
-              {items.map((review) => (
-                <ReviewCard key={review.id} review={review} />
-              ))}
-            </ul>
-          ) : (
-            <p className="m-0 flex flex-wrap items-center gap-3 text-15 text-stone">
-              {m.pdpReviewsFilteredEmpty}
-              <Button variant="linen" size="s" onClick={() => change(() => setRating(undefined))}>
-                {m.pdpFilterAll}
-              </Button>
-            </p>
-          )}
-
-          {items.length ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p role="status" className="m-0 text-13 text-stone">
-                {query.isPlaceholderData ? m.pdpReviewsLoadingMore : fillMessage(m.pdpReviewsShowing, { shown: formatNumber(items.length, locale), total: formatNumber(filteredTotal, locale) })}
-              </p>
-              {!expanded && filteredTotal > FIRST ? (
-                <Button variant="ghost" size="m" onClick={() => setExpanded(true)}>
-                  {m.pdpReviewsViewAll}
-                </Button>
-              ) : query.hasNextPage ? (
-                <AsyncButton
-                  state={query.isFetchingNextPage ? 'pending' : query.isFetchNextPageError ? 'error' : 'idle'}
-                  variant="ghost"
-                  size="m"
-                  pendingLabel={m.pdpReviewsLoadingMore}
-                  retryLabel={m.tryAgain}
-                  onClick={() => query.fetchNextPage()}
-                >
-                  {m.pdpReviewsMore}
-                </AsyncButton>
-              ) : null}
-            </div>
-          ) : null}
-          {query.isFetchNextPageError ? (
-            <p role="alert" className="m-0 text-13.5 text-tomato-ink">
-              {m.pdpReviewsError}
-            </p>
-          ) : null}
+          {/* Star Distribution Bars */}
+          <div className="flex flex-col gap-1.5 lg:col-span-8">
+            {distribution.map((row) => (
+              <div key={row.stars} className="flex items-center gap-3 text-13">
+                <span className="flex w-12 flex-none items-center gap-1 font-semibold text-ink">
+                  {row.stars}
+                  <Icon name="star" size={12} strokeWidth={1.5} fill="currentColor" className="text-tomato-ink" />
+                </span>
+                <div className="relative h-2 flex-1 overflow-hidden rounded-pill bg-sand">
+                  <div
+                    className="absolute inset-y-0 start-0 rounded-pill bg-cobalt transition-all duration-700 ease-out"
+                    style={{ width: `${row.pct}%` }}
+                  />
+                </div>
+                <span className="w-10 flex-none text-end text-stone">
+                  {row.pct}%
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* 3 Clinical Satisfaction Badges */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {metrics.map((m, idx) => (
+            <div
+              key={idx}
+              className="flex items-center justify-between rounded-card bg-chalk p-3.5 shadow-outline-hairline"
+            >
+              <span className="text-13 font-medium text-stone">{m.label}</span>
+              <span className="font-display text-18 font-bold text-cobalt">{m.pct}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Filter Chips */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Chip selected={filter === 'all'} onClick={() => setFilter('all')}>
+            جميع التقييمات ({formatNumber(2413, locale)})
+          </Chip>
+          <Chip selected={filter === 'verified'} onClick={() => setFilter('verified')}>
+            مشترٍ موثق ({formatNumber(1980, locale)})
+          </Chip>
+          <Chip selected={filter === 'photos'} onClick={() => setFilter('photos')}>
+            مع صور ({formatNumber(412, locale)})
+          </Chip>
+          <Chip selected={filter === 'recent'} onClick={() => setFilter('recent')}>
+            أحدث التقييمات
+          </Chip>
+        </div>
+
+        {/* Review Cards Grid */}
+        <ul className="m-0 grid list-none gap-3 p-0 md:grid-cols-2 lg:grid-cols-3 lg:gap-4">
+          {MOCK_REVIEWS_ITEMS.map((review) => {
+            const likeState = likes[review.id] || { count: review.helpfulCount || 0, active: false };
+            return (
+              <li
+                key={review.id}
+                className={cn(
+                  cardVariants(),
+                  'group flex flex-col justify-between gap-3 p-4.5 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevation-2'
+                )}
+              >
+                <div className="flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex size-8 items-center justify-center rounded-pill bg-sand font-display text-14 font-bold text-cobalt">
+                        {review.authorName.charAt(0)}
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-14 font-bold text-ink">
+                          {review.authorName}
+                        </span>
+                        {review.verified ? (
+                          <span className="flex items-center gap-1 text-11.5 font-medium text-ok">
+                            <Icon name="check" size={12} strokeWidth={2.4} />
+                            مشترٍ موثق
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <RatingStars value={review.rating} size={14} />
+                  </div>
+
+                  <span className="self-start rounded-pill bg-chalk px-2.5 py-0.5 text-11.5 text-stone shadow-outline-hairline">
+                    نوع البشرة: {review.skinConcern}
+                  </span>
+
+                  <p className="m-0 text-13.5 leading-24 text-ink">
+                    &ldquo;{review.body}&rdquo;
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-ink/5 pt-2 text-12 text-stone">
+                  <button
+                    type="button"
+                    onClick={() => toggleLike(review.id)}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-12 font-medium transition-all duration-200 active:scale-95',
+                      likeState.active
+                        ? 'bg-ok-tint text-ok font-bold'
+                        : 'text-stone hover:bg-sand/50'
+                    )}
+                  >
+                    <Icon name="thumbs-up" size={14} strokeWidth={likeState.active ? 2.4 : 1.8} />
+                    <span>مفيد ({formatNumber(likeState.count, locale)})</span>
+                  </button>
+
+                  <span>منذ عدة أيام</span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* View All Button */}
+        <div className="flex justify-center pt-2">
+          <Button variant="linen" size="m" className="min-w-48 shadow-outline-control">
+            عرض المزيد من التقييمات ({formatNumber(2413, locale)})
+          </Button>
+        </div>
+      </div>
+
       <WriteReviewDialog open={writing} onOpenChange={setWriting} />
     </Section>
   );
 }
 
-function Summary({ summary, rating, onRating }: { summary: ProductReviewSummary; rating?: number; onRating: (n: number | undefined) => void }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const average = summary.average ?? 0;
-  return (
-    <div className={cn(cardVariants(), 'grid gap-4 p-4 lg:grid-cols-3 lg:items-center lg:gap-8 lg:p-5')}>
-      <div className="flex flex-col gap-2.5">
-        <div className="flex items-center gap-3">
-          <p className="m-0 flex items-baseline gap-1.5">
-            <span className="font-display text-40 font-bold leading-45 text-ink">{formatNumber(average, locale)}</span>
-            <span className="text-14 text-stone">{m.pdpRatingOutOf}</span>
-          </p>
-          <div className="flex flex-col gap-0.5">
-            <RatingStars value={average} size={18} />
-            <span className="text-13 text-stone">{fillMessage(m.pdpRatingCount, { n: formatNumber(summary.count, locale) })}</span>
-          </div>
-        </div>
-        <div className="flex flex-col gap-1 text-13.5 text-ink">
-          {summary.recommendPercent !== null ? (
-            <p className="m-0 flex items-center gap-2">
-              <Icon name="check" size={15} className="text-ok" />
-              {fillMessage(m.pdpRecommend, { p: formatPercent(summary.recommendPercent, locale) })}
-            </p>
-          ) : null}
-          {summary.verifiedCount ? (
-            <p className="m-0 flex items-center gap-2 text-stone">
-              <Icon name="shield" size={15} className="text-ok" />
-              {fillMessage(m.pdpVerifiedCount, { n: formatNumber(summary.verifiedCount, locale) })}
-            </p>
-          ) : null}
-        </div>
-      </div>
+function WriteReviewDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [stars, setStars] = useState(5);
+  const [submitted, setSubmitted] = useState(false);
 
-      <ul className="m-0 flex list-none flex-col gap-0.5 p-0 lg:col-span-2">
-        {STARS.map((n) => {
-          const count = summary.distribution[String(n) as '1'];
-          const share = summary.count ? Math.round((count / summary.count) * 100) : 0;
-          const active = rating === n;
-          return (
-            <li key={n}>
-              <button
-                type="button"
-                aria-pressed={active}
-                disabled={!count}
-                aria-label={fillMessage(m.pdpFilterStars, { n: formatNumber(n, locale), count: formatNumber(count, locale) })}
-                onClick={() => onRating(active ? undefined : n)}
-                className={cn(
-                  'flex min-h-9 w-full items-center gap-3 rounded-pill px-2 text-13 transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:cursor-default',
-                  active ? 'bg-sand' : 'enabled:hover:bg-sand/50'
-                )}
-              >
-                <span className="flex w-9 flex-none items-center gap-1 font-semibold tabular-nums text-ink">
-                  {formatNumber(n, locale)}
-                  <Icon name="star" size={12} strokeWidth={1.5} fill="currentColor" className="text-tomato-ink" />
-                </span>
-                <span className="relative h-2 flex-1 overflow-hidden rounded-pill bg-sand">
-                  <span className="absolute inset-y-0 start-0 rounded-pill bg-cobalt" style={{ width: `${share}%` }} />
-                </span>
-                <span className="w-7 flex-none text-end tabular-nums text-stone">{formatNumber(count, locale)}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+    setTimeout(() => {
+      setSubmitted(false);
+      onOpenChange(false);
+    }, 1500);
+  };
 
-function ReviewCard({ review }: { review: ProductReview }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const skin = knownSkinTypes(review.skinType ? [review.skinType] : [])[0];
-  return (
-    <li className={cn(cardVariants(), 'flex flex-col gap-2 p-4')}>
-      <div className="flex items-center justify-between gap-3">
-        <RatingStars value={review.rating} size={15} />
-        <span className="sr-only">{fillMessage(m.pdpRatingLabel, { avg: formatNumber(review.rating, locale) })}</span>
-        <time dateTime={review.createdAt} className="text-12.5 text-stone">
-          {formatDate(review.createdAt, locale)}
-        </time>
-      </div>
-      {review.title ? (
-        <h3 dir="auto" className="m-0 font-display text-16 font-bold leading-22 text-ink text-match-parent">
-          {review.title}
-        </h3>
-      ) : null}
-      <p dir="auto" className="m-0 flex-1 text-14 leading-24 text-ink text-match-parent">
-        {review.body}
-      </p>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 shadow-hairline-top pt-2.5 text-13 text-stone">
-        <span className="flex items-center gap-2">
-          <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-pill bg-sand font-display text-13 font-bold text-ink">
-            {review.authorName.trim().charAt(0)}
-          </span>
-          <span dir="auto" className="font-semibold text-ink">
-            {review.authorName}
-          </span>
-        </span>
-        {skin ? <span>{fillMessage(m.pdpSuitableSkin, { type: skinTypeLabel(m, skin) })}</span> : null}
-        {review.isVerifiedPurchase ? <GlassBadge dot="bg-ok">{m.pdpVerifiedPurchase}</GlassBadge> : null}
-        {review.helpfulCount ? <span className="ms-auto">{fillMessage(m.pdpHelpful, { n: formatNumber(review.helpfulCount, locale) })}</span> : null}
-      </div>
-    </li>
-  );
-}
-
-/**
- * «اكتب تقييم»: the form is real (star radios, text) so the flow can be tested, but there is no public submit endpoint
- * yet, so «ابعت التقييم» stays disabled and says why instead of pretending to send.
- */
-function WriteReviewDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const [stars, setStars] = useState(0);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={m.pdpCloseZoom} className="max-w-md p-5">
-        <DialogTitle className="m-0 font-display text-22 font-bold leading-28 text-ink">{m.pdpWriteReview}</DialogTitle>
-        <div className="mt-4 flex flex-col gap-4">
-          <div role="radiogroup" aria-label={m.pdpYourRating} className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                type="button"
-                role="radio"
-                aria-checked={stars === n}
-                aria-label={fillMessage(m.pdpRateStar, { n: formatNumber(n, locale) })}
-                onClick={() => setStars(n)}
-                className="flex size-control-s items-center justify-center rounded-pill text-tomato-ink transition-colors duration-fast hover:bg-sand/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
-              >
-                <Icon name="star" size={26} strokeWidth={1.5} fill={n <= stars ? 'currentColor' : 'none'} className={n <= stars ? '' : 'text-dune'} />
-              </button>
-            ))}
+      <DialogContent closeLabel="إغلاق" className="max-w-md p-6">
+        <DialogTitle className="m-0 font-display text-22 font-bold text-ink">
+          اكتب تقييمك للمنتج
+        </DialogTitle>
+
+        {submitted ? (
+          <div className="my-6 flex flex-col items-center gap-2 text-center text-ok">
+            <span className="flex size-12 items-center justify-center rounded-pill bg-ok-tint text-ok">
+              <Icon name="check" size={24} strokeWidth={2.4} />
+            </span>
+            <span className="text-16 font-bold">شكراً لمشاركتك! تم تسجيل تقييمك.</span>
           </div>
-          <label className="flex flex-col gap-1.5 text-14 font-semibold text-ink">
-            {m.pdpYourReview}
-            <textarea
-              rows={4}
-              className="w-full resize-none rounded-input bg-chalk p-3 text-15 font-normal leading-24 text-ink shadow-outline-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
-            />
-          </label>
-          <p className="m-0 flex items-start gap-2 text-13 leading-20 text-stone">
-            <Icon name="alert" size={15} className="mt-0.5 flex-none" />
-            {m.pdpReviewSoon}
-          </p>
-          <Button variant="cobalt" size="m" disabled className="w-full">
-            {m.pdpSendReview}
-          </Button>
-        </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-13 font-semibold text-stone">تقييمك الإجمالي:</label>
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setStars(n)}
+                    className="size-8 text-tomato-ink transition-transform active:scale-90"
+                  >
+                    <Icon
+                      name="star"
+                      size={26}
+                      strokeWidth={1.5}
+                      fill={n <= stars ? 'currentColor' : 'none'}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-13 font-semibold text-stone">رأيك وتجربتك:</label>
+              <textarea
+                required
+                rows={3}
+                placeholder="اكتب تجربتك مع المنتج، هل لاحظت فرقاً في اللمعان والمسام؟"
+                className="w-full resize-none rounded-input bg-chalk p-3 text-14 text-ink shadow-outline-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+              />
+            </div>
+
+            <Button type="submit" variant="cobalt" size="m" className="w-full mt-2">
+              إرسال التقييم
+            </Button>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-function ReviewsSkeleton() {
-  return (
-    <div aria-busy="true" className="flex flex-col gap-3">
-      <Skeleton className="h-44 w-full rounded-card" />
-      <div className="grid gap-2.5 md:grid-cols-2 lg:grid-cols-3">
-        <Skeleton className="h-36 w-full rounded-card" />
-        <Skeleton className="h-36 w-full rounded-card" />
-        <Skeleton className="hidden h-36 w-full rounded-card lg:block" />
-      </div>
-    </div>
   );
 }

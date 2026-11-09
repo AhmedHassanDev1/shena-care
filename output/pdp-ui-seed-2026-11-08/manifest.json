@@ -1,0 +1,111 @@
+{
+  "tag": "ui-test-seed-2026-11-08",
+  "appliedAt": "2026-11-08T10:05:35.042Z",
+  "before": {
+    "product_reviews": {
+      "count": 0,
+      "md5": null
+    },
+    "ingestion_jobs": {
+      "count": 8,
+      "md5": "5d7765a1bf36da21d6fed3bd873f5871"
+    },
+    "ingestion_items": {
+      "count": 35,
+      "md5": "4919259c66a6b9c13063d8dea27a4e28"
+    },
+    "catalog_products": {
+      "count": 23,
+      "md5": "62c7bd526a58b5077edf37f802c4bdf6"
+    }
+  },
+  "products": [
+    {
+      "productId": "d1662586-397e-40f0-86d5-c3d9c64df00e",
+      "skuId": "cc0f29bc-da23-4378-986d-417c4db2e0de",
+      "ingestionItemId": "01b047b9-abd0-4e33-988b-9244a6dc8786",
+      "previousFacts": {
+        "texture": "SERUM",
+        "targetArea": "FACE",
+        "suitableSkinTypes": [],
+        "isFragranceFree": null,
+        "isNonComedogenic": null
+      },
+      "appliedFacts": {
+        "suitableSkinTypes": [
+          "normal",
+          "dry",
+          "combination",
+          "sensitive"
+        ],
+        "isFragranceFree": true,
+        "isNonComedogenic": true
+      },
+      "reviews": 12
+    },
+    {
+      "productId": "4e6fb2e4-6069-422a-a0de-8a2cb6b963ff",
+      "skuId": "0570d6ae-ed1c-49c0-a729-f09b21df4259",
+      "ingestionItemId": "7482e43b-e5ad-422a-8c17-c6d302690d52",
+      "previousFacts": {
+        "texture": null,
+        "targetArea": "FACE",
+        "suitableSkinTypes": [],
+        "isFragranceFree": null,
+        "isNonComedogenic": null
+      },
+      "appliedFacts": {
+        "texture": "GEL",
+        "suitableSkinTypes": [
+          "normal",
+          "dry",
+          "combination"
+        ]
+      },
+      "reviews": 6
+    },
+    {
+      "productId": "24e075ea-750d-4147-a1ac-c13707107689",
+      "skuId": "33785e08-995b-4d18-a5b8-64945c7912b9",
+      "ingestionItemId": "efb02389-9394-4cc5-afb7-a8ab82e94272",
+      "previousFacts": {
+        "texture": null,
+        "targetArea": null,
+        "suitableSkinTypes": [],
+        "isFragranceFree": null,
+        "isNonComedogenic": null
+      },
+      "appliedFacts": {
+        "texture": "LIQUID",
+        "targetArea": "FACE",
+        "suitableSkinTypes": [
+          "normal",
+          "dry",
+          "oily",
+          "combination",
+          "sensitive"
+        ]
+      },
+      "reviews": 4
+    }
+  ],
+  "jobId": "5daa1ea5-755f-494f-98a5-9dd680e82c20",
+  "after": {
+    "product_reviews": {
+      "count": 22,
+      "md5": "1e242953c69cf80c3e39da974af77934"
+    },
+    "ingestion_jobs": {
+      "count": 9,
+      "md5": "e4300915bb2887934af904698802055f"
+    },
+    "ingestion_items": {
+      "count": 38,
+      "md5": "04b4e8b7a95153492eca557d9fe909c8"
+    },
+    "catalog_products": {
+      "count": 23,
+      "md5": "502e972082c875c67daf1f7bb730860e"
+    }
+  }
+}

@@ -1010,6 +1010,24 @@ export class CatalogService {
     };
   }
 
+  /** Same published-media gate as getSkuValidationStatus, for public read batches. */
+  async getSkuValidationStatuses(skuIds: string[]): Promise<Map<string, SkuValidationStatus>> {
+    const ids = [...new Set(skuIds.filter(id => this.isUuid(id)))];
+    if (!ids.length) return new Map();
+    const skus = await this.prisma.sku.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true, isActive: true, barcode: true, size: true, sizeUnit: true, variantName: true,
+        product: { select: { isPublished: true, media: { select: { originType: true, generationMetadata: true } } } },
+      },
+    });
+    return new Map(skus.map(sku => [sku.id, {
+      exists: true,
+      isActive: sku.isActive,
+      isProductPublished: sku.product.isPublished && sku.product.media.some(media => this.isReviewedProductMedia(media, [sku])),
+    }]));
+  }
+
   async createSku(productId: string, dto: CreateSkuDto): Promise<PublishedSku> {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -1302,7 +1320,7 @@ export class CatalogService {
     }));
   }
 
-  private isReviewedProductMedia(media: { originType: string; generationMetadata: unknown }, skus: ProductWithRelations['skus']): boolean {
+  private isReviewedProductMedia(media: { originType: string; generationMetadata: unknown }, skus: Array<Pick<ProductWithRelations['skus'][number], 'id' | 'isActive' | 'barcode' | 'size' | 'sizeUnit' | 'variantName'>>): boolean {
     try {
       if (media.originType !== MediaOriginType.verified && media.originType !== MediaOriginType.derived) return false;
       const review = requireMediaReview(media.generationMetadata);

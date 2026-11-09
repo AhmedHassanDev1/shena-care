@@ -85,13 +85,17 @@ export class ProductViewService {
   }
 
   async composeProduct(product: PublishedProduct, at = new Date()): Promise<ProductView | null> {
+    return (await this.composeProducts([product], at))[0];
+  }
 
-    const skusWithCommerce = await Promise.all(
-      product.skus.filter(sku => product.media.some(media => media.skuId === sku.id)).sort((a, b) => a.id.localeCompare(b.id)).map(async (sku) => {
-        const [terms, availability] = await Promise.all([
-          this.commerceService.getSellingTerms(sku.id),
-          this.sourcingService.getPublicAvailability(sku.id, at),
-        ]);
+  async composeProducts(products: PublishedProduct[], at = new Date()): Promise<Array<ProductView | null>> {
+    const eligibleSkus = products.map(product => product.skus
+      .filter(sku => product.media.some(media => media.skuId === sku.id)).sort((a, b) => a.id.localeCompare(b.id)));
+    const termsBySku = await this.commerceService.getSellingTermsBatch(eligibleSkus.flat().map(sku => sku.id));
+    return Promise.all(products.map(async (product, index) => {
+      const skusWithCommerce = await Promise.all(eligibleSkus[index].map(async (sku) => {
+        const terms = termsBySku.get(sku.id);
+        const availability = await this.sourcingService.getPublicAvailability(sku.id, at);
 
         return {
           id: sku.id,
@@ -105,33 +109,33 @@ export class ProductViewService {
           availability,
           canOrder: (terms?.canOrder ?? false) && availability.isAvailable,
         };
-      }),
-    );
+      }));
 
-    if (!product.media.length || !skusWithCommerce.some(sku => sku.canOrder)) return null;
-    return {
-      id: product.id,
-      name: product.name,
-      slug: product.slug,
-      description: product.description,
-      usage: product.usage,
-      warnings: product.warnings,
-      targetArea: product.targetArea ?? null,
-      texture: product.texture ?? null,
-      suitableSkinTypes: product.suitableSkinTypes ?? [],
-      suitableHairTypes: product.suitableHairTypes ?? [],
-      spf: product.spf ?? null,
-      broadSpectrum: product.broadSpectrum ?? null,
-      uvFilterType: product.uvFilterType ?? null,
-      waterResistanceMinutes: product.waterResistanceMinutes ?? null,
-      isFragranceFree: product.isFragranceFree ?? null,
-      isNonComedogenic: product.isNonComedogenic ?? null,
-      brand: product.brand,
-      productLine: product.productLine ?? null,
-      category: product.category ?? null,
-      skus: skusWithCommerce.filter(sku => sku.canOrder),
-      media: product.media.filter(m => skusWithCommerce.some(sku => sku.id === m.skuId && sku.canOrder)),
-    };
+      if (!product.media.length || !skusWithCommerce.some(sku => sku.canOrder)) return null;
+      return {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        description: product.description,
+        usage: product.usage,
+        warnings: product.warnings,
+        targetArea: product.targetArea ?? null,
+        texture: product.texture ?? null,
+        suitableSkinTypes: product.suitableSkinTypes ?? [],
+        suitableHairTypes: product.suitableHairTypes ?? [],
+        spf: product.spf ?? null,
+        broadSpectrum: product.broadSpectrum ?? null,
+        uvFilterType: product.uvFilterType ?? null,
+        waterResistanceMinutes: product.waterResistanceMinutes ?? null,
+        isFragranceFree: product.isFragranceFree ?? null,
+        isNonComedogenic: product.isNonComedogenic ?? null,
+        brand: product.brand,
+        productLine: product.productLine ?? null,
+        category: product.category ?? null,
+        skus: skusWithCommerce.filter(sku => sku.canOrder),
+        media: product.media.filter(m => skusWithCommerce.some(sku => sku.id === m.skuId && sku.canOrder)),
+      };
+    }));
   }
 
   // filters اختيارية — لو متعدتش هيرجع كل المنتجات
@@ -146,9 +150,7 @@ export class ProductViewService {
     const products = await this.catalogService.getPublishedProducts({ categorySlug: filters?.categorySlug,
       brandSlug: filters?.brandSlug, productLineSlug: filters?.productLineSlug });
 
-    const productViews = await Promise.all(
-      products.sort((a, b) => a.id.localeCompare(b.id)).map(product => this.composeProduct(product)),
-    );
+    const productViews = await this.composeProducts(products.sort((a, b) => a.id.localeCompare(b.id)));
 
     const visible = productViews.filter((product): product is ProductView => product !== null);
     const limit = Math.min(filters?.limit ?? 20, 100);

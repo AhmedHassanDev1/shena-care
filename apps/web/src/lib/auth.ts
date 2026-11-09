@@ -61,9 +61,14 @@ export const auth = {
     });
   },
 
-  async verifyOtp(phoneNumber: string, code: string): Promise<VerifyOtpResponse> {
+  async verifyOtp(phoneNumber: string, code: string, name?: string): Promise<VerifyOtpResponse> {
     const guestId = typeof window !== 'undefined' ? localStorage.getItem('guestCartToken') : undefined;
-    const body = { phoneNumber, code, ...(guestId ? { guestId } : {}) };
+    const body = {
+      phoneNumber,
+      code,
+      ...(guestId ? { guestId } : {}),
+      ...(name?.trim() ? { name: name.trim() } : {}),
+    };
     
     const response = await apiClient.post<VerifyOtpResponse>('/accounts/otp/verify', body);
     

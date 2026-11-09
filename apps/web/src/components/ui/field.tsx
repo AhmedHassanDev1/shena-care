@@ -182,20 +182,39 @@ TextAreaField.displayName = "TextAreaField"
 
 /* ── PhoneField ────────────────────────────────────────────────────────── */
 
-export type PhoneFieldProps = Omit<TextFieldProps, "icon" | "suffix" | "dir" | "type">
+export interface PhoneFieldProps extends Omit<TextFieldProps, "icon" | "suffix" | "dir" | "type"> {
+  withCountrySelector?: boolean
+}
 
 /**
- * Egyptian mobile number: 56px Sahel field with phone icon.
+ * Egyptian mobile number: 56px Sahel field with phone icon or country selector.
  */
 const PhoneField = React.forwardRef<HTMLInputElement, PhoneFieldProps>(
-  ({ label, optionalLabel, hint, error, success, id, wrapperClassName, className, ...rest }, ref) => {
+  ({ label, optionalLabel, hint, error, success, withCountrySelector, id, wrapperClassName, className, ...rest }, ref) => {
     const auto = React.useId()
     const fid = id ?? auto
     const { messageId } = resolveMessage(fid, { hint, error, success })
     return (
       <FieldShell id={fid} label={label} optionalLabel={optionalLabel} hint={hint} error={error} success={success} className={wrapperClassName}>
-        <div className={cn("field-box flex h-control-xl items-center gap-2.5 px-5", className)} data-invalid={error ? true : undefined}>
-          <Icon name="phone" size={20} className="text-stone" />
+        <div className={cn("field-box flex h-control-xl items-center gap-2.5 px-4", className)} data-invalid={error ? true : undefined}>
+          {withCountrySelector ? (
+            <div className="flex items-center gap-2 pe-1.5 text-ink flex-none" aria-hidden="true">
+              <div className="flex h-3.5 w-5 flex-col overflow-hidden rounded-image border border-line-2/40">
+                <div className="h-[33.3%] w-full bg-tomato" />
+                <div className="flex h-[33.4%] w-full items-center justify-center bg-white">
+                  <div className="size-1 rounded-full bg-tan" />
+                </div>
+                <div className="h-[33.3%] w-full bg-ink" />
+              </div>
+              <span className="font-display font-bold text-15 tabular-nums text-ink" dir="ltr">
+                +20
+              </span>
+              <Icon name="chevron-down" size={14} className="text-stone" />
+              <span className="h-5 w-px bg-line-2/40 ms-2 flex-none" />
+            </div>
+          ) : (
+            <Icon name="phone" size={20} className="text-stone" />
+          )}
           <input
             ref={ref}
             id={fid}

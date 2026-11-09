@@ -190,7 +190,7 @@ export function BrandMarquee() {
           <div className="marquee-track flex w-max items-center">
             {/* First Set: Accessible, keyboard-focusable */}
             <div className="flex items-center">
-              {displayBrands.map((brand, idx) => (
+              {displayBrands.map((brand) => (
                 <div key={`brand-1-${brand.slug}`} className="flex items-center">
                   <Link
                     href={`${routes.products}?brand=${encodeURIComponent(brand.slug)}`}
@@ -210,7 +210,7 @@ export function BrandMarquee() {
 
             {/* Second Set: Cloned for seamless wrap-around loop (Hidden from screen readers & keyboard focus) */}
             <div className="flex items-center" aria-hidden="true">
-              {displayBrands.map((brand, idx) => (
+              {displayBrands.map((brand) => (
                 <div key={`brand-2-${brand.slug}`} className="flex items-center">
                   <Link
                     href={`${routes.products}?brand=${encodeURIComponent(brand.slug)}`}

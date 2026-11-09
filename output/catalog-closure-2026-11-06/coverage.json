@@ -1,0 +1,1527 @@
+[
+  {
+    "skuId": "d07a67bb-4c4b-4be1-a9f2-8bcadaa15de2",
+    "name": "Cerave CeraVe Hydrating Cleanser 236ml",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "UNKNOWN",
+    "category": "Cleansers",
+    "type": "cleanser",
+    "subtype": null,
+    "fields": {
+      "identity.name": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser"
+        ]
+      },
+      "identity.brand": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "identity.size": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser"
+        ]
+      },
+      "identity.gtin": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.inci": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser"
+        ]
+      },
+      "composition.activeConcentrations": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.fragrance": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser"
+        ]
+      },
+      "attributes.texture": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.instructions": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.routinePeriod": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.targetArea": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.skinTypes": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser"
+        ]
+      },
+      "suitability.hairTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "safety.warnings": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "marketing.description": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser"
+        ]
+      },
+      "claims.manufacturerStated": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      }
+    },
+    "routine": {
+      "role": "CLEANSER",
+      "roleStatus": "RULE_DERIVED",
+      "step": 2,
+      "rinse": "UNKNOWN/UNKNOWN",
+      "period": "UNKNOWN/UNKNOWN",
+      "cadence": "UNKNOWN/UNKNOWN",
+      "contact": null,
+      "actives": [],
+      "featured": [],
+      "conflicts": []
+    },
+    "media": [],
+    "blockers": [
+      "PRIMARY_PACKSHOT_NOT_APPROVED",
+      "CARTON_DECISION_MISSING",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "openExceptions": [],
+    "summary": {
+      "verified": [
+        "identity.size",
+        "composition.inci",
+        "composition.fragrance",
+        "suitability.skinTypes",
+        "marketing.description"
+      ],
+      "unknown": [
+        "identity.brand",
+        "identity.gtin",
+        "composition.activeConcentrations",
+        "attributes.texture",
+        "usage.instructions",
+        "usage.routinePeriod",
+        "usage.targetArea",
+        "suitability.hairTypes",
+        "safety.warnings",
+        "claims.manufacturerStated"
+      ],
+      "unverified": [
+        "identity.name"
+      ],
+      "conflict": [],
+      "requiredMissing": []
+    }
+  },
+  {
+    "skuId": "7829e284-3426-47a9-91c6-808f8011a1c8",
+    "name": "Cerave CeraVe Foaming Cleanser 236ml",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "UNKNOWN",
+    "category": "Cleansers",
+    "type": "cleanser",
+    "subtype": "foaming",
+    "fields": {
+      "identity.name": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser"
+        ]
+      },
+      "identity.brand": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "identity.size": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser"
+        ]
+      },
+      "identity.gtin": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.inci": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser"
+        ]
+      },
+      "composition.activeConcentrations": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.fragrance": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser"
+        ]
+      },
+      "attributes.texture": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.instructions": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.routinePeriod": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.targetArea": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.skinTypes": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser"
+        ]
+      },
+      "suitability.hairTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "safety.warnings": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "marketing.description": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser"
+        ]
+      },
+      "claims.manufacturerStated": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      }
+    },
+    "routine": {
+      "role": "CLEANSER",
+      "roleStatus": "RULE_DERIVED",
+      "step": 2,
+      "rinse": "UNKNOWN/UNKNOWN",
+      "period": "UNKNOWN/UNKNOWN",
+      "cadence": "UNKNOWN/UNKNOWN",
+      "contact": null,
+      "actives": [],
+      "featured": [],
+      "conflicts": []
+    },
+    "media": [],
+    "blockers": [
+      "PRIMARY_PACKSHOT_NOT_APPROVED",
+      "CARTON_DECISION_MISSING",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "openExceptions": [],
+    "summary": {
+      "verified": [
+        "identity.size",
+        "composition.inci",
+        "composition.fragrance",
+        "suitability.skinTypes",
+        "marketing.description"
+      ],
+      "unknown": [
+        "identity.brand",
+        "identity.gtin",
+        "composition.activeConcentrations",
+        "attributes.texture",
+        "usage.instructions",
+        "usage.routinePeriod",
+        "usage.targetArea",
+        "suitability.hairTypes",
+        "safety.warnings",
+        "claims.manufacturerStated"
+      ],
+      "unverified": [
+        "identity.name"
+      ],
+      "conflict": [],
+      "requiredMissing": []
+    }
+  },
+  {
+    "skuId": "8c4b6abd-712f-4031-80b8-24a2dbc9536f",
+    "name": "Cerave CeraVe SA Smoothing Cleanser 236ml",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "UNKNOWN",
+    "category": "Cleansers",
+    "type": "cleanser",
+    "subtype": null,
+    "fields": {
+      "identity.name": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser"
+        ]
+      },
+      "identity.brand": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "identity.size": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser"
+        ]
+      },
+      "identity.gtin": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.inci": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser"
+        ]
+      },
+      "composition.activeConcentrations": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.fragrance": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser"
+        ]
+      },
+      "attributes.texture": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.instructions": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.routinePeriod": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.targetArea": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.skinTypes": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser"
+        ]
+      },
+      "suitability.hairTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "safety.warnings": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "marketing.description": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser"
+        ]
+      },
+      "claims.manufacturerStated": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      }
+    },
+    "routine": {
+      "role": "CLEANSER",
+      "roleStatus": "RULE_DERIVED",
+      "step": 2,
+      "rinse": "UNKNOWN/UNKNOWN",
+      "period": "UNKNOWN/UNKNOWN",
+      "cadence": "UNKNOWN/UNKNOWN",
+      "contact": null,
+      "actives": [
+        "NIACINAMIDE:UNKNOWN",
+        "BHA:UNKNOWN"
+      ],
+      "featured": [],
+      "conflicts": []
+    },
+    "media": [],
+    "blockers": [
+      "PRIMARY_PACKSHOT_NOT_APPROVED",
+      "CARTON_DECISION_MISSING",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "openExceptions": [],
+    "summary": {
+      "verified": [
+        "identity.size",
+        "composition.inci",
+        "composition.fragrance",
+        "suitability.skinTypes",
+        "marketing.description"
+      ],
+      "unknown": [
+        "identity.brand",
+        "identity.gtin",
+        "composition.activeConcentrations",
+        "attributes.texture",
+        "usage.instructions",
+        "usage.routinePeriod",
+        "usage.targetArea",
+        "suitability.hairTypes",
+        "safety.warnings",
+        "claims.manufacturerStated"
+      ],
+      "unverified": [
+        "identity.name"
+      ],
+      "conflict": [],
+      "requiredMissing": []
+    }
+  },
+  {
+    "skuId": "aca7d917-66f0-4594-922e-f7cb67b14bae",
+    "name": "Cerave CeraVe Moisturising Cream 454g",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "UNKNOWN",
+    "category": "Moisturizers",
+    "type": "moisturizer",
+    "subtype": null,
+    "fields": {
+      "identity.name": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+        ]
+      },
+      "identity.brand": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "identity.size": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+        ]
+      },
+      "identity.gtin": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.inci": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+        ]
+      },
+      "composition.activeConcentrations": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.fragrance": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+        ]
+      },
+      "attributes.texture": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+        ]
+      },
+      "usage.instructions": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.routinePeriod": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.targetArea": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.skinTypes": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+        ]
+      },
+      "suitability.hairTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "safety.warnings": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "marketing.description": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+        ]
+      },
+      "claims.manufacturerStated": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      }
+    },
+    "routine": {
+      "role": "MOISTURIZER",
+      "roleStatus": "RULE_DERIVED",
+      "step": 8,
+      "rinse": "UNKNOWN/UNKNOWN",
+      "period": "UNKNOWN/UNKNOWN",
+      "cadence": "UNKNOWN/UNKNOWN",
+      "contact": null,
+      "actives": [],
+      "featured": [],
+      "conflicts": []
+    },
+    "media": [
+      "PRIMARY_PACKSHOT:APPROVED 400x450",
+      "EDITORIAL:REJECTED (Automatic: QUALITY:UPSCALED_SMALL_SOURCE)"
+    ],
+    "blockers": [
+      "CARTON_DECISION_MISSING",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "openExceptions": [],
+    "summary": {
+      "verified": [
+        "identity.size",
+        "composition.inci",
+        "composition.fragrance",
+        "attributes.texture",
+        "suitability.skinTypes",
+        "marketing.description"
+      ],
+      "unknown": [
+        "identity.brand",
+        "identity.gtin",
+        "composition.activeConcentrations",
+        "usage.instructions",
+        "usage.routinePeriod",
+        "usage.targetArea",
+        "suitability.hairTypes",
+        "safety.warnings",
+        "claims.manufacturerStated"
+      ],
+      "unverified": [
+        "identity.name"
+      ],
+      "conflict": [],
+      "requiredMissing": []
+    }
+  },
+  {
+    "skuId": "0f08b07e-80a8-434e-aa4c-9b77d42c0718",
+    "name": "Cerave CeraVe Moisturising Lotion 236ml",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "UNKNOWN",
+    "category": "Moisturizers",
+    "type": "moisturizer",
+    "subtype": null,
+    "fields": {
+      "identity.name": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion"
+        ]
+      },
+      "identity.brand": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "identity.size": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion"
+        ]
+      },
+      "identity.gtin": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.inci": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion"
+        ]
+      },
+      "composition.activeConcentrations": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.fragrance": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion"
+        ]
+      },
+      "attributes.texture": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion"
+        ]
+      },
+      "usage.instructions": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.routinePeriod": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.targetArea": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.skinTypes": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion"
+        ]
+      },
+      "suitability.hairTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "safety.warnings": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "marketing.description": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://africa.cerave.com/en/our-products/moisturizers/moisturising-lotion"
+        ]
+      },
+      "claims.manufacturerStated": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      }
+    },
+    "routine": {
+      "role": "MOISTURIZER",
+      "roleStatus": "RULE_DERIVED",
+      "step": 8,
+      "rinse": "UNKNOWN/UNKNOWN",
+      "period": "UNKNOWN/UNKNOWN",
+      "cadence": "UNKNOWN/UNKNOWN",
+      "contact": null,
+      "actives": [],
+      "featured": [],
+      "conflicts": []
+    },
+    "media": [],
+    "blockers": [
+      "PRIMARY_PACKSHOT_NOT_APPROVED",
+      "CARTON_DECISION_MISSING",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "openExceptions": [],
+    "summary": {
+      "verified": [
+        "identity.size",
+        "composition.inci",
+        "composition.fragrance",
+        "attributes.texture",
+        "suitability.skinTypes",
+        "marketing.description"
+      ],
+      "unknown": [
+        "identity.brand",
+        "identity.gtin",
+        "composition.activeConcentrations",
+        "usage.instructions",
+        "usage.routinePeriod",
+        "usage.targetArea",
+        "suitability.hairTypes",
+        "safety.warnings",
+        "claims.manufacturerStated"
+      ],
+      "unverified": [
+        "identity.name"
+      ],
+      "conflict": [],
+      "requiredMissing": []
+    }
+  },
+  {
+    "skuId": "3abf4c83-e56e-4cdb-8174-b7496249d633",
+    "name": "Clary Corporation Clary Hair Shampoo 300ml",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "UNKNOWN",
+    "category": "Shampoos",
+    "type": "shampoo",
+    "subtype": null,
+    "fields": {
+      "identity.name": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://eparkville.com/products/clary-hair-shampoo-300ml"
+        ]
+      },
+      "identity.brand": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://eparkville.com/products/clary-hair-shampoo-300ml"
+        ]
+      },
+      "identity.size": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-shampoo-300ml"
+        ]
+      },
+      "identity.gtin": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.inci": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.activeConcentrations": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.fragrance": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "attributes.texture": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.instructions": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-shampoo-300ml"
+        ]
+      },
+      "usage.routinePeriod": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.targetArea": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-shampoo-300ml"
+        ]
+      },
+      "suitability.skinTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.hairTypes": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-shampoo-300ml"
+        ]
+      },
+      "safety.warnings": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "marketing.description": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-shampoo-300ml"
+        ]
+      },
+      "claims.manufacturerStated": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://eparkville.com/products/clary-hair-shampoo-300ml"
+        ]
+      }
+    },
+    "routine": {
+      "role": "HAIR_WASH",
+      "roleStatus": "RULE_DERIVED",
+      "step": 1,
+      "rinse": "RINSE_OFF/VERIFIED",
+      "period": "UNKNOWN/UNKNOWN",
+      "cadence": "UNKNOWN/UNKNOWN",
+      "contact": 3,
+      "actives": [],
+      "featured": [],
+      "conflicts": []
+    },
+    "media": [
+      "PRIMARY_PACKSHOT:APPROVED 1080x1080",
+      "EDITORIAL:APPROVED (Automatic: QUALITY_CHECKS_PASSED)"
+    ],
+    "blockers": [
+      "CARTON_DECISION_MISSING",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "openExceptions": [],
+    "summary": {
+      "verified": [
+        "identity.size",
+        "usage.instructions",
+        "usage.targetArea",
+        "suitability.hairTypes",
+        "marketing.description"
+      ],
+      "unknown": [
+        "identity.gtin",
+        "composition.inci",
+        "composition.activeConcentrations",
+        "composition.fragrance",
+        "attributes.texture",
+        "usage.routinePeriod",
+        "suitability.skinTypes",
+        "safety.warnings"
+      ],
+      "unverified": [
+        "identity.name",
+        "identity.brand",
+        "claims.manufacturerStated"
+      ],
+      "conflict": [],
+      "requiredMissing": []
+    }
+  },
+  {
+    "skuId": "2b18da20-0578-4e1e-a093-5945b1540348",
+    "name": "Clary Corporation Clary Hair Conditioner 300ml",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "UNKNOWN",
+    "category": "Conditioners",
+    "type": "conditioner",
+    "subtype": null,
+    "fields": {
+      "identity.name": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://eparkville.com/products/clary-hair-conditioner-300ml"
+        ]
+      },
+      "identity.brand": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://eparkville.com/products/clary-hair-conditioner-300ml"
+        ]
+      },
+      "identity.size": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-conditioner-300ml"
+        ]
+      },
+      "identity.gtin": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.inci": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.activeConcentrations": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.fragrance": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "attributes.texture": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.instructions": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-conditioner-300ml"
+        ]
+      },
+      "usage.routinePeriod": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.targetArea": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-conditioner-300ml"
+        ]
+      },
+      "suitability.skinTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.hairTypes": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-conditioner-300ml"
+        ]
+      },
+      "safety.warnings": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "marketing.description": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-conditioner-300ml"
+        ]
+      },
+      "claims.manufacturerStated": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://eparkville.com/products/clary-hair-conditioner-300ml"
+        ]
+      }
+    },
+    "routine": {
+      "role": "CONDITIONER",
+      "roleStatus": "RULE_DERIVED",
+      "step": 2,
+      "rinse": "RINSE_OFF/VERIFIED",
+      "period": "UNKNOWN/UNKNOWN",
+      "cadence": "UNKNOWN/UNKNOWN",
+      "contact": 5,
+      "actives": [],
+      "featured": [],
+      "conflicts": []
+    },
+    "media": [
+      "PRIMARY_PACKSHOT:APPROVED 1080x1080",
+      "EDITORIAL:APPROVED (Automatic: QUALITY_CHECKS_PASSED)"
+    ],
+    "blockers": [
+      "CARTON_DECISION_MISSING",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "openExceptions": [],
+    "summary": {
+      "verified": [
+        "identity.size",
+        "usage.instructions",
+        "usage.targetArea",
+        "suitability.hairTypes",
+        "marketing.description"
+      ],
+      "unknown": [
+        "identity.gtin",
+        "composition.inci",
+        "composition.activeConcentrations",
+        "composition.fragrance",
+        "attributes.texture",
+        "usage.routinePeriod",
+        "suitability.skinTypes",
+        "safety.warnings"
+      ],
+      "unverified": [
+        "identity.name",
+        "identity.brand",
+        "claims.manufacturerStated"
+      ],
+      "conflict": [],
+      "requiredMissing": []
+    }
+  },
+  {
+    "skuId": "e3b4c221-3e92-4149-b845-20573ffcbae4",
+    "name": "Clary Corporation Clary Hair Mask 300ml",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "UNKNOWN",
+    "category": "Hair Treatments & Styling",
+    "type": "hair-mask",
+    "subtype": null,
+    "fields": {
+      "identity.name": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://eparkville.com/products/clary-hair-mask-300ml"
+        ]
+      },
+      "identity.brand": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://eparkville.com/products/clary-hair-mask-300ml"
+        ]
+      },
+      "identity.size": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-mask-300ml"
+        ]
+      },
+      "identity.gtin": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.inci": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.activeConcentrations": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.fragrance": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "attributes.texture": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.instructions": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-mask-300ml"
+        ]
+      },
+      "usage.routinePeriod": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.targetArea": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-mask-300ml"
+        ]
+      },
+      "suitability.skinTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.hairTypes": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-mask-300ml"
+        ]
+      },
+      "safety.warnings": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "marketing.description": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://eparkville.com/products/clary-hair-mask-300ml"
+        ]
+      },
+      "claims.manufacturerStated": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://eparkville.com/products/clary-hair-mask-300ml"
+        ]
+      }
+    },
+    "routine": {
+      "role": "HAIR_MASK",
+      "roleStatus": "RULE_DERIVED",
+      "step": 3,
+      "rinse": "RINSE_OFF/VERIFIED",
+      "period": "UNKNOWN/UNKNOWN",
+      "cadence": "WEEK/VERIFIED",
+      "contact": 15,
+      "actives": [],
+      "featured": [],
+      "conflicts": []
+    },
+    "media": [
+      "PRIMARY_PACKSHOT:APPROVED 1080x1080",
+      "EDITORIAL:REJECTED (Automatic: QUALITY:LOW_EDGE_CONTRAST)"
+    ],
+    "blockers": [
+      "CARTON_DECISION_MISSING",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "openExceptions": [],
+    "summary": {
+      "verified": [
+        "identity.size",
+        "usage.instructions",
+        "usage.targetArea",
+        "suitability.hairTypes",
+        "marketing.description"
+      ],
+      "unknown": [
+        "identity.gtin",
+        "composition.inci",
+        "composition.activeConcentrations",
+        "composition.fragrance",
+        "attributes.texture",
+        "usage.routinePeriod",
+        "suitability.skinTypes",
+        "safety.warnings"
+      ],
+      "unverified": [
+        "identity.name",
+        "identity.brand",
+        "claims.manufacturerStated"
+      ],
+      "conflict": [],
+      "requiredMissing": []
+    }
+  },
+  {
+    "skuId": "1c0c1c28-6cde-484c-b364-e14d46d55edb",
+    "name": "capixy Capixy Shampoo 250ml",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "UNKNOWN",
+    "category": "Shampoos",
+    "type": "shampoo",
+    "subtype": null,
+    "fields": {
+      "identity.name": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://e-majestic.com/products/capixy-shampoo-250ml"
+        ]
+      },
+      "identity.brand": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://e-majestic.com/products/capixy-shampoo-250ml"
+        ]
+      },
+      "identity.size": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://e-majestic.com/products/capixy-shampoo-250ml"
+        ]
+      },
+      "identity.gtin": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.inci": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://e-majestic.com/products/capixy-shampoo-250ml"
+        ]
+      },
+      "composition.activeConcentrations": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.fragrance": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://e-majestic.com/products/capixy-shampoo-250ml"
+        ]
+      },
+      "attributes.texture": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.instructions": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://e-majestic.com/products/capixy-shampoo-250ml"
+        ]
+      },
+      "usage.routinePeriod": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.targetArea": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.skinTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.hairTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "safety.warnings": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://e-majestic.com/products/capixy-shampoo-250ml"
+        ]
+      },
+      "marketing.description": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "claims.manufacturerStated": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      }
+    },
+    "routine": {
+      "role": "HAIR_WASH",
+      "roleStatus": "RULE_DERIVED",
+      "step": 1,
+      "rinse": "RINSE_OFF/VERIFIED",
+      "period": "UNKNOWN/UNKNOWN",
+      "cadence": "UNKNOWN/UNKNOWN",
+      "contact": null,
+      "actives": [],
+      "featured": [],
+      "conflicts": []
+    },
+    "media": [
+      "PRIMARY_PACKSHOT:APPROVED 1024x1024",
+      "EDITORIAL:REJECTED (Automatic: QUALITY:ENCLOSED_BACKGROUND)"
+    ],
+    "blockers": [
+      "CARTON_DECISION_MISSING",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "openExceptions": [],
+    "summary": {
+      "verified": [
+        "identity.size",
+        "composition.inci",
+        "composition.fragrance",
+        "usage.instructions",
+        "safety.warnings"
+      ],
+      "unknown": [
+        "identity.gtin",
+        "composition.activeConcentrations",
+        "attributes.texture",
+        "usage.routinePeriod",
+        "usage.targetArea",
+        "suitability.skinTypes",
+        "suitability.hairTypes",
+        "marketing.description",
+        "claims.manufacturerStated"
+      ],
+      "unverified": [
+        "identity.name",
+        "identity.brand"
+      ],
+      "conflict": [],
+      "requiredMissing": []
+    }
+  },
+  {
+    "skuId": "80d4709e-4f4e-402a-941e-ce71808ec0a6",
+    "name": "capixy Capixy Hair Hydrating Conditioner 250ml",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "UNKNOWN",
+    "category": "Conditioners",
+    "type": "conditioner",
+    "subtype": null,
+    "fields": {
+      "identity.name": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml"
+        ]
+      },
+      "identity.brand": {
+        "status": "UNVERIFIED",
+        "reason": "Kept as evidence; never written to the catalog as a fact",
+        "sources": [
+          "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml"
+        ]
+      },
+      "identity.size": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml"
+        ]
+      },
+      "identity.gtin": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.inci": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.activeConcentrations": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "composition.fragrance": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml"
+        ]
+      },
+      "attributes.texture": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.instructions": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml"
+        ]
+      },
+      "usage.routinePeriod": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "usage.targetArea": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml"
+        ]
+      },
+      "suitability.skinTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "suitability.hairTypes": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "safety.warnings": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      },
+      "marketing.description": {
+        "status": "VERIFIED",
+        "reason": null,
+        "sources": [
+          "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml"
+        ]
+      },
+      "claims.manufacturerStated": {
+        "status": "UNKNOWN",
+        "reason": "NOT_STATED_ON_SOURCES_READ",
+        "sources": []
+      }
+    },
+    "routine": {
+      "role": "CONDITIONER",
+      "roleStatus": "RULE_DERIVED",
+      "step": 2,
+      "rinse": "RINSE_OFF/VERIFIED",
+      "period": "UNKNOWN/UNKNOWN",
+      "cadence": "UNKNOWN/UNKNOWN",
+      "contact": 2,
+      "actives": [],
+      "featured": [],
+      "conflicts": []
+    },
+    "media": [
+      "PRIMARY_PACKSHOT:APPROVED 1024x1024",
+      "EDITORIAL:APPROVED (Automatic: QUALITY_CHECKS_PASSED)"
+    ],
+    "blockers": [
+      "CARTON_DECISION_MISSING",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "openExceptions": [],
+    "summary": {
+      "verified": [
+        "identity.size",
+        "composition.fragrance",
+        "usage.instructions",
+        "usage.targetArea",
+        "marketing.description"
+      ],
+      "unknown": [
+        "identity.gtin",
+        "composition.inci",
+        "composition.activeConcentrations",
+        "attributes.texture",
+        "usage.routinePeriod",
+        "suitability.skinTypes",
+        "suitability.hairTypes",
+        "safety.warnings",
+        "claims.manufacturerStated"
+      ],
+      "unverified": [
+        "identity.name",
+        "identity.brand"
+      ],
+      "conflict": [],
+      "requiredMissing": []
+    }
+  }
+]

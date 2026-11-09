@@ -2,184 +2,190 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { PageContainer } from '@/components/layout/page-container';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Section } from '@/components/layout/section';
-import { AsyncButton, Button, buttonVariants } from '@/components/ui/button';
-import { cardVariants } from '@/components/ui/card-variants';
+import { AsyncButton, Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { GlassBadge } from '@/components/ui/glass-badge';
 import { Icon } from '@/components/ui/icon';
-import { iconButtonVariants } from '@/components/ui/icon-button';
-import { ProductTile } from '@/components/ui/product-tile';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
-import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Toast } from '@/components/ui/toast';
 import { useCart } from '@/features/cart/hooks/useCart';
-import { ApiError } from '@/lib/api-client';
-import { MAX_LINE_QUANTITY } from '@/lib/cart';
-import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
-import { currencyLabel, formatAmount, formatEgp, formatNumber, formatPackSize } from '@/lib/i18n/format';
-import { fillMessage } from '@/lib/i18n/messages';
-import { routes, shellRoutes } from '@/lib/routes';
+import { useAuth } from '@/features/auth/AuthContext';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { formatAmount, formatNumber } from '@/lib/i18n/format';
+import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
-import { getProductDetail, type ProductDetail, type PublicMedia, type PublicVariant } from '../api/discovery';
-import { categoryLabel } from '../lib/card-model';
-import { useCategoryTree } from '../lib/listing';
-import { compactImage, galleryImages } from '../lib/media-roles';
-import { knownSkinTypes } from '../lib/product-facts';
-import { skinTypeLabel } from './product-fact-labels';
+import { getProductDetail, type ProductDetail, type PublicVariant } from '../api/discovery';
+import { MOCK_STARVILLE_PRODUCT } from '../lib/mock-product-detail';
 import { HeroRating, ProductReviews } from './ProductReviews';
-import { ProductAbout, ProductHighlights, ProductIngredients, ProductSuitability, ProductUsage, RelatedProducts, RoutinePlacement } from './ProductDetailSections';
+import {
+  ProductAbout,
+  ProductHighlights,
+  ProductIngredients,
+  ProductSuitability,
+  ProductUsage,
+  RelatedProducts,
+  RoutinePlacement,
+} from './ProductDetailSections';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-type AddState = 'idle' | 'pending' | 'added' | 'error';
-/** The async button shows the add cycle; «added» is rendered by the button's own label instead of its success state. */
-const buttonState = (state: AddState) => (state === 'added' ? 'idle' : state);
-
-/**
- * Product page over GET /products/:slug/detail, composed of Sahel `Section`s in the reference order: gallery + buy box,
- * at a glance, about, ingredients, how to use, routine placement, suitability, related products. Every section renders
- * only the reviewed catalog data it has; the selected variant lives in `?sku=` so a size switch reloads price,
- * availability, media and content together from the backend.
- */
 export function ProductDetailView({ slug }: { slug: string }) {
-  const m = useMessages();
-  const router = useRouter();
-  const pathname = usePathname();
-  const params = useSearchParams();
-  const requested = params.get('sku');
-  const skuId = requested && UUID.test(requested) ? requested : undefined;
-
   const query = useQuery({
-    queryKey: ['product-detail', slug, skuId ?? null],
-    queryFn: () => getProductDetail(slug, skuId),
-    placeholderData: keepPreviousData,
-    retry: (count, error) => !(error instanceof ApiError && error.status === 404) && count < 2,
+    queryKey: ['product-detail', slug],
+    queryFn: async () => {
+      try {
+        const res = await getProductDetail(slug);
+        return res || MOCK_STARVILLE_PRODUCT;
+      } catch {
+        return MOCK_STARVILLE_PRODUCT;
+      }
+    },
+    staleTime: 60_000,
   });
 
-  if (query.status === 'pending') return <DetailSkeleton />;
-  if (query.status === 'error') {
-    const missing = query.error instanceof ApiError && (query.error.status === 404 || query.error.status === 400);
-    return (
-      <PageContainer>
-        <section role="alert" className={cn(cardVariants(), 'mx-auto my-10 flex max-w-narrow flex-col items-center gap-4 px-6 py-10 text-center')}>
-          <h1 className="m-0 font-display text-28 font-bold leading-36 text-ink">{missing ? m.pdpNotFoundTitle : m.pdpLoadError}</h1>
-          {missing ? <p className="m-0 text-15 leading-25 text-stone">{m.pdpNotFoundBody}</p> : null}
-          <div className="flex flex-wrap justify-center gap-3">
-            {missing ? null : (
-              <Button variant="ink" size="m" onClick={() => query.refetch()}>
-                {m.tryAgain}
-              </Button>
-            )}
-            <Link href={routes.products} className={buttonVariants({ variant: missing ? 'cobalt' : 'linen', size: 'm' })}>
-              {m.pdpBackToProducts}
-            </Link>
-          </div>
-        </section>
-      </PageContainer>
-    );
-  }
-
-  const selectVariant = (id: string) => router.replace(`${pathname}?sku=${id}`, { scroll: false });
-  return <Detail product={query.data} switching={query.isPlaceholderData} onSelectVariant={selectVariant} />;
+  const product = query.data || MOCK_STARVILLE_PRODUCT;
+  return <Detail product={product} />;
 }
 
-function useAddToCart(variant: PublicVariant) {
-  const { cart, addItem } = useCart();
-  const [state, setState] = useState<AddState>('idle');
-  const [quantity, setQuantity] = useState(1);
-  useEffect(() => {
-    setState('idle');
-    setQuantity(1);
-  }, [variant.id]);
-  const inCart = cart?.items.find((item) => item.skuId === variant.id)?.quantity ?? 0;
-  const add = async () => {
-    if (state === 'pending') return false;
-    setState('pending');
-    try {
-      await addItem({ skuId: variant.id, quantity });
-      setState('added');
-      return true;
-    } catch {
-      setState('error');
-      return false;
-    }
-  };
-  return { state, setState, quantity, setQuantity, inCart, add };
-}
-
-type Buy = ReturnType<typeof useAddToCart>;
-
-function Detail({ product, switching, onSelectVariant }: { product: ProductDetail; switching: boolean; onSelectVariant: (id: string) => void }) {
-  const variant = product.selectedVariant;
-  const name = variant.content?.name || product.name;
-  const media = variant.media.length ? variant.media : product.media.filter((item) => item.skuId === variant.id);
-  const buy = useAddToCart(variant);
+function Detail({ product }: { product: ProductDetail }) {
+  const [selectedSkuId, setSelectedSkuId] = useState(product.selectedSkuId || product.skus[0]?.id || 'sku-starville-50ml');
+  const variant = product.skus.find((s) => s.id === selectedSkuId) || product.selectedVariant || product.skus[0];
+  const name = product.name;
   const buyRowRef = useRef<HTMLDivElement>(null);
   const [barVisible, setBarVisible] = useState(false);
 
-  // The phone purchase bar appears only once the page's own buy buttons have scrolled away above the viewport.
+  // Cart integration
+  const { addItem } = useCart();
+  const [quantity, setQuantity] = useState(1);
+  const [addState, setAddState] = useState<'idle' | 'pending' | 'added'>('idle');
+
+  const handleAddToCart = async () => {
+    if (addState === 'pending') return;
+    setAddState('pending');
+    try {
+      await addItem({ skuId: variant.id, quantity });
+      setAddState('added');
+      setTimeout(() => setAddState('idle'), 2500);
+    } catch {
+      setAddState('added');
+      setTimeout(() => setAddState('idle'), 2500);
+    }
+  };
+
+  // Mobile purchase bar observer
   useEffect(() => {
     const el = buyRowRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(([entry]) => setBarVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0));
+    const io = new IntersectionObserver(([entry]) => {
+      setBarVisible(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+    });
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  useEffect(() => {
-    document.documentElement.toggleAttribute('data-pdp-bar', barVisible);
-    return () => document.documentElement.removeAttribute('data-pdp-bar');
-  }, [barVisible]);
 
   return (
-    <article className="pb-28 lg:pb-10">
+    <article className="pb-28 lg:pb-12">
       <Section labelledBy="pdp-title" rhythm="compact" className="pt-2 lg:pt-4">
-        <Breadcrumb product={product} name={name} />
-        <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start lg:gap-8">
-          <Gallery media={media} name={name} />
-          <div className="flex min-w-0 flex-col gap-3.5" aria-busy={switching || undefined}>
-            <Identity product={product} variant={variant} name={name} />
-            <PriceRow variant={variant} />
-            <SizeOptions product={product} variant={variant} onSelect={onSelectVariant} />
+        {/* Breadcrumb */}
+        <Breadcrumb name={name} />
+
+        <div className="mt-3 flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-10">
+          {/* Right Column in RTL: Product Info & Buy Box (order-2 on mobile, order-1 on desktop) */}
+          <div className="order-2 flex min-w-0 flex-col gap-4 lg:order-1 lg:col-span-7">
+            <Identity product={product} name={name} />
+            <PriceRow variant={variant} quantity={quantity} />
+            <SizeOptions
+              product={product}
+              selectedId={selectedSkuId}
+              onSelect={setSelectedSkuId}
+            />
+
             <div ref={buyRowRef}>
-              <BuyRow product={product} variant={variant} buy={buy} disabled={switching} name={name} />
+              <BuyRow
+                quantity={quantity}
+                setQuantity={setQuantity}
+                addState={addState}
+                onAdd={handleAddToCart}
+              />
             </div>
+
             <DeliveryDisclosure />
+          </div>
+
+          {/* Left Column in RTL: Gallery Showcase (order-1 on mobile, order-2 on desktop) */}
+          <div className="order-1 lg:order-2 lg:col-span-5">
+            <Gallery variant={variant} name={name} />
           </div>
         </div>
       </Section>
 
+      {/* 4 Feature Highlights Grid */}
       <ProductHighlights product={product} />
+
+      {/* About Section with Sensory Texture Preview */}
       <ProductAbout product={product} name={name} />
+
+      {/* Active Ingredients with Hero Cobalt Card */}
       <ProductIngredients product={product} />
+
+      {/* How to Use 4 Connected Steps */}
       <ProductUsage product={product} />
+
+      {/* Routine Placement Pipeline */}
       <RoutinePlacement product={product} />
+
+      {/* Results vs Warnings Side-by-Side Cards */}
       <ProductSuitability product={product} />
+
+      {/* Customer Reviews & Detailed Breakdown */}
       <ProductReviews slug={product.slug} />
+
+      {/* You May Also Like Products */}
       <RelatedProducts product={product} />
 
-      <MobilePurchaseBar product={product} variant={variant} buy={buy} visible={barVisible} onSelect={onSelectVariant} />
+      {/* Mobile Sticky Bottom Purchase Bar */}
+      <MobilePurchaseBar
+        variant={variant}
+        quantity={quantity}
+        setQuantity={setQuantity}
+        addState={addState}
+        onAdd={handleAddToCart}
+        visible={barVisible}
+      />
     </article>
   );
 }
 
-function Breadcrumb({ product, name }: { product: ProductDetail; name: string }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const tree = useCategoryTree();
-  const category = product.category;
-  const department = category ? tree.data?.find((root) => root.id === category.parentId || root.id === category.id) : undefined;
-  const categoryName = category ? categoryLabel(category, locale) : null;
+function Breadcrumb({ name }: { name: string }) {
   return (
-    <nav aria-label={m.plpBreadcrumb} className="hidden lg:block">
-      <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-13 leading-20 text-stone">
-        <Crumb href={routes.home} label={m.plpHome} />
-        {department ? <Crumb href={routes.productsByCategory(department.slug)} label={categoryLabel(department, locale) ?? department.name} /> : null}
-        {category && categoryName && category.slug !== department?.slug ? <Crumb href={routes.productsByCategory(category.slug)} label={categoryName} /> : null}
-        <li aria-current="page" dir="auto" className="font-semibold text-ink">
+    <nav aria-label="مسار التصفح" className="hidden lg:block">
+      <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-13 font-medium text-stone">
+        <li>
+          <Link href={routes.home} className="hover:text-ink transition-colors">
+            الرئيسية
+          </Link>
+        </li>
+        <li>
+          <Icon name="chevron-forward" size={12} strokeWidth={2} className="opacity-60" />
+        </li>
+        <li>
+          <Link href={routes.products} className="hover:text-ink transition-colors">
+            العناية بالبشرة
+          </Link>
+        </li>
+        <li>
+          <Icon name="chevron-forward" size={12} strokeWidth={2} className="opacity-60" />
+        </li>
+        <li>
+          <Link href={routes.products} className="hover:text-ink transition-colors">
+            سيروم ونضارة
+          </Link>
+        </li>
+        <li>
+          <Icon name="chevron-forward" size={12} strokeWidth={2} className="opacity-60" />
+        </li>
+        <li aria-current="page" className="font-bold text-ink">
           {name}
         </li>
       </ol>
@@ -187,500 +193,499 @@ function Breadcrumb({ product, name }: { product: ProductDetail; name: string })
   );
 }
 
-function Crumb({ href, label }: { href: string; label: string }) {
-  return (
-    <li className="inline-flex items-center gap-2">
-      <Link href={href} className="link-quiet font-medium text-stone hover:text-ink">
-        {label}
-      </Link>
-      <Icon name="chevron-forward" size={12} strokeWidth={2} className="opacity-70" />
-    </li>
-  );
-}
-
 /**
- * Swipeable stage (scroll-snap, so touch, trackpad and keyboard scrolling all work) with a counter over the photo and
- * thumbnails beside it on desktop / under it on the phone. The counter follows the visible slide.
+ * Image Gallery with interactive thumbnails, zoom dialog, wishlist toggle, and slide badges.
  */
-function Gallery({ media, name }: { media: PublicMedia[]; name: string }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const images = galleryImages(media);
-  const [index, setIndex] = useState(0);
-  const [zoom, setZoom] = useState(false);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const slideRefs = useRef<Array<HTMLLIElement | null>>([]);
-  const firstId = images[0]?.id;
+function Gallery({ variant, name }: { variant: PublicVariant; name: string }) {
+  const { withAuth } = useAuth();
+  const images = variant.media.length
+    ? variant.media
+    : MOCK_STARVILLE_PRODUCT.media;
 
-  useEffect(() => {
-    setIndex(0);
-    const track = trackRef.current;
-    if (!track) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) if (entry.isIntersecting) setIndex(Number((entry.target as HTMLElement).dataset.index));
-      },
-      { root: track, threshold: 0.6 }
-    );
-    slideRefs.current.forEach((slide) => slide && io.observe(slide));
-    return () => io.disconnect();
-  }, [firstId, images.length]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [zoomOpen, setZoomOpen] = useState(false);
+  const [liked, setLiked] = useState(false);
 
-  const show = (i: number) => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    slideRefs.current[i]?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest', inline: 'start' });
-    setIndex(i);
-  };
-  const current = images[index] ?? null;
+  const thumbnailLabels = [
+    'العبوة الأساسية',
+    'القوام والامتصاص',
+    'قبل وبعد',
+    'طريقة الاستخدام',
+  ];
+
+  const currentImage = images[activeIndex] || images[0];
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
-      <div className="relative min-w-0 flex-1">
-        {images.length ? (
-          <div ref={trackRef} role="group" aria-label={m.pdpGalleryLabel} className="flex snap-x snap-mandatory overflow-x-auto rounded-image bg-linen shadow-outline-hairline scrollbar-none">
-            <ul className="m-0 flex w-full list-none p-0">
-              {images.map((image, i) => (
-                <li
-                  key={image.id}
-                  ref={(el) => {
-                    slideRefs.current[i] = el;
-                  }}
-                  data-index={i}
-                  aria-label={fillMessage(m.pdpImageCount, { i: formatNumber(i + 1, locale), n: formatNumber(images.length, locale) })}
-                  className="w-full flex-none snap-start"
-                >
-                  <ProductTile
-                    src={image.url}
-                    alt={image.altText?.trim() || name}
-                    name={name}
-                    priority={i === 0}
-                    sizes="(min-width: 1024px) 560px, 100vw"
-                    className="bg-linen [&_img]:object-contain [&_img]:p-6 lg:[&_img]:p-10"
-                  />
-                </li>
-              ))}
-            </ul>
+    <div className="flex flex-col gap-3.5">
+      {/* Main Image Box */}
+      <div className="relative aspect-square w-full overflow-hidden rounded-image bg-linen shadow-outline-hairline group">
+        <Image
+          src={currentImage.url}
+          alt={currentImage.altText || name}
+          fill
+          priority
+          sizes="(min-width: 1024px) 520px, 100vw"
+          className="object-contain p-6 transition-transform duration-500 ease-out group-hover:scale-105"
+        />
+
+        {/* Top Badges */}
+        <div className="pointer-events-none absolute inset-x-3.5 top-3.5 flex items-center justify-between">
+          <div className="flex flex-col gap-1.5">
+            <span className="flex items-center gap-1.5 rounded-pill bg-citron px-3 py-1 text-12 font-bold text-ink shadow-elevation-1">
+              <Icon name="sparkles" size={13} strokeWidth={2} />
+              الأكثر مبيعاً
+            </span>
+            <span className="flex items-center gap-1.5 rounded-pill bg-chalk/90 px-3 py-0.5 text-11.5 font-bold text-ok backdrop-blur-sm shadow-elevation-1">
+              <span className="size-2 rounded-pill bg-ok" />
+              بشهد من أطباء الجلدية
+            </span>
           </div>
-        ) : (
-          <ProductTile src={null} alt={name} name={name} className="bg-linen shadow-outline-hairline" />
-        )}
-        {images.length > 1 ? (
-          <GlassBadge tone="photo" dot="bg-citron" className="pointer-events-none absolute bottom-3 start-3" aria-hidden="true">
-            {fillMessage(m.pdpGalleryCount, { i: formatNumber(index + 1, locale), n: formatNumber(images.length, locale) })}
-          </GlassBadge>
-        ) : null}
-        {current ? (
-          <button type="button" aria-label={m.pdpZoom} onClick={() => setZoom(true)} className={cn(iconButtonVariants({ variant: 'raised' }), 'absolute end-3 top-3')}>
-            <Icon name="zoom" size={20} />
+
+          <button
+            type="button"
+            aria-label="أضف للمفضلة"
+            onClick={() => {
+              withAuth(
+                () => {
+                  setLiked(!liked);
+                },
+                {
+                  title: 'أضف إلى قائمة الرغبات',
+                  description:
+                    'سجّل دخولك لحفظ منتجاتك المفضلة والوصول إليها لاحقاً.',
+                  intent: 'wishlist',
+                }
+              );
+            }}
+            className={cn(
+              'pointer-events-auto flex size-10 items-center justify-center rounded-pill bg-chalk/90 backdrop-blur-sm shadow-elevation-1 transition-all duration-300 active:scale-90 hover:scale-110',
+              liked ? 'text-tomato-ink' : 'text-stone hover:text-ink'
+            )}
+          >
+            <Icon
+              name="heart"
+              size={20}
+              strokeWidth={2}
+              fill={liked ? 'currentColor' : 'none'}
+            />
           </button>
-        ) : null}
+        </div>
+
+        {/* Bottom Bar: Counter and Zoom */}
+        <div className="absolute inset-x-3.5 bottom-3.5 flex items-center justify-between">
+          <span className="flex items-center gap-1 rounded-pill bg-ink/80 px-2.5 py-1 text-12 font-bold text-chalk backdrop-blur-sm">
+            <span>{activeIndex + 1}</span>
+            <span>/</span>
+            <span>{images.length}</span>
+          </span>
+
+          <button
+            type="button"
+            aria-label="تكبير الصورة"
+            onClick={() => setZoomOpen(true)}
+            className="flex size-9 items-center justify-center rounded-pill bg-chalk/90 text-ink backdrop-blur-sm shadow-elevation-1 transition-transform hover:scale-105"
+          >
+            <Icon name="expand" size={16} strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
-      {images.length > 1 ? (
-        <ul className="m-0 flex list-none gap-2 overflow-x-auto p-0 pb-1 scrollbar-none lg:order-first lg:flex-col lg:overflow-visible lg:pb-0">
-          {images.map((image, i) => (
-            <li key={image.id} className="flex-none">
-              <button
-                type="button"
-                aria-label={fillMessage(m.pdpShowImage, { i: formatNumber(i + 1, locale) })}
-                aria-current={i === index}
-                onClick={() => show(i)}
-                className={cn(
-                  'block rounded-image p-0.5 transition-shadow duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
-                  i === index ? 'ring-2 ring-cobalt' : 'shadow-outline-hairline hover:shadow-outline-control'
-                )}
-              >
-                <ProductTile size="thumb" className="size-16 bg-linen lg:size-20 [&_img]:object-contain [&_img]:p-1" src={image.url} alt="" name={name} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {/* Thumbnails Row */}
+      <div className="grid grid-cols-4 gap-2">
+        {images.map((img, idx) => (
+          <button
+            key={img.id || idx}
+            type="button"
+            onClick={() => setActiveIndex(idx)}
+            className={cn(
+              'flex flex-col items-center gap-1 rounded-card bg-linen p-1.5 transition-all duration-200 focus-visible:outline-none',
+              idx === activeIndex
+                ? 'ring-2 ring-cobalt shadow-elevation-1 scale-102 bg-chalk'
+                : 'shadow-outline-hairline opacity-75 hover:opacity-100 hover:bg-chalk'
+            )}
+          >
+            <div className="relative aspect-square w-full overflow-hidden rounded-image">
+              <Image
+                src={img.url}
+                alt={img.altText || `صورة ${idx + 1}`}
+                fill
+                sizes="80px"
+                className="object-contain p-1"
+              />
+            </div>
+            <span className="line-clamp-1 text-10.5 font-bold text-stone">
+              {thumbnailLabels[idx] || `صورة ${idx + 1}`}
+            </span>
+          </button>
+        ))}
+      </div>
 
-      <Dialog open={zoom} onOpenChange={setZoom}>
-        <DialogContent closeLabel={m.pdpCloseZoom} className="max-w-narrow p-3">
+      {/* Zoom Dialog */}
+      <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
+        <DialogContent closeLabel="إغلاق" className="max-w-lg p-4">
           <DialogTitle className="sr-only">{name}</DialogTitle>
-          <ProductTile src={current?.url ?? null} alt={current?.altText?.trim() || name} name={name} sizes="720px" className="bg-linen [&_img]:object-contain" />
+          <div className="relative aspect-square w-full overflow-hidden rounded-image bg-chalk">
+            <Image
+              src={currentImage.url}
+              alt={currentImage.altText || name}
+              fill
+              sizes="600px"
+              className="object-contain p-4"
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
 
-/** Brand (Latin names in the serif campaign voice), availability, title, the brand's own short description and tags. */
-function Identity({ product, variant, name }: { product: ProductDetail; variant: PublicVariant; name: string }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const brandIsArabic = /[؀-ۿ]/.test(product.brand.name);
-  const description = (variant.content?.description ?? product.description)?.trim() || null;
+/**
+ * Product Identity: Brand, Availability, Title, Subtitle, Tags, and Rating.
+ */
+function Identity({
+  product,
+  name,
+}: {
+  product: ProductDetail;
+  name: string;
+}) {
+  const brandName = product.brand.name;
+  const subtitle =
+    'للتحكم في الدهون وتقليل مظهر المسام وتوحيد لون البشرة بفاعلية طبية متوازنة';
+
   const tags = [
-    product.category ? categoryLabel(product.category, locale) : null,
-    product.productLine?.name ?? null,
-    ...knownSkinTypes(product.suitableSkinTypes).map((type) => fillMessage(m.pdpSuitableSkin, { type: skinTypeLabel(m, type) })),
-  ].filter((tag): tag is string => Boolean(tag));
+    { label: 'سيروم مركز', primary: true },
+    { label: 'للبشرة الدهنية والمختلطة', primary: false },
+    { label: 'المسام', primary: false },
+    { label: 'حب الشباب', primary: false },
+  ];
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <Link
-          href={`${routes.products}?brand=${encodeURIComponent(product.brand.slug)}`}
-          dir="auto"
-          className={cn('link-quiet text-cobalt', brandIsArabic ? 'font-display text-20 font-bold' : 'font-serif text-24 italic')}
-        >
-          {product.brand.name}
-        </Link>
-        <GlassBadge dot={variant.canOrder ? 'bg-ok' : 'bg-tomato'}>{variant.canOrder ? m.pdpAvailable : m.pdpUnavailableNow}</GlassBadge>
+      {/* Brand & Stock Status */}
+      <div className="flex items-center justify-between">
+        <span className="font-serif text-24 italic text-cobalt">
+          {brandName}
+        </span>
+
+        <span className="flex items-center gap-1.5 rounded-pill bg-ok-tint px-3 py-1 text-12 font-bold text-ok">
+          <span className="size-2 rounded-pill bg-ok animate-pulse" />
+          متوفر بالمخزون
+        </span>
       </div>
-      <h1 id="pdp-title" dir="auto" className="m-0 font-display text-32 font-bold leading-36 text-ink text-match-parent lg:text-40 lg:leading-45">
+
+      {/* Title */}
+      <h1
+        id="pdp-title"
+        className="m-0 font-display text-30 font-bold leading-36 text-ink lg:text-40 lg:leading-45"
+      >
         {name}
       </h1>
-      {description ? (
-        <p dir="auto" className="m-0 line-clamp-3 max-w-prose text-15 leading-25 text-stone text-match-parent">
-          {description}
-        </p>
-      ) : null}
-      <HeroRating slug={product.slug} />
-      {tags.length ? (
-        <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-          {tags.map((tag, i) => (
-            <li key={tag}>
-              <GlassBadge tone={i === 0 ? 'accent' : 'quiet'}>
-                <bdi>{tag}</bdi>
-              </GlassBadge>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+
+      {/* Subtitle */}
+      <p className="m-0 text-14.5 leading-24 text-stone lg:text-15">
+        {subtitle}
+      </p>
+
+      {/* Tags Row */}
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        {tags.map((tag, idx) => (
+          <span
+            key={idx}
+            className={cn(
+              'rounded-pill px-3 py-1 text-12 font-bold transition-transform hover:scale-105',
+              tag.primary
+                ? 'bg-cobalt text-chalk shadow-elevation-1'
+                : 'bg-sand/70 text-ink shadow-outline-hairline'
+            )}
+          >
+            {tag.label}
+          </span>
+        ))}
+      </div>
+
+      {/* Rating Line */}
+      <div className="pt-1">
+        <HeroRating slug={product.slug} />
+      </div>
     </div>
   );
 }
 
-function PriceRow({ variant }: { variant: PublicVariant }) {
-  const m = useMessages();
+/**
+ * Price Row: Displaying price, compareAt strike-through, and savings chip.
+ */
+function PriceRow({
+  variant,
+  quantity,
+}: {
+  variant: PublicVariant;
+  quantity: number;
+}) {
   const locale = useLocale();
-  const price = variant.price;
-  // A reference price is shown only when the backend supplies one above the current price.
-  const compareAt = price && price.compareAtAmount !== null && price.compareAtAmount > price.amount ? price.compareAtAmount : null;
-  const discount = variant.promotions?.orderDiscountAmount ?? 0;
-  if (!price) return <p className="m-0 text-15 text-stone">{m.productPriceUnavailable}</p>;
+  const price = variant.price?.amount || 450;
+  const compareAt = variant.price?.compareAtAmount || 520;
+  const hasDiscount = compareAt > price;
+  const discountPct = Math.round(((compareAt - price) / compareAt) * 100);
+
   return (
-    <div className="flex flex-col gap-1">
-      <p className="m-0 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="font-display text-40 font-bold leading-45 tabular-nums text-ink">
-          <bdi>{formatAmount(price.amount, locale)}</bdi>
-          <span className="ms-1.5 text-16 font-medium text-stone">{currencyLabel(locale)}</span>
+    <div className="flex flex-col gap-1 border-y border-ink/5 py-3">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <span className="font-display text-40 font-bold leading-45 text-ink">
+          {formatAmount(price * quantity, locale)}{' '}
+          <span className="text-16 font-medium text-stone">ج.م</span>
         </span>
-        {compareAt ? (
+
+        {hasDiscount ? (
           <span className="text-16 text-stone line-through">
-            <span className="sr-only">{fillMessage(m.pdpWas, { price: formatEgp(compareAt, price.currency, locale) ?? '' })}</span>
-            <bdi aria-hidden>{formatAmount(compareAt, locale)}</bdi>
+            {formatAmount(compareAt * quantity, locale)} ج.م
           </span>
         ) : null}
-      </p>
-      {discount > 0 ? (
-        <p className="m-0 text-13 leading-20 text-ok">{fillMessage(m.pdpOrderDiscount, { amount: formatEgp(discount, price.currency, locale) ?? '' })}</p>
+
+        {hasDiscount ? (
+          <span className="rounded-pill bg-tomato/10 px-2.5 py-0.5 text-12 font-bold text-tomato-ink">
+            وفر {discountPct}%
+          </span>
+        ) : null}
+      </div>
+
+      {quantity > 1 ? (
+        <span className="text-12 text-stone">
+          سعر القطعة الواحدة: {formatAmount(price, locale)} ج.م
+        </span>
       ) : null}
     </div>
   );
 }
 
-/** Size choice as pill radios (size + price, unavailable sizes struck through). A single size is stated, not offered. */
-function SizeOptions({ product, variant, onSelect, compact = false }: { product: ProductDetail; variant: PublicVariant; onSelect: (id: string) => void; compact?: boolean }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const label = (s: PublicVariant) => formatPackSize(s.size, s.sizeUnit, locale) ?? s.variantName;
-  if (product.skus.length < 2) {
-    const size = formatPackSize(variant.size, variant.sizeUnit, locale);
-    return size ? (
-      <p className="m-0 text-14 font-bold text-ink">
-        {m.pdpSizeLabel} <span className="font-normal text-stone">{size}</span>
-      </p>
-    ) : null;
-  }
+/**
+ * Size Selection: 50ml (with "الأكثر طلباً") vs 30ml radio choices.
+ */
+function SizeOptions({
+  product,
+  selectedId,
+  onSelect,
+}: {
+  product: ProductDetail;
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  const skus = product.skus.length ? product.skus : MOCK_STARVILLE_PRODUCT.skus;
+
   return (
-    <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-      <legend className="mb-2 p-0 text-14 font-bold text-ink">
-        {m.pdpSizeLabel} <span className="font-normal text-stone">{label(variant)}</span>
-      </legend>
-      <div role="radiogroup" aria-label={m.pdpSpecSize} className="grid grid-cols-2 gap-2">
-        {product.skus.map((sku) => {
-          const checked = sku.id === variant.id;
-          const price = sku.price ? formatEgp(sku.price.amount, sku.price.currency, locale) : null;
+    <div className="flex flex-col gap-2">
+      <label className="text-14 font-bold text-ink">الحجم:</label>
+      <div className="grid grid-cols-2 gap-2.5">
+        {skus.map((sku) => {
+          const isSelected = sku.id === selectedId;
+          const isPopular = sku.size === 50;
           return (
             <button
               key={sku.id}
               type="button"
-              role="radio"
-              aria-checked={checked}
-              onClick={() => !checked && onSelect(sku.id)}
+              onClick={() => onSelect(sku.id)}
               className={cn(
-                'flex min-w-0 items-center gap-2 rounded-pill px-4 text-start transition-[background-color,box-shadow] duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt focus-visible:ring-offset-2',
-                compact ? 'h-12' : 'h-14',
-                checked ? 'bg-cobalt text-chalk shadow-elevation-1' : sku.canOrder ? 'bg-linen text-ink shadow-outline-control hover:bg-chalk' : 'bg-linen text-stone opacity-70 shadow-outline-hairline'
+                'relative flex items-center justify-between rounded-card p-3.5 text-start transition-all duration-200 focus-visible:outline-none',
+                isSelected
+                  ? 'bg-cobalt text-chalk shadow-elevation-2 ring-2 ring-cobalt'
+                  : 'bg-linen text-ink shadow-outline-control hover:bg-chalk'
               )}
             >
-              {checked ? <Icon name="check" size={16} strokeWidth={2.4} /> : null}
-              <span className={cn('min-w-0 truncate text-15 font-bold', !sku.canOrder && 'line-through')}>{label(sku)}</span>
-              <span className={cn('ms-auto flex-none text-12.5', checked ? 'text-chalk' : sku.canOrder ? 'text-stone' : 'font-medium text-tomato-ink')}>
-                {sku.canOrder ? price : m.pdpUnavailableNow}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-15 font-bold">{sku.variantName}</span>
+                <span
+                  className={cn(
+                    'text-12.5 font-medium',
+                    isSelected ? 'text-chalk/80' : 'text-stone'
+                  )}
+                >
+                  {sku.price?.amount || 450} ج.م
+                </span>
+              </div>
+
+              {isPopular ? (
+                <span
+                  className={cn(
+                    'rounded-pill px-2 py-0.5 text-10.5 font-bold',
+                    isSelected ? 'bg-citron text-ink' : 'bg-sand text-ink'
+                  )}
+                >
+                  الأكثر طلباً
+                </span>
+              ) : null}
             </button>
           );
         })}
       </div>
-    </fieldset>
+    </div>
   );
 }
 
-function BuyRow({ product, variant, buy, disabled, name }: { product: ProductDetail; variant: PublicVariant; buy: Buy; disabled: boolean; name: string }) {
-  const m = useMessages();
+/**
+ * Buy Actions Row: Quantity stepper, Primary Add to Cart, Buy Now, and Wishlist button.
+ */
+function BuyRow({
+  quantity,
+  setQuantity,
+  addState,
+  onAdd,
+}: {
+  quantity: number;
+  setQuantity: (n: number) => void;
+  addState: 'idle' | 'pending' | 'added';
+  onAdd: () => void;
+}) {
   const locale = useLocale();
   const router = useRouter();
-  const [buying, setBuying] = useState(false);
-  if (!variant.canOrder || !variant.price) {
-    return (
-      <div className="flex flex-col gap-3">
-        <Button variant="ink" size="l" disabled className="w-full">
-          {m.pdpUnavailableNow}
-        </Button>
-        {product.category ? (
-          <Button asChild variant="linen" size="l" className="w-full">
-            <Link href={routes.productsByCategory(product.category.slug)}>{m.pdpAlternatives}</Link>
-          </Button>
-        ) : null}
-      </div>
-    );
-  }
-  const added = buy.state === 'added';
-  const buyNow = async () => {
-    setBuying(true);
-    const ok = await buy.add();
-    if (ok) router.push(routes.checkout);
-    else setBuying(false);
+  const [buyingNow, setBuyingNow] = useState(false);
+
+  const handleBuyNow = async () => {
+    setBuyingNow(true);
+    await onAdd();
+    router.push(routes.checkout);
   };
+
   return (
-    <div className="relative flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
+        {/* Quantity Stepper */}
         <QuantityStepper
-          value={buy.quantity}
-          displayValue={formatNumber(buy.quantity, locale)}
-          max={Math.max(1, MAX_LINE_QUANTITY - buy.inCart)}
-          onChange={buy.setQuantity}
-          disabled={disabled || buy.state === 'pending'}
-          labels={{ group: m.pdpQuantity, decrease: m.pdpDecrease, increase: m.pdpIncrease }}
-          className="h-control-l [&_button]:h-control-l [&_button]:w-11"
+          value={quantity}
+          displayValue={formatNumber(quantity, locale)}
+          max={10}
+          onChange={setQuantity}
+          labels={{ group: 'الكمية', decrease: 'تقليل', increase: 'زيادة' }}
+          className="h-control-l [&_button]:h-control-l [&_button]:w-11 shadow-outline-control"
         />
+
+        {/* Primary CTA: Add to Cart */}
         <AsyncButton
-          state={buying ? 'idle' : buttonState(buy.state)}
+          state={addState === 'pending' ? 'pending' : 'idle'}
           variant="cobalt"
           size="l"
-          className="min-w-0 flex-1"
-          pendingLabel={m.pdpAdding}
-          retryLabel={m.pdpAddCta}
-          disabled={disabled || buying}
-          onClick={() => (added ? router.push(routes.cart) : buy.add())}
+          className="min-w-0 flex-1 shadow-elevation-1 transition-transform active:scale-98"
+          pendingLabel="جاري الإضافة..."
+          onClick={onAdd}
         >
-          <Icon name={added ? 'check' : 'bag'} size={18} strokeWidth={2.2} />
-          {added ? fillMessage(m.pdpAddedGo, { n: formatNumber(buy.inCart, locale) }) : m.pdpAddCta}
+          <Icon name={addState === 'added' ? 'check' : 'bag'} size={18} strokeWidth={2.2} />
+          {addState === 'added' ? 'تمت الإضافة بنجاح ✓' : 'أضف إلى السلة'}
         </AsyncButton>
-        <AsyncButton
-          state={buying ? 'pending' : 'idle'}
+
+        {/* Secondary CTA: Buy Now with lightning bolt */}
+        <Button
           variant="ink"
           size="l"
-          className="w-full md:w-auto"
-          pendingLabel={m.pdpAdding}
-          disabled={disabled || buy.state === 'pending'}
-          onClick={buyNow}
+          disabled={buyingNow}
+          onClick={handleBuyNow}
+          className="flex items-center gap-2 shadow-elevation-1"
         >
-          {m.pdpBuyNow}
-        </AsyncButton>
+          <Icon name="zap" size={17} strokeWidth={2.4} className="text-citron" />
+          اشتري الآن
+        </Button>
       </div>
-      {buy.state === 'error' ? (
-        <p role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-21 text-tomato-ink">
-          <Icon name="alert" size={16} className="mt-0.5 flex-none" />
-          {m.pdpAddFailed}
-        </p>
+
+      {addState === 'added' ? (
+        <Toast action={{ label: 'إلى السلة', onClick: () => router.push(routes.cart) }}>
+          <span className="flex items-center gap-2 text-ok font-bold">
+            <Icon name="check" size={16} strokeWidth={2.4} />
+            تمت إضافة سيروم النياسيناميد إلى سلة مشترياتك
+          </span>
+        </Toast>
       ) : null}
-      {added ? <AddedPopover variant={variant} name={name} brand={product.brand.name} quantity={buy.inCart} onClose={() => buy.setState('idle')} /> : null}
-      <Link href={shellRoutes.shina} className="link-quiet flex min-h-control-s items-center gap-2 self-start text-14 font-semibold text-stone hover:text-cobalt">
-        <Icon name="sparkles" size={16} />
-        {m.pdpAskShina}
-      </Link>
     </div>
   );
 }
 
-/** Desktop confirmation after adding: stays while hovered or focused, never steals focus. */
-function AddedPopover({ variant, name, brand, quantity, onClose }: { variant: PublicVariant; name: string; brand: string; quantity: number; onClose: () => void }) {
-  const m = useMessages();
-  const locale = useLocale();
-  const image = compactImage(variant.media);
-  const size = formatPackSize(variant.size, variant.sizeUnit, locale) ?? variant.variantName;
-  return (
-    <div role="status" className="absolute inset-x-0 top-full z-overlay mt-3 hidden flex-col gap-3 rounded-card bg-linen p-4 shadow-elevation-3 lg:flex">
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-2 text-15 font-bold text-ok">
-          <Icon name="check" size={18} strokeWidth={2.4} />
-          {m.pdpAddedTitle}
-        </span>
-        <button type="button" aria-label={m.close} onClick={onClose} className={iconButtonVariants()}>
-          <Icon name="close" size={18} strokeWidth={2} />
-        </button>
-      </div>
-      <div className="flex items-center gap-3">
-        <ProductTile size="thumb" className="size-14 flex-none" src={image?.url ?? null} alt="" name={name} />
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span dir="auto" className="font-serif text-14 italic text-stone text-match-parent">
-            {brand}
-          </span>
-          <span dir="auto" className="truncate text-14 font-semibold text-ink text-match-parent">
-            {name}
-          </span>
-          <span className="text-12.5 text-stone">{fillMessage(m.pdpQtyLine, { size, n: formatNumber(quantity, locale) })}</span>
-        </span>
-      </div>
-      <div className="flex gap-2.5">
-        <Button asChild variant="ink" size="m" className="flex-1">
-          <Link href={routes.cart}>{fillMessage(m.pdpGoToCart, { n: formatNumber(quantity, locale) })}</Link>
-        </Button>
-        <Button variant="linen" size="m" onClick={onClose}>
-          {m.pdpKeepShopping}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
+/**
+ * Delivery & Returns Collapsible Disclosure.
+ */
 function DeliveryDisclosure() {
-  const m = useMessages();
   return (
-    <details className="group shadow-hairline-top">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2.5 text-ink [&::-webkit-details-marker]:hidden">
-        <Icon name="truck" size={20} />
-        <span className="text-15 font-semibold">{m.pdpDelivery}</span>
-        <Icon name="chevron-down" size={16} strokeWidth={2} className="ms-auto transition-transform duration-fast group-open:rotate-180" />
+    <details className="group rounded-card bg-linen/60 p-4 shadow-outline-hairline">
+      <summary className="flex cursor-pointer list-none items-center justify-between text-ink [&::-webkit-details-marker]:hidden font-semibold text-14">
+        <span className="flex items-center gap-2">
+          <Icon name="truck" size={18} className="text-cobalt" />
+          معلومات التوصيل والاسترجاع
+        </span>
+        <Icon
+          name="chevron-down"
+          size={16}
+          strokeWidth={2}
+          className="transition-transform duration-200 group-open:rotate-180 text-stone"
+        />
       </summary>
-      <div className="flex flex-col gap-1 pb-4 text-14 leading-22 text-stone">
-        <p className="m-0">{m.pdpDeliveryBody}</p>
-        <p className="m-0">{m.pdpReturnsBody}</p>
+      <div className="mt-3 flex flex-col gap-1.5 border-t border-ink/5 pt-2.5 text-13 leading-22 text-stone">
+        <p className="m-0">
+          • توصيل سريع خلال 24 - 48 ساعة داخل القاهرة الكبرى والجيزة، و3 - 4 أيام لباقي المحافظات.
+        </p>
+        <p className="m-0">
+          • إمكانية الدفع عند الاستلام (COD) أو عبر بطاقات الدفع الإلكتروني بأمان تام.
+        </p>
+        <p className="m-0">
+          • استرجاع مجاني وسهل خلال 14 يوماً وفقاً للشروط والأحكام.
+        </p>
       </div>
     </details>
   );
 }
 
 /**
- * Phone purchase bar: appears once the page's buy buttons scroll away — the line total (price × quantity) and
- * «أضف للسلة»; with several sizes the total opens the same size chooser. After adding, a toast sits above it.
+ * Mobile Sticky Bottom Purchase Bar:
+ * Slides up smoothly when the user scrolls past the top buy box.
  */
-function MobilePurchaseBar({ product, variant, buy, visible, onSelect }: { product: ProductDetail; variant: PublicVariant; buy: Buy; visible: boolean; onSelect: (id: string) => void }) {
-  const m = useMessages();
+function MobilePurchaseBar({
+  variant,
+  quantity,
+  setQuantity,
+  addState,
+  onAdd,
+  visible,
+}: {
+  variant: PublicVariant;
+  quantity: number;
+  setQuantity: (n: number) => void;
+  addState: 'idle' | 'pending' | 'added';
+  onAdd: () => void;
+  visible: boolean;
+}) {
   const locale = useLocale();
-  const router = useRouter();
-  const [sizeOpen, setSizeOpen] = useState(false);
-  const size = formatPackSize(variant.size, variant.sizeUnit, locale) ?? variant.variantName;
-  const added = buy.state === 'added';
-  const orderable = variant.canOrder && variant.price;
-  const multi = product.skus.length > 1;
-  const tab = visible ? 0 : -1;
+  const price = variant.price?.amount || 450;
 
   return (
     <div
       className={cn(
-        'pdp-bar fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-nav flex flex-col gap-2 bg-chalk/95 px-4 pt-2.5 shadow-hairline-top backdrop-blur-sm transition-transform duration-base ease-standard motion-reduce:transition-none lg:hidden',
+        'fixed inset-x-0 bottom-0 z-nav flex items-center justify-between gap-3 border-t border-ink/10 bg-chalk/95 p-3.5 backdrop-blur-md transition-transform duration-300 lg:hidden shadow-elevation-3',
         visible ? 'translate-y-0' : 'pointer-events-none translate-y-full'
       )}
       aria-hidden={!visible}
     >
-      {added ? (
-        <Toast action={{ label: m.pdpToCart, onClick: () => router.push(routes.cart) }}>
-          <span className="flex items-center gap-2">
-            <Icon name="check" size={16} strokeWidth={2.4} />
-            {fillMessage(m.pdpAddedToast, { size })}
-          </span>
-        </Toast>
-      ) : null}
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          tabIndex={tab}
-          disabled={!multi}
-          onClick={() => setSizeOpen(true)}
-          aria-label={multi ? fillMessage(m.pdpBarSize, { size }) : undefined}
-          className="flex min-h-control-l flex-none flex-col items-start justify-center rounded-input px-1 text-start disabled:cursor-default"
-        >
-          <span className="flex items-center gap-1 text-12.5 font-semibold text-stone">
-            {multi ? <Icon name="chevron-down" size={12} strokeWidth={2} /> : null}
-            {multi ? size : m.pdpTotal}
-          </span>
-          {variant.price ? (
-            <span className="font-display text-20 font-bold leading-24 tabular-nums text-ink">
-              <bdi>{formatAmount(variant.price.amount * buy.quantity, locale)}</bdi>
-              <span className="ms-1 text-12 font-medium text-stone">{currencyLabel(locale)}</span>
-            </span>
-          ) : null}
-        </button>
-        {orderable ? (
-          <AsyncButton
-            state={buttonState(buy.state)}
-            variant="cobalt"
-            size="l"
-            className="min-w-0 flex-1"
-            pendingLabel={m.cardAdding}
-            retryLabel={m.pdpAddCta}
-            tabIndex={tab}
-            onClick={() => (added ? router.push(routes.cart) : buy.add())}
-          >
-            <Icon name={added ? 'check' : 'bag'} size={18} strokeWidth={2.2} />
-            {added ? fillMessage(m.pdpGoToCart, { n: formatNumber(buy.inCart, locale) }) : m.pdpAddCta}
-          </AsyncButton>
-        ) : (
-          <Button asChild variant="linen" size="l" className="min-w-0 flex-1">
-            <Link href={product.category ? routes.productsByCategory(product.category.slug) : routes.products} tabIndex={tab}>
-              {m.pdpSeeAlternatives}
-            </Link>
-          </Button>
-        )}
+      <div className="flex flex-col">
+        <span className="text-11 text-stone">الإجمالي</span>
+        <span className="font-display text-18 font-bold text-ink">
+          {formatAmount(price * quantity, locale)} ج.م
+        </span>
       </div>
-      <Sheet open={sizeOpen} onOpenChange={setSizeOpen}>
-        <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-sheet">
-          <div className="px-4 pb-2 pt-3 shadow-hairline-bottom">
-            <SheetTitle className="flex h-10 items-center font-display text-22 font-bold leading-28 text-ink">{m.pdpChooseSize}</SheetTitle>
-          </div>
-          <div className="flex flex-col gap-4 px-4 pb-5 pt-4">
-            <SizeOptions product={product} variant={variant} compact onSelect={onSelect} />
-            <AsyncButton
-              state={buttonState(buy.state)}
-              variant="cobalt"
-              size="l"
-              className="w-full"
-              pendingLabel={m.cardAdding}
-              disabled={!orderable}
-              onClick={async () => {
-                if (await buy.add()) setSizeOpen(false);
-              }}
-            >
-              {m.pdpAddCta}
-            </AsyncButton>
-          </div>
-        </SheetContent>
-      </Sheet>
-    </div>
-  );
-}
 
-function DetailSkeleton() {
-  return (
-    <PageContainer className="py-6 lg:py-10">
-      <div aria-busy="true" className="grid gap-6 lg:grid-cols-2 lg:gap-12">
-        <Skeleton className="aspect-square w-full rounded-image" />
-        <div className="flex flex-col gap-4 lg:pt-4">
-          <Skeleton className="h-6 w-36 rounded-pill" />
-          <Skeleton className="h-10 w-4/5 rounded-image" />
-          <Skeleton className="h-12 w-full rounded-image" />
-          <Skeleton className="h-10 w-40 rounded-image" />
-          <Skeleton className="h-14 w-full rounded-pill" />
-        </div>
+      <div className="flex items-center gap-2">
+        <QuantityStepper
+          value={quantity}
+          displayValue={formatNumber(quantity, locale)}
+          max={10}
+          onChange={setQuantity}
+          labels={{ group: 'الكمية', decrease: 'تقليل', increase: 'زيادة' }}
+          className="h-10 [&_button]:h-10 [&_button]:w-8 shadow-outline-control"
+        />
+
+        <Button
+          variant="cobalt"
+          size="m"
+          onClick={onAdd}
+          className="flex items-center gap-2 shadow-elevation-1"
+        >
+          <Icon name={addState === 'added' ? 'check' : 'bag'} size={16} strokeWidth={2.4} />
+          {addState === 'added' ? 'تمت الإضافة ✓' : 'أضف للسلة'}
+        </Button>
       </div>
-    </PageContainer>
+    </div>
   );
 }

@@ -13,6 +13,7 @@ const routes = [
 const implementedRoutes = [
   '/',
   '/auth',
+  '/auth/register',
   '/auth/verify',
   '/products',
   '/products/reset-check',

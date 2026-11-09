@@ -12,6 +12,8 @@ export interface OtpChallenge {
   expiresAt: number;
   /** Epoch ms from which «ابعت كود جديد» is allowed. */
   resendAt: number;
+  /** Customer full name when signing up */
+  name?: string;
 }
 
 export interface OtpChallengeResponse {
@@ -22,12 +24,20 @@ export interface OtpChallengeResponse {
 
 const STORAGE_KEY = 'shena.otpChallenge';
 
-export function challengeFrom(phoneNumber: string, response: OtpChallengeResponse, now = Date.now()): OtpChallenge {
+export function challengeFrom(
+  phoneNumber: string,
+  response: OtpChallengeResponse,
+  nameOrNow?: string | number,
+  maybeNow = Date.now(),
+): OtpChallenge {
+  const name = typeof nameOrNow === 'string' ? nameOrNow : undefined;
+  const now = typeof nameOrNow === 'number' ? nameOrNow : maybeNow;
   return {
     phoneNumber,
     codeLength: response.codeLength,
     expiresAt: new Date(response.expiresAt).getTime(),
     resendAt: now + response.retryAfter * 1000,
+    ...(name ? { name } : {}),
   };
 }
 

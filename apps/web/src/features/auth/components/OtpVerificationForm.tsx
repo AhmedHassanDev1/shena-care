@@ -9,7 +9,7 @@ import { FieldMessage } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { OtpInput } from '@/components/ui/otp-input';
 import { CART_QUERY_KEY, useCart } from '@/features/cart/hooks/useCart';
-import { auth } from '@/lib/auth';
+import { auth, type VerifyOtpResponse } from '@/lib/auth';
 import { cart as cartApi, type Cart } from '@/lib/cart';
 import { formatClock, isolateLtr } from '@/lib/i18n/format';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
@@ -32,13 +32,13 @@ import { AuthHeader } from './auth-ui';
 /** wrong / incomplete: fix the code. expired / exhausted: only a new code helps. network: retry as is. */
 type Failure = 'wrong' | 'incomplete' | 'expired' | 'exhausted' | 'network';
 
-/** How long the verified state (green cells, «اتأكد») holds before the return (Addendum: about 1 s). */
-const VERIFIED_HOLD_MS = 900;
+/** Brief success hold before auto-redirecting to destination (approx 1.8s) */
+const SUCCESS_AUTO_NAVIGATE_MS = 1800;
 
 /**
- * Code step (AuthOtpD, AuthMobile ٢–٢د, AuthStates §٣–§٥). Cells, expiry and the resend countdown come from the stored
- * challenge (server contract), never from client defaults. After verification the customer returns to the exact task
- * that started sign-in; if adoption changed the cart, the cart opens first for review.
+ * OTP Verification step (AuthOtpD, AuthMobile, SAHEL Design System).
+ * Includes 6-digit OTP input, visible countdown, resend control, ability to edit number,
+ * subtle SAHEL loading animation, and clean success state.
  */
 export function OtpVerificationForm() {
   const m = useMessages();
@@ -47,7 +47,6 @@ export function OtpVerificationForm() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { refreshUser } = useAuth();
-  // Loads the guest cart, so the lines before sign-in are known when the code is confirmed.
   useCart();
 
   const [challenge, setChallenge] = useState<OtpChallenge | null>(null);
@@ -58,20 +57,26 @@ export function OtpVerificationForm() {
   const [notice, setNotice] = useState('');
   const [limitNotice, setLimitNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
-  // The countdown is announced once per state (started, ended), never every second.
   const [countdownNotice, setCountdownNotice] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const verifyingRef = useRef(false);
+  const redirectTimerRef = useRef<number | null>(null);
+  const sessionRef = useRef<VerifyOtpResponse | null>(null);
+  const beforeCartRef = useRef<Cart | undefined>(undefined);
 
   const returnTo = searchParams.get('returnTo');
   const changeNumberHref = returnTo ? `${routes.login}?${new URLSearchParams({ returnTo })}` : routes.login;
 
-  // The pending code request lives in this tab's session; without one there is nothing to verify.
   useEffect(() => {
     const pending = readOtpChallenge();
     if (pending) setChallenge(pending);
     else router.replace(changeNumberHref);
-    // Read once on arrival; later changes come from this page's own resend.
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) window.clearTimeout(redirectTimerRef.current);
+    };
   }, []);
 
   const resendIn = challenge ? secondsUntil(challenge.resendAt, now) : 0;
@@ -89,7 +94,6 @@ export function OtpVerificationForm() {
   useEffect(() => {
     if (!resendAt) return;
     setCountdownNotice(cooling ? fillMessage(m.authResendIn, { time: isolateLtr(formatClock(secondsUntil(resendAt), locale)) }) : '');
-    // Only when a new countdown starts or the current one ends.
   }, [resendAt, cooling]);
 
   const focusCode = (select = false) =>
@@ -132,15 +136,17 @@ export function OtpVerificationForm() {
     setFailure(null);
     setNotice('');
     const before = queryClient.getQueryData<Cart>(CART_QUERY_KEY);
+    beforeCartRef.current = before;
+
     try {
-      const session = await auth.verifyOtp(challenge.phoneNumber, submitted);
+      const session = await auth.verifyOtp(challenge.phoneNumber, submitted, challenge.name);
+      sessionRef.current = session;
       clearOtpChallenge();
       setVerifyState('success');
-      await Promise.all([
-        new Promise((resolve) => window.setTimeout(resolve, VERIFIED_HOLD_MS)),
-        finish(session.returnTo, before).catch(() => router.replace(safeReturnTo(returnTo))),
-      ]);
-      // Stays verified until the destination renders.
+
+      redirectTimerRef.current = window.setTimeout(() => {
+        finish(session.returnTo, before).catch(() => router.replace(safeReturnTo(returnTo)));
+      }, SUCCESS_AUTO_NAVIGATE_MS);
     } catch (err) {
       verifyingRef.current = false;
       const errorCode = apiErrorCode(err);
@@ -151,16 +157,24 @@ export function OtpVerificationForm() {
         setVerifyState('idle');
         setFailure('exhausted');
       } else if (errorCode === 'OTP_INVALID') {
-        // Digits stay written and selected, so the next digit replaces them.
         setVerifyState('idle');
         setFailure('wrong');
         focusCode(true);
       } else {
-        // The request itself failed: the code stays typed, «تأكيد» retries it.
         setVerifyState('error');
         setFailure('network');
       }
     }
+  };
+
+  const handleManualContinue = () => {
+    if (redirectTimerRef.current) window.clearTimeout(redirectTimerRef.current);
+    finish(sessionRef.current?.returnTo, beforeCartRef.current).catch(() => router.replace(safeReturnTo(returnTo)));
+  };
+
+  const handleGoToAccount = () => {
+    if (redirectTimerRef.current) window.clearTimeout(redirectTimerRef.current);
+    refreshUser().finally(() => router.replace(routes.account));
   };
 
   const resend = async () => {
@@ -202,12 +216,66 @@ export function OtpVerificationForm() {
 
   if (!challenge) {
     return (
-      <p role="status" className="flex h-72 items-center justify-center text-15 text-stone">
-        {m.loading}
-      </p>
+      <div role="status" className="flex h-72 flex-col items-center justify-center gap-3 text-stone">
+        <div className="size-10 rounded-full border-2 border-sand/40 border-t-cobalt animate-spin" />
+        <span className="text-14">{m.loading}</span>
+      </div>
     );
   }
 
+  // ── State 3: Clean, subtle SAHEL-inspired verification animation ───────
+  if (verifyState === 'pending') {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in" role="status" aria-live="polite">
+        <div className="relative size-16 flex items-center justify-center">
+          <div className="size-14 rounded-full border-4 border-sand/30 border-t-cobalt animate-spin" />
+        </div>
+        <h2 className="mt-8 font-display font-extrabold text-24 text-ink leading-tight">
+          {m.authVerifyingTitle}
+        </h2>
+        <p className="mt-2 text-15 text-stone leading-22">
+          {m.authVerifyingSubtitle}
+        </p>
+      </div>
+    );
+  }
+
+  // ── State 4: Success confirmation screen ───────────────────────────────
+  if (verifyState === 'success') {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in" role="status" aria-live="polite">
+        <div className="flex size-20 items-center justify-center rounded-full bg-citron shadow-elevation-1">
+          <Icon name="check" size={38} strokeWidth={3} className="text-ink" />
+        </div>
+        <h2 className="mt-6 font-display font-black text-26 lg:text-28 text-ink leading-tight">
+          {m.authSuccessTitle}
+        </h2>
+        <p className="mt-2 text-15 text-stone leading-22">
+          {m.authSuccessSubtitle}
+        </p>
+
+        <div className="mt-8 flex flex-col gap-3.5 w-full">
+          <Button
+            size="l"
+            onClick={handleManualContinue}
+            className="w-full bg-cobalt text-white hover:bg-cobalt-deep rounded-pill h-control-xl font-bold text-17 shadow-elevation-1 transition-colors"
+          >
+            {m.authContinueShopping}
+          </Button>
+
+          <button
+            type="button"
+            onClick={handleGoToAccount}
+            className="inline-flex items-center justify-center py-2 text-15 font-semibold text-stone hover:text-ink transition-colors bg-transparent border-0 cursor-pointer"
+          >
+            {m.authGoToAccount}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── State 2: OTP Verification Form ─────────────────────────────────────
   const failureMessage =
     failure === 'wrong'
       ? m.authCodeInvalid
@@ -220,24 +288,27 @@ export function OtpVerificationForm() {
             : failure === 'incomplete'
               ? m.authCodeIncomplete
               : null;
-  const cellState = verifyState === 'success' ? 'verified' : failure === 'wrong' || failure === 'incomplete' ? 'invalid' : 'default';
+  const cellState = failure === 'wrong' || failure === 'incomplete' ? 'invalid' : 'default';
   const countdown = formatClock(resendIn, locale);
 
   return (
-    <>
-      <Link href={changeNumberHref} className="text-link gap-1 self-start text-14">
-        <Icon name="chevron-back" size={18} strokeWidth={1.9} />
-        {m.authChangeNumber}
+    <div className="flex flex-col gap-5">
+      <Link
+        href={changeNumberHref}
+        className="inline-flex items-center gap-1.5 self-start text-14 font-semibold text-stone hover:text-ink transition-colors"
+      >
+        <Icon name="chevron-back" size={16} strokeWidth={2} />
+        <span>{m.authEditPhone}</span>
       </Link>
 
       <AuthHeader
-        title={m.authOtpTitle}
+        title={m.authMobileOtpTitle}
         titleId="otp-title"
         descriptionId="otp-help"
         description={
           <>
-            {m.authOtpSentTo}{' '}
-            <bdi dir="ltr" className="font-semibold tabular-nums text-ink">
+            {m.authMobileOtpSubtitle}{' '}
+            <bdi dir="ltr" className="font-bold tabular-nums text-ink">
               {displayMobile(challenge.phoneNumber)}
             </bdi>
           </>
@@ -252,7 +323,7 @@ export function OtpVerificationForm() {
           verify(code);
         }}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           <OtpInput
             ref={inputRef}
             id="otp"
@@ -262,7 +333,6 @@ export function OtpVerificationForm() {
               setCode(next);
               if (failure && failure !== 'expired' && failure !== 'exhausted') setFailure(null);
               if (verifyState === 'error') setVerifyState('idle');
-              // The last digit (typed, pasted or autofilled) submits.
               if (next.length === challenge.codeLength && next !== code) verify(next);
             }}
             normalize={(raw) => toLatinDigits(raw).replace(/\D/g, '')}
@@ -270,17 +340,47 @@ export function OtpVerificationForm() {
             labelledBy="otp-title"
             describedBy={failureMessage ? 'otp-help otp-error' : 'otp-help'}
             disabled={needsNewCode}
-            readOnly={verifyState === 'pending' || verifyState === 'success'}
             autoFocus
           />
+
           {failureMessage ? (
             <FieldMessage id="otp-error" tone="error">
               {failureMessage}
             </FieldMessage>
           ) : null}
+
           {notice ? (
             <FieldMessage tone="success">
               {notice}
+            </FieldMessage>
+          ) : null}
+        </div>
+
+        {/* Resend Countdown / Trigger */}
+        <div className="flex flex-col items-center gap-2 text-center my-1">
+          {limitNotice && resendIn > 0 ? (
+            <p className="m-0 text-14 text-warn" aria-hidden="true">
+              {fillMessage(m.authRateLimited, { time: isolateLtr(countdown) })}
+            </p>
+          ) : resendIn > 0 ? (
+            <div className="flex items-center gap-2 text-14 text-stone" aria-hidden="true">
+              <Icon name="clock" size={16} className="text-stone" />
+              <span>{fillMessage(m.authResendCountdown, { time: isolateLtr(countdown) })}</span>
+            </div>
+          ) : !needsNewCode ? (
+            <Button
+              variant="text"
+              onClick={resend}
+              loading={resendState === 'pending'}
+              className="min-h-control-s px-2 text-14 font-semibold text-cobalt hover:text-cobalt-deep"
+            >
+              {m.authResend}
+            </Button>
+          ) : null}
+
+          {resendState === 'error' ? (
+            <FieldMessage tone="error">
+              {m.authSendFailed}
             </FieldMessage>
           ) : null}
         </div>
@@ -292,7 +392,7 @@ export function OtpVerificationForm() {
             pendingLabel={m.authSending}
             disabled={resendIn > 0}
             onClick={resend}
-            className="w-full"
+            className="w-full bg-cobalt text-white hover:bg-cobalt-deep rounded-pill h-control-xl font-bold text-17 shadow-elevation-1 transition-colors"
           >
             {m.authResend}
           </AsyncButton>
@@ -302,42 +402,20 @@ export function OtpVerificationForm() {
             size="l"
             state={verifyState}
             pendingLabel={m.authVerifying}
-            successLabel={m.authVerified}
-            className="w-full"
+            disabled={code.length < challenge.codeLength}
+            className="w-full bg-cobalt text-white hover:bg-cobalt-deep rounded-pill h-control-xl font-bold text-17 shadow-elevation-1 transition-colors disabled:opacity-50"
           >
-            {m.authVerifyCta}
+            {m.authVerifyAction}
           </AsyncButton>
         )}
       </form>
 
-      <div className="flex flex-col items-center gap-3 text-center">
-        {resendState === 'error' ? (
-          <FieldMessage tone="error">
-            {m.authSendFailed}
-          </FieldMessage>
-        ) : null}
-        {limitNotice && resendIn > 0 ? (
-          <p className="m-0 text-14 text-warn" aria-hidden="true">
-            {fillMessage(m.authRateLimited, { time: isolateLtr(countdown) })}
-          </p>
-        ) : resendIn > 0 ? (
-          // Not a live region: a per-second announcement would drown the form; the state is announced once below.
-          <p className="m-0 text-14 text-stone" aria-hidden="true">
-            {fillMessage(m.authResendIn, { time: '' })}
-            <bdi dir="ltr" className="font-bold tabular-nums text-ink">
-              {countdown}
-            </bdi>
-          </p>
-        ) : !needsNewCode ? (
-          <Button variant="text" onClick={resend} loading={resendState === 'pending'} className="min-h-control-s px-1">
-            {m.authResend}
-          </Button>
-        ) : null}
-        <p role="status" className="sr-only">
-          {limitNotice && cooling ? limitNotice : countdownNotice}
-        </p>
-        <p className="m-0 text-13 leading-20 text-stone">{m.authNotReceived}</p>
-      </div>
-    </>
+      <p role="status" className="sr-only">
+        {limitNotice && cooling ? limitNotice : countdownNotice}
+      </p>
+      <p className="m-0 text-center text-13 leading-20 text-stone">
+        {m.authNotReceived}
+      </p>
+    </div>
   );
 }

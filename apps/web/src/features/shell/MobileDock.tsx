@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CountBadge } from '@/components/ui/count-badge';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { useAuth } from '@/features/auth/AuthContext';
+import { signInHref } from '@/features/auth/lib/auth-helpers';
 import { useCart } from '@/features/cart/hooks/useCart';
 import { formatNumber } from '@/lib/i18n/format';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
@@ -21,7 +23,7 @@ function deriveActiveTab(pathname: string): DockItem {
   if (pathname.startsWith('/routines')) return 'routines';
   if (pathname.startsWith('/shina')) return 'shina';
   if (pathname.startsWith('/cart')) return 'cart';
-  if (pathname.startsWith('/account') || pathname.startsWith('/orders')) return 'account';
+  if (pathname.startsWith('/account') || pathname.startsWith('/orders') || pathname.startsWith('/auth')) return 'account';
   return 'none';
 }
 
@@ -35,11 +37,15 @@ export function MobileDock({ active }: MobileDockProps) {
   const locale = useLocale();
   const m = useMessages();
   const { cart } = useCart();
+  const { isAuthenticated } = useAuth();
 
   const currentActive = active && active !== 'none' ? active : deriveActiveTab(pathname);
 
   const cartCount = cart?.itemCount ?? 0;
   const cartBadge = cartCount > 0 ? formatNumber(cartCount, locale) : null;
+
+  const accountHref = isAuthenticated ? routes.account : signInHref(routes.account);
+  const accountLabel = isAuthenticated ? m.homeNavAccount : m.authTabSignIn;
 
   const items: Array<{
     id: 'home' | 'routines' | 'shina' | 'cart' | 'account';
@@ -53,7 +59,7 @@ export function MobileDock({ active }: MobileDockProps) {
     { id: 'routines', href: shellRoutes.routines, icon: 'routine', label: m.homeNavRoutines },
     { id: 'shina', href: shellRoutes.shina, icon: 'sparkles', label: m.footerAskShina, isAssistant: true },
     { id: 'cart', href: routes.cart, icon: 'bag', label: m.shellCart, badge: cartBadge },
-    { id: 'account', href: routes.account, icon: 'user', label: m.homeNavAccount },
+    { id: 'account', href: accountHref, icon: 'user', label: accountLabel },
   ];
 
   return (

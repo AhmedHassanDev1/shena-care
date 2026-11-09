@@ -12,6 +12,7 @@ import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useQuickAdd } from '../hooks/useQuickAdd';
 import type { CardModel } from '../lib/card-model';
 import { SizePicker } from './SizePicker';
@@ -26,6 +27,7 @@ export interface ProductCardProps {
 export function ProductCard({ product, priority = false, feature = false }: ProductCardProps) {
   const m = useMessages();
   const locale = useLocale();
+  const { withAuth } = useAuth();
   const [wishlisted, setWishlisted] = useState(false);
   const { state, multi, line, pickerOpen, qtyPending, add, start, changeQuantity, closePicker } = useQuickAdd(product);
   const addRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +66,20 @@ export function ProductCard({ product, priority = false, feature = false }: Prod
           type="button"
           aria-label={wishlisted ? m.wishlistRemove : m.wishlistAdd}
           aria-pressed={wishlisted}
-          onClick={() => setWishlisted((current) => !current)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            withAuth(
+              () => {
+                setWishlisted((current) => !current);
+              },
+              {
+                title: m.wishlistAdd,
+                description: 'سجّل دخولك لحفظ منتجاتك المفضلة والوصول إليها لاحقاً.',
+                intent: 'wishlist',
+              }
+            );
+          }}
           className={cn(
             'absolute start-3 top-3 z-10 flex size-9 items-center justify-center rounded-full bg-linen text-ink shadow-elevation-1 transition-colors duration-fast hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
             wishlisted && 'text-cobalt'

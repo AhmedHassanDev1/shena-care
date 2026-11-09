@@ -6,7 +6,7 @@ export const routes = {
   account: '/account',
   accountAddresses: '/account/addresses',
   login: '/auth',
-  register: '/auth',
+  register: '/auth/register',
   verify: '/auth/verify',
   routineBuilder: '/routines/build',
   product: (slug: string) => `/products/${encodeURIComponent(slug)}`,

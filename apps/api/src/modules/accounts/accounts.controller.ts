@@ -25,7 +25,7 @@ export class AccountsController {
 
   @Post('otp/verify')
   verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.accountsService.verifyOtp(dto.phoneNumber, dto.code, dto.guestId);
+    return this.accountsService.verifyOtp(dto.phoneNumber, dto.code, dto.guestId, dto.name);
   }
 
   @Post('logout')

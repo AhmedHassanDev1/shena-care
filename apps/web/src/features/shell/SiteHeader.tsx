@@ -7,6 +7,8 @@ import { PageContainer } from '@/components/layout/page-container';
 import { Icon } from '@/components/ui/icon';
 import { iconButtonVariants } from '@/components/ui/icon-button';
 import { Wordmark } from '@/components/ui/wordmark';
+import { useAuth } from '@/features/auth/AuthContext';
+import { signInHref } from '@/features/auth/lib/auth-helpers';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { mainCategorySlugs, routes, shellRoutes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
@@ -19,14 +21,20 @@ export interface SiteHeaderProps {
 
 /**
  * Sahel Global Responsive Header:
- * - Desktop: Two-row editorial layout with Wordmark (with Latin), proportional search, Account pill, Cart pill, and department navigation with active indicators.
+ * - Desktop: Two-row editorial layout with Wordmark (with Latin), proportional search, Account/Sign-in pill, Cart pill, and department navigation with active indicators.
  * - Tablet: Proportional search bar, Wordmark, and horizontally scrollable department bar preventing wrapping.
  * - Mobile: Dedicated touch-friendly composition with quick actions, accessible search, horizontal department quick-chips, and expandable menu.
  */
 export function SiteHeader({ searchDefault }: SiteHeaderProps) {
   const m = useMessages();
   const pathname = usePathname() || '';
+  const { isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const accountHref = isAuthenticated
+    ? routes.account
+    : signInHref(pathname && pathname !== routes.account ? pathname : routes.account);
+  const accountLabel = isAuthenticated ? m.shellAccount : m.authTabSignIn;
 
   const departments = [
     { href: routes.productsByCategory(mainCategorySlugs.skin), label: m.navSkin },
@@ -62,8 +70,8 @@ export function SiteHeader({ searchDefault }: SiteHeaderProps) {
 
           <div className="flex items-center gap-1.5">
             <Link
-              href={routes.account}
-              aria-label={m.shellAccount}
+              href={accountHref}
+              aria-label={accountLabel}
               className={iconButtonVariants({ variant: 'plain' })}
             >
               <Icon name="user" size={22} />
@@ -143,6 +151,21 @@ export function SiteHeader({ searchDefault }: SiteHeaderProps) {
                   </Link>
                 );
               })}
+
+              {/* Dedicated Sign-in / Account action in drawer */}
+              <div className="border-t border-line-2/40 my-1 pt-1">
+                <Link
+                  href={accountHref}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between rounded-card px-3 py-2.5 text-14 font-display font-semibold transition-colors no-underline text-ink hover:bg-chalk hover:text-cobalt"
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon name="user" size={18} />
+                    <span>{accountLabel}</span>
+                  </div>
+                  <Icon name="chevron-forward" size={16} />
+                </Link>
+              </div>
             </div>
           </div>
         ) : null}
@@ -163,12 +186,12 @@ export function SiteHeader({ searchDefault }: SiteHeaderProps) {
 
           <div className="flex items-center gap-2 flex-none">
             <Link
-              href={routes.account}
-              aria-label={m.shellAccount}
+              href={accountHref}
+              aria-label={accountLabel}
               className="inline-flex h-control-s items-center gap-1.5 rounded-pill px-3 text-14 font-display font-semibold text-ink no-underline hover:text-cobalt transition-colors"
             >
               <Icon name="user" size={18} />
-              <span>{m.shellAccount}</span>
+              <span>{accountLabel}</span>
             </Link>
             <CartLink variant="pill" />
           </div>
@@ -214,11 +237,11 @@ export function SiteHeader({ searchDefault }: SiteHeaderProps) {
 
           <nav aria-label={m.shellAccountNav} className="ms-auto flex items-center gap-3 flex-none">
             <Link
-              href={routes.account}
+              href={accountHref}
               className="inline-flex h-control-s items-center gap-2 rounded-pill px-4 text-15 font-display font-medium text-ink no-underline hover:text-cobalt transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
             >
               <Icon name="user" size={20} />
-              <span>{m.shellAccount}</span>
+              <span>{accountLabel}</span>
             </Link>
             <CartLink variant="pill" />
           </nav>
@@ -238,23 +261,14 @@ export function SiteHeader({ searchDefault }: SiteHeaderProps) {
                     key={d.label}
                     href={d.href}
                     className={cn(
-                      'relative py-1.5 inline-flex items-center gap-2 no-underline transition-colors duration-fast',
+                      'inline-flex items-center gap-2 py-1 text-15 font-display transition-colors no-underline',
                       isActive ? 'font-bold text-cobalt' : 'text-ink hover:text-cobalt'
                     )}
                   >
                     {d.isAssistant ? (
-                      <span
-                        className="size-2 rounded-full bg-citron ring-2 ring-citron/40"
-                        aria-hidden="true"
-                      />
+                      <span className="size-2 rounded-full bg-citron ring-2 ring-citron/40" />
                     ) : null}
                     <span>{d.label}</span>
-                    {isActive ? (
-                      <span
-                        className="absolute bottom-0 inset-x-0 h-0.5 rounded-full bg-cobalt"
-                        aria-hidden="true"
-                      />
-                    ) : null}
                   </Link>
                 );
               })}

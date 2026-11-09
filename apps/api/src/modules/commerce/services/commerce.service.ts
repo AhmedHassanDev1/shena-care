@@ -309,6 +309,41 @@ export class CommerceService {
     };
   }
 
+  /** Resolve the same sellability gates with bounded owner queries for public product reads. */
+  async getSellingTermsBatch(skuIds: string[]): Promise<Map<string, SellingTerms | null>> {
+    const ids = [...new Set(skuIds.filter(id => this.isUuid(id)))];
+    const terms = new Map<string, SellingTerms | null>(skuIds.map(id => [id, null]));
+    if (!ids.length) return terms;
+    const now = new Date();
+    const [listings, prices, statuses] = await Promise.all([
+      this.prisma.listing.findMany({ where: { skuId: { in: ids } }, select: { skuId: true, isListed: true } }),
+      this.prisma.sellingPrice.findMany({
+        where: { skuId: { in: ids }, isActive: true, validFrom: { lte: now },
+          OR: [{ validUntil: { gte: now } }, { validUntil: null }] },
+        orderBy: [{ skuId: 'asc' }, { validFrom: 'desc' }],
+        select: { skuId: true, amount: true, currency: true, compareAtAmount: true, validFrom: true },
+      }),
+      this.catalogService?.getSkuValidationStatuses(ids) ?? Promise.resolve(null),
+    ]);
+    const listingBySku = new Map(listings.map(listing => [listing.skuId, listing]));
+    const priceBySku = new Map<string, typeof prices[number]>();
+    for (const price of prices) if (!priceBySku.has(price.skuId)) priceBySku.set(price.skuId, price);
+    for (const id of ids) {
+      const listing = listingBySku.get(id);
+      if (!listing) continue;
+      const price = priceBySku.get(id);
+      const status = statuses?.get(id);
+      terms.set(id, {
+        skuId: id,
+        isListed: listing.isListed,
+        price: price ? { amount: price.amount.toNumber(), currency: price.currency,
+          compareAtAmount: price.compareAtAmount ? price.compareAtAmount.toNumber() : null } : null,
+        canOrder: listing.isListed && !!price && (!this.catalogService || !!status?.isActive && !!status.isProductPublished),
+      });
+    }
+    return terms;
+  }
+
   // ---------------------------------------------------------------------------
   // Listing Management (GLO-102)
   // ---------------------------------------------------------------------------
