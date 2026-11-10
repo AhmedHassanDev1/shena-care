@@ -68,7 +68,7 @@ const VOCABULARY: Array<[Dimension[], string, string]> = [
   [['texture'], 'gel', 'gel|جل|جيل'],
   [['texture'], 'foam', 'foam|foaming|فوم|فومنج|فومينج|رغوي|رغويه|رغوه'],
   [['texture'], 'oil', 'oil|زيت'],
-  [['texture'], 'balm', 'balm|بالم'],
+  [['texture'], 'balm', 'balm|baume|بالم'],
   [['texture'], 'stick', 'stick|ستيك'],
   [['texture'], 'spray', 'spray|mist|سبراي|بخاخ|ميست'],
   [['active'], 'retinol', 'retinol|ريتينول|ريتنول'],
@@ -109,6 +109,7 @@ const VOCABULARY: Array<[Dimension[], string, string]> = [
   [['benefit'], 'hydrating', 'hydrating|hydration|hydra|moisturizer|moisturiser|moisturizing|moisturising|مرطب|مرطبه|ترطيب|هيدراتينج|هيدريتنج|هيدرا|مويسترايزر|مويسترايزينج'],
   [['benefit'], 'nourishing', 'nourishing|nutrition|مغذي|مغذيه|تغذيه|نوريشينج'],
   [['benefit'], 'purifying', 'purifying|منقي|منقيه|تنقيه|بيوريفاينج'],
+  [['benefit'], 'antioxidant', 'antioxidant|anti oxidant|مضاد للاكسده|مضاد اكسده'],
   [['benefit'], 'soothing', 'soothing|calming|مهدئ|مهدئه|تهدئه|سوذينج'],
   [['benefit'], 'repair', 'repair|repairing|ريباير|اصلاح|ترميم'],
   [['benefit'], 'renewing', 'renewing|مجدد|رينيوينج'],
@@ -135,7 +136,7 @@ for (const term of TERMS) TERMS_BY_FIRST.set(term.words[0], [...(TERMS_BY_FIRST.
 
 // Carry no identity in either direction.
 const GENERIC = new Set(`for with to and the of in by on all types type normal skin size original brand product products imported spf version formula acid
-  من مع الي في علي عن ل و بشره عاديه جميع انواع نوع كل حجم اصلي ماركه براند منتج مستورد عامل حمايه اصدار تركيبه اسيد حمض`.split(/\s+/).map(stem));
+  من مع الي في علي عن ل و ذا ذي دي بشره عاديه جميع انواع نوع كل حجم اصلي ماركه براند منتج مستورد عامل حمايه اصدار تركيبه اسيد حمض`.split(/\s+/).map(stem));
 // Bare numbers and glued markers (spf30, v2) are compared as measures and formula markers, not as words.
 const NUMERIC = /^(?:\d+(?:\.\d+)?|spf\d+|v\d+)$/;
 

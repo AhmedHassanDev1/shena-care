@@ -1,6 +1,10 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, Optional } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { validateSafeUrl } from '../../../platform/security/url-validator';
-import { RejectedFact, ValidatedFacts, evidenceExcerpt, hostIsBrandDomain, statedSize, validateExtractedFacts, foldEvidenceText } from './research-evidence';
+import { RejectedFact, ValidatedFacts, evidenceExcerpt, statedSize, validateExtractedFacts, foldEvidenceText } from './research-evidence';
+import { discoverProductSources, fetchedPageMatchesSku } from './product-source-discovery';
+import { ResearchSourceFetcher } from './research-source-fetcher';
+import { extractProductFacts, isInstructionLine, SkuExpectation } from './product-fact-extractor';
 
 /** Scraping a real product page takes far longer than a search call: a live check timed out on every page at 8 s. */
 const PAGE_RETRIEVAL_TIMEOUT_MS = 45000;
@@ -32,7 +36,7 @@ export interface FactEvidenceItem {
 export interface ResearchProviderStatus {
   exa: 'LIVE' | 'UNAVAILABLE';
   firecrawl: 'LIVE' | 'UNAVAILABLE';
-  grok: 'LIVE' | 'UNAVAILABLE' | 'INVALID_KEY';
+  grok: 'LIVE' | 'UNAVAILABLE' | 'REJECTED_REQUEST';
 }
 
 export interface CandidateResearchInput {
@@ -42,6 +46,11 @@ export interface CandidateResearchInput {
   barcode?: string | null;
   supplierSkuCode?: string;
   existingEnrichment?: unknown;
+  brandAliases?: string[];
+  websiteUrl?: string | null;
+  size?: number | null;
+  sizeUnit?: string | null;
+  missingFields?: string[];
 }
 
 export interface SourceContradiction {
@@ -63,6 +72,9 @@ export interface ResearchResult {
   brand: string;
   productName: string;
   discoveredSources: Array<{ url: string; title: string; sourceType: SourceType }>;
+  verifiedSource?: { url: string; sourceType: SourceType };
+  contentKind?: 'HTML' | 'MARKDOWN';
+  sourceReadings?: Array<{ source: { url: string; sourceType: SourceType }; facts: ValidatedFacts; evidences: FactEvidenceItem[]; contentKind: 'HTML' | 'MARKDOWN' }>;
   extractedFacts: ValidatedFacts;
   fieldEvidences: FactEvidenceItem[];
   /** Provider output the page does not support; kept for audit, never used as a fact. */
@@ -76,6 +88,12 @@ export interface ResearchResult {
 @Injectable()
 export class ProductResearchService {
   private readonly logger = new Logger(ProductResearchService.name);
+  /** Monotonic count of paid search calls, for cost reporting. */
+  readonly usage = { searches: 0, pageFetches: 0, directPageFetches: 0, cacheHits: 0 };
+  private readonly searchCache = new Map<string, { expiresAt: number; pages: Array<{ url: string; title: string }> }>();
+  private rejectedGrokConfiguration: string | null = null;
+
+  constructor(@Optional() private readonly directFetcher: ResearchSourceFetcher = new ResearchSourceFetcher()) {}
 
   /**
    * Main research orchestrator. Performs source discovery (Exa), evidence retrieval (Firecrawl),
@@ -107,32 +125,55 @@ export class ProductResearchService {
     const grokKey = process.env.GROK_API_KEY;
 
     // 1. Source Discovery via Exa API
-    const discoveredSources = await this.discoverSources(input.brand, input.name, input.barcode, exaKey, providerStatuses);
+    const discoveredSources = await this.discoverSources(input, exaKey, providerStatuses);
 
-    // 2. Evidence Retrieval via Firecrawl API
-    let pageContent = '';
-    let primarySourceUrl = '';
-    let primarySourceType = SourceType.RETAILER;
-
-    if (discoveredSources.length > 0) {
-      const targetSource = discoveredSources[0];
-      primarySourceUrl = targetSource.url;
-      primarySourceType = targetSource.sourceType;
-      pageContent = await this.retrievePageContent(targetSource.url, firecrawlKey, providerStatuses);
+    // Fetch a second exact page only when a requested field remains missing. Every page has its own provenance.
+    const sourceReadings: NonNullable<ResearchResult['sourceReadings']> = [];
+    const rejected: RejectedFact[] = [];
+    const requested = new Set(input.missingFields ?? []);
+    for (const targetSource of discoveredSources.slice(0, 3)) {
+      if (sourceReadings.length && targetSource.sourceType === SourceType.RETAILER) continue;
+      let content = await this.retrievePageContent(targetSource.url, firecrawlKey, providerStatuses);
+      if ((!content || !fetchedPageMatchesSku(input, content, targetSource.url)) && targetSource.sourceType !== SourceType.RETAILER) {
+        const host = new URL(targetSource.url).hostname.toLowerCase();
+        this.usage.directPageFetches++;
+        const direct = await this.directFetcher.fetch(targetSource.url, { kind: 'page', isApprovedHost: candidate => candidate.toLowerCase() === host });
+        if (direct.outcome === 'OK' && direct.body) content = direct.body.toString('utf8');
+      }
+      if (!content || !fetchedPageMatchesSku(input, content, targetSource.url)) continue;
+      // Firecrawl can prepend navigation for other products before this SKU's H1.
+      if (!content.trimStart().startsWith('<')) {
+        const heading = content.match(/^#\s+.+$/m);
+        if (heading?.index !== undefined) content = content.slice(heading.index);
+      }
+      const extraction = await this.extractStructuredFacts(input, content, targetSource.url, grokKey, providerStatuses);
+      rejected.push(...extraction.rejected);
+      const evidences = this.buildFieldEvidences(input, extraction.facts, targetSource.url, targetSource.sourceType, content);
+      sourceReadings.push({ source: { url: targetSource.url, sourceType: targetSource.sourceType }, facts: extraction.facts, evidences,
+        contentKind: content.trimStart().startsWith('<') ? 'HTML' : 'MARKDOWN' });
+      if (!requested.size || [...requested].every(field => sourceReadings.some(reading => {
+        if (reading.source.sourceType === SourceType.RETAILER || (field === 'composition.inci' && reading.contentKind !== 'HTML')) return false;
+        const providerField = field.startsWith('composition.') ? 'ingredients' : field.startsWith('usage.') ? 'usage' : field.startsWith('safety.') ? 'warnings' : field;
+        return reading.evidences.some(item => item.fieldName === providerField && item.verificationStatus === VerificationStatus.SUPPORTED);
+      }))) break;
     }
+    const primary = sourceReadings[0];
+    const primarySourceUrl = primary?.source.url ?? '';
+    const primarySourceType = primary?.source.sourceType ?? SourceType.RETAILER;
+    const extractedFacts = primary?.facts ?? this.ruleBasedExtraction(input, '');
+    const fieldEvidences = sourceReadings.length ? sourceReadings.flatMap(reading => reading.evidences)
+      : this.buildFieldEvidences(input, extractedFacts, '', SourceType.RETAILER, '');
+    const pageContent = sourceReadings.length > 0;
 
-    // 3. Structured Fact Extraction via Grok or Rule-based Fallback
-    const { facts: extractedFacts, rejected } = await this.extractStructuredFacts(input, pageContent, grokKey, providerStatuses);
-
-    // 4. Build Field-Level Evidence & Verification Statuses
-    const fieldEvidences = this.buildFieldEvidences(input, extractedFacts, primarySourceUrl, primarySourceType, pageContent);
-
-    const outage = providerStatuses.exa !== 'LIVE' || (discoveredSources.length > 0 && providerStatuses.firecrawl !== 'LIVE');
+    const outage = providerStatuses.exa !== 'LIVE' || (!pageContent && discoveredSources.length > 0 && providerStatuses.firecrawl !== 'LIVE');
     return {
       candidateId: input.candidateId,
       brand: input.brand,
       productName: input.name,
       discoveredSources,
+      ...(primarySourceUrl && { verifiedSource: { url: primarySourceUrl, sourceType: primarySourceType } }),
+      ...(primary && { contentKind: primary.contentKind }),
+      sourceReadings,
       extractedFacts,
       fieldEvidences,
       rejectedFacts: rejected,
@@ -151,6 +192,10 @@ export class ProductResearchService {
   async discoverPages(query: string, limit: number, options: { includeDomains?: string[] } = {}): Promise<Array<{ url: string; title: string }> | null> {
     const key = process.env.EXA_API_KEY;
     if (!key) return null;
+    const cacheKey = JSON.stringify([query, limit, options.includeDomains ?? []]);
+    const cached = this.searchCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) { this.usage.cacheHits++; return cached.pages; }
+    this.usage.searches++;
     try {
       const res = await fetch('https://api.exa.ai/search', {
         method: 'POST',
@@ -165,6 +210,7 @@ export class ProductResearchService {
         if (!item.url) continue;
         try { validateSafeUrl(item.url); pages.push({ url: item.url, title: item.title ?? '' }); } catch { /* unsafe URLs are not sources */ }
       }
+      this.searchCache.set(cacheKey, { expiresAt: Date.now() + 10 * 60_000, pages });
       return pages;
     } catch {
       return null;
@@ -182,75 +228,14 @@ export class ProductResearchService {
    * Source Discovery using Exa Search API
    */
   private async discoverSources(
-    brand: string,
-    name: string,
-    barcode: string | null | undefined,
+    input: CandidateResearchInput,
     exaKey: string | undefined,
     statuses: ResearchProviderStatus,
   ): Promise<Array<{ url: string; title: string; sourceType: SourceType }>> {
-    if (!exaKey) {
-      statuses.exa = 'UNAVAILABLE';
-      return [];
-    }
-
-    try {
-      const query = barcode ? `${brand} ${name} ${barcode} official` : `${brand} ${name} official product`;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
-
-      const res = await fetch('https://api.exa.ai/search', {
-        method: 'POST',
-        headers: {
-          'x-api-key': exaKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query, numResults: 3 }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timer);
-
-      if (!res.ok) {
-        this.logger.warn(`Exa search failed with status ${res.status}`);
-        statuses.exa = 'UNAVAILABLE';
-        return [];
-      }
-
-      const data = (await res.json()) as { results?: Array<{ title?: string; url?: string }> };
-      statuses.exa = 'LIVE';
-
-      const results: Array<{ url: string; title: string; sourceType: SourceType }> = [];
-
-      for (const item of data.results || []) {
-        if (!item.url) continue;
-        try {
-          validateSafeUrl(item.url);
-          const urlObj = new URL(item.url);
-          const host = urlObj.hostname.toLowerCase();
-
-          let sourceType = SourceType.RETAILER;
-          if (hostIsBrandDomain(host, brand)) {
-            sourceType = SourceType.OFFICIAL_MANUFACTURER;
-          } else if (/boots|sephora|ulta|nahdi|walgreens|caretobeauty|pharmacy/i.test(host)) {
-            sourceType = SourceType.TRUSTED_DISTRIBUTOR;
-          }
-
-          results.push({
-            url: item.url,
-            title: item.title || `${brand} Product Page`,
-            sourceType,
-          });
-        } catch (err) {
-          // Skip invalid/unsafe URLs
-        }
-      }
-
-      return results;
-    } catch (err) {
-      this.logger.warn(`Exa search error: ${err instanceof Error ? err.message : String(err)}`);
-      statuses.exa = 'UNAVAILABLE';
-      return [];
-    }
+    if (!exaKey) return [];
+    const result = await discoverProductSources(input, (query, limit, options) => this.discoverPages(query, limit, options));
+    statuses.exa = result.providerAnswered ? 'LIVE' : 'UNAVAILABLE';
+    return result.sources.map(source => ({ ...source, sourceType: source.sourceType as SourceType }));
   }
 
   /**
@@ -272,6 +257,7 @@ export class ProductResearchService {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), PAGE_RETRIEVAL_TIMEOUT_MS);
 
+      this.usage.pageFetches++;
       const res = await fetch('https://api.firecrawl.dev/v1/scrape', {
         method: 'POST',
         headers: {
@@ -306,11 +292,37 @@ export class ProductResearchService {
   private async extractStructuredFacts(
     input: CandidateResearchInput,
     pageContent: string,
+    sourceUrl: string,
     grokKey: string | undefined,
     statuses: ResearchProviderStatus,
   ): Promise<{ facts: ValidatedFacts; rejected: RejectedFact[] }> {
+    const size = input.name.match(/(\d+(?:\.\d+)?)\s*(ml|gm|g)\s*$/i);
+    const expected: SkuExpectation = { brand: input.brand, brandAliases: input.brandAliases, productName: input.name,
+      size: input.size ?? (size ? Number(size[1]) : null), sizeUnit: input.sizeUnit ?? (size ? (size[2].toLowerCase() === 'gm' ? 'g' : size[2].toLowerCase()) : null), barcode: input.barcode ?? null };
+    if (pageContent.trimStart().startsWith('<') && sourceUrl) {
+      const extraction = extractProductFacts(pageContent, sourceUrl, expected);
+      const value = (field: string) => extraction.facts.find(fact => fact.field === field)?.value;
+      const facts: ValidatedFacts = { brand: value('identity.brand') as string | undefined,
+        size: value('identity.size') as ValidatedFacts['size'], ingredients: value('composition.inci') as string[] | undefined,
+        usage: value('usage.instructions') as string[] | undefined, warnings: value('safety.warnings') as string[] | undefined,
+        benefits: value('claims.manufacturerStated') as string[] | undefined, description: value('marketing.description') as string | undefined,
+        skinTypes: value('suitability.skinTypes') as string[] | undefined, hairTypes: value('suitability.hairTypes') as string[] | undefined };
+      return { facts, rejected: extraction.rejected.map(item => ({ field: item.field, value: item.detail, reason: item.reason })) };
+    }
+    // Search and scrape headings are identity leads; navigation and related products may name a different pack.
+    const heading = pageContent.match(/^#\s+(.+)$/m)?.[1] ?? '';
+    const headingFacts = heading ? extractProductFacts(`<h1>${heading.replace(/[<>&]/g, ' ')}</h1>`, sourceUrl, expected) : null;
+    const headingSize = headingFacts?.facts.find(fact => fact.field === 'identity.size')?.value as ValidatedFacts['size'] | undefined;
+    const pageScoped = (result: { facts: ValidatedFacts; rejected: RejectedFact[] }) => {
+      result.facts.size = headingSize;
+      result.facts.usage = result.facts.usage?.filter(isInstructionLine);
+      return result;
+    };
     // Without page text a model could only guess, so it is not asked.
-    if (grokKey && pageContent) {
+    const model = process.env.GROK_RESEARCH_MODEL || 'grok-4.7';
+    const configuration = grokKey ? createHash('sha256').update(grokKey).update('\0').update(model).digest('hex') : '';
+    if (grokKey && pageContent && this.rejectedGrokConfiguration === configuration) statuses.grok = 'REJECTED_REQUEST';
+    if (grokKey && pageContent && this.rejectedGrokConfiguration !== configuration) {
       try {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), FACT_EXTRACTION_TIMEOUT_MS);
@@ -324,7 +336,7 @@ export class ProductResearchService {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'grok-2-latest',
+            model,
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.1,
           }),
@@ -339,10 +351,13 @@ export class ProductResearchService {
           if (content) {
             statuses.grok = 'LIVE';
             const parsed: unknown = JSON.parse(content.replace(/```json|```/g, '').trim());
-            return validateExtractedFacts(parsed, pageContent);
+            return pageScoped(validateExtractedFacts(parsed, pageContent));
           }
         } else {
-          statuses.grok = res.status === 400 ? 'INVALID_KEY' : 'UNAVAILABLE';
+          if ([400, 401, 403].includes(res.status)) {
+            statuses.grok = 'REJECTED_REQUEST';
+            this.rejectedGrokConfiguration = configuration;
+          } else statuses.grok = 'UNAVAILABLE';
         }
       } catch (err) {
         statuses.grok = 'UNAVAILABLE';
@@ -350,7 +365,7 @@ export class ProductResearchService {
     }
 
     // Fallback: Rule-based Regex & Pattern Fact Extractor
-    return { facts: this.ruleBasedExtraction(input, pageContent), rejected: [] };
+    return pageScoped({ facts: this.ruleBasedExtraction(input, pageContent), rejected: [] });
   }
 
   /**
@@ -380,20 +395,33 @@ export class ProductResearchService {
 
     if (!pageContent) return facts;
 
-    // 1. Ingredients Match
-    const ingMatch = pageContent.match(/(?:ingredients|key ingredients|contains)[:\s]+([^\n\r.]+)/i);
-    if (ingMatch && ingMatch[1]) {
-      facts.ingredients = ingMatch[1]
+    const lines = pageContent.split(/\r?\n/).map(line => line.trim());
+    const sectionValue = (headings: RegExp): string | null => {
+      // Explicit product sections first; a bold navigation card may also say "How to Use".
+      for (const [index, line] of lines.entries()) {
+        if (!/^#{2,5}\s/.test(line) || !headings.test(line.replace(/^#{2,5}\s*/, '').replace(/:$/, ''))) continue;
+        const next = lines.slice(index + 1, index + 4).find(Boolean);
+        if (next && !/^#|^\[|^!\[|^https?:/i.test(next)) return next;
+      }
+      for (const line of lines) {
+        const inline = line.match(/^\*{0,2}(?:ingredients|key ingredients|how to use|directions|usage)\*{0,2}:?\s+(.+)$/i);
+        if (inline && headings.test(line.replace(/:.+$/, '').replace(/\*/g, '')) && !/^#|^\[|^!\[|^https?:/i.test(inline[1])) return inline[1];
+      }
+      return null;
+    };
+
+    // 1. Ingredients: a blank section followed by another heading supplies no formula or key ingredient.
+    const ingredients = sectionValue(/^(?:ingredients|key ingredients)$/i);
+    if (ingredients) {
+      facts.ingredients = ingredients
         .split(/[,;]/)
         .map((s) => s.trim())
-        .filter((s) => s.length > 2 && s.length < 50);
+        .filter((s) => s.length > 2 && s.length < 50 && /\p{L}/u.test(s) && !/^(?:how to use|directions|usage|share)/i.test(s));
     }
 
     // 2. Usage / How to apply
-    const usageMatch = pageContent.match(/(?:how to use|directions|usage|apply)[:\s]+([^\n\r.]+)/i);
-    if (usageMatch && usageMatch[1]) {
-      facts.usage = [usageMatch[1].trim()];
-    }
+    const usage = sectionValue(/^(?:how to use|directions|usage|directions of use)$/i);
+    if (usage && isInstructionLine(usage)) facts.usage = [usage];
 
     // 3. Benefits / Highlights
     const benefitsMatch = pageContent.match(/(?:benefits|key benefits|features)[:\s]+([^\n\r.]+)/i);
@@ -402,16 +430,6 @@ export class ProductResearchService {
         .split(/[,;]/)
         .map((s) => s.trim())
         .filter((s) => s.length > 3);
-    }
-
-    // 4. Size extraction (fallback to supplier product name if pageContent is empty or missing size)
-    // The supplier's stated size stands unless the page does not state it and states another; a stray number elsewhere on a page never wins silently.
-    const pageSize = pageContent.match(/(\d+(?:\.\d+)?)\s*(ml|g|kg|l|oz)\b/i);
-    if (!facts.size && pageSize) {
-      facts.size = {
-        value: parseFloat(pageSize[1]),
-        unit: pageSize[2].toLowerCase(),
-      };
     }
 
     return facts;
@@ -531,6 +549,7 @@ export class ProductResearchService {
 
     // Ingredients Evidence
     if (extracted.ingredients && extracted.ingredients.length > 0) {
+      const supported = extracted.ingredients.every(item => page.includes(foldEvidenceText(item)));
       evidences.push({
         fieldName: 'ingredients',
         proposedValue: extracted.ingredients,
@@ -538,8 +557,8 @@ export class ProductResearchService {
         sourceType,
         observedAt,
         excerpt: evidenceExcerpt(pageContent, extracted.ingredients[0]),
-        verificationStatus: VerificationStatus.SUPPORTED,
-        confidence: baseConfidence,
+        verificationStatus: supported ? VerificationStatus.SUPPORTED : VerificationStatus.UNKNOWN,
+        confidence: supported ? baseConfidence : 0,
       });
     }
 
@@ -574,6 +593,7 @@ export class ProductResearchService {
 
     // Usage Evidence
     if (extracted.usage && extracted.usage.length > 0) {
+      const supported = extracted.usage.every(item => page.includes(foldEvidenceText(item)));
       evidences.push({
         fieldName: 'usage',
         proposedValue: extracted.usage,
@@ -581,9 +601,24 @@ export class ProductResearchService {
         sourceType,
         observedAt,
         excerpt: evidenceExcerpt(pageContent, extracted.usage[0].slice(0, 40)),
-        verificationStatus: VerificationStatus.SUPPORTED,
-        confidence: baseConfidence,
+        verificationStatus: supported ? VerificationStatus.SUPPORTED : VerificationStatus.UNKNOWN,
+        confidence: supported ? baseConfidence : 0,
       });
+    }
+
+    for (const field of ['warnings', 'benefits', 'skinTypes', 'hairTypes'] as const) {
+      const values = extracted[field];
+      if (!values?.length) continue;
+      const supported = values.every(value => page.includes(foldEvidenceText(value)));
+      evidences.push({ fieldName: field, proposedValue: values, sourceUrl, sourceType, observedAt,
+        excerpt: evidenceExcerpt(pageContent, values[0]), verificationStatus: supported ? VerificationStatus.SUPPORTED : VerificationStatus.UNKNOWN,
+        confidence: supported ? baseConfidence : 0 });
+    }
+    if (extracted.description) {
+      const supported = page.includes(foldEvidenceText(extracted.description));
+      evidences.push({ fieldName: 'description', proposedValue: extracted.description, sourceUrl, sourceType, observedAt,
+        excerpt: evidenceExcerpt(pageContent, extracted.description.slice(0, 80)), verificationStatus: supported ? VerificationStatus.SUPPORTED : VerificationStatus.UNKNOWN,
+        confidence: supported ? baseConfidence : 0 });
     }
 
     return evidences;

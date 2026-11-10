@@ -254,6 +254,12 @@ export class CatalogIntakeService {
     return written.count === 1;
   }
 
+  /** Withdraws a description proved to belong to another product, without erasing a later correction. */
+  async clearDescriptionIf(productId: string, expected: string): Promise<boolean> {
+    const written = await this.prisma.product.updateMany({ where: { id: productId, description: expected }, data: { description: null } });
+    return written.count === 1;
+  }
+
   /** Every SKU whose identity is verified, for rebuilding derived profiles. */
   async verifiedSkuIds(limit = 2000): Promise<string[]> {
     const skus = await this.prisma.sku.findMany({ where: { isActive: true, identityStatus: { in: ['EVIDENCE_VERIFIED', 'ADMIN_VERIFIED', 'BARCODE_VERIFIED'] } }, select: { id: true }, take: limit, orderBy: { createdAt: 'asc' } });

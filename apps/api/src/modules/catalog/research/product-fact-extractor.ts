@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { readProductType } from './product-type';
+import { rinseMode } from './catalog-decision-engine';
 
 /**
  * Deterministic extraction of product facts from one fetched page. Everything returned is literally on that page and carries the excerpt that states it; anything else
@@ -128,6 +129,17 @@ function canonicalUnit(unit: string): string | null {
   if (folded === 'kg') return 'kg';
   return null;
 }
+const BASE_UNITS: Record<string, { dimension: 'volume' | 'mass'; factor: number }> = { ml: { dimension: 'volume', factor: 1 }, l: { dimension: 'volume', factor: 1000 }, g: { dimension: 'mass', factor: 1 }, kg: { dimension: 'mass', factor: 1000 } };
+export function sameSize(page: { value: number; unit: string }, size: number | null, unit: string): boolean {
+  if (size === null) return false;
+  const want = BASE_UNITS[unit];
+  if (!want) return page.value === size && page.unit === unit;
+  const target = size * want.factor;
+  if (page.unit === 'oz') return Math.abs(page.value * (want.dimension === 'volume' ? 29.5735 : 28.3495) - target) <= target * 0.02;
+  const base = BASE_UNITS[page.unit];
+  return Boolean(base && base.dimension === want.dimension && Math.abs(page.value * base.factor - target) <= target * 0.01);
+}
+
 function sizesIn(text: string): Array<{ value: number; unit: string }> {
   const sizes = new Map<string, { value: number; unit: string }>();
   for (const match of text.matchAll(SIZE_PATTERN)) {
@@ -285,7 +297,8 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   const titleSizes = sizesIn(identityText);
   const bodySizes = titleSizes.length ? [] : sizesIn(text);
   const wantedUnit = (sku.sizeUnit ?? '').toLowerCase();
-  const stated = (size: { value: number; unit: string }) => size.value === sku.size && size.unit === wantedUnit;
+  // The same pack stated another way: 236 ml vs 237 ml (1%), or a US page's "8 fl oz" for 236 ml (imperial conversion, 2%). Different packs are never that close.
+  const stated = (size: { value: number; unit: string }) => sameSize(size, sku.size, wantedUnit);
   // Sizes named only in the body are ambiguous; the SKU's own size among them confirms it, and their absence stays unknown rather than a mismatch.
   const pageSizes = titleSizes.length ? titleSizes : bodySizes.filter(stated);
   const matchesSize = sku.size === null || !titleSizes.length || titleSizes.some(stated);
@@ -297,7 +310,10 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
 
   add('identity.name', title, title);
   if (brandName) add('identity.brand', decode(String(brandName)).trim(), `brand: ${brandName}`);
-  if (sku.size !== null && pageSizes.length === 1) add('identity.size', pageSizes[0], excerptAround(text, `${pageSizes[0].value}`));
+  // A confirmed equivalent is recorded in the SKU's own unit, so a page in fl oz never contradicts the catalog's ml.
+  if (sku.size !== null && pageSizes.length === 1) add('identity.size', stated(pageSizes[0]) ? { value: sku.size, unit: wantedUnit } : pageSizes[0], excerptAround(text, `${pageSizes[0].value}`));
+  // A product page offering several sizes, this SKU's among them, confirms this variant exists; the confirmation is recorded in the SKU's own size.
+  else if (sku.size !== null && pageSizes.length > 1 && pageSizes.some(stated)) add('identity.size', { value: sku.size, unit: wantedUnit }, excerptAround(text, `${pageSizes.find(stated)!.value}`));
   else if (sku.size === null && pageSizes.length === 1) add('identity.size', pageSizes[0], excerptAround(text, `${pageSizes[0].value}`));
   else if (sku.size === null && pageSizes.length > 1) rejected.push({ field: 'identity.size', reason: 'AMBIGUOUS_SIZE', detail: pageSizes.map(size => `${size.value}${size.unit}`).join(', ') });
 
@@ -424,6 +440,11 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
     usage = productLines.filter(line => line.length >= 12 && line.length <= 400 && !CAUTION_LINE.test(line) && !NOT_AN_INSTRUCTION.test(line)
       && instructionSentences(line).some(sentence => APPLICATION_ACT.test(sentence))).slice(0, 4);
   }
+  if (rinseMode(usage) === 'CONTRADICTORY') {
+    const productTypes = [...sku.productName.matchAll(/\b(cleanser|conditioner|shampoo|serum|lotion|sunscreen|cream|gel)\b/gi)].map(match => match[1].toLowerCase());
+    const namedDirections = usage.filter(line => productTypes.some(type => new RegExp(`\\b${type}\\b`, 'i').test(line)));
+    if (namedDirections.length && !['UNKNOWN', 'CONTRADICTORY'].includes(rinseMode(namedDirections))) usage = namedDirections;
+  }
   if (usage.length) {
     add('usage.instructions', [...new Set(usage)], usage.join(' ').slice(0, 400));
     const joined = usage.join(' ');
@@ -446,7 +467,9 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   const description = (typeof product?.description === 'string' ? decode(product.description) : '') || meta(html, 'og:description') || meta(html, 'description');
   // Some sites encode their meta description twice ("face &amp;amp; body"): one more pass when entities are still left, so no "&amp;" reaches the catalog.
   const plain = description ? (/&(?:amp|lt|gt|quot|apos|nbsp|#\d+|#x[0-9a-f]+);/i.test(decode(description)) ? decode(decode(description)) : decode(description)) : '';
-  if (plain && plain.length >= 30) add('marketing.description', plain.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000), plain);
+  if (/\bcleanser\b/i.test(title) && /\blotion\b/i.test(plain.slice(0, 100)) && /\buntil fully absorbed\b/i.test(plain)) {
+    rejected.push({ field: 'marketing.description', reason: 'PRODUCT_TYPE_CONFLICT', detail: 'Cleanser page contains leave-on lotion copy' });
+  } else if (plain && plain.length >= 30) add('marketing.description', plain.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000), plain);
   // Feature cards: a short heading followed by one line ("3 Essential Ceramides" / "To help protect the natural skin barrier"), within the product's own part of the page.
   const pairs: Array<{ heading: string; body: string }> = [];
   const relatedSectionAt = sections.findIndex(line => RELATED_SECTION.test(line));
@@ -491,6 +514,22 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   if (product) addImage(product.image);
   const og = meta(html, 'og:image');
   if (og) addImage(og);
+  // A product page may expose a small hero image but a usable alternate in its gallery.
+  // Keep only gallery files in the hero image's exact directory; other folders can be related products or campaign art.
+  const hero = [...images][0];
+  if (hero) {
+    const heroUrl = new URL(hero);
+    const directory = heroUrl.pathname.slice(0, heroUrl.pathname.lastIndexOf('/') + 1);
+    for (const match of html.matchAll(/(?:data-)?srcset=["']([^"']+)["']/gi)) {
+      const options = match[1].replace(/&amp;/g, '&').split(',').map(part => part.trim().split(/\s+/)).filter(parts => parts[0]);
+      const best = options.sort((a, b) => (Number.parseInt(b[1] ?? '0', 10) || 0) - (Number.parseInt(a[1] ?? '0', 10) || 0))[0];
+      try {
+        const url = new URL(best[0], pageUrl);
+        if (url.protocol === 'https:' && url.hostname === heroUrl.hostname && url.pathname.startsWith(directory) &&
+            url.pathname.slice(directory.length).indexOf('/') === -1) images.add(url.toString());
+      } catch { /* invalid gallery URL */ }
+    }
+  }
   const imageList = [...images].filter(url => url.startsWith('https://')).slice(0, 8);
   if (imageList.length) add('media.sourceImages', imageList, imageList[0]);
 

@@ -147,6 +147,8 @@ export interface SourceCheck {
   rejectedReasons: string[];
   /** A GTIN in the page's structured data, if any. */
   pageGtin: string | null;
+  /** The product name the page itself states (its Product markup or heading), when it describes this product. */
+  pageTitle?: string;
   /** Only when the row stated no size: the single size the page's own title names, with its words. */
   pageSize?: { value: number; unit: string };
   pageSizeExcerpt?: string;
@@ -362,6 +364,10 @@ function pickBest(field: string, sorted: FactReading[], verdicts: Map<string, Fa
 export interface ImageCandidate { url: string; width: number; height: number; tier: SourceTier; reusedBySku: string | null }
 
 export const MIN_IDENTITY_EDGE = 400;
+/** Native portrait bottle images can be clear at their 200 px display width without inventing pixels. */
+export function usableIdentityResolution(width: number, height: number): boolean {
+  return Math.min(width, height) >= MIN_IDENTITY_EDGE || (width >= 200 && height >= 500 && height / width >= 2.2);
+}
 
 /**
  * Picks the authentic image to use as the identity packshot: a manufacturer or trusted-distributor image, at least 400 px on each side, not already proof for another
@@ -372,7 +378,7 @@ export function chooseIdentityImage(candidates: ImageCandidate[]): { chosen: Ima
   const usable = candidates.filter(candidate => {
     if (candidate.tier === 'RETAILER') { rejected.push({ url: candidate.url, reason: 'SOURCE_NOT_AUTHENTIC_ENOUGH' }); return false; }
     if (candidate.reusedBySku) { rejected.push({ url: candidate.url, reason: `IMAGE_IS_PROOF_FOR_ANOTHER_SKU:${candidate.reusedBySku}` }); return false; }
-    if (Math.min(candidate.width, candidate.height) < MIN_IDENTITY_EDGE) { rejected.push({ url: candidate.url, reason: `RESOLUTION_TOO_LOW:${candidate.width}x${candidate.height}` }); return false; }
+    if (!usableIdentityResolution(candidate.width, candidate.height)) { rejected.push({ url: candidate.url, reason: `RESOLUTION_TOO_LOW:${candidate.width}x${candidate.height}` }); return false; }
     return true;
   });
   usable.sort((a, b) => TIER_RANK[b.tier] - TIER_RANK[a.tier] || Math.min(b.width, b.height) - Math.min(a.width, a.height) || a.url.localeCompare(b.url));
