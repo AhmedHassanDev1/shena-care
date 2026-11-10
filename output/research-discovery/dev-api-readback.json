@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-10T19:38:07.514Z",
+  "at": "2026-11-10T19:51:16.443Z",
   "rows": [
     {
       "id": "SC-MVP-001",
@@ -308,78 +308,32 @@
     {
       "id": "SC-MVP-055",
       "slug": "loral-paris-hyaluron-moisture-shampoo-mw9enm9c",
-      "status": 200,
-      "returnedId": "4e43629d-306e-4e9d-8985-ec1dc45bf74e",
-      "name": "Hyaluron Moisture Shampoo",
-      "usagePresent": true,
+      "status": 404,
+      "returnedId": null,
+      "name": null,
+      "usagePresent": false,
       "warningsPresent": false,
       "bodyKeys": [
-        "brand",
-        "broadSpectrum",
-        "category",
-        "description",
-        "evaluatedAt",
-        "factVerification",
-        "id",
-        "isFragranceFree",
-        "isNonComedogenic",
-        "media",
-        "name",
-        "productLine",
-        "routinePlacements",
-        "selectedSkuId",
-        "selectedVariant",
-        "skus",
-        "slug",
-        "spf",
-        "suitableHairTypes",
-        "suitableSkinTypes",
-        "targetArea",
-        "texture",
-        "usage",
-        "uvFilterType",
-        "verifiedFacts",
-        "warnings",
-        "waterResistanceMinutes"
-      ]
+        "error",
+        "message",
+        "statusCode"
+      ],
+      "error": "Product not found: loral-paris-hyaluron-moisture-shampoo-mw9enm9c"
     },
     {
       "id": "SC-MVP-056",
       "slug": "loral-paris-hyaluron-moisture-conditioner-mw9enp4z",
-      "status": 200,
-      "returnedId": "e36a0976-ab69-4e35-81fc-d2d947866c1f",
-      "name": "Hyaluron Moisture Conditioner",
-      "usagePresent": true,
+      "status": 404,
+      "returnedId": null,
+      "name": null,
+      "usagePresent": false,
       "warningsPresent": false,
       "bodyKeys": [
-        "brand",
-        "broadSpectrum",
-        "category",
-        "description",
-        "evaluatedAt",
-        "factVerification",
-        "id",
-        "isFragranceFree",
-        "isNonComedogenic",
-        "media",
-        "name",
-        "productLine",
-        "routinePlacements",
-        "selectedSkuId",
-        "selectedVariant",
-        "skus",
-        "slug",
-        "spf",
-        "suitableHairTypes",
-        "suitableSkinTypes",
-        "targetArea",
-        "texture",
-        "usage",
-        "uvFilterType",
-        "verifiedFacts",
-        "warnings",
-        "waterResistanceMinutes"
-      ]
+        "error",
+        "message",
+        "statusCode"
+      ],
+      "error": "Product not found: loral-paris-hyaluron-moisture-conditioner-mw9enp4z"
     }
   ]
 }

@@ -13,7 +13,9 @@ The research engine is **not merged into `main`**. `main` is at `0244296` with 1
 
 ## Development product application and API readback
 
-Ten distinct existing, published, identity-verified SKUs were matched to the original intake source URLs and exact sizes. Research was started through `CanonicalResearchService.startRun` and evaluated through `autoVerify` under an existing Admin actor. [Before snapshot](dev-before.json), [after snapshot](dev-after.json), [run results](dev-apply-results.jsonl), and [public API readback](dev-api-readback.json) record the results. Each of the ten `GET /products/:slug` requests returned HTTP 200 and the expected product ID. The snapshots contain public catalog metadata and hashed field values; no credentials are stored.
+Ten distinct existing, published, identity-verified SKUs were matched to the original intake source URLs and exact sizes. Research was started through `CanonicalResearchService.startRun` and evaluated through `autoVerify` under an existing Admin actor. [Before snapshot](dev-before.json), [after snapshot](dev-after.json), and [run results](dev-apply-results.jsonl) record the database results. The snapshots contain public catalog metadata and hashed field values; no credentials are stored.
+
+On the original research branch, [public API readback](dev-api-readback-parent.json) returned HTTP 200 and the expected product ID for all ten `GET /products/:slug` requests. On the clean `main`-based branch, [the same readback](dev-api-readback.json) returned **8 HTTP 200 and 2 HTTP 404**. The eight responses exposed the expected existing usage fields (six present, Eva 023/024 absent). SC-MVP-055 and 056 were 404 despite being marked published in the database: their derived media did not satisfy the committed `main` public product eligibility path. The original branch has additional catalog/media changes; transferring them would violate the instruction to exclude image processing. Public API verification is therefore incomplete for a safe merge of all ten products.
 
 | SKU | Usage | Description | Warnings | INCI | New verified catalog fields |
 |---|---|---|---|---|---:|
@@ -38,4 +40,11 @@ The extraction now scopes scraped Markdown to the target H1, derives size from t
 
 ## Scope and next action
 
-The isolated branch changes research extraction, verification, source fetching, identity helpers, focused tests, the description compare-and-set helper, and this evidence report. No Routine Builder, Chatbot, Recommendation Engine, or image-processing code was transferred. To reach the Definition of Done, resolve the overlapping uncommitted changes on `main`, reconcile the research files with their active owners, rerun PostgreSQL/API verification on the resulting tree, and merge only if it passes. The live development run produced **zero new verified catalog fields**, so the requested completeness improvement is not yet demonstrated. Do not treat unverified proposals as merge-ready data.
+The isolated branch changes research extraction, verification, source fetching, identity helpers, published-content projection of applied facts, focused tests, the description compare-and-set helper, and this evidence report. No Routine Builder, Chatbot, Recommendation Engine, or image-processing code was transferred. To reach the Definition of Done, resolve the overlapping uncommitted changes on `main`, reconcile the research files with their active owners, address the two public API eligibility failures within the separately owned media work, rerun PostgreSQL/API verification on the resulting tree, and merge only if it passes. The live development run produced **zero new verified catalog fields**, so the requested completeness improvement is not yet demonstrated. Do not treat unverified proposals as merge-ready data.
+
+## Isolated changed paths
+
+- Research: `brand-aliases.ts`, `canonical-research.service.ts`, `catalog-decision-engine.ts`, `identity-text.ts`, `product-content.service.ts`, `product-fact-extractor.ts`, `product-research.service.ts`, `product-source-discovery.ts`, `research-evidence.ts`, and `research-source-fetcher.ts` under `apps/api/src/modules/catalog/research/`.
+- Required catalog helper: `apps/api/src/modules/catalog/services/catalog-intake.service.ts`.
+- Tests: `apps/api/test/integration/research-discovery.e2e-spec.ts` and `apps/api/test/unit/product-research-discovery.spec.ts`.
+- Evidence: this report plus `after-closure2.jsonl`, `dev-before.json`, `dev-after.json`, `dev-apply-results.jsonl`, `dev-api-readback.json`, `dev-api-readback-parent.json`, and the read-only `dev-api-readback.cjs` verifier under `output/research-discovery/`.
