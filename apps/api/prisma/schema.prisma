@@ -623,12 +623,15 @@ model ProductReview {
   id                 String              @id @default(uuid()) @db.Uuid
   productId          String              @map("product_id") @db.Uuid
   skuId              String?             @map("sku_id") @db.Uuid
+  customerId         String?             @map("customer_id") @db.Uuid
+  orderId            String?             @map("order_id") @db.Uuid
   rating             Int                 @db.SmallInt
   title              String?             @db.VarChar(120)
-  body               String
+  body               String?
   authorName         String              @map("author_name") @db.VarChar(60)
   skinType           String?             @map("skin_type") @db.VarChar(20)
   isVerifiedPurchase Boolean             @default(false) @map("is_verified_purchase")
+  isTest             Boolean             @default(false) @map("is_test")
   helpfulCount       Int                 @default(0) @map("helpful_count")
   status             ProductReviewStatus @default(PENDING)
   source             String              @default("customer") @db.VarChar(60)
@@ -636,6 +639,8 @@ model ProductReview {
   updatedAt          DateTime            @updatedAt @map("updated_at")
 
   @@index([productId, status, createdAt])
+  @@index([productId, status, isTest, createdAt])
+  @@index([customerId, productId])
   @@index([source])
   @@map("product_reviews")
   @@schema("commerce")

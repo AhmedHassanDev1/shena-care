@@ -13,3 +13,5 @@ export { OrderLookupParamsDto, GuestOrderLookupParamsDto, GuestOrderAccessHeader
 export { computeDeliveryFee, loadDeliveryFeePolicy, distanceKm, DEFAULT_DELIVERY_FEE_POLICY } from './services/delivery-fee';
 export { lossShares, LOSS_PARTIES, LOSS_DISPOSITIONS } from './services/loss-responsibility';
 export type { LossParty, LossDisposition, LossShares } from './services/loss-responsibility';
+export { PurchaseVerificationService, evaluatePurchaseEligibility } from './services/purchase-verification.service';
+export type { PurchaseEligibilityReason, PurchaseEligibilityResult } from './services/purchase-verification.service';
