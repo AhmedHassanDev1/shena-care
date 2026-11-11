@@ -1,6 +1,6 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch, UseGuards, Req, Delete } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
-import { RegisterDto, LoginDto, SendOtpDto, VerifyOtpDto } from './dto/accounts.dto';
+import { RegisterDto, LoginDto, SendOtpDto, VerifyOtpDto, UpdateProfileDto } from './dto/accounts.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
@@ -38,6 +38,12 @@ export class AccountsController {
   @UseGuards(AuthGuard)
   getMe(@CurrentUser() user: any) {
     return this.accountsService.getMe(user.id);
+  }
+
+  @Patch('me')
+  @UseGuards(AuthGuard)
+  updateMe(@CurrentUser() user: { id: string }, @Body() dto: UpdateProfileDto) {
+    return this.accountsService.updateMe(user.id, dto);
   }
 
   @Get('me/export')

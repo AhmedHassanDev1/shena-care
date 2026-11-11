@@ -90,3 +90,19 @@ export class SupportCaseQueryDto {
   @Min(0)
   skip?: number;
 }
+
+/** Bounded query parameters for authenticated customers viewing their own support cases. */
+export class CustomerSupportCaseQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  take?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  skip?: number;
+}
