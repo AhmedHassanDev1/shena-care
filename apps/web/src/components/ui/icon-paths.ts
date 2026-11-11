@@ -82,9 +82,10 @@ export const ICON_PATHS = {
   droplet: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>', // lucide droplet
   'sun-moon': '<path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4Z"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/>', // lucide sun-moon
   expand: '<path d="m15 15 6 6m-6 0h6v-6M9 9 3 3m6 0H3v6m0 6v6h6m6-18h6v6"/>', // lucide expand
+  logout: '<path d="M15 20h3.5a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 18.5 4H15"/><path d="M9 16.5 4.5 12 9 7.5"/><path d="M4.5 12H16"/>',
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;
 
 /** Icons whose meaning depends on reading direction; they flip under dir="ltr". */
-export const DIRECTIONAL_ICONS: readonly IconName[] = ['chevron-back', 'chevron-forward', 'arrow-forward', 'returns', 'play'];
+export const DIRECTIONAL_ICONS: readonly IconName[] = ['chevron-back', 'chevron-forward', 'arrow-forward', 'returns', 'play', 'logout'];

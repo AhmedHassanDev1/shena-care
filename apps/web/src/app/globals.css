@@ -15,7 +15,14 @@
 
 html {
   min-width: 320px;
+  scroll-padding-top: 10.5rem;
   -webkit-text-size-adjust: 100%;
+}
+
+@media (min-width: 768px) {
+  html {
+    scroll-padding-top: calc(var(--header-height) + 1rem);
+  }
 }
 
 body {
