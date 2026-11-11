@@ -126,6 +126,29 @@ describe('configured product discovery with PostgreSQL', () => {
     expect((await prisma.product.findUniqueOrThrow({ where: { id: productId } })).claimsEvidence).toEqual(original);
   }, 60000);
 
+  it('persists a bullet-separated official INCI only for the exact SKU and keeps a repeat idempotent', async () => {
+    const name = `Bullet${nonce} Cream`;
+    const { skuId, productId } = await intake(name);
+    const url = source(`bullet-${nonce}`);
+    const html = `<html><title>${title(name, 50)}</title><h1>${title(name, 50)}</h1><h2>Ingredients</h2><p>AQUA / WATER &bull; SODIUM LAURETH SULFATE &bull; GLYCERIN &bull; NIACINAMIDE &bull; SODIUM HYALURONATE &bull; PHENOXYETHANOL &bull; CITRIC ACID &bull; PARFUM / FRAGRANCE.</p></html>`;
+    const direct = jest.spyOn(app.get(ResearchSourceFetcher), 'fetch').mockResolvedValue({ outcome: 'OK', body: Buffer.from(html), finalUrl: url,
+      fetchedAt: new Date().toISOString(), contentHash: 'bullet-formula-fixture', contentType: 'text/html' });
+    try {
+      const first = (await api().post(`/catalog/workbench/skus/${skuId}/research`).set(admin.auth)
+        .send({ sourceUrls: [url] }).expect(201)).body;
+      expect(first.status).toBe('COMPLETE');
+      const verified = await research.autoVerify(skuId, admin.id);
+      expect(verified.applied).toContain('composition.inci');
+      expect(await prisma.productIngredient.count({ where: { productId, skuId } })).toBe(8);
+      const fact = await prisma.productFactProposal.findFirstOrThrow({ where: { skuId, field: 'composition.inci' } });
+      expect(fact.status).toBe('APPLIED');
+      expect((fact.evidence as unknown as Array<{ sourceUrl: string }>)[0].sourceUrl).toBe(url);
+      await api().post(`/catalog/workbench/skus/${skuId}/research`).set(admin.auth).send({ sourceUrls: [url] }).expect(201);
+      expect(await prisma.productIngredient.count({ where: { productId, skuId } })).toBe(8);
+      expect(await prisma.productFactProposal.count({ where: { skuId, field: 'composition.inci' } })).toBe(1);
+    } finally { direct.mockRestore(); }
+  }, 60000);
+
   it('holds contradictory official directions for critical review without changing the catalog', async () => {
     const name = `Calm${nonce} Cream`;
     const { skuId, productId } = await intake(name);

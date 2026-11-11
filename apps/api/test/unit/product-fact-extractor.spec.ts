@@ -34,6 +34,18 @@ describe('deterministic product fact extraction', () => {
     for (const field of ['identity.gtin', 'composition.inci', 'composition.activeConcentrations', 'composition.fragrance', 'usage.instructions', 'safety.warnings']) expect(fieldOf(facts, field)).toBeUndefined();
   });
 
+  it('reads an exact product formula separated by HTML bullets without treating prose as INCI', () => {
+    const formula = page('<h2>Ingredients</h2><p>AQUA / WATER &bull; SODIUM LAURETH SULFATE &bull; GLYCOL DISTEARATE &bull; SODIUM CHLORIDE &bull; COCAMIDOPROPYL BETAINE &bull; DIMETHICONE &bull; SODIUM HYALURONATE &bull; PARFUM / FRAGRANCE.</p>');
+    const facts = extractProductFacts(formula, 'https://acme.example/hydra-50', SKU).facts;
+    expect(fieldOf(facts, 'composition.inci')).toEqual([
+      'AQUA / WATER', 'SODIUM LAURETH SULFATE', 'GLYCOL DISTEARATE', 'SODIUM CHLORIDE',
+      'COCAMIDOPROPYL BETAINE', 'DIMETHICONE', 'SODIUM HYALURONATE', 'PARFUM / FRAGRANCE',
+    ]);
+    expect(fieldOf(facts, 'composition.fragrance')).toBe('PRESENT');
+    const prose = page('<h2>Ingredients</h2><p>A gentle wash &bull; with rich hydration &bull; for beautiful skin.</p>');
+    expect(fieldOf(extractProductFacts(prose, 'https://acme.example/hydra-50', SKU).facts, 'composition.inci')).toBeUndefined();
+  });
+
   it('refuses another product and another size: evidence is never mixed across SKUs', () => {
     const other = extractProductFacts(page('<h2>Ingredients</h2><p>AQUA, GLYCERIN, PARFUM</p>').replace(/Hydra Barrier Cream/g, 'Glow Toner'), 'https://acme.example/glow', SKU);
     expect(other).toMatchObject({ identityMatched: false, facts: [] });
