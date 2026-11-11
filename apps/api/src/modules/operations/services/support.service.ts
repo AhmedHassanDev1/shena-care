@@ -157,6 +157,27 @@ export class SupportService {
     return c;
   }
 
+  /** Lists support cases owned by the authenticated customer without exposing staff-only fields. */
+  async getCasesForCustomer(customerId: string, filter: { take?: number; skip?: number } = {}) {
+    return this.prisma.supportCase.findMany({
+      where: { customerId },
+      orderBy: [{ createdAt: 'desc' }],
+      take: Math.min(filter.take ?? 20, 50),
+      skip: filter.skip ?? 0,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        priority: true,
+        status: true,
+        orderId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
   async updateCase(id: string, dto: UpdateSupportCaseDto, actorId: string) {
     return this.prisma.$transaction(async tx => {
       // Serialize concurrent resolution attempts for this specific case

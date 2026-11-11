@@ -1,8 +1,8 @@
 import { Role } from '@prisma/client';
-import { BadRequestException, Injectable, UnauthorizedException, ConflictException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException, ConflictException, ServiceUnavailableException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../platform/database/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { RegisterDto, LoginDto } from './dto/accounts.dto';
+import { RegisterDto, LoginDto, UpdateProfileDto } from './dto/accounts.dto';
 import { CUSTOMER_PHONE_VERIFIED_EVENT, CUSTOMER_VERIFIED_EVENT, CustomerPhoneVerifiedEvent, CustomerVerifiedEvent } from './guest-adoption.contract';
 import * as bcrypt from 'bcrypt';
 import { randomUUID, randomInt } from 'crypto';
@@ -10,6 +10,8 @@ import { randomUUID, randomInt } from 'crypto';
 /** OTP challenge contract (GLO-200). The client renders cells, expiry and resend countdown from these values only. */
 /** Name stored for an account created at phone sign-in, before the customer gives one (never shown as a name). */
 export const PHONE_SIGNUP_NAME = 'New User';
+
+const isPlaceholderEmail = (email: string) => /@placeholder\.com$/i.test(email);
 
 export const OTP_CODE_LENGTH = 6;
 export const OTP_TTL_MS = 5 * 60 * 1000;
@@ -355,9 +357,110 @@ export class AccountsService {
     return {
       ...profile,
       name: profile.name === PHONE_SIGNUP_NAME ? null : profile.name,
+      email: isPlaceholderEmail(profile.email) ? null : profile.email,
       phoneNumber: identities[0]?.providerId ?? null,
     };
   }
+
+
+  /**
+   * Updates editable personal information for the signed-in customer.
+   * Rejects synthetic placeholder emails and returns explicit conflict errors without exposing other accounts.
+   */
+  async updateMe(customerId: string, dto: UpdateProfileDto) {
+    const existing = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+        identities: { where: { provider: 'PHONE' }, select: { providerId: true }, take: 1 },
+      },
+    });
+    if (!existing) throw new NotFoundException('Customer not found');
+
+    const phoneNumber = existing.identities[0]?.providerId ?? null;
+    const data: { name?: string; email?: string } = {};
+
+    if (dto.name !== undefined) {
+      const trimmedName = dto.name.trim();
+      if (trimmedName.length < 2 || trimmedName.length > 80) {
+        throw new BadRequestException({ code: 'INVALID_NAME', message: 'Name must be between 2 and 80 characters' });
+      }
+      data.name = trimmedName;
+    }
+
+    if (dto.email !== undefined) {
+      if (dto.email === null) {
+        if (!isPlaceholderEmail(existing.email)) {
+          data.email = await this.buildPlaceholderEmail(customerId, phoneNumber);
+        }
+      } else {
+        const normalizedEmail = dto.email.trim().toLowerCase();
+        if (isPlaceholderEmail(normalizedEmail)) {
+          throw new BadRequestException({ code: 'INVALID_EMAIL', message: 'Please provide a valid email address' });
+        }
+        const duplicate = await this.prisma.customer.findFirst({
+          where: { email: normalizedEmail, id: { not: customerId } },
+          select: { id: true },
+        });
+        if (duplicate) {
+          throw new ConflictException({ code: 'EMAIL_ALREADY_IN_USE', message: 'Email address is already in use' });
+        }
+        data.email = normalizedEmail;
+      }
+    }
+
+    if (Object.keys(data).length === 0) {
+      return {
+        id: existing.id,
+        name: existing.name === PHONE_SIGNUP_NAME ? null : existing.name,
+        email: isPlaceholderEmail(existing.email) ? null : existing.email,
+        createdAt: existing.createdAt,
+        phoneNumber,
+      };
+    }
+
+    try {
+      const updated = await this.prisma.customer.update({
+        where: { id: customerId },
+        data,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          identities: { where: { provider: 'PHONE' }, select: { providerId: true }, take: 1 },
+        },
+      });
+      return {
+        id: updated.id,
+        name: updated.name === PHONE_SIGNUP_NAME ? null : updated.name,
+        email: isPlaceholderEmail(updated.email) ? null : updated.email,
+        createdAt: updated.createdAt,
+        phoneNumber: updated.identities[0]?.providerId ?? phoneNumber,
+      };
+    } catch (error: unknown) {
+      if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2002') {
+        throw new ConflictException({ code: 'EMAIL_ALREADY_IN_USE', message: 'Email address is already in use' });
+      }
+      throw error;
+    }
+  }
+
+  private async buildPlaceholderEmail(customerId: string, phoneNumber: string | null): Promise<string> {
+    if (phoneNumber) {
+      const candidate = `${phoneNumber.replace(/[^0-9]/g, '')}@placeholder.com`;
+      const conflict = await this.prisma.customer.findFirst({
+        where: { email: candidate, id: { not: customerId } },
+        select: { id: true },
+      });
+      if (!conflict) return candidate;
+    }
+    return `${customerId}@placeholder.com`;
+  }
+
 
   /** Business Workspace identity: roles and supplier scope (hub scope is composed from Fulfillment). */
   async getWorkspaceIdentity(accountId: string) {
