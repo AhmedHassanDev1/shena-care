@@ -4,3 +4,4 @@ export * from './permissions';
 export * from './permissions.decorator';
 export * from './permissions.guard';
 export * from './auth-bypass';
+export * from './dev-test-reviews';

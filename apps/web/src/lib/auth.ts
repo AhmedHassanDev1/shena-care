@@ -12,8 +12,10 @@ export interface User {
 }
 
 export interface AuthResponse {
-  user: User;
-  sessionToken: string;
+  user?: User;
+  customer?: User;
+  sessionToken?: string;
+  token?: string;
 }
 
 export interface RegisterData {
@@ -47,8 +49,9 @@ export const auth = {
 
   async login(data: LoginData): Promise<AuthResponse> {
     const response = await apiClient.post<AuthResponse>('/accounts/login', data);
-    if (response.sessionToken) {
-      localStorage.setItem(TOKEN_KEY, response.sessionToken);
+    const sessionToken = response.sessionToken ?? response.token;
+    if (sessionToken) {
+      localStorage.setItem(TOKEN_KEY, sessionToken);
     }
     return response;
   },

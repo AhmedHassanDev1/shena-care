@@ -139,7 +139,7 @@ function Detail({ product }: { product: ProductDetail }) {
       <ProductSuitability product={product} />
 
       {/* Customer Reviews & Detailed Breakdown */}
-      <ProductReviews slug={product.slug} />
+      <ProductReviews slug={product.slug} skuId={variant?.id} />
 
       {/* You May Also Like Products */}
       <RelatedProducts product={product} />

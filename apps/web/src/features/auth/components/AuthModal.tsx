@@ -16,6 +16,7 @@ import { formatClock, isolateLtr } from '@/lib/i18n/format';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { cn } from '@/lib/utils';
+import { DevEmailLoginPanel } from './DevEmailLoginPanel';
 import {
   apiErrorCode,
   apiRetryAfter,
@@ -119,7 +120,7 @@ export function AuthModal({
     event.preventDefault();
     if (sendingRef.current || waitSeconds > 0) return;
 
-    let trimmedName = name.trim();
+    const trimmedName = name.trim();
     if (mode === 'register') {
       if (!trimmedName || trimmedName.length < 2) {
         setNameError(m.authNameError);
@@ -396,6 +397,8 @@ export function AuthModal({
                 </>
               )}
             </div>
+
+            <DevEmailLoginPanel onSuccess={onSuccess} />
           </div>
         )}
 

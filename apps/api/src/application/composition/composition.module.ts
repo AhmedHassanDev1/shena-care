@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
+import rateLimit from 'express-rate-limit';
 import { CatalogModule } from '../../modules/catalog/public';
 import { CommerceModule } from '../../modules/commerce/public';
 import { SourcingModule } from '../../modules/sourcing/public';
@@ -20,6 +21,7 @@ import { CatalogProfileService } from './services/catalog-profile.service';
 import { ProductViewService } from './services/product-view.service';
 import { DiscoveryService } from './services/discovery.service';
 import { ProductDetailService } from './services/product-detail.service';
+import { ProductReviewsOrchestrationService } from './services/product-reviews-orchestration.service';
 import { CareModule } from '../../modules/care/public';
 import { OrderingModule } from '../../modules/ordering/public';
 import { RoutineCartController } from './controllers/routine-cart.controller';
@@ -53,6 +55,30 @@ import { RoutineCartController } from './controllers/routine-cart.controller';
     BarcodeAliasController, // /catalog/barcode-aliases (GLO-242)
     RoutineCartController,  // /care/me/routines/:id/cart, /care/workspace/proposals/:id/cart
   ],
-  providers: [CatalogPublicationService, CatalogProfileService, ProductViewService, DiscoveryService, ProductDetailService],
+  providers: [
+    CatalogPublicationService,
+    CatalogProfileService,
+    ProductViewService,
+    DiscoveryService,
+    ProductDetailService,
+    ProductReviewsOrchestrationService,
+  ],
 })
-export class CompositionModule {}
+export class CompositionModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(
+        rateLimit({
+          windowMs: 15 * 60 * 1000,
+          max: 30,
+          standardHeaders: true,
+          legacyHeaders: false,
+          message: {
+            code: 'REVIEW_RATE_LIMITED',
+            message: 'Too many review submission attempts. Please try again later.',
+          },
+        }),
+      )
+      .forRoutes({ path: 'products/:slugOrId/reviews', method: RequestMethod.POST });
+  }
+}

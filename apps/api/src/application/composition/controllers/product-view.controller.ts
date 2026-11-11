@@ -1,4 +1,6 @@
 import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
+import { OptionalAuthGuard } from '../../../modules/accounts/guards/optional-auth.guard';
+import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
 import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import {
@@ -25,7 +27,12 @@ import { ProductDetailService } from '../services/product-detail.service';
 import { ApiOkResponse, ApiNotFoundResponse, ApiBadRequestResponse, ApiTags } from '@nestjs/swagger';
 import { ProductDetailQueryDto, ProductDetailResponseDto } from '../dto/product-detail.dto';
 import { ProductReviewsQueryDto } from '../dto/product-reviews.dto';
+import { CreateProductReviewDto } from '../dto/create-product-review.dto';
 import { ProductReviewService } from '../../../modules/commerce/public';
+import {
+  AuthenticatedReviewActor,
+  ProductReviewsOrchestrationService,
+} from '../services/product-reviews-orchestration.service';
 import {
   CatalogService,
   CreateProductDto,
@@ -46,6 +53,7 @@ export class ProductViewController {
     private readonly productDetailService: ProductDetailService,
     private readonly careService: CareService,
     private readonly productReviewService: ProductReviewService,
+    private readonly productReviewsOrchestrationService: ProductReviewsOrchestrationService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -195,14 +203,42 @@ export class ProductViewController {
   // ---------------------------------------------------------------------------
 
   // GET /products/:slugOrId
+  // GET /products/:slugOrId/reviews/eligibility — authenticated / guest review eligibility.
+  @Get(':slugOrId/reviews/eligibility')
+  @UseGuards(OptionalAuthGuard)
+  @ApiNotFoundResponse({ description: 'Product is not publicly visible' })
+  async getProductReviewEligibility(
+    @Param('slugOrId') slugOrId: string,
+    @CurrentUser() user?: AuthenticatedReviewActor,
+  ) {
+    return this.productReviewsOrchestrationService.getEligibility(slugOrId, user);
+  }
+
   // GET /products/:slugOrId/reviews — published reviews + rating summary of a publicly visible product.
   @Get(':slugOrId/reviews')
+  @UseGuards(OptionalAuthGuard)
   @ApiNotFoundResponse({ description: 'Product is not publicly visible' })
   @ApiBadRequestResponse({ description: 'Invalid query' })
-  async getProductReviews(@Param('slugOrId') slugOrId: string, @Query() query: ProductReviewsQueryDto) {
-    const product = await this.productViewService.getProductView(slugOrId);
-    if (!product) throw new NotFoundException('Product not found');
-    return this.productReviewService.listPublished(product.id, query);
+  async getProductReviews(
+    @Param('slugOrId') slugOrId: string,
+    @Query() query: ProductReviewsQueryDto,
+    @CurrentUser() user?: AuthenticatedReviewActor,
+  ) {
+    return this.productReviewsOrchestrationService.listProductReviews(slugOrId, query, user);
+  }
+
+  // POST /products/:slugOrId/reviews — create a review (verified delivered purchase, or isolated dev-test).
+  @Post(':slugOrId/reviews')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiNotFoundResponse({ description: 'Product is not publicly visible' })
+  @ApiBadRequestResponse({ description: 'Invalid review payload' })
+  async submitProductReview(
+    @Param('slugOrId') slugOrId: string,
+    @CurrentUser() user: AuthenticatedReviewActor,
+    @Body() dto: CreateProductReviewDto,
+  ) {
+    return this.productReviewsOrchestrationService.submitReview(slugOrId, user, dto);
   }
 
   @Get(':slugOrId/detail')
