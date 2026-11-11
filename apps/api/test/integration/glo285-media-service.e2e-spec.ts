@@ -16,9 +16,13 @@ import { Actor, createActor } from '../fixtures/actors';
 import { uniqueGtin } from '../fixtures/gtin';
 
 const RUN_SEED = crypto.randomInt(1, 200);
+const RUN_NONCE = randomUUID().slice(0, 6);
 const realisticImage = (seed: number, format: 'png' | 'jpeg' | 'webp' = 'png', edge = 800) =>
   sharp({ create: { width: edge, height: edge, channels: 3, background: { r: (seed * 53 + RUN_SEED) % 255, g: (seed * 97 + RUN_SEED * 3) % 255, b: (seed * 29 + RUN_SEED * 7) % 255 } } })[format]().toBuffer();
-const cutout = (seed: number) => sharp({ create: { width: 600, height: 800, channels: 4, background: { r: (seed * 31) % 255, g: 40, b: 90, alpha: 0.6 } } }).png().toBuffer();
+const cutout = (seed: number) => sharp({ create: { width: 600, height: 800, channels: 4, background: {
+  r: (seed * 31 + parseInt(RUN_NONCE.slice(0, 2), 16)) % 255,
+  g: parseInt(RUN_NONCE.slice(2, 4), 16), b: parseInt(RUN_NONCE.slice(4, 6), 16), alpha: 0.6,
+} } }).png().toBuffer();
 
 /** Five different pack types from different brands and categories, per the rollout's diversity rule. Synthetic identities. */
 const DIVERSE_SKUS = [
