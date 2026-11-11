@@ -1,0 +1,11 @@
+{
+  "output": { "size": 1254, "quality": 92 },
+  "placement": { "centerX": 0.5, "baselineY": 0.88, "centerY": 0.52, "maxHeight": 0.76, "maxWidth": 0.65, "maxUpscale": 1.5 },
+  "shadow": {
+    "enabled": false,
+    "contactOpacity": 0, "contactBlur": 0, "contactHeight": 0,
+    "ambientOpacity": 0, "ambientBlur": 0,
+    "castOpacity": 0, "castBlur": 0,
+    "color": [0, 0, 0]
+  }
+}

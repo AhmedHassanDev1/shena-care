@@ -12,13 +12,9 @@ import { RegisterMediaTemplateDto } from '../dto/media-asset.dto';
 const TEMPLATE_OWNER = 'catalog-media';
 const TEMPLATE_FOLDER = 'templates';
 const MIN_TEMPLATE_EDGE = 800;
-/**
- * The MVP default for every product image: a clean warm off-white (#F7F5F2) square, the pack centred at one consistent scale, no props and no artificial shadow.
- * It wins over category scene templates unless a person picks another template explicitly. Override with MEDIA_DEFAULT_TEMPLATE_KEY; set it to "none" to go back to
- * category resolution.
- */
-export const DEFAULT_TEMPLATE_KEY = 'sahel-clean';
-const BUNDLED_DEFAULT = { file: 'assets/media-templates/sahel-clean-v1.webp', rules: 'assets/media-templates/sahel-clean.rules.json', name: 'SAHEL clean off-white' };
+/** The approved product background is bundled unchanged and versioned; older templates remain available for rollback. */
+export const DEFAULT_TEMPLATE_KEY = 'catalog-approved';
+const BUNDLED_DEFAULT = { file: 'assets/media-templates/catalog-approved-v1.png', rules: 'assets/media-templates/catalog-approved.rules.json', name: 'Approved catalog background' };
 const defaultKey = () => (process.env.MEDIA_DEFAULT_TEMPLATE_KEY ?? DEFAULT_TEMPLATE_KEY).trim();
 
 /** JSONB does not keep key order, so "same rules" has to compare content. */
@@ -152,7 +148,7 @@ export class MediaTemplateService {
     const rules = JSON.parse(fs.readFileSync(path.join(root, BUNDLED_DEFAULT.rules), 'utf8'));
     try {
       return await this.register({ templateKey: key, name: BUNDLED_DEFAULT.name, rules } as RegisterMediaTemplateDto,
-        { buffer, mimetype: 'image/webp', originalname: 'sahel-clean-v1.webp', size: buffer.length, fieldname: 'file', encoding: '7bit' } as Express.Multer.File, actorId);
+        { buffer, mimetype: 'image/png', originalname: 'catalog-approved-v1.png', size: buffer.length, fieldname: 'file', encoding: '7bit' } as Express.Multer.File, actorId);
     } catch (error) {
       if (error instanceof ConflictException) return this.prisma.mediaTemplate.findFirst({ where: { templateKey: key, isActive: true } });
       throw error;
