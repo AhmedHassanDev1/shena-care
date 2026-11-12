@@ -950,6 +950,8 @@ enum PurchaseOrderLineStatus {
 model SupplierPurchaseOrder {
   id         String              @id @default(uuid()) @db.Uuid
   supplierId String              @map("supplier_id") @db.Uuid
+  /// Each finalized RFQ award is a new immutable document; never rewrite an earlier version.
+  version    Int                 @default(1)
   status     PurchaseOrderStatus @default(created)
   notes      String?
   /// Procurement batch run that consolidated this PO (GLO-237); null for manual POs.
@@ -971,6 +973,7 @@ model SupplierPurchaseOrder {
 
   @@index([supplierId])
   @@index([batchRef])
+  @@index([supplierId, batchRef, version])
   @@index([status, responseDeadlineAt])
   @@map("supplier_purchase_orders")
   @@schema("sourcing")
@@ -1178,6 +1181,9 @@ model RfqResponse {
   requestHash     String   @map("request_hash") @db.VarChar(64)
   purchaseOrderId String?  @map("purchase_order_id") @db.Uuid
   createdBy       String   @map("created_by")
+  /// Null for the existing authenticated supplier API; staff records the actual offline channel and time.
+  confirmationSource String? @map("confirmation_source") @db.VarChar(10)
+  confirmedAt     DateTime? @map("confirmed_at")
   createdAt       DateTime @default(now()) @map("created_at")
 
   rfq   ProcurementRfq    @relation(fields: [rfqId], references: [id], onDelete: Cascade)

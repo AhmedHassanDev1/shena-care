@@ -39,11 +39,12 @@ const TRANSPORT_MAX_BYTES = 15 * 1024 * 1024 + 1;
  * DNS lookup used by the socket itself. The address that is checked is the address that is connected to, so a name that answers
  * with a public address for the pre-check and a private one for the connection (DNS rebinding) is refused at connect time.
  */
-export function safeLookup(hostname: string, options: { all?: boolean; family?: number | string }, callback: (...args: any[]) => void): void {
+export function safeLookup(hostname: string, options: { all?: boolean; family?: number | string },
+  callback: (error: Error | null, address: string | LookupAddress[], family?: number) => void): void {
   dnsLookup(hostname, { ...options, family: options.family as never, all: true }, (error, addresses) => {
     const list = (addresses ?? []) as LookupAddress[];
-    if (error || !list.length) return callback(error ?? new Error('NO_ADDRESS'));
-    if (list.some(entry => isPrivateAddress(entry.address))) return callback(Object.assign(new Error('PRIVATE_ADDRESS'), { code: 'PRIVATE_ADDRESS' }));
+    if (error || !list.length) return callback(error ?? new Error('NO_ADDRESS'), []);
+    if (list.some(entry => isPrivateAddress(entry.address))) return callback(Object.assign(new Error('PRIVATE_ADDRESS'), { code: 'PRIVATE_ADDRESS' }), []);
     return options.all ? callback(null, list) : callback(null, list[0].address, list[0].family);
   });
 }

@@ -16,9 +16,16 @@ export interface WordmarkProps extends Omit<React.HTMLAttributes<HTMLSpanElement
 export function Wordmark({ size = "header", withLatin = false, className, ...props }: WordmarkProps) {
   return (
     <span className={cn("inline-flex items-center gap-2.5 whitespace-nowrap", className)} {...props}>
-      <span className={cn("font-display font-bold", size === "header" ? "text-28 leading-30 lg:text-34 lg:leading-36" : "text-34 leading-36")}>شينا كير</span>
+      <span className={cn("font-display font-bold", size === "header" ? "text-26 leading-30 lg:text-28 lg:leading-30" : "text-34 leading-36")}>شينا كير</span>
       {withLatin ? (
-        <span lang="en" dir="ltr" className="font-serif italic text-20 text-stone">
+        <span
+          lang="en"
+          dir="ltr"
+          className={cn(
+            "font-serif italic text-stone",
+            size === "header" ? "hidden lg:inline text-18 leading-22" : "text-20 leading-24",
+          )}
+        >
           ShinaCare
         </span>
       ) : null}

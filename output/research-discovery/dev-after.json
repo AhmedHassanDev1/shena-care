@@ -1,0 +1,3515 @@
+{
+  "at": "2026-11-10T19:34:30.181Z",
+  "products": [
+    {
+      "id": "SC-MVP-001",
+      "skuId": "ae5ffcaf-1bca-466b-aff5-240bcd466890",
+      "productId": "a39b04e9-21f7-4e36-a897-30493e589314",
+      "code": "SC-STARVI-49343ABD",
+      "slug": "starville-acne-prone-skin-facial-cleanser-mw9ekvti",
+      "brand": "StarVille",
+      "name": "Acne Prone Skin Facial Cleanser",
+      "size": 200,
+      "sizeUnit": "ml",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "barcode": null,
+      "isPublished": true,
+      "completeness": {
+        "usage": true,
+        "description": false,
+        "warnings": false,
+        "inci": false,
+        "skinTypes": true,
+        "hairTypes": false,
+        "spf": false,
+        "texture": false,
+        "targetArea": true
+      },
+      "counts": {
+        "ingredients": 0,
+        "safetyWarnings": 0,
+        "usageRules": 1,
+        "facts": 16,
+        "runs": 3
+      },
+      "valueHashes": {
+        "usage": "c0539bfa1dd00ad503d3fbd56ad3440aa8da17e2ac75f427ea0fe6f163e013a8",
+        "description": null,
+        "warnings": null,
+        "skinTypes": "383be90007032c68f4f92bb40ff5dc7c28992af6f090bbefd0953041c083d4c5",
+        "hairTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "spf": null,
+        "texture": null,
+        "targetArea": "156b9890ea60ee1431e517f4e5d95d74152d4504940bf2be82060a98f6ecc471"
+      },
+      "facts": [
+        {
+          "field": "usage.routinePeriod",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "ac2101271b70e7b79aad456349bdb3e5a675a58a04e8400a4ec0e9cac233a333",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            }
+          ]
+        },
+        {
+          "field": "composition.keyIngredients",
+          "status": "REJECTED",
+          "verification": "REJECTED",
+          "decidedBy": "AUTO",
+          "decisionRule": "PAGE_SCOPE_REPAIR",
+          "confidence": 0.95,
+          "valueHash": "4b18ed43247d2013bbe5cb4caa9cecf3d65f7b34a60b92002efeddf6087dcaf0",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:18:04.372Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "status": "REJECTED",
+          "verification": "REJECTED",
+          "decidedBy": "AUTO",
+          "decisionRule": "PAGE_SCOPE_REPAIR",
+          "confidence": 0.95,
+          "valueHash": "73dff376bd6234ef7ee2ba9ee67efb6974543590898b3999863d30361eda7a98",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:18:04.372Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "REJECTED",
+          "verification": "REJECTED",
+          "decidedBy": "AUTO",
+          "decisionRule": "PAGE_SCOPE_REPAIR",
+          "confidence": 0.95,
+          "valueHash": "1078c140b996b711424671640de5d8a0fed342fc5d0027e16717b7016384f8fd",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:18:04.372Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "5a47bcc0865efc73806705bed424cf67ab0b04aab3556cda65c2f7ecda0f5c7b",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:44:41.110Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "8de580013acc437866d72d09fee9da8ec83a10236e8f408cb3213631aaacb1ab",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.brand",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "fb8eb48efbd65d2170be4ff41149a8a1fd9226e74976a0a19ffe537fc3c40921",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:44:41.110Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "3e47f66d785cdfa297f014ab87b5b86be3d936f94132865c83bd75324c925e87",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:44:41.110Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.targetArea",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "156b9890ea60ee1431e517f4e5d95d74152d4504940bf2be82060a98f6ecc471",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:44:41.110Z"
+            }
+          ]
+        },
+        {
+          "field": "suitability.skinTypes",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "383be90007032c68f4f92bb40ff5dc7c28992af6f090bbefd0953041c083d4c5",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:44:41.110Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "e078c95380dee22bbb65fc3198f6e600a8045bc91d9f78a2c54bbd8a5c3c5a84",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:44:41.110Z"
+            }
+          ]
+        },
+        {
+          "field": "composition.keyIngredients",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "71211c6f967c61c61299cc67677f0c0c048240fc661697ee9562a1dbb49edda4",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:44:41.110Z"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "status": "REJECTED",
+          "verification": "REJECTED",
+          "decidedBy": "ADMIN",
+          "decisionRule": "autopilot@1:PRODUCT_TYPE_CONFLICT",
+          "confidence": 0.95,
+          "valueHash": "9a738b6f65f2b2f719a1f7df0a8a1a0d09cdc03cdb08bcbc4a8217ac92b3970c",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:44:41.110Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "REJECTED",
+          "verification": "REJECTED",
+          "decidedBy": "ADMIN",
+          "decisionRule": "autopilot@1:RINSE_MODE_CONFLICT",
+          "confidence": 0.95,
+          "valueHash": "2489912db1b0a3be761ffffa4b1d2acce44fe5f5d09823bda989b1f246e96d7b",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "0e45e479e71922590fcc08b40ab630bd495dcf9cbfa8c512f9081420b460892e",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:44:41.110Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "8f798ae9b03c1f74d033452013f413aeae9c83d955ab87bd47add0a99f61a720",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:26.903Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:44:41.110Z"
+            }
+          ]
+        }
+      ],
+      "recentRuns": [
+        {
+          "id": "b17bbbb6-e989-4632-8425-e192d0cb89b1",
+          "status": "PROVIDER_UNAVAILABLE",
+          "startedAt": "2026-11-10T19:17:54.285Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "detail": "HTTP 429",
+              "origin": "ADMIN",
+              "outcome": "RATE_LIMITED",
+              "fetchedAt": "2026-11-10T19:17:56.601Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "PROVIDER",
+              "outcome": "OK",
+              "factCount": 3,
+              "fetchedAt": "2026-11-10T19:18:04.477Z"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "VERIFIED",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "VERIFIED",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "UNKNOWN",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "9619ffce-3493-4484-a04c-6c0eeccf646a",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:44:40.028Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 10,
+              "fetchedAt": "2026-11-09T15:44:41.110Z",
+              "contentHash": "9b69db5d475c4efaf8189728ad3b39757b4e2722d103b81252c8a5ed8b08e763"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "VERIFIED",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "VERIFIED",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "c43e612a-fb61-435a-a9e2-f8894cc961c0",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:15:31.448Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/starville-acne-treatment/products/starville-acne-prone-skin-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 11,
+              "fetchedAt": "2026-11-09T15:15:26.903Z",
+              "contentHash": "ec59a9338a4347850055d78e3bee838012e64e5d46c71b8df4faed71517bec17"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "VERIFIED",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "CONFLICT",
+            "usage.routinePeriod": "VERIFIED",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SC-MVP-006",
+      "skuId": "0ffbbc63-43aa-4066-b61b-a5757fda3cc6",
+      "productId": "259bcdab-11b6-4e49-8af6-e39e0a13b036",
+      "code": "SC-SHAAN-64258A82",
+      "slug": "shaan-antioxidant-facial-cleanser-mw9el1wx",
+      "brand": "shaan",
+      "name": "Antioxidant Facial Cleanser",
+      "size": 250,
+      "sizeUnit": "ml",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "barcode": null,
+      "isPublished": true,
+      "completeness": {
+        "usage": true,
+        "description": true,
+        "warnings": false,
+        "inci": false,
+        "skinTypes": true,
+        "hairTypes": false,
+        "spf": false,
+        "texture": false,
+        "targetArea": true
+      },
+      "counts": {
+        "ingredients": 0,
+        "safetyWarnings": 0,
+        "usageRules": 1,
+        "facts": 13,
+        "runs": 3
+      },
+      "valueHashes": {
+        "usage": "920d5d39609d577ef421c7496f9d3629f9cce1dc20725686f59f6ff81415a935",
+        "description": "087def6370e2beff3e73c19cc0d32b858a37345d7384871228b70b398ffbe695",
+        "warnings": null,
+        "skinTypes": "6f0a397a0d07dcadbcd78cfbd42022604499904a62c760e3644bad599b99982b",
+        "hairTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "spf": null,
+        "texture": null,
+        "targetArea": "156b9890ea60ee1431e517f4e5d95d74152d4504940bf2be82060a98f6ecc471"
+      },
+      "facts": [
+        {
+          "field": "usage.instructions",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:NOT_APPLIED",
+          "confidence": 0.95,
+          "valueHash": "87c895587c25bd454b5c3b7df68e3099acabeeb9cfeae7a51e75300d021398da",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:32:09.567Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.brand",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "c2e2f35ba0b760a77e2cbaf0e399b323c6ab26894a23045dd9ef576397845b66",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "05ec7cc6afbcce6be0136a69be981694c4724b983f17b796264fab01d63ee017",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.routinePeriod",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "ac2101271b70e7b79aad456349bdb3e5a675a58a04e8400a4ec0e9cac233a333",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "f1bfe8615f750c41773e72b4c6a80eac80b77593978cc6c6df60c775c0d6345e",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:32:09.567Z"
+            }
+          ]
+        },
+        {
+          "field": "suitability.skinTypes",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "6f0a397a0d07dcadbcd78cfbd42022604499904a62c760e3644bad599b99982b",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.targetArea",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "156b9890ea60ee1431e517f4e5d95d74152d4504940bf2be82060a98f6ecc471",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            }
+          ]
+        },
+        {
+          "field": "composition.keyIngredients",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:NOT_APPLIED",
+          "confidence": 0.95,
+          "valueHash": "15ca278b2dde9ced6a259cd7513afd6831fb94d0df24813104a167a50089cbdd",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:32:09.567Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "1a5d867bc56231e446f0fc7563aea61c3a4705061f329393f8265879a965e138",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "087def6370e2beff3e73c19cc0d32b858a37345d7384871228b70b398ffbe695",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            }
+          ]
+        },
+        {
+          "field": "composition.keyIngredients",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "aca92c31047204e160e3c5fad083cd7efaa42b971a007191b870b02930c21286",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "baabc94254333b46878909db31c69302a5b4e73a0db821e6c3151e9449db3d74",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "3995353a9dfb852bb774ac6ad8e33ab2b30b7ae599b0628bf8a6fc73e71d224b",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:34.122Z"
+            }
+          ]
+        }
+      ],
+      "recentRuns": [
+        {
+          "id": "ff806281-a968-40b6-a519-31a9e64d4804",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-10T19:32:02.640Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "detail": "HTTP 429",
+              "origin": "ADMIN",
+              "outcome": "RATE_LIMITED",
+              "fetchedAt": "2026-11-10T19:32:04.739Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "PROVIDER",
+              "outcome": "OK",
+              "factCount": 3,
+              "fetchedAt": "2026-11-10T19:32:09.577Z"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "VERIFIED",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "VERIFIED",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "52057933-8f61-46b8-b823-a3f32f3e2097",
+          "status": "FAILED",
+          "startedAt": "2026-11-10T19:18:18.006Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "PENDING"
+            }
+          ],
+          "fieldCoverage": null
+        },
+        {
+          "id": "2ef86b56-a71b-4afd-9116-6de6a6b3d3ce",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:15:40.547Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 11,
+              "fetchedAt": "2026-11-09T15:15:34.122Z",
+              "contentHash": "f1d9df4ee4438823fab6fc0c79f0c7a43ad127750fa465d9b913d8e40ce6e4e7"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "VERIFIED",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "VERIFIED",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SC-MVP-007",
+      "skuId": "5565f305-d897-44ad-8d34-3f94e6289468",
+      "productId": "7655de56-7097-40d4-8a24-4a226b9d3d90",
+      "code": "SC-SHAAN-2424A866",
+      "slug": "shaan-soothing-gel-mw9elfgi",
+      "brand": "shaan",
+      "name": "Soothing Gel",
+      "size": 120,
+      "sizeUnit": "g",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "barcode": null,
+      "isPublished": true,
+      "completeness": {
+        "usage": true,
+        "description": true,
+        "warnings": false,
+        "inci": false,
+        "skinTypes": true,
+        "hairTypes": false,
+        "spf": false,
+        "texture": true,
+        "targetArea": false
+      },
+      "counts": {
+        "ingredients": 0,
+        "safetyWarnings": 0,
+        "usageRules": 0,
+        "facts": 11,
+        "runs": 2
+      },
+      "valueHashes": {
+        "usage": "8e523a8d8f2abb0a1ed0b85420640c70a3a3617e38fd2d20382ef8206097d93b",
+        "description": "f04cf4e9ed248fb7f2cde20f6d2d86107ee2df49d58ab3be1a77bc7bbf5a7642",
+        "warnings": null,
+        "skinTypes": "383be90007032c68f4f92bb40ff5dc7c28992af6f090bbefd0953041c083d4c5",
+        "hairTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "spf": null,
+        "texture": "967aad6ecdf16cc40f2828ac7ca095b80731641aa7f751a3e6657f246297eb0a",
+        "targetArea": null
+      },
+      "facts": [
+        {
+          "field": "suitability.skinTypes",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "383be90007032c68f4f92bb40ff5dc7c28992af6f090bbefd0953041c083d4c5",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "ffb8ebc4e12d4e9b163f027ccd8a5a7b07b827eb216f385b7e942c69c2a5935c",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "3801bd5510121775846ea8eb7c2b963e3b097db94f618f6ca1d1b8850107fa3d",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "90328981b28cab124e9031f56bec2d5cba46079f2f14ee50aa679c0595896b1a",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "b733d6a927d76753114e7f23194cf71a41d433b9c49b7c215cb8a314b3b07ab9",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        },
+        {
+          "field": "attributes.nonComedogenic",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.brand",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "c2e2f35ba0b760a77e2cbaf0e399b323c6ab26894a23045dd9ef576397845b66",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        },
+        {
+          "field": "composition.keyIngredients",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "55e80fb7f347defa230b932a77d32c228144c821e43e6647ed10e764cc7f0733",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "f04cf4e9ed248fb7f2cde20f6d2d86107ee2df49d58ab3be1a77bc7bbf5a7642",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        },
+        {
+          "field": "attributes.texture",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "967aad6ecdf16cc40f2828ac7ca095b80731641aa7f751a3e6657f246297eb0a",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "a99579e7b781af0eb616d9cb24e52efba0e18424f3c3b3f99a6e4852b93a3c0d",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:15:53.792Z"
+            }
+          ]
+        }
+      ],
+      "recentRuns": [
+        {
+          "id": "a04e297c-d3a0-45f2-bf06-f986d87f1b5c",
+          "status": "NO_EVIDENCE",
+          "startedAt": "2026-11-10T19:32:20.010Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "detail": "HTTP 429",
+              "origin": "ADMIN",
+              "outcome": "RATE_LIMITED",
+              "fetchedAt": "2026-11-10T19:32:21.741Z"
+            },
+            {
+              "url": "https://www.noon.com/egypt-en/soothing-gel-120-gm/ZB8B7C8A3EAB0D12FA6B8Z/p/",
+              "tier": "RETAILER",
+              "origin": "PROVIDER",
+              "outcome": "DISCOVERED"
+            },
+            {
+              "url": "https://bloomrxeg.com/product/shaan-soothing-gel-120-gm/",
+              "tier": "RETAILER",
+              "origin": "PROVIDER",
+              "outcome": "DISCOVERED"
+            },
+            {
+              "url": "https://www.bloompharmacy.com/products/shaan-soothing-gel-120gm",
+              "tier": "RETAILER",
+              "origin": "PROVIDER",
+              "outcome": "OK",
+              "factCount": 0,
+              "fetchedAt": "2026-11-10T19:32:27.110Z"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "VERIFIED",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "757e3283-c4c4-44e6-91ef-c76ccb99e65c",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:15:56.738Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/beauty-friday/products/shaan-soothing-gel-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 11,
+              "fetchedAt": "2026-11-09T15:15:53.792Z",
+              "contentHash": "4bafa7150246afb982be2665caa5b4f483c792b36813cae0cf7b384144f10c12"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "VERIFIED",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SC-MVP-008",
+      "skuId": "1a51edbe-be68-4d6c-ab6e-567d0a315b36",
+      "productId": "4b02aefa-4e56-431b-b9e9-67ce0183fc2b",
+      "code": "SC-SHAAN-DF5C9F53",
+      "slug": "shaan-rejuvenation-cream-mw9elvuz",
+      "brand": "shaan",
+      "name": "Rejuvenation Cream",
+      "size": 120,
+      "sizeUnit": "g",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "barcode": null,
+      "isPublished": true,
+      "completeness": {
+        "usage": true,
+        "description": true,
+        "warnings": false,
+        "inci": false,
+        "skinTypes": false,
+        "hairTypes": false,
+        "spf": false,
+        "texture": true,
+        "targetArea": false
+      },
+      "counts": {
+        "ingredients": 0,
+        "safetyWarnings": 0,
+        "usageRules": 0,
+        "facts": 10,
+        "runs": 2
+      },
+      "valueHashes": {
+        "usage": "f2956a4318cfe65f4dcae1b548a92cbc1407df3b2241114e4d35df3305438bed",
+        "description": "b7f6974d93899d3e70df3e2a6becd00479af7a22d9d05ddb424027ef4c02763c",
+        "warnings": null,
+        "skinTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "hairTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "spf": null,
+        "texture": "0d48e6d6d8ded9ad48a4b20a939413492cc8750c41d78ce46587bb2a1770fc36",
+        "targetArea": null
+      },
+      "facts": [
+        {
+          "field": "attributes.texture",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "0d48e6d6d8ded9ad48a4b20a939413492cc8750c41d78ce46587bb2a1770fc36",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:14.625Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "90328981b28cab124e9031f56bec2d5cba46079f2f14ee50aa679c0595896b1a",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:14.625Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "c205754f9ca5fe45cd4b196045ae60df70148b27058ea3551b8e1352c32be6e6",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:14.625Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "abc949778ad46f854e165f97864339d5752c1f4b8e46783260ab82943810625b",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:14.625Z"
+            }
+          ]
+        },
+        {
+          "field": "composition.keyIngredients",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "161b14c934e06c5d227c9e694881d979fed4aef81566d5b965e39ab93b0560b2",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:14.625Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "b062b9573db6b66039d4e31b262bcff061b98e7d3679586c4b63484c8ff52964",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:14.625Z"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "b7f6974d93899d3e70df3e2a6becd00479af7a22d9d05ddb424027ef4c02763c",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:14.625Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.5,
+          "valueHash": "84d8e085549883141e3d9c40fd2b0c7b5033a302a5bc9060fc39ea7fce99e722",
+          "sources": [
+            {
+              "url": "https://www.jumia.com.eg/shaan-rejuvenation-cream-120-gm-130010352.html",
+              "tier": "RETAILER",
+              "observedAt": "2026-11-10T19:32:38.077Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "f8bf2b3837067cfa5e5d6547ba282f9a637f6f4b425ce70c22d5a7afb30253d4",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:14.625Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.brand",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "c2e2f35ba0b760a77e2cbaf0e399b323c6ab26894a23045dd9ef576397845b66",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:14.625Z"
+            }
+          ]
+        }
+      ],
+      "recentRuns": [
+        {
+          "id": "409d922b-cd18-4d45-8d30-16b09433c3f8",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-10T19:32:34.939Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "CIRCUIT_OPEN",
+              "fetchedAt": "2026-11-10T19:32:36.596Z"
+            },
+            {
+              "url": "https://www.jumia.com.eg/shaan-rejuvenation-cream-120-gm-130010352.html",
+              "tier": "RETAILER",
+              "origin": "PROVIDER",
+              "outcome": "OK",
+              "factCount": 1,
+              "fetchedAt": "2026-11-10T19:32:38.080Z"
+            },
+            {
+              "url": "https://askarpharmacy.com/shop/skin-care-en/body-care/cream-body-care/shaan-rejuvenation-cream-120gm/",
+              "tier": "RETAILER",
+              "origin": "PROVIDER",
+              "outcome": "DISCOVERED"
+            },
+            {
+              "url": "https://www.noon.com/egypt-en/rejuvenation-cream-120-gm/Z8749F47A9CE836684890Z/p/",
+              "tier": "RETAILER",
+              "origin": "PROVIDER",
+              "outcome": "DISCOVERED"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "d20df6e4-365c-415e-ac90-e7c26dd7e7bc",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:16:18.019Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 9,
+              "fetchedAt": "2026-11-09T15:16:14.625Z",
+              "contentHash": "88052d1a45b21a067ee23c42d3439cfb08005abc0f812f3f22f9d6f5a703db2b"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SC-MVP-011",
+      "skuId": "e5871929-2c89-4cac-82a4-d2b7c6580c66",
+      "productId": "cd2ce1a2-d745-4dfd-919f-aef5ea747178",
+      "code": "SC-BOBAI-3E8EA8C9",
+      "slug": "bobai-sunscreen-extra-lightening-gel-spf-mw9em1qv",
+      "brand": "Bobai",
+      "name": "Sunscreen Extra Lightening gel spf",
+      "size": 50,
+      "sizeUnit": "g",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "barcode": null,
+      "isPublished": true,
+      "completeness": {
+        "usage": true,
+        "description": true,
+        "warnings": false,
+        "inci": false,
+        "skinTypes": true,
+        "hairTypes": false,
+        "spf": true,
+        "texture": true,
+        "targetArea": false
+      },
+      "counts": {
+        "ingredients": 0,
+        "safetyWarnings": 0,
+        "usageRules": 0,
+        "facts": 12,
+        "runs": 2
+      },
+      "valueHashes": {
+        "usage": "fc35641bc07ffa653be9404d11ce1335ef6abcdeca683a544683bef6462d5b3f",
+        "description": "821984c787e0895e48e5a6cfe5f2e2522eb5dc34ba24559086eb3ac802a2dafc",
+        "warnings": null,
+        "skinTypes": "421d666dd54a9eb26b7f0db1b6281c0f5c7f8091bce68ed7820822506abd4088",
+        "hairTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "spf": "1a6562590ef19d1045d06c4055742d38288e9e6dcd71ccde5cee80f1d5a774eb",
+        "texture": "967aad6ecdf16cc40f2828ac7ca095b80731641aa7f751a3e6657f246297eb0a",
+        "targetArea": null
+      },
+      "facts": [
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "472d56a4995f9119dfcb6449b3ce27d087573ae4df1f49da536eb6b7813661e1",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "6942380579e072cd82cd40a6127137a7863890ee32d8817e12b0d91011d8618f",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.brand",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "80f3ef91af7f246524c7c9ac37a538e0af0bd70210e5f31cb526415c20b15104",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "4086f137cc7a35f1f98fbcbef780d5477c0724933c42699ccc8160f64a2f64b7",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "attributes.spf",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "1a6562590ef19d1045d06c4055742d38288e9e6dcd71ccde5cee80f1d5a774eb",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "attributes.texture",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "967aad6ecdf16cc40f2828ac7ca095b80731641aa7f751a3e6657f246297eb0a",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "821984c787e0895e48e5a6cfe5f2e2522eb5dc34ba24559086eb3ac802a2dafc",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "b8790ccf06da8efd80c005437bbfa4577ffd980f378389a834fa1d4b2b92b6fe",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "attributes.broadSpectrum",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "composition.keyIngredients",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "f1f9daf48e2fd959bd5438aa82ff069233146d1544d1739fb61974ceba8b3c14",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "suitability.skinTypes",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "421d666dd54a9eb26b7f0db1b6281c0f5c7f8091bce68ed7820822506abd4088",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "99506f67e93ddffeae8cc5d9dc1b1a91bdf33bbe830147d216e1299f407e6304",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:21.926Z"
+            }
+          ]
+        }
+      ],
+      "recentRuns": [
+        {
+          "id": "4a173b3d-f024-47d2-967a-e037957b8d03",
+          "status": "NO_EVIDENCE",
+          "startedAt": "2026-11-10T19:32:46.142Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "CIRCUIT_OPEN",
+              "fetchedAt": "2026-11-10T19:32:47.922Z"
+            },
+            {
+              "url": "https://www.bloompharmacy.com/products/bobai-extra-lightening-spf50-sunscreen-gel-50gm",
+              "tier": "RETAILER",
+              "origin": "PROVIDER",
+              "outcome": "OK",
+              "factCount": 0,
+              "fetchedAt": "2026-11-10T19:32:49.782Z"
+            },
+            {
+              "url": "https://www.amazon.eg/-/en/Bobai-Sunscreen-Extra-Lightening-Gel/dp/B0BPTDTPDT",
+              "tier": "RETAILER",
+              "origin": "PROVIDER",
+              "outcome": "DISCOVERED"
+            },
+            {
+              "url": "https://cosmoshop.eg/products/bobai-sunscreen-gel-spf-50-extra-lightening-50g",
+              "tier": "RETAILER",
+              "origin": "PROVIDER",
+              "outcome": "DISCOVERED"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "VERIFIED",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "VERIFIED",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "2a373d63-40ed-464c-bf89-3e9afa68e7e4",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:16:26.932Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 12,
+              "fetchedAt": "2026-11-09T15:16:21.926Z",
+              "contentHash": "61987a4a2889385451cedd649073ec2ccd17f13bf3cf7dfdcadbb0cb41779324"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "VERIFIED",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "VERIFIED",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SC-MVP-013",
+      "skuId": "1afac22d-46ec-40ec-aec6-ffc075e3aaa5",
+      "productId": "bf09eee1-2772-4b23-953f-2bc9053c90e9",
+      "code": "SC-BOBAI-9D12D7FE",
+      "slug": "bobai-sun-screen-oil-defense-fluid-spf-50-mw9emg0c",
+      "brand": "Bobai",
+      "name": "Sun Screen oil Defense Fluid spf 50",
+      "size": 75,
+      "sizeUnit": "ml",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "barcode": null,
+      "isPublished": true,
+      "completeness": {
+        "usage": true,
+        "description": true,
+        "warnings": false,
+        "inci": false,
+        "skinTypes": true,
+        "hairTypes": false,
+        "spf": true,
+        "texture": true,
+        "targetArea": false
+      },
+      "counts": {
+        "ingredients": 0,
+        "safetyWarnings": 0,
+        "usageRules": 0,
+        "facts": 12,
+        "runs": 2
+      },
+      "valueHashes": {
+        "usage": "328d7df3a9fbb59621ebd266b2429131afaa4ed63bfc656b140cf7c7c4880923",
+        "description": "3ff0085a0d61e598d32b1ae91df7dc94a18484d1cdc32f8386b2e8e0daeefa83",
+        "warnings": null,
+        "skinTypes": "737cca19d3f130b4532012f9472a960077187dc382817683f95b97adf2f4039d",
+        "hairTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "spf": "1a6562590ef19d1045d06c4055742d38288e9e6dcd71ccde5cee80f1d5a774eb",
+        "texture": "d2507c8a69dbe8670824fb58d4ddf134e7ee125f6da4239cb36d515484eeea2a",
+        "targetArea": null
+      },
+      "facts": [
+        {
+          "field": "identity.brand",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "80f3ef91af7f246524c7c9ac37a538e0af0bd70210e5f31cb526415c20b15104",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "554ffcc0ceeeaf31e0fb2a8c6ff97097f92495454cbe8f5cca79fe49479a56a2",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:00.333Z"
+            }
+          ]
+        },
+        {
+          "field": "attributes.texture",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "d2507c8a69dbe8670824fb58d4ddf134e7ee125f6da4239cb36d515484eeea2a",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            }
+          ]
+        },
+        {
+          "field": "attributes.spf",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "1a6562590ef19d1045d06c4055742d38288e9e6dcd71ccde5cee80f1d5a774eb",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "e25fc3b99b60ea4747727303931218300832083a16d7c541685b2dddc7dc4577",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            }
+          ]
+        },
+        {
+          "field": "attributes.broadSpectrum",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            }
+          ]
+        },
+        {
+          "field": "suitability.skinTypes",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "737cca19d3f130b4532012f9472a960077187dc382817683f95b97adf2f4039d",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "4d024bd94e7adf95d9d86a643e8223e7eee1f9b8d79d768bc0145a7f6c06033a",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "3ff0085a0d61e598d32b1ae91df7dc94a18484d1cdc32f8386b2e8e0daeefa83",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "49bf9e86c0872304a90c2ccecfef30be4a9ddd89993540d58578c65c0bc893aa",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "a454395ed8a6de4da7d43528dc90b2257a20a4c45dd19da87a792e12693ac417",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:16:41.174Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:NOT_APPLIED",
+          "confidence": 0.95,
+          "valueHash": "ffab5d9ff70c3998e3cb6de9b65b146f2c6e13f0aada9a786e29abd8f464cdc2",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:00.333Z"
+            }
+          ]
+        }
+      ],
+      "recentRuns": [
+        {
+          "id": "01122aac-1893-47f2-a73d-80333e8d094f",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-10T19:32:57.181Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "CIRCUIT_OPEN",
+              "fetchedAt": "2026-11-10T19:32:58.778Z"
+            },
+            {
+              "url": "https://shop.parkvillepharma.com/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "PROVIDER",
+              "outcome": "OK",
+              "factCount": 2,
+              "fetchedAt": "2026-11-10T19:33:00.337Z"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "VERIFIED",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "VERIFIED",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "d491a2ec-9ca2-40a5-bf0c-07591a9594be",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:16:43.685Z",
+          "sources": [
+            {
+              "url": "https://shop.parkvillepharma.com/collections/bobai/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 11,
+              "fetchedAt": "2026-11-09T15:16:41.174Z",
+              "contentHash": "5efd556173e707987836cbe973a570dbf71ea6bc7de17dee9d71aa6f0b875555"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "VERIFIED",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "VERIFIED",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SC-MVP-023",
+      "skuId": "3a5f3be5-2595-4031-9829-85502f79fe7c",
+      "productId": "bb8dfee4-996d-49d9-aedc-c8d84c053279",
+      "code": "SC-EVACOS-0276B24C",
+      "slug": "eva-cosmetics-niacinamide-facial-serum-mw9emwma",
+      "brand": "Eva Cosmetics",
+      "name": "Niacinamide Facial Serum",
+      "size": 30,
+      "sizeUnit": "ml",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "barcode": "6223001380054",
+      "isPublished": true,
+      "completeness": {
+        "usage": false,
+        "description": true,
+        "warnings": false,
+        "inci": false,
+        "skinTypes": false,
+        "hairTypes": false,
+        "spf": false,
+        "texture": true,
+        "targetArea": true
+      },
+      "counts": {
+        "ingredients": 0,
+        "safetyWarnings": 0,
+        "usageRules": 0,
+        "facts": 10,
+        "runs": 2
+      },
+      "valueHashes": {
+        "usage": null,
+        "description": "99732c09b8a1b5cd8fcfed84dd18253824857b3ee6533090da24b38f63a92df0",
+        "warnings": null,
+        "skinTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "hairTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "spf": null,
+        "texture": "290f32a554b1a446b9b487ad288c40d8e5b04a8294cfe52e8d41c9bacd8fa256",
+        "targetArea": "156b9890ea60ee1431e517f4e5d95d74152d4504940bf2be82060a98f6ecc471"
+      },
+      "facts": [
+        {
+          "field": "identity.brand",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "e7415fd0aa35576d5bc4b9735adfffe98560e4a7f479e645e00259fce53a7de9",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:01.496Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "24d5b1dd9e992f0cde0581ee0eea50bd5f6c08917666796120bd836eb6b9c9e4",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:01.496Z"
+            },
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:15.887Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.gtin",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "209e18931a4e2c5f5d9cae9a200df99c1e7c786f08c7cfad192e05eed1fbefaa",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:01.496Z"
+            }
+          ]
+        },
+        {
+          "field": "composition.activeConcentrations",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:NOT_APPLIED",
+          "confidence": 0.95,
+          "valueHash": "de19a5a55e2f068c6e38d8c7b7e4796bb895a6095afd5b7dc9b9623aa791085e",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:01.496Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "dbe0ed23a5b422d11a4c8fd0753c4f41cbb54c31bd18116016fddf576d058d05",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:01.496Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "24d6a0c669e549df32d84351516369d68caebda38921c942e053156083770fb3",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:01.496Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "0f4e44bbcb893cbd487e9a235bc63b13321d6d8169e46b33fc728328843f2d40",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:01.496Z"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "99732c09b8a1b5cd8fcfed84dd18253824857b3ee6533090da24b38f63a92df0",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:01.496Z"
+            }
+          ]
+        },
+        {
+          "field": "attributes.texture",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "290f32a554b1a446b9b487ad288c40d8e5b04a8294cfe52e8d41c9bacd8fa256",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:01.496Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.targetArea",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "156b9890ea60ee1431e517f4e5d95d74152d4504940bf2be82060a98f6ecc471",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:01.496Z"
+            }
+          ]
+        }
+      ],
+      "recentRuns": [
+        {
+          "id": "7c500cc0-cfba-4b80-b629-830c75e09452",
+          "status": "NO_EVIDENCE",
+          "startedAt": "2026-11-10T19:33:09.777Z",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "detail": "HTTP 429",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 1,
+              "fetchedAt": "2026-11-10T19:33:15.890Z"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "VERIFIED",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "VERIFIED",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "UNKNOWN",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNVERIFIED",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "a3addc0b-0d5d-4cb6-adb2-9bb31e2c9e6a",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:17:04.973Z",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-niacinamide-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 10,
+              "fetchedAt": "2026-11-09T15:17:01.496Z",
+              "contentHash": "c500760544c950c9c237a3a93a1171e463734c3689b5e6c66a5e946d09a1594b"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "VERIFIED",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "VERIFIED",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "UNKNOWN",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNVERIFIED",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SC-MVP-024",
+      "skuId": "6bd4f0c9-849e-4b54-8dea-18a66708ce0a",
+      "productId": "b456bbc3-e09f-4dce-999b-f9ff665861ca",
+      "code": "SC-EVACOS-1DA14039",
+      "slug": "eva-cosmetics-hyaluronic-acid-facial-serum-mw9en91d",
+      "brand": "Eva Cosmetics",
+      "name": "Hyaluronic Acid Facial Serum",
+      "size": 30,
+      "sizeUnit": "ml",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "barcode": "6223001380016",
+      "isPublished": true,
+      "completeness": {
+        "usage": false,
+        "description": true,
+        "warnings": false,
+        "inci": false,
+        "skinTypes": false,
+        "hairTypes": false,
+        "spf": false,
+        "texture": true,
+        "targetArea": true
+      },
+      "counts": {
+        "ingredients": 0,
+        "safetyWarnings": 0,
+        "usageRules": 0,
+        "facts": 10,
+        "runs": 2
+      },
+      "valueHashes": {
+        "usage": null,
+        "description": "31e11988663b4a3d969b2376d2f9ed37e2453caa9799b778b6b4949fe6f1d231",
+        "warnings": null,
+        "skinTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "hairTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "spf": null,
+        "texture": "290f32a554b1a446b9b487ad288c40d8e5b04a8294cfe52e8d41c9bacd8fa256",
+        "targetArea": "156b9890ea60ee1431e517f4e5d95d74152d4504940bf2be82060a98f6ecc471"
+      },
+      "facts": [
+        {
+          "field": "identity.size",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "24d5b1dd9e992f0cde0581ee0eea50bd5f6c08917666796120bd836eb6b9c9e4",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:18.326Z"
+            },
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:29.852Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.brand",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "e7415fd0aa35576d5bc4b9735adfffe98560e4a7f479e645e00259fce53a7de9",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:18.326Z"
+            }
+          ]
+        },
+        {
+          "field": "composition.activeConcentrations",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:NOT_APPLIED",
+          "confidence": 0.95,
+          "valueHash": "c39f48b71a4397ae12a54db906063a4f4796811835cc80a3dbf291ad2bd12750",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:18.326Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "dbe0ed23a5b422d11a4c8fd0753c4f41cbb54c31bd18116016fddf576d058d05",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:18.326Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "8d6e937138d9a2ad9c6733482f5e124cf1152c366d5d5988771572263b4a4227",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:18.326Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.gtin",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "b6b71ac750d33f015110fe60b0013ab9fa6cd7934f0ebc5ae56b954ed1676bba",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:18.326Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.targetArea",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "156b9890ea60ee1431e517f4e5d95d74152d4504940bf2be82060a98f6ecc471",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:18.326Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "db318cf20e679d6dfdfbde5b7492eae622a47e85496c22c5997045dcceab9910",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:18.326Z"
+            }
+          ]
+        },
+        {
+          "field": "attributes.texture",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "290f32a554b1a446b9b487ad288c40d8e5b04a8294cfe52e8d41c9bacd8fa256",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:18.326Z"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "31e11988663b4a3d969b2376d2f9ed37e2453caa9799b778b6b4949fe6f1d231",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:18.326Z"
+            }
+          ]
+        }
+      ],
+      "recentRuns": [
+        {
+          "id": "e845994a-6599-404e-8bcd-2983302a3054",
+          "status": "NO_EVIDENCE",
+          "startedAt": "2026-11-10T19:33:25.244Z",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "detail": "HTTP 429",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 1,
+              "fetchedAt": "2026-11-10T19:33:29.854Z"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "VERIFIED",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "VERIFIED",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "UNKNOWN",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNVERIFIED",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "e56f2bce-2fcd-4e0c-bf42-f5249261b2a6",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:17:21.870Z",
+          "sources": [
+            {
+              "url": "https://www.shop.eva-cosmetics.com/products/eva-skin-clinic-hyaluronic-acid-facial-serum-30-ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 10,
+              "fetchedAt": "2026-11-09T15:17:18.326Z",
+              "contentHash": "82b75c737a528f76bb10833d1dd9f511e82131bee971cbcaacb614e1d8d00e73"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "VERIFIED",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "VERIFIED",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "UNKNOWN",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNVERIFIED",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SC-MVP-055",
+      "skuId": "42d46d14-ee2b-46ca-a034-94a1578dfd68",
+      "productId": "4e43629d-306e-4e9d-8985-ec1dc45bf74e",
+      "code": "SC-LORALP-D2627BA8",
+      "slug": "loral-paris-hyaluron-moisture-shampoo-mw9enm9c",
+      "brand": "L'Oréal Paris",
+      "name": "Hyaluron Moisture Shampoo",
+      "size": 200,
+      "sizeUnit": "ml",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "barcode": "3610340655210",
+      "isPublished": true,
+      "completeness": {
+        "usage": true,
+        "description": true,
+        "warnings": false,
+        "inci": false,
+        "skinTypes": false,
+        "hairTypes": false,
+        "spf": false,
+        "texture": false,
+        "targetArea": false
+      },
+      "counts": {
+        "ingredients": 0,
+        "safetyWarnings": 0,
+        "usageRules": 0,
+        "facts": 10,
+        "runs": 3
+      },
+      "valueHashes": {
+        "usage": "3fc98c4be7e63c63da842ee5db69a2dd0456143d99234d85da9b241b11c5ea6d",
+        "description": "69c5b6e5ec68baa8bd3737b276859c12df752a3150a6bc94fc8871fa7ac5113a",
+        "warnings": null,
+        "skinTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "hairTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "spf": null,
+        "texture": null,
+        "targetArea": null
+      },
+      "facts": [
+        {
+          "field": "identity.brand",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "d0d2447b3a4fd524fef50c674e1617cbed8061efe4162288c6b807c170aa78ec",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:33.613Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:41.837Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.gtin",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "1180312b95654c4a7e49fcf789a71f4c586772a718aa6eb382bf8a1dfbe44d43",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:33.613Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:41.837Z"
+            }
+          ]
+        },
+        {
+          "field": "merchandising.productLine",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "6d75ab7ae1135d8eeda1e9e8920fede354bd8ac3a678d75a6a294424a6be5161",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:33.613Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:41.837Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "db9a3743cf32a3870da5ac16cb676a367240e68ac7c0e6744f995eb3f27a0037",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:33.613Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "4cf4d5cb9d7a3dcef314cf15ab84b7e2f95742e32de46f69145c98fdace37ae3",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:23:55.620Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:41.837Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "3e47f66d785cdfa297f014ab87b5b86be3d936f94132865c83bd75324c925e87",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:33.613Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:41.837Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:46.152Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "6f5b86ed96288ffaeabd84c3563dce2ae0f0807127c17ef04916d183502ed34b",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:33.613Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:41.837Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:46.152Z"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "69c5b6e5ec68baa8bd3737b276859c12df752a3150a6bc94fc8871fa7ac5113a",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:33.613Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:41.837Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:46.152Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "447f8572979111beaf631a225c7c9cbfac24bfb8f68fcfdc5d976ca1d6662da1",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:33.613Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:41.837Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:46.152Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "3325cbffe672119d71ac520352ed4f06c92799db7c73d8a7ba504bfcfbd391c1",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:33.613Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:41.837Z"
+            }
+          ]
+        }
+      ],
+      "recentRuns": [
+        {
+          "id": "f19e52ed-33f3-4b15-992b-fb8ba9ccf967",
+          "status": "NO_EVIDENCE",
+          "startedAt": "2026-11-10T19:33:39.155Z",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 13,
+              "fetchedAt": "2026-11-10T19:33:46.266Z",
+              "contentHash": "ee85470712f2be6831977b545e8b6444ba4a0070263dc638d0ba8926d505a6bb"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "VERIFIED",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "VERIFIED",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "742a57f4-1c41-42c5-bbd4-684a7673bd27",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:23:53.800Z",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 9,
+              "fetchedAt": "2026-11-09T15:23:55.620Z",
+              "contentHash": "ec73551520b7d053d3d8b30585a21d953e6f24c8601ad97ef9cdb37c04ffe156"
+            }
+          ],
+          "fieldCoverage": null
+        },
+        {
+          "id": "cbadf680-368a-429f-a3ed-672501aafd24",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:17:40.472Z",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-shampoo-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 9,
+              "fetchedAt": "2026-11-09T15:17:33.613Z",
+              "contentHash": "ec73551520b7d053d3d8b30585a21d953e6f24c8601ad97ef9cdb37c04ffe156"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "VERIFIED",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "VERIFIED",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        }
+      ]
+    },
+    {
+      "id": "SC-MVP-056",
+      "skuId": "d301c058-4f16-47ac-a83f-56c526ed659b",
+      "productId": "e36a0976-ab69-4e35-81fc-d2d947866c1f",
+      "code": "SC-LORALP-9264A338",
+      "slug": "loral-paris-hyaluron-moisture-conditioner-mw9enp4z",
+      "brand": "L'Oréal Paris",
+      "name": "Hyaluron Moisture Conditioner",
+      "size": 200,
+      "sizeUnit": "ml",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "barcode": "3610340655173",
+      "isPublished": true,
+      "completeness": {
+        "usage": true,
+        "description": true,
+        "warnings": false,
+        "inci": true,
+        "skinTypes": false,
+        "hairTypes": false,
+        "spf": false,
+        "texture": false,
+        "targetArea": false
+      },
+      "counts": {
+        "ingredients": 27,
+        "safetyWarnings": 0,
+        "usageRules": 0,
+        "facts": 11,
+        "runs": 3
+      },
+      "valueHashes": {
+        "usage": "4b37b5cc9d77033449a07d24b98e38cfb7ad0de8aece4f9079ad7bed5d46c2c8",
+        "description": "6c87505b9f004ad21adcbf40ad96c4df060e2515abfb9dac51d0d4a05f3f7221",
+        "warnings": null,
+        "skinTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "hairTypes": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "spf": null,
+        "texture": null,
+        "targetArea": null
+      },
+      "facts": [
+        {
+          "field": "composition.inci",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "e5652202e526ff78a13a6354752d94c4b073e1e2eda969d3eb0d0a0e343a1397",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:34:03.249Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.brand",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "d0d2447b3a4fd524fef50c674e1617cbed8061efe4162288c6b807c170aa78ec",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "7a20f267ce99314337d82c96dfed1267b69bd5c696f9a927f0b7c97baab5a825",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.gtin",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "ec1cbe25778aa440ee72fdf04080598f4a893402190e55e7fa59a5c54c369ff2",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            }
+          ]
+        },
+        {
+          "field": "composition.fragrance",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:INCI_OUTRANKS_CLAIM",
+          "confidence": 0.95,
+          "valueHash": "9da8908141cb75e8f2d25d0439109c850d2bbe1f22175aecd6147ae783344e33",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            }
+          ]
+        },
+        {
+          "field": "merchandising.productLine",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "6d75ab7ae1135d8eeda1e9e8920fede354bd8ac3a678d75a6a294424a6be5161",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "3e47f66d785cdfa297f014ab87b5b86be3d936f94132865c83bd75324c925e87",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:34:03.249Z"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "4066bce3743c6f49b3c2758c5731d4a0add4d2c9d5bc33c43d1785ea192e000e",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:34:03.249Z"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "status": "APPLIED",
+          "verification": "VERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:OFFICIAL_SOURCE",
+          "confidence": 0.95,
+          "valueHash": "6c87505b9f004ad21adcbf40ad96c4df060e2515abfb9dac51d0d4a05f3f7221",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:34:03.249Z"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "8b7cea4bcbe46283384f127ffb131a3d3cec0a58ff92b69c72711e52a71d5c15",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:34:03.249Z"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "status": "PROPOSED",
+          "verification": "UNVERIFIED",
+          "decidedBy": "AUTO",
+          "decisionRule": "autopilot@1:EVIDENCE_ONLY_FIELD",
+          "confidence": 0.95,
+          "valueHash": "1dce8e1a95c972536ec7c2d6f3a6425001a8f1a43cfa831fb78e5bd9bbf78f5f",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-09T15:17:37.567Z"
+            },
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "observedAt": "2026-11-10T19:33:59.531Z"
+            }
+          ]
+        }
+      ],
+      "recentRuns": [
+        {
+          "id": "8e844b5e-8281-42a3-9e1b-bf425e714bef",
+          "status": "NO_EVIDENCE",
+          "startedAt": "2026-11-10T19:33:57.906Z",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 16,
+              "fetchedAt": "2026-11-10T19:34:03.386Z",
+              "contentHash": "6932b2db5fbc995a25bf856f91d5d23da4634e67e4e6ca206e9e7cc8279550a1"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "VERIFIED",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "VERIFIED",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "VERIFIED",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "VERIFIED",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        },
+        {
+          "id": "92649c1a-5696-47ff-92b3-e8eac510e2e0",
+          "status": "NO_EVIDENCE",
+          "startedAt": "2026-11-09T15:24:06.489Z",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 11,
+              "fetchedAt": "2026-11-09T15:24:06.876Z",
+              "contentHash": "d5490d64ea8aeb7896c13fd49ba270d0b3cab9c45c32f44253701112b6b9c0b1"
+            }
+          ],
+          "fieldCoverage": null
+        },
+        {
+          "id": "2e3b6e27-11b8-462c-81d9-a80d537ce775",
+          "status": "COMPLETE",
+          "startedAt": "2026-11-09T15:17:41.885Z",
+          "sources": [
+            {
+              "url": "https://www.loreal-paris-me.com/en/elvive/hyaluron-moisture/hyaluron-moisture-conditioner-200ml",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "origin": "ADMIN",
+              "outcome": "OK",
+              "factCount": 11,
+              "fetchedAt": "2026-11-09T15:17:37.567Z",
+              "contentHash": "d5490d64ea8aeb7896c13fd49ba270d0b3cab9c45c32f44253701112b6b9c0b1"
+            }
+          ],
+          "fieldCoverage": {
+            "identity.gtin": "VERIFIED",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "VERIFIED",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "VERIFIED",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "VERIFIED",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          }
+        }
+      ]
+    }
+  ]
+}

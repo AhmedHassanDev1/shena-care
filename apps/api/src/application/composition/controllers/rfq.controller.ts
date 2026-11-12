@@ -5,7 +5,7 @@ import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
 import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
-import { FlushRfqBatchDto, getSourcingMode, ListRfqsQueryDto, RespondToRfqDto, RfqService } from '../../../modules/sourcing/public';
+import { FlushRfqBatchDto, getSourcingMode, ListRfqsQueryDto, RecordOfflineRfqResponseDto, RespondToRfqDto, RfqService } from '../../../modules/sourcing/public';
 import { CatalogService } from '../../../modules/catalog/public';
 import { page } from '../../../platform/api/paging.dto';
 
@@ -65,6 +65,13 @@ export class RfqController {
     // Staff-only read: name each demand line (product, variant, code) so people can act on it.
     const labels = await this.catalog.getSkuLabels(detail.lines.map((line) => line.skuId));
     return { ...detail, lines: detail.lines.map((line) => ({ ...line, sku: labels.get(line.skuId) ?? null })) };
+  }
+
+  @Post('staff/:id/responses')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('sourcing.manage')
+  recordOffline(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RecordOfflineRfqResponseDto) {
+    return this.rfq.respondOffline(id, dto, user.id);
   }
 
   @Get('mine')

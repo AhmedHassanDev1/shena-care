@@ -537,7 +537,11 @@ describe('BROADCAST_ON_DEMAND RFQ procurement (e2e)', () => {
     const [sku] = await makeSkus(1);
     // Scheduled run at 12:30 Cairo only takes demand placed before the 12:00 checkpoint.
     const order = await place([{ skuId: sku.id, quantity: 2 }]);
-    const cairoNoon = (offsetMinutes: number) => new Date(Date.parse('2026-11-08T10:00:00Z') + offsetMinutes * 60000); // Sunday 12:00 Cairo (UTC+2)
+    // A Sunday 12:00 Cairo (UTC+2, winter time) at least two days ahead, so the recipients' real-time response window is
+    // still open when the test answers. Rolls forward with the clock; skips the Apr-Oct daylight-saving months.
+    const sunday = new Date(Date.UTC(2026, 10, 8, 10));
+    while (sunday.getTime() < Date.now() + 2 * 86400000 || (sunday.getUTCMonth() >= 3 && sunday.getUTCMonth() <= 9)) sunday.setUTCDate(sunday.getUTCDate() + 7);
+    const cairoNoon = (offsetMinutes: number) => new Date(sunday.getTime() + offsetMinutes * 60000);
     await prisma.supplyRequirement.updateMany({ where: { supplyRequest: { orderId: order.id } }, data: { createdAt: cairoNoon(-5) } });
     const early = await rfqService.flushRfqBatch('system:rfq-schedule', { now: cairoNoon(-10) });
     expect(early.rfqId).toBeNull(); // 11:50 — before the 12:00 checkpoint, the 09:00 cutoff precedes the order? (order after 09:00 cutoff)

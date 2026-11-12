@@ -115,23 +115,14 @@ describe('Procurement closure: enrollment and acquisition cost (e2e)', () => {
     await app.close();
   });
 
-  it('freeze: supplier files are refused in broadcast mode, reads stay, and the OFFER_BASED routes come back when the mode changes', async () => {
+  it('freeze: supplier file ingestion no longer exists (module removed), so no supplier file can feed stock or offers', async () => {
+    // The backend ingestion module was removed (0244296); the former SUPPLIER_INGESTION_FROZEN guard is now absence of the routes.
     const upload = await api().post('/ingestion/jobs/upload').set(admin.auth).attach('file', Buffer.from('a,b\n1,2\n'), 'stock.csv').field('supplierId', suppliers.A.id);
-    expect([upload.status, upload.body.code]).toEqual([409, 'SUPPLIER_INGESTION_FROZEN']);
+    expect(upload.status).toBe(404);
     const supplierUpload = await api().post('/ingestion/jobs/upload').set(suppliers.A.actor.auth).attach('file', Buffer.from('a,b\n1,2\n'), 'stock.csv');
-    expect([supplierUpload.status, supplierUpload.body.code]).toEqual([409, 'SUPPLIER_INGESTION_FROZEN']);
-    const commit = await api().post(`/ingestion/jobs/${randomUUID()}/commit-offers`).set(admin.auth).send({});
-    expect([commit.status, commit.body.code]).toEqual([409, 'SUPPLIER_INGESTION_FROZEN']);
-    await api().get('/ingestion/jobs').set(admin.auth).expect(200);
+    expect(supplierUpload.status).toBe(404);
+    expect((await api().post(`/ingestion/jobs/${randomUUID()}/commit-offers`).set(admin.auth).send({})).status).toBe(404);
     expect((await api().get('/rfq/mode').set(suppliers.A.actor.auth).expect(200)).body.mode).toBe('BROADCAST_ON_DEMAND');
-
-    process.env.SOURCING_MODE = 'OFFER_BASED';
-    try {
-      const open = await api().post('/ingestion/jobs/upload').set(admin.auth).attach('file', Buffer.from('a,b\n1,2\n'), 'stock.csv').field('supplierId', suppliers.A.id);
-      expect(open.body.code).not.toBe('SUPPLIER_INGESTION_FROZEN');
-    } finally {
-      process.env.SOURCING_MODE = 'BROADCAST_ON_DEMAND';
-    }
   });
 
   it('scheduler: a due checkpoint issues the RFQ with no staff action and no SupplierOffer', async () => {

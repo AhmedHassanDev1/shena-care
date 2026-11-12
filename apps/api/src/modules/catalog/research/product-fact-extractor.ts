@@ -36,7 +36,7 @@ export interface PageExtraction {
   identityMatched: boolean;
 }
 
-const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', reg: '®', trade: '™', copy: '©', eacute: 'é', egrave: 'è', ndash: '-', mdash: '-', rsquo: "'", lsquo: "'", ldquo: '"', rdquo: '"', hellip: '...' };
+const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', bull: '•', reg: '®', trade: '™', copy: '©', eacute: 'é', egrave: 'è', ndash: '-', mdash: '-', rsquo: "'", lsquo: "'", ldquo: '"', rdquo: '"', hellip: '...' };
 const decode = (value: string) => value
   .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
   .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)))
@@ -176,7 +176,7 @@ function sectionLines(lines: string[], heading: RegExp, limit: number): Array<{ 
 
 function parseInci(raw: string): string[] | null {
   const cleaned = raw.replace(/\[[^\]]*\]/g, ' ').replace(/\.\s*$/, '');
-  const parts = cleaned.split(/\s*[,،](?!\d)\s*/).map(part => part.replace(/\s+/g, ' ').replace(/[.;:]+$/, '').trim()).filter(Boolean);
+  const parts = cleaned.split(/\s*(?:[,،](?!\d)|•)\s*/).map(part => part.replace(/\s+/g, ' ').replace(/[.;:]+$/, '').trim()).filter(Boolean);
   if (parts.length < 3) return null;
   // Prose has long clauses and verbs between its commas; an ingredient list does not.
   const ingredientLike = parts.filter(part => part.length <= 70 && part.split(' ').length <= 6);

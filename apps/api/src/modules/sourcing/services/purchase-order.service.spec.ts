@@ -28,7 +28,8 @@ describe('PurchaseOrderService', () => {
 
     const supplyPlan: any = { confirmFromPurchaseOrder: jest.fn(), advance: jest.fn() };
     const events: any = { registerHandler: jest.fn(), record: jest.fn(), dispatchSoon: jest.fn() };
-    service = new PurchaseOrderService(prismaService, rankingService, supplyPlan, events, { openOperationalException: jest.fn() } as any);
+    service = new PurchaseOrderService(prismaService, rankingService, supplyPlan, events,
+      { openOperationalException: jest.fn() } as any, { flushRfqBatch: jest.fn(), runMaintenance: jest.fn() } as any);
   });
 
   describe('Legacy procurement gate', () => {

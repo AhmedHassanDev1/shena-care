@@ -8,30 +8,73 @@ export interface SearchFieldProps extends Omit<React.InputHTMLAttributes<HTMLInp
   label: string
   /** Form target. Omit when the parent handles submission. */
   action?: string
+  /** Visual density: `compact` (44px) for sticky header, `default` (56px) for standalone placement. */
+  variant?: "default" | "compact"
+  /** Optional control rendered at the inline end edge of the pill (e.g. clear button). */
+  endAdornment?: React.ReactNode
+  /** Forwarded ref to the underlying `<input>` element. */
+  inputRef?: React.Ref<HTMLInputElement>
+  /** Forwarded ref to the wrapping `<form>` element. */
+  formRef?: React.Ref<HTMLFormElement>
+  /** Form submit handler. */
+  onFormSubmit?: React.FormEventHandler<HTMLFormElement>
   /** Classes for the form wrapper (layout only). */
   className?: string
 }
 
 /**
- * Sahel Search pill: 56px linen pill, hairline border, lens in stone, text in ink.
+ * Sahel Search pill: linen capsule on warm chalk, subtle border, lens in stone, cobalt focus ring.
  */
-export function SearchField({ label, action, className, name = "q", id = "site-search", ...inputProps }: SearchFieldProps) {
+export function SearchField({
+  label,
+  action,
+  variant = "default",
+  endAdornment,
+  inputRef,
+  formRef,
+  onFormSubmit,
+  className,
+  name = "q",
+  id = "site-search",
+  ...inputProps
+}: SearchFieldProps) {
+  const isCompact = variant === "compact"
+
   return (
-    <form action={action} method={action ? "get" : undefined} role="search" className={cn("m-0", className)}>
+    <form
+      ref={formRef}
+      action={action}
+      method={action ? "get" : undefined}
+      onSubmit={onFormSubmit}
+      role="search"
+      className={cn("m-0", className)}
+    >
       <label htmlFor={id} className="sr-only">
         {label}
       </label>
-      <div className="flex h-control-xl items-center gap-3 rounded-pill bg-linen px-5 border border-ink/20 shadow-elevation-1 transition-all duration-fast ease-standard focus-within:border-2 focus-within:border-ink">
-        <Icon name="search" size={20} className="text-stone shrink-0" />
+      <div
+        className={cn(
+          "flex items-center rounded-pill bg-linen transition-colors duration-fast ease-standard",
+          isCompact
+            ? "h-11 gap-2.5 px-3.5 border border-ink/15 focus-within:border-cobalt focus-within:bg-white focus-within:ring-2 focus-within:ring-cobalt/15"
+            : "h-control-xl gap-3 px-5 border border-ink/20 shadow-elevation-1 focus-within:border-cobalt focus-within:ring-2 focus-within:ring-cobalt/15",
+        )}
+      >
+        <Icon name="search" size={isCompact ? 18 : 20} className="text-stone shrink-0" />
         <input
+          ref={inputRef}
           id={id}
           name={name}
           type="search"
           enterKeyHint="search"
           autoComplete="off"
-          className="h-full min-w-0 flex-1 border-0 bg-transparent font-display text-17 text-ink outline-none placeholder:text-stone focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden"
+          className={cn(
+            "h-full min-w-0 flex-1 border-0 bg-transparent font-display text-ink outline-none placeholder:text-stone focus-visible:outline-none [&::-webkit-search-cancel-button]:hidden",
+            isCompact ? "text-14.5 leading-20" : "text-17 leading-24",
+          )}
           {...inputProps}
         />
+        {endAdornment}
       </div>
     </form>
   )

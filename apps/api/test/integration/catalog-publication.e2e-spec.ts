@@ -59,8 +59,8 @@ describe('Product journey: intake, research, evidence, media, review, publicatio
     <body><h1>${name} ${size} ml</h1><h2>Ingredients</h2><p>${inci}</p><h2>How to use</h2><p>Apply to clean face every morning and evening.</p>
     <h2>Warnings</h2><p>For external use only. Avoid contact with eyes.</p>${extra}</body></html>`;
 
-  const pack = async (seed: string) => sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900"><rect width="900" height="900" fill="#ffffff"/>
-    <rect x="340" y="150" width="220" height="600" rx="24" fill="#1f4e79"/><rect x="360" y="${300 + (parseInt(seed.slice(0, 2), 16) % 40)}" width="180" height="220" fill="#ffffff"/></svg>`)).png().toBuffer();
+  const pack = async (seed: string, proof = false) => sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900"><rect width="900" height="900" fill="#ffffff"/>
+    <rect x="340" y="150" width="220" height="600" rx="24" fill="#1f4e79"/><rect x="360" y="${300 + (parseInt(seed.slice(0, 2), 16) % 40)}" width="180" height="220" fill="#ffffff"/><rect x="${proof ? 3 : 0}" y="0" width="2" height="2" fill="#${seed.slice(0, 6)}"/></svg>`)).png().toBuffer();
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
@@ -287,7 +287,7 @@ describe('Product journey: intake, research, evidence, media, review, publicatio
 
     let reg = api().post('/catalog/media-assets').set(admin.auth);
     for (const [key, value] of Object.entries({ skuId, role: 'PACKAGING_PROOF', originType: 'verified', sourceUrl: url, sourcePublisher: brand.name, sourceType: 'OFFICIAL_MANUFACTURER', rightsStatus: 'MANUFACTURER_PUBLISHED' })) reg = reg.field(key, value);
-    const carton = (await reg.attach('file', await pack(`${run}aa`.slice(-8)), { filename: 'carton.png', contentType: 'image/png' }).expect(201)).body;
+    const carton = (await reg.attach('file', await pack(`${run}aa`.slice(-8), true), { filename: 'carton.png', contentType: 'image/png' }).expect(201)).body;
     await approve(carton.id);
     await publishAsset(carton.id);
 

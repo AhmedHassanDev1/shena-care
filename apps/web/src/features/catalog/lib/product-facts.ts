@@ -99,3 +99,13 @@ export function featuredIngredientIndex(list: string[], productName: string): nu
   if (!stems.length) return -1;
   return list.findIndex((item) => stems.some((stem) => item.toLowerCase().includes(stem)));
 }
+
+/**
+ * Determines natural block direction for server-provided text without altering page layout dir.
+ */
+export function resolveTextDirection(text: string | null | undefined): 'ltr' | 'rtl' | undefined {
+  if (!text) return undefined;
+  if (/[\u0600-\u06FF]/.test(text)) return 'rtl';
+  if (/[A-Za-z]/.test(text)) return 'ltr';
+  return undefined;
+}

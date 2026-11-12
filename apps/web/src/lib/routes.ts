@@ -4,6 +4,7 @@ export const routes = {
   cart: '/cart',
   checkout: '/checkout',
   account: '/account',
+  accountProfile: '/account/profile',
   accountAddresses: '/account/addresses',
   login: '/auth',
   register: '/auth/register',

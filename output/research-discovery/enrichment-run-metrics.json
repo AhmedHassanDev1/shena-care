@@ -1,0 +1,230 @@
+{
+  "at": "2026-11-11T16:01:39.165Z",
+  "phases": {
+    "before": {
+      "count": 10,
+      "totalDurationMs": 91563,
+      "directReads": 10,
+      "providerDiscovered": 12,
+      "pageReads": 10,
+      "failedReads": 6,
+      "rows": [
+        {
+          "id": "SC-MVP-001",
+          "status": "PROVIDER_UNAVAILABLE",
+          "durationMs": 13322,
+          "directReads": 1,
+          "providerDiscovered": 1,
+          "pageReads": 1,
+          "failedReads": 1,
+          "applied": [
+            "composition.keyIngredients"
+          ]
+        },
+        {
+          "id": "SC-MVP-006",
+          "status": "COMPLETE",
+          "durationMs": 10012,
+          "directReads": 1,
+          "providerDiscovered": 1,
+          "pageReads": 1,
+          "failedReads": 1,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-007",
+          "status": "NO_EVIDENCE",
+          "durationMs": 9404,
+          "directReads": 1,
+          "providerDiscovered": 3,
+          "pageReads": 1,
+          "failedReads": 1,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-008",
+          "status": "COMPLETE",
+          "durationMs": 5613,
+          "directReads": 1,
+          "providerDiscovered": 3,
+          "pageReads": 1,
+          "failedReads": 1,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-011",
+          "status": "NO_EVIDENCE",
+          "durationMs": 5840,
+          "directReads": 1,
+          "providerDiscovered": 3,
+          "pageReads": 1,
+          "failedReads": 1,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-013",
+          "status": "COMPLETE",
+          "durationMs": 6388,
+          "directReads": 1,
+          "providerDiscovered": 1,
+          "pageReads": 1,
+          "failedReads": 1,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-023",
+          "status": "NO_EVIDENCE",
+          "durationMs": 8734,
+          "directReads": 1,
+          "providerDiscovered": 0,
+          "pageReads": 1,
+          "failedReads": 0,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-024",
+          "status": "NO_EVIDENCE",
+          "durationMs": 7165,
+          "directReads": 1,
+          "providerDiscovered": 0,
+          "pageReads": 1,
+          "failedReads": 0,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-055",
+          "status": "NO_EVIDENCE",
+          "durationMs": 13010,
+          "directReads": 1,
+          "providerDiscovered": 0,
+          "pageReads": 1,
+          "failedReads": 0,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-056",
+          "status": "NO_EVIDENCE",
+          "durationMs": 12075,
+          "directReads": 1,
+          "providerDiscovered": 0,
+          "pageReads": 1,
+          "failedReads": 0,
+          "applied": []
+        }
+      ]
+    },
+    "after": {
+      "count": 10,
+      "totalDurationMs": 93823,
+      "directReads": 10,
+      "providerDiscovered": 9,
+      "pageReads": 11,
+      "failedReads": 4,
+      "rows": [
+        {
+          "id": "SC-MVP-001",
+          "status": "COMPLETE",
+          "durationMs": 11513,
+          "directReads": 1,
+          "providerDiscovered": 1,
+          "pageReads": 1,
+          "failedReads": 1,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-006",
+          "status": "COMPLETE",
+          "durationMs": 10255,
+          "directReads": 1,
+          "providerDiscovered": 1,
+          "pageReads": 2,
+          "failedReads": 0,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-007",
+          "status": "NO_EVIDENCE",
+          "durationMs": 7456,
+          "directReads": 1,
+          "providerDiscovered": 3,
+          "pageReads": 1,
+          "failedReads": 1,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-008",
+          "status": "COMPLETE",
+          "durationMs": 7955,
+          "directReads": 1,
+          "providerDiscovered": 0,
+          "pageReads": 1,
+          "failedReads": 0,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-011",
+          "status": "NO_EVIDENCE",
+          "durationMs": 6847,
+          "directReads": 1,
+          "providerDiscovered": 3,
+          "pageReads": 1,
+          "failedReads": 1,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-013",
+          "status": "NO_EVIDENCE",
+          "durationMs": 6412,
+          "directReads": 1,
+          "providerDiscovered": 1,
+          "pageReads": 1,
+          "failedReads": 1,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-023",
+          "status": "NO_EVIDENCE",
+          "durationMs": 8987,
+          "directReads": 1,
+          "providerDiscovered": 0,
+          "pageReads": 1,
+          "failedReads": 0,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-024",
+          "status": "NO_EVIDENCE",
+          "durationMs": 7648,
+          "directReads": 1,
+          "providerDiscovered": 0,
+          "pageReads": 1,
+          "failedReads": 0,
+          "applied": []
+        },
+        {
+          "id": "SC-MVP-055",
+          "status": "COMPLETE",
+          "durationMs": 14210,
+          "directReads": 1,
+          "providerDiscovered": 0,
+          "pageReads": 1,
+          "failedReads": 0,
+          "applied": [
+            "composition.inci",
+            "composition.fragrance"
+          ]
+        },
+        {
+          "id": "SC-MVP-056",
+          "status": "NO_EVIDENCE",
+          "durationMs": 12540,
+          "directReads": 1,
+          "providerDiscovered": 0,
+          "pageReads": 1,
+          "failedReads": 0,
+          "applied": []
+        }
+      ]
+    }
+  }
+}

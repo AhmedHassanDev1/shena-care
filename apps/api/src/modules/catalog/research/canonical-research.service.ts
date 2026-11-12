@@ -7,9 +7,10 @@ import { ALL_FACT_FIELDS, ExtractedFact, extractProductFacts, FactField, hashFac
 import { decideFacts, DECISION_RULE_VERSION, FactReading, hasMedicalClaim, HoldReason, SourceCheck } from './catalog-decision-engine';
 import { isInstructionLine } from './product-fact-extractor';
 
-import { ProductResearchService } from './product-research.service';
+import { FactEvidenceItem, ProductResearchService, VerificationStatus } from './product-research.service';
 import { hostIsBrandDomain, ValidatedFacts } from './research-evidence';
 import { FetchedSource, RETRYABLE_OUTCOMES, ResearchSourceFetcher } from './research-source-fetcher';
+import { discoverProductSources, isVerifiedBrandShop } from './product-source-discovery';
 
 export type SourceTier = 'OFFICIAL_MANUFACTURER' | 'TRUSTED_DISTRIBUTOR' | 'RETAILER';
 export interface RunSource { url: string; tier: SourceTier; origin: 'ADMIN' | 'PROVIDER'; outcome: string; detail?: string; contentHash?: string; fetchedAt?: string; factCount?: number }
@@ -142,11 +143,11 @@ export class CanonicalResearchService {
     } catch { return false; }
   }
 
-  private tierOf(url: string, brand: string): SourceTier {
+  private tierOf(url: string, brand: string, websiteUrl?: string | null): SourceTier {
     const host = new URL(url).hostname.toLowerCase();
-    if (hostIsBrandDomain(host, brand)) return 'OFFICIAL_MANUFACTURER';
-    if (isTrustedMediaSource(url)) return 'OFFICIAL_MANUFACTURER';
-    return parseAllowedHosts().some(allowed => host === allowed || host.endsWith(`.${allowed}`)) ? 'TRUSTED_DISTRIBUTOR' : 'RETAILER';
+    if (hostIsBrandDomain(host, brand) || isVerifiedBrandShop(host, brand)) return 'OFFICIAL_MANUFACTURER';
+    if (websiteUrl && this.isBrandOwnPage(url, { name: brand, websiteUrl })) return 'OFFICIAL_MANUFACTURER';
+    return isTrustedMediaSource(url) || parseAllowedHosts().some(allowed => host === allowed || host.endsWith(`.${allowed}`)) ? 'TRUSTED_DISTRIBUTOR' : 'RETAILER';
   }
 
   /**
@@ -163,7 +164,7 @@ export class CanonicalResearchService {
     }
     if (!urls.length && !input.useConfiguredProviders) throw new BadRequestException('Name at least one source page, or ask for configured discovery');
     const run = await this.prisma.productResearchRun.create({ data: { skuId, schemaVersion: RESEARCH_SCHEMA_VERSION, requestedBy: actorId,
-      sources: urls.slice(0, MAX_SOURCES).map(url => ({ url, tier: this.tierOf(url, sku.product.brand.name), origin: 'ADMIN', outcome: 'PENDING' })) as unknown as Prisma.InputJsonValue } });
+      sources: urls.slice(0, MAX_SOURCES).map(url => ({ url, tier: this.tierOf(url, sku.product.brand.name, sku.product.brand.websiteUrl), origin: 'ADMIN', outcome: 'PENDING' })) as unknown as Prisma.InputJsonValue } });
     return this.execute(run.id, input.useConfiguredProviders ?? false);
   }
 
@@ -174,7 +175,7 @@ export class CanonicalResearchService {
    */
   async checkSource(expected: SkuExpectation & { websiteUrl: string | null }, url: string): Promise<SourceCheck> {
     let tier: SourceCheck['tier'];
-    try { tier = this.tierOf(url, expected.brand); } catch {
+    try { tier = this.tierOf(url, expected.brand, expected.websiteUrl); } catch {
       return { url, tier: 'RETAILER', outcome: 'INVALID_URL', retryable: false, identityMatched: false, sizeConfirmed: null, rejectedReasons: ['INVALID_URL'], pageGtin: null };
     }
     const isApproved = this.approvedHostFor({ name: expected.brand, websiteUrl: expected.websiteUrl });
@@ -200,20 +201,16 @@ export class CanonicalResearchService {
    */
   async discoverProductPages(expected: { brand: string; productName: string; size: number | null; sizeUnit: string | null; websiteUrl: string | null }, limit = 4): Promise<string[]> {
     if (!this.providers.discoveryConfigured()) return [];
-    const site = (() => { try { return expected.websiteUrl ? new URL(expected.websiteUrl).hostname.replace(/^www\./, '') : null; } catch { return null; } })();
-    const name = expected.productName.toLowerCase().includes(expected.brand.toLowerCase()) ? expected.productName : `${expected.brand} ${expected.productName}`;
-    const query = `${name}${expected.size !== null && expected.sizeUnit ? ` ${expected.size} ${expected.sizeUnit}` : ''}`;
-    const found = [...(site ? (await this.providers.discoverPages(query, 6, { includeDomains: [site] })) ?? [] : []), ...((await this.providers.discoverPages(query, 8)) ?? [])];
+    const found = await discoverProductSources({ brand: expected.brand, name: expected.productName, size: expected.size,
+      sizeUnit: expected.sizeUnit, websiteUrl: expected.websiteUrl }, (query, count, options) => this.providers.discoverPages(query, count, options));
     const isApproved = this.approvedHostFor({ name: expected.brand, websiteUrl: expected.websiteUrl });
     const rank: Record<SourceTier, number> = { OFFICIAL_MANUFACTURER: 0, TRUSTED_DISTRIBUTOR: 1, RETAILER: 2 };
     const urls: Array<{ url: string; tier: SourceTier }> = [];
-    for (const page of found) {
+    for (const page of found.sources) {
       let url: URL;
       try { url = new URL(page.url); } catch { continue; }
       if (url.protocol !== 'https:' || !isApproved(url.hostname)) continue;
-      // A brochure or an image is not a product page; fetching it only spends the host's failure budget (a PDF opened the eva-cosmetics.com breaker, 2026-11-07).
-      if (/\.(pdf|jpe?g|png|webp|gif|svg|zip|docx?|xlsx?)$/i.test(url.pathname)) continue;
-      const tier = this.tierOf(url.toString(), expected.brand);
+      const tier = this.tierOf(url.toString(), expected.brand, expected.websiteUrl);
       if (tier === 'RETAILER' || urls.some(item => item.url === url.toString())) continue;
       urls.push({ url: url.toString(), tier });
     }
@@ -358,24 +355,31 @@ export class CanonicalResearchService {
       }
 
       if (useProviders) {
-        const result = await this.providers.researchProductCandidate({ candidateId: run.skuId, brand: expected.brand, name: expected.productName, barcode: expected.barcode });
+        const missingFields = ['composition.inci', 'usage.instructions'].filter(field => !collected.some(item => item.fact.field === field));
+        const result = await this.providers.researchProductCandidate({ candidateId: run.skuId, brand: expected.brand, name: expected.productName,
+          barcode: expected.barcode, size: expected.size, sizeUnit: expected.sizeUnit, brandAliases: expected.brandAliases,
+          websiteUrl: sku.product.brand.websiteUrl, missingFields });
         providerStatuses = result.providerStatuses as unknown as Record<string, unknown>;
         for (const page of result.discoveredSources) {
-          if (!sources.some(source => source.url === page.url)) sources.push({ url: page.url, tier: page.sourceType as SourceTier, origin: 'PROVIDER', outcome: 'DISCOVERED' });
+          if (sources.length < MAX_SOURCES && !sources.some(source => source.url === page.url)) sources.push({ url: page.url, tier: page.sourceType as SourceTier, origin: 'PROVIDER', outcome: 'DISCOVERED' });
         }
         rejected.push(...(result.rejectedFacts ?? []).map(item => ({ field: item.field, reason: item.reason, value: item.value })));
-        const primary = result.discoveredSources[0];
-        if (primary) {
-          // Provider output has already been checked word by word against the fetched page by validateExtractedFacts; a model's output never bypasses that.
-          for (const fact of this.factsFromProvider(result.extractedFacts)) {
-            const excerpt = result.fieldEvidences.find(item => fact.providerField === item.fieldName)?.excerpt ?? '';
-            collected.push({ fact: { field: fact.field, value: fact.value, excerpt }, evidence: { sourceUrl: primary.url, sourceTier: primary.sourceType as SourceTier, excerpt, observedAt: result.researchedAt, extractor: 'provider-validated' } });
+        for (const reading of result.sourceReadings ?? []) {
+          const recorded = sources.find(source => source.url === reading.source.url);
+          if (recorded) Object.assign(recorded, { outcome: 'OK', fetchedAt: result.researchedAt });
+          for (const fact of this.factsFromProvider(reading.facts, reading.evidences, reading.contentKind)) {
+            const proof = reading.evidences.find(item => fact.providerField === item.fieldName && item.verificationStatus === VerificationStatus.SUPPORTED)!;
+            const excerpt = proof.excerpt;
+            collected.push({ fact: { field: fact.field, value: fact.value, excerpt }, evidence: { sourceUrl: reading.source.url,
+              sourceTier: reading.source.sourceType as SourceTier, excerpt, observedAt: proof.observedAt, extractor: reading.contentKind === 'HTML' ? `deterministic@${RESEARCH_SCHEMA_VERSION}` : 'provider-validated' } });
           }
+          if (recorded) recorded.factCount = collected.filter(item => item.evidence.sourceUrl === reading.source.url).length;
         }
       }
 
       await this.persist(run.id, run.skuId, collected);
-      const anyTransient = sources.some(source => RETRYABLE_OUTCOMES.has(source.outcome as FetchedSource['outcome']));
+      const anySourceRecovered = sources.some(source => source.outcome === 'OK');
+      const anyTransient = !anySourceRecovered && sources.some(source => RETRYABLE_OUTCOMES.has(source.outcome as FetchedSource['outcome']));
       const anyFacts = await this.prisma.productFactProposal.count({ where: { skuId: run.skuId, runId: run.id } });
       const providerDown = providerStatuses !== null && Object.values(providerStatuses).every(status => status !== 'LIVE') && sources.every(source => source.outcome !== 'OK');
       const status = anyTransient || providerDown ? ResearchRunStatus.PROVIDER_UNAVAILABLE : anyFacts ? ResearchRunStatus.COMPLETE : ResearchRunStatus.NO_EVIDENCE;
@@ -388,9 +392,10 @@ export class CanonicalResearchService {
     }
   }
 
-  private factsFromProvider(facts: ValidatedFacts): Array<{ field: FactField; value: unknown; providerField: string }> {
+  private factsFromProvider(facts: ValidatedFacts, evidences: Pick<FactEvidenceItem, 'fieldName' | 'verificationStatus'>[], contentKind?: 'HTML' | 'MARKDOWN'): Array<{ field: FactField; value: unknown; providerField: string }> {
     const out: Array<{ field: FactField; value: unknown; providerField: string }> = [];
-    if (facts.ingredients?.length) out.push({ field: 'composition.inci', value: facts.ingredients, providerField: 'ingredients' });
+    if (facts.ingredients?.length) out.push({ field: contentKind === 'HTML' ? 'composition.inci' : 'composition.keyIngredients',
+      value: contentKind === 'HTML' ? facts.ingredients : facts.ingredients.map(name => ({ name, function: null })), providerField: 'ingredients' });
     if (facts.concentrations?.length) out.push({ field: 'composition.activeConcentrations', value: facts.concentrations, providerField: 'concentrations' });
     if (facts.size) out.push({ field: 'identity.size', value: facts.size, providerField: 'size' });
     if (facts.usage?.length) out.push({ field: 'usage.instructions', value: facts.usage, providerField: 'usage' });
@@ -399,7 +404,7 @@ export class CanonicalResearchService {
     if (facts.hairTypes?.length) out.push({ field: 'suitability.hairTypes', value: facts.hairTypes, providerField: 'hairTypes' });
     if (facts.description) out.push({ field: 'marketing.description', value: facts.description, providerField: 'description' });
     if (facts.benefits?.length) out.push({ field: 'claims.manufacturerStated', value: facts.benefits, providerField: 'benefits' });
-    return out;
+    return out.filter(fact => evidences.some(item => item.fieldName === fact.providerField && item.verificationStatus === VerificationStatus.SUPPORTED));
   }
 
   /** Dedupes by value, merges evidence, and marks disagreeing values CONFLICT so a person decides. */
@@ -577,6 +582,12 @@ export class CanonicalResearchService {
         // wording is withheld from the stated function.
         const items = (fact.value as Array<{ name: string; function: string | null }>).map(item => (item.function && hasMedicalClaim(item.function)
           ? { name: item.name, function: null, functionWithheld: 'MEDICAL_CLAIM' } : item));
+        const existing = (product.claimsEvidence as Record<string, unknown> | null)?.keyIngredients as { items?: Array<{ name?: string; function?: string | null }> } | undefined;
+        if (existing) {
+          const comparable = (entries: Array<{ name?: string; function?: string | null }>) => entries.map(item => [item.name?.trim().toLowerCase(), item.function?.trim().toLowerCase() ?? null]);
+          if (JSON.stringify(comparable(existing.items ?? [])) === JSON.stringify(comparable(items))) return;
+          refuseOverwrite(existing, 'Key ingredients');
+        }
         const claims = { ...(product.claimsEvidence as Record<string, unknown> | null ?? {}), keyIngredients: { items, sourceUrl: best.sourceUrl, sourceTier: best.sourceTier, excerpt: best.excerpt, appliedAt: new Date().toISOString() } };
         await update({ claimsEvidence: claims });
         return;

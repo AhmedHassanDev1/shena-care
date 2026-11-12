@@ -187,10 +187,11 @@ export interface ProductReview {
   id: string;
   rating: number;
   title: string | null;
-  body: string;
+  body: string | null;
   authorName: string;
   skinType: string | null;
   isVerifiedPurchase: boolean;
+  isTest?: boolean;
   helpfulCount: number;
   createdAt: string;
 }
@@ -204,11 +205,18 @@ export interface ProductReviewPage {
 }
 
 /** Published reviews and the rating summary (GET /products/:slugOrId/reviews, commerce-owned). */
-export async function getProductReviews(slugOrId: string, query: { page?: number; limit?: number; sort?: ReviewSort; rating?: number } = {}): Promise<ProductReviewPage> {
+export async function getProductReviews(
+  slugOrId: string,
+  query: { page?: number; limit?: number; sort?: ReviewSort; rating?: number } = {},
+  token?: string | null,
+): Promise<ProductReviewPage> {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) if (value !== undefined) params.set(key, String(value));
   const qs = params.toString();
-  return apiClient.get<ProductReviewPage>(`/products/${encodeURIComponent(slugOrId)}/reviews${qs ? `?${qs}` : ''}`);
+  return apiClient.get<ProductReviewPage>(
+    `/products/${encodeURIComponent(slugOrId)}/reviews${qs ? `?${qs}` : ''}`,
+    token ? { token } : undefined,
+  );
 }
 
 /** A care concern as the public taxonomy `GET /care/concerns` returns it (active concerns only). */
