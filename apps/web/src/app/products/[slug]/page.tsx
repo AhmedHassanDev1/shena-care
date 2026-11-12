@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { ProductDetailView } from '@/features/catalog/components/ProductDetailView';
+import { ProductDetailView, ProductDetailSkeleton } from '@/features/catalog/components/ProductDetailView';
 import { ProductPhoneHeader } from '@/features/shell/ProductPhoneHeader';
 import { StorefrontShell } from '@/features/shell/StorefrontShell';
 import { getMessages } from '@/lib/i18n/messages';
@@ -14,7 +14,7 @@ export function generateMetadata(): Metadata {
 export default function ProductPage({ params }: { params: { slug: string } }) {
   return (
     <StorefrontShell nav="shop" navMode="scroll-up" phoneHeader={<ProductPhoneHeader />}>
-      <Suspense>
+      <Suspense fallback={<ProductDetailSkeleton />}>
         <ProductDetailView slug={decodeURIComponent(params.slug)} />
       </Suspense>
     </StorefrontShell>

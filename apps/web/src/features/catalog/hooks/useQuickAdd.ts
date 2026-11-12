@@ -13,7 +13,7 @@ export type QuickAddState = 'idle' | 'pending' | 'error';
  * cart API is idempotent per owner + SKU.
  */
 export function useQuickAdd(product: CardModel) {
-  const { cart, addItem, updateItem, removeItem } = useCart();
+  const { cart, isLoading, addItem, updateItem, removeItem } = useCart();
   const [state, setState] = useState<QuickAddState>('idle');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [chosenSku, setChosenSku] = useState<string | null>(product.variants.length === 1 ? product.variants[0].skuId : null);
@@ -56,5 +56,5 @@ export function useQuickAdd(product: CardModel) {
     if (state === 'error') setState('idle');
   };
 
-  return { state, multi, line, pickerOpen, qtyPending, add, start, changeQuantity, closePicker };
+  return { state, multi, line, pickerOpen, qtyPending, add, start, changeQuantity, closePicker, resolving: isLoading };
 }

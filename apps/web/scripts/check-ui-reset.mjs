@@ -5,13 +5,12 @@ import { fileURLToPath } from 'node:url';
 
 const port = 3127;
 const origin = `http://127.0.0.1:${port}`;
-const routes = [
-  '/account',
-  '/account/profile',
-];
+const routes = [];
 // Rebuilt in the approved design: must keep the RTL document contract and must not regress to the scaffold.
 const implementedRoutes = [
   '/',
+  '/account',
+  '/account/profile',
   '/auth',
   '/auth/register',
   '/auth/verify',

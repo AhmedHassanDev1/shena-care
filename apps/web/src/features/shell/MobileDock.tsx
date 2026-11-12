@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CountBadge } from '@/components/ui/count-badge';
+import { Spinner } from '@/components/ui/spinner';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { useAuth } from '@/features/auth/AuthContext';
 import { signInHref } from '@/features/auth/lib/auth-helpers';
@@ -36,8 +37,8 @@ export function MobileDock({ active }: MobileDockProps) {
   const pathname = usePathname() || '';
   const locale = useLocale();
   const m = useMessages();
-  const { cart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { cart, isLoading } = useCart();
+  const { isAuthenticated, openAuthModal } = useAuth();
 
   const currentActive = active && active !== 'none' ? active : deriveActiveTab(pathname);
 
@@ -76,6 +77,14 @@ export function MobileDock({ active }: MobileDockProps) {
                 <Link
                   href={it.href}
                   aria-current={isActive ? 'page' : undefined}
+                  onClick={
+                    it.id === 'account' && !isAuthenticated
+                      ? (e) => {
+                          e.preventDefault();
+                          openAuthModal();
+                        }
+                      : undefined
+                  }
                   className={cn(
                     'relative flex h-13 w-full flex-col items-center justify-center gap-0.5 rounded-pill px-1 text-11 font-display font-semibold leading-tight no-underline transition-all duration-fast ease-standard',
                     isActive
@@ -85,7 +94,11 @@ export function MobileDock({ active }: MobileDockProps) {
                 >
                   <div className="relative flex items-center justify-center">
                     <Icon name={it.icon} size={20} />
-                    {it.badge ? (
+                    {it.id === 'cart' && isLoading ? (
+                      <span className="absolute -top-1.5 -end-2.5 flex size-4 items-center justify-center rounded-full bg-cobalt">
+                        <Spinner size="xs" className="text-chalk" />
+                      </span>
+                    ) : it.badge ? (
                       <CountBadge className="absolute -top-1.5 -end-2.5 h-4 min-w-[16px] px-1 text-10.5 font-bold leading-none">
                         {it.badge}
                       </CountBadge>

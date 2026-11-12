@@ -6,14 +6,31 @@ export interface User {
   id: string;
   /** Null until the customer gives a name (phone sign-up). */
   name: string | null;
-  email: string;
+  /** Null when unset (synthetic phone sign-up placeholder is hidden). */
+  email: string | null;
   /** Verified sign-in number (E.164), offered as the order recipient's. */
   phoneNumber: string | null;
+  createdAt?: string;
+}
+
+export interface UpdateProfileInput {
+  name?: string;
+  email?: string | null;
+}
+
+/** Hides synthetic phone-OTP placeholder emails from customer-facing UI. */
+export function displayEmail(email?: string | null): string | null {
+  if (!email) return null;
+  const trimmed = email.trim();
+  if (!trimmed || /@placeholder\.com$/i.test(trimmed)) return null;
+  return trimmed;
 }
 
 export interface AuthResponse {
-  user: User;
-  sessionToken: string;
+  user?: User;
+  customer?: User;
+  sessionToken?: string;
+  token?: string;
 }
 
 export interface RegisterData {
@@ -47,8 +64,9 @@ export const auth = {
 
   async login(data: LoginData): Promise<AuthResponse> {
     const response = await apiClient.post<AuthResponse>('/accounts/login', data);
-    if (response.sessionToken) {
-      localStorage.setItem(TOKEN_KEY, response.sessionToken);
+    const sessionToken = response.sessionToken ?? response.token;
+    if (sessionToken) {
+      localStorage.setItem(TOKEN_KEY, sessionToken);
     }
     return response;
   },
@@ -98,6 +116,14 @@ export const auth = {
       throw new Error('Not authenticated');
     }
     return apiClient.get<User>('/accounts/me', { token });
+  },
+
+  async updateProfile(data: UpdateProfileInput): Promise<User> {
+    const token = this.getToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+    return apiClient.patch<User>('/accounts/me', data, { token });
   },
 
   getToken(): string | null {

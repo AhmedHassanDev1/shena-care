@@ -65,6 +65,35 @@ describe('toCardModel', () => {
   it('omits the chip when taxonomy is missing', () => {
     expect(toCardModel(product([sku()], { category: null }), 'ar').categoryChip).toBeNull();
   });
+
+  it('derives arabicName, englishName, two compact chips, and benefit badge in Arabic', () => {
+    const card = toCardModel(
+      product([sku({ size: 30 })], {
+        name: 'Antioxidant Facial Cleanser',
+        category: { id: 'c-1', slug: 'cleansers', name: 'Cleansers', parentId: 'root' },
+        suitableSkinTypes: ['sensitive'] as any,
+      } as any),
+      'ar'
+    );
+    expect(card.arabicName).toBe('غسول الوجه المضاد للأكسدة');
+    expect(card.englishName).toBe('Antioxidant Facial Cleanser');
+    expect(card.chip1).toBe('غسول');
+    expect(card.chip2).toBe('للبشرة الحساسة');
+    expect(card.benefitBadge).toBe('مضاد للأكسدة');
+  });
+
+  it('prefers PRIMARY_PACKSHOT over PACKAGING_PROOF', () => {
+    const card = toCardModel(
+      product([sku()], {
+        media: [
+          { id: 'm-proof', type: 'image', url: 'https://cdn/back-label.jpg', altText: null, isPrimary: true, role: 'PACKAGING_PROOF' as any },
+          { id: 'm-pack', type: 'image', url: 'https://cdn/front-packshot.jpg', altText: null, isPrimary: false, role: 'PRIMARY_PACKSHOT' as any },
+        ],
+      }),
+      'ar'
+    );
+    expect(card.imageUrl).toBe('https://cdn/front-packshot.jpg');
+  });
 });
 
 describe('categoryLabel', () => {

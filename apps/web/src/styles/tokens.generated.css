@@ -93,6 +93,10 @@
   --container-narrow: 960px;
   --auth-panel-w: 580px;
   --auth-panel-h: 744px;
+  --otp-w: 52px;
+  --otp-h: 66px;
+  --otp-w-lg: 66px;
+  --otp-h-lg: 78px;
 
   --ease-standard: cubic-bezier(.16,1,.3,1);
   --dur-fast: 180ms;

@@ -30,10 +30,12 @@ export interface ProductView {
   }>;
   media: Array<{
     id: string;
+    skuId?: string | null;
     type: string;
     url: string;
     altText: string | null;
     isPrimary: boolean;
+    role?: string | null;
   }>;
 }
 

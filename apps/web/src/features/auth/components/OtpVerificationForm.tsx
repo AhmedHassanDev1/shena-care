@@ -292,56 +292,81 @@ export function OtpVerificationForm() {
   const countdown = formatClock(resendIn, locale);
 
   return (
-    <div className="flex flex-col gap-5">
-      <Link
-        href={changeNumberHref}
-        className="inline-flex items-center gap-1.5 self-start text-14 font-semibold text-stone hover:text-ink transition-colors"
-      >
-        <Icon name="chevron-back" size={16} strokeWidth={2} />
-        <span>{m.authEditPhone}</span>
-      </Link>
+    <div className="flex flex-col gap-6">
+      {/* Top back navigation & security badge */}
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          href={changeNumberHref}
+          className="inline-flex items-center gap-1.5 text-13.5 font-bold text-stone hover:text-ink transition-colors"
+        >
+          <Icon name="chevron-back" size={16} />
+          <span>{m.authEditPhone}</span>
+        </Link>
+        <span className="inline-flex items-center gap-1.5 text-12 font-semibold text-stone bg-sand/40 border border-line-2/20 px-2.5 py-1 rounded-pill">
+          <Icon name="lock" size={12} className="text-stone" />
+          <span>تأكيد مشفر وآمن</span>
+        </span>
+      </div>
 
-      <AuthHeader
-        title={m.authMobileOtpTitle}
-        titleId="otp-title"
-        descriptionId="otp-help"
-        description={
-          <>
-            {m.authMobileOtpSubtitle}{' '}
-            <bdi dir="ltr" className="font-bold tabular-nums text-ink">
-              {displayMobile(challenge.phoneNumber)}
-            </bdi>
-          </>
-        }
-      />
+      {/* Main Title & Context Card */}
+      <div className="flex flex-col gap-3">
+        <h1 id="otp-title" className="m-0 font-display font-black text-26 lg:text-30 text-ink leading-tight">
+          {m.authMobileOtpTitle}
+        </h1>
 
+        {/* Highlighted phone recipient card with direct edit button */}
+        <div className="flex items-center justify-between gap-3 p-3.5 rounded-20 bg-sand/30 border border-line-2/30">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-14 bg-linen border border-line-2/30 text-cobalt flex items-center justify-center flex-none shadow-elevation-1">
+              <Icon name="phone" size={18} />
+            </div>
+            <div className="flex flex-col text-start">
+              <span id="otp-help" className="text-12 text-stone font-display leading-tight">
+                {m.authMobileOtpSubtitle}
+              </span>
+              <bdi dir="ltr" className="text-16 font-bold tabular-nums text-ink mt-0.5">
+                {displayMobile(challenge.phoneNumber)}
+              </bdi>
+            </div>
+          </div>
+          <Link
+            href={changeNumberHref}
+            aria-label={m.authEditPhone}
+            className="inline-flex items-center px-3 py-1.5 rounded-pill bg-linen hover:bg-white border border-line-2/30 text-12 font-bold text-cobalt hover:text-cobalt-deep transition-all shadow-elevation-1"
+          >
+            {m.authEditPhone}
+          </Link>
+        </div>
+      </div>
+
+      {/* Verification Code Form */}
       <form
         noValidate
-        className="flex flex-col gap-5"
+        className="flex flex-col gap-6"
         onSubmit={(event: FormEvent) => {
           event.preventDefault();
           verify(code);
         }}
       >
         <div className="flex flex-col gap-3">
-          <OtpInput
-            ref={inputRef}
-            id="otp"
-            length={challenge.codeLength}
-            value={code}
-            onChange={(next) => {
-              setCode(next);
-              if (failure && failure !== 'expired' && failure !== 'exhausted') setFailure(null);
-              if (verifyState === 'error') setVerifyState('idle');
-              if (next.length === challenge.codeLength && next !== code) verify(next);
-            }}
-            normalize={(raw) => toLatinDigits(raw).replace(/\D/g, '')}
-            state={cellState}
-            labelledBy="otp-title"
-            describedBy={failureMessage ? 'otp-help otp-error' : 'otp-help'}
-            disabled={needsNewCode}
-            autoFocus
-          />
+          <div className="py-2 flex flex-col items-center justify-center">
+            <OtpInput ref={inputRef} id="otp" 
+              length={challenge.codeLength}
+              value={code}
+              onChange={(next) => {
+                setCode(next);
+                if (failure && failure !== 'expired' && failure !== 'exhausted') setFailure(null);
+                if (verifyState === 'error') setVerifyState('idle');
+                if (next.length === challenge.codeLength && next !== code) verify(next);
+              }}
+              normalize={(raw) => toLatinDigits(raw).replace(/\D/g, '')}
+              state={cellState}
+              labelledBy="otp-title"
+              describedBy={failureMessage ? 'otp-help otp-error' : 'otp-help'}
+              disabled={needsNewCode}
+              autoFocus
+            />
+          </div>
 
           {failureMessage ? (
             <FieldMessage id="otp-error" tone="error">
@@ -357,14 +382,14 @@ export function OtpVerificationForm() {
         </div>
 
         {/* Resend Countdown / Trigger */}
-        <div className="flex flex-col items-center gap-2 text-center my-1">
+        <div className="flex flex-col items-center gap-2 text-center">
           {limitNotice && resendIn > 0 ? (
-            <p className="m-0 text-14 text-warn" aria-hidden="true">
+            <p className="m-0 text-14 text-warn font-semibold" aria-hidden="true">
               {fillMessage(m.authRateLimited, { time: isolateLtr(countdown) })}
             </p>
           ) : resendIn > 0 ? (
-            <div className="flex items-center gap-2 text-14 text-stone" aria-hidden="true">
-              <Icon name="clock" size={16} className="text-stone" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill bg-sand/40 border border-line-2/20 text-13.5 text-stone font-display" aria-hidden="true">
+              <Icon name="clock" size={15} className="text-stone" />
               <span>{fillMessage(m.authResendCountdown, { time: isolateLtr(countdown) })}</span>
             </div>
           ) : !needsNewCode ? (
@@ -372,9 +397,10 @@ export function OtpVerificationForm() {
               variant="text"
               onClick={resend}
               loading={resendState === 'pending'}
-              className="min-h-control-s px-2 text-14 font-semibold text-cobalt hover:text-cobalt-deep"
+              className="min-h-control-s px-4 py-1.5 rounded-pill text-14 font-bold text-cobalt hover:text-cobalt-deep hover:bg-cobalt/5 transition-all"
             >
-              {m.authResend}
+              <Icon name="retry" size={15} className="me-1.5 inline-block" />
+              <span>{m.authResend}</span>
             </Button>
           ) : null}
 
@@ -392,7 +418,7 @@ export function OtpVerificationForm() {
             pendingLabel={m.authSending}
             disabled={resendIn > 0}
             onClick={resend}
-            className="w-full bg-cobalt text-white hover:bg-cobalt-deep rounded-pill h-control-xl font-bold text-17 shadow-elevation-1 transition-colors"
+            className="w-full bg-cobalt text-white hover:bg-cobalt-deep rounded-pill h-control-xl font-bold text-17 shadow-elevation-1 transition-all active:scale-95"
           >
             {m.authResend}
           </AsyncButton>
@@ -403,7 +429,7 @@ export function OtpVerificationForm() {
             state={verifyState}
             pendingLabel={m.authVerifying}
             disabled={code.length < challenge.codeLength}
-            className="w-full bg-cobalt text-white hover:bg-cobalt-deep rounded-pill h-control-xl font-bold text-17 shadow-elevation-1 transition-colors disabled:opacity-50"
+            className="w-full bg-cobalt text-white hover:bg-cobalt-deep rounded-pill h-control-xl font-bold text-17 shadow-elevation-1 transition-all disabled:opacity-50 active:scale-95"
           >
             {m.authVerifyAction}
           </AsyncButton>
@@ -413,9 +439,14 @@ export function OtpVerificationForm() {
       <p role="status" className="sr-only">
         {limitNotice && cooling ? limitNotice : countdownNotice}
       </p>
-      <p className="m-0 text-center text-13 leading-20 text-stone">
-        {m.authNotReceived}
-      </p>
+
+      {/* Security Reassurance note */}
+      <div className="pt-3 border-t border-line-2/20 text-center">
+        <p className="m-0 text-12.5 leading-20 text-stone flex items-center justify-center gap-1.5">
+          <Icon name="shield" size={14} className="text-stone/70 flex-none" />
+          <span>{m.authNotReceived}</span>
+        </p>
+      </div>
     </div>
   );
 }

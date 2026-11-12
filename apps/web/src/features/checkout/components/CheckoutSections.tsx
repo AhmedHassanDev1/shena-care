@@ -17,12 +17,71 @@ import { CAIRO_GIZA_AREAS } from '../lib/service-area';
 import { toGovernorate, type Governorate, type NewAddressDraft } from '../lib/checkout-draft';
 import { DeliveryLocationPicker, type LocationPin } from './DeliveryLocationPicker';
 
+/* ── Checkout Stepper Progress Ribbon ─────────────────────────────────── */
+
+export function CheckoutProgressRibbon({ currentStep, doneSteps }: { currentStep: number; doneSteps: number[] }) {
+  const m = useMessages();
+  const locale = useLocale();
+
+  const steps = [
+    { num: 1, label: m.checkoutStepRecipient },
+    { num: 2, label: m.checkoutStepAddress },
+    { num: 3, label: m.checkoutStepDelivery },
+    { num: 4, label: m.checkoutStepPayment },
+  ];
+
+  return (
+    <nav aria-label="مراحل إتمام الطلب" className="mb-6 rounded-24 bg-linen p-4 shadow-elevation-1">
+      <ol className="m-0 flex list-none items-center justify-between p-0">
+        {steps.map((step, idx) => {
+          const isDone = doneSteps.includes(step.num);
+          const isCurrent = currentStep === step.num;
+          const isLast = idx === steps.length - 1;
+
+          return (
+            <li key={step.num} className="flex flex-1 items-center">
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'grid size-8 flex-none place-items-center rounded-pill font-display text-13 font-bold transition-all duration-base',
+                    isDone
+                      ? 'bg-ok text-white shadow-elevation-1'
+                      : isCurrent
+                        ? 'bg-cobalt text-chalk shadow-elevation-1 ring-4 ring-cobalt/20'
+                        : 'bg-sand/60 text-stone'
+                  )}
+                >
+                  {isDone ? <Icon name="check" size={16} strokeWidth={2.8} /> : formatNumber(step.num, locale)}
+                </span>
+                <span
+                  className={cn(
+                    'hidden text-13 font-semibold sm:inline',
+                    isCurrent ? 'font-bold text-ink' : isDone ? 'text-ink' : 'text-stone'
+                  )}
+                >
+                  {step.label}
+                </span>
+              </div>
+              {!isLast ? (
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    'mx-2 h-0.5 flex-1 transition-colors duration-base',
+                    isDone ? 'bg-ok' : 'bg-line'
+                  )}
+                />
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
 /* ── Section frame ─────────────────────────────────────────────────────── */
 
-/**
- * One checkout section (CheckoutD): linen card, radius 24, hairline; a 30px step badge (night with the number, or ok
- * green with a check once the section is complete) and the Beiruti title; an optional action at the reading end.
- */
 export function CheckoutSection({
   id,
   step,
@@ -40,18 +99,24 @@ export function CheckoutSection({
 }) {
   const locale = useLocale();
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-4 rounded-24 bg-linen p-4.5 shadow-outline-hairline lg:p-6">
-      <div className="flex items-center gap-3">
+    <section
+      aria-labelledby={id}
+      className={cn(
+        'flex flex-col gap-4 rounded-24 bg-linen p-5 shadow-elevation-1 transition-all duration-base hover:shadow-elevation-2 lg:p-7',
+        done && 'border border-ok/20'
+      )}
+    >
+      <div className="flex items-center gap-3.5 pb-1">
         <span
           aria-hidden="true"
           className={cn(
-            'grid size-7.5 flex-none place-items-center rounded-pill text-14 font-bold',
-            done ? 'bg-ok text-white' : 'bg-ink text-linen'
+            'grid size-8 flex-none place-items-center rounded-pill font-display text-14 font-bold transition-colors duration-fast',
+            done ? 'bg-ok text-white shadow-elevation-1' : 'bg-ink text-linen'
           )}
         >
-          {done ? <Icon name="check" size={18} strokeWidth={2.6} /> : formatNumber(step, locale)}
+          {done ? <Icon name="check" size={17} strokeWidth={2.6} /> : formatNumber(step, locale)}
         </span>
-        <h2 id={id} className="m-0 font-display text-22 font-bold leading-29 text-ink">
+        <h2 id={id} className="m-0 font-display text-22 font-bold leading-28 text-ink lg:text-24">
           {title}
         </h2>
         {action ? <span className="ms-auto">{action}</span> : null}
@@ -87,6 +152,7 @@ export function RecipientSection({
 }) {
   const m = useMessages();
   const complete = !editing && Boolean(recipient.name.trim() && recipient.phone.trim());
+
   return (
     <CheckoutSection
       id="co-recipient"
@@ -95,44 +161,57 @@ export function RecipientSection({
       title={m.checkoutRecipient}
       action={
         editing ? null : (
-          <button type="button" onClick={onEdit} className="text-link">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-pill px-3 py-1 text-13 font-semibold text-cobalt transition-colors hover:bg-sand/40 hover:text-cobalt-deep"
+          >
             {m.checkoutEdit}
           </button>
         )
       }
     >
       {editing ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <TextField
-            label={m.checkoutName}
-            autoComplete="name"
-            value={recipient.name}
-            error={errors.name}
-            onChange={(event) => onChange({ ...recipient, name: event.target.value })}
-          />
-          <PhoneField
-            label={m.checkoutPhone}
-            hint={m.checkoutPhoneHint}
-            placeholder="01x xxxx xxxx"
-            value={recipient.phone}
-            error={errors.phone}
-            maxLength={16}
-            onChange={(event) => onChange({ ...recipient, phone: event.target.value.replace(/[^\d٠-٩۰-۹\s+-]/g, '') })}
-          />
-          <span className="lg:col-span-2">
-            <Button variant="light" size="s" onClick={onDone}>
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <TextField
+              label={m.checkoutName}
+              autoComplete="name"
+              value={recipient.name}
+              error={errors.name}
+              onChange={(event) => onChange({ ...recipient, name: event.target.value })}
+            />
+            <PhoneField
+              label={m.checkoutPhone}
+              hint={m.checkoutPhoneHint}
+              placeholder="01x xxxx xxxx"
+              value={recipient.phone}
+              error={errors.phone}
+              maxLength={16}
+              onChange={(event) => onChange({ ...recipient, phone: event.target.value.replace(/[^\d٠-٩۰-۹\s+-]/g, '') })}
+            />
+          </div>
+          <div className="flex items-center gap-3 pt-1">
+            <Button variant="ink" size="s" onClick={onDone}>
               {m.checkoutDone}
             </Button>
-          </span>
+          </div>
         </div>
       ) : (
-        <p className="m-0 flex flex-wrap items-baseline gap-x-3.5 gap-y-1.5 text-15">
-          <strong className="font-bold text-ink">{recipient.name}</strong>
-          <bdi dir="ltr" className="tabular-nums text-stone">
-            {displayMobile(recipient.phone)}
-          </bdi>
-          {fromAccount ? <span className="text-13 text-stone">{m.checkoutFromAccount}</span> : null}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-16 bg-chalk/60 px-4 py-3">
+          <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1 text-15">
+            <span className="font-bold text-ink">{recipient.name}</span>
+            <span className="text-stone">·</span>
+            <bdi dir="ltr" className="tabular-nums font-semibold text-ink">
+              {displayMobile(recipient.phone)}
+            </bdi>
+            {fromAccount ? (
+              <span className="rounded-pill bg-sand/60 px-2 py-0.5 text-12 font-medium text-stone">
+                {m.checkoutFromAccount}
+              </span>
+            ) : null}
+          </div>
+        </div>
       )}
     </CheckoutSection>
   );
@@ -141,6 +220,8 @@ export function RecipientSection({
 /* ── ٢ عنوان التوصيل ───────────────────────────────────────────────────── */
 
 export type AddressErrors = Partial<Record<'governorate' | 'area' | 'shippingAddress' | 'pin', string>>;
+
+export type DraftUpdater = NewAddressDraft | ((prev: NewAddressDraft) => NewAddressDraft);
 
 export function AddressSection({
   addresses,
@@ -155,25 +236,29 @@ export function AddressSection({
   pin,
   pinError,
   onPinChange,
+  isEditingSelected = false,
+  onStartEditSelected,
 }: {
   addresses: CustomerAddress[];
   selectedId: string | 'new' | null;
   onSelect: (id: string | 'new') => void;
   draft: NewAddressDraft;
-  onDraft: (next: NewAddressDraft) => void;
+  onDraft: (updater: DraftUpdater) => void;
   errors: AddressErrors;
   saveState: AsyncState;
   onSaveNew: () => void;
   onCancelNew: () => void;
-  /** Pin of the selected saved address (editable here). */
   pin: LocationPin | null;
   pinError?: string;
   onPinChange: (pin: LocationPin | null) => void;
+  isEditingSelected?: boolean;
+  onStartEditSelected?: () => void;
 }) {
   const m = useMessages();
-  const adding = selectedId === 'new';
+  const adding = selectedId === 'new' || isEditingSelected;
   const selected = addresses.find((address) => address.id === selectedId) ?? null;
-  const done = Boolean(selected && pin?.confirmed);
+  const done = Boolean(selected && pin?.confirmed && !isEditingSelected);
+
   const governorateName = (value: string) => {
     const g = toGovernorate(value);
     return g === 'Cairo' ? m.checkoutCairo : g === 'Giza' ? m.checkoutGiza : value;
@@ -186,16 +271,18 @@ export function AddressSection({
 
   return (
     <CheckoutSection id="co-address" step={2} done={done} title={m.checkoutAddressTitle}>
-      {addresses.length ? (
-        <div role="radiogroup" aria-labelledby="co-address" className="grid gap-2.5 lg:grid-cols-2">
+      {addresses.length && !adding ? (
+        <div role="radiogroup" aria-labelledby="co-address" className="grid gap-3 lg:grid-cols-2">
           {addresses.map((address) => {
             const checked = address.id === selectedId;
             return (
               <label
                 key={address.id}
                 className={cn(
-                  'relative flex cursor-pointer items-start gap-3 rounded-16 px-4 py-3.5',
-                  checked ? 'bg-cobalt/10 shadow-outline-cobalt' : 'bg-linen shadow-outline-control'
+                  'relative flex cursor-pointer items-start gap-3.5 rounded-24 p-4 transition-all duration-fast',
+                  checked
+                    ? 'bg-cobalt/5 shadow-outline-cobalt ring-2 ring-cobalt/15'
+                    : 'bg-linen shadow-outline-control hover:bg-sand/20'
                 )}
               >
                 <input
@@ -206,17 +293,33 @@ export function AddressSection({
                   onChange={() => onSelect(address.id)}
                 />
                 <RadioMark checked={checked} />
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-15 font-bold text-ink">{address.label || address.area}</span>
-                  <span className="text-14 leading-22 text-ink">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-display text-16 font-bold text-ink">{address.label || address.area}</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-ok-tint px-2 py-0.5 text-11 font-semibold text-ok">
+                      <span aria-hidden="true" className="size-1.5 rounded-full bg-ok" />
+                      {fillMessage(m.checkoutAddressDeliverable, { governorate: governorateName(address.governorate) })}
+                    </span>
+                  </div>
+                  <p className="m-0 text-13.5 leading-20 text-stone">
                     {[address.shippingAddress, address.area, governorateName(address.governorate)].filter(Boolean).join('، ')}
-                  </span>
-                  {address.notes ? <span className="text-13 leading-20 text-stone">{address.notes}</span> : null}
-                  <span className="mt-0.5 inline-flex items-center gap-1.5 text-12.5 font-semibold text-ok">
-                    <span aria-hidden="true" className="size-1.75 rounded-full bg-ok" />
-                    {fillMessage(m.checkoutAddressDeliverable, { governorate: governorateName(address.governorate) })}
-                  </span>
-                </span>
+                  </p>
+                  {address.notes ? <p className="m-0 text-12 text-stone/80">{address.notes}</p> : null}
+                  {checked && onStartEditSelected ? (
+                    <div className="pt-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onStartEditSelected();
+                        }}
+                        className="text-12 font-semibold text-cobalt hover:underline"
+                      >
+                        {m.checkoutEditAddress}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               </label>
             );
           })}
@@ -227,43 +330,70 @@ export function AddressSection({
         <button
           type="button"
           onClick={() => onSelect('new')}
-          className="inline-flex min-h-control-s items-center gap-2 self-start px-1 text-14.5 font-semibold text-cobalt underline underline-offset-[6px]"
+          className="inline-flex min-h-control-s items-center gap-2 self-start rounded-pill px-3 py-1 text-14 font-semibold text-cobalt transition-colors hover:bg-sand/40 hover:text-cobalt-deep"
         >
-          <Icon name="plus" size={18} />
-          {m.checkoutNewAddress}
+          <Icon name="plus" size={17} />
+          <span>{m.checkoutNewAddress}</span>
         </button>
       ) : null}
 
       {adding ? (
-        <div className="flex flex-col gap-4">
-          <TextField
-            label={m.checkoutAddressLabel}
-            optionalLabel={m.checkoutOptional}
-            placeholder={m.checkoutAddressLabelHint}
-            value={draft.label}
-            onChange={(event) => onDraft({ ...draft, label: event.target.value })}
-          />
+        <div className="flex flex-col gap-4 rounded-24 bg-chalk/40 p-4">
+          <PinBlock>
+            <DeliveryLocationPicker
+              value={draft.pin}
+              onChange={(next) => onDraft((prev) => ({ ...prev, pin: next }))}
+              onAddressResolved={(sugg) => {
+                onDraft((prev) => ({
+                  ...prev,
+                  governorate: sugg.governorate,
+                  area: prev.area.trim() ? prev.area : sugg.area,
+                  shippingAddress: prev.shippingAddress.trim() ? prev.shippingAddress : sugg.streetAddress,
+                  building: prev.building || sugg.building || '',
+                }));
+              }}
+              error={errors.pin}
+              initialCenter={areaCentre(draft.area)}
+            />
+          </PinBlock>
+
           <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-            <legend id="co-governorate-label" className="mb-2 text-14 font-semibold text-ink">{m.checkoutGovernorate}</legend>
-            <span role="radiogroup" aria-labelledby="co-governorate-label" aria-invalid={errors.governorate ? true : undefined} aria-describedby={errors.governorate ? 'co-governorate-error' : undefined} tabIndex={errors.governorate ? -1 : undefined} className="flex gap-2">
+            <legend id="co-governorate-label" className="mb-1.5 text-13.5 font-semibold text-ink">
+              {m.checkoutGovernorate}
+            </legend>
+            <div
+              role="radiogroup"
+              aria-labelledby="co-governorate-label"
+              aria-invalid={errors.governorate ? true : undefined}
+              className="flex gap-2.5"
+            >
               {(['Cairo', 'Giza'] as Governorate[]).map((g) => {
                 const checked = draft.governorate === g;
                 return (
                   <label
                     key={g}
                     className={cn(
-                      'inline-flex min-h-control-s cursor-pointer items-center gap-2 rounded-pill px-4.5 text-14.5 font-semibold',
-                      checked ? 'bg-cobalt/10 text-cobalt-deep shadow-outline-cobalt' : 'bg-linen text-ink shadow-outline-control'
+                      'inline-flex min-h-control-s cursor-pointer items-center gap-2 rounded-pill px-5 text-14 font-semibold transition-all',
+                      checked
+                        ? 'bg-ink text-chalk shadow-elevation-1'
+                        : 'bg-linen text-ink shadow-outline-control hover:bg-sand/40'
                     )}
                   >
-                    <input type="radio" name="co-governorate" className="sr-only" checked={checked} onChange={() => onDraft({ ...draft, governorate: g })} />
+                    <input
+                      type="radio"
+                      name="co-governorate"
+                      className="sr-only"
+                      checked={checked}
+                      onChange={() => onDraft((prev) => ({ ...prev, governorate: g }))}
+                    />
                     {g === 'Cairo' ? m.checkoutCairo : m.checkoutGiza}
                   </label>
                 );
               })}
-            </span>
+            </div>
             {errors.governorate ? <InlineError id="co-governorate-error">{errors.governorate}</InlineError> : null}
           </fieldset>
+
           <div className="grid gap-4 lg:grid-cols-2">
             <TextField
               label={m.checkoutArea}
@@ -271,7 +401,7 @@ export function AddressSection({
               autoComplete="address-level2"
               value={draft.area}
               error={errors.area}
-              onChange={(event) => onDraft({ ...draft, area: event.target.value })}
+              onChange={(event) => onDraft((prev) => ({ ...prev, area: event.target.value }))}
             />
             <TextField
               label={m.checkoutAddress}
@@ -279,24 +409,52 @@ export function AddressSection({
               autoComplete="street-address"
               value={draft.shippingAddress}
               error={errors.shippingAddress}
-              onChange={(event) => onDraft({ ...draft, shippingAddress: event.target.value })}
+              onChange={(event) => onDraft((prev) => ({ ...prev, shippingAddress: event.target.value }))}
             />
           </div>
-          <TextField
-            label={m.checkoutNotes}
-            optionalLabel={m.checkoutOptional}
-            value={draft.notes}
-            onChange={(event) => onDraft({ ...draft, notes: event.target.value })}
-          />
-          <PinBlock>
-            <DeliveryLocationPicker
-              value={draft.pin}
-              onChange={(next) => onDraft({ ...draft, pin: next })}
-              error={errors.pin}
-              initialCenter={areaCentre(draft.area)}
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <TextField
+              label={m.checkoutBuilding}
+              optionalLabel={m.checkoutOptional}
+              placeholder={m.checkoutBuildingHint}
+              value={draft.building ?? ''}
+              onChange={(event) => onDraft((prev) => ({ ...prev, building: event.target.value }))}
             />
-          </PinBlock>
-          <span className="flex flex-wrap items-center gap-2.5">
+            <TextField
+              label={m.checkoutFloor}
+              optionalLabel={m.checkoutOptional}
+              placeholder={m.checkoutFloorHint}
+              value={draft.floor ?? ''}
+              onChange={(event) => onDraft((prev) => ({ ...prev, floor: event.target.value }))}
+            />
+            <TextField
+              label={m.checkoutApartment}
+              optionalLabel={m.checkoutOptional}
+              placeholder={m.checkoutApartmentHint}
+              value={draft.apartment ?? ''}
+              onChange={(event) => onDraft((prev) => ({ ...prev, apartment: event.target.value }))}
+            />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <TextField
+              label={m.checkoutLandmark}
+              optionalLabel={m.checkoutOptional}
+              placeholder={m.checkoutLandmarkHint}
+              value={draft.notes}
+              onChange={(event) => onDraft((prev) => ({ ...prev, notes: event.target.value }))}
+            />
+            <TextField
+              label={m.checkoutAddressLabel}
+              optionalLabel={m.checkoutOptional}
+              placeholder={m.checkoutAddressLabelHint}
+              value={draft.label}
+              onChange={(event) => onDraft((prev) => ({ ...prev, label: event.target.value }))}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-1">
             <AsyncButton
               variant="ink"
               state={saveState}
@@ -307,13 +465,14 @@ export function AddressSection({
               {m.checkoutSaveAddress}
             </AsyncButton>
             {addresses.length ? (
-              <Button variant="text" onClick={onCancelNew}>
+              <Button variant="light" onClick={onCancelNew}>
                 {m.checkoutCancel}
               </Button>
             ) : null}
-          </span>
+          </div>
+
           {saveState === 'error' ? (
-            <MessageBox tone="err" role="alert">
+            <MessageBox tone="err" role="alert" className="rounded-16">
               {m.checkoutAddressSaveFailed}
             </MessageBox>
           ) : null}
@@ -335,12 +494,12 @@ export function AddressSection({
 function PinBlock({ children }: { children: ReactNode }) {
   const m = useMessages();
   return (
-    <div className="flex flex-col gap-2.5">
-      <p className="m-0 flex items-center gap-1.5 text-14 font-semibold text-ink">
-        <Icon name="pin" size={18} />
-        {m.checkoutPinTitle}
-        <span className="text-13 font-normal text-stone">{m.checkoutPinRequired}</span>
-      </p>
+    <div className="flex flex-col gap-2.5 pt-1">
+      <div className="flex items-center gap-2 text-14 font-semibold text-ink">
+        <Icon name="pin" size={17} className="text-cobalt" />
+        <span>{m.checkoutPinTitle}</span>
+        <span className="text-12 font-normal text-stone">{m.checkoutPinRequired}</span>
+      </div>
       {children}
     </div>
   );
@@ -351,19 +510,19 @@ function RadioMark({ checked }: { checked: boolean }) {
     <span
       aria-hidden="true"
       className={cn(
-        'mt-0.5 grid size-5 flex-none place-items-center rounded-pill',
+        'mt-0.5 grid size-5 flex-none place-items-center rounded-pill transition-colors',
         checked ? 'bg-cobalt text-white' : 'bg-linen shadow-outline-check'
       )}
     >
-      {checked ? <Icon name="check" size={13} strokeWidth={3} /> : null}
+      {checked ? <Icon name="check" size={12} strokeWidth={3} /> : null}
     </span>
   );
 }
 
 export function InlineError({ id, children }: { id?: string; children: ReactNode }) {
   return (
-    <p id={id} role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-22 text-tomato-ink">
-      <span aria-hidden="true" className="mt-2 size-1.75 flex-none rounded-full bg-tomato-ink" />
+    <p id={id} role="alert" className="m-0 flex items-start gap-2 text-13.5 leading-20 text-tomato-ink">
+      <span aria-hidden="true" className="mt-1.5 size-1.5 flex-none rounded-full bg-tomato-ink" />
       {children}
     </p>
   );
@@ -383,7 +542,6 @@ export function DeliverySection({
   area: string | null;
   status: QuoteStatus;
   quote: CheckoutQuote | null;
-  /** Fee of the quote before the address or pin changed; shows «اتغيّرت» / «زي ما هي». */
   previousFee: number | null;
   onRetry: () => void;
 }) {
@@ -395,41 +553,54 @@ export function DeliverySection({
 
   return (
     <CheckoutSection id="co-delivery" step={3} done={Boolean(ready)} title={m.checkoutDeliveryTitle}>
-      <div className="flex items-center justify-between gap-3 rounded-16 bg-chalk px-4 py-3.5">
-        <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-15 font-bold text-ink">
-            {area ? fillMessage(m.checkoutDeliveryTo, { area }) : m.checkoutDeliveryTitle}
+      <div className="flex items-center justify-between gap-4 rounded-24 bg-chalk/70 p-4">
+        <div className="flex items-center gap-3">
+          <span className="grid size-11 place-items-center rounded-pill bg-sand text-ink shadow-elevation-1">
+            <Icon name="truck" size={20} />
           </span>
-          <span className="text-13 leading-20 text-stone">{m.checkoutDeliveryPromise}</span>
-        </span>
-        <span className="flex-none text-15 font-bold text-ink">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="font-display text-16 font-bold text-ink">
+              {area ? fillMessage(m.checkoutDeliveryTo, { area }) : m.checkoutDeliveryTitle}
+            </span>
+            <span className="text-13 leading-20 text-stone">{m.checkoutDeliveryPromise}</span>
+          </div>
+        </div>
+
+        <div className="flex-none font-display text-16 font-bold text-ink">
           {status === 'waiting' ? (
-            <span className="text-13.5 font-medium text-stone">{m.cartShippingLater}</span>
+            <span className="text-13 text-stone">{m.cartShippingLater}</span>
           ) : status === 'loading' ? (
-            <span role="status" className="text-13.5 font-medium text-stone">
+            <span role="status" className="flex items-center gap-2 text-13 text-stone">
+              <span className="size-2 rounded-full bg-cobalt animate-pulse" />
               {m.checkoutFeeCalculating}
             </span>
           ) : status === 'error' ? (
-            <span className="text-13.5 font-semibold text-tomato-ink">{m.checkoutFeeFailed}</span>
+            <span className="text-13 font-semibold text-tomato-ink">{m.checkoutFeeFailed}</span>
           ) : ready ? (
-            <span className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
               {feeChanged ? <Money amount={previousFee as number} struck className="text-13 font-medium text-stone" /> : null}
-              {quote.shippingFee === 0 ? m.checkoutFree : <Money amount={quote.shippingFee} />}
-            </span>
+              {quote.shippingFee === 0 ? (
+                <span className="rounded-pill bg-ok-tint px-2.5 py-0.5 text-13 font-bold text-ok">
+                  {m.checkoutFree}
+                </span>
+              ) : (
+                <Money amount={quote.shippingFee} className="font-display text-17 font-bold text-ink" />
+              )}
+            </div>
           ) : null}
-        </span>
+        </div>
       </div>
 
       {status === 'error' ? (
-        <MessageBox tone="err" role="alert">
+        <MessageBox tone="err" role="alert" className="rounded-16">
           <p className="m-0 text-14 leading-22">{m.checkoutFeeFailedBody}</p>
-          <Button variant="light" size="s" className="mt-2" onClick={onRetry}>
+          <Button variant="light" size="s" className="mt-2.5" onClick={onRetry}>
             <Icon name="retry" size={16} />
             {m.checkoutRecalculate}
           </Button>
         </MessageBox>
       ) : feeChanged ? (
-        <MessageBox tone="warn" role="status">
+        <MessageBox tone="warn" role="status" className="rounded-16">
           {fillMessage(m.checkoutFeeChanged, {
             old: formatEgp(previousFee as number, quote.currency, locale) ?? '',
             new: formatEgp(quote.shippingFee, quote.currency, locale) ?? '',
@@ -437,7 +608,7 @@ export function DeliverySection({
           })}
         </MessageBox>
       ) : feeSame ? (
-        <MessageBox tone="ok" role="status">
+        <MessageBox tone="ok" role="status" className="rounded-16">
           {m.checkoutFeeSame}
         </MessageBox>
       ) : null}
@@ -449,23 +620,26 @@ export function DeliverySection({
 
 /* ── ٤ طريقة الدفع ─────────────────────────────────────────────────────── */
 
-/**
- * Cash on delivery is the only method offered for now (owner decision 2026-10-18): one selected option, no disabled
- * card or wallet rows. The API keeps CARD / MOBILE_WALLET for when a provider is connected.
- */
 export function PaymentSection() {
   const m = useMessages();
   return (
     <CheckoutSection id="co-payment" step={4} done title={m.checkoutPaymentTitle}>
       <div role="radiogroup" aria-labelledby="co-payment">
-        <label className="flex cursor-pointer items-center gap-3 rounded-16 bg-cobalt/10 px-4 py-3.5 shadow-outline-cobalt">
+        <label className="flex cursor-pointer items-start gap-4 rounded-24 bg-cobalt/5 p-4.5 shadow-outline-cobalt ring-2 ring-cobalt/15">
           <input type="radio" name="co-payment" value="COD" className="sr-only" checked readOnly />
           <RadioMark checked />
-          <Icon name="cash" size={22} className="flex-none text-ink" />
-          <span className="flex flex-col gap-0.5">
-            <span className="text-15 font-bold text-ink">{m.checkoutCod}</span>
-            <span className="text-13 leading-20 text-stone">{m.checkoutCodBody}</span>
-          </span>
+          <div className="grid size-11 flex-none place-items-center rounded-pill bg-sand text-ink shadow-elevation-1">
+            <Icon name="cash" size={22} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="font-display text-16 font-bold text-ink">{m.checkoutCod}</span>
+              <span className="rounded-pill bg-ok-tint px-2 py-0.5 text-11 font-semibold text-ok">
+                {m.checkoutDone}
+              </span>
+            </div>
+            <span className="text-13 leading-21 text-stone">{m.checkoutCodBody}</span>
+          </div>
         </label>
       </div>
     </CheckoutSection>

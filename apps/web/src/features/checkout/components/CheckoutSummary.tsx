@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { AsyncButton, Button, type AsyncState } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Money } from '@/components/ui/money';
 import { ProductTile } from '@/components/ui/product-tile';
 import type { Cart } from '@/lib/cart';
@@ -16,7 +17,7 @@ import { InlineError, type QuoteStatus } from './CheckoutSections';
 
 export type CouponStatus = 'idle' | 'applying' | 'applied' | 'not-applied';
 
-interface CheckoutSummaryProps {
+export interface CheckoutSummaryProps {
   cart: Cart;
   quote: CheckoutQuote | null;
   quoteStatus: QuoteStatus;
@@ -30,9 +31,11 @@ interface CheckoutSummaryProps {
 }
 
 /**
- * «طلبك» (CheckoutD order summary, CommerceMobile ٣): the lines, discount code, subtotal, delivery and total from the
- * server quote, «أكد الطلب · total» and the legal line. Sticky beside the sections on desktop; below them on the
- * phone, where the button lives in the sticky action area instead.
+ * Editorial Order Summary Sidebar (CheckoutD, CommerceMobile ٣):
+ * - Itemized list of products in the cart with thumbnail, variant, and line total
+ * - Promo code application with instant feedback
+ * - Clear subtotal, discount, shipping fee and total calculation
+ * - Confident, high-contrast place-order button with shutter loading state
  */
 export function CheckoutSummary({
   cart,
@@ -57,52 +60,63 @@ export function CheckoutSummary({
   return (
     <aside
       aria-labelledby="co-summary"
-      className="flex flex-col gap-4 rounded-24 bg-linen p-4.5 shadow-outline-hairline lg:sticky lg:top-6 lg:rounded-sheet lg:p-6.5 lg:shadow-elevation-3 lg:outline lg:outline-1 lg:outline-line"
+      className="flex flex-col gap-5 rounded-24 bg-linen p-5 shadow-elevation-1 lg:sticky lg:top-6 lg:rounded-sheet lg:p-7 lg:shadow-elevation-2"
     >
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 id="co-summary" className="m-0 font-display text-24 font-extrabold leading-30 text-ink">
-          {m.checkoutYourOrder}
-        </h2>
-        <Link href={routes.cart} className="text-link text-13.5">
-          <span className="lg:hidden">{count} · </span>
+      <div className="flex items-baseline justify-between gap-3 border-b border-line pb-3">
+        <div className="flex items-center gap-2">
+          <h2 id="co-summary" className="m-0 font-display text-24 font-extrabold leading-30 text-ink">
+            {m.checkoutYourOrder}
+          </h2>
+          <span className="rounded-pill bg-sand/70 px-2.5 py-0.5 text-12 font-bold text-ink">
+            {count}
+          </span>
+        </div>
+        <Link href={routes.cart} className="rounded-pill px-2.5 py-1 text-13 font-semibold text-cobalt transition-colors hover:bg-sand/40 hover:text-cobalt-deep">
           {m.checkoutEditCart}
         </Link>
       </div>
 
+      {/* Product line items */}
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {cart.items.map((item) => {
           const name = item.sku.product.name || item.sku.code;
           const size = formatPackSize(item.sku.size, item.sku.sizeUnit, locale) ?? item.sku.variantName;
           const total = lineTotal(item.skuId, item.subtotal);
           return (
-            <li key={item.skuId} className="flex items-center gap-3">
-              <ProductTile size="thumb" className="h-15 w-12 flex-none rounded-8" src={item.sku.image?.url ?? null} alt="" name={name} />
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span dir="auto" className="truncate text-match-parent text-13.5 font-semibold text-ink">
+            <li key={item.skuId} className="flex items-center gap-3 rounded-16 bg-chalk/40 p-2.5">
+              <ProductTile size="thumb" className="h-16 w-13 flex-none rounded-image shadow-hairline-bottom" src={item.sku.image?.url ?? null} alt="" name={name} />
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span dir="auto" className="truncate text-match-parent text-14 font-bold text-ink">
                   {name}
                 </span>
-                <span className="text-12.5 text-stone">
+                <span className="text-12 text-stone">
                   {fillMessage(m.checkoutLineMeta, { size: size ?? '', qty: formatNumber(item.quantity, locale) })}
                 </span>
-              </span>
-              {total !== null ? <Money amount={total} className="text-14 font-bold text-ink" /> : null}
+              </div>
+              {total !== null ? (
+                <div className="flex-none">
+                  <Money amount={total} className="font-display text-15 font-bold text-ink" />
+                </div>
+              ) : null}
             </li>
           );
         })}
       </ul>
 
+      {/* Coupon form */}
       <form
-        className="flex flex-col gap-1.5"
+        className="flex flex-col gap-2 rounded-16 bg-chalk/60 p-3"
         onSubmit={(event) => {
           event.preventDefault();
           if (code.trim()) onApplyCoupon(code.trim());
         }}
       >
-        <label htmlFor="co-coupon" className="text-13 font-semibold text-ink">
-          {m.checkoutCoupon} <span className="font-normal text-stone">{m.checkoutCouponOptional}</span>
-        </label>
-        <span className="flex gap-2">
-          <span className="field-box flex h-12 min-w-0 flex-1 items-center px-4">
+        <div className="flex items-center justify-between text-13 font-semibold text-ink">
+          <span>{m.checkoutCoupon}</span>
+          <span className="text-12 font-normal text-stone">{m.checkoutCouponOptional}</span>
+        </div>
+        <div className="flex gap-2">
+          <div className="field-box flex h-11 min-w-0 flex-1 items-center px-3.5">
             <input
               id="co-coupon"
               value={code}
@@ -112,13 +126,13 @@ export function CheckoutSummary({
               placeholder={m.checkoutCouponPlaceholder}
               onChange={(event) => setCode(event.target.value)}
               readOnly={coupon.status === 'applied'}
-              className="min-w-0 flex-1 bg-transparent text-match-parent text-15 text-ink outline-none placeholder:text-stone"
+              className="min-w-0 flex-1 bg-transparent text-match-parent text-14 text-ink outline-none placeholder:text-stone"
             />
-          </span>
+          </div>
           {coupon.status === 'applied' ? (
             <Button
               variant="light"
-              className="h-12"
+              className="h-11 rounded-input"
               onClick={() => {
                 setCode('');
                 onRemoveCoupon();
@@ -127,57 +141,87 @@ export function CheckoutSummary({
               {m.checkoutCouponRemove}
             </Button>
           ) : (
-            <Button type="submit" variant="light" className="h-12" loading={coupon.status === 'applying'} pendingLabel={m.checkoutCouponApplying} disabled={!code.trim()}>
+            <Button
+              type="submit"
+              variant="ink"
+              className="h-11 rounded-input"
+              loading={coupon.status === 'applying'}
+              pendingLabel={m.checkoutCouponApplying}
+              disabled={!code.trim()}
+            >
               {m.checkoutCouponApply}
             </Button>
           )}
-        </span>
+        </div>
         {coupon.status === 'applied' ? (
-          <p role="status" className="m-0 text-13 font-semibold text-ok">
-            {m.checkoutCouponApplied}
+          <p role="status" className="m-0 flex items-center gap-1.5 text-12.5 font-semibold text-ok">
+            <Icon name="check" size={14} strokeWidth={2.8} />
+            <span>{m.checkoutCouponApplied}</span>
           </p>
         ) : coupon.status === 'not-applied' ? (
           <InlineError>{m.checkoutCouponNotApplied}</InlineError>
         ) : null}
       </form>
 
-      <div className="flex flex-col gap-1">
-        <Row label={fillMessage(m.checkoutSubtotalCount, { count })}>
+      {/* Financial breakdown */}
+      <div className="flex flex-col gap-2 pt-1">
+        <SummaryRow label={fillMessage(m.checkoutSubtotalCount, { count })}>
           <Money amount={subtotal} />
-        </Row>
+        </SummaryRow>
         {discount > 0 ? (
-          <Row label={m.checkoutDiscount}>
-            <span className="text-ok">
+          <SummaryRow label={m.checkoutDiscount}>
+            <span className="font-bold text-ok">
               − <Money amount={discount} />
             </span>
-          </Row>
+          </SummaryRow>
         ) : null}
-        <Row label={m.checkoutShipping}>
+        <SummaryRow label={m.checkoutShipping}>
           {quoteStatus === 'ready' && quote ? (
-            quote.shippingFee === 0 ? m.checkoutFree : <Money amount={quote.shippingFee} />
+            quote.shippingFee === 0 ? (
+              <span className="rounded-pill bg-ok-tint px-2 py-0.5 text-12 font-bold text-ok">
+                {m.checkoutFree}
+              </span>
+            ) : (
+              <Money amount={quote.shippingFee} />
+            )
           ) : (
-            <span className="text-stone">
+            <span className="text-13 text-stone">
               {quoteStatus === 'loading' ? m.checkoutFeeCalculating : quoteStatus === 'error' ? m.checkoutFeeFailed : m.cartShippingLater}
             </span>
           )}
-        </Row>
+        </SummaryRow>
         <div aria-hidden="true" className="my-1.5 h-px bg-line" />
-        <Row label={m.checkoutTotal} strong>
-          {quoteStatus === 'ready' && quote ? <Money amount={quote.totalAmount} /> : <span className="text-stone">—</span>}
-        </Row>
+        <SummaryRow label={m.checkoutTotal} strong>
+          {quoteStatus === 'ready' && quote ? (
+            <Money amount={quote.totalAmount} className="font-display text-24 font-extrabold text-ink" />
+          ) : (
+            <span className="text-stone">—</span>
+          )}
+        </SummaryRow>
       </div>
 
-      <div className="hidden lg:block">
-        <AsyncButton size="l" className="w-full" state={placeState} pendingLabel={m.checkoutPlacing} retryLabel={placeLabel} disabled={!canPlace} onClick={onPlace}>
+      {/* Desktop place button */}
+      <div className="hidden pt-2 lg:block">
+        <AsyncButton
+          size="l"
+          className="w-full text-17"
+          state={quoteStatus === 'loading' ? 'resolving' : placeState}
+          pendingLabel={m.checkoutPlacing}
+          resolvingLabel={m.checkoutFeeCalculating}
+          retryLabel={placeLabel}
+          disabled={!canPlace && quoteStatus !== 'loading'}
+          onClick={onPlace}
+        >
           {placeLabel}
         </AsyncButton>
       </div>
-      <p className="m-0 text-12.5 leading-20 text-stone">{m.checkoutLegal}</p>
+
+      <p className="m-0 text-center text-12 leading-18 text-stone">{m.checkoutLegal}</p>
     </aside>
   );
 }
 
-function Row({ label, strong, children }: { label: string; strong?: boolean; children: React.ReactNode }) {
+function SummaryRow({ label, strong, children }: { label: string; strong?: boolean; children: React.ReactNode }) {
   return (
     <div className={cn('flex min-h-7.5 items-center justify-between gap-3', strong ? 'text-17 font-bold' : 'text-14.5 font-medium', 'text-ink')}>
       <span>{label}</span>

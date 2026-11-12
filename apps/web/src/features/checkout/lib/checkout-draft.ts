@@ -7,6 +7,9 @@ export interface NewAddressDraft {
   governorate: Governorate | '';
   area: string;
   shippingAddress: string;
+  building?: string;
+  floor?: string;
+  apartment?: string;
   notes: string;
   pin: LocationPin | null;
 }
@@ -27,7 +30,29 @@ export interface CheckoutDraft {
 const DRAFT_KEY = 'shena.checkoutDraft';
 const PLACED_KEY = 'shena.placedOrder';
 
-export const EMPTY_ADDRESS: NewAddressDraft = { label: '', governorate: '', area: '', shippingAddress: '', notes: '', pin: null };
+export const EMPTY_ADDRESS: NewAddressDraft = {
+  label: '',
+  governorate: '',
+  area: '',
+  shippingAddress: '',
+  building: '',
+  floor: '',
+  apartment: '',
+  notes: '',
+  pin: null,
+};
+
+/**
+ * Compose individual street, building, floor, and apartment components into a single shippingAddress string.
+ */
+export function composeShippingAddress(street: string, building?: string, floor?: string, apartment?: string): string {
+  const parts: string[] = [];
+  if (street.trim()) parts.push(street.trim());
+  if (building?.trim()) parts.push(building.trim().startsWith('عمارة') || building.trim().startsWith('مبنى') || building.trim().toLowerCase().startsWith('bldg') ? building.trim() : `عمارة ${building.trim()}`);
+  if (floor?.trim()) parts.push(floor.trim().startsWith('دور') || floor.trim().startsWith('الدور') || floor.trim().toLowerCase().startsWith('floor') ? floor.trim() : `الدور ${floor.trim()}`);
+  if (apartment?.trim()) parts.push(apartment.trim().startsWith('شقة') || apartment.trim().toLowerCase().startsWith('apt') ? apartment.trim() : `شقة ${apartment.trim()}`);
+  return parts.join('، ');
+}
 
 export function readDraft(): CheckoutDraft {
   try {

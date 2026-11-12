@@ -16,6 +16,7 @@ import { formatClock, isolateLtr } from '@/lib/i18n/format';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { cn } from '@/lib/utils';
+import { DevEmailLoginPanel } from './DevEmailLoginPanel';
 import {
   apiErrorCode,
   apiRetryAfter,
@@ -396,6 +397,8 @@ export function AuthModal({
                 </>
               )}
             </div>
+
+            <DevEmailLoginPanel onSuccess={onSuccess} />
           </div>
         )}
 
