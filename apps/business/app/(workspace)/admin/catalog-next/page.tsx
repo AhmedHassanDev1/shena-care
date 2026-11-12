@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Building2, FolderTree, Package, ShieldCheck } from 'lucide-react'
 import { PageHeader } from '@/components/bw/primitives'
@@ -83,7 +84,17 @@ function CatalogPage() {
   return (
     <RoleShell role="admin" active="catalog" mode="desktop">
       <Page>
-        <PageHeader title="الكتالوج" />
+        <PageHeader
+          title="الكتالوج"
+          actions={
+            <Link
+              href="/admin/catalog"
+              className="inline-flex h-bw-control items-center gap-2 rounded-bw-field border border-bw-line bg-bw-surface px-3.5 text-bw-small font-semibold text-bw-ink transition-colors hover:border-bw-line-field hover:bg-bw-sunken"
+            >
+              الواجهة التفصيلية
+            </Link>
+          }
+        />
         <div role="tablist" aria-label="أقسام الكتالوج" onKeyDown={onKeyDown} className="flex gap-3.5 border-b border-bw-line sm:gap-7">
           {TABS.map(({ key, label, icon: Icon }) => {
             const selected = tab === key

@@ -7,6 +7,7 @@ import {
   FileSpreadsheet,
   FolderTree,
   Image as ImageIcon,
+  Layers,
   Package,
   ShieldCheck,
 } from 'lucide-react'
@@ -70,6 +71,13 @@ export default function AdminCatalog() {
           meta="إدارة المنتجات، الماركات، شجرة التصنيفات، وقواعد قائمة السماح لاستيراد الموردين من مكان واحد."
           actions={
             <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/admin/catalog-next"
+                className="inline-flex h-bw-control items-center gap-2 rounded-bw-field border border-bw-line bg-bw-surface px-3.5 text-bw-small font-semibold text-bw-ink transition-colors hover:border-bw-line-field hover:bg-bw-sunken"
+              >
+                <Layers className="size-4 text-bw-cobalt" aria-hidden />
+                الواجهة المبسطة
+              </Link>
               <Link
                 href="/admin/catalog/media-templates"
                 className="inline-flex h-bw-control items-center gap-2 rounded-bw-field border border-bw-line bg-bw-surface px-3.5 text-bw-small font-semibold text-bw-ink transition-colors hover:border-bw-line-field hover:bg-bw-sunken"
