@@ -1,846 +1,419 @@
 'use client'
 
 import * as React from 'react'
-import {
-  CheckCircle2,
-  FlaskConical,
-  History,
-  Plus,
-  RefreshCw,
-  ShieldAlert,
-  ShieldCheck,
-  Trash2,
-  XCircle,
-} from 'lucide-react'
-import { api, ApiError } from '@/lib/api'
-import {
-  Button,
-  Code,
-  Field,
-  Notice,
-  Select,
-  Skeleton,
-  StatusLabel,
-  Switch,
-} from '@/components/bw/primitives'
+import { CheckCircle2, FlaskConical, History, Pencil, Plus, ShieldAlert, Trash2, XCircle } from 'lucide-react'
+import { Button, Code, Dialog, Field, Select, Skeleton, StateBlock, Switch, useDialog } from '@/components/bw/primitives'
 import { LoadError } from '@/components/workspace/role-shell'
+import { api, ApiError } from '@/lib/api'
 import { useApi } from '@/lib/use-api'
+import { cn } from '@/lib/utils'
 import {
   BrandSummary,
   CategoryNode,
-  EXCLUDED_CLASS_LABELS,
-  PolicyBrandCategoryRule,
-  PolicyBrandRule,
-  PolicyCategoryRule,
+  FlatRule,
   PolicyDocument,
   PolicyEvaluationResult,
   PolicyRuleEffect,
   PolicyStateResponse,
+  RULE_KIND_LABELS,
+  RuleKind,
+  catalogErrorMessage,
   flattenCategories,
+  flattenPolicy,
   policyReasonLabel,
-} from './catalog-utils'
+  ruleEffectText,
+  withRuleRemoved,
+} from './catalog-model'
+import { Banner, Dot, RowMenu, SearchBox } from './ui'
 
-const EMPTY_DOC: PolicyDocument = {
-  mode: 'OPEN',
-  brands: [],
-  categories: [],
-  brandCategoryRules: [],
-  excludedTerms: [],
-  disabledExcludedClasses: [],
-}
+const EMPTY: PolicyDocument = { mode: 'OPEN', brands: [], categories: [], brandCategoryRules: [], excludedTerms: [], disabledExcludedClasses: [] }
+const fold = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
 
-export function AllowlistTab({
-  brands,
-  categories,
-}: {
-  brands: BrandSummary[]
-  categories: CategoryNode[]
-}) {
-  const policyApi = useApi<PolicyStateResponse>('/catalog/policy')
-  const [doc, setDoc] = React.useState<PolicyDocument>(EMPTY_DOC)
-  const [reason, setReason] = React.useState('')
-  const [dirty, setDirty] = React.useState(false)
-  const [showHistory, setShowHistory] = React.useState(false)
-  const [saving, setSaving] = React.useState(false)
+type Pending = { title: string; body: string; next: PolicyDocument; done: string }
+
+export function AllowlistTab({ brands, categories }: { brands: BrandSummary[]; categories: CategoryNode[] }) {
+  const policy = useApi<PolicyStateResponse>('/catalog/policy')
+  const [query, setQuery] = React.useState('')
   const [notice, setNotice] = React.useState<string | null>(null)
-  const [error, setError] = React.useState<string | null>(null)
+  const [editing, setEditing] = React.useState<FlatRule | null>(null)
+  const [pending, setPending] = React.useState<Pending | null>(null)
+  const ruleDialog = useDialog()
+  const reasonDialog = useDialog()
+  const testDialog = useDialog()
+  const historyDialog = useDialog()
+  const later = (fn: () => void) => window.setTimeout(fn, 0)
 
-  const [newBrandId, setNewBrandId] = React.useState('')
-  const [newExternalBrand, setNewExternalBrand] = React.useState('')
-  const [newBrandEffect, setNewBrandEffect] = React.useState<PolicyRuleEffect>('ALLOW')
-  const [newBrandAliases, setNewBrandAliases] = React.useState('')
+  const doc = policy.data?.current.document ?? EMPTY
+  const system = policy.data?.systemExcludedClasses ?? []
+  const rules = React.useMemo(() => flattenPolicy(doc, system), [doc, system])
+  const q = fold(query.trim())
+  const shown = rules.filter((r) => !q || fold(`${r.title} ${r.detail ?? ''} ${RULE_KIND_LABELS[r.kind]}`).includes(q))
+  const custom = shown.filter((r) => r.kind !== 'system')
+  const builtIn = shown.filter((r) => r.kind === 'system')
 
-  const [newCatId, setNewCatId] = React.useState('')
-  const [newCatEffect, setNewCatEffect] = React.useState<PolicyRuleEffect>('ALLOW')
+  const stage = (p: Pending) => { setPending(p); later(() => reasonDialog.open()) }
 
-  const [pairBrandId, setPairBrandId] = React.useState('')
-  const [pairCatId, setPairCatId] = React.useState('')
-  const [pairEffect, setPairEffect] = React.useState<PolicyRuleEffect>('ALLOW')
-  const [pairNote, setPairNote] = React.useState('')
-
-  const [newTerm, setNewTerm] = React.useState('')
-
-  const [simTitle, setSimTitle] = React.useState('')
-  const [simBrandId, setSimBrandId] = React.useState('')
-  const [simBrandName, setSimBrandName] = React.useState('')
-  const [simCategoryId, setSimCategoryId] = React.useState('')
-  const [simHardId, setSimHardId] = React.useState(false)
-  const [simulating, setSimulating] = React.useState(false)
-  const [simResult, setSimResult] = React.useState<PolicyEvaluationResult | null>(null)
-  const [simError, setSimError] = React.useState<string | null>(null)
-
-  React.useEffect(() => {
-    if (!policyApi.data) return
-    setDoc(policyApi.data.current.document)
-    setDirty(false)
-  }, [policyApi.data])
-
-  const flatCategories = React.useMemo(() => flattenCategories(categories), [categories])
-
-  function updateDoc(updater: (prev: PolicyDocument) => PolicyDocument) {
-    setDoc((prev) => updater(prev))
-    setDirty(true)
-    setNotice(null)
-    setError(null)
-  }
-
-  function addBrandRule() {
-    const aliases = newBrandAliases
-      .split(/[,،]+/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-
-    if (newBrandId) {
-      const canonical = brands.find((b) => b.id === newBrandId)
-      if (!canonical) return
-      if (doc.brands.some((b) => b.id === canonical.id)) {
-        setError(`الماركة «${canonical.name}» مضافة بالفعل في قائمة القواعد.`)
-        return
-      }
-      const nextRule: PolicyBrandRule = {
-        id: canonical.id,
-        name: canonical.name,
-        effect: newBrandEffect,
-        aliases: aliases.length ? aliases : canonical.aliases,
-      }
-      updateDoc((prev) => ({ ...prev, brands: [...prev.brands, nextRule] }))
-      setNewBrandId('')
-      setNewBrandAliases('')
-      return
-    }
-
-    if (newExternalBrand.trim() && newBrandEffect === 'DENY') {
-      const label = newExternalBrand.trim()
-      if (doc.brands.some((b) => !b.id && b.name.toLowerCase() === label.toLowerCase())) {
-        setError(`العلامة «${label}» مضافة بالفعل.`)
-        return
-      }
-      updateDoc((prev) => ({
-        ...prev,
-        brands: [...prev.brands, { name: label, effect: 'DENY', aliases }],
-      }))
-      setNewExternalBrand('')
-      setNewBrandAliases('')
-    }
-  }
-
-  function addCategoryRule() {
-    if (!newCatId) return
-    const cat = flatCategories.find((c) => c.id === newCatId)
-    if (!cat) return
-    if (doc.categories.some((c) => c.id === cat.id)) {
-      setError(`التصنيف «${cat.name}» موجود بالفعل في القواعد.`)
-      return
-    }
-    const nextRule: PolicyCategoryRule = {
-      id: cat.id,
-      name: cat.name,
-      effect: newCatEffect,
-    }
-    updateDoc((prev) => ({ ...prev, categories: [...prev.categories, nextRule] }))
-    setNewCatId('')
-  }
-
-  function addPairRule() {
-    if (!pairBrandId || !pairCatId) return
-    const brand = brands.find((b) => b.id === pairBrandId)
-    const cat = flatCategories.find((c) => c.id === pairCatId)
-    if (!brand || !cat) return
-    if (doc.brandCategoryRules.some((r) => r.brandId === brand.id && r.categoryId === cat.id)) {
-      setError('هذا الاستثناء المركب مسجل بالفعل.')
-      return
-    }
-    const rule: PolicyBrandCategoryRule = {
-      brandId: brand.id,
-      brandName: brand.name,
-      categoryId: cat.id,
-      categoryName: cat.name,
-      effect: pairEffect,
-      ...(pairNote.trim() ? { note: pairNote.trim() } : {}),
-    }
-    updateDoc((prev) => ({
-      ...prev,
-      brandCategoryRules: [...prev.brandCategoryRules, rule],
-    }))
-    setPairBrandId('')
-    setPairCatId('')
-    setPairNote('')
-  }
-
-  function addExcludedTerm() {
-    const trimmed = newTerm.trim()
-    if (trimmed.length < 2) return
-    if (doc.excludedTerms.some((t) => t.toLowerCase() === trimmed.toLowerCase())) {
-      setNewTerm('')
-      return
-    }
-    updateDoc((prev) => ({
-      ...prev,
-      excludedTerms: [...prev.excludedTerms, trimmed],
-    }))
-    setNewTerm('')
-  }
-
-  async function savePolicy(event: React.FormEvent) {
-    event.preventDefault()
-    if (reason.trim().length < 3) {
-      setError('اكتب سبب التعديل للمراجعة والتوثيق (3 أحرف على الأقل).')
-      return
-    }
-    setSaving(true)
-    setError(null)
-    setNotice(null)
-    try {
-      await api<PolicyStateResponse>('/catalog/policy', {
-        method: 'PUT',
-        body: {
-          ...doc,
-          reason: reason.trim(),
-        },
-      })
-      setNotice('تم اعتماد وحفظ سياسة قائمة السماح في سجل الإصدارات.')
-      setReason('')
-      setDirty(false)
-      policyApi.reload()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'تعذر حفظ السياسة.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function runSimulation(event: React.FormEvent) {
-    event.preventDefault()
-    if (!simTitle.trim()) {
-      setSimError('أدخل عنوان المنتج للاختبار.')
-      return
-    }
-    setSimulating(true)
-    setSimError(null)
-    try {
-      const selectedBrand = brands.find((b) => b.id === simBrandId)
-      const res = await api<PolicyEvaluationResult>('/catalog/policy/evaluate', {
-        method: 'POST',
-        body: {
-          title: simTitle.trim(),
-          ...(simBrandId ? { brandId: simBrandId } : {}),
-          ...(selectedBrand
-            ? { brandName: selectedBrand.name }
-            : simBrandName.trim()
-              ? { brandName: simBrandName.trim() }
-              : {}),
-          ...(simCategoryId ? { categoryId: simCategoryId } : {}),
-          hasHardIdentifier: simHardId,
-        },
-      })
-      setSimResult(res)
-    } catch (err) {
-      setSimError(err instanceof ApiError ? err.message : 'تعذر تشغيل محاكي القواعد.')
-    } finally {
-      setSimulating(false)
-    }
-  }
-
-  if (policyApi.loading && !policyApi.data) {
-    return <Skeleton className="h-80 w-full rounded-bw-card" />
-  }
-
-  if (policyApi.error) {
-    return <LoadError message={policyApi.error.message} onRetry={policyApi.reload} />
-  }
-
-  const version = policyApi.data?.current.version ?? 0
-  const history = policyApi.data?.history ?? []
-  const systemClasses = policyApi.data?.systemExcludedClasses ?? []
+  if (policy.loading && !policy.data) return <Skeleton className="h-64 w-full" />
+  if (policy.error) return <LoadError message={policy.error.message} onRetry={policy.reload} />
 
   return (
-    <section aria-label="قائمة السماح وسياسة الإدخال" className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-bw-card border border-bw-line bg-bw-surface p-4">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-semibold text-bw-ink">سياسة أهلية الإدخال (Allowlist Policy)</h2>
-            <StatusLabel tone={version > 0 ? 'info' : 'neutral'}>
-              الإصدار <Code>{`v${version}`}</Code>
-            </StatusLabel>
-            {dirty ? <StatusLabel tone="warn">تعديلات غير محفوظة</StatusLabel> : null}
-          </div>
-          <p className="text-bw-small text-bw-ink-soft">
-            {policyApi.data?.current.reason
-              ? `آخر اعتماد: ${policyApi.data.current.reason}`
-              : 'السياسة الافتراضية المبدئية مفعّلة بدون قواعد مخصصة بعد.'}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => setShowHistory((v) => !v)}>
-            <History className="size-4" aria-hidden />
-            سجل الإصدارات (<Code>{history.length}</Code>)
-          </Button>
-          <Button variant="ghost" aria-label="تحديث السياسة" onClick={policyApi.reload}>
-            <RefreshCw className="size-4" />
-          </Button>
-        </div>
-      </div>
-
-      <Notice tone="warn" title="سياسة غير مدمرة للكتالوج الحالي">
-        تنطبق هذه القواعد على فحص قوائم الموردين الجديدة ومطابقة الإدخال فقط. لا تحذف أو تؤرشف أو توقف نشر أي منتج موجود حاليًا.
-      </Notice>
-
-      {showHistory && history.length > 0 ? (
-        <div className="rounded-bw-card border border-bw-line bg-bw-surface p-4">
-          <h3 className="mb-3 text-bw-small font-semibold text-bw-ink">سجل التعديلات المعتمدة</h3>
-          <ul className="divide-y divide-bw-line text-bw-small">
-            {history.map((h) => (
-              <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <div className="flex items-center gap-2">
-                  <Code className="rounded bg-bw-sunken px-1.5 py-0.5 text-[11px] font-semibold">
-                    {`v${h.version ?? 0}`}
-                  </Code>
-                  <span className="text-bw-ink">{h.reason}</span>
-                </div>
-                <span className="text-[11px] text-bw-ink-subtle">
-                  {h.approvedAt ? new Date(h.approvedAt).toLocaleString('ar-EG') : '—'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {notice ? (
-        <div
-          role="status"
-          className="rounded-bw-field border border-bw-emerald/30 bg-bw-emerald-soft px-3.5 py-2.5 text-bw-small text-bw-ink"
-        >
-          {notice}
-        </div>
-      ) : null}
-
-      {error ? (
-        <div
-          role="alert"
-          className="rounded-bw-field border border-bw-rose/30 bg-bw-rose-soft px-3.5 py-2.5 text-bw-small text-bw-ink"
-        >
-          {error}
-        </div>
-      ) : null}
-
-      <div className="rounded-bw-card border border-bw-line bg-bw-surface p-4 space-y-3">
-        <h3 className="text-bw-small font-semibold text-bw-ink">وضع السياسة العام</h3>
-        <div className="grid gap-3 md:grid-cols-2">
-          {[
-            {
-              value: 'OPEN' as const,
-              title: 'الوضع المفتوح (استبعاد الممنوع فقط)',
-              body: 'تستمر الماركات المعروفة والمنتجات غير المصنفة مع تطبيق قواعد المنع والكلمات وفئات الاستبعاد التلقائي.',
-            },
-            {
-              value: 'ALLOWLIST_ONLY' as const,
-              title: 'وضع السماح الحصري (Allowlist Only)',
-              body: 'يمرر فقط الماركات والتصنيفات المسموح بها صراحةً أو المعرفات الموثقة (الباركود)؛ ويستبعد باقي القوائم مبكرًا.',
-            },
-          ].map((option) => (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchBox value={query} onChange={setQuery} label="بحث في القواعد" placeholder="ماركة أو تصنيف أو عبارة" />
+        <div role="radiogroup" aria-label="وضع السياسة" className="inline-flex rounded-bw-field border border-bw-line p-0.5">
+          {([['OPEN', 'مفتوح'], ['ALLOWLIST_ONLY', 'حصري']] as const).map(([value, text]) => (
             <button
-              key={option.value}
+              key={value}
               type="button"
-              onClick={() => updateDoc((prev) => ({ ...prev, mode: option.value }))}
-              className={`rounded-bw-card border p-3.5 text-start transition-colors ${
-                doc.mode === option.value
-                  ? 'border-bw-cobalt bg-bw-cobalt-soft'
-                  : 'border-bw-line bg-bw-sunken hover:border-bw-line-field'
-              }`}
+              role="radio"
+              aria-checked={doc.mode === value}
+              onClick={() => {
+                if (doc.mode === value) return
+                stage({
+                  title: value === 'OPEN' ? 'التحويل إلى الوضع المفتوح' : 'التحويل إلى الوضع الحصري',
+                  body: value === 'OPEN' ? 'تمرّ الماركات المعروفة، ويُستبعد الممنوع فقط.' : 'تمرّ الماركات والتصنيفات المسموح بها صراحةً، والمعرّفات الموثقة (باركود). وتُستبعد البقية مبكرًا.',
+                  next: { ...doc, mode: value },
+                  done: value === 'OPEN' ? 'أصبح الوضع مفتوحًا' : 'أصبح الوضع حصريًا',
+                })
+              }}
+              className={cn('min-h-8 rounded-bw-field px-3 text-bw-small transition-colors', doc.mode === value ? 'bg-bw-sunken font-semibold text-bw-ink' : 'text-bw-ink-soft hover:text-bw-ink')}
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-bw-ink">{option.title}</span>
-                <StatusLabel tone={doc.mode === option.value ? 'info' : 'neutral'}>
-                  {doc.mode === option.value ? 'مفعّل' : 'اختيار'}
-                </StatusLabel>
-              </div>
-              <p className="mt-1.5 text-[11px] leading-5 text-bw-ink-soft">{option.body}</p>
+              {text}
             </button>
           ))}
         </div>
+        <div className="ms-auto flex items-center gap-1">
+          <Button onClick={() => { setEditing(null); later(() => ruleDialog.open()) }}><Plus className="size-4" aria-hidden />إضافة قاعدة</Button>
+          <RowMenu label="المزيد" actions={[
+            { label: 'اختبار منتج', icon: FlaskConical, onSelect: () => later(() => testDialog.open()) },
+            { label: 'سجل الإصدارات', icon: History, onSelect: () => later(() => historyDialog.open()) },
+          ]} />
+        </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1.25fr_0.95fr]">
-        <div className="space-y-5">
-          <div className="space-y-3 rounded-bw-card border border-bw-line bg-bw-surface p-4">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="font-semibold text-bw-ink">قواعد الماركات والأسماء البديلة</h3>
-              <span className="text-[11px] text-bw-ink-subtle">
-                <Code>{doc.brands.length}</Code> قاعدة
-              </span>
-            </div>
+      <p className="text-bw-small text-bw-ink-soft">
+        الإصدار <Code>{`v${policy.data?.current.version ?? 0}`}</Code> · تنطبق القواعد على فحص ملفات الموردين الجديدة فقط، ولا تحذف أو توقف أي منتج موجود.
+      </p>
 
-            <div className="grid gap-2.5 rounded-bw-field border border-bw-line bg-bw-sunken p-3 sm:grid-cols-2">
-              <Select
-                label="اختر ماركة معيارية"
-                value={newBrandId}
-                onChange={(e) => {
-                  setNewBrandId(e.target.value)
-                  if (e.target.value) setNewExternalBrand('')
-                }}
-                options={[
-                  { value: '', label: '— اختر من الماركات المسجلة —' },
-                  ...brands.map((b) => ({ value: b.id, label: b.name })),
-                ]}
-              />
-              <Select
-                label="الحكم"
-                value={newBrandEffect}
-                onChange={(e) => setNewBrandEffect(e.target.value as PolicyRuleEffect)}
-                options={[
-                  { value: 'ALLOW', label: 'سماح (ALLOW)' },
-                  { value: 'DENY', label: 'استبعاد / منع (DENY)' },
-                ]}
-              />
-              {!newBrandId && newBrandEffect === 'DENY' ? (
-                <Field
-                  label="أو اسم ماركة خارجية لمنعها دون إضافتها للكتالوج"
-                  value={newExternalBrand}
-                  onChange={(e) => setNewExternalBrand(e.target.value)}
-                  placeholder="مثال: ماركة تجارية خارج النطاق"
-                />
-              ) : null}
-              <Field
-                label="أسماء بديلة للمطابقة (افصل بفاصلة)"
-                value={newBrandAliases}
-                onChange={(e) => setNewBrandAliases(e.target.value)}
-                placeholder="مثال: سيرافي، سيرفي"
-              />
-              <div className="flex items-end sm:col-span-2">
-                <Button
-                  variant="secondary"
-                  disabled={!newBrandId && !(newBrandEffect === 'DENY' && newExternalBrand.trim())}
-                  onClick={addBrandRule}
-                >
-                  <Plus className="size-4" aria-hidden />
-                  إضافة قاعدة ماركة
-                </Button>
-              </div>
-            </div>
+      {notice ? <Banner tone="ok" onClose={() => setNotice(null)}>{notice}</Banner> : null}
 
-            {doc.brands.length === 0 ? (
-              <p className="text-bw-small text-bw-ink-subtle">لا توجد قواعد ماركات مخصصة بعد.</p>
-            ) : (
-              <ul className="divide-y divide-bw-line rounded-bw-field border border-bw-line">
-                {doc.brands.map((rule, idx) => (
-                  <li
-                    key={`${rule.id ?? rule.name}-${idx}`}
-                    className="flex flex-wrap items-center justify-between gap-2 p-2.5 text-bw-small"
-                  >
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-bw-ink">{rule.name}</span>
-                        <StatusLabel tone={rule.effect === 'ALLOW' ? 'ok' : 'danger'}>
-                          {rule.effect === 'ALLOW' ? 'مسموح' : 'مستبعد'}
-                        </StatusLabel>
-                        {!rule.id ? (
-                          <span className="text-[11px] text-bw-ink-subtle">خارج الكتالوج</span>
-                        ) : null}
-                      </div>
-                      {rule.aliases?.length ? (
-                        <p className="text-[11px] text-bw-ink-soft">
-                          بدائل: {rule.aliases.join(' · ')}
-                        </p>
-                      ) : null}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      onClick={() =>
-                        updateDoc((prev) => ({
-                          ...prev,
-                          brands: prev.brands.filter((_, i) => i !== idx),
-                        }))
-                      }
-                      aria-label={`إزالة قاعدة ${rule.name}`}
-                    >
-                      <Trash2 className="size-3.5 text-bw-rose" aria-hidden />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
+      {custom.length === 0 && !q ? (
+        <StateBlock kind="empty" title="لا توجد قواعد مخصصة" body={doc.mode === 'OPEN' ? 'الوضع مفتوح: تمرّ الماركات المعروفة ويُستبعد الممنوع تلقائيًا. أضف قاعدة لمنع ماركة أو تصنيف.' : 'الوضع حصري ولا توجد قواعد سماح، فيُستبعد كل شيء عدا المعرّفات الموثقة.'} />
+      ) : null}
+      {shown.length === 0 && q ? <StateBlock kind="empty" title="لا توجد قاعدة مطابقة" /> : null}
+
+      {custom.length > 0 ? (
+        <ul className="divide-y divide-bw-line rounded-bw-card border border-bw-line bg-bw-surface">
+          {custom.map((rule) => <RuleRow key={rule.key} rule={rule} actions={[
+            ...(rule.kind === 'term' ? [] : [{ label: 'تعديل', icon: Pencil, onSelect: () => { setEditing(rule); later(() => ruleDialog.open()) } }]),
+            { label: 'حذف القاعدة', icon: Trash2, tone: 'danger' as const, onSelect: () => stage({ title: 'حذف القاعدة', body: `ستُزال القاعدة «${rule.title}» من السياسة.`, next: withRuleRemoved(doc, rule), done: 'تم حذف القاعدة' }) },
+          ]} />)}
+        </ul>
+      ) : null}
+
+      {builtIn.length > 0 ? (
+        <details className="group rounded-bw-card border border-bw-line bg-bw-surface">
+          <summary className="flex min-h-bw-control cursor-pointer list-none items-center justify-between px-4 text-bw-small font-semibold text-bw-ink-soft">
+            قواعد النظام المدمجة <Code>{builtIn.length}</Code>
+          </summary>
+          <ul className="divide-y divide-bw-line border-t border-bw-line">
+            {builtIn.map((rule) => {
+              const off = rule.effect === 'SYSTEM_OFF'
+              return <RuleRow key={rule.key} rule={rule} actions={[{
+                label: off ? 'تفعيل الاستبعاد' : 'تعطيل الاستبعاد',
+                icon: off ? CheckCircle2 : XCircle,
+                onSelect: () => stage({
+                  title: off ? 'تفعيل الاستبعاد التلقائي' : 'تعطيل الاستبعاد التلقائي',
+                  body: off ? `سيُستبعد كل ما يخص «${rule.title}» من جديد.` : `لن يُستبعد ما يخص «${rule.title}» تلقائيًا. يبقى للمراجعة.`,
+                  next: { ...doc, disabledExcludedClasses: off ? doc.disabledExcludedClasses.filter((k) => k !== rule.detail) : [...doc.disabledExcludedClasses, rule.detail ?? ''] },
+                  done: off ? 'تم تفعيل الاستبعاد' : 'تم تعطيل الاستبعاد',
+                }),
+              }]} />
+            })}
+          </ul>
+        </details>
+      ) : null}
+
+      <RuleModal
+        key={editing?.key ?? 'new'}
+        dialogRef={ruleDialog.ref}
+        rule={editing}
+        doc={doc}
+        brands={brands}
+        categories={categories}
+        onClose={() => ruleDialog.close()}
+        onSaved={(message) => { ruleDialog.close(); setNotice(message); policy.reload() }}
+      />
+      <ReasonDialog dialogRef={reasonDialog.ref} pending={pending} onClose={() => reasonDialog.close()} onSaved={(message) => { reasonDialog.close(); setNotice(message); policy.reload() }} />
+      <TestDialog dialogRef={testDialog.ref} brands={brands} categories={categories} onClose={() => testDialog.close()} />
+      <HistoryDialog dialogRef={historyDialog.ref} history={policy.data?.history ?? []} onClose={() => historyDialog.close()} />
+    </div>
+  )
+}
+
+function RuleRow({ rule, actions }: { rule: FlatRule; actions: Array<{ label: string; icon?: React.ElementType; onSelect: () => void; tone?: 'default' | 'danger' }> }) {
+  const effect = ruleEffectText(rule.effect)
+  return (
+    <li className="flex items-center gap-3 px-3 py-2.5 md:px-4">
+      <span className="hidden w-24 shrink-0 text-[12px] text-bw-ink-subtle sm:block">{RULE_KIND_LABELS[rule.kind]}</span>
+      <div className="min-w-0 flex-1">
+        <p className="break-words font-semibold text-bw-ink"><bdi>{rule.title}</bdi></p>
+        {rule.detail && rule.kind !== 'system' ? <p className="truncate text-[12px] text-bw-ink-soft">{rule.detail}</p> : null}
+        <p className="text-[12px] text-bw-ink-subtle sm:hidden">{RULE_KIND_LABELS[rule.kind]}</p>
+      </div>
+      <Dot tone={effect.tone === 'ok' ? 'ok' : effect.tone === 'danger' ? 'danger' : 'muted'}>{effect.text}</Dot>
+      <RowMenu label={`إجراءات ${rule.title}`} actions={actions} />
+    </li>
+  )
+}
+
+/* ── One modal for adding and editing a rule. Saving writes a new policy version immediately. ── */
+
+function RuleModal({ dialogRef, rule, doc, brands, categories, onClose, onSaved }: {
+  dialogRef: React.RefObject<HTMLDialogElement | null>
+  rule: FlatRule | null
+  doc: PolicyDocument
+  brands: BrandSummary[]
+  categories: CategoryNode[]
+  onClose: () => void
+  onSaved: (message: string) => void
+}) {
+  const flat = React.useMemo(() => flattenCategories(categories), [categories])
+  const current = rule
+  const brandRule = current?.kind === 'brand' ? doc.brands[current.index] : null
+  const catRule = current?.kind === 'category' ? doc.categories[current.index] : null
+  const pairRule = current?.kind === 'pair' ? doc.brandCategoryRules[current.index] : null
+
+  const [kind, setKind] = React.useState<RuleKind>(current?.kind ?? 'brand')
+  const [effect, setEffect] = React.useState<PolicyRuleEffect>(
+    (brandRule?.effect ?? catRule?.effect ?? pairRule?.effect ?? 'ALLOW') as PolicyRuleEffect,
+  )
+  const [brandId, setBrandId] = React.useState(brandRule?.id ?? pairRule?.brandId ?? '')
+  const [externalBrand, setExternalBrand] = React.useState(brandRule && !brandRule.id ? brandRule.name : '')
+  const [aliases, setAliases] = React.useState((brandRule?.aliases ?? []).join('، '))
+  const [categoryId, setCategoryId] = React.useState(catRule?.id ?? pairRule?.categoryId ?? '')
+  const [term, setTerm] = React.useState('')
+  const [reason, setReason] = React.useState('')
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const isEdit = current !== null
+
+  const build = (): PolicyDocument | string => {
+    const aliasList = aliases.split(/[,،]+/).map((s) => s.trim()).filter(Boolean)
+    if (kind === 'term') {
+      const t = term.trim()
+      if (t.length < 2) return 'اكتب عبارة من حرفين على الأقل'
+      if (doc.excludedTerms.some((x) => fold(x) === fold(t))) return 'هذه العبارة موجودة بالفعل'
+      return { ...doc, excludedTerms: [...doc.excludedTerms, t] }
+    }
+    if (kind === 'brand') {
+      const chosen = brands.find((b) => b.id === brandId)
+      const label = chosen?.name ?? externalBrand.trim()
+      if (!chosen && !(effect === 'DENY' && label)) return 'اختر ماركة من الكتالوج، أو اكتب اسم ماركة خارجية لمنعها'
+      const next = { ...(chosen ? { id: chosen.id } : {}), name: label, effect, aliases: aliasList.length ? aliasList : chosen?.aliases ?? [] }
+      const dupe = doc.brands.findIndex((b) => (chosen ? b.id === chosen.id : !b.id && fold(b.name) === fold(label)))
+      if (dupe !== -1 && dupe !== current?.index) return `قاعدة «${label}» موجودة بالفعل. عدّلها بدل إضافة أخرى`
+      return { ...doc, brands: isEdit ? doc.brands.map((b, i) => (i === current.index ? next : b)) : [...doc.brands, next] }
+    }
+    if (kind === 'category') {
+      const chosen = flat.find((c) => c.id === categoryId)
+      if (!chosen) return 'اختر تصنيفًا'
+      const next = { id: chosen.id, name: chosen.name, effect }
+      const dupe = doc.categories.findIndex((c) => c.id === chosen.id)
+      if (dupe !== -1 && dupe !== current?.index) return `قاعدة «${chosen.name}» موجودة بالفعل. عدّلها بدل إضافة أخرى`
+      return { ...doc, categories: isEdit ? doc.categories.map((c, i) => (i === current.index ? next : c)) : [...doc.categories, next] }
+    }
+    const brand = brands.find((b) => b.id === brandId)
+    const cat = flat.find((c) => c.id === categoryId)
+    if (!brand || !cat) return 'اختر الماركة والتصنيف'
+    const next = { brandId: brand.id, brandName: brand.name, categoryId: cat.id, categoryName: cat.name, effect }
+    const dupe = doc.brandCategoryRules.findIndex((r) => r.brandId === brand.id && r.categoryId === cat.id)
+    if (dupe !== -1 && dupe !== current?.index) return 'هذا الاستثناء موجود بالفعل. عدّله بدل إضافة آخر'
+    return { ...doc, brandCategoryRules: isEdit ? doc.brandCategoryRules.map((r, i) => (i === current.index ? next : r)) : [...doc.brandCategoryRules, next] }
+  }
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    const next = build()
+    if (typeof next === 'string') { setError(next); return }
+    if (reason.trim().length < 3) { setError('اكتب سببًا من 3 أحرف على الأقل. يُسجَّل في سجل الإصدارات'); return }
+    setBusy(true)
+    setError(null)
+    try {
+      await api('/catalog/policy', { method: 'PUT', body: { ...next, reason: reason.trim() } })
+      onSaved(isEdit ? 'تم تحديث القاعدة وحفظ إصدار جديد' : 'تمت إضافة القاعدة وحفظ إصدار جديد')
+    } catch (err) {
+      setError(catalogErrorMessage(err as ApiError, 'تعذر حفظ القاعدة'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const effectOptions = (
+    <fieldset>
+      <legend className="mb-1.5 text-bw-small font-semibold text-bw-ink">الحكم</legend>
+      <div className="inline-flex rounded-bw-field border border-bw-line p-0.5">
+        {([['ALLOW', 'مسموح'], ['DENY', 'مستبعد']] as const).map(([value, text]) => (
+          <button key={value} type="button" aria-pressed={effect === value} onClick={() => setEffect(value)}
+            className={cn('min-h-9 rounded-bw-field px-4 text-bw-small transition-colors', effect === value ? (value === 'ALLOW' ? 'bg-bw-emerald-soft font-semibold text-bw-emerald' : 'bg-bw-rose-soft font-semibold text-bw-rose') : 'text-bw-ink-soft hover:text-bw-ink')}>
+            {text}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  )
+
+  return (
+    <Dialog
+      dialogRef={dialogRef}
+      title={isEdit ? 'تعديل قاعدة' : 'إضافة قاعدة'}
+      onClose={onClose}
+      footer={<><Button variant="ghost" onClick={onClose}>إلغاء</Button><Button type="submit" form="rule-form" loading={busy}>حفظ</Button></>}
+    >
+      <form id="rule-form" dir="rtl" onSubmit={submit} className="space-y-4">
+        {error ? <Banner tone="danger">{error}</Banner> : null}
+        <Select label="نوع القاعدة" value={kind} disabled={isEdit} onChange={(e) => { setKind(e.target.value as RuleKind); if (e.target.value === 'term') setEffect('DENY') }}
+          options={[{ value: 'brand', label: 'ماركة' }, { value: 'category', label: 'تصنيف' }, { value: 'pair', label: 'ماركة + تصنيف' }, { value: 'term', label: 'عبارة مستبعدة' }]} />
+
+        {kind === 'brand' ? (
+          <>
+            <Select label="الماركة" value={brandId} disabled={isEdit && Boolean(brandRule?.id)} onChange={(e) => { setBrandId(e.target.value); if (e.target.value) setExternalBrand('') }}
+              options={[{ value: '', label: effect === 'DENY' ? 'ماركة خارج الكتالوج…' : 'اختر ماركة' }, ...brands.map((b) => ({ value: b.id, label: b.name }))]} />
+            {!brandId && effect === 'DENY' ? <Field label="اسم الماركة الخارجية" value={externalBrand} onChange={(e) => setExternalBrand(e.target.value)} hint="تُمنع بالاسم دون إضافتها للكتالوج" /> : null}
+            <Field label="أسماء بديلة" value={aliases} onChange={(e) => setAliases(e.target.value)} hint="اختياري، افصل بفاصلة" />
+          </>
+        ) : null}
+        {kind === 'category' ? (
+          <Select label="التصنيف" value={categoryId} disabled={isEdit} onChange={(e) => setCategoryId(e.target.value)} options={[{ value: '', label: 'اختر تصنيفًا' }, ...flat.map((c) => ({ value: c.id, label: c.parentName ? `${c.parentName} ← ${c.name}` : c.name }))]} />
+        ) : null}
+        {kind === 'pair' ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Select label="الماركة" value={brandId} disabled={isEdit} onChange={(e) => setBrandId(e.target.value)} options={[{ value: '', label: 'اختر ماركة' }, ...brands.map((b) => ({ value: b.id, label: b.name }))]} />
+            <Select label="التصنيف" value={categoryId} disabled={isEdit} onChange={(e) => setCategoryId(e.target.value)} options={[{ value: '', label: 'اختر تصنيفًا' }, ...flat.map((c) => ({ value: c.id, label: c.parentName ? `${c.parentName} ← ${c.name}` : c.name }))]} />
           </div>
+        ) : null}
+        {kind === 'term' ? <Field label="العبارة" value={term} onChange={(e) => setTerm(e.target.value)} hint="أي سطر مورد يحتويها يُستبعد، بالعربية أو الإنجليزية" autoFocus /> : effectOptions}
 
-          <div className="space-y-3 rounded-bw-card border border-bw-line bg-bw-surface p-4">
-            <h3 className="font-semibold text-bw-ink">قواعد التصنيفات واستثناءات (ماركة + تصنيف)</h3>
-            <div className="grid gap-2.5 rounded-bw-field border border-bw-line bg-bw-sunken p-3 sm:grid-cols-[1.5fr_1fr_auto] sm:items-end">
-              <Select
-                label="التصنيف المعياري"
-                value={newCatId}
-                onChange={(e) => setNewCatId(e.target.value)}
-                options={[
-                  { value: '', label: '— اختر تصنيفًا —' },
-                  ...flatCategories.map((c) => ({
-                    value: c.id,
-                    label: c.parentName ? `${c.parentName} ← ${c.name}` : c.name,
-                  })),
-                ]}
-              />
-              <Select
-                label="الحكم"
-                value={newCatEffect}
-                onChange={(e) => setNewCatEffect(e.target.value as PolicyRuleEffect)}
-                options={[
-                  { value: 'ALLOW', label: 'سماح (ALLOW)' },
-                  { value: 'DENY', label: 'منع (DENY)' },
-                ]}
-              />
-              <Button variant="secondary" disabled={!newCatId} onClick={addCategoryRule}>
-                إضافة
-              </Button>
-            </div>
+        <Field label="سبب التعديل (يُسجَّل)" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="مثال: منع ماركة خارج نطاق المتجر" />
+      </form>
+    </Dialog>
+  )
+}
 
-            {doc.categories.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {doc.categories.map((cat) => (
-                  <span
-                    key={cat.id}
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-bw-small ${
-                      cat.effect === 'ALLOW'
-                        ? 'border-bw-emerald/30 bg-bw-emerald-soft'
-                        : 'border-bw-rose/30 bg-bw-rose-soft'
-                    }`}
-                  >
-                    <span>
-                      {cat.name} ({cat.effect === 'ALLOW' ? 'سماح' : 'منع'})
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateDoc((prev) => ({
-                          ...prev,
-                          categories: prev.categories.filter((c) => c.id !== cat.id),
-                        }))
-                      }
-                      aria-label={`حذف قاعدة ${cat.name}`}
-                      className="text-bw-ink-soft hover:text-bw-ink"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : null}
+/* ── Mode / delete / built-in toggles: only the audited reason is asked ─────────────────────── */
 
-            <div className="border-t border-bw-line pt-3 space-y-2.5">
-              <p className="text-[11px] font-semibold text-bw-ink-soft">
-                استثناءات مركبة (ماركة محددة داخل تصنيف محدد):
-              </p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Select
-                  label="الماركة"
-                  value={pairBrandId}
-                  onChange={(e) => setPairBrandId(e.target.value)}
-                  options={[
-                    { value: '', label: '— اختر ماركة —' },
-                    ...brands.map((b) => ({ value: b.id, label: b.name })),
-                  ]}
-                />
-                <Select
-                  label="التصنيف"
-                  value={pairCatId}
-                  onChange={(e) => setPairCatId(e.target.value)}
-                  options={[
-                    { value: '', label: '— اختر تصنيفًا —' },
-                    ...flatCategories.map((c) => ({
-                      value: c.id,
-                      label: c.parentName ? `${c.parentName} ← ${c.name}` : c.name,
-                    })),
-                  ]}
-                />
-                <Select
-                  label="التأثير"
-                  value={pairEffect}
-                  onChange={(e) => setPairEffect(e.target.value as PolicyRuleEffect)}
-                  options={[
-                    { value: 'ALLOW', label: 'استثناء بالسماح (ALLOW)' },
-                    { value: 'DENY', label: 'استثناء بالمنع (DENY)' },
-                  ]}
-                />
-                <Field
-                  label="ملاحظة (اختياري)"
-                  value={pairNote}
-                  onChange={(e) => setPairNote(e.target.value)}
-                />
-              </div>
-              <Button
-                variant="secondary"
-                disabled={!pairBrandId || !pairCatId}
-                onClick={addPairRule}
-              >
-                <Plus className="size-4" aria-hidden />
-                إضافة استثناء مركب
-              </Button>
+function ReasonDialog({ dialogRef, pending, onClose, onSaved }: {
+  dialogRef: React.RefObject<HTMLDialogElement | null>
+  pending: Pending | null
+  onClose: () => void
+  onSaved: (message: string) => void
+}) {
+  const [reason, setReason] = React.useState('')
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  React.useEffect(() => { setReason(''); setError(null) }, [pending])
+  return (
+    <Dialog
+      dialogRef={dialogRef}
+      title={pending?.title ?? ''}
+      onClose={onClose}
+      footer={<><Button variant="ghost" onClick={onClose}>إلغاء</Button><Button type="submit" form="policy-reason" loading={busy} disabled={reason.trim().length < 3}>تأكيد</Button></>}
+    >
+      <form id="policy-reason" dir="rtl" className="space-y-4" onSubmit={async (e) => {
+        e.preventDefault()
+        if (!pending) return
+        setBusy(true)
+        setError(null)
+        try {
+          await api('/catalog/policy', { method: 'PUT', body: { ...pending.next, reason: reason.trim() } })
+          onSaved(pending.done)
+        } catch (err) {
+          setError(catalogErrorMessage(err as ApiError, 'تعذر حفظ السياسة'))
+        } finally {
+          setBusy(false)
+        }
+      }}>
+        <p className="text-bw-small text-bw-ink-soft">{pending?.body}</p>
+        {error ? <Banner tone="danger">{error}</Banner> : null}
+        <Field label="السبب (يُسجَّل)" value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
+      </form>
+    </Dialog>
+  )
+}
 
-              {doc.brandCategoryRules.length > 0 ? (
-                <ul className="divide-y divide-bw-line rounded-bw-field border border-bw-line">
-                  {doc.brandCategoryRules.map((r, i) => (
-                    <li
-                      key={`${r.brandId ?? r.brandName}-${r.categoryId}-${i}`}
-                      className="flex items-center justify-between gap-2 p-2.5 text-bw-small"
-                    >
-                      <span>
-                        <strong>{r.brandName}</strong> ← {r.categoryName}{' '}
-                        <StatusLabel tone={r.effect === 'ALLOW' ? 'ok' : 'danger'}>
-                          {r.effect === 'ALLOW' ? 'سماح' : 'منع'}
-                        </StatusLabel>
-                      </span>
-                      <Button
-                        variant="ghost"
-                        onClick={() =>
-                          updateDoc((prev) => ({
-                            ...prev,
-                            brandCategoryRules: prev.brandCategoryRules.filter((_, idx) => idx !== i),
-                          }))
-                        }
-                      >
-                        <Trash2 className="size-3.5 text-bw-rose" aria-hidden />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          </div>
+/* ── Test a candidate against the real engine; nothing is saved ───────────────────────────────── */
 
-          <div className="space-y-3 rounded-bw-card border border-bw-line bg-bw-surface p-4">
-            <h3 className="font-semibold text-bw-ink">العبارات المستبعدة وفئات الحماية الافتراضية</h3>
-            <div className="flex flex-wrap items-end gap-2">
-              <Field
-                label="إضافة عبارة مستبعدة (عربي أو إنجليزي)"
-                value={newTerm}
-                onChange={(e) => setNewTerm(e.target.value)}
-                placeholder="مثال: tester أو عينة مجانية"
-                className="flex-1 min-w-52"
-              />
-              <Button variant="secondary" disabled={newTerm.trim().length < 2} onClick={addExcludedTerm}>
-                إضافة عبارة
-              </Button>
-            </div>
-            {doc.excludedTerms.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {doc.excludedTerms.map((term) => (
-                  <span
-                    key={term}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-bw-rose/30 bg-bw-rose-soft px-2.5 py-0.5 text-bw-small"
-                  >
-                    {term}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateDoc((prev) => ({
-                          ...prev,
-                          excludedTerms: prev.excludedTerms.filter((t) => t !== term),
-                        }))
-                      }
-                      aria-label={`حذف عبارة ${term}`}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : null}
+function TestDialog({ dialogRef, brands, categories, onClose }: {
+  dialogRef: React.RefObject<HTMLDialogElement | null>
+  brands: BrandSummary[]
+  categories: CategoryNode[]
+  onClose: () => void
+}) {
+  const flat = React.useMemo(() => flattenCategories(categories), [categories])
+  const [title, setTitle] = React.useState('')
+  const [brandId, setBrandId] = React.useState('')
+  const [categoryId, setCategoryId] = React.useState('')
+  const [hardId, setHardId] = React.useState(false)
+  const [busy, setBusy] = React.useState(false)
+  const [result, setResult] = React.useState<PolicyEvaluationResult | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
 
-            <div className="border-t border-bw-line pt-3">
-              <p className="mb-2 text-[11px] font-semibold text-bw-ink-soft">
-                فئات الاستبعاد المدمجة في المحرك (EXCLUDED_CLASSES):
-              </p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {systemClasses.map((klass) => {
-                  const isDisabled = doc.disabledExcludedClasses.includes(klass.key)
-                  return (
-                    <div
-                      key={klass.key}
-                      className="rounded-bw-field border border-bw-line bg-bw-sunken p-2.5 text-[11px]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-bw-ink">
-                          {EXCLUDED_CLASS_LABELS[klass.key] ?? klass.key}
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={!isDisabled}
-                          onChange={(e) =>
-                            updateDoc((prev) => ({
-                              ...prev,
-                              disabledExcludedClasses: e.target.checked
-                                ? prev.disabledExcludedClasses.filter((k) => k !== klass.key)
-                                : [...prev.disabledExcludedClasses, klass.key],
-                            }))
-                          }
-                          aria-label={`تفعيل استبعاد ${klass.key}`}
-                          className="size-4 accent-bw-cobalt"
-                        />
-                      </div>
-                      <p className="mt-1 truncate text-bw-ink-subtle">
-                        أمثلة: {klass.samplePhrases.join('، ')}
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
+  const run = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!title.trim()) { setError('اكتب عنوان المنتج'); return }
+    setBusy(true)
+    setError(null)
+    try {
+      const brand = brands.find((b) => b.id === brandId)
+      setResult(await api<PolicyEvaluationResult>('/catalog/policy/evaluate', { method: 'POST', body: { title: title.trim(), ...(brand ? { brandId: brand.id, brandName: brand.name } : {}), ...(categoryId ? { categoryId } : {}), hasHardIdentifier: hardId } }))
+    } catch (err) {
+      setError(catalogErrorMessage(err as ApiError, 'تعذر تشغيل الاختبار'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const outcome = result?.outcome
+  return (
+    <Dialog dialogRef={dialogRef} title="اختبار منتج مقابل السياسة" onClose={onClose}
+      footer={<><Button variant="ghost" onClick={onClose}>إغلاق</Button><Button type="submit" form="policy-test" loading={busy}>اختبار</Button></>}>
+      <form id="policy-test" dir="rtl" onSubmit={run} className="space-y-4">
+        <p className="text-bw-small text-bw-ink-soft">يستخدم آخر إصدار محفوظ ولا يغيّر أي بيانات.</p>
+        {error ? <Banner tone="danger">{error}</Banner> : null}
+        <Field label="عنوان المنتج كما يظهر في ملف المورد" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثال: غسول سيرافي للبشرة الدهنية 236 مل" autoFocus />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Select label="الماركة" value={brandId} onChange={(e) => setBrandId(e.target.value)} options={[{ value: '', label: 'اكتشاف تلقائي' }, ...brands.map((b) => ({ value: b.id, label: b.name }))]} />
+          <Select label="التصنيف" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} options={[{ value: '', label: 'غير محدد' }, ...flat.map((c) => ({ value: c.id, label: c.parentName ? `${c.parentName} ← ${c.name}` : c.name }))]} />
         </div>
-
-        <div className="space-y-5">
-          <form
-            onSubmit={runSimulation}
-            className="space-y-3.5 rounded-bw-card border border-bw-cobalt/30 bg-bw-surface p-4"
-          >
-            <div className="flex items-center gap-2">
-              <FlaskConical className="size-4 text-bw-cobalt" aria-hidden />
-              <h3 className="font-semibold text-bw-ink">محاكي اختبار القواعد (Dry-Run)</h3>
-            </div>
-            <p className="text-[11px] leading-5 text-bw-ink-soft">
-              اختبر عنوان سطر مورد قبل الاعتماد لمعرفة هل سيُمرر أم يُستبعد أم يُحوّل للمراجعة بناءً على آخر إصدار محفوظ.
+        <Switch label="السطر يحمل باركودًا أو كودًا معروفًا" checked={hardId} onChange={(e) => setHardId(e.target.checked)} />
+        {result ? (
+          <div className={cn('space-y-1 rounded-bw-field border p-3 text-bw-small', outcome === 'ALLOW' ? 'border-bw-emerald/30 bg-bw-emerald-soft' : outcome === 'SKIP' ? 'border-bw-rose/30 bg-bw-rose-soft' : 'border-bw-amber/30 bg-bw-amber-soft')}>
+            <p className="flex items-center gap-2 font-semibold text-bw-ink">
+              {outcome === 'ALLOW' ? <><CheckCircle2 className="size-4 text-bw-emerald" aria-hidden />يمرّ إلى المطابقة</> : outcome === 'SKIP' ? <><XCircle className="size-4 text-bw-rose" aria-hidden />يُستبعد تلقائيًا</> : <><ShieldAlert className="size-4 text-bw-amber" aria-hidden />يُحوَّل للمراجعة</>}
             </p>
-            {dirty ? (
-              <p className="text-[11px] font-semibold text-bw-amber">
-                ملاحظة: المحاكي يختبر آخر إصدار محفوظ في الخادم؛ احفظ تعديلاتك أولًا لمحاكاتها.
-              </p>
-            ) : null}
+            <p className="text-bw-ink">{policyReasonLabel(result.reasonCode)}</p>
+            {result.detail ? <p className="text-[12px] text-bw-ink-soft">{result.detail}</p> : null}
+            {result.matchedBrands.length ? <p className="text-[12px] text-bw-ink-soft">الماركات المكتشفة: {result.matchedBrands.map((b) => b.label).join('، ')}</p> : null}
+            <p className="text-[12px] text-bw-ink-subtle">مسموح بالإدخال لا يعني منشورًا، والمطابقة مع منتج موجود لا تنشئ منتجًا جديدًا.</p>
+          </div>
+        ) : null}
+      </form>
+    </Dialog>
+  )
+}
 
-            <Field
-              label="عنوان المنتج أو نص سطر المورد"
-              value={simTitle}
-              onChange={(e) => setSimTitle(e.target.value)}
-              placeholder="مثال: غسول سيرافي للبشرة الدهنية 236 مل"
-              required
-            />
-            <Select
-              label="ماركة معيارية (اختياري)"
-              value={simBrandId}
-              onChange={(e) => setSimBrandId(e.target.value)}
-              options={[
-                { value: '', label: 'اكتشاف تلقائي من النص' },
-                ...brands.map((b) => ({ value: b.id, label: b.name })),
-              ]}
-            />
-            {!simBrandId ? (
-              <Field
-                label="أو اسم ماركة نصي للاختبار (اختياري)"
-                value={simBrandName}
-                onChange={(e) => setSimBrandName(e.target.value)}
-              />
-            ) : null}
-            <Select
-              label="التصنيف (اختياري)"
-              value={simCategoryId}
-              onChange={(e) => setSimCategoryId(e.target.value)}
-              options={[
-                { value: '', label: 'بدون تصنيف محدد' },
-                ...flatCategories.map((c) => ({
-                  value: c.id,
-                  label: c.parentName ? `${c.parentName} ← ${c.name}` : c.name,
-                })),
-              ]}
-            />
-            <Switch
-              label="الصف يحتوي على باركود أو كود معرف معروف"
-              checked={simHardId}
-              onChange={(e) => setSimHardId(e.target.checked)}
-            />
-
-            {simError ? (
-              <p role="alert" className="text-bw-small text-bw-rose">
-                {simError}
-              </p>
-            ) : null}
-
-            <Button type="submit" variant="secondary" loading={simulating} className="w-full">
-              تشغيل اختبار القاعدة
-            </Button>
-
-            {simResult ? (
-              <div
-                className={`space-y-2 rounded-bw-card border p-3.5 text-bw-small ${
-                  simResult.outcome === 'ALLOW'
-                    ? 'border-bw-emerald/30 bg-bw-emerald-soft'
-                    : simResult.outcome === 'SKIP'
-                      ? 'border-bw-rose/30 bg-bw-rose-soft'
-                      : 'border-bw-amber/30 bg-bw-amber-soft'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1.5 font-semibold text-bw-ink">
-                    {simResult.outcome === 'ALLOW' ? (
-                      <>
-                        <CheckCircle2 className="size-4 text-bw-emerald" aria-hidden />
-                        يُسمح بالإدخال (ALLOW)
-                      </>
-                    ) : simResult.outcome === 'SKIP' ? (
-                      <>
-                        <XCircle className="size-4 text-bw-rose" aria-hidden />
-                        يُستبعد تلقائيًا (SKIP)
-                      </>
-                    ) : (
-                      <>
-                        <ShieldAlert className="size-4 text-bw-amber" aria-hidden />
-                        يُحوّل للمراجعة (REVIEW)
-                      </>
-                    )}
-                  </span>
-                  <Code className="text-[11px]">{simResult.reasonCode}</Code>
-                </div>
-                <p className="text-bw-ink">{policyReasonLabel(simResult.reasonCode)}</p>
-                {simResult.detail ? (
-                  <p className="text-[11px] text-bw-ink-soft">{simResult.detail}</p>
-                ) : null}
-                {simResult.matchedBrands.length ? (
-                  <p className="text-[11px] text-bw-ink-soft">
-                    الماركات المطابقة: {simResult.matchedBrands.map((b) => b.label).join('، ')}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </form>
-
-          <form
-            onSubmit={savePolicy}
-            className="space-y-3 rounded-bw-card border border-bw-line bg-bw-surface p-4"
-          >
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="size-4 text-bw-emerald" aria-hidden />
-              <h3 className="font-semibold text-bw-ink">اعتماد وحفظ السياسة</h3>
-            </div>
-            <Field
-              label="سبب تعديل السياسة (مطلوب للتوثيق)"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="مثال: تفعيل السماح لماركات العناية المعتمدة واستبعاد المكياج"
-              required
-              minLength={3}
-            />
-            <Button type="submit" loading={saving} className="w-full">
-              اعتماد وحفظ الإصدار الجديد
-            </Button>
-          </form>
-        </div>
-      </div>
-    </section>
+function HistoryDialog({ dialogRef, history, onClose }: { dialogRef: React.RefObject<HTMLDialogElement | null>; history: PolicyStateResponse['history']; onClose: () => void }) {
+  return (
+    <Dialog dialogRef={dialogRef} title="سجل الإصدارات" onClose={onClose}>
+      <ul dir="rtl" className="divide-y divide-bw-line text-bw-small">
+        {history.length === 0 ? <li className="py-2 text-bw-ink-soft">لا توجد إصدارات بعد.</li> : history.map((h) => (
+          <li key={h.id} className="flex items-baseline gap-3 py-2">
+            <Code className="font-semibold">{`v${h.version ?? 0}`}</Code>
+            <span className="min-w-0 flex-1 text-bw-ink">{h.reason}</span>
+            <span className="shrink-0 text-[12px] text-bw-ink-subtle">{h.approvedAt ? new Date(h.approvedAt).toLocaleDateString('ar-EG') : '—'}</span>
+          </li>
+        ))}
+      </ul>
+    </Dialog>
   )
 }

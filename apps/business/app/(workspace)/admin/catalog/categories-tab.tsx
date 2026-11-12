@@ -1,34 +1,15 @@
 'use client'
 
 import * as React from 'react'
-import {
-  ChevronDown,
-  ChevronLeft,
-  FolderTree,
-  PackageSearch,
-  Pencil,
-  Plus,
-  RefreshCw,
-  Search,
-  Trash2,
-} from 'lucide-react'
-import { api, ApiError } from '@/lib/api'
-import {
-  Button,
-  Code,
-  Dialog,
-  Field,
-  Select,
-  Skeleton,
-  StateBlock,
-  StatusLabel,
-  Switch,
-  useDialog,
-} from '@/components/bw/primitives'
+import { ChevronDown, FolderPlus, Pencil, Plus, Power, Trash2 } from 'lucide-react'
+import { Button, Code, Dialog, Field, Select, Skeleton, StateBlock, Switch, useDialog } from '@/components/bw/primitives'
 import { LoadError } from '@/components/workspace/role-shell'
-import { CategoryChildNode, CategoryNode } from './catalog-utils'
+import { api, ApiError } from '@/lib/api'
+import { cn } from '@/lib/utils'
+import { CategoryChildNode, CategoryNode, catalogErrorMessage } from './catalog-model'
+import { Banner, Dot, RowMenu, SearchBox, TextBlock } from './ui'
 
-type EditableCategory = {
+type Editable = {
   id: string
   name: string
   slug: string
@@ -40,554 +21,259 @@ type EditableCategory = {
   productCount: number
 }
 
-export function CategoriesTab({
-  categories,
-  loading,
-  error,
-  onReload,
-  onViewCategoryProducts,
-}: {
+const fold = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
+
+const asEditable = (node: CategoryNode | CategoryChildNode, parentId: string | null): Editable => ({
+  id: node.id,
+  name: node.name,
+  slug: node.slug,
+  description: node.description,
+  parentId,
+  sortOrder: node.sortOrder,
+  isActive: node.isActive,
+  hasChildren: 'children' in node ? node.children.length > 0 : false,
+  productCount: node.directProductCount,
+})
+
+export function CategoriesTab({ categories, loading, error, onReload, onViewProducts }: {
   categories: CategoryNode[]
   loading: boolean
   error: string | null
   onReload: () => void
-  onViewCategoryProducts: (categoryId: string) => void
+  onViewProducts: (categoryId: string) => void
 }) {
   const [query, setQuery] = React.useState('')
-  const [showInactive, setShowInactive] = React.useState(true)
-  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({})
+  const [open, setOpen] = React.useState<Record<string, boolean>>({})
   const [notice, setNotice] = React.useState<string | null>(null)
-  const [actionError, setActionError] = React.useState<string | null>(null)
-  const [busy, setBusy] = React.useState(false)
-
+  const [failure, setFailure] = React.useState<string | null>(null)
+  const [editing, setEditing] = React.useState<{ node: Editable | null; parentId: string } | null>(null)
+  const [deleting, setDeleting] = React.useState<Editable | null>(null)
   const formDialog = useDialog()
   const deleteDialog = useDialog()
+  const later = (fn: () => void) => window.setTimeout(fn, 0)
 
-  const [editing, setEditing] = React.useState<EditableCategory | null>(null)
-  const [name, setName] = React.useState('')
-  const [slug, setSlug] = React.useState('')
-  const [description, setDescription] = React.useState('')
-  const [parentId, setParentId] = React.useState('')
-  const [sortOrder, setSortOrder] = React.useState('0')
-  const [isActive, setIsActive] = React.useState(true)
-
-  const [deleting, setDeleting] = React.useState<EditableCategory | null>(null)
-
-  const filteredRoots = React.useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return categories
-      .filter((root) => {
-        if (!showInactive && !root.isActive) return false
-        if (!q) return true
-        const matchRoot = root.name.toLowerCase().includes(q) || root.slug.toLowerCase().includes(q)
-        const matchChild = root.children.some(
-          (c) => c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q),
-        )
-        return matchRoot || matchChild
-      })
-      .map((root) => ({
-        ...root,
-        children: root.children.filter((c) => {
-          if (!showInactive && !c.isActive) return false
-          if (!q) return true
-          return (
-            c.name.toLowerCase().includes(q) ||
-            c.slug.toLowerCase().includes(q) ||
-            root.name.toLowerCase().includes(q)
-          )
-        }),
-      }))
-  }, [categories, query, showInactive])
-
-  function openCreate(defaultParentId = '') {
-    setEditing(null)
-    setName('')
-    setSlug('')
-    setDescription('')
-    setParentId(defaultParentId)
-    setSortOrder('0')
-    setIsActive(true)
-    setActionError(null)
-    formDialog.open()
-  }
-
-  function openEditRoot(root: CategoryNode) {
-    setEditing({
-      id: root.id,
-      name: root.name,
-      slug: root.slug,
-      description: root.description,
-      parentId: null,
-      sortOrder: root.sortOrder,
-      isActive: root.isActive,
-      hasChildren: root.children.length > 0,
-      productCount: root.directProductCount,
+  const q = fold(query.trim())
+  const roots = categories
+    .map((root) => {
+      const rootHit = !q || fold(root.name).includes(q)
+      const children = root.children.filter((c) => !q || rootHit || fold(c.name).includes(q))
+      return { root, children, show: rootHit || children.length > 0 }
     })
-    setName(root.name)
-    setSlug(root.slug)
-    setDescription(root.description ?? '')
-    setParentId('')
-    setSortOrder(String(root.sortOrder))
-    setIsActive(root.isActive)
-    setActionError(null)
-    formDialog.open()
+    .filter((entry) => entry.show)
+
+  const toggleActive = async (node: Editable) => {
+    setFailure(null)
+    try {
+      await api(`/categories/${node.id}`, { method: 'PATCH', body: { isActive: !node.isActive } })
+      setNotice(node.isActive ? `تم إيقاف «${node.name}»` : `تم تفعيل «${node.name}»`)
+      onReload()
+    } catch (err) {
+      setFailure(catalogErrorMessage(err as ApiError, 'تعذر تغيير الحالة'))
+    }
   }
 
-  function openEditChild(child: CategoryChildNode, rootId: string) {
-    setEditing({
-      id: child.id,
-      name: child.name,
-      slug: child.slug,
-      description: child.description,
-      parentId: rootId,
-      sortOrder: child.sortOrder,
-      isActive: child.isActive,
-      hasChildren: false,
-      productCount: child.directProductCount,
-    })
-    setName(child.name)
-    setSlug(child.slug)
-    setDescription(child.description ?? '')
-    setParentId(rootId)
-    setSortOrder(String(child.sortOrder))
-    setIsActive(child.isActive)
-    setActionError(null)
-    formDialog.open()
-  }
+  const rowActions = (node: Editable, isRoot: boolean) => [
+    { label: 'تعديل', icon: Pencil, onSelect: () => { setEditing({ node, parentId: node.parentId ?? '' }); later(() => formDialog.open()) } },
+    ...(isRoot ? [{ label: 'إضافة تصنيف فرعي', icon: FolderPlus, onSelect: () => { setEditing({ node: null, parentId: node.id }); later(() => formDialog.open()) } }] : []),
+    { label: node.isActive ? 'إيقاف' : 'تفعيل', icon: Power, onSelect: () => void toggleActive(node) },
+    { label: 'حذف', icon: Trash2, tone: 'danger' as const, onSelect: () => { setDeleting(node); later(() => deleteDialog.open()) } },
+  ]
 
-  async function saveCategory(event: React.FormEvent) {
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchBox value={query} onChange={setQuery} label="بحث في التصنيفات" placeholder="تصنيف رئيسي أو فرعي" />
+        <Button className="ms-auto" onClick={() => { setEditing({ node: null, parentId: '' }); later(() => formDialog.open()) }}><Plus className="size-4" aria-hidden />تصنيف جديد</Button>
+      </div>
+
+      {notice ? <Banner tone="ok" onClose={() => setNotice(null)}>{notice}</Banner> : null}
+      {failure ? <Banner tone="danger" onClose={() => setFailure(null)}>{failure}</Banner> : null}
+      {error ? <LoadError message={error} onRetry={onReload} /> : null}
+      {loading && categories.length === 0 ? <Skeleton className="h-56 w-full" /> : null}
+      {!loading && !error && categories.length === 0 ? <StateBlock kind="empty" title="لا توجد تصنيفات بعد" body="أضف تصنيفًا رئيسيًا ثم تصنيفات فرعية تحته." /> : null}
+      {categories.length > 0 && roots.length === 0 ? <StateBlock kind="empty" title="لا يوجد تصنيف بهذا الاسم" /> : null}
+
+      {roots.length > 0 ? (
+        <ul className="divide-y divide-bw-line rounded-bw-card border border-bw-line bg-bw-surface">
+          {roots.map(({ root, children }) => {
+            const expanded = Boolean(q) || open[root.id]
+            return (
+              <li key={root.id}>
+                <div className="flex items-center gap-2 px-2 py-1.5 md:px-3">
+                  <button
+                    type="button"
+                    aria-expanded={root.children.length ? expanded : undefined}
+                    aria-label={root.children.length ? `${expanded ? 'طيّ' : 'عرض'} فروع ${root.name}` : undefined}
+                    disabled={root.children.length === 0}
+                    onClick={() => setOpen({ ...open, [root.id]: !expanded })}
+                    className="flex min-w-0 flex-1 items-center gap-2 rounded-bw-field px-2 py-2 text-start transition-colors enabled:hover:bg-bw-sunken"
+                  >
+                    <ChevronDown className={cn('size-4 shrink-0 text-bw-ink-subtle transition-transform', root.children.length === 0 ? 'opacity-0' : expanded ? 'rotate-180' : 'rtl:rotate-90 ltr:-rotate-90')} aria-hidden />
+                    <span className="min-w-0 truncate font-semibold text-bw-ink"><bdi>{root.name}</bdi></span>
+                    {root.children.length ? <span className="text-[12px] text-bw-ink-subtle"><Code>{root.children.length}</Code> فرعي</span> : null}
+                  </button>
+                  {!root.isActive ? <span className="hidden sm:block"><Dot tone="muted">موقوف</Dot></span> : null}
+                  <CountButton count={root.totalProductCount} onClick={() => onViewProducts(root.id)} />
+                  <RowMenu label={`إجراءات ${root.name}`} actions={rowActions(asEditable(root, null), true)} />
+                </div>
+                {expanded && children.length ? (
+                  <ul className="border-t border-bw-line bg-bw-page/40">
+                    {children.map((child) => (
+                      <li key={child.id} className="flex items-center gap-2 py-1.5 ps-10 pe-2 md:ps-12 md:pe-3">
+                        <span className="min-w-0 flex-1 truncate px-2 text-bw-small text-bw-ink"><bdi>{child.name}</bdi></span>
+                        {!child.isActive ? <span className="hidden sm:block"><Dot tone="muted">موقوف</Dot></span> : null}
+                        <CountButton count={child.directProductCount} onClick={() => onViewProducts(child.id)} />
+                        <RowMenu label={`إجراءات ${child.name}`} actions={rowActions(asEditable(child, root.id), false)} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+
+      <CategoryModal
+        key={`${editing?.node?.id ?? 'new'}-${editing?.parentId ?? ''}`}
+        dialogRef={formDialog.ref}
+        target={editing}
+        roots={categories}
+        onClose={() => formDialog.close()}
+        onSaved={(m) => { formDialog.close(); setNotice(m); onReload() }}
+      />
+      <DeleteDialog dialogRef={deleteDialog.ref} node={deleting} onClose={() => deleteDialog.close()} onDeleted={(m) => { deleteDialog.close(); setNotice(m); onReload() }} />
+    </div>
+  )
+}
+
+function CountButton({ count, onClick }: { count: number; onClick: () => void }) {
+  return (
+    <button type="button" disabled={count === 0} onClick={onClick} className="min-h-9 rounded-bw-field px-2.5 text-bw-small text-bw-cobalt transition-colors hover:bg-bw-sunken disabled:text-bw-ink-subtle disabled:hover:bg-transparent">
+      <Code>{count}</Code> منتج
+    </button>
+  )
+}
+
+function CategoryModal({ dialogRef, target, roots, onClose, onSaved }: {
+  dialogRef: React.RefObject<HTMLDialogElement | null>
+  target: { node: Editable | null; parentId: string } | null
+  roots: CategoryNode[]
+  onClose: () => void
+  onSaved: (message: string) => void
+}) {
+  const node = target?.node ?? null
+  const [name, setName] = React.useState(node?.name ?? '')
+  const [parentId, setParentId] = React.useState(target?.parentId ?? '')
+  const [slug, setSlug] = React.useState(node?.slug ?? '')
+  const [description, setDescription] = React.useState(node?.description ?? '')
+  const [sortOrder, setSortOrder] = React.useState(String(node?.sortOrder ?? 0))
+  const [active, setActive] = React.useState(node?.isActive ?? true)
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  // A root that already has children cannot be nested (the API refuses it), so the choice is not offered.
+  const parentLocked = Boolean(node?.hasChildren)
+
+  const save = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (name.trim().length < 2) {
-      setActionError('اسم التصنيف يجب أن يكون حرفين على الأقل.')
-      return
-    }
-    const orderNum = Number(sortOrder)
-    if (!Number.isInteger(orderNum) || orderNum < 0) {
-      setActionError('ترتيب العرض يجب أن يكون رقمًا صحيحًا غير سالب.')
-      return
-    }
-
+    if (name.trim().length < 2) { setError('اسم التصنيف حرفان على الأقل'); return }
+    const order = Number(sortOrder)
+    if (!Number.isInteger(order) || order < 0) { setError('الترتيب رقم صحيح غير سالب'); return }
     const body: Record<string, unknown> = {
       name: name.trim(),
       ...(slug.trim() ? { slug: slug.trim().toLowerCase() } : {}),
       description: description.trim(),
-      sortOrder: orderNum,
-      isActive,
-      ...(editing
-        ? { parentId: parentId || null }
-        : parentId
-          ? { parentId }
-          : {}),
+      sortOrder: order,
+      isActive: active,
+      ...(node ? { parentId: parentId || null } : parentId ? { parentId } : {}),
     }
-
     setBusy(true)
-    setActionError(null)
+    setError(null)
     try {
-      if (editing) {
-        await api(`/categories/${editing.id}`, { method: 'PATCH', body })
-        setNotice(`تم تحديث التصنيف «${name.trim()}».`)
-      } else {
-        await api('/categories', { method: 'POST', body })
-        setNotice(`تمت إضافة التصنيف «${name.trim()}».`)
-      }
-      formDialog.close()
-      onReload()
+      if (node) await api(`/categories/${node.id}`, { method: 'PATCH', body })
+      else await api('/categories', { method: 'POST', body })
+      onSaved(node ? `تم حفظ «${name.trim()}»` : `تمت إضافة «${name.trim()}»`)
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'تعذر حفظ التصنيف.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function confirmDelete() {
-    if (!deleting) return
-    setBusy(true)
-    setActionError(null)
-    try {
-      await api(`/categories/${deleting.id}`, { method: 'DELETE' })
-      setNotice(`تم حذف التصنيف «${deleting.name}».`)
-      setDeleting(null)
-      deleteDialog.close()
-      onReload()
-    } catch (err) {
-      setActionError(
-        err instanceof ApiError
-          ? err.message
-          : 'تعذر حذف التصنيف لوجود منتجات أو تصنيفات فرعية مرتبطة به.',
-      )
+      setError(catalogErrorMessage(err as ApiError, 'تعذر حفظ التصنيف'))
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <section aria-label="إدارة التصنيفات" className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-bw-card border border-bw-line bg-bw-surface p-3.5">
-        <div className="flex flex-1 flex-wrap items-center gap-3">
-          <label className="relative min-w-56 flex-1 max-w-md">
-            <span className="sr-only">بحث في التصنيفات</span>
-            <Search
-              className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-bw-ink-subtle"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="ابحث عن تصنيف رئيسي أو فرعي"
-              className="h-bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-sunken pe-3 ps-9 text-bw-small text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-cobalt focus:outline-none"
-            />
-          </label>
-          <Switch
-            label="عرض غير النشطة"
-            checked={showInactive}
-            onChange={(e) => setShowInactive(e.target.checked)}
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" aria-label="تحديث التصنيفات" onClick={onReload}>
-            <RefreshCw className="size-4" />
-          </Button>
-          <Button onClick={() => openCreate('')}>
-            <Plus className="size-4" aria-hidden />
-            تصنيف جديد
-          </Button>
-        </div>
-      </div>
-
-      {notice ? (
-        <div
-          role="status"
-          className="rounded-bw-field border border-bw-emerald/30 bg-bw-emerald-soft px-3.5 py-2.5 text-bw-small text-bw-ink"
-        >
-          {notice}
-        </div>
-      ) : null}
-
-      {error ? <LoadError message={error} onRetry={onReload} /> : null}
-      {loading && categories.length === 0 ? <Skeleton className="h-64 w-full rounded-bw-card" /> : null}
-
-      {!loading && filteredRoots.length === 0 ? (
-        <StateBlock
-          kind="empty"
-          title="لا توجد تصنيفات مطابقة"
-          body={query ? 'جرّب اسم تصنيف آخر.' : 'أنشئ التصنيفات الرئيسية لتنظيم المتجر.'}
+    <Dialog
+      dialogRef={dialogRef}
+      title={node ? 'تعديل التصنيف' : parentId ? 'تصنيف فرعي جديد' : 'تصنيف جديد'}
+      onClose={onClose}
+      footer={<><Button variant="ghost" onClick={onClose}>إلغاء</Button><Button type="submit" form="category-form" loading={busy}>{node ? 'حفظ' : 'إضافة'}</Button></>}
+    >
+      <form id="category-form" dir="rtl" onSubmit={save} className="space-y-4">
+        {error ? <Banner tone="danger">{error}</Banner> : null}
+        <Field label="اسم التصنيف" value={name} onChange={(e) => setName(e.target.value)} autoFocus required />
+        <Select
+          label="يتبع"
+          value={parentId}
+          disabled={parentLocked}
+          onChange={(e) => setParentId(e.target.value)}
+          options={[{ value: '', label: 'تصنيف رئيسي' }, ...roots.filter((r) => r.id !== node?.id).map((r) => ({ value: r.id, label: r.name }))]}
         />
-      ) : null}
+        {parentLocked ? <p className="text-bw-small text-bw-ink-soft">هذا التصنيف يحتوي على فروع، فلا يمكن جعله فرعًا لتصنيف آخر.</p> : null}
+        <details className="group rounded-bw-field border border-bw-line">
+          <summary className="flex min-h-bw-control cursor-pointer list-none items-center justify-between px-3 text-bw-small font-semibold text-bw-ink-soft">
+            خيارات إضافية <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+          <div className="space-y-3 border-t border-bw-line p-3">
+            <Field label="المعرّف (slug)" ltr value={slug} onChange={(e) => setSlug(e.target.value)} hint="فارغ = يُولَّد تلقائيًا" />
+            <Field label="ترتيب العرض" type="number" ltr min={0} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
+            <TextBlock label="وصف" value={description} onChange={setDescription} rows={2} />
+            <Switch label="التصنيف نشط" checked={active} onChange={(e) => setActive(e.target.checked)} />
+          </div>
+        </details>
+      </form>
+    </Dialog>
+  )
+}
 
-      {filteredRoots.length > 0 ? (
-        <div className="overflow-x-auto rounded-bw-card border border-bw-line bg-bw-surface">
-          <table className="w-full text-start text-bw-small">
-            <thead className="border-b border-bw-line bg-bw-sunken text-[11px] font-semibold text-bw-ink-soft">
-              <tr>
-                <th className="px-4 py-3 text-start">التصنيف (هيكل ثنائي المستوى)</th>
-                <th className="px-3 py-3 text-start">الترتيب</th>
-                <th className="px-3 py-3 text-start">المنتجات</th>
-                <th className="px-3 py-3 text-start">الحالة</th>
-                <th className="px-4 py-3 text-end">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-bw-line">
-              {filteredRoots.map((root) => {
-                const isOpen = expanded[root.id] ?? true
-                return (
-                  <React.Fragment key={root.id}>
-                    <tr className="bg-bw-surface transition-colors hover:bg-bw-sunken">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpanded((prev) => ({ ...prev, [root.id]: !isOpen }))
-                            }
-                            disabled={root.children.length === 0}
-                            className="grid size-7 shrink-0 place-items-center rounded-bw-field border border-bw-line bg-bw-sunken text-bw-ink-soft disabled:opacity-30"
-                            aria-label={isOpen ? 'طي الفروع' : 'توسيع الفروع'}
-                          >
-                            {root.children.length === 0 ? (
-                              <FolderTree className="size-3.5" aria-hidden />
-                            ) : isOpen ? (
-                              <ChevronDown className="size-3.5" aria-hidden />
-                            ) : (
-                              <ChevronLeft className="size-3.5" aria-hidden />
-                            )}
-                          </button>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-bw-ink">
-                              <bdi>{root.name}</bdi>
-                            </p>
-                            <p className="text-[11px] text-bw-ink-subtle">
-                              <Code>{root.slug}</Code> · <Code>{root.children.length}</Code> فرعي
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 text-bw-ink-soft">
-                        <Code>{root.sortOrder}</Code>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-2">
-                          <span>
-                            <Code>{root.totalProductCount}</Code>
-                          </span>
-                          {root.totalProductCount > 0 ? (
-                            <Button
-                              variant="ghost"
-                              onClick={() => onViewCategoryProducts(root.id)}
-                            >
-                              <PackageSearch className="size-3.5 text-bw-cobalt" aria-hidden />
-                              عرض
-                            </Button>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <StatusLabel tone={root.isActive ? 'ok' : 'pending'}>
-                          {root.isActive ? 'نشط' : 'موقوف'}
-                        </StatusLabel>
-                      </td>
-                      <td className="px-4 py-3 text-end">
-                        <div className="inline-flex items-center gap-1">
-                          <Button variant="ghost" onClick={() => openCreate(root.id)}>
-                            <Plus className="size-3.5 text-bw-cobalt" aria-hidden />
-                            فرعي
-                          </Button>
-                          <Button variant="ghost" onClick={() => openEditRoot(root)}>
-                            <Pencil className="size-3.5" aria-hidden />
-                            تعديل
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              setDeleting({
-                                id: root.id,
-                                name: root.name,
-                                slug: root.slug,
-                                description: root.description,
-                                parentId: null,
-                                sortOrder: root.sortOrder,
-                                isActive: root.isActive,
-                                hasChildren: root.children.length > 0,
-                                productCount: root.totalProductCount,
-                              })
-                              setActionError(null)
-                              deleteDialog.open()
-                            }}
-                            aria-label={`حذف ${root.name}`}
-                          >
-                            <Trash2 className="size-3.5 text-bw-rose" aria-hidden />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {isOpen
-                      ? root.children.map((child) => (
-                          <tr
-                            key={child.id}
-                            className="bg-bw-sunken/50 transition-colors hover:bg-bw-sunken"
-                          >
-                            <td className="py-2.5 pe-4 ps-12">
-                              <div className="flex items-center gap-2 border-s-2 border-bw-line ps-3">
-                                <div className="min-w-0">
-                                  <p className="font-medium text-bw-ink">
-                                    <bdi>{child.name}</bdi>
-                                  </p>
-                                  <p className="text-[11px] text-bw-ink-subtle">
-                                    <Code>{child.slug}</Code>
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5 text-bw-ink-soft">
-                              <Code>{child.sortOrder}</Code>
-                            </td>
-                            <td className="px-3 py-2.5">
-                              <div className="flex items-center gap-2">
-                                <span>
-                                  <Code>{child.directProductCount}</Code>
-                                </span>
-                                {child.directProductCount > 0 ? (
-                                  <Button
-                                    variant="ghost"
-                                    onClick={() => onViewCategoryProducts(child.id)}
-                                  >
-                                    <PackageSearch className="size-3.5 text-bw-cobalt" aria-hidden />
-                                    عرض
-                                  </Button>
-                                ) : null}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5">
-                              <StatusLabel tone={child.isActive ? 'ok' : 'pending'}>
-                                {child.isActive ? 'نشط' : 'موقوف'}
-                              </StatusLabel>
-                            </td>
-                            <td className="px-4 py-2.5 text-end">
-                              <div className="inline-flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  onClick={() => openEditChild(child, root.id)}
-                                >
-                                  <Pencil className="size-3.5" aria-hidden />
-                                  تعديل
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setDeleting({
-                                      id: child.id,
-                                      name: child.name,
-                                      slug: child.slug,
-                                      description: child.description,
-                                      parentId: root.id,
-                                      sortOrder: child.sortOrder,
-                                      isActive: child.isActive,
-                                      hasChildren: false,
-                                      productCount: child.directProductCount,
-                                    })
-                                    setActionError(null)
-                                    deleteDialog.open()
-                                  }}
-                                  aria-label={`حذف ${child.name}`}
-                                >
-                                  <Trash2 className="size-3.5 text-bw-rose" aria-hidden />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      : null}
-                  </React.Fragment>
-                )
-              })}
-            </tbody>
-          </table>
+function DeleteDialog({ dialogRef, node, onClose, onDeleted }: {
+  dialogRef: React.RefObject<HTMLDialogElement | null>
+  node: Editable | null
+  onClose: () => void
+  onDeleted: (message: string) => void
+}) {
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  React.useEffect(() => setError(null), [node?.id])
+  const blocked = node ? node.productCount > 0 || node.hasChildren : false
+  return (
+    <Dialog
+      dialogRef={dialogRef}
+      title="حذف التصنيف"
+      onClose={onClose}
+      footer={node ? (
+        <>
+          <Button variant="ghost" onClick={onClose}>تراجع</Button>
+          {!blocked ? (
+            <Button variant="danger" loading={busy} onClick={async () => {
+              setBusy(true)
+              setError(null)
+              try { await api(`/categories/${node.id}`, { method: 'DELETE' }); onDeleted(`تم حذف «${node.name}»`) }
+              catch (err) { setError(catalogErrorMessage(err as ApiError, 'تعذر حذف التصنيف')) }
+              finally { setBusy(false) }
+            }}>حذف نهائي</Button>
+          ) : null}
+        </>
+      ) : undefined}
+    >
+      {node ? (
+        <div dir="rtl" className="space-y-3 text-bw-small">
+          {error ? <Banner tone="danger">{error}</Banner> : null}
+          {blocked ? (
+            <p className="text-bw-ink-soft">لا يمكن حذف «{node.name}» لأنه يحتوي على {node.productCount > 0 ? <><Code>{node.productCount}</Code> منتج</> : null}{node.productCount > 0 && node.hasChildren ? ' و' : ''}{node.hasChildren ? 'تصنيفات فرعية' : null}. انقل المنتجات أو الفروع أولًا، أو أوقف التصنيف بدلًا من حذفه.</p>
+          ) : (
+            <p className="text-bw-ink-soft">سيُحذف «{node.name}» نهائيًا ولا يمكن التراجع. إن كانت له قاعدة في قائمة السماح سيرفض النظام الحذف.</p>
+          )}
         </div>
       ) : null}
-
-      <Dialog
-        dialogRef={formDialog.ref}
-        title={editing ? `تعديل تصنيف: ${editing.name}` : 'إنشاء تصنيف جديد'}
-        onClose={() => formDialog.close()}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => formDialog.close()}>
-              إلغاء
-            </Button>
-            <Button type="submit" form="category-form" loading={busy}>
-              {editing ? 'حفظ التعديلات' : 'إنشاء التصنيف'}
-            </Button>
-          </div>
-        }
-      >
-        <form id="category-form" dir="rtl" onSubmit={saveCategory} className="space-y-4">
-          {actionError ? (
-            <p
-              role="alert"
-              className="rounded-bw-field border border-bw-rose/30 bg-bw-rose-soft p-3 text-bw-small text-bw-ink"
-            >
-              {actionError}
-            </p>
-          ) : null}
-          <Field
-            label="اسم التصنيف"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            minLength={2}
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field
-              label="المعرف (Slug - اختياري)"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              ltr
-            />
-            <Field
-              label="ترتيب العرض"
-              type="number"
-              min={0}
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              ltr
-            />
-          </div>
-          <Select
-            label="التصنيف الأب (اختياري — مستوى فرعي)"
-            value={parentId}
-            disabled={Boolean(editing?.hasChildren)}
-            onChange={(e) => setParentId(e.target.value)}
-            options={[
-              { value: '', label: 'تصنيف رئيسي (Root)' },
-              ...categories
-                .filter((root) => root.id !== editing?.id)
-                .map((root) => ({ value: root.id, label: root.name })),
-            ]}
-          />
-          {editing?.hasChildren ? (
-            <p className="text-[11px] text-bw-ink-subtle">
-              لا يمكن نقل تصنيف يحتوي على فروع أخرى داخل تصنيف آخر (الحد الأقصى مستويان).
-            </p>
-          ) : null}
-          <div className="space-y-1.5">
-            <label
-              htmlFor="category-desc-field"
-              className="block text-bw-small font-semibold text-bw-ink"
-            >
-              وصف التصنيف
-            </label>
-            <textarea
-              id="category-desc-field"
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full rounded-bw-field border border-bw-line-field bg-bw-surface p-3 text-bw-small text-bw-ink focus:border-bw-cobalt focus:outline-none"
-            />
-          </div>
-          <Switch
-            label="التصنيف نشط بالمتجر"
-            checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
-          />
-        </form>
-      </Dialog>
-
-      <Dialog
-        dialogRef={deleteDialog.ref}
-        title="حذف التصنيف"
-        onClose={() => deleteDialog.close()}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => deleteDialog.close()}>
-              تراجع
-            </Button>
-            <Button variant="danger" loading={busy} onClick={() => void confirmDelete()}>
-              تأكيد الحذف
-            </Button>
-          </div>
-        }
-      >
-        {deleting ? (
-          <div dir="rtl" className="space-y-3 text-bw-small">
-            <p className="text-bw-ink">
-              هل تريد حذف التصنيف <strong>{deleting.name}</strong>؟
-            </p>
-            <p className="text-bw-ink-soft">
-              يرفض الخادم حذف أي تصنيف مرتبط بمنتجات أو تصنيفات فرعية لحماية بيانات الكتالوج.
-            </p>
-            {actionError ? (
-              <p
-                role="alert"
-                className="rounded-bw-field border border-bw-rose/30 bg-bw-rose-soft p-3 text-bw-ink"
-              >
-                {actionError}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-      </Dialog>
-    </section>
+    </Dialog>
   )
 }

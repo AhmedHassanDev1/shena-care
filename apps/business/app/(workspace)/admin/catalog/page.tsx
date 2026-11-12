@@ -1,174 +1,157 @@
 'use client'
 
 import * as React from 'react'
-import Link from 'next/link'
-import {
-  Building2,
-  FileSpreadsheet,
-  FolderTree,
-  Image as ImageIcon,
-  Layers,
-  Package,
-  ShieldCheck,
-} from 'lucide-react'
-import { Code, PageHeader } from '@/components/bw/primitives'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Building2, FolderTree, Package, ShieldCheck } from 'lucide-react'
+import { PageHeader } from '@/components/bw/primitives'
+import { Page } from '@/components/workspace/kit'
 import { RoleShell } from '@/components/workspace/role-shell'
 import { useApi } from '@/lib/use-api'
+import { cn } from '@/lib/utils'
 import { AllowlistTab } from './allowlist-tab'
 import { BrandsTab } from './brands-tab'
-import { BrandSummary, CategoryNode } from './catalog-utils'
+import { BrandSummary, CategoryNode, ProductFilters, parseProductFilters } from './catalog-model'
 import { CategoriesTab } from './categories-tab'
 import { ProductsTab } from './products-tab'
 
-type CatalogTabKey = 'products' | 'brands' | 'categories' | 'allowlist'
+const TABS = [
+  { key: 'products', label: 'المنتجات', icon: Package },
+  { key: 'brands', label: 'الماركات', icon: Building2 },
+  { key: 'categories', label: 'التصنيفات', icon: FolderTree },
+  { key: 'allowlist', label: 'قائمة السماح', icon: ShieldCheck },
+] as const
 
+type TabKey = (typeof TABS)[number]['key']
+
+/**
+ * Admin Catalog. The tab, every product filter and the open product live in the URL, so closing a
+ * panel, refreshing or coming back never loses where you were.
+ */
 export default function AdminCatalog() {
-  const [activeTab, setActiveTab] = React.useState<CatalogTabKey>('products')
-  const [productBrandFilter, setProductBrandFilter] = React.useState<string>('')
-  const [productCategoryFilter, setProductCategoryFilter] = React.useState<string>('')
+  return (
+    <React.Suspense fallback={null}>
+      <CatalogPage />
+    </React.Suspense>
+  )
+}
 
+function CatalogPage() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const params = useSearchParams()
   const brandsApi = useApi<BrandSummary[]>('/brands?includeInactive=true')
   const categoriesApi = useApi<CategoryNode[]>('/categories?includeInactive=true')
 
-  const brands = brandsApi.data ?? []
-  const categories = categoriesApi.data ?? []
+  const rawTab = params.get('tab')
+  const tab: TabKey = TABS.some((t) => t.key === rawTab) ? (rawTab as TabKey) : 'products'
+  const filters = parseProductFilters((key) => params.get(key))
+  const selectedId = params.get('p')
 
-  function jumpToBrandProducts(brandId: string) {
-    setProductCategoryFilter('')
-    setProductBrandFilter(brandId)
-    setActiveTab('products')
+  const update = React.useCallback((patch: Record<string, string | null>) => {
+    const next = new URLSearchParams(params.toString())
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === null || value === '') next.delete(key)
+      else next.set(key, value)
+    }
+    const qs = next.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [params, pathname, router])
+
+  const setFilters = React.useCallback((patch: Partial<ProductFilters>) => {
+    const out: Record<string, string | null> = {}
+    if ('q' in patch) out.q = patch.q ?? null
+    if ('brand' in patch) out.brand = patch.brand ?? null
+    if ('cat' in patch) out.cat = patch.cat ?? null
+    if ('status' in patch) out.status = patch.status && patch.status !== 'all' ? patch.status : null
+    if ('ready' in patch) out.ready = patch.ready ?? null
+    if ('page' in patch) out.page = patch.page && patch.page > 1 ? String(patch.page) : null
+    update(out)
+  }, [update])
+
+  const selectTab = (key: TabKey) => update({ tab: key === 'products' ? null : key, p: null })
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+    event.preventDefault()
+    const index = TABS.findIndex((t) => t.key === tab)
+    const step = getComputedStyle(event.currentTarget).direction === 'rtl' ? (event.key === 'ArrowLeft' ? 1 : -1) : (event.key === 'ArrowRight' ? 1 : -1)
+    const next = TABS[(index + step + TABS.length) % TABS.length]
+    selectTab(next.key)
+    ;(event.currentTarget.querySelectorAll('[role="tab"]')[TABS.indexOf(next)] as HTMLButtonElement | undefined)?.focus()
   }
-
-  function jumpToCategoryProducts(categoryId: string) {
-    setProductBrandFilter('')
-    setProductCategoryFilter(categoryId)
-    setActiveTab('products')
-  }
-
-  const tabs: Array<{
-    key: CatalogTabKey
-    label: string
-    icon: React.ElementType
-    count?: number
-  }> = [
-    { key: 'products', label: 'المنتجات', icon: Package },
-    { key: 'brands', label: 'الماركات', icon: Building2, count: brands.length },
-    {
-      key: 'categories',
-      label: 'التصنيفات',
-      icon: FolderTree,
-      count: categories.reduce((acc, c) => acc + 1 + c.children.length, 0),
-    },
-    { key: 'allowlist', label: 'قائمة السماح (Allowlist)', icon: ShieldCheck },
-  ]
 
   return (
-    <RoleShell role="admin" active="catalog">
-      <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-8 sm:py-8" dir="rtl">
-        <PageHeader
-          eyebrow="مساحة الإدارة / الكتالوج"
-          title="إدارة الكتالوج"
-          meta="إدارة المنتجات، الماركات، شجرة التصنيفات، وقواعد قائمة السماح لاستيراد الموردين من مكان واحد."
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href="/admin/catalog-next"
-                className="inline-flex h-bw-control items-center gap-2 rounded-bw-field border border-bw-line bg-bw-surface px-3.5 text-bw-small font-semibold text-bw-ink transition-colors hover:border-bw-line-field hover:bg-bw-sunken"
-              >
-                <Layers className="size-4 text-bw-cobalt" aria-hidden />
-                الواجهة المبسطة
-              </Link>
-              <Link
-                href="/admin/catalog/media-templates"
-                className="inline-flex h-bw-control items-center gap-2 rounded-bw-field border border-bw-line bg-bw-surface px-3.5 text-bw-small font-semibold text-bw-ink transition-colors hover:border-bw-line-field hover:bg-bw-sunken"
-              >
-                <ImageIcon className="size-4 text-bw-violet" aria-hidden />
-                قوالب الصور
-              </Link>
-              <Link
-                href="/admin/catalog/intake"
-                className="inline-flex h-bw-control items-center gap-2 rounded-bw-field border border-bw-line bg-bw-surface px-3.5 text-bw-small font-semibold text-bw-ink transition-colors hover:border-bw-line-field hover:bg-bw-sunken"
-              >
-                <FileSpreadsheet className="size-4 text-bw-cobalt" aria-hidden />
-                إدخال المنتجات
-              </Link>
-            </div>
-          }
-        />
-
-        <nav
-          aria-label="أقسام إدارة الكتالوج"
-          role="tablist"
-          className="flex flex-wrap gap-1.5 rounded-bw-card border border-bw-line bg-bw-sunken p-1.5"
-        >
-          {tabs.map((tab) => {
-            const Icon = tab.icon
-            const selected = activeTab === tab.key
+    <RoleShell role="admin" active="catalog" mode="desktop">
+      <Page>
+        <PageHeader title="الكتالوج" />
+        <div role="tablist" aria-label="أقسام الكتالوج" onKeyDown={onKeyDown} className="flex gap-3.5 border-b border-bw-line sm:gap-7">
+          {TABS.map(({ key, label, icon: Icon }) => {
+            const selected = tab === key
             return (
               <button
-                key={tab.key}
+                key={key}
                 type="button"
                 role="tab"
+                id={`catalog-tab-${key}`}
                 aria-selected={selected}
-                onClick={() => setActiveTab(tab.key)}
-                className={`inline-flex min-h-bw-control items-center gap-2 rounded-bw-field px-3.5 py-2 text-bw-small font-semibold transition-colors ${
-                  selected
-                    ? 'border border-bw-cobalt/30 bg-bw-surface text-bw-ink shadow-bw-card'
-                    : 'text-bw-ink-soft hover:bg-bw-surface/50 hover:text-bw-ink'
-                }`}
+                aria-controls="catalog-panel"
+                tabIndex={selected ? 0 : -1}
+                onClick={() => selectTab(key)}
+                className={cn(
+                  '-mb-px flex min-h-11 shrink-0 items-center gap-2 border-b-2 px-0.5 text-bw-small font-semibold transition-colors sm:px-1 sm:text-bw-body',
+                  selected ? 'border-bw-cobalt text-bw-ink' : 'border-transparent text-bw-ink-soft hover:text-bw-ink',
+                )}
               >
-                <Icon
-                  className={`size-4 ${selected ? 'text-bw-cobalt' : 'text-bw-ink-subtle'}`}
-                  aria-hidden
-                />
-                <span>{tab.label}</span>
-                {typeof tab.count === 'number' && tab.count > 0 ? (
-                  <Code className="rounded-full bg-bw-sunken px-2 py-0.5 text-[11px] text-bw-ink-soft">
-                    {tab.count}
-                  </Code>
-                ) : null}
+                <Icon className={cn('hidden size-4 sm:block', selected ? 'text-bw-cobalt' : 'text-bw-ink-subtle')} aria-hidden />
+                {label}
               </button>
             )
           })}
-        </nav>
+        </div>
 
-        {activeTab === 'products' ? (
-          <ProductsTab
-            brands={brands}
-            categories={categories}
-            initialBrandId={productBrandFilter}
-            initialCategoryId={productCategoryFilter}
-            onClearExternalFilters={() => {
-              setProductBrandFilter('')
-              setProductCategoryFilter('')
-            }}
-          />
-        ) : null}
-
-        {activeTab === 'brands' ? (
-          <BrandsTab
-            brands={brands}
-            loading={brandsApi.loading}
-            error={brandsApi.error?.message ?? null}
-            onReload={brandsApi.reload}
-            onViewBrandProducts={jumpToBrandProducts}
-          />
-        ) : null}
-
-        {activeTab === 'categories' ? (
-          <CategoriesTab
-            categories={categories}
-            loading={categoriesApi.loading}
-            error={categoriesApi.error?.message ?? null}
-            onReload={categoriesApi.reload}
-            onViewCategoryProducts={jumpToCategoryProducts}
-          />
-        ) : null}
-
-        {activeTab === 'allowlist' ? (
-          <AllowlistTab brands={brands} categories={categories} />
-        ) : null}
-      </main>
+        <section id="catalog-panel" role="tabpanel" aria-labelledby={`catalog-tab-${tab}`} className="pt-4 sm:pt-6">
+          {tab === 'products' ? (
+            <ProductsTab
+              brands={brandsApi.data ?? []}
+              categories={categoriesApi.data ?? []}
+              filters={filters}
+              setFilters={setFilters}
+              selectedId={selectedId}
+              setSelectedId={(id: string | null) => update({ p: id })}
+            />
+          ) : null}
+          {tab === 'brands' ? (
+            <BrandsTab
+              brands={brandsApi.data ?? []}
+              loading={brandsApi.loading}
+              error={brandsApi.error ? brandsApi.error.message : null}
+              onReload={brandsApi.reload}
+              onViewProducts={(brandId) => {
+                setFilters({ brand: brandId, page: 1 })
+                selectTab('products')
+              }}
+            />
+          ) : null}
+          {tab === 'categories' ? (
+            <CategoriesTab
+              categories={categoriesApi.data ?? []}
+              loading={categoriesApi.loading}
+              error={categoriesApi.error ? categoriesApi.error.message : null}
+              onReload={categoriesApi.reload}
+              onViewProducts={(catId) => {
+                setFilters({ cat: catId, page: 1 })
+                selectTab('products')
+              }}
+            />
+          ) : null}
+          {tab === 'allowlist' ? (
+            <AllowlistTab
+              brands={brandsApi.data ?? []}
+              categories={categoriesApi.data ?? []}
+            />
+          ) : null}
+        </section>
+      </Page>
     </RoleShell>
   )
 }

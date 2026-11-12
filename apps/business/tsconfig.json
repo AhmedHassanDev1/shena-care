@@ -39,7 +39,9 @@
     ".next-real10/types/**/*.ts",
     ".next-real10/dev/types/**/*.ts",
     ".next-autopilot/types/**/*.ts",
-    ".next-autopilot/dev/types/**/*.ts"
+    ".next-autopilot/dev/types/**/*.ts",
+    ".next-ux/types/**/*.ts",
+    ".next-ux/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

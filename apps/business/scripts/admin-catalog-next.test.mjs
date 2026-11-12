@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import ts from 'typescript'
 
-const source = readFileSync(new URL('../app/(workspace)/admin/catalog-next/catalog-model.ts', import.meta.url), 'utf8')
+const source = readFileSync(new URL('../app/(workspace)/admin/catalog/catalog-model.ts', import.meta.url), 'utf8')
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } })
 const m = await import(`data:text/javascript;base64,${Buffer.from(compiled.outputText).toString('base64')}`)
 
