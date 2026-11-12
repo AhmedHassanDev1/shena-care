@@ -2,7 +2,7 @@ import Link from 'next/link'
 import {
   FileSpreadsheet, Heart, History, LayoutDashboard,
   LogOut, PackageOpen, Printer, Route, ScanLine,
-  Radio, Settings, ShoppingBag, Store, Truck, UserRound, Users, Wallet,
+  Radio, ShoppingBag, Settings2, Store, Truck, UserRound, Users, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -28,10 +28,10 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'attention', label: 'نظرة عامة', icon: LayoutDashboard, href: '/admin' },
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
       { id: 'catalog', label: 'الكتالوج', icon: PackageOpen, href: '/admin/catalog' },
-      { id: 'suppliers', label: 'الموردون والتوريد', icon: Store, href: '/admin/sourcing/enrollment' },
-      { id: 'cod', label: 'المالية', icon: Wallet, href: '/admin/cash' },
-      { id: 'team', label: 'الفريق', icon: Users, href: '#', comingSoon: true },
-      { id: 'settings', label: 'الإعدادات', icon: Settings, href: '#', comingSoon: true },
+      { id: 'suppliers', label: 'الموردون والتوريد', icon: Store, href: '/admin/sourcing' },
+      { id: 'finance', label: 'المالية', icon: Wallet, href: '/admin/finance' },
+      { id: 'team', label: 'الفريق', icon: Users, href: '/admin/team' },
+      { id: 'settings', label: 'الإعدادات', icon: Settings2, href: '/admin/settings' },
     ],
   },
   supplier: {
@@ -292,7 +292,7 @@ export function WorkspaceFrame({
       <main className="min-w-0 flex-1 pb-20 lg:pb-6">{children}</main>
 
       {/* Mobile navigation mirrors the desktop destinations */}
-      <nav aria-label={nav.title} className="fixed inset-x-0 bottom-0 z-30 grid grid-flow-col border-t border-bw-line bg-bw-page lg:hidden">
+      <nav aria-label={nav.title} className={cn('fixed inset-x-0 bottom-0 z-30 border-t border-bw-line bg-bw-page lg:hidden', role === 'admin' ? 'flex overflow-x-auto' : 'grid grid-flow-col')}>
         {nav.items.filter((item) => !item.comingSoon).map((item) => {
           const isActive = isItemActive(item.id)
           const isAdminNav = role === 'admin'
@@ -303,6 +303,7 @@ export function WorkspaceFrame({
               aria-current={isActive ? 'page' : undefined}
               className={cn(
                 'flex h-14 min-w-0 flex-col items-center justify-center border-t-2 px-1 text-[11px] transition-colors duration-150',
+                role === 'admin' ? 'min-w-20 flex-1' : '',
                 isActive
                   ? isAdminNav
                     ? 'border-bw-cobalt bg-bw-sunken font-semibold text-bw-ink'
