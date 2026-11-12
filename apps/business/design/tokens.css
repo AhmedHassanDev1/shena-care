@@ -47,6 +47,18 @@
   --color-bw-info-soft: #2a2a36;
   --color-bw-focus: #ededf0;
 
+  /* Admin Overview semantic accent tokens (dark surfaces remain strictly unchanged). */
+  --color-bw-cobalt: #6b9eff;
+  --color-bw-cobalt-soft: #162033;
+  --color-bw-emerald: #4dd4a0;
+  --color-bw-emerald-soft: #132620;
+  --color-bw-amber: #edb55e;
+  --color-bw-amber-soft: #282014;
+  --color-bw-rose: #f0939f;
+  --color-bw-rose-soft: #29181d;
+  --color-bw-violet: #b39ef8;
+  --color-bw-violet-soft: #1f1b2e;
+
   /* Enterprise density. */
   --text-bw-title: 1.5rem;       --text-bw-title--line-height: 1.3;
   --text-bw-heading: 1.0625rem; --text-bw-heading--line-height: 1.45;

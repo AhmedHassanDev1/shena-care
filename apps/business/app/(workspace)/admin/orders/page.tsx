@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, MapPinOff, RefreshCw, Search, ShoppingBag } from 'lucide-react'
 import { Button, Code, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { Egp, Status } from '@/components/workspace/kit'
@@ -24,11 +25,23 @@ const filters = [
 ]
 const CLOSED = ['delivered', 'cancelled', 'returned']
 
-export default function AdminOrders() {
-  const [status, setStatus] = React.useState('')
+const ALLOWED_STATUSES = new Set(filters.map((f) => f.value).filter(Boolean))
+
+function AdminOrdersContent() {
+  const searchParams = useSearchParams()
+  const initialStatus = searchParams.get('status') ?? ''
+  const [status, setStatus] = React.useState(ALLOWED_STATUSES.has(initialStatus) ? initialStatus : '')
   const [query, setQuery] = React.useState('')
   const [search, setSearch] = React.useState('')
   const [skip, setSkip] = React.useState(0)
+
+  React.useEffect(() => {
+    const paramStatus = searchParams.get('status') ?? ''
+    if (paramStatus && ALLOWED_STATUSES.has(paramStatus)) {
+      setStatus(paramStatus)
+      setSkip(0)
+    }
+  }, [searchParams])
   const params = new URLSearchParams({ take: String(PAGE_SIZE), skip: String(skip), ...(status ? { status } : {}), ...(search ? { q: search } : {}) })
   const orders = useApi<{ total: number; items: OrderRow[] }>(`/admin/orders?${params}`, { pollMs: 30000 })
   const rows = orders.data?.items ?? []
@@ -80,4 +93,12 @@ export default function AdminOrders() {
       </section>
     </main>
   </RoleShell>
+}
+
+export default function AdminOrders() {
+  return (
+    <React.Suspense fallback={<div className="p-8 text-bw-small text-bw-ink-subtle">جارٍ التحميل...</div>}>
+      <AdminOrdersContent />
+    </React.Suspense>
+  )
 }

@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import {
-  Heart, History, LayoutDashboard,
-  LogOut, PackageOpen, Printer, RefreshCw, Route, ScanLine,
-  Radio, ShieldAlert, ShoppingBag, Store, Truck, UserRound, Wallet,
+  FileSpreadsheet, Heart, History, LayoutDashboard,
+  LogOut, PackageOpen, Printer, Route, ScanLine,
+  Radio, Settings, ShoppingBag, Store, Truck, UserRound, Users, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 export type Role = 'admin' | 'supplier' | 'hub' | 'driver'
 export type WorkspaceMode = 'desktop' | 'mobile' | 'task' | 'responsive'
 
-type NavItem = { id: string; label: string; icon: React.ElementType; href: string }
+type NavItem = { id: string; label: string; icon: React.ElementType; href: string; comingSoon?: boolean }
 
 const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   admin: {
@@ -27,8 +27,11 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
     items: [
       { id: 'attention', label: 'نظرة عامة', icon: LayoutDashboard, href: '/admin' },
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
-      { id: 'suppliers', label: 'الموردون', icon: Store, href: '/admin/sourcing/enrollment' },
       { id: 'catalog', label: 'الكتالوج', icon: PackageOpen, href: '/admin/catalog' },
+      { id: 'suppliers', label: 'الموردون والتوريد', icon: Store, href: '/admin/sourcing/enrollment' },
+      { id: 'cod', label: 'المالية', icon: Wallet, href: '/admin/cash' },
+      { id: 'team', label: 'الفريق', icon: Users, href: '#', comingSoon: true },
+      { id: 'settings', label: 'الإعدادات', icon: Settings, href: '#', comingSoon: true },
     ],
   },
   supplier: {
@@ -36,6 +39,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
     items: [
       { id: 'rfq', label: 'طلبات التوريد المفتوحة', icon: Radio, href: '/supplier/rfq' },
       { id: 'orders', label: 'طلبات شيناكير', icon: ShoppingBag, href: '/supplier/orders' },
+      { id: 'price-lists', label: 'قوائم الأسعار', icon: FileSpreadsheet, href: '/supplier/price-lists' },
     ],
   },
   hub: {
@@ -120,7 +124,7 @@ export function WorkspaceFrame({
   const isItemActive = (itemId: string) => {
     if (itemId === active) return true
     if (role === 'admin' && itemId === 'suppliers' && (active === 'sourcing' || active === 'enrollment')) return true
-    if (role === 'admin' && itemId === 'catalog' && active === 'media-templates') return true
+    if (role === 'admin' && itemId === 'catalog' && (active === 'media-templates' || active === 'intake')) return true
     if (itemId === 'orders' && (active === 'pos' || active === 'orders')) return true
     return false
   }
@@ -221,7 +225,20 @@ export function WorkspaceFrame({
         </div>
         <nav aria-label={nav.title} className="flex flex-1 flex-col gap-0.5 px-2 py-1">
           {nav.items.map((item) => {
+            if (item.comingSoon) {
+              return (
+                <span
+                  key={item.id}
+                  className="group flex h-10 shrink-0 items-center gap-2.5 rounded-bw-field px-3 text-bw-small text-bw-ink-subtle cursor-not-allowed"
+                >
+                  <item.icon className="size-4 shrink-0 text-bw-ink-subtle" aria-hidden />
+                  <span className="flex-1">{item.label}</span>
+                  <span className="rounded-bw-pill border border-bw-line px-1.5 text-[10px] font-semibold text-bw-ink-subtle">قريباً</span>
+                </span>
+              )
+            }
             const isActive = isItemActive(item.id)
+            const isAdminNav = role === 'admin'
             return (
               <Link
                 key={item.id}
@@ -230,11 +247,25 @@ export function WorkspaceFrame({
                 className={cn(
                   'group flex h-10 shrink-0 items-center gap-2.5 rounded-bw-field px-3 text-bw-small transition-colors duration-150',
                   isActive
-                    ? 'bg-bw-sunken font-semibold text-bw-ink'
+                    ? isAdminNav
+                      ? 'border-s-2 border-bw-cobalt bg-bw-sunken font-semibold text-bw-ink'
+                      : 'bg-bw-sunken font-semibold text-bw-ink'
                     : 'text-bw-ink-soft hover:bg-bw-surface hover:text-bw-ink',
                 )}
               >
-                <item.icon className={cn('size-4 shrink-0 transition-colors duration-150', isActive ? 'text-bw-ink' : 'text-bw-ink-subtle group-hover:text-bw-ink')} aria-hidden />
+                <item.icon
+                  className={cn(
+                    'size-4 shrink-0 transition-colors duration-150',
+                    isActive
+                      ? isAdminNav
+                        ? 'text-bw-cobalt'
+                        : 'text-bw-ink'
+                      : isAdminNav
+                      ? 'text-bw-ink-subtle group-hover:text-bw-cobalt'
+                      : 'text-bw-ink-subtle group-hover:text-bw-ink',
+                  )}
+                  aria-hidden
+                />
                 <span className="flex-1">{item.label}</span>
                 <Count value={getItemCount(item.id)} />
               </Link>
@@ -262,8 +293,9 @@ export function WorkspaceFrame({
 
       {/* Mobile navigation mirrors the desktop destinations */}
       <nav aria-label={nav.title} className="fixed inset-x-0 bottom-0 z-30 grid grid-flow-col border-t border-bw-line bg-bw-page lg:hidden">
-        {nav.items.map((item) => {
+        {nav.items.filter((item) => !item.comingSoon).map((item) => {
           const isActive = isItemActive(item.id)
+          const isAdminNav = role === 'admin'
           return (
             <Link
               key={item.id}
@@ -272,11 +304,13 @@ export function WorkspaceFrame({
               className={cn(
                 'flex h-14 min-w-0 flex-col items-center justify-center border-t-2 px-1 text-[11px] transition-colors duration-150',
                 isActive
-                  ? 'border-bw-action bg-bw-sunken font-semibold text-bw-ink'
+                  ? isAdminNav
+                    ? 'border-bw-cobalt bg-bw-sunken font-semibold text-bw-ink'
+                    : 'border-bw-action bg-bw-sunken font-semibold text-bw-ink'
                   : 'border-transparent text-bw-ink-soft hover:bg-bw-surface hover:text-bw-ink',
               )}
             >
-              <item.icon className={cn('mb-0.5 size-[18px]', isActive ? 'text-bw-ink' : 'text-bw-ink-subtle')} aria-hidden />
+              <item.icon className={cn('mb-0.5 size-[18px]', isActive ? (isAdminNav ? 'text-bw-cobalt' : 'text-bw-ink') : 'text-bw-ink-subtle')} aria-hidden />
               <span className="flex max-w-full items-center gap-1 truncate">
                 {item.label}
                 <Count value={getItemCount(item.id)} />

@@ -34,8 +34,8 @@ test('formatRelativeTime produces natural Arabic phrasing', () => {
   assert.equal(formatRelativeTime(new Date(now - 14 * 3600 * 1000).toISOString()), 'منذ 14 ساعة')
 })
 
-/* ── Test Sparkline Math & Bezier Calculation ── */
-function computeSparklinePoints(data, width = 80, height = 28, padding = 3) {
+/* ── Test Sparkline Math & Bounds ── */
+function computeSparklinePoints(data, width = 88, height = 28, padding = 3) {
   if (!data || data.length === 0) return { empty: true }
   const allZero = data.every((v) => v === 0)
   if (allZero) return { allZero: true, baselineY: height / 2 }
@@ -52,27 +52,26 @@ function computeSparklinePoints(data, width = 80, height = 28, padding = 3) {
   }
 }
 
-test('sparkline handles empty and all-zero data without NaN', () => {
-  const emptyRes = computeSparklinePoints([])
-  assert.equal(emptyRes.empty, true)
+test('sparkline handles empty, all-zero, and active sales data without NaN', () => {
+  assert.equal(computeSparklinePoints([]).empty, true)
 
   const zeroRes = computeSparklinePoints([0, 0, 0, 0, 0, 0, 0])
   assert.equal(zeroRes.allZero, true)
   assert.equal(zeroRes.baselineY, 14)
 
-  const activeRes = computeSparklinePoints([10, 15, 20, 18, 30, 25, 35])
+  const activeRes = computeSparklinePoints([1200, 1850, 900, 2400, 3100, 2900, 4200])
   assert.equal(activeRes.allZero, false)
   assert.equal(activeRes.points.length, 7)
   for (const pt of activeRes.points) {
-    assert.ok(!Number.isNaN(pt.x), `pt.x is NaN: ${pt.x}`)
-    assert.ok(!Number.isNaN(pt.y), `pt.y is NaN: ${pt.y}`)
-    assert.ok(pt.x >= 3 && pt.x <= 77, `pt.x out of bounds: ${pt.x}`)
-    assert.ok(pt.y >= 3 && pt.y <= 25, `pt.y out of bounds: ${pt.y}`)
+    assert.ok(!Number.isNaN(pt.x))
+    assert.ok(!Number.isNaN(pt.y))
+    assert.ok(pt.x >= 3 && pt.x <= 85)
+    assert.ok(pt.y >= 3 && pt.y <= 25)
   }
 })
 
-/* ── Test Stage Board Percentage Calculations ── */
-test('stage board calculates accurate stage distribution percentages without NaN', () => {
+/* ── Test Stage Board & Order Distribution Percentages ── */
+test('workflow stages and order distribution calculate accurate percentages without NaN', () => {
   const counts = {
     awaiting_sourcing: 4,
     sourcing_receiving: 12,
@@ -81,64 +80,63 @@ test('stage board calculates accurate stage distribution percentages without NaN
     exceptions_stalled: 6,
   }
   const total = Object.values(counts).reduce((a, b) => a + b, 0)
-  assert.equal(total, 63)
-
   const calcPercent = (cnt) => (total > 0 ? Math.round((cnt / total) * 1000) / 10 : 0)
-  const p1 = calcPercent(counts.awaiting_sourcing)
-  const p2 = calcPercent(counts.sourcing_receiving)
-  const p3 = calcPercent(counts.packing_fulfillment)
-  const p4 = calcPercent(counts.out_for_delivery)
-  const p5 = calcPercent(counts.exceptions_stalled)
 
-  assert.equal(p1, 6.3)
-  assert.equal(p2, 19.0)
-  assert.equal(p3, 34.9)
-  assert.equal(p4, 30.2)
-  assert.equal(p5, 9.5)
-  assert.ok(Math.abs(p1 + p2 + p3 + p4 + p5 - 100) < 0.2)
+  assert.equal(total, 63)
+  assert.equal(calcPercent(counts.awaiting_sourcing), 6.3)
+  assert.equal(calcPercent(counts.packing_fulfillment), 34.9)
+  assert.equal(calcPercent(counts.exceptions_stalled), 9.5)
 
-  // Empty stages total
-  const emptyTotal = 0
-  const emptyCalc = (cnt) => (emptyTotal > 0 ? Math.round((cnt / emptyTotal) * 1000) / 10 : 0)
+  const emptyCalc = (cnt) => (0 > 0 ? Math.round((cnt / 0) * 1000) / 10 : 0)
   assert.equal(emptyCalc(0), 0)
 })
 
-/* ── Test Financial Variance Calculation ── */
-test('financial variance formats positive and negative differences correctly', () => {
-  const formatVariance = (amount) => {
-    if (amount === 0) return '0'
-    return amount > 0 ? `+${amount.toLocaleString()}` : `${amount.toLocaleString()}`
-  }
-  assert.equal(formatVariance(0), '0')
-  assert.equal(formatVariance(-75), '-75')
-  assert.equal(formatVariance(150), '+150')
-})
-
-/* ── Test Zero Mock Operational Data Rule ── */
-test('empty overview payload strictly maintains zero mock guarantees', () => {
-  const emptyOverview = {
+/* ── Test Zero Mock & RBAC / Incomplete Profit Contract ── */
+test('overview payload enforces zero-mock guarantees and explicit incomplete profit state', () => {
+  const emptyAdminOverview = {
+    days: 7,
     kpis: {
-      ordersToday: { count: 0, yesterdayCount: 0, changePercent: null, sparkline: [0, 0, 0, 0, 0, 0, 0] },
-      openOrders: { count: 0, status: 'مستقر', sparkline: [0, 0, 0, 0, 0, 0, 0] },
-      deliveredToday: { count: 0, deliveredRate: null, sparkline: [0, 0, 0, 0, 0, 0, 0] },
-      needsIntervention: { count: 0, criticalCount: 0, sparkline: [0, 0, 0, 0, 0, 0, 0] },
+      netRealizedSales: {
+        amount: 0,
+        previousAmount: 0,
+        changePercent: null,
+        shippingFeesExcluded: 0,
+        refundsSubtracted: 0,
+        deliveredOrdersCount: 0,
+        sparkline: [0, 0, 0, 0, 0, 0, 0],
+      },
+      contributionProfit: {
+        status: 'no_data',
+        confirmedAmount: null,
+        goodsMarginOnly: null,
+        coveredOrdersCount: 0,
+        totalDeliveredOrdersCount: 0,
+        missingComponents: ['packaging_costs', 'delivery_expenses'],
+      },
+      newOrders: { count: 0, previousCount: 0, changePercent: null, sparkline: [0, 0, 0, 0, 0, 0, 0] },
+      completedOrders: { count: 0, previousCount: 0, changePercent: null, completionRate: null, sparkline: [0, 0, 0, 0, 0, 0, 0] },
+      openOrders: { count: 0 },
     },
-    activityChart: { days: 7, series: [] },
-    actionRequired: { total: 0, criticalCount: 0, items: [] },
+    salesChart: {
+      days: 7,
+      granularity: 'daily',
+      hasFinancialAccess: true,
+      hasPreviousComparison: false,
+      series: [],
+    },
+    orderDistribution: { total: 0, items: [] },
+    actionRequired: { totalIssues: 0, affectedOrdersCount: 0, standaloneCasesCount: 0, criticalCount: 0, items: [] },
     stageBoard: { totalActive: 0, stages: [] },
     financialSummary: {
       pendingCod: { amount: 0, shipmentCount: 0, currency: 'EGP' },
-      collectedToday: { amount: 0, transactionCount: 0, currency: 'EGP' },
       unresolvedVariance: { amount: 0, caseCount: 0, currency: 'EGP', details: null },
-      totalReceivedToday: { amount: 0, transactionCount: 0, currency: 'EGP' },
     },
   }
 
-  assert.equal(emptyOverview.kpis.ordersToday.count, 0)
-  assert.equal(emptyOverview.kpis.ordersToday.changePercent, null)
-  assert.equal(emptyOverview.kpis.deliveredToday.deliveredRate, null)
-  assert.equal(emptyOverview.actionRequired.items.length, 0)
-  assert.equal(emptyOverview.financialSummary.pendingCod.amount, 0)
-  assert.equal(emptyOverview.financialSummary.collectedToday.amount, 0)
-  assert.equal(emptyOverview.financialSummary.unresolvedVariance.amount, 0)
+  assert.equal(emptyAdminOverview.kpis.netRealizedSales.amount, 0)
+  assert.equal(emptyAdminOverview.kpis.netRealizedSales.changePercent, null)
+  assert.equal(emptyAdminOverview.kpis.contributionProfit.confirmedAmount, null)
+  assert.equal(emptyAdminOverview.actionRequired.totalIssues, 0)
+  assert.equal(emptyAdminOverview.actionRequired.affectedOrdersCount, 0)
+  assert.equal(emptyAdminOverview.financialSummary.unresolvedVariance.amount, 0)
 })

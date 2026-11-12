@@ -18,7 +18,7 @@ const ratio = (a, b) => {
 
 const text = (fg, ...bgs) => bgs.map((bg) => [fg, bg, 4.5])
 const pairs = [
-  ...text('bw-ink', 'bw-page', 'bw-sidebar', 'bw-surface', 'bw-sunken', 'bw-ok-soft', 'bw-warn-soft', 'bw-danger-soft', 'bw-info-soft', 'bw-action-soft'),
+  ...text('bw-ink', 'bw-page', 'bw-sidebar', 'bw-surface', 'bw-sunken', 'bw-ok-soft', 'bw-warn-soft', 'bw-danger-soft', 'bw-info-soft', 'bw-action-soft', 'bw-cobalt-soft', 'bw-emerald-soft', 'bw-amber-soft', 'bw-rose-soft', 'bw-violet-soft'),
   ...text('bw-ink-soft', 'bw-page', 'bw-sidebar', 'bw-surface', 'bw-sunken'),
   ...text('bw-ink-subtle', 'bw-page', 'bw-sidebar', 'bw-surface', 'bw-sunken'),
   ...text('bw-on-action', 'bw-action', 'bw-action-hover', 'bw-danger'),
@@ -28,6 +28,12 @@ const pairs = [
   ...text('bw-warn', 'bw-warn-soft', 'bw-surface'),
   ...text('bw-danger', 'bw-danger-soft', 'bw-surface'),
   ...text('bw-info', 'bw-info-soft', 'bw-surface'),
+  ...text('bw-cobalt', 'bw-cobalt-soft', 'bw-surface', 'bw-sunken', 'bw-page'),
+  ...text('bw-emerald', 'bw-emerald-soft', 'bw-surface', 'bw-sunken', 'bw-page'),
+  ...text('bw-amber', 'bw-amber-soft', 'bw-surface', 'bw-sunken', 'bw-page'),
+  ...text('bw-rose', 'bw-rose-soft', 'bw-surface', 'bw-sunken', 'bw-page'),
+  ...text('bw-violet', 'bw-violet-soft', 'bw-surface', 'bw-sunken', 'bw-page'),
+  ...text('bw-page', 'bw-cobalt', 'bw-emerald', 'bw-amber', 'bw-rose', 'bw-violet'),
   ...text('bw-on-kohl', 'bw-kohl', 'bw-kohl-raised'),
   ...text('bw-on-kohl-soft', 'bw-kohl', 'bw-kohl-raised'),
   ...text('bw-on-kohl-action', 'bw-kohl', 'bw-kohl-raised'),

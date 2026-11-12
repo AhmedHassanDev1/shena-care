@@ -1,85 +1,166 @@
 'use client'
 
 import * as React from 'react'
-import { ArrowLeft, RefreshCw, Search } from 'lucide-react'
-import { Button, Code, Dialog, PageHeader, Skeleton, StateBlock, StatusLabel, useDialog } from '@/components/bw/primitives'
-import { RoleShell, LoadError } from '@/components/workspace/role-shell'
+import Link from 'next/link'
+import {
+  Building2,
+  FileSpreadsheet,
+  FolderTree,
+  Image as ImageIcon,
+  Package,
+  ShieldCheck,
+} from 'lucide-react'
+import { Code, PageHeader } from '@/components/bw/primitives'
+import { RoleShell } from '@/components/workspace/role-shell'
 import { useApi } from '@/lib/use-api'
-import { CatalogItems, ProductImage } from './catalog-items'
+import { AllowlistTab } from './allowlist-tab'
+import { BrandsTab } from './brands-tab'
+import { BrandSummary, CategoryNode } from './catalog-utils'
+import { CategoriesTab } from './categories-tab'
+import { ProductsTab } from './products-tab'
 
-type CatalogProduct = {
-  id: string
-  name: string
-  description: string | null
-  brand: { name: string }
-  category?: { name: string } | null
-  skus: Array<{ id: string; variantName: string; size: number | null; sizeUnit: string | null; code: string }>
-  media: Array<{ url: string; altText: string | null; isPrimary: boolean }>
-}
+type CatalogTabKey = 'products' | 'brands' | 'categories' | 'allowlist'
 
 export default function AdminCatalog() {
-  const [query, setQuery] = React.useState('')
-  const [view, setView] = React.useState<'items' | 'published'>('items')
-  const [selected, setSelected] = React.useState<CatalogProduct | null>(null)
-  const drawer = useDialog()
-  const inspect = (product: CatalogProduct) => { setSelected(product); drawer.open() }
-  const productsApi = useApi<CatalogProduct[]>('/products?limit=100', { pollMs: 60000 })
-  const normalized = query.trim().toLocaleLowerCase()
-  const products = (productsApi.data ?? []).filter((product) =>
-    [product.name, product.brand.name, product.category?.name, ...product.skus.map((sku) => sku.code)]
-      .some((value) => value?.toLocaleLowerCase().includes(normalized)))
+  const [activeTab, setActiveTab] = React.useState<CatalogTabKey>('products')
+  const [productBrandFilter, setProductBrandFilter] = React.useState<string>('')
+  const [productCategoryFilter, setProductCategoryFilter] = React.useState<string>('')
 
-  return <RoleShell role="admin" active="catalog">
-    <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-6 sm:px-8 sm:py-9" dir="rtl">
-      <PageHeader eyebrow="مساحة الإدارة / الكتالوج" title="الكتالوج"
-        meta="تحكّم في ظهور المنتجات ونسخها وتوافرها بشكل مباشر." />
+  const brandsApi = useApi<BrandSummary[]>('/brands?includeInactive=true')
+  const categoriesApi = useApi<CategoryNode[]>('/categories?includeInactive=true')
 
-      <div className="grid gap-4 border-y border-bw-line py-5 sm:grid-cols-[1fr_auto] sm:items-center">
-        <label className="relative block max-w-xl">
-          <Search className="pointer-events-none absolute inset-y-0 start-3 my-auto size-4 text-bw-ink-subtle" aria-hidden />
-          <span className="sr-only">ابحث في الكتالوج</span>
-          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)}
-            placeholder="اسم المنتج، البراند أو الكود"
-            className="h-bw-control w-full rounded-bw-field border border-bw-line bg-bw-surface pe-4 ps-10 text-bw-small text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-focus focus:outline-none" />
-        </label>
-        <div className="flex flex-wrap items-center gap-1 rounded-bw-field bg-bw-sunken p-1" role="group" aria-label="عرض الكتالوج">
-          <button type="button" aria-pressed={view === 'items'} onClick={() => setView('items')}
-            className={`rounded-bw-field px-3 py-2 text-bw-small transition-colors ${view === 'items' ? 'bg-bw-surface font-semibold text-bw-ink shadow-bw-card' : 'text-bw-ink-soft hover:text-bw-ink'}`}>إدارة العناصر</button>
-          <button type="button" aria-pressed={view === 'published'} onClick={() => setView('published')}
-            className={`rounded-bw-field px-3 py-2 text-bw-small transition-colors ${view === 'published' ? 'bg-bw-surface font-semibold text-bw-ink shadow-bw-card' : 'text-bw-ink-soft hover:text-bw-ink'}`}>المعروض</button>
-        </div>
-      </div>
+  const brands = brandsApi.data ?? []
+  const categories = categoriesApi.data ?? []
 
-      {view === 'published' ? <section aria-label="المنتجات المنشورة" className="space-y-4">
-        <div className="flex items-center justify-between gap-3"><h2 className="text-bw-heading font-semibold">المنتجات المنشورة</h2><Button variant="ghost" onClick={productsApi.reload} aria-label="تحديث المنتجات"><RefreshCw className="size-4" /></Button></div>
-        {productsApi.error ? <LoadError message={productsApi.error.message} onRetry={productsApi.reload} /> : null}
-        {productsApi.loading && !productsApi.data ? <Skeleton className="h-64 w-full rounded-bw-card" /> : null}
-        {productsApi.data && products.length === 0 ? <StateBlock kind="empty" title="لا توجد منتجات مطابقة" body="غيّر البحث للاطلاع على منتجات أخرى." /> : null}
-        {products.length ? <div className="overflow-hidden rounded-bw-card border border-bw-line bg-bw-surface divide-y divide-bw-line">
-          {products.map((product) => {
-            const image = product.media.find((media) => media.isPrimary) ?? product.media[0]
-            return <article key={product.id}
-              className="flex flex-wrap items-center gap-4 p-3 sm:p-4">
-              <ProductImage image={image} name={product.name} />
-              <span className="min-w-0 flex-1"><span className="block text-bw-small text-bw-ink-soft">{product.brand.name}</span><span className="line-clamp-2 font-semibold text-bw-ink"><bdi>{product.name}</bdi></span><span className="block truncate text-bw-small text-bw-ink-subtle"><bdi>{product.skus.map((sku) => sku.variantName).filter(Boolean).join(' · ') || product.category?.name || '—'}</bdi></span></span>
-              <StatusLabel tone="ok">منشور</StatusLabel>
-              <div className="flex w-full items-center gap-2 sm:w-auto">
-                <Button variant="secondary" onClick={() => { setQuery(product.name); setView('items') }}>إدارة الظهور والتوافر</Button>
-                <Button variant="ghost" onClick={() => inspect(product)} aria-label={`تفاصيل ${product.name}`}><ArrowLeft className="size-4" aria-hidden /></Button>
-              </div>
-            </article>
+  function jumpToBrandProducts(brandId: string) {
+    setProductCategoryFilter('')
+    setProductBrandFilter(brandId)
+    setActiveTab('products')
+  }
+
+  function jumpToCategoryProducts(categoryId: string) {
+    setProductBrandFilter('')
+    setProductCategoryFilter(categoryId)
+    setActiveTab('products')
+  }
+
+  const tabs: Array<{
+    key: CatalogTabKey
+    label: string
+    icon: React.ElementType
+    count?: number
+  }> = [
+    { key: 'products', label: 'المنتجات', icon: Package },
+    { key: 'brands', label: 'الماركات', icon: Building2, count: brands.length },
+    {
+      key: 'categories',
+      label: 'التصنيفات',
+      icon: FolderTree,
+      count: categories.reduce((acc, c) => acc + 1 + c.children.length, 0),
+    },
+    { key: 'allowlist', label: 'قائمة السماح (Allowlist)', icon: ShieldCheck },
+  ]
+
+  return (
+    <RoleShell role="admin" active="catalog">
+      <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-8 sm:py-8" dir="rtl">
+        <PageHeader
+          eyebrow="مساحة الإدارة / الكتالوج"
+          title="إدارة الكتالوج"
+          meta="إدارة المنتجات، الماركات، شجرة التصنيفات، وقواعد قائمة السماح لاستيراد الموردين من مكان واحد."
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/admin/catalog/media-templates"
+                className="inline-flex h-bw-control items-center gap-2 rounded-bw-field border border-bw-line bg-bw-surface px-3.5 text-bw-small font-semibold text-bw-ink transition-colors hover:border-bw-line-field hover:bg-bw-sunken"
+              >
+                <ImageIcon className="size-4 text-bw-violet" aria-hidden />
+                قوالب الصور
+              </Link>
+              <Link
+                href="/admin/catalog/intake"
+                className="inline-flex h-bw-control items-center gap-2 rounded-bw-field border border-bw-line bg-bw-surface px-3.5 text-bw-small font-semibold text-bw-ink transition-colors hover:border-bw-line-field hover:bg-bw-sunken"
+              >
+                <FileSpreadsheet className="size-4 text-bw-cobalt" aria-hidden />
+                إدخال المنتجات
+              </Link>
+            </div>
+          }
+        />
+
+        <nav
+          aria-label="أقسام إدارة الكتالوج"
+          role="tablist"
+          className="flex flex-wrap gap-1.5 rounded-bw-card border border-bw-line bg-bw-sunken p-1.5"
+        >
+          {tabs.map((tab) => {
+            const Icon = tab.icon
+            const selected = activeTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setActiveTab(tab.key)}
+                className={`inline-flex min-h-bw-control items-center gap-2 rounded-bw-field px-3.5 py-2 text-bw-small font-semibold transition-colors ${
+                  selected
+                    ? 'border border-bw-cobalt/30 bg-bw-surface text-bw-ink shadow-bw-card'
+                    : 'text-bw-ink-soft hover:bg-bw-surface/50 hover:text-bw-ink'
+                }`}
+              >
+                <Icon
+                  className={`size-4 ${selected ? 'text-bw-cobalt' : 'text-bw-ink-subtle'}`}
+                  aria-hidden
+                />
+                <span>{tab.label}</span>
+                {typeof tab.count === 'number' && tab.count > 0 ? (
+                  <Code className="rounded-full bg-bw-sunken px-2 py-0.5 text-[11px] text-bw-ink-soft">
+                    {tab.count}
+                  </Code>
+                ) : null}
+              </button>
+            )
           })}
-        </div> : null}
-      </section> : <CatalogItems query={query} />}
-    </main>
-    <Dialog dialogRef={drawer.ref} variant="drawer" title="تفاصيل المنتج" onClose={() => setSelected(null)}>
-      {selected ? <div dir="rtl" className="space-y-6">
-        <ProductImage image={selected.media.find((media) => media.isPrimary) ?? selected.media[0]} name={selected.name} large />
-        <div><p className="text-bw-small text-bw-ink-soft">{selected.brand.name}</p><h3 className="mt-1 font-bw-display text-2xl font-semibold"><bdi>{selected.name}</bdi></h3>
-          <div className="mt-3"><StatusLabel tone="ok">منشور</StatusLabel></div></div>
-        {selected.description ? <p className="leading-7 text-bw-ink-soft">{selected.description}</p> : null}
-        <div className="border-t border-bw-line pt-5"><h4 className="mb-4 font-semibold">النسخ المتاحة</h4><ul className="space-y-3">{selected.skus.map((sku) => <li key={sku.id} className="flex items-center justify-between gap-3 rounded-bw-field bg-bw-sunken p-3"><span>{sku.variantName ? <bdi>{sku.variantName}</bdi> : 'النسخة الأساسية'} {sku.size && !sku.variantName?.includes(String(sku.size)) ? <span className="text-bw-ink-soft">· <bdi dir="ltr">{sku.size} {sku.sizeUnit}</bdi></span> : null}</span><Code className="text-bw-ink-soft">{sku.code}</Code></li>)}</ul></div>
-      </div> : null}
-    </Dialog>
-  </RoleShell>
+        </nav>
+
+        {activeTab === 'products' ? (
+          <ProductsTab
+            brands={brands}
+            categories={categories}
+            initialBrandId={productBrandFilter}
+            initialCategoryId={productCategoryFilter}
+            onClearExternalFilters={() => {
+              setProductBrandFilter('')
+              setProductCategoryFilter('')
+            }}
+          />
+        ) : null}
+
+        {activeTab === 'brands' ? (
+          <BrandsTab
+            brands={brands}
+            loading={brandsApi.loading}
+            error={brandsApi.error?.message ?? null}
+            onReload={brandsApi.reload}
+            onViewBrandProducts={jumpToBrandProducts}
+          />
+        ) : null}
+
+        {activeTab === 'categories' ? (
+          <CategoriesTab
+            categories={categories}
+            loading={categoriesApi.loading}
+            error={categoriesApi.error?.message ?? null}
+            onReload={categoriesApi.reload}
+            onViewCategoryProducts={jumpToCategoryProducts}
+          />
+        ) : null}
+
+        {activeTab === 'allowlist' ? (
+          <AllowlistTab brands={brands} categories={categories} />
+        ) : null}
+      </main>
+    </RoleShell>
+  )
 }

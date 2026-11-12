@@ -13,6 +13,8 @@ export class ApiError extends Error {
     message: string,
     public status: number,
     public code?: string,
+    /** The API's structured error detail (e.g. the headers a file was read with), when it sent one. */
+    public details?: Record<string, unknown>,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -78,7 +80,9 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   if (!response.ok) {
     const { message, code } = describe(body as Envelope | undefined, response.status)
     if (response.status === 401) unauthorizedListeners.forEach((listener) => listener())
-    throw new ApiError(message, response.status, code)
+    const envelope = body as Envelope | undefined
+    const details = envelope?.message && typeof envelope.message === 'object' && !Array.isArray(envelope.message) ? (envelope.message as Record<string, unknown>) : (body as Record<string, unknown> | undefined)
+    throw new ApiError(message, response.status, code, details ?? undefined)
   }
   return body as T
 }
