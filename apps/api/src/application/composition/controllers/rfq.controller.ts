@@ -5,7 +5,7 @@ import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
 import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
-import { FlushRfqBatchDto, getSourcingMode, ListRfqsQueryDto, RespondToRfqDto, RfqService } from '../../../modules/sourcing/public';
+import { FlushRfqBatchDto, getSourcingMode, ListRfqsQueryDto, RecordOfflineRfqResponseDto, RespondToRfqDto, RfqService } from '../../../modules/sourcing/public';
 import { page } from '../../../platform/api/paging.dto';
 
 type RequestUser = { id: string; roles?: string[]; supplierId?: string | null };
@@ -61,6 +61,13 @@ export class RfqController {
   @RequirePermissions('sourcing.manage')
   staffDetail(@Param('id', ParseUUIDPipe) id: string) {
     return this.rfq.getStaffDetail(id);
+  }
+
+  @Post('staff/:id/responses')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('sourcing.manage')
+  recordOffline(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RecordOfflineRfqResponseDto) {
+    return this.rfq.respondOffline(id, dto, user.id);
   }
 
   @Get('mine')

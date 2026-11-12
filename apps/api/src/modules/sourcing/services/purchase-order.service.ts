@@ -15,7 +15,8 @@ import {
   nextOpening,
   supplierResponseDeadline,
 } from './supplier-schedule';
-import { getProcurementBatchConfig, getSupplierResponseMinutes } from '../config/procurement-batch.config';
+import { getProcurementBatchConfig, getSupplierResponseMinutes, isBroadcastMode } from '../config/procurement-batch.config';
+import { RfqService } from './rfq.service';
 import { allocateScarceQuantity, committedDeliveryDeadline } from './procurement-policy';
 
 type Tx = Prisma.TransactionClient;
@@ -63,6 +64,7 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     private readonly supplyPlan: SupplyPlanService,
     private readonly events: DomainEventsService,
     private readonly support: SupportService,
+    private readonly rfq: RfqService,
   ) {}
 
   /**
@@ -74,9 +76,14 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     this.events.registerHandler(PURCHASE_ORDER_ADVANCE_CONSUMER, async event => {
       const orderIds = (event.payload as { orderIds?: string[] }).orderIds ?? [];
       for (const orderId of orderIds) await this.supplyPlan.advance(orderId);
-      if (orderIds.length) await this.flushProcurementBatch('system:supplier-recovery', {
-        orderIds, expedited: true, isEarlyFlush: true, reason: `Recovery from ${event.eventType}`,
-      });
+      if (orderIds.length) {
+        if (isBroadcastMode()) {
+          await this.rfq.flushRfqBatch('system:supplier-recovery', { early: true, reason: `Recovery from ${event.eventType}` });
+          await this.rfq.runMaintenance();
+        } else await this.flushProcurementBatch('system:supplier-recovery', {
+          orderIds, expedited: true, isEarlyFlush: true, reason: `Recovery from ${event.eventType}`,
+        });
+      }
     });
     this.events.registerHandler('sourcing.batch-audit', async () => {});
 
@@ -803,7 +810,7 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       await tx.purchaseOrderLineAllocation.update({ where: { id: link.id }, data: { shortQuantity: { increment: dto.quantity } } });
       const orderId = await this.supplyPlan.reduceForShortfall(tx, dto.sourceAllocationId, dto.quantity);
       await this.completeIfAllArrived(tx, purchaseOrderId);
-      await this.support.openOperationalException(tx, {
+      if (!isBroadcastMode()) await this.support.openOperationalException(tx, {
         dedupKey: `shortfall:${shortfall.id}`, category: 'sourcing', priority: 'high', orderId,
         title: `Receiving shortfall ${dto.reasonCode} on PO ${purchaseOrderId.slice(0, 8)}`,
         description: `${dto.quantity} confirmed unit(s) for allocation ${dto.sourceAllocationId} did not arrive (${dto.reasonCode}). ${dto.notes ?? ''}`.trim(),

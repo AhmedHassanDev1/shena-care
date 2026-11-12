@@ -1,4 +1,4 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsISO8601, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export const RFQ_ANSWERS = ['FULL', 'PARTIAL', 'UNAVAILABLE'] as const;
@@ -43,6 +43,44 @@ export class RespondToRfqDto {
   @ValidateNested({ each: true })
   @Type(() => RfqLineAnswerDto)
   lines: RfqLineAnswerDto[];
+}
+
+export class OfflineRfqLineDto {
+  @IsUUID()
+  demandLineId: string;
+
+  @IsIn(['FULL', 'PARTIAL', 'REJECT'])
+  answer: 'FULL' | 'PARTIAL' | 'REJECT';
+
+  /** Actual quantity the contacted supplier confirmed; allocation is capped at uncovered demand. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1_000_000)
+  availableQuantity?: number;
+}
+
+export class RecordOfflineRfqResponseDto {
+  @IsUUID()
+  supplierId: string;
+
+  @IsIn(['PHONE', 'WHATSAPP'])
+  confirmationSource: 'PHONE' | 'WHATSAPP';
+
+  @IsISO8601({ strict: true })
+  confirmedAt: string;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(80)
+  idempotencyKey: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(500)
+  @ValidateNested({ each: true })
+  @Type(() => OfflineRfqLineDto)
+  lines: OfflineRfqLineDto[];
 }
 
 export class FlushRfqBatchDto {

@@ -9,7 +9,7 @@ import { DomainEventsService } from '../../../platform/events/domain-events.serv
 import { CatalogService } from '../../catalog/public';
 import { SupportService } from '../../operations/services/support.service';
 import { getProcurementBatchConfig, getSourcingMode, getSupplierResponseMinutes, isBroadcastMode } from '../config/procurement-batch.config';
-import { RespondToRfqDto } from '../dto/rfq.dto';
+import { RecordOfflineRfqResponseDto, RespondToRfqDto } from '../dto/rfq.dto';
 import { allocateScarceQuantity, committedDeliveryDeadline } from './procurement-policy';
 import { canSupplierReceiveOrder, isDemandDueForCheckpoint, supplierResponseDeadline } from './supplier-schedule';
 
@@ -39,6 +39,7 @@ interface ActiveSource {
 interface LineDemand { remaining: number; sources: ActiveSource[] }
 
 type StaleLine = { demandLineId: string; currentVersion: number; remainingQuantity: number };
+type OfflineConfirmation = { source: 'PHONE' | 'WHATSAPP'; at: Date };
 
 @Injectable()
 export class RfqService implements OnModuleInit, OnModuleDestroy {
@@ -298,16 +299,36 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
   // Respond: the atomic, versioned, idempotent allocation
   // -------------------------------------------------------------------------
 
-  async respond(supplierId: string, rfqId: string, dto: RespondToRfqDto, actorId: string) {
+  /** Staff records a real supplier's phone/WhatsApp answer; no supplier session is assumed. */
+  async respondOffline(rfqId: string, dto: RecordOfflineRfqResponseDto, actorId: string) {
+    const at = new Date(dto.confirmedAt);
+    if (Number.isNaN(at.getTime()) || at.getTime() > Date.now() + 5 * 60_000 || at.getTime() < Date.now() - 7 * 24 * 60 * 60_000) {
+      throw new BadRequestException('Confirmation time must be within the past seven days');
+    }
+    for (const line of dto.lines) {
+      if (line.answer === 'REJECT' && line.availableQuantity !== undefined) throw new BadRequestException('A rejection has no available quantity');
+      if (line.answer !== 'REJECT' && line.availableQuantity === undefined) throw new BadRequestException('Confirmed availability requires a quantity');
+    }
+    const answer: RespondToRfqDto = {
+      idempotencyKey: dto.idempotencyKey,
+      lines: dto.lines.map(line => ({ demandLineId: line.demandLineId,
+        answer: line.answer === 'REJECT' ? 'UNAVAILABLE' : line.answer,
+        quantity: line.availableQuantity, basedOnVersion: 0 })),
+    };
+    const result = await this.respond(dto.supplierId, rfqId, answer, actorId, { source: dto.confirmationSource, at });
+    return { ...result, lines: result.lines.map(line => ({ ...line, answer: line.answer === 'UNAVAILABLE' ? 'REJECT' : line.answer })) };
+  }
+
+  async respond(supplierId: string, rfqId: string, dto: RespondToRfqDto, actorId: string, offline?: OfflineConfirmation) {
     const lineIds = dto.lines.map(l => l.demandLineId);
     if (new Set(lineIds).size !== lineIds.length) throw new BadRequestException('Each request line may be answered once per submission');
     for (const line of dto.lines) {
       if (line.answer === 'PARTIAL' && !line.quantity) throw new BadRequestException('A partial answer needs the quantity you can supply');
-      if (line.answer !== 'PARTIAL' && line.quantity !== undefined) throw new BadRequestException('Only a partial answer carries a quantity');
-      if (line.answer !== 'UNAVAILABLE' && line.seenQuantity === undefined) throw new BadRequestException('FULL and PARTIAL answers must state the requested quantity you saw');
+      if (!offline && line.answer !== 'PARTIAL' && line.quantity !== undefined) throw new BadRequestException('Only a partial answer carries a quantity');
+      if (!offline && line.answer !== 'UNAVAILABLE' && line.seenQuantity === undefined) throw new BadRequestException('FULL and PARTIAL answers must state the requested quantity you saw');
     }
     const requestHash = createHash('sha256').update(JSON.stringify([...dto.lines].sort((a, b) => a.demandLineId.localeCompare(b.demandLineId))
-      .map(l => [l.demandLineId, l.answer, l.quantity ?? null, l.basedOnVersion, l.seenQuantity ?? null]))).digest('hex');
+      .map(l => [l.demandLineId, l.answer, l.quantity ?? null, l.basedOnVersion, l.seenQuantity ?? null, offline?.source ?? null, offline?.at.toISOString() ?? null]))).digest('hex');
 
     const replay = await this.findReplay(supplierId, rfqId, dto.idempotencyKey, requestHash);
     if (replay) return replay;
@@ -319,7 +340,7 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
     try {
       outcome = await this.prisma.$transaction(async tx => {
         await this.lockOrders(tx, preliminary.map(s => s.orderId));
-        return this.respondInTransaction(tx, supplierId, rfqId, dto, actorId, requestHash);
+        return this.respondInTransaction(tx, supplierId, rfqId, dto, actorId, requestHash, offline);
       }, { timeout: 30000 });
     } catch (error) {
       // A concurrent identical retry won the unique key: replay its stored outcome.
@@ -359,15 +380,15 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  private async respondInTransaction(tx: Tx, supplierId: string, rfqId: string, dto: RespondToRfqDto, actorId: string, requestHash: string) {
+  private async respondInTransaction(tx: Tx, supplierId: string, rfqId: string, dto: RespondToRfqDto, actorId: string, requestHash: string, offline?: OfflineConfirmation) {
     const now = new Date();
     const lineIds = dto.lines.map(l => l.demandLineId);
     const rfq = await tx.procurementRfq.findUnique({ where: { id: rfqId } });
     if (!rfq) throw new NotFoundException('Request not found');
     const recipient = await tx.rfqRecipient.findUnique({ where: { rfqId_supplierId: { rfqId, supplierId } }, include: { supplier: true } });
     if (!recipient) throw new ForbiddenException('This request was not sent to your account');
-    if (rfq.status !== 'open') throw new ConflictException({ code: 'RFQ_CLOSED', message: 'This request is closed' });
-    if (recipient.status === 'timed_out' || recipient.deadlineAt.getTime() <= now.getTime()) {
+    if (rfq.status !== 'open' && !(offline && rfq.status === 'fulfilled')) throw new ConflictException({ code: 'RFQ_CLOSED', message: 'This request is closed' });
+    if (!offline && (recipient.status === 'timed_out' || recipient.deadlineAt.getTime() <= now.getTime())) {
       throw new ConflictException({ code: 'RESPONSE_WINDOW_EXPIRED', message: 'The response window for this request has ended; the quantities were offered to others' });
     }
     if (!recipient.supplier.isActive || !recipient.supplier.rfqEnrolledAt) throw new ForbiddenException('Supplier is not enrolled to receive requests');
@@ -396,7 +417,7 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
     const stale: StaleLine[] = [];
     for (const line of lines) {
       const answer = answerOf.get(line.id)!;
-      if (answer.answer === 'UNAVAILABLE') continue; // never increases procurement, so staleness cannot hurt
+      if (offline || answer.answer === 'UNAVAILABLE') continue; // staff availability is absolute; award is capped under lock
       const remaining = demand.get(line.id)!.remaining;
       if (line.version !== answer.basedOnVersion || remaining !== answer.seenQuantity || remaining === 0) {
         stale.push({ demandLineId: line.id, currentVersion: line.version, remainingQuantity: remaining });
@@ -407,12 +428,13 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
     }
     for (const line of lines) {
       const answer = answerOf.get(line.id)!;
-      if (answer.answer === 'PARTIAL' && answer.quantity! >= demand.get(line.id)!.remaining) {
+      if (!offline && answer.answer === 'PARTIAL' && answer.quantity! >= demand.get(line.id)!.remaining) {
         throw new BadRequestException('A partial quantity must be below the requested quantity; answer FULL instead');
       }
     }
 
-    const response = await tx.rfqResponse.create({ data: { rfqId, supplierId, idempotencyKey: dto.idempotencyKey, requestHash, createdBy: actorId } });
+    const response = await tx.rfqResponse.create({ data: { rfqId, supplierId, idempotencyKey: dto.idempotencyKey, requestHash,
+      createdBy: actorId, confirmationSource: offline?.source, confirmedAt: offline?.at } });
     const awards: Array<{ lineId: string; skuId: string; quantity: number; portions: Array<{ allocationId: string; orderId: string; orderItemId: string; quantity: number }> }> = [];
     const responseLines: Array<{ demandLineId: string; answer: 'FULL' | 'PARTIAL' | 'UNAVAILABLE'; offeredQuantity: number; awardedQuantity: number }> = [];
     const touchedOrders = new Set<string>();
@@ -420,12 +442,13 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
     for (const line of lines) {
       const answer = answerOf.get(line.id)!;
       const current = demand.get(line.id)!;
-      const quantity = answer.answer === 'FULL' ? current.remaining : answer.answer === 'PARTIAL' ? answer.quantity! : 0;
+      const offered = answer.answer === 'UNAVAILABLE' ? 0 : offline ? answer.quantity! : answer.answer === 'FULL' ? current.remaining : answer.quantity!;
+      const quantity = Math.min(offered, current.remaining);
       await tx.rfqResponseLine.create({ data: {
         responseId: response.id, demandLineId: line.id, supplierId, answer: answer.answer,
-        offeredQuantity: quantity, awardedQuantity: quantity, basedOnVersion: answer.basedOnVersion,
+        offeredQuantity: offered, awardedQuantity: quantity, basedOnVersion: offline ? line.version : answer.basedOnVersion,
       } });
-      responseLines.push({ demandLineId: line.id, answer: answer.answer, offeredQuantity: quantity, awardedQuantity: quantity });
+      responseLines.push({ demandLineId: line.id, answer: answer.answer, offeredQuantity: offered, awardedQuantity: quantity });
       if (quantity === 0) continue;
 
       const split = allocateScarceQuantity(current.sources.map(source => ({
@@ -461,9 +484,11 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
 
     let purchaseOrderId: string | null = null;
     if (awards.length) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(44093, hashtext(${rfqId + ':' + supplierId}))`;
+      const last = await tx.supplierPurchaseOrder.aggregate({ where: { supplierId, batchRef: rfq.batchRef }, _max: { version: true } });
       const po = await tx.supplierPurchaseOrder.create({ data: {
-        supplierId, status: PurchaseOrderStatus.confirmed, batchRef: rfq.batchRef, issuedAt: now, confirmedAt: now, expedited: rfq.expedited,
-        notes: `RFQ ${rfq.batchRef}: allocation accepted for ${actorId}`,
+        supplierId, version: (last._max.version ?? 0) + 1, status: PurchaseOrderStatus.confirmed, batchRef: rfq.batchRef, issuedAt: now, confirmedAt: now, expedited: rfq.expedited,
+        notes: `Final PO v${(last._max.version ?? 0) + 1} for RFQ ${rfq.batchRef}: allocation accepted for ${actorId}`,
         lines: { create: awards.map(award => ({
           skuId: award.skuId, requestedQuantity: award.quantity, confirmedQuantity: award.quantity, status: PurchaseOrderLineStatus.confirmed_full,
           allocations: { create: award.portions.map(p => ({
@@ -481,6 +506,10 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
     await this.emit(tx, rfqId, supplierId, 'response_recorded', actorId, {
       rfqId, responseId: response.id, answers: responseLines.map(l => ({ demandLineId: l.demandLineId, answer: l.answer, awarded: l.awardedQuantity })),
     });
+    if (offline) await this.emit(tx, rfqId, supplierId, 'offline_response_recorded', actorId, {
+      rfqId, responseId: response.id, confirmationSource: offline.source, confirmedAt: offline.at.toISOString(),
+      offered: responseLines.map(l => ({ demandLineId: l.demandLineId, quantity: l.offeredQuantity, awardedQuantity: l.awardedQuantity })),
+    }, 'Staff recorded supplier confirmation from an offline channel');
     await this.refreshRecipient(tx, rfqId, supplierId, recipient.supplier);
 
     const after = await this.loadDemand(tx, lines.map(l => l.id));
@@ -662,12 +691,16 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
   /** Staff audit view: lineage and the full append-only trail (suppliers never see this). */
   async getStaffDetail(rfqId: string) {
     const rfq = await this.prisma.procurementRfq.findUnique({ where: { id: rfqId }, include: {
-      lines: { include: { sources: true, responseLines: true } }, recipients: true, responses: true,
+      lines: { include: { sources: true, responseLines: true } }, recipients: { include: { supplier: { select: { id: true, name: true } } } }, responses: true,
     } });
     if (!rfq) throw new NotFoundException('Request not found');
     const events = await this.prisma.rfqEvent.findMany({ where: { rfqId }, orderBy: { seq: 'asc' }, take: 1000 });
     const demand = await this.loadDemand(this.prisma, rfq.lines.map(l => l.id));
-    return { ...rfq, lines: rfq.lines.map(l => ({ ...l, remainingQuantity: demand.get(l.id)?.remaining ?? 0 })),
+    const labels = await this.catalog.getSkuLabels(rfq.lines.map(l => l.skuId));
+    const purchaseOrders = await this.prisma.supplierPurchaseOrder.findMany({ where: { batchRef: rfq.batchRef },
+      select: { id: true, supplierId: true, status: true, version: true, issuedAt: true }, orderBy: { createdAt: 'asc' } });
+    return { ...rfq, lines: rfq.lines.map(l => ({ ...l, sku: labels.get(l.skuId) ?? null, remainingQuantity: demand.get(l.id)?.remaining ?? 0 })),
+      purchaseOrders,
       events: events.map(e => ({ ...e, seq: e.seq.toString() })) };
   }
 }

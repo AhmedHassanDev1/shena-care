@@ -16,6 +16,15 @@ interface Receivable {
   skuCode: string | null; variantName: string | null; barcode: string | null
 }
 
+interface StaffRfqList { items: Array<{ id: string; batchRef: string; status: string; requiredQuantity: number; awardedQuantity: number }> }
+interface StaffRfqDetail {
+  id: string; batchRef: string; status: string
+  lines: Array<{ id: string; skuId: string; remainingQuantity: number; sku: { productName: string; variantName: string; skuCode: string } | null;
+    responseLines: Array<{ supplierId: string }> }>
+  recipients: Array<{ supplierId: string; status: string; supplier: { name: string } }>
+  purchaseOrders: Array<{ id: string; supplierId: string; version: number; status: string }>
+}
+
 const CHECKS = [['brand', 'الماركة'], ['variant', 'النوع'], ['size', 'الحجم'], ['pack', 'العبوة']] as const
 
 /** Supplier receiving (W4): actual quantity against the PO→order lineage, with identity evidence. */
@@ -39,6 +48,7 @@ function ReceiveBody() {
   return (
     <Page>
       <PageHeader title="استلام بضاعة الموردين" meta={`${hub.name} — الكميات المؤكدة من الموردين لكل طلب عميل`} />
+      <OfflineProcurement />
       {error ? <LoadError message={error.message} onRetry={reload} /> : null}
       {!data && loading ? <Skeleton className="h-40 w-full" /> : null}
       {data && data.length === 0 ? <StateBlock kind="empty" title="مافيش بضاعة متوقعة دلوقتي" body="أوامر الشراء المؤكدة من الموردين بتظهر هنا لحد ما تتستلم." /> : null}
@@ -49,6 +59,78 @@ function ReceiveBody() {
         </Section>
       ))}
     </Page>
+  )
+}
+
+/** Phone/WhatsApp answers stay on the Hub's existing procurement and receiving desk. */
+function OfflineProcurement() {
+  const requests = useApi<StaffRfqList>('/rfq/staff?take=30', { pollMs: 30000 })
+  const [selectedId, setSelectedId] = React.useState('')
+  const detail = useApi<StaffRfqDetail>(selectedId ? `/rfq/staff/${selectedId}` : null, { pollMs: 30000 })
+  const open = (requests.data?.items ?? []).filter((item) => item.status === 'open')
+  React.useEffect(() => {
+    if (!selectedId && open.length) setSelectedId(open[0].id)
+  }, [selectedId, open.length])
+  return (
+    <Section title="طلبات الموردين المفتوحة" aside={<Button variant="secondary" onClick={() => { requests.reload(); detail.reload() }}>تحديث</Button>}>
+      {requests.error ? <LoadError message={requests.error.message} onRetry={requests.reload} /> : null}
+      {!requests.data && requests.loading ? <Skeleton className="h-20 w-full" /> : null}
+      {requests.data && open.length === 0 ? <StateBlock kind="empty" title="مافيش طلبات موردين مفتوحة" body="الطلبات الجديدة بتظهر هنا بعد تجميع طلبات العملاء." /> : null}
+      {open.length ? <Select label="طلب الموردين" value={selectedId} onChange={setSelectedId}
+        options={open.map((item) => [item.id, `${item.batchRef} · باقي ${item.requiredQuantity - item.awardedQuantity}`])} /> : null}
+      {detail.error ? <LoadError message={detail.error.message} onRetry={detail.reload} /> : null}
+      {selectedId && !detail.data && detail.loading ? <Skeleton className="h-24 w-full" /> : null}
+      {detail.data && detail.data.id === selectedId ? (
+        <div className="space-y-3">
+          {detail.data.lines.map((line) => <OfflineRfqLine key={line.id} rfq={detail.data!} line={line}
+            onDone={() => { detail.reload(); requests.reload() }} />)}
+          {detail.data.purchaseOrders.length ? <div className="border-t border-bw-line pt-3 text-bw-small">
+            <p className="font-semibold">أوامر الشراء النهائية</p>
+            {detail.data.purchaseOrders.map((po) => <p key={po.id}><Code>{shortId(po.id)}</Code> · إصدار <Code>{po.version}</Code> · <Status map={PO_STATUS} value={po.status} /></p>)}
+          </div> : null}
+        </div>
+      ) : null}
+    </Section>
+  )
+}
+
+function OfflineRfqLine({ rfq, line, onDone }: { rfq: StaffRfqDetail; line: StaffRfqDetail['lines'][number]; onDone: () => void }) {
+  const available = rfq.recipients.filter((recipient) => !line.responseLines.some((answer) => answer.supplierId === recipient.supplierId))
+  const [supplierId, setSupplierId] = React.useState('')
+  const [quantity, setQuantity] = React.useState('')
+  const [rejected, setRejected] = React.useState(false)
+  const [source, setSource] = React.useState<'PHONE' | 'WHATSAPP'>('PHONE')
+  const [allocated, setAllocated] = React.useState<number | null>(null)
+  const intent = React.useRef<{ key: string; at: string } | null>(null)
+  const qty = Number(quantity)
+  const submit = useCommand(() => {
+    intent.current ??= { key: newKey(), at: new Date().toISOString() }
+    return api<{ lines: Array<{ awardedQuantity: number }> }>(`/rfq/staff/${rfq.id}/responses`, { body: {
+      supplierId, confirmationSource: source, confirmedAt: intent.current.at, idempotencyKey: intent.current.key,
+      lines: [{ demandLineId: line.id, answer: rejected ? 'REJECT' : qty >= line.remainingQuantity ? 'FULL' : 'PARTIAL',
+        ...(!rejected ? { availableQuantity: qty } : {}) }],
+    } })
+  })
+  return (
+    <div className="space-y-2 rounded-bw-field border border-bw-line p-3">
+      <p className="font-semibold"><bdi>{line.sku?.productName ?? shortId(line.skuId)}</bdi> · <Code>{line.sku?.skuCode ?? shortId(line.skuId)}</Code> · مطلوب <Code>{line.remainingQuantity}</Code></p>
+      {allocated !== null ? <Notice tone="ok" title={`اتخصص ${allocated} قطعة. ${allocated ? 'أمر الشراء النهائي ظاهر أدناه.' : 'مافيش أمر شراء بدون تخصيص.'}`} /> : null}
+      {line.remainingQuantity > 0 && available.length ? <form className="grid gap-2 md:grid-cols-5 md:items-end" onSubmit={async (event) => {
+        event.preventDefault()
+        const result = await submit.execute()
+        if (result) { setAllocated(result.lines[0].awardedQuantity); intent.current = null; setQuantity(''); onDone() }
+      }}>
+        <Select label="المورد" value={supplierId} onChange={(value) => { setSupplierId(value); intent.current = null }}
+          options={[['', 'اختر المورد'], ...available.map((recipient): [string, string] => [recipient.supplierId, recipient.supplier.name])]} />
+        <Select label="الرد" value={rejected ? 'REJECT' : 'CONFIRMED'} onChange={(value) => { setRejected(value === 'REJECT'); intent.current = null }}
+          options={[["CONFIRMED", "تأكيد كمية"], ["REJECT", "رفض / غير متاح"]]} />
+        {!rejected ? <Field label="الكمية المؤكدة" ltr inputMode="numeric" value={quantity} onChange={(event) => { setQuantity(event.target.value); intent.current = null }} /> : <span />}
+        <Select label="مصدر التأكيد" value={source} onChange={(value) => { setSource(value as 'PHONE' | 'WHATSAPP'); intent.current = null }}
+          options={[["PHONE", "هاتف"], ["WHATSAPP", "واتساب"]]} />
+        <Button type="submit" loading={submit.pending} disabled={!supplierId || (!rejected && (!Number.isInteger(qty) || qty < 1))}>تسجيل رد المورد</Button>
+      </form> : line.remainingQuantity > 0 ? <Notice tone="info" title="مافيش مورد متاح للرد هنا؛ راجع الاستثناءات أو التسجيل." /> : null}
+      <CommandError error={submit.error} />
+    </div>
   )
 }
 
