@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { AsyncButton, buttonVariants, type AsyncState } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
 import { MessageBox } from '@/components/ui/message-box';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAddresses } from '@/features/account/hooks/useAddresses';
@@ -24,7 +23,6 @@ import {
   EGYPT_MOBILE,
   EMPTY_ADDRESS,
   clearDraft,
-  composeShippingAddress,
   forgetPlacedOrder,
   placedOrder,
   readDraft,
@@ -36,7 +34,6 @@ import {
 import { isDefaultCentre, isInsideServiceArea } from '../lib/service-area';
 import {
   AddressSection,
-  CheckoutProgressRibbon,
   DeliverySection,
   PaymentSection,
   RecipientSection,
@@ -67,20 +64,23 @@ const normalisePhone = (value: string) => toLatinDigits(value).replace(/[\s-]/g,
 type PlaceProblem = 'changed' | 'stock' | 'fields' | null;
 
 /**
- * Editorial Checkout Experience (CheckoutD, CommerceMobile ٣/٣ب, CommerceStates §٢–§٣):
- * - Visual progress ribbon indicating step progression
- * - ١ المستلم (Recipient details)
- * - ٢ عنوان التوصيل (Interactive map pin and saved addresses)
- * - ٣ التوصيل والميعاد (Real-time backend quote fee & delivery promise)
- * - ٤ طريقة الدفع (Cash on Delivery with courier inspection reassurance)
- * - Reassuring order summary sidebar with sticky placement and idempotency guardrails
+ * Checkout, one page (CheckoutD, CommerceMobile ٣/٣ب, CommerceStates §٢–§٣): ١ المستلم · ٢ عنوان التوصيل (map pin
+ * required) · ٣ التوصيل · ٤ طريقة الدفع (cash on delivery), with «طلبك» beside (desktop) or below (phone).
+ *
+ * - Every total comes from the server quote, requested whenever the address, pin or code changes; «أكد الطلب» is
+ *   disabled until it returns and carries its total.
+ * - One idempotency key per quote: a retry after a lost response replays the same order; a changed quote (409) is
+ *   shown before the customer confirms again.
+ * - Entered details are kept as a draft for this tab (sign-in round trip, refresh) and cleared once the order exists;
+ *   the checkout history entry is replaced by the order, and landing here again resumes that order.
+ * - Signed out → phone sign-in and back; a session that expires at placement returns with «دخولك خلص وقته…».
  */
 export function CheckoutView() {
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user, isAuthenticated, isLoading: authLoading, openAuthModal } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { cart, isLoading: cartLoading } = useCart();
   const { addresses, defaultAddress, isLoading: addressesLoading, createAddress, updateAddress } = useAddresses();
 
@@ -90,7 +90,6 @@ export function CheckoutView() {
   const [editingRecipient, setEditingRecipient] = useState(false);
   const [recipientErrors, setRecipientErrors] = useState<Partial<Record<keyof Recipient, string>>>({});
   const [selectedId, setSelectedId] = useState<string | 'new' | null>(null);
-  const [isEditingSelected, setIsEditingSelected] = useState(false);
   const [draftAddress, setDraftAddress] = useState<NewAddressDraft>(EMPTY_ADDRESS);
   const [addressErrors, setAddressErrors] = useState<AddressErrors>({});
   const [saveState, setSaveState] = useState<AsyncState>('idle');
@@ -112,17 +111,10 @@ export function CheckoutView() {
 
   /* ── Access, resume, restore ─────────────────────────────────────── */
 
-  // An order needs a signed-in customer (server-enforced): signed out, checkout opens the auth modal in-place.
+  // An order needs a signed-in customer (server-enforced): signed out, checkout goes through phone sign-in and back.
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      openAuthModal({
-        intent: 'checkout',
-        onDismiss: () => {
-          router.replace(routes.cart);
-        },
-      });
-    }
-  }, [authLoading, isAuthenticated, openAuthModal, router]);
+    if (!authLoading && !isAuthenticated) router.replace(signInHref(routes.checkout));
+  }, [authLoading, isAuthenticated, router]);
 
   // The order this checkout already created: show it instead of an empty, submittable page.
   useEffect(() => {
@@ -200,28 +192,6 @@ export function CheckoutView() {
     return Object.keys(errors).length === 0;
   };
 
-  const startEditSelected = () => {
-    if (!selected) return;
-    const currentPin = selectedPin ?? {
-      latitude: selected.latitude,
-      longitude: selected.longitude,
-      locationSource: selected.locationSource as 'map_pin' | 'current_location',
-      confirmed: true,
-    };
-    setDraftAddress({
-      label: selected.label ?? '',
-      governorate: toGovernorate(selected.governorate),
-      area: selected.area,
-      shippingAddress: selected.shippingAddress,
-      building: '',
-      floor: '',
-      apartment: '',
-      notes: selected.notes ?? '',
-      pin: currentPin,
-    });
-    setIsEditingSelected(true);
-  };
-
   const saveNewAddress = async () => {
     const errors: AddressErrors = {};
     if (!draftAddress.governorate) errors.governorate = m.checkoutRequired;
@@ -236,57 +206,24 @@ export function CheckoutView() {
     const pin = draftAddress.pin as LocationPin;
     setSaveState('pending');
     try {
-      const fullShippingAddress = composeShippingAddress(
-        draftAddress.shippingAddress,
-        draftAddress.building,
-        draftAddress.floor,
-        draftAddress.apartment,
-      );
-      if (isEditingSelected && selected) {
-        await updateAddress({
-          id: selected.id,
-          data: {
-            label: draftAddress.label.trim() || undefined,
-            customerName: recipient.name.trim(),
-            customerPhone: normalisePhone(recipient.phone),
-            governorate: draftAddress.governorate,
-            area: draftAddress.area.trim(),
-            shippingAddress: fullShippingAddress || draftAddress.shippingAddress.trim(),
-            notes: draftAddress.notes.trim() || undefined,
-            latitude: pin.latitude,
-            longitude: pin.longitude,
-            locationSource: pin.locationSource,
-          },
-        });
-        setPins((curr) => ({ ...curr, [selected.id]: pin }));
-        setSaveState('success');
-        window.setTimeout(() => {
-          setIsEditingSelected(false);
-          setDraftAddress(EMPTY_ADDRESS);
-          setSaveState('idle');
-        }, 700);
-      } else {
-        const created = await createAddress({
-          label: draftAddress.label.trim() || undefined,
-          customerName: recipient.name.trim(),
-          customerPhone: normalisePhone(recipient.phone),
-          governorate: draftAddress.governorate,
-          area: draftAddress.area.trim(),
-          shippingAddress: fullShippingAddress || draftAddress.shippingAddress.trim(),
-          notes: draftAddress.notes.trim() || undefined,
-          latitude: pin.latitude,
-          longitude: pin.longitude,
-          locationSource: pin.locationSource,
-        });
-        setPins((curr) => ({ ...curr, [created.id]: pin }));
-        setSaveState('success');
-        window.setTimeout(() => {
-          setSelectedId(created.id);
-          setIsEditingSelected(false);
-          setDraftAddress(EMPTY_ADDRESS);
-          setSaveState('idle');
-        }, 700);
-      }
+      const created = await createAddress({
+        label: draftAddress.label.trim() || undefined,
+        customerName: recipient.name.trim(),
+        customerPhone: normalisePhone(recipient.phone),
+        governorate: draftAddress.governorate,
+        area: draftAddress.area.trim(),
+        shippingAddress: draftAddress.shippingAddress.trim(),
+        notes: draftAddress.notes.trim() || undefined,
+        latitude: pin.latitude,
+        longitude: pin.longitude,
+        locationSource: pin.locationSource,
+      });
+      setSaveState('success');
+      window.setTimeout(() => {
+        setSelectedId(created.id);
+        setDraftAddress(EMPTY_ADDRESS);
+        setSaveState('idle');
+      }, 900);
     } catch {
       setSaveState('error');
     }
@@ -352,6 +289,7 @@ export function CheckoutView() {
       baselinePromotions.current = base.appliedPromotions?.length ?? 0;
       if (activeCode) await applyCode(activeCode);
     })();
+    // Re-quote only when what the fee depends on changes.
   }, [ready, quoteKey]);
 
   const applyCode = async (code: string) => {
@@ -374,6 +312,7 @@ export function CheckoutView() {
 
   /* ── Place order ──────────────────────────────────────────────────── */
 
+  // Pending is the AsyncButton's own guard (same box, shutter); disabled is only for a missing precondition.
   const canPlace = quoteStatus === 'ready' && Boolean(quote) && deliverable;
   const placeLabel =
     quoteStatus === 'ready' && quote
@@ -424,10 +363,12 @@ export function CheckoutView() {
       placingRef.current = false;
       const code = apiErrorCode(error);
       if (error instanceof ApiError && error.status === 401) {
+        // The session ran out: sign in again and come back; the draft keeps everything entered.
         router.replace(signInHref(routes.checkout, 'expired'));
         return;
       }
       if (error instanceof ApiError && error.status === 409 && code !== 'IDEMPOTENCY_KEY_REUSED') {
+        // Terms changed since the quote: show the new total before the customer confirms again.
         setPlaceState('idle');
         const previous = quote.totalAmount;
         const fresh = await requestQuote(coupon.status === 'applied' ? coupon.code : undefined);
@@ -447,36 +388,19 @@ export function CheckoutView() {
         }
         return;
       }
+      // Network or server: «جرّب تاني» repeats the same request with the same key.
       setPlaceState('error');
     }
   };
-
-  /* ── Stepper progress calculation ─────────────────────────────────── */
-  const step1Done = Boolean(!editingRecipient && recipient.name.trim() && recipient.phone.trim());
-  const step2Done = Boolean(selected && selectedPin?.confirmed);
-  const step3Done = Boolean(quoteStatus === 'ready' && quote);
-  const step4Done = true;
-
-  const doneSteps = [
-    ...(step1Done ? [1] : []),
-    ...(step2Done ? [2] : []),
-    ...(step3Done ? [3] : []),
-    ...(step4Done ? [4] : []),
-  ];
-
-  const currentStep = !step1Done ? 1 : !step2Done ? 2 : !step3Done ? 3 : 4;
 
   /* ── Render ───────────────────────────────────────────────────────── */
 
   if (authLoading || cartLoading || !isAuthenticated || !ready) return <CheckoutSkeleton label={m.loading} />;
   if (!cart || cart.items.length === 0) {
     return (
-      <section className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-4 rounded-sheet bg-linen px-6 py-14 text-center shadow-elevation-1">
-        <div className="grid size-16 place-items-center rounded-pill bg-sand text-ink">
-          <Icon name="bag" size={28} />
-        </div>
-        <p className="m-0 font-display text-20 font-bold text-ink">{m.checkoutEmptyCart}</p>
-        <Link href={routes.products} className={buttonVariants({ variant: 'ink', size: 'l' })}>
+      <section className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-4 rounded-card bg-linen px-6 py-10 text-center shadow-outline-hairline">
+        <p className="m-0 text-body text-ink">{m.checkoutEmptyCart}</p>
+        <Link href={routes.products} className={buttonVariants({ variant: 'ink' })}>
           {m.cartShop}
         </Link>
       </section>
@@ -484,27 +408,24 @@ export function CheckoutView() {
   }
 
   return (
-    <div className="pb-32 lg:pb-0">
+    <div className="pb-28 lg:pb-0">
       <header className="mb-6 hidden lg:block">
         <h1 className="m-0 font-display text-44 font-extrabold leading-52 text-ink">{m.checkoutTitle}</h1>
         <p className="m-0 mt-1.5 text-14 text-stone">{m.checkoutLead}</p>
       </header>
 
-      {/* Modern checkout step ribbon */}
-      <CheckoutProgressRibbon currentStep={currentStep} doneSteps={doneSteps} />
-
       {problem ? (
-        <div className="mb-5">
+        <div className="mb-4">
           {problem === 'stock' ? (
-            <MessageBox tone="err" role="alert" className="rounded-24">
+            <MessageBox tone="err" role="alert">
               <p className="m-0 text-14 font-semibold">{m.checkoutStockLostTitle}</p>
-              <p className="m-0 mt-1 text-14 leading-22">{m.checkoutStockLostBody}</p>
-              <Link href={routes.cart} className={buttonVariants({ variant: 'ink', size: 's', className: 'mt-3' })}>
+              <p className="m-0 text-14 leading-22">{m.checkoutStockLostBody}</p>
+              <Link href={routes.cart} className={buttonVariants({ variant: 'ink', size: 's', className: 'mt-2' })}>
                 {m.checkoutBackToCart}
               </Link>
             </MessageBox>
           ) : problem === 'changed' && quote && changedFrom !== null ? (
-            <MessageBox tone="warn" role="alert" className="rounded-24">
+            <MessageBox tone="warn" role="alert">
               {changedFrom !== quote.totalAmount
                 ? fillMessage(m.checkoutChangedTotal, {
                     old: formatEgp(changedFrom, quote.currency, locale) ?? '',
@@ -513,15 +434,15 @@ export function CheckoutView() {
                 : m.checkoutChangedSame}
             </MessageBox>
           ) : problem === 'fields' ? (
-            <MessageBox tone="err" role="alert" className="rounded-24">
+            <MessageBox tone="err" role="alert">
               {m.checkoutFixFields}
             </MessageBox>
           ) : null}
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-10">
-        <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start lg:gap-10">
+        <div className="flex flex-col gap-4 lg:gap-5">
           <RecipientSection
             recipient={recipient}
             fromAccount={recipientFromAccount}
@@ -542,29 +463,22 @@ export function CheckoutView() {
             selectedId={selectedId}
             onSelect={(id) => {
               setSelectedId(id);
-              setIsEditingSelected(false);
               setPinError(undefined);
               setAddressErrors({});
               setProblem(null);
             }}
             draft={draftAddress}
-            onDraft={(updater) => {
-              setDraftAddress((prev) => (typeof updater === 'function' ? updater(prev) : updater));
+            onDraft={(next) => {
+              setDraftAddress(next);
               if (Object.keys(addressErrors).length) setAddressErrors({});
             }}
             errors={addressErrors}
             saveState={saveState}
             onSaveNew={saveNewAddress}
-            onCancelNew={() => {
-              setIsEditingSelected(false);
-              setDraftAddress(EMPTY_ADDRESS);
-              if (selectedId === 'new') setSelectedId(defaultAddress?.id ?? addresses[0]?.id ?? 'new');
-            }}
+            onCancelNew={() => setSelectedId(defaultAddress?.id ?? addresses[0]?.id ?? 'new')}
             pin={selectedPin}
             pinError={pinError}
             onPinChange={onSavedPinChange}
-            isEditingSelected={isEditingSelected}
-            onStartEditSelected={startEditSelected}
           />
           <DeliverySection
             area={selected?.area ?? null}
@@ -591,14 +505,14 @@ export function CheckoutView() {
       </div>
 
       {placeState === 'error' ? (
-        <MessageBox tone="err" role="alert" className="mt-5 rounded-24">
+        <MessageBox tone="err" role="alert" className="mt-4">
           {m.checkoutSubmitFailed}
         </MessageBox>
       ) : null}
 
-      {/* Phone: «أكد الطلب · total» in the sticky action area */}
-      <div className="pdp-bar fixed inset-x-0 bottom-0 z-nav bg-chalk/95 px-4 pt-3 pb-3 shadow-elevation-3 backdrop-blur-md lg:hidden">
-        <AsyncButton size="l" className="w-full text-17" state={quoteStatus === 'loading' ? 'resolving' : placeState} pendingLabel={m.checkoutPlacing} resolvingLabel={m.checkoutFeeCalculating} retryLabel={placeLabel} disabled={!canPlace && quoteStatus !== 'loading'} onClick={placeOrder}>
+      {/* Phone: «أكد الطلب · total» in the sticky action area where the nav would be (CommerceMobile ٣ب). */}
+      <div className="pdp-bar fixed inset-x-0 bottom-0 z-nav bg-chalk/95 px-4 pt-3 shadow-hairline-top backdrop-blur-sm lg:hidden">
+        <AsyncButton size="l" className="w-full" state={placeState} pendingLabel={m.checkoutPlacing} retryLabel={placeLabel} disabled={!canPlace} onClick={placeOrder}>
           {placeLabel}
         </AsyncButton>
       </div>
@@ -608,7 +522,7 @@ export function CheckoutView() {
 
 function CheckoutSkeleton({ label }: { label: string }) {
   return (
-    <div aria-busy="true" aria-label={label} className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10">
+    <div aria-busy="true" aria-label={label} className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10">
       <div className="flex flex-col gap-4">
         {Array.from({ length: 4 }, (_, index) => (
           <Skeleton key={index} className="h-32 w-full rounded-24" />

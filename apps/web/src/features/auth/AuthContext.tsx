@@ -10,7 +10,6 @@ import React, {
   type ReactNode,
 } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
 import { User, auth as authApi } from '@/lib/auth';
 import { AuthModal, type AuthModalOptions } from './components/AuthModal';
 
@@ -38,7 +37,6 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -76,41 +74,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       await authApi.logout();
+      setUser(null);
+      router.refresh();
     } catch (error) {
       console.error('Failed to logout', error);
-    } finally {
-      setUser(null);
-      queryClient.removeQueries({ queryKey: ['customer'] });
-      queryClient.removeQueries({ queryKey: ['my-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
-      router.refresh();
     }
+  };
+
+  const requireAuth = (options?: { returnTo?: string; intent?: string }) => {
+    if (user) return; // Already authenticated
+    const currentParams = searchParams?.toString() ?? '';
+    const returnTo =
+      options?.returnTo ||
+      (pathname + (currentParams ? `?${currentParams}` : ''));
+
+    const params = new URLSearchParams();
+    if (returnTo) params.set('returnTo', returnTo);
+    if (options?.intent) params.set('intent', options.intent);
+
+    router.push(`/auth?${params.toString()}`);
   };
 
   const openAuthModal = useCallback((options?: AuthModalOptions) => {
     setAuthModalOptions(options ?? null);
     setIsAuthModalOpen(true);
   }, []);
-
-  const requireAuth = useCallback(
-    (options?: { returnTo?: string; intent?: string }) => {
-      if (user) return; // Already authenticated
-      const currentParams = searchParams?.toString() ?? '';
-      const returnTo =
-        options?.returnTo ||
-        (pathname + (currentParams ? `?${currentParams}` : ''));
-
-      openAuthModal({
-        intent: options?.intent,
-        onAuthenticated: () => {
-          if (returnTo && returnTo !== pathname) {
-            router.push(returnTo);
-          }
-        },
-      });
-    },
-    [user, openAuthModal, searchParams, pathname, router]
-  );
 
   const handleAuthDismiss = useCallback(() => {
     setIsAuthModalOpen(false);

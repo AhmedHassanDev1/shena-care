@@ -18,12 +18,12 @@ export function TrustBadges() {
   ];
 
   return (
-    <section aria-labelledby="home-trust-title" className="py-4 md:py-5 lg:py-6">
+    <section aria-labelledby="home-trust-title" className="border-t border-line bg-linen/60 py-10 lg:py-14">
       <PageContainer>
         <h2 id="home-trust-title" className="sr-only">
           {m.homeTrustAuthTitle} · {m.homeTrustFormulaTitle} · {m.homeTrustClimateTitle}
         </h2>
-        <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-3 sm:gap-6 lg:gap-8">
+        <ul className="m-0 grid list-none grid-cols-1 gap-6 p-0 sm:grid-cols-3 sm:gap-8 lg:gap-12">
           {items.map((it) => (
             <li key={it.title} className="flex items-start gap-4">
               <span className="flex size-11 flex-none items-center justify-center rounded-full bg-sand text-ink">

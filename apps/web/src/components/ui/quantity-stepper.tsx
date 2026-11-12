@@ -4,7 +4,6 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 import { Icon } from "./icon"
-import { Spinner } from "./spinner"
 
 export interface QuantityStepperProps {
   value: number
@@ -49,15 +48,8 @@ export function QuantityStepper({ value, displayValue, min = 1, max, onChange, l
       <button type="button" aria-label={labels.increase} className={button} disabled={locked || value >= max} onClick={() => onChange(Math.min(max, value + 1))}>
         <Icon name="plus" size={16} strokeWidth={2.25} />
       </button>
-      <span aria-live="polite" className={cn("relative min-w-4.5 text-center text-16 font-display font-bold text-ink", pending && "sl-inward px-2 rounded-pill")}>
-        {pending ? (
-          <span className="relative z-1 flex items-center justify-center gap-1.5">
-            <Spinner size="xs" tone="cobalt" />
-            <span className="text-11">{displayValue}</span>
-          </span>
-        ) : (
-          displayValue
-        )}
+      <span aria-live="polite" className="min-w-4.5 text-center text-16 font-display font-bold text-ink">
+        {displayValue}
       </span>
       <button type="button" aria-label={labels.decrease} className={button} disabled={locked || value <= min} onClick={() => onChange(Math.max(min, value - 1))}>
         <Icon name="minus" size={16} strokeWidth={2.25} />

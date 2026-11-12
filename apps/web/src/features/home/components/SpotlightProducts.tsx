@@ -17,15 +17,16 @@ import { cn } from '@/lib/utils';
 import { useHomeProducts } from '../hooks/useHomeProducts';
 import { ShowcaseProductCard, ShowcaseProductCardSkeleton } from './ShowcaseProductCard';
 
-type FilterCategory = 'all' | 'cleansers' | 'serum' | 'moisturizer' | 'sun' | 'hair';
+type FilterCategory = 'all' | 'sun' | 'serum' | 'moisturizer' | 'hair';
 
 /**
- * Creative Product Showcase: The Sahel Beauty Edit («منتجات دلوقتي»)
- * - Architectural Atelier eyebrow with pulsing citron sun accent.
- * - Solution-based discovery filter pills (All, Cleansers, Serums, Moisturizers, Sun Care, Hair Care).
- * - Single-row responsive carousel with mobile peek (1.25 slides per view for intuitive swipe).
- * - Elevated 4:5 editorial product cards with genuine packaging, real pricing, and Cobalt CTAs.
- * - Integrated Coastal Express delivery and authenticity assurance strip.
+ * Creative Product Showcase: The Sahel Beauty Edit
+ * Redesigned from the approved Stitch project (8441884584643557256):
+ * - Architectural Atelier eyebrow with pulsing citron sun accent
+ * - Curated solution-based discovery filter pills (All, Sun Care, Serums, Moisturizers, Hair Care)
+ * - Single-row responsive carousel with mobile peek (1.25 slides per view for intuitive swipe)
+ * - Elevated 4:5 editorial cards with authentic packshots, real pricing, and Cobalt CTAs
+ * - Integrated Coastal Express delivery and authenticity assurance strip bridging into categories
  */
 export function SpotlightProducts() {
   const m = useMessages();
@@ -55,22 +56,10 @@ export function SpotlightProducts() {
       const name = card.name.toLowerCase();
       const slug = card.slug.toLowerCase();
       const line = (card.productLine ?? '').toLowerCase();
-      const catSlug = card.categorySlug ?? '';
 
       switch (activeFilter) {
-        case 'cleansers':
-          return (
-            catSlug === 'cleansers' ||
-            type.includes('غسول') ||
-            type.includes('تنظيف') ||
-            name.includes('cleanser') ||
-            name.includes('wash') ||
-            slug.includes('wash') ||
-            slug.includes('cleanser')
-          );
         case 'sun':
           return (
-            catSlug === 'sunscreens' ||
             type.includes('شمس') ||
             name.includes('شمس') ||
             slug.includes('spf') ||
@@ -79,7 +68,6 @@ export function SpotlightProducts() {
           );
         case 'serum':
           return (
-            catSlug === 'serums-treatments' ||
             type.includes('سيرم') ||
             name.includes('سيروم') ||
             slug.includes('serum') ||
@@ -88,7 +76,6 @@ export function SpotlightProducts() {
           );
         case 'moisturizer':
           return (
-            catSlug === 'moisturizers' ||
             type.includes('مرطب') ||
             name.includes('كريم') ||
             slug.includes('cream') ||
@@ -97,9 +84,6 @@ export function SpotlightProducts() {
           );
         case 'hair':
           return (
-            catSlug === 'shampoos' ||
-            catSlug === 'conditioners' ||
-            catSlug === 'hair-treatments-styling' ||
             type.includes('شعر') ||
             type.includes('شامبو') ||
             type.includes('بلسم') ||
@@ -114,7 +98,7 @@ export function SpotlightProducts() {
     });
   }, [allCards, activeFilter]);
 
-  const cardsToRender = filteredCards;
+  const cardsToRender = filteredCards.length > 0 ? filteredCards : allCards;
 
   // Whenever filter changes, reset swiper to first slide
   const handleFilterChange = (filter: FilterCategory) => {
@@ -126,26 +110,22 @@ export function SpotlightProducts() {
 
   const filterTabs: Array<{ id: FilterCategory; label: string; count?: number }> = [
     { id: 'all', label: m.homeProductsFilterAll, count: allCards.length },
-    { id: 'cleansers', label: m.homeProductsFilterCleansers },
+    { id: 'sun', label: m.homeProductsFilterSun },
     { id: 'serum', label: m.homeProductsFilterSerums },
     { id: 'moisturizer', label: m.homeProductsFilterMoisturizers },
-    { id: 'sun', label: m.homeProductsFilterSun },
     { id: 'hair', label: m.homeProductsFilterHair },
   ];
 
   return (
-    <section aria-labelledby="home-products-title" className="py-4 md:py-5 lg:py-6">
-      <PageContainer className="flex flex-col gap-4 md:gap-5 lg:gap-6">
+    <section aria-labelledby="home-products-title" className="py-12 lg:py-20">
+      <PageContainer className="flex flex-col gap-8">
         {/* Editorial Section Header */}
-        <div className="flex flex-col gap-3 md:gap-4">
+        <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="flex max-w-2xl flex-col gap-2">
-              {/* Atelier Eyebrow with Pulsing Citron Sun Accent */}
+              {/* Atelier Eyebrow with Pulsing Citron Sun Dot */}
               <div className="flex items-center gap-2">
-                <span className="relative flex size-2.5">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-citron opacity-75 motion-reduce:hidden" />
-                  <span className="relative inline-flex size-2.5 rounded-full bg-citron ring-2 ring-citron/30" />
-                </span>
+                <span className="size-2 rounded-full bg-citron ring-2 ring-citron/30" />
                 <span className="text-11 font-bold uppercase tracking-wider text-stone">
                   {m.homeProductsEyebrow}
                 </span>
@@ -165,11 +145,11 @@ export function SpotlightProducts() {
               </p>
             </div>
 
-            {/* Header Controls (Explore All & Desktop Carousel Controls) */}
+            {/* Header Controls (Explore All & Desktop Navigation) */}
             <div className="flex items-center gap-3 self-start md:self-end">
               <Link
                 href={routes.products}
-                className="link-quiet inline-flex items-center gap-1.5 rounded-4 text-14 font-bold text-ink transition-colors hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                className="link-quiet inline-flex items-center gap-1.5 text-14 font-bold text-ink transition-colors hover:text-cobalt"
               >
                 <span>{m.homeProductsMore}</span>
                 <Icon name="arrow-forward" size={16} />
@@ -182,7 +162,7 @@ export function SpotlightProducts() {
                   onClick={() => swiperRef?.slidePrev()}
                   disabled={isBeginning}
                   aria-label={m.carouselPrev}
-                  className="flex size-10 items-center justify-center rounded-full border border-line bg-linen text-ink shadow-elevation-1 transition-all hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex size-10 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-elevation-1 transition-all hover:border-cobalt hover:text-cobalt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <Icon name="chevron-back" size={18} />
                 </button>
@@ -191,7 +171,7 @@ export function SpotlightProducts() {
                   onClick={() => swiperRef?.slideNext()}
                   disabled={isEnd}
                   aria-label={m.carouselNext}
-                  className="flex size-10 items-center justify-center rounded-full border border-line bg-linen text-ink shadow-elevation-1 transition-all hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex size-10 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-elevation-1 transition-all hover:border-cobalt hover:text-cobalt active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <Icon name="chevron-forward" size={18} />
                 </button>
@@ -200,44 +180,42 @@ export function SpotlightProducts() {
           </div>
 
           {/* Curated Discovery Filter Pills (Solution-Driven) */}
-          {allCards.length > 0 ? (
-            <div
-              role="tablist"
-              aria-label={m.homeProductsTitle}
-              className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1"
-            >
-              {filterTabs.map((tab) => {
-                const active = activeFilter === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => handleFilterChange(tab.id)}
-                    type="button"
-                    className={cn(
-                      'inline-flex flex-none items-center gap-1.5 rounded-pill px-3.5 py-1.5 text-12 font-bold transition-all duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
-                      active
-                        ? 'bg-cobalt text-chalk shadow-elevation-1'
-                        : 'border border-line/70 bg-linen/80 text-ink hover:border-line hover:bg-chalk'
-                    )}
-                  >
-                    <span>{tab.label}</span>
-                    {tab.count !== undefined ? (
-                      <span
-                        className={cn(
-                          'ms-1 inline-flex items-center rounded-pill px-1.5 text-11 tabular-nums',
-                          active ? 'bg-chalk/20 text-chalk' : 'bg-sand/40 text-stone'
-                        )}
-                      >
-                        {tab.count}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
+          <div
+            role="tablist"
+            aria-label={m.homeProductsTitle}
+            className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1"
+          >
+            {filterTabs.map((tab) => {
+              const active = activeFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => handleFilterChange(tab.id)}
+                  type="button"
+                  className={cn(
+                    'inline-flex flex-none items-center gap-1.5 rounded-pill px-3.5 py-1.5 text-12 font-bold transition-all duration-fast',
+                    active
+                      ? 'bg-cobalt text-chalk shadow-elevation-1'
+                      : 'border border-line/70 bg-linen/80 text-ink hover:border-line hover:bg-chalk'
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined ? (
+                    <span
+                      className={cn(
+                        'ms-1 inline-flex items-center rounded-pill px-1.5 text-11 tabular-nums',
+                        active ? 'bg-chalk/20 text-chalk' : 'bg-sand/40 text-stone'
+                      )}
+                    >
+                      {tab.count}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Content States */}
@@ -253,7 +231,7 @@ export function SpotlightProducts() {
         ) : isPending ? (
           <ul
             aria-busy="true"
-            className="m-0 grid list-none grid-cols-1 gap-x-2 sm:gap-x-3 lg:gap-x-4 gap-y-4 md:gap-y-5 lg:gap-y-6 p-0 sm:grid-cols-2 lg:grid-cols-4"
+            className="m-0 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6"
           >
             {[0, 1, 2, 3].map((i) => (
               <li key={i}>
@@ -274,7 +252,7 @@ export function SpotlightProducts() {
             </div>
             <Link
               href={routes.products}
-              className="mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-pill bg-ink px-6 text-14 font-bold text-chalk shadow-elevation-1 transition-colors hover:bg-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+              className="mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-pill bg-ink px-6 text-14 font-bold text-chalk shadow-elevation-1 transition-colors hover:bg-cobalt"
             >
               <span>{m.homeProductsBrowse}</span>
               <Icon name="arrow-forward" size={16} />
@@ -282,7 +260,7 @@ export function SpotlightProducts() {
           </div>
         ) : !mounted ? (
           /* SSR Placeholder to avoid hydration mismatch */
-          <div className="flex gap-2 sm:gap-3 lg:gap-4 overflow-x-hidden">
+          <div className="flex gap-4 overflow-x-hidden">
             {cardsToRender.slice(0, 4).map((card, i) => (
               <div key={card.id} className="w-[78%] flex-none sm:w-[46%] lg:w-[23%]">
                 <ShowcaseProductCard product={card} priority={i < 2} />
@@ -311,27 +289,27 @@ export function SpotlightProducts() {
               breakpoints={{
                 320: {
                   slidesPerView: 1.25,
-                  spaceBetween: 8,
+                  spaceBetween: 14,
                 },
                 480: {
                   slidesPerView: 1.6,
-                  spaceBetween: 8,
+                  spaceBetween: 16,
                 },
                 640: {
                   slidesPerView: 2.25,
-                  spaceBetween: 12,
+                  spaceBetween: 18,
                 },
                 768: {
                   slidesPerView: 2.75,
-                  spaceBetween: 12,
+                  spaceBetween: 20,
                 },
                 1024: {
                   slidesPerView: 3.4,
-                  spaceBetween: 16,
+                  spaceBetween: 22,
                 },
                 1280: {
                   slidesPerView: 4,
-                  spaceBetween: 16,
+                  spaceBetween: 24,
                 },
               }}
             >
@@ -345,7 +323,7 @@ export function SpotlightProducts() {
         )}
 
         {/* Architectural Trust & Express Coastal Delivery Reassurance Strip */}
-        <div className="flex flex-col items-center justify-between gap-3.5 md:gap-4 rounded-card border border-line/60 bg-linen/90 p-3.5 sm:p-4 md:p-4.5 shadow-outline-hairline backdrop-blur-md md:flex-row">
+        <div className="mt-4 flex flex-col items-center justify-between gap-4 rounded-card border border-line/60 bg-linen/90 p-5 shadow-outline-hairline backdrop-blur-md md:flex-row md:p-6">
           <div className="flex items-center gap-3.5">
             <div className="flex size-11 flex-none items-center justify-center rounded-full bg-sand/40 text-cobalt">
               <Icon name="truck" size={22} />

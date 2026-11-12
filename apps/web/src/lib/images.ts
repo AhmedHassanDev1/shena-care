@@ -2,13 +2,7 @@
  * Hosts next/image may optimize (mirrors `images.remotePatterns` in next.config.js). Any other host
  * is still shown, but unoptimized, so one unexpected media URL never breaks the page.
  */
-const OPTIMIZED_HOSTS = new Set([
-  'cdn.shopify.com',
-  'res.cloudinary.com',
-  'lh3.googleusercontent.com',
-  'localhost',
-  '127.0.0.1',
-]);
+const OPTIMIZED_HOSTS = new Set(['cdn.shopify.com', 'res.cloudinary.com', 'lh3.googleusercontent.com']);
 
 export function canOptimizeImage(url: string): boolean {
   try {

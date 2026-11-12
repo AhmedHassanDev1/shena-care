@@ -19,8 +19,6 @@ export interface MapboxMapProps {
   zoom?: number;
   pin?: MapCoordinates | null;
   onPinChange?: (coords: MapCoordinates) => void;
-  onMovementChange?: (isMoving: boolean) => void;
-  mode?: 'center_pin' | 'marker';
   draggable?: boolean;
   interactive?: boolean;
   hubLocation?: HubLocation | null;
@@ -33,15 +31,13 @@ export interface MapboxMapProps {
 
 export function MapboxMap({
   center,
-  zoom = 15,
+  zoom = 14,
   pin,
   onPinChange,
-  onMovementChange,
-  mode = 'marker',
   draggable = true,
   interactive = true,
   hubLocation,
-  showHub = false,
+  showHub = true,
   onLoad,
   onError,
   className,
@@ -52,13 +48,10 @@ export function MapboxMap({
   const customerMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const hubMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isMoving, setIsMoving] = useState(false);
 
   // Stable callbacks
   const onPinChangeRef = useRef(onPinChange);
   onPinChangeRef.current = onPinChange;
-  const onMovementChangeRef = useRef(onMovementChange);
-  onMovementChangeRef.current = onMovementChange;
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
   const onLoadRef = useRef(onLoad);
@@ -113,44 +106,13 @@ export function MapboxMap({
       }
     });
 
+    // Map click to place/move pin
     if (interactive) {
-      let isUserInteracting = false;
-
-      if (mode === 'center_pin') {
-        map.on('movestart', (e) => {
-          isUserInteracting = Boolean(e.originalEvent);
-          setIsMoving(true);
-          onMovementChangeRef.current?.(true);
-        });
-
-        map.on('moveend', () => {
-          setIsMoving(false);
-          onMovementChangeRef.current?.(false);
-          const wasUser = isUserInteracting;
-          isUserInteracting = false;
-          if (wasUser) {
-            const c = map.getCenter();
-            const roundedLat = Math.round(c.lat * 1_000_000) / 1_000_000;
-            const roundedLng = Math.round(c.lng * 1_000_000) / 1_000_000;
-            onPinChangeRef.current?.({ latitude: roundedLat, longitude: roundedLng });
-          }
-        });
-
-        map.on('click', (e) => {
-          const roundedLat = Math.round(e.lngLat.lat * 1_000_000) / 1_000_000;
-          const roundedLng = Math.round(e.lngLat.lng * 1_000_000) / 1_000_000;
-          onPinChangeRef.current?.({ latitude: roundedLat, longitude: roundedLng });
-          map.easeTo({ center: [roundedLng, roundedLat], duration: 300 });
-        });
-      } else {
-        // Direct marker mode: tapping anywhere places/moves the pin immediately
-        map.on('click', (e) => {
-          const roundedLat = Math.round(e.lngLat.lat * 1_000_000) / 1_000_000;
-          const roundedLng = Math.round(e.lngLat.lng * 1_000_000) / 1_000_000;
-          onPinChangeRef.current?.({ latitude: roundedLat, longitude: roundedLng });
-          map.easeTo({ center: [roundedLng, roundedLat], duration: 300 });
-        });
-      }
+      map.on('click', (e) => {
+        const roundedLat = Math.round(e.lngLat.lat * 1_000_000) / 1_000_000;
+        const roundedLng = Math.round(e.lngLat.lng * 1_000_000) / 1_000_000;
+        onPinChangeRef.current?.({ latitude: roundedLat, longitude: roundedLng });
+      });
     }
 
     return () => {
@@ -159,50 +121,19 @@ export function MapboxMap({
       map.remove();
       mapRef.current = null;
     };
-  }, [interactive, mode]);
-
-  // Responsive resize observation
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(() => {
-      mapRef.current?.resize();
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
   }, []);
 
-  // Update center when props change from outside (search selection, current location, initial load)
+  // Update center and zoom when props change
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !isLoaded) return;
-
-    const currentCenter = map.getCenter();
-    const dLat = Math.abs(currentCenter.lat - center.lat);
-    const dLng = Math.abs(currentCenter.lng - center.lng);
-
-    // Only programmatic moves with meaningful displacement (> 20 meters) trigger flyTo
-    if (dLat > 0.0002 || dLng > 0.0002 || Math.abs(map.getZoom() - zoom) > 0.5) {
-      map.flyTo({
-        center: [center.lng, center.lat],
-        zoom,
-        essential: true,
-        duration: 800,
-      });
-    }
+    map.easeTo({ center: [center.lng, center.lat], zoom });
   }, [center.lat, center.lng, zoom, isLoaded]);
 
-  // Manage customer delivery pin marker when in marker mode or non-interactive confirmed mode
+  // Manage customer delivery pin marker
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !isLoaded) return;
-
-    // In center_pin interactive mode, the stationary center overlay replaces the marker
-    if (mode === 'center_pin' && interactive) {
-      customerMarkerRef.current?.remove();
-      customerMarkerRef.current = null;
-      return;
-    }
 
     if (!pin) {
       customerMarkerRef.current?.remove();
@@ -216,19 +147,18 @@ export function MapboxMap({
       pinEl.setAttribute('role', 'img');
       pinEl.setAttribute('aria-label', 'Delivery location pin');
       pinEl.innerHTML = `
-        <div class="shinacare-customer-pin-bubble">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="flex h-8 w-8 items-center justify-center rounded-pill bg-cobalt text-chalk shadow-elevation-2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
         </div>
-        <div class="shinacare-customer-pin-needle"></div>
-        <div class="shinacare-customer-pin-point"></div>
+        <div class="h-1.5 w-1.5 rounded-pill bg-ink mt-0.5"></div>
       `;
 
       const marker = new mapboxgl.Marker({
         element: pinEl,
-        draggable: draggable && interactive,
+        draggable,
         anchor: 'bottom',
       })
         .setLngLat([pin.longitude, pin.latitude])
@@ -236,12 +166,10 @@ export function MapboxMap({
 
       marker.on('dragstart', () => {
         pinEl.classList.add('is-dragging');
-        onMovementChangeRef.current?.(true);
       });
 
       marker.on('dragend', () => {
         pinEl.classList.remove('is-dragging');
-        onMovementChangeRef.current?.(false);
         const lngLat = marker.getLngLat();
         const roundedLat = Math.round(lngLat.lat * 1_000_000) / 1_000_000;
         const roundedLng = Math.round(lngLat.lng * 1_000_000) / 1_000_000;
@@ -250,13 +178,10 @@ export function MapboxMap({
 
       customerMarkerRef.current = marker;
     } else {
-      const cur = customerMarkerRef.current.getLngLat();
-      if (Math.abs(cur.lat - pin.latitude) > 0.000001 || Math.abs(cur.lng - pin.longitude) > 0.000001) {
-        customerMarkerRef.current.setLngLat([pin.longitude, pin.latitude]);
-      }
-      customerMarkerRef.current.setDraggable(draggable && interactive);
+      customerMarkerRef.current.setLngLat([pin.longitude, pin.latitude]);
+      customerMarkerRef.current.setDraggable(draggable);
     }
-  }, [pin?.latitude, pin?.longitude, draggable, interactive, mode, isLoaded]);
+  }, [pin, draggable, isLoaded]);
 
   // Manage fulfillment hub marker (route origin)
   useEffect(() => {
@@ -314,35 +239,6 @@ export function MapboxMap({
         'relative h-72 w-full select-none overflow-hidden rounded-card border border-line bg-sand focus:outline-none focus:ring-1 focus:ring-cobalt',
         className,
       )}
-    >
-      {/* Stationary center pin overlay for center_pin mode */}
-      {interactive && mode === 'center_pin' ? (
-        <>
-          <div aria-hidden="true" className="shinacare-center-target-ring" />
-          <div aria-hidden="true" className={cn('shinacare-center-ground-shadow', isMoving && 'is-moving')} />
-          <div
-            aria-hidden="true"
-            className={cn('shinacare-center-pin-container', isMoving && 'is-moving')}
-          >
-            <div className="shinacare-center-pin-head">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-            </div>
-            <div className="shinacare-center-pin-needle" />
-          </div>
-        </>
-      ) : null}
-    </div>
+    />
   );
 }

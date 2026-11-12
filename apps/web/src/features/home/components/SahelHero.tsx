@@ -45,7 +45,7 @@ export function SahelHero() {
 
         {/* Content container over start side (Right in RTL) */}
         <PageContainer className="relative z-10 w-full">
-          <div className="flex flex-col items-start text-start max-w-xl py-10 lg:py-12">
+          <div className="flex flex-col items-start text-start max-w-xl py-12 lg:py-16">
             {/* Eyebrow */}
             <div
               dir="ltr"
@@ -108,9 +108,9 @@ export function SahelHero() {
           Top editorial still life image, followed by eyebrow, headline, description,
           full-width primary Tomato CTA, and secondary lightweight CTA.
           ========================================================================= */}
-      <div className="flex flex-col lg:hidden w-full pb-4 md:pb-5">
+      <div className="flex flex-col lg:hidden w-full pb-8">
         {/* 1. Top Editorial Image */}
-        <div className="w-full relative px-4 md:px-6 pt-3 pb-2 animate-hero-fade">
+        <div className="w-full relative px-4 pt-3 pb-2 animate-hero-fade">
           <div className="relative w-full aspect-[4/3] rounded-image overflow-hidden shadow-elevation-1 bg-sand">
             <Image
               src="/assets/home/sahel-hero-mobile.webp"
@@ -149,7 +149,7 @@ export function SahelHero() {
           </h1>
 
           {/* Supporting Description */}
-          <p className="font-text text-15 sm:text-16 leading-24 sm:leading-28 text-stone mb-4 sm:mb-5 w-full animate-hero-slide-3">
+          <p className="font-text text-15 sm:text-16 leading-24 sm:leading-28 text-stone mb-6 w-full animate-hero-slide-3">
             {m.sahelHeroDescription}
           </p>
 

@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { iconButtonVariants } from '@/components/ui/icon-button';
 import { MessageBox } from '@/components/ui/message-box';
 import { Money } from '@/components/ui/money';
 import { ProductTile } from '@/components/ui/product-tile';
@@ -16,7 +16,7 @@ import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
-export interface CartLineProps {
+interface CartLineProps {
   item: CartItem;
   /** A quantity change or removal for this line is in flight: the stepper locks. */
   busy: boolean;
@@ -28,9 +28,9 @@ export interface CartLineProps {
 }
 
 /**
- * Editorial Cart Item Card:
- * Soft raised linen surface, distinct brand typography, packshot stage with subtle scale,
- * clean pack size badge, fluid quantity stepper, clear unit price hierarchy, and inline price/availability alerts.
+ * One cart line (CartD row, CommerceMobile ١ row, CommerceStates §١): sand image tile, brand caps, product name,
+ * product type, size, «شيل»; the quantity stepper; the line total with the unit price when more than one.
+ * A changed price or an unavailable product shows on the line itself with its decision.
  */
 export function CartLine({ item, busy, priceReview, onQuantity, onRemove, onPriceReviewed }: CartLineProps) {
   const m = useMessages();
@@ -56,159 +56,105 @@ export function CartLine({ item, busy, priceReview, onQuantity, onRemove, onPric
 
   const amount =
     !unavailable && item.subtotal !== null ? (
-      <div className="flex flex-col items-end gap-0.5">
-        <Money amount={item.subtotal} className="font-display text-18 font-bold leading-24 text-ink lg:text-20" />
+      <span className="flex flex-col items-end gap-0.5">
+        <Money amount={item.subtotal} className="text-17 font-bold leading-24 text-ink lg:text-18" />
         {item.quantity > 1 && item.price ? (
           <span className="text-12 leading-17 text-stone">
             {fillMessage(m.cartUnitPrice, { price: formatAmount(item.price.amount, locale) })}
           </span>
         ) : null}
-      </div>
+      </span>
     ) : null;
 
-  const removeButton = (
+  const removeLink = (
     <button
       type="button"
       onClick={onRemove}
       disabled={busy}
       aria-label={fillMessage(m.cartRemoveItem, { name })}
-      className="inline-flex min-h-control-s items-center gap-1.5 rounded-pill px-2.5 py-1 text-13 font-semibold text-stone transition-colors duration-fast hover:bg-sand/40 hover:text-ink disabled:opacity-50"
+      className="inline-flex min-h-control-s items-center gap-1.5 px-1 text-13.5 font-semibold text-stone underline underline-offset-4 hover:text-ink disabled:opacity-50"
     >
-      <Icon name="trash" size={16} />
-      <span>{m.cartRemove}</span>
+      <Icon name="trash" size={18} />
+      {m.cartRemove}
     </button>
   );
 
   return (
-    <motion.li
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
-      className={cn(
-        'group relative flex flex-col rounded-24 bg-linen p-4 shadow-elevation-1 transition-all duration-base hover:shadow-elevation-2 lg:p-5',
-        unavailable && 'border border-tomato/30',
-        priceReview && 'border border-warn/40'
-      )}
-      aria-busy={busy || undefined}
-    >
-      <div className="flex gap-4 lg:grid lg:grid-cols-[108px_minmax(0,1fr)_auto_140px] lg:items-center lg:gap-6">
-        {/* Packshot tile */}
-        <div className="relative flex-none">
-          <ProductTile
-            size="thumb"
-            className={cn(
-              'h-26 w-22 flex-none rounded-image shadow-hairline-bottom transition-transform duration-base group-hover:scale-[1.02] lg:h-32 lg:w-26',
-              unavailable && 'opacity-50'
-            )}
-            src={item.sku.image?.url ?? null}
-            alt=""
-            name={name}
-          />
-          {unavailable ? (
-            <span className="absolute inset-x-1 bottom-1 rounded-pill bg-ink/80 py-0.5 text-center text-11 font-semibold text-chalk backdrop-blur-sm">
-              {m.cartLineUnavailable}
+    <li className="py-4 shadow-hairline-bottom lg:py-5" aria-busy={busy || undefined}>
+      <div className="flex gap-3.5 lg:grid lg:grid-cols-[104px_minmax(0,1fr)_auto_140px] lg:items-center lg:gap-6">
+        <ProductTile
+          size="thumb"
+          className={cn('h-22.5 w-18 flex-none rounded-image lg:h-32.5 lg:w-26', unavailable && 'opacity-50')}
+          src={item.sku.image?.url ?? null}
+          alt=""
+          name={name}
+        />
+
+        <div className={cn('flex min-w-0 flex-1 flex-col gap-1', unavailable && 'opacity-60')}>
+          {product.brand.name ? (
+            <span dir="ltr" className="text-match-parent text-brand uppercase text-stone">
+              {product.brand.name}
             </span>
           ) : null}
-        </div>
-
-        {/* Product details */}
-        <div className={cn('flex min-w-0 flex-1 flex-col justify-between gap-1.5', unavailable && 'opacity-65')}>
-          <div className="flex flex-col gap-1">
-            {product.brand.name ? (
-              <span dir="ltr" className="text-match-parent font-serif text-13 uppercase tracking-wider text-stone">
-                {product.brand.name}
-              </span>
-            ) : null}
-
-            {href ? (
-              <Link
-                href={href}
-                dir="auto"
-                className="text-match-parent text-16 font-bold leading-24 text-ink transition-colors duration-fast hover:text-cobalt lg:text-17"
-              >
-                {name}
-              </Link>
-            ) : (
-              <span dir="auto" className="text-match-parent text-16 font-bold leading-24 text-ink lg:text-17">
-                {name}
-              </span>
-            )}
-
-            <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              {type ? (
-                <span className="rounded-pill bg-sand/50 px-2 py-0.5 text-12 font-medium text-stone">
-                  {type}
-                </span>
-              ) : null}
-              {size ? (
-                <span className="rounded-pill bg-sand/70 px-2.5 py-0.5 text-12 font-semibold text-ink">
-                  <bdi>{size}</bdi>
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Desktop remove button */}
-          <div className="hidden pt-1 lg:block">
-            {removeButton}
-          </div>
-
-          {/* Phone: stepper, remove button and total amount */}
-          <div className="mt-2 flex items-center justify-between gap-2 lg:hidden">
-            <div className="flex items-center gap-1.5">
+          {href ? (
+            <Link href={href} dir="auto" className="text-match-parent -my-2.5 py-2.5 text-15 font-semibold leading-23 text-ink no-underline lg:text-16 lg:leading-24">
+              {name}
+            </Link>
+          ) : (
+            <span dir="auto" className="text-match-parent text-15 font-semibold leading-23 text-ink lg:text-16 lg:leading-24">
+              {name}
+            </span>
+          )}
+          {type ? <span className="hidden text-14 leading-22 text-stone lg:block">{type}</span> : null}
+          <span className="flex flex-wrap items-center gap-x-3 text-13 leading-20 text-stone">
+            {size ? <bdi>{size}</bdi> : null}
+            <span className="hidden lg:inline-flex">{removeLink}</span>
+          </span>
+          {/* Phone: stepper and amount under the name (CommerceMobile ١). */}
+          <span className="mt-1.5 flex items-center justify-between gap-2 lg:hidden">
+            <span className="flex items-center gap-1">
               {stepper}
               <button
                 type="button"
                 onClick={onRemove}
                 disabled={busy}
                 aria-label={fillMessage(m.cartRemoveItem, { name })}
-                className="grid size-9 place-items-center rounded-pill text-stone transition-colors hover:bg-sand/40 hover:text-ink disabled:opacity-50"
+                className={cn(iconButtonVariants(), 'text-stone')}
               >
-                <Icon name="trash" size={17} />
+                <Icon name="trash" size={20} />
               </button>
-            </div>
+            </span>
             {amount}
-          </div>
+          </span>
         </div>
 
-        {/* Desktop stepper */}
-        <div className="hidden lg:block">
-          {stepper}
-        </div>
-
-        {/* Desktop amount */}
-        <div className="hidden lg:flex lg:justify-end">
-          {amount}
-        </div>
+        <span className="hidden lg:block">{stepper}</span>
+        <span className="hidden lg:flex lg:justify-end">{amount}</span>
       </div>
 
-      {/* Inline price review alert */}
       {priceReview && item.priceAtAdd !== null && item.price ? (
-        <MessageBox tone="warn" className="mt-3.5 rounded-16">
-          <p className="m-0 text-14 font-medium leading-22 text-ink">
+        <MessageBox tone="warn" className="mt-3">
+          <p className="m-0 text-14 leading-22">
             {fillMessage(m.cartPriceChanged, {
               old: formatAmount(item.priceAtAdd, locale),
               new: `${formatAmount(item.price.amount, locale)} ${locale === 'ar' ? 'ج.م' : 'EGP'}`,
             })}
           </p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          <span className="mt-2 flex flex-wrap gap-2">
             <Button variant="ink" size="s" onClick={onPriceReviewed}>
               {m.cartPriceOk}
             </Button>
             <Button variant="light" size="s" onClick={onRemove} disabled={busy}>
               {m.cartRemoveProduct}
             </Button>
-          </div>
+          </span>
         </MessageBox>
       ) : null}
 
-      {/* Inline unavailable product alert */}
       {unavailable ? (
-        <MessageBox tone="err" className="mt-3.5 rounded-16">
-          <p className="m-0 text-14 font-medium leading-22 text-ink">{m.cartLineUnavailable}</p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-3">
+        <MessageBox tone="err" className="mt-3">
+          <p className="m-0 text-14 leading-22">{m.cartLineUnavailable}</p>
+          <span className="mt-2 flex flex-wrap items-center gap-3">
             <Button variant="ink" size="s" onClick={onRemove} disabled={busy}>
               {m.cartRemoveIt}
             </Button>
@@ -217,9 +163,9 @@ export function CartLine({ item, busy, priceReview, onQuantity, onRemove, onPric
                 {m.cartSeeAlternative}
               </Link>
             ) : null}
-          </div>
+          </span>
         </MessageBox>
       ) : null}
-    </motion.li>
+    </li>
   );
 }

@@ -109,118 +109,17 @@ export interface PublicMedia {
   role: string | null;
 }
 
-export interface PublicKeyIngredient {
-  name: string;
-  nameAr?: string | null;
-  inciName?: string | null;
-  function: string | null;
-  descriptionEn?: string | null;
-  descriptionAr?: string | null;
-  visualUrl?: string | null;
-  concentration?: string | null;
-  sourceType?: 'MANUFACTURER_KEY_INGREDIENT' | 'INCI_ACTIVE' | 'CATALOG_INGREDIENT';
-}
-
-export interface PublicInciIngredient {
-  skuId: string | null;
-  name: string;
-  nameAr: string | null;
-  inciName: string | null;
-  primaryFunction: string;
-  descriptionEn: string | null;
-  descriptionAr: string | null;
-  visualUrl: string | null;
-  position: number | null;
-  concentration: string | null;
-  concentrationStatus: string;
-  isKeyActive: boolean;
-  isActiveIngredient: boolean;
-  isFragrance: boolean;
-  isEssentialOil: boolean;
-  isAlcoholDenat: boolean;
-}
-
-export interface PublicSafetyWarning {
-  skuId: string | null;
-  severity: string;
-  warningType: string;
-  descriptionEn: string;
-  descriptionAr: string | null;
-}
-
-export interface PublicRoutineProfile {
-  primaryRole: string | null;
-  primaryRoleStatus: string;
-  secondaryRoles: unknown[];
-  routineDomain: string | null;
-  stepOrder: number | null;
-  routinePeriod: string;
-  routinePeriodStatus: string;
-  periodEligibility: string | null;
-  cadenceUnit: string;
-  cadenceMin: number | null;
-  cadenceMax: number | null;
-  cadenceStatus: string;
-  rinseMode: string;
-  rinseModeStatus: string;
-  contactMinutes: number | null;
-  targetArea: string | null;
-  targetAreaStatus: string;
-  activeIngredients: Array<{
-    inci: string;
-    family?: string | null;
-    function?: string | null;
-    concentration?: string | null;
-    concentrationStatus?: string;
-    status?: string;
-  }>;
-  featuredIngredients: Array<{
-    concept: string;
-    inci?: string | null;
-    function?: string | null;
-    status?: string;
-    kind?: string;
-  }>;
-  prerequisites: Array<{
-    role: string;
-    relation: string;
-    status: string;
-    basis: string;
-    excerpt?: string;
-  }>;
-  sequencingRules: Array<{
-    rule: string;
-    detail: string;
-    status: string;
-  }>;
-  cautions: Array<{
-    kind: string;
-    text: string;
-    status: string;
-    source?: string | null;
-  }>;
-}
-
 export interface PublicContent {
   language: string;
   name: string | null;
   description: string | null;
   ingredients: string | null;
-  keyIngredients?: Array<{ name: string; function: string | null }>;
-  benefits?: string[];
   usage: string | null;
   warnings: string | null;
-  verifiedFacts?: Array<{ skuId: string; field: string; value: string; sourceUrl: string; sourceType: string; verifiedAt: string }>;
 }
 
 export interface PublicUsageRule {
   skuId: string;
-  routinePeriod: string;
-  rinseMode: string;
-  frequencyUnit: string;
-  usesMin: number | null;
-  usesMax: number | null;
-  contactMinutes: number | null;
   evidenceText: string;
   condition: string | null;
   sourceUrl: string;
@@ -238,15 +137,9 @@ export interface PublicVariant {
   isAvailable: boolean;
   canOrder: boolean;
   availability: { isAvailable: boolean; isFresh: boolean; confirmedAt: string | null; observedAt: string | null; validUntil: string | null };
-  estimatedDaysOfUse?: number | null;
   media: PublicMedia[];
   content: PublicContent | null;
   usageRules?: PublicUsageRule[];
-  routineProfile?: PublicRoutineProfile | null;
-  keyIngredients?: PublicKeyIngredient[];
-  inciIngredients?: PublicInciIngredient[];
-  safetyWarnings?: PublicSafetyWarning[];
-  benefits?: string[];
   promotions: {
     orderDiscountAmount?: number;
     subtotalAfterDiscount?: number;
@@ -274,11 +167,6 @@ export interface ProductDetail extends ProductFactFields {
     routine: { id: string; title: string; careArea: string };
     step: { title: string; instructions: string | null; order: number; timing: string | null; isOptional: boolean };
   }>;
-  routineProfile?: PublicRoutineProfile | null;
-  keyIngredients?: PublicKeyIngredient[];
-  inciIngredients?: PublicInciIngredient[];
-  safetyWarnings?: PublicSafetyWarning[];
-  benefits?: string[];
   evaluatedAt: string;
 }
 
@@ -299,11 +187,10 @@ export interface ProductReview {
   id: string;
   rating: number;
   title: string | null;
-  body: string | null;
+  body: string;
   authorName: string;
   skinType: string | null;
   isVerifiedPurchase: boolean;
-  isTest?: boolean;
   helpfulCount: number;
   createdAt: string;
 }
@@ -317,18 +204,11 @@ export interface ProductReviewPage {
 }
 
 /** Published reviews and the rating summary (GET /products/:slugOrId/reviews, commerce-owned). */
-export async function getProductReviews(
-  slugOrId: string,
-  query: { page?: number; limit?: number; sort?: ReviewSort; rating?: number } = {},
-  token?: string | null,
-): Promise<ProductReviewPage> {
+export async function getProductReviews(slugOrId: string, query: { page?: number; limit?: number; sort?: ReviewSort; rating?: number } = {}): Promise<ProductReviewPage> {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) if (value !== undefined) params.set(key, String(value));
   const qs = params.toString();
-  return apiClient.get<ProductReviewPage>(
-    `/products/${encodeURIComponent(slugOrId)}/reviews${qs ? `?${qs}` : ''}`,
-    token ? { token } : undefined,
-  );
+  return apiClient.get<ProductReviewPage>(`/products/${encodeURIComponent(slugOrId)}/reviews${qs ? `?${qs}` : ''}`);
 }
 
 /** A care concern as the public taxonomy `GET /care/concerns` returns it (active concerns only). */

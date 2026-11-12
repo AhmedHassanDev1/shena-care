@@ -35,7 +35,7 @@ export function ShinaStudio() {
   ];
 
   return (
-    <section aria-labelledby="routine-atelier-title" className="py-4 md:py-5 lg:py-6">
+    <section aria-labelledby="routine-atelier-title" className="py-8 lg:py-14">
       <PageContainer>
         <div className="relative isolate overflow-hidden rounded-card border border-line bg-linen shadow-elevation-1 transition-all duration-base hover:shadow-elevation-2">
           {/* Subtle Warm Limestone Architectural Ambient Glow */}
@@ -51,7 +51,7 @@ export function ShinaStudio() {
           {/* Asymmetric Two-Column Editorial Grid */}
           <div className="grid grid-cols-1 items-center lg:grid-cols-12">
             {/* Right Column: Editorial Copy & Action Journeys (7 cols on lg) */}
-            <div className="flex flex-col items-start gap-3.5 sm:gap-4 p-4 sm:p-6 lg:p-8 lg:col-span-7">
+            <div className="flex flex-col items-start gap-4 p-5 sm:gap-5 sm:p-8 lg:col-span-7 lg:p-12">
               {/* Atelier Eyebrow with Pulsing Sparkle */}
               <div className="inline-flex items-center gap-2 rounded-pill border border-line/60 bg-chalk/90 px-3.5 py-1.5 shadow-outline-hairline backdrop-blur-sm">
                 <Icon name="sparkles" size={13} className="text-cobalt" />
@@ -121,7 +121,7 @@ export function ShinaStudio() {
             </div>
 
             {/* Left Column: Visual Metaphor & Photographic Still Life (5 cols on lg) */}
-            <div className="relative flex flex-col items-center justify-center p-4 sm:p-6 lg:col-span-5 lg:p-8">
+            <div className="relative flex flex-col items-center justify-center p-5 sm:p-8 lg:col-span-5 lg:p-10">
               <div className="relative w-full max-w-[420px]">
                 {/* Photographic Still Life */}
                 <div className="relative aspect-[486/320] w-full overflow-hidden rounded-card">

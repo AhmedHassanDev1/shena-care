@@ -57,7 +57,7 @@ const REQUIRED_FIELDS: Array<keyof AddressFormData> = [
 export function AddressBookView() {
   const m = useMessages();
   const locale = useLocale();
-  const { isAuthenticated, isLoading: authLoading, openAuthModal } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const {
     addresses,
     isLoading: addressesLoading,
@@ -100,10 +100,6 @@ export function AddressBookView() {
           <div className="mt-6">
             <Link
               href={`${routes.login}?returnTo=${encodeURIComponent(routes.accountAddresses)}`}
-              onClick={(e) => {
-                e.preventDefault();
-                openAuthModal();
-              }}
               className={buttonVariants({ size: 'l' })}
             >
               {m.myOrdersSignInButton}
@@ -412,14 +408,6 @@ export function AddressBookView() {
                 onChange={(next) => {
                   setPin(next);
                   if (next?.confirmed) setPinError(null);
-                }}
-                onAddressResolved={(sugg) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    governorate: locale === 'ar' ? (sugg.governorate === 'Cairo' ? 'القاهرة' : 'الجيزة') : sugg.governorate,
-                    area: prev.area.trim() ? prev.area : sugg.area,
-                    shippingAddress: prev.shippingAddress.trim() ? prev.shippingAddress : sugg.streetAddress,
-                  }));
                 }}
                 error={pinError ?? undefined}
               />

@@ -199,22 +199,6 @@
       {
         "name": "auth-panel-h",
         "value": "744px"
-      },
-      {
-        "name": "otp-w",
-        "value": "52px"
-      },
-      {
-        "name": "otp-h",
-        "value": "66px"
-      },
-      {
-        "name": "otp-w-lg",
-        "value": "66px"
-      },
-      {
-        "name": "otp-h-lg",
-        "value": "78px"
       }
     ]
   },
