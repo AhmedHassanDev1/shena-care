@@ -132,7 +132,7 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
    * canonical SKU and sends it, as a non-binding RFQ, to every active enrolled supplier whose working window is open
    * and whose scope includes the SKU. No SupplierOffer, stock figure or price is read.
    */
-  async flushRfqBatch(actorId: string, options: { now?: Date; early?: boolean; reason?: string; includeClosedSuppliers?: boolean } = {}) {
+  async flushRfqBatch(actorId: string, options: { now?: Date; early?: boolean; reason?: string; includeClosedSuppliers?: boolean; orderIds?: string[] } = {}) {
     this.assertBroadcast();
     const now = options.now ?? new Date();
     const early = options.early ?? actorId !== RFQ_SCHEDULER_ACTOR;
@@ -163,6 +163,7 @@ export class RfqService implements OnModuleInit, OnModuleDestroy {
       for (const requirement of requirements) {
         const orderId = requirement.supplyRequest.orderId;
         if (!activeOrders.has(orderId)) continue;
+        if (options.orderIds && !options.orderIds.includes(orderId)) continue; // recovery re-broadcasts only the affected orders
         if (!early && !isDemandDueForCheckpoint(requirement.createdAt, now, timeZone)) continue;
         const covered = requirement.allocations.reduce((sum, a) =>
           sum + (a.result === 'pending' ? a.allocatedQuantity : ['confirmed_full', 'confirmed_partial'].includes(a.result) ? a.confirmedQuantity : 0), 0);

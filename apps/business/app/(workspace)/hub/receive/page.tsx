@@ -67,7 +67,8 @@ function OfflineProcurement() {
   const requests = useApi<StaffRfqList>('/rfq/staff?take=30', { pollMs: 30000 })
   const [selectedId, setSelectedId] = React.useState('')
   const detail = useApi<StaffRfqDetail>(selectedId ? `/rfq/staff/${selectedId}` : null, { pollMs: 30000 })
-  const open = (requests.data?.items ?? []).filter((item) => item.status === 'open')
+  // Keep the just-answered request selectable after it fills, so its final POs stay on screen.
+  const open = (requests.data?.items ?? []).filter((item) => item.status === 'open' || item.id === selectedId)
   React.useEffect(() => {
     if (!selectedId && open.length) setSelectedId(open[0].id)
   }, [selectedId, open.length])

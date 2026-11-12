@@ -78,7 +78,7 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
       for (const orderId of orderIds) await this.supplyPlan.advance(orderId);
       if (orderIds.length) {
         if (isBroadcastMode()) {
-          await this.rfq.flushRfqBatch('system:supplier-recovery', { early: true, reason: `Recovery from ${event.eventType}` });
+          await this.rfq.flushRfqBatch('system:supplier-recovery', { early: true, orderIds, reason: `Recovery from ${event.eventType}` });
           await this.rfq.runMaintenance();
         } else await this.flushProcurementBatch('system:supplier-recovery', {
           orderIds, expedited: true, isEarlyFlush: true, reason: `Recovery from ${event.eventType}`,

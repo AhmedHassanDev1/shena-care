@@ -143,5 +143,21 @@ describe('staff records offline broadcast procurement (e2e)', () => {
     expect(final.version).toBe(1);
     expect(final.lines[0].confirmedQuantity).toBe(10);
     expect(await db.receivingShortfall.count({ where: { linkId: link.id } })).toBe(1);
+
+    // A shortfall larger than what is still confirmed is refused and creates nothing.
+    const over = await api().post(`/purchase-orders/${po.id}/shortfalls`).set(hub.auth).send({
+      sourceAllocationId: link.sourceAllocationId, quantity: 7, reasonCode: 'SHORT_SHIPPED',
+    });
+    expect(over.status).toBeGreaterThanOrEqual(400);
+    expect(await db.receivingShortfall.count({ where: { linkId: link.id } })).toBe(1);
+
+    // The recovery request is awarded exactly the released quantity once, never more.
+    const recoveryLine = await db.rfqDemandLine.findUniqueOrThrow({ where: { rfqId_skuId: { rfqId: replacement!.id, skuId: line.skuId } } });
+    const first = await answer(replacement!.id, recoveryLine.id, suppliers[1], 10).expect(201);
+    const second = await answer(replacement!.id, recoveryLine.id, suppliers[2], 10).expect(201);
+    expect([first.body.lines[0].awardedQuantity, second.body.lines[0].awardedQuantity]).toEqual([4, 0]);
+    expect(await db.supplierPurchaseOrder.count({ where: { id: po.id } })).toBe(1);
+    expect((await db.supplierPurchaseOrder.findUniqueOrThrow({ where: { id: first.body.purchaseOrderId } })).version).toBe(1);
+    expect((await db.purchaseOrderLine.findFirstOrThrow({ where: { purchaseOrderId: po.id } })).confirmedQuantity).toBe(10);
   });
 });
