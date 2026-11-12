@@ -15,7 +15,7 @@ import {
   CompactWorkflowStrip,
 } from './overview-components'
 
-export function formatRelativeTime(dateString: string | undefined): string {
+function formatRelativeTime(dateString: string | undefined): string {
   if (!dateString) return 'منذ لحظات'
   const then = new Date(dateString).getTime()
   const now = Date.now()
@@ -39,7 +39,7 @@ const RANGE_OPTIONS: Array<{ value: OverviewDays; label: string }> = [
   { value: 30, label: '30 يوم' },
 ]
 
-export function AdminOverview() {
+function AdminOverview() {
   const [days, setDays] = React.useState<OverviewDays>(7)
   const { data, error, loading, reload } = useApi<AdminOverviewData>(
     `/operations/dashboard/overview?days=${days}`,

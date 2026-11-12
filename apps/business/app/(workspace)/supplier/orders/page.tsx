@@ -19,6 +19,7 @@ import { Button, Code, PageHeader, Skeleton, StateBlock } from '@/components/bw/
 import { Egp, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { PO_STATUS, formatDateTime, shortId } from '@/lib/labels'
+import { OPEN_STATUSES } from '@/lib/supplier-order-status'
 import { useApi } from '@/lib/use-api'
 
 export interface SupplierPoLine {
@@ -60,8 +61,6 @@ export interface SupplierPo {
   createdAt: string
   lines: SupplierPoLine[]
 }
-
-export const OPEN_STATUSES = ['created', 'sent', 'reviewed']
 
 type FilterTab = 'all' | 'needs_response' | 'confirmed' | 'ready' | 'received'
 

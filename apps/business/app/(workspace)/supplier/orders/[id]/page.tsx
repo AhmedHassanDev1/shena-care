@@ -20,7 +20,8 @@ import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
 import { PO_LINE_STATUS, PO_STATUS, SUPPLIER_EXCEPTIONS, formatDateTime, shortId } from '@/lib/labels'
 import { useApi, useCommand } from '@/lib/use-api'
-import { OPEN_STATUSES, type SupplierPo } from '../page'
+import { OPEN_STATUSES } from '@/lib/supplier-order-status'
+import type { SupplierPo } from '../page'
 
 type Answer = 'full' | 'partial' | 'unavailable' | 'price'
 
