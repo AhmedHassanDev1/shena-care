@@ -2,8 +2,23 @@ import { Controller, Get, Param, Res, NotFoundException, UseGuards, ForbiddenExc
 import { Response } from 'express';
 import { AuthGuard } from '../../modules/accounts/guards/auth.guard';
 import { PrismaService } from '../database/prisma.service';
-import { requireMediaReview } from '../security/media-review';
+import { publicMediaVisibility } from '../security/media-review';
 import { FILE_STORAGE_PORT, FileStoragePort } from './storage.port';
+
+const MIME_BY_EXT: Record<string, string> = {
+  webp: 'image/webp',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  avif: 'image/avif',
+  svg: 'image/svg+xml',
+};
+
+function mimeForFilename(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() ?? '';
+  return MIME_BY_EXT[ext] ?? 'application/octet-stream';
+}
 
 @Controller('storage')
 export class StorageController {
@@ -27,20 +42,16 @@ export class StorageController {
       where: { originType: { in: ['verified', 'derived'] }, product: { isPublished: true }, url: { endsWith: `/storage/public/media/${filename}` } },
       include: { product: { include: { skus: true } } },
     });
-    const approved = records.some(record => {
-      try {
-        const review = requireMediaReview(record.generationMetadata);
-        return record.product.skus.some(sku => sku.id === review.skuId && sku.isActive &&
-          sku.barcode === review.barcode && sku.size?.toNumber() === review.size &&
-          sku.sizeUnit === review.sizeUnit && sku.variantName === review.variantName);
-      } catch { return false; }
-    });
+    const approved = records.some((record) => publicMediaVisibility(record).live);
     if (!approved) throw new NotFoundException('Public asset not approved');
     const objectKey = `public/${folder}/${filename}`;
     if (!(await this.storagePort.exists(objectKey))) {
       throw new NotFoundException('File not found');
     }
 
+    res.setHeader('Content-Type', mimeForFilename(filename));
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     const stream = await this.storagePort.readStream(objectKey);
     stream.pipe(res);
   }
@@ -71,6 +82,8 @@ export class StorageController {
       throw new NotFoundException('File not found');
     }
 
+    res.setHeader('Content-Type', mimeForFilename(filename));
+    res.setHeader('Cache-Control', 'private, no-store');
     const stream = await this.storagePort.readStream(objectKey);
     stream.pipe(res);
   }

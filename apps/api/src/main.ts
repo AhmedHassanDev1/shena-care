@@ -11,6 +11,7 @@ async function bootstrap() {
 
   app.use(helmet({
     contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   }));
  
   app.use(

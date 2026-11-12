@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { BrandService, BrandSummary } from '../public';
 import { slugify } from '../utils/slug.util';
+import { BRAND_ALIASES, curatedBrandAlias, curatedSpellings, normalizeBrandKey } from './brand-aliases';
 import {
   BrandResolutionStatus,
   LineResolutionStatus,
@@ -24,60 +25,7 @@ import {
 import { Prisma } from '@prisma/client';
 
 // Curated brand alias dictionary (AR & EN mapping to canonical keys)
-const BRAND_ALIASES: Record<string, { canonicalName: string; slug: string }> = {
-  'سيرافي': { canonicalName: 'CeraVe', slug: 'cerave' },
-  'cerave': { canonicalName: 'CeraVe', slug: 'cerave' },
-  'cera-ve': { canonicalName: 'CeraVe', slug: 'cerave' },
-  'بيوديرما': { canonicalName: 'Bioderma', slug: 'bioderma' },
-  'bioderma': { canonicalName: 'Bioderma', slug: 'bioderma' },
-  'لاروش بوزيه': { canonicalName: 'La Roche-Posay', slug: 'la-roche-posay' },
-  'لاروش-بوزيه': { canonicalName: 'La Roche-Posay', slug: 'la-roche-posay' },
-  'la roche posay': { canonicalName: 'La Roche-Posay', slug: 'la-roche-posay' },
-  'la-roche-posay': { canonicalName: 'La Roche-Posay', slug: 'la-roche-posay' },
-  'يوسيرين': { canonicalName: 'Eucerin', slug: 'eucerin' },
-  'eucerin': { canonicalName: 'Eucerin', slug: 'eucerin' },
-  'اورجيناري': { canonicalName: 'The Ordinary', slug: 'the-ordinary' },
-  'the ordinary': { canonicalName: 'The Ordinary', slug: 'the-ordinary' },
-  'the-ordinary': { canonicalName: 'The Ordinary', slug: 'the-ordinary' },
-  'ordinary': { canonicalName: 'The Ordinary', slug: 'the-ordinary' },
-  'فيشي': { canonicalName: 'Vichy', slug: 'vichy' },
-  'vichy': { canonicalName: 'Vichy', slug: 'vichy' },
-  'سيتافيل': { canonicalName: 'Cetaphil', slug: 'cetaphil' },
-  'cetaphil': { canonicalName: 'Cetaphil', slug: 'cetaphil' },
-  'ستارفيل': { canonicalName: 'Starville', slug: 'starville' },
-  'starville': { canonicalName: 'Starville', slug: 'starville' },
-  'افين': { canonicalName: 'Avène', slug: 'avene' },
-  'avene': { canonicalName: 'Avène', slug: 'avene' },
-  'نيتروجينا': { canonicalName: 'Neutrogena', slug: 'neutrogena' },
-  'neutrogena': { canonicalName: 'Neutrogena', slug: 'neutrogena' },
-  'بانوكسيل': { canonicalName: 'PanOxyl', slug: 'panoxyl' },
-  'panoxyl': { canonicalName: 'PanOxyl', slug: 'panoxyl' },
-  'كوسركس': { canonicalName: 'COSRX', slug: 'cosrx' },
-  'cosrx': { canonicalName: 'COSRX', slug: 'cosrx' },
-  'ايزدين': { canonicalName: 'ISDIN', slug: 'isdin' },
-  'isdin': { canonicalName: 'ISDIN', slug: 'isdin' },
-};
-
-/** Folding used for every alias key; the same function backs the resolver and the pure lookup below. */
-function normalizeBrandKey(str: string): string {
-  if (!str) return '';
-  return str
-    .toLowerCase()
-    .trim()
-    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632))
-    .replace(/[أإآ]/g, 'ا')
-    .replace(/ة/g, 'ه')
-    .replace(/[ىي]/g, 'ي')
-    .replace(/[ً-ٟـ]/g, '')
-    .replace(/[^p{L}p{N}]+/gu, '-')
-    .replace(/(^-|-$)+/g, '');
-}
-
-/** The reviewed Arabic/English dictionary entry for a spelling, if there is one. Read-only: creates nothing. */
-export function curatedBrandAlias(raw: string): { canonicalName: string; slug: string } | null {
-  const trimmed = (raw ?? '').trim();
-  return BRAND_ALIASES[normalizeBrandKey(trimmed)] ?? BRAND_ALIASES[trimmed.toLowerCase()] ?? null;
-}
+export { curatedBrandAlias, curatedSpellings };
 
 // Known marketing/functional adjectives that must NEVER be auto-created as official product lines
 const MARKETING_ADJECTIVES = new Set([

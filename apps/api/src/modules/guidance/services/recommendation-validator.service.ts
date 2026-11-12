@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CatalogService } from '../../catalog/public';
+import { CatalogService, PublishedProduct } from '../../catalog/public';
 import { CommerceService } from '../../commerce/public';
 import { RoutineProposal, RoutineStepProposal } from '../../../platform/ai';
 
@@ -9,6 +9,23 @@ export interface ProductResolutionResult {
   productId?: string;
   skuId?: string;
   reason?: string;
+}
+
+export interface ResolvedCatalogProduct {
+  productId: string;
+  slug: string;
+  name: string;
+  brandName: string;
+  categoryName?: string | null;
+  skuId: string;
+  variantName: string;
+  imageUrl?: string | null;
+  price?: {
+    amount: number;
+    currency: string;
+    compareAtAmount?: number | null;
+  } | null;
+  isSellable: boolean;
 }
 
 export interface StepValidationResult {
@@ -22,6 +39,7 @@ export interface StepValidationResult {
     reason: string;
     terms?: any;
   };
+  resolvedProduct?: ResolvedCatalogProduct;
   errors: string[];
 }
 
@@ -68,10 +86,11 @@ export class RecommendationValidatorService {
     }
 
     let totalPrice = 0;
+    const products = await this.safeGetPublishedProducts();
 
     for (let i = 0; i < proposal.steps.length; i++) {
       const step = proposal.steps[i];
-      const stepResult = await this.validateStep(step, i);
+      const stepResult = await this.validateStep(step, i, products);
       stepResults.push(stepResult);
 
       if (!stepResult.isValid) {
@@ -92,7 +111,69 @@ export class RecommendationValidatorService {
     };
   }
 
-  private async validateStep(step: RoutineStepProposal, index: number): Promise<StepValidationResult> {
+  /**
+   * Lists live published product identifiers so the AI provider stays grounded in real catalog items.
+   */
+  async listCatalogProductNames(): Promise<string[]> {
+    const products = await this.safeGetPublishedProducts();
+    return products.map(p => `${p.brand.name} ${p.name}`);
+  }
+
+  /**
+   * Resolves sellable catalog products referenced by a persisted proposal or mentioned in assistant copy.
+   */
+  async resolveProductsForGuidance(
+    proposal?: RoutineProposal | null,
+    messageText?: string,
+  ): Promise<ResolvedCatalogProduct[]> {
+    const products = await this.safeGetPublishedProducts();
+    if (!products.length) return [];
+
+    const byId = new Map<string, ResolvedCatalogProduct>();
+    const queries = (proposal?.steps ?? [])
+      .map(step => step.productQuery?.trim())
+      .filter((q): q is string => Boolean(q));
+
+    for (const query of queries) {
+      const match = this.findMatchingProduct(query, products);
+      if (match) {
+        const resolved = await this.toSellableResolvedProduct(match);
+        if (resolved) byId.set(resolved.productId, resolved);
+      }
+    }
+
+    if (messageText) {
+      const lowerMsg = messageText.toLowerCase();
+      for (const product of products) {
+        if (byId.size >= 6) break;
+        const pName = product.name.toLowerCase();
+        const full = `${product.brand.name} ${product.name}`.toLowerCase();
+        if (pName.length >= 6 && (lowerMsg.includes(pName) || lowerMsg.includes(full))) {
+          if (!byId.has(product.id)) {
+            const resolved = await this.toSellableResolvedProduct(product);
+            if (resolved) byId.set(resolved.productId, resolved);
+          }
+        }
+      }
+    }
+
+    return [...byId.values()].slice(0, 6);
+  }
+
+  private async safeGetPublishedProducts(): Promise<PublishedProduct[]> {
+    try {
+      return await this.catalogService.getPublishedProducts({ limit: 50 });
+    } catch (error) {
+      this.logger.warn(`Failed to fetch published products: ${error instanceof Error ? error.message : String(error)}`);
+      return [];
+    }
+  }
+
+  private async validateStep(
+    step: RoutineStepProposal,
+    index: number,
+    products?: PublishedProduct[],
+  ): Promise<StepValidationResult> {
     const result: StepValidationResult = {
       stepIndex: index,
       stepTitle: step.title,
@@ -106,7 +187,9 @@ export class RecommendationValidatorService {
     }
 
     // Resolve product query to actual catalog product
-    const productResolution = await this.resolveProductQuery(step.productQuery);
+    const catalog = products ?? (await this.safeGetPublishedProducts());
+    const matchedProduct = this.findMatchingProduct(step.productQuery, catalog);
+    const productResolution = await this.resolveProductQuery(step.productQuery, matchedProduct);
     result.productResolution = productResolution;
 
     if (!productResolution.resolved) {
@@ -123,32 +206,77 @@ export class RecommendationValidatorService {
       if (!availabilityCheck.isSellable) {
         result.isValid = false;
         result.errors.push(`Product not sellable: ${availabilityCheck.reason}`);
+      } else if (matchedProduct) {
+        const sku = matchedProduct.skus.find(s => s.id === productResolution.skuId) ?? matchedProduct.skus[0];
+        const image = matchedProduct.media.find(m => m.skuId === sku?.id && m.isPrimary)
+          ?? matchedProduct.media.find(m => m.isPrimary)
+          ?? matchedProduct.media[0];
+        result.resolvedProduct = {
+          productId: matchedProduct.id,
+          slug: matchedProduct.slug,
+          name: matchedProduct.name,
+          brandName: matchedProduct.brand.name,
+          categoryName: matchedProduct.category?.name ?? null,
+          skuId: productResolution.skuId,
+          variantName: sku?.variantName ?? '',
+          imageUrl: image?.url ?? null,
+          price: availabilityCheck.terms?.price ?? null,
+          isSellable: true,
+        };
       }
     }
 
     return result;
   }
 
+  private findMatchingProduct(query: string, products: PublishedProduct[]): PublishedProduct | undefined {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return undefined;
+    const queryParts = normalizedQuery.split(/\s+/).filter(Boolean);
+
+    return products.find(p => {
+      const pName = p.name.toLowerCase();
+      const brandAndName = `${p.brand.name} ${p.name}`.toLowerCase();
+      return queryParts.every(part => brandAndName.includes(part)) ||
+        normalizedQuery.includes(pName) ||
+        normalizedQuery.includes(brandAndName);
+    });
+  }
+
+  private async toSellableResolvedProduct(product: PublishedProduct): Promise<ResolvedCatalogProduct | null> {
+    const activeSkus = product.skus.filter(sku => sku.isActive);
+    for (const sku of activeSkus) {
+      const availability = await this.checkAvailability(sku.id);
+      if (availability.isSellable && availability.terms?.price) {
+        const image = product.media.find(m => m.skuId === sku.id && m.isPrimary)
+          ?? product.media.find(m => m.isPrimary)
+          ?? product.media[0];
+        return {
+          productId: product.id,
+          slug: product.slug,
+          name: product.name,
+          brandName: product.brand.name,
+          categoryName: product.category?.name ?? null,
+          skuId: sku.id,
+          variantName: sku.variantName,
+          imageUrl: image?.url ?? null,
+          price: availability.terms.price,
+          isSellable: true,
+        };
+      }
+    }
+    return null;
+  }
+
   /**
    * Attempt to resolve a product query string to a real catalog product and SKU.
-   *
-   * This is a best-effort search. For MVP, we search by product name.
-   * Future: Could use semantic search, fuzzy matching, or category filters.
    */
-  private async resolveProductQuery(query: string): Promise<ProductResolutionResult> {
-    const normalizedQuery = query.trim().toLowerCase();
-
+  private async resolveProductQuery(
+    query: string,
+    prematched?: PublishedProduct,
+  ): Promise<ProductResolutionResult> {
     try {
-      // Search published products
-      const products = await this.catalogService.getPublishedProducts({ limit: 50 });
-
-      // Simple name matching for MVP
-      const matchedProduct = products.find(p => {
-        const pName = p.name.toLowerCase();
-        const queryParts = normalizedQuery.split(' ');
-        return queryParts.every(part => pName.includes(part)) ||
-               normalizedQuery.includes(pName);
-      });
+      const matchedProduct = prematched ?? this.findMatchingProduct(query, await this.catalogService.getPublishedProducts({ limit: 50 }));
 
       if (!matchedProduct) {
         return {

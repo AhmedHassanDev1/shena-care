@@ -25,6 +25,7 @@ export function isTrustedMediaSource(value: string): boolean {
       'cerave.com', 'laroche-posay.us', 'laroche-posay.co.uk', 'laroche-posay-me.com',
       'vichy.fr', 'vichyusa.com', 'eucerin.com', 'eucerinus.com',
       'aveneusa.com', 'eau-thermale-avene.com', 'bioderma.com',
+      'parkvillepharma.com', 'eva-cosmetics.com', 'loreal-paris-me.com',
       ...(process.env.MEDIA_TRUSTED_SOURCE_HOSTS || '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean),
     ];
     return url.protocol === 'https:' && !url.username && !url.password &&
@@ -44,4 +45,39 @@ export function requireMediaReview(value: unknown): MediaReview {
     throw new BadRequestException('Verified media requires trusted evidence and an identity review');
   }
   return m;
+}
+
+export type PublicMediaHiddenReason =
+  | 'PRODUCT_NOT_PUBLISHED'
+  | 'NOT_REVIEWED_MEDIA'
+  | 'REVIEW_IDENTITY_MISMATCH'
+  | 'NOT_STORED_LOCALLY';
+
+/**
+ * Whether the storefront may serve a product image from /storage/public/media. This is the single rule used both by
+ * the public storage route (which enforces it) and by the Admin catalog (which only explains it). It never loosens
+ * the gate: an image is public only for a published product whose review still matches the SKU identity.
+ */
+export function publicMediaVisibility(record: {
+  originType: string;
+  generationMetadata: unknown;
+  product: {
+    isPublished: boolean;
+    skus: Array<{ id: string; isActive: boolean; barcode: string | null; size: { toNumber(): number } | number | null; sizeUnit: string | null; variantName: string }>;
+  };
+}): { live: boolean; reason: PublicMediaHiddenReason | null } {
+  if (!record.product.isPublished) return { live: false, reason: 'PRODUCT_NOT_PUBLISHED' };
+  if (record.originType !== 'verified' && record.originType !== 'derived') return { live: false, reason: 'NOT_REVIEWED_MEDIA' };
+  let review: MediaReview;
+  try {
+    review = requireMediaReview(record.generationMetadata);
+  } catch {
+    return { live: false, reason: 'NOT_REVIEWED_MEDIA' };
+  }
+  const matches = record.product.skus.some((sku) => {
+    const size = sku.size === null ? null : typeof sku.size === 'number' ? sku.size : sku.size.toNumber();
+    return sku.id === review.skuId && sku.isActive && sku.barcode === review.barcode &&
+      size === review.size && sku.sizeUnit === review.sizeUnit && sku.variantName === review.variantName;
+  });
+  return matches ? { live: true, reason: null } : { live: false, reason: 'REVIEW_IDENTITY_MISMATCH' };
 }

@@ -51,10 +51,12 @@ export class PublicFactDto {
 }
 
 export class PublicContentDto {
-  @ApiProperty({ enum: ['ar'] }) language: string;
+  @ApiProperty({ enum: ['ar', 'en'] }) language: string;
   @ApiProperty({ type: String, nullable: true }) name: string | null;
   @ApiProperty({ type: String, nullable: true }) description: string | null;
   @ApiProperty({ type: String, nullable: true }) ingredients: string | null;
+  @ApiPropertyOptional({ type: 'array', items: { type: 'object' } }) keyIngredients?: Array<{ name: string; function: string | null }>;
+  @ApiPropertyOptional({ type: [String] }) benefits?: string[];
   @ApiProperty({ type: String, nullable: true }) usage: string | null;
   @ApiProperty({ type: String, nullable: true }) warnings: string | null;
   @ApiProperty({ type: [PublicFactDto] }) verifiedFacts: PublicFactDto[];
@@ -75,6 +77,12 @@ export class PublicVariantDto {
   @ApiProperty({ type: [PublicProductMediaDto] }) media: PublicProductMediaDto[];
   @ApiProperty({ type: [PublicFactDto] }) verifiedFacts: PublicFactDto[];
   @ApiProperty({ type: PublicContentDto, nullable: true }) content: PublicContentDto | null;
+  @ApiPropertyOptional({ type: 'array', items: { type: 'object' } }) usageRules?: Record<string, unknown>[];
+  @ApiPropertyOptional({ type: 'object', nullable: true }) routineProfile?: Record<string, unknown> | null;
+  @ApiPropertyOptional({ type: 'array', items: { type: 'object' } }) keyIngredients?: Record<string, unknown>[];
+  @ApiPropertyOptional({ type: 'array', items: { type: 'object' } }) inciIngredients?: Record<string, unknown>[];
+  @ApiPropertyOptional({ type: 'array', items: { type: 'object' } }) safetyWarnings?: Record<string, unknown>[];
+  @ApiPropertyOptional({ type: [String] }) benefits?: string[];
   @ApiProperty({ type: 'object', nullable: true, description: 'Automatic order promotion preview for one unit. SellingPrice remains authoritative; checkout confirms final eligibility.', properties: {
     context: { type: 'string', enum: ['single_item_order_preview'] }, quantity: { type: 'number', enum: [1] }, currency: { type: 'string' },
     appliedPromotions: { type: 'array', items: { type: 'object' } }, orderDiscountAmount: { type: 'number' },
@@ -111,5 +119,10 @@ export class ProductDetailResponseDto extends PublicIdentityDto {
   @ApiProperty({ type: 'object', properties: { identity: { type: 'string', enum: ['reviewed', 'unavailable'] }, content: { type: 'string', enum: ['reviewed', 'unavailable'] } } })
   factVerification: Record<string, string>;
   @ApiProperty({ type: 'array', items: { type: 'object' } }) routinePlacements: Record<string, unknown>[];
+  @ApiPropertyOptional({ type: 'object', nullable: true }) routineProfile?: Record<string, unknown> | null;
+  @ApiPropertyOptional({ type: 'array', items: { type: 'object' } }) keyIngredients?: Record<string, unknown>[];
+  @ApiPropertyOptional({ type: 'array', items: { type: 'object' } }) inciIngredients?: Record<string, unknown>[];
+  @ApiPropertyOptional({ type: 'array', items: { type: 'object' } }) safetyWarnings?: Record<string, unknown>[];
+  @ApiPropertyOptional({ type: [String] }) benefits?: string[];
   @ApiProperty({ format: 'date-time' }) evaluatedAt: string;
 }

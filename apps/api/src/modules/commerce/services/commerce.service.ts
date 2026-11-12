@@ -33,6 +33,16 @@ export interface SellingTerms {
   canOrder: boolean;
 }
 
+export interface SkuCommercialSummary {
+  isListed: boolean;
+  price: {
+    id: string;
+    amount: number;
+    compareAtAmount: number | null;
+    currency: string;
+  } | null;
+}
+
 export interface SellabilityEvaluation {
   skuId: string;
   isSellable: boolean;
@@ -378,6 +388,81 @@ export class CommerceService {
       where: { skuId: { in: skuIds } }, select: { skuId: true, isListed: true },
     });
     return Object.fromEntries(listings.map((listing) => [listing.skuId, listing.isListed]));
+  }
+
+  async getSkuCommercialSummaryBatch(
+    skuIds: string[],
+  ): Promise<Record<string, SkuCommercialSummary>> {
+    const ids = [...new Set(skuIds.filter((id) => this.isUuid(id)))];
+    if (!ids.length) return {};
+    const now = new Date();
+    const [listings, prices] = await Promise.all([
+      this.prisma.listing.findMany({
+        where: { skuId: { in: ids } },
+        select: { skuId: true, isListed: true },
+      }),
+      this.prisma.sellingPrice.findMany({
+        where: {
+          skuId: { in: ids },
+          isActive: true,
+          validFrom: { lte: now },
+          OR: [{ validUntil: { gte: now } }, { validUntil: null }],
+        },
+        orderBy: [{ skuId: 'asc' }, { validFrom: 'desc' }],
+        select: {
+          id: true,
+          skuId: true,
+          amount: true,
+          compareAtAmount: true,
+          currency: true,
+        },
+      }),
+    ]);
+
+    const listingBySku = new Map(listings.map((l) => [l.skuId, l.isListed]));
+    const priceBySku = new Map<string, (typeof prices)[number]>();
+    for (const p of prices) {
+      if (!priceBySku.has(p.skuId)) priceBySku.set(p.skuId, p);
+    }
+
+    const out: Record<string, SkuCommercialSummary> = {};
+    for (const id of ids) {
+      const p = priceBySku.get(id);
+      out[id] = {
+        isListed: listingBySku.get(id) ?? false,
+        price: p
+          ? {
+              id: p.id,
+              amount: p.amount.toNumber(),
+              compareAtAmount: p.compareAtAmount ? p.compareAtAmount.toNumber() : null,
+              currency: p.currency,
+            }
+          : null,
+      };
+    }
+    return out;
+  }
+
+  async getPricedSkuIds(): Promise<string[]> {
+    const now = new Date();
+    const rows = await this.prisma.sellingPrice.findMany({
+      where: {
+        isActive: true,
+        validFrom: { lte: now },
+        OR: [{ validUntil: { gte: now } }, { validUntil: null }],
+      },
+      distinct: ['skuId'],
+      select: { skuId: true },
+    });
+    return rows.map((r) => r.skuId);
+  }
+
+  async getListedSkuIds(): Promise<string[]> {
+    const rows = await this.prisma.listing.findMany({
+      where: { isListed: true },
+      select: { skuId: true },
+    });
+    return rows.map((r) => r.skuId);
   }
 
   async getListings(filters?: {

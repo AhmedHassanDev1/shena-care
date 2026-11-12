@@ -1,3 +1,4 @@
+import { OfferIntakeService } from './services/offer-intake.service';
 import { DomainEventsModule } from '../../platform/events/domain-events.module';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../platform/database/database.module';
@@ -20,7 +21,7 @@ import { OperationsModule } from '../operations/operations.module';
 @Module({
   imports: [DomainEventsModule, DatabaseModule, CatalogModule, CommerceModule, OperationsModule],
   controllers: [SourcingController, SupplyPlanController],
-  providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener, RfqService, AcquisitionCostService, SupplierEnrollmentService],
-  exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, RfqService, AcquisitionCostService, SupplierEnrollmentService],
+  providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener, RfqService, AcquisitionCostService, SupplierEnrollmentService, OfferIntakeService],
+  exports: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, RfqService, AcquisitionCostService, SupplierEnrollmentService, OfferIntakeService],
 })
 export class SourcingModule {}

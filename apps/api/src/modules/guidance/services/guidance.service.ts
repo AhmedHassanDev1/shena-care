@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException, Logger, ServiceUnavailableException, BadGatewayException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { AiClient, AiClientError, AiErrorKind } from '../../../platform/ai';
+import { AiClient, AiClientError, AiErrorKind, RoutineProposal } from '../../../platform/ai';
 import { CreateGuidanceSessionDto, SendGuidanceMessageDto } from '../dto/guidance.dto';
 import { GuidanceSessionStatus, GuidanceMessageRole, Prisma } from '@prisma/client';
-import { RecommendationValidatorService } from './recommendation-validator.service';
+import { RecommendationValidatorService, ResolvedCatalogProduct } from './recommendation-validator.service';
 
 @Injectable()
 export class GuidanceService {
@@ -49,7 +49,25 @@ export class GuidanceService {
       include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
     if (!session) throw new NotFoundException('Guidance session not found');
-    return session;
+
+    if (typeof this.validator.resolveProductsForGuidance !== 'function' || !session.messages?.length) {
+      return session;
+    }
+
+    const enrichedMessages = await Promise.all(
+      session.messages.map(async (msg: any) => {
+        if (msg.role !== GuidanceMessageRole.assistant) return msg;
+        const proposal = (msg.proposal ?? null) as RoutineProposal | null;
+        const resolvedProducts = await this.validator.resolveProductsForGuidance(proposal, msg.content);
+        return {
+          ...msg,
+          type: proposal ? 'proposal' : 'answer',
+          ...(resolvedProducts.length ? { resolvedProducts } : {}),
+        };
+      }),
+    );
+
+    return { ...session, messages: enrichedMessages };
   }
 
   async sendMessage(sessionId: string, dto: SendGuidanceMessageDto) {
@@ -97,6 +115,11 @@ export class GuidanceService {
       orderBy: { createdAt: 'desc' },
     });
 
+    const catalogProducts =
+      typeof this.validator.listCatalogProductNames === 'function'
+        ? await this.validator.listCatalogProductNames()
+        : [];
+
     const recommendationInput = {
       customerId: session.customerId,
       profile: {
@@ -109,6 +132,7 @@ export class GuidanceService {
         content: h.content,
       })),
       routineDraft: draft,
+      catalogProducts,
     };
 
     let result;
@@ -136,6 +160,8 @@ export class GuidanceService {
       throw new InternalServerErrorException('Failed to process AI recommendation.');
     }
 
+    let resolvedProducts: ResolvedCatalogProduct[] = [];
+
     // Validate proposal against trusted backend state before persisting
     if (result.proposal) {
       const validationResult = await this.validator.validateProposal(result.proposal);
@@ -158,7 +184,17 @@ export class GuidanceService {
         return validationFailureMsg;
       }
 
+      const deduped = new Map<string, ResolvedCatalogProduct>();
+      for (const stepResult of validationResult.stepResults ?? []) {
+        if (stepResult.resolvedProduct) {
+          deduped.set(stepResult.resolvedProduct.productId, stepResult.resolvedProduct);
+        }
+      }
+      resolvedProducts = [...deduped.values()];
+
       this.logger.log(`AI recommendation validated successfully for session ${sessionId}`);
+    } else if (typeof this.validator.resolveProductsForGuidance === 'function') {
+      resolvedProducts = await this.validator.resolveProductsForGuidance(null, result.message);
     }
 
     // Save assistant response (only if validation passed or no proposal)
@@ -171,6 +207,10 @@ export class GuidanceService {
       },
     });
 
-    return { ...assistantMsg, type: (result as any).type };
+    return {
+      ...assistantMsg,
+      type: (result as any).type,
+      ...(resolvedProducts.length ? { resolvedProducts } : {}),
+    };
   }
 }

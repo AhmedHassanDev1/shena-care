@@ -110,6 +110,35 @@ export interface RoutineProductFacts {
   }>;
 }
 
+export interface PublicProductIngredientFact {
+  skuId: string | null;
+  name: string;
+  nameAr: string | null;
+  inciName: string;
+  primaryFunction: string;
+  isActiveIngredient: boolean;
+  isKeyActive: boolean;
+  concentration: string | null;
+  concentrationStatus: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  visualUrl: string | null;
+}
+
+export interface PublicSafetyWarningFact {
+  id: string;
+  skuId: string | null;
+  kind: string;
+  condition: string | null;
+  descriptionEn: string;
+  descriptionAr: string | null;
+}
+
+export interface PublicKeyIngredientClaim {
+  name: string;
+  function: string | null;
+}
+
 export interface PublishedSku {
   id: string;
   code: string;
@@ -809,6 +838,97 @@ export class CatalogService {
       where: { productId, isActive: true },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /** Public catalog facts for PDP composition: ordered ingredients, active warnings, and reviewed key ingredient claims. */
+  async getProductDetailCatalogFacts(productId: string): Promise<{
+    productIngredients: PublicProductIngredientFact[];
+    safetyWarnings: PublicSafetyWarningFact[];
+    keyIngredientsClaim: PublicKeyIngredientClaim[];
+  }> {
+    if (!this.isUuid(productId)) {
+      return { productIngredients: [], safetyWarnings: [], keyIngredientsClaim: [] };
+    }
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, isPublished: true },
+      select: {
+        claimsEvidence: true,
+        productIngredients: {
+          orderBy: { sortOrder: 'asc' },
+          include: {
+            ingredient: {
+              select: {
+                name: true,
+                nameAr: true,
+                inciName: true,
+                primaryFunction: true,
+                isActiveIngredient: true,
+                descriptionEn: true,
+                descriptionAr: true,
+                visualUrl: true,
+              },
+            },
+          },
+        },
+        safetyWarnings: {
+          where: { isActive: true },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            skuId: true,
+            kind: true,
+            condition: true,
+            descriptionEn: true,
+            descriptionAr: true,
+          },
+        },
+      },
+    });
+    if (!product) {
+      return { productIngredients: [], safetyWarnings: [], keyIngredientsClaim: [] };
+    }
+    const claims =
+      (product.claimsEvidence as { keyIngredients?: { items?: Array<{ name?: unknown; function?: unknown }> } } | null) ?? {};
+    const keyIngredientsClaim = Array.isArray(claims.keyIngredients?.items)
+      ? claims.keyIngredients!.items.flatMap((item) =>
+          item && typeof item.name === 'string' && item.name.trim()
+            ? [
+                {
+                  name: item.name.trim(),
+                  function: typeof item.function === 'string' && item.function.trim() ? item.function.trim() : null,
+                },
+              ]
+            : [],
+        )
+      : [];
+    return {
+      productIngredients: product.productIngredients.map((pi) => ({
+        skuId: pi.skuId ?? null,
+        name: pi.ingredient.name,
+        nameAr: pi.ingredient.nameAr ?? null,
+        inciName: pi.ingredient.inciName,
+        primaryFunction: pi.ingredient.primaryFunction,
+        isActiveIngredient: pi.ingredient.isActiveIngredient,
+        isKeyActive: pi.isKeyActive,
+        concentration:
+          pi.concentrationValue !== null
+            ? `${Number(pi.concentrationValue)}${pi.concentrationUnit ?? '%'}`
+            : pi.concentration ?? null,
+        concentrationStatus: pi.concentrationStatus,
+        descriptionEn: pi.ingredient.descriptionEn ?? null,
+        descriptionAr: pi.ingredient.descriptionAr ?? null,
+        visualUrl: pi.ingredient.visualUrl ?? null,
+      })),
+      safetyWarnings: product.safetyWarnings.map((sw) => ({
+        id: sw.id,
+        skuId: sw.skuId ?? null,
+        kind: sw.kind,
+        condition: sw.condition ?? null,
+        descriptionEn: sw.descriptionEn,
+        descriptionAr: sw.descriptionAr ?? null,
+      })),
+      keyIngredientsClaim,
+    };
   }
 
   // ---------------------------------------------------------------------------

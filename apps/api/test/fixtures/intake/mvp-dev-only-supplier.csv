@@ -1,0 +1,15 @@
+code,brand,product name,consumer price,discount %,purchase price,quantity
+DEV001,StarVille,Acne Prone Skin Facial Cleanser 200 ml,100,20,,5
+DEV006,Shaan,Antioxidant Facial Cleanser 250 ml,110,,88,5
+DEV007,Shaan,Soothing Gel 120 gm,120,,96,5
+DEV008,Shaan,Rejuvenation Cream 120 gm,130,,104,5
+DEV011,Bobai,Sunscreen Extra Lightening Gel SPF 50 50 gm,140,,112,5
+DEV013,Bobai,Sunscreen Oil Defense Fluid SPF 50 75 ml,150,,120,5
+DEV023,Eva Cosmetics,Niacinamide Facial Serum 30 ml,160,,128,5
+DEV024,Eva Cosmetics,Hyaluronic Acid Facial Serum 30 ml,170,,136,5
+DEV055,L'Oréal Paris,Elvive Hyaluron Moisture Shampoo 200 ml,180,,144,5
+DEV056,L'Oréal Paris,Elvive Hyaluron Moisture Conditioner 200 ml,190,,152,5
+DEV006AR,Shaan,شان غسول مضاد للأكسدة 250 مل,110,,88,5
+DEV023AR,Eva Cosmetics,إيفا سكين كلينيك سيروم نياسيناميد 30 مل,160,,128,5
+DEV999,,Panadol Extra Tablets 24,100,,80,5
+DEV998,,Nivea Body Lotion 200 ml,100,,80,5

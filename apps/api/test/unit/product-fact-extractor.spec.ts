@@ -34,6 +34,32 @@ describe('deterministic product fact extraction', () => {
     for (const field of ['identity.gtin', 'composition.inci', 'composition.activeConcentrations', 'composition.fragrance', 'usage.instructions', 'safety.warnings']) expect(fieldOf(facts, field)).toBeUndefined();
   });
 
+  it('includes an exact product gallery image beside the official hero image', () => {
+    const html = page('<img data-srcset="/media/hydra/2.jpg?w=420 420w,/media/hydra/2.jpg?w=1440 1440w"><img data-srcset="/media/other/other.jpg?w=1440 1440w">',
+      '<meta property="og:image" content="https://acme.example/media/hydra/hero-image.png">');
+    const images = fieldOf(extractProductFacts(html, 'https://acme.example/hydra', SKU).facts, 'media.sourceImages');
+    expect(images).toEqual(['https://acme.example/media/hydra/hero-image.png', 'https://acme.example/media/hydra/2.jpg?w=1440']);
+  });
+
+  it('prefers product-named directions when a page accidentally mixes lotion and cleanser instructions', () => {
+    const cleanser: SkuExpectation = { brand: 'Acme Derma', productName: 'Acne Facial Cleanser', size: 200, sizeUnit: 'ml', barcode: null };
+    const html = '<html><head><title>Acme Derma Acne Facial Cleanser 200 ml</title></head><body><h1>Acne Facial Cleanser 200 ml</h1>' +
+      '<h2>How to use</h2><p>Apply to dry skin until fully absorbed.</p><h2>Ingredients</h2><p>Tea tree oil</p>' +
+      '<h2>How to use</h2><p>Apply Acme Derma Facial Cleanser, massage, then rinse with water.</p></body></html>';
+    expect(fieldOf(extractProductFacts(html, 'https://acme.example/products/acne-facial-cleanser-200ml', cleanser).facts, 'usage.instructions'))
+      .toEqual(['Apply Acme Derma Facial Cleanser, massage, then rinse with water.']);
+  });
+
+  it('withholds a lotion description from a cleanser page when it also gives leave-on directions', () => {
+    const cleanser: SkuExpectation = { brand: 'Acme Derma', productName: 'Acne Facial Cleanser', size: 200, sizeUnit: 'ml', barcode: null };
+    const html = '<html><head><title>Acme Derma Acne Facial Cleanser 200 ml</title><meta property="og:description" content="Oily &amp; Mixed Skin Lotion. Apply to dry skin until fully absorbed for clear skin."></head>' +
+      '<body><h1>Acne Facial Cleanser 200 ml</h1><h2>How to use</h2><p>Apply Acme Derma Facial Cleanser and rinse with water.</p></body></html>';
+    const result = extractProductFacts(html, 'https://acme.example/products/acne-facial-cleanser-200ml', cleanser);
+    expect(fieldOf(result.facts, 'marketing.description')).toBeUndefined();
+    expect(result.rejected).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'marketing.description', reason: 'PRODUCT_TYPE_CONFLICT' })]));
+    expect(fieldOf(result.facts, 'usage.instructions')).toEqual(['Apply Acme Derma Facial Cleanser and rinse with water.']);
+  });
+
   it('refuses another product and another size: evidence is never mixed across SKUs', () => {
     const other = extractProductFacts(page('<h2>Ingredients</h2><p>AQUA, GLYCERIN, PARFUM</p>').replace(/Hydra Barrier Cream/g, 'Glow Toner'), 'https://acme.example/glow', SKU);
     expect(other).toMatchObject({ identityMatched: false, facts: [] });

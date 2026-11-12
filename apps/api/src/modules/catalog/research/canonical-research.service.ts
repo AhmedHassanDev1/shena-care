@@ -87,6 +87,21 @@ export class CanonicalResearchService {
     return changes;
   }
 
+  /** Withdraws an applied description when the source page is shown to contain copy for a different product type. */
+  async invalidateAppliedDescription(factId: string, reason: string, actorId: string): Promise<boolean> {
+    const fact = await this.prisma.productFactProposal.findUnique({ where: { id: factId } });
+    if (!fact || fact.field !== 'marketing.description' || fact.status !== ProductFactStatus.APPLIED || typeof fact.value !== 'string') {
+      throw new ConflictException('Expected an applied description fact');
+    }
+    const sku = await this.skuContext(fact.skuId);
+    const cleared = await this.intake.clearDescriptionIf(sku.productId, fact.value);
+    if (!cleared) throw new ConflictException('The description has changed since this fact was applied');
+    await this.prisma.productFactProposal.update({ where: { id: factId }, data: { status: ProductFactStatus.REJECTED,
+      verification: 'REJECTED', decidedBy: 'ADMIN', reviewedBy: actorId, reviewedAt: new Date(), reviewNote: reason,
+      decisionRule: `${DECISION_RULE_VERSION}:PRODUCT_TYPE_CONFLICT`, conflictReason: reason } });
+    return true;
+  }
+
   private async skuContext(skuId: string) {
     const sku = await this.prisma.sku.findUnique({ where: { id: skuId }, include: { product: { include: { brand: true } } } });
     if (!sku) throw new NotFoundException('Canonical SKU not found');
@@ -171,7 +186,9 @@ export class CanonicalResearchService {
     const sizeFact = extraction.facts.find(fact => fact.field === 'identity.size');
     const sizeConfirmed = reasons.includes('SIZE_MISMATCH') ? false : sizeFact ? true : null;
     const gtin = extraction.facts.find(fact => fact.field === 'identity.gtin')?.value as string | undefined;
+    const title = extraction.facts.find(fact => fact.field === 'identity.name')?.value;
     return { ...base, identityMatched: extraction.identityMatched, sizeConfirmed, rejectedReasons: reasons, pageGtin: gtin ?? null,
+      ...(typeof title === 'string' && { pageTitle: title.slice(0, 200) }),
       // The one size the page itself names for this product (its title), when the row had none to compare.
       ...(expected.size === null && sizeFact && { pageSize: sizeFact.value as { value: number; unit: string }, pageSizeExcerpt: sizeFact.excerpt }) };
   }
@@ -277,18 +294,33 @@ export class CanonicalResearchService {
   }
 
   /** Rejects every open reading of one field: the field stays unknown. Used when a person settles a conflict by rejecting all sides. */
+  /**
+   * A fallback source is read only for what the primary sources left missing. Its readings of fields the primary sources already covered are rejected
+   * with that reason (a regional site's other formula is not a conflict with this product's page). Returns how many readings were set aside.
+   */
+  async keepOnlyMissingFields(skuId: string, runId: string, coveredFields: string[]): Promise<number> {
+    if (!coveredFields.length) return 0;
+    const result = await this.prisma.productFactProposal.updateMany({
+      where: { skuId, runId, field: { in: coveredFields }, status: { in: [ProductFactStatus.PROPOSED, ProductFactStatus.CONFLICT] } },
+      data: { status: ProductFactStatus.REJECTED, verification: 'REJECTED', decidedBy: 'AUTO', decisionRule: `${DECISION_RULE_VERSION}:FALLBACK_ONLY_FOR_MISSING`,
+        conflictReason: 'Read from a fallback source for a field the primary source already states' },
+    });
+    return result.count;
+  }
+
   async rejectField(skuId: string, field: string, note: string, actorId: string) {
     return this.prisma.productFactProposal.updateMany({ where: { skuId, field, status: { in: [ProductFactStatus.PROPOSED, ProductFactStatus.CONFLICT] } },
       data: { status: ProductFactStatus.REJECTED, verification: 'REJECTED', decidedBy: 'ADMIN', reviewedBy: actorId, reviewedAt: new Date(), reviewNote: note } });
   }
 
   /** Images a SKU's verified sources show, best source first, for automatic media preparation. */
-  async sourceImages(skuId: string): Promise<Array<{ factId: string; imageUrl: string; tier: SourceTier }>> {
+  async sourceImages(skuId: string): Promise<Array<{ factId: string; imageUrl: string; pageUrl: string; tier: SourceTier }>> {
     const facts = await this.prisma.productFactProposal.findMany({ where: { skuId, field: 'media.sourceImages', status: { not: ProductFactStatus.REJECTED } }, orderBy: { createdAt: 'asc' } });
     const rank: Record<SourceTier, number> = { OFFICIAL_MANUFACTURER: 0, TRUSTED_DISTRIBUTOR: 1, RETAILER: 2 };
     return facts.flatMap(fact => {
-      const tier = (fact.evidence as unknown as FactEvidence[])[0]?.sourceTier ?? 'RETAILER';
-      return (fact.value as string[]).map(imageUrl => ({ factId: fact.id, imageUrl, tier }));
+      const evidence = (fact.evidence as unknown as FactEvidence[])[0];
+      const tier = evidence?.sourceTier ?? 'RETAILER';
+      return (fact.value as string[]).map(imageUrl => ({ factId: fact.id, imageUrl, pageUrl: evidence?.sourceUrl ?? '', tier }));
     }).sort((a, b) => rank[a.tier] - rank[b.tier]);
   }
 

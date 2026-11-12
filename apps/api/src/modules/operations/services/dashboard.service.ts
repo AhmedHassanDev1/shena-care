@@ -1,5 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
+import {
+  ActionCandidate,
+  calcPeriodChangePercent,
+  computeNetRealizedSales,
+  DeliveredOrderFinancialInput,
+  evaluateOrderGoodsMargin,
+  OverviewDays,
+  RefundInput,
+  roundMoney,
+  roundPercent,
+  selectTopUniqueActionItems,
+} from './dashboard-metrics';
 
 function getCairoMidnightUtc(now = new Date()): Date {
   const parts = Object.fromEntries(
@@ -28,6 +40,34 @@ const cairoHourFormatter = new Intl.DateTimeFormat('en-US', {
   hour12: false,
 });
 
+const dayDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Africa/Cairo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const dayNameFormatter = new Intl.DateTimeFormat('ar-EG', {
+  timeZone: 'Africa/Cairo',
+  weekday: 'long',
+});
+
+const shortDateFormatter = new Intl.DateTimeFormat('ar-EG', {
+  timeZone: 'Africa/Cairo',
+  day: 'numeric',
+  month: 'short',
+});
+
+const ALL_ORDER_STATUSES = [
+  'placed',
+  'confirmed',
+  'packing',
+  'shipped',
+  'delivered',
+  'cancelled',
+  'returned',
+] as const;
+
 @Injectable()
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
@@ -35,7 +75,6 @@ export class DashboardService {
   async getKpis(user?: { roles?: string[] }) {
     const cairoMidnightUtc = getCairoMidnightUtc();
 
-    // Prepare 24 hourly buckets for Cairo today
     const hourlyInflow = Array.from({ length: 24 }, (_, h) => ({
       hour: h,
       label: `${h.toString().padStart(2, '0')}:00`,
@@ -85,7 +124,6 @@ export class DashboardService {
     const activeOrders = placed + confirmed + packing + shipped;
     const terminal = cancelled + returned;
 
-    // Server-side financial RBAC: only ADMIN / Owner roles can access financial numbers
     const hasFinancialAccess = Boolean(user?.roles?.includes('ADMIN'));
 
     let revenueToday: number | null = null;
@@ -135,56 +173,82 @@ export class DashboardService {
     };
   }
 
-  async getOverview(user?: { roles?: string[] }, days = 7) {
-    const daysCount = days === 30 ? 30 : 7;
+  async getOverview(user?: { roles?: string[] }, days: OverviewDays | number = 7) {
+    const daysCount: OverviewDays = days === 1 ? 1 : days === 30 ? 30 : 7;
     const now = new Date();
     const cairoMidnightUtc = getCairoMidnightUtc(now);
-    const windowStartUtc = new Date(cairoMidnightUtc.getTime() - (daysCount - 1) * 24 * 3600 * 1000);
+    const dayMs = 24 * 3600 * 1000;
+    const windowStartUtc =
+      daysCount === 1
+        ? cairoMidnightUtc
+        : new Date(cairoMidnightUtc.getTime() - (daysCount - 1) * dayMs);
+    const prevWindowStartUtc = new Date(windowStartUtc.getTime() - daysCount * dayMs);
 
-    const dayDateFormatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Africa/Cairo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const dayNameFormatter = new Intl.DateTimeFormat('ar-EG', {
-      timeZone: 'Africa/Cairo',
-      weekday: 'long',
-    });
-    const shortDateFormatter = new Intl.DateTimeFormat('ar-EG', {
-      timeZone: 'Africa/Cairo',
-      day: 'numeric',
-      month: 'short',
-    });
+    const hasFinancialAccess = Boolean(user?.roles?.includes('ADMIN'));
+    const granularity = daysCount === 1 ? ('hourly' as const) : ('daily' as const);
 
-    const series: Array<{ date: string; dayName: string; shortDate: string; created: number; delivered: number }> = [];
-    for (let i = daysCount - 1; i >= 0; i--) {
-      const d = new Date(cairoMidnightUtc.getTime() - i * 24 * 3600 * 1000);
-      series.push({
-        date: dayDateFormatter.format(d),
-        dayName: dayNameFormatter.format(d),
-        shortDate: shortDateFormatter.format(d),
-        created: 0,
-        delivered: 0,
-      });
+    const buckets: Array<{
+      key: string;
+      label: string;
+      shortLabel: string;
+      orders: number;
+      delivered: number;
+      sales: number | null;
+      previousSales: number | null;
+    }> = [];
+    const currentIndexMap = new Map<string, number>();
+    const prevIndexMap = new Map<string, number>();
+
+    if (granularity === 'hourly') {
+      for (let h = 0; h < 24; h++) {
+        const label = `${h.toString().padStart(2, '0')}:00`;
+        buckets.push({
+          key: String(h),
+          label,
+          shortLabel: label,
+          orders: 0,
+          delivered: 0,
+          sales: hasFinancialAccess ? 0 : null,
+          previousSales: hasFinancialAccess ? 0 : null,
+        });
+        currentIndexMap.set(String(h), h);
+        prevIndexMap.set(String(h), h);
+      }
+    } else {
+      for (let i = 0; i < daysCount; i++) {
+        const currDate = new Date(windowStartUtc.getTime() + i * dayMs);
+        const prevDate = new Date(prevWindowStartUtc.getTime() + i * dayMs);
+        const currKey = dayDateFormatter.format(currDate);
+        const prevKey = dayDateFormatter.format(prevDate);
+        buckets.push({
+          key: currKey,
+          label: dayNameFormatter.format(currDate),
+          shortLabel: shortDateFormatter.format(currDate),
+          orders: 0,
+          delivered: 0,
+          sales: hasFinancialAccess ? 0 : null,
+          previousSales: hasFinancialAccess ? 0 : null,
+        });
+        currentIndexMap.set(currKey, i);
+        prevIndexMap.set(prevKey, i);
+      }
     }
-    const seriesIndexMap = new Map(series.map((s, idx) => [s.date, idx]));
 
     const [
-      ordersInWindow,
-      deliveredEventsInWindow,
-      openOrdersCount,
-      terminalTodayCount,
+      ordersSincePrevWindow,
+      deliveredEventsSincePrevWindow,
+      terminalEventsInWindow,
+      statusGroupCounts,
       supplyRequirements,
       customerDecisions,
       failedShipments,
       cashVariancesList,
       openSupportCasesList,
-      totalSupplyReq,
-      totalCustomerDec,
-      totalFailedShipments,
-      totalCashVariances,
-      totalOpenCases,
+      allSupplyReqOrderIds,
+      allPendingDecisionOrderIds,
+      allFailedShipmentOrderIds,
+      allCashVarianceRows,
+      allOpenSupportCaseRows,
       awaitingSourcingCount,
       sourcingReceivingCount,
       packingFulfillmentCount,
@@ -192,98 +256,447 @@ export class DashboardService {
       exceptionsStalledCount,
     ] = await Promise.all([
       this.prisma.order.findMany({
-        where: { createdAt: { gte: windowStartUtc } },
+        where: { createdAt: { gte: prevWindowStartUtc } },
         select: { createdAt: true },
       }),
       this.prisma.orderStatusEvent.findMany({
-        where: { status: 'delivered', createdAt: { gte: windowStartUtc } },
-        select: { createdAt: true },
+        where: { status: 'delivered', createdAt: { gte: prevWindowStartUtc } },
+        select: { orderId: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.order.count({
-        where: { status: { in: ['placed', 'confirmed', 'packing', 'shipped'] } },
+      this.prisma.orderStatusEvent.findMany({
+        where: {
+          status: { in: ['delivered', 'returned', 'cancelled'] },
+          createdAt: { gte: windowStartUtc },
+        },
+        select: { orderId: true, status: true },
       }),
-      this.prisma.orderStatusEvent.count({
-        where: { status: { in: ['delivered', 'returned', 'cancelled'] }, createdAt: { gte: cairoMidnightUtc } },
+      this.prisma.order.groupBy({
+        by: ['status'],
+        _count: { id: true },
       }),
       this.prisma.availabilityActionRequirement.findMany({
         where: { requirement: { releasedAt: null } },
         include: { requirement: { include: { supplyRequest: true } } },
         orderBy: { createdAt: 'desc' },
-        take: 5,
+        take: 10,
       }),
       this.prisma.availabilityDecision.findMany({
         where: { status: 'pending' },
         include: { order: { select: { id: true, orderNumber: true } } },
         orderBy: { createdAt: 'desc' },
-        take: 5,
+        take: 10,
       }),
       this.prisma.shipment.findMany({
         where: { status: 'failed' },
         orderBy: { updatedAt: 'desc' },
         include: { events: { where: { type: 'FAILED' }, orderBy: { createdAt: 'desc' }, take: 1 } },
-        take: 5,
+        take: 10,
       }),
       this.prisma.paymentCollection.findMany({
         where: { status: { in: ['short', 'over'] } },
         include: { order: { select: { id: true, orderNumber: true } } },
         orderBy: { updatedAt: 'desc' },
-        take: 5,
+        take: 10,
       }),
       this.prisma.supportCase.findMany({
         where: { status: { in: ['open', 'in_progress'] } },
         orderBy: { createdAt: 'desc' },
-        take: 5,
+        take: 10,
       }),
-      this.prisma.availabilityActionRequirement.count({ where: { requirement: { releasedAt: null } } }),
-      this.prisma.availabilityDecision.count({ where: { status: 'pending' } }),
-      this.prisma.shipment.count({ where: { status: 'failed' } }),
-      this.prisma.paymentCollection.count({ where: { status: { in: ['short', 'over'] } } }),
-      this.prisma.supportCase.count({ where: { status: { in: ['open', 'in_progress'] } } }),
+      this.prisma.availabilityActionRequirement.findMany({
+        where: { requirement: { releasedAt: null } },
+        select: { requirement: { select: { supplyRequest: { select: { orderId: true } } } } },
+      }),
+      this.prisma.availabilityDecision.findMany({
+        where: { status: 'pending' },
+        select: { orderId: true },
+      }),
+      this.prisma.shipment.findMany({
+        where: { status: 'failed' },
+        select: { orderId: true },
+      }),
+      this.prisma.paymentCollection.findMany({
+        where: { status: { in: ['short', 'over'] } },
+        select: {
+          orderId: true,
+          expectedAmount: true,
+          collectedAmount: true,
+          notes: true,
+          order: { select: { orderNumber: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      this.prisma.supportCase.findMany({
+        where: { status: { in: ['open', 'in_progress'] } },
+        select: { orderId: true, priority: true },
+      }),
       this.prisma.order.count({ where: { status: 'placed' } }),
-      this.prisma.supplierPurchaseOrder.count({ where: { status: { in: ['ready', 'received_at_hub'] } } }),
+      this.prisma.supplierPurchaseOrder.count({
+        where: { status: { in: ['ready', 'received_at_hub'] } },
+      }),
       this.prisma.order.count({ where: { status: { in: ['confirmed', 'packing'] } } }),
       this.prisma.order.count({ where: { status: 'shipped' } }),
       this.prisma.shipment.count({ where: { status: 'failed' } }),
     ]);
 
-    for (const o of ordersInWindow) {
-      const k = dayDateFormatter.format(o.createdAt);
-      const idx = seriesIndexMap.get(k);
-      if (idx !== undefined) series[idx].created += 1;
+    const bucketKeyForDate = (date: Date) =>
+      granularity === 'hourly'
+        ? String(parseInt(cairoHourFormatter.format(date), 10) % 24)
+        : dayDateFormatter.format(date);
+
+    // 1. Order inflows (current vs previous window)
+    let newOrdersCount = 0;
+    let prevNewOrdersCount = 0;
+    for (const o of ordersSincePrevWindow) {
+      if (o.createdAt >= windowStartUtc) {
+        newOrdersCount += 1;
+        const idx = currentIndexMap.get(bucketKeyForDate(o.createdAt));
+        if (idx !== undefined) buckets[idx].orders += 1;
+      } else {
+        prevNewOrdersCount += 1;
+      }
     }
 
-    for (const d of deliveredEventsInWindow) {
-      const k = dayDateFormatter.format(d.createdAt);
-      const idx = seriesIndexMap.get(k);
-      if (idx !== undefined) series[idx].delivered += 1;
+    // 2. Delivered events deduplicated per order (latest event wins)
+    const deliveredByOrder = new Map<string, Date>();
+    for (const ev of deliveredEventsSincePrevWindow) {
+      if (!deliveredByOrder.has(ev.orderId)) {
+        deliveredByOrder.set(ev.orderId, ev.createdAt);
+      }
     }
 
-    const ordersTodayCount = series[series.length - 1]?.created ?? 0;
-    const ordersYesterdayCount = series.length >= 2 ? series[series.length - 2].created : 0;
-    let ordersChangePercent: number | null = null;
-    if (ordersYesterdayCount > 0) {
-      ordersChangePercent = Math.round(((ordersTodayCount - ordersYesterdayCount) / ordersYesterdayCount) * 1000) / 10;
-    } else if (ordersTodayCount > 0) {
-      ordersChangePercent = 100;
+    const currentDeliveredOrderIds: string[] = [];
+    const prevDeliveredOrderIds: string[] = [];
+    for (const [orderId, deliveredAt] of deliveredByOrder.entries()) {
+      if (deliveredAt >= windowStartUtc) {
+        currentDeliveredOrderIds.push(orderId);
+        const idx = currentIndexMap.get(bucketKeyForDate(deliveredAt));
+        if (idx !== undefined) buckets[idx].delivered += 1;
+      } else {
+        prevDeliveredOrderIds.push(orderId);
+      }
     }
-    const ordersTodaySparkline = series.slice(-7).map((s) => s.created);
 
-    const deliveredTodayCount = series[series.length - 1]?.delivered ?? 0;
-    const deliveryAccuracyRate =
-      terminalTodayCount > 0
-        ? Math.round((deliveredTodayCount / terminalTodayCount) * 1000) / 10
-        : deliveredTodayCount > 0
-        ? 100
+    const terminalOrdersInWindow = new Set(terminalEventsInWindow.map((e) => e.orderId));
+    const completedOrdersCount = currentDeliveredOrderIds.length;
+    const prevCompletedOrdersCount = prevDeliveredOrderIds.length;
+    const completionRate = roundPercent(completedOrdersCount, terminalOrdersInWindow.size);
+
+    // 3. Financial metrics & Sales chart (strictly ADMIN only)
+    let netRealizedSales: {
+      amount: number;
+      previousAmount: number;
+      changePercent: number | null;
+      shippingFeesExcluded: number;
+      refundsSubtracted: number;
+      deliveredOrdersCount: number;
+      sparkline: number[];
+    } | null = null;
+
+    let contributionProfit: {
+      status: 'incomplete' | 'no_data';
+      confirmedAmount: null;
+      goodsMarginOnly: number | null;
+      coveredOrdersCount: number;
+      totalDeliveredOrdersCount: number;
+      missingComponents: Array<'supplier_invoices' | 'packaging_costs' | 'delivery_expenses'>;
+    } | null = null;
+
+    let financialSummary: {
+      pendingCod: { amount: number; shipmentCount: number; currency: string };
+      unresolvedVariance: {
+        amount: number;
+        caseCount: number;
+        currency: string;
+        details: string | null;
+      };
+    } | null = null;
+
+    let hasPreviousComparison = false;
+
+    if (hasFinancialAccess) {
+      const allDeliveredOrderIds = [...currentDeliveredOrderIds, ...prevDeliveredOrderIds];
+      const [deliveredOrdersData, deliveredCollectionsData, refundsSincePrevWindow, pendingCodRes] =
+        await Promise.all([
+          allDeliveredOrderIds.length
+            ? this.prisma.order.findMany({
+                where: { id: { in: allDeliveredOrderIds } },
+                select: { id: true, totalAmount: true, shippingFee: true },
+              })
+            : Promise.resolve([]),
+          allDeliveredOrderIds.length
+            ? this.prisma.paymentCollection.findMany({
+                where: { orderId: { in: allDeliveredOrderIds } },
+                select: { orderId: true, expectedAmount: true },
+              })
+            : Promise.resolve([]),
+          this.prisma.refundTransaction.findMany({
+            where: { status: 'succeeded', updatedAt: { gte: prevWindowStartUtc } },
+            select: { amount: true, updatedAt: true },
+          }),
+          this.prisma.paymentCollection.aggregate({
+            where: { status: 'expected' },
+            _sum: { expectedAmount: true },
+            _count: { id: true },
+          }),
+        ]);
+
+      const orderFinancialMap = new Map(deliveredOrdersData.map((o) => [o.id, o]));
+      const collectionMap = new Map(deliveredCollectionsData.map((c) => [c.orderId, c.expectedAmount]));
+
+      const currentDeliveredFinancials: DeliveredOrderFinancialInput[] = [];
+      const prevDeliveredFinancials: DeliveredOrderFinancialInput[] = [];
+
+      for (const [orderId, deliveredAt] of deliveredByOrder.entries()) {
+        const orderRow = orderFinancialMap.get(orderId);
+        if (!orderRow) continue;
+        const expectedOrTotal = Number(collectionMap.get(orderId) ?? orderRow.totalAmount);
+        const shippingFee = Number(orderRow.shippingFee || 0);
+        const item: DeliveredOrderFinancialInput = {
+          orderId,
+          deliveredAt,
+          expectedOrTotal,
+          shippingFee,
+        };
+        const goodsValue = expectedOrTotal - Math.max(0, shippingFee);
+
+        if (deliveredAt >= windowStartUtc) {
+          currentDeliveredFinancials.push(item);
+          const idx = currentIndexMap.get(bucketKeyForDate(deliveredAt));
+          if (idx !== undefined && buckets[idx].sales !== null) {
+            buckets[idx].sales = roundMoney((buckets[idx].sales ?? 0) + goodsValue);
+          }
+        } else {
+          prevDeliveredFinancials.push(item);
+          const idx = prevIndexMap.get(bucketKeyForDate(deliveredAt));
+          if (idx !== undefined && buckets[idx].previousSales !== null) {
+            buckets[idx].previousSales = roundMoney((buckets[idx].previousSales ?? 0) + goodsValue);
+          }
+        }
+      }
+
+      const currentRefunds: RefundInput[] = [];
+      const prevRefunds: RefundInput[] = [];
+      for (const r of refundsSincePrevWindow) {
+        const amt = Number(r.amount || 0);
+        if (r.updatedAt >= windowStartUtc) {
+          currentRefunds.push({ amount: amt, at: r.updatedAt });
+          const idx = currentIndexMap.get(bucketKeyForDate(r.updatedAt));
+          if (idx !== undefined && buckets[idx].sales !== null) {
+            buckets[idx].sales = roundMoney((buckets[idx].sales ?? 0) - amt);
+          }
+        } else {
+          prevRefunds.push({ amount: amt, at: r.updatedAt });
+          const idx = prevIndexMap.get(bucketKeyForDate(r.updatedAt));
+          if (idx !== undefined && buckets[idx].previousSales !== null) {
+            buckets[idx].previousSales = roundMoney((buckets[idx].previousSales ?? 0) - amt);
+          }
+        }
+      }
+
+      const currSalesRes = computeNetRealizedSales(currentDeliveredFinancials, currentRefunds);
+      const prevSalesRes = computeNetRealizedSales(prevDeliveredFinancials, prevRefunds);
+      hasPreviousComparison = prevSalesRes.netSales > 0;
+
+      netRealizedSales = {
+        amount: currSalesRes.netSales,
+        previousAmount: prevSalesRes.netSales,
+        changePercent: calcPeriodChangePercent(currSalesRes.netSales, prevSalesRes.netSales),
+        shippingFeesExcluded: currSalesRes.shippingFeesExcluded,
+        refundsSubtracted: currSalesRes.refundsSubtracted,
+        deliveredOrdersCount: currentDeliveredFinancials.length,
+        sparkline: buckets.map((b) => b.sales ?? 0),
+      };
+
+      // Evaluate actual supplier invoice coverage for delivered orders in current window
+      if (currentDeliveredOrderIds.length === 0) {
+        contributionProfit = {
+          status: 'no_data',
+          confirmedAmount: null,
+          goodsMarginOnly: null,
+          coveredOrdersCount: 0,
+          totalDeliveredOrdersCount: 0,
+          missingComponents: ['packaging_costs', 'delivery_expenses'],
+        };
+      } else {
+        const [deliveredOrderItems, deliveredAllocations] = await Promise.all([
+          this.prisma.orderItem.findMany({
+            where: { orderId: { in: currentDeliveredOrderIds }, lineState: 'active' },
+            select: {
+              id: true,
+              orderId: true,
+              quantity: true,
+              price: true,
+              discountAmount: true,
+              lineTotal: true,
+            },
+          }),
+          this.prisma.purchaseOrderLineAllocation.findMany({
+            where: { orderId: { in: currentDeliveredOrderIds } },
+            select: {
+              orderId: true,
+              orderItemId: true,
+              receivedQuantity: true,
+              line: {
+                select: {
+                  allocations: { select: { receivedQuantity: true } },
+                  costLots: { select: { quantity: true, unitCost: true } },
+                },
+              },
+            },
+          }),
+        ]);
+
+        let coveredOrdersCount = 0;
+        let goodsMarginSum = 0;
+        let allOrdersCovered = true;
+
+        for (const oid of currentDeliveredOrderIds) {
+          const itemsForOrder = deliveredOrderItems
+            .filter((it) => it.orderId === oid)
+            .map((it) => ({
+              id: it.id,
+              quantity: it.quantity,
+              price: Number(it.price),
+              discountAmount: Number(it.discountAmount ?? 0),
+              lineTotal: it.lineTotal !== null ? Number(it.lineTotal) : null,
+            }));
+
+          const allocsForOrder = deliveredAllocations
+            .filter((al) => al.orderId === oid)
+            .map((al) => ({
+              orderItemId: al.orderItemId,
+              receivedQuantity: al.receivedQuantity,
+              lineReceivedTotal: al.line.allocations.reduce((s, a) => s + a.receivedQuantity, 0),
+              lineCostedTotal: al.line.costLots.reduce((s, l) => s + l.quantity, 0),
+              lineCapturedValue: al.line.costLots.reduce(
+                (s, l) => s + Number(l.unitCost) * l.quantity,
+                0,
+              ),
+            }));
+
+          const res = evaluateOrderGoodsMargin(itemsForOrder, allocsForOrder);
+          if (res.complete && res.goodsMargin !== null) {
+            coveredOrdersCount += 1;
+            goodsMarginSum += res.goodsMargin;
+          } else {
+            allOrdersCovered = false;
+          }
+        }
+
+        const missingComponents: Array<'supplier_invoices' | 'packaging_costs' | 'delivery_expenses'> = [];
+        if (!allOrdersCovered) missingComponents.push('supplier_invoices');
+        // Packaging material costs and actual courier expenses do not exist in schema yet
+        missingComponents.push('packaging_costs', 'delivery_expenses');
+
+        contributionProfit = {
+          status: 'incomplete',
+          confirmedAmount: null,
+          goodsMarginOnly: allOrdersCovered ? roundMoney(goodsMarginSum) : null,
+          coveredOrdersCount,
+          totalDeliveredOrdersCount: currentDeliveredOrderIds.length,
+          missingComponents,
+        };
+      }
+
+      const varianceSum = allCashVarianceRows.reduce(
+        (acc, row) => acc + (Number(row.collectedAmount || 0) - Number(row.expectedAmount || 0)),
+        0,
+      );
+      const topVariance = allCashVarianceRows[0];
+      const varianceNote = topVariance
+        ? topVariance.notes || `عجز/فائض تحصيل (طلب ${topVariance.order?.orderNumber})`
         : null;
-    const deliveredSparkline = series.slice(-7).map((s) => s.delivered);
 
-    const totalIntervention =
-      totalSupplyReq + totalCustomerDec + totalFailedShipments + totalCashVariances + totalOpenCases;
-    const criticalIntervention = totalSupplyReq + totalFailedShipments + (totalCashVariances > 0 ? totalCashVariances : 0);
+      financialSummary = {
+        pendingCod: {
+          amount: roundMoney(Number(pendingCodRes._sum.expectedAmount || 0)),
+          shipmentCount: pendingCodRes._count.id,
+          currency: 'EGP',
+        },
+        unresolvedVariance: {
+          amount: roundMoney(varianceSum),
+          caseCount: allCashVarianceRows.length,
+          currency: 'EGP',
+          details: varianceNote,
+        },
+      };
+    }
+
+    // 4. Order distribution by exact status
+    const statusMap = new Map<string, number>();
+    let totalAllOrders = 0;
+    for (const sc of statusGroupCounts) {
+      statusMap.set(sc.status, sc._count.id);
+      totalAllOrders += sc._count.id;
+    }
+
+    const orderDistribution = {
+      total: totalAllOrders,
+      items: ALL_ORDER_STATUSES.map((status) => {
+        const count = statusMap.get(status) ?? 0;
+        return {
+          status,
+          count,
+          percentage: roundPercent(count, totalAllOrders) ?? 0,
+          href: `/admin/orders?status=${status}`,
+        };
+      }),
+    };
+
+    const openOrdersCount =
+      (statusMap.get('placed') ?? 0) +
+      (statusMap.get('confirmed') ?? 0) +
+      (statusMap.get('packing') ?? 0) +
+      (statusMap.get('shipped') ?? 0);
+
+    // 5. Action required — exact total issues vs unique affected orders
+    const uniqueOrderIds = new Set<string>();
+    for (const r of allSupplyReqOrderIds) {
+      const oid = r.requirement?.supplyRequest?.orderId;
+      if (oid) uniqueOrderIds.add(oid);
+    }
+    for (const d of allPendingDecisionOrderIds) {
+      if (d.orderId) uniqueOrderIds.add(d.orderId);
+    }
+    for (const s of allFailedShipmentOrderIds) {
+      if (s.orderId) uniqueOrderIds.add(s.orderId);
+    }
+    for (const c of allCashVarianceRows) {
+      if (c.orderId) uniqueOrderIds.add(c.orderId);
+    }
+    let standaloneCasesCount = 0;
+    let criticalSupportCasesCount = 0;
+    for (const cs of allOpenSupportCaseRows) {
+      if (cs.orderId) {
+        uniqueOrderIds.add(cs.orderId);
+      } else {
+        standaloneCasesCount += 1;
+      }
+      if (cs.priority === 'critical' || cs.priority === 'high') {
+        criticalSupportCasesCount += 1;
+      }
+    }
+
+    const totalIssues =
+      allSupplyReqOrderIds.length +
+      allPendingDecisionOrderIds.length +
+      allFailedShipmentOrderIds.length +
+      allCashVarianceRows.length +
+      allOpenSupportCaseRows.length;
+
+    const criticalCount =
+      allSupplyReqOrderIds.length +
+      allFailedShipmentOrderIds.length +
+      allCashVarianceRows.length +
+      criticalSupportCasesCount;
 
     const orderIdsToFetch = new Set<string>();
     for (const r of supplyRequirements) {
-      if (r.requirement?.supplyRequest?.orderId) orderIdsToFetch.add(r.requirement.supplyRequest.orderId);
+      if (r.requirement?.supplyRequest?.orderId) {
+        orderIdsToFetch.add(r.requirement.supplyRequest.orderId);
+      }
     }
     for (const s of failedShipments) {
       if (s.orderId) orderIdsToFetch.add(s.orderId);
@@ -292,7 +705,10 @@ export class DashboardService {
       if (c.orderId) orderIdsToFetch.add(c.orderId);
     }
 
-    const ordersMap = new Map<string, { id: string; orderNumber: string; customerName: string; area: string | null; governorate: string | null }>();
+    const ordersMap = new Map<
+      string,
+      { id: string; orderNumber: string; customerName: string; area: string | null; governorate: string | null }
+    >();
     if (orderIdsToFetch.size > 0) {
       const fetchedOrders = await this.prisma.order.findMany({
         where: { id: { in: Array.from(orderIdsToFetch) } },
@@ -301,30 +717,20 @@ export class DashboardService {
       for (const o of fetchedOrders) ordersMap.set(o.id, o);
     }
 
-    const actionItems: Array<{
-      id: string;
-      orderId?: string;
-      orderNumber?: string;
-      type: 'supply_shortage' | 'customer_decision' | 'failed_delivery' | 'cash_variance' | 'support_case';
-      categoryLabel: string;
-      title: string;
-      description: string;
-      severity: 'critical' | 'warning' | 'info';
-      createdAt: string;
-      actionLabel: string;
-      actionHref: string;
-    }> = [];
+    const candidates: ActionCandidate[] = [];
 
     for (const r of supplyRequirements) {
-      const o = r.requirement?.supplyRequest?.orderId ? ordersMap.get(r.requirement.supplyRequest.orderId) : undefined;
-      actionItems.push({
+      const o = r.requirement?.supplyRequest?.orderId
+        ? ordersMap.get(r.requirement.supplyRequest.orderId)
+        : undefined;
+      candidates.push({
         id: `supply-${r.id}`,
         orderId: o?.id,
         orderNumber: o?.orderNumber,
         type: 'supply_shortage',
         categoryLabel: 'نقص توريد',
         title: o?.orderNumber ? `طلب ${o.orderNumber}` : 'نقص توريد في المخزون',
-        description: `${r.unresolvedQuantity} أصناف مستنفدة من المورد • مطلوب قرار استبدال أو استيفاء`,
+        description: `${r.unresolvedQuantity} أصناف غير متوفرة من المورد • مطلوب قرار استبدال أو استيفاء`,
         severity: 'critical',
         createdAt: r.createdAt.toISOString(),
         actionLabel: 'اتخاذ القرار',
@@ -333,7 +739,7 @@ export class DashboardService {
     }
 
     for (const d of customerDecisions) {
-      actionItems.push({
+      candidates.push({
         id: `cust-${d.id}`,
         orderId: d.orderId,
         orderNumber: d.order?.orderNumber,
@@ -350,8 +756,10 @@ export class DashboardService {
 
     for (const s of failedShipments) {
       const o = s.orderId ? ordersMap.get(s.orderId) : undefined;
-      const reason = s.events[0]?.reasonCode ? `سبب: ${s.events[0].reasonCode}` : 'تعذر تسليم الشحنة للعميل';
-      actionItems.push({
+      const reason = s.events[0]?.reasonCode
+        ? `سبب: ${s.events[0].reasonCode}`
+        : 'تعذر تسليم الشحنة للعميل';
+      candidates.push({
         id: `shipment-${s.id}`,
         orderId: s.orderId,
         orderNumber: o?.orderNumber,
@@ -361,21 +769,21 @@ export class DashboardService {
         description: `${reason}${o?.area ? ` — ${o.area}` : ''}`,
         severity: 'critical',
         createdAt: s.updatedAt.toISOString(),
-        actionLabel: 'إعادة الجدولة',
+        actionLabel: 'معالجة التوصيل',
         actionHref: '/admin/delivery',
       });
     }
 
     for (const c of cashVariancesList) {
       const varAmount = Number(c.collectedAmount || 0) - Number(c.expectedAmount || 0);
-      actionItems.push({
+      candidates.push({
         id: `cash-${c.id}`,
         orderId: c.orderId,
         orderNumber: c.order?.orderNumber,
         type: 'cash_variance',
-        categoryLabel: 'فرق نقدي',
+        categoryLabel: 'فرق تحصيل',
         title: c.order?.orderNumber ? `طلب ${c.order.orderNumber}` : 'تسوية نقدية',
-        description: `فرق في التحصيل: ${varAmount > 0 ? `+${varAmount}` : varAmount} ${c.currency} ${c.notes ? `(${c.notes})` : ''}`,
+        description: `فرق تحصيل: ${varAmount > 0 ? `+${varAmount}` : varAmount} ${c.currency}${c.notes ? ` (${c.notes})` : ''}`,
         severity: 'warning',
         createdAt: c.updatedAt.toISOString(),
         actionLabel: 'مراجعة الفرق',
@@ -385,14 +793,14 @@ export class DashboardService {
 
     for (const cs of openSupportCasesList) {
       const o = cs.orderId ? ordersMap.get(cs.orderId) : undefined;
-      actionItems.push({
+      candidates.push({
         id: `case-${cs.id}`,
         orderId: cs.orderId ?? undefined,
         orderNumber: o?.orderNumber,
         type: 'support_case',
         categoryLabel: 'حالة دعم',
         title: cs.title,
-        description: `حالة دعم مفتوحة بأولوية ${cs.priority}${o?.orderNumber ? ` للطلب ${o.orderNumber}` : ''}`,
+        description: `حالة دعم مفتوحة (${cs.priority})${o?.orderNumber ? ` للطلب ${o.orderNumber}` : ''}`,
         severity: cs.priority === 'critical' || cs.priority === 'high' ? 'critical' : 'info',
         createdAt: cs.createdAt.toISOString(),
         actionLabel: 'فتح التذكرة',
@@ -400,14 +808,9 @@ export class DashboardService {
       });
     }
 
-    const severityWeight = { critical: 3, warning: 2, info: 1 };
-    actionItems.sort((a, b) => {
-      const diff = severityWeight[b.severity] - severityWeight[a.severity];
-      if (diff !== 0) return diff;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-    const topActionItems = actionItems.slice(0, 3);
+    const topActionItems = selectTopUniqueActionItems(candidates, 3);
 
+    // 6. Operational workflow stages (strictly inside /admin/* routes)
     const stageTotal =
       awaitingSourcingCount +
       sourcingReceivingCount +
@@ -415,7 +818,7 @@ export class DashboardService {
       outForDeliveryCount +
       exceptionsStalledCount;
 
-    const calcPercent = (cnt: number) => (stageTotal > 0 ? Math.round((cnt / stageTotal) * 1000) / 10 : 0);
+    const calcPercent = (cnt: number) => roundPercent(cnt, stageTotal) ?? 0;
 
     const stageBoard = {
       totalActive: stageTotal,
@@ -425,141 +828,84 @@ export class DashboardService {
           title: 'انتظار التوريد',
           count: awaitingSourcingCount,
           percentage: calcPercent(awaitingSourcingCount),
-          subtitle: 'أوامر شراء معلقة',
-          footerText: 'أوامر توريد معلقة',
-          href: '/admin/sourcing',
+          subtitle: 'طلبات بانتظار التوفير',
+          footerText: 'عرض الطلبات',
+          href: '/admin/orders?status=placed',
         },
         {
           id: 'sourcing_receiving' as const,
           title: 'التوريد والاستلام',
           count: sourcingReceivingCount,
           percentage: calcPercent(sourcingReceivingCount),
-          subtitle: 'شحنات قيد الفحص',
-          footerText: 'بانتظار الفحص',
-          href: '/hub/receive',
+          subtitle: 'أوامر شراء قيد الاستلام',
+          footerText: 'متابعة التوريد',
+          href: '/admin/sourcing',
         },
         {
           id: 'packing_fulfillment' as const,
-          title: 'التجهيز والتغليف',
+          title: 'التجهيز بالمخزن',
           count: packingFulfillmentCount,
           percentage: calcPercent(packingFulfillmentCount),
-          subtitle: 'مركز الفرز الرئيسي',
-          footerText: 'قيد التجهيز',
-          href: '/hub/prepare',
+          subtitle: 'قيد الفحص والتغليف',
+          footerText: 'متابعة المخزن',
+          href: '/admin/hub',
         },
         {
           id: 'out_for_delivery' as const,
-          title: 'مع المندوب للتوصيل',
+          title: 'قيد التوصيل',
           count: outForDeliveryCount,
           percentage: calcPercent(outForDeliveryCount),
           subtitle: 'مع المناديب في الميدان',
-          footerText: 'على الطريق',
+          footerText: 'متابعة المشاوير',
           href: '/admin/delivery',
         },
         {
           id: 'exceptions_stalled' as const,
-          title: 'استثناء معطل',
+          title: 'استثناءات متوقفة',
           count: exceptionsStalledCount,
           percentage: calcPercent(exceptionsStalledCount),
-          subtitle: 'يتطلب تدخلاً عاجلاً',
-          footerText: 'فوري',
+          subtitle: 'شحنات متعثرة أو متوقفة',
+          footerText: 'مركز الاستثناءات',
           href: '/admin/exceptions',
         },
       ],
     };
 
-    const hasFinancialAccess = Boolean(user?.roles?.includes('ADMIN'));
-
-    let financialSummary = {
-      pendingCod: { amount: 0, shipmentCount: 0, currency: 'EGP' },
-      collectedToday: { amount: 0, transactionCount: 0, currency: 'EGP' },
-      unresolvedVariance: { amount: 0, caseCount: 0, currency: 'EGP', details: null as string | null },
-      totalReceivedToday: { amount: 0, transactionCount: 0, currency: 'EGP' },
-    };
-
-    if (hasFinancialAccess) {
-      const [pendingCodRes, collectedTodayRes, variancesRes] = await Promise.all([
-        this.prisma.paymentCollection.aggregate({
-          where: { status: 'expected' },
-          _sum: { expectedAmount: true },
-          _count: { id: true },
-        }),
-        this.prisma.paymentCollection.aggregate({
-          where: { status: { in: ['collected', 'settled'] }, updatedAt: { gte: cairoMidnightUtc } },
-          _sum: { collectedAmount: true },
-          _count: { id: true },
-        }),
-        this.prisma.paymentCollection.findMany({
-          where: { status: { in: ['short', 'over'] } },
-          select: { expectedAmount: true, collectedAmount: true, notes: true, order: { select: { orderNumber: true } } },
-          take: 5,
-        }),
-      ]);
-
-      const varianceSum = variancesRes.reduce((acc, row) => {
-        return acc + (Number(row.collectedAmount || 0) - Number(row.expectedAmount || 0));
-      }, 0);
-
-      const varianceNote = variancesRes[0]
-        ? variancesRes[0].notes || `عجز/فائض تسليم (طلب ${variancesRes[0].order?.orderNumber})`
-        : null;
-
-      financialSummary = {
-        pendingCod: {
-          amount: Number(pendingCodRes._sum.expectedAmount || 0),
-          shipmentCount: pendingCodRes._count.id,
-          currency: 'EGP',
-        },
-        collectedToday: {
-          amount: Number(collectedTodayRes._sum.collectedAmount || 0),
-          transactionCount: collectedTodayRes._count.id,
-          currency: 'EGP',
-        },
-        unresolvedVariance: {
-          amount: varianceSum,
-          caseCount: variancesRes.length,
-          currency: 'EGP',
-          details: varianceNote,
-        },
-        totalReceivedToday: {
-          amount: Number(collectedTodayRes._sum.collectedAmount || 0),
-          transactionCount: collectedTodayRes._count.id,
-          currency: 'EGP',
-        },
-      };
-    }
-
     return {
+      days: daysCount,
       kpis: {
-        ordersToday: {
-          count: ordersTodayCount,
-          yesterdayCount: ordersYesterdayCount,
-          changePercent: ordersChangePercent,
-          sparkline: ordersTodaySparkline,
+        netRealizedSales,
+        contributionProfit,
+        newOrders: {
+          count: newOrdersCount,
+          previousCount: prevNewOrdersCount,
+          changePercent: calcPeriodChangePercent(newOrdersCount, prevNewOrdersCount),
+          sparkline: buckets.map((b) => b.orders),
+        },
+        completedOrders: {
+          count: completedOrdersCount,
+          previousCount: prevCompletedOrdersCount,
+          changePercent: calcPeriodChangePercent(completedOrdersCount, prevCompletedOrdersCount),
+          completionRate,
+          sparkline: buckets.map((b) => b.delivered),
         },
         openOrders: {
           count: openOrdersCount,
-          status: 'مستقر',
-          sparkline: [openOrdersCount, openOrdersCount, openOrdersCount, openOrdersCount, openOrdersCount, openOrdersCount, openOrdersCount],
-        },
-        deliveredToday: {
-          count: deliveredTodayCount,
-          deliveredRate: deliveryAccuracyRate,
-          sparkline: deliveredSparkline,
-        },
-        needsIntervention: {
-          count: totalIntervention,
-          criticalCount: criticalIntervention,
-          sparkline: [0, 0, 0, 0, 0, 0, totalIntervention],
         },
       },
-      activityChart: {
+      salesChart: {
         days: daysCount,
-        series,
+        granularity,
+        hasFinancialAccess,
+        hasPreviousComparison,
+        series: buckets,
       },
+      orderDistribution,
       actionRequired: {
-        total: totalIntervention,
-        criticalCount: criticalIntervention,
+        totalIssues,
+        affectedOrdersCount: uniqueOrderIds.size,
+        standaloneCasesCount,
+        criticalCount,
         items: topActionItems,
       },
       stageBoard,
@@ -567,5 +913,4 @@ export class DashboardService {
       lastUpdated: now.toISOString(),
     };
   }
-
 }

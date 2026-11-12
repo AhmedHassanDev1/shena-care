@@ -2,8 +2,8 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { lookup as dnsLookup, LookupAddress } from 'dns';
 import { lookup } from 'dns/promises';
-import * as https from 'https';
 import { isIP } from 'net';
+import { Agent, fetch } from 'undici';
 import { isPrivateAddress, validateSafeUrl } from '../../../platform/security/url-validator';
 
 export type FetchOutcome =
@@ -49,6 +49,8 @@ export function safeLookup(hostname: string, options: { all?: boolean; family?: 
 }
 
 export class NodeResearchTransport implements ResearchTransport {
+  constructor(private readonly request: typeof fetch = fetch) {}
+
   async resolve(hostname: string) {
     return (await lookup(hostname, { all: true })).map(entry => entry.address);
   }
@@ -56,29 +58,31 @@ export class NodeResearchTransport implements ResearchTransport {
     // An IP-literal URL never goes through DNS, so it is checked here as well.
     const host = new URL(url).hostname.replace(/^[|]$/g, '');
     if (isIP(host) && isPrivateAddress(host)) throw Object.assign(new Error('PRIVATE_ADDRESS'), { code: 'PRIVATE_ADDRESS' });
-    const signal = AbortSignal.timeout(init.timeoutMs);
-    return new Promise<TransportResponse>((resolve, reject) => {
-      const request = https.request(url, { method: 'GET', headers: { 'User-Agent': USER_AGENT, Accept: init.accept }, lookup: safeLookup, signal }, response => {
-        const chunks: Buffer[] = [];
-        let size = 0;
-        response.on('data', (chunk: Buffer) => {
-          size += chunk.length;
-          if (size > TRANSPORT_MAX_BYTES) { request.destroy(new Error('BODY_TOO_LARGE')); return; }
-          chunks.push(chunk);
-        });
-        response.on('error', reject);
-        response.on('end', () => {
-          const body = Buffer.concat(chunks);
-          resolve({
-            status: response.statusCode ?? 0,
-            headers: { get: (name: string) => { const value = response.headers[name.toLowerCase()]; return Array.isArray(value) ? value[0] ?? null : value ?? null; } },
-            arrayBuffer: async () => body.buffer.slice(body.byteOffset, body.byteOffset + body.length) as ArrayBuffer,
-          });
-        });
+    const dispatcher = new Agent({ connect: { lookup: safeLookup } });
+    try {
+      const response = await this.request(url, {
+        method: 'GET', headers: { 'User-Agent': USER_AGENT, Accept: init.accept },
+        redirect: 'manual', signal: AbortSignal.timeout(init.timeoutMs), dispatcher,
       });
-      request.on('error', error => reject(signal.aborted ? Object.assign(new Error('timeout'), { name: 'TimeoutError' }) : error));
-      request.end();
-    });
+      const chunks: Buffer[] = [];
+      let size = 0;
+      if (response.body) {
+        for await (const chunk of response.body) {
+          const bytes = Buffer.from(chunk);
+          size += bytes.length;
+          if (size > TRANSPORT_MAX_BYTES) throw new Error('BODY_TOO_LARGE');
+          chunks.push(bytes);
+        }
+      }
+      const body = Buffer.concat(chunks);
+      return {
+        status: response.status,
+        headers: { get: (name: string) => response.headers.get(name) },
+        arrayBuffer: async () => body.buffer.slice(body.byteOffset, body.byteOffset + body.length) as ArrayBuffer,
+      };
+    } finally {
+      await dispatcher.close();
+    }
   }
 }
 
@@ -193,12 +197,16 @@ export class ResearchSourceFetcher {
     this.breakers.set(host, breaker);
   }
 
+  /** Monotonic counters for cost reporting: callers read deltas around their own work. */
+  readonly usage = { pageFetches: 0, imageFetches: 0, cacheHits: 0 };
+
   async fetch(rawUrl: string, options: { kind: 'page' | 'image'; isApprovedHost: (host: string) => boolean; bypassCache?: boolean }): Promise<FetchedSource> {
     const fetchedAt = new Date().toISOString();
     const fail = (finalUrl: string, outcome: FetchOutcome, detail?: string): FetchedSource => ({ url: rawUrl, finalUrl, outcome, fetchedAt, detail });
     const cacheKey = `${options.kind}:${rawUrl}`;
     const hit = this.cache.get(cacheKey);
-    if (!options.bypassCache && hit && hit.expires > Date.now()) return hit.source;
+    if (!options.bypassCache && hit && hit.expires > Date.now()) { this.usage.cacheHits++; return hit.source; }
+    this.usage[options.kind === 'image' ? 'imageFetches' : 'pageFetches']++;
 
     let current: URL;
     try { current = new URL(rawUrl); } catch { return fail(rawUrl, 'UNSAFE_URL'); }

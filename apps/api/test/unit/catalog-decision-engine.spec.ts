@@ -154,6 +154,11 @@ describe('Catalog decision engine', () => {
       expect(rejected.map(r => r.reason)).toEqual(expect.arrayContaining(['RESOLUTION_TOO_LOW:360x400', 'IMAGE_IS_PROOF_FOR_ANOTHER_SKU:sku-x', 'SOURCE_NOT_AUTHENTIC_ENOUGH']));
       expect(chooseIdentityImage([{ url: 'https://a/s.png', width: 300, height: 300, tier: 'OFFICIAL_MANUFACTURER', reusedBySku: null }]).chosen).toBeNull();
     });
+    it('accepts native portrait bottle packshots that remain legible at card width', () => {
+      expect(chooseIdentityImage([{ url: 'https://a/bottle.png', width: 202, height: 510, tier: 'OFFICIAL_MANUFACTURER', reusedBySku: null }]).chosen?.url)
+        .toBe('https://a/bottle.png');
+      expect(chooseIdentityImage([{ url: 'https://a/narrow.png', width: 190, height: 800, tier: 'OFFICIAL_MANUFACTURER', reusedBySku: null }]).chosen).toBeNull();
+    });
     it('approves an editorial derivative only with no damage warnings', () => {
       expect(decideEditorial({ warnings: ['SOURCE_SHADOW_REMOVED', 'UPSCALED'] }, 'SUCCEEDED')).toEqual({ approve: true, reason: 'QUALITY_CHECKS_PASSED' });
       expect(decideEditorial({ warnings: ['DETACHED_PART'] }, 'SUCCEEDED').approve).toBe(false);

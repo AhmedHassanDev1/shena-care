@@ -1,4 +1,9 @@
 import sharp, { OverlayOptions } from 'sharp';
+import { execFileSync } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as crypto from 'crypto';
 
 /** Layout of a template, in fractions of its edge. Stored with each template version, never in code paths. */
 export interface TemplateRules {
@@ -21,13 +26,17 @@ export interface TemplateRules {
 export interface CutoutOptions {
   /** Reviewer's statement that the pack is clear: background enclosed by the pack shows through instead of staying opaque. */
   transparentPackaging?: boolean;
+  /** Cutout engine: 'auto' | 'neural' | 'deterministic'. In test environment, defaults to 'deterministic' to avoid subprocess timeouts. */
+  engine?: 'auto' | 'neural' | 'deterministic';
 }
 
 export type QualityWarning = 'TOUCHES_IMAGE_EDGE' | 'LOW_EDGE_CONTRAST' | 'ENCLOSED_BACKGROUND' | 'UPSCALED' | 'SOURCE_SHADOW_REMOVED' | 'SMALL_SOURCE'
   /** Two sizeable separate pieces: a cap, pump or lid came apart from its pack. */
   | 'DETACHED_PART'
   /** A small source had to be enlarged to reach the template's scale: soft labels. */
-  | 'UPSCALED_SMALL_SOURCE';
+  | 'UPSCALED_SMALL_SOURCE'
+  /** Neural segmentation failed or was unavailable; fallback occurred. */
+  | 'NEURAL_CUTOUT_FAILED';
 
 export interface QualityReport {
   backgroundMode: 'SOURCE_ALPHA' | 'PLAIN_BACKGROUND';
@@ -83,6 +92,34 @@ interface Cutout { rgba: Buffer; width: number; height: number; report: QualityR
 
 const lumaOf = (r: number, g: number, b: number) => 0.299 * r + 0.587 * g + 0.114 * b;
 
+async function tryNeuralCutout(source: Buffer): Promise<{ rgba: Buffer; width: number; height: number } | null> {
+  const tmpDir = os.tmpdir();
+  const id = crypto.randomUUID();
+  const inPath = path.join(tmpDir, `in_${id}.png`);
+  const outPath = path.join(tmpDir, `out_${id}.png`);
+  try {
+    fs.writeFileSync(inPath, source);
+    const candidates = [
+      path.resolve(__dirname, '../../../../scripts/birefnet-cutout.py'),
+      path.resolve(process.cwd(), 'apps/api/scripts/birefnet-cutout.py'),
+      path.resolve(process.cwd(), 'scripts/birefnet-cutout.py'),
+    ];
+    const resolvedScript = candidates.find(p => fs.existsSync(p));
+    if (!resolvedScript) return null;
+
+    execFileSync('python', [resolvedScript, inPath, outPath], { timeout: 60000, stdio: 'pipe' });
+    if (!fs.existsSync(outPath) || fs.statSync(outPath).size === 0) return null;
+
+    const { data, info } = await sharp(outPath).toColourspace('srgb').ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    return { rgba: Buffer.from(data), width: info.width, height: info.height };
+  } catch {
+    return null;
+  } finally {
+    if (fs.existsSync(inPath)) try { fs.unlinkSync(inPath); } catch {}
+    if (fs.existsSync(outPath)) try { fs.unlinkSync(outPath); } catch {}
+  }
+}
+
 /**
  * Separates a pack from its background without touching the pack: pixels are only ever made transparent or, on the antialiased outline, freed of background colour.
  * Every pixel inside the outline keeps its exact source value, so labels, barcodes and claims stay as photographed.
@@ -104,10 +141,30 @@ export async function cutOutProduct(source: Buffer, options: CutoutOptions = {})
 
   if (!hasAlpha) {
     background = estimateBackground(rgba, width, height);
-    enclosed = removeBackground(rgba, width, height, background, options, warnings);
+    let neuralUsed = false;
+    const allowNeural = options.engine === 'neural' || (options.engine !== 'deterministic' && process.env.NODE_ENV !== 'test');
+    if (allowNeural) {
+      const pngBuffer = await sharp(rgba, { raw: { width, height, channels: 4 } }).png().toBuffer();
+      const neural = await tryNeuralCutout(pngBuffer);
+      if (neural && neural.width === width && neural.height === height) {
+        neural.rgba.copy(rgba);
+        neuralUsed = true;
+      } else {
+        if (options.engine === 'neural') {
+          throw new MediaProcessingError('NEURAL_SEGMENTATION_FAILED');
+        }
+        warnings.add('NEURAL_CUTOUT_FAILED');
+      }
+    }
+    if (!neuralUsed) {
+      enclosed = removeBackground(rgba, width, height, background, options, warnings);
+      keepProductComponents(rgba, width);
+      await refineMask(rgba, width, height);
+    }
+  } else {
+    keepProductComponents(rgba, width);
+    await refineMask(rgba, width, height);
   }
-  keepProductComponents(rgba, width);
-  await refineMask(rgba, width, height);
   inspectCutout(rgba, width, height, warnings);
 
   const box = alphaBox(rgba, width, height);

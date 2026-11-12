@@ -16,3 +16,4 @@ export * from './dto/acquisition-cost.dto';
 export * from './dto/supplier-enrollment.dto';
 export * from './dto/rfq.dto';
 export { getSourcingMode, isBroadcastMode } from './config/procurement-batch.config';
+export * from './services/offer-intake.service';

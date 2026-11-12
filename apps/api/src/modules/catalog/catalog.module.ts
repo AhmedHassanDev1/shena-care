@@ -6,6 +6,8 @@ import { CategoryService } from './services/category.service';
 import { ProductIdentityService } from './services/product-identity.service';
 import { MediaTemplateService } from './services/media-template.service';
 import { CatalogIntakeService } from './services/catalog-intake.service';
+import { CatalogSnapshotService } from './services/catalog-snapshot.service';
+import { CatalogPolicyService } from './services/catalog-policy.service';
 import { IngredientService } from './services/ingredient.service';
 import { ProductMediaService } from './services/product-media.service';
 import { BrandResearchService } from './research/brand-research.service';
@@ -34,6 +36,8 @@ import { PostgresSearchProvider } from './search/postgres-search.provider';
     ProductIdentityService,
     MediaTemplateService,
     CatalogIntakeService,
+    CatalogSnapshotService,
+    CatalogPolicyService,
     IngredientService,
     ProductMediaService,
     BrandResearchService,
@@ -69,6 +73,8 @@ import { PostgresSearchProvider } from './search/postgres-search.provider';
     ProductMediaService,
     MediaTemplateService,
     CatalogIntakeService,
+    CatalogSnapshotService,
+    CatalogPolicyService,
     SEARCH_PROVIDER,
     BrandResearchService,
     CanonicalResearchService,

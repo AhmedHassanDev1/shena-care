@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsOptional, MinLength, Matches, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  MinLength,
+  Matches,
+  IsBoolean,
+  IsArray,
+  ArrayMaxSize,
+} from 'class-validator';
 
 export class CreateBrandDto {
   @IsString()
@@ -32,6 +41,12 @@ export class CreateBrandDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsArray()
+  @IsOptional()
+  @ArrayMaxSize(30)
+  @IsString({ each: true })
+  aliases?: string[];
 }
 
 export class UpdateBrandDto {
@@ -66,4 +81,10 @@ export class UpdateBrandDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsArray()
+  @IsOptional()
+  @ArrayMaxSize(30)
+  @IsString({ each: true })
+  aliases?: string[];
 }

@@ -106,4 +106,55 @@ describe('GuidanceService Error Isolation', () => {
     expect(prisma.guidanceMessage.create).toHaveBeenCalledTimes(1);
     expect(result.role).toBe(GuidanceMessageRole.assistant);
   });
+
+  it('passes published catalog product names to AiClient and returns validated resolvedProducts', async () => {
+    validator.listCatalogProductNames = jest.fn().mockResolvedValue(['shaan Antioxidant Facial Cleanser']);
+    validator.validateProposal.mockResolvedValue({
+      isValid: true,
+      errors: [],
+      stepResults: [
+        {
+          stepIndex: 0,
+          stepTitle: 'Cleanse',
+          isValid: true,
+          resolvedProduct: {
+            productId: 'prod-1',
+            slug: 'shaan-antioxidant-facial-cleanser',
+            name: 'Antioxidant Facial Cleanser',
+            brandName: 'shaan',
+            categoryName: 'Cleansers',
+            skuId: 'sku-1',
+            variantName: '250 ml',
+            price: { amount: 110, currency: 'EGP', compareAtAmount: null },
+            isSellable: true,
+          },
+          errors: [],
+        },
+      ],
+    });
+
+    aiClient.recommendRoutine.mockResolvedValueOnce({
+      schemaVersion: '1',
+      type: 'proposal',
+      message: 'إليك روتين تنظيف مناسب.',
+      proposal: {
+        title: 'روتين تنظيف',
+        careArea: 'skin',
+        steps: [{ title: 'Cleanse', timing: 'am', isOptional: false, productQuery: 'Antioxidant Facial Cleanser' }],
+      },
+    });
+
+    const result: any = await service.sendMessage('sess-1', { content: 'عايزة غسول لطيف' });
+
+    expect(aiClient.recommendRoutine).toHaveBeenCalledWith(
+      expect.objectContaining({ catalogProducts: ['shaan Antioxidant Facial Cleanser'] }),
+      'sess-1',
+    );
+    expect(result.resolvedProducts).toHaveLength(1);
+    expect(result.resolvedProducts[0]).toMatchObject({
+      slug: 'shaan-antioxidant-facial-cleanser',
+      skuId: 'sku-1',
+      isSellable: true,
+    });
+  });
 });

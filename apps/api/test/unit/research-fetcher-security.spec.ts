@@ -1,9 +1,25 @@
 import { isPrivateAddress, validateSafeUrl } from '../../src/platform/security/url-validator';
-import { ResearchSourceFetcher, ResearchTransport } from '../../src/modules/catalog/research/research-source-fetcher';
+import { NodeResearchTransport, ResearchSourceFetcher, ResearchTransport } from '../../src/modules/catalog/research/research-source-fetcher';
+import { Agent } from 'undici';
 import { curatedBrandAlias } from '../../src/modules/catalog/research/brand-enrichment.service';
+import { hostIsBrandDomain } from '../../src/modules/catalog/research/research-evidence';
+import { isTrustedMediaSource } from '../../src/platform/security/media-review';
 
 /** SSRF audit of the direct research reader: what an address, a redirect or a DNS answer is allowed to reach. */
 describe('Research reader SSRF protections', () => {
+  it('keeps redirects visible to the host and DNS safety checks', async () => {
+    const request = jest.fn().mockResolvedValue({
+      status: 302,
+      headers: new Map([['location', 'https://internal.acme.example/secret']]),
+      body: null,
+    });
+    const transport = new NodeResearchTransport(request);
+    const response = await transport.get('https://acme.example/item', { accept: 'text/html', timeoutMs: 1000 });
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe('https://internal.acme.example/secret');
+    expect(request).toHaveBeenCalledWith('https://acme.example/item', expect.objectContaining({ redirect: 'manual', dispatcher: expect.any(Agent) }));
+  });
+
   it('classifies every private, local, embedded-IPv4 and malformed address as private', () => {
     const privateAddresses = [
       '0.0.0.0', '10.1.2.3', '127.0.0.1', '169.254.169.254', '172.16.0.1', '172.31.255.255', '192.168.0.1', '100.64.0.1', '198.18.0.1', '192.0.2.1', '224.0.0.1', '255.255.255.255',
@@ -69,6 +85,18 @@ describe('Research reader SSRF protections', () => {
 });
 
 describe('Curated Arabic brand dictionary', () => {
+  it('recognizes the verified L\'Oréal Paris regional site without trusting lookalikes', () => {
+    expect(hostIsBrandDomain('www.loreal-paris-me.com', 'L\'Oréal Paris')).toBe(true);
+    expect(hostIsBrandDomain('loreal-paris-me.example.com', 'L\'Oréal Paris')).toBe(false);
+    expect(hostIsBrandDomain('www.loreal-paris-me.com', 'Another Brand')).toBe(false);
+  });
+
+  it('allows verified manufacturer media pages and rejects lookalike domains', () => {
+    for (const host of ['shop.parkvillepharma.com', 'www.shop.eva-cosmetics.com', 'www.loreal-paris-me.com'])
+      expect(isTrustedMediaSource(`https://${host}/products/item`)).toBe(true);
+    expect(isTrustedMediaSource('https://loreal-paris-me.com.evil.example/products/item')).toBe(false);
+  });
+
   it('resolves reviewed spellings and never guesses', () => {
     expect(curatedBrandAlias('سيرافي')).toMatchObject({ canonicalName: 'CeraVe' });
     expect(curatedBrandAlias('  كوسركس ')).toMatchObject({ canonicalName: 'COSRX' });

@@ -19,6 +19,7 @@ import { AvailabilityDecisionController, GuestAvailabilityDecisionController } f
 import { CustomerReturnsController } from './customer-returns.controller';
 import { GuestReturnsController } from './guest-returns.controller';
 import { ReturnEligibilityService } from './services/return-eligibility.service';
+import { PurchaseVerificationService } from './services/purchase-verification.service';
 import { MonthlyStatementService } from './services/monthly-statement.service';
 import { OperationsModule } from '../operations/operations.module';
 @Module({
@@ -26,7 +27,7 @@ import { OperationsModule } from '../operations/operations.module';
   controllers: [OrderingController, CartController, CheckoutController, GuestOrderTrackingController,
     AvailabilityDecisionController, GuestAvailabilityDecisionController,
     CustomerReturnsController, GuestReturnsController, PaymentWebhookController],
-  providers: [OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, ReturnEligibilityService, PaymentsService, MonthlyStatementService],
-  exports: [OrderingService, CartService, ReconciliationService, PaymentsService, OrderTrackingService],
+  providers: [OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, ReturnEligibilityService, PurchaseVerificationService, PaymentsService, MonthlyStatementService],
+  exports: [OrderingService, CartService, ReconciliationService, PaymentsService, OrderTrackingService, PurchaseVerificationService],
 })
 export class OrderingModule {}

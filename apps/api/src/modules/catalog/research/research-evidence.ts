@@ -165,6 +165,8 @@ export function registrableLabel(hostname: string): string {
 
 /** A host is the manufacturer only when its registered name is the brand; containing the brand somewhere proves nothing. */
 export function hostIsBrandDomain(hostname: string, brand: string): boolean {
-  const brandKey = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const brandKey = brand.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  // The regional site is the verified official L'Oréal Paris catalog for Egypt.
+  if (brandKey === 'lorealparis' && hostname.toLowerCase().replace(/^www\./, '') === 'loreal-paris-me.com') return true;
   return brandKey.length >= 3 && registrableLabel(hostname).replace(/[^a-z0-9]/g, '') === brandKey;
 }

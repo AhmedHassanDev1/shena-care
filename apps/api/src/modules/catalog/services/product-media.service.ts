@@ -9,11 +9,11 @@ import { DeriveMediaAssetDto, RegisterMediaAssetDto, ReviewMediaAssetDto } from 
 import { MediaProcessingError, QualityReport } from '../../../platform/storage/product-compositor';
 import { MediaTemplateService } from './media-template.service';
 import { CatalogService } from './catalog.service';
+import { usableIdentityResolution } from '../research/catalog-decision-engine';
 
 /** Private storage owner segment for catalog media; no supplier owns these objects. */
 const MEDIA_OWNER = 'catalog-media';
 const MEDIA_FOLDER = 'assets';
-const MIN_IDENTITY_EDGE = 400;
 const ALL_ROLES = [MediaRole.PRIMARY_PACKSHOT, MediaRole.TEXTURE_SENSORY, MediaRole.INGREDIENT_STORY, MediaRole.PACKAGING_PROOF] as const;
 /** PDP order: the approved editorial image leads, then the identity packshot, then the real carton. Roles decide this, never file names. */
 const GALLERY_ORDER: Record<MediaRole, number> = { CATEGORY_EDITORIAL: 0, PRIMARY_PACKSHOT: 1, PACKAGING_PROOF: 2, INGREDIENT_STORY: 3, TEXTURE_SENSORY: 4 };
@@ -66,8 +66,8 @@ export class ProductMediaService {
     }
 
     const image = await this.processor.inspect(file.buffer);
-    if (IDENTITY_ROLES.includes(dto.role) && Math.min(image.width, image.height) < MIN_IDENTITY_EDGE) {
-      throw new BadRequestException(`Identity images need at least ${MIN_IDENTITY_EDGE}px on each side`);
+    if (IDENTITY_ROLES.includes(dto.role) && !usableIdentityResolution(image.width, image.height)) {
+      throw new BadRequestException('Identity image resolution is too low');
     }
     const contentHash = crypto.createHash('sha256').update(file.buffer).digest('hex');
     const existing = await this.prisma.mediaAsset.findFirst({ where: { skuId: dto.skuId, role: dto.role, contentHash, parentAssetId: null } });
@@ -222,7 +222,7 @@ export class ProductMediaService {
       if (asset.role === MediaRole.CATEGORY_EDITORIAL) {
         const warnings = (asset.qualityReport as unknown as QualityReport | null)?.warnings ?? [];
         // Warnings that can mean visible damage need a person to look at the result and say so; scale-only notes do not.
-        const needsLook = warnings.filter(warning => ['TOUCHES_IMAGE_EDGE', 'ENCLOSED_BACKGROUND', 'LOW_EDGE_CONTRAST'].includes(warning));
+        const needsLook = warnings.filter(warning => ['TOUCHES_IMAGE_EDGE', 'ENCLOSED_BACKGROUND', 'LOW_EDGE_CONTRAST', 'DETACHED_PART', 'NEURAL_CUTOUT_FAILED'].includes(warning));
         if (needsLook.length && !dto.acceptQualityWarnings) {
           throw new ConflictException({ code: 'QUALITY_WARNING_UNACKNOWLEDGED', message: 'Look at the processed image and confirm it is clean: the pack may be cropped or edged in background', warnings: needsLook });
         }
@@ -256,10 +256,13 @@ export class ProductMediaService {
       else if (SOURCE_CHECKED_ROLES.includes(asset.role) && asset.rightsStatus === MediaRightsStatus.UNKNOWN) [approve, reason] = [false, 'RIGHTS_UNKNOWN'];
       else if (SOURCE_CHECKED_ROLES.includes(asset.role) && !isTrustedMediaSource(asset.sourceUrl)) [approve, reason] = [false, 'SOURCE_NOT_ON_TRUSTED_LIST'];
       else if (SOURCE_CHECKED_ROLES.includes(asset.role) && !identityKnown) [approve, reason] = [false, 'SKU_IDENTITY_NOT_VERIFIED'];
-      else if (IDENTITY_ROLES.includes(asset.role) && Math.min(asset.width ?? 0, asset.height ?? 0) < MIN_IDENTITY_EDGE) [approve, reason] = [false, 'RESOLUTION_TOO_LOW'];
+      else if (IDENTITY_ROLES.includes(asset.role) && !usableIdentityResolution(asset.width ?? 0, asset.height ?? 0)) [approve, reason] = [false, 'RESOLUTION_TOO_LOW'];
       else if (asset.parentAssetId) {
         const parent = await this.getAsset(asset.parentAssetId);
         if (parent.reviewStatus !== MediaReviewStatus.APPROVED) [approve, reason] = [false, 'ORIGINAL_NOT_APPROVED'];
+      }
+      else if (asset.role === MediaRole.CATEGORY_EDITORIAL && ((asset.qualityReport as any)?.warnings ?? []).includes('NEURAL_CUTOUT_FAILED')) {
+        [approve, reason] = [false, 'NEURAL_CUTOUT_FAILED'];
       }
     }
     if (!approve && reason === 'SOURCE_NOT_ON_TRUSTED_LIST') {

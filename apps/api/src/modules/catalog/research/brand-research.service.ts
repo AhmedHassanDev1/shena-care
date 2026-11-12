@@ -87,6 +87,7 @@ const related = (a: string, b: string) => {
   const [x, y] = [fold(a), fold(b)];
   return x.length >= 3 && y.length >= 3 && (x.includes(y) || y.includes(x));
 };
+const REGION_SUFFIX = /(?:\s*[-|–—:]\s*|\s+)(?:official\s+(?:site|website|store|shop)|online\s+(?:store|shop)|international|global|middle\s+east|mena|gcc|ksa|uae|saudi\s+arabia|egypt|eg|africa|south\s+africa|europe|uk|united\s+kingdom|us|usa|united\s+states|canada|ca|australia|au|nz|new\s+zealand|singapore|sg|malaysia|my|india|in|ireland|ie|arabia|en)\s*$/i;
 const clip = (value: string, max: number) => value.normalize('NFKC').replace(/\s+/g, ' ').trim().slice(0, max);
 
 /**
@@ -262,6 +263,14 @@ export class BrandResearchService {
       value: fact.value, status: forceUnverified ? 'UNVERIFIED' : status, origin: 'PAGE', sourceUrl: pageUrl, excerpt: fact.excerpt, ...(note && { note }),
     });
 
+    // Regional storefronts name themselves "Garnier AU" or "La Roche-Posay Canada": the brand is the name without the region (and with plain hyphens).
+    for (const fact of facts.names) {
+      const plain = fact.value.replace(/[‐-―]/g, '-');
+      const bare = plain.replace(REGION_SUFFIX, '').trim();
+      fact.value = bare.length >= 2 && related(bare, query) ? bare : plain;
+      // Same name, different casing ("BIODERMA", "Cerave"): keep the typed casing when it is mixed case, the brand's own styling.
+      if (fold(fact.value) === fold(query) && /[a-z]/.test(query) && /[A-Z]/.test(query)) fact.value = query;
+    }
     const named = facts.names.find(fact => related(fact.value, query));
     const official = named ?? facts.names[0];
     if (official) research.name = field(official, named ? undefined : 'NAME_DIFFERS', !named);

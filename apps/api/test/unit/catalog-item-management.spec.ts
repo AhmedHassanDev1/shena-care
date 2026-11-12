@@ -116,4 +116,85 @@ describe('Catalog item editing on the current schema', () => {
     await expect(catalog.updateProduct('product-1', { name: 'New name' })).resolves.toMatchObject({ name: 'New name' });
     expect(prisma.product.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ name: 'New name' }) }));
   });
+
+  it('resolves delivery URLs through MEDIA_STORAGE_PORT and enriches SKU readiness & prices', async () => {
+    const skuId = '11111111-1111-4111-8111-111111111111';
+    const prisma = {
+      product: {
+        count: jest
+          .fn()
+          .mockResolvedValueOnce(1)
+          .mockResolvedValueOnce(1)
+          .mockResolvedValueOnce(1)
+          .mockResolvedValueOnce(0)
+          .mockResolvedValueOnce(0)
+          .mockResolvedValueOnce(0),
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'prod-1',
+            name: 'Hydrating Cleanser',
+            slug: 'hydrating-cleanser',
+            description: null,
+            isPublished: true,
+            archivedAt: null,
+            brandId: 'brand-1',
+            categoryId: 'cat-1',
+            productLineId: null,
+            brand: { id: 'brand-1', name: 'CeraVe', slug: 'cerave' },
+            category: { id: 'cat-1', name: 'Cleansers', slug: 'cleansers', parentId: null },
+            productLine: null,
+            media: [{ id: 'm-1', url: 'cloudinary://folder/packshot', altText: 'Packshot', isPrimary: true }],
+            skus: [
+              {
+                id: skuId,
+                code: 'CV-236',
+                variantName: '236 ml',
+                barcode: '3337875597180',
+                size: { toNumber: () => 236, valueOf: () => 236 },
+                sizeUnit: 'ml',
+                packCount: 1,
+                isActive: true,
+                hasOuterCarton: false,
+                identityStatus: 'VERIFIED',
+                barcodeStatus: 'VERIFIED',
+              },
+            ],
+          },
+        ]),
+      },
+      mediaAsset: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    };
+    const mediaPort: MediaStoragePort = {
+      upload: jest.fn(),
+      publishMedia: jest.fn(),
+      delete: jest.fn(),
+      getDeliveryUrl: jest.fn((id: string) =>
+        id.startsWith('cloudinary://')
+          ? 'https://res.cloudinary.com/demo/image/upload/packshot.png'
+          : id,
+      ),
+    };
+    const itemsService = new CatalogItemManagementService(prisma as never, mediaPort);
+    const commerce = {
+      getPricedSkuIds: jest.fn(),
+      getListedSkuIds: jest.fn(),
+      getSkuCommercialSummaryBatch: jest.fn().mockResolvedValue({
+        [skuId]: {
+          isListed: true,
+          price: { id: 'price-1', amount: 650, compareAtAmount: null, currency: 'EGP' },
+        },
+      }),
+    };
+    const controller = new CatalogItemsController(itemsService, commerce as never);
+
+    const response = await controller.list({ page: 1, limit: 20 });
+    expect(mediaPort.getDeliveryUrl).toHaveBeenCalledWith('cloudinary://folder/packshot');
+    expect(response.items[0].media[0].url).toBe(
+      'https://res.cloudinary.com/demo/image/upload/packshot.png',
+    );
+    expect(response.items[0].readiness.status).toBe('READY');
+    expect(response.items[0].skus[0].currentPrice?.amount).toBe(650);
+  });
 });

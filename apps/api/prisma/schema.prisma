@@ -623,12 +623,15 @@ model ProductReview {
   id                 String              @id @default(uuid()) @db.Uuid
   productId          String              @map("product_id") @db.Uuid
   skuId              String?             @map("sku_id") @db.Uuid
+  customerId         String?             @map("customer_id") @db.Uuid
+  orderId            String?             @map("order_id") @db.Uuid
   rating             Int                 @db.SmallInt
   title              String?             @db.VarChar(120)
-  body               String
+  body               String?
   authorName         String              @map("author_name") @db.VarChar(60)
   skinType           String?             @map("skin_type") @db.VarChar(20)
   isVerifiedPurchase Boolean             @default(false) @map("is_verified_purchase")
+  isTest             Boolean             @default(false) @map("is_test")
   helpfulCount       Int                 @default(0) @map("helpful_count")
   status             ProductReviewStatus @default(PENDING)
   source             String              @default("customer") @db.VarChar(60)
@@ -636,6 +639,8 @@ model ProductReview {
   updatedAt          DateTime            @updatedAt @map("updated_at")
 
   @@index([productId, status, createdAt])
+  @@index([productId, status, isTest, createdAt])
+  @@index([customerId, productId])
   @@index([source])
   @@map("product_reviews")
   @@schema("commerce")
@@ -745,6 +750,8 @@ model SupplierOffer {
   supplierId      String    @map("supplier_id") @db.Uuid
   skuId           String    @map("sku_id") @db.Uuid
   costPrice       Decimal   @map("cost_price") @db.Decimal(10, 2)
+  /// The consumer (retail) price the supplier states for this SKU; reference only, never a selling price.
+  consumerPrice   Decimal?  @map("consumer_price") @db.Decimal(10, 2)
   currency        String    @db.VarChar(3)
   isAvailable     Boolean   @default(true) @map("is_available")
   lastObservedAt  DateTime  @default(now()) @map("last_observed_at")
@@ -767,6 +774,27 @@ model SupplierOffer {
   @@index([supplierId])
   @@index([skuId])
   @@map("supplier_offers")
+  @@schema("sourcing")
+}
+
+/// Append-only history of the prices a supplier stated for one offer. One event per intake row (sourceRef), so a replayed file never doubles history.
+model SupplierOfferPriceEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  offerId       String   @map("offer_id") @db.Uuid
+  supplierId    String   @map("supplier_id") @db.Uuid
+  skuId         String   @map("sku_id") @db.Uuid
+  purchasePrice Decimal  @map("purchase_price") @db.Decimal(10, 2)
+  consumerPrice Decimal? @map("consumer_price") @db.Decimal(10, 2)
+  currency      String   @db.VarChar(3)
+  /// INTAKE_FILE | MANUAL
+  sourceType    String   @map("source_type") @db.VarChar(20)
+  sourceRef     String?  @unique @map("source_ref")
+  observedAt    DateTime @map("observed_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([offerId, observedAt])
+  @@index([skuId])
+  @@map("supplier_offer_price_events")
   @@schema("sourcing")
 }
 
@@ -2285,6 +2313,185 @@ model RetailPriceObservation {
 
   @@index([skuId, status, observedAt])
   @@map("retail_price_observations")
+  @@schema("ingestion")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog Intake (2026-11-09): one job/row model for Admin names and Supplier price files.
+// Admin rows may create verified canonical DRAFTs through Catalog; Supplier rows only ever link to an existing canonical SKU.
+// ---------------------------------------------------------------------------
+
+enum IntakeSource {
+  ADMIN
+  SUPPLIER
+
+  @@schema("ingestion")
+}
+
+enum IntakeJobStatus {
+  RECEIVED
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@schema("ingestion")
+}
+
+/// Every row ends in exactly one outcome. Supplier: SKIPPED | MATCHED | UPDATED | UNMATCHED | INVALID | CRITICAL.
+/// Admin: DRAFT_CREATED | LINKED_EXISTING | SKIPPED | INVALID | UNRESOLVED.
+enum IntakeRowOutcome {
+  PENDING
+  SKIPPED
+  MATCHED
+  UPDATED
+  UNMATCHED
+  INVALID
+  CRITICAL
+  DRAFT_CREATED
+  LINKED_EXISTING
+  UNRESOLVED
+
+  @@schema("ingestion")
+}
+
+model IntakeJob {
+  id              String          @id @default(uuid()) @db.Uuid
+  source          IntakeSource
+  /// Sourcing supplier id for SUPPLIER jobs: a plain reference, no relation across contexts.
+  supplierId      String?         @map("supplier_id") @db.Uuid
+  submittedBy     String          @map("submitted_by") @db.Uuid
+  /// SINGLE | BULK | FILE
+  inputKind       String          @map("input_kind") @db.VarChar(10)
+  sourceFileName  String?         @map("source_file_name")
+  sourceMimeType  String?         @map("source_mime_type")
+  sourceSizeBytes Int?            @map("source_size_bytes")
+  /// sha256 of the uploaded bytes or the submitted names; the same submission resolves to the same job.
+  sourceChecksum  String          @map("source_checksum") @db.VarChar(64)
+  /// Which header fed which field, and which headers were ignored.
+  columnMap       Json?           @map("column_map")
+  /// What the batch was decided against (policy version, catalog size, alias count), taken once per job.
+  snapshot        Json?
+  status          IntakeJobStatus @default(RECEIVED)
+  totals          Json?
+  /// Timing and cost counters: rows/second, searches, page fetches.
+  metrics         Json?
+  lastError       String?         @map("last_error")
+  startedAt       DateTime?       @map("started_at")
+  completedAt     DateTime?       @map("completed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  rows IntakeRow[]
+
+  @@unique([source, sourceChecksum, submittedBy])
+  @@index([source, status])
+  @@index([supplierId, createdAt])
+  @@map("intake_jobs")
+  @@schema("ingestion")
+}
+
+model IntakeRow {
+  id             String           @id @default(uuid()) @db.Uuid
+  jobId          String           @map("job_id") @db.Uuid
+  /// 1-indexed line in the original input: row-level provenance.
+  rowNumber      Int              @map("row_number")
+  rawName        String           @map("raw_name")
+  /// The mapped cells exactly as received.
+  sourceCells    Json             @map("source_cells")
+  normalizedName String?          @map("normalized_name")
+  /// Identity text key (normalized wording + measure), price-free: the learned-alias and dedupe key.
+  fingerprint    String?          @db.VarChar(64)
+  supplierCode   String?          @map("supplier_code")
+  barcode        String?
+  purchasePrice  Decimal?         @map("purchase_price") @db.Decimal(10, 2)
+  consumerPrice  Decimal?         @map("consumer_price") @db.Decimal(10, 2)
+  currency       String?          @db.VarChar(3)
+  quantity       Int?
+  /// What the cheap reader understood: brand, measure, pack, product type, stated facts.
+  parsed         Json?
+  outcome        IntakeRowOutcome @default(PENDING)
+  reasonCode     String?          @map("reason_code") @db.VarChar(80)
+  reason         String?
+  /// Canonical SKU (catalog schema), plain reference.
+  matchedSkuId   String?          @map("matched_sku_id") @db.Uuid
+  /// Candidate SKUs with the evidence for and against each, for review and for measuring.
+  candidates     Json?
+  /// Sources read, decisions made, offer change.
+  evidence       Json?
+  /// Admin rows: independent readiness flags (pdp, chatbot, routine, selling).
+  readiness      Json?
+  /// Resume cursor for long-running Admin rows.
+  stage          String?          @db.VarChar(30)
+  attempts       Int              @default(0)
+  nextAttemptAt  DateTime?        @map("next_attempt_at")
+  leaseUntil     DateTime?        @map("lease_until")
+  lastError      String?          @map("last_error")
+  processingMs   Int?             @map("processing_ms")
+  /// { searches, pageFetches, imageFetches }
+  cost           Json?
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  job IntakeJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, rowNumber])
+  @@index([jobId, outcome])
+  @@index([fingerprint])
+  @@index([matchedSkuId])
+  @@index([outcome, nextAttemptAt])
+  @@map("intake_rows")
+  @@schema("ingestion")
+}
+
+/// Learned identity knowledge: wording (fingerprint) that resolved to one canonical SKU, per supplier or global.
+/// Written only from a verified resolution (barcode, confident match, Admin decision); never from a guess.
+model IntakeIdentityAlias {
+  id            String   @id @default(uuid()) @db.Uuid
+  fingerprint   String   @db.VarChar(64)
+  /// Supplier id, or GLOBAL for Admin wording.
+  scopeKey      String   @map("scope_key") @db.VarChar(40)
+  skuId         String   @map("sku_id") @db.Uuid
+  /// BARCODE | SUPPLIER_CODE | AUTO_MATCH | ADMIN_RESOLVED | ADMIN_INTAKE
+  basis         String   @db.VarChar(20)
+  sampleText    String   @map("sample_text")
+  confirmations Int      @default(1)
+  /// Set when a later row with this wording contradicted the SKU; a retired alias is never used.
+  retiredAt     DateTime? @map("retired_at")
+  lastSeenAt    DateTime @default(now()) @map("last_seen_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([fingerprint, scopeKey])
+  @@index([skuId])
+  @@map("intake_identity_aliases")
+  @@schema("ingestion")
+}
+
+enum MarketPriceCheckStatus {
+  REFERENCE_READY
+  UNAVAILABLE
+  FAILED
+
+  @@schema("ingestion")
+}
+
+/// One market price research pass for one canonical SKU. Advisory only: nothing reads it to set a selling price.
+model MarketPriceCheck {
+  id           String                 @id @default(uuid()) @db.Uuid
+  skuId        String                 @map("sku_id") @db.Uuid
+  status       MarketPriceCheckStatus
+  /// Why the reference is missing, when it is.
+  reasonCode   String?                @map("reason_code") @db.VarChar(80)
+  /// { minEgp, medianEgp, maxEgp, sellers, observations, excluded: [{ id, reason }] }
+  reference    Json?
+  /// Which tiers were consulted: REUSED | OFFICIAL | TRUSTED_RETAILER | WEB_DISCOVERY, with counts.
+  coverage     Json
+  cost         Json?
+  requestedBy  String                 @map("requested_by") @db.Uuid
+  startedAt    DateTime               @default(now()) @map("started_at")
+  completedAt  DateTime?              @map("completed_at")
+
+  @@index([skuId, startedAt])
+  @@map("market_price_checks")
   @@schema("ingestion")
 }
 

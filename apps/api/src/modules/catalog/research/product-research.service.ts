@@ -76,6 +76,8 @@ export interface ResearchResult {
 @Injectable()
 export class ProductResearchService {
   private readonly logger = new Logger(ProductResearchService.name);
+  /** Monotonic count of paid search calls, for cost reporting. */
+  readonly usage = { searches: 0 };
 
   /**
    * Main research orchestrator. Performs source discovery (Exa), evidence retrieval (Firecrawl),
@@ -151,6 +153,7 @@ export class ProductResearchService {
   async discoverPages(query: string, limit: number, options: { includeDomains?: string[] } = {}): Promise<Array<{ url: string; title: string }> | null> {
     const key = process.env.EXA_API_KEY;
     if (!key) return null;
+    this.usage.searches++;
     try {
       const res = await fetch('https://api.exa.ai/search', {
         method: 'POST',

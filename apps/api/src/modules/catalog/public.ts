@@ -15,6 +15,13 @@ export type { SearchProvider, SearchFilters } from './search/search-provider';
 export { normalizeSearchText } from './search/search-text';
 export { CatalogService } from './services/catalog.service';
 export { CatalogItemManagementService } from './services/catalog-item-management.service';
+export type {
+  CatalogItemListFilters,
+  CatalogItemStatusFilter,
+  CatalogItemReadinessFilter,
+  SkuPrimaryMediaState,
+  ProductMediaStatus,
+} from './services/catalog-item-management.service';
 export { BrandService } from './services/brand.service';
 export { CategoryService } from './services/category.service';
 export { ProductIdentityService, BARCODE_ALIAS_SOURCES } from './services/product-identity.service';
@@ -34,7 +41,7 @@ export type { BrandEnrichment, RangeSourceTier, BrandOnboarding } from './resear
 export { CanonicalResearchService } from './research/canonical-research.service';
 export type { AutoVerifyResult } from './research/canonical-research.service';
 export { ProductContentService } from './research/product-content.service';
-export type { PublishedContent } from './research/product-content.service';
+export type { PublishedContent, PublishedKeyIngredient } from './research/product-content.service';
 export { RoutinePlacementService } from './research/routine-placement.service';
 export { IngredientOntologyService } from './research/ingredient-ontology.service';
 export { CatalogDecisionLogService } from './research/catalog-decision-log.service';
@@ -71,12 +78,43 @@ export type {
 } from './research/catalog-decision-engine';
 
 export { readProductType, productTypeRule, PRODUCT_TYPES, PRODUCT_TYPE_RULE_VERSION } from './research/product-type';
+// Shared identity-text knowledge (Arabic/English folding, stated-fact vocabulary, measures, GTIN forms) for intake matching.
+export {
+  foldIdentityText, identityWords, phoneticSkeleton, hasArabic, parseIdentityTitle, titleFactConflict, wordingOverlap, wordingSupportsTitle,
+  compareTitles, describeTitle, physicalMeasure, gtinForms, gtinKey,
+} from './research/identity-text';
+export type { ParsedTitle } from './research/identity-text';
+export { extractProductFacts } from './research/product-fact-extractor';
+export type { SkuExpectation, PageExtraction } from './research/product-fact-extractor';
+export { hostIsBrandDomain } from './research/research-evidence';
+export { CatalogSnapshotService } from './services/catalog-snapshot.service';
+export { CatalogPolicyService } from './services/catalog-policy.service';
+export type { NormalizedPolicyDocument, PolicyHistoryEntry } from './services/catalog-policy.service';
+export type {
+  CatalogIdentitySnapshot,
+  SnapshotSku,
+  SnapshotBrand,
+  PolicyMode,
+  PolicyRuleEffect,
+  PolicyBrandRule,
+  PolicyCategoryRule,
+  PolicyBrandCategoryRule,
+  PolicyDocument,
+} from './services/catalog-snapshot.service';
 export type { ProductTypeReading, ProductDomain } from './research/product-type';
 export { buildRoutineProfile, orderRoutine, ROLE_BY_TYPE, ROUTINE_RULE_VERSION } from './research/routine-profile';
 export type { RoutineProfile, RoutineProfileInput, RoutineRole, FieldState, PlacementConstraint, RoutineStepInput, OrderedRoutine } from './research/routine-profile';
 
 // DTOs
 export { CreateBrandDto, UpdateBrandDto } from './dto/brand.dto';
+export { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
+export {
+  PolicyBrandRuleDto,
+  PolicyCategoryRuleDto,
+  PolicyBrandCategoryRuleDto,
+  UpdateCatalogPolicyDto,
+  EvaluatePolicyDto,
+} from './dto/policy.dto';
 export { CreateProductLineDto, UpdateProductLineDto } from './dto/product-line.dto';
 export { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 export { CreateSkuDto, UpdateSkuDto } from './dto/sku.dto';
@@ -89,9 +127,15 @@ export { ResearchBrandDto, SaveResearchedBrandDto } from './research/dto/brand-r
 export type { PublishedProduct, PublishedSku, PublishedMedia, SkuValidationStatus } from './services/catalog.service';
 export type { SkuLabel, ReviewedUsageRuleInput, StatedConcentrationInput } from './services/catalog.service';
 export type { SkuIdentityCandidate, SkuIdentityCandidateRequest } from './services/catalog.service';
-export type { RoutineProductFacts, RoutineActiveFact } from './services/catalog.service';
+export type {
+  RoutineProductFacts,
+  RoutineActiveFact,
+  PublicProductIngredientFact,
+  PublicSafetyWarningFact,
+  PublicKeyIngredientClaim,
+} from './services/catalog.service';
 export type { BrandSummary, BrandDetail, ProductLineSummary } from './services/brand.service';
-export type { CategoryNode, CategoryDetail } from './services/category.service';
+export type { CategoryNode, CategoryChildNode, CategoryDetail } from './services/category.service';
 export {
   ProductTexture,
   UvFilterType,

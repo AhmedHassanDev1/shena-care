@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { findPolicyReferences } from './catalog-policy.service';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CreateBrandDto, UpdateBrandDto } from '../dto/brand.dto';
@@ -26,6 +27,9 @@ export interface BrandSummary {
   websiteUrl: string | null;
   countryOfOrigin: string | null;
   isActive: boolean;
+  aliases?: string[];
+  productCount?: number;
+  publishedProductCount?: number;
   productLines: Array<{
     id: string;
     name: string;
@@ -45,6 +49,40 @@ export interface BrandDetail extends BrandSummary {
   }>;
 }
 
+function normalizeAliases(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'string') continue;
+    const trimmed = item.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
+}
+
+function extractBrandAliases(profile: unknown): string[] {
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return [];
+  return normalizeAliases((profile as Record<string, unknown>).aliases);
+}
+
+function mergeBrandProfile(
+  existingProfile: unknown,
+  aliases: string[] | undefined,
+): Prisma.InputJsonValue | undefined {
+  if (aliases === undefined) return undefined;
+  const base =
+    existingProfile && typeof existingProfile === 'object' && !Array.isArray(existingProfile)
+      ? { ...(existingProfile as Record<string, unknown>) }
+      : {};
+  base.aliases = normalizeAliases(aliases);
+  return base as Prisma.InputJsonValue;
+}
+
 @Injectable()
 export class BrandService {
   constructor(private readonly prisma: PrismaService) {}
@@ -53,38 +91,67 @@ export class BrandService {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
   }
 
+  private async getBrandProductCounts(): Promise<
+    Map<string, { total: number; published: number }>
+  > {
+    const map = new Map<string, { total: number; published: number }>();
+    if (!this.prisma.product?.groupBy) return map;
+    const rows = await this.prisma.product.groupBy({
+      by: ['brandId', 'isPublished'],
+      where: { archivedAt: null },
+      _count: { _all: true },
+    });
+    for (const row of rows) {
+      const current = map.get(row.brandId) ?? { total: 0, published: 0 };
+      const count = row._count._all;
+      current.total += count;
+      if (row.isPublished) current.published += count;
+      map.set(row.brandId, current);
+    }
+    return map;
+  }
+
   async getBrands(includeInactive = false): Promise<BrandSummary[]> {
-    const brands = await this.prisma.brand.findMany({
-      where: includeInactive ? {} : { isActive: true },
-      include: {
-        productLines: {
-          where: includeInactive ? {} : { isActive: true },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            description: true,
-            imageUrl: true,
-            imageMetadata: true,
-            isActive: true,
+    const [brands, countMap] = await Promise.all([
+      this.prisma.brand.findMany({
+        where: includeInactive ? {} : { isActive: true },
+        include: {
+          productLines: {
+            where: includeInactive ? {} : { isActive: true },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              description: true,
+              imageUrl: true,
+              imageMetadata: true,
+              isActive: true,
+            },
           },
         },
-      },
-      orderBy: { name: 'asc' },
-    });
+        orderBy: { name: 'asc' },
+      }),
+      this.getBrandProductCounts(),
+    ]);
 
-    return brands.map((b) => ({
-      id: b.id,
-      name: b.name,
-      slug: b.slug,
-      description: b.description,
-      logoUrl: b.logoUrl,
-      logoMetadata: b.logoMetadata,
-      websiteUrl: b.websiteUrl,
-      countryOfOrigin: b.countryOfOrigin,
-      isActive: b.isActive,
-      productLines: b.productLines,
-    }));
+    return brands.map((b) => {
+      const counts = countMap.get(b.id) ?? { total: 0, published: 0 };
+      return {
+        id: b.id,
+        name: b.name,
+        slug: b.slug,
+        description: b.description,
+        logoUrl: b.logoUrl,
+        logoMetadata: b.logoMetadata,
+        websiteUrl: b.websiteUrl,
+        countryOfOrigin: b.countryOfOrigin,
+        isActive: b.isActive,
+        aliases: extractBrandAliases(b.profile),
+        productCount: counts.total,
+        publishedProductCount: counts.published,
+        productLines: b.productLines,
+      };
+    });
   }
 
   async getBrand(slugOrId: string): Promise<BrandDetail | null> {
@@ -117,6 +184,15 @@ export class BrandService {
 
     if (!brand) return null;
 
+    const [totalCount, publishedCount] = this.prisma.product?.count
+      ? await Promise.all([
+          this.prisma.product.count({ where: { brandId: brand.id, archivedAt: null } }),
+          this.prisma.product.count({
+            where: { brandId: brand.id, archivedAt: null, isPublished: true },
+          }),
+        ])
+      : [brand.products.length, brand.products.length];
+
     return {
       id: brand.id,
       name: brand.name,
@@ -127,6 +203,9 @@ export class BrandService {
       websiteUrl: brand.websiteUrl,
       countryOfOrigin: brand.countryOfOrigin,
       isActive: brand.isActive,
+      aliases: extractBrandAliases(brand.profile),
+      productCount: totalCount,
+      publishedProductCount: publishedCount,
       productLines: brand.productLines,
       products: brand.products,
     };
@@ -149,6 +228,8 @@ export class BrandService {
       throw new ConflictException(`A brand with slug '${slug}' already exists`);
     }
 
+    const profileData = mergeBrandProfile(undefined, dto.aliases);
+
     const brand = await this.prisma.brand.create({
       data: {
         name: dto.name,
@@ -159,6 +240,7 @@ export class BrandService {
         websiteUrl: dto.websiteUrl ?? null,
         countryOfOrigin: dto.countryOfOrigin ?? null,
         isActive: dto.isActive ?? true,
+        ...(profileData !== undefined && { profile: profileData }),
       },
       include: {
         productLines: true,
@@ -174,6 +256,9 @@ export class BrandService {
       websiteUrl: brand.websiteUrl,
       countryOfOrigin: brand.countryOfOrigin,
       isActive: brand.isActive,
+      aliases: extractBrandAliases(brand.profile),
+      productCount: 0,
+      publishedProductCount: 0,
       productLines: [],
     };
   }
@@ -213,6 +298,8 @@ export class BrandService {
       }
     }
 
+    const profileData = mergeBrandProfile(brand.profile, dto.aliases);
+
     const updated = await this.prisma.brand.update({
       where: { id },
       data: {
@@ -223,6 +310,7 @@ export class BrandService {
         ...(dto.websiteUrl !== undefined && { websiteUrl: dto.websiteUrl }),
         ...(dto.countryOfOrigin !== undefined && { countryOfOrigin: dto.countryOfOrigin }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(profileData !== undefined && { profile: profileData }),
       },
       include: {
         productLines: {
@@ -231,11 +319,22 @@ export class BrandService {
             name: true,
             slug: true,
             description: true,
+            imageUrl: true,
+            imageMetadata: true,
             isActive: true,
           },
         },
       },
     });
+
+    const [totalCount, publishedCount] = this.prisma.product?.count
+      ? await Promise.all([
+          this.prisma.product.count({ where: { brandId: updated.id, archivedAt: null } }),
+          this.prisma.product.count({
+            where: { brandId: updated.id, archivedAt: null, isPublished: true },
+          }),
+        ])
+      : [0, 0];
 
     return {
       id: updated.id,
@@ -243,11 +342,51 @@ export class BrandService {
       slug: updated.slug,
       description: updated.description,
       logoUrl: updated.logoUrl,
+      logoMetadata: updated.logoMetadata,
       websiteUrl: updated.websiteUrl,
       countryOfOrigin: updated.countryOfOrigin,
       isActive: updated.isActive,
+      aliases: extractBrandAliases(updated.profile),
+      productCount: totalCount,
+      publishedProductCount: publishedCount,
       productLines: updated.productLines,
     };
+  }
+
+  async deleteBrand(id: string): Promise<{ deleted: true; id: string }> {
+    const brand = await this.prisma.brand.findUnique({
+      where: { id },
+      select: { id: true, name: true },
+    });
+    if (!brand) {
+      throw new NotFoundException(`Brand not found with id: ${id}`);
+    }
+
+    const [productCount, productLineCount] = await Promise.all([
+      this.prisma.product.count({ where: { brandId: id } }),
+      this.prisma.productLine.count({ where: { brandId: id } }),
+    ]);
+
+    if (productCount > 0 || productLineCount > 0) {
+      throw new ConflictException({
+        code: 'BRAND_HAS_DEPENDENCIES',
+        message: `Cannot delete brand '${brand.name}' because it has ${productCount} linked products and ${productLineCount} product lines. Deactivate it or remove dependencies first.`,
+        productCount,
+        productLineCount,
+      });
+    }
+
+    const policyRefs = await findPolicyReferences(this.prisma, { brandId: id });
+    if (policyRefs.length > 0) {
+      throw new ConflictException({
+        code: 'BRAND_IN_ALLOWLIST_POLICY',
+        message: `Cannot delete brand '${brand.name}' because the current Allowlist policy has a rule for it (${policyRefs.join(', ')}). Remove the rule and save a new policy version first.`,
+        policyReferences: policyRefs,
+      });
+    }
+
+    await this.prisma.brand.delete({ where: { id } });
+    return { deleted: true, id };
   }
 
   // ---------------------------------------------------------------------------
@@ -391,5 +530,29 @@ export class BrandService {
       imageMetadata: updated.imageMetadata,
       isActive: updated.isActive,
     };
+  }
+
+  async deleteProductLine(id: string): Promise<{ deleted: true; id: string }> {
+    const line = await this.prisma.productLine.findUnique({
+      where: { id },
+      select: { id: true, name: true },
+    });
+    if (!line) {
+      throw new NotFoundException(`Product line not found with id: ${id}`);
+    }
+
+    const productCount = await this.prisma.product.count({
+      where: { productLineId: id },
+    });
+    if (productCount > 0) {
+      throw new ConflictException({
+        code: 'PRODUCT_LINE_HAS_PRODUCTS',
+        message: `Cannot delete product line '${line.name}' because ${productCount} products reference it.`,
+        productCount,
+      });
+    }
+
+    await this.prisma.productLine.delete({ where: { id } });
+    return { deleted: true, id };
   }
 }

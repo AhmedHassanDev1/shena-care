@@ -6,6 +6,7 @@ import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
 import { FlushRfqBatchDto, getSourcingMode, ListRfqsQueryDto, RespondToRfqDto, RfqService } from '../../../modules/sourcing/public';
+import { CatalogService } from '../../../modules/catalog/public';
 import { page } from '../../../platform/api/paging.dto';
 
 type RequestUser = { id: string; roles?: string[]; supplierId?: string | null };
@@ -20,7 +21,7 @@ const POLL_MS = 2_000;
 @Controller('rfq')
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 export class RfqController {
-  constructor(private readonly rfq: RfqService) {}
+  constructor(private readonly rfq: RfqService, private readonly catalog: CatalogService) {}
 
   private supplierOf(user: RequestUser): string {
     if (!user.roles?.includes('SUPPLIER') || !user.supplierId) throw new ForbiddenException('A linked supplier account is required');
@@ -59,8 +60,11 @@ export class RfqController {
   @Get('staff/:id')
   @Roles('ADMIN', 'HUB_OPERATOR')
   @RequirePermissions('sourcing.manage')
-  staffDetail(@Param('id', ParseUUIDPipe) id: string) {
-    return this.rfq.getStaffDetail(id);
+  async staffDetail(@Param('id', ParseUUIDPipe) id: string) {
+    const detail = await this.rfq.getStaffDetail(id);
+    // Staff-only read: name each demand line (product, variant, code) so people can act on it.
+    const labels = await this.catalog.getSkuLabels(detail.lines.map((line) => line.skuId));
+    return { ...detail, lines: detail.lines.map((line) => ({ ...line, sku: labels.get(line.skuId) ?? null })) };
   }
 
   @Get('mine')

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -73,6 +74,15 @@ export class BrandController {
     return this.brandService.updateProductLine(id, dto);
   }
 
+  // DELETE /brands/product-lines/:id
+  // حذف خط إنتاج غير مرتبط بمنتجات
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @Delete('product-lines/:id')
+  async deleteProductLine(@Param('id') id: string) {
+    return this.brandService.deleteProductLine(id);
+  }
+
   // GET /brands/:brandId/product-lines
   // جلب كل خطوط الإنتاج التابعة لماركة معينة
   @Get(':brandId/product-lines')
@@ -114,5 +124,14 @@ export class BrandController {
     @Body() dto: UpdateBrandDto,
   ) {
     return this.brandService.updateBrand(id, dto);
+  }
+
+  // DELETE /brands/:id
+  // حذف ماركة غير مرتبطة بمنتجات أو خطوط إنتاج
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @Delete(':id')
+  async deleteBrand(@Param('id') id: string) {
+    return this.brandService.deleteBrand(id);
   }
 }
