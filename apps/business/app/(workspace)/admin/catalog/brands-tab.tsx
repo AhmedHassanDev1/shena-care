@@ -28,6 +28,16 @@ import {
 import { LoadError } from '@/components/workspace/role-shell'
 import { BrandLine, BrandSummary, CatalogThumbnail } from './catalog-utils'
 
+/** Only http(s) links are ever rendered or saved as a website; anything else (javascript:, data:) is dropped. */
+function safeWebsiteUrl(value: string | null | undefined): string | null {
+  try {
+    const parsed = new URL(value ?? '')
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : null
+  } catch {
+    return null
+  }
+}
+
 export function BrandsTab({
   brands,
   loading,
@@ -125,6 +135,10 @@ export function BrandsTab({
       setActionError('اسم الماركة يجب أن يكون حرفين على الأقل.')
       return
     }
+    if (websiteUrl.trim() && !safeWebsiteUrl(websiteUrl.trim())) {
+      setActionError('الموقع الرسمي يجب أن يبدأ بـ http:// أو https://')
+      return
+    }
     const aliases = aliasesInput
       .split(/[,،\n]+/)
       .map((s) => s.trim())
@@ -135,7 +149,7 @@ export function BrandsTab({
       ...(slug.trim() ? { slug: slug.trim().toLowerCase() } : {}),
       ...(description.trim() ? { description: description.trim() } : { description: '' }),
       ...(logoUrl.trim() ? { logoUrl: logoUrl.trim() } : {}),
-      ...(websiteUrl.trim() ? { websiteUrl: websiteUrl.trim() } : {}),
+      ...(websiteUrl.trim() ? { websiteUrl: safeWebsiteUrl(websiteUrl.trim()) ?? undefined } : {}),
       ...(country.trim() ? { countryOfOrigin: country.trim() } : {}),
       isActive,
       aliases,
@@ -346,11 +360,11 @@ export function BrandsTab({
                         <div className="flex flex-wrap items-center gap-2 text-[11px] text-bw-ink-subtle">
                           <Code>{brand.slug}</Code>
                           {brand.countryOfOrigin ? <span>· {brand.countryOfOrigin}</span> : null}
-                          {brand.websiteUrl ? (
+                          {safeWebsiteUrl(brand.websiteUrl) ? (
                             <a
-                              href={brand.websiteUrl}
+                              href={safeWebsiteUrl(brand.websiteUrl) ?? undefined}
                               target="_blank"
-                              rel="noreferrer"
+                              rel="noopener noreferrer"
                               className="inline-flex items-center gap-0.5 text-bw-cobalt hover:underline"
                             >
                               الموقع
