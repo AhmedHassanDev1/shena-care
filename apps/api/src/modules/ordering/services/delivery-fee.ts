@@ -1,5 +1,6 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import { getDeliveryHubCoordinates } from './service-area';
+import { runtimeSetting, SETTING_KEYS } from '../../../platform/settings/runtime-settings';
 
 /**
  * Customer delivery fee policy (owner decision 2026-10-25): the base fee grows with the straight-line distance from
@@ -30,8 +31,16 @@ const notConfigured = (): never => {
 };
 const money = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0 && Math.round(value * 100) === value * 100;
 
-/** Reads DELIVERY_FEE_POLICY; an invalid value fails closed (no quote) rather than charging a guessed amount. */
-export function loadDeliveryFeePolicy(raw = process.env.DELIVERY_FEE_POLICY): DeliveryFeePolicy {
+/**
+ * Reads the Admin-saved policy (Settings → Commerce) when there is one, otherwise DELIVERY_FEE_POLICY; an invalid value fails closed
+ * (no quote) rather than charging a guessed amount. A policy saved through Settings was validated by this same function before storing.
+ */
+export function loadDeliveryFeePolicy(raw?: string): DeliveryFeePolicy {
+  if (raw === undefined) {
+    const saved = runtimeSetting<DeliveryFeePolicy>(SETTING_KEYS.deliveryPolicy);
+    if (saved) return saved;
+    raw = process.env.DELIVERY_FEE_POLICY;
+  }
   if (raw === undefined || raw.trim() === '') return DEFAULT_DELIVERY_FEE_POLICY;
   let policy: DeliveryFeePolicy;
   try { policy = JSON.parse(raw); } catch { return notConfigured(); }

@@ -14,6 +14,17 @@ export class RegisterDto {
   password: string;
 }
 
+export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  currentPassword: string;
+
+  @IsString()
+  @MinLength(10)
+  @MaxLength(72)
+  newPassword: string;
+}
+
 export class LoginDto {
   @IsEmail()
   email: string;

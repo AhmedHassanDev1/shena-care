@@ -3552,6 +3552,60 @@ model AccountingExportJob {
   @@schema("operations")
 }
 
+/// Operating expense recorded by an Admin (rent, marketing, packaging stock, courier payouts...). Never edited after the fact: a wrong
+/// entry is voided with a reason and re-entered, so the ledger keeps its history. A recurring expense repeats from `incurredOn` until
+/// `endsOn` (or forever) and is expanded when a period is reported.
+model FinanceExpense {
+  id          String    @id @default(uuid()) @db.Uuid
+  category    String    @db.VarChar(32)
+  description String
+  amount      Decimal   @db.Decimal(10, 2)
+  currency    String    @default("EGP") @db.VarChar(3)
+  incurredOn  DateTime  @map("incurred_on") @db.Date
+  /// NONE | WEEKLY | MONTHLY
+  recurrence  String    @default("NONE") @db.VarChar(10)
+  endsOn      DateTime? @map("ends_on") @db.Date
+  recordedBy  String    @map("recorded_by")
+  voidedAt    DateTime? @map("voided_at")
+  voidedBy    String?   @map("voided_by")
+  voidReason  String?   @map("void_reason")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([incurredOn])
+  @@map("finance_expenses")
+  @@schema("operations")
+}
+
+/// An operational setting an Admin changed in the Business workspace. The row overrides the deployment default (environment variable
+/// or built-in value) for that key; deleting the row restores the default. Values are validated against the typed registry in
+/// `platform/settings` before they are stored.
+model AppSetting {
+  key       String   @id @db.VarChar(80)
+  value     Json
+  version   Int      @default(1)
+  updatedBy String   @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+  @@schema("operations")
+}
+
+/// Append-only history of every setting change (who, when, from what to what).
+model AppSettingChange {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @db.VarChar(80)
+  previous  Json?
+  current   Json?
+  actorId   String   @map("actor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([key, createdAt])
+  @@index([createdAt])
+  @@map("app_setting_changes")
+  @@schema("operations")
+}
+
 // ---------------------------------------------------------------------------
 // Canonical-SKU research (GLO-121): evidence and proposals only. Catalog changes happen one reviewed fact at a time through Catalog's services.
 // ---------------------------------------------------------------------------

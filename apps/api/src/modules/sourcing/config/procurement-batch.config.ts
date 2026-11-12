@@ -3,6 +3,8 @@
  * Approved provisional operating policy for Supplier Purchase Order batching.
  */
 
+import { runtimeSetting, SETTING_KEYS } from '../../../platform/settings/runtime-settings';
+
 export const DEFAULT_BATCH_INTERVAL_MINUTES = 180; // 3 hours
 export const DEFAULT_DISPATCH_CHECKPOINTS = ['09:00', '12:00', '15:00', '18:00', '21:00', '00:00'];
 export const DEFAULT_SUPPLIER_OPENS_AT = '09:00';
@@ -18,6 +20,9 @@ export const DEFAULT_SCHEDULE_TIME_ZONE = 'Africa/Cairo';
 export type SourcingMode = 'BROADCAST_ON_DEMAND' | 'OFFER_BASED';
 
 export function getSourcingMode(env: NodeJS.ProcessEnv = process.env): SourcingMode {
+  // The mode an Admin saved in Settings → Operations wins over the deployment variable (callers passing their own env are unaffected).
+  const saved = env === process.env ? runtimeSetting<SourcingMode>(SETTING_KEYS.sourcingMode) : undefined;
+  if (saved === 'BROADCAST_ON_DEMAND' || saved === 'OFFER_BASED') return saved;
   const value = env.SOURCING_MODE?.trim();
   if (!value) return 'OFFER_BASED';
   if (value === 'BROADCAST_ON_DEMAND' || value === 'OFFER_BASED') return value;

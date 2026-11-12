@@ -1,6 +1,7 @@
 import { CUSTOMER_PHONE_VERIFIED_EVENT, CustomerPhoneVerifiedEvent } from '../../accounts/public';
 import { OnEvent } from '@nestjs/event-emitter';
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, ServiceUnavailableException, UnauthorizedException, UnprocessableEntityException } from '@nestjs/common';
+import { runtimeSetting, SETTING_KEYS } from '../../../platform/settings/runtime-settings';
 import { createHash, createHmac, randomUUID } from 'crypto';
 import { OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
@@ -280,6 +281,13 @@ export class OrderingService {
     serviceGovernorate(dto.governorate);
     assertDeliverablePin(dto);
     const paymentMethod = (dto.paymentMethod ?? 'COD') as PaymentMethod;
+    // Operational switches an Admin controls in Settings (new orders paused, cash on delivery switched off).
+    if (runtimeSetting<boolean>(SETTING_KEYS.checkoutEnabled) === false) {
+      throw new ServiceUnavailableException({ code: 'CHECKOUT_PAUSED', message: 'New orders are paused for a short while. Please try again later.' });
+    }
+    if (paymentMethod === PaymentMethod.COD && runtimeSetting<boolean>(SETTING_KEYS.codEnabled) === false) {
+      throw new UnprocessableEntityException({ code: 'COD_UNAVAILABLE', message: 'Cash on delivery is not available right now.' });
+    }
     const paymentProvider = this.payments.resolveProvider(paymentMethod, dto.paymentProvider);
     const online = PaymentsService.isOnline(paymentMethod);
 

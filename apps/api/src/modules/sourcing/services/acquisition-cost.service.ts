@@ -282,4 +282,55 @@ export class AcquisitionCostService {
     const sum = (key: 'actualCogs' | 'contribution') => complete ? rows.reduce((total, row) => total.plus(row[key]!), new Prisma.Decimal(0)).toFixed(2) : null;
     return { orderId, currency: EGP, basis: 'ITEM_NET_LESS_INVOICE_COST', complete, actualCogs: sum('actualCogs'), contribution: sum('contribution'), items: rows };
   }
+
+  /**
+   * Finance reporting: the same basis as `orderContribution` for many orders in two queries (active lines only). An order is `complete` only when
+   * every active line has received units whose invoice cost is captured; otherwise it carries no cogs and no contribution, and nothing estimates it.
+   */
+  async contributionForOrders(orderIds: string[]): Promise<Map<string, OrderCostSummary>> {
+    const result = new Map<string, OrderCostSummary>();
+    for (let offset = 0; offset < orderIds.length; offset += 500) {
+      const chunk = orderIds.slice(offset, offset + 500);
+      const [items, links] = await Promise.all([
+        this.prisma.orderItem.findMany({ where: { orderId: { in: chunk }, lineState: 'active' }, select: { id: true, orderId: true, quantity: true, price: true, discountAmount: true, lineTotal: true } }),
+        this.prisma.purchaseOrderLineAllocation.findMany({ where: { orderId: { in: chunk } }, include: { line: { include: { allocations: true, costLots: true } } } }),
+      ]);
+      for (const orderId of chunk) {
+        const orderItems = items.filter(item => item.orderId === orderId);
+        let cogs = new Prisma.Decimal(0);
+        let revenue = new Prisma.Decimal(0);
+        let pendingLines = 0;
+        let notReceivedLines = 0;
+        for (const item of orderItems) {
+          const related = links.filter(link => link.orderItemId === item.id);
+          const received = related.reduce((sum, link) => sum + link.receivedQuantity, 0);
+          if (received === 0) { notReceivedLines++; continue; }
+          let linePending = false;
+          for (const link of related) {
+            if (link.receivedQuantity === 0) continue;
+            const summary = summarizeLineCost(link.line);
+            if (summary.status === 'COST_PENDING') { linePending = true; continue; }
+            cogs = cogs.plus(summary.capturedValue.mul(link.receivedQuantity).div(summary.received));
+          }
+          if (linePending) pendingLines++;
+          revenue = revenue.plus(this.unitNetPrice(item).mul(received));
+        }
+        const complete = orderItems.length > 0 && pendingLines === 0 && notReceivedLines === 0;
+        result.set(orderId, {
+          complete, pendingLines, notReceivedLines,
+          actualCogs: complete ? cogs : null, contribution: complete ? revenue.minus(cogs) : null, revenueOfReceived: revenue,
+        });
+      }
+    }
+    return result;
+  }
+}
+
+export interface OrderCostSummary {
+  complete: boolean;
+  pendingLines: number;
+  notReceivedLines: number;
+  actualCogs: Prisma.Decimal | null;
+  contribution: Prisma.Decimal | null;
+  revenueOfReceived: Prisma.Decimal;
 }

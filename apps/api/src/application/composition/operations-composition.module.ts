@@ -12,6 +12,8 @@ import { CashSettlementController } from './controllers/cash-settlement.controll
 import { OrderCancellationController } from './controllers/order-cancellation.controller';
 import { OperationsQueueController } from './controllers/operations-queue.controller';
 import { OrderCancellationService } from './services/order-cancellation.service';
+import { FinanceController } from './controllers/finance.controller';
+import { FinanceReportService } from './services/finance-report.service';
 
 /**
  * Cross-module operational HTTP endpoints (GLO-238+): composes Ordering facts with Fulfillment
@@ -19,7 +21,7 @@ import { OrderCancellationService } from './services/order-cancellation.service'
  */
 @Module({
   imports: [OrderingModule, FulfillmentModule, SourcingModule, OperationsModule, AccountsModule, CatalogModule],
-  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController],
-  providers: [OrderCancellationService],
+  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController, FinanceController],
+  providers: [OrderCancellationService, FinanceReportService],
 })
 export class OperationsCompositionModule {}

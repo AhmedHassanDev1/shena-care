@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Get, Patch, UseGuards, Req, Delete } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
-import { RegisterDto, LoginDto, SendOtpDto, VerifyOtpDto, UpdateProfileDto } from './dto/accounts.dto';
+import { RegisterDto, LoginDto, SendOtpDto, VerifyOtpDto, UpdateProfileDto, ChangePasswordDto } from './dto/accounts.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
@@ -32,6 +32,18 @@ export class AccountsController {
   @UseGuards(AuthGuard)
   logout(@Req() request: any) {
     return this.accountsService.logout(request.sessionToken);
+  }
+
+  @Post('me/password')
+  @UseGuards(AuthGuard)
+  changePassword(@CurrentUser() user: { id: string }, @Req() request: any, @Body() dto: ChangePasswordDto) {
+    return this.accountsService.changePassword(user.id, request.sessionToken, dto.currentPassword, dto.newPassword);
+  }
+
+  @Post('me/sessions/revoke-others')
+  @UseGuards(AuthGuard)
+  revokeOtherSessions(@CurrentUser() user: { id: string }, @Req() request: any) {
+    return this.accountsService.revokeOtherSessions(user.id, request.sessionToken);
   }
 
   @Get('me')

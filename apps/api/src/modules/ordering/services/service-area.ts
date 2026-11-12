@@ -1,4 +1,5 @@
 import { UnprocessableEntityException } from '@nestjs/common';
+import { runtimeSetting, SETTING_KEYS } from '../../../platform/settings/runtime-settings';
 
 /**
  * Delivery service area (GLO-231 owner decision, 14 Oct): COD delivery in Cairo and Giza only, to a
@@ -27,9 +28,17 @@ const fail = (code: string, message: string): never => {
   throw new UnprocessableEntityException({ code, message });
 };
 
+/** Governorates the pin box and hub can serve; Settings → Commerce may switch one of them off, never add another. */
+export const SUPPORTED_GOVERNORATES = ['Cairo', 'Giza'] as const;
+
 export function serviceGovernorate(governorate: string): 'Cairo' | 'Giza' {
-  return GOVERNORATES[governorate.trim().toLowerCase()] ??
+  const resolved = GOVERNORATES[governorate.trim().toLowerCase()] ??
     fail('OUT_OF_SERVICE_AREA', 'Delivery is available in Cairo and Giza only.');
+  const enabled = runtimeSetting<string[]>(SETTING_KEYS.deliveryAreas);
+  if (enabled && !enabled.includes(resolved)) {
+    fail('OUT_OF_SERVICE_AREA', `Delivery to ${resolved} is paused at the moment.`);
+  }
+  return resolved;
 }
 
 export function assertDeliverablePin(pin: { latitude?: number | null; longitude?: number | null }): void {

@@ -1,6 +1,6 @@
 import { Controller, Get, Patch, Post, Param, Body, UseGuards, Query } from '@nestjs/common';
 import { StaffManagementService } from '../services/staff-management.service';
-import { SetStaffStatusDto, UpdateStaffRolesDto } from '../dto/staff-management.dto';
+import { CreateStaffDto, ResetStaffPasswordDto, SetStaffStatusDto, UpdateStaffProfileDto, UpdateStaffRolesDto } from '../dto/staff-management.dto';
 import { AuthGuard } from '../guards/auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -19,9 +19,24 @@ export class StaffManagementController {
     return this.staffManagementService.listStaff({ role, isActive: activeFilter });
   }
 
+  @Post()
+  createStaff(@Body() dto: CreateStaffDto, @CurrentUser() user: { id: string }) {
+    return this.staffManagementService.createStaff(dto, user.id);
+  }
+
   @Get(':id')
   getStaffById(@Param('id') id: string) {
     return this.staffManagementService.getStaffById(id);
+  }
+
+  @Patch(':id')
+  updateProfile(@Param('id') id: string, @Body() dto: UpdateStaffProfileDto, @CurrentUser() user: { id: string }) {
+    return this.staffManagementService.updateProfile(id, dto, user.id);
+  }
+
+  @Post(':id/reset-password')
+  resetPassword(@Param('id') id: string, @Body() dto: ResetStaffPasswordDto, @CurrentUser() user: { id: string }) {
+    return this.staffManagementService.resetPassword(id, dto.password, user.id);
   }
 
   @Patch(':id/status')

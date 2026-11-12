@@ -333,6 +333,32 @@ export class AccountsService {
     return { success: true };
   }
 
+  /** Change the signed-in user's own password; every other session is signed out, the current one stays. */
+  async changePassword(customerId: string, currentSessionToken: string, currentPassword: string, newPassword: string) {
+    const identity = await this.prisma.identity.findFirst({ where: { customerId, provider: 'EMAIL' } });
+    if (!identity?.passwordHash || !(await this.verifyPassword(currentPassword, identity.passwordHash))) {
+      throw new UnauthorizedException({ code: 'CURRENT_PASSWORD_INCORRECT', message: 'The current password is incorrect.' });
+    }
+    if (await this.verifyPassword(newPassword, identity.passwordHash)) {
+      throw new BadRequestException({ code: 'PASSWORD_UNCHANGED', message: 'Choose a password different from the current one.' });
+    }
+    const passwordHash = await this.hashPassword(newPassword);
+    await this.prisma.$transaction([
+      this.prisma.identity.update({ where: { id: identity.id }, data: { passwordHash } }),
+      this.prisma.session.updateMany({ where: { customerId, isValid: true, token: { not: currentSessionToken } }, data: { isValid: false } }),
+    ]);
+    return { success: true };
+  }
+
+  /** Sign the user out everywhere except the device they are using. */
+  async revokeOtherSessions(customerId: string, currentSessionToken: string) {
+    const result = await this.prisma.session.updateMany({
+      where: { customerId, isValid: true, token: { not: currentSessionToken } },
+      data: { isValid: false },
+    });
+    return { success: true, revokedSessionsCount: result.count };
+  }
+
   /**
    * The signed-in customer's own profile. `phoneNumber` is the verified sign-in number (E.164) so checkout can offer
    * it as the recipient's; `name` is null until the customer gives one (phone sign-up stores a placeholder).
