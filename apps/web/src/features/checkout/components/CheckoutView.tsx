@@ -31,7 +31,7 @@ import {
   toGovernorate,
   type NewAddressDraft,
 } from '../lib/checkout-draft';
-import { isDefaultCentre, isInsideServiceArea } from '../lib/service-area';
+import { isDeliverablePin, saveConfirmedPin } from '../lib/checkout-location';
 import {
   AddressSection,
   DeliverySection,
@@ -158,22 +158,26 @@ export function CheckoutView() {
   const selectedPin = selected ? (selected.id in pins ? pins[selected.id] : pinOf(selected)) : null;
   const deliverable = Boolean(
     selected &&
-      selectedPin?.confirmed &&
-      toGovernorate(selected.governorate) &&
-      isInsideServiceArea(selectedPin.latitude, selectedPin.longitude) &&
-      !isDefaultCentre(selectedPin.latitude, selectedPin.longitude)
+      isDeliverablePin(selectedPin) &&
+      toGovernorate(selected.governorate)
   );
 
   const onSavedPinChange = async (next: LocationPin | null) => {
     if (!selected) return;
-    setPins((current) => ({ ...current, [selected.id]: next }));
+    const addressId = selected.id;
+    setPins((current) => ({ ...current, [addressId]: next?.confirmed ? null : next }));
     setPinError(undefined);
-    // A confirmed move is saved on the address itself, so the next order starts from the right door.
+    // A moved pin cannot be quoted or ordered until the address API persists it.
     if (next?.confirmed) {
+      if (!isDeliverablePin(next)) {
+        setPinError(m.checkoutOutOfArea);
+        return;
+      }
       try {
-        await updateAddress({ id: selected.id, data: { latitude: next.latitude, longitude: next.longitude, locationSource: next.locationSource } });
+        await saveConfirmedPin(addressId, next, updateAddress);
+        setPins((current) => ({ ...current, [addressId]: next }));
       } catch {
-        // The order still uses the confirmed pin; the address book keeps its previous one.
+        setPinError(m.checkoutPinSaveFailed);
       }
     }
   };
@@ -198,6 +202,7 @@ export function CheckoutView() {
     if (!draftAddress.area.trim()) errors.area = m.checkoutRequired;
     if (!draftAddress.shippingAddress.trim()) errors.shippingAddress = m.checkoutRequired;
     if (!draftAddress.pin?.confirmed) errors.pin = m.checkoutPinMissing;
+    else if (!isDeliverablePin(draftAddress.pin)) errors.pin = m.checkoutOutOfArea;
     setAddressErrors(errors);
     const recipientOk = validateRecipient();
     if (!recipientOk) return;

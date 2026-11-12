@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { MessageBox } from '@/components/ui/message-box';
 import { MapboxMap } from '@/components/map';
-import { useMessages } from '@/lib/i18n/LocaleProvider';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
+import { searchDeliveryLocations, type LocationSuggestion } from '../lib/checkout-location';
 import {
   SERVICE_AREA_BOUNDS,
   DEFAULT_MAP_CENTRES,
@@ -61,6 +62,8 @@ const FALLBACK_CENTRE = { lat: 30.0386, lng: 31.2122 };
  */
 export function DeliveryLocationPicker({ value, onChange, error, onChooseOther, initialCenter, className }: DeliveryLocationPickerProps) {
   const m = useMessages();
+  const locale = useLocale();
+  const searchId = useId();
   const [center, setCenter] = useState(() =>
     value ? { lat: value.latitude, lng: value.longitude } : initialCenter ?? FALLBACK_CENTRE
   );
@@ -70,6 +73,11 @@ export function DeliveryLocationPicker({ value, onChange, error, onChooseOther, 
   const [locating, setLocating] = useState(false);
   const [locateError, setLocateError] = useState<string | null>(null);
   const [mapboxFailed, setMapboxFailed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<LocationSuggestion[]>([]);
+  const [searchedQuery, setSearchedQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [searchFailed, setSearchFailed] = useState(false);
   const useMapbox = Boolean(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim()) && !mapboxFailed;
 
   // The picker's own emissions come back through `value` and must not re-centre the map under the finger.
@@ -96,6 +104,43 @@ export function DeliveryLocationPicker({ value, onChange, error, onChooseOther, 
   useEffect(() => {
     if (!pin && initialCenter) setCenter(initialCenter);
   }, [initialCenter?.lat, initialCenter?.lng]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query || !editing) {
+      setSearchResults([]);
+      setSearchedQuery('');
+      setSearchFailed(false);
+      setSearching(false);
+      return;
+    }
+    const abort = new AbortController();
+    const timer = window.setTimeout(() => {
+      setSearching(true);
+      void searchDeliveryLocations(query, {
+        locale,
+        token: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN,
+        signal: abort.signal,
+      }).then((result) => {
+        if (abort.signal.aborted) return;
+        setSearchResults(result.items);
+        setSearchedQuery(query);
+        setSearchFailed(result.providerFailed);
+      }).catch(() => {
+        if (!abort.signal.aborted) {
+          setSearchResults([]);
+          setSearchedQuery(query);
+          setSearchFailed(true);
+        }
+      }).finally(() => {
+        if (!abort.signal.aborted) setSearching(false);
+      });
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+      abort.abort();
+    };
+  }, [searchQuery, editing, locale]);
 
   const place = useCallback(
     (lat: number, lng: number, source: LocationPin['locationSource'] = 'map_pin') => {
@@ -150,6 +195,51 @@ export function DeliveryLocationPicker({ value, onChange, error, onChooseOther, 
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>
+      {!showConfirmed ? (
+        <div className="flex flex-col gap-2">
+          <label htmlFor={searchId} className="text-13.5 font-semibold text-ink">{m.checkoutLocationSearchLabel}</label>
+          <input
+            id={searchId}
+            type="search"
+            value={searchQuery}
+            onChange={(event) => {
+              setSearchQuery(event.target.value);
+              setSearchResults([]);
+              setSearchedQuery('');
+              setSearchFailed(false);
+            }}
+            placeholder={m.checkoutLocationSearchHint}
+            autoComplete="off"
+            className="min-h-control-s rounded-input bg-linen px-3 text-14 text-ink shadow-outline-control"
+          />
+          {searching ? <p role="status" className="m-0 text-13 text-stone">{m.checkoutLocationSearching}</p> : null}
+          {searchFailed ? <p role="alert" className="m-0 text-13 text-tomato-ink">{m.checkoutLocationSearchFailed}</p> : null}
+          {searchedQuery && searchedQuery === searchQuery.trim() && !searching && !searchFailed && !searchResults.length ? (
+            <p role="status" className="m-0 text-13 text-stone">{m.checkoutLocationNoResults}</p>
+          ) : null}
+          {searchResults.length ? (
+            <ul className="m-0 max-h-48 list-none overflow-auto rounded-input bg-linen p-1 shadow-outline-control">
+              {searchResults.map((result) => (
+                <li key={result.id}>
+                  <button
+                    type="button"
+                    disabled={!result.deliverable}
+                    onClick={() => {
+                      setCenter({ lat: result.latitude, lng: result.longitude });
+                      setZoom(16);
+                      place(result.latitude, result.longitude);
+                      setSearchQuery('');
+                    }}
+                    className="w-full rounded-input px-2 py-2 text-start text-13.5 text-ink hover:bg-sand disabled:cursor-not-allowed disabled:text-stone"
+                  >
+                    {result.name}{result.deliverable ? '' : ` — ${m.checkoutOutOfArea}`}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
       {/* mapbox-gl sets .mapboxgl-map { height: 100% }, so the wrapper carries the height. */}
       <div className={cn('relative', useMapbox && 'h-56')}>
         {useMapbox ? (
