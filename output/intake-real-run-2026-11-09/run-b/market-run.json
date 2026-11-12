@@ -1,0 +1,801 @@
+[
+  {
+    "sku": "CeraVe Hydrating Cleanser",
+    "ms": 11283,
+    "cost": {
+      "searches": 2,
+      "pageFetches": 10
+    },
+    "status": "REFERENCE_READY",
+    "reasonCode": null,
+    "reference": {
+      "minEgp": 634,
+      "medianEgp": 634,
+      "maxEgp": 634,
+      "regularMedianEgp": null,
+      "sellers": 1,
+      "observations": 2,
+      "excluded": [],
+      "freshestAt": "2026-11-09T14:04:53.971Z"
+    },
+    "coverage": {
+      "REUSED": {
+        "pages": 0,
+        "accepted": 0,
+        "rejected": {}
+      },
+      "OFFICIAL": {
+        "pages": 1,
+        "accepted": 0,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 1
+        }
+      },
+      "DISCOVERED": {
+        "pages": 1,
+        "accepted": 0,
+        "rejected": {
+          "FETCH_RATE_LIMITED": 1
+        }
+      },
+      "TRUSTED_RETAILER": {
+        "pages": 8,
+        "accepted": 2,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 4,
+          "PAGE_IS_ANOTHER_PRODUCT": 2
+        }
+      }
+    },
+    "pricing": {
+      "state": "READY_FOR_PRICING_DECISION",
+      "purchaseCost": 712,
+      "supplierConsumerPrice": 890,
+      "suppliers": 1,
+      "note": "Commerce owns the selling price: an Admin approves it; nothing is copied or published automatically"
+    },
+    "observations": [
+      {
+        "seller": "elghazawy.com",
+        "price": 960,
+        "regular": null,
+        "status": "REJECTED",
+        "reason": "PAGE_IS_ANOTHER_PRODUCT",
+        "pack": "Cerave Hyaluronic Acid & Ceramides Face Wash for normal to dry skin - 473ml",
+        "url": "https://elghazawy.com/en/product/38074270231815/CERAVE+Hydrating+Cleanser+Cream+473ml"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 618,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave Hydrating Cleanser For Normal To Dry Skin With Hyaluronic Acid 236ml",
+        "url": "https://www.jumia.com.eg/cerave-hydrating-cleanser-for-normal-to-dry-skin-with-hyaluronic-acid-236ml-133949061.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 650,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave CeraVe, Hydrating Cleanser, For Normal To Dry Skin, Cleanses And Hydrates Without Disrupting The Protective Skin Barrier Of The Face And Body",
+        "url": "https://www.jumia.com.eg/cerave-cerave-hydrating-cleanser-for-normal-to-dry-skin-cleanses-and-hydrates-without-disrupting-the-protective-skin-barrier-of-the-face-and-body-with-3-essential-ceramides-and-hyaluronic-acid-fragrance-free-236ml-133564495.html"
+      },
+      {
+        "seller": "elghazawy.com",
+        "price": 650,
+        "regular": null,
+        "status": "REJECTED",
+        "reason": "PAGE_IS_ANOTHER_PRODUCT",
+        "pack": "Cerave Hyaluronic Acid & Ceramides Face Wash for normal to dry skin - 236ml",
+        "url": "https://www.elghazawy.com/en/product/38074270226486/Cerave-Hydrating-Cleanser-236ml"
+      }
+    ]
+  },
+  {
+    "sku": "CeraVe Foaming Cleanser",
+    "ms": 13254,
+    "cost": {
+      "searches": 1,
+      "pageFetches": 9
+    },
+    "status": "REFERENCE_READY",
+    "reasonCode": null,
+    "reference": {
+      "minEgp": 540,
+      "medianEgp": 618,
+      "maxEgp": 630,
+      "regularMedianEgp": null,
+      "sellers": 3,
+      "observations": 5,
+      "excluded": [],
+      "freshestAt": "2026-11-09T14:05:13.107Z"
+    },
+    "coverage": {
+      "REUSED": {
+        "pages": 0,
+        "accepted": 0,
+        "rejected": {}
+      },
+      "OFFICIAL": {
+        "pages": 1,
+        "accepted": 0,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 1
+        }
+      },
+      "TRUSTED_RETAILER": {
+        "pages": 8,
+        "accepted": 5,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 2,
+          "SEVERAL_SIZES_IN_NAME": 1
+        }
+      }
+    },
+    "pricing": {
+      "state": "READY_FOR_PRICING_DECISION",
+      "purchaseCost": 680,
+      "supplierConsumerPrice": 850,
+      "suppliers": 1,
+      "note": "Commerce owns the selling price: an Admin approves it; nothing is copied or published automatically"
+    },
+    "observations": [
+      {
+        "seller": "mainasrpharmacy.com",
+        "price": 630,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave Blemish Control Cleanser Gel – 236ml",
+        "url": "https://mainasrpharmacy.com/products/cerave-blemish-control-cleanser-gel-236ml/"
+      },
+      {
+        "seller": "elghazawy.com",
+        "price": 540,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "CeraVe Foaming Cleanser for Normal to Oily Skin 236 ml",
+        "url": "https://elghazawy.com/en/product/38074270272874/CeraVe-Foaming-Cleanser-for-Normal-to-Oily-Skin-236-ml"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 1280,
+        "regular": null,
+        "status": "REJECTED",
+        "reason": "SEVERAL_SIZES_IN_NAME",
+        "pack": "Cerave Foaming Facial Cleanser (236ml) + Oil Control Moisturising Gel-Cream (52ml) ",
+        "url": "https://www.jumia.com.eg/cerave-foaming-facial-cleanser-236ml-oil-control-moisturising-gel-cream-52ml-134579300.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 620,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave Foaming Cleanser Gel Moussant 236 ML",
+        "url": "https://www.jumia.com.eg/cerave-foaming-cleanser-gel-moussant-236-ml-130126058.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 618,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave Foaming Cleanser For Normal To Oily Skin With Hyaluronic Acid 236ml",
+        "url": "https://www.jumia.com.eg/cerave-foaming-cleanser-for-normal-to-oily-skin-with-hyaluronic-acid-236ml-133996156.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 610,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave Foaming Facial Cleanser 236 Ml",
+        "url": "https://www.jumia.com.eg/foaming-facial-cleanser-236-ml-cerave-mpg873285.html"
+      }
+    ]
+  },
+  {
+    "sku": "CeraVe Moisturising Cream",
+    "ms": 11552,
+    "cost": {
+      "searches": 1,
+      "pageFetches": 9
+    },
+    "status": "REFERENCE_READY",
+    "reasonCode": null,
+    "reference": {
+      "minEgp": 1050,
+      "medianEgp": 1125,
+      "maxEgp": 1200,
+      "regularMedianEgp": null,
+      "sellers": 2,
+      "observations": 6,
+      "excluded": [],
+      "freshestAt": "2026-11-09T14:05:24.660Z"
+    },
+    "coverage": {
+      "REUSED": {
+        "pages": 0,
+        "accepted": 0,
+        "rejected": {}
+      },
+      "OFFICIAL": {
+        "pages": 1,
+        "accepted": 0,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 1
+        }
+      },
+      "TRUSTED_RETAILER": {
+        "pages": 8,
+        "accepted": 6,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 2
+        }
+      }
+    },
+    "pricing": {
+      "state": "WAIT_FOR_SUPPLIER_COST",
+      "purchaseCost": null,
+      "note": "Market data is kept; no selling price until a validated supplier purchase cost exists"
+    },
+    "observations": [
+      {
+        "seller": "jumia.com.eg",
+        "price": 1040,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave Moisturising Cream Dry To Very Dry 454g",
+        "url": "https://www.jumia.com.eg/cerave-moisturising-cream-dry-to-very-dry-454g-30320272.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 1210,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave Moisturising Cream For Dry To Very Dry Skin 454 G.",
+        "url": "https://www.jumia.com.eg/cerave-moisturising-cream-for-dry-to-very-dry-skin-454-g.-111120778.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 1025,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave CeraVe, Moisturising Cream, For Dry To Very Dry Skin, Moisturises And Helps Restore The Protective Skin Barrier Of The Face And Body, With 3",
+        "url": "https://www.jumia.com.eg/cerave-cerave-moisturising-cream-for-dry-to-very-dry-skin-moisturises-and-helps-restore-the-protective-skin-barrier-of-the-face-and-body-with-3-essential-ceramides-and-hyaluronic-acid-fragrance-free-454g-133565706.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 1200,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave Moisturizing Cream, 16 oz   454 g",
+        "url": "https://www.jumia.com.eg/cerave-moisturizing-cream-16-oz-454-g-135166213.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 1259,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave Moisturizing Cream 454g",
+        "url": "https://www.jumia.com.eg/cerave-moisturizing-cream-454g-25270731.html"
+      },
+      {
+        "seller": "elghazawy.com",
+        "price": 1050,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "CeraVe Moisturizing Cream 454gm",
+        "url": "https://elghazawy.com/en/product/38074270232611/CeraVe+Moisturizing+Cream+454gm"
+      }
+    ]
+  },
+  {
+    "sku": "CeraVe SA Smoothing Cleanser",
+    "ms": 7733,
+    "cost": {
+      "searches": 1,
+      "pageFetches": 9
+    },
+    "status": "REFERENCE_READY",
+    "reasonCode": null,
+    "reference": {
+      "minEgp": 600,
+      "medianEgp": 650,
+      "maxEgp": 700,
+      "regularMedianEgp": 650,
+      "sellers": 3,
+      "observations": 7,
+      "excluded": [],
+      "freshestAt": "2026-11-09T14:05:32.111Z"
+    },
+    "coverage": {
+      "REUSED": {
+        "pages": 0,
+        "accepted": 0,
+        "rejected": {}
+      },
+      "OFFICIAL": {
+        "pages": 1,
+        "accepted": 0,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 1
+        }
+      },
+      "TRUSTED_RETAILER": {
+        "pages": 8,
+        "accepted": 7,
+        "rejected": {
+          "PAGE_IS_ANOTHER_PRODUCT": 1
+        }
+      }
+    },
+    "pricing": {
+      "state": "WAIT_FOR_SUPPLIER_COST",
+      "purchaseCost": null,
+      "note": "Market data is kept; no selling price until a validated supplier purchase cost exists"
+    },
+    "observations": [
+      {
+        "seller": "elghazawy.com",
+        "price": 920,
+        "regular": null,
+        "status": "REJECTED",
+        "reason": "PAGE_IS_ANOTHER_PRODUCT",
+        "pack": "CeraVe SA Smoothing Cleanser, 473 ml",
+        "url": "https://elghazawy.com/en/product/38074270267983/cerave+sa+smoothing+cleanser+473+ml"
+      },
+      {
+        "seller": "elghazawy.com",
+        "price": 600,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "CeraVe SA Smoothing Cleanser, 236 ml",
+        "url": "https://elghazawy.com/en/product/38074270277652/CeraVe+SA+Smoothing+Cleanser+236+ml"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 600,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave ceraave sa smoothing cleanser 236 ml ",
+        "url": "https://www.jumia.com.eg/cerave-ceraave-sa-smoothing-cleanser-236-ml-134920105.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 735,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave CeraVe, SA Smoothing Cleanser, For Dry, Rough, Bumpy Skin, Gently Cleanses While Exfoliating, Without Disrupting The Protective Skin Barrier",
+        "url": "https://www.jumia.com.eg/cerave-cerave-sa-smoothing-cleanser-for-dry-rough-bumpy-skin-gently-cleanses-while-exfoliating-without-disrupting-the-protective-skin-barrier-with-3-essential-ceramides-salicylic-acid-and-hyaluronic-acid-fragrance-free-236ml-133977207.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 864.78,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave SA Smoothing Cleanser For Dry, Rough, Bumpy Skin 236 ml",
+        "url": "https://www.jumia.com.eg/cerave-sa-smoothing-cleanser-for-dry-rough-bumpy-skin-236-ml-133652655.html"
+      },
+      {
+        "seller": "cosmostoreegypt.com",
+        "price": 700,
+        "regular": 820,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "cerave sa smoothing cleanser 236ml",
+        "url": "https://www.cosmostoreegypt.com/shop/cerave-sa-smoothing-cleanser-236ml/"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 399.2,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave  SA Smoothing Cleanser For Dry, Rough And Bumpy Skin With Salicylic Acid 236ml",
+        "url": "https://www.jumia.com.eg/cerave-sa-smoothing-cleanser-for-dry-rough-and-bumpy-skin-with-salicylic-acid-236ml-135287125.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 650,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Cerave SA Smoothing Cleanser - Facial And Body Exfoliating Wash  - With Salicylic Acid, Hyaluronic Acid, Niacinamide, And Ceramides - 236 ML.",
+        "url": "https://www.jumia.com.eg/cerave-sa-smoothing-cleanser-facial-and-body-exfoliating-wash-with-salicylic-acid-hyaluronic-acid-niacinamide-and-ceramides-236-ml.-106792989.html"
+      }
+    ]
+  },
+  {
+    "sku": "The Ordinary Niacinamide 10% + Zinc 1%",
+    "ms": 10307,
+    "cost": {
+      "searches": 1,
+      "pageFetches": 9
+    },
+    "status": "REFERENCE_READY",
+    "reasonCode": null,
+    "reference": {
+      "minEgp": 550,
+      "medianEgp": 595,
+      "maxEgp": 702.5,
+      "regularMedianEgp": 600,
+      "sellers": 5,
+      "observations": 8,
+      "excluded": [],
+      "freshestAt": "2026-11-09T14:05:42.668Z"
+    },
+    "coverage": {
+      "REUSED": {
+        "pages": 0,
+        "accepted": 0,
+        "rejected": {}
+      },
+      "OFFICIAL": {
+        "pages": 1,
+        "accepted": 0,
+        "rejected": {
+          "CURRENCY_USD": 1
+        }
+      },
+      "TRUSTED_RETAILER": {
+        "pages": 8,
+        "accepted": 8,
+        "rejected": {}
+      }
+    },
+    "pricing": {
+      "state": "READY_FOR_PRICING_DECISION",
+      "purchaseCost": 552.5,
+      "supplierConsumerPrice": 650,
+      "suppliers": 1,
+      "note": "Commerce owns the selling price: an Admin approves it; nothing is copied or published automatically"
+    },
+    "observations": [
+      {
+        "seller": "jumia.com.eg",
+        "price": 1329,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "The Ordinary Niacinamide 10% + Zinc 1% Skin Serum -30ML ",
+        "url": "https://www.jumia.com.eg/the-ordinary-niacinamide-10-zinc-1-skin-serum-30ml-132884093.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 756,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "The Ordinary Niacinamide 10% + Zinc 1% High Strength Vitamin & Mineral Blemish Formula 30 ml",
+        "url": "https://www.jumia.com.eg/the-ordinary-niacinamide-10-zinc-1-high-strength-vitamin-mineral-blemish-formula-30-ml-134520558.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 449,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "The Ordinary Niacinamide 10% And Zinc 1% Clear 30ml",
+        "url": "https://www.jumia.com.eg/the-ordinary-niacinamide-10-and-zinc-1-clear-30ml-133559857.html"
+      },
+      {
+        "seller": "medstic.net",
+        "price": 595,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "buy the ordinary niacinamide 10% + zinc 1% at the best price in egypt",
+        "url": "https://medstic.net/en/product/the-ordinary-niacinamide-10-zinc-1/"
+      },
+      {
+        "seller": "merlacare.com",
+        "price": 550,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "ذا اورديناري سيروم نياسيناميد 10% زنك 1% - 30 مل | The Ordinary Niacinamide 10% + Zinc 1% Serum 30ml - Merla Care",
+        "url": "https://merlacare.com/product/the-ordinary-niacinamide-10-zinc-1-serum-30ml/"
+      },
+      {
+        "seller": "mainasrpharmacy.com",
+        "price": 600,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "The Ordinary Niacinamide 10% Zinc 1% Solution Egcg - 30ml",
+        "url": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-solution-egcg-30ml/"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 649,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "The Ordinary Niacinamide 10% + Zinc 1% Serum - 30ml",
+        "url": "https://www.jumia.com.eg/the-ordinary-niacinamide-10-zinc-1-serum-30ml-133603069.html"
+      },
+      {
+        "seller": "cosmostoreegypt.com",
+        "price": 550,
+        "regular": 650,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "the ordinary niacinamide 10% + zinc 1% serum 30ml",
+        "url": "https://www.cosmostoreegypt.com/shop/the-ordinary-niacinamide-10-zinc-1-serum/"
+      },
+      {
+        "seller": "theordinary.com",
+        "price": 6,
+        "regular": null,
+        "status": "REJECTED",
+        "reason": "CURRENCY_USD",
+        "pack": "Niacinamide 10% + Zinc 1%",
+        "url": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-rdn%2Dniacinamide%2D10pct%2Dzinc%2D1pct%2D30ml.html"
+      }
+    ]
+  },
+  {
+    "sku": "The Ordinary Hyaluronic Acid 2% + B5 (Original Formulation)",
+    "ms": 16228,
+    "cost": {
+      "searches": 1,
+      "pageFetches": 9
+    },
+    "status": "REFERENCE_READY",
+    "reasonCode": null,
+    "reference": {
+      "minEgp": 390,
+      "medianEgp": 416,
+      "maxEgp": 442,
+      "regularMedianEgp": null,
+      "sellers": 2,
+      "observations": 2,
+      "excluded": [],
+      "freshestAt": "2026-11-09T14:05:49.086Z"
+    },
+    "coverage": {
+      "REUSED": {
+        "pages": 0,
+        "accepted": 0,
+        "rejected": {}
+      },
+      "OFFICIAL": {
+        "pages": 1,
+        "accepted": 0,
+        "rejected": {
+          "CURRENCY_USD": 1
+        }
+      },
+      "TRUSTED_RETAILER": {
+        "pages": 8,
+        "accepted": 2,
+        "rejected": {
+          "BUNDLE_OR_SET": 1,
+          "NO_STRUCTURED_PRICE": 5
+        }
+      }
+    },
+    "pricing": {
+      "state": "READY_FOR_PRICING_DECISION",
+      "purchaseCost": 612,
+      "supplierConsumerPrice": 720,
+      "suppliers": 1,
+      "note": "Commerce owns the selling price: an Admin approves it; nothing is copied or published automatically"
+    },
+    "observations": [
+      {
+        "seller": "jumia.com.eg",
+        "price": 1668,
+        "regular": null,
+        "status": "REJECTED",
+        "reason": "BUNDLE_OR_SET",
+        "pack": "The Ordinary The Skin Support Set Niacinamide 10% Zinc 1% Hyaluronic Acid 2% B5 2 x 30 ml",
+        "url": "https://www.jumia.com.eg/the-ordinary-the-skin-support-set-niacinamide-10-zinc-1-hyaluronic-acid-2-b5-2-x-30-ml-134520511.html"
+      },
+      {
+        "seller": "elghazawy.com",
+        "price": 390,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "THE ORDINARY Hyaluronic Acid 2% + B5 Hydrator 30 ml",
+        "url": "https://www.elghazawy.com/en/product/38074270243038/THE-ORDINARY-HYALURONIC-ACID-30ML"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 442,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "The Ordinary Hyaluronic Acid 2% + B5 30ml",
+        "url": "https://www.jumia.com.eg/the-ordinary-hyaluronic-acid-2-b5-30ml-133561230.html"
+      },
+      {
+        "seller": "theordinary.com",
+        "price": 8.9,
+        "regular": null,
+        "status": "REJECTED",
+        "reason": "CURRENCY_USD",
+        "pack": "Hyaluronic Acid 2% + B5 (Original Formulation)",
+        "url": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html"
+      }
+    ]
+  },
+  {
+    "sku": "Cetaphil Gentle Skin Cleanser",
+    "ms": 14783,
+    "cost": {
+      "searches": 2,
+      "pageFetches": 10
+    },
+    "status": "UNAVAILABLE",
+    "reasonCode": "NO_RELIABLE_OBSERVATION",
+    "reference": null,
+    "coverage": {
+      "REUSED": {
+        "pages": 0,
+        "accepted": 0,
+        "rejected": {}
+      },
+      "OFFICIAL": {
+        "pages": 1,
+        "accepted": 0,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 1
+        }
+      },
+      "DISCOVERED": {
+        "pages": 1,
+        "accepted": 0,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 1
+        }
+      },
+      "TRUSTED_RETAILER": {
+        "pages": 8,
+        "accepted": 0,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 6,
+          "PAGE_IS_ANOTHER_PRODUCT": 2
+        }
+      }
+    },
+    "pricing": {
+      "state": "READY_FOR_PRICING_DECISION",
+      "purchaseCost": 432,
+      "supplierConsumerPrice": 540,
+      "suppliers": 1,
+      "note": "Commerce owns the selling price: an Admin approves it; nothing is copied or published automatically"
+    },
+    "observations": [
+      {
+        "seller": "jumia.com.eg",
+        "price": 1480,
+        "regular": null,
+        "status": "REJECTED",
+        "reason": "PAGE_IS_ANOTHER_PRODUCT",
+        "pack": "Cetaphil Gentle Skin Cleanser Normal To Dry Skin 591ml",
+        "url": "https://www.jumia.com.eg/cetaphil-gentle-skin-cleanser-normal-to-dry-skin-591ml-133432420.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 1950,
+        "regular": null,
+        "status": "REJECTED",
+        "reason": "PAGE_IS_ANOTHER_PRODUCT",
+        "pack": "Cetaphil Gentle Skin Cleanser Normal To Dry Skin 591ml",
+        "url": "https://www.jumia.com.eg/cetaphil-gentle-skin-cleanser-normal-to-dry-skin-591ml-134576925.html"
+      }
+    ]
+  },
+  {
+    "sku": "Bioderma Sensibio H2O Micellar Water",
+    "ms": 11397,
+    "cost": {
+      "searches": 1,
+      "pageFetches": 9
+    },
+    "status": "REFERENCE_READY",
+    "reasonCode": null,
+    "reference": {
+      "minEgp": 749,
+      "medianEgp": 808.2,
+      "maxEgp": 867.39,
+      "regularMedianEgp": null,
+      "sellers": 2,
+      "observations": 5,
+      "excluded": [],
+      "freshestAt": "2026-11-09T14:06:20.236Z"
+    },
+    "coverage": {
+      "REUSED": {
+        "pages": 0,
+        "accepted": 0,
+        "rejected": {}
+      },
+      "OFFICIAL": {
+        "pages": 1,
+        "accepted": 0,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 1
+        }
+      },
+      "TRUSTED_RETAILER": {
+        "pages": 8,
+        "accepted": 5,
+        "rejected": {
+          "NO_STRUCTURED_PRICE": 3
+        }
+      }
+    },
+    "pricing": {
+      "state": "READY_FOR_PRICING_DECISION",
+      "purchaseCost": 544,
+      "supplierConsumerPrice": 640,
+      "suppliers": 1,
+      "note": "Commerce owns the selling price: an Admin approves it; nothing is copied or published automatically"
+    },
+    "observations": [
+      {
+        "seller": "jumia.com.eg",
+        "price": 870,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Bioderma Sensibio H2O The Original Micellar Water Cleanses, Removes Makeup & Sooths 250 ml",
+        "url": "https://www.jumia.com.eg/bioderma-sensibio-h2o-the-original-micellar-water-cleanses-removes-makeup-sooths-250-ml-135241349.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 864.78,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Bioderma Sensibio H2O Micellar Water Make Up Remover 250 Ml",
+        "url": "https://www.jumia.com.eg/bioderma-sensibio-h2o-micellar-water-make-up-remover-250-ml-27466767.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 998.98,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Bioderma SENSIBIO H2O PINK 250 ML",
+        "url": "https://www.jumia.com.eg/bioderma-sensibio-h2o-pink-250-ml-134339454.html"
+      },
+      {
+        "seller": "jumia.com.eg",
+        "price": 690,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Bioderma Sensibio H2O, Micellar Water Makeup Remover, Cleanses and Soothes, Senstive Skin - Face And Eyes - 250ML",
+        "url": "https://www.jumia.com.eg/bioderma-sensibio-h2o-micellar-water-makeup-remover-cleanses-and-soothes-senstive-skin-face-and-eyes-250ml-134570819.html"
+      },
+      {
+        "seller": "mainasrpharmacy.com",
+        "price": 749,
+        "regular": null,
+        "status": "ACCEPTED",
+        "reason": null,
+        "pack": "Bioderma Sensibio H2o 250ml",
+        "url": "https://mainasrpharmacy.com/products/bioderma-sensibio-h2o-250-ml/"
+      }
+    ]
+  }
+]

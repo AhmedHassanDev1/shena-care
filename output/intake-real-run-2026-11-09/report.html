@@ -1,0 +1,215 @@
+<title>تقرير إدخال الكتالوج</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Beiruti:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, summary strip first, then evidence tables; RTL, numbers LTR and tabular. */
+:root {
+  --bg: #f6f7f5; --surface: #ffffff; --ink: #18211d; --ink-soft: #45524c; --line: #dde3df;
+  --accent: #0c5f46; --accent-soft: #e3f1eb;
+  --ok: #11633f; --ok-soft: #e2f3ea; --warn: #7e4a00; --warn-soft: #fbefd9; --bad: #b3261e; --bad-soft: #fbe5e3;
+  --display: "Beiruti", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --body: "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111613; --surface: #18201c; --ink: #e6ece8; --ink-soft: #a3b0aa; --line: #2b3631;
+  --accent: #5cc79f; --accent-soft: #1d3a2f;
+  --ok: #6fd3a3; --ok-soft: #173326; --warn: #f0b860; --warn-soft: #3a2c12; --bad: #f08b84; --bad-soft: #3c1d1b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #111613; --surface: #18201c; --ink: #e6ece8; --ink-soft: #a3b0aa; --line: #2b3631;
+  --accent: #5cc79f; --accent-soft: #1d3a2f;
+  --ok: #6fd3a3; --ok-soft: #173326; --warn: #f0b860; --warn-soft: #3a2c12; --bad: #f08b84; --bad-soft: #3c1d1b; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.75; }
+.wrap { max-width: 920px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.25; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 44px); font-weight: 700; }
+h2 { font-size: 26px; font-weight: 700; }
+h3 { font-size: 19px; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { color: var(--accent); font-weight: 600; font-size: 14px; }
+.meta { color: var(--ink-soft); font-size: 14px; }
+header { display: grid; gap: 12px; border-bottom: 2px solid var(--ink); padding-bottom: 24px; }
+section { display: grid; gap: 16px; }
+.num, td.n, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; }
+.tile .num { font-size: 28px; font-weight: 500; color: var(--accent); text-align: right; }
+.tile span { color: var(--ink-soft); font-size: 14px; line-height: 1.5; }
+
+.verdict { background: var(--accent-soft); border-inline-start: 4px solid var(--accent); padding: 16px 18px; border-radius: 4px; display: grid; gap: 8px; }
+
+.table { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 560px; }
+th, td { text-align: start; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; color: var(--ink-soft); font-weight: 600; background: color-mix(in srgb, var(--line) 35%, transparent); }
+tr:last-child td { border-bottom: 0; }
+td.n { text-align: left; white-space: nowrap; }
+
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.flow > div { border-top: 3px solid var(--accent); padding-top: 10px; display: grid; gap: 6px; }
+.flow p { color: var(--ink-soft); font-size: 15px; }
+
+ol, ul { margin: 0; padding-inline-start: 22px; display: grid; gap: 10px; max-width: 72ch; }
+li strong { font-weight: 600; }
+.decide li { padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; list-style: none; }
+.decide { padding: 0; }
+.files code, code { font-family: var(--mono); font-size: 13px; direction: ltr; unicode-bidi: isolate; background: color-mix(in srgb, var(--line) 45%, transparent); padding: 3px 8px; border-radius: 4px; }
+footer { color: var(--ink-soft); font-size: 14px; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+
+<div class="wrap" dir="rtl" lang="ar">
+  <header>
+    <span class="eyebrow">شيناكير · إدخال الكتالوج · 9 نوفمبر 2026</span>
+    <h1>تقرير بناء واختبار نظام إدخال الكتالوج</h1>
+    <p class="meta">اتبنى من الصفر حسب المخطط المعتمد على Whimsical، واتجرّب على منتجات حقيقية من الويب وعلى قوائم أسعار موزعين بالعربي، على قاعدة بيانات تجريبية محلية. Supabase ما اتلمسش، ومفيش حاجة اتعمل لها commit.</p>
+  </header>
+
+  <section aria-labelledby="s-summary">
+    <h2 id="s-summary">الخلاصة</h2>
+    <div class="verdict">
+      <p><strong>النظام شغال من أوله لآخره:</strong> أسماء الإدارة بتتحول لمسودات موثّقة من الصفحة الرسمية، وقوائم أسعار الموردين بتتربط بالمنتجات الموجودة بس، وأسعار السوق بتتجمع كمرجع استرشادي. المنتج اللي اتعمل بالطريقة دي بيظهر صح في صفحة المنتج والروتين والبحث والمساعد.</p>
+      <p>اللي لسه ناقص قبل التشغيل الفعلي: موافقتك على الـ migration على Supabase، وقرار مصادر الصور الموثوقة (ده السبب الأساسي إن أغلب المسودات من غير صورة معتمدة).</p>
+    </div>
+    <div class="tiles">
+      <div class="tile"><span class="num">0</span><span>ربط غلط لسطر مورد</span></div>
+      <div class="tile"><span class="num">0</span><span>سطر اتخطّى غلط وهو في الكتالوج</span></div>
+      <div class="tile"><span class="num">10–11 / 13</span><span>منتج حقيقي اتوثّق واتعمل له مسودة</span></div>
+      <div class="tile"><span class="num">9 / 11</span><span>منتج له نطاق سعر سوق</span></div>
+      <div class="tile"><span class="num">~100</span><span>سطر مورد في الثانية، من غير أي تكلفة بحث</span></div>
+      <div class="tile"><span class="num">372</span><span>اختبار ناجح (منهم 24 خاصين بالإدخال)</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-built">
+    <h2 id="s-built">اللي اتبنى</h2>
+    <div class="flow">
+      <div>
+        <h3>إدخال الإدارة</h3>
+        <p>اسم واحد أو أسماء كتير أو ملف. البراند من الكتالوج أولًا، والبراند الجديد بيتعمل بس من موقعه الرسمي الموثّق. الهوية بتتأكد من صفحة المنتج الرسمية قبل أي إنشاء، وبعدين استخراج المكونات وطريقة الاستخدام والتحذيرات والصور، ثم أربع علامات جاهزية مستقلة.</p>
+      </div>
+      <div>
+        <h3>قوائم أسعار الموردين</h3>
+        <p>قراءة سريعة للملف (أرقام عربي، "ج.م"، سعر الجمهور والخصم). تخطّي آمن لما هو خارج النطاق، ومطابقة عربي/إنجليزي مع الحجم والتركيز والعبوة. بعدها تحديث عرض المورد مع سجل الأسعار. عمره ما بيعمل منتج جديد.</p>
+      </div>
+      <div>
+        <h3>أبحاث سعر السوق</h3>
+        <p>بيستخدم الملاحظات الحديثة الأول، وبعدها سعر الصفحة الرسمية، وبعدها صيدليات ومتاجر مصرية موثوقة. سعر بالجنيه لنفس الحجم والعبوة بس. النطاق استرشادي، ومفيش سعر بيع بيتحط تلقائيًا.</p>
+      </div>
+    </div>
+    <p class="meta">الصفحات: <code>/admin/catalog/intake</code> للإدارة (إضافة، المهام والنتائج، محتاج مراجعة) و<code>/supplier/price-lists</code> للمورد.</p>
+  </section>
+
+  <section aria-labelledby="s-admin">
+    <h2 id="s-admin">إدخال الإدارة — 16 اسم</h2>
+    <p class="meta">13 منتج حقيقي، ومنتج مخترع، واسم عربي بس، وتكرار بتهجئة مختلفة.</p>
+    <div class="table"><table>
+      <thead><tr><th>المؤشر</th><th>تشغيل D (كامل)</th><th>تشغيل E (القاعدة النهائية)</th></tr></thead>
+      <tbody>
+        <tr><td>منتجات حقيقية اتوثّقت واتعمل لها مسودة</td><td class="n">11 / 13</td><td class="n">10 / 13</td></tr>
+        <tr><td>توثيق على صفحة غلط أو نوع تاني</td><td><span class="pill warn">2 اتكشفوا بالمراجعة</span> وبعدها القاعدة اتشدّدت</td><td><span class="pill ok">0</span></td></tr>
+        <tr><td>المنتج المخترع والاسم العربي بس</td><td><span class="pill ok">اتساب للمراجعة (صح)</span></td><td><span class="pill ok">نفس النتيجة</span></td></tr>
+        <tr><td>التكرار بتهجئة مختلفة</td><td><span class="pill ok">اتربط بالموجود، مفيش نسخة تانية</span></td><td><span class="pill ok">نفس النتيجة</span></td></tr>
+        <tr><td>تعارض بيانات مفتوح بعد الإثراء</td><td class="n">0</td><td>—</td></tr>
+        <tr><td>الوقت</td><td class="n">156 s</td><td class="n">112 s</td></tr>
+        <tr><td>الاستهلاك</td><td>48 بحث · 76 صفحة · 29 صورة</td><td>46 بحث · 72 صفحة · 30 صورة</td></tr>
+      </tbody>
+    </table></div>
+    <p>المنتجات اللي ما اتوثّقتش لكل واحد سببه وبند مراجعة: Eucerin (المنتج اتغير اسمه لـ DermoPure على موقعهم)، وGarnier (الصفحة الوحيدة اللي ظهرت كانت لنوع فيه Salicylic Acid فاترفضت صح)، وأحيانًا Effaclar أو Vichy أو كريم CeraVe لما الموقع يرفض الوصول أو البحث ما يرجّعش الصفحة في اللحظة دي.</p>
+  </section>
+
+  <section aria-labelledby="s-supplier">
+    <h2 id="s-supplier">قوائم أسعار المورد</h2>
+    <p class="meta">ملف موزع بالعربي: كود الصنف، اسم الصنف، سعر الجمهور، خصم %، الرصيد. كل سطر له إجابة صحيحة مسبقًا للقياس.</p>
+    <div class="table"><table>
+      <thead><tr><th>المؤشر</th><th>الملف الأول (47 سطر)</th><th>الملف التاني بعد أسبوع (14 سطر)</th><th>إعادة رفع نفس الملف</th></tr></thead>
+      <tbody>
+        <tr><td>دقة النتيجة مقارنة بالإجابة الصحيحة</td><td class="n">97.9%</td><td class="n">92.9%</td><td>نفس المهمة، صفر كتابة</td></tr>
+        <tr><td>ربط غلط</td><td><span class="pill ok">0</span></td><td><span class="pill ok">0</span></td><td>—</td></tr>
+        <tr><td>تخطّي غلط</td><td><span class="pill ok">0</span></td><td><span class="pill ok">0</span></td><td>—</td></tr>
+        <tr><td>اتربط</td><td>8 اتحدّث عرضهم</td><td>6 اتحدّثوا + 3 بدون تغيير</td><td>—</td></tr>
+        <tr><td>محتاج مراجعة</td><td class="n">4 (8.5%)</td><td class="n">1</td><td>—</td></tr>
+        <tr><td>خارج النطاق (تخطّي تلقائي)</td><td class="n">15</td><td class="n">1</td><td>—</td></tr>
+        <tr><td>السرعة</td><td class="n">104 rows/s</td><td class="n">41 rows/s</td><td>—</td></tr>
+      </tbody>
+    </table></div>
+    <p>الأسطر اللي "غلطت" ما اتربطتش غلط. اتبعتت للمراجعة بدل ما تتربط. مثال: «فيشي مينيرال 89 سيروم 50 مل» اسمها في الكتالوج "Mineral 89 – Skin Fortifying Daily Booster"، والكلام المشترك قليل. بعد ما الإدارة تربطها مرة واحدة، الصياغة بتتحفظ والملفات اللي بعدها بتتربط لوحدها (ده متجرّب في اختبار التكامل).</p>
+    <p class="meta">اتخطّى تلقائيًا: أدوية، حفاضات وألبان أطفال، مكياج، عطور، عناية بالفم، مستلزمات طبية، حلاقة، صبغات. أي براند موجود في الكتالوج أو باركود أو كود معروف بيكمّل دايمًا للمطابقة.</p>
+  </section>
+
+  <section aria-labelledby="s-market">
+    <h2 id="s-market">أسعار السوق (تشغيل D)</h2>
+    <div class="table"><table>
+      <thead><tr><th>المنتج</th><th>أقل</th><th>الوسيط</th><th>أعلى</th><th>بائعين</th></tr></thead>
+      <tbody>
+        <tr><td>CeraVe Hydrating Cleanser 236ml</td><td class="n">634</td><td class="n">634</td><td class="n">634</td><td class="n">1</td></tr>
+        <tr><td>CeraVe Foaming Cleanser 236ml</td><td class="n">540</td><td class="n">618</td><td class="n">630</td><td class="n">3</td></tr>
+        <tr><td>CeraVe Moisturising Cream 454g</td><td class="n">1,050</td><td class="n">1,125</td><td class="n">1,200</td><td class="n">2</td></tr>
+        <tr><td>CeraVe SA Smoothing Cleanser 236ml</td><td class="n">600</td><td class="n">650</td><td class="n">700</td><td class="n">3</td></tr>
+        <tr><td>The Ordinary Niacinamide 10% + Zinc 1% 30ml</td><td class="n">550</td><td class="n">610</td><td class="n">824.5</td><td class="n">6</td></tr>
+        <tr><td>The Ordinary Hyaluronic Acid 2% + B5 30ml</td><td class="n">390</td><td class="n">416</td><td class="n">442</td><td class="n">2</td></tr>
+        <tr><td>Bioderma Sensibio H2O 250ml</td><td class="n">749</td><td class="n">808</td><td class="n">867</td><td class="n">2</td></tr>
+        <tr><td>Vichy Mineral 89 50ml</td><td class="n">1,200</td><td class="n">1,377</td><td class="n">1,554</td><td class="n">2</td></tr>
+        <tr><td>Garnier Micellar Water 400ml</td><td class="n">405</td><td class="n">405</td><td class="n">405</td><td class="n">1</td></tr>
+        <tr><td>Cetaphil Gentle Skin Cleanser · Cicaplast</td><td colspan="4"><span class="pill warn">مفيش سعر موثوق</span> اتسجل السبب، ومش بيوقف المسودة</td></tr>
+      </tbody>
+    </table></div>
+    <p class="meta">الأسعار بالجنيه المصري. 16 بحث و104 صفحة لـ 11 منتج (حوالي 13 ثانية للمنتج). البائعين الموثوقين اتحددوا بعد فحص 48 موقع، والمعيار إن الموقع يسمح بالقراءة ويكتب السعر بالجنيه بشكل منظم: الغزاوي، Cosmo Store Egypt، Merla Care، صيدلية مي نصر، Medstic، Jumia. مفيش سعر بيع اتحط؛ الحالة إما «مستني تكلفة المورد» أو «جاهز لقرار التسعير».</p>
+  </section>
+
+  <section aria-labelledby="s-ready">
+    <h2 id="s-ready">الجاهزية والأنظمة اللي بتستخدم الكتالوج</h2>
+    <div class="table"><table>
+      <thead><tr><th>العلامة</th><th>جاهز من 11 مسودة</th><th>السبب الأساسي لو مش جاهز</th></tr></thead>
+      <tbody>
+        <tr><td>المساعد (الشات بوت)</td><td class="n">9</td><td>مكونات أو ادعاءات مش موثّقة لمنتجين</td></tr>
+        <tr><td>الروتين</td><td class="n">8</td><td>دور المنتج في الروتين مش معروف (ماء ميسيلار، Booster)</td></tr>
+        <tr><td>صفحة المنتج</td><td class="n">1</td><td>مفيش صورة معتمدة (قرار مصادر الصور تحت)</td></tr>
+        <tr><td>البيع</td><td class="n">0</td><td>بالتصميم: محتاج سعر بيع توافق عليه الإدارة</td></tr>
+      </tbody>
+    </table></div>
+    <p>اتجرّب منتج اتعمل بالإدخال، ونشرته الإدارة بسعر محدد على القاعدة التجريبية بس. ظهر صح في صفحة المنتج في المتجر (بيانات وصورة ومكان في الروتين)، وفي ملف الروتين (دور مرطب، مكونات موثّقة، ترتيب الخطوات)، وفي بيانات بناء الروتين، وفي البحث. ومدقق اقتراحات المساعد لقاه وأكد إنه قابل للبيع بفضل عرض المورد اللي جه من ملف الأسعار.</p>
+  </section>
+
+  <section aria-labelledby="s-fixed">
+    <h2 id="s-fixed">مشاكل اتكشفت في التشغيل الحقيقي واتصلحت</h2>
+    <ol>
+      <li><strong>توثيق على نوع تاني من المنتج:</strong> قاعدة الهوية القديمة (نص الكلمات + البراند) قبلت تركيبة Garnier تانية، ومرة مقال، ومرة نوع «للبشرة الجافة». دلوقتي المنتج ما بيتعملش إلا لو الصفحة بتسمّي النوع ده بالظبط، من غير مكوّن فعّال أو نوع بشرة إضافي، ومن غير صفحات مقالات.</li>
+      <li><strong>أسماء براندات إقليمية:</strong> زي «Garnier AU» و«La Roche‐Posay Canada»، وده كان بيمنع البحث في مواقع البراند التانية. اتشال اسم المنطقة.</li>
+      <li><strong>المقاسات الأمريكية:</strong> «8 fl oz» دلوقتي بتأكد 236 مل، والصفحة اللي فيها أكتر من حجم بتأكد الحجم المطلوب لو موجود ضمنها.</li>
+      <li><strong>تعارضات وهمية في المكونات:</strong> كانت بتيجي من مواقع إقليمية مختلفة ومن صفحات منتجات شقيقة. دلوقتي القراءة من صفحة نفس المنتج على نفس الموقع، والمصدر الاحتياطي للحقول الناقصة بس. النتيجة صفر تعارض مفتوح.</li>
+      <li><strong>أسماء المسودات:</strong> اترفضت العناوين اللي هي أقسام صفحة («How to Use…»)، وعلامة «+» بقت بتفضل، والعنوان الإنجليزي بقى بياخد الأولوية على الفرنسي.</li>
+      <li><strong>كتابة البراند بالعربي:</strong> «جارنييه» و«فيشي» مش ممكن مطابقتهم بالنطق بأمان، فاتضافوا لقاموس الكتابات المراجَعة.</li>
+      <li><strong>إعادة رفع نفس الملف:</strong> ما بقتش بتعيد المعالجة ولا بتمسح أرقام الأداء.</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="s-decide">
+    <h2 id="s-decide">قرارات مطلوبة منك</h2>
+    <ul class="decide">
+      <li><strong>تطبيق الـ migration على Supabase.</strong> <code>20261109120000_catalog_intake</code> إضافي بس: 4 جداول في ingestion، وجدول في sourcing، وعمود اختياري في عروض الموردين. متطبّق على القواعد التجريبية بس.</li>
+      <li><strong>مصادر الصور الموثوقة.</strong> صور المواقع الرسمية لـ The Ordinary وCetaphil وGarnier وBioderma وLa Roche-Posay مش في <code>MEDIA_TRUSTED_SOURCE_HOSTS</code>، فبتفضل مستنية مراجعة. القائمة دي بتتراجع وقت النشر ومع كل عرض في المتجر، فما وسّعتهاش من غير موافقتك.</li>
+      <li><strong>البائعين الموثوقين لأسعار السوق.</strong> القائمة الافتراضية (6 مواقع) مبنية على دليل، والقرار ليك تثبّتها أو تعدّلها.</li>
+      <li><strong>الـ commit.</strong> كل الشغل لسه مش متسجّل.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="s-limits">
+    <h2 id="s-limits">حدود معروفة</h2>
+    <ul>
+      <li>عدد المنتجات اللي بتتوثّق بيختلف من تشغيل للتاني (من 8 لـ 12 من 13)، حسب نتايج البحث والمواقع اللي ترد في اللحظة دي. اللي بيتغير هو العدد بس، والتوثيق الغلط فضل صفر بعد القاعدة النهائية.</li>
+      <li>صور CeraVe Africa مقاسها 300×400، أصغر من الحد الأدنى 400 بكسل، وموقع Cetaphil بيمنع قراءة الصور.</li>
+      <li>تلات اختبارات قديمة بتفشل بنفس الشكل على الكود قبل الشغل ده (اتأكدت في نسخة نظيفة): brand-research وcatalog-read-filters وglo-242.</li>
+    </ul>
+  </section>
+
+  <footer class="files">
+    <p>الملفات التفصيلية: <code>output/intake-real-run-2026-11-09/</code> (report.md ونتايج كل تشغيل) · <code>docs/architecture/catalog-intake.md</code> · <code>apps/api/scripts/intake-real-run.ts</code> · ملفات الموردين التجريبية في <code>apps/api/test/fixtures/intake/</code>.</p>
+  </footer>
+</div>

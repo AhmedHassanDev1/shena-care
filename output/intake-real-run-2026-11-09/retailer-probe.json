@@ -1,0 +1,722 @@
+[
+  {
+    "host": "jumia.com.eg",
+    "pages": 3,
+    "read": 2,
+    "priced": 2,
+    "egp": 2,
+    "outcomes": {
+      "OK": 2
+    },
+    "sample": {
+      "url": "https://www.jumia.com.eg/cerave-hydrating-cleanser-236ml-134151884.html",
+      "offer": {
+        "name": "Cerave Hydrating Cleanser 236ml",
+        "price": 738,
+        "currency": "EGP",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"Cerave Hydrating Cleanser 236ml\",\"price\":\"738.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "elghazawy.com",
+    "pages": 3,
+    "read": 2,
+    "priced": 2,
+    "egp": 2,
+    "outcomes": {
+      "OK": 2
+    },
+    "sample": {
+      "url": "https://www.elghazawy.com/public/en/product/38074270226486/Cerave-Hydrating-Cleanser-236ml",
+      "offer": {
+        "name": "Cerave Hyaluronic Acid & Ceramides Face Wash for normal to dry skin - 236ml",
+        "price": 650,
+        "currency": "EGP",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"Cerave Hyaluronic Acid & Ceramides Face Wash for normal to dry skin - 236ml\",\"price\":650,\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "tdawi.com",
+    "pages": 2,
+    "read": 2,
+    "priced": 2,
+    "egp": 1,
+    "outcomes": {
+      "OK": 2
+    },
+    "sample": {
+      "url": "https://tdawi.com/ar-sa/the-ordinary-niacinamide-10-zinc-1-30ml",
+      "offer": {
+        "name": "عبوة نياسيناميد العادي 10% + زنك 1%، 30 مل., 30 مل",
+        "price": 41.7,
+        "currency": "SAR",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": "769915190311",
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"عبوة نياسيناميد العادي 10% + زنك 1%، 30 مل., 30 مل\",\"price\":41.7,\"priceCurrency\":\"SAR\",\"availability\":\"https://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "cosmostoreegypt.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 1,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://www.cosmostoreegypt.com/shop/the-ordinary-niacinamide-10-zinc-1-serum/",
+      "offer": {
+        "name": "the ordinary niacinamide 10% + zinc 1% serum 30ml",
+        "price": 550,
+        "currency": "EGP",
+        "regularPrice": 650,
+        "inStock": true,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"the ordinary niacinamide 10% + zinc 1% serum 30ml\",\"price\":\"550.00\",\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "merlacare.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 1,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://merlacare.com/product/the-ordinary-niacinamide-10-zinc-1-serum-30ml/",
+      "offer": {
+        "name": "ذا اورديناري سيروم نياسيناميد 10% زنك 1% - 30 مل | The Ordinary Niacinamide 10% + Zinc 1% Serum 30ml - Merla Care",
+        "price": 550,
+        "currency": "EGP",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"ذا اورديناري سيروم نياسيناميد 10% زنك 1% - 30 مل | The Ordinary Niacinamide 10% + Zinc 1% Serum 30ml - Merla Care\",\"price\":\"550\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "mainasrpharmacy.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 1,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-solution-egcg-30ml/",
+      "offer": {
+        "name": "The Ordinary Niacinamide 10% Zinc 1% Solution Egcg - 30ml",
+        "price": 600,
+        "currency": "EGP",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"The Ordinary Niacinamide 10% Zinc 1% Solution Egcg - 30ml\",\"price\":\"600.00\",\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "medstic.net",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 1,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://medstic.net/en/product/the-ordinary-niacinamide-10-zinc-1/",
+      "offer": {
+        "name": "buy the ordinary niacinamide 10% + zinc 1% at the best price in egypt",
+        "price": 595,
+        "currency": "EGP",
+        "regularPrice": null,
+        "inStock": false,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"buy the ordinary niacinamide 10% + zinc 1% at the best price in egypt\",\"price\":\"595\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/OutOfStock\"}"
+      }
+    }
+  },
+  {
+    "host": "alfouadpharmacies.com",
+    "pages": 3,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "RATE_LIMITED": 2
+    },
+    "sample": null
+  },
+  {
+    "host": "dawadose.com",
+    "pages": 2,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ROBOTS_DISALLOWED": 2
+    },
+    "sample": null
+  },
+  {
+    "host": "bloompharmacy.com",
+    "pages": 2,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "RATE_LIMITED": 2
+    },
+    "sample": null
+  },
+  {
+    "host": "gardeniapharmacies.com",
+    "pages": 2,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ROBOTS_DISALLOWED": 2
+    },
+    "sample": null
+  },
+  {
+    "host": "noon.com",
+    "pages": 2,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ROBOTS_DISALLOWED": 2
+    },
+    "sample": null
+  },
+  {
+    "host": "lifepharmacy.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://www.lifepharmacy.com/sa-ar/product/cerave-hydrating-cleanser-236-ml",
+      "offer": {
+        "name": "منظف ​​مرطب   سيريف 236 مل",
+        "price": 36.95,
+        "currency": "AED",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"منظف ​​مرطب   سيريف 236 مل\",\"price\":36.95,\"priceCurrency\":\"AED\",\"availability\":\"https://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "aruma.pe",
+    "pages": 1,
+    "read": 1,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "perfumeriasana.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://www.perfumeriasana.com/cerave-hydrating-cleanser-gel-limpiador/64910",
+      "offer": {
+        "name": "",
+        "price": 7.95,
+        "currency": "EUR",
+        "regularPrice": null,
+        "inStock": null,
+        "gtin": null,
+        "basis": "META",
+        "excerpt": "og  7.95"
+      }
+    }
+  },
+  {
+    "host": "prisjakt.nu",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://www.prisjakt.nu/produkt.php?p=5037197",
+      "offer": {
+        "name": "CeraVe Hydrating Rengöring 236ml",
+        "price": 89,
+        "currency": "SEK",
+        "regularPrice": null,
+        "inStock": null,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"CeraVe Hydrating Rengöring 236ml\",\"priceCurrency\":\"SEK\"}"
+      }
+    }
+  },
+  {
+    "host": "apollopharmacy.in",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://www.apollopharmacy.in/otc/cerave-hydrating-cleanser-236ml",
+      "offer": {
+        "name": "CeraVe Hydrating Cleanser 236 ml | Ceramides & Hyaluronic Acid | Gently Cleanses | All Day Hydration | For Face & Body | Suitable For Adult & Children | For Normal to Dry Skin",
+        "price": 679.2,
+        "currency": "INR",
+        "regularPrice": 799,
+        "inStock": true,
+        "gtin": "163112",
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"CeraVe Hydrating Cleanser 236 ml | Ceramides & Hyaluronic Acid | Gently Cleanses | All Day Hydration | For Face & Body | Suitable For Adult & Children | For Normal to Dry Skin\",\"price\":679.2,\"priceCurrency\":\"INR\",\"availability\":\"https://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "apotekhjartat.se",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://www.apotekhjartat.se/varumarken/cerave/cerave-hydrating-cleanser-236-ml",
+      "offer": {
+        "name": "CeraVe Hydrating Cleanser 236 ml",
+        "price": 99,
+        "currency": "SEK",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"CeraVe Hydrating Cleanser 236 ml\",\"price\":\"99.00\",\"priceCurrency\":\"SEK\",\"availability\":\"https://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "harmoniq.se",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://www.harmoniq.se/p/varumarken/cerave/cerave-hudvard/cerave-hydrating-cleanser.html",
+      "offer": {
+        "name": "CeraVe Hydrating Cleanser 236 ml",
+        "price": 115,
+        "currency": "SEK",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": "3337875597180",
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"CeraVe Hydrating Cleanser 236 ml\",\"price\":115,\"priceCurrency\":\"SEK\",\"availability\":\"InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "amazon.co.uk",
+    "pages": 1,
+    "read": 1,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "eltehewy-pharmacy.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "RATE_LIMITED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "alnadipharmacy.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "eg.lolabeauty.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "RATE_LIMITED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "nahdionline.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://www.nahdionline.com/ar-ae/the-ordinary-niacinamide-10-zinc-1-30-ml/pdp/102765725",
+      "offer": {
+        "name": "ذا اوردينرى نياسيناميد 10% + زنك 1% 30 مل",
+        "price": 33.6,
+        "currency": "AED",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"ذا اوردينرى نياسيناميد 10% + زنك 1% 30 مل\",\"priceCurrency\":\"AED\",\"availability\":\"https://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "kixat.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ROBOTS_DISALLOWED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "sephora.co.uk",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ACCESS_DENIED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "theordinarys.com.mx",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ACCESS_DENIED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "amazon.sa",
+    "pages": 1,
+    "read": 1,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "amazon.com.mx",
+    "pages": 1,
+    "read": 1,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "cosmoegypt.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "RATE_LIMITED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "talaat-ph.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "emadpharmacy.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "RATE_LIMITED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "jamallek.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ROBOTS_DISALLOWED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "epharmadora.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ROBOTS_DISALLOWED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "koopjesdrogisterij.nl",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://www.koopjesdrogisterij.nl/la-roche-posay-effaclar-purifying-foaming-gel-200-ml.html",
+      "offer": {
+        "name": "La Roche-Posay Effaclar Purifying Foaming Gel (200 ml)",
+        "price": 14.9,
+        "currency": "EUR",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"La Roche-Posay Effaclar Purifying Foaming Gel (200 ml)\",\"price\":\"14.9\",\"priceCurrency\":\"EUR\",\"availability\":\"InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "thecitypharmacy.gr",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ACCESS_DENIED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "pricerunner.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 1,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": {
+      "url": "https://www.pricerunner.com/pl/253-3253685/Skincare/La-Roche-Posay-Effaclar-Purifying-Foaming-Gel-200ml-Compare-Prices",
+      "offer": {
+        "name": "La Roche-Posay Effaclar Purifying Foaming Gel",
+        "price": 11.54,
+        "currency": "GBP",
+        "regularPrice": null,
+        "inStock": true,
+        "gtin": null,
+        "basis": "JSON_LD",
+        "excerpt": "{\"name\":\"La Roche-Posay Effaclar Purifying Foaming Gel\",\"price\":\"11.54\",\"priceCurrency\":\"GBP\",\"availability\":\"https://schema.org/InStock\"}"
+      }
+    }
+  },
+  {
+    "host": "idealo.co.uk",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ACCESS_DENIED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "sa.ts3era.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "touslesprix.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ACCESS_DENIED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "idealo.fr",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ACCESS_DENIED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "aptekapromahon.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "pharmacity.gr",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ROBOTS_DISALLOWED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "feryandlola.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "RATE_LIMITED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "pharmacysabry.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "RATE_LIMITED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "ashrybeauty.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "eromman.com",
+    "pages": 1,
+    "read": 0,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "ACCESS_DENIED": 1
+    },
+    "sample": null
+  },
+  {
+    "host": "elembabypharmacy.com",
+    "pages": 1,
+    "read": 1,
+    "priced": 0,
+    "egp": 0,
+    "outcomes": {
+      "OK": 1
+    },
+    "sample": null
+  }
+]

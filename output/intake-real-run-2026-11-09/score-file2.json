@@ -1,0 +1,196 @@
+{
+  "summary": {
+    "rows": 14,
+    "outcomeAccuracy": 0.9285714285714286,
+    "links": 9,
+    "falseLinks": 0,
+    "linkPrecision": 1,
+    "linkRecall": 0.9,
+    "falseSkips": 0,
+    "critical": 1,
+    "wrong": [
+      {
+        "line": 13,
+        "name": "فيشي مينيرال 89 سيروم 50 مل",
+        "expect": "MATCH:Vichy|Mineral 89|50",
+        "effective": "MATCH",
+        "outcome": "CRITICAL",
+        "reason": "WEAK_WORDING",
+        "matched": null,
+        "correct": false,
+        "falseLink": false,
+        "falseSkip": false
+      }
+    ]
+  },
+  "rows": [
+    {
+      "line": 4,
+      "name": "جارنييه ماء ميسيلار 400 مل",
+      "expect": "MATCH:Garnier|Micellar|400",
+      "effective": "MATCH",
+      "outcome": "UPDATED",
+      "reason": "CHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "matched": "Garnier Micellar Water For Dry Skin 400ml",
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 5,
+      "name": "سيرافي غسول مرطب للبشرة العادية الى الجافة 236 مل",
+      "expect": "MATCH:CeraVe|Hydrating|236",
+      "effective": "MATCH",
+      "outcome": "UPDATED",
+      "reason": "CHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "matched": "CeraVe Hydrating Cleanser 236ml",
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 6,
+      "name": "سيرافي غسول رغوي للبشرة العادية الى الدهنية 236 مل",
+      "expect": "MATCH:CeraVe|Foaming|236",
+      "effective": "MATCH",
+      "outcome": "MATCHED",
+      "reason": "UNCHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "matched": "CeraVe Foaming Cleanser 236ml",
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 7,
+      "name": "سيرافي كريم مرطب 454 جم",
+      "expect": "MATCH:CeraVe|Cream|454",
+      "effective": "MATCH",
+      "outcome": "UPDATED",
+      "reason": "CHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "matched": "CeraVe Moisturising Cream 454g",
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 8,
+      "name": "ذا اورديناري سيروم نياسيناميد 10% + زنك 1% 30 مل",
+      "expect": "MATCH:The Ordinary|Niacinamide|30",
+      "effective": "MATCH",
+      "outcome": "MATCHED",
+      "reason": "UNCHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "matched": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 9,
+      "name": "ذا اورديناري هيالورونيك اسيد 2% + B5 سيروم 30مل",
+      "expect": "MATCH:The Ordinary|Hyaluronic|30",
+      "effective": "MATCH",
+      "outcome": "UPDATED",
+      "reason": "CHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "matched": "The Ordinary Hyaluronic Acid 2% + B5 (Original Formulation) 30ml",
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 10,
+      "name": "لاروش بوزيه افاكلار جل رغوي منظف 200 مل",
+      "expect": "MATCH:La Roche-Posay|Effaclar|200",
+      "effective": "UNMATCHED",
+      "outcome": "UNMATCHED",
+      "reason": "NO_CANDIDATE",
+      "matched": null,
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 11,
+      "name": "سيتافيل غسول لطيف للبشرة 236 مل",
+      "expect": "MATCH:Cetaphil|Gentle|236",
+      "effective": "MATCH",
+      "outcome": "UPDATED",
+      "reason": "CHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "matched": "Cetaphil Gentle Skin Cleanser 236ml",
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 12,
+      "name": "يوسيرين ديرموبيوريفاير جل منظف 200 مل",
+      "expect": "MATCH:Eucerin|DermoPurifyer|200",
+      "effective": "UNMATCHED",
+      "outcome": "UNMATCHED",
+      "reason": "BRAND_HAS_NO_SKUS",
+      "matched": null,
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 13,
+      "name": "فيشي مينيرال 89 سيروم 50 مل",
+      "expect": "MATCH:Vichy|Mineral 89|50",
+      "effective": "MATCH",
+      "outcome": "CRITICAL",
+      "reason": "WEAK_WORDING",
+      "matched": null,
+      "correct": false,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 14,
+      "name": "سيتافيل جنتل سكين كلينزر 236مل",
+      "expect": "MATCH_OR_CRITICAL:Cetaphil|Gentle|236",
+      "effective": "MATCH_OR_CRITICAL",
+      "outcome": "UPDATED",
+      "reason": "CHANGED:BRAND_SIZE_WORDING",
+      "matched": "Cetaphil Gentle Skin Cleanser 236ml",
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 15,
+      "name": "CERAVE FOAMING FACIAL CLEANSER 236 ML",
+      "expect": "MATCH:CeraVe|Foaming|236",
+      "effective": "MATCH",
+      "outcome": "MATCHED",
+      "reason": "UNCHANGED:LEARNED_ALIAS",
+      "matched": "CeraVe Foaming Cleanser 236ml",
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 16,
+      "name": "بانادول اكسترا 24 قرص",
+      "expect": "SKIPPED",
+      "effective": "SKIPPED",
+      "outcome": "SKIPPED",
+      "reason": "OUT_OF_SCOPE_MEDICINE",
+      "matched": null,
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    },
+    {
+      "line": 17,
+      "name": "نيفيا كريم مرطب 200 مل",
+      "expect": "UNMATCHED",
+      "effective": "UNMATCHED",
+      "outcome": "UNMATCHED",
+      "reason": "NO_KNOWN_BRAND",
+      "matched": null,
+      "correct": true,
+      "falseLink": false,
+      "falseSkip": false
+    }
+  ]
+}

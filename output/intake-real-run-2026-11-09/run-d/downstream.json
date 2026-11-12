@@ -1,0 +1,766 @@
+{
+  "candidates": [
+    {
+      "skuId": "0fb89c8d-f6f1-48a1-8540-94e2afb7f43c",
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": []
+      }
+    },
+    {
+      "skuId": "ea0b64ee-2403-4f7c-9d54-8b5385ba619c",
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": [],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "skuId": "1c75a396-0dae-448a-af9b-99e4e2436d63",
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": [],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "skuId": "bf518c8f-3727-4a6b-a8a9-71236529d44d",
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": []
+      }
+    },
+    {
+      "skuId": "1decf475-ec28-4935-8e61-ec6f9184a29d",
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": []
+      }
+    },
+    {
+      "skuId": "8e1a5f11-182c-4a2a-9e68-0ce69afd0865",
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": []
+      }
+    },
+    {
+      "skuId": "f69d9981-ebd2-4212-93d5-d59e36400485",
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "CATEGORY_MISSING",
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": false,
+        "missing": [
+          "NO_VERIFIED_COMPOSITION_OR_CLAIMS"
+        ]
+      },
+      "routine": {
+        "ready": false,
+        "missing": [
+          "ROUTINE_ROLE_UNKNOWN"
+        ],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "skuId": "fc3b857b-77a4-4fee-96f7-12265c94240c",
+      "pdp": {
+        "ready": true,
+        "missing": []
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": [],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "skuId": "46e3b759-a744-42c3-8687-8776f68f89ee",
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": [],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "skuId": "17badec5-d982-46ef-8ef0-f26354cdbce1",
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": false,
+        "missing": [
+          "NO_VERIFIED_COMPOSITION_OR_CLAIMS"
+        ]
+      },
+      "routine": {
+        "ready": false,
+        "missing": [
+          "ROUTINE_ROLE_UNKNOWN"
+        ],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "skuId": "a64cc667-0a7b-413d-8b0c-c8923d384afc",
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": false,
+        "missing": [
+          "ROUTINE_ROLE_UNKNOWN"
+        ],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      }
+    }
+  ],
+  "chosen": "fc3b857b-77a4-4fee-96f7-12265c94240c",
+  "price": 1125,
+  "blockersBefore": [
+    "LISTING_NOT_ACTIVE",
+    "SELLING_PRICE_MISSING"
+  ],
+  "publishedReady": true,
+  "product": "Moisturising Cream",
+  "pdp": {
+    "name": "Moisturising Cream",
+    "keys": [
+      "id",
+      "name",
+      "slug",
+      "description",
+      "usage",
+      "warnings",
+      "targetArea",
+      "texture",
+      "suitableSkinTypes",
+      "suitableHairTypes",
+      "spf",
+      "broadSpectrum",
+      "uvFilterType",
+      "waterResistanceMinutes",
+      "isFragranceFree",
+      "isNonComedogenic",
+      "brand",
+      "productLine",
+      "category",
+      "skus",
+      "media",
+      "selectedSkuId",
+      "selectedVariant",
+      "verifiedFacts",
+      "routinePlacements",
+      "factVerification",
+      "evaluatedAt"
+    ],
+    "media": 1
+  },
+  "routine": {
+    "id": "b13ca11d-9d0f-408b-913e-b73934adc2db",
+    "skuId": "fc3b857b-77a4-4fee-96f7-12265c94240c",
+    "productId": "23beaa86-ce7c-4ff4-8b36-ce9750c23a39",
+    "ruleVersion": "routine-profile@1",
+    "productType": "moisturizer",
+    "primaryRole": "MOISTURIZER",
+    "primaryRoleStatus": "RULE_DERIVED",
+    "secondaryRoles": [],
+    "routineDomain": "SKIN",
+    "stepOrder": 8,
+    "routinePeriod": "UNKNOWN",
+    "routinePeriodStatus": "UNKNOWN",
+    "periodEligibility": null,
+    "cadenceUnit": "AS_NEEDED",
+    "cadenceMin": null,
+    "cadenceMax": null,
+    "cadenceStatus": "VERIFIED",
+    "rinseMode": "UNKNOWN",
+    "rinseModeStatus": "UNKNOWN",
+    "expectedRinseMode": "LEAVE_ON",
+    "contactMinutes": null,
+    "targetArea": "FACE",
+    "targetAreaStatus": "RULE_DERIVED",
+    "activeIngredients": [],
+    "featuredIngredients": [
+      {
+        "inci": "CERAMIDE NP",
+        "basis": "NAMED_AND_PRESENT_IN_VERIFIED_INCI",
+        "status": "VERIFIED",
+        "concept": "ceramide"
+      },
+      {
+        "inci": "SODIUM HYALURONATE",
+        "basis": "NAMED_AND_PRESENT_IN_VERIFIED_INCI",
+        "status": "VERIFIED",
+        "concept": "hyaluronic"
+      },
+      {
+        "inci": null,
+        "basis": "NAMED_BUT_ABSENT_FROM_VERIFIED_INCI",
+        "status": "CONFLICT",
+        "concept": "niacinamide"
+      },
+      {
+        "inci": null,
+        "kind": "MANUFACTURER_KEY_INGREDIENT",
+        "basis": "STATED_BY_MANUFACTURER_AS_KEY_INGREDIENT",
+        "status": "VERIFIED",
+        "concept": "Ceramides",
+        "function": "To help protect the natural skin barrier"
+      },
+      {
+        "inci": null,
+        "kind": "MANUFACTURER_KEY_INGREDIENT",
+        "basis": "STATED_BY_MANUFACTURER_AS_KEY_INGREDIENT",
+        "status": "VERIFIED",
+        "concept": "Hyaluronic Acid",
+        "function": "Helps retain skin's natural moisture"
+      },
+      {
+        "inci": null,
+        "kind": "MANUFACTURER_KEY_INGREDIENT",
+        "basis": "STATED_BY_MANUFACTURER_AS_KEY_INGREDIENT",
+        "status": "VERIFIED",
+        "concept": "Niacinamide",
+        "function": "Helps calm skin"
+      }
+    ],
+    "prerequisites": [
+      {
+        "role": "CLEANSER",
+        "basis": "ON_CLEANSED_SKIN",
+        "status": "RULE_DERIVED",
+        "relation": "AFTER"
+      },
+      {
+        "role": "SERUM",
+        "basis": "THIN_BEFORE_THICK",
+        "status": "RULE_DERIVED",
+        "relation": "AFTER"
+      },
+      {
+        "role": "SUNSCREEN",
+        "basis": "SUNSCREEN_LAST",
+        "status": "RULE_DERIVED",
+        "relation": "BEFORE"
+      }
+    ],
+    "sequencingRules": [],
+    "cautions": [],
+    "suitability": {
+      "benefits": [
+        {
+          "text": "For Dry Skin: A rich moisturising cream for all day hydration with 3 essential ceramides to help protect the skin’s natural barrier.",
+          "status": "MANUFACTURER_CLAIM",
+          "medicalClaim": false
+        },
+        {
+          "text": "MVE Delivery Technology: Controlled release for 24 hour hydration",
+          "status": "MANUFACTURER_CLAIM",
+          "medicalClaim": false
+        },
+        {
+          "text": "3 Essential Ceramides: To help protect the natural skin barrier",
+          "status": "MANUFACTURER_CLAIM",
+          "medicalClaim": false
+        },
+        {
+          "text": "Hyaluronic Acid: Helps retain skin's natural moisture",
+          "status": "MANUFACTURER_CLAIM",
+          "medicalClaim": false
+        },
+        {
+          "text": "Niacinamide: Helps calm skin",
+          "status": "MANUFACTURER_CLAIM",
+          "medicalClaim": false
+        }
+      ],
+      "concerns": [
+        {
+          "source": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+          "status": "MANUFACTURER_CLAIM",
+          "concern": "dryness",
+          "excerpt": "For Dry Skin: A rich moisturising cream for all day hydration with 3 essential ceramides to help protect the skin’s natural barrier.",
+          "medicalClaim": false
+        },
+        {
+          "source": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+          "status": "MANUFACTURER_CLAIM",
+          "concern": "barrier",
+          "excerpt": "For Dry Skin: A rich moisturising cream for all day hydration with 3 essential ceramides to help protect the skin’s natural barrier.",
+          "medicalClaim": false
+        }
+      ],
+      "hairTypes": {
+        "basis": "NOT_STATED_BY_A_CREDIBLE_SOURCE",
+        "value": [],
+        "status": "UNKNOWN"
+      },
+      "skinTypes": {
+        "basis": "VERIFIED_FACT",
+        "value": [
+          "normal",
+          "dry"
+        ],
+        "status": "VERIFIED"
+      }
+    },
+    "conflicts": [
+      {
+        "field": "composition.featured",
+        "reason": "The product names niacinamide but the verified INCI does not list it",
+        "severity": "HIGH"
+      }
+    ],
+    "fieldStatus": {
+      "inci": "VERIFIED",
+      "cadence": "VERIFIED",
+      "concerns": "VERIFIED",
+      "evidence": {
+        "cadence": {
+          "basis": "MANUFACTURER_INSTRUCTIONS",
+          "value": {
+            "max": null,
+            "min": null,
+            "unit": "AS_NEEDED"
+          },
+          "source": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+          "status": "VERIFIED",
+          "excerpt": "Apply to the face and body, as often as needed"
+        },
+        "rinseMode": {
+          "basis": "NOT_STATED_BY_A_CREDIBLE_SOURCE",
+          "value": "UNKNOWN",
+          "status": "UNKNOWN"
+        },
+        "stepOrder": {
+          "basis": "DEFAULT_SKIN_RANK_CONSTRAINTS_WIN",
+          "value": 8,
+          "status": "RULE_DERIVED"
+        },
+        "targetArea": {
+          "basis": "PRODUCT_TYPE:moisturizer",
+          "value": "FACE",
+          "status": "RULE_DERIVED"
+        },
+        "primaryRole": {
+          "basis": "PRODUCT_TYPE:moisturizer",
+          "value": "MOISTURIZER",
+          "status": "RULE_DERIVED"
+        },
+        "routinePeriod": {
+          "basis": "NOT_STATED_BY_A_CREDIBLE_SOURCE",
+          "value": "UNKNOWN",
+          "status": "UNKNOWN"
+        },
+        "contactMinutes": {
+          "basis": "NOT_STATED_BY_A_CREDIBLE_SOURCE",
+          "value": null,
+          "status": "UNKNOWN"
+        },
+        "periodEligibility": {
+          "basis": "NO_RULE_RESTRICTS_TIME_OF_DAY",
+          "value": null,
+          "status": "RULE_DERIVED"
+        }
+      },
+      "warnings": "UNKNOWN",
+      "hairTypes": "UNKNOWN",
+      "placement": "RULE_DERIVED",
+      "rinseMode": "UNKNOWN",
+      "skinTypes": "VERIFIED",
+      "stepOrder": "RULE_DERIVED",
+      "targetArea": "RULE_DERIVED",
+      "primaryRole": "RULE_DERIVED",
+      "instructions": "VERIFIED",
+      "routinePeriod": "UNKNOWN",
+      "contactMinutes": "UNKNOWN",
+      "keyIngredients": "VERIFIED",
+      "inciCompleteness": "FULL_FORMULA",
+      "periodEligibility": "RULE_DERIVED",
+      "activeConcentrations": "UNKNOWN"
+    },
+    "computedAt": "2026-11-09T14:16:34.208Z",
+    "context": {
+      "schema": "shina-product-context@1",
+      "identity": {
+        "skuId": "fc3b857b-77a4-4fee-96f7-12265c94240c",
+        "brand": "CeraVe",
+        "product": "Moisturising Cream",
+        "variant": "454 g",
+        "size": 454,
+        "sizeUnit": "g",
+        "identityStatus": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "category": "Moisturizers",
+        "productType": "moisturizer",
+        "productSubtype": null
+      },
+      "whatItDoes": {
+        "primaryRole": "MOISTURIZER",
+        "primaryRoleStatus": "RULE_DERIVED",
+        "secondaryRoles": [],
+        "benefits": [
+          {
+            "text": "For Dry Skin: A rich moisturising cream for all day hydration with 3 essential ceramides to help protect the skin’s natural barrier.",
+            "status": "MANUFACTURER_CLAIM",
+            "medicalClaim": false
+          },
+          {
+            "text": "MVE Delivery Technology: Controlled release for 24 hour hydration",
+            "status": "MANUFACTURER_CLAIM",
+            "medicalClaim": false
+          },
+          {
+            "text": "3 Essential Ceramides: To help protect the natural skin barrier",
+            "status": "MANUFACTURER_CLAIM",
+            "medicalClaim": false
+          },
+          {
+            "text": "Hyaluronic Acid: Helps retain skin's natural moisture",
+            "status": "MANUFACTURER_CLAIM",
+            "medicalClaim": false
+          },
+          {
+            "text": "Niacinamide: Helps calm skin",
+            "status": "MANUFACTURER_CLAIM",
+            "medicalClaim": false
+          }
+        ]
+      },
+      "suitability": {
+        "skinTypes": {
+          "basis": "VERIFIED_FACT",
+          "value": [
+            "normal",
+            "dry"
+          ],
+          "status": "VERIFIED"
+        },
+        "hairTypes": {
+          "basis": "NOT_STATED_BY_A_CREDIBLE_SOURCE",
+          "value": [],
+          "status": "UNKNOWN"
+        },
+        "concerns": [
+          {
+            "source": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+            "status": "MANUFACTURER_CLAIM",
+            "concern": "dryness",
+            "excerpt": "For Dry Skin: A rich moisturising cream for all day hydration with 3 essential ceramides to help protect the skin’s natural barrier.",
+            "medicalClaim": false
+          },
+          {
+            "source": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+            "status": "MANUFACTURER_CLAIM",
+            "concern": "barrier",
+            "excerpt": "For Dry Skin: A rich moisturising cream for all day hydration with 3 essential ceramides to help protect the skin’s natural barrier.",
+            "medicalClaim": false
+          }
+        ]
+      },
+      "attributes": {
+        "texture": {
+          "value": "CREAM",
+          "status": "VERIFIED"
+        },
+        "fragranceFree": {
+          "value": true,
+          "status": "VERIFIED",
+          "basis": "FREE"
+        },
+        "targetArea": {
+          "value": "FACE",
+          "status": "RULE_DERIVED"
+        },
+        "rinseMode": {
+          "value": "UNKNOWN",
+          "status": "UNKNOWN"
+        }
+      },
+      "composition": {
+        "inci": {
+          "value": [
+            "AQUA / WATER",
+            "GLYCERIN",
+            "CETEARYL ALCOHOL",
+            "CAPRYLIC/CAPRIC TRIGLYCERIDE",
+            "CETYL ALCOHOL",
+            "CETEARETH-20",
+            "PETROLATUM",
+            "DIMETHICONE",
+            "PHENOXYETHANOL",
+            "BEHENTRIMONIUM METHOSULFATE",
+            "POTASSIUM PHOSPHATE",
+            "ETHYLHEXYLGLYCERIN",
+            "SODIUM LAUROYL LACTYLATE",
+            "DISODIUM EDTA",
+            "DIPOTASSIUM PHOSPHATE",
+            "CERAMIDE NP",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "XANTHAN GUM",
+            "CARBOMER",
+            "SODIUM HYALURONATE",
+            "TOCOPHEROL",
+            "CERAMIDE EOP"
+          ],
+          "status": "VERIFIED",
+          "completeness": "FULL_FORMULA"
+        },
+        "keyIngredients": {
+          "value": [
+            {
+              "name": "Ceramides",
+              "function": "To help protect the natural skin barrier"
+            },
+            {
+              "name": "Hyaluronic Acid",
+              "function": "Helps retain skin's natural moisture"
+            },
+            {
+              "name": "Niacinamide",
+              "function": "Helps calm skin"
+            }
+          ],
+          "status": "MANUFACTURER_CLAIM"
+        },
+        "actives": [],
+        "featured": [
+          {
+            "inci": "CERAMIDE NP",
+            "basis": "NAMED_AND_PRESENT_IN_VERIFIED_INCI",
+            "status": "VERIFIED",
+            "concept": "ceramide"
+          },
+          {
+            "inci": "SODIUM HYALURONATE",
+            "basis": "NAMED_AND_PRESENT_IN_VERIFIED_INCI",
+            "status": "VERIFIED",
+            "concept": "hyaluronic"
+          },
+          {
+            "inci": null,
+            "basis": "NAMED_BUT_ABSENT_FROM_VERIFIED_INCI",
+            "status": "CONFLICT",
+            "concept": "niacinamide"
+          },
+          {
+            "inci": null,
+            "kind": "MANUFACTURER_KEY_INGREDIENT",
+            "basis": "STATED_BY_MANUFACTURER_AS_KEY_INGREDIENT",
+            "status": "VERIFIED",
+            "concept": "Ceramides",
+            "function": "To help protect the natural skin barrier"
+          },
+          {
+            "inci": null,
+            "kind": "MANUFACTURER_KEY_INGREDIENT",
+            "basis": "STATED_BY_MANUFACTURER_AS_KEY_INGREDIENT",
+            "status": "VERIFIED",
+            "concept": "Hyaluronic Acid",
+            "function": "Helps retain skin's natural moisture"
+          },
+          {
+            "inci": null,
+            "kind": "MANUFACTURER_KEY_INGREDIENT",
+            "basis": "STATED_BY_MANUFACTURER_AS_KEY_INGREDIENT",
+            "status": "VERIFIED",
+            "concept": "Niacinamide",
+            "function": "Helps calm skin"
+          }
+        ]
+      },
+      "usage": {
+        "instructions": {
+          "value": "Apply to the face and body, as often as needed.",
+          "status": "VERIFIED"
+        },
+        "period": {
+          "value": "UNKNOWN",
+          "status": "UNKNOWN"
+        },
+        "cadence": {
+          "unit": "AS_NEEDED",
+          "min": null,
+          "max": null,
+          "status": "VERIFIED"
+        },
+        "contactMinutes": null
+      },
+      "routine": {
+        "domain": "SKIN",
+        "defaultRank": 8,
+        "periodEligibility": null,
+        "placement": [
+          {
+            "role": "CLEANSER",
+            "basis": "ON_CLEANSED_SKIN",
+            "status": "RULE_DERIVED",
+            "relation": "AFTER"
+          },
+          {
+            "role": "SERUM",
+            "basis": "THIN_BEFORE_THICK",
+            "status": "RULE_DERIVED",
+            "relation": "AFTER"
+          },
+          {
+            "role": "SUNSCREEN",
+            "basis": "SUNSCREEN_LAST",
+            "status": "RULE_DERIVED",
+            "relation": "BEFORE"
+          }
+        ],
+        "guidance": []
+      },
+      "safety": {
+        "cautions": [],
+        "conflicts": [
+          {
+            "field": "composition.featured",
+            "reason": "The product names niacinamide but the verified INCI does not list it",
+            "severity": "HIGH"
+          }
+        ]
+      },
+      "ruleVersions": {
+        "productType": "product-type@1",
+        "routine": "routine-profile@1"
+      }
+    }
+  },
+  "routineFacts": [
+    {
+      "name": "Moisturising Cream",
+      "targetArea": null
+    }
+  ],
+  "search": "{\"items\":[{\"id\":\"23beaa86-ce7c-4ff4-8b36-ce9750c23a39\",\"name\":\"Moisturising Cream\",\"slug\":\"cerave-moisturising-cream-mw9ch2cg\",\"brand\":{\"name\":\"CeraVe\",\"slug\":\"cerave\"}}],\"query\":\"Moisturising Cream\"}",
+  "chatbot": [
+    {
+      "valid": true,
+      "errors": [],
+      "resolved": true,
+      "availability": {
+        "skuId": "fc3b857b-77a4-4fee-96f7-12265c94240c",
+        "isSellable": true,
+        "reason": "SKU 'fc3b857b-77a4-4fee-96f7-12265c94240c' is commercially sellable.",
+        "terms": {
+          "skuId": "fc3b857b-77a4-4fee-96f7-12265c94240c",
+          "isListed": true,
+          "price": {
+            "amount": 1125,
+            "currency": "EGP",
+            "compareAtAmount": null
+          },
+          "canOrder": true
+        }
+      }
+    }
+  ]
+}

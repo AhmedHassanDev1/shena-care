@@ -1,0 +1,394 @@
+[
+  {
+    "sku": "CeraVe Hydrating Cleanser 236ml",
+    "skuId": "10dbfde0-bc78-45ee-8e50-1f66cdfc0123",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "- (UNKNOWN)",
+    "category": "Cleansers",
+    "readiness": {
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING",
+          "CRITICAL_REVIEW_OPEN"
+        ]
+      },
+      "chatbot": {
+        "ready": false,
+        "missing": [
+          "NO_VERIFIED_COMPOSITION_OR_CLAIMS",
+          "FACT_CONFLICT_OPEN",
+          "CRITICAL_REVIEW_OPEN"
+        ]
+      },
+      "routine": {
+        "ready": false,
+        "missing": [
+          "CRITICAL_REVIEW_OPEN"
+        ],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      },
+      "selling": {
+        "ready": false,
+        "missing": [
+          "SELLING_PRICE_NOT_APPROVED"
+        ],
+        "purchaseCost": 712,
+        "marketReference": {
+          "status": "REFERENCE_READY",
+          "reasonCode": null,
+          "reference": {
+            "maxEgp": 634,
+            "minEgp": 634,
+            "sellers": 1,
+            "excluded": [],
+            "medianEgp": 634,
+            "freshestAt": "2026-11-09T14:04:53.971Z",
+            "observations": 2,
+            "regularMedianEgp": null
+          },
+          "checkedAt": "2026-11-09T14:04:59.855Z"
+        }
+      },
+      "criticalOpen": [
+        {
+          "reasonCode": "USAGE_INSTRUCTIONS_CONFLICT",
+          "field": "usage.instructions",
+          "summary": "Trusted sources state different values for usage.instructions"
+        },
+        {
+          "reasonCode": "COMPOSITION_INCI_CONFLICT",
+          "field": "composition.inci",
+          "summary": "Trusted sources state different values for composition.inci"
+        }
+      ]
+    }
+  },
+  {
+    "sku": "CeraVe Foaming Cleanser 236ml",
+    "skuId": "d4f8c3d8-bedc-4dd2-bdb8-1a38842bc5a4",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "- (UNKNOWN)",
+    "category": "Cleansers",
+    "readiness": {
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": []
+      },
+      "selling": {
+        "ready": false,
+        "missing": [
+          "SELLING_PRICE_NOT_APPROVED"
+        ],
+        "purchaseCost": 680,
+        "marketReference": {
+          "status": "REFERENCE_READY",
+          "reasonCode": null,
+          "reference": {
+            "maxEgp": 630,
+            "minEgp": 540,
+            "sellers": 3,
+            "excluded": [],
+            "medianEgp": 618,
+            "freshestAt": "2026-11-09T14:05:13.107Z",
+            "observations": 5,
+            "regularMedianEgp": null
+          },
+          "checkedAt": "2026-11-09T14:05:13.112Z"
+        }
+      },
+      "criticalOpen": []
+    }
+  },
+  {
+    "sku": "CeraVe Moisturising Cream 454g",
+    "skuId": "299052af-9f57-4e66-bd1c-c715062450bc",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "- (UNKNOWN)",
+    "category": "Moisturizers",
+    "readiness": {
+      "pdp": {
+        "ready": true,
+        "missing": []
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": [],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      },
+      "selling": {
+        "ready": false,
+        "missing": [
+          "NO_SUPPLIER_COST",
+          "SELLING_PRICE_NOT_APPROVED"
+        ],
+        "purchaseCost": null,
+        "marketReference": {
+          "status": "REFERENCE_READY",
+          "reasonCode": null,
+          "reference": {
+            "maxEgp": 1200,
+            "minEgp": 1050,
+            "sellers": 2,
+            "excluded": [],
+            "medianEgp": 1125,
+            "freshestAt": "2026-11-09T14:05:24.660Z",
+            "observations": 6,
+            "regularMedianEgp": null
+          },
+          "checkedAt": "2026-11-09T14:05:24.665Z"
+        }
+      },
+      "criticalOpen": []
+    }
+  },
+  {
+    "sku": "CeraVe SA Smoothing Cleanser 236ml",
+    "skuId": "6445686c-21ae-4432-bb22-a1a773dd9dfa",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "- (UNKNOWN)",
+    "category": "Cleansers",
+    "readiness": {
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": [],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      },
+      "selling": {
+        "ready": false,
+        "missing": [
+          "NO_SUPPLIER_COST",
+          "SELLING_PRICE_NOT_APPROVED"
+        ],
+        "purchaseCost": null,
+        "marketReference": {
+          "status": "REFERENCE_READY",
+          "reasonCode": null,
+          "reference": {
+            "maxEgp": 700,
+            "minEgp": 600,
+            "sellers": 3,
+            "excluded": [],
+            "medianEgp": 650,
+            "freshestAt": "2026-11-09T14:05:32.111Z",
+            "observations": 7,
+            "regularMedianEgp": 650
+          },
+          "checkedAt": "2026-11-09T14:05:32.396Z"
+        }
+      },
+      "criticalOpen": []
+    }
+  },
+  {
+    "sku": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+    "skuId": "34834ca6-1b0f-4041-a805-376e5d8c0b67",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "- (UNKNOWN)",
+    "category": "Serums & Treatments",
+    "readiness": {
+      "pdp": {
+        "ready": true,
+        "missing": []
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": []
+      },
+      "selling": {
+        "ready": false,
+        "missing": [
+          "SELLING_PRICE_NOT_APPROVED"
+        ],
+        "purchaseCost": 552.5,
+        "marketReference": {
+          "status": "REFERENCE_READY",
+          "reasonCode": null,
+          "reference": {
+            "maxEgp": 702.5,
+            "minEgp": 550,
+            "sellers": 5,
+            "excluded": [],
+            "medianEgp": 595,
+            "freshestAt": "2026-11-09T14:05:42.668Z",
+            "observations": 8,
+            "regularMedianEgp": 600
+          },
+          "checkedAt": "2026-11-09T14:05:42.706Z"
+        }
+      },
+      "criticalOpen": []
+    }
+  },
+  {
+    "sku": "The Ordinary Hyaluronic Acid 2% + B5 (Original Formulation) 30ml",
+    "skuId": "5396f025-1609-4e9c-80cf-3ba613ba3d1f",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "- (UNKNOWN)",
+    "category": "Serums & Treatments",
+    "readiness": {
+      "pdp": {
+        "ready": true,
+        "missing": []
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": []
+      },
+      "selling": {
+        "ready": false,
+        "missing": [
+          "SELLING_PRICE_NOT_APPROVED"
+        ],
+        "purchaseCost": 612,
+        "marketReference": {
+          "status": "REFERENCE_READY",
+          "reasonCode": null,
+          "reference": {
+            "maxEgp": 442,
+            "minEgp": 390,
+            "sellers": 2,
+            "excluded": [],
+            "medianEgp": 416,
+            "freshestAt": "2026-11-09T14:05:49.086Z",
+            "observations": 2,
+            "regularMedianEgp": null
+          },
+          "checkedAt": "2026-11-09T14:05:58.919Z"
+        }
+      },
+      "criticalOpen": []
+    }
+  },
+  {
+    "sku": "Cetaphil Gentle Skin Cleanser 236ml",
+    "skuId": "98967e37-41f3-4fee-951c-94ca38297390",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "- (UNKNOWN)",
+    "category": "Cleansers",
+    "readiness": {
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": true,
+        "missing": []
+      },
+      "routine": {
+        "ready": true,
+        "missing": [],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      },
+      "selling": {
+        "ready": false,
+        "missing": [
+          "SELLING_PRICE_NOT_APPROVED"
+        ],
+        "purchaseCost": 432,
+        "marketReference": {
+          "status": "UNAVAILABLE",
+          "reasonCode": "NO_RELIABLE_OBSERVATION",
+          "reference": null,
+          "checkedAt": "2026-11-09T14:06:13.716Z"
+        }
+      },
+      "criticalOpen": []
+    }
+  },
+  {
+    "sku": "Bioderma Sensibio H2O Micellar Water 250ml",
+    "skuId": "468214f3-5116-488e-acc1-44db468a948c",
+    "identity": "EVIDENCE_VERIFIED",
+    "barcode": "- (UNKNOWN)",
+    "category": "Cleansers",
+    "readiness": {
+      "pdp": {
+        "ready": false,
+        "missing": [
+          "PRIMARY_IMAGE_MISSING"
+        ]
+      },
+      "chatbot": {
+        "ready": false,
+        "missing": [
+          "NO_VERIFIED_COMPOSITION_OR_CLAIMS"
+        ]
+      },
+      "routine": {
+        "ready": false,
+        "missing": [
+          "ROUTINE_ROLE_UNKNOWN"
+        ],
+        "warnings": [
+          "ROUTINE_PERIOD_UNKNOWN"
+        ]
+      },
+      "selling": {
+        "ready": false,
+        "missing": [
+          "SELLING_PRICE_NOT_APPROVED"
+        ],
+        "purchaseCost": 544,
+        "marketReference": {
+          "status": "REFERENCE_READY",
+          "reasonCode": null,
+          "reference": {
+            "maxEgp": 867.39,
+            "minEgp": 749,
+            "sellers": 2,
+            "excluded": [],
+            "medianEgp": 808.2,
+            "freshestAt": "2026-11-09T14:06:20.236Z",
+            "observations": 5,
+            "regularMedianEgp": null
+          },
+          "checkedAt": "2026-11-09T14:06:25.019Z"
+        }
+      },
+      "criticalOpen": []
+    }
+  }
+]

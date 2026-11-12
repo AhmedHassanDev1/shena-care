@@ -1,0 +1,2250 @@
+{
+  "jobId": "01cc582d-9e71-4688-a9af-690dadc99370",
+  "worked": 18,
+  "durationMs": 156401,
+  "cost": {
+    "searches": 48,
+    "pageFetches": 76,
+    "imageFetches": 29
+  },
+  "job": {
+    "id": "01cc582d-9e71-4688-a9af-690dadc99370",
+    "source": "ADMIN",
+    "supplierId": null,
+    "submittedBy": "9a1b0c4e-1111-4c4e-9a1b-0c4e11110001",
+    "inputKind": "BULK",
+    "sourceFileName": null,
+    "sourceMimeType": null,
+    "sourceSizeBytes": null,
+    "sourceChecksum": "1e5ed93dc3332fec812d90751a5cccb604920354a8518161ed3d0a40d56e7d55",
+    "columnMap": {
+      "map": {
+        "name": 0
+      },
+      "headers": [
+        "name"
+      ],
+      "ignored": [],
+      "options": {
+        "researchPrices": false
+      }
+    },
+    "snapshot": null,
+    "status": "COMPLETED",
+    "totals": {
+      "total": 16,
+      "UNRESOLVED": 4,
+      "DRAFT_CREATED": 11,
+      "LINKED_EXISTING": 1
+    },
+    "metrics": {
+      "searches": 46,
+      "durationMs": 156351,
+      "pageFetches": 74,
+      "imageFetches": 29,
+      "rowProcessingMs": 152346
+    },
+    "lastError": null,
+    "startedAt": "2026-11-09T14:16:14.904Z",
+    "completedAt": "2026-11-09T14:18:51.255Z",
+    "createdAt": "2026-11-09T14:16:14.882Z",
+    "updatedAt": "2026-11-09T14:18:51.257Z"
+  },
+  "rows": [
+    {
+      "row": 1,
+      "name": "CeraVe Hydrating Facial Cleanser 236ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "bf518c8f-3727-4a6b-a8a9-71236529d44d",
+      "processingMs": 9122,
+      "cost": {
+        "searches": 3,
+        "pageFetches": 5,
+        "imageFetches": 2
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 236
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "f59f70d9-2eb4-4d35-aa73-f4c9d540c5fc",
+          "name": "CeraVe",
+          "basis": "ONBOARDED_FROM_OFFICIAL_SITE",
+          "aliases": [
+            "سيرافي",
+            "cera-ve",
+            "سيرافى"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "CeraVe Hydrating Cleanser",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Hydrating Facial Cleanser",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/our-products/cleansers/cream-to-foam-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "CeraVe Cream to Foam Cleanser",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/sitecore/content/loreal/brandsites/cerave/americas/us/home/skincare/cleansers/hydrating-facial-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "ROBOTS_DISALLOWED",
+            "reasons": [
+              "ROBOTS_DISALLOWED"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+        "productName": "Hydrating Facial Cleanser",
+        "verifiedTitle": "CeraVe Hydrating Cleanser"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "composition.inci",
+          "composition.fragrance",
+          "marketing.description",
+          "composition.keyIngredients",
+          "usage.instructions",
+          "usage.routinePeriod",
+          "identity.size",
+          "suitability.skinTypes"
+        ],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNKNOWN",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "VERIFIED",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "VERIFIED",
+          "usage.routinePeriod": "VERIFIED",
+          "composition.fragrance": "VERIFIED",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "UNKNOWN",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "VERIFIED",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "identity.name",
+          "claims.manufacturerStated",
+          "media.sourceImages"
+        ],
+        "stillMissing": []
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": [
+          {
+            "url": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_HydratingCleanser_NEW_v021.jpg",
+            "reason": "RESOLUTION_TOO_LOW:300x400"
+          }
+        ]
+      }
+    },
+    {
+      "row": 2,
+      "name": "CeraVe Foaming Facial Cleanser 236ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "8e1a5f11-182c-4a2a-9e68-0ce69afd0865",
+      "processingMs": 4590,
+      "cost": {
+        "searches": 2,
+        "pageFetches": 4,
+        "imageFetches": 1
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 236
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "f59f70d9-2eb4-4d35-aa73-f4c9d540c5fc",
+          "name": "CeraVe",
+          "basis": "CATALOG_EXACT",
+          "aliases": [
+            "سيرافي",
+            "cera-ve",
+            "سيرافى"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/foaming-facial-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Foaming Facial Cleanser",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "CeraVe Foaming Cleanser",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/fr/nos-produits/nettoyants/gel-moussant",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "IDENTITY_MISMATCH"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/foaming-facial-cleansers",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Foaming Facial Cleansers",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+        "productName": "Foaming Facial Cleanser",
+        "verifiedTitle": "CeraVe Foaming Cleanser"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "composition.inci",
+          "attributes.nonComedogenic",
+          "composition.keyIngredients",
+          "composition.fragrance",
+          "marketing.description",
+          "suitability.skinTypes",
+          "identity.size",
+          "usage.instructions",
+          "usage.routinePeriod"
+        ],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNKNOWN",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "VERIFIED",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "VERIFIED",
+          "usage.routinePeriod": "VERIFIED",
+          "composition.fragrance": "VERIFIED",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "VERIFIED",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "VERIFIED",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "identity.name",
+          "media.sourceImages",
+          "claims.manufacturerStated"
+        ],
+        "stillMissing": []
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": [
+          {
+            "url": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_FoamingCleanser_NEW_v021.png",
+            "reason": "RESOLUTION_TOO_LOW:177x400"
+          }
+        ]
+      }
+    },
+    {
+      "row": 3,
+      "name": "CeraVe Moisturizing Cream 454g",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "fc3b857b-77a4-4fee-96f7-12265c94240c",
+      "processingMs": 5600,
+      "cost": {
+        "searches": 2,
+        "pageFetches": 4,
+        "imageFetches": 1
+      },
+      "readiness": {
+        "pdp": {
+          "ready": true,
+          "missing": []
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": [],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "g",
+          "value": 454
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "f59f70d9-2eb4-4d35-aa73-f4c9d540c5fc",
+          "name": "CeraVe",
+          "basis": "CATALOG_EXACT",
+          "aliases": [
+            "سيرافي",
+            "cera-ve",
+            "سيرافى"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "CeraVe Moisturising Cream",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/fr/nos-produits/hydratants/baume-hydratant",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "IDENTITY_MISMATCH"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://www.cerave.com/en-us/skincare/moisturizers/moisturizing-cream",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE",
+              "NOT_IN_THIS_FORMULA"
+            ],
+            "pageTitle": "Moisturizing Cream",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.cerave.com/skincare/moisturizers/moisturizing-cream-refill",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "IDENTITY_MISMATCH"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+        "productName": "Moisturizing Cream",
+        "verifiedTitle": "CeraVe Moisturising Cream"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "composition.inci",
+          "attributes.nonComedogenic",
+          "marketing.description",
+          "suitability.skinTypes",
+          "composition.keyIngredients",
+          "attributes.texture",
+          "composition.fragrance",
+          "identity.size",
+          "usage.instructions"
+        ],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNKNOWN",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "VERIFIED",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "VERIFIED",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "VERIFIED",
+          "usage.routinePeriod": "UNKNOWN",
+          "composition.fragrance": "VERIFIED",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "VERIFIED",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "VERIFIED",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "media.sourceImages",
+          "claims.manufacturerStated",
+          "identity.name"
+        ],
+        "stillMissing": []
+      },
+      "media": {
+        "primary": "APPROVED",
+        "editorial": "REJECTED",
+        "rejectedSources": []
+      }
+    },
+    {
+      "row": 4,
+      "name": "CeraVe SA Smoothing Cleanser 236ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "46e3b759-a744-42c3-8687-8776f68f89ee",
+      "processingMs": 3350,
+      "cost": {
+        "searches": 2,
+        "pageFetches": 4,
+        "imageFetches": 1
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": [],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 236
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "f59f70d9-2eb4-4d35-aa73-f4c9d540c5fc",
+          "name": "CeraVe",
+          "basis": "CATALOG_EXACT",
+          "aliases": [
+            "سيرافي",
+            "cera-ve",
+            "سيرافى"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "CeraVe SA Smoothing Cleanser",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/fr/nos-produits/nettoyants/sa-gel-nettoyant-anti-rugosites",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "IDENTITY_MISMATCH"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/renewing-sa-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Renewing SA Cleanser",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/sitecore/content/loreal/brandsites/cerave/americas/us/home/skincare/cleansers/renewing-sa-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "ROBOTS_DISALLOWED",
+            "reasons": [
+              "ROBOTS_DISALLOWED"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+        "productName": "SA Smoothing Cleanser",
+        "verifiedTitle": "CeraVe SA Smoothing Cleanser"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "composition.inci",
+          "identity.size",
+          "attributes.nonComedogenic",
+          "composition.fragrance",
+          "marketing.description",
+          "composition.keyIngredients",
+          "usage.instructions",
+          "suitability.skinTypes"
+        ],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNKNOWN",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "VERIFIED",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "VERIFIED",
+          "usage.routinePeriod": "UNKNOWN",
+          "composition.fragrance": "VERIFIED",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "VERIFIED",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "VERIFIED",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "claims.manufacturerStated",
+          "media.sourceImages",
+          "identity.name"
+        ],
+        "stillMissing": []
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": [
+          {
+            "url": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/Moisturizers/sa-smoothing-cleanser2.png",
+            "reason": "RESOLUTION_TOO_LOW:177x400"
+          }
+        ]
+      }
+    },
+    {
+      "row": 5,
+      "name": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "0fb89c8d-f6f1-48a1-8540-94e2afb7f43c",
+      "processingMs": 16409,
+      "cost": {
+        "searches": 3,
+        "pageFetches": 5,
+        "imageFetches": 7
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 30
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "1b55c971-7b4b-4e99-8f70-9b1b4ea078f0",
+          "name": "The Ordinary",
+          "basis": "ONBOARDED_FROM_OFFICIAL_SITE",
+          "aliases": [
+            "اورجيناري",
+            "the-ordinary",
+            "ordinary",
+            "ذا اورديناري",
+            "ذي اورديناري",
+            "اورديناري"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-rdn%2Dniacinamide%2D10pct%2Dzinc%2D1pct%2D30ml.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Niacinamide 10% + Zinc 1%",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://theordinary.com/en-gb/niacinamide-10-zinc-1-serum-769915232554.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "UPSTREAM_ERROR",
+            "reasons": [
+              "UPSTREAM_ERROR"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://theordinary.com/en-us/blog/niacinamide-benefits-uses.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Promotional Terms & Conditions",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://theordinary.com/en-es/niacinamide-10-zinc-1-serum-100436.html?dwvar_100436_size=eu30ml&quantity=1",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Niacinamide 10% + Zinc 1%",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-rdn%2Dniacinamide%2D10pct%2Dzinc%2D1pct%2D30ml.html",
+        "productName": "Niacinamide 10% + Zinc 1%",
+        "verifiedTitle": "Niacinamide 10% + Zinc 1%"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-rdn%2Dniacinamide%2D10pct%2Dzinc%2D1pct%2D30ml.html",
+              "https://theordinary.com/en-es/niacinamide-10-zinc-1-serum-100436.html?dwvar_100436_size=eu30ml&quantity=1"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "composition.inci",
+          "marketing.description",
+          "usage.routinePeriod",
+          "usage.instructions",
+          "identity.size",
+          "composition.keyIngredients",
+          "safety.warnings"
+        ],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNVERIFIED",
+          "safety.warnings": "VERIFIED",
+          "composition.inci": "VERIFIED",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "VERIFIED",
+          "usage.routinePeriod": "VERIFIED",
+          "composition.fragrance": "UNKNOWN",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "UNKNOWN",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "UNKNOWN",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "VERIFIED",
+          "composition.activeConcentrations": "UNVERIFIED",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "identity.name",
+          "identity.brand",
+          "media.sourceImages",
+          "claims.manufacturerStated",
+          "composition.activeConcentrations"
+        ],
+        "stillMissing": []
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": [
+          {
+            "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dwce8a7cdf/Images/products/The%20Ordinary/rdn-niacinamide-10pct-zinc-1pct-30ml.png?sw=900&sh=900&sm=fit",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          },
+          {
+            "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw51b196c5/Images/products/The%20Ordinary/application/ord-niacinamide-10-zic-1-model-application-with-benefits.jpg?sw=900&sh=900&sm=fit",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          },
+          {
+            "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw828c56a4/Images/products/The%20Ordinary/infographics/GLOBAL-D60830-PDP-Updates-Niacinamide-10-Zinc-1-PDP-Iconography.png?sw=900&sh=900&sm=fit",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          },
+          {
+            "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dwcf135ad6/Images/products/The%20Ordinary/Before-After/ord-niacinamide-zinc-blemish-serum-before-after-pores.jpg?sw=900&sh=900&sm=fit",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          },
+          {
+            "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dwead98b9f/Images/products/The%20Ordinary/infographics/ord-niacinamide-zinc-blemish-ingredients-graphic.jpg?sw=900&sh=900&sm=fit",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          },
+          {
+            "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw6cb37547/Images/products/The%20Ordinary/infographics/ord-niacinamide-10-zinc-aloe-nag-regimen-graphic.jpg?sw=900&sh=900&sm=fit",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          }
+        ]
+      }
+    },
+    {
+      "row": 6,
+      "name": "The Ordinary Hyaluronic Acid 2% + B5 30ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "1decf475-ec28-4935-8e61-ec6f9184a29d",
+      "processingMs": 9348,
+      "cost": {
+        "searches": 2,
+        "pageFetches": 4,
+        "imageFetches": 4
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 30
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "1b55c971-7b4b-4e99-8f70-9b1b4ea078f0",
+          "name": "The Ordinary",
+          "basis": "CATALOG_EXACT",
+          "aliases": [
+            "اورجيناري",
+            "the-ordinary",
+            "ordinary",
+            "ذا اورديناري",
+            "ذي اورديناري",
+            "اورديناري"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-with-ceramides-100637.html?dwvar_100637_size=30ml&quantity=1",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Hyaluronic Acid 2% + B5 (with Ceramides)",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Hyaluronic Acid 2% + B5 (Original Formulation)",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://theordinary.com/on/demandware.store/Sites-deciem-us-Site/en_US/Search-UpdateGrid?cgid=theordinary-hyaluronic-acid&prefn1=availableCountries&prefv1=US&srule=top-sellers&start=0&sz=12",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "ROBOTS_DISALLOWED",
+            "reasons": [
+              "ROBOTS_DISALLOWED"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://theordinary.com/en-au/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Hyaluronic Acid 2% + B5 (Original Formulation)",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html",
+        "productName": "Hyaluronic Acid 2% + B5",
+        "verifiedTitle": "Hyaluronic Acid 2% + B5 (Original Formulation)"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html",
+              "https://theordinary.com/en-au/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "composition.inci",
+          "identity.size",
+          "usage.instructions",
+          "safety.warnings",
+          "marketing.description",
+          "usage.routinePeriod"
+        ],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNVERIFIED",
+          "safety.warnings": "VERIFIED",
+          "composition.inci": "VERIFIED",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "VERIFIED",
+          "usage.routinePeriod": "VERIFIED",
+          "composition.fragrance": "UNKNOWN",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "UNKNOWN",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "UNKNOWN",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "UNKNOWN",
+          "composition.activeConcentrations": "UNVERIFIED",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "media.sourceImages",
+          "claims.manufacturerStated",
+          "identity.brand",
+          "identity.name",
+          "composition.activeConcentrations"
+        ],
+        "stillMissing": []
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": [
+          {
+            "url": "https://theordinary.com/on/demandware.static/-/Library-Sites-DeciemSharedLibrary/default/dw665025d6/theordinary/homepage/slotA/heroes-slot-a-mobile.jpg",
+            "reason": "NOT_THIS_PRODUCT_IMAGE"
+          },
+          {
+            "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw56cd0f2e/Images/products/The%20Ordinary/rdn-hyaluronic-acid-2pct-b5-30ml.png?sw=900&sh=900&sm=fit",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          },
+          {
+            "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw9e5ba9f0/Images/products/The%20Ordinary/infographics/ord-hyaluronic-acid-2pct-b5-original-formulation-ingredient-graphic.jpg?sw=900&sh=900&sm=fit",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          },
+          {
+            "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw3abb223d/Images/products/The%20Ordinary/infographics/ord-hyaluronic-acid-2pct-b5-original-formulation-benefits-graphic.jpg?sw=900&sh=900&sm=fit",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          },
+          {
+            "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dwffbd9417/Images/products/The%20Ordinary/infographics/ord-hyaluronic-acid-2pct-b5-serum-comparison-graphic.jpg?sw=900&sh=900&sm=fit",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          }
+        ]
+      }
+    },
+    {
+      "row": 7,
+      "name": "La Roche-Posay Effaclar Purifying Foaming Gel 200ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "reason": "No page found on the brand's site or a trusted distributor states this product and this size",
+      "skuId": null,
+      "processingMs": 11600,
+      "cost": {
+        "searches": 5,
+        "pageFetches": 7,
+        "imageFetches": 1
+      },
+      "readiness": null
+    },
+    {
+      "row": 8,
+      "name": "La Roche-Posay Cicaplast Baume B5+ 40ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "1c75a396-0dae-448a-af9b-99e4e2436d63",
+      "processingMs": 11487,
+      "cost": {
+        "searches": 4,
+        "pageFetches": 6,
+        "imageFetches": 0
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": [],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 40
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "6d3ac418-7f5a-4e3d-84a8-273d4bd97579",
+          "name": "La Roche-Posay",
+          "basis": "CATALOG_EXACT",
+          "aliases": [
+            "لاروش بوزيه",
+            "لاروش-بوزيه",
+            "la roche posay",
+            "la-roche-posay",
+            "لا روش بوزيه"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://www.laroche-posay.ca/fr_CA/face-care/cicaplast-baume-b5-apaisant/cicaplast-baume-b5.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "ACCESS_DENIED",
+            "reasons": [
+              "ACCESS_DENIED"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://www.laroche-posay.ca/en_CA/face-care/cicaplast-baume-b5-soothing-relieving-balm/cicaplast-baume-b5.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "ACCESS_DENIED",
+            "reasons": [
+              "ACCESS_DENIED"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://www.laroche-posay.ca/en_CA/skincare-value-sets/glass-skin-effect-kit/cicaplast-duo.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "ACCESS_DENIED",
+            "reasons": [
+              "ACCESS_DENIED"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://www.laroche-posay.ca/en_CA/body-care/body-skin-concerns/body-dry-to-very-dry-skin/cicaplast-baume-b5-soothing-relieving-balm/cicaplast-baume-b5.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "ACCESS_DENIED",
+            "reasons": [
+              "ACCESS_DENIED"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://www.laroche-posay.ca/en_CA/skin-edit/sensitive-skin-tips/how-to-use-cicaplast-baume-b5.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "ACCESS_DENIED",
+            "reasons": [
+              "ACCESS_DENIED"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://www.laroche-posay.ca/en_CA/skin-edit/sensitive-skin-tips/everything-you-need-to-know-about-cicaplast-b5-serum.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Everything You Need to Know About Cicaplast B5 Serum",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://www.laroche-posay.ca/en_CA/skin-edit/sensitive-skin-tips/everything-you-need-to-know-about-cicaplast-b5-serum.html",
+        "productName": "Cicaplast Baume B5+",
+        "verifiedTitle": "Everything You Need to Know About Cicaplast B5 Serum"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://www.laroche-posay.ca/en_CA/skin-edit/sensitive-skin-tips/everything-you-need-to-know-about-cicaplast-b5-serum.html"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "suitability.skinTypes",
+          "composition.keyIngredients",
+          "marketing.description",
+          "identity.size",
+          "attributes.texture"
+        ],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNKNOWN",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "UNKNOWN",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "VERIFIED",
+          "media.sourceImages": "UNKNOWN",
+          "usage.instructions": "UNKNOWN",
+          "usage.routinePeriod": "UNKNOWN",
+          "composition.fragrance": "UNKNOWN",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "UNKNOWN",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "VERIFIED",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "identity.name",
+          "claims.manufacturerStated"
+        ],
+        "stillMissing": [
+          "composition.inci",
+          "usage.instructions",
+          "media.sourceImages"
+        ]
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": []
+      }
+    },
+    {
+      "row": 9,
+      "name": "Cetaphil Gentle Skin Cleanser 236ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "ea0b64ee-2403-4f7c-9d54-8b5385ba619c",
+      "processingMs": 9570,
+      "cost": {
+        "searches": 3,
+        "pageFetches": 5,
+        "imageFetches": 7
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": [],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 236
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "256757aa-da4d-468c-b0a3-50ad256b5df8",
+          "name": "Cetaphil",
+          "basis": "ONBOARDED_FROM_OFFICIAL_SITE",
+          "aliases": [
+            "سيتافيل",
+            "سيتافل"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://www.cetaphil.com/us/products/product-categories/all-cleansers/cetaphil-gentle-skin-cleanser/302990110227.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Cetaphil Gentle Skin Cleanser",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.cetaphil.com/us/frequently-asked-questions.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "IDENTITY_MISMATCH"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          },
+          {
+            "url": "https://www.cetaphil.com/us/skincare-tips/skincare-guides/whats-difference-between-cetaphil-daily-facial-cleanser-and-gentle-skin-cleanser.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "What’s the Difference Between Cetaphil Daily Facial Cleanser and Cetaphil Gentle Skin Cleanser?",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.cetaphil.com/us/products/product-categories/all-cleansers/non-foaming",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "IDENTITY_MISMATCH"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://www.cetaphil.com/us/products/product-categories/all-cleansers/cetaphil-gentle-skin-cleanser/302990110227.html",
+        "productName": "Gentle Skin Cleanser",
+        "verifiedTitle": "Cetaphil Gentle Skin Cleanser"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://www.cetaphil.com/us/products/product-categories/all-cleansers/cetaphil-gentle-skin-cleanser/302990110227.html"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "composition.inci",
+          "identity.size",
+          "marketing.description",
+          "suitability.skinTypes",
+          "usage.instructions"
+        ],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNVERIFIED",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "VERIFIED",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "VERIFIED",
+          "usage.routinePeriod": "UNKNOWN",
+          "composition.fragrance": "UNKNOWN",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "UNKNOWN",
+          "claims.manufacturerStated": "UNKNOWN",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "UNKNOWN",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "media.sourceImages",
+          "identity.name",
+          "identity.brand"
+        ],
+        "stillMissing": [
+          "claims.manufacturerStated"
+        ]
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": [
+          {
+            "url": "https://www.cetaphil.com/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-us-m-catalog/default/dw554054cc/302990100624/GSC-RESIZE-1.2X.png?sw=900&sh=900&sm=fit&q=85",
+            "reason": "NOT_THIS_PRODUCT_IMAGE"
+          },
+          {
+            "url": "https://www.cetaphil.com/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-us-m-catalog/default/dw26ceab2a/Gentle%20Skin%20Cleanser/302990110227_InUse_.jpg?sw=900&sh=900&sm=fit&q=85",
+            "reason": "The image could not be read: ROBOTS_DISALLOWED"
+          },
+          {
+            "url": "https://www.cetaphil.com/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-us-m-catalog/default/dw2e67f667/Gentle%20Skin%20Cleanser/302990110227_Swatch_.jpg?sw=900&sh=900&sm=fit&q=85",
+            "reason": "The image could not be read: ROBOTS_DISALLOWED"
+          },
+          {
+            "url": "https://www.cetaphil.com/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-us-m-catalog/default/dwf1a26280/Gentle%20Skin%20Cleanser/302990110227_Benefits_2_.jpg?sw=900&sh=900&sm=fit&q=85",
+            "reason": "The image could not be read: ROBOTS_DISALLOWED"
+          },
+          {
+            "url": "https://www.cetaphil.com/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-us-m-catalog/default/dwd59da384/Gentle%20Skin%20Cleanser/302990110227_CloseUp_Editorial_.jpg?sw=900&sh=900&sm=fit&q=85",
+            "reason": "The image could not be read: ROBOTS_DISALLOWED"
+          },
+          {
+            "url": "https://www.cetaphil.com/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-us-m-catalog/default/dw7c9b0327/Gentle%20Skin%20Cleanser/302990110289_Dermatologist_.jpg?sw=900&sh=900&sm=fit&q=85",
+            "reason": "The image could not be read: ROBOTS_DISALLOWED"
+          },
+          {
+            "url": "https://www.cetaphil.com/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-us-m-catalog/default/dw47b96a8b/Gentle%20Skin%20Cleanser/302990110227_Back_.jpg?sw=900&sh=900&sm=fit&q=85",
+            "reason": "The image could not be read: ROBOTS_DISALLOWED"
+          },
+          {
+            "url": "https://www.cetaphil.com/on/demandware.static/Sites-Galderma-US-Site/-/default/dw5e8340e1/images/Cetaphil_Logo_285.png",
+            "reason": "NOT_THIS_PRODUCT_IMAGE"
+          }
+        ]
+      }
+    },
+    {
+      "row": 10,
+      "name": "Bioderma Sensibio H2O 250ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "17badec5-d982-46ef-8ef0-f26354cdbce1",
+      "processingMs": 11645,
+      "cost": {
+        "searches": 3,
+        "pageFetches": 5,
+        "imageFetches": 0
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": false,
+          "missing": [
+            "NO_VERIFIED_COMPOSITION_OR_CLAIMS"
+          ]
+        },
+        "routine": {
+          "ready": false,
+          "missing": [
+            "ROUTINE_ROLE_UNKNOWN"
+          ],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 250
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "7a93d1a8-140f-43be-ac91-e65bd9af505a",
+          "name": "Bioderma",
+          "basis": "ONBOARDED_FROM_OFFICIAL_SITE",
+          "aliases": [
+            "بيوديرما"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://www.bioderma.us/en/p/sensibio-h2o-micellar-water.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Sensibio H2O Micellar Water",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.bioderma.us/en/c/all-products/sensibio.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Sensibio - Sensitive skin",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.bioderma.us/en/p/sensibio-home-travel-set-micellar.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Sensibio Micellar Water Home and Travel H2O set",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.bioderma.us/en/landing/the-original-micellar-water.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "THE ORIGINAL MICELLAR WATER",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://www.bioderma.us/en/p/sensibio-h2o-micellar-water.html",
+        "productName": "Sensibio H2O",
+        "verifiedTitle": "Sensibio H2O Micellar Water"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://www.bioderma.us/en/p/sensibio-h2o-micellar-water.html"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "suitability.skinTypes",
+          "marketing.description",
+          "identity.size"
+        ],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNKNOWN",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "UNKNOWN",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNKNOWN",
+          "usage.instructions": "UNKNOWN",
+          "usage.routinePeriod": "UNKNOWN",
+          "composition.fragrance": "UNKNOWN",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "UNKNOWN",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "UNKNOWN",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "identity.name",
+          "claims.manufacturerStated"
+        ],
+        "stillMissing": [
+          "composition.inci",
+          "usage.instructions",
+          "media.sourceImages"
+        ]
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": []
+      }
+    },
+    {
+      "row": 11,
+      "name": "Eucerin DermoPurifyer Oil Control Cleansing Gel 200ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "reason": "No page found on the brand's site or a trusted distributor states this product and this size",
+      "skuId": null,
+      "processingMs": 13337,
+      "cost": {
+        "searches": 5,
+        "pageFetches": 7,
+        "imageFetches": 1
+      },
+      "readiness": null
+    },
+    {
+      "row": 12,
+      "name": "Vichy Mineral 89 50ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "f69d9981-ebd2-4212-93d5-d59e36400485",
+      "processingMs": 19622,
+      "cost": {
+        "searches": 3,
+        "pageFetches": 5,
+        "imageFetches": 1
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "CATEGORY_MISSING",
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": false,
+          "missing": [
+            "NO_VERIFIED_COMPOSITION_OR_CLAIMS"
+          ]
+        },
+        "routine": {
+          "ready": false,
+          "missing": [
+            "ROUTINE_ROLE_UNKNOWN"
+          ],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 50
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "d3fb3c42-50f5-4949-b833-46068eef21cc",
+          "name": "Vichy",
+          "basis": "ONBOARDED_FROM_OFFICIAL_SITE",
+          "aliases": [
+            "فيشي",
+            "فيشى"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://www.vichy.sg/Face-care/Mineral-89-Skin-Fortifying-Daily-Booster-MINERAL-89/p23064.aspx",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Mineral 89 - Skin Fortifying Daily Booster",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.vichy.sg/MINERAL-89/range/r2838.aspx",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "MINERAL 89",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.vichy.sg/V-Mag/Why-you-need-Mineral-89-Skin-Fortifying-Daily-Booster/vmag75445.aspx",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Why you need Mineral 89 Skin Fortifying Daily Booster?",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.vichy.sg/Type-of-product/Facial-serum/ps1293.aspx",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "IDENTITY_MISMATCH"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://www.vichy.sg/Face-care/Mineral-89-Skin-Fortifying-Daily-Booster-MINERAL-89/p23064.aspx",
+        "productName": "Mineral 89",
+        "verifiedTitle": "Mineral 89 - Skin Fortifying Daily Booster"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://www.vichy.sg/Face-care/Mineral-89-Skin-Fortifying-Daily-Booster-MINERAL-89/p23064.aspx"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "identity.gtin",
+          "identity.size",
+          "suitability.skinTypes",
+          "composition.fragrance",
+          "marketing.description"
+        ],
+        "coverage": {
+          "identity.gtin": "VERIFIED",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNVERIFIED",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "UNKNOWN",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "UNKNOWN",
+          "usage.routinePeriod": "UNKNOWN",
+          "composition.fragrance": "VERIFIED",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "UNKNOWN",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "UNKNOWN",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "claims.manufacturerStated",
+          "identity.brand",
+          "media.sourceImages",
+          "identity.name"
+        ],
+        "stillMissing": [
+          "composition.inci",
+          "usage.instructions"
+        ]
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": [
+          {
+            "url": "https://www.vichy.sg/site/pages/showImageResized.aspx?EncMediaId=ZXV3c2dZUG1yUGVEenRBKzc5bnFQQT09&ImageFormatAppCode=IF_PDPV4_PUSHV3_370_355&v=20263161052347",
+            "reason": "NOT_THIS_PRODUCT_IMAGE"
+          },
+          {
+            "url": "https://www.vichy.sg/site/pages/showImageResized.aspx?EncMediaId=eXlPT01ocTk4ZjZSRkZ3ZGxFTWRCdz09&ImageFormatAppCode=IMAGEFORMAT_ORIGINAL&v=20263161052347",
+            "reason": "NOT_THIS_PRODUCT_IMAGE"
+          }
+        ]
+      }
+    },
+    {
+      "row": 13,
+      "name": "Garnier SkinActive Micellar Cleansing Water 400ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "a64cc667-0a7b-413d-8b0c-c8923d384afc",
+      "processingMs": 14371,
+      "cost": {
+        "searches": 3,
+        "pageFetches": 5,
+        "imageFetches": 3
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": false,
+          "missing": [
+            "ROUTINE_ROLE_UNKNOWN"
+          ],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 400
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "2b0b62ef-26d3-4f61-882d-049f6658b39e",
+          "name": "Garnier",
+          "basis": "ONBOARDED_FROM_OFFICIAL_SITE",
+          "aliases": [
+            "جارنييه",
+            "جارنيه",
+            "غارنييه"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://www.garnier.ca/en-ca/about-our-brands/skin-care/skinactive/micellar-cleansing-water/garnier-micellar-cleansing-water-with-salicylic-acid",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Micellar Cleansing Water with Salicylic Acid",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.garnier.ca/en-ca/about-our-brands/skin-care/skinactive/micellar-cleansing-water/garnier-skinactive-hyaluronique-acid",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Hyaluronic Acid Micellar Water",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.garnier.ca/en-ca/about-our-brands/skin-care/skinactive/micellar-cleansing-water/garnier-skinactive-allin1-micellar-cleansing-water-for-dry-skin-400-ml",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Micellar Water For Dry Skin",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.garnier.ca/en-ca/about-our-brands/skin-care/skinactive/micellar-cleansing-water/garnier-skinactive-micellar-cleansing-water-allin1-sensitive-skin",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "Micellar Water for Sensitive Skin",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://www.garnier.ca/en-ca/about-our-brands/skin-care/skinactive/micellar-cleansing-water/garnier-skinactive-allin1-micellar-cleansing-water-for-dry-skin-400-ml",
+        "productName": "SkinActive Micellar Cleansing Water",
+        "verifiedTitle": "Micellar Water For Dry Skin"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://www.garnier.ca/en-ca/about-our-brands/skin-care/skinactive/micellar-cleansing-water/garnier-skinactive-allin1-micellar-cleansing-water-for-dry-skin-400-ml"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "composition.inci",
+          "identity.size",
+          "usage.instructions",
+          "suitability.skinTypes",
+          "identity.gtin",
+          "marketing.description"
+        ],
+        "coverage": {
+          "identity.gtin": "VERIFIED",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNVERIFIED",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "VERIFIED",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "VERIFIED",
+          "usage.routinePeriod": "UNKNOWN",
+          "composition.fragrance": "UNKNOWN",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "UNKNOWN",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "UNKNOWN",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "media.sourceImages",
+          "claims.manufacturerStated",
+          "identity.name",
+          "identity.brand"
+        ],
+        "stillMissing": []
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": [
+          {
+            "url": "https://www.garnier.ca/-/media/project/loreal/brand-sites/garnier/usa/ca/new_products/skin_care/cleansing/micellar/all-in-1-micellar-cleansing-water-for-dry-skin-400ml/0603084498963-1.jpg?rev=030ff9c0cd974512a68b8d7ac69f6d37&hash=0F6C967DADCC9EEDDE3D6CFB6AFEDE45",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          },
+          {
+            "url": "https://www.garnier.ca/-/media/project/loreal/brand-sites/garnier/usa/ca/new_products/skin_care/cleansing/micellar/all-in-1-micellar-cleansing-water-for-dry-skin-400ml/0603084498963-1.jpg?rev=030ff9c0cd974512a68b8d7ac69f6d37",
+            "reason": "Automatic: SOURCE_NOT_ON_TRUSTED_LIST (add the host to MEDIA_TRUSTED_SOURCE_HOSTS, or review by hand)"
+          }
+        ]
+      }
+    },
+    {
+      "row": 14,
+      "name": "CeraVe Ultra Glow Night Elixir 50ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "reason": "No page found on the brand's site or a trusted distributor states this product and this size",
+      "skuId": null,
+      "processingMs": 8534,
+      "cost": {
+        "searches": 4,
+        "pageFetches": 6,
+        "imageFetches": 0
+      },
+      "readiness": null
+    },
+    {
+      "row": 15,
+      "name": "سيروم فيتامين سي للبشرة",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "BRAND_NOT_VERIFIED",
+      "reason": "The brand is not in the catalog and the name is written in Arabic; give the brand's English name",
+      "skuId": null,
+      "processingMs": 10,
+      "cost": {
+        "searches": 0,
+        "pageFetches": 0,
+        "imageFetches": 0
+      },
+      "readiness": null
+    },
+    {
+      "row": 16,
+      "name": "Cerave hydrating cleanser 236 ml",
+      "outcome": "LINKED_EXISTING",
+      "reasonCode": "EXISTING_SKU:SAME_VERIFIED_PAGE",
+      "reason": null,
+      "skuId": "bf518c8f-3727-4a6b-a8a9-71236529d44d",
+      "processingMs": 3751,
+      "cost": {
+        "searches": 2,
+        "pageFetches": 2,
+        "imageFetches": 0
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 236
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "SAME_VERIFIED_PAGE",
+        "brand": {
+          "id": "f59f70d9-2eb4-4d35-aa73-f4c9d540c5fc",
+          "name": "CeraVe",
+          "basis": "CATALOG_EXACT",
+          "aliases": [
+            "سيرافي",
+            "cera-ve",
+            "سيرافى"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "CeraVe Hydrating Cleanser",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/our-products/cleansers/cream-to-foam-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "CeraVe Cream to Foam Cleanser",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/hydrating-cream-to-foam-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Hydrating Cream-to-Foam Cleanser",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser/",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Hydrating Facial Cleanser",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          }
+        ],
+        "created": false,
+        "verifiedBy": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+        "productName": "hydrating cleanser",
+        "verifiedTitle": "CeraVe Hydrating Cleanser"
+      },
+      "enrichment": {
+        "runs": [],
+        "holds": [],
+        "applied": [],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNKNOWN",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "VERIFIED",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "VERIFIED",
+          "usage.routinePeriod": "VERIFIED",
+          "composition.fragrance": "VERIFIED",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "UNKNOWN",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "VERIFIED",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "identity.name",
+          "claims.manufacturerStated",
+          "media.sourceImages"
+        ],
+        "stillMissing": []
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": [
+          {
+            "url": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_HydratingCleanser_NEW_v021.jpg",
+            "reason": "RESOLUTION_TOO_LOW:300x400"
+          }
+        ]
+      }
+    }
+  ]
+}

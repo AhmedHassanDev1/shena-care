@@ -1,0 +1,661 @@
+{
+  "jobId": "2b1ada7b-fa70-4ec4-987d-ea97211b2f65",
+  "replay": false,
+  "job": {
+    "id": "2b1ada7b-fa70-4ec4-987d-ea97211b2f65",
+    "source": "SUPPLIER",
+    "supplierId": "9a1b0c4e-2222-4c4e-9a1b-0c4e22220002",
+    "submittedBy": "9a1b0c4e-3333-4c4e-9a1b-0c4e33330003",
+    "inputKind": "FILE",
+    "sourceFileName": "nahar-price-list-2.xlsx",
+    "sourceMimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "sourceSizeBytes": 19255,
+    "sourceChecksum": "23274cad97ca12da12d0784f0c494f52d6b20bca211338d51c90c3c1750c01f9",
+    "columnMap": {
+      "map": {
+        "code": 0,
+        "name": 1,
+        "quantity": 4,
+        "consumerPrice": 2,
+        "discountPercent": 3
+      },
+      "sheet": "الأسعار",
+      "headers": [
+        "كود الصنف",
+        "اسم الصنف",
+        "سعر الجمهور",
+        "خصم %",
+        "الرصيد"
+      ],
+      "ignored": [],
+      "ambiguous": [],
+      "headerRow": 3
+    },
+    "snapshot": {
+      "brands": 8,
+      "takenAt": "2026-11-09T14:19:32.159Z",
+      "catalogSkus": 11,
+      "ruleVersion": "intake-match@1",
+      "policyVersion": null,
+      "supplierCodes": 8,
+      "learnedAliases": 19
+    },
+    "status": "COMPLETED",
+    "totals": {
+      "total": 14,
+      "MATCHED": 3,
+      "SKIPPED": 1,
+      "UPDATED": 6,
+      "CRITICAL": 1,
+      "UNMATCHED": 3
+    },
+    "metrics": {
+      "matchMs": 25,
+      "gateSkips": 1,
+      "paidCalls": 0,
+      "durationMs": 339,
+      "snapshotMs": 109,
+      "offerWrites": 9,
+      "offerWriteMs": 118,
+      "rowsPerSecond": 41.3,
+      "rowsProcessed": 14
+    },
+    "lastError": null,
+    "startedAt": "2026-11-09T14:19:32.060Z",
+    "completedAt": "2026-11-09T14:19:32.396Z",
+    "createdAt": "2026-11-09T14:19:32.027Z",
+    "updatedAt": "2026-11-09T14:19:32.397Z"
+  },
+  "rows": [
+    {
+      "row": 4,
+      "name": "جارنييه ماء ميسيلار 400 مل",
+      "purchase": "247.5",
+      "consumer": "330",
+      "outcome": "UPDATED",
+      "reasonCode": "CHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "reason": null,
+      "matched": "Garnier Micellar Water For Dry Skin 400ml",
+      "candidates": [
+        {
+          "label": "Garnier Micellar Water For Dry Skin 400ml",
+          "score": 0.67,
+          "skuId": "a64cc667-0a7b-413d-8b0c-c8923d384afc",
+          "vetoes": [],
+          "measure": "SAME",
+          "supports": false
+        }
+      ],
+      "evidence": {
+        "basis": "SUPPLIER_CODE+LEARNED_ALIAS",
+        "offer": {
+          "id": "e4c78bd8-8dfd-4efd-978d-e17c479ea25f",
+          "after": {
+            "isAvailable": true,
+            "consumerPrice": 330,
+            "purchasePrice": 247.5,
+            "availableQuantity": 35
+          },
+          "before": {
+            "isAvailable": true,
+            "consumerPrice": 310,
+            "purchasePrice": 232.5,
+            "availableQuantity": 40
+          },
+          "result": "CHANGED",
+          "codeAlias": "KEPT"
+        },
+        "score": 1,
+        "brands": [
+          {
+            "end": 1,
+            "basis": "EXACT",
+            "label": "جارنييه",
+            "start": 0,
+            "brandId": "2b0b62ef-26d3-4f61-882d-049f6658b39e"
+          }
+        ],
+        "learned": "CONFIRMED"
+      }
+    },
+    {
+      "row": 5,
+      "name": "سيرافي غسول مرطب للبشرة العادية الى الجافة 236 مل",
+      "purchase": "712",
+      "consumer": "890",
+      "outcome": "UPDATED",
+      "reasonCode": "CHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "reason": null,
+      "matched": "CeraVe Hydrating Cleanser 236ml",
+      "candidates": [
+        {
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 0.8,
+          "skuId": "bf518c8f-3727-4a6b-a8a9-71236529d44d",
+          "vetoes": [],
+          "measure": "SAME",
+          "supports": false
+        }
+      ],
+      "evidence": {
+        "basis": "SUPPLIER_CODE+LEARNED_ALIAS",
+        "offer": {
+          "id": "e40fe56d-d3a5-433a-8d9d-c7dcffde4228",
+          "after": {
+            "isAvailable": true,
+            "consumerPrice": 890,
+            "purchasePrice": 712,
+            "availableQuantity": 10
+          },
+          "before": {
+            "isAvailable": true,
+            "consumerPrice": 850,
+            "purchasePrice": 680,
+            "availableQuantity": 14
+          },
+          "result": "CHANGED",
+          "codeAlias": "KEPT"
+        },
+        "score": 1,
+        "brands": [
+          {
+            "end": 1,
+            "basis": "EXACT",
+            "label": "سيرافي",
+            "start": 0,
+            "brandId": "f59f70d9-2eb4-4d35-aa73-f4c9d540c5fc"
+          }
+        ],
+        "learned": "CONFIRMED"
+      }
+    },
+    {
+      "row": 6,
+      "name": "سيرافي غسول رغوي للبشرة العادية الى الدهنية 236 مل",
+      "purchase": "680",
+      "consumer": "850",
+      "outcome": "MATCHED",
+      "reasonCode": "UNCHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "reason": null,
+      "matched": "CeraVe Foaming Cleanser 236ml",
+      "candidates": [
+        {
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.8,
+          "skuId": "8e1a5f11-182c-4a2a-9e68-0ce69afd0865",
+          "vetoes": [],
+          "measure": "SAME",
+          "supports": false
+        }
+      ],
+      "evidence": {
+        "basis": "SUPPLIER_CODE+LEARNED_ALIAS",
+        "offer": {
+          "id": "2eb0dd81-a248-44fc-9aa0-496df1568f9c",
+          "after": {
+            "isAvailable": true,
+            "consumerPrice": 850,
+            "purchasePrice": 680,
+            "availableQuantity": 9
+          },
+          "before": {
+            "isAvailable": true,
+            "consumerPrice": 850,
+            "purchasePrice": 680,
+            "availableQuantity": 9
+          },
+          "result": "UNCHANGED",
+          "codeAlias": "KEPT"
+        },
+        "score": 1,
+        "brands": [
+          {
+            "end": 1,
+            "basis": "EXACT",
+            "label": "سيرافي",
+            "start": 0,
+            "brandId": "f59f70d9-2eb4-4d35-aa73-f4c9d540c5fc"
+          }
+        ],
+        "learned": "CONFIRMED"
+      }
+    },
+    {
+      "row": 7,
+      "name": "سيرافي كريم مرطب 454 جم",
+      "purchase": "1000",
+      "consumer": "1250",
+      "outcome": "UPDATED",
+      "reasonCode": "CHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "reason": null,
+      "matched": "CeraVe Moisturising Cream 454g",
+      "candidates": [
+        {
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 1,
+          "skuId": "fc3b857b-77a4-4fee-96f7-12265c94240c",
+          "vetoes": [],
+          "measure": "SAME",
+          "supports": true
+        }
+      ],
+      "evidence": {
+        "basis": "SUPPLIER_CODE+LEARNED_ALIAS",
+        "offer": {
+          "id": "ef016d91-d98d-4b07-b5d3-7830c3c255ee",
+          "after": {
+            "isAvailable": false,
+            "consumerPrice": 1250,
+            "purchasePrice": 1000,
+            "availableQuantity": 0
+          },
+          "before": {
+            "isAvailable": true,
+            "consumerPrice": 1250,
+            "purchasePrice": 1000,
+            "availableQuantity": 6
+          },
+          "result": "CHANGED",
+          "codeAlias": "KEPT"
+        },
+        "score": 1,
+        "brands": [
+          {
+            "end": 1,
+            "basis": "EXACT",
+            "label": "سيرافي",
+            "start": 0,
+            "brandId": "f59f70d9-2eb4-4d35-aa73-f4c9d540c5fc"
+          }
+        ],
+        "learned": "CONFIRMED"
+      }
+    },
+    {
+      "row": 8,
+      "name": "ذا اورديناري سيروم نياسيناميد 10% + زنك 1% 30 مل",
+      "purchase": "552.5",
+      "consumer": "650",
+      "outcome": "MATCHED",
+      "reasonCode": "UNCHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "reason": null,
+      "matched": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+      "candidates": [
+        {
+          "label": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+          "score": 0.8,
+          "skuId": "0fb89c8d-f6f1-48a1-8540-94e2afb7f43c",
+          "vetoes": [],
+          "measure": "SAME",
+          "supports": false
+        }
+      ],
+      "evidence": {
+        "basis": "SUPPLIER_CODE+LEARNED_ALIAS",
+        "offer": {
+          "id": "d8e9237a-a909-49af-ad5c-8073f9fb28a1",
+          "after": {
+            "isAvailable": true,
+            "consumerPrice": 650,
+            "purchasePrice": 552.5,
+            "availableQuantity": 20
+          },
+          "before": {
+            "isAvailable": true,
+            "consumerPrice": 650,
+            "purchasePrice": 552.5,
+            "availableQuantity": 20
+          },
+          "result": "UNCHANGED",
+          "codeAlias": "KEPT"
+        },
+        "score": 1,
+        "brands": [
+          {
+            "end": 2,
+            "basis": "EXACT",
+            "label": "ذا اورديناري",
+            "start": 0,
+            "brandId": "1b55c971-7b4b-4e99-8f70-9b1b4ea078f0"
+          }
+        ],
+        "learned": "CONFIRMED"
+      }
+    },
+    {
+      "row": 9,
+      "name": "ذا اورديناري هيالورونيك اسيد 2% + B5 سيروم 30مل",
+      "purchase": "612",
+      "consumer": "720",
+      "outcome": "UPDATED",
+      "reasonCode": "CHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "reason": null,
+      "matched": "The Ordinary Hyaluronic Acid 2% + B5 (Original Formulation) 30ml",
+      "candidates": [
+        {
+          "label": "The Ordinary Hyaluronic Acid 2% + B5 (Original Formulation) 30ml",
+          "score": 0.67,
+          "skuId": "1decf475-ec28-4935-8e61-ec6f9184a29d",
+          "vetoes": [],
+          "measure": "SAME",
+          "supports": false
+        }
+      ],
+      "evidence": {
+        "basis": "SUPPLIER_CODE+LEARNED_ALIAS",
+        "offer": {
+          "id": "6e2b8a0c-ac9e-4559-a8b5-45959ee29830",
+          "after": {
+            "isAvailable": true,
+            "consumerPrice": 720,
+            "purchasePrice": 612,
+            "availableQuantity": 11
+          },
+          "before": {
+            "isAvailable": true,
+            "consumerPrice": 690,
+            "purchasePrice": 586.5,
+            "availableQuantity": 11
+          },
+          "result": "CHANGED",
+          "codeAlias": "KEPT"
+        },
+        "score": 1,
+        "brands": [
+          {
+            "end": 2,
+            "basis": "EXACT",
+            "label": "ذا اورديناري",
+            "start": 0,
+            "brandId": "1b55c971-7b4b-4e99-8f70-9b1b4ea078f0"
+          }
+        ],
+        "learned": "CONFIRMED"
+      }
+    },
+    {
+      "row": 10,
+      "name": "لاروش بوزيه افاكلار جل رغوي منظف 200 مل",
+      "purchase": "943",
+      "consumer": "1150",
+      "outcome": "UNMATCHED",
+      "reasonCode": "NO_CANDIDATE",
+      "reason": "Every catalog SKU of this brand contradicts the line",
+      "matched": null,
+      "candidates": [
+        {
+          "label": "La Roche-Posay Everything You Need to Know About Cicaplast B5 Serum 40ml",
+          "score": 0,
+          "skuId": "1c75a396-0dae-448a-af9b-99e4e2436d63",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ],
+          "measure": "DIFFERENT",
+          "supports": false
+        }
+      ],
+      "evidence": {
+        "gate": "CATALOG_BRAND",
+        "brands": [
+          {
+            "end": 2,
+            "basis": "EXACT",
+            "label": "لاروش بوزيه",
+            "start": 0,
+            "brandId": "6d3ac418-7f5a-4e3d-84a8-273d4bd97579"
+          }
+        ]
+      }
+    },
+    {
+      "row": 11,
+      "name": "سيتافيل غسول لطيف للبشرة 236 مل",
+      "purchase": "432",
+      "consumer": "540",
+      "outcome": "UPDATED",
+      "reasonCode": "CHANGED:SUPPLIER_CODE+LEARNED_ALIAS",
+      "reason": null,
+      "matched": "Cetaphil Gentle Skin Cleanser 236ml",
+      "candidates": [
+        {
+          "label": "Cetaphil Gentle Skin Cleanser 236ml",
+          "score": 1,
+          "skuId": "ea0b64ee-2403-4f7c-9d54-8b5385ba619c",
+          "vetoes": [],
+          "measure": "SAME",
+          "supports": true
+        }
+      ],
+      "evidence": {
+        "basis": "SUPPLIER_CODE+LEARNED_ALIAS",
+        "offer": {
+          "id": "6acd92a8-9998-4064-9d03-41f6667a8823",
+          "after": {
+            "isAvailable": true,
+            "consumerPrice": 540,
+            "purchasePrice": 432,
+            "availableQuantity": 28
+          },
+          "before": {
+            "isAvailable": true,
+            "consumerPrice": 520,
+            "purchasePrice": 416,
+            "availableQuantity": 30
+          },
+          "result": "CHANGED",
+          "codeAlias": "KEPT"
+        },
+        "score": 1,
+        "brands": [
+          {
+            "end": 1,
+            "basis": "EXACT",
+            "label": "سيتافيل",
+            "start": 0,
+            "brandId": "256757aa-da4d-468c-b0a3-50ad256b5df8"
+          }
+        ],
+        "learned": "CONFIRMED"
+      }
+    },
+    {
+      "row": 12,
+      "name": "يوسيرين ديرموبيوريفاير جل منظف 200 مل",
+      "purchase": "646",
+      "consumer": "760",
+      "outcome": "UNMATCHED",
+      "reasonCode": "BRAND_HAS_NO_SKUS",
+      "reason": "يوسيرين has no active catalog SKU",
+      "matched": null,
+      "candidates": [],
+      "evidence": {
+        "gate": "CATALOG_BRAND",
+        "brands": [
+          {
+            "end": 1,
+            "basis": "EXACT",
+            "label": "يوسيرين",
+            "start": 0,
+            "brandId": "9e2fa1aa-a069-42c7-a7ba-73c0502c55f6"
+          }
+        ]
+      }
+    },
+    {
+      "row": 13,
+      "name": "فيشي مينيرال 89 سيروم 50 مل",
+      "purchase": "1181.5",
+      "consumer": "1390",
+      "outcome": "CRITICAL",
+      "reasonCode": "WEAK_WORDING",
+      "reason": "Only Vichy Mineral 89 - Skin Fortifying Daily Booster 50ml fits, and the wording does not confirm it",
+      "matched": null,
+      "candidates": [
+        {
+          "label": "Vichy Mineral 89 - Skin Fortifying Daily Booster 50ml",
+          "score": 0.33,
+          "skuId": "f69d9981-ebd2-4212-93d5-d59e36400485",
+          "vetoes": [],
+          "measure": "SAME",
+          "onlyRow": [
+            "serum · سيروم"
+          ],
+          "supports": false,
+          "onlyCatalog": [
+            "daily · يومي",
+            "fortifying",
+            "booster"
+          ]
+        }
+      ],
+      "evidence": {
+        "gate": "CATALOG_BRAND",
+        "brands": [
+          {
+            "end": 1,
+            "basis": "EXACT",
+            "label": "فيشي",
+            "start": 0,
+            "brandId": "d3fb3c42-50f5-4949-b833-46068eef21cc"
+          }
+        ]
+      }
+    },
+    {
+      "row": 14,
+      "name": "سيتافيل جنتل سكين كلينزر 236مل",
+      "purchase": "432",
+      "consumer": "540",
+      "outcome": "UPDATED",
+      "reasonCode": "CHANGED:BRAND_SIZE_WORDING",
+      "reason": null,
+      "matched": "Cetaphil Gentle Skin Cleanser 236ml",
+      "candidates": [
+        {
+          "label": "Cetaphil Gentle Skin Cleanser 236ml",
+          "score": 0.8,
+          "skuId": "ea0b64ee-2403-4f7c-9d54-8b5385ba619c",
+          "vetoes": [],
+          "measure": "SAME",
+          "supports": false
+        }
+      ],
+      "evidence": {
+        "basis": "BRAND_SIZE_WORDING",
+        "offer": {
+          "id": "6acd92a8-9998-4064-9d03-41f6667a8823",
+          "after": {
+            "isAvailable": true,
+            "consumerPrice": 540,
+            "purchasePrice": 432,
+            "availableQuantity": 12
+          },
+          "before": {
+            "isAvailable": true,
+            "consumerPrice": 540,
+            "purchasePrice": 432,
+            "availableQuantity": 28
+          },
+          "result": "CHANGED",
+          "codeAlias": "CREATED"
+        },
+        "score": 0.8,
+        "brands": [
+          {
+            "end": 1,
+            "basis": "EXACT",
+            "label": "سيتافيل",
+            "start": 0,
+            "brandId": "256757aa-da4d-468c-b0a3-50ad256b5df8"
+          }
+        ],
+        "learned": "CREATED"
+      }
+    },
+    {
+      "row": 15,
+      "name": "CERAVE FOAMING FACIAL CLEANSER 236 ML",
+      "purchase": "680",
+      "consumer": "850",
+      "outcome": "MATCHED",
+      "reasonCode": "UNCHANGED:LEARNED_ALIAS",
+      "reason": null,
+      "matched": "CeraVe Foaming Cleanser 236ml",
+      "candidates": [
+        {
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 1,
+          "skuId": "8e1a5f11-182c-4a2a-9e68-0ce69afd0865",
+          "vetoes": [],
+          "measure": "SAME",
+          "supports": true
+        }
+      ],
+      "evidence": {
+        "basis": "LEARNED_ALIAS",
+        "offer": {
+          "id": "2eb0dd81-a248-44fc-9aa0-496df1568f9c",
+          "after": {
+            "isAvailable": true,
+            "consumerPrice": 850,
+            "purchasePrice": 680,
+            "availableQuantity": 9
+          },
+          "before": {
+            "isAvailable": true,
+            "consumerPrice": 850,
+            "purchasePrice": 680,
+            "availableQuantity": 9
+          },
+          "result": "UNCHANGED",
+          "codeAlias": "CREATED"
+        },
+        "score": 1,
+        "brands": [
+          {
+            "end": 1,
+            "basis": "EXACT",
+            "label": "CeraVe",
+            "start": 0,
+            "brandId": "f59f70d9-2eb4-4d35-aa73-f4c9d540c5fc"
+          }
+        ],
+        "learned": "CREATED"
+      }
+    },
+    {
+      "row": 16,
+      "name": "بانادول اكسترا 24 قرص",
+      "purchase": "72",
+      "consumer": "80",
+      "outcome": "SKIPPED",
+      "reasonCode": "OUT_OF_SCOPE_MEDICINE",
+      "reason": "A medicine product; the catalog holds none",
+      "matched": null,
+      "candidates": null,
+      "evidence": {
+        "gate": {
+          "detail": "A medicine product; the catalog holds none",
+          "decision": "SKIP",
+          "reasonCode": "OUT_OF_SCOPE_MEDICINE"
+        }
+      }
+    },
+    {
+      "row": 17,
+      "name": "نيفيا كريم مرطب 200 مل",
+      "purchase": "168",
+      "consumer": "210",
+      "outcome": "UNMATCHED",
+      "reasonCode": "NO_KNOWN_BRAND",
+      "reason": "No catalog brand or product line is named",
+      "matched": null,
+      "candidates": [],
+      "evidence": {
+        "gate": "UNKNOWN_SCOPE",
+        "brands": []
+      }
+    }
+  ]
+}
