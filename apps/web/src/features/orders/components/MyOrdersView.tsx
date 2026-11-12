@@ -25,8 +25,10 @@ function useDesktop(): boolean {
 }
 
 /**
- * «طلباتي» (OrdersD, CommerceMobile ٦/٦ب/٧). Desktop: the list at the reading start and the selected order's detail
- * beside it (the newest when none is chosen). Phone: the list on /orders, the order alone on /orders/[id].
+ * Editorial My Orders Hub (OrdersD, CommerceMobile ٦/٦ب/٧):
+ * - Master-detail desktop view with instantaneous order tracking inspection
+ * - Responsive mobile view with seamless drill-down to /orders/[id]
+ * - Graceful loading, empty, and authentication states
  */
 export function MyOrdersView({ selected }: { selected?: string }) {
   const m = useMessages();
@@ -50,24 +52,31 @@ export function MyOrdersView({ selected }: { selected?: string }) {
   return (
     <div className="pb-nav-safe">
       <header className="mb-6 hidden lg:block">
-        <nav aria-label={m.myOrdersAccount} className="flex items-center gap-1.5 text-13.5">
-          <Link href={routes.account} className="text-link min-h-0">
+        <nav aria-label={m.myOrdersAccount} className="flex items-center gap-2 text-13.5">
+          <Link href={routes.account} className="text-stone transition-colors hover:text-ink">
             {m.myOrdersAccount}
           </Link>
-          <Icon name="chevron-forward" size={14} className="text-stone" />
+          <Icon name="chevron-forward" size={13} className="text-stone" />
           <span aria-current="page" className="font-bold text-ink">
             {m.myOrdersTitle}
           </span>
         </nav>
-        <h1 className="m-0 mt-2 font-display text-44 font-extrabold leading-52 text-ink">{m.myOrdersTitle}</h1>
+        <div className="mt-2 flex items-baseline gap-3">
+          <h1 className="m-0 font-display text-44 font-extrabold leading-52 text-ink">{m.myOrdersTitle}</h1>
+          {query.data?.items.length ? (
+            <span className="rounded-pill bg-sand/80 px-2.5 py-0.5 text-13 font-bold text-ink">
+              {query.data.items.length}
+            </span>
+          ) : null}
+        </div>
       </header>
 
-      <div className="lg:grid lg:grid-cols-[365px_minmax(0,1fr)] lg:items-start lg:gap-8">
+      <div className="lg:grid lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start lg:gap-8">
         <section aria-label={m.myOrdersTitle} className={cn('lg:sticky lg:top-6', selected && 'hidden lg:block')}>
           {list}
         </section>
         {(selected || desktop) && shown ? (
-          <section>
+          <section className="min-w-0">
             <OrderTrackingView key={shown} orderNumber={shown} errorHeadingLevel={2} />
           </section>
         ) : null}

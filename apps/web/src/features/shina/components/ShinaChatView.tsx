@@ -1,937 +1,901 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, A11y, Keyboard, Pagination } from 'swiper/modules';
-import type { Swiper as SwiperType } from 'swiper';
-
+import { useReducedMotion } from 'motion/react';
 import { Icon } from '@/components/ui/icon';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { routes } from '@/lib/routes';
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useCart } from '@/features/cart/hooks/useCart';
+import { getProductDetail } from '@/features/catalog/api/discovery';
+import { getProducts, type ProductView } from '@/features/catalog/api/products';
+import { ApiError } from '@/lib/api-client';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import { cn } from '@/lib/utils';
+import { useVoiceInput } from '../hooks/useVoiceInput';
+import { buildStarterSuggestions, classifyShinaIntent } from '../lib/catalog-chat';
+import {
+  createGuidanceSession,
+  getCustomerCareProfile,
+  sendGuidanceMessage,
+  retryGuidanceMessage,
+} from '../lib/shina-api';
+import {
+  buildContextProductMessage,
+  createMessageId,
+  formatTimeLabel,
+  mapGuidanceDtoToMessage,
+  runCatalogCompareWorkflow,
+  runCatalogRoutineWorkflow,
+  runCatalogSearchWorkflow,
+} from '../lib/shina-workflows';
+import type { ShinaActivityState, ShinaMessage, ShinaProduct } from '../lib/shina-types';
+import { ShinaActivityCapsule } from './ShinaActivityCapsule';
+import { ShinaMascot } from './ShinaMascot';
+import {
+  ShinaComparisonCard,
+  ShinaProductCarousel,
+  ShinaRoutineCard,
+} from './ShinaProductCards';
 
-export interface ChatProduct {
-  slug: string;
-  name: string;
-  brand: string;
-  price: number;
-  skuId: string;
-  category: string;
-  imageUrl?: string;
-  rating?: number;
-  reviewsCount?: number;
-  badge?: string;
-  rationale?: string;
-}
-
-export interface ComparisonItem {
-  slug: string;
-  brand: string;
-  name: string;
-  imageUrl?: string;
-  price: number;
-  features: string[];
-}
-
-export interface ComparisonData {
-  title: string;
-  products: [ComparisonItem, ComparisonItem];
-}
-
-export interface ChatMessage {
-  id: string;
-  role: 'assistant' | 'user' | 'system';
-  content: string;
-  timestamp: string;
-  products?: ChatProduct[];
-  comparison?: ComparisonData;
-  followUpQuestion?: string;
-  suggestedChips?: string[];
-  actionPrompt?: {
-    label: string;
-    href: string;
-  };
-  isError?: boolean;
-}
-
-interface SavedSession {
-  id: string;
-  title: string;
-  timestamp: string;
-  messages: ChatMessage[];
-}
-
-const STARTER_PROMPTS = [
-  'أفضل غسول للبشرة الدهنية',
-  'روتين كامل للشعر التالف',
-  'مقارنة بين سيرومين',
-  'منتجات للشعر المتساقط',
-];
-
-// Verified catalog items grounded in real Egyptian pharmaceutical & skincare catalog
-const REAL_PRODUCTS: Record<string, ChatProduct> = {
-  dermaluna: {
-    slug: 'sv-acne-cleanser-200',
-    name: 'غسول جل للبشرة الدهنية',
-    brand: 'DERMALUNA',
-    price: 395,
-    skuId: '936dec18-8dc4-47bc-aecc-e92bdf8859d7',
-    category: 'غسول منظف',
-    imageUrl: '/images/concerns/acne.jpg',
-    rating: 5,
-    reviewsCount: 87,
-    badge: 'تنقية عميقة',
-    rationale: 'ينظف بعمق ويقلل إفراز الدهون بدون ما يجفف البشرة.',
-  },
-  tina: {
-    slug: 'eva-acne-wash-150',
-    name: 'غسول مقشر بحمض الساليسيليك',
-    brand: 'TINA',
-    price: 290,
-    skuId: 'fff6eaeb-685e-46ac-9b8c-03a75ec102ce',
-    category: 'غسول مقشر',
-    imageUrl: '/images/concerns/dryness.jpg',
-    rating: 4.8,
-    reviewsCount: 124,
-    badge: 'مقشر لطيف',
-    rationale: 'يقشر خلايا الجلد الميتة بلطف ويمنع انسداد المسام.',
-  },
-  aura: {
-    slug: 'eva-vitc-wash-150',
-    name: 'غسول بتركيبة مهدئة',
-    brand: 'AURA',
-    price: 315,
-    skuId: 'cfbd1bf8-b745-4a0c-be8b-168ce0ee5268',
-    category: 'غسول مهدئ',
-    imageUrl: '/images/concerns/pigmentation.jpg',
-    rating: 4.9,
-    reviewsCount: 56,
-    badge: 'للبشرة الحساسة',
-    rationale: 'تركيبة هلامية غنية بالبانثينول لتهدئة تهيج الحبوب.',
-  },
-  secretKey: {
-    slug: 'sv-acne-cream-60',
-    name: 'غسول منظف بمكونات طبيعية',
-    brand: 'SECRET KEY',
-    price: 340,
-    skuId: 'b5c7f752-0659-40da-a5e7-142872d37afc',
-    category: 'غسول متوازن',
-    imageUrl: '/images/concerns/frizz.jpg',
-    rating: 4.7,
-    reviewsCount: 96,
-    badge: 'مكونات طبيعية',
-    rationale: 'يوازن حموضة البشرة pH ويحمي الحاجز الطبيعي.',
-  },
-};
-
-interface ShinaChatViewProps {
+export interface ShinaChatViewProps {
   initialQuery?: string;
   contextProductSlug?: string;
 }
 
-export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatViewProps) {
-  const router = useRouter();
-  const { addItem } = useCart();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [addingSku, setAddingSku] = useState<string | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [sessions, setSessions] = useState<SavedSession[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string>(() => `s-${Date.now()}`);
-  const [swiperRefs, setSwiperRefs] = useState<Record<string, SwiperType>>({});
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const initializedRef = useRef(false);
+function isAbortError(err: unknown): boolean {
+  return (
+    (err instanceof DOMException && err.name === 'AbortError') ||
+    (err instanceof Error && err.name === 'AbortError')
+  );
+}
 
-  // Restore sessions from localStorage
+export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatViewProps) {
+  const m = useMessages();
+  const locale = useLocale();
+  const prefersReducedMotion = Boolean(useReducedMotion());
+  const { isAuthenticated, isLoading: authLoading, withAuth } = useAuth();
+  const { addItem } = useCart();
+
+  const [messages, setMessages] = useState<ShinaMessage[]>([]);
+  const [draft, setDraft] = useState('');
+  const [activityState, setActivityState] = useState<ShinaActivityState>('idle');
+  const [activityDetail, setActivityDetail] = useState<string | undefined>(undefined);
+  const [addingSkuId, setAddingSkuId] = useState<string | null>(null);
+  const [addedSkuIds, setAddedSkuIds] = useState<Set<string>>(() => new Set());
+  const [isBatchAdding, setIsBatchAdding] = useState(false);
+
+  const sessionIdRef = useRef<string | null>(null);
+  const hasServerUserTurnRef = useRef(false);
+  const catalogCacheRef = useRef<ProductView[] | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const lastFailedQueryRef = useRef<string | null>(null);
+  const bootstrappedRef = useRef(false);
+  const profileLoadedRef = useRef(false);
+  const bottomAnchorRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const voice = useVoiceInput({
+    locale,
+    onTranscript: (text) => {
+      setDraft(text);
+    },
+  });
+
+  const effectiveState: ShinaActivityState = voice.isListening ? 'listening' : activityState;
+  const isBusy =
+    activityState === 'thinking' ||
+    activityState === 'searching' ||
+    activityState === 'comparing' ||
+    activityState === 'routine' ||
+    activityState === 'recommending' ||
+    activityState === 'streaming';
+
+  const scrollToLatest = useCallback(() => {
+    bottomAnchorRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      block: 'end',
+    });
+  }, [prefersReducedMotion]);
+
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('shinacare_chat_sessions');
-      if (stored) {
-        const parsed = JSON.parse(stored) as SavedSession[];
-        setSessions(parsed);
+    scrollToLatest();
+  }, [messages, effectiveState, scrollToLatest]);
+
+  useEffect(() => {
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    if (!vv) return;
+    const onResize = () => {
+      if (vv.height < window.innerHeight - 120) {
+        scrollToLatest();
       }
-    } catch {
-      // Storage unavailable
+    };
+    vv.addEventListener('resize', onResize);
+    return () => vv.removeEventListener('resize', onResize);
+  }, [scrollToLatest]);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 112)}px`;
+  }, [draft]);
+
+  const abortActiveRequest = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
     }
+    setActivityState('idle');
+    setActivityDetail(undefined);
   }, []);
 
-  // Handle initial / contextual launch safely once
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  const loadCatalog = useCallback(async (signal?: AbortSignal): Promise<ProductView[]> => {
+    if (catalogCacheRef.current) return catalogCacheRef.current;
+    const list = await getProducts(100);
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+    catalogCacheRef.current = list;
+    return list;
+  }, []);
+
+  const runCatalogFallback = useCallback(
+    async (query: string) => {
+      abortActiveRequest();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setActivityState('searching');
+      setActivityDetail(query);
+
+      try {
+        const catalog = await loadCatalog(controller.signal);
+        const intent = classifyShinaIntent(query);
+        const outcome =
+          intent === 'compare'
+            ? await runCatalogCompareWorkflow(query, catalog, locale, isAuthenticated, controller.signal)
+            : intent === 'routine'
+              ? await runCatalogRoutineWorkflow(query, catalog, locale, isAuthenticated, controller.signal)
+              : runCatalogSearchWorkflow(query, catalog, locale, isAuthenticated);
+
+        setMessages((prev) => [...prev, outcome.message]);
+        setActivityState(outcome.state);
+        setActivityDetail(undefined);
+      } catch (err) {
+        if (isAbortError(err)) return;
+        setActivityState('warning');
+        setActivityDetail(undefined);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: createMessageId('cat-err'),
+            role: 'assistant',
+            content:
+              locale === 'ar'
+                ? 'تعذر الوصول إلى بيانات الكتالوج حاليًا. تحققي من الاتصال وحاولي مجددًا.'
+                : 'Could not reach the live catalog right now. Please check your connection and try again.',
+            timestamp: formatTimeLabel(locale),
+            sourceKind: 'error',
+            isError: true,
+            retryable: true,
+            pendingQuery: query,
+          },
+        ]);
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+        }
+      }
+    },
+    [abortActiveRequest, isAuthenticated, loadCatalog, locale],
+  );
+
+  const sendAiTurn = useCallback(
+    async (query: string, signal: AbortSignal): Promise<{ message: ShinaMessage; state: ShinaActivityState }> => {
+      if (!profileLoadedRef.current) {
+        profileLoadedRef.current = true;
+        getCustomerCareProfile(signal).catch(() => null);
+      }
+
+      if (!sessionIdRef.current) {
+        const session = await createGuidanceSession(signal);
+        sessionIdRef.current = session.id;
+        hasServerUserTurnRef.current = false;
+      }
+
+      const response = await sendGuidanceMessage(sessionIdRef.current, query, signal);
+      hasServerUserTurnRef.current = true;
+      lastFailedQueryRef.current = null;
+      return mapGuidanceDtoToMessage(response, locale, true);
+    },
+    [locale],
+  );
+
+  const submitQuery = useCallback(
+    async (rawText: string, options?: { forceAi?: boolean; skipUserEcho?: boolean }) => {
+      const text = rawText.trim();
+      if (!text) return;
+
+      if (voice.isListening) {
+        voice.stopListening();
+      }
+      voice.clearError();
+      abortActiveRequest();
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      if (!options?.skipUserEcho) {
+        const userMessage: ShinaMessage = {
+          id: createMessageId('usr'),
+          role: 'user',
+          content: text,
+          timestamp: formatTimeLabel(locale),
+        };
+        setMessages((prev) => [...prev, userMessage]);
+        setDraft('');
+      }
+
+      const intent = classifyShinaIntent(text);
+      const authed = options?.forceAi || isAuthenticated;
+
+      setActivityDetail(text);
+
+      try {
+        // Explicit comparison executes real dual-product detail lookup for factual specs.
+        if (intent === 'compare' && !options?.forceAi) {
+          setActivityState('comparing');
+          const catalog = await loadCatalog(controller.signal);
+          const outcome = await runCatalogCompareWorkflow(
+            text,
+            catalog,
+            locale,
+            authed,
+            controller.signal,
+          );
+          setMessages((prev) => [...prev, outcome.message]);
+          setActivityState(outcome.state);
+          setActivityDetail(undefined);
+          return;
+        }
+
+        // Signed-in customers use real GuidanceService AI session cleanly.
+        if (authed) {
+          setActivityState(
+            intent === 'routine' ? 'routine' : intent === 'search' ? 'searching' : 'thinking',
+          );
+          const outcome = await sendAiTurn(text, controller.signal);
+          setMessages((prev) => [...prev, outcome.message]);
+          setActivityState(outcome.state);
+          setActivityDetail(undefined);
+          return;
+        }
+
+        // Guest visitors get live catalog search & routine sequencing cleanly,
+        // or a truthful sign-in gate through the existing AuthModal for personalized AI chat.
+        if (intent === 'search') {
+          setActivityState('searching');
+          const catalog = await loadCatalog(controller.signal);
+          const outcome = runCatalogSearchWorkflow(text, catalog, locale, false);
+          setMessages((prev) => [...prev, outcome.message]);
+          setActivityState(outcome.state);
+          setActivityDetail(undefined);
+          return;
+        }
+
+        if (intent === 'routine') {
+          setActivityState('routine');
+          const catalog = await loadCatalog(controller.signal);
+          const outcome = await runCatalogRoutineWorkflow(
+            text,
+            catalog,
+            locale,
+            false,
+            controller.signal,
+          );
+          setMessages((prev) => [...prev, outcome.message]);
+          setActivityState(outcome.state);
+          setActivityDetail(undefined);
+          return;
+        }
+
+        setActivityState('clarification');
+        setActivityDetail(undefined);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: createMessageId('auth-gate'),
+            role: 'assistant',
+            content:
+              locale === 'ar'
+                ? 'للمحادثة الذكية المخصصة وحفظ سياق الجلسة، يرجى تسجيل الدخول أولاً. يمكنك أيضًا البحث في الكتالوج أو مقارنة منتجين مباشرة الآن.'
+                : 'Sign in to start a personalized AI consultation session with Shina. You can still search the catalog or compare products directly as a guest.',
+            timestamp: formatTimeLabel(locale),
+            sourceKind: 'ai-guidance',
+            requiresAuthPrompt: true,
+            pendingQuery: text,
+            suggestions: buildStarterSuggestions(locale).slice(0, 3),
+          },
+        ]);
+      } catch (err) {
+        if (isAbortError(err)) return;
+
+        lastFailedQueryRef.current = text;
+        const isAuthFailure = err instanceof ApiError && err.status === 401;
+        if (isAuthFailure) {
+          setActivityState('clarification');
+          setActivityDetail(undefined);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: createMessageId('auth-expired'),
+              role: 'assistant',
+              content: m.shinaGuestNotice,
+              timestamp: formatTimeLabel(locale),
+              sourceKind: 'ai-guidance',
+              requiresAuthPrompt: true,
+              pendingQuery: text,
+            },
+          ]);
+          return;
+        }
+
+        const retryable =
+          err instanceof ApiError
+            ? Boolean((err.data as { retryable?: boolean } | undefined)?.retryable ?? err.status >= 500)
+            : true;
+
+        setActivityState('warning');
+        setActivityDetail(undefined);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: createMessageId('err'),
+            role: 'assistant',
+            content:
+              err instanceof ApiError && err.message
+                ? locale === 'ar'
+                  ? 'خدمة المستشارة الذكية غير متاحة مؤقتًا حاليًا. يمكنك إعادة المحاولة أو البحث في الكتالوج مباشرة.'
+                  : `${err.message} You can retry or search the live catalog directly.`
+                : locale === 'ar'
+                  ? 'تعذر إتمام الطلب حاليًا. جربي إعادة المحاولة أو البحث المباشر في الكتالوج.'
+                  : 'We could not complete that request right now. Try retrying or searching the live catalog.',
+            timestamp: formatTimeLabel(locale),
+            sourceKind: 'error',
+            isError: true,
+            retryable,
+            pendingQuery: text,
+          },
+        ]);
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+        }
+      }
+    },
+    [abortActiveRequest, isAuthenticated, loadCatalog, locale, m.shinaGuestNotice, sendAiTurn, voice],
+  );
+
+  const handleRetryLast = useCallback(
+    async (fallbackQuery?: string) => {
+      const targetQuery = fallbackQuery || lastFailedQueryRef.current;
+      if (isAuthenticated && sessionIdRef.current && hasServerUserTurnRef.current) {
+        abortActiveRequest();
+        const controller = new AbortController();
+        abortRef.current = controller;
+        setActivityState('thinking');
+        setActivityDetail(targetQuery ?? undefined);
+
+        try {
+          const retried = await retryGuidanceMessage(sessionIdRef.current, controller.signal);
+          const outcome = mapGuidanceDtoToMessage(retried, locale, true);
+          lastFailedQueryRef.current = null;
+          setMessages((prev) => [...prev, outcome.message]);
+          setActivityState(outcome.state);
+          setActivityDetail(undefined);
+          return;
+        } catch (err) {
+          if (isAbortError(err)) return;
+          setActivityState('warning');
+          setActivityDetail(undefined);
+          if (targetQuery) {
+            await runCatalogFallback(targetQuery);
+            return;
+          }
+        } finally {
+          if (abortRef.current === controller) {
+            abortRef.current = null;
+          }
+        }
+      }
+
+      if (targetQuery) {
+        await submitQuery(targetQuery, { skipUserEcho: true });
+      }
+    },
+    [abortActiveRequest, isAuthenticated, locale, runCatalogFallback, submitQuery],
+  );
+
+  const handlePromptAuth = useCallback(
+    (pendingQuery?: string) => {
+      withAuth(
+        async () => {
+          if (pendingQuery) {
+            await submitQuery(pendingQuery, { forceAi: true, skipUserEcho: true });
+          } else if (!sessionIdRef.current) {
+            const session = await createGuidanceSession();
+            sessionIdRef.current = session.id;
+          }
+        },
+        {
+          title: m.shinaSignInAction,
+          description: m.shinaGuestNotice,
+        },
+      );
+    },
+    [m.shinaGuestNotice, m.shinaSignInAction, submitQuery, withAuth],
+  );
+
+  const handleAddToBag = useCallback(
+    async (product: Pick<ShinaProduct, 'skuId' | 'name' | 'canOrder'>) => {
+      if (!product.canOrder || !product.skuId) return;
+      setAddingSkuId(product.skuId);
+      try {
+        await addItem({ skuId: product.skuId, quantity: 1 });
+        setAddedSkuIds((prev) => {
+          const next = new Set(prev);
+          next.add(product.skuId);
+          return next;
+        });
+      } catch {
+        setActivityState('warning');
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: createMessageId('cart-err'),
+            role: 'assistant',
+            content: m.cardAddFailed,
+            timestamp: formatTimeLabel(locale),
+            sourceKind: 'error',
+            isError: true,
+            retryable: false,
+          },
+        ]);
+      } finally {
+        setAddingSkuId(null);
+      }
+    },
+    [addItem, locale, m.cardAddFailed],
+  );
+
+  const handleAddManyToBag = useCallback(
+    async (products: ShinaProduct[]) => {
+      const valid = products.filter((item) => item.canOrder && item.skuId);
+      if (valid.length === 0) return;
+      setIsBatchAdding(true);
+      try {
+        const added: string[] = [];
+        for (const item of valid) {
+          await addItem({ skuId: item.skuId, quantity: 1 });
+          added.push(item.skuId);
+        }
+        setAddedSkuIds((prev) => {
+          const next = new Set(prev);
+          for (const id of added) next.add(id);
+          return next;
+        });
+      } catch {
+        setActivityState('warning');
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: createMessageId('cart-batch-err'),
+            role: 'assistant',
+            content: m.cardAddFailed,
+            timestamp: formatTimeLabel(locale),
+            sourceKind: 'error',
+            isError: true,
+            retryable: false,
+          },
+        ]);
+      } finally {
+        setIsBatchAdding(false);
+      }
+    },
+    [addItem, locale, m.cardAddFailed],
+  );
+
+  const handleResetSession = useCallback(() => {
+    abortActiveRequest();
+    if (voice.isListening) voice.stopListening();
+    voice.clearError();
+    sessionIdRef.current = null;
+    hasServerUserTurnRef.current = false;
+    lastFailedQueryRef.current = null;
+    setMessages([]);
+    setDraft('');
+    setActivityState('idle');
+    setActivityDetail(undefined);
+  }, [abortActiveRequest, voice]);
+
+  useEffect(() => {
+    if (bootstrappedRef.current) return;
+    if (!contextProductSlug && !initialQuery) return;
+    bootstrappedRef.current = true;
 
     if (contextProductSlug) {
-      const matched = Object.values(REAL_PRODUCTS).find((p) => p.slug === contextProductSlug) ?? REAL_PRODUCTS.dermaluna;
-      setMessages([
-        {
-          id: 'ctx-1',
-          role: 'assistant',
-          content: 'هذا المنتج مناسب لبشرتك الدهنية والمعرضة للحبوب. ويمكن إدراجه في روتينك الصباحي أو المسائي بسهولة.',
-          timestamp: '١٠:٢٥ ص',
-          products: [matched],
-          followUpQuestion: 'هل تودين معرفة طريقة الاستخدام أو مقارنة بين هذه المنتجات؟',
-          suggestedChips: ['+ طريقة الاستخدام', '+ مقارنة المنتجات', '+ روتين كامل للبشرة الدهنية'],
-        },
-      ]);
-    } else if (initialQuery) {
-      handleSendMessage(initialQuery);
-    }
-  }, [contextProductSlug, initialQuery]);
-
-  // Save active conversation to history
-  useEffect(() => {
-    if (messages.length === 0) return;
-    try {
-      const firstUserMsg = messages.find((m) => m.role === 'user');
-      const sessionTitle = firstUserMsg ? firstUserMsg.content.slice(0, 36) : 'محادثة استشارية';
-      const updated: SavedSession = {
-        id: currentSessionId,
-        title: sessionTitle,
-        timestamp: 'اليوم',
-        messages,
-      };
-
-      setSessions((prev) => {
-        const filtered = prev.filter((s) => s.id !== currentSessionId);
-        const next = [updated, ...filtered].slice(0, 15);
-        localStorage.setItem('shinacare_chat_sessions', JSON.stringify(next));
-        return next;
-      });
-    } catch {
-      // Quota exceeded
-    }
-  }, [messages, currentSessionId]);
-
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (messages.length > 2 || isTyping) {
-      scrollToBottom();
-    }
-  }, [messages, isTyping]);
-
-  const handleAddToCart = async (product: ChatProduct) => {
-    try {
-      setAddingSku(product.skuId);
-      await addItem({ skuId: product.skuId, quantity: 1 });
-      setTimeout(() => setAddingSku(null), 1800);
-    } catch {
-      setAddingSku(null);
-    }
-  };
-
-  const handleNewChat = () => {
-    setCurrentSessionId(`s-${Date.now()}`);
-    setMessages([]);
-    setInputText('');
-    setHistoryOpen(false);
-  };
-
-  const handleClearHistory = () => {
-    localStorage.removeItem('shinacare_chat_sessions');
-    setSessions([]);
-    handleNewChat();
-  };
-
-  const handleLoadSession = (session: SavedSession) => {
-    setCurrentSessionId(session.id);
-    setMessages(session.messages);
-    setHistoryOpen(false);
-  };
-
-  const simulateAiResponse = (query: string): ChatMessage => {
-    const q = query.toLowerCase().trim();
-    const timestamp = new Intl.DateTimeFormat('ar-EG', { hour: 'numeric', minute: 'numeric', hour12: true }).format(new Date());
-
-    // 1. Comparison Intent (State 3 from visual reference)
-    if (q.includes('مقارنة') || q.includes('قارن') || q.includes('الفرق بين')) {
-      return {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: 'إليك مقارنة مبسطة بين المنتجين:',
-        timestamp,
-        comparison: {
-          title: 'إليك مقارنة مبسطة بين المنتجين:',
-          products: [
+      setActivityState('searching');
+      getProductDetail(contextProductSlug)
+        .then((detail) => {
+          setMessages([buildContextProductMessage(detail, locale)]);
+          setActivityState('completed');
+        })
+        .catch(() => {
+          setActivityState('warning');
+          setMessages([
             {
-              slug: REAL_PRODUCTS.dermaluna.slug,
-              brand: 'DERMALUNA',
-              name: 'غسول جل للبشرة الدهنية',
-              imageUrl: REAL_PRODUCTS.dermaluna.imageUrl,
-              price: REAL_PRODUCTS.dermaluna.price,
-              features: ['ينظف بعمق', 'مناسب للبشرة الدهنية', 'يقلل الحبوب', 'سعر متوسط'],
+              id: createMessageId('ctx-err'),
+              role: 'assistant',
+              content:
+                locale === 'ar'
+                  ? 'تعذر تحميل تفاصيل هذا المنتج حاليًا من الكتالوج.'
+                  : 'Could not load that product detail from the catalog right now.',
+              timestamp: formatTimeLabel(locale),
+              sourceKind: 'error',
+              isError: true,
             },
-            {
-              slug: REAL_PRODUCTS.tina.slug,
-              brand: 'TINA',
-              name: 'غسول مقشر بحمض الساليسيليك',
-              imageUrl: REAL_PRODUCTS.tina.imageUrl,
-              price: REAL_PRODUCTS.tina.price,
-              features: ['تقشير مقشر لطيف', 'يقلل الدهون', 'يحتوي على BHA', 'مناسب للحبوب'],
-            },
-          ],
-        },
-        followUpQuestion: 'هل تفضلين معرفة طريقة استخدام أحدهما أو استعراض روتين متكامل؟',
-        suggestedChips: ['+ روتين كامل للبشرة الدهنية', '+ منتجات أقل من 300 جنيه', '+ طريقة الاستخدام'],
-      };
+          ]);
+        });
+      return;
     }
 
-    // 2. Budget / Cleanser Request (Matching Visual Reference conversation)
-    if (q.includes('غسول') || q.includes('حبوب') || q.includes('دهنية') || q.includes('300')) {
-      return {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: 'أكيد! البشرة الدهنية اللي فيها حبوب تحتاج غسول ينظف بعمق ويقلل إفراز الدهون بدون ما يجفف البشرة. هذه بعض المنتجات المناسبة لك:',
-        timestamp,
-        products: [REAL_PRODUCTS.dermaluna, REAL_PRODUCTS.tina, REAL_PRODUCTS.aura, REAL_PRODUCTS.secretKey],
-        followUpQuestion: 'هل تودين معرفة طريقة الاستخدام أو مقارنة بين هذه المنتجات؟',
-        suggestedChips: [
-          '+ طريقة الاستخدام',
-          '+ مقارنة المنتجات',
-          '+ روتين كامل للبشرة الدهنية',
-          '+ منتجات أقل من 300 جنيه',
-        ],
-      };
+    if (initialQuery) {
+      submitQuery(initialQuery);
     }
+  }, [contextProductSlug, initialQuery, locale, submitQuery]);
 
-    // 3. Complete Routine Request
-    if (q.includes('روتين كامل') || q.includes('روتين') || q.includes('ابني')) {
-      return {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: 'لبناء روتين علاجي متكامل ومتزن (غسول، سيروم مستهدف، مرطب غير كوميدوجينيك، وواقي شمس)، تم تصميم "أداة بناء الروتين" التفاعلية لمساعدتك خطوة بخطوة مع فحص توافق المكونات.',
-        timestamp,
-        actionPrompt: {
-          label: 'الانتقال إلى أداة بناء الروتين المخصص ←',
-          href: routes.routineBuilder,
-        },
-        suggestedChips: ['+ غسول مناسب للحبوب', '+ مرطب خفيف غير زيتي', '+ واقي شمس مات'],
-      };
-    }
-
-    // 4. Hair Care
-    if (q.includes('شعر') || q.includes('تساقط') || q.includes('تالف')) {
-      return {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: 'عناية الشعر التالف أو المتساقط تتطلب تعزيز بصيلات الفروة بتركيبات منشطة خالية من السلفات القاسي، مع تغذية الأطراف بالسيراميدات والأحماض الأمينية:',
-        timestamp,
-        products: [REAL_PRODUCTS.secretKey, REAL_PRODUCTS.aura],
-        followUpQuestion: 'هل المشكلة في الفروة أم في تقصف وتلف الأطراف؟',
-        suggestedChips: ['+ تساقط الشعر وضعف الكثافة', '+ تقصف وتلف الأطراف', '+ شامبو طبي خالي من السلفات'],
-      };
-    }
-
-    // Default intelligent assistant guidance
-    return {
-      id: `a-${Date.now()}`,
-      role: 'assistant',
-      content: 'أهلاً بك! كمنصة متخصصة في العناية الصيدلانية، يمكنني مساعدتك في استكشاف المستحضرات المعتمدة، مقارنة المكونات، أو إرشادك لأفضل المنتجات المتوافقة مع بشرتك.',
-      timestamp,
-      suggestedChips: [
-        '+ أفضل غسول للبشرة الدهنية',
-        '+ روتين كامل للبشرة المعرضة للحبوب',
-        '+ مقارنة بين منتجين',
-      ],
-    };
-  };
-
-  const handleSendMessage = (textToSend?: string) => {
-    const text = (textToSend ?? inputText).trim();
-    if (!text || isTyping) return;
-
-    const timestamp = new Intl.DateTimeFormat('ar-EG', { hour: 'numeric', minute: 'numeric', hour12: true }).format(new Date());
-
-    const userMessage: ChatMessage = {
-      id: `u-${Date.now()}`,
-      role: 'user',
-      content: text,
-      timestamp,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInputText('');
-    setIsTyping(true);
-
-    // Realistic editorial latency
-    setTimeout(() => {
-      const response = simulateAiResponse(text);
-      setMessages((prev) => [...prev, response]);
-      setIsTyping(false);
-    }, 600);
-  };
-
-  const handleRetry = () => {
-    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
-    if (lastUserMsg) {
-      setMessages((prev) => prev.filter((m) => !m.isError));
-      setIsTyping(true);
-      setTimeout(() => {
-        const response = simulateAiResponse(lastUserMsg.content);
-        setMessages((prev) => [...prev, response]);
-        setIsTyping(false);
-      }, 550);
+  const handleComposerKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (draft.trim() && !isBusy) {
+        submitQuery(draft);
+      }
     }
   };
+
+  const starterChips = buildStarterSuggestions(locale);
 
   return (
-    <div className="flex h-full w-full flex-col bg-chalk overflow-hidden p-0 sm:p-4 lg:p-6">
-      {/* ELEVATED LUXURY CHAT WORKSPACE CARD (Matching Visual Reference) */}
-      <div className="mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-chalk sm:rounded-sheet sm:border sm:border-line/70 sm:shadow-elevation-2">
-        {/* 1. COMPACT ASSISTANT TOP BAR */}
-        <div className="flex h-14 sm:h-16 w-full flex-none items-center justify-between border-b border-line/60 bg-chalk/95 px-4 sm:px-6 backdrop-blur-md z-10">
-          <div className="flex items-center gap-3">
-            {/* Mobile Back Button */}
-            <button
-              type="button"
-              onClick={() => router.back()}
-              aria-label="رجوع"
-              className="flex size-9 items-center justify-center rounded-full text-ink hover:bg-sand/40 transition-colors sm:hidden"
-            >
-              <Icon name="chevron-back" size={20} />
-            </button>
+    <section
+      dir={locale === 'ar' ? 'rtl' : 'ltr'}
+      aria-label={m.shinaAssistantTitle}
+      className="relative flex flex-1 min-h-0 flex-col overflow-hidden bg-sand font-display text-ink"
+    >
+      {/* Warm sunlit studio plaster backdrop synced with Stitch & SAHEL */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <Image
+          src="/images/shina/shina-ambient-bg.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center opacity-90 select-none"
+        />
+        <div className="absolute inset-0 shina-ambient-glow" />
+      </div>
 
-            {/* Citron Sahel Sun Presence Avatar */}
-            <div className="relative flex items-center justify-center flex-none">
-              <span className={cn('sun sm', isTyping && 'think')} />
-            </div>
+      {/* Hidden H1 for accessibility */}
+      <h1 className="sr-only">{m.shinaAssistantTitle}</h1>
 
-            <div className="flex flex-col">
-              <h1 className="m-0 font-display text-16 sm:text-17 font-black leading-tight text-ink">
-                شينا
-              </h1>
-              <p className="m-0 text-11.5 text-stone leading-tight">
-                مساعدتك في اختيار منتجات العناية
-              </p>
-            </div>
-          </div>
-
-          {/* Action Buttons: History Clock & Options Menu */}
-          <div className="flex items-center gap-1 sm:gap-1.5">
-            <button
-              type="button"
-              onClick={() => setHistoryOpen(true)}
-              aria-label="سجل المحادثات"
-              title="سجل المحادثات"
-              className="flex size-9 items-center justify-center rounded-full text-stone hover:bg-sand/50 hover:text-ink transition-colors"
-            >
-              <Icon name="history" size={19} />
-            </button>
-
-            <button
-              type="button"
-              onClick={handleNewChat}
-              aria-label="محادثة جديدة"
-              title="محادثة جديدة"
-              className="flex size-9 items-center justify-center rounded-full text-stone hover:bg-sand/50 hover:text-ink transition-colors"
-            >
-              <Icon name="more-vertical" size={19} />
-            </button>
-          </div>
-        </div>
-
-        {/* 2. CHAT CONVERSATION STREAM */}
-        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
-          <div className="flex flex-col gap-6">
-            {/* STATE 1: EMPTY STATE (بداية المحادثة) */}
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 sm:py-14 text-center animate-fade-in">
-                <div className="relative mb-5 flex size-20 items-center justify-center rounded-full bg-linen shadow-elevation-1">
-                  <span className="sun" style={{ width: 44, height: 44 }} />
-                  <span className="absolute -top-1 -end-1 flex size-7 items-center justify-center rounded-full bg-chalk text-cobalt shadow-elevation-1">
-                    <Icon name="sparkles" size={16} />
-                  </span>
-                </div>
-
-                <h2 className="m-0 font-display text-24 sm:text-28 font-black tracking-tight text-ink">
-                  اسأل شينا
-                </h2>
-                <p className="m-0 mt-2 max-w-md text-13.5 sm:text-14.5 leading-24 text-stone">
-                  مساعدتك الشخصية لاختيار كل ما يناسبك من منتجات وروتينات العناية الصيدلانية المعتمدة.
-                </p>
-
-                {/* 4 Starter Chips */}
-                <div className="mt-8 grid w-full max-w-lg grid-cols-1 gap-2.5 sm:grid-cols-2">
-                  {STARTER_PROMPTS.map((prompt) => (
-                    <button
-                      key={prompt}
-                      type="button"
-                      onClick={() => handleSendMessage(prompt)}
-                      className="group flex items-center justify-between rounded-card border border-line bg-linen/70 p-3.5 text-start font-display text-13 font-semibold text-ink shadow-outline-hairline transition-all hover:bg-linen hover:shadow-elevation-1 active:scale-[0.99]"
-                    >
-                      <span>{prompt}</span>
-                      <Icon
-                        name="arrow-forward"
-                        size={14}
-                        className="text-stone transition-transform group-hover:translate-x-[-3px] rtl:group-hover:translate-x-[3px]"
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {/* MESSAGES FEED */}
-            {messages.map((msg) => {
-              const isUser = msg.role === 'user';
-
-              return (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    'flex flex-col gap-1 transition-all',
-                    isUser ? 'items-end' : 'items-start'
-                  )}
-                >
-                  {/* Message Bubble Row */}
-                  <div
-                    className={cn(
-                      'flex items-start gap-2.5 max-w-[92%] sm:max-w-[80%]',
-                      isUser ? 'flex-row-reverse ms-auto' : 'flex-row me-auto'
-                    )}
-                  >
-                    {/* User / Assistant Avatar */}
-                    {!isUser ? (
-                      <div className="flex-none pt-1">
-                        <span className="sun sm" style={{ width: 28, height: 28 }} />
-                      </div>
-                    ) : (
-                      <div className="flex size-8 flex-none items-center justify-center rounded-full bg-sand/60 text-ink pt-0.5">
-                        <Icon name="user" size={17} />
-                      </div>
-                    )}
-
-                    {/* Bubble */}
-                    <div
-                      className={cn(
-                        'px-4.5 py-3.5 text-14.5 leading-24 shadow-elevation-1',
-                        isUser
-                          ? 'rounded-16 rounded-ss-4 bg-cobalt font-medium text-chalk'
-                          : 'rounded-16 rounded-se-4 border border-line/60 bg-linen text-ink'
-                      )}
-                    >
-                      <p className="m-0 whitespace-pre-wrap">{msg.content}</p>
-
-                      {/* Transition link to Routine Builder */}
-                      {msg.actionPrompt ? (
-                        <div className="mt-3.5 border-t border-line/70 pt-2.5">
-                          <Link
-                            href={msg.actionPrompt.href}
-                            className="inline-flex items-center gap-2 rounded-pill bg-chalk px-4 py-1.5 font-display text-12.5 font-bold text-cobalt shadow-elevation-1 transition-all hover:bg-ink hover:text-chalk active:scale-95"
-                          >
-                            <span>{msg.actionPrompt.label}</span>
-                            <Icon name="arrow-forward" size={13} />
-                          </Link>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {/* Timestamp */}
-                  <span className={cn('text-11 text-stone/80 px-11', isUser ? 'text-end' : 'text-start')}>
-                    {msg.timestamp}
-                  </span>
-
-                  {/* STATE 3: PRODUCT COMPARISON TABLE (مقارنة منتجات) */}
-                  {msg.comparison ? (
-                    <div className="mt-2 w-full max-w-xl overflow-hidden rounded-card border border-line bg-linen/90 p-4 shadow-elevation-1 ms-10">
-                      <div className="mb-3 flex items-center justify-between border-b border-line/60 pb-2">
-                        <span className="font-display text-13.5 font-bold text-ink">
-                          {msg.comparison.title}
-                        </span>
-                        <span className="rounded-full bg-citron px-2.5 py-0.5 font-display text-11 font-bold text-ink">
-                          مقارنة معتمدة
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 sm:gap-5">
-                        {msg.comparison.products.map((item) => (
-                          <div
-                            key={item.brand}
-                            className="flex flex-col gap-2.5 rounded-card bg-chalk p-3 shadow-elevation-1 border border-line/40"
-                          >
-                            <div className="flex items-center gap-2">
-                              {item.imageUrl ? (
-                                <div className="relative size-10 overflow-hidden rounded-6 bg-sand/30 flex-none">
-                                  <Image
-                                    src={item.imageUrl}
-                                    alt={item.name}
-                                    fill
-                                    sizes="40px"
-                                    className="object-cover"
-                                  />
-                                </div>
-                              ) : null}
-                              <div className="flex flex-col">
-                                <span className="font-serif italic text-11 font-bold text-stone">
-                                  {item.brand}
-                                </span>
-                                <span className="font-display text-11.5 font-bold text-ink line-clamp-1">
-                                  {item.name}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Checklist Features */}
-                            <ul className="m-0 flex flex-col gap-1.5 p-0 list-none text-11 text-ink">
-                              {item.features.map((feat) => (
-                                <li key={feat} className="flex items-center justify-between gap-1">
-                                  <span className="text-stone">{feat}</span>
-                                  <span className="flex size-4 items-center justify-center rounded-full bg-citron/40 text-ink">
-                                    <Icon name="check" size={11} strokeWidth={2.5} />
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-
-                            {/* Price & Action */}
-                            <div className="mt-auto border-t border-line/50 pt-2 flex flex-col gap-1.5">
-                              <span className="font-display text-13 font-bold text-ink">
-                                {item.price} ج.م
-                              </span>
-                              <Link
-                                href={routes.product(item.slug)}
-                                className="inline-flex h-7.5 w-full items-center justify-center rounded-pill bg-linen text-11 font-bold text-ink hover:bg-sand transition-colors"
-                              >
-                                عرض المنتج
-                              </Link>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* HORIZONTAL PRODUCT CAROUSEL (SWIPER) */}
-                  {msg.products && msg.products.length > 0 ? (
-                    <div className="relative mt-2 w-full max-w-2xl overflow-visible ms-10">
-                      <div className="relative">
-                        <Swiper
-                          modules={[Navigation, A11y, Keyboard, Pagination]}
-                          onSwiper={(swiper) => {
-                            setSwiperRefs((prev) => ({ ...prev, [msg.id]: swiper }));
-                          }}
-                          dir="rtl"
-                          grabCursor={true}
-                          watchOverflow={true}
-                          keyboard={{ enabled: true }}
-                          className="w-full !overflow-visible sm:!overflow-hidden"
-                          breakpoints={{
-                            320: { slidesPerView: 1.35, spaceBetween: 12 },
-                            480: { slidesPerView: 2.1, spaceBetween: 14 },
-                            768: { slidesPerView: 3.1, spaceBetween: 14 },
-                          }}
-                        >
-                          {msg.products.map((prod) => (
-                            <SwiperSlide key={prod.slug} className="!h-auto">
-                              <div className="group/pcard flex h-full flex-col overflow-hidden rounded-card border border-line/70 bg-chalk shadow-elevation-1 transition-all hover:shadow-elevation-1">
-                                {/* Square Image Frame */}
-                                <div className="relative aspect-square w-full overflow-hidden bg-sand/20">
-                                  {prod.imageUrl ? (
-                                    <Image
-                                      src={prod.imageUrl}
-                                      alt={prod.name}
-                                      fill
-                                      sizes="200px"
-                                      className="object-cover transition-transform duration-base group-hover/pcard:scale-105"
-                                    />
-                                  ) : (
-                                    <div className="flex size-full items-center justify-center text-stone">
-                                      <Icon name="bag" size={30} />
-                                    </div>
-                                  )}
-
-                                  {/* Wishlist Heart Icon */}
-                                  <button
-                                    type="button"
-                                    aria-label="إضافة للمفضلة"
-                                    className="absolute top-2 start-2 z-10 flex size-7 items-center justify-center rounded-full bg-chalk/85 text-ink shadow-elevation-1 transition-transform hover:scale-110 active:scale-95"
-                                  >
-                                    <Icon name="heart" size={13} />
-                                  </button>
-                                </div>
-
-                                {/* Information & Cart Action */}
-                                <div className="flex flex-1 flex-col p-3">
-                                  <Link
-                                    href={routes.product(prod.slug)}
-                                    className="font-display text-12.5 font-bold leading-tight text-ink hover:text-cobalt line-clamp-2"
-                                  >
-                                    {prod.name}
-                                  </Link>
-
-                                  <div className="mt-1 flex items-center justify-between">
-                                    <span className="font-serif italic text-11 text-stone">
-                                      {prod.brand}
-                                    </span>
-                                    {prod.reviewsCount ? (
-                                      <span className="flex items-center gap-0.5 text-10.5 text-stone">
-                                        <span className="text-warn">★</span>
-                                        <span>({prod.reviewsCount})</span>
-                                      </span>
-                                    ) : null}
-                                  </div>
-
-                                  <div className="mt-2 flex items-baseline">
-                                    <span className="font-display text-13.5 font-extrabold text-ink">
-                                      {prod.price} ج.م
-                                    </span>
-                                  </div>
-
-                                  {/* Add to Cart button */}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleAddToCart(prod)}
-                                    disabled={addingSku === prod.skuId}
-                                    className={cn(
-                                      'mt-2.5 flex h-8.5 w-full items-center justify-center gap-1.5 rounded-pill text-11.5 font-bold text-chalk shadow-elevation-1 transition-all',
-                                      addingSku === prod.skuId
-                                        ? 'bg-citron text-ink'
-                                        : 'bg-ink hover:bg-cobalt active:scale-95'
-                                    )}
-                                  >
-                                    <Icon name="bag" size={13} />
-                                    <span>
-                                      {addingSku === prod.skuId ? 'تمت الإضافة ✓' : 'أضف للسلة'}
-                                    </span>
-                                  </button>
-                                </div>
-                              </div>
-                            </SwiperSlide>
-                          ))}
-                        </Swiper>
-
-                        {/* Desktop Navigation Arrows */}
-                        <div className="hidden sm:flex items-center gap-1.5 absolute -top-8 end-0">
-                          <button
-                            type="button"
-                            onClick={() => swiperRefs[msg.id]?.slidePrev()}
-                            aria-label="السابق"
-                            className="flex size-7 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-elevation-1 hover:border-cobalt hover:text-cobalt active:scale-95 transition-all"
-                          >
-                            <Icon name="chevron-back" size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => swiperRefs[msg.id]?.slideNext()}
-                            aria-label="التالي"
-                            className="flex size-7 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-elevation-1 hover:border-cobalt hover:text-cobalt active:scale-95 transition-all"
-                          >
-                            <Icon name="chevron-forward" size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* Follow-up question bubble & Suggested Action Chips */}
-                  {msg.followUpQuestion ? (
-                    <div className="mt-3 flex flex-col gap-2.5 ms-10">
-                      <span className="inline-block self-start rounded-pill bg-linen/80 border border-line/40 px-3.5 py-1.5 font-display text-12 text-stone">
-                        {msg.followUpQuestion}
-                      </span>
-
-                      {msg.suggestedChips && msg.suggestedChips.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {msg.suggestedChips.map((chip) => (
-                            <button
-                              key={chip}
-                              type="button"
-                              onClick={() => handleSendMessage(chip.replace(/^\+\s*/, ''))}
-                              className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-linen/70 px-3.5 py-1.5 text-12 font-medium text-ink shadow-outline-hairline hover:bg-linen hover:border-line transition-all active:scale-95"
-                            >
-                              <span>{chip}</span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : msg.suggestedChips && msg.suggestedChips.length > 0 ? (
-                    <div className="mt-2.5 flex flex-wrap gap-2 ms-10">
-                      {msg.suggestedChips.map((chip) => (
-                        <button
-                          key={chip}
-                          type="button"
-                          onClick={() => handleSendMessage(chip.replace(/^\+\s*/, ''))}
-                          className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-linen/70 px-3.5 py-1.5 text-12 font-medium text-ink shadow-outline-hairline hover:bg-linen hover:border-line transition-all active:scale-95"
-                        >
-                          <span>{chip}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {/* STATE 4: ERROR / RETRY STATE */}
-                  {msg.isError ? (
-                    <div className="mt-2 flex w-full max-w-md items-center justify-between rounded-card border border-tomato/30 bg-conflict/20 p-3 ms-10">
-                      <div className="flex items-center gap-2 text-tomato-ink text-12 font-medium">
-                        <Icon name="alert" size={17} />
-                        <span>حدث خطأ مؤقت أثناء الاتصال. يمكنك إعادة المحاولة.</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRetry}
-                        className="flex items-center gap-1 rounded-pill bg-chalk px-3 py-1 font-display text-11.5 font-bold text-ink shadow-elevation-1 hover:bg-sand"
-                      >
-                        <Icon name="retry" size={13} />
-                        <span>إعادة المحاولة</span>
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-
-            {/* STATE 2: TYPING STATE (جاري الكتابة) */}
-            {isTyping ? (
-              <div className="flex items-start gap-2.5 self-start animate-fade-in">
-                <span className="sun sm think flex-none mt-1" style={{ width: 28, height: 28 }} />
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-3 rounded-16 rounded-se-4 border border-line/60 bg-linen px-4 py-3 shadow-elevation-1">
-                    <span className="font-display text-13 font-bold text-ink">شينا</span>
-                    <div className="flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-stone/70 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="size-1.5 rounded-full bg-stone/70 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="size-1.5 rounded-full bg-stone/70 animate-bounce" style={{ animationDelay: '300ms' }} />
-                    </div>
-                  </div>
-                  <span className="text-10.5 text-stone/80 px-2">الآن</span>
-                </div>
-              </div>
-            ) : null}
-
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-
-        {/* 3. BOTTOM-ANCHORED MESSAGE COMPOSER */}
-        <div className="flex-none border-t border-line/60 bg-chalk/95 p-3 sm:p-4 backdrop-blur-md">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendMessage();
-            }}
-            className="flex items-center gap-2 rounded-pill border border-line bg-linen px-2.5 sm:px-3 py-1.5 shadow-elevation-1 transition-all focus-within:border-ink/30 focus-within:shadow-elevation-1"
+      {/* Minimal floating controls (ChatGPT-style: compact mascot icon + New Chat icon button) */}
+      <div className="pointer-events-none absolute inset-x-0 top-3.5 z-20 px-4 sm:px-6">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between">
+          <div
+            className="pointer-events-auto flex items-center justify-center rounded-full p-0.5 drop-shadow-sm transition-transform hover:scale-105"
+            title={m.shinaAssistantTitle}
+            aria-label={m.shinaAssistantTitle}
           >
-            {/* Attachment Button */}
-            <button
-              type="button"
-              aria-label="إرفاق صورة أو منتج"
-              title="إرفاق صورة أو منتج"
-              onClick={() => {
-                setInputText((prev) => (prev ? prev : 'عايز استشارة بخصوص منتج معين'));
-                inputRef.current?.focus();
-              }}
-              className="flex size-9 flex-none items-center justify-center rounded-full text-stone hover:bg-sand/40 hover:text-ink transition-colors"
-            >
-              <Icon name="attach" size={19} />
-            </button>
+            <ShinaMascot state={effectiveState} size="sm" decorative />
+          </div>
 
-            {/* Input field */}
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="اسأل شينا عن منتج أو مكون أو روتين..."
-              className="h-10 flex-1 border-0 bg-transparent px-2 font-display text-14 text-ink placeholder:text-stone/70 focus:outline-none"
-            />
-
-            {/* Black Circular Send Button */}
-            <button
-              type="submit"
-              disabled={!inputText.trim() || isTyping}
-              aria-label="إرسال"
-              className="flex size-10 flex-none items-center justify-center rounded-full bg-ink text-chalk shadow-elevation-1 transition-all hover:bg-cobalt active:scale-95 disabled:opacity-25 disabled:pointer-events-none"
-            >
-              <Icon name="arrow-up" size={18} strokeWidth={2.2} />
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={handleResetSession}
+            title={m.shinaNewSession}
+            aria-label={m.shinaNewSession}
+            className="pointer-events-auto inline-flex size-9 items-center justify-center rounded-full border border-linen/85 bg-linen/75 text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt hover:bg-linen hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+          >
+            <Icon name="plus" size={16} />
+          </button>
         </div>
       </div>
 
-      {/* 4. TEMPORARY CONVERSATION HISTORY DRAWER (Sheet) */}
-      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-        <SheetContent side="end" closeLabel="إغلاق" className="w-[88%] max-w-[380px] bg-linen">
-          <SheetHeader className="border-b border-line pb-3">
-            <div className="flex items-center justify-between">
-              <SheetTitle className="flex items-center gap-2 font-display text-17 font-bold text-ink">
-                <Icon name="history" size={20} />
-                <span>سجل المحادثات</span>
-              </SheetTitle>
-              <button
-                type="button"
-                onClick={handleNewChat}
-                className="inline-flex items-center gap-1 rounded-pill bg-chalk px-3 py-1 font-display text-11.5 font-bold text-ink shadow-elevation-1 hover:bg-sand transition-colors"
-              >
-                <Icon name="plus" size={13} />
-                <span>محادثة جديدة</span>
-              </button>
-            </div>
-          </SheetHeader>
+      {/* Scrollable Message Stream */}
+      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto px-4 pt-14 pb-4 sm:px-6 sm:pt-14 sm:pb-6">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 pb-6">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center gap-2.5 py-1 text-center sm:gap-4 sm:py-8">
+              <ShinaMascot
+                state={effectiveState === 'idle' ? 'idle' : effectiveState}
+                size="hero"
+                alt={m.shinaAssistantTitle}
+              />
 
-          <div className="flex-1 overflow-y-auto px-4 py-3">
-            {sessions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center text-stone">
-                <span className="flex size-12 items-center justify-center rounded-full bg-sand/40 mb-3">
-                  <Icon name="history" size={22} />
-                </span>
-                <p className="m-0 text-13">لا توجد محادثات سابقة حتى الآن.</p>
+              <div className="space-y-1 sm:space-y-1.5">
+                <h2 className="font-display text-24 font-bold text-ink sm:text-30">
+                  {m.shinaWelcomeHeading}
+                </h2>
+                <p className="mx-auto max-w-md text-13 font-medium leading-snug text-ink/85 sm:text-14 sm:leading-relaxed">
+                  {m.shinaWelcomeBody}
+                </p>
               </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {sessions.map((sess) => (
+
+              {!authLoading ? (
+                isAuthenticated ? (
+                  <p className="inline-flex items-center gap-1.5 rounded-pill border border-ok/35 bg-ok-tint/85 px-4 py-1.5 text-12 font-semibold text-ok shadow-elevation-1 backdrop-blur-sm">
+                    <Icon name="check" size={14} />
+                    <span>{m.shinaAiConnectedNote}</span>
+                  </p>
+                ) : (
+                  <div className="flex w-full max-w-lg flex-col items-center justify-between gap-2 rounded-card border border-linen/80 bg-linen/70 px-3 py-2 text-start shadow-elevation-1 backdrop-blur-md sm:flex-row sm:gap-3 sm:px-4 sm:py-3">
+                    <p className="text-11 font-medium leading-snug text-ink/85 sm:text-12 sm:leading-relaxed">{m.shinaGuestNotice}</p>
+                    <button
+                      type="button"
+                      onClick={() => handlePromptAuth()}
+                      className="inline-flex min-h-control-s shrink-0 items-center justify-center gap-1.5 rounded-pill bg-cobalt px-3.5 font-display text-12 font-bold text-chalk transition-colors hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt sm:px-4"
+                    >
+                      <Icon name="user" size={16} />
+                      <span>{m.shinaSignInAction}</span>
+                    </button>
+                  </div>
+                )
+              ) : null}
+
+              <div className="grid w-full max-w-xl grid-cols-2 gap-2 pt-0.5 sm:flex sm:max-w-3xl sm:flex-wrap sm:justify-center sm:gap-2.5 sm:pt-1">
+                {starterChips.map((chip) => (
                   <button
-                    key={sess.id}
+                    key={chip}
                     type="button"
-                    onClick={() => handleLoadSession(sess)}
-                    className={cn(
-                      'flex flex-col items-start gap-1 rounded-card border p-3 text-start transition-all',
-                      sess.id === currentSessionId
-                        ? 'border-cobalt bg-chalk shadow-elevation-1'
-                        : 'border-line bg-chalk/60 hover:bg-chalk'
-                    )}
+                    disabled={isBusy}
+                    onClick={() => submitQuery(chip)}
+                    className="inline-flex min-h-control-s items-center justify-center rounded-card border border-linen/85 bg-linen/70 px-3 py-1.5 text-center font-display text-12 font-semibold text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt/50 hover:bg-linen/90 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:opacity-50 sm:rounded-pill sm:px-3.5 sm:py-2"
                   >
-                    <span className="font-display text-13 font-bold text-ink line-clamp-1">
-                      {sess.title}
-                    </span>
-                    <span className="text-11 text-stone">
-                      {sess.timestamp} · {sess.messages.length} رسالة
-                    </span>
+                    {chip}
                   </button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          ) : null}
 
-          {sessions.length > 0 ? (
-            <div className="border-t border-line p-4">
+          {messages.map((msg) => {
+            if (msg.role === 'user') {
+              return (
+                <div key={msg.id} className="flex flex-col items-end gap-1">
+                  <div className="max-w-xl rounded-card bg-cobalt px-4 py-2.5 text-14 leading-relaxed text-chalk shadow-action sm:text-15">
+                    {msg.content}
+                  </div>
+                  <span className="px-1 text-11 text-stone">{msg.timestamp}</span>
+                </div>
+              );
+            }
+
+            return (
+              <article key={msg.id} className="flex w-full flex-col items-start gap-2.5">
+                <div className="flex items-center gap-2 text-11 text-ink/75">
+                  <ShinaMascot state="idle" size="xs" decorative />
+                  <span className="font-medium text-ink">{m.shinaAssistantTitle}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>
+                    {msg.sourceKind === 'ai-guidance' ? m.shinaSourceAi : m.shinaSourceCatalog}
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{msg.timestamp}</span>
+                </div>
+
+                <div
+                  className={cn(
+                    'w-fit max-w-full rounded-card border px-4 py-3 text-14 leading-relaxed shadow-elevation-1 backdrop-blur-md whitespace-pre-line sm:max-w-3xl sm:text-15',
+                    msg.isError
+                      ? 'border-tomato/40 bg-tomato/10 text-tomato-ink'
+                      : 'border-linen/80 bg-linen/80 text-ink',
+                  )}
+                >
+                  {msg.content}
+                </div>
+
+                {msg.requiresAuthPrompt ? (
+                  <button
+                    type="button"
+                    onClick={() => handlePromptAuth(msg.pendingQuery)}
+                    className="inline-flex min-h-control-s items-center gap-2 rounded-pill bg-cobalt px-4 font-display text-13 font-bold text-chalk shadow-action transition-colors hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                  >
+                    <Icon name="user" size={16} />
+                    <span>{m.shinaSignInAction}</span>
+                  </button>
+                ) : null}
+
+                {msg.products && msg.products.length > 0 ? (
+                  <ShinaProductCarousel
+                    products={msg.products}
+                    onAddToBag={handleAddToBag}
+                    addingSkuId={addingSkuId}
+                    addedSkuIds={addedSkuIds}
+                  />
+                ) : null}
+
+                {msg.comparison ? (
+                  <ShinaComparisonCard
+                    comparison={msg.comparison}
+                    onAddToBag={handleAddToBag}
+                    addingSkuId={addingSkuId}
+                    addedSkuIds={addedSkuIds}
+                  />
+                ) : null}
+
+                {msg.routine ? (
+                  <ShinaRoutineCard
+                    routine={msg.routine}
+                    onAddToBag={handleAddToBag}
+                    onAddManyToBag={handleAddManyToBag}
+                    addingSkuId={addingSkuId}
+                    addedSkuIds={addedSkuIds}
+                    isBatchAdding={isBatchAdding}
+                  />
+                ) : null}
+
+                {msg.isError ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {msg.retryable !== false ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRetryLast(msg.pendingQuery)}
+                        className="inline-flex min-h-control-s items-center gap-1.5 rounded-pill border border-tomato/35 bg-chalk px-3.5 font-display text-12 font-bold text-tomato-ink transition-colors hover:bg-tomato/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                      >
+                        <Icon name="retry" size={15} />
+                        <span>{m.shinaRetryAction}</span>
+                      </button>
+                    ) : null}
+
+                    {msg.pendingQuery ? (
+                      <button
+                        type="button"
+                        onClick={() => runCatalogFallback(msg.pendingQuery!)}
+                        className="inline-flex min-h-control-s items-center gap-1.5 rounded-pill border border-line bg-linen px-3.5 font-display text-12 font-bold text-ink transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                      >
+                        <Icon name="search" size={15} />
+                        <span>{m.shinaSearchCatalogFallback}</span>
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {(msg.products?.length || msg.routine || msg.sourceKind === 'ai-guidance') && !msg.isError ? (
+                  <p className="text-11 text-ink/75">{m.shinaSafetyNote}</p>
+                ) : null}
+
+                {msg.suggestions && msg.suggestions.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {msg.suggestions.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => submitQuery(chip)}
+                        className="inline-flex min-h-control-s items-center rounded-pill border border-linen/80 bg-linen/70 px-3 py-1 font-display text-12 font-semibold text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt/50 hover:bg-linen hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:opacity-50"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+
+          {effectiveState !== 'idle' && effectiveState !== 'completed' ? (
+            <div className="flex justify-start">
+              <ShinaActivityCapsule
+                state={effectiveState}
+                detail={activityDetail}
+                onCancel={isBusy ? abortActiveRequest : undefined}
+                onRetry={effectiveState === 'warning' ? () => handleRetryLast() : undefined}
+              />
+            </div>
+          ) : null}
+
+          <div ref={bottomAnchorRef} className="h-4 shrink-0" />
+        </div>
+      </div>
+
+      {/* Compact Anchored Composer (48-52px height, 650-720px max width) */}
+      <footer className="relative z-20 shrink-0 bg-gradient-to-t from-sand/35 via-chalk/10 to-transparent px-4 pb-3 pt-1 sm:px-6 sm:pb-4">
+        <div className="mx-auto w-full max-w-2xl space-y-2">
+          {voice.errorKind ? (
+            <div
+              role="status"
+              className="flex items-center justify-between gap-2 rounded-card border border-tomato/30 bg-linen/85 px-3 py-2 text-12 text-tomato-ink backdrop-blur-md"
+            >
+              <span>
+                {voice.errorKind === 'unsupported'
+                  ? m.shinaVoiceUnsupported
+                  : voice.errorKind === 'denied'
+                    ? m.shinaVoiceDenied
+                    : m.shinaStateWarning}
+              </span>
               <button
                 type="button"
-                onClick={handleClearHistory}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-pill bg-linen py-2 text-12 font-semibold text-stone hover:text-tomato-ink transition-colors"
+                onClick={voice.clearError}
+                aria-label={m.close}
+                className="inline-flex size-7 items-center justify-center rounded-full hover:bg-sand"
               >
-                <Icon name="trash" size={14} />
-                <span>مسح كل السجل</span>
+                <Icon name="close" size={14} />
               </button>
             </div>
           ) : null}
-        </SheetContent>
-      </Sheet>
-    </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (draft.trim() && !isBusy) {
+                submitQuery(draft);
+              }
+            }}
+            className="shina-composer-glass flex min-h-12 items-end gap-1.5 rounded-pill border border-linen/90 bg-linen/50 p-1.5 backdrop-blur-xl transition-all hover:bg-linen/60 focus-within:border-cobalt/80 focus-within:bg-linen/75 focus-within:shadow-focus-field"
+          >
+            <button
+              type="button"
+              onClick={voice.isListening ? voice.stopListening : voice.startListening}
+              aria-pressed={voice.isListening}
+              aria-label={voice.isListening ? m.shinaVoiceStop : m.shinaVoiceStart}
+              title={!voice.isSupported ? m.shinaVoiceUnsupported : undefined}
+              className={cn(
+                'inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
+                voice.isListening
+                  ? 'bg-tomato text-chalk'
+                  : 'text-ink/70 hover:bg-linen/60 hover:text-ink',
+              )}
+            >
+              <Icon name={voice.isListening ? 'mic-off' : 'mic'} size={18} />
+            </button>
+
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={handleComposerKeyDown}
+              placeholder={m.shinaComposerPlaceholder}
+              aria-label={m.shinaComposerAriaLabel}
+              className="max-h-24 min-h-9 w-full resize-none bg-transparent px-2 py-1.5 text-13.5 leading-snug text-ink placeholder:text-ink/60 focus:outline-none sm:text-14"
+            />
+
+            {isBusy ? (
+              <button
+                type="button"
+                onClick={abortActiveRequest}
+                aria-label={m.shinaCancelRequest}
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-tomato text-chalk shadow-action transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+              >
+                <Icon name="stop" size={16} />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!draft.trim()}
+                aria-label={m.shinaSend}
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-cobalt text-chalk shadow-action transition-colors hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:cursor-not-allowed disabled:bg-cobalt/35 disabled:text-linen"
+              >
+                <Icon name="arrow-up" size={18} />
+              </button>
+            )}
+          </form>
+        </div>
+      </footer>
+    </section>
   );
 }

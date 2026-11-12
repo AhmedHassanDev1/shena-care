@@ -39,17 +39,16 @@ export function ConcernShelf() {
     <section
       id="shop"
       aria-labelledby="home-concern-title"
-      className="relative scroll-mt-16 bg-chalk py-6 sm:py-8 lg:py-12"
+      className="relative scroll-mt-16 bg-chalk py-4 md:py-5 lg:py-6"
     >
       <PageContainer>
-        {/* Ambient Warm Mediterranean Framing Card (Desktop) */}
-        <div className="relative overflow-hidden lg:rounded-32 lg:border lg:border-line lg:bg-linen/60 lg:p-7 xl:p-8 lg:shadow-elevation-1">
+        <div className="relative">
           {/* Ambient Warm Lighting Layer (Desktop) */}
           <div className="pointer-events-none absolute -start-16 -top-16 hidden size-72 rounded-full bg-sand/60 blur-3xl lg:block" />
           <div className="pointer-events-none absolute -end-12 bottom-0 hidden size-80 rounded-full bg-dune/25 blur-2xl lg:block" />
 
           {/* Section Header */}
-          <header className="relative z-10 mb-4 flex flex-col justify-between gap-3 text-start md:flex-row md:items-end lg:mb-6">
+          <header className="relative z-10 mb-4 md:mb-5 lg:mb-6 flex flex-col justify-between gap-3 text-start md:flex-row md:items-end">
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <span className="size-2.5 rounded-full bg-citron shadow-outline-hairline" />
@@ -133,7 +132,7 @@ export function ConcernShelf() {
             </div>
 
             {/* Smart Shina Assistant Panel (3 cols) */}
-            <aside className="relative col-span-3 flex flex-col justify-between overflow-hidden rounded-card border border-line bg-linen p-5 shadow-elevation-1 lg:p-6">
+            <aside className="relative col-span-3 flex flex-col justify-between overflow-hidden rounded-card border border-line bg-linen p-4.5 shadow-elevation-1 lg:p-5">
               {/* Decorative atmosphere */}
               <div className="pointer-events-none absolute -start-10 -top-10 size-32 rounded-full bg-chalk/80 blur-xl" />
               <div className="pointer-events-none absolute bottom-1 start-2 select-none font-serif text-52 tracking-tight text-stone/15">
@@ -151,11 +150,11 @@ export function ConcernShelf() {
               </div>
 
               {/* Center Copy */}
-              <div className="relative z-10 my-auto py-4 text-start">
-                <h3 className="mb-2.5 font-display text-24 font-extrabold leading-tight text-ink lg:text-28">
+              <div className="relative z-10 my-auto py-3 text-start">
+                <h3 className="mb-2 font-display text-24 font-extrabold leading-tight text-ink lg:text-26">
                   {m.homeConcernAssistantTitle}
                 </h3>
-                <p className="text-14 leading-relaxed text-stone lg:text-15">
+                <p className="text-13.5 leading-relaxed text-stone lg:text-14">
                   {m.homeConcernAssistantBody}
                 </p>
               </div>
@@ -164,7 +163,7 @@ export function ConcernShelf() {
               <div className="relative z-10 pt-2">
                 <Link
                   href={shellRoutes.shina}
-                  className="group/btn inline-flex w-full items-center justify-center gap-2.5 rounded-pill bg-cobalt px-6 py-2.5 font-display text-16 font-bold text-white shadow-elevation-1 transition-all hover:bg-cobalt-deep"
+                  className="group/btn inline-flex w-full items-center justify-center gap-2.5 rounded-pill bg-cobalt px-6 py-2.5 font-display text-15 font-bold text-white shadow-elevation-1 transition-all hover:bg-cobalt-deep"
                 >
                   <span>{m.homeConcernAssistantCta}</span>
                   <Icon
@@ -182,11 +181,11 @@ export function ConcernShelf() {
               MOBILE VIEW (<1024px): Horizontal Carousel & Guidance Banner
               Touch momentum snap scroll with card peek (~15-20%)
               ========================================================================= */}
-          <div className="relative z-10 flex flex-col gap-4 lg:hidden">
+          <div className="relative z-10 flex flex-col gap-3 md:gap-4 lg:hidden">
             {/* Horizontal Swipeable Carousel */}
             <div
               dir="rtl"
-              className="scrollbar-none -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-1 scroll-smooth"
+              className="scrollbar-none -mx-4 md:-mx-6 flex snap-x snap-mandatory gap-2 sm:gap-3 overflow-x-auto px-4 md:px-6 py-1 scroll-smooth"
             >
               {CONCERN_CHIPS.map((chip) => {
                 const label = m[chip.label];
@@ -198,7 +197,7 @@ export function ConcernShelf() {
                     key={chip.id}
                     href={href}
                     className={cn(
-                      'group flex w-[280px] flex-shrink-0 snap-start flex-col justify-between rounded-card border border-line bg-linen p-3.5 shadow-elevation-1 transition-all sm:w-[295px]',
+                      'group flex w-[270px] flex-shrink-0 snap-start flex-col justify-between rounded-card border border-line bg-linen p-3 shadow-elevation-1 transition-all sm:w-[285px]',
                       'active:scale-[0.98]'
                     )}
                   >
@@ -237,7 +236,7 @@ export function ConcernShelf() {
             </div>
 
             {/* Mobile Guidance Banner */}
-            <div className="flex items-center justify-between gap-3 rounded-card border border-line bg-linen p-3.5 shadow-elevation-1">
+            <div className="flex items-center justify-between gap-3 rounded-card border border-line bg-linen p-3 shadow-elevation-1">
               <div className="flex-1 min-w-0 pe-1 text-start">
                 <div className="mb-0.5 flex items-center gap-1.5">
                   <span className="size-2 flex-shrink-0 rounded-full bg-citron" />

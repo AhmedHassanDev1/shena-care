@@ -2,7 +2,9 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { PageContainer } from '@/components/layout/page-container';
 import { Icon } from '@/components/ui/icon';
+import { Skeleton } from '@/components/ui/skeleton';
 import { routes } from '@/lib/routes';
 import { useFeaturedRoutines } from '@/features/routine/hooks/useRoutines';
 import { RoutineCard } from './RoutineCard';
@@ -28,11 +30,11 @@ export function RoutineSection() {
     <section
       id="routines"
       aria-labelledby="home-routine-title"
-      className="w-full bg-chalk py-8 md:py-12 border-t border-line"
+      className="w-full bg-chalk py-4 md:py-5 lg:py-6"
     >
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 md:px-10">
+      <PageContainer>
         {/* Editorial Section Header */}
-        <div className="mb-6 border-b border-line pb-5 md:mb-8">
+        <div className="mb-4 md:mb-5 lg:mb-6">
           {/* Mobile top strip: Eyebrow + All routines link */}
           <div className="flex items-center justify-between md:hidden mb-2">
             <div className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-sand/40 px-2.5 py-1">
@@ -111,11 +113,11 @@ export function RoutineSection() {
 
         {/* Loading Skeleton */}
         {isLoading && routines.length === 0 && (
-          <div className="flex gap-4 overflow-hidden md:gap-6">
+          <div className="flex gap-2 sm:gap-3 lg:gap-4 overflow-hidden">
             {[1, 2].map((k) => (
-              <div
+              <Skeleton
                 key={k}
-                className="h-[360px] flex-1 rounded-card border border-line bg-linen/50 animate-pulse"
+                className="h-[360px] flex-1 rounded-card border border-line"
               />
             ))}
           </div>
@@ -135,7 +137,7 @@ export function RoutineSection() {
             {/* Desktop Carousel / Dual Column Display */}
             <div
               ref={carouselRef}
-              className="hidden md:flex gap-6 overflow-x-auto no-scrollbar scroll-smooth pb-3"
+              className="hidden md:flex gap-3 lg:gap-4 overflow-x-auto no-scrollbar scroll-smooth pb-1"
             >
               {routines.map((routine) => (
                 <RoutineCard key={routine.id} routine={routine} />
@@ -143,14 +145,14 @@ export function RoutineSection() {
             </div>
 
             {/* Mobile Horizontal Snap-Carousel with card peek */}
-            <div className="flex md:hidden gap-3.5 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2 snap-x snap-mandatory scroll-smooth">
+            <div className="flex md:hidden gap-2 sm:gap-3 overflow-x-auto no-scrollbar -mx-4 md:-mx-6 px-4 md:px-6 pb-1 snap-x snap-mandatory scroll-smooth">
               {routines.map((routine) => (
                 <RoutineCard key={routine.id} routine={routine} isMobileOnly />
               ))}
             </div>
           </>
         )}
-      </div>
+      </PageContainer>
     </section>
   );
 }

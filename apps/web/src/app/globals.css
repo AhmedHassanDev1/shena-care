@@ -15,6 +15,7 @@
 
 html {
   min-width: 320px;
+  overflow-x: clip;
   scroll-padding-top: 10.5rem;
   -webkit-text-size-adjust: 100%;
 }
@@ -158,6 +159,73 @@ bdi {
    * Sahel Assistant Sun Presence:
    * Small sun orb with yellow glow ring; breathes when thinking, cobalt when listening.
    */
+  /*
+   * Sahel Studio Stage Treatments for Product Cards:
+   * Architectural limestone lighting, warm diffuse spotlight, and category accents.
+   */
+  .sahel-studio-ground {
+    background: linear-gradient(180deg, var(--linen) 0%, rgb(var(--chalk-rgb) / 0.7) 50%, rgb(var(--sand-rgb) / 0.4) 100%);
+  }
+  .sahel-studio-spotlight {
+    background: radial-gradient(circle at 50% 35%, rgb(var(--white-rgb) / 0.85) 0%, transparent 65%);
+  }
+  .sahel-studio-sun {
+    background: radial-gradient(circle at 50% 25%, rgb(var(--citron-rgb) / 0.14) 0%, transparent 55%);
+  }
+  .sahel-studio-serum {
+    background: radial-gradient(ellipse at 50% 40%, rgb(var(--cobalt-rgb) / 0.05) 0%, transparent 60%);
+  }
+  .sahel-studio-hair {
+    background: radial-gradient(ellipse at 50% 40%, rgb(var(--dune-rgb) / 0.25) 0%, transparent 60%);
+  }
+  .sahel-studio-skin {
+    background: radial-gradient(ellipse at 50% 45%, rgb(var(--tan-rgb) / 0.06) 0%, transparent 60%);
+  }
+  .sahel-packshot-shadow {
+    filter: drop-shadow(0 4px 12px rgb(var(--ink-rgb) / 0.06));
+  }
+
+      /*
+   * Sahel Shutter Slats & Contact Shadow (from Stitch 9190545425189814884):
+   * Repeating slatted wooden blind texture casting soft diagonal shadows (118deg) drifting with sunlight.
+   */
+  .shutter-drift-slats,
+  .shutter-slats,
+  .shutter-slats-layer {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    contain: paint;
+  }
+  .shutter-drift-slats::after,
+  .shutter-slats::before,
+  .shutter-slats-drift {
+    content: "";
+    position: absolute;
+    inset: -50%;
+    pointer-events: none;
+    z-index: 1;
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.065) 0px,
+      rgba(0, 0, 0, 0.065) 16px,
+      rgba(255, 255, 255, 0.12) 16px,
+      rgba(255, 255, 255, 0.12) 32px
+    );
+    /* Signature Sahel 118deg / 25° diagonal slatted shutter drift */
+    animation: slatsDrift 2.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+    mix-blend-mode: multiply;
+    will-change: transform, opacity;
+  }
+
+  .sahel-skeleton-shadow {
+    width: 5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: rgb(var(--stone-rgb) / 0.12);
+    filter: blur(4px);
+  }
+
   .sun {
     width: 44px;
     height: 44px;
@@ -185,48 +253,167 @@ bdi {
   }
 
   /*
-   * Sahel Shutter Loading — Pending state for async buttons ONLY (aria-busy="true").
-   * Light slats pass right-to-left across the button.
+   * Sahel Shutter Loading — Pending state for any button performing a loading action (aria-busy="true").
+   * Delicate diagonal slatted shutter lines (118deg) gliding with fast, crisp linear motion.
    */
-  .sl {
+  .sl,
+  button[aria-busy='true'],
+  [role='button'][aria-busy='true'] {
     position: relative;
     isolation: isolate;
     overflow: hidden;
   }
-  .sl > * {
+  .sl > *,
+  button[aria-busy='true'] > *,
+  [role='button'][aria-busy='true'] > * {
     position: relative;
     z-index: 1;
   }
-  .sl[aria-busy='true'] {
+  .sl[aria-busy='true'],
+  button[aria-busy='true'],
+  [role='button'][aria-busy='true'] {
     cursor: progress;
   }
-  .sl[aria-busy='true']::before {
+  .sl[aria-busy='true']::before,
+  button[aria-busy='true']::before,
+  [role='button'][aria-busy='true']::before {
     content: '';
     position: absolute;
-    inset: -40%;
+    inset: -60%;
     z-index: 0;
     pointer-events: none;
     background: repeating-linear-gradient(
       118deg,
-      rgba(255, 255, 255, 0) 0 14px,
-      rgba(255, 255, 255, 0.22) 14px 24px
+      rgba(255, 255, 255, 0) 0 7px,
+      rgba(255, 255, 255, 0.25) 7px 14px
     );
-    animation: sh-slats 1.2s linear infinite;
+    animation: sh-slats 0.75s linear infinite;
+    will-change: transform;
   }
-  .sl.sl-light[aria-busy='true']::before {
+
+  /* Light button variants (linen, ghost, outline, light) */
+  .sl.sl-light[aria-busy='true']::before,
+  .sl[data-theme='light'][aria-busy='true']::before,
+  button.bg-linen[aria-busy='true']::before,
+  button.bg-transparent[aria-busy='true']::before,
+  button.bg-chalk[aria-busy='true']::before,
+  button.bg-white[aria-busy='true']::before {
     background: repeating-linear-gradient(
       118deg,
-      rgba(22, 19, 15, 0) 0 14px,
-      rgba(22, 19, 15, 0.08) 14px 24px
+      rgba(22, 19, 15, 0) 0 7px,
+      rgba(22, 19, 15, 0.10) 7px 14px
     );
   }
+
   @keyframes sh-slats {
     to {
-      transform: translateX(-27px);
+      transform: translateX(-28px);
     }
   }
 
+  @keyframes sh-slats-ltr {
+    to {
+      transform: translateX(28px);
+    }
+  }
+
+  html[dir="ltr"] .sl[aria-busy='true']::before,
+  html[dir="ltr"] button[aria-busy='true']::before,
+  html[dir="ltr"] [role='button'][aria-busy='true']::before {
+    animation-name: sh-slats-ltr;
+  }
+
   /*
+   * Sahel Inward Resolving State (التحميل الداخلي الهادئ / Inward Sun Core):
+   * Applied when a button is waiting on server state / cart membership / price quotes.
+   * A calm inward-converging ripple toward a luminous warm core, distinctly different from action shutter slats.
+   */
+  .sl-inward {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    cursor: wait !important;
+    pointer-events: none !important;
+    user-select: none;
+    transition: all var(--dur-base) var(--ease-standard);
+  }
+  .sl-inward::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 50%, rgba(228, 238, 60, 0.22) 0%, rgba(234, 227, 214, 0.45) 55%, transparent 100%);
+    animation: inwardBreathe 2.2s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .sl-inward::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 16px rgba(20, 52, 203, 0.15), inset 0 0 4px rgba(228, 238, 60, 0.3);
+    animation: inwardVignette 2.2s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes inwardBreathe {
+    0%, 100% {
+      transform: scale(0.94);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 1;
+    }
+  }
+
+  @keyframes inwardVignette {
+    0% {
+      box-shadow: inset 0 0 6px rgba(20, 52, 203, 0.08);
+    }
+    100% {
+      box-shadow: inset 0 0 20px rgba(228, 238, 60, 0.35), inset 0 0 6px rgba(20, 52, 203, 0.2);
+    }
+  }
+
+  @keyframes inwardRing1 {
+    0% {
+      transform: scale(1.8);
+      opacity: 0;
+    }
+    30% {
+      opacity: 0.85;
+    }
+    100% {
+      transform: scale(0.55);
+      opacity: 0;
+    }
+  }
+
+  @keyframes inwardRing2 {
+    0% {
+      transform: scale(1.4);
+      opacity: 0;
+    }
+    40% {
+      opacity: 0.65;
+    }
+    100% {
+      transform: scale(0.45);
+      opacity: 0;
+    }
+  }
+
+  .inward-ring-1 {
+    animation: inwardRing1 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+  .inward-ring-2 {
+    animation: inwardRing2 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite 0.45s;
+  }
+
+/*
    * Sahel Field Geometry:
    * Linen fill, 16px radius, hairline border. Focus: 2px solid ink + e1 shadow.
    */
@@ -343,10 +530,13 @@ bdi {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  .scrollbar-none {
+  .scrollbar-none,
+  .no-scrollbar {
     scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  .scrollbar-none::-webkit-scrollbar {
+  .scrollbar-none::-webkit-scrollbar,
+  .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
 }
@@ -402,7 +592,250 @@ bdi {
   animation: heroSlideUp 0.5s ease-out 0.28s both;
 }
 
+/*
+ * Sahel Shutter Light Skeleton — The Signature (حركة الشيش / Shutter Drift from Stitch 9190545425189814884):
+ * Afternoon warm coastal sunlight sweeping diagonally across limestone surfaces with moving slatted shutter lines.
+ * 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite drift.
+ */
+@keyframes shutterDrift {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Signature Sahel sweeping warm sunlight ray (Stitch 9190545425189814884) */
+@keyframes sunRaySweep {
+  0% {
+    transform: translateX(130%) rotate(25deg);
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateX(-130%) rotate(25deg);
+    opacity: 0.15;
+  }
+}
+
+/* Continuous animated drift of the slatted shutter lines across the card surface */
+@keyframes slatsDrift {
+  0% {
+    transform: translateX(35%) translateY(-10%) rotate(25deg) scale(1.6);
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-35%) translateY(10%) rotate(25deg) scale(1.6);
+    opacity: 0.7;
+  }
+}
+
+/* Ambient Warm Shimmer for Bone Shapes */
+@keyframes warmPulse {
+  0%, 100% {
+    background-color: var(--linen);
+  }
+  50% {
+    background-color: var(--sand);
+  }
+}
+
+@keyframes boneShimmer {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.shutter-glow-container {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  contain: paint;
+  background: var(--sand);
+}
+
+.shutter-glow-container::after {
+  content: '';
+  position: absolute;
+  top: -120%;
+  bottom: -120%;
+  left: -60%;
+  width: 160%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 30%,
+    rgba(254, 249, 235, 0.85) 50%,
+    rgba(255, 255, 255, 0.35) 70%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: sunRaySweep 2.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  pointer-events: none;
+  will-change: transform, opacity;
+  z-index: 2;
+}
+
+.animate-shutter-drift {
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(
+    118deg,
+    transparent 0%,
+    transparent 28%,
+    rgb(var(--chalk-rgb) / 0.45) 40%,
+    rgb(var(--white-rgb) / 0.75) 50%,
+    rgb(var(--chalk-rgb) / 0.45) 60%,
+    transparent 72%,
+    transparent 100%
+  );
+  background-size: 250% 100%;
+  animation: shutterDrift 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-shutter-drift::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(100%);
+  background-image: linear-gradient(
+    118deg,
+    transparent 0%,
+    rgb(var(--chalk-rgb) / 0.3) 30%,
+    rgb(var(--white-rgb) / 0.65) 50%,
+    rgb(var(--chalk-rgb) / 0.3) 70%,
+    transparent 100%
+  );
+  animation: boneShimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+html[dir="ltr"] .animate-shutter-drift::before {
+  transform: translateX(-100%);
+}
+
+.skeleton-bone {
+  animation: warmPulse 2.8s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-bone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.45),
+    transparent
+  );
+  animation: boneShimmer 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes shinaBreathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.03); }
+}
+
+@keyframes shinaRadarSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes shinaRipple {
+  0% { transform: scale(0.92); opacity: 0.65; }
+  100% { transform: scale(1.36); opacity: 0; }
+}
+
+@keyframes shinaEq {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+
+.shina-ambient-glow {
+  background:
+    linear-gradient(
+      180deg,
+      rgb(var(--chalk-rgb) / 0.5) 0%,
+      rgb(var(--chalk-rgb) / 0.14) 24%,
+      rgb(var(--chalk-rgb) / 0.06) 56%,
+      rgb(var(--sand-rgb) / 0.36) 100%
+    ),
+    radial-gradient(circle at 18% 18%, rgb(var(--citron-rgb) / 0.12) 0%, transparent 52%),
+    radial-gradient(circle at 82% 76%, rgb(var(--cobalt-rgb) / 0.05) 0%, transparent 48%);
+}
+
+.shina-mascot-halo {
+  background: radial-gradient(
+    circle,
+    rgb(var(--citron-rgb) / 0.36) 0%,
+    rgb(var(--linen-rgb) / 0.45) 38%,
+    rgb(var(--cobalt-rgb) / 0.1) 62%,
+    transparent 76%
+  );
+}
+
+.shina-composer-glass {
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgb(var(--linen-rgb) / 0.78), var(--elevation-2);
+}
+
+.shina-breathe {
+  animation: shinaBreathe 3.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.shina-radar-spin {
+  animation: shinaRadarSpin 2.2s linear infinite;
+}
+
+.shina-ripple {
+  animation: shinaRipple 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.shina-eq-1 { transform-origin: bottom; animation: shinaEq 0.9s ease-in-out infinite; }
+.shina-eq-2 { transform-origin: bottom; animation: shinaEq 0.7s ease-in-out 0.15s infinite; }
+.shina-eq-3 { transform-origin: bottom; animation: shinaEq 1.05s ease-in-out 0.3s infinite; }
+.shina-eq-4 { transform-origin: bottom; animation: shinaEq 0.8s ease-in-out 0.1s infinite; }
+
 @media (prefers-reduced-motion: reduce) {
+  .animate-shutter-drift {
+    animation: none !important;
+    background-position: 0 0 !important;
+  }
+  .shina-breathe,
+  .shina-radar-spin,
+  .shina-ripple,
+  .shina-eq-1,
+  .shina-eq-2,
+  .shina-eq-3,
+  .shina-eq-4 {
+    animation: none !important;
+  }
+  .animate-shutter-drift::before,
+  .shutter-glow-container::after,
+  .shutter-drift-slats::after,
+  .shutter-slats::before,
+  .shutter-slats-drift,
+  .skeleton-bone::after {
+    display: none !important;
+    animation: none !important;
+  }
+  .skeleton-bone {
+    animation: none !important;
+  }
   .sl[aria-busy='true']::before {
     animation: none;
     opacity: 0.55;

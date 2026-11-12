@@ -136,11 +136,11 @@ export function BrandMarquee() {
   return (
     <section
       aria-labelledby="brand-strip-title"
-      className="w-full border-y border-line bg-chalk py-10 lg:py-16 transition-colors"
+      className="w-full bg-chalk py-4 md:py-5 lg:py-6 transition-colors"
     >
-      <PageContainer className="flex flex-col gap-6">
+      <PageContainer className="flex flex-col gap-3 md:gap-4 lg:gap-5">
         {/* Header row: Eyebrow + Title + Subtitle + Action Link */}
-        <div className="flex flex-col justify-between gap-4 border-b border-line pb-6 md:flex-row md:items-end">
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div className="flex max-w-2xl flex-col gap-2">
             {/* Atelier Eyebrow with Sun Dot */}
             <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ export function BrandMarquee() {
         <div
           role="region"
           aria-label={m.homeBrandsTitle}
-          className="marquee marquee-mask relative w-full overflow-hidden py-3"
+          className="marquee marquee-mask relative w-full overflow-hidden py-2"
         >
           <div className="marquee-track flex w-max items-center">
             {/* First Set: Accessible, keyboard-focusable */}

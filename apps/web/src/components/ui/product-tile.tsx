@@ -19,7 +19,10 @@ export interface ProductTileProps {
   size?: "tile" | "thumb"
   priority?: boolean
   sizes?: string
-  className?: string
+  className?: string;
+  imageClassName?: string;
+  fit?: "contain" | "cover";
+  onImageError?: () => void
   children?: React.ReactNode
 }
 
@@ -29,14 +32,22 @@ export interface ProductTileProps {
  * disappear. No image → dashed «صورة المنتج من الكتالوج» placeholder; broken image → «الصورة مش متاحة» (img-error).
  * `children` are overlays (e.g. «غير متوفر حاليًا»).
  */
-export function ProductTile({ src, alt, name, size = "tile", priority, sizes, className, children }: ProductTileProps) {
+export function ProductTile({ src, alt, name, size = "tile", priority, sizes, className, imageClassName, fit, onImageError, children }: ProductTileProps) {
   const m = useMessages()
   const [failed, setFailed] = React.useState(false)
   const imgRef = React.useRef<HTMLImageElement>(null)
+  const onImageErrorRef = React.useRef(onImageError)
+  onImageErrorRef.current = onImageError
+  React.useEffect(() => {
+    setFailed(false)
+  }, [src])
   // An image that failed before hydration never fires onError: check once on mount.
   React.useEffect(() => {
     const img = imgRef.current
-    if (img && img.complete && img.naturalWidth === 0) setFailed(true)
+    if (img && img.complete && img.naturalWidth === 0) {
+      setFailed(true)
+      onImageErrorRef.current?.()
+    }
   }, [src])
   const [line1, line2] = m.tilePending.split("|")
   const thumb = size === "thumb"
@@ -52,8 +63,11 @@ export function ProductTile({ src, alt, name, size = "tile", priority, sizes, cl
           priority={priority}
           unoptimized={!canOptimizeImage(src)}
           sizes={sizes ?? (thumb ? "96px" : "(min-width: 1024px) 288px, 46vw")}
-          onError={() => setFailed(true)}
-          className="size-full object-cover transition-transform duration-base ease-standard group-hover/card:scale-105"
+          onError={() => {
+            setFailed(true)
+            onImageErrorRef.current?.()
+          }}
+          className={cn("size-full transition-transform duration-base ease-standard group-hover/card:scale-105", fit === "contain" ? "object-contain" : "object-cover", imageClassName)}
         />
       ) : failed ? (
         <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-12 font-medium leading-17 text-stone font-display">

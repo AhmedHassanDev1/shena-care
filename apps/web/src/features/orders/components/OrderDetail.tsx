@@ -7,6 +7,7 @@ import { AsyncButton, Button, buttonVariants } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TextAreaField } from '@/components/ui/field';
+import { Icon } from '@/components/ui/icon';
 import { MessageBox } from '@/components/ui/message-box';
 import { Money } from '@/components/ui/money';
 import { ProductTile } from '@/components/ui/product-tile';
@@ -22,6 +23,7 @@ import {
   orders,
   type AvailabilityAction,
   type AvailabilityDecision,
+  type CustomerStage,
   type OrderTracking,
   type ReorderResult,
   type SupportTopic,
@@ -33,10 +35,12 @@ import { addressLine, stageLabel, stageTone, trackingSteps } from '../lib/order-
 import { ReportProblem } from './ReportProblem';
 
 /**
- * Order detail and tracking (OrdersD detail panel, CommerceMobile ٧, CommerceStates §٥). Stage, timeline, line states
- * and amounts are rendered as the API reports them. When the API reports ACTION_REQUIRED, the decision panel sits at
- * the top. Self-service follows the server: cancel only while `canCancel`, order-linked support, problem reports on
- * delivered products, and order again at today's prices.
+ * Editorial Order Detail & Live Tracking (OrdersD, CommerceMobile ٧, CommerceStates §٥):
+ * - Visual live stage progression ribbon with pulse indicator
+ * - Dynamic Action Required decision atelier
+ * - Itemized product cards with packshot stage, quantities, and line totals
+ * - Courier delivery and cash-on-delivery inspection reassurance
+ * - Self-service cancellation, reorder, and customer care ticket filing
  */
 export function OrderDetail({ order }: { order: OrderTracking }) {
   const m = useMessages();
@@ -55,75 +59,114 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
       : m.checkoutDeliveryPromise;
 
   return (
-    <article className="flex flex-col gap-5 lg:rounded-sheet lg:bg-linen lg:p-7 lg:shadow-elevation-3 lg:outline lg:outline-1 lg:outline-line">
-      <header className="flex items-start justify-between gap-3">
-        <span className="flex flex-col gap-1">
-          <span className="text-13 text-stone">
-            {fillMessage(m.orderPlacedOnLong, { date: formatDate(order.createdAt, locale) })} · {formatProductCount(count, locale)}
-          </span>
-          {/* Phone: the number is the header title (CommerceMobile ٧); desktop: the panel heading (OrdersD). */}
-          <h2 className="m-0 hidden text-match-parent lg:block">
-            <bdi dir="ltr" className="text-24 font-bold tabular-nums leading-30 text-ink lg:text-28 lg:leading-34">
+    <article className="flex flex-col gap-6 rounded-24 bg-linen p-5 shadow-elevation-1 lg:rounded-sheet lg:p-7 lg:shadow-elevation-2">
+      {/* Header bar */}
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-13 font-medium text-stone">
+            <span>{fillMessage(m.orderPlacedOnLong, { date: formatDate(order.createdAt, locale) })}</span>
+            <span>·</span>
+            <span>{formatProductCount(count, locale)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-14 font-medium text-stone">{m.orderNumber}:</span>
+            <bdi dir="ltr" className="font-display text-24 font-extrabold tabular-nums text-ink lg:text-28">
               {order.orderNumber}
             </bdi>
-          </h2>
-        </span>
-        <StatusChip tone={stageTone(order.status)}>{stageLabel(order.status, m)}</StatusChip>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <StatusChip tone={stageTone(order.status)} className="px-3.5 py-1 text-13 font-bold">
+            {stageLabel(order.status, m)}
+          </StatusChip>
+        </div>
       </header>
 
       {receipt ? (
-        <MessageBox tone="ok" role="status">
+        <MessageBox tone="ok" role="status" className="rounded-16">
           {fillMessage(m.decisionReceipt, {
             before: formatEgp(receipt.amounts.codBefore, receipt.amounts.currency, locale) ?? '',
             after: formatEgp(receipt.amounts.codAfter, receipt.amounts.currency, locale) ?? '',
           })}
         </MessageBox>
       ) : null}
+
       {problemSent ? (
-        <MessageBox tone="ok" role="status">
+        <MessageBox tone="ok" role="status" className="rounded-16">
           {m.problemSent}
         </MessageBox>
       ) : null}
+
+      {/* Decision panel when warehouse items need customer selection */}
       {order.actionRequired ? <DecisionPanel orderNumber={order.orderNumber} onResolved={setReceipt} /> : null}
 
-      <Timeline items={trackingSteps(order, m, locale)} label={m.orderTimeline} />
+      {/* Live Visual Stage Stepper */}
+      <OrderVisualProgress order={order} />
 
-      <section aria-labelledby="od-items" className="flex flex-col gap-3 pt-5 shadow-hairline-top">
-        <h2 id="od-items" className="m-0 text-17 font-bold text-ink">
-          {m.orderItems}
-        </h2>
-        <ul className="m-0 flex list-none flex-col p-0">
+      {/* Detailed tracking timestamps timeline */}
+      <div className="rounded-24 bg-chalk/50 p-4.5">
+        <h3 className="m-0 mb-3 font-display text-16 font-bold text-ink">{m.orderTimeline}</h3>
+        <Timeline items={trackingSteps(order, m, locale)} label={m.orderTimeline} />
+      </div>
+
+      {/* Ordered items breakdown */}
+      <section aria-labelledby="od-items" className="flex flex-col gap-3.5 border-t border-line pt-5">
+        <div className="flex items-center justify-between">
+          <h2 id="od-items" className="m-0 font-display text-20 font-bold text-ink">
+            {m.orderItems}
+          </h2>
+          <span className="rounded-pill bg-sand/70 px-2.5 py-0.5 text-12 font-bold text-ink">
+            {formatProductCount(count, locale)}
+          </span>
+        </div>
+
+        <ul className="m-0 flex list-none flex-col gap-3 p-0">
           {order.items.map((item) => {
             const gone = item.lineState === 'removed' || item.lineState === 'replaced';
             const entry = catalog[item.skuId];
             const size = (entry ? formatPackSize(entry.size, entry.sizeUnit, locale) : null) ?? item.variantName ?? '';
             const name = item.productName ?? '';
+
             return (
-              <li key={item.id} className="flex flex-col gap-2 py-3 shadow-hairline-bottom last:shadow-none">
-                <span className="flex items-center gap-3">
-                  <ProductTile size="thumb" className={cn('h-15 w-12 flex-none rounded-8', gone && 'opacity-50')} src={entry?.image?.url ?? null} alt="" name={name} />
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span dir="auto" className={cn('text-match-parent text-14.5 font-semibold text-ink', gone && 'text-stone line-through')}>
+              <li
+                key={item.id}
+                className={cn(
+                  'flex flex-col gap-3 rounded-24 bg-chalk/40 p-3.5 transition-all lg:p-4',
+                  gone && 'opacity-60'
+                )}
+              >
+                <div className="flex items-center gap-3.5">
+                  <ProductTile
+                    size="thumb"
+                    className={cn('h-16 w-13 flex-none rounded-image shadow-hairline-bottom', gone && 'opacity-50')}
+                    src={entry?.image?.url ?? null}
+                    alt=""
+                    name={name}
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span dir="auto" className={cn('text-match-parent text-15 font-bold text-ink', gone && 'text-stone line-through')}>
                       {name}
                     </span>
                     <span className="text-12.5 text-stone">
                       {fillMessage(m.checkoutLineMeta, { size, qty: formatNumber(item.quantity, locale) })}
                     </span>
                     {gone || item.status === 'action-required' ? (
-                      <StatusChip tone={gone ? 'gray' : 'warn'} className="mt-1 self-start">
+                      <StatusChip tone={gone ? 'gray' : 'warn'} className="mt-0.5 self-start text-11">
                         {gone ? (item.lineState === 'removed' ? m.orderItemRemoved : m.orderItemReplaced) : m.orderItemactionRequired}
                       </StatusChip>
                     ) : null}
-                  </span>
-                  <Money amount={item.lineTotal} className={cn('text-14 font-bold text-ink', gone && 'text-stone line-through')} />
-                </span>
+                  </div>
+                  <Money amount={item.lineTotal} className={cn('font-display text-16 font-bold text-ink', gone && 'text-stone line-through')} />
+                </div>
+
                 {finished && !gone ? (
-                  <span className="flex flex-wrap items-center gap-2 ps-15">
+                  <div className="flex flex-wrap items-center gap-2 border-t border-line/60 pt-2.5 ps-16">
                     <BuyAgainItem orderNumber={order.orderNumber} skuId={item.skuId} />
                     {delivered ? (
                       <ReportProblem orderNumber={order.orderNumber} itemId={item.id} maxQuantity={item.quantity} onSent={() => setProblemSent(true)} />
                     ) : null}
-                  </span>
+                  </div>
                 ) : null}
               </li>
             );
@@ -131,44 +174,54 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
         </ul>
       </section>
 
-      <section aria-label={m.confirmTotal} className="flex flex-col gap-1 pt-4 shadow-hairline-top">
+      {/* Financial breakdown card */}
+      <section aria-label={m.confirmTotal} className="flex flex-col gap-2 rounded-24 bg-chalk/40 p-4 border-t border-line">
         <Row label={fillMessage(m.checkoutSubtotalCount, { count: formatProductCount(count, locale) })}>
           <Money amount={order.amounts.subtotal} />
         </Row>
         <Row label={m.checkoutShipping}>
-          {order.amounts.shippingFee === 0 ? m.checkoutFree : <Money amount={order.amounts.shippingFee} />}
+          {order.amounts.shippingFee === 0 ? (
+            <span className="rounded-pill bg-ok-tint px-2 py-0.5 text-12 font-bold text-ok">{m.checkoutFree}</span>
+          ) : (
+            <Money amount={order.amounts.shippingFee} />
+          )}
         </Row>
-        <div aria-hidden="true" className="my-1.5 h-px bg-line" />
+        <div aria-hidden="true" className="my-1 h-px bg-line" />
         <Row label={m.checkoutTotal} strong>
-          <Money amount={order.amounts.currentCodAmount} />
+          <Money amount={order.amounts.currentCodAmount} className="font-display text-22 font-extrabold text-ink" />
         </Row>
         {order.amounts.originalCodAmount !== order.amounts.currentCodAmount ? (
-          <p className="m-0 text-12.5 text-stone">
+          <p className="m-0 text-12 text-stone">
             {fillMessage(m.orderCodWas, { amount: formatEgp(order.amounts.originalCodAmount, order.amounts.currency, locale) ?? '' })}
           </p>
         ) : null}
-        <p className="m-0 text-13 text-stone">{m.orderPaymentLine}</p>
+        <p className="m-0 text-12.5 text-stone">{m.orderPaymentLine}</p>
       </section>
 
-      <section aria-labelledby="od-delivery" className="flex flex-col gap-1">
-        <h2 id="od-delivery" className="m-0 text-17 font-bold text-ink">
-          {m.orderDeliveryTitle}
-        </h2>
-        <p className="m-0 text-14 leading-22 text-ink">
+      {/* Delivery address & courier notes */}
+      <section aria-labelledby="od-delivery" className="flex flex-col gap-2 rounded-24 bg-chalk/40 p-4.5">
+        <div className="flex items-center gap-2">
+          <Icon name="truck" size={18} className="text-cobalt" />
+          <h2 id="od-delivery" className="m-0 font-display text-17 font-bold text-ink">
+            {m.orderDeliveryTitle}
+          </h2>
+        </div>
+        <p className="m-0 text-14 font-medium leading-22 text-ink">
           {order.customerName} · {address}
         </p>
         <p className="m-0 text-13 text-stone">{promise}</p>
       </section>
 
+      {/* Order resolutions (if applicable) */}
       {order.resolutions.length ? (
-        <section aria-labelledby="od-resolutions" className="flex flex-col gap-2">
-          <h2 id="od-resolutions" className="m-0 text-17 font-bold text-ink">
+        <section aria-labelledby="od-resolutions" className="flex flex-col gap-2.5 rounded-24 bg-chalk/40 p-4.5">
+          <h2 id="od-resolutions" className="m-0 font-display text-17 font-bold text-ink">
             {m.orderResolutions}
           </h2>
           <ul className="m-0 flex list-none flex-col gap-2 p-0 text-14">
             {order.resolutions.map((resolution, index) => (
               <li key={index} className="flex flex-col gap-1">
-                <StatusChip tone={resolution.status === 'resolved' ? 'ok' : resolution.status === 'rejected' ? 'err' : 'gray'} className="self-start">
+                <StatusChip tone={resolution.status === 'resolved' ? 'ok' : resolution.status === 'rejected' ? 'err' : 'gray'} className="self-start text-12">
                   {m[`orderResolutionStatus${resolution.status}` as keyof Messages] as string}
                 </StatusChip>
                 {resolution.refund ? (
@@ -185,8 +238,85 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
         </section>
       ) : null}
 
+      {/* Self-service controls */}
       <OrderSelfService order={order} />
     </article>
+  );
+}
+
+/** Visual stage stepper ribbon with connected milestones */
+function OrderVisualProgress({ order }: { order: OrderTracking }) {
+  const m = useMessages();
+  const stages: Array<{ id: CustomerStage; label: string; icon: 'check' | 'package' | 'truck' | 'cash' }> = [
+    { id: 'RECEIVED', label: m.stageRegistered, icon: 'check' },
+    { id: 'CONFIRMED', label: m.stageConfirmed, icon: 'check' },
+    { id: 'PREPARING', label: m.stagePreparing, icon: 'package' },
+    { id: 'OUT_FOR_DELIVERY', label: m.stageOutForDelivery, icon: 'truck' },
+    { id: 'DELIVERED', label: m.stageDelivered, icon: 'check' },
+  ];
+
+  const LADDER: Record<CustomerStage, number> = {
+    RECEIVED: 0,
+    CONFIRMING_PRODUCTS: 0,
+    ACTION_REQUIRED: 0,
+    CONFIRMED: 1,
+    PREPARING: 2,
+    OUT_FOR_DELIVERY: 3,
+    DELIVERY_ISSUE: 3,
+    DELIVERED: 4,
+    CANCELLATION_REQUESTED: -1,
+    CANCELLED: -1,
+  };
+
+  const currentLevel = LADDER[order.status] ?? 0;
+
+  return (
+    <div className="rounded-24 bg-chalk/60 p-4 shadow-hairline-bottom">
+      <div className="flex items-center justify-between">
+        {stages.map((stage, idx) => {
+          const reached = currentLevel >= idx;
+          const isCurrent = currentLevel === idx && order.status !== 'DELIVERED';
+          const isLast = idx === stages.length - 1;
+
+          return (
+            <div key={stage.id} className="flex flex-1 items-center">
+              <div className="flex flex-col items-center gap-1.5">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'grid size-8 place-items-center rounded-pill font-display text-13 font-bold transition-all',
+                    reached
+                      ? 'bg-ok text-white shadow-elevation-1'
+                      : isCurrent
+                        ? 'bg-cobalt text-chalk ring-4 ring-cobalt/25'
+                        : 'bg-sand/60 text-stone'
+                  )}
+                >
+                  <Icon name={stage.icon} size={15} strokeWidth={2.4} />
+                </span>
+                <span
+                  className={cn(
+                    'hidden text-center text-12 sm:block',
+                    isCurrent ? 'font-bold text-ink' : reached ? 'font-semibold text-ink' : 'text-stone'
+                  )}
+                >
+                  {stage.label}
+                </span>
+              </div>
+              {!isLast ? (
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    'mx-2 h-0.5 flex-1 transition-colors',
+                    currentLevel > idx ? 'bg-ok' : 'bg-line'
+                  )}
+                />
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -259,73 +389,86 @@ function OrderSelfService({ order }: { order: OrderTracking }) {
   };
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-3.5 border-t border-line pt-4">
       {cancelState === 'done' ? (
-        <MessageBox tone="ok" role="status">
+        <MessageBox tone="ok" role="status" className="rounded-16">
           {m.orderCancelDone}
         </MessageBox>
       ) : null}
       {cancelState === 'support' ? (
-        <MessageBox tone="warn" role="status">
+        <MessageBox tone="warn" role="status" className="rounded-16">
           {m.orderCancelNeedsSupport}
         </MessageBox>
       ) : null}
       {cancelState === 'failed' ? (
-        <MessageBox tone="err" role="alert">
+        <MessageBox tone="err" role="alert" className="rounded-16">
           {m.orderCancelFailed}
         </MessageBox>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-center gap-3">
         {order.canCancel && cancelState !== 'done' ? (
           <Button variant="light" onClick={() => setCancelOpen(true)}>
             {m.orderCancelButton}
           </Button>
         ) : null}
         {finished ? (
-          <AsyncButton variant="light" state={reorder.state === 'pending' ? 'pending' : 'idle'} pendingLabel={m.buyAgainAdding} onClick={orderAgain}>
-            {m.buyAgainOrder}
+          <AsyncButton variant="ink" state={reorder.state === 'pending' ? 'pending' : 'idle'} pendingLabel={m.buyAgainAdding} onClick={orderAgain}>
+            <Icon name="shop" size={17} />
+            <span>{m.buyAgainOrder}</span>
           </AsyncButton>
         ) : null}
         <button
           type="button"
           aria-expanded={supportOpen}
           onClick={() => setSupportOpen((open) => !open)}
-          className="text-link"
+          className="rounded-pill px-3 py-1.5 text-14 font-semibold text-cobalt transition-colors hover:bg-sand/40 hover:text-cobalt-deep"
         >
           {m.orderContactSupport}
         </button>
       </div>
-      {order.canCancel && cancelState !== 'done' ? <p className="m-0 text-12.5 text-stone">{m.orderCancelNote}</p> : null}
+
+      {order.canCancel && cancelState !== 'done' ? <p className="m-0 text-12 text-stone">{m.orderCancelNote}</p> : null}
 
       {reorder.state === 'failed' ? (
-        <MessageBox tone="err" role="alert">
+        <MessageBox tone="err" role="alert" className="rounded-16">
           {m.unexpectedErrorDescription}
         </MessageBox>
       ) : reorder.result ? (
         reorder.result.summary.totalAdded > 0 ? (
-          <MessageBox tone="ok" role="status">
-            <p className="m-0">
+          <MessageBox tone="ok" role="status" className="rounded-16">
+            <p className="m-0 font-medium">
               {reorder.result.summary.totalSkipped > 0
                 ? fillMessage(m.buyAgainPartial, { added: reorder.result.summary.totalAdded, skipped: reorder.result.summary.totalSkipped })
                 : fillMessage(m.buyAgainSuccess, { n: reorder.result.summary.totalAdded })}
             </p>
-            <Link href={routes.cart} className="text-link text-13.5">
+            <Link href={routes.cart} className="text-link text-13.5 mt-2">
               {m.buyAgainViewCart}
             </Link>
           </MessageBox>
         ) : (
-          <MessageBox tone="warn" role="status">
+          <MessageBox tone="warn" role="status" className="rounded-16">
             {m.buyAgainUnavailable}
           </MessageBox>
         )
       ) : null}
 
+      {/* Support ticket submission drawer/card */}
       {supportOpen ? (
-        <form onSubmit={send} className="flex flex-col gap-3 rounded-card bg-chalk p-4 shadow-outline-hairline">
-          <h2 className="m-0 text-16 font-bold text-ink">{m.orderSupportTitle}</h2>
+        <form onSubmit={send} className="flex flex-col gap-4 rounded-24 bg-chalk/70 p-5 shadow-elevation-1">
+          <div className="flex items-center justify-between">
+            <h3 className="m-0 font-display text-17 font-bold text-ink">{m.orderSupportTitle}</h3>
+            <button
+              type="button"
+              onClick={() => setSupportOpen(false)}
+              className="grid size-8 place-items-center rounded-pill text-stone hover:bg-sand/50"
+            >
+              <Icon name="close" size={16} />
+            </button>
+          </div>
+
           <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-            <legend className="mb-2 text-14 text-stone">{m.orderSupportTopic}</legend>
+            <legend className="mb-2 text-13.5 font-semibold text-stone">{m.orderSupportTopic}</legend>
             <div className="flex flex-wrap gap-2">
               {SUPPORT_TOPICS.map((value) => (
                 <Chip key={value} selected={topic === value} onClick={() => setTopic(value)}>
@@ -334,6 +477,7 @@ function OrderSelfService({ order }: { order: OrderTracking }) {
               ))}
             </div>
           </fieldset>
+
           <TextAreaField
             label={m.orderSupportMessage}
             hint={m.orderSupportHint}
@@ -342,16 +486,19 @@ function OrderSelfService({ order }: { order: OrderTracking }) {
             onChange={(event) => setMessage(event.target.value)}
             maxLength={1000}
           />
+
           {supportState === 'sent' ? (
-            <MessageBox tone="ok" role="status">
+            <MessageBox tone="ok" role="status" className="rounded-16">
               {m.orderSupportSent}
             </MessageBox>
           ) : null}
+
           {supportState === 'failed' ? (
-            <MessageBox tone="err" role="alert">
+            <MessageBox tone="err" role="alert" className="rounded-16">
               {m.orderSupportFailed}
             </MessageBox>
           ) : null}
+
           <AsyncButton
             type="submit"
             variant="ink"
@@ -365,6 +512,7 @@ function OrderSelfService({ order }: { order: OrderTracking }) {
         </form>
       ) : null}
 
+      {/* Cancel Order Dialog */}
       <Dialog open={cancelOpen} onOpenChange={(open) => cancelState !== 'pending' && setCancelOpen(open)}>
         <DialogContent closeLabel={m.close}>
           <DialogHeader>
@@ -408,7 +556,7 @@ function BuyAgainItem({ orderNumber, skuId }: { orderNumber: string; skuId: stri
       </Link>
     );
   }
-  if (state === 'unavailable') return <span className="text-13 text-stone">{m.buyAgainItemUnavailable}</span>;
+  if (state === 'unavailable') return <span className="text-12.5 text-stone">{m.buyAgainItemUnavailable}</span>;
   return (
     <AsyncButton variant="light" size="s" state={state === 'pending' ? 'pending' : state === 'error' ? 'error' : 'idle'} pendingLabel={m.buyAgainAdding} onClick={add}>
       {m.buyAgainItem}
@@ -418,7 +566,6 @@ function BuyAgainItem({ orderNumber, skuId }: { orderNumber: string; skuId: stri
 
 /* ── Availability decisions (GLO-190) ──────────────────────────────── */
 
-/** Every option shows the server's own preview of the new amount due; one idempotency key per decision and choice. */
 function DecisionPanel({ orderNumber, onResolved }: { orderNumber: string; onResolved: (receipt: AvailabilityDecision['receipt']) => void }) {
   const m = useMessages();
   const locale = useLocale();
@@ -460,10 +607,13 @@ function DecisionPanel({ orderNumber, onResolved }: { orderNumber: string; onRes
   };
 
   return (
-    <section aria-labelledby="decision-title" className="flex flex-col gap-4 rounded-card bg-citron/30 p-4 shadow-outline-warn">
-      <h2 id="decision-title" className="m-0 text-16 font-bold text-ink">
-        {m.decisionTitle}
-      </h2>
+    <section aria-labelledby="decision-title" className="flex flex-col gap-4 rounded-24 bg-citron/25 p-5 border border-warn/40">
+      <div className="flex items-center gap-2">
+        <Icon name="alert" size={20} className="text-warn" />
+        <h2 id="decision-title" className="m-0 font-display text-18 font-bold text-ink">
+          {m.decisionTitle}
+        </h2>
+      </div>
       {state === 'failed' ? <p role="alert" className="m-0 text-14 text-tomato-ink">{m.decisionFailed}</p> : null}
       {state === 'stale' ? <p role="status" className="m-0 text-14 text-ink">{m.decisionStale}</p> : null}
       {query.isPending ? <p className="m-0 text-14 text-stone">{m.decisionLoading}</p> : null}
@@ -498,14 +648,17 @@ function DecisionPanel({ orderNumber, onResolved }: { orderNumber: string; onRes
           });
         }
         return (
-          <fieldset key={decision.id} className="m-0 flex flex-col gap-2.5 border-0 p-0">
-            <legend className="mb-2 text-14 text-ink">{fillMessage(m.decisionIntro, { qty: formatNumber(decision.unresolvedQuantity, locale), name })}</legend>
+          <fieldset key={decision.id} className="m-0 flex flex-col gap-3 border-0 p-0">
+            <legend className="mb-2 text-14 font-semibold text-ink">{fillMessage(m.decisionIntro, { qty: formatNumber(decision.unresolvedQuantity, locale), name })}</legend>
             {options.map((option) => {
               const selected = choice?.decisionId === decision.id && choice.action === option.action && choice.skuId === option.skuId;
               return (
                 <label
                   key={`${option.action}-${option.skuId ?? ''}`}
-                  className={cn('flex cursor-pointer items-start gap-3 rounded-16 bg-linen px-4 py-3', selected ? 'shadow-outline-cobalt' : 'shadow-outline-control')}
+                  className={cn(
+                    'flex cursor-pointer items-start gap-3 rounded-16 bg-linen p-3.5 transition-all',
+                    selected ? 'border border-cobalt shadow-outline-cobalt' : 'border border-line/70 hover:bg-sand/20'
+                  )}
                 >
                   <input
                     type="radio"
@@ -514,16 +667,16 @@ function DecisionPanel({ orderNumber, onResolved }: { orderNumber: string; onRes
                     checked={selected}
                     onChange={() => setChoice({ decisionId: decision.id, action: option.action, skuId: option.skuId })}
                   />
-                  <span className="flex flex-col gap-0.5">
-                    <span className={cn('text-14 text-ink', selected && 'font-bold')}>{option.label}</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className={cn('text-14 text-ink', selected ? 'font-bold' : 'font-medium')}>{option.label}</span>
                     <span className="text-12.5 text-stone">{option.detail}</span>
-                  </span>
+                  </div>
                 </label>
               );
             })}
             <AsyncButton
               variant="ink"
-              className="w-full"
+              className="w-full mt-1"
               disabled={choice?.decisionId !== decision.id}
               state={state === 'pending' && choice?.decisionId === decision.id ? 'pending' : 'idle'}
               pendingLabel={m.decisionConfirm}

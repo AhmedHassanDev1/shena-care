@@ -1,257 +1,156 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
-import { Section, SectionHeader } from '@/components/layout/section';
-import { ArrowLink } from '@/components/ui/arrow-link';
-import { cardVariants } from '@/components/ui/card-variants';
+import { Section } from '@/components/layout/section';
 import { Icon } from '@/components/ui/icon';
-import { useCart } from '@/features/cart/hooks/useCart';
-import { useLocale } from '@/lib/i18n/LocaleProvider';
-import { formatAmount } from '@/lib/i18n/format';
-import { routes } from '@/lib/routes';
+import type { IconName } from '@/components/ui/icon-paths';
+import { ProductTile } from '@/components/ui/product-tile';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { cn } from '@/lib/utils';
-import type { ProductDetail } from '../api/discovery';
-import { MOCK_RELATED_PRODUCTS_LIST } from '../lib/mock-product-detail';
+import type { ProductDetail, PublicVariant } from '../api/discovery';
+import {
+  formatReadableCopy,
+  resolveFullInciList,
+  resolveKeyIngredients,
+  resolveRoutinePosition,
+  resolveTextDirection,
+  resolveUsageGuide,
+} from '../lib/product-facts';
+
+const BENEFIT_ICONS: readonly IconName[] = ['layers', 'droplet', 'shield'];
 
 /**
- * 4 USP / Feature Highlight Cards directly matching the design reference:
- * 1. يدعم حاجز البشرة
- * 2. تقليل مظهر المسام
- * 3. يوحد لون البشرة
- * 4. ينظم إفراز الدهون
+ * Stitch Section B — Three Key Benefits Strip.
+ * Renders strictly when the backend has reviewed (`APPLIED`) manufacturer-stated benefit claims.
  */
-export function ProductHighlights({ product }: { product: ProductDetail }) {
-  const highlights = [
-    {
-      id: 'barrier',
-      title: 'يدعم حاجز البشرة',
-      subtitle: 'يقوي حاجز البشرة الطبيعي في 14 يوماً',
-      icon: 'shield' as const,
-      iconBg: 'bg-tomato/10 text-tomato-ink',
-    },
-    {
-      id: 'pores',
-      title: 'تقليل مظهر المسام',
-      subtitle: 'يقلل حجم المسام الواسعة بنسبة 85%',
-      icon: 'target' as const,
-      iconBg: 'bg-warn/15 text-warn',
-    },
-    {
-      id: 'tone',
-      title: 'يوحد لون البشرة',
-      subtitle: 'يقلل التصبغات وآثار الحبوب بفاعلية',
-      icon: 'sparkles' as const,
-      iconBg: 'bg-cobalt/10 text-cobalt',
-    },
-    {
-      id: 'sebum',
-      title: 'ينظم إفراز الدهون',
-      subtitle: 'تحكم فوري باللمعان والزيوت طوال اليوم',
-      icon: 'droplet' as const,
-      iconBg: 'bg-sand text-ink',
-    },
-  ];
+export function ProductBenefitsStrip({
+  product,
+  variant,
+}: {
+  product: ProductDetail;
+  variant: PublicVariant;
+}) {
+  const benefits = (
+    variant.benefits?.length ? variant.benefits : product.benefits ?? []
+  ).slice(0, 3);
+
+  if (benefits.length === 0) return null;
 
   return (
-    <Section labelledBy={`pdp-highlights-${product.id}`} rhythm="compact" className="pt-2">
-      <h2 id={`pdp-highlights-${product.id}`} className="sr-only">
-        مميزات المنتج الأساسية
-      </h2>
-      <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 lg:grid-cols-4 lg:gap-4">
-        {highlights.map((item) => (
-          <li
-            key={item.id}
-            className={cn(
-              cardVariants(),
-              'group flex flex-col items-center gap-2 p-3.5 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-elevation-2 lg:p-4.5'
-            )}
-          >
-            <span
+    <Section labelledBy={`pdp-benefits-${product.id}`} rhythm="compact" className="py-1.5 lg:py-2">
+      <div className="mx-auto w-full max-w-[1140px] border-y border-line py-3.5 lg:py-4">
+        <h2 id={`pdp-benefits-${product.id}`} className="sr-only">
+          {benefits.join(' · ')}
+        </h2>
+        <div
+          className={cn(
+            'grid text-center',
+            benefits.length === 1 && 'grid-cols-1',
+            benefits.length === 2 && 'grid-cols-2',
+            benefits.length >= 3 && 'grid-cols-3'
+          )}
+        >
+          {benefits.map((text, idx) => (
+            <div
+              key={`${idx}-${text}`}
               className={cn(
-                'flex size-11 items-center justify-center rounded-pill transition-transform duration-300 group-hover:scale-110',
-                item.iconBg
+                'flex flex-col items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4',
+                idx > 0 && 'border-s border-line'
               )}
             >
-              <Icon name={item.icon} size={22} strokeWidth={2} />
-            </span>
-            <span className="font-display text-15 font-bold leading-22 text-ink lg:text-16">
-              <bdi>{item.title}</bdi>
-            </span>
-            <span className="text-12.5 leading-18 text-stone lg:text-13">
-              {item.subtitle}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </Section>
-  );
-}
-
-/**
- * «عن المنتج»: Detailed description, feature pills, and a sensory texture preview card.
- */
-export function ProductAbout({ product, name }: { product: ProductDetail; name: string }) {
-  const description =
-    product.description ||
-    'سيروم غني بتركيز 10% من النياسيناميد النقي (فيتامين B3) والزنك 1%، صُمم خصيصاً للتحكم الفائق في إفراز الزيوت وتقليص مظهر المسام الواسعة مع توحيد لون البشرة والحد من التصبغات والبقع الناتجة عن آثار حب الشباب. تركيبة خفيفة وسريعة الامتصاص تمنح البشرة ملمساً ناعماً غير دهني، وتدعم الحاجز الواقي دون التسبب في انسداد المسام.';
-
-  const pills = [
-    'مناسب للبشرة الدهنية والمختلطة',
-    'سريع الامتصاص وغير لزج',
-    'خالٍ من العطور والبارابين',
-    'غير كوميدوجينيك (لا يسد المسام)',
-  ];
-
-  return (
-    <Section labelledBy={`pdp-about-${product.id}`} rhythm="compact">
-      <div className="flex items-center gap-2">
-        <span aria-hidden="true" className="size-2 rounded-pill bg-citron animate-pulse" />
-        <SectionHeader title="عن المنتج" titleId={`pdp-about-${product.id}`} />
-      </div>
-
-      <div className={cn(cardVariants(), 'mt-3 grid gap-6 p-5 lg:grid-cols-3 lg:items-center lg:gap-8 lg:p-6')}>
-        <div className="flex flex-col gap-4 lg:col-span-2">
-          <p dir="auto" className="m-0 text-15 leading-27 text-ink text-match-parent lg:text-16 lg:leading-28">
-            {description}
-          </p>
-
-          <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-            {pills.map((pill) => (
-              <li
-                key={pill}
-                className="flex items-center gap-1.5 rounded-pill bg-sand/60 px-3 py-1.5 text-13 font-semibold text-ink"
-              >
-                <Icon name="check" size={14} className="text-ok" strokeWidth={2.4} />
-                <span>{pill}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="relative flex flex-col items-center justify-center rounded-card bg-chalk p-4 text-center shadow-outline-hairline">
-          <div className="relative size-36 overflow-hidden rounded-image">
-            <Image
-              src="/assets/products/sahel-Hyaluronic-Acid-Facial-Serum.png"
-              alt={`قوام ${name}`}
-              fill
-              sizes="(min-width: 1024px) 160px, 140px"
-              className="object-contain transition-transform duration-500 hover:scale-105"
-            />
-          </div>
-          <span className="mt-2 text-13 font-bold text-ink">قوام خفيف وسريع الامتصاص</span>
-          <span className="text-12 text-stone">يدعم التنظيم اليومي لإفراز الزيوت</span>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-/**
- * «المكونات الفعالة»: 3 highlighted cards with Hero Cobalt Blue featured ingredient.
- */
-export function ProductIngredients({ product }: { product: ProductDetail }) {
-  const ingredients = [
-    {
-      id: 'niacinamide',
-      name: 'النياسيناميد 10% (Niacinamide)',
-      scientific: 'Vitamin B3',
-      role: 'المكون الرئيسي',
-      description:
-        'فيتامين B3 النقي بتركيز طبي فائق، يقوي حاجز البشرة الطبيعي، يقلص المسام الواسعة، يفتح التصبغات ويوحد لون الجلد، وينظم إفراز الزيوت.',
-      badge: 'تركيز طبي مثبت سريرياً',
-      featured: true,
-      icon: 'atom' as const,
-    },
-    {
-      id: 'zinc',
-      name: 'زنك PCA 1%',
-      scientific: 'Zinc PCA',
-      role: 'معدل الدهون ومضاد للالتهاب',
-      description:
-        'يعمل على توازن نشاط الغدد الدهنية، يقاوم البكتيريا المسببة لحب الشباب، ويهدئ الاحمرار والتهيج الناتج عن البثور.',
-      badge: 'مضاد للمعان والبكتيريا',
-      featured: false,
-      icon: 'droplet' as const,
-    },
-    {
-      id: 'panthenol',
-      name: 'بانثينول (B5) + ترطيب مكثف',
-      scientific: 'Pro-Vitamin B5',
-      role: 'مهدئ ومرطب للحاجز',
-      description:
-        'ترطيب عميق ومهدئ للبشرة لمنع الجفاف أو التحسس الناتج عن تنظيم الإفرازات الدهنية، لتبقى البشرة مرنة وناعمة ومشرقة.',
-      badge: 'تهدئة وترطيب فائق',
-      featured: false,
-      icon: 'shield' as const,
-    },
-  ];
-
-  return (
-    <Section labelledBy={`pdp-ingredients-${product.id}`} rhythm="compact">
-      <SectionHeader
-        title="المكونات الفعالة"
-        titleId={`pdp-ingredients-${product.id}`}
-        lead="3 مكونات طبية أساسية بفاعلية متكاملة"
-      />
-
-      <div className="grid gap-3 md:grid-cols-3 lg:gap-4">
-        {ingredients.map((item) =>
-          item.featured ? (
-            <div
-              key={item.id}
-              className="relative flex flex-col justify-between gap-4 rounded-card bg-cobalt p-5 text-chalk shadow-elevation-2 transition-transform duration-300 hover:-translate-y-1"
-            >
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 rounded-pill bg-chalk/15 px-3 py-1 text-12 font-bold text-chalk backdrop-blur-sm">
-                  <span aria-hidden="true" className="size-2 rounded-pill bg-citron animate-ping" />
-                  {item.role}
-                </span>
-                <span className="flex size-8 items-center justify-center rounded-pill bg-chalk/20 text-chalk">
-                  <Icon name={item.icon} size={18} />
-                </span>
+              <div className="flex size-8 sm:size-10 items-center justify-center text-cobalt">
+                <Icon name={BENEFIT_ICONS[idx % BENEFIT_ICONS.length]} size={26} strokeWidth={1.7} />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <h3 className="m-0 font-display text-20 font-bold leading-26 text-chalk">
-                  {item.name}
-                </h3>
-                <p className="m-0 text-13.5 leading-22 text-chalk/90">
-                  {item.description}
-                </p>
-              </div>
-              <span className="self-start rounded-pill bg-citron px-2.5 py-0.5 text-11.5 font-bold text-ink">
-                {item.badge}
+              <span className="font-display text-13 sm:text-16 font-bold text-ink leading-20">
+                <span dir="auto">{text}</span>
               </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+/**
+ * Stitch Section C — About Product (`عن المنتج`): compact 3-line editorial summary + Read More toggle.
+ */
+export function ProductAbout({
+  product,
+  variant,
+}: {
+  product: ProductDetail;
+  variant: PublicVariant;
+}) {
+  const m = useMessages();
+  const [expanded, setExpanded] = useState(false);
+
+  const description = variant.content?.description?.trim() || product.description?.trim() || null;
+  const paragraphs = formatReadableCopy(description);
+  const collapsedCopy = paragraphs.join(' ');
+  const isExpandable = paragraphs.length > 1 || collapsedCopy.length > 165;
+  const copyDir = resolveTextDirection(description);
+
+  return (
+    <Section labelledBy={`pdp-about-${product.id}`} rhythm="compact" className="py-2 lg:py-3">
+      <div className="mx-auto flex w-full max-w-[1140px] flex-col gap-2">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span aria-hidden="true" className="text-18 font-bold text-cobalt select-none">
+              −
+            </span>
+            <h2
+              id={`pdp-about-${product.id}`}
+              className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
+            >
+              {m.pdpAboutEyebrow}
+            </h2>
+          </div>
+
+          {isExpandable ? (
+            <button
+              type="button"
+              onClick={() => setExpanded((prev) => !prev)}
+              aria-expanded={expanded}
+              className="inline-flex min-h-[36px] items-center gap-1 text-14 sm:text-15 font-bold text-cobalt hover:underline cursor-pointer"
+            >
+              <span>{expanded ? m.pdpShowLess : m.pdpReadMore}</span>
+              <Icon
+                name="chevron-down"
+                size={16}
+                className={cn('transition-transform duration-200', expanded && 'rotate-180')}
+              />
+            </button>
+          ) : null}
+        </div>
+
+        {paragraphs.length > 0 ? (
+          expanded ? (
+            <div dir={copyDir} className="flex w-full flex-col gap-2 text-start">
+              {paragraphs.map((paragraph, idx) => (
+                <p
+                  key={`${idx}-${paragraph.slice(0, 24)}`}
+                  className="m-0 text-start text-14 sm:text-15 leading-22 sm:leading-24 text-stone"
+                >
+                  {paragraph}
+                </p>
+              ))}
             </div>
           ) : (
-            <div
-              key={item.id}
+            <p
+              dir={copyDir}
               className={cn(
-                cardVariants(),
-                'flex flex-col justify-between gap-4 p-5 transition-transform duration-300 hover:-translate-y-1 hover:shadow-elevation-1'
+                'm-0 w-full text-start text-14 sm:text-15 leading-22 sm:leading-24 text-stone',
+                isExpandable && 'line-clamp-3'
               )}
             >
-              <div className="flex items-center justify-between">
-                <span className="rounded-pill bg-sand px-2.5 py-0.5 text-12 font-semibold text-ink">
-                  {item.scientific}
-                </span>
-                <span className="flex size-8 items-center justify-center rounded-pill bg-sand text-cobalt">
-                  <Icon name={item.icon} size={18} />
-                </span>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <h3 className="m-0 font-display text-18 font-bold leading-24 text-ink">
-                  {item.name}
-                </h3>
-                <p className="m-0 text-13.5 leading-22 text-stone">
-                  {item.description}
-                </p>
-              </div>
-              <span className="self-start text-12 font-medium text-cobalt">
-                {item.badge}
-              </span>
-            </div>
+              {collapsedCopy}
+            </p>
           )
+        ) : (
+          <p className="m-0 text-start text-14 leading-22 text-stone">
+            {m.pdpContentPending}
+          </p>
         )}
       </div>
     </Section>
@@ -259,219 +158,283 @@ export function ProductIngredients({ product }: { product: ProductDetail }) {
 }
 
 /**
- * «طريقة الاستخدام»: 4 Chronological interactive steps with progress indicators.
+ * Stitch Section D — Active Ingredients (`المكونات الفعالة`) & expandable INCI list.
+ * Seamless horizontal editorial strip on desktop and compact hairline rows on mobile; never invents missing images.
  */
-export function ProductUsage({ product }: { product: ProductDetail }) {
-  const steps = [
-    {
-      num: 1,
-      title: 'تنظيف البشرة بعناية',
-      body: 'اغسل وجهك بغسول لطيف مناسب للبشرة الدهنية وجفف بلطف بمنشفة ناعمة.',
-      icon: 'sparkles' as const,
-    },
-    {
-      num: 2,
-      title: 'ضع 3-4 قطرات مباشرة',
-      body: 'وزع قطرات السيروم مباشرة على الجبهة والوجنتين والذقن والرقبة.',
-      icon: 'pipette' as const,
-    },
-    {
-      num: 3,
-      title: 'تدليك خفيف حتى الامتصاص',
-      body: 'دلك بلطف بحركات دائرية ناعمة لأعلى حتى تمتصه البشرة تماماً في ثوانٍ.',
-      icon: 'wrinkles' as const,
-    },
-    {
-      num: 4,
-      title: 'صباحاً ومساءً',
-      body: 'استخدمه مرتين يومياً. نهاراً يُتبع بواقي شمس، ومساءً بكريم مرطب مناسب.',
-      icon: 'sun-moon' as const,
-    },
-  ];
+export function ProductActiveIngredients({
+  product,
+  variant,
+}: {
+  product: ProductDetail;
+  variant: PublicVariant;
+}) {
+  const locale = useLocale();
+  const m = useMessages();
+
+  const keyIngredients = resolveKeyIngredients(product, variant);
+  const inciList = resolveFullInciList(product, variant, locale);
+  const rawIngredientsText = variant.content?.ingredients?.trim() || null;
+  const hasInci = inciList.length > 0 || Boolean(rawIngredientsText);
+
+  const [inciOpen, setInciOpen] = useState(keyIngredients.length === 0 && hasInci);
+  const [failedVisuals, setFailedVisuals] = useState<Record<string, true>>({});
+  const markVisualFailed = (url: string) => {
+    setFailedVisuals((prev) => (prev[url] ? prev : { ...prev, [url]: true }));
+  };
+
+  const visibleKeyIngredients = keyIngredients.slice(0, 3);
 
   return (
-    <Section labelledBy={`pdp-usage-${product.id}`} rhythm="compact">
-      <SectionHeader
-        title="طريقة الاستخدام"
-        titleId={`pdp-usage-${product.id}`}
-        lead="خطوات تطبيق مثالية للحصول على أفضل النتائج الطبية"
-      />
-
-      <ol className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
-        {steps.map((step, idx) => (
-          <li
-            key={step.num}
-            className={cn(
-              cardVariants(),
-              'group relative flex flex-col gap-3 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevation-2'
-            )}
+    <Section labelledBy={`pdp-ingredients-${product.id}`} rhythm="compact" className="py-2 lg:py-3">
+      <div className="mx-auto flex w-full max-w-[1140px] flex-col gap-3 border-t border-line pt-4 lg:pt-5">
+        {/* Section Header */}
+        <div className="flex items-center gap-2 text-ink">
+          <Icon name="science" size={18} className="text-cobalt shrink-0" />
+          <h2
+            id={`pdp-ingredients-${product.id}`}
+            className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
           >
-            <div className="flex items-center justify-between">
-              <span className="flex size-8 items-center justify-center rounded-pill bg-sand font-display text-15 font-bold text-cobalt group-hover:bg-cobalt group-hover:text-chalk transition-colors">
-                {step.num}
-              </span>
-              <span className="flex size-8 items-center justify-center rounded-pill bg-chalk text-stone">
-                <Icon name={step.icon} size={18} />
-              </span>
-            </div>
-
-            <h3 className="m-0 font-display text-16 font-bold leading-22 text-ink">
-              {step.title}
-            </h3>
-
-            <p className="m-0 text-13 leading-22 text-stone">
-              {step.body}
-            </p>
-
-            {idx < steps.length - 1 ? (
-              <span className="absolute -end-2 top-1/2 hidden -translate-y-1/2 text-stone/50 lg:block">
-                <Icon name="chevron-forward" size={16} />
-              </span>
-            ) : null}
-          </li>
-        ))}
-      </ol>
-    </Section>
-  );
-}
-
-/**
- * «مكان المنتج في روتينك اليومي»: 5 steps with Step 3 illuminated in Cobalt.
- */
-export function RoutinePlacement({ product }: { product: ProductDetail }) {
-  const steps = [
-    { num: 1, title: 'الغسول', subtitle: 'تنظيف عميق للمسام' },
-    { num: 2, title: 'التونر', subtitle: 'موازنة حموضة الجلد' },
-    {
-      num: 3,
-      title: 'سيروم النياسيناميد',
-      subtitle: 'الخطوة 3 الحالية (أنت هنا)',
-      current: true,
-    },
-    { num: 4, title: 'المرطب', subtitle: 'حبس الرطوبة والترميم' },
-    { num: 5, title: 'واقي الشمس', subtitle: 'حماية نهارية SPF' },
-  ];
-
-  return (
-    <Section labelledBy={`pdp-routine-${product.id}`} band rhythm="compact">
-      <SectionHeader
-        title="مكان المنتج في روتينك اليومي"
-        titleId={`pdp-routine-${product.id}`}
-        lead="الترتيب الصحيح لخطوات العناية اليومية بالبشرة"
-      />
-
-      <ol className="-mx-4 m-0 flex list-none snap-x gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-none lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-3 lg:overflow-visible lg:px-0">
-        {steps.map((step, idx) => (
-          <li
-            key={step.num}
-            aria-current={step.current ? 'step' : undefined}
-            className={cn(
-              'relative flex min-h-24 w-36 flex-none snap-start flex-col justify-between rounded-card p-3.5 transition-all duration-300 lg:w-auto',
-              step.current
-                ? 'bg-cobalt text-chalk shadow-elevation-2 ring-2 ring-cobalt/40 hover:scale-102'
-                : 'bg-chalk text-ink shadow-outline-hairline hover:bg-linen'
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <span
-                className={cn(
-                  'font-display text-13 font-bold',
-                  step.current ? 'text-chalk' : 'text-stone'
-                )}
-              >
-                الخطوة {step.num}
-              </span>
-              {step.current ? (
-                <span className="flex size-2 rounded-pill bg-citron animate-ping" />
-              ) : null}
-            </div>
-
-            <div className="flex flex-col gap-0.5">
-              <span className="font-display text-15 font-bold leading-20">
-                {step.title}
-              </span>
-              <span
-                className={cn(
-                  'text-11 leading-16',
-                  step.current ? 'text-chalk/85' : 'text-stone'
-                )}
-              >
-                {step.subtitle}
-              </span>
-            </div>
-
-            {idx < steps.length - 1 ? (
-              <Icon
-                name="chevron-forward"
-                size={14}
-                strokeWidth={2}
-                className="absolute -end-2 top-1/2 hidden -translate-y-1/2 text-stone/40 lg:block"
-              />
-            ) : null}
-          </li>
-        ))}
-      </ol>
-    </Section>
-  );
-}
-
-/**
- * Side-by-side Results vs Warnings Cards matching the design reference.
- */
-export function ProductSuitability({ product }: { product: ProductDetail }) {
-  const results = [
-    'خلال 48 ساعة: توازن فوري في إفراز الزيوت وتقليل لمعان البشرة.',
-    'خلال 14 يوماً: تراجع واضح في مظهر المسام وملمس أنعم وأكثر نقاءً.',
-    'خلال 28 يوماً: توحيد ملحوظ لدرجة لون البشرة وتلاشي آثار وبقع الحبوب القديمة.',
-  ];
-
-  const warnings = [
-    'تجنب ملامسة محيط العينين والشفتين مباشرة؛ وفي حال الملامسة تُشطف بالماء النظيف.',
-    'لا يُستخدم في نفس الخطوة مع فيتامين C النقي (L-Ascorbic Acid) لتجنب التفاعل الحمضي.',
-    'للاستخدام الخارجي فقط، ويُحفظ في مكان بارد وجاف بعيداً عن أشعة الشمس المباشرة.',
-  ];
-
-  return (
-    <Section labelledBy={`pdp-suitability-${product.id}`} rhythm="compact">
-      <div className="grid gap-4 md:grid-cols-2 lg:gap-5">
-        {/* Results Card */}
-        <div className="flex flex-col gap-3 rounded-card bg-ok-tint p-5 shadow-outline-ok">
-          <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-pill bg-ok text-chalk">
-              <Icon name="check" size={18} strokeWidth={2.4} />
-            </span>
-            <h3 className="m-0 font-display text-17 font-bold text-ink">
-              النتائج مع الاستخدام المنتظم
-            </h3>
-          </div>
-          <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-13.5 leading-22 text-ink">
-            {results.map((item, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <span aria-hidden="true" className="mt-2 size-1.5 flex-none rounded-pill bg-ok" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
+            {m.pdpActiveIngredientsTitle}
+          </h2>
         </div>
 
-        {/* Warnings Card */}
-        <div className="flex flex-col gap-3 rounded-card bg-conflict p-5 shadow-outline-tomato">
-          <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-pill bg-tomato-ink text-chalk">
-              <Icon name="alert" size={18} strokeWidth={2.4} />
-            </span>
-            <h3 className="m-0 font-display text-17 font-bold text-ink">
-              تحذيرات وإرشادات هامة
-            </h3>
+        {/* Key Ingredients: Seamless editorial columns on desktop, hairline-divided rows on mobile */}
+        {visibleKeyIngredients.length > 0 ? (
+          <div
+            className={cn(
+              'flex flex-col md:grid md:gap-0',
+              visibleKeyIngredients.length === 1 && 'md:grid-cols-1',
+              visibleKeyIngredients.length === 2 && 'md:grid-cols-2',
+              visibleKeyIngredients.length >= 3 && 'md:grid-cols-3'
+            )}
+          >
+            {visibleKeyIngredients.map((ing, idx) => {
+              const title = locale === 'ar' ? ing.nameAr || ing.name : ing.name;
+              const rawDesc =
+                locale === 'ar'
+                  ? ing.descriptionAr || ing.function || ing.descriptionEn
+                  : ing.descriptionEn || ing.function;
+              const formattedDesc = rawDesc ? formatReadableCopy(rawDesc).join(' ') : null;
+              const sublineText = formattedDesc || (ing.inciName && ing.inciName !== title ? ing.inciName : null);
+              const blockDir = resolveTextDirection(sublineText || title) ?? resolveTextDirection(title);
+              const hasVisual = Boolean(ing.visualUrl && !failedVisuals[ing.visualUrl]);
+
+              return (
+                <div
+                  key={ing.name}
+                  className={cn(
+                    'flex items-start gap-3 py-2.5 first:pt-0 last:pb-0 md:py-0.5',
+                    idx > 0 && 'border-t border-line md:border-t-0 md:border-s md:border-line md:ps-6',
+                    idx < visibleKeyIngredients.length - 1 && 'md:pe-6'
+                  )}
+                >
+                  {hasVisual && ing.visualUrl ? (
+                    <div className="relative flex size-12 md:size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-linen">
+                      <ProductTile
+                        src={ing.visualUrl}
+                        alt={title}
+                        name={title}
+                        size="thumb"
+                        sizes="64px"
+                        onImageError={() => ing.visualUrl && markVisualFailed(ing.visualUrl)}
+                        className="size-full rounded-none bg-linen"
+                      />
+                    </div>
+                  ) : null}
+
+                  <div dir={blockDir} className="min-w-0 flex-1 text-start">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                      {!hasVisual ? (
+                        <span
+                          aria-hidden="true"
+                          className="inline-block size-1.5 shrink-0 rounded-full bg-cobalt"
+                        />
+                      ) : null}
+                      <h3 className="m-0 text-15 sm:text-16 font-bold text-ink leading-22">
+                        <bdi>{title}</bdi>
+                      </h3>
+                      {ing.concentration ? (
+                        <span className="rounded-pill bg-cobalt/10 px-2 py-0.5 text-12 font-bold text-cobalt tabular-nums">
+                          {ing.concentration}
+                        </span>
+                      ) : null}
+                    </div>
+                    {formattedDesc ? (
+                      <p
+                        dir={resolveTextDirection(formattedDesc)}
+                        className="m-0 text-start text-13 leading-20 text-stone line-clamp-2"
+                      >
+                        {formattedDesc}
+                      </p>
+                    ) : sublineText ? (
+                      <p
+                        dir={resolveTextDirection(sublineText)}
+                        className="m-0 text-start text-12 leading-20 text-stone"
+                      >
+                        {sublineText}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-13.5 leading-22 text-ink">
-            {warnings.map((item, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <span aria-hidden="true" className="mt-2 size-1.5 flex-none rounded-pill bg-tomato-ink" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
+        ) : (
+          <p className="m-0 text-14 text-stone">
+            {m.pdpIngredientsPending}
+          </p>
+        )}
+
+        {/* Full INCI List Toggle & Expandable Hairline Block */}
+        {hasInci ? (
+          <div className="flex flex-col gap-2.5">
+            <div>
+              <button
+                type="button"
+                onClick={() => setInciOpen((prev) => !prev)}
+                aria-expanded={inciOpen}
+                className="inline-flex min-h-[36px] items-center gap-1 text-14 font-bold text-cobalt hover:underline cursor-pointer"
+              >
+                <span>{inciOpen ? m.pdpHideFullInci : m.pdpShowFullInci}</span>
+                <Icon
+                  name="chevron-down"
+                  size={16}
+                  className={cn('transition-transform duration-200', inciOpen && 'rotate-180')}
+                />
+              </button>
+            </div>
+
+            {inciOpen ? (
+              <div className="border-s-2 border-cobalt/30 ps-3.5 py-0.5">
+                {inciList.length > 0 ? (
+                  <ol className="m-0 flex flex-wrap gap-1.5 list-none p-0">
+                    {inciList.map((entry, idx) => (
+                      <li
+                        key={`${idx}-${entry}`}
+                        className="rounded-pill border border-line bg-chalk px-2.5 py-0.5 text-12 font-medium text-stone"
+                      >
+                        <bdi dir="ltr">{entry}</bdi>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="m-0 text-13 leading-22 text-stone">
+                    <bdi>{rawIngredientsText}</bdi>
+                  </p>
+                )}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </Section>
+  );
+}
+
+/**
+ * Stitch Section E — Routine Position (`مكانه في الروتين`) Lighter Connected Timeline.
+ * Directly embedded in the editorial flow without heavy tinted block backgrounds.
+ */
+export function RoutinePlacement({
+  product,
+  variant,
+}: {
+  product: ProductDetail;
+  variant: PublicVariant;
+}) {
+  const m = useMessages();
+  const resolved = resolveRoutinePosition(product, variant, m);
+
+  return (
+    <Section labelledBy={`pdp-routine-${product.id}`} rhythm="compact" className="py-2 lg:py-3">
+      <div className="mx-auto w-full max-w-[1140px] border-t border-line pt-4 lg:pt-5">
+        <div
+          className={cn(
+            'flex flex-col gap-4',
+            resolved.confirmed && resolved.steps.length > 0 && 'lg:flex-row lg:items-center lg:justify-between lg:gap-8'
+          )}
+        >
+          {/* Title & Description */}
+          <div
+            className={cn(
+              'text-start',
+              resolved.confirmed &&
+                resolved.steps.length > 0 &&
+                'lg:w-[34%] lg:border-e lg:border-line lg:pe-6'
+            )}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Icon name="layers" size={18} className="text-cobalt shrink-0" />
+              <h2
+                id={`pdp-routine-${product.id}`}
+                className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
+              >
+                {m.pdpRoutineStepTitle}
+              </h2>
+            </div>
+            <p className="m-0 text-14 leading-22 text-stone">
+              {resolved.summaryLine}
+            </p>
+          </div>
+
+          {/* 4-Step Horizontal Connected Timeline */}
+          {resolved.confirmed && resolved.steps.length > 0 ? (
+            <div className="relative flex w-full items-start justify-between px-1 sm:px-2 pt-6 lg:w-[66%]">
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-10 sm:inset-x-12 top-[44px] md:top-[48px] h-px bg-line-2 z-0"
+              />
+
+              {resolved.steps.map((step) => (
+                <div
+                  key={`${step.number}-${step.label}`}
+                  aria-current={step.isCurrent ? 'step' : undefined}
+                  className="relative z-10 flex flex-1 flex-col items-center text-center"
+                >
+                  {/* Floating pill above active circle */}
+                  {step.isCurrent ? (
+                    <div className="absolute -top-6 flex flex-col items-center">
+                      <span className="whitespace-nowrap rounded-pill bg-cobalt px-2.5 py-0.5 text-12 font-bold text-chalk">
+                        {m.pdpRoutineBadgeThisProduct}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="h-1.5 w-1.5 -mt-1 rotate-45 bg-cobalt"
+                      />
+                    </div>
+                  ) : null}
+
+                  <div
+                    className={cn(
+                      'flex items-center justify-center rounded-full transition-all',
+                      step.isCurrent
+                        ? 'size-10 md:size-12 bg-cobalt text-chalk ring-4 ring-cobalt/15'
+                        : 'size-10 md:size-12 bg-chalk border border-line-2 text-stone'
+                    )}
+                  >
+                    <Icon name={step.icon} size={step.isCurrent ? 20 : 18} strokeWidth={1.8} />
+                  </div>
+
+                  <span
+                    className={cn(
+                      'mt-1.5 font-display text-13 md:text-14 leading-tight',
+                      step.isCurrent ? 'font-bold text-cobalt' : 'font-semibold text-ink'
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                  <span
+                    className={cn(
+                      'text-12 tabular-nums',
+                      step.isCurrent ? 'font-bold text-cobalt' : 'text-stone'
+                    )}
+                  >
+                    {step.number}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </Section>
@@ -479,90 +442,141 @@ export function ProductSuitability({ product }: { product: ProductDetail }) {
 }
 
 /**
- * «قد يعجبك أيضاً»: 4 matching skincare products from StarVille with quick add (+) button.
+ * Stitch Section F — Usage Timing, Application Instructions & Subtle Warning (`طريقة الاستخدام`).
+ * Removes unnecessary boxed wrapper around usage; keeps one subtle warning box only when verified warnings exist.
  */
-export function RelatedProducts({ product }: { product: ProductDetail }) {
+export function ProductUsage({
+  product,
+  variant,
+}: {
+  product: ProductDetail;
+  variant: PublicVariant;
+}) {
   const locale = useLocale();
-  const { addItem } = useCart();
-  const [addedId, setAddedId] = useState<string | null>(null);
+  const m = useMessages();
+  const guide = resolveUsageGuide(product, variant, locale, m);
 
-  const handleQuickAdd = async (id: string) => {
-    setAddedId(id);
-    try {
-      await addItem({ skuId: id, quantity: 1 });
-    } catch {
-      // Fallback
-    }
-    setTimeout(() => setAddedId(null), 1800);
-  };
+  const hasTiming = guide.showMorning || guide.showEvening;
+  const hasFrequency = guide.frequencyChips.length > 0;
+  const hasMetaPills = hasTiming || hasFrequency;
+  const hasWarnings = Boolean(guide.warningsText);
+  const instructionParagraphs = formatReadableCopy(guide.instructionsText);
+  const instructionsDir = resolveTextDirection(guide.instructionsText);
+  const warningParagraphs = formatReadableCopy(guide.warningsText);
+  const warningsDir = resolveTextDirection(guide.warningsText);
+  const [textureFailed, setTextureFailed] = useState(false);
 
   return (
-    <Section labelledBy={`pdp-related-${product.id}`} rhythm="compact">
-      <SectionHeader
-        title="قد يعجبك أيضاً"
-        titleId={`pdp-related-${product.id}`}
-        lead="منتجات متكاملة من نفس روتين العناية"
-        aside={
-          <ArrowLink href={routes.products}>
-            عرض كل المنتجات
-          </ArrowLink>
-        }
-      />
+    <Section labelledBy={`pdp-usage-${product.id}`} rhythm="compact" className="py-2 lg:py-3">
+      <div className="mx-auto flex w-full max-w-[1140px] flex-col gap-3 border-t border-line pt-4 lg:pt-5">
+        {/* Section Header */}
+        <div className="flex items-center gap-2 text-ink">
+          <Icon name="droplet" size={18} className="text-cobalt shrink-0" />
+          <h2
+            id={`pdp-usage-${product.id}`}
+            className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
+          >
+            {m.pdpUsage}
+          </h2>
+        </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
-        {MOCK_RELATED_PRODUCTS_LIST.map((item) => (
+        {/* Seamless Usage Content + Single Subtle Optional Warning */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
           <div
-            key={item.id}
             className={cn(
-              cardVariants(),
-              'group relative flex flex-col justify-between overflow-hidden p-3.5 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevation-2'
+              'flex flex-col md:flex-row md:items-start gap-3 md:gap-5',
+              hasWarnings ? 'lg:col-span-8' : 'lg:col-span-12'
             )}
           >
-            <div className="relative aspect-square w-full overflow-hidden rounded-image bg-chalk p-3">
-              <Image
-                src={item.primaryImage}
-                alt={item.name}
-                fill
-                sizes="(min-width: 1024px) 240px, 160px"
-                className="object-contain p-2 transition-transform duration-500 group-hover:scale-105"
-              />
-            </div>
+            {/* Morning / Evening & Verified Cadence Pills */}
+            {hasMetaPills ? (
+              <>
+                <div className="flex items-center flex-wrap gap-2 shrink-0">
+                  {guide.showMorning ? (
+                    <div className="inline-flex items-center gap-1.5 rounded-pill bg-citron/35 px-3 py-1.5 text-13 font-bold text-ink">
+                      <Icon name="sun" size={15} className="text-ink shrink-0" />
+                      <span>{m.pdpRoutinePeriodMorning}</span>
+                    </div>
+                  ) : null}
+                  {guide.showEvening ? (
+                    <div className="inline-flex items-center gap-1.5 rounded-pill bg-cobalt/10 px-3 py-1.5 text-13 font-bold text-cobalt">
+                      <Icon name="evening" size={15} className="text-cobalt shrink-0" />
+                      <span>{m.pdpRoutinePeriodEvening}</span>
+                    </div>
+                  ) : null}
+                  {guide.frequencyChips.map((chip) => (
+                    <span
+                      key={chip}
+                      className="rounded-pill border border-line bg-chalk px-3 py-1 text-12 font-semibold text-stone"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+                <div
+                  aria-hidden="true"
+                  className="hidden md:block self-stretch w-px bg-line shrink-0"
+                />
+              </>
+            ) : null}
 
-            <div className="mt-3 flex flex-1 flex-col gap-1">
-              <span className="font-serif text-12 italic text-stone">
-                {item.brand.name}
-              </span>
-              <h4 className="m-0 line-clamp-2 font-display text-14 font-bold leading-20 text-ink">
-                {item.name}
-              </h4>
-
-              <div className="mt-auto flex items-center justify-between pt-2">
-                <span className="font-display text-16 font-bold text-ink">
-                  {formatAmount(item.price.amount, locale)}{' '}
-                  <span className="text-12 font-normal text-stone">ج.م</span>
-                </span>
-
-                <button
-                  type="button"
-                  aria-label="أضف إلى السلة"
-                  onClick={() => handleQuickAdd(item.id)}
-                  className={cn(
-                    'flex size-9 items-center justify-center rounded-pill transition-all duration-200 active:scale-90',
-                    addedId === item.id
-                      ? 'bg-ok text-chalk scale-110'
-                      : 'bg-cobalt text-chalk hover:bg-cobalt-deep shadow-elevation-1'
-                  )}
-                >
-                  <Icon
-                    name={addedId === item.id ? 'check' : 'plus'}
-                    size={16}
-                    strokeWidth={2.4}
-                  />
-                </button>
+            {/* Instructions Text & Real Texture Swatch (only if uploaded) */}
+            <div className="flex items-start justify-between gap-4 text-start min-w-0 max-w-2xl">
+              <div className="flex flex-col gap-1 min-w-0">
+                {instructionParagraphs.length > 0 ? (
+                  <div dir={instructionsDir} className="flex flex-col gap-1 text-start">
+                    {instructionParagraphs.map((paragraph, idx) => (
+                      <p
+                        key={`${idx}-${paragraph.slice(0, 24)}`}
+                        className="m-0 text-start text-14 sm:text-15 leading-22 text-ink"
+                      >
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="m-0 text-14 leading-22 text-stone">
+                    {m.pdpUsageNone}
+                  </p>
+                )}
               </div>
+
+              {guide.textureMedia && !textureFailed ? (
+                <div className="relative h-10 w-14 overflow-hidden rounded-14 border border-line shrink-0 bg-chalk">
+                  <ProductTile
+                    key={guide.textureMedia.url}
+                    src={guide.textureMedia.url}
+                    alt={guide.textureMedia.altText || m.pdpUsageTextureAlt}
+                    name={product.name}
+                    size="thumb"
+                    sizes="56px"
+                    onImageError={() => setTextureFailed(true)}
+                    className="size-full rounded-none bg-chalk"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
-        ))}
+
+          {hasWarnings ? (
+            <div className="lg:col-span-4 rounded-16 border border-tomato/20 bg-conflict px-3.5 py-3 flex flex-col justify-center text-start">
+              <div className="flex items-center gap-1.5 text-tomato-ink mb-1">
+                <Icon name="alert" size={15} strokeWidth={2} className="shrink-0" />
+                <h3 className="m-0 text-13 font-bold">{m.pdpWarningTitle}</h3>
+              </div>
+              <div dir={warningsDir} className="flex flex-col gap-1 text-start">
+                {warningParagraphs.map((paragraph, idx) => (
+                  <p
+                    key={`${idx}-${paragraph.slice(0, 24)}`}
+                    className="m-0 text-start text-13 leading-20 text-ink/80"
+                  >
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </Section>
   );

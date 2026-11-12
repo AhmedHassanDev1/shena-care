@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'motion/react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { MessageBox } from '@/components/ui/message-box';
@@ -26,15 +27,18 @@ import { CartLine } from './CartLine';
 const UNDO_MS = 8000;
 
 /**
- * Cart (CartD, CommerceMobile ١, CommerceStates §١). Lines with the stepper and «شيل»; the order summary (sticky on
- * desktop, rows plus a sticky «إتمام الطلب» bar on the phone); changed prices and unavailable products are decided
- * on the line and must be seen before checkout starts. Totals are the server's; delivery is quoted at checkout.
+ * Editorial Cart Page (CartD, CommerceMobile ١, CommerceStates §١):
+ * - Refined boutique header with reassuring service pillars
+ * - Distinct, tactile cart product cards with smooth animation
+ * - Clear subtotal & line total calculations
+ * - Inline alerts for price changes and stock availability
+ * - Reassuring summary panel with one-tap checkout and authentication integration
  */
 export function CartView() {
   const m = useMessages();
   const locale = useLocale();
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, openAuthModal } = useAuth();
   const { cart, isLoading, error, updateItem, removeItem, addItem, invalidate } = useCart();
   const [busySku, setBusySku] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -80,7 +84,6 @@ export function CartView() {
   };
 
   const act = (action: () => void) => {
-    // Any other action closes the undo offer.
     if (removed) {
       clearTimeout(undoTimer.current);
       setRemoved(null);
@@ -91,9 +94,9 @@ export function CartView() {
   if (isLoading) return <CartSkeleton label={m.loading} />;
   if (error && !cart) {
     return (
-      <MessageBox tone="err" role="alert" className="mt-6">
+      <MessageBox tone="err" role="alert" className="mt-6 rounded-24">
         <p className="m-0 text-14">{m.cartLoadError}</p>
-        <Button variant="light" size="s" className="mt-2" onClick={invalidate}>
+        <Button variant="light" size="s" className="mt-3" onClick={invalidate}>
           {m.checkoutRetry}
         </Button>
       </MessageBox>
@@ -103,16 +106,24 @@ export function CartView() {
   const items = cart?.items ?? [];
   const count = cart?.itemCount ?? 0;
   const changes = pendingChanges(items, reviewed);
-  const checkoutHref = isAuthenticated ? routes.checkout : signInHref(routes.checkout);
 
   const continueToCheckout = () => {
     if (changes.priceChanged.length) setReviewed(markPricesReviewed(changes.priceChanged));
-    router.push(checkoutHref);
+    if (!isAuthenticated) {
+      openAuthModal({
+        intent: 'checkout',
+        onAuthenticated: () => {
+          router.push(routes.checkout);
+        },
+      });
+      return;
+    }
+    router.push(routes.checkout);
   };
 
   const toast = removed ? (
     <div className="pointer-events-none fixed inset-x-3 bottom-28 z-toast flex justify-center lg:bottom-8">
-      <Toast className="pointer-events-auto w-full lg:w-[420px]" action={{ label: m.cartUndo, onClick: undo }}>
+      <Toast className="pointer-events-auto w-full lg:w-96" action={{ label: m.cartUndo, onClick: undo }}>
         {fillMessage(m.cartRemoved, { name: removed.name })}
       </Toast>
     </div>
@@ -128,41 +139,67 @@ export function CartView() {
   }
 
   return (
-    <div className="pb-28 lg:pb-0">
-      <header className="hidden lg:block">
-        <div className="flex items-baseline gap-3.5">
-          <h1 className="m-0 font-display text-34 font-extrabold leading-44 text-ink">{m.cartStagingTitle}</h1>
-          <span className="text-16 text-stone">{formatProductCount(count, locale)}</span>
+    <div className="pb-32 lg:pb-0">
+      {/* Header and trust pillars */}
+      <header className="mb-6 hidden lg:block">
+        <div className="flex items-baseline justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <h1 className="m-0 font-display text-34 font-extrabold leading-44 text-ink">{m.cartStagingTitle}</h1>
+            <span className="rounded-pill bg-sand px-3 py-1 font-display text-15 font-bold text-ink">
+              {formatProductCount(count, locale)}
+            </span>
+          </div>
+          <p className="m-0 text-14 text-stone">{m.cartLead}</p>
         </div>
-        <p className="m-0 mt-2 text-14 text-stone">{m.cartLead}</p>
+
+        {/* Editorial reassurance ribbon */}
+        <div className="mt-4 flex items-center justify-between rounded-24 bg-linen px-5 py-3 shadow-elevation-1">
+          <span className="inline-flex items-center gap-2 text-13 font-medium text-ink">
+            <Icon name="truck" size={17} className="text-cobalt" />
+            <span>{m.cartPerksDelivery}</span>
+          </span>
+          <span className="h-4 w-px bg-line" aria-hidden="true" />
+          <span className="inline-flex items-center gap-2 text-13 font-medium text-ink">
+            <Icon name="cash" size={17} className="text-ok" />
+            <span>{m.cartPerksCod}</span>
+          </span>
+          <span className="h-4 w-px bg-line" aria-hidden="true" />
+          <span className="inline-flex items-center gap-2 text-13 font-medium text-ink">
+            <Icon name="shield" size={17} className="text-stone" />
+            <span>{m.cartPerksAuthentic}</span>
+          </span>
+        </div>
       </header>
 
       {merged ? (
-        <MessageBox tone="info" role="status" className="mt-4 lg:mt-6">
+        <MessageBox tone="info" role="status" className="mb-5 rounded-24">
           {m.authCartMerged}
         </MessageBox>
       ) : null}
 
-      <div className="lg:mt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-12">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_390px] lg:items-start lg:gap-10">
         <section aria-label={m.cartTitle}>
           {failed ? (
-            <p role="alert" className="m-0 mt-3 flex items-center gap-2 text-14 text-tomato-ink">
+            <p role="alert" className="m-0 mb-3 flex items-center gap-2 text-14 text-tomato-ink">
               <Icon name="alert" size={18} />
               {m.cartUpdateFailed}
             </p>
           ) : null}
-          <ul className="m-0 list-none p-0 lg:shadow-hairline-top">
-            {items.map((item) => (
-              <CartLine
-                key={item.skuId}
-                item={item}
-                busy={busySku === item.skuId}
-                priceReview={needsPriceReview(item, reviewed)}
-                onQuantity={(quantity) => act(() => run(item.skuId, () => updateItem({ skuId: item.skuId, quantity })))}
-                onRemove={() => remove(item)}
-                onPriceReviewed={() => act(() => setReviewed(markPricesReviewed([item])))}
-              />
-            ))}
+
+          <ul className="m-0 flex list-none flex-col gap-3.5 p-0">
+            <AnimatePresence initial={false}>
+              {items.map((item) => (
+                <CartLine
+                  key={item.skuId}
+                  item={item}
+                  busy={busySku === item.skuId}
+                  priceReview={needsPriceReview(item, reviewed)}
+                  onQuantity={(quantity) => act(() => run(item.skuId, () => updateItem({ skuId: item.skuId, quantity })))}
+                  onRemove={() => remove(item)}
+                  onPriceReviewed={() => act(() => setReviewed(markPricesReviewed([item])))}
+                />
+              ))}
+            </AnimatePresence>
           </ul>
         </section>
 
@@ -205,30 +242,35 @@ function CartSummary({
   return (
     <aside
       aria-labelledby="cart-summary"
-      className="mt-5 flex flex-col gap-3.5 lg:sticky lg:top-6 lg:mt-0 lg:rounded-sheet lg:bg-linen lg:p-7 lg:shadow-elevation-3 lg:outline lg:outline-1 lg:outline-line"
+      className="mt-6 flex flex-col gap-4 rounded-24 bg-linen p-5 shadow-elevation-1 lg:sticky lg:top-6 lg:mt-0 lg:rounded-sheet lg:p-7 lg:shadow-elevation-2"
     >
-      <h2 id="cart-summary" className="m-0 hidden font-display text-26 font-extrabold leading-32 text-ink lg:block">
-        {m.cartSummary}
-      </h2>
+      <div className="flex items-center justify-between pb-1">
+        <h2 id="cart-summary" className="m-0 font-display text-24 font-extrabold leading-30 text-ink">
+          {m.cartSummary}
+        </h2>
+        <span className="text-13 text-stone">{formatProductCount(count, locale)}</span>
+      </div>
 
-      <SummaryRow label={fillMessage(m.cartSubtotalCount, { count: formatProductCount(count, locale) })}>
-        <Money amount={total} />
-      </SummaryRow>
-      <SummaryRow label={m.cartShipping}>
-        <span className="text-stone">{m.cartShippingLater}</span>
-      </SummaryRow>
-      <div aria-hidden="true" className="my-1.5 h-px bg-line" />
-      <SummaryRow label={m.cartTotalNoDelivery} strong>
-        <Money amount={total} />
-      </SummaryRow>
+      <div className="flex flex-col gap-2.5">
+        <SummaryRow label={fillMessage(m.cartSubtotalCount, { count: formatProductCount(count, locale) })}>
+          <Money amount={total} />
+        </SummaryRow>
+        <SummaryRow label={m.cartShipping}>
+          <span className="text-13.5 text-stone">{m.cartShippingLater}</span>
+        </SummaryRow>
+        <div aria-hidden="true" className="my-1 h-px bg-line" />
+        <SummaryRow label={m.cartTotalNoDelivery} strong>
+          <Money amount={total} className="font-display text-22 font-extrabold text-ink" />
+        </SummaryRow>
+      </div>
 
       {changes > 0 ? (
-        <MessageBox tone="warn" role="status">
-          <p className="m-0 text-14 leading-22">{blocked ? m.cartRemoveUnavailableFirst : changedCopy}</p>
+        <MessageBox tone="warn" role="status" className="rounded-16">
+          <p className="m-0 text-13.5 leading-21">{blocked ? m.cartRemoveUnavailableFirst : changedCopy}</p>
         </MessageBox>
       ) : null}
 
-      <div className="hidden lg:block">
+      <div className="hidden lg:block pt-1">
         {changes > 0 ? (
           <Button size="l" className="w-full" disabled={blocked} onClick={onCheckout}>
             {m.cartReviewed}
@@ -240,11 +282,25 @@ function CartSummary({
         )}
       </div>
 
-      <ul className="m-0 flex list-disc flex-col gap-0.5 ps-4.5 text-13 leading-21 text-stone">
-        {signedIn ? null : <li>{m.cartNoteSignIn}</li>}
-        <li>{m.cartNoteDelivery}</li>
-        <li>{m.cartNotePayment}</li>
-      </ul>
+      {/* Trust guarantees list */}
+      <div className="rounded-16 bg-sand/30 p-3.5">
+        <ul className="m-0 flex list-none flex-col gap-2 p-0 text-13 leading-20 text-stone">
+          {signedIn ? null : (
+            <li className="flex items-center gap-2">
+              <Icon name="user" size={15} className="text-stone flex-none" />
+              <span>{m.cartNoteSignIn}</span>
+            </li>
+          )}
+          <li className="flex items-center gap-2">
+            <Icon name="truck" size={15} className="text-stone flex-none" />
+            <span>{m.cartNoteDelivery}</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <Icon name="cash" size={15} className="text-stone flex-none" />
+            <span>{m.cartNotePayment}</span>
+          </li>
+        </ul>
+      </div>
     </aside>
   );
 }
@@ -267,11 +323,11 @@ function SummaryRow({ label, strong, children }: { label: string; strong?: boole
 function MobileCheckoutBar({ total, blocked, onCheckout }: { total: number; blocked: boolean; onCheckout: () => void }) {
   const m = useMessages();
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-nav flex items-center gap-3 bg-chalk/95 px-4 pt-3 pb-2 shadow-hairline-top backdrop-blur-sm lg:hidden pdp-bar">
-      <span className="flex flex-col">
-        <span className="text-12 leading-17 text-stone">{m.cartWithoutDelivery}</span>
-        <Money amount={total} className="text-17 font-bold leading-24 text-ink" />
-      </span>
+    <div className="fixed inset-x-0 bottom-0 z-nav flex items-center gap-3 bg-chalk/95 px-4 pt-3 pb-3 shadow-elevation-3 backdrop-blur-md lg:hidden pdp-bar">
+      <div className="flex flex-col">
+        <span className="text-11 leading-15 text-stone">{m.cartWithoutDelivery}</span>
+        <Money amount={total} className="font-display text-18 font-extrabold leading-24 text-ink" />
+      </div>
       <Button size="l" className="flex-1" disabled={blocked} onClick={onCheckout}>
         {m.cartCheckout}
       </Button>
@@ -281,39 +337,55 @@ function MobileCheckoutBar({ total, blocked, onCheckout }: { total: number; bloc
 
 function EmptyCart({ signedIn }: { signedIn: boolean }) {
   const m = useMessages();
+  const { openAuthModal } = useAuth();
   return (
-    <section className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-3 rounded-card bg-linen px-6 py-10 text-center shadow-outline-hairline lg:mt-16">
-      <span className="grid size-14 place-items-center rounded-pill bg-sand text-ink">
-        <Icon name="bag" size={26} />
-      </span>
-      <h2 className="m-0 font-display text-28 font-extrabold leading-34 text-ink lg:hidden">{m.cartEmptyTitle}</h2>
-      <h1 className="m-0 hidden font-display text-28 font-extrabold leading-34 text-ink lg:block">{m.cartEmptyTitle}</h1>
-      <p className="m-0 text-14 leading-22 text-stone">{m.cartEmptyBody}</p>
-      <span className="mt-2 flex flex-wrap justify-center gap-2.5">
-        <Link href={routes.products} className={buttonVariants({ variant: 'ink' })}>
+    <motion.section
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-4 rounded-sheet bg-linen px-6 py-14 text-center shadow-elevation-1 lg:mt-16 lg:px-12 lg:py-20"
+    >
+      <div className="relative mb-2 grid size-20 place-items-center rounded-pill bg-sand text-ink shadow-elevation-1">
+        <span aria-hidden="true" className="sun sm think absolute -top-1 -end-1" />
+        <Icon name="bag" size={32} />
+      </div>
+      <h1 className="m-0 font-display text-32 font-extrabold leading-38 text-ink lg:text-40 lg:leading-44">{m.cartEmptyTitle}</h1>
+      <p className="m-0 max-w-md text-15 leading-24 text-stone">{m.cartEmptyBody}</p>
+      <div className="mt-4 flex flex-wrap justify-center gap-3">
+        <Link href={routes.products} className={buttonVariants({ variant: 'ink', size: 'l' })}>
           {m.cartShop}
         </Link>
         {signedIn ? null : (
-          <Link href={signInHref(routes.cart)} className={buttonVariants({ variant: 'light' })}>
+          <Link
+            href={signInHref(routes.cart)}
+            onClick={(e) => {
+              e.preventDefault();
+              openAuthModal();
+            }}
+            className={buttonVariants({ variant: 'light', size: 'l' })}
+          >
             {m.cartSignIn}
           </Link>
         )}
-      </span>
-    </section>
+      </div>
+    </motion.section>
   );
 }
 
 function CartSkeleton({ label }: { label: string }) {
   return (
     <div aria-busy="true" aria-label={label} className="mt-4 flex flex-col gap-4 lg:mt-6">
-      <Skeleton className="hidden h-12.5 w-48 lg:block" />
+      <Skeleton className="hidden h-12 w-56 rounded-pill lg:block" />
       {Array.from({ length: 3 }, (_, index) => (
-        <div key={index} className="flex gap-3.5 py-2">
-          <Skeleton className="h-22.5 w-18 rounded-image lg:h-32.5 lg:w-26" />
-          <div className="flex flex-1 flex-col gap-2">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-5 w-2/3" />
-            <Skeleton className="h-control-s w-32 rounded-pill" />
+        <div key={index} className="flex gap-4 rounded-24 bg-linen p-4 lg:p-5">
+          <Skeleton className="h-26 w-22 rounded-image lg:h-32 lg:w-26" />
+          <div className="flex flex-1 flex-col justify-between py-1">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3 w-28 rounded-pill" />
+              <Skeleton className="h-5 w-2/3 rounded-pill" />
+              <Skeleton className="h-3.5 w-20 rounded-pill" />
+            </div>
+            <Skeleton className="h-control-s w-36 rounded-pill" />
           </div>
         </div>
       ))}

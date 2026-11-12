@@ -21,6 +21,8 @@ export interface OtpInputProps {
   autoFocus?: boolean;
   /** Raw typed/pasted/autofilled text → digits (e.g. convert Arabic-Indic numerals). Defaults to stripping non-digits. */
   normalize?: (raw: string) => string;
+  /** Dark chassis styling (matching the Sahel reference console). */
+  variant?: 'default' | 'onDark';
 }
 
 const digitsOnly = (raw: string) => raw.replace(/\D/g, '');
@@ -31,11 +33,25 @@ const digitsOnly = (raw: string) => raw.replace(/\D/g, '');
  * so screen readers hear one field and SMS autofill / paste work natively. Cells: 50×60 mobile, 60×68 desktop, radius 14.
  */
 export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function OtpInput(
-  { id, value, length, onChange, state = 'default', disabled = false, readOnly = false, labelledBy, describedBy, autoFocus, normalize = digitsOnly },
+  {
+    id,
+    value,
+    length,
+    onChange,
+    state = 'default',
+    disabled = false,
+    readOnly = false,
+    labelledBy,
+    describedBy,
+    autoFocus,
+    normalize = digitsOnly,
+    variant = 'default',
+  },
   ref
 ) {
   const [isFocused, setIsFocused] = useState(false);
   const activeIndex = Math.min(value.length, length - 1);
+  const isOnDark = variant === 'onDark';
 
   /** Editing always happens at the end, like typing into the next cell. */
   const keepCaretAtEnd = (input: HTMLInputElement) => {
@@ -45,29 +61,52 @@ export const OtpInput = forwardRef<HTMLInputElement, OtpInputProps>(function Otp
 
   return (
     <div dir="ltr" className="relative">
-      <div aria-hidden="true" className="flex justify-center gap-2 lg:gap-2.5">
+      <div aria-hidden="true" className="flex justify-center gap-2 sm:gap-3 lg:gap-3.5">
         {Array.from({ length }, (_, index) => {
           const digit = value[index] ?? '';
           const isActive = isFocused && !disabled && !readOnly && index === activeIndex && state === 'default';
+          const isFilled = digit !== '' && state === 'default';
+
           return (
             <span
               key={index}
               className={cn(
-                'flex h-otp-h max-w-otp-w flex-1 items-center justify-center rounded-input text-24 font-bold tabular-nums lg:h-otp-h-lg lg:max-w-otp-w-lg',
+                'flex h-otp-h max-w-otp-w flex-1 items-center justify-center rounded-16 text-28 sm:text-30 font-black tabular-nums lg:h-otp-h-lg lg:max-w-otp-w-lg lg:text-34 lg:rounded-20',
                 'transition-all duration-fast ease-standard font-display',
-                disabled
-                  ? 'bg-sand text-stone shadow-outline-dune'
-                  : state === 'invalid'
-                    ? 'bg-linen text-tomato-ink shadow-outline-err'
-                    : state === 'verified'
-                      ? 'bg-linen text-ok shadow-outline-verified'
-                      : isActive
-                        ? 'bg-linen text-ink shadow-focus-field'
-                        : 'bg-linen text-ink shadow-outline-control'
+                isOnDark
+                  ? disabled
+                    ? 'bg-white/5 text-stone shadow-outline-hairline opacity-50 cursor-not-allowed'
+                    : state === 'invalid'
+                      ? 'bg-tomato/20 text-tomato shadow-outline-err ring-2 ring-tomato/30'
+                      : state === 'verified'
+                        ? 'bg-ok/25 text-ok shadow-outline-verified ring-2 ring-ok/30'
+                        : isActive
+                          ? 'bg-white/20 text-citron ring-2 ring-citron shadow-elevation-2 scale-105'
+                          : isFilled
+                            ? 'bg-white/15 text-chalk shadow-elevation-1 border border-white/25'
+                            : 'bg-white/10 text-chalk border border-white/15 hover:bg-white/20'
+                  : disabled
+                    ? 'bg-sand/60 text-stone shadow-outline-hairline opacity-60 cursor-not-allowed'
+                    : state === 'invalid'
+                      ? 'bg-linen text-tomato-ink shadow-outline-err ring-2 ring-tomato/20'
+                      : state === 'verified'
+                        ? 'bg-ok-tint text-ok shadow-outline-verified ring-2 ring-ok/20'
+                        : isActive
+                          ? 'bg-white text-cobalt ring-2 ring-cobalt shadow-elevation-2 scale-105'
+                          : isFilled
+                            ? 'bg-white text-ink shadow-elevation-1 border border-line-2/40'
+                            : 'bg-linen text-ink shadow-outline-control hover:bg-white/80'
               )}
             >
               {digit}
-              {isActive && !digit ? <span className="h-6 w-0.5 rounded-pill bg-cobalt" /> : null}
+              {isActive && !digit ? (
+                <span
+                  className={cn(
+                    'h-7 w-0.5 rounded-pill animate-pulse',
+                    isOnDark ? 'bg-citron' : 'bg-cobalt'
+                  )}
+                />
+              ) : null}
             </span>
           );
         })}
