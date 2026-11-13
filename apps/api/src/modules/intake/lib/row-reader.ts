@@ -47,6 +47,7 @@ export function readSupplierRows(sheet: ParsedSheet): NewIntakeRow[] {
     const invalid = (reasonCode: string, reason: string): NewIntakeRow => ({ ...base, outcome: IntakeRowOutcome.INVALID, reasonCode, reason });
     if (!name || name.length < 3) return invalid('NAME_MISSING', 'The product name is empty');
     if (name.length > 300) return invalid('NAME_TOO_LONG', 'The product name is longer than 300 characters');
+    if (cellOf(row, map, 'barcode') && !barcode) return invalid('INVALID_BARCODE', 'The stated barcode is not a valid GS1 GTIN; correct it before matching');
     if (purchase === null) return invalid('PURCHASE_PRICE_MISSING', cellOf(row, map, 'purchasePrice') ? `"${cellOf(row, map, 'purchasePrice')}" is not a price` : 'No purchase price');
     if (purchase <= 0) return invalid('PURCHASE_PRICE_NOT_POSITIVE', 'The purchase price must be above zero');
     if (consumer !== null && consumer < purchase) return invalid('CONSUMER_BELOW_PURCHASE', `Consumer price ${consumer} is below purchase price ${purchase}`);
@@ -71,6 +72,7 @@ export function readAdminRows(sheet: ParsedSheet): NewIntakeRow[] {
     };
     if (!name || name.length < 3) return { ...base, outcome: IntakeRowOutcome.INVALID, reasonCode: 'NAME_MISSING', reason: 'The product name is empty' };
     if (name.length > 200) return { ...base, outcome: IntakeRowOutcome.INVALID, reasonCode: 'NAME_TOO_LONG', reason: 'The product name is longer than 200 characters' };
+    if (cellOf(row, map, 'barcode') && !base.barcode) return { ...base, outcome: IntakeRowOutcome.INVALID, reasonCode: 'INVALID_BARCODE', reason: 'The stated barcode is not a valid GS1 GTIN; correct it before matching' };
     if (reading.measures.length > 1) return { ...base, outcome: IntakeRowOutcome.INVALID, reasonCode: 'SEVERAL_SIZES', reason: 'The name states more than one size; submit one line per size' };
     return base;
   });

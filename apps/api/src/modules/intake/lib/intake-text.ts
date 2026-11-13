@@ -45,12 +45,15 @@ export function parseQuantity(value: unknown): number | null {
   return amount !== null && Number.isInteger(amount) && amount >= 0 ? amount : null;
 }
 
-/** 8 to 14 digits after removing spaces; anything else is not a barcode we can compare. */
+/** GS1 GTIN lengths and modulo-10 check digit; keep leading zeroes, never repair a damaged code. */
 export function parseBarcode(value: unknown): string | null {
   const digits = normalizeCell(value).replace(/[\s-]/g, '');
   if (/^\d+(\.0+)?e\+?\d+$/i.test(digits)) return null; // a spreadsheet turned it into scientific notation: precision is lost
   const plain = digits.replace(/\.0+$/, '');
-  return /^\d{8,14}$/.test(plain) ? plain : null;
+  if (!/^(?:\d{8}|\d{12,14})$/.test(plain) || /^0+$/.test(plain)) return null;
+  let sum = 0;
+  for (let i = plain.length - 2, weight = 3; i >= 0; i--, weight = weight === 3 ? 1 : 3) sum += Number(plain[i]) * weight;
+  return (10 - sum % 10) % 10 === Number(plain.at(-1)) ? plain : null;
 }
 
 export type CanonicalUnit = 'ml' | 'g' | 'l' | 'kg' | 'piece';
@@ -67,7 +70,7 @@ export interface Measure { size: number; unit: CanonicalUnit; text: string }
 export interface MeasureReading { measures: Measure[]; packCount: number | null; packText: string | null }
 
 // "200 ml", "200ml", "200مل", "1.5 L", "50 gm"; units may be glued or separated.
-const MEASURE = /(\d+(?:\.\d+)?)\s*(ml|mls|m\.l|milliliters?|millilitres?|cc|مل|ملي|ملل|مللي|ملى|مليلتر|ميلي|ltr|liters?|litres?|لتر|ليتر|l|gms?|gr|grams?|gramme|g|جم|جرام|غرام|جرامات|kgs?|كجم|كيلو(?:جرام)?)(?![\p{L}])/giu;
+const MEASURE = /(?<![\d.,-])((?:\d+(?:[.,]\d+)?|[.,]\d+))\s*(ml|mls|m\.l|milliliters?|millilitres?|cc|مل|ملي|ملل|مللي|ملى|مليلتر|ميلي|ltr|liters?|litres?|لتر|ليتر|l|gms?|gr|grams?|gramme|g|جم|جرام|غرام|جرامات|kgs?|كجم|كيلو(?:جرام)?)(?![\p{L}])/giu;
 // "x2", "2x", "2 x 30ml", "عدد 2", "2 قطعه", "pack of 3", "عرض 2"
 const PACK = /(?:\b(?:pack|set)\s+of\s+(\d{1,2})\b|(?:^|\s)[x×*]\s*(\d{1,2})(?!\s*(?:ml|g|مل|جم))(?!\d)|\b(\d{1,2})\s*[x×*](?=\s*\d)|(?:عدد|عرض)\s*(\d{1,2})(?!\d)|(?<!\d)(\d{1,2})\s*(?:pcs|pieces|قطعه|قطعة|قطع)(?![\p{L}]))/iu;
 
@@ -77,7 +80,8 @@ export function readMeasures(text: string): MeasureReading {
   const measures: Measure[] = [];
   for (const match of normalized.matchAll(MEASURE)) {
     const unit = unitOf(match[2].toLowerCase());
-    const size = Number(match[1]);
+    if (/[,]\d{3,}$/.test(match[1])) continue; // Ambiguous decimal/thousands separator: review instead of guessing.
+    const size = Number(match[1].replace(',', '.'));
     if (!unit || !Number.isFinite(size) || size <= 0) continue;
     if (!measures.some(m => m.size === size && m.unit === unit)) measures.push({ size, unit, text: match[0] });
   }
