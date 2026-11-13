@@ -1,0 +1,213 @@
+{
+  "jobId": "2e63a818-a64d-4c8f-88a4-9fafd596f4c9",
+  "worked": 1,
+  "durationMs": 22241,
+  "cost": {
+    "searches": 4,
+    "pageFetches": 3,
+    "imageFetches": 1
+  },
+  "job": {
+    "id": "2e63a818-a64d-4c8f-88a4-9fafd596f4c9",
+    "source": "ADMIN",
+    "supplierId": null,
+    "submittedBy": "9a1b0c4e-1111-4c4e-9a1b-0c4e11110001",
+    "inputKind": "SINGLE",
+    "sourceFileName": null,
+    "sourceMimeType": null,
+    "sourceSizeBytes": null,
+    "sourceChecksum": "8ec163ef93e758704edc8a049f34f7dd79245f14410e5671782a9f2d8e60850f",
+    "columnMap": {
+      "map": {
+        "name": 0
+      },
+      "headers": [
+        "name"
+      ],
+      "ignored": [],
+      "options": {
+        "researchPrices": false
+      }
+    },
+    "snapshot": null,
+    "status": "COMPLETED",
+    "totals": {
+      "total": 1,
+      "DRAFT_CREATED": 1
+    },
+    "metrics": {
+      "searches": 3,
+      "durationMs": 491891,
+      "pageFetches": 3,
+      "imageFetches": 1,
+      "rowProcessingMs": 14707
+    },
+    "lastError": null,
+    "startedAt": "2026-11-13T16:56:50.720Z",
+    "completedAt": "2026-11-13T17:05:02.611Z",
+    "createdAt": "2026-11-13T16:56:50.161Z",
+    "updatedAt": "2026-11-13T17:05:02.613Z"
+  },
+  "rows": [
+    {
+      "row": 1,
+      "name": "CeraVe Hydrating Facial Cleanser 236ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "processingMs": 14707,
+      "cost": {
+        "searches": 3,
+        "pageFetches": 3,
+        "imageFetches": 1
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": null
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "size": {
+          "unit": "ml",
+          "value": 236
+        },
+        "tier": "OFFICIAL_MANUFACTURER",
+        "basis": "CREATED",
+        "brand": {
+          "id": "fa4928ae-5a1b-457d-a097-cb8f555db982",
+          "name": "CeraVe",
+          "basis": "CATALOG_EXACT",
+          "aliases": [
+            "سيرافي",
+            "cera-ve",
+            "سيرافى"
+          ]
+        },
+        "checks": [
+          {
+            "url": "https://www.cerave.com/skincare/cleansers/hydrating-facial-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ],
+            "pageTitle": "Hydrating Facial Cleanser",
+            "sizeConfirmed": null,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [],
+            "pageTitle": "CeraVe Hydrating Cleanser",
+            "sizeConfirmed": true,
+            "identityMatched": true
+          },
+          {
+            "url": "https://africa.cerave.com/en/sitecore/content/loreal/brandsites/cerave/americas/us/home/skincare/cleansers/hydrating-facial-cleanser",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "ROBOTS_DISALLOWED",
+            "reasons": [
+              "ROBOTS_DISALLOWED"
+            ],
+            "pageTitle": null,
+            "sizeConfirmed": null,
+            "identityMatched": false
+          }
+        ],
+        "created": true,
+        "verifiedBy": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+        "productName": "Hydrating Facial Cleanser",
+        "verifiedTitle": "CeraVe Hydrating Cleanser"
+      },
+      "enrichment": {
+        "runs": [
+          {
+            "tier": "OFFICIAL",
+            "status": "COMPLETE",
+            "sources": [
+              "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser"
+            ]
+          }
+        ],
+        "holds": [],
+        "applied": [
+          "composition.inci",
+          "usage.instructions",
+          "composition.fragrance",
+          "marketing.description",
+          "composition.keyIngredients",
+          "suitability.skinTypes",
+          "usage.routinePeriod",
+          "identity.size"
+        ],
+        "coverage": {
+          "identity.gtin": "UNKNOWN",
+          "identity.name": "UNVERIFIED",
+          "identity.size": "VERIFIED",
+          "attributes.spf": "UNKNOWN",
+          "identity.brand": "UNKNOWN",
+          "safety.warnings": "UNKNOWN",
+          "composition.inci": "VERIFIED",
+          "usage.targetArea": "UNKNOWN",
+          "attributes.texture": "UNKNOWN",
+          "media.sourceImages": "UNVERIFIED",
+          "usage.instructions": "VERIFIED",
+          "usage.routinePeriod": "VERIFIED",
+          "composition.fragrance": "VERIFIED",
+          "marketing.description": "VERIFIED",
+          "suitability.hairTypes": "UNKNOWN",
+          "suitability.skinTypes": "VERIFIED",
+          "attributes.uvFilterType": "UNKNOWN",
+          "attributes.broadSpectrum": "UNKNOWN",
+          "attributes.nonComedogenic": "UNKNOWN",
+          "claims.manufacturerStated": "UNVERIFIED",
+          "merchandising.productLine": "UNKNOWN",
+          "composition.keyIngredients": "VERIFIED",
+          "composition.activeConcentrations": "UNKNOWN",
+          "attributes.waterResistanceMinutes": "UNKNOWN"
+        },
+        "rejected": [],
+        "unverified": [
+          "identity.name",
+          "media.sourceImages",
+          "claims.manufacturerStated"
+        ],
+        "stillMissing": []
+      },
+      "media": {
+        "primary": "MISSING",
+        "editorial": "MISSING",
+        "rejectedSources": [
+          {
+            "url": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_HydratingCleanser_NEW_v021.jpg",
+            "reason": "RESOLUTION_TOO_LOW:300x400"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "node scripts/with-system-ca.cjs --nest start --watch",
     "build": "nest build",
-    "start": "node dist/main",
+    "start": "node scripts/with-system-ca.cjs dist/main",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",

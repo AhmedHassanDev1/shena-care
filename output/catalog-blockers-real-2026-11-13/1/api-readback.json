@@ -1,0 +1,174 @@
+{
+  "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+  "productId": "c2ca32fb-5583-4648-a85d-736622e11e16",
+  "name": "Hydrating Cleanser",
+  "size": 236,
+  "unit": "ml",
+  "identityStatus": "EVIDENCE_VERIFIED",
+  "isPublished": false,
+  "apiStatus": 200,
+  "replayStatus": 201,
+  "replaySameJob": true,
+  "counts": {
+    "products": 1,
+    "skus": 1,
+    "facts": 11
+  },
+  "appliedFacts": [
+    {
+      "field": "composition.fragrance",
+      "value": "FREE",
+      "evidence": [
+        {
+          "excerpt": "kin hydration after just one use.\nSuitable for normal to dry skin.\nCleanses and hydrates.\nFragrance free, soap free and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural barri",
+          "extractor": "deterministic@1",
+          "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+          "observedAt": "2026-11-13T17:04:58.941Z",
+          "sourceTier": "OFFICIAL_MANUFACTURER",
+          "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+        }
+      ]
+    },
+    {
+      "field": "composition.inci",
+      "value": [
+        "AQUA/WATER",
+        "GLYCERIN",
+        "CETEARYL ALCOHOL",
+        "PHENOXYETHANOL",
+        "STEARYL ALCOHOL",
+        "CETYLE ALCOHOL",
+        "PEG-40 STEARATE",
+        "BEHENTRIMONIUM METHOSULFATE",
+        "GLYCERYL STEARATE",
+        "POLYSORBATE 20",
+        "ETHLYHEXYLGLYCERIN",
+        "POTASSIUM PHOSPHATE",
+        "DISODIUM EDTA",
+        "DIPOTASSIUM PHOSPHATE",
+        "SODIUM LAUROYL LACTYLATE",
+        "CERAMIDE NP",
+        "CERAMIDE AP",
+        "PHYTOSPHINGOSINE",
+        "CHOLESTEROL",
+        "SODIUM HYALURONATE",
+        "XANTHUM GUM",
+        "CARBOMER",
+        "TOCOPHEROL",
+        "CERAMIDE EOP"
+      ],
+      "evidence": [
+        {
+          "excerpt": "AQUA/WATER, GLYCERIN, CETEARYL ALCOHOL, PHENOXYETHANOL, STEARYL ALCOHOL, CETYLE ALCOHOL, PEG-40 STEARATE, BEHENTRIMONIUM METHOSULFATE, GLYCERYL STEARATE, POLYSORBATE 20, ETHLYHEXYLGLYCERIN, POTASSIUM PHOSPHATE, DISODIUM EDTA, DIPOTASSIUM PHOSPHATE, SODIUM LAUROYL LACTYLATE, CERAMIDE NP, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, SODIUM HYALURONATE, XANTHUM GUM, CARBOMER, TOCOPHEROL, CERAMIDE EOP",
+          "extractor": "deterministic@1",
+          "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+          "observedAt": "2026-11-13T17:04:58.941Z",
+          "sourceTier": "OFFICIAL_MANUFACTURER",
+          "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+        }
+      ]
+    },
+    {
+      "field": "composition.keyIngredients",
+      "value": [
+        {
+          "name": "Ceramides",
+          "function": "To help protect the natural skin barrier"
+        },
+        {
+          "name": "Hyaluronic Acid",
+          "function": "Helps retain skin's natural moisture"
+        }
+      ],
+      "evidence": [
+        {
+          "excerpt": "Ceramides: To help protect the natural skin barrier; Hyaluronic Acid: Helps retain skin's natural moisture",
+          "extractor": "deterministic@1",
+          "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+          "observedAt": "2026-11-13T17:04:58.941Z",
+          "sourceTier": "OFFICIAL_MANUFACTURER",
+          "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+        }
+      ]
+    },
+    {
+      "field": "identity.size",
+      "value": {
+        "unit": "ml",
+        "value": 236
+      },
+      "evidence": [
+        {
+          "excerpt": "with 3 essential ceramides to help protect skin’s natural barrier.\nSizes available: 88ml, 236 ml, 473 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 88ml, 236 ml, 473 ml.\nShare",
+          "extractor": "deterministic@1",
+          "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+          "observedAt": "2026-11-13T17:04:58.941Z",
+          "sourceTier": "OFFICIAL_MANUFACTURER",
+          "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+        }
+      ]
+    },
+    {
+      "field": "marketing.description",
+      "value": "Product Page for CeraVe Hydrating Facial Cleanser",
+      "evidence": [
+        {
+          "excerpt": "Product Page for CeraVe Hydrating Facial Cleanser",
+          "extractor": "deterministic@1",
+          "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+          "observedAt": "2026-11-13T17:04:58.941Z",
+          "sourceTier": "OFFICIAL_MANUFACTURER",
+          "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+        }
+      ]
+    },
+    {
+      "field": "suitability.skinTypes",
+      "value": [
+        "normal",
+        "dry",
+        "sensitive"
+      ],
+      "evidence": [
+        {
+          "excerpt": "Product Page for CeraVe Hydrating Facial Cleanser\nFor Normal to Dry Skin\nA moisturising cleansing lotion for normal to dry skin with 3 essential ceramides to help",
+          "extractor": "deterministic@1",
+          "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+          "observedAt": "2026-11-13T17:04:58.941Z",
+          "sourceTier": "OFFICIAL_MANUFACTURER",
+          "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+        }
+      ]
+    },
+    {
+      "field": "usage.instructions",
+      "value": [
+        "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly."
+      ],
+      "evidence": [
+        {
+          "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly.",
+          "extractor": "deterministic@1",
+          "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+          "observedAt": "2026-11-13T17:04:58.941Z",
+          "sourceTier": "OFFICIAL_MANUFACTURER",
+          "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+        }
+      ]
+    },
+    {
+      "field": "usage.routinePeriod",
+      "value": "BOTH",
+      "evidence": [
+        {
+          "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly.",
+          "extractor": "deterministic@1",
+          "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+          "observedAt": "2026-11-13T17:04:58.941Z",
+          "sourceTier": "OFFICIAL_MANUFACTURER",
+          "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+        }
+      ]
+    }
+  ]
+}

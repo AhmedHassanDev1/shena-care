@@ -9,6 +9,8 @@ import { extractProductFacts, isInstructionLine, SkuExpectation } from './produc
 /** Scraping a real product page takes far longer than a search call: a live check timed out on every page at 8 s. */
 const PAGE_RETRIEVAL_TIMEOUT_MS = 45000;
 const FACT_EXTRACTION_TIMEOUT_MS = 30000;
+/** Cold live searches measured 4.9 s before their body was read; 5 s cut off valid replies. */
+const SEARCH_TIMEOUT_MS = 15000;
 
 export enum SourceType {
   OFFICIAL_MANUFACTURER = 'OFFICIAL_MANUFACTURER',
@@ -201,7 +203,7 @@ export class ProductResearchService {
         method: 'POST',
         headers: { 'x-api-key': key, 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, numResults: limit, ...(options.includeDomains?.length && { includeDomains: options.includeDomains }) }),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS),
       });
       if (!res.ok) return null;
       const data = (await res.json()) as { results?: Array<{ title?: string; url?: string }> };
