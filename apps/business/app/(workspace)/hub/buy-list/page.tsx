@@ -8,7 +8,7 @@ import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api, ApiError, newKey } from '@/lib/api'
 import { buyListPrintHtml, buyListText, type BuyListData, type BuyListItem, variantLabel } from '@/lib/buy-list'
-import { shortId } from '@/lib/labels'
+import { formatDateTime, shortId } from '@/lib/labels'
 import { useApi, useCommand } from '@/lib/use-api'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +25,19 @@ export default function BuyListPage() {
 }
 
 type View = 'to_buy' | 'unavailable' | 'done'
+
+const MONEY = /^\d+(\.\d{1,2})?$/
+/** The cost typed for one purchase: list price and discount per unit give the final unit cost. Null when blank or invalid. */
+function costFrom(listText: string, discountText: string): { listUnitPrice: number; discountPerUnit: number; final: number } | null {
+  if (!MONEY.test(listText) || (discountText !== '' && !MONEY.test(discountText))) return null
+  const list = Number(listText)
+  const discount = discountText === '' ? 0 : Number(discountText)
+  const final = Math.round((list - discount) * 100) / 100
+  return list > 0 && discount >= 0 && final > 0 ? { listUnitPrice: list, discountPerUnit: discount, final } : null
+}
+const egp = (value: number) => `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })} ج.م`
+
+type PendingCost = { acquireKey: string; skuId: string; skuCode: string | null; variantName: string | null; size: number | null; sizeUnit: string | null; quantity: number; acquiredAt: string }
 
 const viewOf = (item: BuyListItem): View => (item.toBuy > 0 ? 'to_buy' : item.unavailable > 0 ? 'unavailable' : 'done')
 const needOf = (item: BuyListItem) => item.orders.reduce((sum, order) => sum + order.required, 0) || item.toBuy + item.acquired + item.unavailable
@@ -63,6 +76,7 @@ function BuyListBody() {
   const visible = (data?.items ?? []).filter((item) => viewOf(item) === activeView
     && (!needle || [item.productName, item.skuCode, item.barcode, variantLabel(item)].some((part) => part?.toLowerCase().includes(needle))))
 
+  const pendingCosts = useApi<{ pending: number; items: PendingCost[] }>('/buy-list/costs?pending=true&take=50', { pollMs: 30000 })
   const active = data?.mode === 'INTERNAL_BUY_LIST'
   const overallNeed = data?.items.reduce((sum, item) => sum + needOf(item), 0) ?? 0
   const overallDone = data?.items.reduce((sum, item) => sum + item.acquired, 0) ?? 0
@@ -106,6 +120,8 @@ function BuyListBody() {
             </div>
           </StatStrip>
 
+          {pendingCosts.data && pendingCosts.data.items.length > 0 ? <PendingCosts items={pendingCosts.data.items} onSaved={() => { pendingCosts.reload(); reload() }} /> : null}
+
           <Toolbar>
             <SearchField value={query} onChange={setQuery} label="بحث في القائمة" placeholder="اسم الصنف أو الكود أو الباركود" />
             <Segmented
@@ -140,13 +156,16 @@ function BuyRow({ item, active, onChanged }: { item: BuyListItem; active: boolea
   const [quantity, setQuantity] = React.useState(String(item.toBuy))
   const [message, setMessage] = React.useState<{ tone: 'ok' | 'warn'; text: string } | null>(null)
   const [showOrders, setShowOrders] = React.useState(false)
+  const [listPrice, setListPrice] = React.useState('')
+  const [discount, setDiscount] = React.useState('')
   const inputId = React.useId()
   // One key per physical count: a retry after a lost response replays instead of counting twice; a new number is a new count.
   const key = React.useRef(newKey())
   React.useEffect(() => { setQuantity(String(item.toBuy)); key.current = newKey() }, [item.toBuy])
 
   const acquire = useCommand(() => api<{ acquired: number; replayed: boolean; remainingToBuy: number }>('/buy-list/acquire', {
-    body: { skuId: item.skuId, quantity: Number(quantity), idempotencyKey: key.current },
+    body: { skuId: item.skuId, quantity: Number(quantity), idempotencyKey: key.current,
+      ...(costFrom(listPrice, discount) ? { cost: { listUnitPrice: costFrom(listPrice, discount)!.listUnitPrice, discountPerUnit: costFrom(listPrice, discount)!.discountPerUnit } } : {}) },
   }))
   const unavailable = useCommand(() => api<{ flagged: number; units: number }>('/buy-list/unavailable', { body: { skuId: item.skuId } }))
   const reopen = useCommand(() => api<{ reopened: number }>('/buy-list/reopen', { body: { skuId: item.skuId } }))
@@ -162,12 +181,14 @@ function BuyRow({ item, active, onChanged }: { item: BuyListItem; active: boolea
     setMessage(null)
     if (action === 'acquire') {
       const result = await acquire.execute()
-      if (result) { key.current = newKey(); setMessage({ tone: 'ok', text: result.remainingToBuy ? `اتسجّل ${result.acquired} قطعة — باقي ${result.remainingToBuy}` : `اتسجّل ${result.acquired} قطعة — الصنف اتغطّى` }); onChanged() } else onChanged()
+      if (result) { key.current = newKey(); setMessage({ tone: 'ok', text: `${result.remainingToBuy ? `اتسجّل ${result.acquired} قطعة — باقي ${result.remainingToBuy}` : `اتسجّل ${result.acquired} قطعة — الصنف اتغطّى`}${costFrom(listPrice, discount) ? ' بتكلفتها' : ' — التكلفة لسه مش مسجّلة'}` }); setListPrice(''); setDiscount(''); onChanged() } else onChanged()
     } else if (action === 'unavailable') {
       if (await unavailable.execute()) { setMessage({ tone: 'warn', text: 'اتسجّل إنه مش متاح — العميل هيتسأل يستبدل أو يكمّل من غيره' }); onChanged() }
     } else if (await reopen.execute()) { setMessage({ tone: 'ok', text: 'رجع للقائمة' }); onChanged() }
   }
   const stale = staleNote(acquire.error)
+  const typedCost = costFrom(listPrice, discount)
+  const costInvalid = (listPrice !== '' || discount !== '') && !typedCost
   const busy = acquire.pending || unavailable.pending || reopen.pending
   const partial = item.acquired > 0 && item.toBuy > 0
 
@@ -201,7 +222,7 @@ function BuyRow({ item, active, onChanged }: { item: BuyListItem; active: boolea
         </div>
 
         {item.toBuy > 0 && active ? (
-          <form className="flex flex-wrap items-center gap-2 md:col-span-2 md:flex-nowrap md:border-t md:border-bw-line md:pt-4 xl:col-span-1 xl:border-0 xl:pt-0" onSubmit={(event) => { event.preventDefault(); void run('acquire') }}>
+          <form className="flex flex-wrap items-center gap-2 md:col-span-2 md:border-t md:border-bw-line md:pt-4 xl:col-span-1 xl:flex-nowrap xl:border-0 xl:pt-0" onSubmit={(event) => { event.preventDefault(); void run('acquire') }}>
             <div className="flex min-w-0 flex-1 items-center gap-1.5 md:flex-none">
               <label htmlFor={inputId} className="sr-only">الكمية اللي اتشترت</label>
               <input
@@ -218,9 +239,15 @@ function BuyRow({ item, active, onChanged }: { item: BuyListItem; active: boolea
                 <button type="button" onClick={() => { setQuantity(String(item.toBuy)); key.current = newKey() }} className="h-9 rounded-bw-field px-2 text-[12px] font-semibold text-bw-cobalt transition-colors hover:bg-bw-veil-3">الكل</button>
               ) : null}
             </div>
-            <Button type="submit" loading={acquire.pending} disabled={!valid || busy} className="h-12 flex-1 md:h-bw-control md:flex-none">تم الشراء</Button>
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 md:flex-none">
+              <CostInput id={`${inputId}-list`} label="سعر القائمة للقطعة" placeholder="سعر القطعة" value={listPrice} onChange={setListPrice} invalid={costInvalid} />
+              <CostInput id={`${inputId}-discount`} label="الخصم للقطعة" placeholder="خصم" value={discount} onChange={setDiscount} invalid={costInvalid} />
+            </div>
+            {typedCost ? <span className="basis-full text-[12px] text-bw-ink-soft md:basis-auto" aria-live="polite">التكلفة <strong className="text-bw-ink tabular-nums">{egp(typedCost.final)}</strong> للقطعة</span> : null}
+            <Button type="submit" loading={acquire.pending} disabled={!valid || busy || costInvalid} className="h-12 flex-1 md:h-bw-control md:flex-none">تم الشراء</Button>
             <Button type="button" variant="ghost" loading={unavailable.pending} disabled={busy} onClick={() => void run('unavailable')} className="h-12 text-bw-danger hover:text-bw-danger md:h-bw-control">مش متاح</Button>
             {over ? <p role="alert" className="basis-full text-[12px] text-bw-danger md:text-end">أكتر من المطلوب (<bdi className="bw-code">{item.toBuy}</bdi>)</p> : null}
+            {costInvalid ? <p role="alert" className="basis-full text-[12px] text-bw-danger md:text-end">الخصم لازم يكون أقل من سعر القائمة، والاتنين أرقام.</p> : null}
           </form>
         ) : null}
         {item.unavailable > 0 && active ? (
@@ -263,6 +290,75 @@ function BuyRow({ item, active, onChanged }: { item: BuyListItem; active: boolea
           </ul>
         ) : null}
       </div>
+    </li>
+  )
+}
+
+function CostInput({ id, label, placeholder, value, onChange, invalid }: { id: string; label: string; placeholder: string; value: string; onChange: (value: string) => void; invalid?: boolean }) {
+  return (
+    <>
+      <label htmlFor={id} className="sr-only">{label}</label>
+      <input
+        id={id} dir="ltr" inputMode="decimal" autoComplete="off" placeholder={placeholder} value={value} aria-invalid={invalid || undefined}
+        onChange={(event) => onChange(event.target.value.replace(/[^\d.]/g, ''))}
+        className={cn('bw-control h-12 w-24 rounded-bw-field border bg-bw-page/60 px-2 text-center text-bw-small tabular-nums text-bw-ink placeholder:text-bw-ink-subtle md:h-bw-control', invalid ? 'border-bw-danger' : 'border-bw-line-field')}
+      />
+    </>
+  )
+}
+
+function CostField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1 block text-[12px] font-semibold text-bw-ink-soft">{label}</label>
+      <input
+        id={id} dir="ltr" inputMode="decimal" autoComplete="off" value={value}
+        onChange={(event) => onChange(event.target.value.replace(/[^\d.]/g, ''))}
+        className="bw-control h-10 w-full rounded-bw-field border border-bw-line-field bg-bw-page/60 px-3 text-bw-small tabular-nums text-bw-ink"
+      />
+    </div>
+  )
+}
+
+/** Purchases that were counted without a cost. Recording it later is the same list price and discount, against that purchase. */
+function PendingCosts({ items, onSaved }: { items: PendingCost[]; onSaved: () => void }) {
+  const [all, setAll] = React.useState(false)
+  const shown = all ? items : items.slice(0, 3)
+  return (
+    <section aria-label="مشتريات بلا تكلفة مسجّلة" className="bw-panel border-bw-amber/30">
+      <div className="flex items-center gap-2 border-b border-bw-line px-4 py-3">
+        <h2 className="text-bw-body font-semibold text-bw-ink">مشتريات بلا تكلفة مسجّلة</h2>
+        <span className="rounded-full border border-bw-amber/30 bg-bw-amber-soft px-2 text-[11px] font-semibold text-bw-amber"><bdi className="bw-code">{items.length}</bdi></span>
+        <p className="ms-auto hidden text-[12px] text-bw-ink-subtle sm:block">لازم تتسجّل عشان الربح يكتمل</p>
+      </div>
+      <ul className="divide-y divide-bw-line">
+        {shown.map((row) => <PendingCostRow key={row.acquireKey} row={row} onSaved={onSaved} />)}
+      </ul>
+      {items.length > 3 ? <button type="button" onClick={() => setAll((v) => !v)} className="bw-row w-full border-t border-bw-line px-4 py-2.5 text-start text-[12px] font-semibold text-bw-cobalt">{all ? 'عرض أقل' : `عرض الكل (${items.length})`}</button> : null}
+    </section>
+  )
+}
+
+function PendingCostRow({ row, onSaved }: { row: PendingCost; onSaved: () => void }) {
+  const [listPrice, setListPrice] = React.useState('')
+  const [discount, setDiscount] = React.useState('')
+  const id = React.useId()
+  const typed = costFrom(listPrice, discount)
+  const save = useCommand(() => api('/buy-list/costs', { body: { acquireKey: row.acquireKey, listUnitPrice: typed!.listUnitPrice, discountPerUnit: typed!.discountPerUnit } }))
+  const size = row.size != null ? `${row.size}${row.sizeUnit ? ` ${row.sizeUnit}` : ''}` : ''
+  return (
+    <li className="grid gap-x-4 gap-y-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_repeat(2,8rem)_auto] md:items-end">
+      <div className="min-w-0">
+        <p className="text-bw-small font-semibold text-bw-ink"><Code>{row.skuCode ?? shortId(row.skuId)}</Code> <bdi className="font-normal text-bw-ink-soft">{[row.variantName, size].filter(Boolean).join(' · ')}</bdi></p>
+        <p className="text-[12px] text-bw-ink-subtle"><bdi className="bw-code">{row.quantity}</bdi> قطعة · {formatDateTime(row.acquiredAt)}</p>
+      </div>
+      <CostField id={`${id}-l`} label="سعر القائمة · ج.م" value={listPrice} onChange={setListPrice} />
+      <CostField id={`${id}-d`} label="الخصم للقطعة · ج.م" value={discount} onChange={setDiscount} />
+      <div className="flex items-center gap-3">
+        {typed ? <span className="text-[12px] text-bw-ink-soft tabular-nums">= {egp(typed.final)}</span> : null}
+        <Button size="sm" loading={save.pending} disabled={!typed} onClick={async () => { if (await save.execute()) onSaved() }}>تسجيل التكلفة</Button>
+      </div>
+      {save.error ? <div className="md:col-span-4"><CommandError error={save.error} /></div> : null}
     </li>
   )
 }

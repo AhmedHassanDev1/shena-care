@@ -14,7 +14,7 @@ type DeliveryPolicy = { bands:Array<{maxKm:number|null;fee:number}>; discountTie
 const keys = {
   phone:'business.phone', whatsapp:'business.whatsapp.number', whatsappEnabled:'business.whatsapp.enabled',
   facebook:'business.facebook.url', facebookEnabled:'business.facebook.enabled',
-  delivery:'commerce.delivery.policy', deliveryCost:'commerce.delivery.internal_cost', carton:'commerce.packaging.carton_cost', label:'commerce.packaging.label_cost',
+  delivery:'commerce.delivery.policy', deliveryCost:'commerce.delivery.internal_cost', bag:'commerce.packaging.bag_cost', box:'commerce.packaging.box_cost', share:'finance.profit_share_percent',
   cod:'commerce.cod.enabled', checkout:'storefront.checkout.enabled', areas:'commerce.delivery.areas',
   sourcingMode:'operations.sourcing.mode',
 }
@@ -79,12 +79,17 @@ export default function SettingsPage() {
         </div>
       </Group>
 
-      <Group title="تكلفة التغليف والتوصيل" hint="تكاليفك الداخلية لكل طلب. بتدخل في حساب الهامش، ومش بتظهر للعميل.">
+      <Group title="تكلفة التغليف والتوصيل" hint="التكلفة المعتادة لكل طلب. بتتسجّل على كل طلب وقت التغليف، وتغيير السعر بعد كده مابيغيّرش الطلبات القديمة.">
         <div className="grid gap-4 sm:grid-cols-3">
-          <SettingInput title="توصيل داخلي · ج.م / طلب" item={setting(keys.deliveryCost)} value={draft[keys.deliveryCost]} onChange={v=>update(keys.deliveryCost,v===''?null:Number(v))} number />
-          <SettingInput title="العبوة · ج.م / طلب" item={setting(keys.carton)} value={draft[keys.carton]} onChange={v=>update(keys.carton,v===''?null:Number(v))} number />
-          <SettingInput title="الملصق · ج.م / طلب" item={setting(keys.label)} value={draft[keys.label]} onChange={v=>update(keys.label,v===''?null:Number(v))} number />
+          <SettingInput title="تكلفة الشنطة · ج.م" item={setting(keys.bag)} value={draft[keys.bag]} onChange={v=>update(keys.bag,v===''?null:Number(v))} number />
+          <SettingInput title="تكلفة الكرتونة · ج.م" item={setting(keys.box)} value={draft[keys.box]} onChange={v=>update(keys.box,v===''?null:Number(v))} number />
+          <SettingInput title="توصيل داخلي معتاد · ج.م / طلب" item={setting(keys.deliveryCost)} value={draft[keys.deliveryCost]} onChange={v=>update(keys.deliveryCost,v===''?null:Number(v))} number />
         </div>
+        <p className="mt-2 text-[12px] text-bw-ink-subtle">تكلفة التوصيل المعتادة بتظهر كاقتراح بس؛ المسجّل على الطلب هو تكلفة المندوب الفعلية.</p>
+      </Group>
+
+      <Group title="توزيع الأرباح" hint="نسبة من صافي الربح الشهري بعد كل التكاليف الفعلية. الشهر المُغلق بيحتفظ بالنسبة اللي اتقفل بيها.">
+        <div className="max-w-xs"><SettingInput title="نسبة حصة الأرباح · %" item={setting(keys.share)} value={draft[keys.share]} onChange={v=>update(keys.share,v===''?null:Number(v))} number /></div>
       </Group>
 
       {delivery?<Group title="رسوم التوصيل على العميل" hint="حسب المسافة، مع خصم أو توصيل مجاني لما قيمة الطلب تكبر.">
@@ -155,7 +160,7 @@ function Group({title,hint,children}:{title:string;hint?:string;children:React.R
 }
 
 function SettingInput({title,item,value,onChange,number=false}:{title:string;item?:Setting;value:unknown;onChange:(v:string)=>void;number?:boolean}){
-  return <Field label={title} type={number?'number':item?.kind==='phone'?'tel':item?.kind==='url'?'url':'text'} min={number?String(item?.min??0):undefined} max={number?String(item?.max??1000):undefined} step={number?'0.01':undefined} value={value==null?'':String(value)} onChange={e=>onChange(e.target.value)} ltr={item?.kind==='phone'||item?.kind==='url'} hint={item?.source==='DEFAULT'?'افتراضي':undefined}/>
+  return <Field label={title} type={number?'number':item?.kind==='phone'?'tel':item?.kind==='url'?'url':'text'} min={number?String(item?.min??0):undefined} max={number?String(item?.max??1000):undefined} step={number?'0.01':undefined} inputMode={number?'decimal':undefined} value={value==null?'':String(value)} onChange={e=>onChange(e.target.value)} ltr={item?.kind==='phone'||item?.kind==='url'} hint={item?.source==='DEFAULT'?'افتراضي':undefined}/>
 }
 
 /** How goods are sourced. Only new orders follow a changed mode; supply plans already created keep their coverage. */

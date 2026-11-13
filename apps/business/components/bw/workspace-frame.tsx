@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import {
   ClipboardList, FileSpreadsheet, Heart, History, LayoutDashboard, ListChecks,
-  LogOut, PackageOpen, Printer, Route, ScanLine,
+  LogOut, PackageOpen, Printer, Receipt, Route, ScanLine,
   Radio, ShoppingBag, Settings2, Store, Truck, UserRound, Users, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -56,6 +56,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'pick', label: 'التجهيز', icon: ScanLine, href: '/hub/prepare' },
       { id: 'pack', label: 'التغليف والطباعة', icon: Printer, href: '/hub/pack' },
       { id: 'handoff', label: 'التسليم للمندوب', icon: Truck, href: '/hub/dispatch' },
+      { id: 'order-costs', label: 'تكلفة الطلبات', icon: Receipt, href: '/hub/order-costs' },
       { id: 'cash', label: 'عدّ النقدية', icon: Wallet, href: '/hub/cash' },
     ],
   },

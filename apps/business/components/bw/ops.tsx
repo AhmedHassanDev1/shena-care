@@ -158,7 +158,7 @@ export function StatStrip({ children, className, columns = 5 }: { children: Reac
 }
 
 export function Stat({ label, value, unit, hint, tone = 'neutral', href, loading }: {
-  label: string
+  label: React.ReactNode
   value: number | string
   unit?: string
   hint?: React.ReactNode

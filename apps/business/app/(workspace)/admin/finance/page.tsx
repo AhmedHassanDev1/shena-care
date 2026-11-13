@@ -1,178 +1,168 @@
 'use client'
 
 import * as React from 'react'
-import { Plus, RefreshCw, TriangleAlert, X } from 'lucide-react'
-import { Button, Code, DataTable, Field, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
-import { BarList, PanelHead, Segmented, Stat, StatStrip } from '@/components/bw/ops'
-import { TrendChart } from '@/components/bw/trend-chart'
-import { CommandError, Egp, Page, Select, Status } from '@/components/workspace/kit'
+import Link from 'next/link'
+import { ChevronDown, ChevronLeft, ChevronRight, Lock, Plus, RefreshCw, TriangleAlert, X } from 'lucide-react'
+import { Button, Code, Field, PageHeader, Skeleton, StateBlock } from '@/components/bw/primitives'
+import { PanelHead, Stat, StatStrip } from '@/components/bw/ops'
+import { MonthlyBars } from '@/components/bw/monthly-bars'
+import { CommandError, Egp, Page, Select } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
-import { COLLECTION_STATUS } from '@/lib/labels'
 import { useApi, useCommand } from '@/lib/use-api'
+import { cn } from '@/lib/utils'
 
-type FinanceSummary = {
-  range: { from: string; to: string; days: number }
-  sales: { deliveredOrders: number; goodsRevenue: number; deliveryFeeRevenue: number; billedTotal: number; discountsGiven: number; averageOrderValue: number | null }
-  cod: { expected: number; outstanding: number; disputed: number; reconciled: number; variance: number; settlementBatches: number }
-  supplierCosts: { invoicedInPeriod: number; payablesOutstanding: number; payablesPaidInPeriod: number }
-  profitability: { ordersWithCost: number; ordersCostPending: number; ordersNotReceived: number; costCoveragePercent: number | null; grossProfitRecorded: number | null; grossMarginPercent: number | null }
-  costs: { refunds: number; courierSettlementFees: number; operatingExpenses: number; expensesByCategory: Array<{ category: string; total: number }> }
-  operatingResult: { value: number | null; status: string; missing: string[] }
-  estimates: { deliveryCost: number | null; packagingCost: number | null }
+type MissingCode = 'PURCHASE_COST' | 'COURIER_COST' | 'PACKAGING_COST' | 'LOSS_PURCHASE_COST'
+type Profit = {
+  period: string; status: 'COMPLETE' | 'INCOMPLETE'; eligibleOrders: number
+  missing: Array<{ code: MissingCode; orders: number }>
+  revenue: { productSales: number; refunds: number; net: number }
+  costs: { purchase: number; companyFundedDelivery: number; packaging: number; losses: number; operatingExpenses: number; total: number }
+  delivery: { customerFees: number; courierCost: number; companyFunded: number; customerSurplus: number }
+  netProfit: number | null; profitSharePercent: number; profitShare: number | null
+  closed: { at: string; by: string } | null; monthEnded?: boolean
+  needsCost: Array<{ orderId: string; orderNumber: string; missing: string[] }>
+  cod: { expected: number; notYetCollected: number; collectedByDrivers: number; disputed: number; outstanding: number; settled: number }
 }
-type Series = { points: Array<{ date: string; revenue: number; orders: number; grossProfit: number; costedOrders: number; expenses: number; refunds: number; codSettled: number }> }
-type FinanceOrder = { orderId: string; orderNumber: string; deliveredAt: string; paymentMethod: string; goods: number; discounts: number; deliveryFee: number; total: number; cod: { status: string; expected: number; collected: number | null } | null; cost: { status: string; supplierCost: number | null; contribution: number | null; marginPercent: number | null } }
+type Trend = { points: Array<{ period: string; status: 'COMPLETE' | 'INCOMPLETE'; closed: boolean; revenue: number; costs: number; netProfit: number | null; profitShare: number | null }> }
 type Expense = { id: string; category: string; description: string; amount: number; incurredOn: string; recurrence: string; endsOn: string | null; voided: boolean }
 
-const cairoDay = (offsetDays = 0) => new Date(Date.now() - offsetDays * 86400000).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
-const today = cairoDay()
-const monthStart = `${today.slice(0, 8)}01`
+const cairoToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })
+const today = cairoToday()
+const thisMonth = today.slice(0, 7)
 const categoryName: Record<string, string> = { RENT: 'إيجار', UTILITIES: 'مرافق', MARKETING: 'تسويق', PACKAGING: 'تغليف', DELIVERY: 'توصيل', SOFTWARE: 'برمجيات', SUPPLIES: 'مستلزمات', OTHER: 'أخرى' }
 const money = (n: number | null | undefined) => n == null ? '—' : `${n.toLocaleString('en-US', { maximumFractionDigits: 2 })} ج.م`
-const compact = (n: number) => (n >= 1000 ? `${Number.isInteger(n / 1000) ? n / 1000 : (n / 1000).toFixed(1)}k` : String(Math.round(n)))
-const ymd = (value: string) => value.slice(0, 10)
-const dayLabel = (date: string) => `${date.slice(8, 10)}/${date.slice(5, 7)}`
+const shiftMonth = (period: string, delta: number) => {
+  const [y, m] = period.split('-').map(Number)
+  const index = y * 12 + (m - 1) + delta
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`
+}
+const monthName = (period: string, style: 'long' | 'short' = 'long') => new Date(`${period}-15T12:00:00Z`).toLocaleDateString('ar-EG-u-nu-latn', { month: style, year: style === 'long' ? 'numeric' : undefined, timeZone: 'UTC' })
 
-type Preset = 'month' | '7' | '30' | 'custom'
-const PRESETS: Array<{ value: Preset; label: string }> = [{ value: 'month', label: 'الشهر' }, { value: '7', label: '7 أيام' }, { value: '30', label: '30 يوم' }]
+const MISSING_TEXT: Record<MissingCode, string> = {
+  PURCHASE_COST: 'طلب بلا تكلفة شراء مسجّلة',
+  COURIER_COST: 'طلب بلا تكلفة توصيل فعلية',
+  PACKAGING_COST: 'طلب بلا نوع تغليف',
+  LOSS_PURCHASE_COST: 'طلب ملغي اشتُريت له بضاعة بلا تكلفة',
+}
 
 export default function FinancePage() {
-  const [from, setFrom] = React.useState(monthStart)
-  const [to, setTo] = React.useState(today)
-  const preset: Preset = to === today && from === monthStart ? 'month' : to === today && from === cairoDay(6) ? '7' : to === today && from === cairoDay(29) ? '30' : 'custom'
-  const pick = (value: Preset) => {
-    setTo(today)
-    setFrom(value === 'month' ? monthStart : value === '7' ? cairoDay(6) : cairoDay(29))
-  }
-  const query = `?from=${from}&to=${to}`
-  const summary = useApi<FinanceSummary>(`/operations/finance/summary${query}`)
-  const series = useApi<Series>(`/operations/finance/series${query}`)
-  const orders = useApi<{ total: number; items: FinanceOrder[] }>(`/operations/finance/orders${query}&limit=25`)
+  const [month, setMonth] = React.useState(thisMonth)
+  const profit = useApi<Profit>(`/operations/finance/profit?month=${month}`)
+  const trend = useApi<Trend>('/operations/finance/profit/trend?months=6')
   const expenses = useApi<Expense[]>('/operations/finance/expenses')
   const [showExpense, setShowExpense] = React.useState(false)
-  const refresh = () => { summary.reload(); series.reload(); orders.reload(); expenses.reload() }
-  const busy = summary.loading || series.loading || orders.loading
-
-  const s = summary.data
-  const recordedCosts = s ? s.supplierCosts.invoicedInPeriod + s.costs.refunds + s.costs.courierSettlementFees + s.costs.operatingExpenses : 0
-  const costItems = s ? [
-    { key: 'invoices', label: 'فواتير الموردين', value: s.supplierCosts.invoicedInPeriod, tone: 'cobalt' as const },
-    { key: 'ops', label: 'مصاريف تشغيل', value: s.costs.operatingExpenses, tone: 'amber' as const },
-    { key: 'courier', label: 'رسوم تسوية المندوبين', value: s.costs.courierSettlementFees, tone: 'violet' as const },
-    { key: 'refunds', label: 'استردادات العملاء', value: s.costs.refunds, tone: 'rose' as const },
-  ] : []
-  const pending = s ? s.profitability.ordersCostPending + s.profitability.ordersNotReceived : 0
+  const close = useCommand(() => api(`/operations/finance/profit/${month}/close`, { method: 'POST' }))
+  const reloadAll = () => { profit.reload(); trend.reload(); expenses.reload() }
+  const p = profit.data
+  const loadingFirst = !p && profit.loading
+  const canClose = !!p && !p.closed && p.status === 'COMPLETE' && p.monthEnded === true
+  const refresh = profit.loading || trend.loading
 
   return <RoleShell role="admin" active="finance" mode="desktop"><Page>
     <PageHeader
       title="المالية"
-      meta="المبيعات المسلّمة والتكاليف المسجلة فقط، من غير تقديرات."
+      meta="الربح من التكلفة الفعلية المسجّلة فقط. مفيش أرقام تقديرية."
       actions={<>
-        <Segmented label="الفترة" items={PRESETS} value={preset === 'custom' ? ('' as Preset) : preset} onChange={pick} className="rounded-bw-field border border-bw-line bg-bw-surface p-0.5" />
-        <div className="flex items-center gap-1.5">
-          <input aria-label="من تاريخ" type="date" value={from} max={to} onChange={(e) => e.target.value && setFrom(e.target.value)} dir="ltr" className="bw-control h-9 rounded-bw-field border border-bw-line bg-bw-surface px-2 text-bw-small text-bw-ink" />
-          <span aria-hidden className="text-bw-ink-subtle">–</span>
-          <input aria-label="إلى تاريخ" type="date" value={to} min={from} max={today} onChange={(e) => e.target.value && setTo(e.target.value)} dir="ltr" className="bw-control h-9 rounded-bw-field border border-bw-line bg-bw-surface px-2 text-bw-small text-bw-ink" />
+        <div role="group" aria-label="الشهر" className="inline-flex h-9 items-center rounded-bw-field border border-bw-line bg-bw-surface">
+          <button type="button" aria-label="الشهر السابق" onClick={() => setMonth(shiftMonth(month, -1))} className="grid size-9 place-items-center text-bw-ink-soft transition-colors hover:text-bw-ink"><ChevronRight className="size-4" aria-hidden /></button>
+          <span className="min-w-28 px-1 text-center text-bw-small font-semibold text-bw-ink">{monthName(month)}</span>
+          <button type="button" aria-label="الشهر التالي" disabled={month >= thisMonth} onClick={() => setMonth(shiftMonth(month, 1))} className="grid size-9 place-items-center text-bw-ink-soft transition-colors hover:text-bw-ink disabled:opacity-40"><ChevronLeft className="size-4" aria-hidden /></button>
         </div>
-        <Button variant="secondary" size="sm" onClick={refresh} loading={busy && !!s} aria-label="تحديث">{!(busy && !!s) ? <RefreshCw className="size-4" aria-hidden /> : null}تحديث</Button>
-        <Button size="sm" onClick={() => setShowExpense(true)}><Plus className="size-4" aria-hidden />مصروف</Button>
+        <Button variant="secondary" size="sm" onClick={reloadAll} loading={refresh && !!p} aria-label="تحديث">{!(refresh && !!p) ? <RefreshCw className="size-4" aria-hidden /> : null}تحديث</Button>
+        <Button variant="secondary" size="sm" onClick={() => setShowExpense(true)}><Plus className="size-4" aria-hidden />مصروف</Button>
+        {canClose ? <Button size="sm" loading={close.pending} onClick={async () => { if (await close.execute()) reloadAll() }}><Lock className="size-4" aria-hidden />إغلاق الشهر</Button> : null}
       </>}
     />
-    {summary.error ? <LoadError message={summary.error.message} onRetry={summary.reload} /> : null}
-    {!s && summary.loading ? <Skeleton className="h-28 w-full" /> : null}
+    {profit.error ? <LoadError message={profit.error.message} onRetry={profit.reload} /> : null}
+    <CommandError error={close.error} />
+    {loadingFirst ? <Skeleton className="h-28 w-full" /> : null}
 
-    {s ? <>
-      <StatStrip>
-        <Stat label="إيراد مسلّم" value={s.sales.billedTotal.toLocaleString('en-US')} unit="ج.م" tone="emerald" hint={<><bdi className="bw-code">{s.sales.deliveredOrders}</bdi> طلب · بضاعة {money(s.sales.goodsRevenue)}</>} />
-        <Stat label="تكاليف مسجلة" value={recordedCosts.toLocaleString('en-US')} unit="ج.م" tone="neutral" hint={`تكلفة مؤكدة لـ ${s.profitability.ordersWithCost} طلب`} />
-        <Stat
-          label="هامش تقديري"
-          value={s.profitability.grossMarginPercent == null ? '—' : `${s.profitability.grossMarginPercent}%`}
-          tone="cobalt"
-          hint={s.profitability.grossProfitRecorded == null ? 'بانتظار تكلفة الفواتير' : `ربح ${money(s.profitability.grossProfitRecorded)} · تغطية ${s.profitability.costCoveragePercent ?? 0}%`}
-        />
-        <Stat label="تحصيل مُسوَّى" value={s.cod.reconciled.toLocaleString('en-US')} unit="ج.م" tone="emerald" hint={`دفعات التسوية: ${s.cod.settlementBatches}`} />
-        <Stat label="تحصيل لم يُسوَّ" value={s.cod.outstanding.toLocaleString('en-US')} unit="ج.م" tone="amber" href="/admin/cash" hint={s.cod.variance ? `فرق التسوية ${money(s.cod.variance)}` : `متوقع ${money(s.cod.expected)}`} />
-      </StatStrip>
-
-      {pending > 0 || s.operatingResult.value === null ? (
-        <p role="status" className="bw-arrive flex items-start gap-2.5 rounded-bw-card border border-bw-amber/30 bg-bw-amber-soft px-4 py-3 text-bw-small text-bw-ink">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-bw-amber" aria-hidden />
-          <span>
-            <strong className="font-semibold">الربح غير مكتمل.</strong>{' '}
-            {s.profitability.ordersCostPending > 0 ? <><Code>{s.profitability.ordersCostPending}</Code> طلب مستني تسجيل تكلفته</> : null}
-            {s.profitability.ordersCostPending > 0 && s.profitability.ordersNotReceived > 0 ? '، و' : null}
-            {s.profitability.ordersNotReceived > 0 ? <><Code>{s.profitability.ordersNotReceived}</Code> طلب لسه ماوصلش المخزن</> : null}
-            {pending === 0 ? 'مفيش تكاليف كفاية لحساب نتيجة التشغيل.' : '.'} الأرقام فوق مبنية على المسجّل بس.
-          </span>
+    {p ? <>
+      {p.closed ? (
+        <p role="status" className="flex items-center gap-2 text-bw-small text-bw-ink-soft">
+          <Lock className="size-3.5 text-bw-emerald" aria-hidden />
+          الشهر مُغلق. الأرقام ثابتة بنسبة <bdi className="bw-code font-semibold text-bw-ink">{p.profitSharePercent}%</bdi> وقت الإغلاق، وأي تغيير بعد كده مابيغيّرهاش.
         </p>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
-        <section aria-label="الإيراد اليومي" className="bw-panel">
-          <PanelHead title="الإيراد اليومي" aside={<span className="text-bw-small text-bw-ink-soft">الطلبات المسلّمة فقط</span>} />
-          <div className="p-4 pb-3">
-            {series.error ? <LoadError message={series.error.message} onRetry={series.reload} /> : null}
-            {!series.data && series.loading ? <Skeleton className="h-[290px] w-full" /> : null}
-            {series.data ? (
-              <TrendChart
-                points={series.data.points.map((p) => ({ key: p.date, label: ymd(p.date), short: dayLabel(p.date), value: p.revenue }))}
-                tone="emerald"
-                formatValue={money}
-                formatAxis={compact}
-                height={290}
-                ariaLabel="الإيراد المسلّم حسب اليوم"
-                emptyLabel="مفيش مبيعات مسلّمة في الفترة دي"
-              />
-            ) : null}
-          </div>
-        </section>
+      <StatStrip>
+        <Stat label="الإيراد" value={p.revenue.net.toLocaleString('en-US')} unit="ج.م" tone="cobalt" hint={`${p.eligibleOrders} طلب مسلَّم`} />
+        <Stat label="التكاليف الفعلية" value={p.costs.total.toLocaleString('en-US')} unit="ج.م" hint="شراء وتوصيل وتغليف وخسائر ومصروفات" />
+        <Stat label="صافي الربح" value={p.netProfit === null ? '—' : p.netProfit.toLocaleString('en-US')} unit={p.netProfit === null ? undefined : 'ج.م'} tone={p.netProfit !== null && p.netProfit < 0 ? 'rose' : 'emerald'} hint={p.status === 'INCOMPLETE' ? 'غير مكتمل: تكاليف فعلية ناقصة' : 'الإيراد − التكاليف الفعلية'} />
+        <Stat label={<>حصة الأرباح (<bdi className="bw-code">{p.profitSharePercent}%</bdi>)</>} value={p.profitShare === null ? '—' : p.profitShare.toLocaleString('en-US')} unit={p.profitShare === null ? undefined : 'ج.م'} tone="violet" hint={p.profitShare === null ? 'تُحسب بعد اكتمال التكاليف' : 'من صافي الربح، مفيش تحويل تلقائي'} />
+        <Stat label="تحصيل لم يُسوَّ" value={p.cod.outstanding.toLocaleString('en-US')} unit="ج.م" tone="amber" href="/admin/cash" hint={`مع المناديب ${money(p.cod.collectedByDrivers)} · مُسوّى ${money(p.cod.settled)}`} />
+      </StatStrip>
 
-        <section aria-label="التكاليف المسجلة" className="bw-panel">
-          <PanelHead title="التكاليف المسجلة" aside={<span className="text-bw-small tabular-nums text-bw-ink-soft">{money(recordedCosts)}</span>} />
-          <div className="space-y-4 p-4">
-            <BarList items={costItems} formatValue={(v) => money(v)} emptyLabel="مفيش تكاليف مسجلة في الفترة دي" />
-            {s.costs.expensesByCategory.length > 0 ? (
-              <div className="border-t border-bw-line pt-3">
-                <p className="mb-1 text-[11px] font-semibold text-bw-ink-subtle">المصروفات حسب النوع</p>
-                <BarList items={s.costs.expensesByCategory.map((c) => ({ key: c.category, label: categoryName[c.category] ?? c.category, value: c.total, tone: 'amber' as const }))} formatValue={(v) => money(v)} />
-              </div>
-            ) : null}
-            {s.supplierCosts.payablesOutstanding > 0 || s.supplierCosts.payablesPaidInPeriod > 0 ? <p className="border-t border-bw-line pt-3 text-[12px] text-bw-ink-subtle">مستحقات الموردين {money(s.supplierCosts.payablesOutstanding)} · مدفوع بالفترة {money(s.supplierCosts.payablesPaidInPeriod)}</p> : null}
+      {p.status === 'INCOMPLETE' ? (
+        <div role="status" className="bw-arrive flex items-start gap-3 rounded-bw-card border border-bw-amber/30 bg-bw-amber-soft px-4 py-3 text-bw-small text-bw-ink">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-bw-amber" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">الربح غير مكتمل لحد ما تتسجّل التكاليف الفعلية دي:</p>
+            <ul className="mt-1 list-disc space-y-0.5 ps-5 text-bw-ink-soft">
+              {p.missing.map((m) => <li key={m.code}><Code>{m.orders}</Code> {MISSING_TEXT[m.code]}</li>)}
+            </ul>
+            <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] font-semibold">
+              <Link href="/hub/order-costs" className="text-bw-cobalt underline-offset-4 hover:underline">سجّل تكلفة التوصيل والتغليف</Link>
+              <Link href="/hub/buy-list" className="text-bw-cobalt underline-offset-4 hover:underline">سجّل تكلفة المشتريات</Link>
+            </p>
           </div>
-        </section>
-      </div>
+        </div>
+      ) : null}
 
-      <section aria-label="الطلبات المسلّمة" className="bw-panel overflow-hidden">
-        <PanelHead title="الطلبات المسلّمة" aside={<span className="text-bw-small text-bw-ink-soft"><Code>{orders.data?.total ?? '—'}</Code> سجل</span>} />
-        {orders.error ? <LoadError message={orders.error.message} onRetry={orders.reload} /> : null}
-        {!orders.data && orders.loading ? <div className="p-4"><Skeleton className="h-40 w-full" /></div> : null}
-        {orders.data?.items.length === 0 ? <StateBlock kind="empty" title="مفيش طلبات مسلّمة في الفترة دي" /> : null}
-        {orders.data?.items.length ? <DataTable caption="تفاصيل الطلبات المالية" head={['الطلب', 'الإجمالي', 'تكلفة البضاعة', 'المساهمة', 'الهامش', 'التحصيل']}>
-          {orders.data.items.map(order => <tr key={order.orderId}>
-            <td><Code className="font-semibold">{order.orderNumber.replace(/^ORD-/, '#')}</Code><span className="block text-[11px] text-bw-ink-subtle">{ymd(order.deliveredAt)}</span></td>
-            <td className="tabular-nums">{money(order.total)}</td>
-            <td>{order.cost.supplierCost === null ? <StatusLabel tone="pending">{order.cost.status === 'PENDING' ? 'التكلفة معلقة' : 'لم تسجل بعد'}</StatusLabel> : <span className="tabular-nums">{money(order.cost.supplierCost)}</span>}</td>
-            <td className="tabular-nums">{money(order.cost.contribution)}</td>
-            <td className="tabular-nums">{order.cost.marginPercent === null ? '—' : <span dir="ltr">{order.cost.marginPercent}%</span>}</td>
-            <td>{order.cod ? <span className="flex flex-wrap items-center gap-2"><span className="tabular-nums">{money(order.cod.collected)}</span><Status map={COLLECTION_STATUS} value={order.cod.status.toLowerCase()} /></span> : <span className="text-bw-ink-subtle">غير نقدي</span>}</td>
-          </tr>)}
-        </DataTable> : null}
+      <section aria-label="الاتجاه الشهري" className="bw-panel">
+        <PanelHead title="الاتجاه الشهري" aside={<span className="text-bw-small text-bw-ink-soft">آخر 6 شهور</span>} />
+        <div className="p-4">
+          {trend.error ? <LoadError message={trend.error.message} onRetry={trend.reload} /> : null}
+          {!trend.data && trend.loading ? <Skeleton className="h-44 w-full" /> : null}
+          {trend.data ? (
+            <MonthlyBars
+              months={trend.data.points.map((point) => ({ key: point.period, label: monthName(point.period, 'short'), revenue: point.revenue, net: point.netProfit, closed: point.closed }))}
+              formatValue={money}
+              ariaLabel="الإيراد وصافي الربح لكل شهر"
+              emptyLabel="مفيش طلبات مسلَّمة في آخر 6 شهور"
+              incompleteLabel="غير مكتمل"
+            />
+          ) : null}
+        </div>
       </section>
+
+      <details className="group bw-panel">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-bw-small font-semibold text-bw-ink-soft hover:text-bw-ink [&::-webkit-details-marker]:hidden">
+          تفاصيل الحساب
+          <ChevronDown className="size-4 transition-transform duration-200 group-open:rotate-180" aria-hidden />
+        </summary>
+        <dl className="divide-y divide-bw-line border-t border-bw-line text-bw-small">
+          {([
+            ['مبيعات المنتجات (بعد الخصومات)', p.revenue.productSales, false],
+            ['مرتجعات مدفوعة للعملاء', -p.revenue.refunds, false],
+            ['تكلفة شراء البضاعة المباعة', -p.costs.purchase, false],
+            ['توصيل تتحمله الشركة (تكلفة المندوب فوق رسوم العميل)', -p.costs.companyFundedDelivery, false],
+            ['التغليف (شنطة / كرتونة)', -p.costs.packaging, false],
+            ['خسائر طلبات ملغية أو مرتجعة', -p.costs.losses, false],
+            ['مصروفات التشغيل المسجّلة', -p.costs.operatingExpenses, false],
+          ] as Array<[string, number, boolean]>).map(([label, value]) => (
+            <div key={label} className="flex items-center justify-between gap-4 px-4 py-2.5"><dt className="text-bw-ink-soft">{label}</dt><dd className={cn('tabular-nums', value < 0 ? 'text-bw-ink-soft' : 'text-bw-ink')}>{money(value)}</dd></div>
+          ))}
+          <div className="flex items-center justify-between gap-4 px-4 py-2.5 font-semibold"><dt>صافي الربح</dt><dd className="tabular-nums">{money(p.netProfit)}</dd></div>
+          <div className="px-4 py-3 text-[12px] text-bw-ink-subtle">
+            رسوم التوصيل اللي دفعها العملاء ({money(p.delivery.customerFees)}) مش إيراد منتجات؛ بتتقابل بس مع تكلفة المندوب الفعلية ({money(p.delivery.courierCost)}). رأس المال بيرجع من تكلفة الشراء المسجّلة ومابيتخصمش مرتين.
+          </div>
+        </dl>
+      </details>
 
       <section aria-label="المصروفات المسجلة" className="bw-panel">
         <PanelHead title="المصروفات المسجلة" aside={<Button variant="secondary" size="sm" onClick={() => setShowExpense(true)}><Plus className="size-4" aria-hidden />إضافة</Button>} />
         {expenses.error ? <LoadError message={expenses.error.message} onRetry={expenses.reload} /> : null}
         {!expenses.data && expenses.loading ? <div className="p-4"><Skeleton className="h-20 w-full" /></div> : null}
-        {expenses.data?.length === 0 ? <StateBlock kind="empty" title="مفيش مصروفات مسجلة" body="سجّل المصروفات الفعلية عشان تدخل في تقرير التشغيل." /> : null}
+        {expenses.data?.length === 0 ? <StateBlock kind="empty" title="مفيش مصروفات مسجلة" body="سجّل المصروفات الفعلية عشان تدخل في حساب الربح." /> : null}
         {expenses.data?.length ? <ul className="divide-y divide-bw-line">{expenses.data.slice(0, 8).map(expense => <li key={expense.id} className="bw-row flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-bw-small">
           <div className="min-w-0"><span className="font-semibold text-bw-ink">{categoryName[expense.category] ?? expense.category}</span><span className="text-bw-ink-soft"> · {expense.description}</span><span className="ms-2 text-[12px] text-bw-ink-subtle">{expense.incurredOn}{expense.recurrence !== 'NONE' ? ` · ${expense.recurrence === 'WEEKLY' ? 'أسبوعي' : 'شهري'}` : ''}</span></div>
           <Egp value={expense.amount} className="font-semibold text-bw-ink" />
         </li>)}</ul> : null}
       </section>
     </> : null}
-    {showExpense ? <ExpenseDialog onClose={() => setShowExpense(false)} onSaved={() => { setShowExpense(false); refresh() }} /> : null}
+    {showExpense ? <ExpenseDialog onClose={() => setShowExpense(false)} onSaved={() => { setShowExpense(false); reloadAll() }} /> : null}
   </Page></RoleShell>
 }
 

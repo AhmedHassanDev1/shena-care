@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils'
 import type { HubShipment } from '../prepare/page'
 
 type PackShipment = HubShipment & { printEvents: string[] }
+type PackagingCosts = { BAG: number | null; BOX: number | null }
+const PACKAGING_LABEL = { BAG: 'شنطة', BOX: 'كرتونة' } as const
 
 /**
  * Print + pack (W4). Two thermal outputs on the pharmacy's narrow receipt printer: the customer receipt
@@ -30,18 +32,22 @@ export default function HubPack() {
 function PackBody() {
   const hub = useHub()
   const { data, error, loading, reload } = useApi<{ total: number; items: PackShipment[] }>(`/fulfillment/locations/${hub.id}/shipments?status=prepared,ready_to_pack,packing&take=100`, { pollMs: 20000 })
+  const costs = useApi<{ packagingCosts: PackagingCosts }>('/order-costs/pending?take=1')
   return (
     <Page>
       <PageHeader title="الطباعة والتغليف" meta="إيصال للعميل جوه الطرد + بوليصة شحن بالباركود برّه الطرد. إعادة الطباعة مابتغيّرش رقم الشحنة." />
       {error ? <LoadError message={error.message} onRetry={reload} /> : null}
       {!data && loading ? <Skeleton className="h-40 w-full" /> : null}
       {data && data.items.length === 0 ? <div className="bw-panel"><StateBlock kind="empty" title="مافيش طرود مستنية طباعة أو تغليف" /></div> : null}
-      <div className="space-y-3">{data?.items.map((s) => <PackCard key={s.shipmentId} s={s} onChanged={reload} />)}</div>
+      <div className="space-y-3">{data?.items.map((s) => <PackCard key={s.shipmentId} s={s} onChanged={reload} packagingCosts={costs.data?.packagingCosts ?? null} />)}</div>
     </Page>
   )
 }
 
-function PackCard({ s, onChanged }: { s: PackShipment; onChanged: () => void }) {
+function PackCard({ s, onChanged, packagingCosts }: { s: PackShipment; onChanged: () => void; packagingCosts: PackagingCosts | null }) {
+  const recorded = useApi<{ packagingType: 'BAG' | 'BOX' | null }>(`/order-costs/${s.orderId}`)
+  const choose = useCommand((type: 'BAG' | 'BOX') => api(`/order-costs/${s.orderId}`, { method: 'PUT', body: { packagingType: type } }))
+  const packagingType = recorded.data?.packagingType ?? null
   const [barcode, setBarcode] = React.useState<string | null>(null)
   const label = useCommand(() => api<{ barcode: string }>(`/fulfillment/shipments/${s.shipmentId}/label`, { method: 'POST' }))
   const event = useCommand((type: string, notes?: string) => api(`/fulfillment/shipments/${s.shipmentId}/events`, { body: { type, ...(notes ? { notes } : {}) } }))
@@ -80,8 +86,25 @@ function PackCard({ s, onChanged }: { s: PackShipment; onChanged: () => void }) 
         </Step>
         <Step n={3} done={s.status === 'packed'} title="التغليف">
           <p className="text-[12px] text-bw-ink-soft">حط الإيصال جوه، والبوليصة برّه بشريط أو جراب.</p>
-          <Button size="sm" loading={event.pending} disabled={!printed} onClick={() => record('PACKED')}>اتغلّف — جاهز للتسليم</Button>
-          {!printed ? <p className="text-[11px] text-bw-ink-subtle">بيتفتح بعد ما تأكد إن الورقتين طلعوا سليمين</p> : null}
+          <div role="group" aria-label="نوع التغليف المستخدم" className="flex gap-2">
+            {(['BAG', 'BOX'] as const).map((type) => {
+              const cost = packagingCosts?.[type] ?? null
+              return (
+                <button
+                  key={type} type="button" aria-pressed={packagingType === type} disabled={choose.pending || cost === null || (!!packagingType && packagingType !== type && !recorded.error)}
+                  onClick={async () => { if (await choose.execute(type)) recorded.reload() }}
+                  className={cn('inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-bw-field border px-2 text-bw-small transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+                    packagingType === type ? 'border-bw-cobalt/60 bg-bw-cobalt-soft font-semibold text-bw-ink' : 'border-bw-line-field text-bw-ink-soft hover:border-bw-ink-subtle hover:text-bw-ink')}
+                >
+                  {PACKAGING_LABEL[type]}{cost !== null ? <span className="text-[11px] tabular-nums text-bw-ink-subtle">{cost}</span> : null}
+                </button>
+              )
+            })}
+          </div>
+          {packagingCosts && (packagingCosts.BAG === null || packagingCosts.BOX === null) ? <p className="text-[11px] text-bw-amber">حدّد تكلفة الشنطة والكرتونة في الإعدادات.</p> : null}
+          <Button size="sm" loading={event.pending} disabled={!printed || !packagingType} onClick={() => record('PACKED')}>اتغلّف — جاهز للتسليم</Button>
+          {!printed || !packagingType ? <p className="text-[11px] text-bw-ink-subtle">{!printed ? 'بيتفتح بعد ما تأكد إن الورقتين طلعوا سليمين' : 'اختار نوع التغليف اللي استخدمته'}</p> : null}
+          <CommandError error={choose.error} />
         </Step>
       </ol>
       {label.error || event.error ? <div className="border-t border-bw-line p-3"><CommandError error={label.error ?? event.error} /></div> : null}
