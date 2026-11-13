@@ -1,18 +1,6 @@
 import sys
 import os
-import ssl
-import urllib3
-import requests
 from PIL import Image
-
-# Disable SSL verification for model fetch in corporate/custom certificate environments
-ssl._create_default_https_context = ssl._create_unverified_context
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-old_request = requests.Session.request
-def unverified_request(self, *args, **kwargs):
-    kwargs['verify'] = False
-    return old_request(self, *args, **kwargs)
-requests.Session.request = unverified_request
 
 import rembg
 from rembg import remove, new_session
