@@ -136,6 +136,32 @@ describe('research source safety', () => {
   };
   const approved = () => true;
 
+  it('rechecks both original and redirected cached hosts against each caller policy', async () => {
+    const t = site({
+      'https://acme.example/robots.txt': () => ({ status: 404 }),
+      'https://cdn.example/robots.txt': () => ({ status: 404 }),
+      'https://acme.example/x': () => ({ status: 302, headers: { location: 'https://cdn.example/x' } }),
+      'https://cdn.example/x': () => ({ status: 200, body: 'product' }),
+    });
+    const fetcher = new ResearchSourceFetcher(t);
+    expect((await fetcher.fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved })).outcome).toBe('OK');
+    for (const allowed of ['acme.example', 'cdn.example']) {
+      const result = await fetcher.fetch('https://acme.example/x', { kind: 'page', isApprovedHost: host => host === allowed });
+      expect(result.outcome).toBe('HOST_NOT_APPROVED');
+      expect(result.body).toBeUndefined();
+    }
+  });
+
+  it('retries research after a temporary robots outage without caching it as a six-hour refusal', async () => {
+    let reads = 0;
+    const fetcher = new ResearchSourceFetcher(site({
+      'https://acme.example/robots.txt': () => (++reads === 1 ? { status: 503 } : { status: 404 }),
+      'https://acme.example/x': () => ({ status: 200, body: 'product' }),
+    }));
+    expect((await fetcher.fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved })).outcome).toBe('UPSTREAM_ERROR');
+    expect((await fetcher.fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved })).outcome).toBe('OK');
+  });
+
   it('classifies private addresses for IPv4 and IPv6', () => {
     for (const address of ['10.0.0.1', '127.0.0.1', '169.254.169.254', '192.168.1.1', '::1', 'fd00::1', '::ffff:7f00:1']) expect(isPrivateAddress(address)).toBe(true);
     for (const address of ['93.184.216.34', '2606:2800:220:1::1']) expect(isPrivateAddress(address)).toBe(false);
@@ -160,7 +186,7 @@ describe('research source safety', () => {
     expect((await new ResearchSourceFetcher(blocked).fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved })).outcome).toBe('ROBOTS_DISALLOWED');
     expect(blocked.calls).toEqual(['https://acme.example/robots.txt']);
     const down = site({ 'https://acme.example/robots.txt': () => ({ status: 503 }) });
-    expect((await new ResearchSourceFetcher(down).fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved })).outcome).toBe('ROBOTS_DISALLOWED');
+    expect((await new ResearchSourceFetcher(down).fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved })).outcome).toBe('UPSTREAM_ERROR');
     const denied = site({ 'https://acme.example/robots.txt': () => ({ status: 404 }), 'https://acme.example/x': () => ({ status: 403 }) });
     const result = await new ResearchSourceFetcher(denied).fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved });
     expect(result.outcome).toBe('ACCESS_DENIED');

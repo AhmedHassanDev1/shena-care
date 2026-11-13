@@ -140,8 +140,8 @@ export function robotsAllows(rules: RobotsRules, path: string): boolean {
 @Injectable()
 export class ResearchSourceFetcher {
   private readonly logger = new Logger(ResearchSourceFetcher.name);
-  private readonly cache = new Map<string, { expires: number; source: FetchedSource }>();
-  private readonly robots = new Map<string, { expires: number; rules: RobotsRules | null }>();
+  private readonly cache = new Map<string, { expires: number; source: FetchedSource; hosts: string[] }>();
+  private readonly robots = new Map<string, { expires: number; rules: RobotsRules }>();
   private readonly breakers = new Map<string, { failures: number; openUntil: number }>();
   private readonly lastRequest = new Map<string, number>();
 
@@ -168,18 +168,20 @@ export class ResearchSourceFetcher {
     this.lastRequest.set(host, Date.now());
   }
 
-  private async robotsFor(url: URL): Promise<RobotsRules | null> {
+  private async robotsFor(url: URL): Promise<RobotsRules | FetchOutcome> {
     const cached = this.robots.get(url.host);
     if (cached && cached.expires > Date.now()) return cached.rules;
-    let rules: RobotsRules | null;
+    let rules: RobotsRules;
     try {
       await this.pace(url.host);
       const res = await this.transport.get(`${url.origin}/robots.txt`, { accept: 'text/plain', timeoutMs: FETCH_TIMEOUT_MS });
       if (res.status === 200) rules = parseRobots(Buffer.from(await res.arrayBuffer()).toString('utf8'));
-      else if (res.status >= 400 && res.status < 500) rules = { allows: [], disallows: [] }; // no robots file: the site states no restriction
-      else rules = null;
+      else if (res.status === 404 || res.status === 410) rules = { allows: [], disallows: [] };
+      else if (res.status === 429) return 'RATE_LIMITED';
+      else if (res.status >= 400 && res.status < 500) return 'ROBOTS_DISALLOWED';
+      else return 'UPSTREAM_ERROR';
     } catch {
-      rules = null; // unknown is not permission
+      return 'UPSTREAM_ERROR'; // unknown is not permission, but a later attempt may recover
     }
     this.robots.set(url.host, { expires: Date.now() + ROBOTS_TTL_MS, rules });
     return rules;
@@ -206,17 +208,24 @@ export class ResearchSourceFetcher {
     const fail = (finalUrl: string, outcome: FetchOutcome, detail?: string): FetchedSource => ({ url: rawUrl, finalUrl, outcome, fetchedAt, detail });
     const cacheKey = `${options.kind}:${rawUrl}`;
     const hit = this.cache.get(cacheKey);
-    if (!options.bypassCache && hit && hit.expires > Date.now()) { this.usage.cacheHits++; return hit.source; }
+    if (!options.bypassCache && hit && hit.expires > Date.now()) {
+      const denied = hit.hosts.find(host => !options.isApprovedHost(host));
+      if (denied) return fail(rawUrl, 'HOST_NOT_APPROVED', denied);
+      this.usage.cacheHits++;
+      return hit.source;
+    }
     this.usage[options.kind === 'image' ? 'imageFetches' : 'pageFetches']++;
 
     let current: URL;
     try { current = new URL(rawUrl); } catch { return fail(rawUrl, 'UNSAFE_URL'); }
+    const hosts: string[] = [];
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
       if (!options.isApprovedHost(current.hostname.toLowerCase())) return fail(current.toString(), 'HOST_NOT_APPROVED', current.hostname);
+      hosts.push(current.hostname.toLowerCase());
       if (!(await this.assertPublic(current))) return fail(current.toString(), 'UNSAFE_URL');
       if (this.tripped(current.host)) return fail(current.toString(), 'CIRCUIT_OPEN');
       const rules = await this.robotsFor(current);
-      if (!rules) return fail(current.toString(), 'ROBOTS_DISALLOWED', 'robots.txt could not be read');
+      if (typeof rules === 'string') return fail(current.toString(), rules, 'robots.txt could not be read');
       if (!robotsAllows(rules, `${current.pathname}${current.search}`)) return fail(current.toString(), 'ROBOTS_DISALLOWED');
 
       const outcome = await this.request(current, options.kind);
@@ -226,7 +235,7 @@ export class ResearchSourceFetcher {
       }
       if (outcome.source.outcome === 'OK') {
         const source: FetchedSource = { ...outcome.source, url: rawUrl, finalUrl: current.toString() };
-        this.cache.set(cacheKey, { expires: Date.now() + CACHE_TTL_MS, source });
+        this.cache.set(cacheKey, { expires: Date.now() + CACHE_TTL_MS, source, hosts });
         return source;
       }
       return { ...outcome.source, url: rawUrl, finalUrl: current.toString() };
