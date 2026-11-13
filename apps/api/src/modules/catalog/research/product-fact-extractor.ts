@@ -226,6 +226,10 @@ export const isInstructionLine = (line: string) => instructionSentences(line).le
 const RELATED_SECTION = /^(products? you may (?:also )?like|you may also like|related products|frequently bought together|customers also|recently viewed|reviews?\b|منتجات (?:مشابهة|ذات صلة))/i;
 /** Ingredient names a brand features by name (feature headings, "Key ingredient:" lines). A bounded vocabulary: other words are never read as ingredients. */
 const KEY_INGREDIENT_NAME = /\b(ceramides?|hyaluronic|sodium hyaluronate|niacinamide|retinol|retinal|salicylic|glycolic|lactic|mandelic|azelaic|vitamin [a-z]\d?|panthenol|procapil|capixyl|redensyl|keravis|keratin|biotin|argan|peptides?|caffeine|urea|zinc|squalane|aloe|tea tree|rosemary|collagen|green coffee|jojoba|centella|cica|allantoin|bakuchiol|arginine|saw palmetto|thyme|green tea|shea|probiotics?)\b/i;
+
+export function isNavigationIngredientName(value: string): boolean {
+  return /^(?:learn|read|discover|shop|explore|find out)\b/i.test(value.trim());
+}
 const MORNING = /\bmorning\b|\bAM\b|صباح/;
 const EVENING = /\bevening\b|\bnight\b|\bbedtime\b|\bPM\b|مساء|ليل/;
 
@@ -494,7 +498,7 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   const keyIngredients = new Map<string, { name: string; function: string | null }>();
   const addKey = (name: string, fn: string | null) => {
     const clean = name.replace(/[™®]/g, '').replace(/\s+/g, ' ').trim();
-    if (clean.length < 3 || clean.length > 40 || !KEY_INGREDIENT_NAME.test(clean) || /^(?:learn|read|discover|shop|explore|find out)\b/i.test(clean)) return;
+    if (clean.length < 3 || clean.length > 40 || !KEY_INGREDIENT_NAME.test(clean) || isNavigationIngredientName(clean)) return;
     const key = fold(clean);
     if (!keyIngredients.has(key) || (fn && !keyIngredients.get(key)!.function)) keyIngredients.set(key, { name: clean, function: fn });
   };

@@ -1,9 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, ProductFactProposal, ProductFactStatus, ProductResearchRun, ResearchRunStatus } from '@prisma/client';
 import { CatalogService, IngredientService, UpdateProductDto, CatalogIntakeService } from '../public';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { isTrustedMediaSource } from '../../../platform/security/media-review';
-import { ALL_FACT_FIELDS, ExtractedFact, extractProductFacts, FactField, hashFactValue, RESEARCH_SCHEMA_VERSION, SkuExpectation } from './product-fact-extractor';
+import { ALL_FACT_FIELDS, ExtractedFact, extractProductFacts, FactField, hashFactValue, isNavigationIngredientName, RESEARCH_SCHEMA_VERSION, SkuExpectation } from './product-fact-extractor';
 import { decideFacts, DECISION_RULE_VERSION, FactReading, hasMedicalClaim, HoldReason, SourceCheck } from './catalog-decision-engine';
 import { isInstructionLine } from './product-fact-extractor';
 
@@ -101,6 +101,39 @@ export class CanonicalResearchService {
       verification: 'REJECTED', decidedBy: 'ADMIN', reviewedBy: actorId, reviewedAt: new Date(), reviewNote: reason,
       decisionRule: `${DECISION_RULE_VERSION}:PRODUCT_TYPE_CONFLICT`, conflictReason: reason } });
     return true;
+  }
+
+  /** Explicit Admin withdrawal of the confirmed navigation-only defect; never a general applied-fact overwrite. */
+  async withdrawNavigationIngredientFact(factId: string, actorId: string): Promise<boolean> {
+    const actor = await this.prisma.customer.findUnique({ where: { id: actorId }, select: { roles: true } });
+    if (!actor?.roles.includes('ADMIN')) throw new ForbiddenException('Only an Admin can withdraw an applied fact');
+    return this.prisma.$transaction(async tx => {
+      const fact = await tx.productFactProposal.findUniqueOrThrow({ where: { id: factId } });
+      if (fact.status === ProductFactStatus.REJECTED && fact.decisionRule === 'NAVIGATION_NOT_INGREDIENT') return false;
+      const items = fact.value as Array<{ name?: string }>;
+      if (fact.field !== 'composition.keyIngredients' || fact.status !== ProductFactStatus.APPLIED || !Array.isArray(items) || !items.length ||
+          !items.every(item => typeof item.name === 'string' && isNavigationIngredientName(item.name))) {
+        throw new ConflictException('Expected an applied navigation-only ingredient fact; other corrections need a reviewed replacement');
+      }
+      const sku = await tx.sku.findUniqueOrThrow({ where: { id: fact.skuId }, select: { productId: true } });
+      const product = await tx.product.findUniqueOrThrow({ where: { id: sku.productId } });
+      if (product.isPublished) throw new ConflictException('Unpublish before withdrawing a trusted claim');
+      const claims = product.claimsEvidence as Record<string, Prisma.JsonValue> | null;
+      const stored = claims?.keyIngredients as { items?: unknown[] } | undefined;
+      if (!claims || JSON.stringify(stored?.items) !== JSON.stringify(fact.value)) throw new ConflictException('The stored claim has changed; nothing was overwritten');
+      const next = { ...claims };
+      delete next.keyIngredients;
+      const updated = await tx.product.updateMany({ where: { id: product.id, factVersion: product.factVersion, claimsEvidence: { equals: product.claimsEvidence! } },
+        data: { claimsEvidence: next as Prisma.InputJsonValue, factVersion: { increment: 1 }, lastReviewedBy: actorId, lastReviewedAt: new Date() } });
+      if (updated.count !== 1) throw new ConflictException('The product changed while withdrawing the claim');
+      const rejected = await tx.productFactProposal.updateMany({ where: { id: fact.id, status: ProductFactStatus.APPLIED, valueHash: fact.valueHash },
+        data: { status: ProductFactStatus.REJECTED, verification: 'REJECTED', reviewedBy: actorId, reviewedAt: new Date(), decidedBy: 'ADMIN', decisionRule: 'NAVIGATION_NOT_INGREDIENT',
+          reviewNote: 'Navigation text is not an ingredient; original value and source evidence retained' } });
+      if (rejected.count !== 1) throw new ConflictException('The fact changed while withdrawing the claim');
+      await tx.catalogDecisionRecord.create({ data: { subjectType: 'FACT', subjectId: fact.id, skuId: fact.skuId, decision: 'REJECTED', reasonCode: 'NAVIGATION_NOT_INGREDIENT',
+        ruleVersion: DECISION_RULE_VERSION, actorType: 'ADMIN', actorId, evidence: { withdrawnValue: fact.value } as Prisma.InputJsonValue } });
+      return true;
+    });
   }
 
   private async skuContext(skuId: string) {
@@ -581,6 +614,7 @@ export class CanonicalResearchService {
         return;
       }
       case 'composition.keyIngredients': {
+        if ((fact.value as Array<{ name: string }>).some(item => isNavigationIngredientName(item.name))) throw new ConflictException('Navigation text is not an ingredient');
         // What the manufacturer names as key ingredients, with what it says each does. Stated claims, not a formula: never written as INCI, and treatment
         // wording is withheld from the stated function.
         const items = (fact.value as Array<{ name: string; function: string | null }>).map(item => (item.function && hasMedicalClaim(item.function)
