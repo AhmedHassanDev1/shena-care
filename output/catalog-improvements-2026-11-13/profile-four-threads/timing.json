@@ -1,0 +1,70 @@
+[
+  {
+    "stage": "imports",
+    "ms": 2050
+  },
+  {
+    "stage": "model_load",
+    "ms": 57451,
+    "providers": [
+      "CPUExecutionProvider"
+    ],
+    "threads": 4,
+    "no_arena": true,
+    "basic_no_prepacking": false
+  },
+  {
+    "stage": "decode",
+    "ms": 251,
+    "source": "capixy-hydrating-conditioner-250ml.png"
+  },
+  {
+    "stage": "preprocess",
+    "ms": 105
+  },
+  {
+    "stage": "inference",
+    "ms": 135308
+  },
+  {
+    "stage": "alpha_matting",
+    "ms": 9664
+  },
+  {
+    "stage": "remove_total",
+    "ms": 146992,
+    "source": "capixy-hydrating-conditioner-250ml.png"
+  },
+  {
+    "stage": "encode",
+    "ms": 1426,
+    "source": "capixy-hydrating-conditioner-250ml.png"
+  },
+  {
+    "stage": "decode",
+    "ms": 1600,
+    "source": "f154cdbd-d948-466c-b7b1-33358274e205-gallery-d629621a2a3e.webp"
+  },
+  {
+    "stage": "preprocess",
+    "ms": 219
+  },
+  {
+    "stage": "inference",
+    "ms": 85247
+  },
+  {
+    "stage": "alpha_matting",
+    "ms": 3824
+  },
+  {
+    "stage": "remove_total",
+    "ms": 91534,
+    "source": "f154cdbd-d948-466c-b7b1-33358274e205-gallery-d629621a2a3e.webp"
+  },
+  {
+    "stage": "encode",
+    "ms": 988,
+    "source": "f154cdbd-d948-466c-b7b1-33358274e205-gallery-d629621a2a3e.webp"
+  }
+]
