@@ -1,0 +1,412 @@
+{
+  "jobId": "9b9438e4-5de5-4eae-a56b-3833617bd8d2",
+  "checkedAt": "2026-11-13T18:05:18.274Z",
+  "identityErrors": [],
+  "dataErrors": [
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "factId": "2853b38f-f272-4b5b-87e0-eee09c928e05",
+      "reason": "SOURCE_FORMULA_CONFLICT",
+      "summary": "Official cream page highlights Niacinamide but its INCI does not list it; formula claim requires review",
+      "exceptionId": "ebe4182d-6b0e-46e7-886b-61d044e561f6"
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "factId": "2f074620-ef16-487f-970c-1658ff891837",
+      "reason": "NAVIGATION_AS_INGREDIENT",
+      "summary": "Navigation text was applied as a key ingredient",
+      "exceptionId": "10569d46-0eaf-4972-9e5f-7173b5d218fc"
+    }
+  ],
+  "skus": [
+    {
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "requested": "CeraVe Hydrating Facial Cleanser 236ml",
+      "duplicateCount": 1,
+      "barcode": null,
+      "readiness": {
+        "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+        "productId": "c2ca32fb-5583-4648-a85d-736622e11e16",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "PRIMARY_PACKSHOT_NOT_APPROVED",
+          "CARTON_DECISION_MISSING",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "MISSING",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 11,
+          "applied": [
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      }
+    },
+    {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "requested": "CeraVe Foaming Facial Cleanser 236ml",
+      "duplicateCount": 1,
+      "barcode": null,
+      "readiness": {
+        "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+        "productId": "e8374cf1-f57c-447f-b4fb-04476e9b9ba3",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "PRIMARY_PACKSHOT_NOT_APPROVED",
+          "CARTON_DECISION_MISSING",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "MISSING",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "attributes.nonComedogenic",
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      }
+    },
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "requested": "CeraVe Moisturizing Cream 454g",
+      "duplicateCount": 1,
+      "barcode": null,
+      "readiness": {
+        "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+        "productId": "3218ffce-0cf4-4f42-9cf6-c68d41b29e81",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "CRITICAL_EXCEPTION_OPEN",
+          "PRIMARY_PACKSHOT_NOT_APPROVED",
+          "CARTON_DECISION_MISSING",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "MISSING",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "attributes.nonComedogenic",
+            "attributes.texture",
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "openExceptions": 1,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      }
+    },
+    {
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "requested": "CeraVe SA Smoothing Cleanser 236ml",
+      "duplicateCount": 1,
+      "barcode": null,
+      "readiness": {
+        "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+        "productId": "10fab1e0-f087-47cf-8332-5fef12f3d234",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "PRIMARY_PACKSHOT_NOT_APPROVED",
+          "CARTON_DECISION_MISSING",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "MISSING",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 11,
+          "applied": [
+            "attributes.nonComedogenic",
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      }
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "requested": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+      "duplicateCount": 1,
+      "barcode": null,
+      "readiness": {
+        "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+        "productId": "917cddef-6e31-474c-ae30-db74fb8e62ed",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "CRITICAL_EXCEPTION_OPEN",
+          "PRIMARY_PACKSHOT_NOT_APPROVED",
+          "CARTON_DECISION_MISSING",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PENDING_REVIEW",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "safety.warnings",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "composition.activeConcentrations",
+            "identity.brand",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "openExceptions": 1,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      }
+    },
+    {
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "requested": "Bioderma Sensibio H2O 250ml",
+      "duplicateCount": 1,
+      "barcode": null,
+      "readiness": {
+        "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+        "productId": "15cb059e-6d0f-40d1-86eb-c73bd12f36d8",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "PRIMARY_PACKSHOT_NOT_APPROVED",
+          "CARTON_DECISION_MISSING",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "EDITORIAL_IMAGE_NOT_APPROVED",
+          "INGREDIENTS_NOT_REVIEWED",
+          "USAGE_NOT_REVIEWED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "MISSING",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 5,
+          "applied": [
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      }
+    }
+  ],
+  "unresolved": [
+    {
+      "rawName": "The Ordinary Hyaluronic Acid 2% + B5 30ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "PAGE_NAMES_ANOTHER_VARIANT",
+      "attempts": 0,
+      "lastError": null,
+      "nextAttemptAt": null
+    },
+    {
+      "rawName": "La Roche-Posay Effaclar Purifying Foaming Gel 200ml",
+      "outcome": "PENDING",
+      "reasonCode": null,
+      "attempts": 3,
+      "lastError": "BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED",
+      "nextAttemptAt": "2026-11-13T18:07:24.120Z"
+    },
+    {
+      "rawName": "La Roche-Posay Cicaplast Baume B5+ 40ml",
+      "outcome": "PENDING",
+      "reasonCode": null,
+      "attempts": 3,
+      "lastError": "BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED",
+      "nextAttemptAt": "2026-11-13T18:07:24.665Z"
+    },
+    {
+      "rawName": "Cetaphil Gentle Skin Cleanser 236ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "SIZE_NOT_CONFIRMED",
+      "attempts": 0,
+      "lastError": null,
+      "nextAttemptAt": null
+    }
+  ]
+}

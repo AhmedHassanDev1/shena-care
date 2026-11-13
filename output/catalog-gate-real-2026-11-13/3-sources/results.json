@@ -1,0 +1,1423 @@
+{
+  "requested": 3,
+  "startedAt": "2026-11-13T18:05:09.381Z",
+  "products": [
+    {
+      "requested": "CeraVe Hydrating Facial Cleanser 236ml",
+      "outcome": "LINKED_EXISTING",
+      "reason": "EXISTING_SKU:SAME_VERIFIED_PAGE",
+      "processingMs": 1722,
+      "attempts": 0,
+      "lastError": null,
+      "nextAttemptAt": null,
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "evidence": {
+        "media": {
+          "primary": "MISSING",
+          "editorial": "MISSING",
+          "rejectedSources": [
+            {
+              "url": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_HydratingCleanser_NEW_v021.jpg",
+              "reason": "RESOLUTION_TOO_LOW:300x400"
+            }
+          ]
+        },
+        "market": {
+          "check": {
+            "id": "744d6cc0-2cfa-47dc-afba-007b07a26e4b",
+            "cost": {
+              "rule": "market-price@1",
+              "searches": 0,
+              "pageFetches": 0
+            },
+            "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+            "status": "REFERENCE_READY",
+            "coverage": {
+              "REUSED": {
+                "pages": 3,
+                "accepted": 3,
+                "rejected": {}
+              }
+            },
+            "reference": {
+              "maxEgp": 733.58,
+              "minEgp": 630,
+              "sellers": 2,
+              "excluded": [],
+              "medianEgp": 681.79,
+              "freshestAt": "2026-11-13T17:45:29.749Z",
+              "observations": 3,
+              "regularMedianEgp": null
+            },
+            "startedAt": "2026-11-13T17:46:57.426Z",
+            "reasonCode": null,
+            "completedAt": "2026-11-13T17:46:57.429Z",
+            "requestedBy": "ca236de9-9b0a-40b6-a6bb-4b43c697af2e"
+          },
+          "pricing": {
+            "note": "Market data is kept; no selling price until a validated supplier purchase cost exists",
+            "state": "WAIT_FOR_SUPPLIER_COST",
+            "purchaseCost": null
+          },
+          "reference": {
+            "maxEgp": 733.58,
+            "minEgp": 630,
+            "sellers": 2,
+            "excluded": [],
+            "medianEgp": 681.79,
+            "freshestAt": "2026-11-13T17:45:29.749Z",
+            "observations": 3,
+            "regularMedianEgp": null
+          }
+        },
+        "profile": {
+          "primaryRole": {
+            "basis": "PRODUCT_TYPE:cleanser",
+            "value": "CLEANSER",
+            "status": "RULE_DERIVED"
+          },
+          "productType": "cleanser",
+          "routinePeriod": {
+            "basis": "REVIEWED_USAGE_RULE",
+            "value": "BOTH",
+            "source": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+            "status": "VERIFIED",
+            "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly."
+          }
+        },
+        "identity": {
+          "size": {
+            "unit": "ml",
+            "value": 236
+          },
+          "tier": "OFFICIAL_MANUFACTURER",
+          "basis": "SAME_VERIFIED_PAGE",
+          "brand": {
+            "id": "fa4928ae-5a1b-457d-a097-cb8f555db982",
+            "name": "CeraVe",
+            "basis": "CATALOG_EXACT",
+            "aliases": [
+              "سيرافي",
+              "cera-ve",
+              "سيرافى"
+            ]
+          },
+          "checks": [
+            {
+              "url": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "outcome": "OK",
+              "reasons": [],
+              "pageTitle": "CeraVe Hydrating Cleanser",
+              "sizeConfirmed": true,
+              "identityMatched": true
+            }
+          ],
+          "created": false,
+          "verifiedBy": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+          "productName": "Hydrating Facial Cleanser",
+          "verifiedTitle": "CeraVe Hydrating Cleanser"
+        },
+        "enrichment": {
+          "runs": [],
+          "holds": [],
+          "applied": [],
+          "coverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNKNOWN",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "VERIFIED",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "VERIFIED",
+            "composition.fragrance": "VERIFIED",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          },
+          "rejected": [],
+          "unverified": [
+            "identity.name",
+            "media.sourceImages",
+            "claims.manufacturerStated"
+          ],
+          "stillMissing": []
+        }
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": {
+            "status": "REFERENCE_READY",
+            "checkedAt": "2026-11-13T17:46:57.429Z",
+            "reference": {
+              "maxEgp": 733.58,
+              "minEgp": 630,
+              "sellers": 2,
+              "excluded": [],
+              "medianEgp": 681.79,
+              "freshestAt": "2026-11-13T17:45:29.749Z",
+              "observations": 3,
+              "regularMedianEgp": null
+            },
+            "reasonCode": null
+          }
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "name": "Hydrating Cleanser",
+        "brand": "CeraVe",
+        "size": "236",
+        "unit": "ml",
+        "barcode": null,
+        "variant": "236 ml",
+        "status": "EVIDENCE_VERIFIED",
+        "published": false
+      },
+      "apiStatus": 200,
+      "apiIdentityMatchesDb": true,
+      "apiPublicationBlockers": [
+        "PRIMARY_PACKSHOT_NOT_APPROVED",
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "facts": [
+        {
+          "field": "usage.instructions",
+          "value": [
+            "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly."
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "field": "composition.fragrance",
+          "value": "FREE",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "kin hydration after just one use.\nSuitable for normal to dry skin.\nCleanses and hydrates.\nFragrance free, soap free and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural barri",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "value": "Product Page for CeraVe Hydrating Facial Cleanser",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Hydrating Facial Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "field": "suitability.skinTypes",
+          "value": [
+            "normal",
+            "dry",
+            "sensitive"
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Hydrating Facial Cleanser\nFor Normal to Dry Skin\nA moisturising cleansing lotion for normal to dry skin with 3 essential ceramides to help",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "field": "usage.routinePeriod",
+          "value": "BOTH",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 236
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "with 3 essential ceramides to help protect skin’s natural barrier.\nSizes available: 88ml, 236 ml, 473 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 88ml, 236 ml, 473 ml.\nShare",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "value": "CeraVe Hydrating Cleanser",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Hydrating Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "field": "composition.inci",
+          "value": [
+            "AQUA/WATER",
+            "GLYCERIN",
+            "CETEARYL ALCOHOL",
+            "PHENOXYETHANOL",
+            "STEARYL ALCOHOL",
+            "CETYLE ALCOHOL",
+            "PEG-40 STEARATE",
+            "BEHENTRIMONIUM METHOSULFATE",
+            "GLYCERYL STEARATE",
+            "POLYSORBATE 20",
+            "ETHLYHEXYLGLYCERIN",
+            "POTASSIUM PHOSPHATE",
+            "DISODIUM EDTA",
+            "DIPOTASSIUM PHOSPHATE",
+            "SODIUM LAUROYL LACTYLATE",
+            "CERAMIDE NP",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "SODIUM HYALURONATE",
+            "XANTHUM GUM",
+            "CARBOMER",
+            "TOCOPHEROL",
+            "CERAMIDE EOP"
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "AQUA/WATER, GLYCERIN, CETEARYL ALCOHOL, PHENOXYETHANOL, STEARYL ALCOHOL, CETYLE ALCOHOL, PEG-40 STEARATE, BEHENTRIMONIUM METHOSULFATE, GLYCERYL STEARATE, POLYSORBATE 20, ETHLYHEXYLGLYCERIN, POTASSIUM PHOSPHATE, DISODIUM EDTA, DIPOTASSIUM PHOSPHATE, SODIUM LAUROYL LACTYLATE, CERAMIDE NP, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, SODIUM HYALURONATE, XANTHUM GUM, CARBOMER, TOCOPHEROL, CERAMIDE EOP",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "field": "composition.keyIngredients",
+          "value": [
+            {
+              "name": "Ceramides",
+              "function": "To help protect the natural skin barrier"
+            },
+            {
+              "name": "Hyaluronic Acid",
+              "function": "Helps retain skin's natural moisture"
+            }
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Ceramides: To help protect the natural skin barrier; Hyaluronic Acid: Helps retain skin's natural moisture",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "value": [
+            "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_HydratingCleanser_NEW_v021.jpg"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_HydratingCleanser_NEW_v021.jpg",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "value": [
+            "For Normal to Dry Skin: A moisturising cleansing lotion for normal to dry skin with 3 essential ceramides to help protect skin’s natural barrier.",
+            "MVE Delivery Technology: Controlled release for 24 hour hydration",
+            "3 Essential Ceramides: To help protect the natural skin barrier",
+            "Gentle on Skin: Suitable for Sensitive skin",
+            "Hyaluronic Acid: Helps retain skin's natural moisture",
+            "Fragrance Free: To avoid fragrance irritation"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "For Normal to Dry Skin: A moisturising cleansing lotion for normal to dry skin with 3 essential ceramides to help protect skin’s natural barrier. MVE Delivery Technology: Controlled release for 24 hour hydration 3 Essential Ceramides: To help protect the natural skin barrier Gentle on Skin: Suitable for Sensitive skin Hyaluronic Acid: Helps retain skin's natural moisture Fragrance Free: To avoid f",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        }
+      ],
+      "images": []
+    },
+    {
+      "requested": "CeraVe Foaming Facial Cleanser 236ml",
+      "outcome": "LINKED_EXISTING",
+      "reason": "EXISTING_SKU:SAME_VERIFIED_PAGE",
+      "processingMs": 1091,
+      "attempts": 0,
+      "lastError": null,
+      "nextAttemptAt": null,
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "evidence": {
+        "media": {
+          "primary": "MISSING",
+          "editorial": "MISSING",
+          "rejectedSources": [
+            {
+              "url": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_FoamingCleanser_NEW_v021.png",
+              "reason": "RESOLUTION_TOO_LOW:177x400"
+            }
+          ]
+        },
+        "market": {
+          "check": {
+            "id": "ed80bf5d-21ab-4f60-b3f6-a7401de80690",
+            "cost": {
+              "rule": "market-price@1",
+              "searches": 0,
+              "pageFetches": 0
+            },
+            "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+            "status": "REFERENCE_READY",
+            "coverage": {
+              "REUSED": {
+                "pages": 4,
+                "accepted": 4,
+                "rejected": {}
+              }
+            },
+            "reference": {
+              "maxEgp": 618,
+              "minEgp": 540,
+              "sellers": 2,
+              "excluded": [],
+              "medianEgp": 579,
+              "freshestAt": "2026-11-13T17:45:58.049Z",
+              "observations": 4,
+              "regularMedianEgp": null
+            },
+            "startedAt": "2026-11-13T17:46:58.539Z",
+            "reasonCode": null,
+            "completedAt": "2026-11-13T17:46:58.543Z",
+            "requestedBy": "ca236de9-9b0a-40b6-a6bb-4b43c697af2e"
+          },
+          "pricing": {
+            "note": "Market data is kept; no selling price until a validated supplier purchase cost exists",
+            "state": "WAIT_FOR_SUPPLIER_COST",
+            "purchaseCost": null
+          },
+          "reference": {
+            "maxEgp": 618,
+            "minEgp": 540,
+            "sellers": 2,
+            "excluded": [],
+            "medianEgp": 579,
+            "freshestAt": "2026-11-13T17:45:58.049Z",
+            "observations": 4,
+            "regularMedianEgp": null
+          }
+        },
+        "profile": {
+          "primaryRole": {
+            "basis": "PRODUCT_TYPE:cleanser",
+            "value": "CLEANSER",
+            "status": "RULE_DERIVED"
+          },
+          "productType": "cleanser",
+          "routinePeriod": {
+            "basis": "REVIEWED_USAGE_RULE",
+            "value": "BOTH",
+            "source": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+            "status": "VERIFIED",
+            "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly."
+          }
+        },
+        "identity": {
+          "size": {
+            "unit": "ml",
+            "value": 236
+          },
+          "tier": "OFFICIAL_MANUFACTURER",
+          "basis": "SAME_VERIFIED_PAGE",
+          "brand": {
+            "id": "fa4928ae-5a1b-457d-a097-cb8f555db982",
+            "name": "CeraVe",
+            "basis": "CATALOG_EXACT",
+            "aliases": [
+              "سيرافي",
+              "cera-ve",
+              "سيرافى"
+            ]
+          },
+          "checks": [
+            {
+              "url": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "outcome": "OK",
+              "reasons": [],
+              "pageTitle": "CeraVe Foaming Cleanser",
+              "sizeConfirmed": true,
+              "identityMatched": true
+            }
+          ],
+          "created": false,
+          "verifiedBy": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+          "productName": "Foaming Facial Cleanser",
+          "verifiedTitle": "CeraVe Foaming Cleanser"
+        },
+        "enrichment": {
+          "runs": [],
+          "holds": [],
+          "applied": [],
+          "coverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNKNOWN",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "VERIFIED",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "VERIFIED",
+            "composition.fragrance": "VERIFIED",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "VERIFIED",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          },
+          "rejected": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "media.sourceImages",
+            "identity.name"
+          ],
+          "stillMissing": []
+        }
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": {
+            "status": "REFERENCE_READY",
+            "checkedAt": "2026-11-13T17:46:58.543Z",
+            "reference": {
+              "maxEgp": 618,
+              "minEgp": 540,
+              "sellers": 2,
+              "excluded": [],
+              "medianEgp": 579,
+              "freshestAt": "2026-11-13T17:45:58.049Z",
+              "observations": 4,
+              "regularMedianEgp": null
+            },
+            "reasonCode": null
+          }
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "name": "Foaming Cleanser",
+        "brand": "CeraVe",
+        "size": "236",
+        "unit": "ml",
+        "barcode": null,
+        "variant": "236 ml",
+        "status": "EVIDENCE_VERIFIED",
+        "published": false
+      },
+      "apiStatus": 200,
+      "apiIdentityMatchesDb": true,
+      "apiPublicationBlockers": [
+        "PRIMARY_PACKSHOT_NOT_APPROVED",
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "facts": [
+        {
+          "field": "composition.keyIngredients",
+          "value": [
+            {
+              "name": "Ceramides",
+              "function": "To help protect the natural skin barrier"
+            }
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Ceramides: To help protect the natural skin barrier",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "composition.inci",
+          "value": [
+            "AQUA/WATER",
+            "GLYCERIN",
+            "COCO-BETAINE",
+            "PROPYLENE GLYCOL",
+            "SODIUM COCOYL",
+            "GLYCINATE",
+            "PEG-120 METHYL GLUCOSE DIOLEATE",
+            "SODIUM CHLORIDE",
+            "ACRYLATES COPOLYMER",
+            "CITRIC ACID",
+            "CAPRYLOYL GLYCINE",
+            "CAPRYLOYL GLYCOL",
+            "SODIUM HYDROXIDE",
+            "NIACINAIDE",
+            "DISODIUM EDTA",
+            "SODIUM HYALURONATE",
+            "SODIUM LAUOYL",
+            "LACTYLATE",
+            "CERAMIDE NP",
+            "PHENOXYETHANOL",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "XANTHAN GUM",
+            "CARBOMER",
+            "ETHLHEXYLGLYERIN",
+            "CERAMIDE EOP"
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "AQUA/WATER, GLYCERIN, COCO-BETAINE, PROPYLENE GLYCOL, SODIUM COCOYL, GLYCINATE, PEG-120 METHYL GLUCOSE DIOLEATE, SODIUM CHLORIDE, ACRYLATES COPOLYMER, CITRIC ACID, CAPRYLOYL GLYCINE, CAPRYLOYL GLYCOL, SODIUM HYDROXIDE, NIACINAIDE, DISODIUM EDTA, SODIUM HYALURONATE, SODIUM LAUOYL, LACTYLATE, CERAMIDE NP, PHENOXYETHANOL, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, XANTHAN GUM, CARBOMER, ETHLHEXYLGLY",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "value": "Product Page for CeraVe Foaming Facial Cleanser",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Foaming Facial Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "usage.routinePeriod",
+          "value": "BOTH",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "composition.fragrance",
+          "value": "FREE",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "ective skin barrier of the face.\nSuitable for normal to oily skin.\nCleanses and purifies.\nFragrance free, soap free and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural barri",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "suitability.skinTypes",
+          "value": [
+            "normal",
+            "oily",
+            "sensitive"
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Foaming Facial Cleanser\nFor Normal to Oily Skin\nA purifying, foaming cleanser for normal to oily skin enriched with 3 essential ceramides",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "attributes.nonComedogenic",
+          "value": true,
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "ease for 24 hour hydration\n3 Essential Ceramides\nTo help protect the natural skin barrier\nNon-Comedogenic\nWon't clog pores\nGentle on Skin\nSuitable for Sensitive skin\nFragrance Free\nTo avoid fragr",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "value": "CeraVe Foaming Cleanser",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Foaming Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "usage.instructions",
+          "value": [
+            "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly."
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "value": {
+            "unit": "ml",
+            "value": 236
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "with 3 essential ceramides to help protect skin’s natural barrier.\nSizes available: 88ml, 236 ml, 473 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 88ml, 236 ml, 473 ml.\nShare",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "value": [
+            "For Normal to Oily Skin: A purifying, foaming cleanser for normal to oily skin enriched with 3 essential ceramides to help protect skin’s natural barrier.",
+            "MVE Delivery Technology: Controlled release for 24 hour hydration",
+            "3 Essential Ceramides: To help protect the natural skin barrier",
+            "Non-Comedogenic: Won't clog pores",
+            "Gentle on Skin: Suitable for Sensitive skin",
+            "Fragrance Free: To avoid fragrance irritation"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "For Normal to Oily Skin: A purifying, foaming cleanser for normal to oily skin enriched with 3 essential ceramides to help protect skin’s natural barrier. MVE Delivery Technology: Controlled release for 24 hour hydration 3 Essential Ceramides: To help protect the natural skin barrier Non-Comedogenic: Won't clog pores Gentle on Skin: Suitable for Sensitive skin Fragrance Free: To avoid fragrance ir",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "value": [
+            "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_FoamingCleanser_NEW_v021.png"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/cleansers/CeraVe_FoamingCleanser_NEW_v021.png",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        }
+      ],
+      "images": []
+    },
+    {
+      "requested": "CeraVe Moisturizing Cream 454g",
+      "outcome": "DRAFT_CREATED",
+      "reason": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "processingMs": 31205,
+      "attempts": 0,
+      "lastError": null,
+      "nextAttemptAt": null,
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "evidence": {
+        "media": {
+          "primary": "MISSING",
+          "editorial": "MISSING",
+          "rejectedSources": [
+            {
+              "url": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/New-Product-Images/Moisturising-Cream-Winner-Logo.png",
+              "reason": "This image is already recorded as identity proof for SKU 60a95f0d-7a16-42a1-852f-9803d3c2fde2"
+            }
+          ]
+        },
+        "market": {
+          "check": {
+            "id": "a349e525-16d1-442c-afaa-21440efd5f51",
+            "cost": {
+              "rule": "market-price@1",
+              "searches": 1,
+              "pageFetches": 8
+            },
+            "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+            "status": "REFERENCE_READY",
+            "coverage": {
+              "REUSED": {
+                "pages": 0,
+                "accepted": 0,
+                "rejected": {}
+              },
+              "OFFICIAL": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "NO_STRUCTURED_PRICE": 1
+                }
+              },
+              "TRUSTED_RETAILER": {
+                "pages": 8,
+                "accepted": 5,
+                "rejected": {
+                  "PAGE_IS_ANOTHER_PRODUCT": 3
+                }
+              }
+            },
+            "reference": {
+              "maxEgp": 1149.5,
+              "minEgp": 850,
+              "sellers": 3,
+              "excluded": [],
+              "medianEgp": 1050,
+              "freshestAt": "2026-11-13T17:47:29.727Z",
+              "observations": 5,
+              "regularMedianEgp": null
+            },
+            "startedAt": "2026-11-13T17:47:00.681Z",
+            "reasonCode": null,
+            "completedAt": "2026-11-13T17:47:29.781Z",
+            "requestedBy": "ca236de9-9b0a-40b6-a6bb-4b43c697af2e"
+          },
+          "pricing": {
+            "note": "Market data is kept; no selling price until a validated supplier purchase cost exists",
+            "state": "WAIT_FOR_SUPPLIER_COST",
+            "purchaseCost": null
+          },
+          "reference": {
+            "maxEgp": 1149.5,
+            "minEgp": 850,
+            "sellers": 3,
+            "excluded": [],
+            "medianEgp": 1050,
+            "freshestAt": "2026-11-13T17:47:29.727Z",
+            "observations": 5,
+            "regularMedianEgp": null
+          }
+        },
+        "profile": {
+          "primaryRole": {
+            "basis": "PRODUCT_TYPE:moisturizer",
+            "value": "MOISTURIZER",
+            "status": "RULE_DERIVED"
+          },
+          "productType": "moisturizer",
+          "routinePeriod": {
+            "basis": "NOT_STATED_BY_A_CREDIBLE_SOURCE",
+            "value": "UNKNOWN",
+            "status": "UNKNOWN"
+          }
+        },
+        "identity": {
+          "size": {
+            "unit": "g",
+            "value": 454
+          },
+          "tier": "OFFICIAL_MANUFACTURER",
+          "basis": "CREATED",
+          "brand": {
+            "id": "fa4928ae-5a1b-457d-a097-cb8f555db982",
+            "name": "CeraVe",
+            "basis": "CATALOG_EXACT",
+            "aliases": [
+              "سيرافي",
+              "cera-ve",
+              "سيرافى"
+            ]
+          },
+          "checks": [
+            {
+              "url": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "outcome": "OK",
+              "reasons": [],
+              "pageTitle": "CeraVe Moisturising Cream",
+              "sizeConfirmed": true,
+              "identityMatched": true
+            }
+          ],
+          "created": true,
+          "verifiedBy": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+          "productName": "Moisturizing Cream",
+          "verifiedTitle": "CeraVe Moisturising Cream"
+        },
+        "enrichment": {
+          "runs": [
+            {
+              "tier": "OFFICIAL",
+              "status": "COMPLETE",
+              "sources": [
+                "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+              ]
+            }
+          ],
+          "holds": [],
+          "applied": [
+            "composition.inci",
+            "usage.instructions",
+            "composition.keyIngredients",
+            "suitability.skinTypes",
+            "attributes.nonComedogenic",
+            "identity.size",
+            "composition.fragrance",
+            "attributes.texture",
+            "marketing.description"
+          ],
+          "coverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNKNOWN",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "VERIFIED",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "VERIFIED",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "VERIFIED",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "VERIFIED",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "VERIFIED",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          },
+          "rejected": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "media.sourceImages",
+            "identity.name"
+          ],
+          "stillMissing": []
+        }
+      },
+      "readiness": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING"
+          ]
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": [],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "NO_SUPPLIER_COST",
+            "SELLING_PRICE_NOT_APPROVED"
+          ],
+          "purchaseCost": null,
+          "marketReference": {
+            "status": "REFERENCE_READY",
+            "checkedAt": "2026-11-13T17:47:29.781Z",
+            "reference": {
+              "maxEgp": 1149.5,
+              "minEgp": 850,
+              "sellers": 3,
+              "excluded": [],
+              "medianEgp": 1050,
+              "freshestAt": "2026-11-13T17:47:29.727Z",
+              "observations": 5,
+              "regularMedianEgp": null
+            },
+            "reasonCode": null
+          }
+        },
+        "criticalOpen": []
+      },
+      "identity": {
+        "name": "Moisturising Cream",
+        "brand": "CeraVe",
+        "size": "454",
+        "unit": "g",
+        "barcode": null,
+        "variant": "454 g",
+        "status": "EVIDENCE_VERIFIED",
+        "published": false
+      },
+      "apiStatus": 200,
+      "apiIdentityMatchesDb": true,
+      "apiPublicationBlockers": [
+        "CRITICAL_EXCEPTION_OPEN",
+        "PRIMARY_PACKSHOT_NOT_APPROVED",
+        "CARTON_DECISION_MISSING",
+        "LISTING_NOT_ACTIVE",
+        "SELLING_PRICE_MISSING"
+      ],
+      "facts": [
+        {
+          "field": "usage.instructions",
+          "value": [
+            "Apply to the face and body, as often as needed."
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Apply to the face and body, as often as needed.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "composition.inci",
+          "value": [
+            "AQUA / WATER",
+            "GLYCERIN",
+            "CETEARYL ALCOHOL",
+            "CAPRYLIC/CAPRIC TRIGLYCERIDE",
+            "CETYL ALCOHOL",
+            "CETEARETH-20",
+            "PETROLATUM",
+            "DIMETHICONE",
+            "PHENOXYETHANOL",
+            "BEHENTRIMONIUM METHOSULFATE",
+            "POTASSIUM PHOSPHATE",
+            "ETHYLHEXYLGLYCERIN",
+            "SODIUM LAUROYL LACTYLATE",
+            "DISODIUM EDTA",
+            "DIPOTASSIUM PHOSPHATE",
+            "CERAMIDE NP",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "XANTHAN GUM",
+            "CARBOMER",
+            "SODIUM HYALURONATE",
+            "TOCOPHEROL",
+            ". CERAMIDE EOP"
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "AQUA / WATER, GLYCERIN, CETEARYL ALCOHOL, CAPRYLIC/CAPRIC TRIGLYCERIDE, CETYL ALCOHOL, CETEARETH-20, PETROLATUM, DIMETHICONE, PHENOXYETHANOL, BEHENTRIMONIUM METHOSULFATE, POTASSIUM PHOSPHATE, ETHYLHEXYLGLYCERIN, SODIUM LAUROYL LACTYLATE, DISODIUM EDTA, DIPOTASSIUM PHOSPHATE, CERAMIDE NP, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, XANTHAN GUM, CARBOMER, SODIUM HYALURONATE, TOCOPHEROL,. CERAMIDE EO",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "composition.keyIngredients",
+          "value": [
+            {
+              "name": "Ceramides",
+              "function": "To help protect the natural skin barrier"
+            },
+            {
+              "name": "Hyaluronic Acid",
+              "function": "Helps retain skin's natural moisture"
+            },
+            {
+              "name": "Niacinamide",
+              "function": "Helps calm skin"
+            }
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Ceramides: To help protect the natural skin barrier; Hyaluronic Acid: Helps retain skin's natural moisture; Niacinamide: Helps calm skin",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "suitability.skinTypes",
+          "value": [
+            "dry"
+          ],
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Moisturising Cream\nFor Dry Skin\nA rich moisturising cream for all day hydration with 3 essential ceramides to help protec",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "attributes.nonComedogenic",
+          "value": true,
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "ive skin barrier.\nRicher formula locks in moisture for 24 hour hydration.\nFragrance free, non-comedogenic and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural barrier.\nRecomme",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "identity.size",
+          "value": {
+            "unit": "g",
+            "value": 454
+          },
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "3 essential ceramides to help protect the skin’s natural barrier.\nSizes available: 340g, 454g.\ncerave_find_in_stores\nBuy Online\nSizes available: 340g, 454g.\nShare this product:\nPRODU",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "media.sourceImages",
+          "value": [
+            "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/New-Product-Images/Moisturising-Cream-Winner-Logo.png"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/New-Product-Images/Moisturising-Cream-Winner-Logo.png",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "identity.name",
+          "value": "CeraVe Moisturising Cream",
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Moisturising Cream",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "composition.fragrance",
+          "value": "FREE",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "ains the protective skin barrier.\nRicher formula locks in moisture for 24 hour hydration.\nFragrance free, non-comedogenic and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "attributes.texture",
+          "value": "CREAM",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Moisturising Cream",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "marketing.description",
+          "value": "Product Page for CeraVe Moisturising Cream",
+          "status": "APPLIED",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Moisturising Cream",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "field": "claims.manufacturerStated",
+          "value": [
+            "For Dry Skin: A rich moisturising cream for all day hydration with 3 essential ceramides to help protect the skin’s natural barrier.",
+            "MVE Delivery Technology: Controlled release for 24 hour hydration",
+            "3 Essential Ceramides: To help protect the natural skin barrier",
+            "Hyaluronic Acid: Helps retain skin's natural moisture",
+            "Niacinamide: Helps calm skin"
+          ],
+          "status": "PROPOSED",
+          "evidence": [
+            {
+              "excerpt": "For Dry Skin: A rich moisturising cream for all day hydration with 3 essential ceramides to help protect the skin’s natural barrier. MVE Delivery Technology: Controlled release for 24 hour hydration 3 Essential Ceramides: To help protect the natural skin barrier Hyaluronic Acid: Helps retain skin's natural moisture Niacinamide: Helps calm skin",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        }
+      ],
+      "images": []
+    }
+  ],
+  "priorRuns": [
+    {
+      "durationMs": 34218,
+      "finishedAt": "2026-11-13T17:47:30.106Z",
+      "outcomes": [
+        {
+          "requested": "CeraVe Hydrating Facial Cleanser 236ml",
+          "outcome": "LINKED_EXISTING",
+          "reason": "EXISTING_SKU:SAME_VERIFIED_PAGE"
+        },
+        {
+          "requested": "CeraVe Foaming Facial Cleanser 236ml",
+          "outcome": "LINKED_EXISTING",
+          "reason": "EXISTING_SKU:SAME_VERIFIED_PAGE"
+        },
+        {
+          "requested": "CeraVe Moisturizing Cream 454g",
+          "outcome": "DRAFT_CREATED",
+          "reason": "IDENTITY_VERIFIED_DRAFT_CREATED"
+        }
+      ]
+    }
+  ],
+  "before": {
+    "products": 8,
+    "skus": 8,
+    "facts": 63,
+    "assets": 8
+  },
+  "input": "OFFICIAL_URL_CSV",
+  "jobId": "89d3de73-6c3d-4b50-937a-680bdd556f33",
+  "attemptsWorked": 0,
+  "durationMs": 1,
+  "after": {
+    "products": 8,
+    "skus": 8,
+    "facts": 63,
+    "assets": 8
+  },
+  "replaySameJob": true,
+  "afterReplay": {
+    "products": 8,
+    "skus": 8,
+    "facts": 63,
+    "assets": 8
+  },
+  "distinctSkuIds": 3,
+  "fullyValidatedSkus": 0,
+  "gatePassed": false,
+  "unauthenticatedStatus": 401,
+  "finishedAt": "2026-11-13T18:05:09.708Z"
+}
