@@ -203,6 +203,9 @@ export class CanonicalResearchService {
     if (!this.providers.discoveryConfigured()) return [];
     const found = await discoverProductSources({ brand: expected.brand, name: expected.productName, size: expected.size,
       sizeUnit: expected.sizeUnit, websiteUrl: expected.websiteUrl }, (query, count, options) => this.providers.discoverPages(query, count, options));
+    // No answer is a transient infrastructure failure, not evidence that this
+    // product does not exist. The intake worker already owns bounded retries.
+    if (!found.providerAnswered) throw new Error('RESEARCH_DISCOVERY_UNAVAILABLE');
     const isApproved = this.approvedHostFor({ name: expected.brand, websiteUrl: expected.websiteUrl });
     const rank: Record<SourceTier, number> = { OFFICIAL_MANUFACTURER: 0, TRUSTED_DISTRIBUTOR: 1, RETAILER: 2 };
     const urls: Array<{ url: string; tier: SourceTier }> = [];
