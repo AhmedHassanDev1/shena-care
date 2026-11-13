@@ -189,17 +189,18 @@ describe('Catalog Intake — market price evidence', () => {
     expect(checkObservation(big, expected, { identityMatched: true, sellerTrust: 'TRUSTED_RETAILER' }).reason).toBe('SIZE_DIFFERS');
   });
 
-  it('builds an advisory range from one fresh price per seller, outliers excluded', () => {
+  it('builds a regular-price range from fresh, classified evidence without substituting discounted amounts', () => {
     const now = new Date('2026-11-09T12:00:00Z');
     const at = (days: number) => new Date(now.getTime() - days * 86_400_000);
+    const evidenceExcerpt = JSON.stringify({ rule: 'market-price@2', priceType: 'REGULAR', sourceType: 'ESTABLISHED_PHARMACY', currency: 'EGP' });
     const reference = marketReference([
-      { id: 'a', sellerDomain: 'a.eg', priceEgp: 780, regularPriceEgp: 950, observedAt: at(1), confidence: 0.85 },
-      { id: 'a-old', sellerDomain: 'a.eg', priceEgp: 700, regularPriceEgp: null, observedAt: at(3), confidence: 0.85 },
-      { id: 'b', sellerDomain: 'b.eg', priceEgp: 820, regularPriceEgp: null, observedAt: at(2), confidence: 0.85 },
+      { id: 'a', sellerDomain: 'a.eg', priceEgp: 780, regularPriceEgp: 950, observedAt: at(1), confidence: 0.85, evidenceExcerpt: evidenceExcerpt.replace('REGULAR', 'LIST_CANDIDATE') },
+      { id: 'a-old', sellerDomain: 'a.eg', priceEgp: 700, regularPriceEgp: 700, observedAt: at(3), confidence: 0.85, evidenceExcerpt },
+      { id: 'b', sellerDomain: 'b.eg', priceEgp: 820, regularPriceEgp: 820, observedAt: at(2), confidence: 0.85, evidenceExcerpt },
       { id: 'c', sellerDomain: 'c.eg', priceEgp: 260, regularPriceEgp: null, observedAt: at(2), confidence: 0.65 },
       { id: 'd', sellerDomain: 'd.eg', priceEgp: 800, regularPriceEgp: null, observedAt: at(40), confidence: 0.85 },
     ], now, 14)!;
-    expect(reference).toMatchObject({ minEgp: 780, maxEgp: 820, sellers: 2 });
-    expect(reference.excluded.map(item => `${item.id}:${item.reason}`).sort()).toEqual(['a-old:OLDER_FROM_SAME_LISTING', 'c:OUTLIER', 'd:STALE']);
+    expect(reference).toMatchObject({ minEgp: 820, maxEgp: 950, medianEgp: 885, sellers: 2, confidence: 'HIGH' });
+    expect(reference.excluded.map(item => `${item.id}:${item.reason}`).sort()).toEqual(['a-old:OLDER_FROM_SAME_LISTING', 'c:UNVERIFIED_PRICE_EVIDENCE', 'd:STALE']);
   });
 });

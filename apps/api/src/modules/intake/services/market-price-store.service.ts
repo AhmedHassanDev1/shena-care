@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MarketPriceCheckStatus, Prisma, RetailObservationStatus } from '@prisma/client';
 import { createHash } from 'crypto';
 import { PrismaService } from '../../../platform/database/prisma.service';
+import { MARKET_RULE_VERSION, MarketPriceType, MarketSourceType } from '../lib/market-price';
 
 export interface ObservationInput {
   skuId: string;
@@ -17,6 +18,9 @@ export interface ObservationInput {
   accepted: boolean;
   rejectReason: string | null;
   collectedBy: string;
+  priceType: MarketPriceType;
+  sourceType: MarketSourceType;
+  currency: string | null;
 }
 
 /** Owner of market price evidence (ingestion.retail_price_observations, ingestion.market_price_checks). Advisory data only; never a cost or a selling price. */
@@ -40,13 +44,15 @@ export class MarketPriceStoreService {
   /** One observation per SKU, page, price and day: a re-run the same day never duplicates evidence. */
   async record(input: ObservationInput, at = new Date()) {
     const day = at.toISOString().slice(0, 10);
-    const dedupeKey = createHash('sha256').update(`${input.skuId}|${input.sourceUrl}|${input.priceEgp}|${day}`).digest('hex');
+    const dedupeKey = createHash('sha256').update(`${input.skuId}|${input.sourceUrl}|${input.priceEgp}|${input.regularPriceEgp}|${input.priceType}|${day}|${MARKET_RULE_VERSION}`).digest('hex');
+    const evidenceExcerpt = JSON.stringify({ rule: MARKET_RULE_VERSION, priceType: input.priceType, sourceType: input.sourceType, currency: input.currency, excerpt: input.evidenceExcerpt?.slice(0, 250) ?? null });
     return this.prisma.retailPriceObservation.upsert({
       where: { dedupeKey },
-      update: { retrievedAt: at },
+      update: { retrievedAt: at, evidenceExcerpt, status: input.accepted ? RetailObservationStatus.ACCEPTED : RetailObservationStatus.REJECTED,
+        rejectReason: input.rejectReason, confidence: new Prisma.Decimal(input.confidence) },
       create: { skuId: input.skuId, sourceUrl: input.sourceUrl.slice(0, 1000), sellerName: input.sellerName.slice(0, 120), sellerDomain: input.sellerDomain, observedAt: at, retrievedAt: at,
         priceEgp: new Prisma.Decimal(input.priceEgp), regularPriceEgp: input.regularPriceEgp !== null ? new Prisma.Decimal(input.regularPriceEgp) : null, inStock: input.inStock,
-        packText: input.packText.slice(0, 300), confidence: new Prisma.Decimal(input.confidence), evidenceExcerpt: input.evidenceExcerpt?.slice(0, 500) ?? null,
+        packText: input.packText.slice(0, 300), confidence: new Prisma.Decimal(input.confidence), evidenceExcerpt,
         status: input.accepted ? RetailObservationStatus.ACCEPTED : RetailObservationStatus.REJECTED, rejectReason: input.rejectReason, collectedBy: input.collectedBy, dedupeKey },
     });
   }
