@@ -4,6 +4,7 @@ import { lookup as dnsLookup, LookupAddress } from 'dns';
 import { lookup } from 'dns/promises';
 import { isIP } from 'net';
 import { Agent, fetch } from 'undici';
+import sharp from 'sharp';
 import { isPrivateAddress, validateSafeUrl } from '../../../platform/security/url-validator';
 
 export type FetchOutcome =
@@ -269,14 +270,28 @@ export class ResearchSourceFetcher {
         continue;
       }
       if (res.status !== 200) return { source: source('UPSTREAM_ERROR', `HTTP ${res.status}`) };
-      const contentType = (res.headers.get('content-type') ?? '').toLowerCase();
+      let contentType = (res.headers.get('content-type') ?? '').toLowerCase();
       const expected = kind === 'page' ? /text\/html|application\/xhtml/ : /^image\//;
-      if (!expected.test(contentType)) return { source: source('WRONG_CONTENT_TYPE', contentType) };
+      // Some official CDNs serve native WebP as binary. This exception is byte- and
+      // decode-verified, never inferred from a URL suffix or applied to HTML/pages.
+      const binaryWebp = kind === 'image' && contentType.split(';')[0].trim() === 'application/octet-stream';
+      if (!expected.test(contentType) && !binaryWebp) return { source: source('WRONG_CONTENT_TYPE', contentType) };
       const declared = Number(res.headers.get('content-length') ?? 0);
       const limit = kind === 'page' ? MAX_PAGE_BYTES : MAX_IMAGE_BYTES;
       if (declared > limit) return { source: source('TOO_LARGE') };
       const body = Buffer.from(await res.arrayBuffer());
       if (body.length > limit) return { source: source('TOO_LARGE') };
+      if (binaryWebp) {
+        if (body.length < 20 || body.toString('ascii', 0, 4) !== 'RIFF' || body.toString('ascii', 8, 12) !== 'WEBP' ||
+            body.readUInt32LE(4) !== body.length - 8) return { source: source('WRONG_CONTENT_TYPE', contentType) };
+        try {
+          const decoder = sharp(body, { limitInputPixels: 50_000_000, failOn: 'error' });
+          const metadata = await decoder.metadata();
+          if (metadata.format !== 'webp' || (metadata.pages ?? 1) !== 1) return { source: source('WRONG_CONTENT_TYPE', contentType) };
+          await decoder.stats(); // Fully decode: a valid-looking header is insufficient.
+          contentType = 'image/webp';
+        } catch { return { source: source('WRONG_CONTENT_TYPE', contentType) }; }
+      }
       this.record(url.host, true);
       return { source: source('OK', undefined, { body, contentType, contentHash: createHash('sha256').update(body).digest('hex') }) };
     }
