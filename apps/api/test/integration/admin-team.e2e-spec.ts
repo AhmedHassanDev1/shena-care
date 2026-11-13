@@ -128,6 +128,11 @@ describe('Admin team management (e2e)', () => {
     await api().patch(`/operations/staff/${staff.id}`).set(admin.auth).send({ locationIds: [randomUUID()] }).expect(404);
     const driver = await created({ name: 'Driver', email: email('drv2'), password: PASSWORD, roles: ['DRIVER'] });
     await api().patch(`/operations/staff/${driver.id}`).set(admin.auth).send({ locationIds: [locationId] }).expect(400);
+    // The Team dialog always sends an empty list for non-hub roles: that must save, not fail.
+    await api().patch(`/operations/staff/${driver.id}`).set(admin.auth).send({ name: 'Driver Renamed', phone: '01012345678', locationIds: [] }).expect(200);
+    // A Hub role granted in the same save: roles first, then the hub assignment.
+    await api().patch(`/operations/staff/${driver.id}/roles`).set(admin.auth).send({ roles: ['HUB_OPERATOR'] }).expect(200);
+    expect((await api().patch(`/operations/staff/${driver.id}`).set(admin.auth).send({ locationIds: [locationId] }).expect(200)).body.locations.map((l: any) => l.id)).toEqual([locationId]);
     await api().patch(`/operations/staff/${randomUUID()}`).set(admin.auth).send({ name: 'Ghost' }).expect(404);
 
     await api().post(`/operations/staff/${staff.id}/reset-password`).set(admin.auth).send({ password: 'short' }).expect(400);

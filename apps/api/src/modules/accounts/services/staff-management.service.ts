@@ -135,7 +135,8 @@ export class StaffManagementService {
   async updateProfile(id: string, dto: UpdateStaffProfileDto, adminActorId: string) {
     const staff = await this.prisma.customer.findUnique({ where: { id } });
     if (!staff) throw new NotFoundException(`Staff account ${id} not found`);
-    if (dto.locationIds && !staff.roles.includes(Role.HUB_OPERATOR)) {
+    // An empty list is how the Team dialog says "no hubs" for any role, so it is only an error when it names real hubs.
+    if (dto.locationIds?.length && !staff.roles.includes(Role.HUB_OPERATOR)) {
       throw new BadRequestException({ code: 'HUB_ASSIGNMENT_REQUIRES_HUB_ROLE', message: 'Only Hub operators are assigned to hubs.' });
     }
     if (dto.locationIds) await this.assertLocationsExist(dto.locationIds);

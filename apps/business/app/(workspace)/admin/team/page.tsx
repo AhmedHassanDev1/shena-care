@@ -92,8 +92,9 @@ function StaffDialog({ item, locations, onClose, onSaved }: { item: Staff | null
   const saving = useCommand(async () => {
     if (!item) return api('/operations/staff',{body:{name:name.trim(),email:email.trim(),...(phone.trim()?{phone:phone.trim()}:{}),password,roles,...(roles.includes('HUB_OPERATOR')?{locationIds}:{})}})
     if (resetOnly) return api(`/operations/staff/${item.id}/reset-password`,{body:{password}})
-    await api(`/operations/staff/${item.id}`,{method:'PATCH',body:{name:name.trim(),phone:phone.trim(),...(roles.includes('HUB_OPERATOR')?{locationIds}:{locationIds:[]})}})
-    return api(`/operations/staff/${item.id}/roles`,{method:'PATCH',body:{roles}})
+    // Roles first: a Hub role granted in this save must exist before its hub assignments are written.
+    await api(`/operations/staff/${item.id}/roles`,{method:'PATCH',body:{roles}})
+    return api(`/operations/staff/${item.id}`,{method:'PATCH',body:{name:name.trim(),phone:phone.trim(),...(roles.includes('HUB_OPERATOR')?{locationIds}:{locationIds:[]})}})
   })
   const toggleRole=(value:Role)=>setRoles(current=>current.includes(value)?current.filter(r=>r!==value):[...current,value])
   const exclusive = roles.includes('DRIVER') || roles.includes('SUPPLIER')
