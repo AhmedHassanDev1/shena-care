@@ -52,14 +52,16 @@ export const BRAND_ALIASES: Record<string, { canonicalName: string; slug: string
 export function normalizeBrandKey(str: string): string {
   if (!str) return '';
   return str
+    .normalize('NFKC')
     .toLowerCase()
     .trim()
+    .replace(/\p{Cf}/gu, '')
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632))
     .replace(/[أإآ]/g, 'ا')
     .replace(/ة/g, 'ه')
     .replace(/[ىي]/g, 'ي')
     .replace(/[ً-ٟـ]/g, '')
-    .replace(/[^p{L}p{N}]+/gu, '-')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
     .replace(/(^-|-$)+/g, '');
 }
 
@@ -70,7 +72,8 @@ export function curatedSpellings(brandName: string): string[] {
   return Object.entries(BRAND_ALIASES).filter(([, entry]) => key(entry.canonicalName) === key(brandName)).map(([spelling]) => spelling);
 }
 
+const NORMALIZED_BRAND_ALIASES = new Map(Object.entries(BRAND_ALIASES).map(([alias, brand]) => [normalizeBrandKey(alias), brand]));
+
 export function curatedBrandAlias(raw: string): { canonicalName: string; slug: string } | null {
-  const trimmed = (raw ?? '').trim();
-  return BRAND_ALIASES[normalizeBrandKey(trimmed)] ?? BRAND_ALIASES[trimmed.toLowerCase()] ?? null;
+  return NORMALIZED_BRAND_ALIASES.get(normalizeBrandKey(raw ?? '')) ?? null;
 }
