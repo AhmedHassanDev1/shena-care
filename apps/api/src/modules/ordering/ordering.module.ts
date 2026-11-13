@@ -22,12 +22,14 @@ import { ReturnEligibilityService } from './services/return-eligibility.service'
 import { PurchaseVerificationService } from './services/purchase-verification.service';
 import { MonthlyStatementService } from './services/monthly-statement.service';
 import { OperationsModule } from '../operations/operations.module';
+import { PurchaseReasonService } from './services/purchase-reason.service';
+import { GuestPurchaseReasonController, PurchaseReasonController } from './purchase-reason.controller';
 @Module({
   imports: [DomainEventsModule, CommerceModule, SourcingModule, CatalogModule, OperationsModule],
   controllers: [OrderingController, CartController, CheckoutController, GuestOrderTrackingController,
     AvailabilityDecisionController, GuestAvailabilityDecisionController,
-    CustomerReturnsController, GuestReturnsController, PaymentWebhookController],
-  providers: [OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, ReturnEligibilityService, PurchaseVerificationService, PaymentsService, MonthlyStatementService],
+    CustomerReturnsController, GuestReturnsController, PaymentWebhookController, PurchaseReasonController, GuestPurchaseReasonController],
+  providers: [PurchaseReasonService, OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, ReturnEligibilityService, PurchaseVerificationService, PaymentsService, MonthlyStatementService],
   exports: [OrderingService, CartService, ReconciliationService, PaymentsService, OrderTrackingService, PurchaseVerificationService],
 })
 export class OrderingModule {}

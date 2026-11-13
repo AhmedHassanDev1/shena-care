@@ -1537,10 +1537,32 @@ model OrderItem {
 
   order       Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
   resolutions OrderResolutionItem[]
+  purchaseReason OrderItemPurchaseReason?
 
   @@index([orderId])
   @@index([skuId])
   @@map("order_items")
+  @@schema("ordering")
+}
+
+/// «Why I bought it» (GLO-314): the customer's own optional reason for one purchased line. A separate row so the commercial
+/// snapshot of the line (price, sku, quantity, totals) is never touched. No row means UNSPECIFIED. Private to the order's
+/// owner: no staff, courier or supplier route reads it.
+model OrderItemPurchaseReason {
+  id          String   @id @default(uuid()) @db.Uuid
+  orderItemId String   @unique @map("order_item_id") @db.Uuid
+  /// Predefined purpose codes chosen by the customer.
+  reasonCodes String[] @map("reason_codes")
+  /// Short free text in the customer's own words; stored as plain text.
+  note        String?  @db.VarChar(200)
+  /// Where the customer was when they chose to say it (metadata only, never evidence of intent).
+  source      String?  @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@map("order_item_purchase_reasons")
   @@schema("ordering")
 }
 
