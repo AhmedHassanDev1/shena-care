@@ -17,13 +17,15 @@ import { SupplyPlanController } from './controllers/supply-plan.controller';
 import { RfqService } from './services/rfq.service';
 import { BuyListService } from './services/buy-list.service';
 import { PurchaseCostService } from './services/purchase-cost.service';
+import { PurchaseBatchService } from './services/purchase-batch.service';
+import { PurchaseBatchScheduler } from './services/purchase-batch-scheduler.service';
 
 import { OperationsModule } from '../operations/operations.module';
 
 @Module({
   imports: [DomainEventsModule, DatabaseModule, CatalogModule, CommerceModule, OperationsModule],
   controllers: [SourcingController, SupplyPlanController],
-  providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener, RfqService, AcquisitionCostService, SupplierEnrollmentService, OfferIntakeService, BuyListService, PurchaseCostService],
-  exports: [BuyListService, PurchaseCostService, SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, RfqService, AcquisitionCostService, SupplierEnrollmentService, OfferIntakeService],
+  providers: [SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, SourcingEventListener, RfqService, AcquisitionCostService, SupplierEnrollmentService, OfferIntakeService, BuyListService, PurchaseCostService, PurchaseBatchService, PurchaseBatchScheduler],
+  exports: [BuyListService, PurchaseCostService, PurchaseBatchService, SourcingService, PurchaseOrderService, PayablesService, RankingService, SupplyPlanService, RfqService, AcquisitionCostService, SupplierEnrollmentService, OfferIntakeService],
 })
 export class SourcingModule {}

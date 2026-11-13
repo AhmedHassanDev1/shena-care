@@ -15,6 +15,7 @@ import { OrderCancellationService } from './services/order-cancellation.service'
 import { FinanceController } from './controllers/finance.controller';
 import { FinanceReportService } from './services/finance-report.service';
 import { BuyListController } from './controllers/buy-list.controller';
+import { PurchaseBatchController } from './controllers/purchase-batch.controller';
 import { OrderCostController } from './controllers/order-cost.controller';
 import { OrderCostService } from './services/order-cost.service';
 import { ProfitService } from './services/profit.service';
@@ -25,7 +26,7 @@ import { ProfitService } from './services/profit.service';
  */
 @Module({
   imports: [OrderingModule, FulfillmentModule, SourcingModule, OperationsModule, AccountsModule, CatalogModule],
-  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController, FinanceController, BuyListController, OrderCostController],
+  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController, FinanceController, BuyListController, PurchaseBatchController, OrderCostController],
   providers: [OrderCancellationService, FinanceReportService, OrderCostService, ProfitService],
 })
 export class OperationsCompositionModule {}

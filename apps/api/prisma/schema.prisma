@@ -3957,3 +3957,129 @@ model SkuRoutineProfile {
   @@map("sku_routine_profiles")
   @@schema("catalog")
 }
+
+// ---------------------------------------------------------------------------
+// Purchase batches (internal Buy List, scheduled cutoffs)
+// ---------------------------------------------------------------------------
+
+/// Singleton row (`id = 'default'`): how often demand is cut into a numbered purchase batch. A change only affects cutoffs that have
+/// not happened yet; existing batches keep their own `cutoff_at`, and demand already claimed by a batch can never be claimed again.
+model PurchaseBatchSettings {
+  id              String   @id @default("default") @db.VarChar(20)
+  intervalMinutes Int      @default(180) @map("interval_minutes")
+  /// Local wall-clock start of the day's first cutoff, "HH:mm".
+  startTime       String   @default("09:00") @map("start_time") @db.VarChar(5)
+  timeZone        String   @default("Africa/Cairo") @map("time_zone") @db.VarChar(64)
+  version         Int      @default(1)
+  updatedBy       String?  @map("updated_by")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("purchase_batch_settings")
+  @@schema("sourcing")
+}
+
+/// One numbered batch of outstanding Buy List demand cut at `cutoff_at`. Staff order it outside the system and mark it sent; goods are only
+/// "received" when staff record physical quantities against it. `slot_key` makes the scheduled cut idempotent (one batch per cutoff).
+model PurchaseBatch {
+  id          String    @id @default(uuid()) @db.Uuid
+  number      Int       @unique
+  slotKey     String    @unique @map("slot_key") @db.VarChar(80)
+  /// scheduled | manual
+  kind        String    @default("scheduled") @db.VarChar(12)
+  /// ready (cut, not yet ordered) | sent (staff ordered it outside the system) | closed
+  status      String    @default("ready") @db.VarChar(12)
+  /// Only demand from orders placed at or before this instant is in the batch.
+  cutoffAt    DateTime  @map("cutoff_at")
+  createdBy   String?   @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  sentAt      DateTime? @map("sent_at")
+  sentBy      String?   @map("sent_by")
+  expectedAt  DateTime? @map("expected_at")
+  note        String?   @db.VarChar(300)
+  closedAt    DateTime? @map("closed_at")
+  closedBy    String?   @map("closed_by")
+  /// completed (everything received or resolved) | cancelled (nothing left to buy: orders cancelled before any receipt)
+  closeReason String?   @map("close_reason") @db.VarChar(12)
+
+  lines  PurchaseBatchLine[]
+  events PurchaseBatchEvent[]
+
+  @@index([status, cutoffAt])
+  @@map("purchase_batches")
+  @@schema("sourcing")
+}
+
+/// One exact SKU of a batch. `required_quantity` is frozen at the cutoff; progress is derived from the links.
+model PurchaseBatchLine {
+  id               String   @id @default(uuid()) @db.Uuid
+  batchId          String   @map("batch_id") @db.Uuid
+  skuId            String   @map("sku_id") @db.Uuid
+  productName      String?  @map("product_name")
+  skuCode          String?  @map("sku_code")
+  variantName      String?  @map("variant_name")
+  requiredQuantity Int      @map("required_quantity")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  batch    PurchaseBatch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  links    PurchaseBatchLink[]
+  receipts PurchaseBatchReceipt[]
+
+  @@unique([batchId, skuId])
+  @@index([skuId])
+  @@map("purchase_batch_lines")
+  @@schema("sourcing")
+}
+
+/// The share of one customer order line a batch line is responsible for. It is the claim that keeps demand from being counted in two batches.
+/// No relation to Ordering on purpose (context boundary): `order_item_id` is the key.
+model PurchaseBatchLink {
+  id                  String   @id @default(uuid()) @db.Uuid
+  lineId              String   @map("line_id") @db.Uuid
+  orderId             String   @map("order_id") @db.Uuid
+  orderNumber         String   @map("order_number")
+  orderItemId         String   @map("order_item_id") @db.Uuid
+  quantity            Int
+  receivedQuantity    Int      @default(0) @map("received_quantity")
+  /// Units staff resolved as unavailable (the customer decides what happens to them).
+  unavailableQuantity Int      @default(0) @map("unavailable_quantity")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  line PurchaseBatchLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+
+  @@unique([lineId, orderItemId])
+  @@index([orderItemId])
+  @@map("purchase_batch_links")
+  @@schema("sourcing")
+}
+
+/// One physical receipt event. `acquire_key` is the idempotency key of the Buy List count it created (and of its optional actual cost).
+model PurchaseBatchReceipt {
+  id         String   @id @default(uuid()) @db.Uuid
+  lineId     String   @map("line_id") @db.Uuid
+  quantity   Int
+  acquireKey String   @unique @map("acquire_key") @db.Uuid
+  receivedBy String   @map("received_by")
+  receivedAt DateTime @default(now()) @map("received_at")
+
+  line PurchaseBatchLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+
+  @@index([lineId])
+  @@map("purchase_batch_receipts")
+  @@schema("sourcing")
+}
+
+/// Append-only audit trail of a batch: who did what and when.
+model PurchaseBatchEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  batchId   String   @map("batch_id") @db.Uuid
+  type      String   @db.VarChar(24)
+  actorId   String?  @map("actor_id")
+  data      Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  batch PurchaseBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId, createdAt])
+  @@map("purchase_batch_events")
+  @@schema("sourcing")
+}

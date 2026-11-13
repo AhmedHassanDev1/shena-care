@@ -6,6 +6,8 @@ import { Button, Field, PageHeader, Select, Skeleton, Switch } from '@/component
 import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
+import { formatDateTime } from '@/lib/labels'
+import type { Schedule } from '@/lib/purchase-batch'
 import { useApi, useCommand } from '@/lib/use-api'
 import { cn } from '@/lib/utils'
 
@@ -123,6 +125,7 @@ export default function SettingsPage() {
       </Group>
 
       <SourcingMode item={setting(keys.sourcingMode)} onSaved={reload}/>
+      <PurchaseBatchSchedule/>
     </div>:null}
 
     {data?<details className="group bw-panel">
@@ -175,6 +178,36 @@ function SourcingMode({item,onSaved}:{item?:Setting;onSaved:()=>void}){
       <Select label="وضع التوريد" value={value} onChange={e=>setValue(e.target.value)} options={SOURCING_MODES}/>
       <p className="text-[12px] text-bw-ink-subtle">قائمة المشتريات الداخلية مفيهاش موردين ولا أوامر شراء.</p>
       <div className="flex flex-wrap items-center justify-between gap-3"><CommandError error={save.error}/><Button size="sm" variant={dirty?'primary':'secondary'} onClick={async()=>{if(await save.execute(value))onSaved()}} loading={save.pending} disabled={!dirty}>حفظ الوضع</Button></div>
+    </div>
+  </Group>
+}
+
+const TIME_ZONES = ['Africa/Cairo','Asia/Riyadh','Asia/Dubai','Europe/Istanbul','UTC']
+
+/** How often demand is cut into a purchase batch. A change only moves future cutoffs; existing batches and their demand are never touched. */
+function PurchaseBatchSchedule(){
+  const {data,error,reload}=useApi<Schedule>('/purchase-batches/settings')
+  const [interval,setIntervalValue]=React.useState('')
+  const [start,setStart]=React.useState('')
+  const [zone,setZone]=React.useState('')
+  const [saved,setSaved]=React.useState(false)
+  React.useEffect(()=>{ if(data){ setIntervalValue(String(data.settings.intervalMinutes)); setStart(data.settings.startTime); setZone(data.settings.timeZone) } },[data])
+  const save=useCommand(()=>api<Schedule>('/purchase-batches/settings',{method:'PUT',body:{intervalMinutes:Number(interval),startTime:start,timeZone:zone,expectedVersion:data!.settings.version}}))
+  if(error) return <Group title="دفعات الشراء"><p className="text-bw-small text-bw-danger">{error.message}</p></Group>
+  if(!data) return null
+  const minutes=Number(interval)
+  const valid=Number.isInteger(minutes)&&minutes>=15&&minutes<=1440&&/^([01]\d|2[0-3]):[0-5]\d$/.test(start)&&zone!==''
+  const dirty=minutes!==data.settings.intervalMinutes||start!==data.settings.startTime||zone!==data.settings.timeZone
+  const zones=TIME_ZONES.includes(zone)||zone===''?TIME_ZONES:[zone,...TIME_ZONES]
+  return <Group title="دفعات الشراء" hint="الطلبات المؤكدة بتتجمّع في دفعة مرقّمة كل فترة. التغيير بيسري على الدفعات الجاية بس، والدفعات القديمة وطلباتها مابتتغيّرش.">
+    <div className="space-y-3">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field label="كل كام دقيقة" type="number" min="15" max="1440" step="5" inputMode="numeric" value={interval} onChange={e=>{setIntervalValue(e.target.value);setSaved(false)}} hint="الافتراضي 180 (3 ساعات)" ltr/>
+        <Field label="أول قفل في اليوم" type="time" value={start} onChange={e=>{setStart(e.target.value);setSaved(false)}} ltr/>
+        <Select label="المنطقة الزمنية" value={zone} onChange={e=>{setZone(e.target.value);setSaved(false)}} options={zones.map(z=>({value:z,label:z}))}/>
+      </div>
+      <p className="text-[12px] text-bw-ink-subtle">القفل الجاي: <strong className="font-semibold text-bw-ink">{formatDateTime(data.nextCutoffAt)}</strong>{data.settings.isDefault?' · إعدادات افتراضية':''}. موظف الهب يقدر يقفل دفعة بدري من صفحة قائمة المشتريات.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3"><CommandError error={save.error}/>{saved&&!dirty?<span className="text-bw-small text-bw-ink">اتحفظ</span>:null}<Button size="sm" variant={dirty?'primary':'secondary'} onClick={async()=>{ if(await save.execute()){ setSaved(true); reload() } }} loading={save.pending} disabled={!dirty||!valid}>حفظ الجدول</Button></div>
     </div>
   </Group>
 }

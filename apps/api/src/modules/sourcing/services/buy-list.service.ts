@@ -57,6 +57,14 @@ export interface BuyListResult {
   items: BuyListSku[];
 }
 
+/** A staff count that is limited to some order lines (a purchase batch) and takes part in the same transaction. */
+export interface AcquireScope {
+  /** Evaluated under the per-SKU lock: the most units each order line may take from this count. Lines not listed take nothing. */
+  limits: (tx: Tx) => Promise<Map<string, number>>;
+  /** Runs in the count's transaction once the allocations exist (never on an idempotent replay). */
+  onCreated: (tx: Tx, created: Array<{ orderItemId: string; orderId: string; quantity: number }>) => Promise<void>;
+}
+
 export interface AcquireResult {
   skuId: string;
   acquired: number;
@@ -127,6 +135,9 @@ export class BuyListService {
     return lines;
   }
 
+  /** Open demand lines for other sourcing services (purchase batches), read with the caller's client. */
+  demandLines(db: Tx | PrismaService, skuId?: string) { return this.openLines(db, skuId); }
+
   /** The consolidated list: one row per exact SKU with the quantity summed over all open orders and the orders behind it. */
   async list(): Promise<BuyListResult> {
     const lines = await this.openLines(this.prisma);
@@ -166,7 +177,7 @@ export class BuyListService {
    * Staff marked `quantity` units of one SKU as obtained. Oldest orders are covered first; the quantity can never exceed what is still
    * outstanding (a concurrent count or a cancelled order makes the second request fail with the fresh number instead of over-counting).
    */
-  async acquire(input: { skuId: string; quantity: number; idempotencyKey: string; actorId: string; cost?: PurchaseCostDto }): Promise<AcquireResult> {
+  async acquire(input: { skuId: string; quantity: number; idempotencyKey: string; actorId: string; cost?: PurchaseCostDto; scope?: AcquireScope }): Promise<AcquireResult> {
     this.assertActive();
     if (input.cost) PurchaseCostService.finalUnitCost(input.cost); // reject a bad price before anything is counted
     if (!Number.isSafeInteger(input.quantity) || input.quantity < 1) throw new BadRequestException('Quantity must be a positive whole number');
@@ -191,7 +202,10 @@ export class BuyListService {
       // Lock every candidate order (sorted, same key space as the Supply Plan) before reading the lines that decide the split.
       const candidates = await this.openLines(tx, input.skuId);
       await this.supplyPlan.lockOrders(tx, candidates.map(line => line.orderId));
-      const lines = (await this.openLines(tx, input.skuId)).filter(line => line.state === 'to_buy');
+      const limits = input.scope ? await input.scope.limits(tx) : null;
+      // A scoped count (a purchase batch receipt) can only cover its own order lines, and never more than each line's share.
+      const lines = (await this.openLines(tx, input.skuId)).filter(line => line.state === 'to_buy' && (!limits || (limits.get(line.orderItemId) ?? 0) > 0))
+        .map(line => limits ? { ...line, outstanding: Math.min(line.outstanding, limits.get(line.orderItemId)!) } : line);
       const outstanding = lines.reduce((sum, line) => sum + line.outstanding, 0);
       if (outstanding === 0) {
         throw new ConflictException({ code: 'NOTHING_OUTSTANDING', outstanding, message: 'No open order needs this product any more' });
@@ -214,6 +228,12 @@ export class BuyListService {
         left -= quantity;
       }
       if (input.cost) await this.purchaseCosts.createInTx(tx, { acquireKey: input.idempotencyKey, skuId: input.skuId, quantity: input.quantity, cost: input.cost, actorId: input.actorId });
+      if (input.scope) {
+        await input.scope.onCreated(tx, created.map(row => {
+          const line = lines.find(l => l.requirementId === row.requirementId)!;
+          return { orderItemId: line.orderItemId, orderId: line.orderId, quantity: row.quantity };
+        }));
+      }
       return { replayed: false, touched: [...new Set(lines.filter(l => created.some(c => c.requirementId === l.requirementId)).map(l => l.orderId))],
         allocations: await this.describe(tx, created) };
     }, { timeout: 30000 });
