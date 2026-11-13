@@ -11,6 +11,7 @@ export * from './dto/purchase-order.dto';
 export * from './services/supplier-schedule';
 export * from './services/rfq.service';
 export * from './services/buy-list.service';
+export * from './services/purchase-cost.service';
 export * from './dto/buy-list.dto';
 export * from './services/acquisition-cost.service';
 export * from './services/supplier-enrollment.service';

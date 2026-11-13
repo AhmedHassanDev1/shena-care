@@ -5,6 +5,7 @@ import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { CreateExpenseDto, FinanceExpenseService, VoidExpenseDto } from '../../../modules/operations/services/finance-expense.service';
 import { FinanceReportService, TRANSACTION_TYPES, TransactionType } from '../services/finance-report.service';
+import { currentPeriod, ProfitService } from '../services/profit.service';
 
 const intOr = (value: string | undefined, fallback: number, min: number, max: number) => {
   if (value === undefined || value === '') return fallback;
@@ -18,7 +19,24 @@ const intOr = (value: string | undefined, fallback: number, min: number, max: nu
 @UseGuards(AuthGuard, RolesGuard)
 @Roles('ADMIN')
 export class FinanceController {
-  constructor(private readonly reports: FinanceReportService, private readonly expenses: FinanceExpenseService) {}
+  constructor(private readonly reports: FinanceReportService, private readonly expenses: FinanceExpenseService, private readonly profit: ProfitService) {}
+
+  /** Monthly profit and profit share. `month` is YYYY-MM (default: the current month). A closed month returns its frozen figures. */
+  @Get('profit')
+  profitFor(@Query('month') month?: string) {
+    return this.profit.month(month ?? currentPeriod());
+  }
+
+  @Get('profit/trend')
+  profitTrend(@Query('months') months?: string) {
+    return this.profit.trend(intOr(months, 6, 1, 12));
+  }
+
+  /** Freezes a finished, fully costed month with the percentage in force. Records numbers only; no funds move. */
+  @Post('profit/:month/close')
+  closeMonth(@Param('month') month: string, @CurrentUser() user: { id: string }) {
+    return this.profit.close(month, user.id);
+  }
 
   @Get('summary')
   summary(@Query('from') from?: string, @Query('to') to?: string) {

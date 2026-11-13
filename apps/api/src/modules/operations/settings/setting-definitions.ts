@@ -85,6 +85,14 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: SETTING_KEYS.deliveryInternalCost, group: 'commerce', kind: 'number', nullable: true, min: 0, max: 1000, fallback: () => null, parse: money(SETTING_KEYS.deliveryInternalCost, 1000) },
   { key: SETTING_KEYS.cartonCost, group: 'commerce', kind: 'number', nullable: true, min: 0, max: 1000, fallback: () => null, parse: money(SETTING_KEYS.cartonCost, 1000) },
   { key: SETTING_KEYS.labelCost, group: 'commerce', kind: 'number', nullable: true, min: 0, max: 1000, fallback: () => null, parse: money(SETTING_KEYS.labelCost, 1000) },
+  { key: SETTING_KEYS.bagCost, group: 'commerce', kind: 'number', nullable: true, min: 0, max: 1000, fallback: () => null, parse: money(SETTING_KEYS.bagCost, 1000) },
+  { key: SETTING_KEYS.boxCost, group: 'commerce', kind: 'number', nullable: true, min: 0, max: 1000, fallback: () => null, parse: money(SETTING_KEYS.boxCost, 1000) },
+  {
+    // Share of distributable net profit; each closed month keeps the percentage it was closed with.
+    key: SETTING_KEYS.profitSharePercent, group: 'commerce', kind: 'number', min: 0, max: 100, fallback: () => 40,
+    parse: input => (typeof input === 'number' && Number.isFinite(input) && input >= 0 && input <= 100 && Math.round(input * 100) === input * 100)
+      ? input : invalid(SETTING_KEYS.profitSharePercent, 'must be a percentage between 0 and 100 with at most two decimals'),
+  },
   {
     key: SETTING_KEYS.sourcingMode, group: 'operations', kind: 'enum', options: ['INTERNAL_BUY_LIST', 'BROADCAST_ON_DEMAND', 'OFFER_BASED'],
     // A copy of the environment so the saved override is not consulted: this is the deployment default.

@@ -15,20 +15,20 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model Brand {
-  id              String   @id @default(uuid()) @db.Uuid
-  name            String   @unique
-  slug            String   @unique
-  description     String?
-  logoUrl         String?  @map("logo_url")
-  logoMetadata    Json?    @map("logo_metadata")
-  websiteUrl      String?  @map("website_url")
-  countryOfOrigin String?  @map("country_of_origin")
+  id               String    @id @default(uuid()) @db.Uuid
+  name             String    @unique
+  slug             String    @unique
+  description      String?
+  logoUrl          String?   @map("logo_url")
+  logoMetadata     Json?     @map("logo_metadata")
+  websiteUrl       String?   @map("website_url")
+  countryOfOrigin  String?   @map("country_of_origin")
   /// Evidence-backed brand profile (aliases, manufacturer, portfolio from verified SKUs, sources, coverage). Rebuilt by the catalog pipeline; never claimed exhaustive.
   profile          Json?
   profileUpdatedAt DateTime? @map("profile_updated_at")
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   products     Product[]
   productLines ProductLine[]
@@ -78,40 +78,40 @@ model Category {
 }
 
 model Product {
-  id            String   @id @default(uuid()) @db.Uuid
-  brandId       String   @map("brand_id") @db.Uuid
-  productLineId String?  @map("product_line_id") @db.Uuid
-  categoryId    String?  @map("category_id") @db.Uuid
-  name          String
-  slug          String   @unique
-  description   String?
-  usage         String?
-  warnings      String?
-  concerns      String[] @default([])
-  targetArea    UsageTargetArea? @map("target_area")
-  texture       ProductTexture?
-  suitableSkinTypes String[] @default([]) @map("suitable_skin_types")
-  suitableHairTypes String[] @default([]) @map("suitable_hair_types")
-  spf           Int?
-  broadSpectrum Boolean? @map("broad_spectrum")
-  uvFilterType  UvFilterType? @map("uv_filter_type")
-  waterResistanceMinutes Int? @map("water_resistance_minutes")
-  isFragranceFree  Boolean? @map("is_fragrance_free")
-  isNonComedogenic Boolean? @map("is_non_comedogenic")
+  id                     String           @id @default(uuid()) @db.Uuid
+  brandId                String           @map("brand_id") @db.Uuid
+  productLineId          String?          @map("product_line_id") @db.Uuid
+  categoryId             String?          @map("category_id") @db.Uuid
+  name                   String
+  slug                   String           @unique
+  description            String?
+  usage                  String?
+  warnings               String?
+  concerns               String[]         @default([])
+  targetArea             UsageTargetArea? @map("target_area")
+  texture                ProductTexture?
+  suitableSkinTypes      String[]         @default([]) @map("suitable_skin_types")
+  suitableHairTypes      String[]         @default([]) @map("suitable_hair_types")
+  spf                    Int?
+  broadSpectrum          Boolean?         @map("broad_spectrum")
+  uvFilterType           UvFilterType?    @map("uv_filter_type")
+  waterResistanceMinutes Int?             @map("water_resistance_minutes")
+  isFragranceFree        Boolean?         @map("is_fragrance_free")
+  isNonComedogenic       Boolean?         @map("is_non_comedogenic")
   /// Evidence provenance for claims (fragrance-free, non-comedogenic, etc.)
-  claimsEvidence   Json?    @map("claims_evidence")
+  claimsEvidence         Json?            @map("claims_evidence")
   /// Deterministic product type read from the canonical name/category (product-type@N), e.g. "cleanser" / "foaming". RULE_DERIVED; see classification.
-  productType    String?  @map("product_type") @db.VarChar(40)
-  productSubtype String?  @map("product_subtype") @db.VarChar(60)
+  productType            String?          @map("product_type") @db.VarChar(40)
+  productSubtype         String?          @map("product_subtype") @db.VarChar(60)
   /// { rule, basis, categoryBasis, matched, at }: how type and leaf category were settled.
-  classification Json?
-  factVersion   Int      @default(1) @map("fact_version")
-  lastReviewedAt DateTime? @map("last_reviewed_at")
-  lastReviewedBy String? @map("last_reviewed_by")
-  isPublished   Boolean  @default(false) @map("is_published")
-  archivedAt    DateTime? @map("archived_at")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  classification         Json?
+  factVersion            Int              @default(1) @map("fact_version")
+  lastReviewedAt         DateTime?        @map("last_reviewed_at")
+  lastReviewedBy         String?          @map("last_reviewed_by")
+  isPublished            Boolean          @default(false) @map("is_published")
+  archivedAt             DateTime?        @map("archived_at")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
 
   brand               Brand                       @relation(fields: [brandId], references: [id])
   productLine         ProductLine?                @relation(fields: [productLineId], references: [id])
@@ -134,28 +134,28 @@ model Product {
 }
 
 model Sku {
-  id          String   @id @default(uuid()) @db.Uuid
-  productId   String   @map("product_id") @db.Uuid
-  code        String   @unique
-  variantName String   @map("variant_name")
-  size        Decimal? @db.Decimal(10, 3)
-  sizeUnit    String?  @map("size_unit")
-  packCount   Int?     @map("pack_count")
-  barcode     String?  @unique
+  id                 String   @id @default(uuid()) @db.Uuid
+  productId          String   @map("product_id") @db.Uuid
+  code               String   @unique
+  variantName        String   @map("variant_name")
+  size               Decimal? @db.Decimal(10, 3)
+  sizeUnit           String?  @map("size_unit")
+  packCount          Int?     @map("pack_count")
+  barcode            String?  @unique
   /// Whether this SKU is sold in an outer retail carton; null = not decided yet. A true value makes a genuine carton image required for publication.
-  hasOuterCarton Boolean? @map("has_outer_carton")
+  hasOuterCarton     Boolean? @map("has_outer_carton")
   /// How this SKU's identity is known: UNVERIFIED | EVIDENCE_VERIFIED (a manufacturer or trusted page states brand, product and size) | BARCODE_VERIFIED | ADMIN_VERIFIED.
-  identityStatus   String  @default("UNVERIFIED") @map("identity_status") @db.VarChar(30)
+  identityStatus     String   @default("UNVERIFIED") @map("identity_status") @db.VarChar(30)
   /// Sources, fingerprint and rule version behind identityStatus.
-  identityEvidence Json?   @map("identity_evidence")
+  identityEvidence   Json?    @map("identity_evidence")
   /// Separate from identity: UNKNOWN (none) | RECORDED (stored before tracking) | VERIFIED (manufacturer structured data) | ADMIN_ASSERTED | CONFLICT.
-  barcodeStatus    String  @default("UNKNOWN") @map("barcode_status") @db.VarChar(30)
-  estimatedDaysOfUse Int? @map("estimated_days_of_use")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  barcodeStatus      String   @default("UNKNOWN") @map("barcode_status") @db.VarChar(30)
+  estimatedDaysOfUse Int?     @map("estimated_days_of_use")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
-  product            Product            @relation(fields: [productId], references: [id])
+  product            Product                @relation(fields: [productId], references: [id])
   supplierSkuAliases SupplierSkuAlias[]
   barcodeAliases     SkuBarcodeAlias[]
   productIngredients ProductIngredient[]
@@ -257,44 +257,44 @@ enum MediaProcessingStatus {
 /// GLO-285 asset lineage. ProductMedia is what the storefront shows; this is where each image came from and who cleared it.
 /// A database trigger keeps an original's file and hash immutable, and a check keeps generated images out of identity roles.
 model MediaAsset {
-  id                 String                @id @default(uuid()) @db.Uuid
-  skuId              String                @map("sku_id") @db.Uuid
-  role               MediaRole
-  originType         MediaOriginType       @map("origin_type")
-  parentAssetId      String?               @map("parent_asset_id") @db.Uuid
-  transformVersion   String?               @map("transform_version")
-  storageUrl         String?               @map("storage_url")
-  mimeType           String?               @map("mime_type")
-  width              Int?
-  height             Int?
-  byteSize           Int?                  @map("byte_size")
-  contentHash        String?               @map("content_hash") @db.VarChar(64)
-  sourceUrl          String                @map("source_url")
-  sourcePublisher    String                @map("source_publisher")
-  sourceType         String                @map("source_type")
-  rightsStatus       MediaRightsStatus     @default(UNKNOWN) @map("rights_status")
-  capturedAt         DateTime?             @map("captured_at")
-  processingStatus   MediaProcessingStatus @default(PENDING) @map("processing_status")
-  processingError    String?               @map("processing_error")
-  processingAttempts Int                   @default(0) @map("processing_attempts")
-  reviewStatus       MediaReviewStatus     @default(PENDING_REVIEW) @map("review_status")
-  reviewedBy         String?               @map("reviewed_by") @db.Uuid
-  reviewedAt         DateTime?             @map("reviewed_at")
-  reviewNote         String?               @map("review_note")
-  verifiedFacts      Json?                 @map("verified_facts")
+  id                    String                @id @default(uuid()) @db.Uuid
+  skuId                 String                @map("sku_id") @db.Uuid
+  role                  MediaRole
+  originType            MediaOriginType       @map("origin_type")
+  parentAssetId         String?               @map("parent_asset_id") @db.Uuid
+  transformVersion      String?               @map("transform_version")
+  storageUrl            String?               @map("storage_url")
+  mimeType              String?               @map("mime_type")
+  width                 Int?
+  height                Int?
+  byteSize              Int?                  @map("byte_size")
+  contentHash           String?               @map("content_hash") @db.VarChar(64)
+  sourceUrl             String                @map("source_url")
+  sourcePublisher       String                @map("source_publisher")
+  sourceType            String                @map("source_type")
+  rightsStatus          MediaRightsStatus     @default(UNKNOWN) @map("rights_status")
+  capturedAt            DateTime?             @map("captured_at")
+  processingStatus      MediaProcessingStatus @default(PENDING) @map("processing_status")
+  processingError       String?               @map("processing_error")
+  processingAttempts    Int                   @default(0) @map("processing_attempts")
+  reviewStatus          MediaReviewStatus     @default(PENDING_REVIEW) @map("review_status")
+  reviewedBy            String?               @map("reviewed_by") @db.Uuid
+  reviewedAt            DateTime?             @map("reviewed_at")
+  reviewNote            String?               @map("review_note")
+  verifiedFacts         Json?                 @map("verified_facts")
   /// True when the automatic checks (source, resolution, identity, output quality) decided this asset rather than a person.
-  reviewedAutomatically Boolean           @default(false) @map("reviewed_automatically")
-  publishedMediaId   String?               @map("published_media_id") @db.Uuid
-  publishedAt        DateTime?             @map("published_at")
+  reviewedAutomatically Boolean               @default(false) @map("reviewed_automatically")
+  publishedMediaId      String?               @map("published_media_id") @db.Uuid
+  publishedAt           DateTime?             @map("published_at")
   /// Set when a newer publication of this role replaced this one; the file and lineage stay.
-  supersededAt       DateTime?             @map("superseded_at")
+  supersededAt          DateTime?             @map("superseded_at")
   /// The exact template version that generated this derivative.
-  templateId         String?               @map("template_id") @db.Uuid
+  templateId            String?               @map("template_id") @db.Uuid
   /// Measured facts about the cut-out (coverage, scale, warnings) for the reviewer.
-  qualityReport      Json?                 @map("quality_report")
-  createdBy          String                @map("created_by") @db.Uuid
-  createdAt          DateTime              @default(now()) @map("created_at")
-  updatedAt          DateTime              @updatedAt @map("updated_at")
+  qualityReport         Json?                 @map("quality_report")
+  createdBy             String                @map("created_by") @db.Uuid
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
 
   sku      Sku            @relation(fields: [skuId], references: [id], onDelete: Restrict)
   parent   MediaAsset?    @relation("MediaLineage", fields: [parentAssetId], references: [id], onDelete: Restrict)
@@ -360,30 +360,30 @@ model ProductMedia {
 }
 
 model Ingredient {
-  id                 String              @id @default(uuid()) @db.Uuid
-  name               String              @unique
-  nameAr             String?             @map("name_ar")
-  slug               String              @unique
-  inciName           String              @map("inci_name")
-  aliases            String[]            @default([])
-  family             String?             // e.g. "Vitamin C", "Retinoids", "Hydroxy Acids"
-  familySlug         String?             @map("family_slug")
-  chemicalForm       String?             @map("chemical_form") // e.g. "Pure Acid", "Ester", "Salt", "Glycoside"
-  primaryFunction    String              @map("primary_function") // "Antioxidant", "Humectant", "Exfoliant", "Barrier Support", "Skin Restoring", "Vehicle", "Preservative"
-  functions          String[]            @default([])
-  isActiveIngredient Boolean             @default(false) @map("is_active_ingredient")
-  rating             String?             // "BEST", "GOOD", "AVERAGE"
-  descriptionEn      String?             @map("description_en")
-  descriptionAr      String?             @map("description_ar")
-  benefits           Json?               // Array of { concern: string, description: string, evidenceLevel: string, pubmedRef?: string }
-  cautions           String[]            @default([])
-  contraindications  String[]            @default([]) // e.g. ["PREGNANCY", "COMPROMISED_BARRIER"]
-  visualStatus       String              @default("NOT_GENERATED") @map("visual_status")
-  visualUrl          String?             @map("visual_url")
-  visualMetadata     Json?               @map("visual_metadata")
-  status             String              @default("APPROVED")
-  createdAt          DateTime            @default(now()) @map("created_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid()) @db.Uuid
+  name               String   @unique
+  nameAr             String?  @map("name_ar")
+  slug               String   @unique
+  inciName           String   @map("inci_name")
+  aliases            String[] @default([])
+  family             String? // e.g. "Vitamin C", "Retinoids", "Hydroxy Acids"
+  familySlug         String?  @map("family_slug")
+  chemicalForm       String?  @map("chemical_form") // e.g. "Pure Acid", "Ester", "Salt", "Glycoside"
+  primaryFunction    String   @map("primary_function") // "Antioxidant", "Humectant", "Exfoliant", "Barrier Support", "Skin Restoring", "Vehicle", "Preservative"
+  functions          String[] @default([])
+  isActiveIngredient Boolean  @default(false) @map("is_active_ingredient")
+  rating             String? // "BEST", "GOOD", "AVERAGE"
+  descriptionEn      String?  @map("description_en")
+  descriptionAr      String?  @map("description_ar")
+  benefits           Json? // Array of { concern: string, description: string, evidenceLevel: string, pubmedRef?: string }
+  cautions           String[] @default([])
+  contraindications  String[] @default([]) // e.g. ["PREGNANCY", "COMPROMISED_BARRIER"]
+  visualStatus       String   @default("NOT_GENERATED") @map("visual_status")
+  visualUrl          String?  @map("visual_url")
+  visualMetadata     Json?    @map("visual_metadata")
+  status             String   @default("APPROVED")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   productIngredients ProductIngredient[]
 
@@ -395,21 +395,21 @@ model Ingredient {
 }
 
 model ProductIngredient {
-  id            String     @id @default(uuid()) @db.Uuid
-  productId     String     @map("product_id") @db.Uuid
-  skuId         String?    @map("sku_id") @db.Uuid
-  ingredientId  String     @map("ingredient_id") @db.Uuid
-  isKeyActive   Boolean    @default(false) @map("is_key_active")
-  concentration String?    // e.g. "10%", "2%" - only when verified, never assumed
+  id                    String              @id @default(uuid()) @db.Uuid
+  productId             String              @map("product_id") @db.Uuid
+  skuId                 String?             @map("sku_id") @db.Uuid
+  ingredientId          String              @map("ingredient_id") @db.Uuid
+  isKeyActive           Boolean             @default(false) @map("is_key_active")
+  concentration         String? // e.g. "10%", "2%" - only when verified, never assumed
   /// Typed concentration explicitly stated by the manufacturer/label for THIS product (GLO-279); never inferred.
-  concentrationValue    Decimal? @map("concentration_value") @db.Decimal(7, 3)
-  concentrationUnit     String?  @map("concentration_unit") @db.VarChar(10)
+  concentrationValue    Decimal?            @map("concentration_value") @db.Decimal(7, 3)
+  concentrationUnit     String?             @map("concentration_unit") @db.VarChar(10)
   /// { sourceUrl, sourceType, evidenceText, reviewedBy, reviewedAt } for the stated concentration.
-  concentrationEvidence Json?    @map("concentration_evidence")
+  concentrationEvidence Json?               @map("concentration_evidence")
   concentrationStatus   ConcentrationStatus @default(UNKNOWN) @map("concentration_status")
-  sortOrder     Int        @default(0) @map("sort_order")
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
+  sortOrder             Int                 @default(0) @map("sort_order")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
 
   product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   sku        Sku?       @relation(fields: [skuId], references: [id], onDelete: Cascade)
@@ -450,12 +450,11 @@ enum UvFilterType {
   @@schema("catalog")
 }
 
-
 enum ConcentrationStatus {
-  STATED          /// Manufacturer/label explicitly states a value
-  UNDISCLOSED     /// Present but amount not published
-  NOT_APPLICABLE  /// Not meaningful for this ingredient role
-  UNKNOWN         /// Not yet evaluated
+  STATED /// Manufacturer/label explicitly states a value
+  UNDISCLOSED /// Present but amount not published
+  NOT_APPLICABLE /// Not meaningful for this ingredient role
+  UNKNOWN /// Not yet evaluated
 
   @@schema("catalog")
 }
@@ -477,7 +476,7 @@ model ProductSafetyWarning {
   productId     String            @map("product_id") @db.Uuid
   skuId         String?           @map("sku_id") @db.Uuid
   kind          SafetyWarningKind
-  condition     String?           @db.VarChar(80)  /// e.g. "PREGNANT", "COMPROMISED_BARRIER"
+  condition     String?           @db.VarChar(80) /// e.g. "PREGNANT", "COMPROMISED_BARRIER"
   descriptionEn String            @map("description_en")
   descriptionAr String?           @map("description_ar")
   sourceType    String            @map("source_type") @db.VarChar(40)
@@ -538,38 +537,38 @@ enum UsageFrequencyUnit {
 /// with its evidence (GLO-279). A product can have several conditional rules (face vs scalp, introductory vs regular);
 /// anything the directions do not state stays UNKNOWN/null — never filled from the product type.
 model ProductUsageRule {
-  id                String             @id @default(uuid()) @db.Uuid
-  productId         String             @map("product_id") @db.Uuid
-  skuId             String?            @map("sku_id") @db.Uuid
-  targetArea        UsageTargetArea?   @map("target_area")
-  routinePeriod     UsageRoutinePeriod @map("routine_period")
-  rinseMode         UsageRinseMode     @map("rinse_mode")
-  frequencyUnit     UsageFrequencyUnit @map("frequency_unit")
-  usesMin           Int?               @map("uses_min")
-  usesMax           Int?               @map("uses_max")
+  id                  String             @id @default(uuid()) @db.Uuid
+  productId           String             @map("product_id") @db.Uuid
+  skuId               String?            @map("sku_id") @db.Uuid
+  targetArea          UsageTargetArea?   @map("target_area")
+  routinePeriod       UsageRoutinePeriod @map("routine_period")
+  rinseMode           UsageRinseMode     @map("rinse_mode")
+  frequencyUnit       UsageFrequencyUnit @map("frequency_unit")
+  usesMin             Int?               @map("uses_min")
+  usesMax             Int?               @map("uses_max")
   /// Recommended application amount and unit (e.g. 2 drops, 1 pea-sized, 5 ml); null if not stated.
-  applicationQuantity Decimal?         @map("application_quantity") @db.Decimal(7, 3)
-  applicationUnit   String?            @map("application_unit") @db.VarChar(30)
-  contactMinutes    Int?               @map("contact_minutes")
-  contactIsMaximum  Boolean            @default(false) @map("contact_is_maximum")
+  applicationQuantity Decimal?           @map("application_quantity") @db.Decimal(7, 3)
+  applicationUnit     String?            @map("application_unit") @db.VarChar(30)
+  contactMinutes      Int?               @map("contact_minutes")
+  contactIsMaximum    Boolean            @default(false) @map("contact_is_maximum")
   /// Free-form condition label, e.g. "introductory", "maintenance", "flare", "sun_exposure"
-  condition         String?            @db.VarChar(40)
+  condition           String?            @db.VarChar(40)
   /// Whether this rule is for an introductory/escalation phase (true) versus the regular regimen (false).
-  isIntroductory    Boolean            @default(false) @map("is_introductory")
+  isIntroductory      Boolean            @default(false) @map("is_introductory")
   /// Ordering of phases when the product has introductory escalation: 1 = first phase, 2 = next, etc.
-  phaseOrder        Int?               @map("phase_order")
+  phaseOrder          Int?               @map("phase_order")
   /// Minimum weeks before transitioning to the next phase (null = not specified).
-  phaseWeeksMin     Int?               @map("phase_weeks_min")
+  phaseWeeksMin       Int?               @map("phase_weeks_min")
   /// Maximum weeks this phase should last (null = indefinite or not specified).
-  phaseWeeksMax     Int?               @map("phase_weeks_max")
-  evidenceText      String             @map("evidence_text")
-  sourceUrl         String             @map("source_url")
-  sourceType        String             @map("source_type") @db.VarChar(40)
-  retrievedAt       DateTime?          @map("retrieved_at")
-  reviewedBy        String             @map("reviewed_by")
-  reviewedAt        DateTime           @map("reviewed_at")
-  sourceCandidateId String?            @map("source_candidate_id") @db.Uuid
-  createdAt         DateTime           @default(now()) @map("created_at")
+  phaseWeeksMax       Int?               @map("phase_weeks_max")
+  evidenceText        String             @map("evidence_text")
+  sourceUrl           String             @map("source_url")
+  sourceType          String             @map("source_type") @db.VarChar(40)
+  retrievedAt         DateTime?          @map("retrieved_at")
+  reviewedBy          String             @map("reviewed_by")
+  reviewedAt          DateTime           @map("reviewed_at")
+  sourceCandidateId   String?            @map("source_candidate_id") @db.Uuid
+  createdAt           DateTime           @default(now()) @map("created_at")
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   sku     Sku?    @relation(fields: [skuId], references: [id], onDelete: Cascade)
@@ -693,35 +692,35 @@ model Promotion {
 // ---------------------------------------------------------------------------
 
 model Supplier {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique
-  slug      String   @unique
-  isActive  Boolean  @default(true) @map("is_active")
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String    @unique
+  slug              String    @unique
+  isActive          Boolean   @default(true) @map("is_active")
   /// Days the warehouse is closed (0 = Sunday … 6 = Saturday); Friday by default.
-  closedWeekdays Int[]   @default([5]) @map("closed_weekdays")
-  closedDates String[]   @default([]) @map("closed_dates")
+  closedWeekdays    Int[]     @default([5]) @map("closed_weekdays")
+  closedDates       String[]  @default([]) @map("closed_dates")
   /// Staff-verified preparation, pickup and onward delivery lead; null uses a conservative operational estimate with uncertainty.
-  pickupLeadMinutes Int? @map("pickup_lead_minutes")
+  pickupLeadMinutes Int?      @map("pickup_lead_minutes")
   /// Working hours "HH:MM" in the configured supplier timezone; empty uses the configured defaults.
-  opensAt   String?  @map("opens_at") @db.VarChar(5)
-  closesAt  String?  @map("closes_at") @db.VarChar(5)
+  opensAt           String?   @map("opens_at") @db.VarChar(5)
+  closesAt          String?   @map("closes_at") @db.VarChar(5)
   /// BROADCAST_ON_DEMAND: set when staff approve the supplier to receive RFQs; null = not participating.
-  rfqEnrolledAt DateTime? @map("rfq_enrolled_at")
+  rfqEnrolledAt     DateTime? @map("rfq_enrolled_at")
   /// Optional product scope for RFQs (canonical SKU ids); empty = every SKU.
-  rfqScopeSkuIds String[] @default([]) @map("rfq_scope_sku_ids") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  rfqScopeSkuIds    String[]  @default([]) @map("rfq_scope_sku_ids") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  rfqRecipients  RfqRecipient[]
-  enrollmentEvents SupplierEnrollmentEvent[]
+  rfqRecipients       RfqRecipient[]
+  enrollmentEvents    SupplierEnrollmentEvent[]
   acquisitionCostLots AcquisitionCostLot[]
-  offers         SupplierOffer[]
-  ingestionJobs  IngestionJob[]
-  purchaseOrders SupplierPurchaseOrder[]
-  payables       SupplierPayable[]
-  skuAliases     SupplierSkuAlias[]
-  accounts       Customer[]
-  exportProfiles ExportProfile[]
+  offers              SupplierOffer[]
+  ingestionJobs       IngestionJob[]
+  purchaseOrders      SupplierPurchaseOrder[]
+  payables            SupplierPayable[]
+  skuAliases          SupplierSkuAlias[]
+  accounts            Customer[]
+  exportProfiles      ExportProfile[]
 
   @@map("suppliers")
   @@schema("sourcing")
@@ -746,26 +745,26 @@ model SupplierSkuAlias {
 }
 
 model SupplierOffer {
-  id              String    @id @default(uuid()) @db.Uuid
-  supplierId      String    @map("supplier_id") @db.Uuid
-  skuId           String    @map("sku_id") @db.Uuid
-  costPrice       Decimal   @map("cost_price") @db.Decimal(10, 2)
+  id                  String    @id @default(uuid()) @db.Uuid
+  supplierId          String    @map("supplier_id") @db.Uuid
+  skuId               String    @map("sku_id") @db.Uuid
+  costPrice           Decimal   @map("cost_price") @db.Decimal(10, 2)
   /// The consumer (retail) price the supplier states for this SKU; reference only, never a selling price.
-  consumerPrice   Decimal?  @map("consumer_price") @db.Decimal(10, 2)
-  currency        String    @db.VarChar(3)
-  isAvailable     Boolean   @default(true) @map("is_available")
-  lastObservedAt  DateTime  @default(now()) @map("last_observed_at")
-  lastIngestionItemId String? @map("last_ingestion_item_id") @db.Uuid
-  lastConfirmedAt DateTime? @map("last_confirmed_at")
+  consumerPrice       Decimal?  @map("consumer_price") @db.Decimal(10, 2)
+  currency            String    @db.VarChar(3)
+  isAvailable         Boolean   @default(true) @map("is_available")
+  lastObservedAt      DateTime  @default(now()) @map("last_observed_at")
+  lastIngestionItemId String?   @map("last_ingestion_item_id") @db.Uuid
+  lastConfirmedAt     DateTime? @map("last_confirmed_at")
   /// Quantity the supplier says it can supply now; null = not reported (yes/no availability only).
-  availableQuantity Int?    @map("available_quantity")
-  quantityUpdatedAt DateTime? @map("quantity_updated_at")
+  availableQuantity   Int?      @map("available_quantity")
+  quantityUpdatedAt   DateTime? @map("quantity_updated_at")
   /// PO shortage evidence; does not rewrite the supplier's physical stock snapshot.
-  shortageObservedAt DateTime? @map("shortage_observed_at")
-  minimumOrderUnits Int @default(1) @map("minimum_order_units")
-  orderMultipleUnits Int @default(1) @map("order_multiple_units")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  shortageObservedAt  DateTime? @map("shortage_observed_at")
+  minimumOrderUnits   Int       @default(1) @map("minimum_order_units")
+  orderMultipleUnits  Int       @default(1) @map("order_multiple_units")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   supplier          Supplier           @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   sourceAllocations SourceAllocation[]
@@ -799,13 +798,13 @@ model SupplierOfferPriceEvent {
 }
 
 model SourcingDecision {
-  id String @id @default(uuid()) @db.Uuid
-  skuId String @map("sku_id") @db.Uuid
-  requiredQuantity Int @map("required_quantity")
-  requirementId String? @map("requirement_id") @db.Uuid
-  rankedOffers Json @map("ranked_offers")
-  excludedOffers Json @map("excluded_offers")
-  createdAt DateTime @default(now()) @map("created_at")
+  id               String   @id @default(uuid()) @db.Uuid
+  skuId            String   @map("sku_id") @db.Uuid
+  requiredQuantity Int      @map("required_quantity")
+  requirementId    String?  @map("requirement_id") @db.Uuid
+  rankedOffers     Json     @map("ranked_offers")
+  excludedOffers   Json     @map("excluded_offers")
+  createdAt        DateTime @default(now()) @map("created_at")
 
   @@index([requirementId, createdAt])
   @@index([skuId, createdAt])
@@ -892,8 +891,8 @@ model SourceAllocation {
 
   @@unique([requirementId, supplierOfferId])
   @@index([requirementId])
-  @@map("source_allocations")
   @@index([result, selectedAt])
+  @@map("source_allocations")
   @@schema("sourcing")
 }
 
@@ -948,27 +947,27 @@ enum PurchaseOrderLineStatus {
 }
 
 model SupplierPurchaseOrder {
-  id         String              @id @default(uuid()) @db.Uuid
-  supplierId String              @map("supplier_id") @db.Uuid
+  id                 String              @id @default(uuid()) @db.Uuid
+  supplierId         String              @map("supplier_id") @db.Uuid
   /// Each finalized RFQ award is a new immutable document; never rewrite an earlier version.
-  version    Int                 @default(1)
-  status     PurchaseOrderStatus @default(created)
-  notes      String?
+  version            Int                 @default(1)
+  status             PurchaseOrderStatus @default(created)
+  notes              String?
   /// Procurement batch run that consolidated this PO (GLO-237); null for manual POs.
-  batchRef   String?             @map("batch_ref") @db.VarChar(64)
-  issuedAt   DateTime?           @map("issued_at")
-  responseDeadlineAt DateTime?   @map("response_deadline_at")
-  expedited Boolean             @default(false)
-  openedAt   DateTime?           @map("opened_at")
-  confirmedAt DateTime?          @map("confirmed_at")
-  readyAt    DateTime?           @map("ready_at")
-  receivedAt DateTime?           @map("received_at")
-  createdAt  DateTime            @default(now()) @map("created_at")
-  updatedAt  DateTime            @updatedAt @map("updated_at")
+  batchRef           String?             @map("batch_ref") @db.VarChar(64)
+  issuedAt           DateTime?           @map("issued_at")
+  responseDeadlineAt DateTime?           @map("response_deadline_at")
+  expedited          Boolean             @default(false)
+  openedAt           DateTime?           @map("opened_at")
+  confirmedAt        DateTime?           @map("confirmed_at")
+  readyAt            DateTime?           @map("ready_at")
+  receivedAt         DateTime?           @map("received_at")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
 
-  supplier Supplier            @relation(fields: [supplierId], references: [id])
-  lines    PurchaseOrderLine[]
-  payables SupplierPayable[]
+  supplier            Supplier             @relation(fields: [supplierId], references: [id])
+  lines               PurchaseOrderLine[]
+  payables            SupplierPayable[]
   acquisitionCostLots AcquisitionCostLot[]
 
   @@index([supplierId])
@@ -999,18 +998,18 @@ model ReceivingShortfall {
 
 /// Quantity-aware N:1 lineage: each order-item allocation is supplied through exactly one PO line.
 model PurchaseOrderLineAllocation {
-  id                  String    @id @default(uuid()) @db.Uuid
-  purchaseOrderLineId String    @map("purchase_order_line_id") @db.Uuid
-  sourceAllocationId  String    @unique @map("source_allocation_id") @db.Uuid
-  orderId             String    @map("order_id") @db.Uuid
-  orderItemId         String    @map("order_item_id") @db.Uuid
+  id                  String   @id @default(uuid()) @db.Uuid
+  purchaseOrderLineId String   @map("purchase_order_line_id") @db.Uuid
+  sourceAllocationId  String   @unique @map("source_allocation_id") @db.Uuid
+  orderId             String   @map("order_id") @db.Uuid
+  orderItemId         String   @map("order_item_id") @db.Uuid
   quantity            Int
-  confirmedQuantity   Int?      @map("confirmed_quantity")
-  receivedQuantity    Int       @default(0) @map("received_quantity")
+  confirmedQuantity   Int?     @map("confirmed_quantity")
+  receivedQuantity    Int      @default(0) @map("received_quantity")
   /// Confirmed units that will not arrive (recorded shortfalls; GLO-243).
-  shortQuantity       Int       @default(0) @map("short_quantity")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
+  shortQuantity       Int      @default(0) @map("short_quantity")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
   line             PurchaseOrderLine    @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
   sourceAllocation SourceAllocation     @relation(fields: [sourceAllocationId], references: [id], onDelete: Restrict)
@@ -1023,29 +1022,29 @@ model PurchaseOrderLineAllocation {
 }
 
 model PurchaseOrderLine {
-  id                String                  @id @default(uuid()) @db.Uuid
-  purchaseOrderId   String                  @map("purchase_order_id") @db.Uuid
-  skuId             String                  @map("sku_id") @db.Uuid
-  requestedQuantity Int                     @map("requested_quantity")
-  confirmedQuantity Int?                    @map("confirmed_quantity")
-  status            PurchaseOrderLineStatus @default(pending)
+  id                   String                  @id @default(uuid()) @db.Uuid
+  purchaseOrderId      String                  @map("purchase_order_id") @db.Uuid
+  skuId                String                  @map("sku_id") @db.Uuid
+  requestedQuantity    Int                     @map("requested_quantity")
+  confirmedQuantity    Int?                    @map("confirmed_quantity")
+  status               PurchaseOrderLineStatus @default(pending)
   /// Approved unit cost snapshot sent to the supplier; payables use this, never the live offer.
-  unitCost          Decimal?                @map("unit_cost") @db.Decimal(10, 2)
-  currency          String?                 @db.VarChar(3)
-  supplierOfferId   String?                 @map("supplier_offer_id") @db.Uuid
+  unitCost             Decimal?                @map("unit_cost") @db.Decimal(10, 2)
+  currency             String?                 @db.VarChar(3)
+  supplierOfferId      String?                 @map("supplier_offer_id") @db.Uuid
   /// A partial confirmation shared by several orders waits for an explicit, audited distribution.
-  distributionRequired Boolean              @default(false) @map("distribution_required")
-  distributedBy     String?                 @map("distributed_by")
-  distributedAt     DateTime?               @map("distributed_at")
-  distributionReason String?                @map("distribution_reason")
+  distributionRequired Boolean                 @default(false) @map("distribution_required")
+  distributedBy        String?                 @map("distributed_by")
+  distributedAt        DateTime?               @map("distributed_at")
+  distributionReason   String?                 @map("distribution_reason")
   /// Supplier's typed reason when a line cannot be supplied as ordered (GLO-237 red team):
   /// MIN_ORDER_QUANTITY | PACK_SIZE | PRICE_CHANGED | OUT_OF_STOCK | DISCONTINUED
-  exceptionCode      String?                 @map("exception_code") @db.VarChar(40)
-  exceptionNote      String?                 @map("exception_note")
-  proposedQuantity   Int?                    @map("proposed_quantity")
-  proposedUnitCost   Decimal?                @map("proposed_unit_cost") @db.Decimal(10, 2)
-  createdAt         DateTime                @default(now()) @map("created_at")
-  updatedAt         DateTime                @updatedAt @map("updated_at")
+  exceptionCode        String?                 @map("exception_code") @db.VarChar(40)
+  exceptionNote        String?                 @map("exception_note")
+  proposedQuantity     Int?                    @map("proposed_quantity")
+  proposedUnitCost     Decimal?                @map("proposed_unit_cost") @db.Decimal(10, 2)
+  createdAt            DateTime                @default(now()) @map("created_at")
+  updatedAt            DateTime                @updatedAt @map("updated_at")
 
   purchaseOrder SupplierPurchaseOrder         @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   allocations   PurchaseOrderLineAllocation[]
@@ -1053,8 +1052,8 @@ model PurchaseOrderLine {
 
   @@index([purchaseOrderId])
   @@index([skuId])
-  @@map("purchase_order_lines")
   @@index([distributionRequired, createdAt])
+  @@map("purchase_order_lines")
   @@schema("sourcing")
 }
 
@@ -1174,17 +1173,17 @@ model RfqDemandSource {
 }
 
 model RfqResponse {
-  id              String   @id @default(uuid()) @db.Uuid
-  rfqId           String   @map("rfq_id") @db.Uuid
-  supplierId      String   @map("supplier_id") @db.Uuid
-  idempotencyKey  String   @map("idempotency_key") @db.VarChar(80)
-  requestHash     String   @map("request_hash") @db.VarChar(64)
-  purchaseOrderId String?  @map("purchase_order_id") @db.Uuid
-  createdBy       String   @map("created_by")
+  id                 String    @id @default(uuid()) @db.Uuid
+  rfqId              String    @map("rfq_id") @db.Uuid
+  supplierId         String    @map("supplier_id") @db.Uuid
+  idempotencyKey     String    @map("idempotency_key") @db.VarChar(80)
+  requestHash        String    @map("request_hash") @db.VarChar(64)
+  purchaseOrderId    String?   @map("purchase_order_id") @db.Uuid
+  createdBy          String    @map("created_by")
   /// Null for the existing authenticated supplier API; staff records the actual offline channel and time.
-  confirmationSource String? @map("confirmation_source") @db.VarChar(10)
-  confirmedAt     DateTime? @map("confirmed_at")
-  createdAt       DateTime @default(now()) @map("created_at")
+  confirmationSource String?   @map("confirmation_source") @db.VarChar(10)
+  confirmedAt        DateTime? @map("confirmed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
 
   rfq   ProcurementRfq    @relation(fields: [rfqId], references: [id], onDelete: Cascade)
   lines RfqResponseLine[]
@@ -1234,7 +1233,6 @@ model RfqEvent {
   @@map("rfq_events")
   @@schema("sourcing")
 }
-
 
 enum PayableStatus {
   open
@@ -1431,43 +1429,43 @@ enum OrderStatus {
 }
 
 model Order {
-  id                    String      @id @default(uuid()) @db.Uuid
-  orderNumber           String      @unique @map("order_number")
-  customerId            String?     @map("customer_id")
-  customerName          String      @map("customer_name")
-  customerPhone         String      @map("customer_phone")
+  id                    String        @id @default(uuid()) @db.Uuid
+  orderNumber           String        @unique @map("order_number")
+  customerId            String?       @map("customer_id")
+  customerName          String        @map("customer_name")
+  customerPhone         String        @map("customer_phone")
   governorate           String?
   area                  String?
-  shippingAddress       String      @map("shipping_address")
+  shippingAddress       String        @map("shipping_address")
   notes                 String?
   latitude              Float?
   longitude             Float?
-  locationSource        String?     @map("location_source")
+  locationSource        String?       @map("location_source")
   /// When the pin was confirmed (customer at checkout, or operator correction for legacy orders).
-  locationConfirmedAt   DateTime?   @map("location_confirmed_at")
+  locationConfirmedAt   DateTime?     @map("location_confirmed_at")
   /// 'customer' or the correcting operator's account id.
-  locationConfirmedBy   String?     @map("location_confirmed_by")
-  totalAmount           Decimal     @map("total_amount") @db.Decimal(10, 2)
-  shippingFee           Decimal     @default(0) @map("shipping_fee") @db.Decimal(10, 2)
-  currency              String      @db.VarChar(3)
-  status                OrderStatus @default(placed)
-  idempotencyKey        String?     @unique @map("idempotency_key")
-  submissionHash        String?     @map("submission_hash")
-  subtotal              Decimal?    @db.Decimal(10, 2)
-  codAmount             Decimal?    @map("cod_amount") @db.Decimal(10, 2)
-  deliveryPromise       String?     @map("delivery_promise")
-  promisedDate          DateTime?   @map("promised_date") @db.Date
-  availabilityCertainty String?     @map("availability_certainty")
-  guestAccessTokenHash  String?     @unique @map("guest_access_token_hash")
-  guestAccessExpiresAt  DateTime?   @map("guest_access_expires_at")
-  guestAccessRevokedAt  DateTime?   @map("guest_access_revoked_at")
-  appliedPromotions     Json?       @map("applied_promotions") // provenance for discounts/campaigns
+  locationConfirmedBy   String?       @map("location_confirmed_by")
+  totalAmount           Decimal       @map("total_amount") @db.Decimal(10, 2)
+  shippingFee           Decimal       @default(0) @map("shipping_fee") @db.Decimal(10, 2)
+  currency              String        @db.VarChar(3)
+  status                OrderStatus   @default(placed)
+  idempotencyKey        String?       @unique @map("idempotency_key")
+  submissionHash        String?       @map("submission_hash")
+  subtotal              Decimal?      @db.Decimal(10, 2)
+  codAmount             Decimal?      @map("cod_amount") @db.Decimal(10, 2)
+  deliveryPromise       String?       @map("delivery_promise")
+  promisedDate          DateTime?     @map("promised_date") @db.Date
+  availabilityCertainty String?       @map("availability_certainty")
+  guestAccessTokenHash  String?       @unique @map("guest_access_token_hash")
+  guestAccessExpiresAt  DateTime?     @map("guest_access_expires_at")
+  guestAccessRevokedAt  DateTime?     @map("guest_access_revoked_at")
+  appliedPromotions     Json?         @map("applied_promotions") // provenance for discounts/campaigns
   /// How the customer pays (GLO-241). Only COD creates driver cash; online methods need provider confirmation.
   paymentMethod         PaymentMethod @default(COD) @map("payment_method")
   /// Provider/product for online methods, e.g. a card PSP or 'vodafone_cash'.
-  paymentProvider       String?     @map("payment_provider") @db.VarChar(40)
-  createdAt             DateTime    @default(now()) @map("created_at")
-  updatedAt             DateTime    @updatedAt @map("updated_at")
+  paymentProvider       String?       @map("payment_provider") @db.VarChar(40)
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
 
   items                 OrderItem[]
   statusEvents          OrderStatusEvent[]
@@ -1535,8 +1533,8 @@ model OrderItem {
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
 
-  order       Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  resolutions OrderResolutionItem[]
+  order          Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  resolutions    OrderResolutionItem[]
   purchaseReason OrderItemPurchaseReason?
 
   @@index([orderId])
@@ -2137,19 +2135,19 @@ model ShipmentPreparationSession {
 }
 
 model PreparationScanEvent {
-  id             String   @id @default(uuid()) @db.Uuid
-  sessionId      String   @map("session_id") @db.Uuid
-  skuId          String?  @map("sku_id") @db.Uuid
-  barcodeScanned String?  @map("barcode_scanned")
-  scannedAt      DateTime @default(now()) @map("scanned_at")
-  isSuccessful   Boolean  @default(true) @map("is_successful")
-  errorReason    String?  @map("error_reason")
+  id                 String   @id @default(uuid()) @db.Uuid
+  sessionId          String   @map("session_id") @db.Uuid
+  skuId              String?  @map("sku_id") @db.Uuid
+  barcodeScanned     String?  @map("barcode_scanned")
+  scannedAt          DateTime @default(now()) @map("scanned_at")
+  isSuccessful       Boolean  @default(true) @map("is_successful")
+  errorReason        String?  @map("error_reason")
   /// primary_barcode | barcode_alias | manual (GLO-242)
-  verificationMethod String? @map("verification_method") @db.VarChar(20)
-  operatorId     String?  @map("operator_id")
-  manualReason   String?  @map("manual_reason")
+  verificationMethod String?  @map("verification_method") @db.VarChar(20)
+  operatorId         String?  @map("operator_id")
+  manualReason       String?  @map("manual_reason")
   /// Client-generated id of one physical scan: a retried request returns the original (RT14).
-  clientScanId   String?  @map("client_scan_id") @db.VarChar(64)
+  clientScanId       String?  @map("client_scan_id") @db.VarChar(64)
 
   session ShipmentPreparationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
@@ -2181,30 +2179,30 @@ enum IngestionImportMode {
 }
 
 model IngestionJob {
-  id                String              @id @default(uuid()) @db.Uuid
-  supplierId        String              @map("supplier_id") @db.Uuid
-  status            IngestionStatus     @default(pending)
-  mode              IngestionImportMode @default(PARTIAL_UPDATE) @map("mode")
-  sourceKey         String?             @map("source_key")
-  sourceChecksum    String?             @map("source_checksum")
+  id                  String                      @id @default(uuid()) @db.Uuid
+  supplierId          String                      @map("supplier_id") @db.Uuid
+  status              IngestionStatus             @default(pending)
+  mode                IngestionImportMode         @default(PARTIAL_UPDATE) @map("mode")
+  sourceKey           String?                     @map("source_key")
+  sourceChecksum      String?                     @map("source_checksum")
   /// Intake audit: who submitted the original and what was received (Gate 01).
-  uploadedBy        String?             @map("uploaded_by")
-  sourceFileName    String?             @map("source_file_name")
-  sourceMimeType    String?             @map("source_mime_type")
-  sourceSizeBytes   Int?                @map("source_size_bytes")
+  uploadedBy          String?                     @map("uploaded_by")
+  sourceFileName      String?                     @map("source_file_name")
+  sourceMimeType      String?                     @map("source_mime_type")
+  sourceSizeBytes     Int?                        @map("source_size_bytes")
   /// Advisory provenance: server receipt time, workbook created/modified, declared document kind. Never trusted as freshness.
-  sourceMetadata    Json?               @map("source_metadata")
-  formatFingerprint String?             @map("format_fingerprint")
-  profileId         String?             @map("profile_id") @db.Uuid
-  rowOutcomes       Json?               @map("row_outcomes")
-  eligibilityPolicyId String?           @map("eligibility_policy_id") @db.Uuid
-  eligibilityPolicy IngestionEligibilityPolicy? @relation(fields: [eligibilityPolicyId], references: [id], onDelete: Restrict)
-  createdAt         DateTime            @default(now()) @map("created_at")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
+  sourceMetadata      Json?                       @map("source_metadata")
+  formatFingerprint   String?                     @map("format_fingerprint")
+  profileId           String?                     @map("profile_id") @db.Uuid
+  rowOutcomes         Json?                       @map("row_outcomes")
+  eligibilityPolicyId String?                     @map("eligibility_policy_id") @db.Uuid
+  eligibilityPolicy   IngestionEligibilityPolicy? @relation(fields: [eligibilityPolicyId], references: [id], onDelete: Restrict)
+  createdAt           DateTime                    @default(now()) @map("created_at")
+  updatedAt           DateTime                    @updatedAt @map("updated_at")
 
   items         IngestionItem[]
-  supplier      Supplier       @relation(fields: [supplierId], references: [id])
-  exportProfile ExportProfile? @relation(fields: [profileId], references: [id])
+  supplier      Supplier        @relation(fields: [supplierId], references: [id])
+  exportProfile ExportProfile?  @relation(fields: [profileId], references: [id])
 
   /// One job per identical supplier original; NULL checksums (JSON imports) stay unconstrained.
   @@unique([supplierId, sourceChecksum])
@@ -2237,22 +2235,22 @@ enum AdminCatalogImportRowOutcome {
 }
 
 model AdminCatalogImportJob {
-  id             String                   @id @default(uuid()) @db.Uuid
+  id              String                   @id @default(uuid()) @db.Uuid
   /// Private storage object of the retained original; sourceChecksum makes a retried upload resolve to the same job.
-  sourceKey      String                   @map("source_key")
-  sourceChecksum String                   @unique @map("source_checksum")
-  sourceFileName String                   @map("source_file_name")
-  sourceMimeType String                   @map("source_mime_type")
-  sourceSizeBytes Int                     @map("source_size_bytes")
-  uploadedBy     String                   @map("uploaded_by")
-  status         AdminCatalogImportStatus @default(RECEIVED)
+  sourceKey       String                   @map("source_key")
+  sourceChecksum  String                   @unique @map("source_checksum")
+  sourceFileName  String                   @map("source_file_name")
+  sourceMimeType  String                   @map("source_mime_type")
+  sourceSizeBytes Int                      @map("source_size_bytes")
+  uploadedBy      String                   @map("uploaded_by")
+  status          AdminCatalogImportStatus @default(RECEIVED)
   /// Which file header fed which field, and which headers were deliberately ignored.
-  columnMap      Json                     @map("column_map")
-  totals         Json?
-  lastError      String?                  @map("last_error")
-  createdAt      DateTime                 @default(now()) @map("created_at")
-  updatedAt      DateTime                 @updatedAt @map("updated_at")
-  completedAt    DateTime?                @map("completed_at")
+  columnMap       Json                     @map("column_map")
+  totals          Json?
+  lastError       String?                  @map("last_error")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+  completedAt     DateTime?                @map("completed_at")
 
   rows AdminCatalogImportRow[]
 
@@ -2474,19 +2472,19 @@ model IntakeRow {
 /// Learned identity knowledge: wording (fingerprint) that resolved to one canonical SKU, per supplier or global.
 /// Written only from a verified resolution (barcode, confident match, Admin decision); never from a guess.
 model IntakeIdentityAlias {
-  id            String   @id @default(uuid()) @db.Uuid
-  fingerprint   String   @db.VarChar(64)
+  id            String    @id @default(uuid()) @db.Uuid
+  fingerprint   String    @db.VarChar(64)
   /// Supplier id, or GLOBAL for Admin wording.
-  scopeKey      String   @map("scope_key") @db.VarChar(40)
-  skuId         String   @map("sku_id") @db.Uuid
+  scopeKey      String    @map("scope_key") @db.VarChar(40)
+  skuId         String    @map("sku_id") @db.Uuid
   /// BARCODE | SUPPLIER_CODE | AUTO_MATCH | ADMIN_RESOLVED | ADMIN_INTAKE
-  basis         String   @db.VarChar(20)
-  sampleText    String   @map("sample_text")
-  confirmations Int      @default(1)
+  basis         String    @db.VarChar(20)
+  sampleText    String    @map("sample_text")
+  confirmations Int       @default(1)
   /// Set when a later row with this wording contradicted the SKU; a retired alias is never used.
   retiredAt     DateTime? @map("retired_at")
-  lastSeenAt    DateTime @default(now()) @map("last_seen_at")
-  createdAt     DateTime @default(now()) @map("created_at")
+  lastSeenAt    DateTime  @default(now()) @map("last_seen_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
 
   @@unique([fingerprint, scopeKey])
   @@index([skuId])
@@ -2504,19 +2502,19 @@ enum MarketPriceCheckStatus {
 
 /// One market price research pass for one canonical SKU. Advisory only: nothing reads it to set a selling price.
 model MarketPriceCheck {
-  id           String                 @id @default(uuid()) @db.Uuid
-  skuId        String                 @map("sku_id") @db.Uuid
-  status       MarketPriceCheckStatus
+  id          String                 @id @default(uuid()) @db.Uuid
+  skuId       String                 @map("sku_id") @db.Uuid
+  status      MarketPriceCheckStatus
   /// Why the reference is missing, when it is.
-  reasonCode   String?                @map("reason_code") @db.VarChar(80)
+  reasonCode  String?                @map("reason_code") @db.VarChar(80)
   /// { minEgp, medianEgp, maxEgp, sellers, observations, excluded: [{ id, reason }] }
-  reference    Json?
+  reference   Json?
   /// Which tiers were consulted: REUSED | OFFICIAL | TRUSTED_RETAILER | WEB_DISCOVERY, with counts.
-  coverage     Json
-  cost         Json?
-  requestedBy  String                 @map("requested_by") @db.Uuid
-  startedAt    DateTime               @default(now()) @map("started_at")
-  completedAt  DateTime?              @map("completed_at")
+  coverage    Json
+  cost        Json?
+  requestedBy String                 @map("requested_by") @db.Uuid
+  startedAt   DateTime               @default(now()) @map("started_at")
+  completedAt DateTime?              @map("completed_at")
 
   @@index([skuId, startedAt])
   @@map("market_price_checks")
@@ -2525,17 +2523,18 @@ model MarketPriceCheck {
 
 /// Immutable approved snapshots. Preview records can only transition once to APPROVED.
 model IngestionEligibilityPolicy {
-  id String @id @default(uuid()) @db.Uuid
-  version Int? @unique
-  baseVersion Int @map("base_version")
-  status String @default("PREVIEW")
-  document Json
-  impact Json
-  actorId String @map("actor_id") @db.Uuid
-  reason String
-  createdAt DateTime @default(now()) @map("created_at")
-  approvedAt DateTime? @map("approved_at")
-  jobs IngestionJob[]
+  id          String         @id @default(uuid()) @db.Uuid
+  version     Int?           @unique
+  baseVersion Int            @map("base_version")
+  status      String         @default("PREVIEW")
+  document    Json
+  impact      Json
+  actorId     String         @map("actor_id") @db.Uuid
+  reason      String
+  createdAt   DateTime       @default(now()) @map("created_at")
+  approvedAt  DateTime?      @map("approved_at")
+  jobs        IngestionJob[]
+
   @@index([status, version])
   @@map("eligibility_policies")
   @@schema("ingestion")
@@ -2599,7 +2598,7 @@ model IngestionItem {
   createdAt        DateTime                      @default(now()) @map("created_at")
   updatedAt        DateTime                      @updatedAt @map("updated_at")
 
-  job IngestionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job          IngestionJob         @relation(fields: [jobId], references: [id], onDelete: Cascade)
   contentDraft ProductContentDraft?
 
   @@index([jobId])
@@ -2609,31 +2608,31 @@ model IngestionItem {
 }
 
 model ProductContentDraft {
-  id               String   @id @default(uuid()) @db.Uuid
-  candidateId      String   @unique @map("candidate_id") @db.Uuid
-  language         String   @db.VarChar(5) // 'ar' or 'en'
-  titleEn          String?
-  titleAr          String?
+  id                 String   @id @default(uuid()) @db.Uuid
+  candidateId        String   @unique @map("candidate_id") @db.Uuid
+  language           String   @db.VarChar(5) // 'ar' or 'en'
+  titleEn            String?
+  titleAr            String?
   shortDescriptionEn String?
   shortDescriptionAr String?
-  descriptionEn    String?
-  descriptionAr    String?
-  benefitsEn       String[]
-  benefitsAr       String[]
-  usageEn          String[]
-  usageAr          String[]
-  routineStepEn    String?
-  routineStepAr    String?
-  keywords         String[]
-  seoTitleEn       String?
-  seoTitleAr       String?
-  seoDescriptionEn String?
-  seoDescriptionAr String?
-  evidenceVersion  String?
-  modelVersion     String?
-  isApproved       Boolean  @default(false) @map("is_approved")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  descriptionEn      String?
+  descriptionAr      String?
+  benefitsEn         String[]
+  benefitsAr         String[]
+  usageEn            String[]
+  usageAr            String[]
+  routineStepEn      String?
+  routineStepAr      String?
+  keywords           String[]
+  seoTitleEn         String?
+  seoTitleAr         String?
+  seoDescriptionEn   String?
+  seoDescriptionAr   String?
+  evidenceVersion    String?
+  modelVersion       String?
+  isApproved         Boolean  @default(false) @map("is_approved")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   candidate IngestionItem @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
@@ -2643,25 +2642,25 @@ model ProductContentDraft {
 }
 
 model BrandDraft {
-  id               String   @id @default(uuid()) @db.Uuid
+  id               String    @id @default(uuid()) @db.Uuid
   name             String
-  canonicalName    String   @map("canonical_name")
-  slug             String   @unique
+  canonicalName    String    @map("canonical_name")
+  slug             String    @unique
   aliases          String[]
-  descriptionEn    String?  @map("description_en")
-  descriptionAr    String?  @map("description_ar")
-  websiteUrl       String?  @map("website_url")
-  countryOfOrigin  String?  @map("country_of_origin")
-  logoUrl          String?  @map("logo_url")
-  logoMetadata     Json?    @map("logo_metadata")
-  status           String   @default("PENDING_REVIEW")
-  rejectionReason  String?  @map("rejection_reason")
-  reviewedBy       String?  @map("reviewed_by")
+  descriptionEn    String?   @map("description_en")
+  descriptionAr    String?   @map("description_ar")
+  websiteUrl       String?   @map("website_url")
+  countryOfOrigin  String?   @map("country_of_origin")
+  logoUrl          String?   @map("logo_url")
+  logoMetadata     Json?     @map("logo_metadata")
+  status           String    @default("PENDING_REVIEW")
+  rejectionReason  String?   @map("rejection_reason")
+  reviewedBy       String?   @map("reviewed_by")
   reviewedAt       DateTime? @map("reviewed_at")
   evidence         Json?
-  canonicalBrandId String?  @map("canonical_brand_id") @db.Uuid
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  canonicalBrandId String?   @map("canonical_brand_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   productLines ProductLineDraft[]
 
@@ -2751,29 +2750,29 @@ enum RoutineOrigin {
 /// One routine domain (GLO-84): Ready Routine templates (isTemplate, curated in the Studio) and customers' own routines
 /// (ownerCustomerId set) share the same steps and product references.
 model Routine {
-  id          String   @id @default(uuid()) @db.Uuid
-  title       String
-  description String?
-  careArea    CareArea @map("care_area")
-  isTemplate  Boolean  @default(true) @map("is_template")
-  isActive    Boolean  @default(true) @map("is_active")
-  status      RoutineStatus @default(DRAFT)
-  origin      RoutineOrigin @default(TEMPLATE)
+  id                String        @id @default(uuid()) @db.Uuid
+  title             String
+  description       String?
+  careArea          CareArea      @map("care_area")
+  isTemplate        Boolean       @default(true) @map("is_template")
+  isActive          Boolean       @default(true) @map("is_active")
+  status            RoutineStatus @default(DRAFT)
+  origin            RoutineOrigin @default(TEMPLATE)
   /// Owner of a personal routine (customer id); null for templates.
-  ownerCustomerId String? @map("owner_customer_id")
+  ownerCustomerId   String?       @map("owner_customer_id")
   /// Template a personal copy was made from.
-  sourceRoutineId String? @map("source_routine_id") @db.Uuid
-  concernSlug String?  @map("concern_slug")
-  titleEn     String?  @map("title_en")
+  sourceRoutineId   String?       @map("source_routine_id") @db.Uuid
+  concernSlug       String?       @map("concern_slug")
+  titleEn           String?       @map("title_en")
   /// [{ title, url }] the template's content is grounded in.
-  references  Json?
-  version     Int      @default(1)
-  publishedAt DateTime? @map("published_at")
-  publishedBy String?  @map("published_by")
+  references        Json?
+  version           Int           @default(1)
+  publishedAt       DateTime?     @map("published_at")
+  publishedBy       String?       @map("published_by")
   /// Hash of the canonical imported JSON, so the same file cannot create two drafts.
-  importFingerprint String? @unique @map("import_fingerprint")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  importFingerprint String?       @unique @map("import_fingerprint")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
 
   steps     RoutineStep[]
   profiles  CustomerCareProfile[]
@@ -2866,18 +2865,18 @@ enum SkinType {
 }
 
 model CustomerCareProfile {
-  id            String    @id @default(uuid()) @db.Uuid
-  customerId    String    @unique @map("customer_id")
-  skinType      SkinType? @map("skin_type")
-  budget        Decimal?  @db.Decimal(10, 2)
-  currency      String?   @db.VarChar(3)
-  sensitivities String?
-  routineId     String?   @map("routine_id") @db.Uuid
+  id              String               @id @default(uuid()) @db.Uuid
+  customerId      String               @unique @map("customer_id")
+  skinType        SkinType?            @map("skin_type")
+  budget          Decimal?             @db.Decimal(10, 2)
+  currency        String?              @db.VarChar(3)
+  sensitivities   String?
+  routineId       String?              @map("routine_id") @db.Uuid
   ageBand         CareAgeBand?         @map("age_band")
   experienceLevel CareExperienceLevel? @map("experience_level")
   fragranceFree   Boolean?             @map("fragrance_free")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
 
   routine          Routine?                     @relation(fields: [routineId], references: [id])
   concerns         CustomerCareProfileConcern[]
@@ -2929,10 +2928,10 @@ model GuidanceSession {
 }
 
 model RoutineDraft {
-  id              String   @id @default(uuid()) @db.Uuid
+  id             String  @id @default(uuid()) @db.Uuid
   // Anonymous start with safe session ownership
-  customerId      String?  @map("customer_id")
-  guestTokenHash  String?  @unique @map("guest_token_hash")
+  customerId     String? @map("customer_id")
+  guestTokenHash String? @unique @map("guest_token_hash")
 
   careArea        CareArea @default(skin) @map("care_area")
   primaryConcern  String?  @map("primary_concern")
@@ -2940,32 +2939,32 @@ model RoutineDraft {
   budget          Decimal? @db.Decimal(10, 2)
   isBudgetStrict  Boolean  @default(false) @map("is_budget_strict")
   maxSteps        Int?     @map("max_steps")
-  preferences     Json?    
+  preferences     Json?
   ownedProductIds String[] @map("owned_product_ids")
 
   /// 1 mild · 2 moderate · 3 severe (severe routes to the safety path, ROUTINE_SYSTEM.md §8).
-  severity        Int?
-  skinType        SkinType?            @map("skin_type")
-  tier            RoutineTier?
-  ageBand         CareAgeBand?         @map("age_band")
-  experienceLevel CareExperienceLevel? @map("experience_level")
-  fragranceFree   Boolean?             @map("fragrance_free")
+  severity             Int?
+  skinType             SkinType?            @map("skin_type")
+  tier                 RoutineTier?
+  ageBand              CareAgeBand?         @map("age_band")
+  experienceLevel      CareExperienceLevel? @map("experience_level")
+  fragranceFree        Boolean?             @map("fragrance_free")
   /// Safety answers for this draft only: { pregnant, breastfeeding, prescriptionTopical, oralRetinoid, fragranceSensitive }
   /// each YES | NO | UNKNOWN, plus pending flags for answers read from chat. Never free text.
-  safety          Json?
-  allergyIngredientIds String[]     @map("allergy_ingredient_ids")
-  ownedRoleKeys   String[]          @map("owned_role_keys")
+  safety               Json?
+  allergyIngredientIds String[]             @map("allergy_ingredient_ids")
+  ownedRoleKeys        String[]             @map("owned_role_keys")
   /// Builder overrides replayed by the engine: { swaps: { roleKey: productId }, removed: roleKey[], upgrades: roleKey[] }
-  overrides       Json?
-  consentVersion  String?           @map("consent_version")
-  consentAt       DateTime?         @map("consent_at")
+  overrides            Json?
+  consentVersion       String?              @map("consent_version")
+  consentAt            DateTime?            @map("consent_at")
 
-  version         Int      @default(1)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  proposals       RoutineProposal[]
-  
+  proposals RoutineProposal[]
+
   @@index([customerId])
   @@map("routine_drafts")
   @@schema("care")
@@ -2976,23 +2975,23 @@ enum RoutineProposalStatus {
   accepted
   rejected
   failed
-  
+
   @@schema("care")
 }
 
 model RoutineProposal {
-  id              String   @id @default(uuid()) @db.Uuid
-  draftId         String   @map("draft_id") @db.Uuid
-  status          RoutineProposalStatus @default(proposed)
-  snapshot        Json
-  totalPrice      Decimal? @map("total_price") @db.Decimal(10, 2)
-  error           Json?    // Typed recoverable error state
+  id            String                @id @default(uuid()) @db.Uuid
+  draftId       String                @map("draft_id") @db.Uuid
+  status        RoutineProposalStatus @default(proposed)
+  snapshot      Json
+  totalPrice    Decimal?              @map("total_price") @db.Decimal(10, 2)
+  error         Json? // Typed recoverable error state
   /// Draft version the engine ran on; only the proposal for the current draft version can be saved.
-  draftVersion    Int?     @map("draft_version")
-  engineVersion   String?  @map("engine_version")
-  createdAt       DateTime @default(now()) @map("created_at")
+  draftVersion  Int?                  @map("draft_version")
+  engineVersion String?               @map("engine_version")
+  createdAt     DateTime              @default(now()) @map("created_at")
 
-  draft           RoutineDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  draft RoutineDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
 
   @@index([draftId])
   @@map("routine_proposals")
@@ -3133,26 +3132,26 @@ enum RoutinePurchasePhase {
 
 /// The fixed structure of a routine for one concern and severity range. System data, published from admin only.
 model RoutineBlueprint {
-  id                 String          @id @default(uuid()) @db.Uuid
-  key                String          @unique
-  concernSlug        String          @map("concern_slug")
-  careArea           CareArea        @map("care_area")
-  kind               RoutineKind
-  severityMin        Int             @default(1) @map("severity_min")
-  severityMax        Int             @default(2) @map("severity_max")
-  titleAr            String          @map("title_ar")
-  titleEn            String          @map("title_en")
-  goalAr             String?         @map("goal_ar")
-  timelineAr         String?         @map("timeline_ar")
-  safetyNotesAr      String[]        @map("safety_notes_ar")
+  id            String          @id @default(uuid()) @db.Uuid
+  key           String          @unique
+  concernSlug   String          @map("concern_slug")
+  careArea      CareArea        @map("care_area")
+  kind          RoutineKind
+  severityMin   Int             @default(1) @map("severity_min")
+  severityMax   Int             @default(2) @map("severity_max")
+  titleAr       String          @map("title_ar")
+  titleEn       String          @map("title_en")
+  goalAr        String?         @map("goal_ar")
+  timelineAr    String?         @map("timeline_ar")
+  safetyNotesAr String[]        @map("safety_notes_ar")
   /// [{ title, url }] the rules and timeline come from; publishing requires at least one.
-  sources            Json
-  status             BlueprintStatus @default(DRAFT)
-  version            Int             @default(1)
-  publishedAt        DateTime?       @map("published_at")
-  publishedBy        String?         @map("published_by")
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
+  sources       Json
+  status        BlueprintStatus @default(DRAFT)
+  version       Int             @default(1)
+  publishedAt   DateTime?       @map("published_at")
+  publishedBy   String?         @map("published_by")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
 
   roles BlueprintRole[]
 
@@ -3163,19 +3162,19 @@ model RoutineBlueprint {
 
 /// One step of a blueprint, in application order. A role with required actives is a treatment role.
 model BlueprintRole {
-  id                     String  @id @default(uuid()) @db.Uuid
-  blueprintId            String  @map("blueprint_id") @db.Uuid
-  roleKey                String  @map("role_key")
-  sortOrder              Int     @map("sort_order")
-  titleAr                String  @map("title_ar")
-  isEssential            Boolean @default(true) @map("is_essential")
+  id                  String   @id @default(uuid()) @db.Uuid
+  blueprintId         String   @map("blueprint_id") @db.Uuid
+  roleKey             String   @map("role_key")
+  sortOrder           Int      @map("sort_order")
+  titleAr             String   @map("title_ar")
+  isEssential         Boolean  @default(true) @map("is_essential")
   /// Week the step joins the routine (1 = from the start). Sunscreen is always 1.
-  startWeek              Int     @default(1) @map("start_week")
+  startWeek           Int      @default(1) @map("start_week")
   /// Ingredient family or ingredient slugs; a candidate needs one of them as a reviewed key active.
-  requiredActives        String[] @map("required_actives")
+  requiredActives     String[] @map("required_actives")
   /// [{ subject, min, max, unit }]: the stated concentration must fall inside when the subject is the active used.
-  concentrationRanges    Json?   @map("concentration_ranges")
-  usageNoteAr            String? @map("usage_note_ar")
+  concentrationRanges Json?    @map("concentration_ranges")
+  usageNoteAr         String?  @map("usage_note_ar")
 
   blueprint RoutineBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
 
@@ -3208,23 +3207,23 @@ model ProductRoleEligibility {
 
 /// Compatibility and exclusion matrix (ROUTINE_SYSTEM.md §8-أ). Every row names its source.
 model IngredientRule {
-  id            String                @id @default(uuid()) @db.Uuid
-  key           String                @unique
-  kind          IngredientRuleKind
-  subjectType   IngredientRuleSubject @map("subject_type")
-  subject       String
-  otherType     IngredientRuleSubject? @map("other_type")
-  other         String?
+  id          String                 @id @default(uuid()) @db.Uuid
+  key         String                 @unique
+  kind        IngredientRuleKind
+  subjectType IngredientRuleSubject  @map("subject_type")
+  subject     String
+  otherType   IngredientRuleSubject? @map("other_type")
+  other       String?
   /// PREGNANT | BREASTFEEDING | ORAL_RETINOID | PRESCRIPTION_TOPICAL | AGE_UNDER_12 for EXCLUDE_CONDITION.
-  condition     String?
-  noteAr        String?               @map("note_ar")
-  sourceTitle   String                @map("source_title")
-  sourceUrl     String?               @map("source_url")
+  condition   String?
+  noteAr      String?                @map("note_ar")
+  sourceTitle String                 @map("source_title")
+  sourceUrl   String?                @map("source_url")
   /// PUBLISHED_GUIDANCE | STUDY | SHINACARE_POLICY (a conservative product rule, not a medical claim).
-  sourceType    String                @map("source_type")
-  status        IngredientRuleStatus  @default(ACTIVE)
-  reviewedAt    DateTime              @default(now()) @map("reviewed_at")
-  createdAt     DateTime              @default(now()) @map("created_at")
+  sourceType  String                 @map("source_type")
+  status      IngredientRuleStatus   @default(ACTIVE)
+  reviewedAt  DateTime               @default(now()) @map("reviewed_at")
+  createdAt   DateTime               @default(now()) @map("created_at")
 
   @@index([kind, status])
   @@map("ingredient_rules")
@@ -3253,27 +3252,27 @@ model CareSafetyFlags {
 
 /// A customer's saved routine. Activation and lifecycle are separate axes (ROUTINE_SYSTEM.md §5.6).
 model CustomerRoutine {
-  id                     String            @id @default(uuid()) @db.Uuid
-  careProfileId          String            @map("care_profile_id") @db.Uuid
-  blueprintId            String            @map("blueprint_id") @db.Uuid
-  blueprintVersion       Int               @map("blueprint_version")
-  concernSlug            String            @map("concern_slug")
-  careArea               CareArea          @map("care_area")
-  kind                   RoutineKind
-  titleAr                String            @map("title_ar")
-  tier                   RoutineTier?
-  activation             RoutineActivation @default(INACTIVE)
-  lifecycle              RoutineLifecycle  @default(NOT_STARTED)
+  id                    String            @id @default(uuid()) @db.Uuid
+  careProfileId         String            @map("care_profile_id") @db.Uuid
+  blueprintId           String            @map("blueprint_id") @db.Uuid
+  blueprintVersion      Int               @map("blueprint_version")
+  concernSlug           String            @map("concern_slug")
+  careArea              CareArea          @map("care_area")
+  kind                  RoutineKind
+  titleAr               String            @map("title_ar")
+  tier                  RoutineTier?
+  activation            RoutineActivation @default(INACTIVE)
+  lifecycle             RoutineLifecycle  @default(NOT_STARTED)
   /// Why it is inactive or stopped, for the customer: COMPLETED | SEASON | CUSTOMER | SAFETY_IRRITATION | AREA_LIMIT ...
-  statusReason           String?           @map("status_reason")
-  version                Int               @default(1)
-  budget                 Decimal?          @db.Decimal(10, 2)
-  createdFromProposalId  String            @unique @map("created_from_proposal_id") @db.Uuid
-  startedAt              DateTime?         @map("started_at")
-  completedAt            DateTime?         @map("completed_at")
-  stoppedAt              DateTime?         @map("stopped_at")
-  createdAt              DateTime          @default(now()) @map("created_at")
-  updatedAt              DateTime          @updatedAt @map("updated_at")
+  statusReason          String?           @map("status_reason")
+  version               Int               @default(1)
+  budget                Decimal?          @db.Decimal(10, 2)
+  createdFromProposalId String            @unique @map("created_from_proposal_id") @db.Uuid
+  startedAt             DateTime?         @map("started_at")
+  completedAt           DateTime?         @map("completed_at")
+  stoppedAt             DateTime?         @map("stopped_at")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
 
   careProfile CustomerCareProfile      @relation(fields: [careProfileId], references: [id], onDelete: Cascade)
   items       CustomerRoutineItem[]
@@ -3330,32 +3329,32 @@ model CustomerRoutineVersion {
 /// Represents the customer's confirmed weekly plan, derived from but independent of ProductUsageRule.
 /// Supports ISO weekdays (1=Mon..7=Sun), morning/evening assignments, multi-phase schedules, and start dates.
 model CustomerUsageSchedule {
-  id                   String    @id @default(uuid()) @db.Uuid
-  customerRoutineId    String    @map("customer_routine_id") @db.Uuid
-  routineItemId        String    @map("routine_item_id") @db.Uuid
-  productId            String    @map("product_id") @db.Uuid
+  id                       String             @id @default(uuid()) @db.Uuid
+  customerRoutineId        String             @map("customer_routine_id") @db.Uuid
+  routineItemId            String             @map("routine_item_id") @db.Uuid
+  productId                String             @map("product_id") @db.Uuid
   /// ISO weekdays when this product is used: 1=Mon, 2=Tue, ..., 7=Sun. Empty = every day.
-  weekdays             Int[]     @default([])
+  weekdays                 Int[]              @default([])
   /// AM, PM, or BOTH for this schedule entry.
-  timingSlot           UsageRoutinePeriod @default(BOTH) @map("timing_slot")
+  timingSlot               UsageRoutinePeriod @default(BOTH) @map("timing_slot")
   /// Planned uses per occurrence (e.g. 1 application in the morning).
-  plannedUsesPerOccurrence Int   @default(1) @map("planned_uses_per_occurrence")
+  plannedUsesPerOccurrence Int                @default(1) @map("planned_uses_per_occurrence")
   /// Phase number when the product has gradual escalation (1 = intro, 2 = ramp, 3 = full).
-  phase                Int       @default(1)
+  phase                    Int                @default(1)
   /// When this schedule entry takes effect.
-  startDate            DateTime  @map("start_date") @db.Date
+  startDate                DateTime           @map("start_date") @db.Date
   /// When this schedule entry ends (null = open-ended / until next phase).
-  endDate              DateTime? @map("end_date") @db.Date
+  endDate                  DateTime?          @map("end_date") @db.Date
   /// The ProductUsageRule this schedule was derived from (provenance link).
-  sourceUsageRuleId    String?   @map("source_usage_rule_id") @db.Uuid
+  sourceUsageRuleId        String?            @map("source_usage_rule_id") @db.Uuid
   /// Free-form notes from the customer or system about this schedule entry.
-  notes                String?
+  notes                    String?
   /// Whether the customer has confirmed this schedule entry.
-  isConfirmed          Boolean   @default(false) @map("is_confirmed")
+  isConfirmed              Boolean            @default(false) @map("is_confirmed")
   /// Version of the routine when this schedule was created.
-  routineVersion       Int       @map("routine_version")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
+  routineVersion           Int                @map("routine_version")
+  createdAt                DateTime           @default(now()) @map("created_at")
+  updatedAt                DateTime           @updatedAt @map("updated_at")
 
   customerRoutine CustomerRoutine @relation(fields: [customerRoutineId], references: [id], onDelete: Cascade)
 
@@ -3381,19 +3380,19 @@ enum Role {
 }
 
 model Customer {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  email     String   @unique
-  roles     Role[]   @default([CUSTOMER])
-  supplierId String? @map("supplier_id") @db.Uuid
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  email      String   @unique
+  roles      Role[]   @default([CUSTOMER])
+  supplierId String?  @map("supplier_id") @db.Uuid
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   identities Identity[]
   sessions   Session[]
   addresses  CustomerAddress[]
-  supplier   Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplier   Supplier?         @relation(fields: [supplierId], references: [id], onDelete: SetNull)
 
   @@index([supplierId])
   @@map("customers")
@@ -3470,7 +3469,7 @@ model CustomerAddress {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([customerId])
   @@map("customer_addresses")
@@ -3690,6 +3689,68 @@ model AppSettingChange {
   @@schema("operations")
 }
 
+/// Actual cost of one internal Buy List purchase (a batch): the quoted list price, the discount staff obtained and the final unit cost.
+/// One row per Buy List count (`acquire_key` is that count's idempotency key), so every order line it covered inherits the same cost.
+/// Corrections bump `version` and keep the previous values in `history`; a cost is never inferred from a retail price.
+model PurchaseCostBatch {
+  id              String   @id @default(uuid()) @db.Uuid
+  acquireKey      String   @unique @map("acquire_key") @db.Uuid
+  skuId           String   @map("sku_id") @db.Uuid
+  quantity        Int
+  listUnitPrice   Decimal  @map("list_unit_price") @db.Decimal(10, 2)
+  discountPerUnit Decimal  @default(0) @map("discount_per_unit") @db.Decimal(10, 2)
+  finalUnitCost   Decimal  @map("final_unit_cost") @db.Decimal(10, 2)
+  version         Int      @default(1)
+  history         Json     @default("[]")
+  recordedBy      String   @map("recorded_by")
+  recordedAt      DateTime @default(now()) @map("recorded_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([skuId])
+  @@map("purchase_cost_batches")
+  @@schema("sourcing")
+}
+
+/// Actual per-order delivery and packaging cost recorded by staff. Amounts are snapshots: later setting changes never touch them.
+/// No relation to Ordering on purpose (context boundary); `order_id` is the key.
+model OrderCostRecord {
+  id                  String    @id @default(uuid()) @db.Uuid
+  orderId             String    @unique @map("order_id") @db.Uuid
+  /// What the courier actually cost for this order (the customer's delivery fee is on the order itself).
+  courierCost         Decimal?  @map("courier_cost") @db.Decimal(10, 2)
+  courierRecordedBy   String?   @map("courier_recorded_by")
+  courierRecordedAt   DateTime? @map("courier_recorded_at")
+  /// BAG | BOX, with the configured cost of that type at the time it was recorded.
+  packagingType       String?   @map("packaging_type") @db.VarChar(3)
+  packagingCost       Decimal?  @map("packaging_cost") @db.Decimal(10, 2)
+  packagingRecordedBy String?   @map("packaging_recorded_by")
+  packagingRecordedAt DateTime? @map("packaging_recorded_at")
+  /// Append-only record of every overwrite of a recorded cost (who, when, why, previous values).
+  corrections        Json      @default("[]")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@map("order_cost_records")
+  @@schema("operations")
+}
+
+/// A closed accounting month. The profit-share percentage used and every figure are frozen here, so changing the setting later
+/// (or recording a late cost) never rewrites a closed period. Closing records numbers only: no money moves.
+model FinancePeriodClose {
+  id                 String   @id @default(uuid()) @db.Uuid
+  /// Cairo calendar month, YYYY-MM.
+  period             String   @unique @db.VarChar(7)
+  profitSharePercent Decimal  @map("profit_share_percent") @db.Decimal(5, 2)
+  netProfit          Decimal  @map("net_profit") @db.Decimal(12, 2)
+  profitShareAmount  Decimal  @map("profit_share_amount") @db.Decimal(12, 2)
+  figures            Json
+  closedBy           String   @map("closed_by")
+  closedAt           DateTime @default(now()) @map("closed_at")
+
+  @@map("finance_period_closes")
+  @@schema("operations")
+}
+
 // ---------------------------------------------------------------------------
 // Canonical-SKU research (GLO-121): evidence and proposals only. Catalog changes happen one reviewed fact at a time through Catalog's services.
 // ---------------------------------------------------------------------------
@@ -3738,29 +3799,29 @@ model ProductResearchRun {
 
 /// One field value proposed for one SKU, with every source that states it. The same value found again adds evidence, never a row.
 model ProductFactProposal {
-  id            String            @id @default(uuid()) @db.Uuid
-  skuId         String            @map("sku_id") @db.Uuid
-  runId         String            @map("run_id") @db.Uuid
-  field         String            @db.VarChar(60)
-  value         Json
-  valueHash     String            @map("value_hash") @db.VarChar(64)
-  status        ProductFactStatus @default(PROPOSED)
-  evidence      Json
-  confidence    Float
-  schemaVersion Int               @map("schema_version")
-  reviewedBy    String?           @map("reviewed_by") @db.Uuid
-  reviewedAt    DateTime?         @map("reviewed_at")
-  reviewNote    String?           @map("review_note")
-  appliedAt     DateTime?         @map("applied_at")
+  id             String            @id @default(uuid()) @db.Uuid
+  skuId          String            @map("sku_id") @db.Uuid
+  runId          String            @map("run_id") @db.Uuid
+  field          String            @db.VarChar(60)
+  value          Json
+  valueHash      String            @map("value_hash") @db.VarChar(64)
+  status         ProductFactStatus @default(PROPOSED)
+  evidence       Json
+  confidence     Float
+  schemaVersion  Int               @map("schema_version")
+  reviewedBy     String?           @map("reviewed_by") @db.Uuid
+  reviewedAt     DateTime?         @map("reviewed_at")
+  reviewNote     String?           @map("review_note")
+  appliedAt      DateTime?         @map("applied_at")
   /// VERIFIED | UNVERIFIED | CONFLICT | REJECTED: the field-level verdict, independent of whether it was written to Catalog.
-  verification   String?          @db.VarChar(20)
+  verification   String?           @db.VarChar(20)
   /// Why two readings disagree, or why the value was not accepted.
-  conflictReason String?          @map("conflict_reason")
+  conflictReason String?           @map("conflict_reason")
   /// AUTO (rule) or ADMIN (person), and the rule that decided.
-  decidedBy      String?          @map("decided_by") @db.VarChar(10)
-  decisionRule   String?          @map("decision_rule") @db.VarChar(80)
-  createdAt     DateTime          @default(now()) @map("created_at")
-  updatedAt     DateTime          @updatedAt @map("updated_at")
+  decidedBy      String?           @map("decided_by") @db.VarChar(10)
+  decisionRule   String?           @map("decision_rule") @db.VarChar(80)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
 
   run ProductResearchRun @relation(fields: [runId], references: [id], onDelete: Restrict)
 

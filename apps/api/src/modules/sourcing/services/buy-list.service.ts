@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { isInternalBuyListMode } from '../config/procurement-batch.config';
 import { SupplyPlanService } from './supply-plan.service';
+import { PurchaseCostService } from './purchase-cost.service';
+import type { PurchaseCostDto } from '../dto/buy-list.dto';
 
 type Tx = Prisma.TransactionClient;
 
@@ -74,7 +76,7 @@ export interface AcquireResult {
 export class BuyListService {
   private readonly logger = new Logger(BuyListService.name);
 
-  constructor(private readonly prisma: PrismaService, private readonly supplyPlan: SupplyPlanService) {}
+  constructor(private readonly prisma: PrismaService, private readonly supplyPlan: SupplyPlanService, private readonly purchaseCosts: PurchaseCostService) {}
 
   private assertActive() {
     if (!isInternalBuyListMode()) {
@@ -164,8 +166,9 @@ export class BuyListService {
    * Staff marked `quantity` units of one SKU as obtained. Oldest orders are covered first; the quantity can never exceed what is still
    * outstanding (a concurrent count or a cancelled order makes the second request fail with the fresh number instead of over-counting).
    */
-  async acquire(input: { skuId: string; quantity: number; idempotencyKey: string; actorId: string }): Promise<AcquireResult> {
+  async acquire(input: { skuId: string; quantity: number; idempotencyKey: string; actorId: string; cost?: PurchaseCostDto }): Promise<AcquireResult> {
     this.assertActive();
+    if (input.cost) PurchaseCostService.finalUnitCost(input.cost); // reject a bad price before anything is counted
     if (!Number.isSafeInteger(input.quantity) || input.quantity < 1) throw new BadRequestException('Quantity must be a positive whole number');
     const evidenceRef = `${EVIDENCE_PREFIX}${input.idempotencyKey}`;
 
@@ -177,6 +180,10 @@ export class BuyListService {
         const total = replay.reduce((sum, a) => sum + a.confirmedQuantity, 0);
         if (replay.some(a => a.requirement.skuId !== input.skuId) || total !== input.quantity) {
           throw new ConflictException({ code: 'IDEMPOTENCY_KEY_REUSED', message: 'This request key was already used for a different count' });
+        }
+        // A retry may carry the cost the first attempt lacked; an existing cost is never overwritten here.
+        if (input.cost && !(await tx.purchaseCostBatch.findUnique({ where: { acquireKey: input.idempotencyKey } }))) {
+          await this.purchaseCosts.createInTx(tx, { acquireKey: input.idempotencyKey, skuId: input.skuId, quantity: total, cost: input.cost, actorId: input.actorId });
         }
         return { replayed: true, touched: [] as string[], allocations: await this.describe(tx, replay.map(a => ({ id: a.id, requirementId: a.requirementId, quantity: a.confirmedQuantity }))) };
       }
@@ -206,6 +213,7 @@ export class BuyListService {
         created.push({ id: allocation.id, requirementId: line.requirementId, quantity });
         left -= quantity;
       }
+      if (input.cost) await this.purchaseCosts.createInTx(tx, { acquireKey: input.idempotencyKey, skuId: input.skuId, quantity: input.quantity, cost: input.cost, actorId: input.actorId });
       return { replayed: false, touched: [...new Set(lines.filter(l => created.some(c => c.requirementId === l.requirementId)).map(l => l.orderId))],
         allocations: await this.describe(tx, created) };
     }, { timeout: 30000 });

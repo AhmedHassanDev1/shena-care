@@ -15,6 +15,9 @@ import { OrderCancellationService } from './services/order-cancellation.service'
 import { FinanceController } from './controllers/finance.controller';
 import { FinanceReportService } from './services/finance-report.service';
 import { BuyListController } from './controllers/buy-list.controller';
+import { OrderCostController } from './controllers/order-cost.controller';
+import { OrderCostService } from './services/order-cost.service';
+import { ProfitService } from './services/profit.service';
 
 /**
  * Cross-module operational HTTP endpoints (GLO-238+): composes Ordering facts with Fulfillment
@@ -22,7 +25,7 @@ import { BuyListController } from './controllers/buy-list.controller';
  */
 @Module({
   imports: [OrderingModule, FulfillmentModule, SourcingModule, OperationsModule, AccountsModule, CatalogModule],
-  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController, FinanceController, BuyListController],
-  providers: [OrderCancellationService, FinanceReportService],
+  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController, FinanceController, BuyListController, OrderCostController],
+  providers: [OrderCancellationService, FinanceReportService, OrderCostService, ProfitService],
 })
 export class OperationsCompositionModule {}

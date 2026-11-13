@@ -63,7 +63,7 @@ describe('Admin settings (e2e)', () => {
   it('lists every setting with its group, kind, current value and default, and exposes no secrets', async () => {
     const list = (await api().get('/operations/settings').set(admin.auth).expect(200)).body as any[];
     expect(list.map(item => item.key).sort()).toEqual(SETTING_DEFINITIONS.map(item => item.key).sort());
-    expect(list.length).toBeLessThanOrEqual(15);
+    expect(list.length).toBeLessThanOrEqual(17) // 15 + packaging bag and box cost + profit-share percentage;
     expect(new Set(list.map(item => item.group))).toEqual(new Set(['commerce', 'operations', 'business']));
     expect(valueOf(list, 'commerce.cod.enabled')).toMatchObject({ value: true, source: 'DEFAULT', kind: 'boolean' });
     expect(valueOf(list, 'commerce.delivery.policy').value).toMatchObject({ freeFrom: expect.any(Number), bands: expect.any(Array) });
