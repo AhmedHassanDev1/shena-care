@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { isValidGtin } from './gtin';
 
 export interface MediaReview {
   sourceUrl: string;
@@ -37,7 +38,8 @@ export function requireMediaReview(value: unknown): MediaReview {
   const m = value as MediaReview | undefined;
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!m || m.isTest !== false || !m.reviewedBy || !uuid.test(m.reviewedBy) || (m.skuId !== undefined && !uuid.test(m.skuId)) || !m.reviewedAt ||
-      !Number.isFinite(Date.parse(m.reviewedAt)) || (!m.barcode && !['EVIDENCE_VERIFIED', 'BARCODE_VERIFIED', 'ADMIN_VERIFIED'].includes(m.identityVerification ?? '')) ||
+      !Number.isFinite(Date.parse(m.reviewedAt)) || !['EVIDENCE_VERIFIED', 'BARCODE_VERIFIED', 'ADMIN_VERIFIED'].includes(m.identityVerification ?? '') ||
+      (m.barcode != null && !isValidGtin(m.barcode)) ||
       !Number.isFinite(m.size) || m.size <= 0 || !m.sizeUnit || !m.variantName ||
       (m.packCount !== undefined && (!Number.isInteger(m.packCount) || m.packCount <= 0)) ||
       !['OFFICIAL_MANUFACTURER', 'TRUSTED_DISTRIBUTOR'].includes(m.sourceType) ||

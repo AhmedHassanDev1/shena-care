@@ -38,8 +38,8 @@ export class CatalogPublicationService {
     const blockers: PublicationBlocker[] = [];
     const warnings: PublicationWarning[] = [];
     if (sku.size === null || !sku.sizeUnit || !sku.variantName) blockers.push('IDENTITY_INCOMPLETE');
-    // Identity is verified by manufacturer evidence, a verified barcode or an Admin; a barcode recorded before tracking still counts as it always did.
-    if (!VERIFIED_IDENTITY_STATES.has(sku.identityStatus) && !sku.barcode) blockers.push('IDENTITY_NOT_VERIFIED');
+    // A recorded barcode does not establish that it belongs to this size and variant.
+    if (!VERIFIED_IDENTITY_STATES.has(sku.identityStatus)) blockers.push('IDENTITY_NOT_VERIFIED');
     if (!sku.barcode) warnings.push('BARCODE_MISSING');
     if (exceptions.length) blockers.push('CRITICAL_EXCEPTION_OPEN');
     if (!sku.product.categoryId) blockers.push('CATEGORY_MISSING');

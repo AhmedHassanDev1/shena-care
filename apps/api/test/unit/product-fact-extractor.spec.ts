@@ -13,11 +13,11 @@ describe('deterministic product fact extraction', () => {
       <h2>How to use</h2><p>Apply to clean face every morning and evening.</p>
       <h2>Warnings</h2><p>For external use only. Avoid contact with eyes.</p>
       <p>Suitable for dry skin and sensitive skin.</p>`,
-      `<script type="application/ld+json">{"@type":"Product","name":"Hydra Barrier Cream 50 ml","brand":{"name":"Acme Derma"},"gtin13":"6221234567890","image":["https://acme.example/pack.jpg"],"description":"A rich cream for the skin barrier, with ceramides."}</script>`);
+      `<script type="application/ld+json">{"@type":"Product","name":"Hydra Barrier Cream 50 ml","brand":{"name":"Acme Derma"},"gtin13":"2900000000018","image":["https://acme.example/pack.jpg"],"description":"A rich cream for the skin barrier, with ceramides."}</script>`);
     const { facts, identityMatched, rejected } = extractProductFacts(html, 'https://acme.example/hydra', SKU);
     expect(identityMatched).toBe(true);
     expect(rejected).toEqual([]);
-    expect(fieldOf(facts, 'identity.gtin')).toBe('6221234567890');
+    expect(fieldOf(facts, 'identity.gtin')).toBe('2900000000018');
     expect(fieldOf(facts, 'identity.size')).toEqual({ value: 50, unit: 'ml' });
     expect(fieldOf(facts, 'composition.inci')).toEqual(['AQUA', 'GLYCERIN', 'NIACINAMIDE', 'CERAMIDE NP', 'PHENOXYETHANOL']);
     expect(fieldOf(facts, 'usage.instructions')).toEqual(['Apply to clean face every morning and evening.']);

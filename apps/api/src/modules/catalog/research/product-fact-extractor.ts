@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { isValidGtin } from '../../../platform/security/gtin';
 import { readProductType } from './product-type';
 import { rinseMode } from './catalog-decision-engine';
 
@@ -247,8 +248,9 @@ function gtinOf(product: Record<string, unknown>): string | null {
   for (const key of ['gtin13', 'gtin', 'gtin14', 'gtin12', 'gtin8', 'ean']) {
     const value = product[key];
     if (typeof value === 'string' || typeof value === 'number') {
-      const digits = String(value).replace(/\D/g, '');
-      if ([8, 12, 13, 14].includes(digits.length)) return digits;
+      const digits = String(value).trim();
+      const declaredLength = key.match(/^gtin(8|12|13|14)$/)?.[1];
+      if (isValidGtin(digits) && (!declaredLength || digits.length === Number(declaredLength))) return digits;
     }
   }
   return null;
@@ -492,7 +494,7 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   const keyIngredients = new Map<string, { name: string; function: string | null }>();
   const addKey = (name: string, fn: string | null) => {
     const clean = name.replace(/[™®]/g, '').replace(/\s+/g, ' ').trim();
-    if (clean.length < 3 || clean.length > 40 || !KEY_INGREDIENT_NAME.test(clean)) return;
+    if (clean.length < 3 || clean.length > 40 || !KEY_INGREDIENT_NAME.test(clean) || /^(?:learn|read|discover|shop|explore|find out)\b/i.test(clean)) return;
     const key = fold(clean);
     if (!keyIngredients.has(key) || (fn && !keyIngredients.get(key)!.function)) keyIngredients.set(key, { name: clean, function: fn });
   };

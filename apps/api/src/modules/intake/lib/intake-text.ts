@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { isValidGtin } from '../../../platform/security/gtin';
 import { foldIdentityText, identityWords, physicalMeasure } from '../../catalog/public';
 
 /**
@@ -50,10 +51,7 @@ export function parseBarcode(value: unknown): string | null {
   const digits = normalizeCell(value).replace(/[\s-]/g, '');
   if (/^\d+(\.0+)?e\+?\d+$/i.test(digits)) return null; // a spreadsheet turned it into scientific notation: precision is lost
   const plain = digits.replace(/\.0+$/, '');
-  if (!/^(?:\d{8}|\d{12,14})$/.test(plain) || /^0+$/.test(plain)) return null;
-  let sum = 0;
-  for (let i = plain.length - 2, weight = 3; i >= 0; i--, weight = weight === 3 ? 1 : 3) sum += Number(plain[i]) * weight;
-  return (10 - sum % 10) % 10 === Number(plain.at(-1)) ? plain : null;
+  return isValidGtin(plain) ? plain : null;
 }
 
 export type CanonicalUnit = 'ml' | 'g' | 'l' | 'kg' | 'piece';
