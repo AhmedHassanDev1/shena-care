@@ -1,0 +1,59 @@
+{
+  "sku": [
+    {
+      "id": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "code": "SC-CERAVE-C6DC52C5",
+      "productId": "c2ca32fb-5583-4648-a85d-736622e11e16",
+      "size": "236",
+      "sizeUnit": "ml",
+      "variantName": "236 ml",
+      "identityStatus": "EVIDENCE_VERIFIED"
+    },
+    {
+      "id": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "code": "SC-CERAVE-57A7C273",
+      "productId": "e8374cf1-f57c-447f-b4fb-04476e9b9ba3",
+      "size": "236",
+      "sizeUnit": "ml",
+      "variantName": "236 ml",
+      "identityStatus": "EVIDENCE_VERIFIED"
+    },
+    {
+      "id": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "code": "SC-CERAVE-2AA74849",
+      "productId": "3218ffce-0cf4-4f42-9cf6-c68d41b29e81",
+      "size": "454",
+      "sizeUnit": "g",
+      "variantName": "454 g",
+      "identityStatus": "EVIDENCE_VERIFIED"
+    },
+    {
+      "id": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "code": "SC-CERAVE-13100DCC",
+      "productId": "10fab1e0-f087-47cf-8332-5fef12f3d234",
+      "size": "236",
+      "sizeUnit": "ml",
+      "variantName": "236 ml",
+      "identityStatus": "EVIDENCE_VERIFIED"
+    },
+    {
+      "id": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "code": "SC-THEORD-9EC76FFB",
+      "productId": "917cddef-6e31-474c-ae30-db74fb8e62ed",
+      "size": "30",
+      "sizeUnit": "ml",
+      "variantName": "30 ml",
+      "identityStatus": "EVIDENCE_VERIFIED"
+    },
+    {
+      "id": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "code": "SC-BIODER-47010B57",
+      "productId": "15cb059e-6d0f-40d1-86eb-c73bd12f36d8",
+      "size": "250",
+      "sizeUnit": "ml",
+      "variantName": "250 ml",
+      "identityStatus": "EVIDENCE_VERIFIED"
+    }
+  ],
+  "duplicates": []
+}

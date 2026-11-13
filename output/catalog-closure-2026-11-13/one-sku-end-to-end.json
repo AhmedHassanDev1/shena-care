@@ -1,0 +1,185 @@
+{
+  "scope": "DEVELOPMENT_ONLY_LOCAL_TEST_DATABASE",
+  "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+  "testPriceEgp": 950,
+  "stage": "PASSED",
+  "sourcingMode": "INTERNAL_BUY_LIST",
+  "supplierOffers": 0,
+  "productId": "917cddef-6e31-474c-ae30-db74fb8e62ed",
+  "productSlug": "the-ordinary-niacinamide-10-zinc-1-mwf9tqfa",
+  "publicListingStatus": 200,
+  "publicDetail": {
+    "status": 200,
+    "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+    "canOrder": true,
+    "price": {
+      "amount": 950,
+      "currency": "EGP",
+      "compareAtAmount": null
+    },
+    "availability": {
+      "isAvailable": true,
+      "isFresh": false,
+      "state": "PROVISIONAL",
+      "confirmedAt": null,
+      "observedAt": null,
+      "validUntil": null
+    }
+  },
+  "publicImage": {
+    "status": 200,
+    "width": 900,
+    "height": 900,
+    "sha256": "9924b6608463d5d305a11d79823ecc9c0e8e78c14a835c6b6036a9690e78b493"
+  },
+  "cartStatus": 201,
+  "quote": {
+    "status": 201,
+    "subtotal": 950
+  },
+  "order": {
+    "status": 201,
+    "id": "2aee5276-753b-4eb3-8d24-5deaf223cf6a",
+    "orderNumber": "ORD-2838605AF3924600",
+    "totalAmount": 950,
+    "codAmount": 950,
+    "items": [
+      {
+        "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+        "quantity": 1
+      }
+    ]
+  },
+  "checkoutReplaySameOrder": true,
+  "dispatch": {
+    "delivered": 0,
+    "failed": 0,
+    "dead": 0
+  },
+  "events": [
+    {
+      "status": "delivered",
+      "lastError": null
+    }
+  ],
+  "buyList": {
+    "status": 200,
+    "row": {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "productName": "Niacinamide 10% + Zinc 1%",
+      "skuCode": "SC-THEORD-9EC76FFB",
+      "variantName": "30 ml",
+      "toBuy": 3,
+      "unavailable": 0,
+      "acquired": 0,
+      "awaitingHub": 0,
+      "orderCount": 3,
+      "earliestPromisedDate": "2026-11-14T00:00:00.000Z",
+      "orders": [
+        {
+          "orderId": "fe932504-2d7d-436d-9776-df10c4a254cb",
+          "orderNumber": "ORD-DAD787047C0A4328",
+          "orderItemId": "1c6e51ed-661a-4a4e-b3c8-594e7cd2f01b",
+          "requirementId": "a1090393-9857-4aca-97a9-0fbcadfe6d0c",
+          "required": 1,
+          "acquired": 0,
+          "receivedAtHub": 0,
+          "outstanding": 1,
+          "state": "to_buy",
+          "placedAt": "2026-11-13T19:02:14.027Z",
+          "promisedDate": "2026-11-14T00:00:00.000Z"
+        },
+        {
+          "orderId": "ff88c721-d95c-4564-8862-d7a4fd5f61b0",
+          "orderNumber": "ORD-C8D716AA24994C73",
+          "orderItemId": "878623ef-6868-483d-bc39-2610fe0be604",
+          "requirementId": "b81feadd-63bd-4537-960c-55f491b7fc11",
+          "required": 1,
+          "acquired": 0,
+          "receivedAtHub": 0,
+          "outstanding": 1,
+          "state": "to_buy",
+          "placedAt": "2026-11-13T19:05:43.824Z",
+          "promisedDate": "2026-11-14T00:00:00.000Z"
+        },
+        {
+          "orderId": "2aee5276-753b-4eb3-8d24-5deaf223cf6a",
+          "orderNumber": "ORD-2838605AF3924600",
+          "orderItemId": "782952e0-8bce-4517-a988-f73e38d946de",
+          "requirementId": "1ec959c6-dc03-4014-993c-1195b2ebb49d",
+          "required": 1,
+          "acquired": 0,
+          "receivedAtHub": 0,
+          "outstanding": 1,
+          "state": "to_buy",
+          "placedAt": "2026-11-13T19:11:30.273Z",
+          "promisedDate": "2026-11-14T00:00:00.000Z"
+        }
+      ],
+      "size": 30,
+      "sizeUnit": "ml",
+      "packCount": null,
+      "barcode": null,
+      "skuActive": true
+    }
+  },
+  "negativeAuth": {
+    "customerBuyList": 403,
+    "anonymousWorkbench": 401
+  },
+  "finalReadiness": {
+    "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+    "productId": "917cddef-6e31-474c-ae30-db74fb8e62ed",
+    "isPublished": true,
+    "ready": true,
+    "blockers": [],
+    "warnings": [
+      "BARCODE_MISSING",
+      "CARTON_UNVERIFIED",
+      "EDITORIAL_IMAGE_NOT_APPROVED"
+    ],
+    "media": {
+      "PRIMARY_PACKSHOT": "PUBLISHED",
+      "TEXTURE_SENSORY": "MISSING",
+      "INGREDIENT_STORY": "MISSING",
+      "PACKAGING_PROOF": "MISSING",
+      "CATEGORY_EDITORIAL": "MISSING"
+    },
+    "facts": {
+      "total": 12,
+      "applied": [
+        "composition.inci",
+        "identity.size",
+        "marketing.description",
+        "safety.warnings",
+        "usage.instructions",
+        "usage.routinePeriod"
+      ],
+      "pending": [],
+      "unverified": [
+        "claims.manufacturerStated",
+        "composition.activeConcentrations",
+        "identity.brand",
+        "identity.name",
+        "media.sourceImages"
+      ],
+      "conflicts": []
+    },
+    "identity": {
+      "status": "EVIDENCE_VERIFIED",
+      "barcodeStatus": "UNKNOWN",
+      "barcode": null
+    },
+    "packaging": {
+      "outerCarton": "UNVERIFIED"
+    },
+    "openExceptions": 0,
+    "commerce": {
+      "isListed": true,
+      "price": {
+        "amount": 950,
+        "currency": "EGP"
+      }
+    }
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+  "priceIntent": {
+    "amount": 950,
+    "currency": "EGP",
+    "scope": "DEVELOPMENT_ONLY",
+    "basis": "OWNER_EXPLICIT_TEST_ASSIGNMENT"
+  },
+  "processedWithBiRefNet": false,
+  "identity": {
+    "identityStatus": "EVIDENCE_VERIFIED",
+    "size": "30",
+    "sizeUnit": "ml",
+    "barcode": null,
+    "hasOuterCarton": null
+  },
+  "navigationBefore": {
+    "value": [
+      {
+        "name": "Learn More About Niacinamide",
+        "function": "Read More Here"
+      }
+    ],
+    "status": "REJECTED"
+  },
+  "navigationWithdrawn": false,
+  "primary": {
+    "assetId": "67427178-6a36-4f06-b507-220219435b15",
+    "sourcePage": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+    "imageUrl": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dwce8a7cdf/Images/products/The%20Ordinary/rdn-niacinamide-10pct-zinc-1pct-30ml.png?sw=900&sh=900&sm=fit",
+    "sha256": "9924b6608463d5d305a11d79823ecc9c0e8e78c14a835c6b6036a9690e78b493",
+    "width": 900,
+    "height": 900,
+    "rights": "MANUFACTURER_PUBLISHED",
+    "nativeOriginal": true,
+    "reviewStatus": "APPROVED"
+  },
+  "developmentMediaTrustHost": "theordinary.com",
+  "nonPackshotsRejected": [
+    "9039fa8b-9d26-4122-9d9e-d42f87147e0c",
+    "270c3db5-c17c-4be2-8420-1203b765803d",
+    "0876da25-6aba-4d4d-a622-80dfba1aca77",
+    "6d89f3cd-9f92-47e5-a7a1-2f22f9615e60",
+    "137a64e9-4b46-4046-a07b-cd4c73d14e72"
+  ],
+  "authenticatedApiStatus": 200,
+  "readiness": {
+    "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+    "productId": "917cddef-6e31-474c-ae30-db74fb8e62ed",
+    "isPublished": false,
+    "ready": false,
+    "blockers": [
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "warnings": [
+      "BARCODE_MISSING",
+      "CARTON_UNVERIFIED",
+      "EDITORIAL_IMAGE_NOT_APPROVED"
+    ],
+    "media": {
+      "PRIMARY_PACKSHOT": "APPROVED",
+      "TEXTURE_SENSORY": "MISSING",
+      "INGREDIENT_STORY": "MISSING",
+      "PACKAGING_PROOF": "MISSING",
+      "CATEGORY_EDITORIAL": "MISSING"
+    },
+    "facts": {
+      "total": 12,
+      "applied": [
+        "composition.inci",
+        "identity.size",
+        "marketing.description",
+        "safety.warnings",
+        "usage.instructions",
+        "usage.routinePeriod"
+      ],
+      "pending": [],
+      "unverified": [
+        "claims.manufacturerStated",
+        "composition.activeConcentrations",
+        "identity.brand",
+        "identity.name",
+        "media.sourceImages"
+      ],
+      "conflicts": []
+    },
+    "identity": {
+      "status": "EVIDENCE_VERIFIED",
+      "barcodeStatus": "UNKNOWN",
+      "barcode": null
+    },
+    "packaging": {
+      "outerCarton": "UNVERIFIED"
+    },
+    "openExceptions": 0,
+    "commerce": {
+      "isListed": false,
+      "price": null
+    }
+  },
+  "criticalExceptions": [],
+  "publishAttempt": {
+    "status": 200,
+    "body": {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "productId": "917cddef-6e31-474c-ae30-db74fb8e62ed",
+      "isPublished": true,
+      "ready": true,
+      "blockers": [],
+      "warnings": [
+        "BARCODE_MISSING",
+        "CARTON_UNVERIFIED",
+        "EDITORIAL_IMAGE_NOT_APPROVED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "PUBLISHED",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "MISSING"
+      },
+      "facts": {
+        "total": 12,
+        "applied": [
+          "composition.inci",
+          "identity.size",
+          "marketing.description",
+          "safety.warnings",
+          "usage.instructions",
+          "usage.routinePeriod"
+        ],
+        "pending": [],
+        "unverified": [
+          "claims.manufacturerStated",
+          "composition.activeConcentrations",
+          "identity.brand",
+          "identity.name",
+          "media.sourceImages"
+        ],
+        "conflicts": []
+      },
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "packaging": {
+        "outerCarton": "UNVERIFIED"
+      },
+      "openExceptions": 0,
+      "commerce": {
+        "isListed": true,
+        "price": {
+          "amount": 950,
+          "currency": "EGP"
+        }
+      }
+    }
+  },
+  "currentProductPublished": true
+}
