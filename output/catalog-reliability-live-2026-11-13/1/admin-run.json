@@ -1,0 +1,68 @@
+{
+  "jobId": "19df9c6f-6752-4f20-9dd7-0509776a2afa",
+  "worked": 1,
+  "durationMs": 2896,
+  "cost": {
+    "searches": 2,
+    "pageFetches": 0,
+    "imageFetches": 0
+  },
+  "job": {
+    "id": "19df9c6f-6752-4f20-9dd7-0509776a2afa",
+    "source": "ADMIN",
+    "supplierId": null,
+    "submittedBy": "9a1b0c4e-1111-4c4e-9a1b-0c4e11110001",
+    "inputKind": "SINGLE",
+    "sourceFileName": null,
+    "sourceMimeType": null,
+    "sourceSizeBytes": null,
+    "sourceChecksum": "8ec163ef93e758704edc8a049f34f7dd79245f14410e5671782a9f2d8e60850f",
+    "columnMap": {
+      "map": {
+        "name": 0
+      },
+      "headers": [
+        "name"
+      ],
+      "ignored": [],
+      "options": {
+        "researchPrices": false
+      }
+    },
+    "snapshot": null,
+    "status": "COMPLETED",
+    "totals": {
+      "total": 1,
+      "UNRESOLVED": 1
+    },
+    "metrics": {
+      "searches": 2,
+      "durationMs": 2864,
+      "pageFetches": 0,
+      "imageFetches": 0,
+      "rowProcessingMs": 2828
+    },
+    "lastError": null,
+    "startedAt": "2026-11-13T16:35:35.060Z",
+    "completedAt": "2026-11-13T16:35:37.924Z",
+    "createdAt": "2026-11-13T16:35:35.052Z",
+    "updatedAt": "2026-11-13T16:35:37.927Z"
+  },
+  "rows": [
+    {
+      "row": 1,
+      "name": "CeraVe Hydrating Facial Cleanser 236ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "NO_IDENTITY_SOURCE",
+      "reason": "No product page was given, and none was found on the brand's site or a trusted distributor",
+      "skuId": null,
+      "processingMs": 2828,
+      "cost": {
+        "searches": 2,
+        "pageFetches": 0,
+        "imageFetches": 0
+      },
+      "readiness": null
+    }
+  ]
+}

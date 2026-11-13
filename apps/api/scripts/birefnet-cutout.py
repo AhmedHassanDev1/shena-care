@@ -1,24 +1,20 @@
 import sys
-import os
-import ssl
-import urllib3
-import requests
 from PIL import Image
-
-# Disable SSL verification for model fetch in corporate/custom certificate environments
-ssl._create_default_https_context = ssl._create_unverified_context
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-old_request = requests.Session.request
-def unverified_request(self, *args, **kwargs):
-    kwargs['verify'] = False
-    return old_request(self, *args, **kwargs)
-requests.Session.request = unverified_request
-
-import rembg
 from rembg import remove, new_session
 
+
+def create_session():
+    import onnxruntime as ort
+    options = ort.SessionOptions()
+    options.intra_op_num_threads = 2
+    options.inter_op_num_threads = 1
+    options.enable_cpu_mem_arena = False
+    options.enable_mem_pattern = False
+    return new_session("birefnet-general", sess_opts=options)
+
 def process_file(input_path, output_path):
-    img = Image.open(input_path)
+    with Image.open(input_path) as original:
+        img = original.copy()
     
     # Check if already transparent
     if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
@@ -29,10 +25,8 @@ def process_file(input_path, output_path):
             return
 
     # Use BiRefNet general model with alpha matting
-    try:
-        session = new_session("birefnet-general")
-    except Exception:
-        session = new_session("u2net")
+    # Let the caller record model failure and use its safe fallback.
+    session = create_session()
 
     cutout = remove(
         img,

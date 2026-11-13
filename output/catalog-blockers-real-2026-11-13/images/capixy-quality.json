@@ -1,0 +1,17 @@
+{
+  "mode": "ACTUAL_MODEL_MASK_REPLAY",
+  "report": {
+    "backgroundMode": "PLAIN_BACKGROUND",
+    "backgroundColor": null,
+    "sourceWidth": 1024,
+    "sourceHeight": 1024,
+    "productWidth": 280,
+    "productHeight": 723,
+    "coverage": 0.1493,
+    "enclosedBackgroundRatio": 0,
+    "warnings": [
+      "UPSCALED"
+    ],
+    "placementScale": 1.3182
+  }
+}

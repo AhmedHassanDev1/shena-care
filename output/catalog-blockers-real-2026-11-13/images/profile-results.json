@@ -1,0 +1,15 @@
+{
+  "model": "birefnet-general",
+  "modelBytes": 972666916,
+  "verifiedModelMd5": "7a35a0141cbbc80de11d9c9a28f52697",
+  "provider": "CPUExecutionProvider",
+  "resolutionUnchanged": 1024,
+  "matting": {"foreground":240,"background":10,"erodeSize":5},
+  "defaultProfile": {"importsMs":1998,"modelLoadMs":36261,"preprocessMs":157,"inference":"exceeded remaining 60-second total budget; interrupted"},
+  "basicNoPrepackingTwoThreads": {"importsMs":29493,"modelLoadMs":61106,"preprocessMs":140,"inferenceMs":117254,"mattingMs":10848,"removeTotalMs":130788},
+  "defaultOptimizationsTwoThreadsNoArena": {"importsMs":28125,"modelLoadMs":56138,"preprocessMs":77,"inferenceMs":59134,"mattingMs":1494,"removeTotalMs":60841},
+  "capixyAlphaComparison": {"meanAbsoluteByteDifference":0,"baselineBox":[378,148,658,873],"optimizedBox":[378,148,658,873]},
+  "liveProductionPath": {"result":"FAILED","configuredTimeoutMs":180000,"observedDurationMs":198756,"eventLoopTicks":1753,"error":"NEURAL_SEGMENTATION_FAILED"},
+  "review": "Actual recorded-mask replay preserves white cap, packaging geometry and labels; live timeout reliability is NOT approved. No images were published.",
+  "regressionGate": "3 and 10 SKU validation not started because the required successful live-image gate failed."
+}

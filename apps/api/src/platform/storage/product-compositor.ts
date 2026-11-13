@@ -1,5 +1,5 @@
 import sharp, { OverlayOptions } from 'sharp';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -92,7 +92,15 @@ interface Cutout { rgba: Buffer; width: number; height: number; report: QualityR
 
 const lumaOf = (r: number, g: number, b: number) => 0.299 * r + 0.587 * g + 0.114 * b;
 
-async function tryNeuralCutout(source: Buffer): Promise<{ rgba: Buffer; width: number; height: number } | null> {
+// One model process at a time: concurrent 973 MB CPU sessions cause host paging.
+let neuralQueue: Promise<unknown> = Promise.resolve();
+function tryNeuralCutout(source: Buffer): Promise<{ rgba: Buffer; width: number; height: number } | null> {
+  const task = neuralQueue.then(() => runNeuralCutout(source));
+  neuralQueue = task.catch(() => undefined);
+  return task;
+}
+
+async function runNeuralCutout(source: Buffer): Promise<{ rgba: Buffer; width: number; height: number } | null> {
   const tmpDir = os.tmpdir();
   const id = crypto.randomUUID();
   const inPath = path.join(tmpDir, `in_${id}.png`);
@@ -107,7 +115,11 @@ async function tryNeuralCutout(source: Buffer): Promise<{ rgba: Buffer; width: n
     const resolvedScript = candidates.find(p => fs.existsSync(p));
     if (!resolvedScript) return null;
 
-    execFileSync('python', [resolvedScript, inPath, outPath], { timeout: 60000, stdio: 'pipe' });
+    // Measured cold imports/load ~84 s plus ~61 s segmentation/matting on CPU.
+    // Bound the complete cold run, without blocking HTTP or changing model resolution.
+    await new Promise<void>((resolve, reject) => {
+      execFile('python', [resolvedScript, inPath, outPath], { timeout: 180000, maxBuffer: 1024 * 1024 }, error => error ? reject(error) : resolve());
+    });
     if (!fs.existsSync(outPath) || fs.statSync(outPath).size === 0) return null;
 
     const { data, info } = await sharp(outPath).toColourspace('srgb').ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -115,8 +127,8 @@ async function tryNeuralCutout(source: Buffer): Promise<{ rgba: Buffer; width: n
   } catch {
     return null;
   } finally {
-    if (fs.existsSync(inPath)) try { fs.unlinkSync(inPath); } catch {}
-    if (fs.existsSync(outPath)) try { fs.unlinkSync(outPath); } catch {}
+    if (fs.existsSync(inPath)) try { fs.unlinkSync(inPath); } catch { /* Best-effort temporary input cleanup. */ }
+    if (fs.existsSync(outPath)) try { fs.unlinkSync(outPath); } catch { /* Best-effort temporary output cleanup. */ }
   }
 }
 
@@ -140,14 +152,15 @@ export async function cutOutProduct(source: Buffer, options: CutoutOptions = {})
   let enclosed = 0;
 
   if (!hasAlpha) {
-    background = estimateBackground(rgba, width, height);
     let neuralUsed = false;
     const allowNeural = options.engine === 'neural' || (options.engine !== 'deterministic' && process.env.NODE_ENV !== 'test');
     if (allowNeural) {
       const pngBuffer = await sharp(rgba, { raw: { width, height, channels: 4 } }).png().toBuffer();
       const neural = await tryNeuralCutout(pngBuffer);
       if (neural && neural.width === width && neural.height === height) {
-        neural.rgba.copy(rgba);
+        // Matting engines may decontaminate/recolour RGB. Their mask is evidence;
+        // the authentic photograph remains the only source of packaging pixels.
+        for (let i = 3; i < rgba.length; i += 4) rgba[i] = neural.rgba[i];
         neuralUsed = true;
       } else {
         if (options.engine === 'neural') {
@@ -157,6 +170,7 @@ export async function cutOutProduct(source: Buffer, options: CutoutOptions = {})
       }
     }
     if (!neuralUsed) {
+      background = estimateBackground(rgba, width, height);
       enclosed = removeBackground(rgba, width, height, background, options, warnings);
       keepProductComponents(rgba, width);
       await refineMask(rgba, width, height);
