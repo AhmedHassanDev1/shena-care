@@ -12,7 +12,7 @@ import { useApi, useCommand } from '@/lib/use-api'
 import { cn } from '@/lib/utils'
 
 type Role = 'ADMIN' | 'HUB_OPERATOR' | 'DRIVER' | 'SUPPLIER'
-type Staff = { id: string; name: string; email: string; roles: Role[]; isActive: boolean; supplierId: string | null; supplier: { id: string; name: string } | null; locations?: Array<{ id: string; name: string }> | null; activeSessions?: number | null }
+type Staff = { id: string; name: string; email: string; phone?: string | null; roles: Role[]; isActive: boolean; supplierId: string | null; supplier: { id: string; name: string } | null; locations?: Array<{ id: string; name: string }> | null; activeSessions?: number | null }
 const roleLabel: Record<Role, string> = { ADMIN: 'الإدارة', HUB_OPERATOR: 'المخزن', DRIVER: 'التوصيل', SUPPLIER: 'مورد' }
 const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
 
@@ -51,7 +51,7 @@ function TeamContent() {
         <span aria-hidden className={cn('grid size-9 place-items-center rounded-full border text-[12px] font-semibold', person.isActive ? 'border-bw-line bg-bw-sunken text-bw-ink' : 'border-dashed border-bw-line-field/60 text-bw-ink-subtle')}>{initials(person.name)}</span>
         <span className="min-w-0">
           <span className={cn('block truncate text-bw-small font-semibold', person.isActive ? 'text-bw-ink' : 'text-bw-ink-soft')}>{person.name}</span>
-          <span className="block truncate text-[12px] text-bw-ink-subtle" dir="ltr">{person.email}</span>
+          <span className="block truncate text-[12px] text-bw-ink-subtle" dir="ltr">{person.email}{person.phone ? <> · {person.phone}</> : null}</span>
         </span>
         <span className="col-span-3 col-start-1 row-start-2 flex flex-wrap items-center gap-1.5 md:col-span-1 md:col-start-auto md:row-start-auto">
           {person.roles.filter(r => r !== ('CUSTOMER' as Role)).map(r => <span key={r} className="inline-flex items-center rounded-full border border-bw-line bg-bw-veil-1 px-2.5 py-0.5 text-[11px] font-semibold text-bw-ink-soft">{roleLabel[r]}{r === 'HUB_OPERATOR' ? (access.locations ? (access.locations.length ? ` · ${access.locations.map(l => l.name).join('، ')}` : '') : ' · المواقع غير متاحة') : ''}</span>)}
@@ -84,13 +84,15 @@ function StaffDialog({ item, locations, onClose, onSaved }: { item: Staff | null
   const resetOnly = !!(item as Staff & {__reset?:boolean} | null)?.__reset
   const [name,setName] = React.useState(item?.name ?? '')
   const [email,setEmail] = React.useState(item?.email ?? '')
+  const [phone,setPhone] = React.useState(item?.phone ?? '')
+  const phoneOk = phone.trim() === '' || /^(\+201|01)[0-9]{9}$/.test(phone.trim())
   const [password,setPassword] = React.useState('')
   const [roles,setRoles] = React.useState<Role[]>(item?.roles ?? ['HUB_OPERATOR'])
   const [locationIds,setLocationIds] = React.useState(item?.locations?.map(l=>l.id) ?? [])
   const saving = useCommand(async () => {
-    if (!item) return api('/operations/staff',{body:{name:name.trim(),email:email.trim(),password,roles,...(roles.includes('HUB_OPERATOR')?{locationIds}:{})}})
+    if (!item) return api('/operations/staff',{body:{name:name.trim(),email:email.trim(),...(phone.trim()?{phone:phone.trim()}:{}),password,roles,...(roles.includes('HUB_OPERATOR')?{locationIds}:{})}})
     if (resetOnly) return api(`/operations/staff/${item.id}/reset-password`,{body:{password}})
-    await api(`/operations/staff/${item.id}`,{method:'PATCH',body:{name:name.trim(),...(roles.includes('HUB_OPERATOR')?{locationIds}:{locationIds:[]})}})
+    await api(`/operations/staff/${item.id}`,{method:'PATCH',body:{name:name.trim(),phone:phone.trim(),...(roles.includes('HUB_OPERATOR')?{locationIds}:{locationIds:[]})}})
     return api(`/operations/staff/${item.id}/roles`,{method:'PATCH',body:{roles}})
   })
   const toggleRole=(value:Role)=>setRoles(current=>current.includes(value)?current.filter(r=>r!==value):[...current,value])
@@ -99,10 +101,11 @@ function StaffDialog({ item, locations, onClose, onSaved }: { item: Staff | null
   return <dialog ref={dialogRef} onCancel={e=>{e.preventDefault();onClose()}} aria-labelledby="staff-title" className="bw-glass-raised fixed inset-0 z-50 m-auto max-h-[90dvh] w-[min(34rem,calc(100vw-2rem))] overflow-y-auto rounded-bw-card p-0 text-bw-ink backdrop:bg-bw-kohl/60"><form className="space-y-4 p-5" onSubmit={async e=>{e.preventDefault(); if(await saving.execute())onSaved()}}>
     <div className="flex items-center justify-between"><h2 id="staff-title" className="text-bw-heading font-bold">{resetOnly?'تعيين كلمة مرور':item?'تعديل الموظف':'إضافة موظف'}</h2><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-full text-bw-ink-soft transition-colors hover:bg-bw-veil-4 hover:text-bw-ink" aria-label="إغلاق"><X className="size-4" aria-hidden /></button></div>
     {!resetOnly ? <><Field label="الاسم" value={name} onChange={e=>setName(e.target.value)} /><Field label="البريد الإلكتروني" type="email" value={email} disabled={!!item} onChange={e=>setEmail(e.target.value)} ltr />
+      <Field label="رقم التليفون (اختياري)" type="tel" value={phone} onChange={e=>setPhone(e.target.value)} error={phoneOk?undefined:'لازم رقم مصري: 01xxxxxxxxx أو +201xxxxxxxxx'} hint={phoneOk&&!phone.trim()?'مش لازم، بس بيسهّل التواصل مع الموظف':undefined} ltr />
       <fieldset className="space-y-2"><legend className="text-bw-small font-semibold">مساحة العمل والدور</legend>{selectableRoles.map(r=><label key={r} className="flex min-h-9 items-center gap-2 text-bw-small"><input type="checkbox" checked={roles.includes(r)} onChange={()=>toggleRole(r)} disabled={exclusive && !roles.includes(r)} className="size-4 accent-bw-action" />{roleLabel[r]}</label>)}</fieldset>
       {roles.includes('HUB_OPERATOR') ? <fieldset className="space-y-2"><legend className="text-bw-small font-semibold">مواقع Hub</legend>{locations.length?locations.map(location=><label key={location.id} className="flex items-center gap-2 text-bw-small"><input type="checkbox" checked={locationIds.includes(location.id)} onChange={e=>setLocationIds(e.target.checked?[...locationIds,location.id]:locationIds.filter(id=>id!==location.id))} className="size-4 accent-bw-action" />{location.name}</label>):<p className="text-bw-small text-bw-ink-soft">لا توجد مواقع متاحة لحسابك.</p>}</fieldset>:null}
     </> : null}
     {!item || resetOnly ? <Field label={resetOnly?'كلمة المرور الجديدة':'كلمة المرور الابتدائية'} type="password" autoComplete="new-password" minLength={10} maxLength={72} value={password} onChange={e=>setPassword(e.target.value)} hint="10 أحرف على الأقل" ltr /> : null}
-    <CommandError error={saving.error} /><div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button><Button type="submit" loading={saving.pending} disabled={!resetOnly && (!name.trim() || !roles.length) || ((!item || resetOnly) && password.length<10)}><ShieldCheck className="size-4" />{resetOnly?'تحديث كلمة المرور':'حفظ'}</Button></div>
+    <CommandError error={saving.error} /><div className="flex justify-end gap-2"><Button type="button" variant="secondary" onClick={onClose}>إلغاء</Button><Button type="submit" loading={saving.pending} disabled={!resetOnly && (!name.trim() || !phoneOk || !roles.length) || ((!item || resetOnly) && password.length<10)}><ShieldCheck className="size-4" />{resetOnly?'تحديث كلمة المرور':'حفظ'}</Button></div>
   </form></dialog>
 }

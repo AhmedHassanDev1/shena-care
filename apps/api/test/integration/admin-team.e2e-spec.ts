@@ -137,6 +137,26 @@ describe('Admin team management (e2e)', () => {
     await login(address, 'Brand-new-pass-2').expect(201);
   });
 
+  it('stores an optional contact phone on create and on edit, validates its format, and clears it on an empty edit', async () => {
+    const address = email('phone');
+    const bare = await created({ name: 'No Phone', email: address, password: PASSWORD, roles: ['HUB_OPERATOR'] });
+    expect(bare.phone).toBeNull();
+
+    const withPhone = await created({ name: 'With Phone', email: email('phone2'), password: PASSWORD, roles: ['DRIVER'], phone: ' 01012345678 ' });
+    expect(withPhone).toMatchObject({ phone: '01012345678' });
+    await create({ name: 'Bad Phone', email: email('phone3'), password: PASSWORD, roles: ['DRIVER'], phone: '12345' }).expect(400);
+
+    const edited = (await api().patch(`/operations/staff/${bare.id}`).set(admin.auth).send({ phone: '+201112223334' }).expect(200)).body;
+    expect(edited).toMatchObject({ phone: '+201112223334' });
+    expect((await api().get(`/operations/staff/${bare.id}`).set(admin.auth).expect(200)).body).toMatchObject({ phone: '+201112223334' });
+    await api().patch(`/operations/staff/${bare.id}`).set(admin.auth).send({ phone: 'abc' }).expect(400);
+    const cleared = (await api().patch(`/operations/staff/${bare.id}`).set(admin.auth).send({ phone: '' }).expect(200)).body;
+    expect(cleared.phone).toBeNull();
+    // Name-only edits leave the number as it is.
+    await api().patch(`/operations/staff/${withPhone.id}`).set(admin.auth).send({ name: 'Renamed' }).expect(200);
+    expect((await api().get(`/operations/staff/${withPhone.id}`).set(admin.auth).expect(200)).body.phone).toBe('01012345678');
+  });
+
   it('deactivates and reactivates an account, ending its sessions, and keeps the last Admin protected', async () => {
     const staff = await created({ name: 'Leaver', email: email('leave'), password: PASSWORD, roles: ['HUB_OPERATOR'] });
     const session = await prisma.session.create({ data: { customerId: staff.id, token: randomUUID(), expiresAt: new Date(Date.now() + 3600000) } });

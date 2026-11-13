@@ -58,6 +58,7 @@ export class StaffManagementService {
         id: true,
         name: true,
         email: true,
+        phone: true,
         roles: true,
         isActive: true,
         supplierId: true,
@@ -76,6 +77,7 @@ export class StaffManagementService {
         id: true,
         name: true,
         email: true,
+        phone: true,
         roles: true,
         isActive: true,
         supplierId: true,
@@ -111,7 +113,7 @@ export class StaffManagementService {
     const created = await this.prisma.$transaction(async tx => {
       const customer = await tx.customer.create({
         data: {
-          name: dto.name.trim(), email, roles: dto.roles, supplierId: dto.supplierId ?? null,
+          name: dto.name.trim(), email, phone: dto.phone?.trim() || null, roles: dto.roles, supplierId: dto.supplierId ?? null,
           identities: { create: { provider: 'EMAIL', providerId: email, passwordHash } },
         },
         select: { id: true },
@@ -139,6 +141,7 @@ export class StaffManagementService {
     if (dto.locationIds) await this.assertLocationsExist(dto.locationIds);
     await this.prisma.$transaction(async tx => {
       if (dto.name !== undefined) await tx.customer.update({ where: { id }, data: { name: dto.name.trim() } });
+      if (dto.phone !== undefined) await tx.customer.update({ where: { id }, data: { phone: dto.phone.trim() || null } });
       if (dto.locationIds) {
         await tx.fulfillmentLocationOperator.deleteMany({ where: { operatorId: id, locationId: { notIn: dto.locationIds } } });
         if (dto.locationIds.length) {

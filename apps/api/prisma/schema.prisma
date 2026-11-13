@@ -3383,6 +3383,8 @@ model Customer {
   id         String   @id @default(uuid()) @db.Uuid
   name       String
   email      String   @unique
+  /// Egyptian mobile in the checkout format (+201xxxxxxxxx or 01xxxxxxxxx). Optional; staff contact number.
+  phone      String?  @db.VarChar(20)
   roles      Role[]   @default([CUSTOMER])
   supplierId String?  @map("supplier_id") @db.Uuid
   isActive   Boolean  @default(true) @map("is_active")
@@ -3726,7 +3728,7 @@ model OrderCostRecord {
   packagingRecordedBy String?   @map("packaging_recorded_by")
   packagingRecordedAt DateTime? @map("packaging_recorded_at")
   /// Append-only record of every overwrite of a recorded cost (who, when, why, previous values).
-  corrections        Json      @default("[]")
+  corrections         Json      @default("[]")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
