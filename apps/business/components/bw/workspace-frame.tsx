@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import {
-  ClipboardList, FileSpreadsheet, Heart, History, LayoutDashboard,
+  ClipboardList, FileSpreadsheet, Heart, History, LayoutDashboard, ListChecks,
   LogOut, PackageOpen, Printer, Route, ScanLine,
   Radio, ShoppingBag, Settings2, Store, Truck, UserRound, Users, Wallet,
 } from 'lucide-react'
@@ -33,6 +33,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'catalog', label: 'الكتالوج', icon: PackageOpen, href: '/admin/catalog' },
       { id: 'buy-list', label: 'قائمة المشتريات', icon: ClipboardList, href: '/hub/buy-list' },
       { id: 'suppliers', label: 'الموردون والتوريد', icon: Store, href: '/admin/sourcing', supplierFlow: true },
+      { id: 'routines', label: 'الروتينات الجاهزة', icon: ListChecks, href: '/admin/routines' },
       { id: 'finance', label: 'المالية', icon: Wallet, href: '/admin/finance' },
       { id: 'team', label: 'الفريق', icon: Users, href: '/admin/team' },
       { id: 'settings', label: 'الإعدادات', icon: Settings2, href: '/admin/settings' },

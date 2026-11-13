@@ -4,6 +4,7 @@ import { CatalogItemManagementService } from './services/catalog-item-management
 import { BrandService } from './services/brand.service';
 import { CategoryService } from './services/category.service';
 import { ProductIdentityService } from './services/product-identity.service';
+import { SkuReferenceService } from './services/sku-reference.service';
 import { MediaTemplateService } from './services/media-template.service';
 import { CatalogIntakeService } from './services/catalog-intake.service';
 import { CatalogSnapshotService } from './services/catalog-snapshot.service';
@@ -34,6 +35,7 @@ import { PostgresSearchProvider } from './search/postgres-search.provider';
     BrandService,
     CategoryService,
     ProductIdentityService,
+    SkuReferenceService,
     MediaTemplateService,
     CatalogIntakeService,
     CatalogSnapshotService,
@@ -69,6 +71,7 @@ import { PostgresSearchProvider } from './search/postgres-search.provider';
     BrandService,
     CategoryService,
     ProductIdentityService,
+    SkuReferenceService,
     IngredientService,
     ProductMediaService,
     MediaTemplateService,

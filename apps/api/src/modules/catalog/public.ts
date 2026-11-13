@@ -25,6 +25,8 @@ export type {
 export { BrandService } from './services/brand.service';
 export { CategoryService } from './services/category.service';
 export { ProductIdentityService, BARCODE_ALIAS_SOURCES } from './services/product-identity.service';
+export { SkuReferenceService } from './services/sku-reference.service';
+export type { SkuReference, SkuReferenceResult, SkuRoutineFacts } from './services/sku-reference.service';
 export { MediaTemplateService } from './services/media-template.service';
 export { CatalogIntakeService } from './services/catalog-intake.service';
 export type { ManualIntakeInput, IdentityVerificationInput } from './services/catalog-intake.service';

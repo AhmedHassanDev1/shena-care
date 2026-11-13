@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
 import { CreateConcernDto, CreateRoutineDto, CreateRoutineStepDto } from '../dto/care.dto';
@@ -32,7 +33,7 @@ export class CareService {
   /** Public templates only. Customer profiles and generated recommendations never enter this projection. */
   async getPublicProductPlacements(productId: string) {
     const recommendations = await this.prisma.routineStepRecommendation.findMany({
-      where: { productId, source: { in: ['manual', 'expert'] }, step: { routine: { isActive: true, isTemplate: true } } },
+      where: { productId, source: { in: ['manual', 'expert'] }, step: { routine: { isActive: true, isTemplate: true, status: 'PUBLISHED', ownerCustomerId: null } } },
       orderBy: [{ step: { routineId: 'asc' } }, { step: { stepOrder: 'asc' } }, { id: 'asc' }],
       select: { source: true, step: { select: { title: true, instructions: true, stepOrder: true, timing: true, isOptional: true,
         routine: { select: { id: true, title: true, careArea: true } } } } },
@@ -91,14 +92,23 @@ export class CareService {
         careArea: dto.careArea,
         isTemplate: dto.isTemplate ?? true,
         isActive: dto.isActive ?? true,
+        // Legacy admin endpoint: its routines have always been live. New curated templates go through the Routine Studio (draft → publish).
+        status: 'PUBLISHED',
       },
     });
   }
 
-  async getRoutine(id: string) {
+  /**
+   * A routine by id, only if the viewer may see it: staff see every template; anyone else sees published templates and their own
+   * personal routines. A draft or someone else's routine is indistinguishable from a missing one.
+   */
+  async getRoutine(id: string, viewer: { isAdmin: boolean; customerId?: string } = { isAdmin: false }) {
     if (!this.isUuid(id)) return null;
-    const routine = await this.prisma.routine.findUnique({
-      where: { id },
+    const visible: Prisma.RoutineWhereInput = viewer.isAdmin
+      ? { isTemplate: true }
+      : { OR: [{ isTemplate: true, status: 'PUBLISHED', ownerCustomerId: null }, ...(viewer.customerId ? [{ ownerCustomerId: viewer.customerId }] : [])] };
+    const routine = await this.prisma.routine.findFirst({
+      where: { id, ...visible },
       include: {
         steps: {
           orderBy: { stepOrder: 'asc' },

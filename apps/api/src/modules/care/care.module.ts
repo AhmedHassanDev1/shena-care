@@ -23,19 +23,25 @@ import { MyRoutinesService } from './services/my-routines.service';
 import { RoutineCatalogService } from './services/routine-catalog.service';
 import { MyRoutinesController } from './my-routines.controller';
 import { RoutineAdminController, RoutineCatalogController } from './routine-catalog.controller';
+import { RoutineContentService } from './services/routine-content.service';
+import { RoutineStudioService } from './services/routine-studio.service';
+import { PersonalRoutinesService, ReadyRoutinesService } from './services/personal-routines.service';
+import { RoutineStudioController } from './routine-studio.controller';
+import { PersonalRoutinesController, ReadyRoutinesController } from './personal-routines.controller';
 
 @Module({
   imports: [CatalogModule, CommerceModule, MessagingModule, GuidanceModule, AiModule],
   // RoutineCatalogController before CareController: GET care/routines/featured must not reach GET care/routines/:id.
   controllers: [
     CareTaxonomyController, RoutineCatalogController, RoutineAdminController, CareController, RoutineWorkspaceController,
-    MyRoutinesController,
+    MyRoutinesController, RoutineStudioController, ReadyRoutinesController, PersonalRoutinesController,
   ],
   providers: [
     CareService, CareProfileService, CareReminderOrchestrator,
     ReplenishmentEstimatorService, AdaptiveCheckinService, LifecycleTriggerService,
     RetentionMetricsService, CareEventListener, RoutineWorkspaceService, RoutineProposalService,
     RoutineEngineService, MyRoutinesService, RoutineCatalogService,
+    RoutineContentService, RoutineStudioService, ReadyRoutinesService, PersonalRoutinesService,
   ],
   exports: [
     CareService, CareProfileService, CareReminderOrchestrator,

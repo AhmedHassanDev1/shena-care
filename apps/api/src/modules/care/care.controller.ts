@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Patch, UseGuards, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, UseGuards, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CareService } from './services/care.service';
 import { CareProfileService } from './services/care-profile.service';
 import { CreateConcernDto, CreateRoutineDto, CreateRoutineStepDto, CreateCustomerCareProfileDto, UpdateCustomerCareProfileDto } from './dto/care.dto';
@@ -31,8 +31,10 @@ export class CareController {
   }
 
   @Get('routines/:id')
-  async getRoutine(@Param('id') id: string) {
-    return this.careService.getRoutine(id);
+  async getRoutine(@Param('id') id: string, @CurrentUser() user: { id: string; roles?: string[] }) {
+    const routine = await this.careService.getRoutine(id, { isAdmin: !!user.roles?.includes('ADMIN'), customerId: user.id });
+    if (!routine) throw new NotFoundException('Routine not found');
+    return routine;
   }
 
   @Post('routines/:id/steps')

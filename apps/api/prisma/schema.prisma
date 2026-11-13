@@ -2707,6 +2707,27 @@ model Concern {
   @@schema("care")
 }
 
+/// Publication state of a Ready Routine template (Admin Routine Studio). A personal routine is never public.
+enum RoutineStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+
+  @@schema("care")
+}
+
+/// Where a routine came from; a personal copy never alters the public template it was copied from.
+enum RoutineOrigin {
+  TEMPLATE
+  USER
+  COPY
+  AI
+
+  @@schema("care")
+}
+
+/// One routine domain (GLO-84): Ready Routine templates (isTemplate, curated in the Studio) and customers' own routines
+/// (ownerCustomerId set) share the same steps and product references.
 model Routine {
   id          String   @id @default(uuid()) @db.Uuid
   title       String
@@ -2714,13 +2735,48 @@ model Routine {
   careArea    CareArea @map("care_area")
   isTemplate  Boolean  @default(true) @map("is_template")
   isActive    Boolean  @default(true) @map("is_active")
+  status      RoutineStatus @default(DRAFT)
+  origin      RoutineOrigin @default(TEMPLATE)
+  /// Owner of a personal routine (customer id); null for templates.
+  ownerCustomerId String? @map("owner_customer_id")
+  /// Template a personal copy was made from.
+  sourceRoutineId String? @map("source_routine_id") @db.Uuid
+  concernSlug String?  @map("concern_slug")
+  titleEn     String?  @map("title_en")
+  /// [{ title, url }] the template's content is grounded in.
+  references  Json?
+  version     Int      @default(1)
+  publishedAt DateTime? @map("published_at")
+  publishedBy String?  @map("published_by")
+  /// Hash of the canonical imported JSON, so the same file cannot create two drafts.
+  importFingerprint String? @unique @map("import_fingerprint")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  steps    RoutineStep[]
-  profiles CustomerCareProfile[]
+  steps     RoutineStep[]
+  profiles  CustomerCareProfile[]
+  revisions RoutineRevision[]
 
+  @@index([ownerCustomerId])
+  @@index([isTemplate, status])
   @@map("routines")
+  @@schema("care")
+}
+
+/// Append-only history of a routine: the exact content at each create / edit / publish / unpublish.
+model RoutineRevision {
+  id        String   @id @default(uuid()) @db.Uuid
+  routineId String   @map("routine_id") @db.Uuid
+  version   Int
+  action    String   @db.VarChar(30)
+  snapshot  Json
+  actorId   String   @map("actor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  routine Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@index([routineId, createdAt])
+  @@map("routine_revisions")
   @@schema("care")
 }
 
@@ -2729,6 +2785,8 @@ model RoutineStep {
   routineId    String        @map("routine_id") @db.Uuid
   title        String
   instructions String?
+  /// Why this step is here (AI proposal reason or the editor's note); never a medical claim.
+  reason       String?
   stepOrder    Int           @map("step_order")
   timing       RoutineTiming
   isOptional   Boolean       @default(false) @map("is_optional")
@@ -2757,6 +2815,10 @@ model RoutineStepRecommendation {
   id        String               @id @default(uuid()) @db.Uuid
   stepId    String               @map("step_id") @db.Uuid
   productId String               @map("product_id") @db.Uuid
+  /// The exact variant/size (SKU); null only on rows created before the Studio.
+  skuId     String?              @map("sku_id") @db.Uuid
+  /// The step's main product; the other rows of the step are approved alternatives.
+  isDefault Boolean              @default(false) @map("is_default")
   source    RecommendationSource @default(manual)
   createdAt DateTime             @default(now()) @map("created_at")
   updatedAt DateTime             @updatedAt @map("updated_at")
