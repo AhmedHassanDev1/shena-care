@@ -9,7 +9,7 @@ export type PublicationBlocker =
   | 'IDENTITY_INCOMPLETE' | 'IDENTITY_NOT_VERIFIED' | 'CATEGORY_MISSING' | 'NO_REVIEWED_FACTS' | 'FACT_CONFLICT_UNRESOLVED' | 'CRITICAL_FACT_NOT_REVIEWED'
   | 'CRITICAL_EXCEPTION_OPEN' | 'PRIMARY_PACKSHOT_NOT_APPROVED' | 'CARTON_DECISION_MISSING' | 'CARTON_PROOF_NOT_APPROVED' | 'LISTING_NOT_ACTIVE' | 'SELLING_PRICE_MISSING';
 /** A missing barcode is shown honestly but does not block: identity can be verified by manufacturer evidence instead. */
-export type PublicationWarning = 'BARCODE_MISSING' | 'EDITORIAL_IMAGE_NOT_APPROVED' | 'INGREDIENTS_NOT_REVIEWED' | 'USAGE_NOT_REVIEWED';
+export type PublicationWarning = 'BARCODE_MISSING' | 'EDITORIAL_IMAGE_NOT_APPROVED' | 'INGREDIENTS_NOT_REVIEWED' | 'USAGE_NOT_REVIEWED' | 'CARTON_UNVERIFIED';
 const READY_MEDIA = ['APPROVED', 'PUBLISHED'];
 
 /**
@@ -47,7 +47,9 @@ export class CatalogPublicationService {
     if (facts.conflicts.length) blockers.push('FACT_CONFLICT_UNRESOLVED');
     if (facts.pending.some(field => CRITICAL_FACT_PREFIXES.some(prefix => field.startsWith(prefix)) && field !== 'identity.name' && field !== 'identity.brand')) blockers.push('CRITICAL_FACT_NOT_REVIEWED');
     if (!READY_MEDIA.includes(media.roles.PRIMARY_PACKSHOT)) blockers.push('PRIMARY_PACKSHOT_NOT_APPROVED');
-    if (sku.hasOuterCarton === null) blockers.push('CARTON_DECISION_MISSING');
+    // Unknown is not "unboxed". A reviewed bottle can publish without promising a carton;
+    // explicit boxed-pack claims and open packaging identity/safety exceptions still block below/above.
+    if (sku.hasOuterCarton === null) warnings.push('CARTON_UNVERIFIED');
     if (sku.hasOuterCarton === true && !READY_MEDIA.includes(media.roles.PACKAGING_PROOF)) blockers.push('CARTON_PROOF_NOT_APPROVED');
     if (!listing?.isListed) blockers.push('LISTING_NOT_ACTIVE');
     if (!price) blockers.push('SELLING_PRICE_MISSING');
@@ -55,7 +57,7 @@ export class CatalogPublicationService {
     if (!facts.applied.includes('composition.inci')) warnings.push('INGREDIENTS_NOT_REVIEWED');
     if (!facts.applied.includes('usage.instructions')) warnings.push('USAGE_NOT_REVIEWED');
     return { skuId, productId: sku.productId, isPublished: sku.product.isPublished, ready: blockers.length === 0, blockers, warnings, media: media.roles, facts,
-      identity: { status: sku.identityStatus, barcodeStatus: sku.barcodeStatus, barcode: sku.barcode }, openExceptions: exceptions.length,
+      identity: { status: sku.identityStatus, barcodeStatus: sku.barcodeStatus, barcode: sku.barcode }, packaging: { outerCarton: sku.hasOuterCarton === null ? 'UNVERIFIED' as const : sku.hasOuterCarton }, openExceptions: exceptions.length,
       commerce: { isListed: listing?.isListed ?? false, price: price ? { amount: Number(price.amount), currency: price.currency } : null } };
   }
 
