@@ -529,6 +529,22 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   const hero = [...images][0];
   if (hero) {
     const heroUrl = new URL(hero);
+    // L'Oreal galleries expose native zoom originals in a different locale folder
+    // from their small OG thumbnail. Keep them as candidates, never identity proof.
+    const galleryWords = fold(sku.productName).split(/[^a-z0-9]+/).filter(word => word.length >= 2 && !['the', 'and', 'for', 'with', 'of'].includes(word));
+    const relatedHeading = [...html.matchAll(/<h[1-6]\b[^>]*>([\s\S]*?)<\/h[1-6]>/gi)]
+      .find(match => RELATED_SECTION.test(htmlToLines(match[1]).join(' ')));
+    const productHtml = relatedHeading ? html.slice(0, relatedHeading.index) : html;
+    for (const match of productHtml.matchAll(/<img\b[^>]*>/gi)) {
+      const classes = match[0].match(/\bclass=["']([^"']*)["']/i)?.[1].split(/\s+/) ?? [];
+      const src = match[0].match(/\bsrc=["']([^"']+)["']/i)?.[1];
+      if (!classes.includes('xzoom') || !src || galleryWords.length < 2) continue;
+      try {
+        const url = new URL(decode(src), pageUrl);
+        const filename = fold(decode(url.pathname.slice(url.pathname.lastIndexOf('/') + 1))).replace(/[^a-z0-9]/g, '');
+        if (url.protocol === 'https:' && url.hostname === heroUrl.hostname && galleryWords.every(word => filename.includes(word))) images.add(url.toString());
+      } catch { /* invalid gallery URL */ }
+    }
     const directory = heroUrl.pathname.slice(0, heroUrl.pathname.lastIndexOf('/') + 1);
     for (const match of html.matchAll(/(?:data-)?srcset=["']([^"']+)["']/gi)) {
       const options = match[1].replace(/&amp;/g, '&').split(',').map(part => part.trim().split(/\s+/)).filter(parts => parts[0]);
