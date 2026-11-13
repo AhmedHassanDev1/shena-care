@@ -12,7 +12,8 @@ import { useApi, useCommand } from '@/lib/use-api'
 interface Receivable {
   allocationId: string; orderId: string; orderItemId: string; skuId: string; orderNumber: string
   confirmedQuantity: number; receivedQuantity: number; shortQuantity: number; remainingQuantity: number
-  purchaseOrderId: string; purchaseOrderStatus: string; supplierName: string; readyAt: string | null
+  /** null = acquired on the internal Buy List (no supplier, no purchase order). */
+  purchaseOrderId: string | null; purchaseOrderStatus: string; supplierName: string | null; readyAt: string | null
   skuCode: string | null; variantName: string | null; barcode: string | null
 }
 
@@ -25,6 +26,7 @@ interface StaffRfqDetail {
   purchaseOrders: Array<{ id: string; supplierId: string; version: number; status: string }>
 }
 
+const INTERNAL = 'internal-buy-list'
 const CHECKS = [['brand', 'الماركة'], ['variant', 'النوع'], ['size', 'الحجم'], ['pack', 'العبوة']] as const
 
 /** Supplier receiving (W4): actual quantity against the PO→order lineage, with identity evidence. */
@@ -41,18 +43,24 @@ function ReceiveBody() {
   const { data, error, loading, reload } = useApi<Receivable[]>(`/fulfillment/locations/${hub.id}/receivables`, { pollMs: 30000 })
   const byPo = React.useMemo(() => {
     const groups = new Map<string, Receivable[]>()
-    for (const r of data ?? []) groups.set(r.purchaseOrderId, [...(groups.get(r.purchaseOrderId) ?? []), r])
+    for (const r of data ?? []) groups.set(r.purchaseOrderId ?? INTERNAL, [...(groups.get(r.purchaseOrderId ?? INTERNAL) ?? []), r])
     return [...groups.entries()]
   }, [data])
+  // Supplier RFQ desk only exists while suppliers are actually being contacted; the internal Buy List has no such step.
+  const mode = useApi<{ mode: string }>('/rfq/mode')
 
   return (
     <Page>
-      <PageHeader title="استلام بضاعة الموردين" meta={`${hub.name} — الكميات المؤكدة من الموردين لكل طلب عميل`} />
-      <OfflineProcurement />
+      <PageHeader title="استلام البضاعة" meta={`${hub.name} — اللي اتشترى من قائمة المشتريات (أو أكده الموردون) لكل طلب عميل`} />
+      {mode.data?.mode === 'BROADCAST_ON_DEMAND' ? <OfflineProcurement /> : null}
       {error ? <LoadError message={error.message} onRetry={reload} /> : null}
       {!data && loading ? <Skeleton className="h-40 w-full" /> : null}
-      {data && data.length === 0 ? <StateBlock kind="empty" title="مافيش بضاعة متوقعة دلوقتي" body="أوامر الشراء المؤكدة من الموردين بتظهر هنا لحد ما تتستلم." /> : null}
-      {byPo.map(([poId, rows]) => (
+      {data && data.length === 0 ? <StateBlock kind="empty" title="مافيش بضاعة متوقعة دلوقتي" body="اللي بيتسجّل «تم الشراء» في قائمة المشتريات بيظهر هنا لحد ما يتستلم." /> : null}
+      {byPo.map(([poId, rows]) => poId === INTERNAL ? (
+        <Section key={poId} title="مشتريات داخلية" aside={<span className="text-bw-small text-bw-ink-soft">من قائمة المشتريات — اتأكد من النوع والحجم بالباركود</span>}>
+          <div className="space-y-4">{rows.map((r) => <ReceiveRow key={r.allocationId} r={r} hubId={hub.id} onDone={reload} />)}</div>
+        </Section>
+      ) : (
         <Section key={poId} title={<span className="flex flex-wrap items-center gap-2">أمر شراء <Code>{shortId(poId)}</Code> · {rows[0].supplierName} <Status map={PO_STATUS} value={rows[0].purchaseOrderStatus} /></span>}
           aside={rows[0].readyAt ? <span className="text-bw-small text-bw-ink-soft">المورد جهّزه {formatDateTime(rows[0].readyAt)}</span> : <span className="text-bw-small text-bw-warn">المورد لسه ماقالش إنه جاهز</span>}>
           <div className="space-y-4">{rows.map((r) => <ReceiveRow key={r.allocationId} r={r} hubId={hub.id} onDone={reload} />)}</div>
@@ -156,9 +164,9 @@ function ReceiveRow({ r, hubId, onDone }: { r: Receivable; hubId: string; onDone
     ...(manual ? { manualReason: manualReason.trim(), manualChecks: checks } : { barcodeScanned: barcode.trim() }),
     ...(lot.trim() ? { lotNumber: lot.trim() } : {}), expiryDate: expiry,
   } }))
-  const shortfall = useCommand(() => api(`/purchase-orders/${r.purchaseOrderId}/shortfalls`, { body: {
+  const shortfall = useCommand(() => r.purchaseOrderId ? api(`/purchase-orders/${r.purchaseOrderId}/shortfalls`, { body: {
     sourceAllocationId: r.allocationId, quantity: Number(shortQty), reasonCode: shortReason,
-  } }))
+  } }) : Promise.reject(new Error('عجز الاستلام بيتسجّل على أوامر الشراء بس')))
 
   const qty = Number(quantity)
   const evidenceOk = manual ? manualReason.trim().length > 0 && checks.length === CHECKS.length : barcode.trim().length > 0
@@ -203,7 +211,7 @@ function ReceiveRow({ r, hubId, onDone }: { r: Receivable; hubId: string; onDone
         </div>
       </form>
       <CommandError error={receive.error} />
-      <details className="text-bw-small">
+      {r.purchaseOrderId ? <details className="text-bw-small">
         <summary className="cursor-pointer font-semibold">الكمية ماوصلتش؟ سجّل عجز</summary>
         <form className="mt-2 grid gap-2 md:grid-cols-[8rem_14rem_auto] md:items-end" onSubmit={async (e) => {
           e.preventDefault()
@@ -214,7 +222,7 @@ function ReceiveRow({ r, hubId, onDone }: { r: Receivable; hubId: string; onDone
           <Button type="submit" variant="danger" loading={shortfall.pending} disabled={!(Number(shortQty) >= 1 && Number(shortQty) <= r.remainingQuantity)}>تسجيل العجز</Button>
         </form>
         <CommandError error={shortfall.error} />
-      </details>
+      </details> : <p className="text-bw-small text-bw-ink-soft">لو الكمية ماوصلتش، ارجع لقائمة المشتريات وسجّل الصنف «مش متاح».</p>}
     </div>
   )
 }

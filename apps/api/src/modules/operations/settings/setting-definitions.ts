@@ -86,10 +86,10 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: SETTING_KEYS.cartonCost, group: 'commerce', kind: 'number', nullable: true, min: 0, max: 1000, fallback: () => null, parse: money(SETTING_KEYS.cartonCost, 1000) },
   { key: SETTING_KEYS.labelCost, group: 'commerce', kind: 'number', nullable: true, min: 0, max: 1000, fallback: () => null, parse: money(SETTING_KEYS.labelCost, 1000) },
   {
-    key: SETTING_KEYS.sourcingMode, group: 'operations', kind: 'enum', options: ['BROADCAST_ON_DEMAND', 'OFFER_BASED'],
+    key: SETTING_KEYS.sourcingMode, group: 'operations', kind: 'enum', options: ['INTERNAL_BUY_LIST', 'BROADCAST_ON_DEMAND', 'OFFER_BASED'],
     // A copy of the environment so the saved override is not consulted: this is the deployment default.
     fallback: () => { try { return getSourcingMode({ ...process.env }); } catch { return 'OFFER_BASED'; } },
-    parse: input => (input === 'BROADCAST_ON_DEMAND' || input === 'OFFER_BASED') ? input : invalid(SETTING_KEYS.sourcingMode, 'use BROADCAST_ON_DEMAND or OFFER_BASED'),
+    parse: input => (input === 'INTERNAL_BUY_LIST' || input === 'BROADCAST_ON_DEMAND' || input === 'OFFER_BASED') ? input : invalid(SETTING_KEYS.sourcingMode, 'use INTERNAL_BUY_LIST, BROADCAST_ON_DEMAND or OFFER_BASED'),
   },
   {
     key: SETTING_KEYS.decisionWindowHours, group: 'operations', kind: 'integer', min: 1, max: 72, fallback: () => decisionWindowHours(process.env.DECISION_WINDOW_HOURS ?? ''),

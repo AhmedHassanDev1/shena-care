@@ -10,7 +10,7 @@ import { formatDateTime, SHIPMENT_STATUS, shortId } from '@/lib/labels'
 import { useApi } from '@/lib/use-api'
 
 interface Receivable {
-  allocationId: string; orderNumber: string; purchaseOrderId: string; supplierName: string; readyAt: string | null
+  allocationId: string; orderNumber: string; purchaseOrderId: string | null; supplierName: string | null; readyAt: string | null
   confirmedQuantity: number; receivedQuantity: number; shortQuantity: number; remainingQuantity: number
   skuCode: string | null; variantName: string | null
 }
@@ -111,8 +111,8 @@ function AdminHubContent() {
             <tbody>
               {(receivables.data ?? []).map((r) => (
                 <tr key={r.allocationId} className="border-t border-bw-line">
-                  <td className="py-2"><Code>{shortId(r.purchaseOrderId)}</Code></td>
-                  <td>{r.supplierName}</td>
+                  <td className="py-2">{r.purchaseOrderId ? <Code>{shortId(r.purchaseOrderId)}</Code> : '—'}</td>
+                  <td>{r.supplierName ?? 'مشتريات داخلية'}</td>
                   <td>{[r.skuCode, r.variantName].filter(Boolean).join(' · ') || '—'}</td>
                   <td>{r.confirmedQuantity}</td>
                   <td>{r.receivedQuantity}</td>

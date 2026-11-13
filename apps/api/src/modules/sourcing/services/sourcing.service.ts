@@ -13,7 +13,7 @@ import {
 } from './availability-policy';
 import { CreateSupplierDto, UpdateSupplierDto } from '../dto/supplier.dto';
 import { CreateSupplierOfferDto, UpdateSupplierOfferDto } from '../dto/supplier-offer.dto';
-import { isBroadcastMode } from '../config/procurement-batch.config';
+import { isDemandOnlyMode } from '../config/procurement-batch.config';
 
 export interface SupplierDetail {
   id: string;
@@ -402,7 +402,7 @@ export class SourcingService {
   async getPurchaseAvailability(skuId: string, at = new Date()): Promise<PurchaseAvailability> {
     // BROADCAST_ON_DEMAND: no supplier stock or offer is required; the catalog/commerce listing gates sellability and
     // suppliers answer an RFQ after the order. Nothing here claims stock, so there is no confirmed/observed time.
-    if (isBroadcastMode()) return { state: 'PROVISIONAL', orderable: true, confirmedAt: null, observedAt: null, validUntil: null };
+    if (isDemandOnlyMode()) return { state: 'PROVISIONAL', orderable: true, confirmedAt: null, observedAt: null, validUntil: null };
     const offers = this.isUuid(skuId) ? await this.prisma.supplierOffer.findMany({
       where: { skuId, isAvailable: true, supplier: { isActive: true } },
       select: { lastConfirmedAt: true, lastObservedAt: true },

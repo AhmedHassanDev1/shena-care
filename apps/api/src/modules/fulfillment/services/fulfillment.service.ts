@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, ConflictException, ForbiddenException,
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { OrderingService, PaymentsService, ReconciliationService, navigationUrl } from '../../ordering/public';
 import { CatalogService, ProductIdentityService } from '../../catalog/public';
-import { PurchaseOrderService, SupplyPlanService } from '../../sourcing/public';
+import { BuyListService, PurchaseOrderService, SupplyPlanService } from '../../sourcing/public';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto, ReceiveAllocatedGoodsDto, CreateDeliveryBatchDto, DeliveryStopInputDto } from '../dto/fulfillment.dto';
 import { FulfillmentCapability, ShipmentStatus, PreparationSessionStatus, Prisma, Role } from '@prisma/client';
 import * as crypto from 'crypto';
@@ -119,6 +119,7 @@ export class FulfillmentService {
     private readonly support: SupportService,
     private readonly payments: PaymentsService,
     private readonly identity: ProductIdentityService,
+    private readonly buyList: BuyListService,
   ) {}
 
   /**
@@ -1419,7 +1420,8 @@ export class FulfillmentService {
   async getReceivables(locationId: string, actor: FulfillmentActor) {
     await this.getOperationalLocation(locationId, FulfillmentCapability.RECEIVE_SUPPLIER_GOODS);
     await this.assertLocationAccess(locationId, actor);
-    const links = await this.purchaseOrders.listReceivableLinks();
+    // Supplier PO lineage plus goods marked acquired on the internal Buy List (GLO-296, no purchase order behind them).
+    const links = [...await this.purchaseOrders.listReceivableLinks(), ...await this.buyList.listReceivables()];
     const shipments = await this.prisma.shipment.findMany({ where: { orderId: { in: links.map(l => l.orderId) } }, select: { orderId: true, locationId: true, status: true } });
     const elsewhere = new Set(shipments.filter(s => s.locationId !== locationId || !['pending', 'ready_to_prepare'].includes(s.status)).map(s => s.orderId));
     const mine = links.filter(link => !elsewhere.has(link.orderId));

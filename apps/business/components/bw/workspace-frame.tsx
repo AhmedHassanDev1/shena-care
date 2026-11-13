@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import {
-  FileSpreadsheet, Heart, History, LayoutDashboard,
+  ClipboardList, FileSpreadsheet, Heart, History, LayoutDashboard,
   LogOut, PackageOpen, Printer, Route, ScanLine,
   Radio, ShoppingBag, Settings2, Store, Truck, UserRound, Users, Wallet,
 } from 'lucide-react'
@@ -19,7 +19,10 @@ import { cn } from '@/lib/utils'
 export type Role = 'admin' | 'supplier' | 'hub' | 'driver'
 export type WorkspaceMode = 'desktop' | 'mobile' | 'task' | 'responsive'
 
-type NavItem = { id: string; label: string; icon: React.ElementType; href: string; comingSoon?: boolean }
+/** `supplierFlow` entries belong to the supplier/PO/RFQ workflow, which stays in code but is inactive in the first release (GLO-295). */
+type NavItem = { id: string; label: string; icon: React.ElementType; href: string; comingSoon?: boolean; supplierFlow?: boolean }
+
+const SUPPLIER_FLOW_ENABLED = process.env.NEXT_PUBLIC_SUPPLIER_WORKFLOWS === 'on'
 
 const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   admin: {
@@ -28,7 +31,8 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'attention', label: 'نظرة عامة', icon: LayoutDashboard, href: '/admin' },
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
       { id: 'catalog', label: 'الكتالوج', icon: PackageOpen, href: '/admin/catalog' },
-      { id: 'suppliers', label: 'الموردون والتوريد', icon: Store, href: '/admin/sourcing' },
+      { id: 'buy-list', label: 'قائمة المشتريات', icon: ClipboardList, href: '/hub/buy-list' },
+      { id: 'suppliers', label: 'الموردون والتوريد', icon: Store, href: '/admin/sourcing', supplierFlow: true },
       { id: 'finance', label: 'المالية', icon: Wallet, href: '/admin/finance' },
       { id: 'team', label: 'الفريق', icon: Users, href: '/admin/team' },
       { id: 'settings', label: 'الإعدادات', icon: Settings2, href: '/admin/settings' },
@@ -45,8 +49,9 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   hub: {
     title: 'المخزن',
     items: [
+      { id: 'buy-list', label: 'قائمة المشتريات', icon: ClipboardList, href: '/hub/buy-list' },
       { id: 'receive', label: 'الاستلام', icon: PackageOpen, href: '/hub/receive' },
-      { id: 'costs', label: 'تكلفة الفواتير', icon: Wallet, href: '/hub/costs' },
+      { id: 'costs', label: 'تكلفة الفواتير', icon: Wallet, href: '/hub/costs', supplierFlow: true },
       { id: 'pick', label: 'التجهيز', icon: ScanLine, href: '/hub/prepare' },
       { id: 'pack', label: 'التغليف والطباعة', icon: Printer, href: '/hub/pack' },
       { id: 'handoff', label: 'التسليم للمندوب', icon: Truck, href: '/hub/dispatch' },
@@ -120,7 +125,7 @@ export function WorkspaceFrame({
   onLogout?: () => void
   children: React.ReactNode
 }) {
-  const nav = { ...roleNav[role], items: roleNav[role].items.filter((item) => !hiddenNavIds?.includes(item.id)) }
+  const nav = { ...roleNav[role], items: roleNav[role].items.filter((item) => !hiddenNavIds?.includes(item.id) && (SUPPLIER_FLOW_ENABLED || !item.supplierFlow)) }
   const isItemActive = (itemId: string) => {
     if (itemId === active) return true
     if (role === 'admin' && itemId === 'suppliers' && (active === 'sourcing' || active === 'enrollment')) return true

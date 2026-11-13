@@ -17,19 +17,31 @@ export const DEFAULT_SCHEDULE_TIME_ZONE = 'Africa/Cairo';
  * caps from supplier files) stays in the code, inactive. Production must set SOURCING_MODE explicitly; an unset value
  * keeps the legacy mode so no environment changes behaviour silently, and an unknown value refuses to start.
  */
-export type SourcingMode = 'BROADCAST_ON_DEMAND' | 'OFFER_BASED';
+export type SourcingMode = 'INTERNAL_BUY_LIST' | 'BROADCAST_ON_DEMAND' | 'OFFER_BASED';
+
+/**
+ * INTERNAL_BUY_LIST is the first-release mode (GLO-296): no supplier is contacted by the system. Confirmed COD demand is
+ * aggregated per exact SKU into an internal Buy List that staff work offline and mark acquired/unavailable. RFQ,
+ * purchase-order and offer-ranking code stays in place but inactive.
+ */
+const SOURCING_MODES: readonly string[] = ['INTERNAL_BUY_LIST', 'BROADCAST_ON_DEMAND', 'OFFER_BASED'];
 
 export function getSourcingMode(env: NodeJS.ProcessEnv = process.env): SourcingMode {
   // The mode an Admin saved in Settings → Operations wins over the deployment variable (callers passing their own env are unaffected).
   const saved = env === process.env ? runtimeSetting<SourcingMode>(SETTING_KEYS.sourcingMode) : undefined;
-  if (saved === 'BROADCAST_ON_DEMAND' || saved === 'OFFER_BASED') return saved;
+  if (saved && SOURCING_MODES.includes(saved)) return saved;
   const value = env.SOURCING_MODE?.trim();
   if (!value) return 'OFFER_BASED';
-  if (value === 'BROADCAST_ON_DEMAND' || value === 'OFFER_BASED') return value;
-  throw new Error(`Invalid SOURCING_MODE "${value}"; use BROADCAST_ON_DEMAND or OFFER_BASED`);
+  if (SOURCING_MODES.includes(value)) return value as SourcingMode;
+  throw new Error(`Invalid SOURCING_MODE "${value}"; use INTERNAL_BUY_LIST, BROADCAST_ON_DEMAND or OFFER_BASED`);
 }
 
+/** RFQ procurement is active (supplier broadcast). */
 export const isBroadcastMode = () => getSourcingMode() === 'BROADCAST_ON_DEMAND';
+/** The staff-run internal Buy List is the sourcing channel (no supplier involved). */
+export const isInternalBuyListMode = () => getSourcingMode() === 'INTERNAL_BUY_LIST';
+/** No supplier offer, stock signal or price is needed to order: demand is simply recorded and covered later. */
+export const isDemandOnlyMode = () => getSourcingMode() !== 'OFFER_BASED';
 
 export function getSupplierResponseMinutes(expedited = false): number {
   const value = Number(process.env[expedited ? 'PO_EXPEDITED_RESPONSE_MINUTES' : 'PO_NORMAL_RESPONSE_MINUTES']);

@@ -6,7 +6,7 @@ import { SOURCING_SIGNAL_MAX_AGE_MS } from './availability-policy';
 import { OutboxService } from '../../operations/services/outbox.service';
 import { committedDeliveryDeadline, RecoveryContext, recoveryExclusions } from './procurement-policy';
 import { RfqService } from './rfq.service';
-import { isBroadcastMode } from '../config/procurement-batch.config';
+import { isDemandOnlyMode } from '../config/procurement-batch.config';
 
 type Tx = Prisma.TransactionClient;
 type Confirmation = Exclude<SourceConfirmationResult, 'pending'>;
@@ -101,8 +101,9 @@ export class SupplyPlanService {
       const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true } });
       if (!['placed', 'confirmed', 'packing'].includes(order.status) || !request.requirements.length) return this.present(request, request.status);
 
-      // BROADCAST_ON_DEMAND: no offer ranking or stock caps; the RFQ service owns coverage and exhaustion for these requirements.
-      for (const requirement of isBroadcastMode() ? [] : request.requirements) {
+      // BROADCAST_ON_DEMAND / INTERNAL_BUY_LIST: no offer ranking or stock caps; the RFQ service or the internal Buy List
+      // owns coverage and exhaustion for these requirements.
+      for (const requirement of isDemandOnlyMode() ? [] : request.requirements) {
         const confirmed = requirement.allocations.reduce((sum, a) => sum + a.confirmedQuantity, 0);
         const remaining = requirement.requiredQuantity - confirmed;
         if (remaining <= 0) continue;
@@ -176,7 +177,7 @@ export class SupplyPlanService {
       const anyConfirmed = refreshed.requirements.some(r => r.allocations.some(a => a.confirmedQuantity > 0));
       const anyAction = refreshed.requirements.some(r => r.actionRequirement);
       const status: SupplyPlanStatus = allCovered ? 'COVERED'
-        : isBroadcastMode() ? (!anyAction ? 'CONFIRMING' : anyConfirmed ? 'PARTIALLY_UNAVAILABLE' : 'UNAVAILABLE')
+        : isDemandOnlyMode() ? (!anyAction ? 'CONFIRMING' : anyConfirmed ? 'PARTIALLY_UNAVAILABLE' : 'UNAVAILABLE')
         : anyPending ? 'CONFIRMING' : anyConfirmed ? 'PARTIALLY_UNAVAILABLE' : 'UNAVAILABLE';
       if (status !== refreshed.status) {
         await tx.supplyRequest.update({ where: { id: request.id }, data: { status } });
@@ -447,7 +448,7 @@ export class SupplyPlanService {
   /** Availability contract for candidate proposals: a ranked eligible source exists for this SKU/quantity. */
   async canSupply(skuId: string, quantity: number): Promise<boolean> {
     // On-demand sourcing never knows supplier stock; whether a SKU can be bought is decided when suppliers answer the RFQ.
-    if (isBroadcastMode()) return true;
+    if (isDemandOnlyMode()) return true;
     try {
       const ranked = await this.ranking.rankOffersForSku(skuId, quantity);
       return ranked.rankedOffers.length > 0;
