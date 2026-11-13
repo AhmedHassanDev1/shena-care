@@ -204,7 +204,8 @@ const HAIR_TYPES: Array<[RegExp, string]> = [
 ];
 const TARGET_AREAS: Array<[RegExp, string]> = [[/\bface\b|\bfacial\b/i, 'FACE'], [/\beye (?:area|contour|cream)\b/i, 'EYE_CONTOUR'], [/\blips?\b/i, 'LIPS'], [/\bbody\b/i, 'BODY'], [/\bscalp\b/i, 'SCALP'], [/\bhair\b/i, 'HAIR']];
 /** A line under "how to use" or "warnings" only counts if it reads like one; navigation and promotions often sit there. */
-const USAGE_SIGNAL = /\b(apply|use|massage|rinse|shake|dispense|pump|smooth|spread|wash|wet|lather|leave|morning|evening|night|daily|twice|week)\w*\b|ضع|يوضع|استخدم|يستخدم|دلك|اشطف|صباح|مساء/i;
+const USAGE_SIGNAL = /\b(apply|use|massage|rinse|shake|dispense|pump|smooth|spread|wash|wet|lather|leave|soak|cleanse|morning|evening|night|daily|twice|week)\w*\b|ضع|يوضع|استخدم|يستخدم|دلك|اشطف|صباح|مساء/i;
+const NO_RINSE_INSTRUCTION = /^no need to rinse(?:[- ]off)?\b/i;
 const WARNING_SIGNAL = /\b(avoid|external|caution|discontinue|irritation|consult|keep out|keep away|eyes|children|pregnan|breastfeed|do not|don't|stop use|sun|broken skin|allerg|doctor|physician)\w*\b|تجنب|الخارجي|بعيد|الأطفال|الحمل|الطبيب|توقف/i;
 const SUITABILITY_STATEMENT = /\b(suitable|ideal|recommended|designed|formulated)\b|\b(?:skin|hair) types?\s*:|\bfor (all|normal|dry|oily|combination|sensitive|acne[- ]prone|mature|curly|damaged|fine)\b/i;
 const CAUTION_LINE = /\b(irritation|consult|cease use|discontinue|patch test|keep out|keep away|external use|avoid contact|unbroken skin)\b/i;
@@ -441,9 +442,10 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   else if (lines_.size > 1) rejected.push({ field: 'merchandising.productLine', reason: 'SEVERAL_LINE_READINGS', detail: [...lines_.values()].map(item => item.value).join(', ') });
 
   // Brands often put cautions under "Directions": those lines are warnings, not steps.
-  const directionLines = sectionLines(sections, SECTION_HEADINGS.usage, 6).map(entry => entry.text).filter(line => line.length >= 12 && line.length <= 600 && !NOT_AN_INSTRUCTION.test(line));
+  // Short time/area badges can precede actual steps; section boundaries still stop us.
+  const directionLines = sectionLines(sections, SECTION_HEADINGS.usage, 12).map(entry => entry.text).filter(line => line.length >= 12 && line.length <= 600 && !NOT_AN_INSTRUCTION.test(line));
   const cautionsInDirections = directionLines.filter(line => CAUTION_LINE.test(line));
-  let usage = directionLines.filter(line => USAGE_SIGNAL.test(line) && !CAUTION_LINE.test(line) && isInstructionLine(line));
+  let usage = directionLines.filter(line => USAGE_SIGNAL.test(line) && !CAUTION_LINE.test(line) && (isInstructionLine(line) || NO_RINSE_INSTRUCTION.test(line)));
   if (!usage.length && sectionLines(sections, SECTION_HEADINGS.usage, 1).length) {
     // Tabbed layouts list the tab labels first and the tab contents later: the instruction is on the page but not under its label. Only a line that states an
     // application act, before any related-products section, counts (regression from the real CeraVe Africa pages, 2026-11-06).
