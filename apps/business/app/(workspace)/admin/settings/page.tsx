@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { RefreshCw, RotateCcw } from 'lucide-react'
-import { Button, Field, Notice, PageHeader, Section, Skeleton, Tabs } from '@/components/bw/primitives'
+import { Button, Field, Notice, PageHeader, Section, Select, Skeleton, Tabs } from '@/components/bw/primitives'
 import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
@@ -15,7 +15,13 @@ const keys = {
   facebook:'business.facebook.url', facebookEnabled:'business.facebook.enabled',
   delivery:'commerce.delivery.policy', deliveryCost:'commerce.delivery.internal_cost', carton:'commerce.packaging.carton_cost', label:'commerce.packaging.label_cost',
   cod:'commerce.cod.enabled', checkout:'storefront.checkout.enabled', areas:'commerce.delivery.areas',
+  sourcingMode:'operations.sourcing.mode',
 }
+const SOURCING_MODES:Array<{value:string;label:string}> = [
+  {value:'INTERNAL_BUY_LIST',label:'قائمة مشتريات داخلية — الشراء بيتم برّه النظام (الإصدار الأول)'},
+  {value:'BROADCAST_ON_DEMAND',label:'طلبات عروض للموردين (غير مفعّل في الإصدار الأول)'},
+  {value:'OFFER_BASED',label:'عروض الموردين القديمة (غير مفعّل)'},
+]
 
 export default function SettingsPage() {
   const {data,error,loading,reload} = useApi<Setting[]>('/operations/settings')
@@ -70,6 +76,7 @@ export default function SettingsPage() {
         <Field label="توصيل مجاني ابتداءً من · ج.م" type="number" min="0.01" step="0.01" value={delivery.freeFrom} onChange={e=>setDelivery({...delivery,freeFrom:Number(e.target.value)})}/>
       </div>:null}</Section>
       <Section title="تشغيل المتجر"><div className="space-y-3"><Toggle label="السماح بالدفع عند الاستلام" checked={!!draft[keys.cod]} onChange={v=>update(keys.cod,v)}/><Toggle label="فتح استقبال الطلبات" checked={!!draft[keys.checkout]} onChange={v=>update(keys.checkout,v)}/></div></Section>
+      <SourcingMode item={setting(keys.sourcingMode)} onSaved={reload}/>
       <Section title="نطاق التوصيل"><p className="mb-3 text-bw-small text-bw-ink-soft">المحافظات التي تظهر للعملاء عند تحديد العنوان.</p><div className="grid gap-2 sm:grid-cols-3">{(setting(keys.areas)?.defaultValue as string[]??[]).map(area=><label key={area} className="flex min-h-9 items-center gap-2 text-bw-small"><input type="checkbox" className="size-4 accent-bw-action" checked={areas.includes(area)} disabled={areas.length===1&&areas.includes(area)} onChange={e=>setAreas(e.target.checked?[...areas,area]:areas.filter(v=>v!==area))}/>{area}</label>)}</div></Section>
       <Notice tone="info" title="تأثير التغييرات">الأسعار وتكاليف التوصيل الجديدة تنطبق على الطلبات الجديدة. يحتفظ كل طلب قديم برسومه وتكاليفه المسجلة.</Notice>
       <SaveRow pending={save.pending} error={save.error} dirty={operationsChanged} onSave={()=>saveGroup('operations')}/>
@@ -80,6 +87,19 @@ export default function SettingsPage() {
 
 function SettingInput({title,item,value,onChange,number=false}:{title:string;item?:Setting;value:unknown;onChange:(v:string)=>void;number?:boolean}){
   return <Field label={title} type={number?'number':item?.kind==='phone'?'tel':item?.kind==='url'?'url':'text'} min={number?String(item?.min??0):undefined} max={number?String(item?.max??1000):undefined} step={number?'0.01':undefined} value={value==null?'':String(value)} onChange={e=>onChange(e.target.value)} ltr={item?.kind==='phone'||item?.kind==='url'} hint={item?.source==='ADMIN'?'قيمة محفوظة':'تُستخدم القيمة الافتراضية حتى الحفظ'}/>
+}
+/** How goods are sourced. Only new orders follow a changed mode; supply plans already created keep their coverage. */
+function SourcingMode({item,onSaved}:{item?:Setting;onSaved:()=>void}){
+  const [value,setValue]=React.useState('')
+  React.useEffect(()=>setValue(typeof item?.value==='string'?item.value:''),[item])
+  const save=useCommand((next:string)=>api('/operations/settings',{method:'PATCH',body:{changes:{[keys.sourcingMode]:next}}}))
+  if(!item)return null
+  const dirty=value!==''&&value!==item.value
+  return <Section title="وضع التوريد"><div className="space-y-3">
+    <Select label="مصدر البضاعة" value={value} onChange={e=>setValue(e.target.value)} options={SOURCING_MODES}/>
+    <Notice tone="info" title="التغيير بيسري على الطلبات الجديدة فقط">الأوضاع التانية بتفضل في الكود لكن غير مفعّلة. قائمة المشتريات الداخلية مفيهاش موردين ولا أوامر شراء.</Notice>
+    <div className="flex flex-wrap items-center justify-between gap-3"><CommandError error={save.error}/><Button onClick={async()=>{if(await save.execute(value))onSaved()}} loading={save.pending} disabled={!dirty}>حفظ وضع التوريد</Button></div>
+  </div></Section>
 }
 function Toggle({label,checked,onChange}:{label:string;checked:boolean;onChange:(v:boolean)=>void}){return <label className="flex min-h-10 items-center gap-3 text-bw-small"><input type="checkbox" role="switch" className="size-4 accent-bw-action" checked={checked} onChange={e=>onChange(e.target.checked)}/>{label}</label>}
 function SaveRow({pending,error,dirty,onSave}:{pending:boolean;error:import('@/lib/api').ApiError|null;dirty:boolean;onSave:()=>void}){return <div className="flex flex-wrap items-center justify-between gap-3"><CommandError error={error}/><Button onClick={onSave} loading={pending} disabled={!dirty}>حفظ التغييرات</Button></div>}
