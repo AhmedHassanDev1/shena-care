@@ -63,7 +63,7 @@ export function Select({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-bw-control w-full rounded-bw-field border-[1.5px] border-bw-line-field bg-bw-surface px-3 text-bw-body"
+        className="bw-control h-bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-surface px-3 text-bw-body"
       >
         {options.map(([v, t]) => (
           <option key={v} value={v}>{t}</option>
@@ -83,12 +83,12 @@ export function TextArea({ label: text, value, onChange, rows = 2 }: { label: st
         rows={rows}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-bw-field border-[1.5px] border-bw-line-field bg-bw-surface p-3 text-bw-body"
+        className="bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-surface p-3 text-bw-body"
       />
     </div>
   )
 }
 
 export function Page({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-6xl space-y-5 p-4 lg:p-6">{children}</div>
+  return <div className="mx-auto w-full max-w-7xl space-y-4 p-4 sm:px-6 lg:px-8 lg:py-6">{children}</div>
 }

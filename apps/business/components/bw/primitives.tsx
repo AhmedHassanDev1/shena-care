@@ -14,11 +14,11 @@ import { cn } from '@/lib/utils'
 /* ── Button ─────────────────────────────────────────────────────────── */
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'onKohl'
-type ButtonSize = 'md' | 'touch'
+type ButtonSize = 'sm' | 'md' | 'touch'
 
 const buttonClass: Record<ButtonVariant, string> = {
-  primary: 'bg-bw-action text-bw-on-action hover:bg-bw-action-hover active:scale-[0.98] disabled:bg-bw-sunken disabled:text-bw-ink-subtle disabled:shadow-none',
-  secondary: 'border border-bw-line bg-bw-surface text-bw-ink hover:bg-bw-sunken hover:border-bw-line-field active:scale-[0.98] disabled:text-bw-ink-subtle',
+  primary: 'bg-bw-action text-bw-on-action shadow-bw-sheen-strong hover:bg-bw-action-hover active:scale-[0.98] disabled:bg-bw-sunken disabled:text-bw-ink-subtle disabled:shadow-none',
+  secondary: 'border border-bw-line bg-bw-surface text-bw-ink shadow-bw-sheen hover:bg-bw-sunken hover:border-bw-line-field active:scale-[0.98] disabled:text-bw-ink-subtle',
   danger: 'border border-bw-danger/40 bg-bw-danger-soft/60 text-bw-danger hover:bg-bw-danger-soft hover:brightness-110 active:scale-[0.98]',
   ghost: 'text-bw-ink-soft hover:text-bw-ink hover:bg-bw-sunken active:scale-[0.98]',
   onKohl: 'bg-bw-on-kohl-action text-bw-on-action hover:brightness-90 active:scale-[0.98] disabled:opacity-60',
@@ -39,7 +39,7 @@ export function Button({ variant = 'primary', size = 'md', loading, className, c
       aria-busy={loading || undefined}
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-bw-field px-4 font-semibold whitespace-nowrap transition-[color,background-color,border-color,transform] duration-150 disabled:cursor-not-allowed',
-        size === 'touch' ? 'h-bw-touch text-bw-body' : 'h-bw-control text-bw-small',
+        size === 'touch' ? 'h-bw-touch text-bw-body' : size === 'sm' ? 'h-9 px-3 text-bw-small' : 'h-bw-control text-bw-small',
         buttonClass[variant],
         className,
       )}
@@ -111,15 +111,14 @@ export function Notice({
 
 /* ── Layout ──────────────────────────────────────────────────────────── */
 
-export function PageHeader({ eyebrow, title, meta, actions }: { eyebrow?: string; title: string; meta?: React.ReactNode; actions?: React.ReactNode }) {
+export function PageHeader({ title, meta, actions }: { /** Retained for older callers; the heading carries its own weight, so it is not rendered. */ eyebrow?: string; title: string; meta?: React.ReactNode; actions?: React.ReactNode }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-3">
-      <div className="space-y-1">
-        {eyebrow ? <p className="text-bw-small text-bw-ink-soft">{eyebrow}</p> : null}
-        <h1 className="font-bw-display text-bw-title font-semibold text-bw-ink">{title}</h1>
-        {meta ? <div className="text-bw-small text-bw-ink-soft">{meta}</div> : null}
+    <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+      <div className="min-w-0 space-y-1">
+        <h1 className="font-bw-display text-bw-title font-semibold tracking-tight text-bw-ink">{title}</h1>
+        {meta ? <div className="max-w-[60ch] text-bw-small text-bw-ink-soft">{meta}</div> : null}
       </div>
-      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </header>
   )
 }
@@ -128,12 +127,12 @@ export function Section({ title, aside, children, className }: { title?: React.R
   return (
     <section className={cn('bw-panel', className)}>
       {title ? (
-        <div className="flex items-center justify-between gap-3 border-b border-bw-line px-5 py-4">
-          <h2 className="text-bw-heading font-bold text-bw-ink">{title}</h2>
+        <div className="flex min-h-12 items-center justify-between gap-3 border-b border-bw-line px-4 py-2.5">
+          <h2 className="text-bw-body font-semibold text-bw-ink">{title}</h2>
           {aside}
         </div>
       ) : null}
-      <div className="p-5">{children}</div>
+      <div className="p-4">{children}</div>
     </section>
   )
 }
@@ -161,10 +160,9 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={message ? `${id}-msg` : undefined}
         className={cn(
-          'h-bw-control w-full rounded-bw-field border bg-bw-surface px-3.5 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle transition-colors duration-150',
-          'focus:border-bw-action focus:ring-1 focus:ring-bw-action/30 focus:outline-none',
+          'bw-control h-bw-control w-full rounded-bw-field border bg-bw-surface px-3.5 text-bw-body text-bw-ink placeholder:text-bw-ink-subtle',
           ltr && 'bw-code text-start',
-          error ? 'border-bw-danger focus:border-bw-danger focus:ring-bw-danger/30' : 'border-bw-line-field hover:border-bw-ink-subtle',
+          error ? 'border-bw-danger' : 'border-bw-line-field',
         )}
         {...input}
       />
@@ -179,7 +177,7 @@ export function Field({
 }
 
 /* Native controls share the Field geometry and browser keyboard behavior. */
-const controlClass = 'h-bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-surface px-3.5 text-bw-body text-bw-ink focus:border-bw-action focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-bw-danger'
+const controlClass = 'bw-control h-bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-surface px-3.5 text-bw-body text-bw-ink disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-bw-danger'
 
 export function Select({ label, options, error, className, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & {
   label: string
@@ -270,17 +268,19 @@ export function Stepper({ value, max, onChange, label, disabled }: { value: numb
 export function StateBlock({ kind, title, body, action }: { kind: 'empty' | 'error' | 'forbidden'; title: string; body?: string; action?: React.ReactNode }) {
   const Icon = kind === 'forbidden' ? ShieldOff : kind === 'error' ? XCircle : CheckCircle2
   return (
-    <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-      <Icon className={cn('size-8', kind === 'error' ? 'text-bw-danger' : 'text-bw-ink-subtle')} aria-hidden />
-      <p className="text-bw-heading font-semibold">{title}</p>
+    <div role={kind === 'error' ? 'alert' : undefined} className="bw-arrive flex flex-col items-center gap-2 px-4 py-10 text-center">
+      <span className={cn('mb-1 grid size-11 place-items-center rounded-full border', kind === 'error' ? 'border-bw-danger/30 bg-bw-danger-soft text-bw-danger' : 'border-bw-line bg-bw-sunken text-bw-ink-subtle')}>
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <p className="text-bw-body font-semibold text-bw-ink">{title}</p>
       {body ? <p className="max-w-sm text-bw-small text-bw-ink-soft">{body}</p> : null}
-      {action}
+      {action ? <div className="mt-1">{action}</div> : null}
     </div>
   )
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cn('animate-pulse rounded-bw-field bg-bw-sunken', className)} />
+  return <div aria-hidden className={cn('bw-skeleton rounded-bw-field', className)} />
 }
 
 /* ── Design-lab only: synthetic data banner and state switcher ───────── */
@@ -394,7 +394,7 @@ export function Dialog({
       aria-labelledby={titleId}
       onClose={onClose}
       className={cn(
-        'bw-dialog border border-bw-line bg-bw-surface text-bw-ink shadow-bw-overlay backdrop:bg-bw-kohl/70',
+        'bw-dialog border border-bw-line bg-bw-surface text-bw-ink shadow-bw-overlay backdrop:bg-bw-kohl/60',
         variant === 'dialog' && 'm-auto w-[min(32rem,calc(100%-2rem))] rounded-bw-card',
         variant === 'drawer' && 'ms-auto me-0 h-dvh max-h-dvh w-[min(28rem,100%)] max-w-full',
         variant === 'sheet' && 'mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-md rounded-t-bw-card',
@@ -426,18 +426,18 @@ export function Dialog({
 export function DataTable({ caption, head, children }: { caption: string; head: React.ReactNode[]; children: React.ReactNode }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[44rem] border-collapse text-start text-xs">
+      <table className="w-full min-w-[44rem] border-collapse text-start text-bw-small">
         <caption className="sr-only">{caption}</caption>
-        <thead className="border-b border-bw-line bg-bw-sunken/40 text-bw-small text-bw-ink-subtle">
+        <thead className="border-b border-bw-line bg-bw-sunken/40 text-[11px] text-bw-ink-subtle">
           <tr>
             {head.map((h, i) => (
-              <th key={i} scope="col" className="px-4 py-3 text-start font-semibold">
+              <th key={i} scope="col" className="px-4 py-2.5 text-start font-semibold">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-bw-line [&_td]:px-4 [&_td]:py-3.5 [&_tr]:transition-colors [&_tr:hover]:bg-bw-sunken/50">{children}</tbody>
+        <tbody className="divide-y divide-bw-line [&_td]:px-4 [&_td]:py-3 [&_tr]:transition-colors [&_tr:hover]:bg-bw-veil-1">{children}</tbody>
       </table>
     </div>
   )

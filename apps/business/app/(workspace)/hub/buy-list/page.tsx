@@ -1,14 +1,16 @@
 'use client'
 
 import * as React from 'react'
-import { Copy, Printer, RefreshCw } from 'lucide-react'
-import { Button, Code, Field, Notice, PageHeader, Section, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
+import { ChevronDown, Copy, Printer, RefreshCw, Undo2 } from 'lucide-react'
+import { Button, Code, Notice, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
+import { Flash, Meter, Segmented, SearchField, Stat, StatStrip, Toolbar } from '@/components/bw/ops'
 import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api, ApiError, newKey } from '@/lib/api'
 import { buyListPrintHtml, buyListText, type BuyListData, type BuyListItem, variantLabel } from '@/lib/buy-list'
 import { shortId } from '@/lib/labels'
 import { useApi, useCommand } from '@/lib/use-api'
+import { cn } from '@/lib/utils'
 
 /**
  * Internal Buy List (GLO-296). Demand comes from the server (open COD orders, summed per exact SKU); buying happens outside the
@@ -22,9 +24,16 @@ export default function BuyListPage() {
   )
 }
 
+type View = 'to_buy' | 'unavailable' | 'done'
+
+const viewOf = (item: BuyListItem): View => (item.toBuy > 0 ? 'to_buy' : item.unavailable > 0 ? 'unavailable' : 'done')
+const needOf = (item: BuyListItem) => item.orders.reduce((sum, order) => sum + order.required, 0) || item.toBuy + item.acquired + item.unavailable
+
 function BuyListBody() {
   const { data, error, loading, reload } = useApi<BuyListData>('/buy-list', { pollMs: 30000 })
   const [copied, setCopied] = React.useState(false)
+  const [view, setView] = React.useState<View>('to_buy')
+  const [query, setQuery] = React.useState('')
 
   const copy = async () => {
     if (!data) return
@@ -43,45 +52,95 @@ function BuyListBody() {
     win.addEventListener('load', () => { win.focus(); win.print(); URL.revokeObjectURL(url) })
   }
 
+  const counts = React.useMemo(() => {
+    const c: Record<View, number> = { to_buy: 0, unavailable: 0, done: 0 }
+    data?.items.forEach((item) => { c[viewOf(item)] += 1 })
+    return c
+  }, [data])
+  // A view that has emptied out (everything bought) hands over to the next one that has work, so the screen never looks empty by accident.
+  const activeView: View = data && counts[view] === 0 && view === 'to_buy' && !query ? (counts.unavailable ? 'unavailable' : counts.done ? 'done' : 'to_buy') : view
+  const needle = query.trim().toLowerCase()
+  const visible = (data?.items ?? []).filter((item) => viewOf(item) === activeView
+    && (!needle || [item.productName, item.skuCode, item.barcode, variantLabel(item)].some((part) => part?.toLowerCase().includes(needle))))
+
+  const active = data?.mode === 'INTERNAL_BUY_LIST'
+  const overallNeed = data?.items.reduce((sum, item) => sum + needOf(item), 0) ?? 0
+  const overallDone = data?.items.reduce((sum, item) => sum + item.acquired, 0) ?? 0
+
   return (
     <Page>
-      <PageHeader title="قائمة المشتريات" meta="الكميات المطلوبة من كل صنف (نفس النوع والحجم بالظبط) مجمّعة من الطلبات المفتوحة. الشراء بيتم برّه النظام، وهنا بتسجّل اللي اتشترى واللي مالقيتوش."
-        actions={<div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={reload}><RefreshCw className="size-4" aria-hidden />تحديث</Button>
-          <Button variant="secondary" disabled={!data} onClick={copy}><Copy className="size-4" aria-hidden />{copied ? 'اتنسخت' : 'نسخ القائمة'}</Button>
-          <Button variant="secondary" disabled={!data} onClick={print}><Printer className="size-4" aria-hidden />طباعة</Button>
-        </div>} />
+      <PageHeader
+        title="قائمة المشتريات"
+        meta="الكميات المطلوب شراؤها من كل صنف، مجمّعة من الطلبات المفتوحة."
+        actions={<>
+          <Button variant="secondary" size="sm" onClick={reload} loading={loading && !!data}>{!(loading && !!data) ? <RefreshCw className="size-4" aria-hidden /> : null}تحديث</Button>
+          <Button variant="secondary" size="sm" disabled={!data} onClick={copy}><Copy className="size-4" aria-hidden />{copied ? 'اتنسخت' : 'نسخ'}</Button>
+          <Button variant="secondary" size="sm" disabled={!data} onClick={print}><Printer className="size-4" aria-hidden />طباعة</Button>
+        </>}
+      />
       {error ? <LoadError message={error.message} onRetry={reload} /> : null}
-      {!data && loading ? <Skeleton className="h-40 w-full" /> : null}
-      {data && data.mode !== 'INTERNAL_BUY_LIST' ? (
-        <Notice tone="warn" title="قائمة المشتريات الداخلية مش مفعّلة" >وضع التوريد الحالي مش «شراء داخلي». غيّره من الإعدادات → العمليات لو ده المطلوب.</Notice>
+      {data && !active ? (
+        <Notice tone="warn" title="قائمة المشتريات الداخلية مش مفعّلة">وضع التوريد الحالي مش «شراء داخلي». غيّره من الإعدادات ← العمليات لو ده المطلوب.</Notice>
       ) : null}
-      {data ? <Totals data={data} /> : null}
-      {data && data.items.length === 0 ? <StateBlock kind="empty" title="مفيش مشتريات مطلوبة دلوقتي" body="الطلبات الجديدة المؤكدة (دفع عند الاستلام) بتظهر هنا لحد ما تتشترى وتتستلم." /> : null}
-      <div className="space-y-4">
-        {data?.items.map((item) => <BuyRow key={item.skuId} item={item} active={data.mode === 'INTERNAL_BUY_LIST'} onChanged={reload} />)}
-      </div>
-    </Page>
-  )
-}
 
-function Totals({ data }: { data: BuyListData }) {
-  const cells: Array<[string, number]> = [['أصناف', data.totals.skus], ['قطع مطلوب شراؤها', data.totals.toBuy], ['اتشترت ومستنية الاستلام', data.totals.awaitingHub], ['مش متاحة', data.totals.unavailable], ['طلبات', data.totals.orders]]
-  return (
-    <dl className="grid grid-cols-2 gap-3 md:grid-cols-5">
-      {cells.map(([label, value]) => (
-        <div key={label} className="rounded-bw-field border border-bw-line p-3">
-          <dt className="text-bw-small text-bw-ink-soft">{label}</dt>
-          <dd className="text-xl font-bold"><Code>{value}</Code></dd>
-        </div>
-      ))}
-    </dl>
+      {!data && loading ? (
+        <>
+          <Skeleton className="h-24 w-full" />
+          <div className="space-y-2"><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></div>
+        </>
+      ) : null}
+
+      {data ? (
+        <>
+          <StatStrip>
+            <Stat label="قطع لازم تتشترى" value={data.totals.toBuy} tone="amber" hint={`في ${data.totals.skus} صنف`} />
+            <Stat label="أصناف" value={data.totals.skus} tone="neutral" hint={`من ${data.totals.orders} طلب`} />
+            <Stat label="مستنية الاستلام" value={data.totals.awaitingHub} tone="cobalt" hint="اتشترت ولسه ماوصلتش المخزن" />
+            <Stat label="مش متاحة" value={data.totals.unavailable} tone="rose" hint="العميل هيتسأل" />
+            <div className="bg-bw-surface p-4">
+              <p className="text-bw-small text-bw-ink-soft">تقدّم الشراء</p>
+              <p className="mt-2.5 text-[1.75rem] font-semibold leading-none tabular-nums text-bw-ink">
+                <span dir="ltr" className="bw-code">{overallNeed ? Math.round((overallDone / overallNeed) * 100) : 0}<span className="text-bw-small font-normal text-bw-ink-subtle">%</span></span>
+              </p>
+              <Meter className="mt-2.5" value={overallDone} max={overallNeed} tone="emerald" label="نسبة ما اتشترى من إجمالي المطلوب" />
+            </div>
+          </StatStrip>
+
+          <Toolbar>
+            <SearchField value={query} onChange={setQuery} label="بحث في القائمة" placeholder="اسم الصنف أو الكود أو الباركود" />
+            <Segmented
+              label="عرض القائمة"
+              value={activeView}
+              onChange={setView}
+              className="min-w-0 basis-full sm:basis-0 sm:flex-1"
+              items={[
+                { value: 'to_buy', label: 'لازم يتشترى', count: counts.to_buy },
+                { value: 'unavailable', label: 'مش متاح', count: counts.unavailable },
+                { value: 'done', label: 'اتغطّى', count: counts.done },
+              ]}
+            />
+          </Toolbar>
+
+          {data.items.length === 0 ? (
+            <div className="bw-panel"><StateBlock kind="empty" title="مفيش مشتريات مطلوبة دلوقتي" body="الطلبات الجديدة المؤكدة (دفع عند الاستلام) بتظهر هنا لحد ما تتشترى وتتستلم." /></div>
+          ) : visible.length === 0 ? (
+            <div className="bw-panel"><StateBlock kind="empty" title={query ? 'مفيش صنف مطابق' : activeView === 'to_buy' ? 'كل الأصناف اتشترت' : 'مفيش أصناف هنا'} body={query ? 'جرّب اسم أو كود تاني.' : undefined} /></div>
+          ) : (
+            <ul className="space-y-3">
+              {visible.map((item) => <BuyRow key={item.skuId} item={item} active={active} onChanged={reload} />)}
+            </ul>
+          )}
+        </>
+      ) : null}
+    </Page>
   )
 }
 
 function BuyRow({ item, active, onChanged }: { item: BuyListItem; active: boolean; onChanged: () => void }) {
   const [quantity, setQuantity] = React.useState(String(item.toBuy))
   const [message, setMessage] = React.useState<{ tone: 'ok' | 'warn'; text: string } | null>(null)
+  const [showOrders, setShowOrders] = React.useState(false)
+  const inputId = React.useId()
   // One key per physical count: a retry after a lost response replays instead of counting twice; a new number is a new count.
   const key = React.useRef(newKey())
   React.useEffect(() => { setQuantity(String(item.toBuy)); key.current = newKey() }, [item.toBuy])
@@ -94,6 +153,8 @@ function BuyRow({ item, active, onChanged }: { item: BuyListItem; active: boolea
 
   const qty = Number(quantity)
   const valid = Number.isInteger(qty) && qty >= 1 && qty <= item.toBuy
+  const over = Number.isInteger(qty) && qty > item.toBuy
+  const need = needOf(item)
   const staleNote = (error: ApiError | null) => (error?.code === 'EXCEEDS_OUTSTANDING' || error?.code === 'NOTHING_OUTSTANDING')
     ? 'القائمة اتغيّرت (حد تاني سجّل أو طلب اتلغى). اتحدّثت بالكميات الحالية.' : null
 
@@ -107,51 +168,101 @@ function BuyRow({ item, active, onChanged }: { item: BuyListItem; active: boolea
     } else if (await reopen.execute()) { setMessage({ tone: 'ok', text: 'رجع للقائمة' }); onChanged() }
   }
   const stale = staleNote(acquire.error)
+  const busy = acquire.pending || unavailable.pending || reopen.pending
+  const partial = item.acquired > 0 && item.toBuy > 0
 
   return (
-    <Section title={<span className="flex flex-wrap items-center gap-2">
-      <bdi>{item.productName ?? shortId(item.skuId)}</bdi>
-      <span className="font-normal text-bw-ink-soft">{variantLabel(item)}</span>
-      {!item.skuActive ? <StatusLabel tone="warn">الصنف مش فعّال في الكتالوج</StatusLabel> : null}
-    </span>}
-      aside={<span className="text-bw-small text-bw-ink-soft"><Code>{item.skuCode ?? shortId(item.skuId)}</Code>{item.barcode ? <> · <Code>{item.barcode}</Code></> : null}</span>}>
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-bw-small">
-          <span>مطلوب شراؤه <strong className="text-base"><Code>{item.toBuy}</Code></strong></span>
-          <span>اتشترى <Code>{item.acquired}</Code></span>
-          <span>مستني الاستلام في المخزن <Code>{item.awaitingHub}</Code></span>
-          {item.unavailable ? <span className="text-bw-warn">مش متاح <Code>{item.unavailable}</Code></span> : null}
-          <span>في <Code>{item.orderCount}</Code> طلب</span>
+    <li className="bw-panel bw-arrive overflow-hidden">
+      <div className="grid gap-x-5 gap-y-4 p-4 md:grid-cols-[7.5rem_minmax(0,1fr)] md:items-center xl:grid-cols-[7.5rem_minmax(0,1fr)_auto]">
+        {/* What is still to buy: the number the whole screen is about. */}
+        <div className="flex items-end gap-3 md:block">
+          <p className={cn('text-[2.75rem] font-semibold leading-none tabular-nums', item.toBuy > 0 ? 'text-bw-amber' : item.unavailable > 0 ? 'text-bw-rose' : 'text-bw-emerald')}><bdi className="bw-code">{item.toBuy > 0 ? item.toBuy : item.unavailable > 0 ? item.unavailable : item.acquired}</bdi></p>
+          <div className="min-w-0 flex-1 md:mt-2">
+            <p className="text-[12px] text-bw-ink-soft">{item.toBuy > 0 ? 'لسه مطلوب' : item.unavailable > 0 ? 'مش متاح' : 'اتشترى'}</p>
+            <Meter className="mt-1.5" value={item.acquired} max={need} tone={item.toBuy === 0 ? 'emerald' : 'amber'} label={`اتشترى ${item.acquired} من ${need}`} />
+            <p className="mt-1 text-[11px] text-bw-ink-subtle">اتشترى <bdi className="bw-code">{item.acquired}</bdi> من <bdi className="bw-code">{need}</bdi></p>
+          </div>
         </div>
+
+        <div className="min-w-0">
+          <h3 className="text-bw-body font-semibold text-bw-ink"><bdi>{item.productName ?? shortId(item.skuId)}</bdi></h3>
+          {variantLabel(item) ? <p className="mt-0.5 text-bw-small text-bw-ink-soft"><bdi>{variantLabel(item)}</bdi></p> : null}
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-bw-ink-subtle">
+            <Code>{item.skuCode ?? shortId(item.skuId)}</Code>
+            {item.barcode ? <Code>{item.barcode}</Code> : null}
+            <span><bdi className="bw-code">{item.orderCount}</bdi> طلب</span>
+            {item.awaitingHub > 0 ? <span className="text-bw-cobalt">مستني الاستلام <bdi className="bw-code">{item.awaitingHub}</bdi></span> : null}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {!item.skuActive ? <StatusLabel tone="warn">الصنف مش فعّال في الكتالوج</StatusLabel> : null}
+            {item.unavailable > 0 ? <StatusLabel tone="danger">مش متاح <bdi className="bw-code">{item.unavailable}</bdi></StatusLabel> : null}
+            {partial ? <StatusLabel tone="info">شراء جزئي</StatusLabel> : null}
+          </div>
+        </div>
+
         {item.toBuy > 0 && active ? (
-          <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); void run('acquire') }}>
-            <Field label="الكمية اللي اتشترت" ltr inputMode="numeric" value={quantity} className="w-40"
-              onChange={(event) => { setQuantity(event.target.value); key.current = newKey() }}
-              error={Number.isInteger(qty) && qty > item.toBuy ? `أكتر من المطلوب (${item.toBuy})` : undefined} />
-            <Button type="submit" loading={acquire.pending} disabled={!valid}>تم الشراء</Button>
-            <Button type="button" variant="danger" loading={unavailable.pending} onClick={() => void run('unavailable')}>مش متاح</Button>
+          <form className="flex flex-wrap items-center gap-2 md:col-span-2 md:flex-nowrap md:border-t md:border-bw-line md:pt-4 xl:col-span-1 xl:border-0 xl:pt-0" onSubmit={(event) => { event.preventDefault(); void run('acquire') }}>
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 md:flex-none">
+              <label htmlFor={inputId} className="sr-only">الكمية اللي اتشترت</label>
+              <input
+                id={inputId}
+                dir="ltr"
+                inputMode="numeric"
+                autoComplete="off"
+                value={quantity}
+                aria-invalid={over || undefined}
+                onChange={(event) => { setQuantity(event.target.value.replace(/[^\d]/g, '')); key.current = newKey() }}
+                className={cn('bw-control h-12 w-20 rounded-bw-field border bg-bw-page/60 text-center text-lg font-semibold tabular-nums text-bw-ink md:h-bw-control md:text-bw-body', over ? 'border-bw-danger' : 'border-bw-line-field')}
+              />
+              {item.toBuy > 1 ? (
+                <button type="button" onClick={() => { setQuantity(String(item.toBuy)); key.current = newKey() }} className="h-9 rounded-bw-field px-2 text-[12px] font-semibold text-bw-cobalt transition-colors hover:bg-bw-veil-3">الكل</button>
+              ) : null}
+            </div>
+            <Button type="submit" loading={acquire.pending} disabled={!valid || busy} className="h-12 flex-1 md:h-bw-control md:flex-none">تم الشراء</Button>
+            <Button type="button" variant="ghost" loading={unavailable.pending} disabled={busy} onClick={() => void run('unavailable')} className="h-12 text-bw-danger hover:text-bw-danger md:h-bw-control">مش متاح</Button>
+            {over ? <p role="alert" className="basis-full text-[12px] text-bw-danger md:text-end">أكتر من المطلوب (<bdi className="bw-code">{item.toBuy}</bdi>)</p> : null}
           </form>
         ) : null}
         {item.unavailable > 0 && active ? (
-          <Button variant="secondary" loading={reopen.pending} onClick={() => void run('reopen')}>لقيته — رجّعه للقائمة</Button>
+          <div className="md:col-span-2 xl:col-span-1 xl:justify-self-end">
+            <Button variant="secondary" loading={reopen.pending} disabled={busy} onClick={() => void run('reopen')}><Undo2 className="size-4" aria-hidden />لقيته — رجّعه</Button>
+          </div>
         ) : null}
-        {message ? <Notice tone={message.tone} title={message.text} /> : null}
-        {stale ? <Notice tone="warn" title={stale} /> : <CommandError error={acquire.error ?? unavailable.error ?? reopen.error} />}
-        <details className="text-bw-small">
-          <summary className="cursor-pointer font-semibold">الطلبات ({item.orderCount})</summary>
-          <ul className="mt-2 space-y-1">
+      </div>
+
+      {message || stale || acquire.error || unavailable.error || reopen.error ? (
+        <div className="space-y-2 border-t border-bw-line px-4 py-3">
+          {message ? <Flash tone={message.tone}>{message.text}</Flash> : null}
+          {stale ? <Flash tone="warn">{stale}</Flash> : <CommandError error={acquire.error ?? unavailable.error ?? reopen.error} />}
+        </div>
+      ) : null}
+
+      <div className="border-t border-bw-line">
+        <button
+          type="button"
+          aria-expanded={showOrders}
+          onClick={() => setShowOrders((v) => !v)}
+          className="bw-row flex w-full items-center gap-2 px-4 py-2.5 text-start text-[12px] font-semibold text-bw-ink-soft hover:text-bw-ink"
+        >
+          الطلبات (<bdi className="bw-code">{item.orderCount}</bdi>)
+          <ChevronDown className={cn('ms-auto size-4 transition-transform duration-200', showOrders && 'rotate-180')} aria-hidden />
+        </button>
+        {showOrders ? (
+          <ul className="divide-y divide-bw-line border-t border-bw-line bg-bw-veil-1">
             {item.orders.map((order) => (
-              <li key={order.orderItemId} className="flex flex-wrap items-center gap-3">
-                <Code>{order.orderNumber}</Code>
-                <span>مطلوب <Code>{order.required}</Code></span>
-                <span>اتشترى <Code>{order.acquired}</Code></span>
-                <span>استُلم <Code>{order.receivedAtHub}</Code></span>
-                {order.state === 'unavailable' ? <StatusLabel tone="warn">مش متاح</StatusLabel> : order.state === 'covered' ? <StatusLabel tone="ok">مغطّى</StatusLabel> : <StatusLabel tone="pending">لسه</StatusLabel>}
+              <li key={order.orderItemId} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 text-bw-small">
+                <Code className="font-semibold text-bw-ink">{order.orderNumber.replace(/^ORD-/, '#')}</Code>
+                <span className="text-bw-ink-soft">مطلوب <Code>{order.required}</Code></span>
+                <span className="text-bw-ink-soft">اتشترى <Code>{order.acquired}</Code></span>
+                <span className="text-bw-ink-soft">استُلم <Code>{order.receivedAtHub}</Code></span>
+                <span className="ms-auto">
+                  {order.state === 'unavailable' ? <StatusLabel tone="warn">مش متاح</StatusLabel> : order.state === 'covered' ? <StatusLabel tone="ok">مغطّى</StatusLabel> : <StatusLabel tone="pending">لسه</StatusLabel>}
+                </span>
               </li>
             ))}
           </ul>
-        </details>
+        ) : null}
       </div>
-    </Section>
+    </li>
   )
 }

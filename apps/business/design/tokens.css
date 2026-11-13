@@ -72,6 +72,13 @@
   --radius-bw-field: 0.5rem;
   --radius-bw-card: 0.75rem;
   --radius-bw-pill: 9999px;
+  /* Translucent white veils for hover, selection and glass edges on the dark canvas. */
+  --color-bw-veil-1: rgb(255 255 255 / 0.03);
+  --color-bw-veil-2: rgb(255 255 255 / 0.05);
+  --color-bw-veil-3: rgb(255 255 255 / 0.08);
+  --color-bw-veil-4: rgb(255 255 255 / 0.12);
+  --shadow-bw-sheen: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --shadow-bw-sheen-strong: inset 0 1px 0 rgb(255 255 255 / 0.5);
   --shadow-bw-card: 0 1px 2px rgb(0 0 0 / 0.28);
   --shadow-bw-overlay: 0 16px 48px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.04);
   --ease-bw-standard: cubic-bezier(0.2, 0, 0, 1);

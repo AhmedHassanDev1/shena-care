@@ -210,9 +210,9 @@ export function WorkspaceFrame({
 
   // Desktop-first operational workspace (Admin, Hub desk & Supplier)
   return (
-    <div className="flex min-h-dvh flex-col bg-bw-page lg:flex-row">
+    <div className="bw-canvas flex min-h-dvh flex-col lg:flex-row">
       {/* Mobile top bar for the responsive view */}
-      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-bw-line bg-bw-page px-4 py-3 lg:hidden">
+      <header className="bw-glass sticky top-0 z-20 flex items-center justify-between border-x-0 border-t-0 px-4 py-2.5 lg:hidden">
         <Wordmark />
         <div className="flex items-center gap-3 text-bw-small text-bw-ink-soft">
           <span className="max-w-[150px] truncate font-medium text-bw-ink">{operator}</span>
@@ -244,31 +244,23 @@ export function WorkspaceFrame({
               )
             }
             const isActive = isItemActive(item.id)
-            const isAdminNav = role === 'admin'
             return (
               <Link
                 key={item.id}
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'group flex h-10 shrink-0 items-center gap-2.5 rounded-bw-field px-3 text-bw-small transition-colors duration-150',
+                  'group relative flex h-9 shrink-0 items-center gap-2.5 rounded-bw-field px-3 text-bw-small transition-colors duration-150',
                   isActive
-                    ? isAdminNav
-                      ? 'border-s-2 border-bw-cobalt bg-bw-sunken font-semibold text-bw-ink'
-                      : 'bg-bw-sunken font-semibold text-bw-ink'
-                    : 'text-bw-ink-soft hover:bg-bw-surface hover:text-bw-ink',
+                    ? 'bg-bw-veil-3 font-semibold text-bw-ink shadow-bw-sheen'
+                    : 'text-bw-ink-soft hover:bg-bw-veil-2 hover:text-bw-ink',
                 )}
               >
+                {isActive ? <span aria-hidden className="absolute inset-y-2 start-0 w-0.5 rounded-full bg-bw-cobalt" /> : null}
                 <item.icon
                   className={cn(
                     'size-4 shrink-0 transition-colors duration-150',
-                    isActive
-                      ? isAdminNav
-                        ? 'text-bw-cobalt'
-                        : 'text-bw-ink'
-                      : isAdminNav
-                      ? 'text-bw-ink-subtle group-hover:text-bw-cobalt'
-                      : 'text-bw-ink-subtle group-hover:text-bw-ink',
+                    isActive ? 'text-bw-cobalt' : 'text-bw-ink-subtle group-hover:text-bw-ink',
                   )}
                   aria-hidden
                 />
@@ -298,7 +290,7 @@ export function WorkspaceFrame({
       <main className="min-w-0 flex-1 pb-20 lg:pb-6">{children}</main>
 
       {/* Mobile navigation mirrors the desktop destinations */}
-      <nav aria-label={nav.title} className={cn('fixed inset-x-0 bottom-0 z-30 border-t border-bw-line bg-bw-page lg:hidden', role === 'admin' ? 'flex overflow-x-auto' : 'grid grid-flow-col')}>
+      <nav aria-label={nav.title} className={cn('bw-glass fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 lg:hidden', role === 'admin' ? 'flex overflow-x-auto' : 'grid grid-flow-col')}>
         {nav.items.filter((item) => !item.comingSoon).map((item) => {
           const isActive = isItemActive(item.id)
           const isAdminNav = role === 'admin'

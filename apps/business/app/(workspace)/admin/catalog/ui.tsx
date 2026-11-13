@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { AlertCircle, ImageOff, MoreVertical, Search } from 'lucide-react'
+import { AlertCircle, ImageOff, Search } from 'lucide-react'
 import { useAuthedImage } from '@/lib/authed-image'
 import { cn } from '@/lib/utils'
 import { CatalogMedia, adminMediaPath, mediaHiddenLabel } from './catalog-model'
@@ -25,99 +25,32 @@ export function Thumb({ media, alt, size = 'sm' }: { media: CatalogMedia | undef
   const [failed, setFailed] = React.useState(false)
   React.useEffect(() => setFailed(false), [direct])
   const src = direct && !failed ? direct : authed
-  const dims = size === 'lg' ? 'size-28 rounded-bw-card' : 'size-10 rounded-bw-field'
+  const dims = size === 'lg' ? 'size-28 rounded-bw-card' : 'size-12 rounded-bw-field'
   const hidden = mediaHiddenLabel(media?.hiddenReason)
   return (
     <span
       title={hidden ?? undefined}
-      className={cn('grid shrink-0 place-items-center overflow-hidden bg-bw-sunken', dims)}
+      className={cn(
+        'relative grid shrink-0 place-items-center overflow-hidden border',
+        src ? 'border-bw-line bg-bw-veil-2' : failed ? 'border-bw-rose/30 bg-bw-rose-soft' : 'border-dashed border-bw-line-field/50 bg-gradient-to-br from-bw-veil-2 to-transparent',
+        dims,
+      )}
     >
       {src ? (
-        <img src={src} alt={alt} onError={() => setFailed(true)} className="size-full object-contain" />
+        <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} className="size-full object-contain p-0.5" />
       ) : failed ? (
-        <AlertCircle className="size-4 text-bw-rose" aria-label="تعذر تحميل الصورة" />
+        <AlertCircle className={cn('text-bw-rose', size === 'lg' ? 'size-7' : 'size-4')} aria-label="تعذر تحميل الصورة" />
       ) : (
-        <ImageOff className="size-4 text-bw-ink-subtle" aria-label="بلا صورة" />
+        <span className="flex flex-col items-center gap-1 text-bw-ink-subtle">
+          <ImageOff className={size === 'lg' ? 'size-7' : 'size-4'} aria-label="بلا صورة" />
+          {size === 'lg' ? <span className="text-[11px]">بلا صورة</span> : null}
+        </span>
       )}
     </span>
   )
 }
 
-export interface MenuAction {
-  label: string
-  icon?: React.ElementType
-  onSelect: () => void
-  tone?: 'default' | 'danger'
-  disabled?: boolean
-}
-
-/** Small dropdown. Always-visible trigger, Esc / outside click close it, every item is a real button. */
-export function RowMenu({ label, actions }: { label: string; actions: MenuAction[] }) {
-  const [open, setOpen] = React.useState(false)
-  const root = React.useRef<HTMLDivElement>(null)
-  React.useEffect(() => {
-    if (!open) return
-    const onPointer = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false)
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false)
-        root.current?.querySelector('button')?.focus()
-      }
-    }
-    document.addEventListener('pointerdown', onPointer)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('pointerdown', onPointer)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-  return (
-    <div ref={root} className="relative">
-      <button
-        type="button"
-        aria-label={label}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={(event) => {
-          event.stopPropagation()
-          setOpen((v) => !v)
-        }}
-        className="grid size-9 place-items-center rounded-bw-field text-bw-ink-soft transition-colors hover:bg-bw-sunken hover:text-bw-ink"
-      >
-        <MoreVertical className="size-4" aria-hidden />
-      </button>
-      {open ? (
-        <div role="menu" className="absolute end-0 top-full z-30 mt-1 min-w-52 overflow-hidden rounded-bw-card border border-bw-line bg-bw-surface p-1 shadow-bw-overlay">
-          {actions.map((action) => {
-            const Icon = action.icon
-            return (
-              <button
-                key={action.label}
-                type="button"
-                role="menuitem"
-                disabled={action.disabled}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  setOpen(false)
-                  action.onSelect()
-                }}
-                className={cn(
-                  'flex w-full items-center gap-2.5 rounded-bw-field px-3 py-2 text-start text-bw-small transition-colors hover:bg-bw-sunken disabled:cursor-not-allowed disabled:opacity-50',
-                  action.tone === 'danger' ? 'text-bw-rose' : 'text-bw-ink',
-                )}
-              >
-                {Icon ? <Icon className="size-4 shrink-0 text-bw-ink-soft" aria-hidden /> : null}
-                {action.label}
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
-    </div>
-  )
-}
+export { RowMenu, type MenuAction } from '@/components/bw/ops'
 
 export function SearchBox({ value, onChange, placeholder, label }: { value: string; onChange: (value: string) => void; placeholder: string; label: string }) {
   return (
@@ -129,7 +62,7 @@ export function SearchBox({ value, onChange, placeholder, label }: { value: stri
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-surface pe-3 ps-9 text-bw-small text-bw-ink placeholder:text-bw-ink-subtle focus:border-bw-cobalt focus:outline-none"
+        className="bw-control h-bw-control w-full rounded-bw-field border border-bw-line-field bg-bw-surface pe-3 ps-9 text-bw-small text-bw-ink placeholder:text-bw-ink-subtle"
       />
     </label>
   )

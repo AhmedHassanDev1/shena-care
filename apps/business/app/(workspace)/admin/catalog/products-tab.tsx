@@ -2,8 +2,9 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Archive, ChevronLeft, ChevronRight, FileSpreadsheet, ImageIcon, Pencil, RotateCcw, SlidersHorizontal, SquarePen, TriangleAlert } from 'lucide-react'
+import { Archive, ChevronLeft, ChevronRight, CircleCheck, FileSpreadsheet, ImageIcon, Pencil, RotateCcw, SquarePen, TriangleAlert } from 'lucide-react'
 import { Button, Code, Dialog, Field, Money, Select, Skeleton, StateBlock, useDialog } from '@/components/bw/primitives'
+import { FilterSelect, SearchField, Segmented, Toolbar } from '@/components/bw/ops'
 import { LoadError } from '@/components/workspace/role-shell'
 import { api, ApiError } from '@/lib/api'
 import { useApi } from '@/lib/use-api'
@@ -26,11 +27,9 @@ import {
   readinessIssueLabel,
   rowStatus,
   skuSizeText,
-  summaryLine,
 } from './catalog-model'
-import { Banner, RowMenu, SearchBox, TextBlock, Thumb } from './ui'
+import { Banner, RowMenu, TextBlock, Thumb } from './ui'
 
-const STATUS_OPTIONS = Object.entries(STATUS_FILTER_LABELS).map(([value, label]) => ({ value, label }))
 
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = React.useState(value)
@@ -54,8 +53,6 @@ export function ProductsTab({ brands, categories, filters, setFilters, selectedI
   React.useEffect(() => { if (debounced !== filters.q) setFilters({ q: debounced, page: 1 }) }, [debounced])
   React.useEffect(() => setSearch(filters.q), [filters.q])
 
-  const advancedCount = [filters.brand, filters.cat, filters.ready].filter(Boolean).length
-  const [filtersOpen, setFiltersOpen] = React.useState(advancedCount > 0)
   const [notice, setNotice] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [busyId, setBusyId] = React.useState<string | null>(null)
@@ -95,42 +92,44 @@ export function ProductsTab({ brands, categories, filters, setFilters, selectedI
 
   return (
     <div className="space-y-4">
-      {/* One summary line instead of five cards. */}
-      {list.data ? <p className="text-bw-small text-bw-ink-soft">{summaryLine(list.data.summary)}</p> : null}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <SearchBox value={search} onChange={setSearch} label="بحث في المنتجات" placeholder="اسم المنتج أو الكود أو الباركود" />
-        <label className="sr-only" htmlFor="status-filter">حالة المنتج</label>
-        <select
-          id="status-filter"
-          value={filters.status}
-          onChange={(e) => setFilters({ status: e.target.value as ProductFilters['status'], page: 1 })}
-          className="h-bw-control rounded-bw-field border border-bw-line-field bg-bw-surface px-3 text-bw-small text-bw-ink focus:border-bw-cobalt focus:outline-none"
-        >
-          {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <Button variant="secondary" aria-expanded={filtersOpen} onClick={() => setFiltersOpen((v) => !v)}>
-          <SlidersHorizontal className="size-4" aria-hidden />
-          فلاتر
-          {advancedCount > 0 ? <span className="grid size-5 place-items-center rounded-full bg-bw-cobalt text-[11px] font-bold text-bw-page">{advancedCount}</span> : null}
-        </Button>
+      <Toolbar sticky={false} className="gap-y-2">
+        <SearchField value={search} onChange={setSearch} label="بحث في المنتجات" placeholder="اسم المنتج أو الكود أو الباركود" />
+        <FilterSelect label="الماركة" value={filters.brand} onChange={(value) => setFilters({ brand: value, page: 1 })} options={[{ value: '', label: 'كل الماركات' }, ...brands.map((b) => ({ value: b.id, label: b.name }))]} />
+        <FilterSelect label="التصنيف" value={filters.cat} onChange={(value) => setFilters({ cat: value, page: 1 })} options={[{ value: '', label: 'كل التصنيفات' }, ...flatCategories.map((c) => ({ value: c.id, label: c.parentName ? `${c.parentName} ← ${c.name}` : c.name }))]} />
+        <FilterSelect label="بيانات ناقصة" value={filters.ready} onChange={(value) => setFilters({ ready: value as ProductFilters['ready'], page: 1 })} options={[{ value: '', label: 'اكتمال البيانات' }, ...Object.entries(READINESS_FILTER_LABELS).map(([value, label]) => ({ value, label }))]} />
         <div className="ms-auto flex items-center gap-1">
-          <Link href="/admin/catalog/intake" className="inline-flex h-bw-control items-center gap-2 rounded-bw-field px-3 text-bw-small font-semibold text-bw-cobalt transition-colors hover:bg-bw-sunken">
+          <Link href="/admin/catalog/intake" className="inline-flex h-9 items-center gap-2 rounded-bw-field px-3 text-bw-small font-semibold text-bw-cobalt transition-colors hover:bg-bw-veil-3">
             <FileSpreadsheet className="size-4" aria-hidden />
             إدخال منتجات
           </Link>
           <RowMenu label="المزيد" actions={[{ label: 'قوالب الصور', icon: ImageIcon, onSelect: () => { window.location.href = '/admin/catalog/media-templates' } }]} />
         </div>
-      </div>
-
-      {filtersOpen ? (
-        <div className="grid gap-3 rounded-bw-card border border-bw-line bg-bw-surface p-3 sm:grid-cols-3">
-          <Select label="الماركة" value={filters.brand} onChange={(e) => setFilters({ brand: e.target.value, page: 1 })} options={[{ value: '', label: 'كل الماركات' }, ...brands.map((b) => ({ value: b.id, label: b.name }))]} />
-          <Select label="التصنيف" value={filters.cat} onChange={(e) => setFilters({ cat: e.target.value, page: 1 })} options={[{ value: '', label: 'كل التصنيفات' }, ...flatCategories.map((c) => ({ value: c.id, label: c.parentName ? `${c.parentName} ← ${c.name}` : c.name }))]} />
-          <Select label="ما يحتاج انتباه" value={filters.ready} onChange={(e) => setFilters({ ready: e.target.value as ProductFilters['ready'], page: 1 })} options={[{ value: '', label: 'الكل' }, ...Object.entries(READINESS_FILTER_LABELS).map(([value, label]) => ({ value, label }))]} />
-          {advancedCount > 0 ? <button type="button" className="text-start text-bw-small text-bw-ink-soft underline sm:col-span-3" onClick={() => setFilters({ brand: '', cat: '', ready: '', page: 1 })}>مسح الفلاتر</button> : null}
+        <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 border-t border-bw-line/70 pt-2">
+          <Segmented
+            label="حالة المنتج"
+            value={filters.status}
+            onChange={(value) => setFilters({ status: value, page: 1 })}
+            className="min-w-0"
+            items={(Object.keys(STATUS_FILTER_LABELS) as Array<ProductFilters['status']>).map((value) => ({
+              value,
+              label: STATUS_FILTER_LABELS[value],
+              count: list.data ? ({ all: list.data.summary.total, published: list.data.summary.published, draft: list.data.summary.draft, archived: list.data.summary.archived } as Record<string, number>)[value] : undefined,
+            }))}
+          />
+          {list.data && list.data.summary.missingImage > 0 ? (
+            <button
+              type="button"
+              aria-pressed={filters.ready === 'missing_image'}
+              onClick={() => setFilters({ ready: filters.ready === 'missing_image' ? '' : 'missing_image', page: 1 })}
+              className={cn('inline-flex h-9 items-center gap-2 rounded-bw-field border px-3 text-bw-small transition-colors', filters.ready === 'missing_image' ? 'border-bw-amber/40 bg-bw-amber-soft font-semibold text-bw-amber' : 'border-transparent text-bw-ink-soft hover:bg-bw-veil-2 hover:text-bw-ink')}
+            >
+              <ImageIcon className="size-3.5" aria-hidden />
+              بلا صورة <Code>{list.data.summary.missingImage}</Code>
+            </button>
+          ) : null}
+          {filtered ? <button type="button" className="ms-auto text-[12px] text-bw-ink-soft underline-offset-4 hover:text-bw-ink hover:underline" onClick={() => { setSearch(''); setFilters({ q: '', brand: '', cat: '', ready: '', status: 'all', page: 1 }) }}>مسح الكل</button> : null}
         </div>
-      ) : null}
+      </Toolbar>
 
       {notice ? <Banner tone="ok" onClose={() => setNotice(null)}>{notice}</Banner> : null}
       {error ? <Banner tone="danger" onClose={() => setError(null)}>{error}</Banner> : null}
@@ -147,8 +146,8 @@ export function ProductsTab({ brands, categories, filters, setFilters, selectedI
       ) : null}
 
       {items.length > 0 ? (
-        <ul className="divide-y divide-bw-line rounded-bw-card border border-bw-line bg-bw-surface">
-          <li aria-hidden className="hidden grid-cols-[minmax(0,1fr)_7rem_13rem_6.5rem] gap-3 px-4 py-2 text-[11px] text-bw-ink-subtle md:grid">
+        <ul className="bw-panel bw-arrive divide-y divide-bw-line [&>li:first-child]:rounded-t-bw-card [&>li:last-child]:rounded-b-bw-card">
+          <li aria-hidden className="hidden grid-cols-[minmax(0,1fr)_7rem_13rem_6.5rem] gap-3 bg-bw-veil-1 px-4 py-2 text-[11px] font-semibold text-bw-ink-subtle md:grid">
             <span>المنتج</span><span>السعر</span><span>الحالة</span><span />
           </li>
           {items.map((product) => (
@@ -194,6 +193,23 @@ export function ProductsTab({ brands, categories, filters, setFilters, selectedI
   )
 }
 
+/** One quiet badge per row: only exceptions get colour, and the first blocking issue is named in words. */
+function ReadinessBadge({ product, status }: { product: CatalogItem; status: ReturnType<typeof rowStatus> }) {
+  if (product.archivedAt) return <span className="inline-flex items-center gap-1.5 rounded-full border border-bw-line px-2.5 py-0.5 text-[11px] font-semibold text-bw-ink-soft"><Archive className="size-3" aria-hidden />مؤرشف</span>
+  if (status.issues.length) {
+    return (
+      <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-bw-amber/25 bg-bw-amber-soft px-2.5 py-0.5 text-[11px] font-semibold text-bw-amber">
+        <TriangleAlert className="size-3 shrink-0" aria-hidden />
+        <span className="truncate">{status.label}</span>
+        {status.issues.length > 1 ? <span className="shrink-0 text-bw-amber/80">+<Code>{status.issues.length - 1}</Code></span> : null}
+      </span>
+    )
+  }
+  return product.isPublished
+    ? <span className="inline-flex items-center gap-1.5 rounded-full border border-bw-emerald/25 bg-bw-emerald-soft px-2.5 py-0.5 text-[11px] font-semibold text-bw-emerald"><CircleCheck className="size-3" aria-hidden />منشور</span>
+    : <span className="inline-flex items-center gap-1.5 rounded-full border border-bw-line px-2.5 py-0.5 text-[11px] font-semibold text-bw-ink-soft">مسودة</span>
+}
+
 function ProductRow({ product, busy, onOpen, onRestore, onFullEditor }: {
   product: CatalogItem
   busy: boolean
@@ -207,12 +223,12 @@ function ProductRow({ product, busy, onOpen, onRestore, onFullEditor }: {
   return (
     <li
       onClick={onOpen}
-      className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 transition-colors hover:bg-bw-sunken md:grid-cols-[minmax(0,1fr)_7rem_13rem_6.5rem] md:px-4"
+      className="bw-row grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_5.5rem_9.5rem_5rem] xl:grid-cols-[minmax(0,1fr)_7rem_13rem_6.5rem] md:px-4"
     >
       <div className="flex min-w-0 items-center gap-3">
         <Thumb media={product.media[0]} alt={product.name} />
         <div className="min-w-0">
-          <button type="button" onClick={(e) => { e.stopPropagation(); onOpen() }} className="block max-w-full truncate rounded-bw-field text-start font-semibold text-bw-ink focus-visible:outline-2 focus-visible:outline-bw-focus">
+          <button type="button" onClick={(e) => { e.stopPropagation(); onOpen() }} className="line-clamp-2 max-w-full rounded-bw-field text-start font-semibold leading-snug text-bw-ink focus-visible:outline-2 focus-visible:outline-bw-focus">
             <bdi>{product.name}</bdi>
           </button>
           <p className="truncate text-[12px] text-bw-ink-soft"><bdi>{product.brand.name}</bdi>{size ? <> · <Code>{size}</Code></> : null}</p>
@@ -224,11 +240,7 @@ function ProductRow({ product, busy, onOpen, onRestore, onFullEditor }: {
       </div>
 
       <div className="col-span-2 flex items-center gap-2 pe-1 md:col-span-1">
-        <span className={cn('inline-flex min-w-0 items-center gap-1.5 text-bw-small', status.tone === 'warn' ? 'text-bw-amber' : status.tone === 'cobalt' ? 'text-bw-cobalt' : 'text-bw-ink-soft')}>
-          {status.tone === 'warn' ? <TriangleAlert className="size-3.5 shrink-0" aria-hidden /> : null}
-          <span className="truncate">{status.label}</span>
-          {status.issues.length > 1 ? <span className="shrink-0 text-[11px] text-bw-ink-subtle">+<Code>{status.issues.length - 1}</Code></span> : null}
-        </span>
+        <ReadinessBadge product={product} status={status} />
         <span className="ms-auto text-bw-small text-bw-ink-soft md:hidden">{price ? <Money value={price.amount} /> : null}</span>
       </div>
 

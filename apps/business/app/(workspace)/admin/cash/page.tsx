@@ -4,17 +4,14 @@ import * as React from 'react'
 import Link from 'next/link'
 import {
   AlertTriangle,
-  ArrowDownToLine,
-  CheckCircle2,
   Download,
   Eye,
   EyeOff,
-  Filter,
   RefreshCw,
   ShieldAlert,
   Wallet,
 } from 'lucide-react'
-import { Code, DataTable, PageHeader, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
+import { Code, DataTable, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
 import { Egp, Page, Select, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell, useMe } from '@/components/workspace/role-shell'
 import { COLLECTION_STATUS, formatDateTime, shortId } from '@/lib/labels'

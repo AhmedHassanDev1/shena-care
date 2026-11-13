@@ -38,9 +38,9 @@ function HubPicker({ children }: { children: React.ReactNode }) {
   return (
     <HubContext.Provider value={hub}>
       {me.hubLocations.length > 1 ? (
-        <div className="flex items-center gap-2 border-b border-bw-line bg-bw-surface px-4 py-2 text-bw-small">
+        <div className="bw-glass flex items-center gap-2 border-x-0 border-t-0 px-4 py-2 text-bw-small">
           <label htmlFor="hub-picker" className="font-semibold">المخزن</label>
-          <select id="hub-picker" value={hub.id} className="h-bw-control rounded-bw-field border-[1.5px] border-bw-line-field px-2"
+          <select id="hub-picker" value={hub.id} className="bw-control h-9 rounded-bw-field border border-bw-line-field bg-bw-surface px-2"
             onChange={(e) => { setHubId(e.target.value); try { window.localStorage.setItem(HUB_KEY, e.target.value) } catch { /* ignore */ } }}>
             {me.hubLocations.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
           </select>
