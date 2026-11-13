@@ -25,7 +25,7 @@ export function isTrustedMediaSource(value: string): boolean {
     const hosts = [
       'cerave.com', 'laroche-posay.us', 'laroche-posay.co.uk', 'laroche-posay-me.com',
       'vichy.fr', 'vichyusa.com', 'eucerin.com', 'eucerinus.com',
-      'aveneusa.com', 'eau-thermale-avene.com', 'bioderma.com',
+      'aveneusa.com', 'eau-thermale-avene.com', 'bioderma.com', 'bioderma.co.uk', 'theordinary.com',
       'loreal-paris-me.com',
       ...(process.env.MEDIA_TRUSTED_SOURCE_HOSTS || '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean),
     ];
