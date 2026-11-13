@@ -1,5 +1,5 @@
 import sharp, { OverlayOptions } from 'sharp';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -92,11 +92,16 @@ interface Cutout { rgba: Buffer; width: number; height: number; report: QualityR
 
 const lumaOf = (r: number, g: number, b: number) => 0.299 * r + 0.587 * g + 0.114 * b;
 
+// A model process is memory-heavy. Busy enhancement fails safely for an explicit
+// retry through the existing media owner rather than starting competing models.
+let neuralInFlight = false;
 async function tryNeuralCutout(source: Buffer): Promise<{ rgba: Buffer; width: number; height: number } | null> {
+  if (neuralInFlight) return null;
   const tmpDir = os.tmpdir();
   const id = crypto.randomUUID();
   const inPath = path.join(tmpDir, `in_${id}.png`);
   const outPath = path.join(tmpDir, `out_${id}.png`);
+  neuralInFlight = true;
   try {
     fs.writeFileSync(inPath, source);
     const candidates = [
@@ -107,7 +112,9 @@ async function tryNeuralCutout(source: Buffer): Promise<{ rgba: Buffer; width: n
     const resolvedScript = candidates.find(p => fs.existsSync(p));
     if (!resolvedScript) return null;
 
-    execFileSync('python', [resolvedScript, inPath, outPath], { timeout: 60000, stdio: 'pipe' });
+    await new Promise<void>((resolve, reject) => {
+      execFile('python', [resolvedScript, inPath, outPath], { timeout: 60000, windowsHide: true, maxBuffer: 1024 * 1024 }, error => error ? reject(error) : resolve());
+    });
     if (!fs.existsSync(outPath) || fs.statSync(outPath).size === 0) return null;
 
     const { data, info } = await sharp(outPath).toColourspace('srgb').ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -115,8 +122,9 @@ async function tryNeuralCutout(source: Buffer): Promise<{ rgba: Buffer; width: n
   } catch {
     return null;
   } finally {
-    if (fs.existsSync(inPath)) try { fs.unlinkSync(inPath); } catch {}
-    if (fs.existsSync(outPath)) try { fs.unlinkSync(outPath); } catch {}
+    neuralInFlight = false;
+    if (fs.existsSync(inPath)) try { fs.unlinkSync(inPath); } catch { /* Best-effort temporary cleanup. */ }
+    if (fs.existsSync(outPath)) try { fs.unlinkSync(outPath); } catch { /* Best-effort temporary cleanup. */ }
   }
 }
 
@@ -140,23 +148,24 @@ export async function cutOutProduct(source: Buffer, options: CutoutOptions = {})
   let enclosed = 0;
 
   if (!hasAlpha) {
-    background = estimateBackground(rgba, width, height);
     let neuralUsed = false;
     const allowNeural = options.engine === 'neural' || (options.engine !== 'deterministic' && process.env.NODE_ENV !== 'test');
     if (allowNeural) {
       const pngBuffer = await sharp(rgba, { raw: { width, height, channels: 4 } }).png().toBuffer();
       const neural = await tryNeuralCutout(pngBuffer);
       if (neural && neural.width === width && neural.height === height) {
-        neural.rgba.copy(rgba);
+        // Matting may alter RGB. Only its alpha is segmentation evidence: labels,
+        // colors and packaging pixels always come from the authentic source.
+        for (let i = 3; i < rgba.length; i += 4) rgba[i] = neural.rgba[i];
         neuralUsed = true;
       } else {
-        if (options.engine === 'neural') {
-          throw new MediaProcessingError('NEURAL_SEGMENTATION_FAILED');
-        }
-        warnings.add('NEURAL_CUTOUT_FAILED');
+        // The media owner records a failed derivative and retains the valid original.
+        // Do not silently try another cutout that can erode a white bottle or cap.
+        throw new MediaProcessingError('NEURAL_SEGMENTATION_FAILED');
       }
     }
     if (!neuralUsed) {
+      background = estimateBackground(rgba, width, height);
       enclosed = removeBackground(rgba, width, height, background, options, warnings);
       keepProductComponents(rgba, width);
       await refineMask(rgba, width, height);

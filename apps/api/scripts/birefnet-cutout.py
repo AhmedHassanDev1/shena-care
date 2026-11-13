@@ -1,12 +1,11 @@
 import sys
-import os
 from PIL import Image
 
-import rembg
 from rembg import remove, new_session
 
 def process_file(input_path, output_path):
-    img = Image.open(input_path)
+    with Image.open(input_path) as original:
+        img = original.copy()
     
     # Check if already transparent
     if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
@@ -17,10 +16,8 @@ def process_file(input_path, output_path):
             return
 
     # Use BiRefNet general model with alpha matting
-    try:
-        session = new_session("birefnet-general")
-    except Exception:
-        session = new_session("u2net")
+    # Model failure belongs to the derivative; never silently substitute a model.
+    session = new_session("birefnet-general")
 
     cutout = remove(
         img,
