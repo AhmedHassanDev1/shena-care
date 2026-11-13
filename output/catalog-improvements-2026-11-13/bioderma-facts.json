@@ -1,0 +1,116 @@
+{
+  "scope": "ISOLATED_LOCAL_TEST_DATABASE",
+  "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+  "runId": "b95c9ff6-00de-4518-8356-fd73f7b1a094",
+  "verification": {
+    "applied": [
+      "usage.instructions"
+    ],
+    "unverified": [
+      "claims.manufacturerStated",
+      "identity.name"
+    ],
+    "rejected": [],
+    "holds": [],
+    "coverage": {
+      "identity.name": "UNVERIFIED",
+      "identity.brand": "UNKNOWN",
+      "identity.gtin": "UNKNOWN",
+      "identity.size": "VERIFIED",
+      "composition.inci": "UNKNOWN",
+      "composition.activeConcentrations": "UNKNOWN",
+      "composition.fragrance": "UNKNOWN",
+      "composition.keyIngredients": "UNKNOWN",
+      "attributes.texture": "UNKNOWN",
+      "usage.instructions": "VERIFIED",
+      "usage.routinePeriod": "UNKNOWN",
+      "usage.targetArea": "UNKNOWN",
+      "suitability.skinTypes": "VERIFIED",
+      "suitability.hairTypes": "UNKNOWN",
+      "safety.warnings": "UNKNOWN",
+      "marketing.description": "VERIFIED",
+      "claims.manufacturerStated": "UNVERIFIED",
+      "media.sourceImages": "UNKNOWN",
+      "attributes.spf": "UNKNOWN",
+      "attributes.broadSpectrum": "UNKNOWN",
+      "attributes.waterResistanceMinutes": "UNKNOWN",
+      "attributes.uvFilterType": "UNKNOWN",
+      "attributes.nonComedogenic": "UNKNOWN",
+      "merchandising.productLine": "UNKNOWN"
+    }
+  },
+  "usage": {
+    "field": "usage.instructions",
+    "value": [
+      "Soak a reusable cotton-pad with Sensibio H2O.",
+      "Cleanse and remove makeup from face and eyes.",
+      "No need to rinse-off for skincare benefits."
+    ],
+    "status": "APPLIED",
+    "evidence": [
+      {
+        "excerpt": "Soak a reusable cotton-pad with Sensibio H2O. Cleanse and remove makeup from face and eyes. No need to rinse-off for skincare benefits.",
+        "extractor": "deterministic@1",
+        "sourceUrl": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water",
+        "observedAt": "2026-11-13T19:48:41.599Z",
+        "sourceTier": "OFFICIAL_MANUFACTURER",
+        "contentHash": "90eae27c8c505b677106f506e2bc6eb9b987575f392d784c8ea25fce34f9ed91"
+      }
+    ]
+  },
+  "inci": "UNKNOWN_HELD",
+  "primaryImage": "UNVERIFIED_HELD",
+  "apiStatus": 200,
+  "readiness": {
+    "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+    "productId": "15cb059e-6d0f-40d1-86eb-c73bd12f36d8",
+    "isPublished": false,
+    "ready": false,
+    "blockers": [
+      "PRIMARY_PACKSHOT_NOT_APPROVED",
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "warnings": [
+      "BARCODE_MISSING",
+      "CARTON_UNVERIFIED",
+      "EDITORIAL_IMAGE_NOT_APPROVED",
+      "INGREDIENTS_NOT_REVIEWED"
+    ],
+    "media": {
+      "PRIMARY_PACKSHOT": "MISSING",
+      "TEXTURE_SENSORY": "MISSING",
+      "INGREDIENT_STORY": "MISSING",
+      "PACKAGING_PROOF": "MISSING",
+      "CATEGORY_EDITORIAL": "MISSING"
+    },
+    "facts": {
+      "total": 6,
+      "applied": [
+        "identity.size",
+        "marketing.description",
+        "suitability.skinTypes",
+        "usage.instructions"
+      ],
+      "pending": [],
+      "unverified": [
+        "claims.manufacturerStated",
+        "identity.name"
+      ],
+      "conflicts": []
+    },
+    "identity": {
+      "status": "EVIDENCE_VERIFIED",
+      "barcodeStatus": "UNKNOWN",
+      "barcode": null
+    },
+    "packaging": {
+      "outerCarton": "UNVERIFIED"
+    },
+    "openExceptions": 0,
+    "commerce": {
+      "isListed": false,
+      "price": null
+    }
+  }
+}

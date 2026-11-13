@@ -1,0 +1,147 @@
+{
+  "scope": "ISOLATED_LOCAL_TEST_DATABASE_ONLY",
+  "commercialLaunchReady": false,
+  "results": [
+    {
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "name": "Hydrating Cleanser",
+      "price": {
+        "amount": 100,
+        "currency": "EGP",
+        "scope": "EXPLICIT_OWNER_DEV_ONLY_ASSIGNMENT"
+      },
+      "authenticatedApiStatus": 200,
+      "publishStatus": 200,
+      "assetId": "0e06fceb-7934-48cd-99f3-b623964a052c",
+      "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+      "sourceHash": "d629621a2a3e8056cf82b11edaae00f41ad663a5ee9c75ca79e58c9f8ace4b55",
+      "originalUnchanged": true,
+      "readiness": {
+        "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+        "productId": "c2ca32fb-5583-4648-a85d-736622e11e16",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 11,
+          "applied": [
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 100,
+            "currency": "EGP"
+          }
+        }
+      }
+    },
+    {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "name": "Foaming Cleanser",
+      "price": {
+        "amount": 100,
+        "currency": "EGP",
+        "scope": "EXPLICIT_OWNER_DEV_ONLY_ASSIGNMENT"
+      },
+      "authenticatedApiStatus": 200,
+      "publishStatus": 200,
+      "assetId": "0322c219-16d9-41e7-b762-632522bc396c",
+      "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+      "sourceHash": "92e82e14b92b7140f941b475092c8c39223de81952a8c2d68a8b55ef3826eb4c",
+      "originalUnchanged": true,
+      "readiness": {
+        "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+        "productId": "e8374cf1-f57c-447f-b4fb-04476e9b9ba3",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "attributes.nonComedogenic",
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 100,
+            "currency": "EGP"
+          }
+        }
+      }
+    }
+  ]
+}

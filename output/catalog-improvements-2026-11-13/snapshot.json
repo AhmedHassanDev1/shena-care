@@ -1,0 +1,591 @@
+{
+  "takenAt": "2026-11-13T19:26:07.144Z",
+  "policyVersion": null,
+  "policyMode": "OPEN",
+  "policyCategories": [],
+  "brandCategoryRules": [],
+  "excludedTerms": [],
+  "disabledExcludedClasses": [],
+  "allowedLabels": [],
+  "brands": [
+    {
+      "id": "b70c7b32-4dd0-4ada-9d41-3ef5e1f3cbb8",
+      "name": "Media fixture 275f32e5-708f-488f-9d1e-2aa01a9e97ef",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "518412f9-f915-46fa-93c8-dc9d82be32a7",
+      "name": "The Ordinary",
+      "websiteUrl": "https://theordinary.com/",
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": [
+        "اورجيناري",
+        "the-ordinary",
+        "ordinary",
+        "ذا اورديناري",
+        "ذي اورديناري",
+        "اورديناري"
+      ]
+    },
+    {
+      "id": "dafd345e-7d1f-4b60-8457-1508bda4d15c",
+      "name": "Cetaphil",
+      "websiteUrl": "https://www.cetaphil.com/",
+      "policyEffect": null,
+      "activeSkuCount": 0,
+      "aliases": [
+        "سيتافيل",
+        "سيتافل"
+      ]
+    },
+    {
+      "id": "200aa46a-715a-41a9-904a-ac8271dcd1a3",
+      "name": "Media fixture dea96d0b-27c9-4eda-a5a0-dcb6f09e770b",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "5ac2c47d-f085-406b-8e25-fd290da00f76",
+      "name": "Bioderma",
+      "websiteUrl": "https://www.bioderma.co.uk/",
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": [
+        "بيوديرما"
+      ]
+    },
+    {
+      "id": "fa4928ae-5a1b-457d-a097-cb8f555db982",
+      "name": "CeraVe",
+      "websiteUrl": "https://www.cerave.com",
+      "policyEffect": null,
+      "activeSkuCount": 4,
+      "aliases": [
+        "سيرافي",
+        "cera-ve",
+        "سيرافى"
+      ]
+    },
+    {
+      "id": "698a1db0-078b-4679-b919-f2eb34ec490e",
+      "name": "Gate 42850e00-f39e-4da0-a26f-f3388156930e",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "ce7472cd-d119-444c-94f9-7fcad24c28f3",
+      "name": "Gate a0469849-2a57-4d05-ba28-653713f44353",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "f69a8bc4-5f1e-47e9-85e6-342375049646",
+      "name": "Gate d3fd4481-d6fa-42b1-890e-088d8f878b1b",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "8c8e961d-c244-4e27-8805-0ffa924415e3",
+      "name": "Nav 2a4c6d01-a0c2-44b7-b676-b46867d8b347",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "22dedb10-dd88-4091-bfd4-dad46eb917f4",
+      "name": "Nav e27b7186-6e60-44c5-8c45-7f12b68950b9",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "3aea4595-2a82-4707-a248-28f5b1d26dd2",
+      "name": "Nav 0df59eb3-f940-46f7-86c3-e16c938010a0",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "0e73cb0c-be01-48e6-a3d3-4ee8979a0c1c",
+      "name": "Nav 7a324b14-d3bc-48af-a202-9557e063460a",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "1a7426f2-a94c-4af3-8e62-87d4a2b823bc",
+      "name": "Gate 44fb3622-626d-4695-963e-671f63f4a435",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "83d79729-54b7-4f6a-a179-ff39c3313119",
+      "name": "Nav 717b71a4-d866-4b9e-a6f1-3653f33c3e1d",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "982c7c30-0bd9-42bc-a64c-eb61c0e8825a",
+      "name": "Gate e1c3f2bd-ba84-4828-a52d-7ac221e4aa52",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "777ed142-84d8-4a2d-b24c-d053d830849c",
+      "name": "Nav cea15394-d2e3-4572-b19b-715556e71301",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    },
+    {
+      "id": "158b453a-03f2-43cb-a0b6-8f9eea356930",
+      "name": "Gate 1ed6bdea-0b3f-4f4d-b325-c43f88bb7b1c",
+      "websiteUrl": null,
+      "policyEffect": null,
+      "activeSkuCount": 1,
+      "aliases": []
+    }
+  ],
+  "deniedLabels": [],
+  "categories": [
+    {
+      "id": "8ed4edd4-b2d8-456b-927a-9e2c05b9dd41",
+      "name": "Skin Care",
+      "parentId": null,
+      "isActive": true,
+      "isLeaf": false
+    },
+    {
+      "id": "42ca6b6b-c3f6-4043-a102-b3345b080297",
+      "name": "Hair Care",
+      "parentId": null,
+      "isActive": true,
+      "isLeaf": false
+    },
+    {
+      "id": "06ad0bd3-6498-4b2f-b480-bcf1cbbd823c",
+      "name": "Cleansers",
+      "parentId": "8ed4edd4-b2d8-456b-927a-9e2c05b9dd41",
+      "isActive": true,
+      "isLeaf": true
+    },
+    {
+      "id": "271f672a-5841-4e50-863d-f91cf62917e2",
+      "name": "Moisturizers",
+      "parentId": "8ed4edd4-b2d8-456b-927a-9e2c05b9dd41",
+      "isActive": true,
+      "isLeaf": true
+    },
+    {
+      "id": "751a90b1-5cbb-4274-b140-0dd0123837fa",
+      "name": "Serums & Treatments",
+      "parentId": "8ed4edd4-b2d8-456b-927a-9e2c05b9dd41",
+      "isActive": true,
+      "isLeaf": true
+    },
+    {
+      "id": "495eed21-abe4-4d8e-8f75-61279edf19d8",
+      "name": "Sunscreens",
+      "parentId": "8ed4edd4-b2d8-456b-927a-9e2c05b9dd41",
+      "isActive": true,
+      "isLeaf": true
+    },
+    {
+      "id": "f4fd9b55-1c57-41cc-9ed4-a6414717be8e",
+      "name": "Toners",
+      "parentId": "8ed4edd4-b2d8-456b-927a-9e2c05b9dd41",
+      "isActive": true,
+      "isLeaf": true
+    },
+    {
+      "id": "739163f4-5905-4e77-a7ed-0d4821dcb97c",
+      "name": "Eye Care",
+      "parentId": "8ed4edd4-b2d8-456b-927a-9e2c05b9dd41",
+      "isActive": true,
+      "isLeaf": true
+    },
+    {
+      "id": "bc06df94-5e80-4efd-9c95-09148ae0da80",
+      "name": "Shampoos",
+      "parentId": "42ca6b6b-c3f6-4043-a102-b3345b080297",
+      "isActive": true,
+      "isLeaf": true
+    },
+    {
+      "id": "f3eb5e21-f50a-4d41-a635-d20833780108",
+      "name": "Conditioners",
+      "parentId": "42ca6b6b-c3f6-4043-a102-b3345b080297",
+      "isActive": true,
+      "isLeaf": true
+    }
+  ],
+  "skus": [
+    {
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "productId": "c2ca32fb-5583-4648-a85d-736622e11e16",
+      "brandId": "fa4928ae-5a1b-457d-a097-cb8f555db982",
+      "productName": "Hydrating Cleanser",
+      "variantName": "236 ml",
+      "size": 236,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": "06ad0bd3-6498-4b2f-b480-bcf1cbbd823c",
+      "productType": "cleanser",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "sourceUrls": [
+        "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser"
+      ],
+      "isPublished": false
+    },
+    {
+      "skuId": "60a95f0d-7a16-42a1-852f-9803d3c2fde2",
+      "productId": "f3355513-d120-4e69-9c0e-c30624d1f2b4",
+      "brandId": "200aa46a-715a-41a9-904a-ac8271dcd1a3",
+      "productName": "Authentic photo preservation test",
+      "variantName": "454g",
+      "size": 454,
+      "sizeUnit": "g",
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "productId": "e8374cf1-f57c-447f-b4fb-04476e9b9ba3",
+      "brandId": "fa4928ae-5a1b-457d-a097-cb8f555db982",
+      "productName": "Foaming Cleanser",
+      "variantName": "236 ml",
+      "size": 236,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": "06ad0bd3-6498-4b2f-b480-bcf1cbbd823c",
+      "productType": "cleanser",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "sourceUrls": [
+        "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser"
+      ],
+      "isPublished": false
+    },
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "productId": "3218ffce-0cf4-4f42-9cf6-c68d41b29e81",
+      "brandId": "fa4928ae-5a1b-457d-a097-cb8f555db982",
+      "productName": "Moisturising Cream",
+      "variantName": "454 g",
+      "size": 454,
+      "sizeUnit": "g",
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": "271f672a-5841-4e50-863d-f91cf62917e2",
+      "productType": "moisturizer",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "sourceUrls": [
+        "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+      ],
+      "isPublished": false
+    },
+    {
+      "skuId": "ec960e26-4c57-4161-844d-85638f431280",
+      "productId": "6eb7d32a-c649-4e11-91c0-98c8a1cea147",
+      "brandId": "b70c7b32-4dd0-4ada-9d41-3ef5e1f3cbb8",
+      "productName": "Authentic photo preservation test",
+      "variantName": "454g",
+      "size": 454,
+      "sizeUnit": "g",
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "productId": "10fab1e0-f087-47cf-8332-5fef12f3d234",
+      "brandId": "fa4928ae-5a1b-457d-a097-cb8f555db982",
+      "productName": "SA Smoothing Cleanser",
+      "variantName": "236 ml",
+      "size": 236,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": "06ad0bd3-6498-4b2f-b480-bcf1cbbd823c",
+      "productType": "cleanser",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "sourceUrls": [
+        "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser"
+      ],
+      "isPublished": false
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "productId": "917cddef-6e31-474c-ae30-db74fb8e62ed",
+      "brandId": "518412f9-f915-46fa-93c8-dc9d82be32a7",
+      "productName": "Niacinamide 10% + Zinc 1%",
+      "variantName": "30 ml",
+      "size": 30,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": "751a90b1-5cbb-4274-b140-0dd0123837fa",
+      "productType": "serum",
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "sourceUrls": [
+        "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html"
+      ],
+      "isPublished": true
+    },
+    {
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "productId": "15cb059e-6d0f-40d1-86eb-c73bd12f36d8",
+      "brandId": "5ac2c47d-f085-406b-8e25-fd290da00f76",
+      "productName": "Sensibio H2O Micellar Water",
+      "variantName": "250 ml",
+      "size": 250,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": "06ad0bd3-6498-4b2f-b480-bcf1cbbd823c",
+      "productType": null,
+      "identityStatus": "EVIDENCE_VERIFIED",
+      "sourceUrls": [
+        "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water"
+      ],
+      "isPublished": false
+    },
+    {
+      "skuId": "b68b7d23-76a8-40ce-a69a-cdd362671788",
+      "productId": "6e3ea2ee-cf01-4208-b735-f283a4aab159",
+      "brandId": "698a1db0-078b-4679-b919-f2eb34ec490e",
+      "productName": "Identity gate regression",
+      "variantName": "30ml",
+      "size": 30,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [
+        "2900000000018"
+      ],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "81ca7ac2-7e1f-4c8c-928c-a1573e08a3aa",
+      "productId": "97b6237d-350c-46bd-a6aa-5a0de7add37e",
+      "brandId": "ce7472cd-d119-444c-94f9-7fcad24c28f3",
+      "productName": "Identity gate regression",
+      "variantName": "30ml",
+      "size": 30,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [
+        "2953144250016"
+      ],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "f534cb56-ebaf-4112-94c3-36424651c0ba",
+      "productId": "5f94b0f9-bf80-4c3c-b342-0dba20139acf",
+      "brandId": "f69a8bc4-5f1e-47e9-85e6-342375049646",
+      "productName": "Identity gate regression",
+      "variantName": "30ml",
+      "size": 30,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [
+        "2955046210013"
+      ],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "e45c7e4e-ca9b-448c-8b2f-5ee162022dcd",
+      "productId": "d7c6aecf-5ecb-48d6-a68e-04999ceeb4de",
+      "brandId": "8c8e961d-c244-4e27-8805-0ffa924415e3",
+      "productName": "Navigation regression",
+      "variantName": "30ml",
+      "size": null,
+      "sizeUnit": null,
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "5ae1db9b-af24-4629-8228-e23f36cd3579",
+      "productId": "206a088a-d190-4c5c-8b06-57706f6e8e70",
+      "brandId": "22dedb10-dd88-4091-bfd4-dad46eb917f4",
+      "productName": "Navigation regression",
+      "variantName": "30ml",
+      "size": null,
+      "sizeUnit": null,
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "b8a70a52-7642-4341-8722-11d3c2e22150",
+      "productId": "0ab14775-3125-4f34-9349-47b7ada2be2f",
+      "brandId": "3aea4595-2a82-4707-a248-28f5b1d26dd2",
+      "productName": "Navigation regression",
+      "variantName": "30ml",
+      "size": null,
+      "sizeUnit": null,
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "1b571620-9581-4ddc-8190-436b75593bdb",
+      "productId": "347fed3c-5167-42ac-97ad-48687d70840e",
+      "brandId": "0e73cb0c-be01-48e6-a3d3-4ee8979a0c1c",
+      "productName": "Navigation regression",
+      "variantName": "30ml",
+      "size": null,
+      "sizeUnit": null,
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "b2a2f232-068e-4f2c-a28b-b958656f1b18",
+      "productId": "4540c3b2-380a-4a63-8520-82d5d1ee8507",
+      "brandId": "1a7426f2-a94c-4af3-8e62-87d4a2b823bc",
+      "productName": "Identity gate regression",
+      "variantName": "30ml",
+      "size": 30,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [
+        "2962587850011"
+      ],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "6b60cadf-5071-47cf-b70f-bc75dff0fdae",
+      "productId": "578355ee-8b66-419a-b1c5-5cbbe2a588d6",
+      "brandId": "83d79729-54b7-4f6a-a179-ff39c3313119",
+      "productName": "Navigation regression",
+      "variantName": "30ml",
+      "size": null,
+      "sizeUnit": null,
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "ec81d317-cf68-452b-8fd7-c822d7f9c075",
+      "productId": "c9b53935-bb79-47a3-8adb-83b57c62592b",
+      "brandId": "982c7c30-0bd9-42bc-a64c-eb61c0e8825a",
+      "productName": "Identity gate regression",
+      "variantName": "30ml",
+      "size": 30,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [
+        "2968528200013"
+      ],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "4e361ab9-ac72-478a-b5a3-0847e792b759",
+      "productId": "e92c37c5-51c5-49b0-b595-4cbd5f3c9aef",
+      "brandId": "777ed142-84d8-4a2d-b24c-d053d830849c",
+      "productName": "Navigation regression",
+      "variantName": "30ml",
+      "size": null,
+      "sizeUnit": null,
+      "packCount": 1,
+      "barcodes": [],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    },
+    {
+      "skuId": "64be0245-7a7f-441d-8ea3-1a80ff0e30c1",
+      "productId": "4c79feaf-c1c0-4ccf-9ee1-32d509591de7",
+      "brandId": "158b453a-03f2-43cb-a0b6-8f9eea356930",
+      "productName": "Identity gate regression",
+      "variantName": "30ml",
+      "size": 30,
+      "sizeUnit": "ml",
+      "packCount": 1,
+      "barcodes": [
+        "2970274140017"
+      ],
+      "categoryId": null,
+      "productType": null,
+      "identityStatus": "UNVERIFIED",
+      "sourceUrls": [],
+      "isPublished": false
+    }
+  ]
+}

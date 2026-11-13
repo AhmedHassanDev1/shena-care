@@ -1,0 +1,160 @@
+{
+  "scope": "DEVELOPMENT_ONLY_LOCAL_TEST_DATABASE",
+  "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+  "testPriceEgp": 100,
+  "stage": "PASSED",
+  "sourcingMode": "INTERNAL_BUY_LIST",
+  "supplierOffers": 0,
+  "productId": "e8374cf1-f57c-447f-b4fb-04476e9b9ba3",
+  "productSlug": "cerave-foaming-cleanser-mwf9p7u7",
+  "publicListingStatus": 200,
+  "publicDetail": {
+    "status": 200,
+    "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+    "canOrder": true,
+    "price": {
+      "amount": 100,
+      "currency": "EGP",
+      "compareAtAmount": null
+    },
+    "availability": {
+      "isAvailable": true,
+      "isFresh": false,
+      "state": "PROVISIONAL",
+      "confirmedAt": null,
+      "observedAt": null,
+      "validUntil": null
+    }
+  },
+  "publicImage": {
+    "status": 200,
+    "width": 400,
+    "height": 450,
+    "sha256": "92e82e14b92b7140f941b475092c8c39223de81952a8c2d68a8b55ef3826eb4c"
+  },
+  "cartStatus": 201,
+  "quote": {
+    "status": 201,
+    "subtotal": 100
+  },
+  "order": {
+    "status": 201,
+    "id": "885506c1-bb77-4986-902a-8f47b3f838de",
+    "orderNumber": "ORD-414E8E0B6DEE4E6F",
+    "totalAmount": 125,
+    "codAmount": 125,
+    "items": [
+      {
+        "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+        "quantity": 1
+      }
+    ]
+  },
+  "checkoutReplaySameOrder": true,
+  "dispatch": {
+    "delivered": 0,
+    "failed": 0,
+    "dead": 0
+  },
+  "events": [
+    {
+      "status": "delivered",
+      "lastError": null
+    }
+  ],
+  "buyList": {
+    "status": 200,
+    "row": {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "productName": "Foaming Cleanser",
+      "skuCode": "SC-CERAVE-57A7C273",
+      "variantName": "236 ml",
+      "toBuy": 1,
+      "unavailable": 0,
+      "acquired": 0,
+      "awaitingHub": 0,
+      "orderCount": 1,
+      "earliestPromisedDate": "2026-11-14T00:00:00.000Z",
+      "orders": [
+        {
+          "orderId": "885506c1-bb77-4986-902a-8f47b3f838de",
+          "orderNumber": "ORD-414E8E0B6DEE4E6F",
+          "orderItemId": "3318fa8f-84a2-4c31-9995-7fc7c7697368",
+          "requirementId": "25909bf9-3c3b-4df9-8673-a6813538b7dc",
+          "required": 1,
+          "acquired": 0,
+          "receivedAtHub": 0,
+          "outstanding": 1,
+          "state": "to_buy",
+          "placedAt": "2026-11-13T19:36:21.817Z",
+          "promisedDate": "2026-11-14T00:00:00.000Z"
+        }
+      ],
+      "size": 236,
+      "sizeUnit": "ml",
+      "packCount": null,
+      "barcode": null,
+      "skuActive": true
+    }
+  },
+  "negativeAuth": {
+    "customerBuyList": 403,
+    "anonymousWorkbench": 401
+  },
+  "finalReadiness": {
+    "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+    "productId": "e8374cf1-f57c-447f-b4fb-04476e9b9ba3",
+    "isPublished": true,
+    "ready": true,
+    "blockers": [],
+    "warnings": [
+      "BARCODE_MISSING",
+      "CARTON_UNVERIFIED",
+      "EDITORIAL_IMAGE_NOT_APPROVED"
+    ],
+    "media": {
+      "PRIMARY_PACKSHOT": "PUBLISHED",
+      "TEXTURE_SENSORY": "MISSING",
+      "INGREDIENT_STORY": "MISSING",
+      "PACKAGING_PROOF": "MISSING",
+      "CATEGORY_EDITORIAL": "MISSING"
+    },
+    "facts": {
+      "total": 12,
+      "applied": [
+        "attributes.nonComedogenic",
+        "composition.fragrance",
+        "composition.inci",
+        "composition.keyIngredients",
+        "identity.size",
+        "marketing.description",
+        "suitability.skinTypes",
+        "usage.instructions",
+        "usage.routinePeriod"
+      ],
+      "pending": [],
+      "unverified": [
+        "claims.manufacturerStated",
+        "identity.name",
+        "media.sourceImages"
+      ],
+      "conflicts": []
+    },
+    "identity": {
+      "status": "EVIDENCE_VERIFIED",
+      "barcodeStatus": "UNKNOWN",
+      "barcode": null
+    },
+    "packaging": {
+      "outerCarton": "UNVERIFIED"
+    },
+    "openExceptions": 0,
+    "commerce": {
+      "isListed": true,
+      "price": {
+        "amount": 100,
+        "currency": "EGP"
+      }
+    }
+  }
+}

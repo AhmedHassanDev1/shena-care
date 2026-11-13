@@ -1,0 +1,738 @@
+{
+  "scope": "six real persisted pilot SKUs; retained Nahar cases plus explicitly constructed typo/negative probes; not a production accuracy estimate",
+  "rows": 17,
+  "trueMatches": 9,
+  "falseMatches": 0,
+  "positives": 10,
+  "precision": 1,
+  "recall": 0.9,
+  "latencyMs": {
+    "p50": 0.1319999999996071,
+    "p95": 0.29160000000001673
+  },
+  "aliasesCorrect": 2,
+  "aliases": [
+    {
+      "input": "سِيـرَافِي",
+      "expected": "CeraVe",
+      "actual": null
+    },
+    {
+      "input": "Cera Ve",
+      "expected": "CeraVe",
+      "actual": null
+    },
+    {
+      "input": "La Roche–Posay",
+      "expected": "La Roche-Posay",
+      "actual": null
+    },
+    {
+      "input": "ذا أورديناري",
+      "expected": "The Ordinary",
+      "actual": null
+    },
+    {
+      "input": "فيشى",
+      "expected": "Vichy",
+      "actual": "Vichy"
+    },
+    {
+      "input": "unknown brand",
+      "expected": null,
+      "actual": null
+    }
+  ],
+  "results": [
+    {
+      "name": "سيرافي غسول مرطب للبشرة العادية الى الجافة 236 مل",
+      "expected": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "actual": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "kind": "MATCH",
+      "basis": "BRAND_SIZE_WORDING",
+      "candidates": [
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 0.8,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.4,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0.4,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0.33,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        }
+      ]
+    },
+    {
+      "name": "سيرافي غسول رغوي للبشرة العادية الى الدهنية 236 مل",
+      "expected": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "actual": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "kind": "MATCH",
+      "basis": "BRAND_SIZE_WORDING",
+      "candidates": [
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.8,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 0.4,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0.33,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "سيرافي كريم مرطب 454 جم",
+      "expected": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "actual": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "kind": "MATCH",
+      "basis": "BRAND_SIZE_WORDING",
+      "candidates": [
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 1,
+          "supports": true,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 0.5,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        },
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "سيرافي غسول SA مقشر لطيف 236 مل",
+      "expected": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "actual": null,
+      "kind": "AMBIGUOUS",
+      "reason": "WEAK_WORDING",
+      "candidates": [
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0.57,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": [],
+          "onlyRow": [
+            "scrub · مقشر",
+            "gentle · لطيف"
+          ],
+          "onlyCatalog": [
+            "smoothing · تنعيم"
+          ]
+        },
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 0.33,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.33,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CeraVe Hydrating Facial Cleanser 236ml",
+      "expected": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "actual": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "kind": "MATCH",
+      "basis": "BRAND_SIZE_WORDING",
+      "candidates": [
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 1,
+          "supports": true,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.5,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0.5,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0.4,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        }
+      ]
+    },
+    {
+      "name": "Cervae Hydrating Facial Cleanser 236ml",
+      "expected": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "actual": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "kind": "MATCH",
+      "basis": "BRAND_SIZE_WORDING",
+      "candidates": [
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 1,
+          "supports": true,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.5,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0.5,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0.4,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        }
+      ]
+    },
+    {
+      "name": "CeraVe Foaming Facial Cleanser 236ml",
+      "expected": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "actual": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "kind": "MATCH",
+      "basis": "BRAND_SIZE_WORDING",
+      "candidates": [
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 1,
+          "supports": true,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 0.5,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0.4,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "بيوديرما سينسيبيو H2O 250 مل",
+      "expected": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "actual": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "kind": "MATCH",
+      "basis": "BRAND_SIZE_WORDING",
+      "candidates": [
+        {
+          "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+          "label": "Bioderma Sensibio H2O Micellar Water 250ml",
+          "score": 0.8,
+          "supports": true,
+          "measure": "SAME",
+          "vetoes": []
+        }
+      ]
+    },
+    {
+      "name": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+      "expected": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "actual": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "kind": "MATCH",
+      "basis": "BRAND_SIZE_WORDING",
+      "candidates": [
+        {
+          "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+          "label": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+          "score": 1,
+          "supports": true,
+          "measure": "SAME",
+          "vetoes": []
+        }
+      ]
+    },
+    {
+      "name": "CeraVe SA Smoothing Cleanser 236ml",
+      "expected": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "actual": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "kind": "MATCH",
+      "basis": "BRAND_SIZE_WORDING",
+      "candidates": [
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 1,
+          "supports": true,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 0.4,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.4,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": []
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CeraVe Hydrating Facial Cleanser 473ml",
+      "expected": null,
+      "actual": null,
+      "kind": "NONE",
+      "reason": "SIZE_NOT_IN_CATALOG",
+      "candidates": [
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 1,
+          "supports": true,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS"
+          ]
+        },
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.5,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS"
+          ]
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0.5,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0.4,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CeraVe Hydrating Facial Cleanser",
+      "expected": null,
+      "actual": null,
+      "kind": "AMBIGUOUS",
+      "reason": "SIZE_NOT_STATED",
+      "candidates": [
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 1,
+          "supports": true,
+          "measure": "UNSTATED",
+          "vetoes": []
+        },
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.5,
+          "supports": false,
+          "measure": "UNSTATED",
+          "vetoes": []
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0.5,
+          "supports": false,
+          "measure": "UNSTATED",
+          "vetoes": [
+            "STATED_FACTS_CONTRADICT"
+          ]
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0.4,
+          "supports": false,
+          "measure": "UNSTATED",
+          "vetoes": []
+        }
+      ]
+    },
+    {
+      "name": "CeraVe Moisturizing Cream 340g",
+      "expected": null,
+      "actual": null,
+      "kind": "NONE",
+      "reason": "SIZE_NOT_IN_CATALOG",
+      "candidates": [
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 1,
+          "supports": true,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS"
+          ]
+        },
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 0.5,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        },
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CeraVe Foaming Facial Cleanser 2 x 236ml",
+      "expected": null,
+      "actual": null,
+      "kind": "NONE",
+      "reason": "NO_CANDIDATE",
+      "candidates": [
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.8,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": [
+            "PACK_DIFFERS"
+          ]
+        },
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 0.4,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": [
+            "PACK_DIFFERS"
+          ]
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0.33,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": [
+            "PACK_DIFFERS"
+          ]
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "PACK_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "The Ordinary Niacinamide 5% + Zinc 1% 30ml",
+      "expected": null,
+      "actual": null,
+      "kind": "NONE",
+      "reason": "NO_CANDIDATE",
+      "candidates": [
+        {
+          "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+          "label": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+          "score": 1,
+          "supports": true,
+          "measure": "SAME",
+          "vetoes": [
+            "STRENGTH_DIFFERS"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bioderma Niacinamide 10% + Zinc 1% 30ml",
+      "expected": null,
+      "actual": null,
+      "kind": "NONE",
+      "reason": "NO_CANDIDATE",
+      "candidates": [
+        {
+          "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+          "label": "Bioderma Sensibio H2O Micellar Water 250ml",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CeraVe غسول 236 مل",
+      "expected": null,
+      "actual": null,
+      "kind": "AMBIGUOUS",
+      "reason": "COMPETING_CANDIDATES",
+      "candidates": [
+        {
+          "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+          "label": "CeraVe Hydrating Cleanser 236ml",
+          "score": 0.67,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": [],
+          "onlyRow": [],
+          "onlyCatalog": [
+            "hydrating · مرطب"
+          ]
+        },
+        {
+          "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+          "label": "CeraVe Foaming Cleanser 236ml",
+          "score": 0.67,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": [],
+          "onlyRow": [],
+          "onlyCatalog": [
+            "foam · فوم"
+          ]
+        },
+        {
+          "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+          "label": "CeraVe SA Smoothing Cleanser 236ml",
+          "score": 0.5,
+          "supports": false,
+          "measure": "SAME",
+          "vetoes": [],
+          "onlyRow": [],
+          "onlyCatalog": [
+            "smoothing · تنعيم",
+            "sa"
+          ]
+        },
+        {
+          "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+          "label": "CeraVe Moisturising Cream 454g",
+          "score": 0,
+          "supports": false,
+          "measure": "DIFFERENT",
+          "vetoes": [
+            "SIZE_DIFFERS",
+            "STATED_FACTS_CONTRADICT"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "baseMain": "b5a142f",
+  "scope": "LOCAL_TEST_DATABASE",
+  "checks": [
+    {
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "publicStatus": 200,
+      "authenticatedStatus": 200,
+      "buyListStatus": 200,
+      "existingOrderPresent": true
+    },
+    {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "publicStatus": 200,
+      "authenticatedStatus": 200,
+      "buyListStatus": 200,
+      "existingOrderPresent": true
+    }
+  ]
+}

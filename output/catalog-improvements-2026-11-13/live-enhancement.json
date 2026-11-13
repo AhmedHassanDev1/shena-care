@@ -1,0 +1,36 @@
+{
+  "scope": "ISOLATED_LOCAL_TEST_DATABASE",
+  "startedAt": "2026-11-13T19:43:56.973Z",
+  "workerTimeoutMs": 60000,
+  "engine": "existing BiRefNet",
+  "settings": {
+    "foreground": 240,
+    "background": 10,
+    "erodeSize": 5
+  },
+  "sourceHash": "d629621a2a3e8056cf82b11edaae00f41ad663a5ee9c75ca79e58c9f8ace4b55",
+  "template": {
+    "id": "a1cd2381-5366-4ef0-b2c1-8b614c540eb5",
+    "sha256": "88c80cb4a3a8ffcdeb92b42068ae82f8ea77867dbdbac82f3f539e8885a6d136",
+    "scope": "DEVELOPMENT_VALIDATION_COPY_OF_BUNDLED_APPROVED_TEMPLATE"
+  },
+  "publicDuringEnhancement": {
+    "status": 200,
+    "latencyMs": 946
+  },
+  "durationMs": 65329,
+  "eventLoopTicks": 580,
+  "asset": {
+    "id": "ee9be0a5-0a72-46f9-805c-c66c92b674da",
+    "processingStatus": "FAILED",
+    "error": "NEURAL_SEGMENTATION_FAILED",
+    "processingAttempts": 1,
+    "publishedMediaId": null
+  },
+  "originalPreserved": true,
+  "publicAfterEnhancement": {
+    "status": 200,
+    "canOrder": true
+  },
+  "stage": "SAFE_ORIGINAL_FALLBACK_PASSED"
+}

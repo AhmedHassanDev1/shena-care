@@ -1,0 +1,41 @@
+[
+  {
+    "input": {
+      "brand": "La Roche-Posay",
+      "productName": "Effaclar Purifying Foaming Gel",
+      "size": 200,
+      "sizeUnit": "ml",
+      "websiteUrl": "https://www.laroche-posay.co.uk/"
+    },
+    "checks": [],
+    "adoption": "NONE: no identity or publication gate bypass",
+    "urls": [],
+    "ms": 3896
+  },
+  {
+    "input": {
+      "brand": "La Roche-Posay",
+      "productName": "Cicaplast Baume B5+",
+      "size": 40,
+      "sizeUnit": "ml",
+      "websiteUrl": "https://www.laroche-posay.co.uk/"
+    },
+    "checks": [],
+    "adoption": "NONE: no identity or publication gate bypass",
+    "urls": [],
+    "ms": 3706
+  },
+  {
+    "input": {
+      "brand": "Cetaphil",
+      "productName": "Gentle Skin Cleanser",
+      "size": 236,
+      "sizeUnit": "ml",
+      "websiteUrl": "https://www.cetaphil.com/"
+    },
+    "checks": [],
+    "adoption": "NONE: no identity or publication gate bypass",
+    "urls": [],
+    "ms": 4183
+  }
+]
