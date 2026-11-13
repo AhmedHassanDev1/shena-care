@@ -99,6 +99,25 @@ export class ProductMediaService {
     }
   }
 
+  /** Durable enhancement request only. Intake never starts the heavy worker; explicit derive processes or retries this record. */
+  async requestEditorial(assetId: string, actorId: string): Promise<MediaAsset> {
+    await this.assertReviewer(actorId);
+    const parent = await this.getAsset(assetId);
+    if (!TRANSFORMS_ALLOWED.SAHEL_EDITORIAL.includes(parent.role)) throw new BadRequestException(`SAHEL_EDITORIAL is not allowed for ${parent.role}`);
+    const template = await this.templates.resolveForSku(parent.skuId);
+    const transformVersion = `SAHEL_EDITORIAL@${EDITORIAL_VERSION}:${template.templateKey}@${template.version}`;
+    return this.prisma.mediaAsset.upsert({
+      where: { parentAssetId_transformVersion: { parentAssetId: parent.id, transformVersion } },
+      update: {},
+      create: {
+        skuId: parent.skuId, role: MediaRole.CATEGORY_EDITORIAL, originType: MediaOriginType.derived,
+        parentAssetId: parent.id, transformVersion, templateId: template.id, processingStatus: MediaProcessingStatus.PENDING,
+        sourceUrl: parent.sourceUrl, sourcePublisher: parent.sourcePublisher, sourceType: parent.sourceType,
+        rightsStatus: parent.rightsStatus, capturedAt: parent.capturedAt, createdBy: actorId,
+      },
+    });
+  }
+
   /** Creates or retries a processed copy. A processor failure is recorded on that copy; the original stays usable. */
   async derive(assetId: string, dto: DeriveMediaAssetDto, actorId: string): Promise<MediaAsset> {
     await this.assertReviewer(actorId);

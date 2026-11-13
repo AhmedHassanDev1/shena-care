@@ -118,8 +118,7 @@ export class CatalogEnrichmentService {
       let editorial = assets.find(asset => asset.parentAssetId === original!.id && asset.role === MediaRole.CATEGORY_EDITORIAL && asset.reviewStatus !== MediaReviewStatus.REJECTED
         && asset.processingStatus === MediaProcessingStatus.SUCCEEDED);
       if (!editorial) {
-        editorial = await this.media.derive(original.id, { transform: 'SAHEL_EDITORIAL' }, actorId);
-        if (editorial.processingStatus === MediaProcessingStatus.FAILED) editorial = await this.media.derive(original.id, { transform: 'SAHEL_EDITORIAL' }, actorId);
+        editorial = await this.media.requestEditorial(original.id, actorId);
       }
       if (editorial.reviewStatus === MediaReviewStatus.PENDING_REVIEW && editorial.processingStatus === MediaProcessingStatus.SUCCEEDED) {
         const verdict = decideEditorial(editorial.qualityReport as { warnings: string[] } | null, editorial.processingStatus);
@@ -127,7 +126,7 @@ export class CatalogEnrichmentService {
         await this.decisions.record({ subjectType: 'MEDIA', subjectId: editorial.id, skuId, decision: verdict.approve ? 'APPROVED' : 'REJECTED', reasonCode: verdict.reason,
           evidence: { qualityReport: editorial.qualityReport, templateId: editorial.templateId }, actorType: 'SYSTEM' });
       }
-      outcome.editorial = editorial.processingStatus === MediaProcessingStatus.FAILED ? 'FAILED' : editorial.reviewStatus;
+      outcome.editorial = editorial.processingStatus === MediaProcessingStatus.SUCCEEDED ? editorial.reviewStatus : editorial.processingStatus;
     } catch (error) {
       // The editorial copy is presentation, not identity: its failure is recorded, never a reason to stop.
       this.logger.warn(`Editorial image for ${skuId} failed: ${error instanceof Error ? error.message : error}`);
