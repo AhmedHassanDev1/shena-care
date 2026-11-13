@@ -255,7 +255,9 @@ function gtinOf(product: Record<string, unknown>): string | null {
 }
 
 export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpectation): PageExtraction {
-  const sections = structuredLines(html);
+  const allSections = structuredLines(html);
+  const relatedSection = allSections.findIndex(line => RELATED_SECTION.test(line));
+  const sections = relatedSection < 0 ? allSections : allSections.slice(0, relatedSection);
   const lines = sections.filter(line => line !== HEADING_BOUNDARY);
   const text = lines.join('\n');
   const relatedAt = lines.findIndex(line => RELATED_SECTION.test(line));
@@ -318,7 +320,9 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   else if (sku.size === null && pageSizes.length > 1) rejected.push({ field: 'identity.size', reason: 'AMBIGUOUS_SIZE', detail: pageSizes.map(size => `${size.value}${size.unit}`).join(', ') });
 
   // GTIN only from structured data of a page with a single product and size; never from free text, where it could belong to any variant.
-  const gtin = product && products.length === 1 ? gtinOf(product) : null;
+  const unambiguousSize = sku.size !== null && (titleSizes.length ? titleSizes : bodySizes).length > 0
+    && (titleSizes.length ? titleSizes : bodySizes).every(stated);
+  const gtin = product && products.length === 1 && unambiguousSize ? gtinOf(product) : null;
   if (gtin) add('identity.gtin', gtin, `structured data gtin: ${gtin}`);
 
   // INCI
