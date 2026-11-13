@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { Button, Code, Field, Notice, PageHeader, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
+import { Flash, Meter } from '@/components/bw/ops'
 import { HubShell, useHub } from '@/components/workspace/hub'
 import { CommandError, Page, Select, Status } from '@/components/workspace/kit'
 import { LoadError } from '@/components/workspace/role-shell'
@@ -51,14 +52,14 @@ function ReceiveBody() {
 
   return (
     <Page>
-      <PageHeader title="استلام البضاعة" meta={`${hub.name} — اللي اتشترى من قائمة المشتريات (أو أكده الموردون) لكل طلب عميل`} />
+      <PageHeader title="استلام البضاعة" meta={`${hub.name} — البضاعة اللي اتشترت من قائمة المشتريات، لكل طلب عميل`} />
       {mode.data?.mode === 'BROADCAST_ON_DEMAND' ? <OfflineProcurement /> : null}
       {error ? <LoadError message={error.message} onRetry={reload} /> : null}
       {!data && loading ? <Skeleton className="h-40 w-full" /> : null}
       {data && data.length === 0 ? <StateBlock kind="empty" title="مافيش بضاعة متوقعة دلوقتي" body="اللي بيتسجّل «تم الشراء» في قائمة المشتريات بيظهر هنا لحد ما يتستلم." /> : null}
       {byPo.map(([poId, rows]) => poId === INTERNAL ? (
         <Section key={poId} title="مشتريات داخلية" aside={<span className="text-bw-small text-bw-ink-soft">من قائمة المشتريات — اتأكد من النوع والحجم بالباركود</span>}>
-          <div className="space-y-4">{rows.map((r) => <ReceiveRow key={r.allocationId} r={r} hubId={hub.id} onDone={reload} />)}</div>
+          <div className="space-y-3">{rows.map((r) => <ReceiveRow key={r.allocationId} r={r} hubId={hub.id} onDone={reload} />)}</div>
         </Section>
       ) : (
         <Section key={poId} title={<span className="flex flex-wrap items-center gap-2">أمر شراء <Code>{shortId(poId)}</Code> · {rows[0].supplierName} <Status map={PO_STATUS} value={rows[0].purchaseOrderStatus} /></span>}
@@ -173,13 +174,21 @@ function ReceiveRow({ r, hubId, onDone }: { r: Receivable; hubId: string; onDone
   const valid = Number.isInteger(qty) && qty >= 1 && qty <= r.remainingQuantity && evidenceOk && expiry.length > 0
 
   return (
-    <div className="space-y-3 rounded-bw-field border border-bw-line p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold">طلب <Code>{r.orderNumber}</Code></span>
-        <span>· <Code>{r.skuCode ?? shortId(r.skuId)}</Code> <bdi>{r.variantName}</bdi></span>
-        <span className="text-bw-small">مؤكد <Code>{r.confirmedQuantity}</Code> · وصل <Code>{r.receivedQuantity}</Code> · ناقص <Code>{r.shortQuantity}</Code> · <strong>باقي <Code>{r.remainingQuantity}</Code></strong></span>
+    <div className="space-y-4 rounded-bw-card border border-bw-line bg-bw-veil-1 p-4">
+      <div className="grid gap-x-6 gap-y-3 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-center">
+        <div className="min-w-0">
+          <p className="font-semibold text-bw-ink">طلب <Code>{r.orderNumber.replace(/^ORD-/, '#')}</Code></p>
+          <p className="mt-0.5 text-bw-small text-bw-ink-soft"><Code>{r.skuCode ?? shortId(r.skuId)}</Code> <bdi>{r.variantName}</bdi></p>
+        </div>
+        <div>
+          <div className="flex items-baseline justify-between text-[12px] text-bw-ink-soft">
+            <span>باقي <strong className="text-lg font-semibold text-bw-amber tabular-nums"><Code>{r.remainingQuantity}</Code></strong></span>
+            <span>وصل <Code>{r.receivedQuantity}</Code> من <Code>{r.confirmedQuantity}</Code>{r.shortQuantity > 0 ? <> · ناقص <Code>{r.shortQuantity}</Code></> : null}</span>
+          </div>
+          <Meter className="mt-1.5" value={r.receivedQuantity} max={r.confirmedQuantity} tone="emerald" label="نسبة اللي وصل" />
+        </div>
       </div>
-      {done ? <Notice tone="ok" title={done} /> : null}
+      {done ? <Flash tone="ok">{done}</Flash> : null}
       <form className="grid gap-3 md:grid-cols-4 md:items-end" onSubmit={async (e) => {
         e.preventDefault()
         if (await receive.execute()) { key.current = newKey(); setDone(`اتسجّل استلام ${qty} قطعة`); setBarcode(''); onDone() }
@@ -207,7 +216,7 @@ function ReceiveRow({ r, hubId, onDone }: { r: Receivable; hubId: string; onDone
         <Field label="تاريخ الصلاحية (إجباري، ٦ شهور على الأقل)" type="date" ltr value={expiry} onChange={(e) => setExpiry(e.target.value)} />
         <div className="flex items-end gap-2 md:col-span-2">
           <Button type="submit" loading={receive.pending} disabled={!valid}>تسجيل الاستلام</Button>
-          <button type="button" className="text-bw-small underline" onClick={() => setManual(!manual)}>{manual ? 'رجوع لمسح الباركود' : 'تحقق يدوي'}</button>
+          <button type="button" className="text-bw-small font-semibold text-bw-cobalt underline-offset-4 hover:underline" onClick={() => setManual(!manual)}>{manual ? 'رجوع لمسح الباركود' : 'تحقق يدوي'}</button>
         </div>
       </form>
       <CommandError error={receive.error} />

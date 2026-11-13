@@ -54,12 +54,17 @@ function DispatchBody() {
         {eligible.data && eligible.data.length === 0 ? <StateBlock kind="empty" title="مافيش طرود متغلّفة مستنية مشوار" /> : null}
         {eligible.data?.length ? (
           <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await create.execute()) { setSelected([]); reloadAll() } }}>
-            <ul className="space-y-1">
+            <div className="flex items-center justify-between text-[12px] text-bw-ink-soft">
+              <span>اختار الطرود اللي هتخرج مع نفس المندوب</span>
+              <button type="button" className="font-semibold text-bw-cobalt underline-offset-4 hover:underline" onClick={() => setSelected(selected.length === eligible.data!.length ? [] : eligible.data!.map((s) => s.id))}>{selected.length === eligible.data.length ? 'إلغاء التحديد' : 'تحديد الكل'}</button>
+            </div>
+            <ul className="divide-y divide-bw-line overflow-hidden rounded-bw-field border border-bw-line">
               {eligible.data.map((s) => (
                 <li key={s.id}>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={selected.includes(s.id)} onChange={(e) => setSelected(e.target.checked ? [...selected, s.id] : selected.filter((x) => x !== s.id))} />
-                    طلب <Code>{orderOf.get(s.id)?.orderNumber ?? shortId(s.orderId)}</Code> · {[orderOf.get(s.id)?.area, orderOf.get(s.id)?.governorate].filter(Boolean).join('، ')}
+                  <label className="bw-row flex min-h-12 cursor-pointer items-center gap-3 px-3 py-2">
+                    <input type="checkbox" className="size-4 accent-bw-action" checked={selected.includes(s.id)} onChange={(e) => setSelected(e.target.checked ? [...selected, s.id] : selected.filter((x) => x !== s.id))} />
+                    <span className="font-semibold text-bw-ink"><Code>{(orderOf.get(s.id)?.orderNumber ?? shortId(s.orderId)).replace(/^ORD-/, '#')}</Code></span>
+                    <span className="text-bw-small text-bw-ink-soft">{[orderOf.get(s.id)?.area, orderOf.get(s.id)?.governorate].filter(Boolean).join('، ')}</span>
                   </label>
                 </li>
               ))}
@@ -92,7 +97,7 @@ function RunCard({ run, driver, onChanged }: { run: Run; driver: string; onChang
   const stops = detail.data?.stops ?? []
   const allHanded = stops.length > 0 && stops.every((s) => s.handedOver)
   return (
-    <div className="space-y-2 rounded-bw-field border border-bw-line p-3">
+    <div className="space-y-3 rounded-bw-card border border-bw-line bg-bw-veil-1 p-4">
       <p className="flex flex-wrap items-center gap-2">مشوار <Code>{shortId(run.id)}</Code> · {driver} <Status map={RUN_STATUS} value={run.status} />
         <span className="text-bw-small text-bw-ink-soft">{run.dispatchedAt ? `خرج ${formatDateTime(run.dispatchedAt)}` : `اتعمل ${formatDateTime(run.plannedAt)}`}</span></p>
       {stops.length ? (
@@ -125,7 +130,7 @@ function FailedParcel({ s, onChanged }: { s: HubShipment; onChanged: () => void 
   const event = useCommand((type: string) => api(`/fulfillment/shipments/${s.shipmentId}/events`, { body: { type, barcode: code.trim() } }))
   const run = async (type: string) => { if (await event.execute(type)) { setCode(''); onChanged() } }
   return (
-    <div className="space-y-2 rounded-bw-field border border-bw-line p-3">
+    <div className="space-y-3 rounded-bw-card border border-bw-line bg-bw-veil-1 p-4">
       <p>طلب <Code>{s.orderNumber ?? '—'}</Code> · {s.area ?? ''}</p>
       <div className="grid gap-2 md:grid-cols-[1fr_auto_auto] md:items-end">
         <Field label="امسح بوليصة الطرد اللي رجع" ltr autoComplete="off" value={code} onChange={(e) => setCode(e.target.value)} />
