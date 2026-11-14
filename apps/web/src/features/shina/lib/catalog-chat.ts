@@ -31,7 +31,7 @@ export function toChatProduct(product: ProductView): ChatProduct | null {
     variantName: sku.variantName,
     category: product.category?.name ?? '',
     imageUrl:
-      product.media.find((item) => (item as any).skuId === sku.id && item.isPrimary)?.url ??
+      product.media.find((item) => (item as { skuId?: string | null }).skuId === sku.id && item.isPrimary)?.url ??
       product.media.find((item) => item.isPrimary)?.url,
     canOrder: true,
   };
@@ -54,7 +54,7 @@ export function productViewToShinaProduct(product: ProductView): ShinaProduct | 
     variantName: fallbackSku.variantName,
     category: product.category?.name ?? '',
     imageUrl:
-      product.media.find((item) => (item as any).skuId === fallbackSku.id && item.isPrimary)?.url ??
+      product.media.find((item) => (item as { skuId?: string | null }).skuId === fallbackSku.id && item.isPrimary)?.url ??
       product.media.find((item) => item.isPrimary)?.url,
     canOrder: false,
   };

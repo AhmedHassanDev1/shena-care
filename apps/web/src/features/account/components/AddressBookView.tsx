@@ -240,7 +240,7 @@ export function AddressBookView() {
     try {
       await deleteAddress(id);
       setSuccessMessage(m.addressBookDeleteSuccess);
-    } catch (err) {
+    } catch {
       setSubmitError(m.unexpectedError);
     } finally {
       setDeletingId(null);
@@ -251,7 +251,7 @@ export function AddressBookView() {
     try {
       await setDefaultAddress(id);
       setSuccessMessage(m.addressBookSetDefaultSuccess);
-    } catch (err) {
+    } catch {
       setSubmitError(m.unexpectedError);
     }
   };

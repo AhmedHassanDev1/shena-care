@@ -28,7 +28,7 @@ export function CartLink() {
       aria-label={label}
       className="relative inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink no-underline transition-colors duration-fast ease-standard hover:bg-sand/50 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
     >
-      <Icon name="bag" size={22} />
+      <Icon name="bag" size={22} strokeWidth={1.75} />
       {shown ? <CountBadge className="absolute top-0.5 end-0.5">{shown}</CountBadge> : null}
     </Link>
   );

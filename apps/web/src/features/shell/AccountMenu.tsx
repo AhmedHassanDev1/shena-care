@@ -84,7 +84,7 @@ export function AccountMenu({ compact = false }: AccountMenuProps) {
           compact ? 'size-11 shrink-0' : 'h-11 gap-2 px-3.5 text-14 font-display font-semibold whitespace-nowrap',
         )}
       >
-        <Icon name="user" size={compact ? 22 : 18} className="shrink-0" />
+        <Icon name="user" size={compact ? 22 : 18} strokeWidth={1.75} className="shrink-0" />
         {!compact ? <span>{m.authTabSignIn}</span> : null}
       </Link>
     );
@@ -152,13 +152,14 @@ export function AccountMenu({ compact = false }: AccountMenuProps) {
           compact ? 'size-11' : 'h-11 gap-1.5 px-3 text-14 font-display font-semibold',
         )}
       >
-        <Icon name="user" size={compact ? 22 : 18} className="shrink-0 text-cobalt" />
+        <Icon name="user" size={compact ? 22 : 18} strokeWidth={1.75} className="shrink-0 text-cobalt" />
         {!compact ? (
           <>
             <span className="max-w-28 truncate">{displayName}</span>
             <Icon
               name="chevron-down"
               size={14}
+              strokeWidth={1.75}
               className={cn(
                 'shrink-0 text-stone transition-transform duration-fast ease-standard',
                 open && 'rotate-180',
@@ -196,7 +197,7 @@ export function AccountMenu({ compact = false }: AccountMenuProps) {
             onClick={() => setOpen(false)}
             className="flex min-h-11 items-center gap-2.5 rounded-input px-3 text-14 font-medium text-ink no-underline transition-colors duration-fast hover:bg-chalk hover:text-cobalt focus-visible:bg-chalk focus-visible:text-cobalt focus-visible:outline-none"
           >
-            <Icon name="user" size={17} className="shrink-0 text-stone" />
+            <Icon name="user" size={16} strokeWidth={1.75} className="shrink-0 text-stone" />
             <span>{m.shellProfile}</span>
           </Link>
 
@@ -206,7 +207,7 @@ export function AccountMenu({ compact = false }: AccountMenuProps) {
             onClick={() => setOpen(false)}
             className="flex min-h-11 items-center gap-2.5 rounded-input px-3 text-14 font-medium text-ink no-underline transition-colors duration-fast hover:bg-chalk hover:text-cobalt focus-visible:bg-chalk focus-visible:text-cobalt focus-visible:outline-none"
           >
-            <Icon name="package" size={17} className="shrink-0 text-stone" />
+            <Icon name="package" size={16} strokeWidth={1.75} className="shrink-0 text-stone" />
             <span>{m.myOrdersTitle}</span>
           </Link>
 
@@ -216,7 +217,7 @@ export function AccountMenu({ compact = false }: AccountMenuProps) {
             onClick={() => setOpen(false)}
             className="flex min-h-11 items-center gap-2.5 rounded-input px-3 text-14 font-medium text-ink no-underline transition-colors duration-fast hover:bg-chalk hover:text-cobalt focus-visible:bg-chalk focus-visible:text-cobalt focus-visible:outline-none"
           >
-            <Icon name="pin" size={17} className="shrink-0 text-stone" />
+            <Icon name="pin" size={16} strokeWidth={1.75} className="shrink-0 text-stone" />
             <span>{m.addressBookTitle}</span>
           </Link>
 
@@ -229,7 +230,7 @@ export function AccountMenu({ compact = false }: AccountMenuProps) {
             onClick={handleSignOut}
             className="flex min-h-11 w-full items-center gap-2.5 rounded-input px-3 text-start text-14 font-medium text-tomato-ink transition-colors duration-fast hover:bg-chalk focus-visible:bg-chalk focus-visible:outline-none disabled:opacity-60"
           >
-            <Icon name="logout" size={17} className="shrink-0" />
+            <Icon name="logout" size={16} strokeWidth={1.75} className="shrink-0" />
             <span>{signingOut ? m.shellSigningOut : m.authSignOut}</span>
           </button>
         </div>

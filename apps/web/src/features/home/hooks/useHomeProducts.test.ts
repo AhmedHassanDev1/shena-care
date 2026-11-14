@@ -5,7 +5,7 @@ import { useHomeProducts } from './useHomeProducts';
 jest.mock('@tanstack/react-query', () => ({ useQuery: jest.fn((options) => options) }));
 jest.mock('@/features/catalog/api/discovery', () => ({ discoverProducts: jest.fn() }));
 
-const query = () => {
+const useTestHomeProducts = () => {
   useHomeProducts();
   return (useQuery as jest.Mock).mock.calls[0][0] as {
     queryKey: string[];
@@ -21,7 +21,7 @@ describe('home discovery', () => {
     const empty = { items: [], total: 0 } as unknown as DiscoveryPage;
     (discoverProducts as jest.Mock).mockResolvedValue(empty);
 
-    const config = query();
+    const config = useTestHomeProducts();
     expect(config.queryKey).toEqual(['home', 'discovery']);
     expect(config.placeholderData).toBeUndefined();
     await expect(config.queryFn()).resolves.toBe(empty);
@@ -32,6 +32,6 @@ describe('home discovery', () => {
     const failure = new Error('Discovery unavailable');
     (discoverProducts as jest.Mock).mockRejectedValue(failure);
 
-    await expect(query().queryFn()).rejects.toBe(failure);
+    await expect(useTestHomeProducts().queryFn()).rejects.toBe(failure);
   });
 });
