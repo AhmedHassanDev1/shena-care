@@ -32,7 +32,7 @@ class Settings:
         # Shared secret the ShenaCare API sends as "Authorization: Bearer <token>" on every /v1 call.
         self.service_token = os.getenv("AI_SERVICE_TOKEN") or None
         # Local development only: lets /v1 run without a token. Never set it on staging or production.
-        self.allow_unauthenticated = os.getenv("AI_ALLOW_UNAUTHENTICATED", "false").lower() == "true"
+        self.allow_unauthenticated_requested = os.getenv("AI_ALLOW_UNAUTHENTICATED", "false").lower() == "true"
 
         # --- OpenRouter gateway (server-side only; the key never leaves this service) ---
         self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPEN_ROUTER_API_KEY") or None
@@ -56,6 +56,9 @@ class Settings:
         requested = os.getenv("AI_FREE_MODELS_ONLY", "false").strip().lower() == "true"
         self.free_models_only = requested and self.environment == "development"
         self.free_models_ignored = requested and not self.free_models_only
+        # The unauthenticated switch is honoured only in development: anywhere else the service token is mandatory,
+        # so a stray AI_ALLOW_UNAUTHENTICATED can never open the /v1 routes on a deployed service.
+        self.allow_unauthenticated = self.allow_unauthenticated_requested and self.environment == "development"
 
 
 @lru_cache
