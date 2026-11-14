@@ -168,7 +168,7 @@ describe('Catalog Intake — Arabic/English identity matching', () => {
 describe('Catalog Intake — market price evidence', () => {
   const page = (offer: Record<string, unknown>, name = 'CeraVe Hydrating Facial Cleanser 236ml') =>
     `<html><script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'Product', name, offers: { '@type': 'Offer', ...offer } })}</script></html>`;
-  const expected = { size: 236, sizeUnit: 'ml', barcode: null, productName: 'Hydrating Facial Cleanser' };
+  const expected = { brand: 'CeraVe', size: 236, sizeUnit: 'ml', barcode: null, productName: 'Hydrating Facial Cleanser' };
 
   it('reads offer price, currency, list price and stock from structured data only', () => {
     const [offer] = extractPageOffers(page({ price: '780.00', priceCurrency: 'EGP', availability: 'https://schema.org/InStock',
@@ -192,7 +192,7 @@ describe('Catalog Intake — market price evidence', () => {
   it('builds a regular-price range from fresh, classified evidence without substituting discounted amounts', () => {
     const now = new Date('2026-11-09T12:00:00Z');
     const at = (days: number) => new Date(now.getTime() - days * 86_400_000);
-    const evidenceExcerpt = JSON.stringify({ rule: 'market-price@2', priceType: 'REGULAR', sourceType: 'ESTABLISHED_PHARMACY', currency: 'EGP' });
+    const evidenceExcerpt = JSON.stringify({ rule: 'market-price@4', priceType: 'REGULAR', sourceType: 'ESTABLISHED_PHARMACY', currency: 'EGP' });
     const reference = marketReference([
       { id: 'a', sellerDomain: 'a.eg', priceEgp: 780, regularPriceEgp: 950, observedAt: at(1), confidence: 0.85, evidenceExcerpt: evidenceExcerpt.replace('REGULAR', 'LIST_CANDIDATE') },
       { id: 'a-old', sellerDomain: 'a.eg', priceEgp: 700, regularPriceEgp: 700, observedAt: at(3), confidence: 0.85, evidenceExcerpt },

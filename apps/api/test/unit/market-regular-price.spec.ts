@@ -2,11 +2,11 @@ import { checkObservation, extractPageOffers, marketReference } from '../../src/
 
 const html = (offer: Record<string, unknown>, extra = '', name = 'The Ordinary Niacinamide 10% + Zinc 1% 30ml') =>
   `<h1>${name}</h1><script type="application/ld+json">${JSON.stringify({ '@type': 'Product', name, offers: { '@type': 'Offer', price: 650, priceCurrency: 'EGP', ...offer } })}</script>${extra}`;
-const expected = { productName: 'Niacinamide 10% + Zinc 1%', size: 30, sizeUnit: 'ml', barcode: null };
+const expected = { brand: 'The Ordinary', productName: 'Niacinamide 10% + Zinc 1%', size: 30, sizeUnit: 'ml', barcode: null };
 const now = new Date('2026-11-14T12:00:00Z');
 const observation = (id: string, regularPriceEgp: number | null, priceType = 'REGULAR', sourceType = 'ESTABLISHED_PHARMACY') => ({
   id, sellerDomain: `${id}.eg`, priceEgp: regularPriceEgp ?? 400, regularPriceEgp, observedAt: now, confidence: 0.85,
-  evidenceExcerpt: JSON.stringify({ rule: 'market-price@2', priceType, sourceType, currency: 'EGP' }),
+  evidenceExcerpt: JSON.stringify({ rule: 'market-price@4', priceType, sourceType, currency: 'EGP' }),
 });
 
 describe('regular market prices remain separate from promotion and commerce', () => {
@@ -16,6 +16,7 @@ describe('regular market prices remain separate from promotion and commerce', ()
   it('never treats a sale-only amount or a coupon page as regular', () => {
     expect(extractPageOffers(html({}, '<span class="sale-price">Sale price 650 EGP</span>'))[0]).toMatchObject({ regularPrice: null, priceType: 'PROMOTIONAL' });
     expect(extractPageOffers(html({}, '<p>Save 10% with coupon CARE10</p>'))[0]).toMatchObject({ regularPrice: null, priceType: 'PROMOTIONAL' });
+    expect(extractPageOffers(html({}, '<p>Save 10%</p>'))[0]).toMatchObject({ regularPrice: null, priceType: 'PROMOTIONAL' });
     expect(extractPageOffers(html({}, '<del>950 EGP</del><ins>650 EGP</ins>'))[0]).toMatchObject({ regularPrice: null, priceType: 'PROMOTIONAL' });
   });
   it('retains a structured struck price only as a candidate, not a verified reference', () => {
@@ -45,5 +46,16 @@ describe('regular market prices remain separate from promotion and commerce', ()
   it('requires corroboration for struck prices and ignores unverified marketplace sellers', () => {
     expect(marketReference([observation('a', 650, 'LIST_CANDIDATE'), observation('b', 660)], now, 14)).toMatchObject({ medianEgp: 655, confidence: 'HIGH' });
     expect(marketReference([observation('a', 650, 'REGULAR', 'UNVERIFIED')], now, 14)).toBeNull();
+  });
+  it('does not confuse the real pilot Hydrating, Foaming, SA and Blemish Control cleanser prices', () => {
+    const base = extractPageOffers(html({}))[0];
+    const target = { brand: 'CeraVe', productName: 'Hydrating Facial Cleanser', size: 236, sizeUnit: 'ml', barcode: null };
+    for (const name of ['CeraVe Foaming Facial Cleanser 236ml', 'CeraVe Blemish Control Cleanser 236ml', 'CeraVe SA Smoothing Cleanser 236ml']) {
+      expect(checkObservation({ ...base, name }, target, { identityMatched: true, sellerTrust: 'TRUSTED_RETAILER' })).toMatchObject({ accepted: false, reason: 'PRODUCT_NAME_DIFFERS' });
+    }
+  });
+  it('cannot use an exact related-product offer from a different product page', () => {
+    const offer = extractPageOffers(html({}).replace(/<h1>.*?<\/h1>/, '<h1>The Ordinary Caffeine Solution 5% + EGCG 30ml</h1>'))[0];
+    expect(checkObservation(offer, expected, { identityMatched: true, sellerTrust: 'TRUSTED_RETAILER' })).toMatchObject({ accepted: false, reason: 'PAGE_TITLE_DIFFERS' });
   });
 });

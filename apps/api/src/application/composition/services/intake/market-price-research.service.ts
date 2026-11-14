@@ -49,7 +49,7 @@ export class MarketPriceResearchService {
     const [check, observations, costs] = await Promise.all([this.store.latestCheck(skuId), this.store.observations(skuId, MARKET_MAX_AGE_DAYS), this.offers.purchaseCosts([skuId])]);
     const reference = this.reference(observations);
     return { check: check ? { ...check, reference, status: reference && reference.confidence !== 'UNVERIFIED' ? MarketPriceCheckStatus.REFERENCE_READY : MarketPriceCheckStatus.UNAVAILABLE,
-      reasonCode: reference ? reference.confidence === 'UNVERIFIED' ? 'PRICE_ONLY_REVIEW_REQUIRED' : null : 'NO_VERIFIED_REGULAR_PRICE' } : null,
+      reasonCode: reference ? reference.confidence === 'UNVERIFIED' ? reference.priceReviewRequired ? 'PRICE_ONLY_REVIEW_REQUIRED' : 'REGULAR_PRICE_NOT_CORROBORATED' : null : 'NO_VERIFIED_REGULAR_PRICE' } : null,
       observations, pricing: this.pricingState(costs.get(skuId) ?? null) };
   }
 
@@ -83,7 +83,7 @@ export class MarketPriceResearchService {
       const reliable = reference && reference.confidence !== 'UNVERIFIED';
       const finalStatus = reliable ? MarketPriceCheckStatus.REFERENCE_READY : reference ? MarketPriceCheckStatus.UNAVAILABLE : status;
       const cost = { searches: this.providers.usage.searches - usageBefore.searches, pageFetches: this.fetcher.usage.pageFetches - usageBefore.pageFetches, rule: MARKET_RULE_VERSION };
-      const saved = await this.store.finishCheck(check.id, { status: finalStatus, reasonCode: reliable ? null : reference ? 'PRICE_ONLY_REVIEW_REQUIRED' : reasonCode, reference, coverage, cost });
+      const saved = await this.store.finishCheck(check.id, { status: finalStatus, reasonCode: reliable ? null : reference ? reference.priceReviewRequired ? 'PRICE_ONLY_REVIEW_REQUIRED' : 'REGULAR_PRICE_NOT_CORROBORATED' : reasonCode, reference, coverage, cost });
       const costs = await this.offers.purchaseCosts([skuId]);
       return { check: saved, reference, pricing: this.pricingState(costs.get(skuId) ?? null) };
     };

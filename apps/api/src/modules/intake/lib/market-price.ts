@@ -1,6 +1,7 @@
-import { normalizeCell, parseAmount, parseBarcode, readMeasures, sameMeasure, variantMarkers } from './intake-text';
+import { normalizeCell, parseAmount, parseBarcode, readMeasures, sameMeasure, stripMeasures, variantMarkers } from './intake-text';
+import { parseIdentityTitle, titleFactConflict, wordingSupportsTitle } from '../../catalog/public';
 
-export const MARKET_RULE_VERSION = 'market-price@2';
+export const MARKET_RULE_VERSION = 'market-price@4';
 export type MarketPriceType = 'REGULAR' | 'PROMOTIONAL' | 'LIST_CANDIDATE';
 export type MarketSourceType = 'OFFICIAL' | 'AUTHORIZED_DISTRIBUTOR' | 'ESTABLISHED_PHARMACY' | 'TRUSTED_RETAILER' | 'UNVERIFIED';
 export interface MarketPriceEvidence { rule: string; priceType: MarketPriceType; sourceType: MarketSourceType; currency: 'EGP'; excerpt?: string }
@@ -18,6 +19,7 @@ export function readMarketPriceEvidence(excerpt?: string | null): MarketPriceEvi
 /** One listed offer a product page states in its own structured data (JSON-LD Product/Offer) or product meta tags. Never read from free text. */
 export interface PageOffer {
   name: string;
+  pageTitle: string | null;
   price: number;
   currency: string | null;
   /** A list / strikethrough price stated next to a lower current price. */
@@ -65,8 +67,11 @@ const availabilityOf = (value: unknown): boolean | null => {
 /** Every offer the page's own Product markup states, with its currency and list price when given. */
 export function extractPageOffers(html: string): PageOffer[] {
   const offers: PageOffer[] = [];
+  const meta = (property: string) => html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1]
+    ?? html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${property}["']`, 'i'))?.[1];
+  const pageTitle = decode((html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? meta('og:title') ?? html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '').replace(/<[^>]*>/g, ' ')).trim() || null;
   const visible = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ');
-  const promotional = /\b(?:sale[-_ ]price|special[-_ ]price|flash sale|coupon|promo code|loyalty price|save\s+\d+\s*%|\d+\s*%\s*off)\b|كوبون|خصم|لفترة محدودة/i.test(visible)
+  const promotional = /\b(?:sale[-_ ]price|special[-_ ]price|flash sale|coupon|promo code|loyalty price|save\s+\d+\s*%|\d+\s*%\s*off)|كوبون|خصم|لفترة محدودة/i.test(visible)
     || /<(?:del|s)\b[^>]*>[\s\S]*?\d[\s\S]*?<\/(?:del|s)>/i.test(visible);
   for (const node of jsonLdNodes(html).filter(node => isType(node, 'Product'))) {
     const name = typeof node.name === 'string' ? decode(node.name) : '';
@@ -84,7 +89,7 @@ export function extractPageOffers(html: string): PageOffer[] {
         const regular = listSpec ? parseAmount(listSpec.price) : null;
         const priceType: MarketPriceType = regular !== null && regular > price ? 'LIST_CANDIDATE'
           : promotional || specs.some(spec => /saleprice|discount/i.test(String(spec.priceType ?? ''))) ? 'PROMOTIONAL' : 'REGULAR';
-        offers.push({ name, price, currency: typeof offer.priceCurrency === 'string' ? offer.priceCurrency.toUpperCase() : null,
+        offers.push({ name, pageTitle, price, currency: typeof offer.priceCurrency === 'string' ? offer.priceCurrency.toUpperCase() : null,
           regularPrice: priceType === 'LIST_CANDIDATE' ? regular : priceType === 'REGULAR' ? price : null, priceType,
           inStock: availabilityOf(offer.availability), gtin: gtin !== undefined ? String(gtin) : null,
           basis: 'JSON_LD', excerpt: JSON.stringify({ name, price, regularPrice: regular, priceType, currency: offer.priceCurrency }).slice(0, 300) });
@@ -92,12 +97,10 @@ export function extractPageOffers(html: string): PageOffer[] {
     }
   }
   if (!offers.length) {
-    const meta = (property: string) => html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']+)["']`, 'i'))?.[1]
-      ?? html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${property}["']`, 'i'))?.[1];
     const amount = parseAmount(meta('product:price:amount') ?? meta('og:price:amount'));
     if (amount !== null && amount > 0) {
       const name = decode(meta('og:title') ?? '');
-      offers.push({ name, price: amount, currency: (meta('product:price:currency') ?? meta('og:price:currency') ?? '').toUpperCase() || null,
+      offers.push({ name, pageTitle, price: amount, currency: (meta('product:price:currency') ?? meta('og:price:currency') ?? '').toUpperCase() || null,
         regularPrice: promotional ? null : amount, priceType: promotional ? 'PROMOTIONAL' : 'REGULAR',
         inStock: availabilityOf(meta('product:availability') ?? meta('og:availability')), gtin: null, basis: 'META', excerpt: `og ${name} ${amount}` });
     }
@@ -117,8 +120,8 @@ export interface ObservationCheck {
  * Whether an offer is a price for exactly this SKU: EGP stated, the page already proven to describe this product (identity checked by the caller), the same
  * size and pack, no bundle wording, and no conflicting barcode or strength. Promotional observations are retained separately from regular-price evidence.
  */
-export function checkObservation(offer: PageOffer, expected: { size: number | null; sizeUnit: string | null; barcode: string | null; productName: string },
-  page: { identityMatched: boolean; sellerTrust: 'OFFICIAL' | 'TRUSTED_RETAILER' | 'DISCOVERED' }): ObservationCheck {
+export function checkObservation(offer: PageOffer, expected: { brand: string; size: number | null; sizeUnit: string | null; barcode: string | null; productName: string },
+  page: { identityMatched: boolean; sellerTrust: 'OFFICIAL' | 'TRUSTED_RETAILER' | 'DISCOVERED'; title?: string }): ObservationCheck {
   const reject = (reason: string): ObservationCheck => ({ accepted: false, reason, confidence: 0 });
   if (!page.identityMatched) return reject('PAGE_IS_ANOTHER_PRODUCT');
   if (page.sellerTrust === 'DISCOVERED') return reject('SELLER_NOT_VERIFIED');
@@ -134,6 +137,14 @@ export function checkObservation(offer: PageOffer, expected: { size: number | nu
   const [a, b] = [variantMarkers(offer.name), variantMarkers(expected.productName)];
   if (a.spf.join() !== b.spf.join()) return reject('SPF_DIFFERS');
   if (a.percents.join() !== b.percents.join()) return reject('STRENGTH_DIFFERS');
+  const wanted = parseIdentityTitle(stripMeasures(expected.productName), [expected.brand]);
+  const matchesTitle = (name: string) => {
+    const found = parseIdentityTitle(stripMeasures(name), [expected.brand]);
+    return !titleFactConflict(wanted, found) && wordingSupportsTitle(wanted, found, false);
+  };
+  if (!matchesTitle(offer.name)) return reject('PRODUCT_NAME_DIFFERS');
+  const ownTitle = page.title ?? offer.pageTitle;
+  if (ownTitle && !matchesTitle(ownTitle)) return reject('PAGE_TITLE_DIFFERS');
   if (offer.price < 5 || offer.price > 50000) return reject('IMPLAUSIBLE_PRICE');
   const sizeConfirmed = stated.measures.length === 1 || Boolean(offer.gtin && expected.barcode);
   const base = page.sellerTrust === 'OFFICIAL' ? 0.95 : page.sellerTrust === 'TRUSTED_RETAILER' ? 0.85 : 0.65;

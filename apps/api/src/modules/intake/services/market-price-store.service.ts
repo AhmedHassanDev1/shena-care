@@ -30,14 +30,14 @@ export class MarketPriceStoreService {
 
   async observations(skuId: string, sinceDays: number) {
     return this.prisma.retailPriceObservation.findMany({
-      where: { skuId, status: RetailObservationStatus.ACCEPTED, observedAt: { gte: new Date(Date.now() - sinceDays * 86_400_000) } },
+      where: { skuId, status: RetailObservationStatus.ACCEPTED, evidenceExcerpt: { startsWith: `{"rule":"${MARKET_RULE_VERSION}"` }, observedAt: { gte: new Date(Date.now() - sinceDays * 86_400_000) } },
       orderBy: { observedAt: 'desc' },
     });
   }
 
   /** Recent fetches of the same page (accepted or not) are reused instead of fetched again. */
   async recentlyRead(skuId: string, withinHours: number): Promise<Set<string>> {
-    const rows = await this.prisma.retailPriceObservation.findMany({ where: { skuId, retrievedAt: { gte: new Date(Date.now() - withinHours * 3_600_000) } }, select: { sourceUrl: true } });
+    const rows = await this.prisma.retailPriceObservation.findMany({ where: { skuId, evidenceExcerpt: { startsWith: `{"rule":"${MARKET_RULE_VERSION}"` }, retrievedAt: { gte: new Date(Date.now() - withinHours * 3_600_000) } }, select: { sourceUrl: true } });
     return new Set(rows.map(row => row.sourceUrl));
   }
 
