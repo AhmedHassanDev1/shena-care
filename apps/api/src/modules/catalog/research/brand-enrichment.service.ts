@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { BrandService, BrandSummary } from '../public';
+import { BrandService, BrandSummary } from '../services/brand.service';
 import { slugify } from '../utils/slug.util';
 import { BRAND_ALIASES, curatedBrandAlias, curatedSpellings, normalizeBrandKey } from './brand-aliases';
 import {

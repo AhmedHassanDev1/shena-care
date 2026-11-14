@@ -4,7 +4,7 @@ import { createHash } from 'crypto';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { validateSafeUrl } from '../../../platform/security/url-validator';
 import { StorageService } from '../../../platform/storage/storage.service';
-import { BrandService } from '../public';
+import { BrandService } from '../services/brand.service';
 import { slugify } from '../utils/slug.util';
 import { ResearchBrandDto, SaveResearchedBrandDto } from './dto/brand-research.dto';
 import { BrandPageFact, extractBrandPage } from './brand-page-extractor';

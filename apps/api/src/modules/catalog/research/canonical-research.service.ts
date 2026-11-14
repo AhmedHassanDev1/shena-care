@@ -1,6 +1,9 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, ProductFactProposal, ProductFactStatus, ProductResearchRun, ResearchRunStatus } from '@prisma/client';
-import { CatalogService, IngredientService, UpdateProductDto, CatalogIntakeService } from '../public';
+import { CatalogService } from '../services/catalog.service';
+import { IngredientService } from '../services/ingredient.service';
+import { CatalogIntakeService } from '../services/catalog-intake.service';
+import { UpdateProductDto } from '../dto/product.dto';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { isTrustedMediaSource } from '../../../platform/security/media-review';
 import { ALL_FACT_FIELDS, ExtractedFact, extractProductFacts, FactField, hashFactValue, isNavigationIngredientName, RESEARCH_SCHEMA_VERSION, SkuExpectation } from './product-fact-extractor';

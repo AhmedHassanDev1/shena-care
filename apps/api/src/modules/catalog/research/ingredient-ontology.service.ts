@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { IngredientService } from '../public';
+import { IngredientService } from '../services/ingredient.service';
 import {
   CandidateIngredientEnrichment,
   ClaimValidationRequest,
