@@ -16,6 +16,8 @@ export interface ConsultRoutineStep {
   why: string;
   howToUse: string | null;
   item: RecommendedItem;
+  /** The engine's next picks of the same product type, offered to the customer as swaps. */
+  alternatives?: RecommendedItem[];
 }
 
 /** The structured part of an assistant turn (apps/api guidance/consultation ConsultPayload). */
@@ -147,6 +149,7 @@ export function consultRoutineToPreview(
     isOptional: false,
     roleLabel: slotLabels[step.slot],
     product: recommendedToShinaProduct(step.item, step.why),
+    alternatives: (step.alternatives ?? []).map((alt) => recommendedToShinaProduct(alt)),
   }));
   const issues = routine.issues
     .filter((issue) => issue.severity !== 'INFO' || issue.code === 'INGREDIENTS_UNVERIFIED')

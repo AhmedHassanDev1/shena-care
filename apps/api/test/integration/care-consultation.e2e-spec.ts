@@ -369,6 +369,8 @@ describe('Care consultation, recommendations and knowledge (GLO-301 / GLO-302 / 
 
   describe('AI routine (GLO-313)', () => {
     it('proposes a routine laid out by role, lets the customer edit it, revalidates and saves only on confirmation', async () => {
+      // A second cleanser (sorts after the first) must become the cleanser step's swap alternative, not a second step.
+      await product('cleanser2', { name: `Zinc Cleanser ${tag}`, type: 'cleanser', department: 'skin-care', role: 'CLEANSER', rank: 2 });
       const session = await newSession();
       ai.understand = input => ({ ...understood({ careArea: 'skin', concerns: [concern], safety: NOT_PREGNANT })(input), intent: 'build_routine' });
       const res = await say(session.id, 'عايزة روتين للحبوب').expect(201);
@@ -377,6 +379,10 @@ describe('Care consultation, recommendations and knowledge (GLO-301 / GLO-302 / 
       const layout = routine.steps.map((s: { slot: string; item: { productId: string } }) => `${s.slot}:${Object.keys(products).find(k => products[k].productId === s.item.productId)}`);
       expect(layout).toEqual(['AM:cleanser', 'AM:sunscreen', 'PM:cleanser', 'PM:retinol']);
       expect(routine.canSave).toBe(true);
+      expect(routine.steps[0].alternatives.map((a: { productId: string }) => a.productId)).toEqual([products.cleanser2.productId]);
+      expect(routine.steps.find((s: { item: { productId: string } }) => s.item.productId === products.sunscreen.productId).alternatives).toEqual([]);
+      // Only the chosen products are offered to the model; alternatives are a customer-side swap, not extra candidates.
+      expect(ai.respondCalls[0].candidates.map(c => c.name)).not.toContain(products.cleanser2.name);
       expect(routine.steps[0].howToUse).toBe('Apply as the pack directs.'); // the manufacturer's text, not the model's
       expect(ai.respondCalls[0].routineDraft.map(s => s.slot)).toEqual(['am', 'am', 'pm', 'pm']);
       // Nothing was saved by proposing.

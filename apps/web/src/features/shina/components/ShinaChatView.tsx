@@ -781,7 +781,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
                   <ShinaRoutineCard
                     routine={msg.routine}
                     saveState={routineSaves[msg.id]}
-                    onSave={msg.routine.save ? () => handleSaveRoutine(msg.id, msg.routine!.save!) : undefined}
+                    onSave={msg.routine.save ? (steps) => handleSaveRoutine(msg.id, { ...msg.routine!.save!, steps }) : undefined}
                     onAddToBag={handleAddToBag}
                     onAddManyToBag={handleAddManyToBag}
                     addingSkuId={addingSkuId}

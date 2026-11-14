@@ -1,5 +1,11 @@
 export const messages = {
   en: {
+    shinaSwapProduct: "Swap",
+    shinaRemoveStep: "Remove step",
+    shinaRestoreStep: "Restore step",
+    shinaRoutineEdited: "You changed the routine, so we checked compatibility again.",
+    shinaSaveBlocked: "Resolve the conflict above before saving.",
+    shinaStepRemoved: "Removed",
     navConcerns: "By concern",
     cornerMetaTitle: "Shop by concern | ShinaCare",
     cornerMetaDescription: "Start from what you want to care for: matching products, the ingredients that matter and when to see a professional, from published sources.",
@@ -1395,6 +1401,12 @@ export const messages = {
     shinaStateListening: "Listening clearly…",
   },
   ar: {
+    shinaSwapProduct: "بدّلي",
+    shinaRemoveStep: "شيلي الخطوة",
+    shinaRestoreStep: "رجّعي الخطوة",
+    shinaRoutineEdited: "عدّلتي الروتين، فراجعنا التوافق تاني.",
+    shinaSaveBlocked: "حلّي التعارض اللي فوق قبل الحفظ.",
+    shinaStepRemoved: "اتشالت",
     navConcerns: "حسب الاهتمام",
     cornerMetaTitle: "تسوّقي حسب الاهتمام | ShinaCare",
     cornerMetaDescription: "ابدئي من اللي عايزة تهتمي بيه: منتجات مناسبة، المكونات اللي بتفرق، وإمتى تروحي لمتخصص، من مصادر منشورة.",

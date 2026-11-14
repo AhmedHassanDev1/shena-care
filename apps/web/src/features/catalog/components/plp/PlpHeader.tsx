@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Chip } from '@/components/ui/chip';
+import { ConcernBridge } from '@/features/corner/components/ConcernBridge';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { formatNumber } from '@/lib/i18n/format';
 import { fillMessage } from '@/lib/i18n/messages';
@@ -103,7 +104,10 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
       title,
       list ? fillMessage(m.plpDeptBody, { list }) : null,
       crumbs(title),
-      deptPills(d.slug)
+      <div className="flex flex-col gap-3">
+        {deptPills(d.slug)}
+        <ConcernBridge departmentSlug={d.slug} />
+      </div>
     );
   }
 

@@ -12,6 +12,8 @@ import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import type { CompatibilityResult } from '@/features/care/api/care-intelligence';
+import { RoutineCompatibilityPanel } from '@/features/care/components/RoutineCompatibilityPanel';
 import type {
   ShinaComparison,
   ShinaComparisonProduct,
@@ -302,6 +304,8 @@ export function ShinaComparisonCard({
   );
 }
 
+type SaveStep = { title: string; timing: 'AM' | 'PM' | 'AS_NEEDED'; skuId: string; reason?: string };
+
 interface ShinaRoutineCardProps {
   routine: ShinaRoutinePreview;
   onAddToBag: (product: Pick<ShinaProduct, 'skuId' | 'name' | 'canOrder'>) => Promise<void>;
@@ -309,10 +313,16 @@ interface ShinaRoutineCardProps {
   addingSkuId: string | null;
   addedSkuIds: ReadonlySet<string>;
   isBatchAdding?: boolean;
-  /** Offered for an assistant routine the backend allows saving; the tap itself is the customer's confirmation. */
-  onSave?: () => void;
+  /**
+   * Offered for an assistant routine the backend allows saving. The routine is then editable (swap a step for one of
+   * its alternatives, remove or restore a step); the edited routine is re-checked by the shared compatibility rules and
+   * exactly what is shown is saved. The tap itself is the customer's confirmation.
+   */
+  onSave?: (steps: SaveStep[]) => void;
   saveState?: 'pending' | 'saved' | 'failed';
 }
+
+const SLOT_OF: Record<ShinaRoutinePreview['steps'][number]['timing'], SaveStep['timing']> = { am: 'AM', pm: 'PM', both: 'AS_NEEDED', as_needed: 'AS_NEEDED' };
 
 export function ShinaRoutineCard({
   routine,
@@ -326,10 +336,29 @@ export function ShinaRoutineCard({
 }: ShinaRoutineCardProps) {
   const m = useMessages();
   const locale = useLocale();
+  const editable = Boolean(onSave) && saveState !== 'saved';
+  // Which option each step shows (0 = the engine's pick, then its alternatives) and which steps were removed.
+  const [pick, setPick] = useState<Record<number, number>>({});
+  const [removed, setRemoved] = useState<ReadonlySet<number>>(() => new Set());
+  const [compatibility, setCompatibility] = useState<CompatibilityResult | null>(null);
 
-  const orderableProducts = routine.steps
-    .map((step) => step.product)
-    .filter((product): product is ShinaProduct => Boolean(product && product.canOrder));
+  const current = routine.steps.map((step, index) => {
+    const options = [step.product, ...(step.alternatives ?? [])].filter((p): p is ShinaProduct => Boolean(p));
+    const product = options.length ? options[(pick[index] ?? 0) % options.length] : null;
+    return { step, index, options, product, removed: removed.has(index) };
+  });
+  const active = current.filter((entry) => !entry.removed && entry.product);
+  const edited = removed.size > 0 || Object.values(pick).some((value) => value > 0);
+  const checkSteps = active.map((entry) => ({ skuId: entry.product!.skuId, timing: SLOT_OF[entry.step.timing] }));
+  const blocked = edited && (compatibility === null || compatibility.issues.some((issue) => issue.severity === 'BLOCK'));
+  const orderableProducts = active.map((entry) => entry.product!).filter((product) => product.canOrder);
+
+  const save = () => onSave?.(active.map((entry) => ({
+    title: entry.product!.name.slice(0, 80),
+    timing: SLOT_OF[entry.step.timing],
+    skuId: entry.product!.skuId,
+    reason: entry.product!.rationale ? entry.product!.rationale.slice(0, 280) : undefined,
+  })));
 
   return (
     <section
@@ -355,15 +384,18 @@ export function ShinaRoutineCard({
       </div>
 
       <ol className="mt-3 space-y-2">
-        {routine.steps.map((step, index) => {
-          const prod = step.product;
+        {current.map(({ step, index, options, product: prod, removed: isRemoved }) => {
           const isAdding = prod ? addingSkuId === prod.skuId : false;
           const isAdded = prod ? addedSkuIds.has(prod.skuId) : false;
+          const swapped = (pick[index] ?? 0) % Math.max(options.length, 1) > 0;
 
           return (
             <li
               key={`${step.order}-${step.title}-${index}`}
-              className="flex flex-col gap-2 rounded-card border border-line/50 bg-chalk p-2.5 sm:flex-row sm:items-center sm:justify-between"
+              className={cn(
+                'flex flex-col gap-2 rounded-card border border-line/50 bg-chalk p-2.5 sm:flex-row sm:items-center sm:justify-between',
+                isRemoved && 'opacity-55',
+              )}
             >
               <div className="flex min-w-0 items-start gap-2.5">
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-cobalt text-11 font-bold text-chalk">
@@ -376,15 +408,44 @@ export function ShinaRoutineCard({
                       <Icon name={step.timing === 'pm' ? 'evening' : 'routine'} size={13} />
                       <span>{step.roleLabel ?? step.timing.toUpperCase()}</span>
                     </span>
+                    {isRemoved ? <span className="text-11 font-semibold text-stone">· {m.shinaStepRemoved}</span> : null}
                   </div>
-                  <p className="font-display text-13 font-bold text-ink leading-snug">{step.title}</p>
-                  {step.instructions ? (
-                    <p className="text-12 text-stone leading-snug">{step.instructions}</p>
+                  <p className={cn('font-display text-13 font-bold text-ink leading-snug', isRemoved && 'line-through')}>
+                    {editable && prod ? prod.name : step.title}
+                  </p>
+                  {(swapped ? prod?.rationale : step.instructions) ? (
+                    <p className="text-12 text-stone leading-snug">{swapped ? prod?.rationale : step.instructions}</p>
+                  ) : null}
+                  {editable ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {options.length > 1 && !isRemoved ? (
+                        <button
+                          type="button"
+                          onClick={() => setPick((prev) => ({ ...prev, [index]: ((prev[index] ?? 0) + 1) % options.length }))}
+                          className="inline-flex min-h-control-s items-center gap-1 rounded-pill border border-line bg-linen px-3 font-display text-12 font-bold text-ink transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                        >
+                          <Icon name="retry" size={14} />
+                          <span>{m.shinaSwapProduct}</span>
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => setRemoved((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(index)) next.delete(index); else next.add(index);
+                          return next;
+                        })}
+                        aria-pressed={isRemoved}
+                        className="inline-flex min-h-control-s items-center gap-1 rounded-pill border border-line bg-linen px-3 font-display text-12 font-bold text-ink transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                      >
+                        <span>{isRemoved ? m.shinaRestoreStep : m.shinaRemoveStep}</span>
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               </div>
 
-              {prod ? (
+              {prod && !isRemoved ? (
                 <div className="flex shrink-0 items-center justify-between gap-2 border-t border-line/40 pt-2 sm:border-t-0 sm:pt-0">
                   <Link
                     href={routes.product(prod.slug)}
@@ -426,7 +487,7 @@ export function ShinaRoutineCard({
         })}
       </ol>
 
-      {routine.notes && routine.notes.length > 0 ? (
+      {routine.notes && routine.notes.length > 0 && !edited ? (
         <ul className="mt-3 space-y-1 rounded-16 border border-line/60 bg-chalk/70 p-2.5 text-12 text-stone">
           {routine.notes.map((note) => (
             <li key={note} className="flex items-start gap-1.5">
@@ -437,14 +498,21 @@ export function ShinaRoutineCard({
         </ul>
       ) : null}
 
+      {editable && edited ? (
+        <div className="mt-3 flex flex-col gap-2">
+          <p role="status" className="m-0 text-12 text-stone">{m.shinaRoutineEdited}</p>
+          <RoutineCompatibilityPanel steps={checkSteps} onResult={setCompatibility} />
+        </div>
+      ) : null}
+
       {onSave ? (
         <div className="mt-3 flex flex-col gap-1.5 border-t border-line/60 pt-3">
           <p className="m-0 text-12 text-stone">{m.shinaSaveRoutineConfirm}</p>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={onSave}
-              disabled={saveState === 'pending' || saveState === 'saved'}
+              onClick={save}
+              disabled={saveState === 'pending' || saveState === 'saved' || active.length === 0 || blocked}
               aria-busy={saveState === 'pending'}
               className="inline-flex min-h-control-s items-center gap-1.5 rounded-pill bg-ink px-3.5 font-display text-12 font-bold text-chalk transition-colors hover:bg-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:cursor-not-allowed disabled:opacity-70"
             >
@@ -454,6 +522,7 @@ export function ShinaRoutineCard({
             {saveState === 'saved' ? (
               <Link href={routes.myRoutine} className="text-12 font-bold text-cobalt underline decoration-1 underline-offset-2">{m.shinaSaveRoutineSaved}</Link>
             ) : null}
+            {blocked && compatibility ? <span role="alert" className="text-12 font-semibold text-tomato-ink">{m.shinaSaveBlocked}</span> : null}
             {saveState === 'failed' ? <span role="alert" className="text-12 font-semibold text-tomato-ink">{m.shinaSaveRoutineFailed}</span> : null}
           </div>
         </div>

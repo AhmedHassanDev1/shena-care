@@ -18,7 +18,8 @@ export const CONSULT_PAYLOAD_VERSION = 1;
 const HISTORY_TURNS = 14;
 const MAX_MESSAGE_LENGTH = 1500;
 
-export interface ConsultRoutineStep { slot: Slot; why: string; howToUse: string | null; item: RecommendedItem }
+/** One routine step; `alternatives` are the engine's next picks of the same product type, offered as swaps. */
+export interface ConsultRoutineStep { slot: Slot; why: string; howToUse: string | null; item: RecommendedItem; alternatives: RecommendedItem[] }
 export interface ConsultPayload {
   version: number
   /** AI = worded by the model from grounded data. FALLBACK = the model was unavailable; deterministic engine output only. */
@@ -180,7 +181,8 @@ export class ConsultationService {
       const input: RecommendationInput = {
         careArea: context.careArea, concerns: context.concerns, productTypes: wantsRoutine ? [] : context.productTypes, skinType: context.skinType,
         hairType: context.hairType, fragranceFree: context.fragranceFree, budgetMax: context.budgetMax, safety: context.safety, sensitivities: context.sensitivities,
-        limit: wantsRoutine ? 8 : 6, perTypeLimit: wantsRoutine ? 1 : undefined,
+        // A routine takes the best product per type and keeps the next ones as swap alternatives for the customer.
+        limit: wantsRoutine ? 16 : 6, perTypeLimit: wantsRoutine ? 3 : undefined,
       };
       const askedAboutProduct = intent === 'product_question' ? await this.matchProducts([...(understanding.mentionedProducts ?? []), ...(focusProduct ? [focusProduct.name] : [])]) : [];
       if (askedAboutProduct.length) {
@@ -190,7 +192,20 @@ export class ConsultationService {
         run = await this.recommendations.run(input, locale);
       }
     }
-    const items = run?.result.items ?? [];
+    let items = run?.result.items ?? [];
+    const alternativesByType = new Map<string, RecommendedItem[]>();
+    if (wantsRoutine) {
+      // One product per type goes into the routine; the engine's next picks of the same type become its alternatives.
+      const chosen: RecommendedItem[] = [];
+      const seen = new Set<string>();
+      for (const item of items) {
+        const key = item.productType ?? item.productId;
+        if (!seen.has(key)) { seen.add(key); chosen.push(item); continue; }
+        alternativesByType.set(key, [...(alternativesByType.get(key) ?? []), item].slice(0, 2));
+      }
+      items = chosen.slice(0, 8);
+    }
+    const alternativesFor = (item: RecommendedItem) => alternativesByType.get(item.productType ?? item.productId) ?? [];
 
     const safetyHeld = (run?.result.needsSafetyAnswer.length ?? 0) > 0;
     const missing = [...new Set([...(understanding.missing ?? []), ...(safetyHeld ? ['pregnancy'] : [])])].slice(0, 5);
@@ -199,7 +214,7 @@ export class ConsultationService {
       && (understanding.needsClarification || (!run && intent !== 'ingredient_question' && intent !== 'general_care') || (safetyHeld && items.length === 0));
 
     // Routine layout from the engine's picks, checked by the shared compatibility rules.
-    let routineDraft: Array<{ item: RecommendedItem; slot: Slot }> = [];
+    let routineDraft: Array<{ item: RecommendedItem; slot: Slot; alternatives: RecommendedItem[] }> = [];
     let routineIssues: CompatibilityIssue[] = [];
     if (wantsRoutine && !routineNote && !mustClarify && run && items.length >= 2) {
       for (const item of items) {
@@ -207,7 +222,7 @@ export class ConsultationService {
         const variant = facts.variants.find(v => v.skuId === item.skuId);
         const slots = slotsFor({ role: item.role, productType: item.productType, careArea: item.careArea, families: facts.ingredientFamilies,
           statedPeriod: variant?.routine && variant.routine.routinePeriod !== 'UNKNOWN' ? variant.routine.routinePeriod : null, periodEligibility: variant?.routine?.periodEligibility ?? null });
-        for (const slot of slots) routineDraft.push({ item, slot });
+        for (const slot of slots) routineDraft.push({ item, slot, alternatives: alternativesFor(item) });
       }
       const check = await this.compatibility.check(routineDraft.map(step => ({ skuId: step.item.skuId, slot: step.slot })), context.safety);
       routineIssues = check.issues;
@@ -269,7 +284,7 @@ export class ConsultationService {
         ? routineDraft.map(step => {
             const worded = reply!.routine!.steps.find(s => byRef.get(s.ref)?.productId === step.item.productId && s.slot.toUpperCase() === step.slot);
             // "How to use" is the manufacturer's own direction or nothing; the model's wording is shown only as the reason.
-            return { slot: step.slot, why: (worded?.why ?? step.item.reasons[0]?.text ?? '').slice(0, 300), howToUse: step.item.usage.text, item: step.item };
+            return { slot: step.slot, why: (worded?.why ?? step.item.reasons[0]?.text ?? '').slice(0, 300), howToUse: step.item.usage.text, item: step.item, alternatives: step.alternatives };
           })
         : [];
       message = reply.message.trim();
@@ -297,7 +312,7 @@ export class ConsultationService {
   /** The answer when the model is unavailable: the engine's result in fixed words. Honest about being a fallback. */
   private deterministicAnswer(input: {
     intent: ConsultIntent; locale: 'ar' | 'en'; context: ConsultContext; items: RecommendedItem[]; escalation: Escalation; mustClarify: boolean; missing: string[]
-    routineDraft: Array<{ item: RecommendedItem; slot: Slot }>; routineIssues: CompatibilityIssue[]; routineNote: string | null
+    routineDraft: Array<{ item: RecommendedItem; slot: Slot; alternatives: RecommendedItem[] }>; routineIssues: CompatibilityIssue[]; routineNote: string | null
     excluded: Array<{ name: string; text: string }>; knowledgeRows: KnowledgeRow[]
   }): { payload: ConsultPayload; message: string } {
     const { locale, escalation, mustClarify, items } = input;
@@ -316,7 +331,7 @@ export class ConsultationService {
       return { payload: { ...base, followUpQuestion: question, quickReplies }, message: FALLBACK_TEXT.clarify[locale] };
     }
     if (!items.length) return { payload: base, message: FALLBACK_TEXT.nothing[locale] };
-    const steps = input.routineDraft.map(step => ({ slot: step.slot, why: step.item.reasons[0]?.text ?? '', howToUse: step.item.usage.text, item: step.item }));
+    const steps = input.routineDraft.map(step => ({ slot: step.slot, why: step.item.reasons[0]?.text ?? '', howToUse: step.item.usage.text, item: step.item, alternatives: step.alternatives }));
     return {
       message: FALLBACK_TEXT.unavailable[locale],
       payload: {

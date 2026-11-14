@@ -1,10 +1,11 @@
 'use client';
 
+import { useEffect, useId } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { MessageBox } from '@/components/ui/message-box';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
-import { checkRoutine, type CompatibilityIssue, type Slot } from '../api/care-intelligence';
+import { checkRoutine, type CompatibilityIssue, type CompatibilityResult, type Slot } from '../api/care-intelligence';
 
 const TONE: Record<CompatibilityIssue['severity'], 'err' | 'warn' | 'info'> = { BLOCK: 'err', WARN: 'warn', INFO: 'info' };
 
@@ -13,9 +14,14 @@ const TONE: Record<CompatibilityIssue['severity'], 'err' | 'warn' | 'info'> = { 
  * rules the AI proposals and saved routines use. Re-runs whenever the steps change. Read-only: it reports, it never
  * removes or swaps a product.
  */
-export function RoutineCompatibilityPanel({ steps }: { steps: Array<{ skuId: string; timing: Slot }> }) {
+export function RoutineCompatibilityPanel({ steps, onResult }: {
+  steps: Array<{ skuId: string; timing: Slot }>;
+  /** Receives each check result (null while checking or on error), e.g. to hold a save while something blocks. */
+  onResult?: (result: CompatibilityResult | null) => void;
+}) {
   const m = useMessages();
   const locale = useLocale();
+  const titleId = useId();
   const key = steps.map((step) => `${step.skuId}:${step.timing}`).sort().join(',');
   const check = useQuery({
     queryKey: ['care', 'routine-check', key],
@@ -23,11 +29,14 @@ export function RoutineCompatibilityPanel({ steps }: { steps: Array<{ skuId: str
     enabled: steps.length > 0,
     staleTime: 60 * 1000,
   });
+  useEffect(() => {
+    onResult?.(check.data && !check.isFetching ? check.data : null);
+  }, [check.data, check.isFetching, onResult]);
   if (!steps.length) return null;
 
   return (
-    <section aria-labelledby="routine-compat-title" className="flex flex-col gap-2">
-      <h3 id="routine-compat-title" className="m-0 font-display text-16 font-bold text-ink">{m.routineCheckTitle}</h3>
+    <section aria-labelledby={titleId} className="flex flex-col gap-2">
+      <h3 id={titleId} className="m-0 font-display text-16 font-bold text-ink">{m.routineCheckTitle}</h3>
       {check.isPending ? (
         <p role="status" className="m-0 text-13 text-stone">{m.routineCheckPending}</p>
       ) : check.isError ? (

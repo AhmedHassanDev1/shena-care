@@ -58,6 +58,8 @@ export interface ShinaRoutineStep {
   isOptional: boolean;
   roleLabel?: string | null;
   product?: ShinaProduct | null;
+  /** Same-type products the customer may swap in (AI routines only). */
+  alternatives?: ShinaProduct[];
 }
 
 export interface ShinaRoutinePreview {
