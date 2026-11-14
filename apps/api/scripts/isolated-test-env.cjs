@@ -32,6 +32,9 @@ const safeDefaults = {
   NODE_ENV: 'test',
   AI_SERVICE_URL: 'http://127.0.0.1:9',
   AI_SERVICE_TIMEOUT_MS: '500',
+  // A developer's local AI token or pseudonym key must never shape a test.
+  AI_SERVICE_TOKEN: '',
+  AI_PSEUDONYM_SECRET: '',
   EXA_API_KEY: '',
   FIRECRAWL_API_KEY: '',
   GROK_API_KEY: '',

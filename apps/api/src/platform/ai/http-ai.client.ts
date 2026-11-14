@@ -11,6 +11,10 @@ import {
   GuidanceRecommendationResult,
   ProductContentGenerationInput,
   ProductContentGenerationResult,
+  ConsultRespondRequest,
+  ConsultRespondResult,
+  ConsultUnderstandRequest,
+  ConsultUnderstandResult,
 } from './ai-client.contract';
 import { validateSafeUrl } from '../security/url-validator';
 
@@ -230,6 +234,72 @@ export class HttpAiClient implements AiClient {
 
     this.logger.log(`AI content generation success latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
     return raw as ProductContentGenerationResult;
+  }
+
+  /**
+   * Care consultation, step 1: read the conversation into structured needs. The model sees a pseudonym, the turns and
+   * the care context only; never the customer id, name, phone or address.
+   */
+  async consultUnderstand(input: ConsultUnderstandRequest, correlationId?: string): Promise<ConsultUnderstandResult> {
+    const { customerId, ...rest } = input;
+    const body = await this.postConsult('understand', { subject: this.pseudonymize(customerId), ...rest }, correlationId);
+    if (!body.context || typeof body.context !== 'object' || typeof body.intent !== 'string') {
+      throw new AiClientError(AiErrorKind.INVALID_RESPONSE, 'AI understanding is missing intent or context');
+    }
+    return body as unknown as ConsultUnderstandResult;
+  }
+
+  /** Care consultation, step 2: word the answer from what the API retrieved. Products travel as opaque refs (P1, K2). */
+  async consultRespond(input: ConsultRespondRequest, correlationId?: string): Promise<ConsultRespondResult> {
+    const { customerId, ...rest } = input;
+    const body = await this.postConsult('respond', { subject: this.pseudonymize(customerId), ...rest }, correlationId);
+    if (typeof body.message !== 'string' || !body.message.trim() || !Array.isArray(body.recommendations)) {
+      throw new AiClientError(AiErrorKind.INVALID_RESPONSE, 'AI response is missing its message or recommendations');
+    }
+    return body as unknown as ConsultRespondResult;
+  }
+
+  private async postConsult(step: 'understand' | 'respond', payload: Record<string, unknown>, correlationId?: string): Promise<Record<string, unknown>> {
+    const url = `${this.baseUrl.replace(/\/$/, '')}/v1/consult/${step}`;
+    const resolvedCorrelationId = correlationId || randomUUID();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs * 2);
+    const startTime = Date.now();
+    let response: Response;
+    try {
+      response = await fetch(url, { method: 'POST', headers: this.requestHeaders(resolvedCorrelationId), body: JSON.stringify(payload), signal: controller.signal });
+    } catch (err) {
+      const aborted = err instanceof Error && err.name === 'AbortError';
+      this.logger.warn(`AI consult ${step} ${aborted ? 'timeout' : 'network failure'} latencyMs=${Date.now() - startTime} correlation=${resolvedCorrelationId}`);
+      throw new AiClientError(aborted ? AiErrorKind.TIMEOUT : AiErrorKind.UNAVAILABLE, aborted ? `AI consult ${step} timed out` : 'AI service unreachable');
+    } finally {
+      clearTimeout(timer);
+    }
+    const latencyMs = Date.now() - startTime;
+    if (response.status === 429) {
+      this.logger.warn(`AI consult ${step} limited latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
+      throw new AiClientError(AiErrorKind.LIMITED, 'AI gateway limit reached', 429);
+    }
+    if (response.status === 503) {
+      this.logger.warn(`AI consult ${step} provider unavailable latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
+      throw new AiClientError(AiErrorKind.UNAVAILABLE, 'AI service reported provider unavailable', 503);
+    }
+    if (!response.ok) {
+      this.logger.error(`AI consult ${step} unexpected status=${response.status} latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
+      throw new AiClientError(AiErrorKind.INVALID_RESPONSE, `AI service returned unexpected status ${response.status}`, response.status);
+    }
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new AiClientError(AiErrorKind.INVALID_RESPONSE, 'AI service returned non-JSON body', response.status);
+    }
+    const raw = body as Record<string, unknown>;
+    if (!raw || raw.schemaVersion !== '1') {
+      throw new AiClientError(AiErrorKind.INCOMPATIBLE_SCHEMA, `Unsupported AI consult schemaVersion ${String(raw?.schemaVersion)}`);
+    }
+    this.logger.log(`AI consult ${step} success latencyMs=${latencyMs} correlation=${resolvedCorrelationId}`);
+    return raw;
   }
 
   private requestHeaders(correlationId?: string): Record<string, string> {

@@ -132,6 +132,8 @@ export type { SkuIdentityCandidate, SkuIdentityCandidateRequest } from './servic
 export type {
   RoutineProductFacts,
   RoutineActiveFact,
+  CareProductFacts,
+  CareVariantRoutine,
   PublicProductIngredientFact,
   PublicSafetyWarningFact,
   PublicKeyIngredientClaim,

@@ -6,3 +6,5 @@ export { MyRoutinesService } from './services/my-routines.service';
 export { RoutineProposalService } from './services/routine-proposal.service';
 export type { DraftOwner } from './services/routine-workspace.service';
 export { RoutineCartDto } from './dto/routine-workspace.dto';
+export { RoutineCompatibilityService, UNKNOWN_COMPATIBILITY_SAFETY } from './services/routine-compatibility.service';
+export type { CompatibilityIssue, CompatibilityResult, CompatibilityRule, CompatibilitySafety, CompatibilityStep } from './engine/routine-compatibility';

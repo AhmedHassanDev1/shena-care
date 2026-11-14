@@ -109,6 +109,112 @@ export interface ProductContentGenerationResult {
   providerMetadata: Record<string, string>;
 }
 
+// ── Care consultation (services/ai: /v1/consult/understand and /v1/consult/respond) ─────────────────────────
+
+export type ConsultTriState = 'YES' | 'NO' | 'UNKNOWN';
+export type ConsultIntent =
+  | 'recommend_products' | 'build_routine' | 'product_question' | 'ingredient_question'
+  | 'routine_question' | 'general_care' | 'smalltalk' | 'out_of_scope';
+
+/** What the consultation knows about the need. Never a name, phone, address or account id. */
+export interface ConsultContext {
+  careArea: 'skin' | 'hair' | null;
+  concerns: string[];
+  productTypes: string[];
+  skinType: 'normal' | 'dry' | 'oily' | 'combination' | 'sensitive' | null;
+  hairType: string | null;
+  fragranceFree: boolean | null;
+  budgetMax: number | null;
+  sensitivities: string[];
+  ownedProducts: string[];
+  safety: { pregnant: ConsultTriState; breastfeeding: ConsultTriState; prescriptionTopical: ConsultTriState; oralRetinoid: ConsultTriState };
+}
+
+export interface ConsultPageContext {
+  kind: 'home' | 'corner' | 'category' | 'product' | 'routine' | 'cart' | 'other';
+  concernSlug?: string | null;
+  categorySlug?: string | null;
+  productName?: string | null;
+}
+
+export interface ConsultTurn { role: 'user' | 'assistant'; content: string }
+
+export interface ConsultUnderstandRequest {
+  /** The customer id; the client replaces it with a keyed pseudonym before it leaves the API. */
+  customerId: string;
+  locale: 'ar' | 'en';
+  messages: ConsultTurn[];
+  knownContext: ConsultContext;
+  pageContext?: ConsultPageContext | null;
+  concernVocabulary: Array<{ slug: string; name: string; careArea: 'skin' | 'hair' }>;
+  productTypeVocabulary: string[];
+}
+
+export interface ConsultProviderMetadata {
+  provider?: string; model?: string; usedFallback?: boolean; promptTokens?: number; completionTokens?: number; costUsd?: number; latencyMs?: number;
+}
+
+export interface ConsultUnderstandResult {
+  schemaVersion: '1';
+  intent: ConsultIntent;
+  language: 'ar' | 'en';
+  context: ConsultContext;
+  mentionedProducts: string[];
+  mentionedIngredients: string[];
+  redFlags: Array<{ code: string; evidence: string }>;
+  missing: string[];
+  needsClarification: boolean;
+  providerMetadata: ConsultProviderMetadata;
+}
+
+export interface ConsultCandidate {
+  ref: string;
+  name: string;
+  brand: string;
+  productType?: string | null;
+  role?: string | null;
+  size?: string | null;
+  price?: string | null;
+  period?: string | null;
+  reasons: Array<{ code: string; text: string; basis: 'VERIFIED' | 'EVIDENCE' | 'RULE' }>;
+  keyActives: string[];
+  usage?: string | null;
+  cautions: string[];
+  unknowns: string[];
+}
+
+export interface ConsultKnowledgeItem {
+  ref: string; subject: string; topic: string; statement: string; evidenceClass: string; source: string; professionallyReviewed: boolean;
+}
+
+export interface ConsultRespondRequest {
+  customerId: string;
+  locale: 'ar' | 'en';
+  intent: ConsultIntent;
+  messages: ConsultTurn[];
+  context: ConsultContext;
+  pageContext?: ConsultPageContext | null;
+  candidates: ConsultCandidate[];
+  excluded: string[];
+  knowledge: ConsultKnowledgeItem[];
+  routineDraft: Array<{ ref: string; slot: 'am' | 'pm' | 'as_needed'; role?: string | null }>;
+  routineIssues: string[];
+  escalation: string[];
+  mustClarify: boolean;
+  missing: string[];
+}
+
+export interface ConsultRespondResult {
+  schemaVersion: '1';
+  message: string;
+  followUpQuestion: string | null;
+  quickReplies: string[];
+  recommendations: Array<{ ref: string; why: string }>;
+  routine: { title: string; steps: Array<{ ref: string; slot: 'am' | 'pm' | 'as_needed'; why: string; howToUse: string | null }> } | null;
+  citations: string[];
+  providerMetadata: ConsultProviderMetadata;
+}
+
 export const AI_MODULE_OPTIONS = Symbol('AI_MODULE_OPTIONS');
 
 export interface AiModuleOptions {
@@ -121,6 +227,8 @@ export const AiErrorKind = {
   TIMEOUT: 'ai_timeout',
   INVALID_RESPONSE: 'ai_invalid_response',
   INCOMPATIBLE_SCHEMA: 'ai_incompatible_schema',
+  /** The AI gateway refused the call locally (per-minute window or daily cost ceiling). */
+  LIMITED: 'ai_limited',
 } as const;
 
 export type AiErrorKindValue = (typeof AiErrorKind)[keyof typeof AiErrorKind];
@@ -143,6 +251,8 @@ export abstract class AiClient implements ProductEnrichmentCaller {
   abstract enrichProduct(input: ProductEnrichmentInput, correlationId?: string): Promise<ProductEnrichmentResult>;
   abstract recommendRoutine(input: GuidanceRecommendationRequest, correlationId?: string): Promise<GuidanceRecommendationResult>;
   abstract generateContent(input: ProductContentGenerationInput, correlationId?: string): Promise<ProductContentGenerationResult>;
+  abstract consultUnderstand(input: ConsultUnderstandRequest, correlationId?: string): Promise<ConsultUnderstandResult>;
+  abstract consultRespond(input: ConsultRespondRequest, correlationId?: string): Promise<ConsultRespondResult>;
 }
 
 export interface ProductEnrichmentCaller {

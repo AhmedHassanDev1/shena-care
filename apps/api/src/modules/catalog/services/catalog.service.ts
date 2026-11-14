@@ -87,6 +87,11 @@ export interface RoutineProductFacts {
     ingredientId: string;
     skuId?: string | null;
     ingredientSlug: string;
+    ingredientName?: string;
+    /** The ontology marks this ingredient as a functional active (independent of this product's is_key_active flag). */
+    isOntologyActive?: boolean;
+    concentrationStatus?: string;
+    sortOrder?: number;
     familySlug: string | null;
     isKeyActive: boolean;
     concentrationValue: number | null;
@@ -108,6 +113,41 @@ export interface RoutineProductFacts {
     usesMin: number | null; usesMax: number | null; applicationQuantity: number | null; applicationUnit: string | null;
     isIntroductory: boolean; phaseOrder: number | null; condition: string | null; reviewedAt: string;
   }>;
+}
+
+/** One SKU's place in a routine, as the catalog pipeline computed it (catalog.sku_routine_profiles). */
+export interface CareVariantRoutine {
+  primaryRole: string | null;
+  routineDomain: string | null;
+  stepOrder: number | null;
+  /** AM | PM | BOTH | UNKNOWN as the manufacturer states it. */
+  routinePeriod: string;
+  /** AM | PM | BOTH by system rule (e.g. sunscreen is a morning step); guidance, not a product instruction. */
+  periodEligibility: string | null;
+  rinseMode: string;
+  cadenceUnit: string;
+  cadenceMin: number | null;
+  cadenceMax: number | null;
+  activeIngredients: Array<Record<string, unknown>>;
+  featuredIngredients: Array<Record<string, unknown>>;
+  cautions: Array<Record<string, unknown>>;
+}
+
+/** RoutineProductFacts plus what recommendation and consultation need to describe and place a product. */
+export interface CareProductFacts extends RoutineProductFacts {
+  slug: string;
+  brandSlug: string;
+  productType: string | null;
+  productSubtype: string | null;
+  concerns: string[];
+  usageText: string | null;
+  warningsText: string | null;
+  description: string | null;
+  categorySlug: string | null;
+  categoryName: string | null;
+  departmentSlug: string | null;
+  productLine: { slug: string; name: string } | null;
+  variants: Array<{ skuId: string; code: string; variantName: string; size: number | null; sizeUnit: string | null; routine: CareVariantRoutine | null }>;
 }
 
 export interface PublicProductIngredientFact {
@@ -757,6 +797,10 @@ export class CatalogService {
         ingredientId: pi.ingredientId,
         skuId: pi.skuId ?? null,
         ingredientSlug: pi.ingredient.slug,
+        ingredientName: pi.ingredient.name,
+        isOntologyActive: pi.ingredient.isActiveIngredient,
+        concentrationStatus: pi.concentrationStatus,
+        sortOrder: pi.sortOrder,
         familySlug: pi.ingredient.familySlug ?? null,
         isKeyActive: pi.isKeyActive,
         concentrationValue: pi.concentrationValue === null ? null : Number(pi.concentrationValue),
@@ -783,6 +827,74 @@ export class CatalogService {
         reviewedAt: r.reviewedAt.toISOString(),
       })),
     }));
+  }
+
+  /**
+   * Everything the recommendation engine and the consultation may know about published products: the reviewed facts of
+   * getRoutineProductFacts plus identity for display (slug, variants), the deterministic product type, the manufacturer's
+   * usage and warning text, and each SKU's routine profile. Read-only; same visibility gate as the storefront listing
+   * (published, not archived, at least one image and one active SKU).
+   */
+  async getCareProductFacts(filter: { productIds?: string[]; department?: 'skin-care' | 'hair-care'; limit?: number } = {}): Promise<CareProductFacts[]> {
+    const ids = filter.productIds ? [...new Set(filter.productIds)].filter(id => this.isUuid(id)) : undefined;
+    if (ids && !ids.length) return [];
+    const rows = await this.prisma.product.findMany({
+      where: {
+        isPublished: true, archivedAt: null,
+        skus: { some: { isActive: true } }, media: { some: {} },
+        ...(ids && { id: { in: ids } }),
+        ...(filter.department && { category: { OR: [{ slug: filter.department }, { parent: { slug: filter.department } }] } }),
+      },
+      orderBy: { id: 'asc' }, take: Math.min(filter.limit ?? 500, 500),
+      select: {
+        id: true, slug: true, productType: true, productSubtype: true, concerns: true, usage: true, warnings: true, description: true,
+        category: { select: { slug: true, name: true, parent: { select: { slug: true } } } },
+        productLine: { select: { slug: true, name: true } },
+        brand: { select: { slug: true } },
+        skus: {
+          where: { isActive: true }, orderBy: { createdAt: 'asc' },
+          select: { id: true, code: true, variantName: true, size: true, sizeUnit: true, routineProfile: true },
+        },
+      },
+    });
+    if (!rows.length) return [];
+    const facts = new Map((await this.getRoutineProductFacts(rows.map(row => row.id))).map(fact => [fact.productId, fact]));
+    const out: CareProductFacts[] = [];
+    for (const row of rows) {
+      const fact = facts.get(row.id);
+      if (!fact) continue;
+      out.push({
+        ...fact,
+        slug: row.slug, brandSlug: row.brand.slug, productType: row.productType ?? null, productSubtype: row.productSubtype ?? null,
+        concerns: row.concerns ?? [], usageText: row.usage ?? null, warningsText: row.warnings ?? null, description: row.description ?? null,
+        categorySlug: row.category?.slug ?? null, categoryName: row.category?.name ?? null,
+        departmentSlug: row.category?.parent?.slug ?? row.category?.slug ?? null,
+        productLine: row.productLine ? { slug: row.productLine.slug, name: row.productLine.name } : null,
+        variants: row.skus.map(sku => {
+          const profile = sku.routineProfile;
+          return {
+            skuId: sku.id, code: sku.code, variantName: sku.variantName, size: sku.size === null ? null : Number(sku.size), sizeUnit: sku.sizeUnit ?? null,
+            routine: profile ? {
+              primaryRole: profile.primaryRole ?? null, routineDomain: profile.routineDomain ?? null, stepOrder: profile.stepOrder ?? null,
+              routinePeriod: profile.routinePeriod, periodEligibility: profile.periodEligibility ?? null, rinseMode: profile.rinseMode,
+              cadenceUnit: profile.cadenceUnit, cadenceMin: profile.cadenceMin ?? null, cadenceMax: profile.cadenceMax ?? null,
+              activeIngredients: (profile.activeIngredients as unknown as Array<Record<string, unknown>>) ?? [],
+              featuredIngredients: (profile.featuredIngredients as unknown as Array<Record<string, unknown>>) ?? [],
+              cautions: (profile.cautions as unknown as Array<Record<string, unknown>>) ?? [],
+            } : null,
+          };
+        }),
+      });
+    }
+    return out;
+  }
+
+  /** Ontology entries (name, aliases, family) of ingredients flagged as actives, for reading a product's featured ingredients. */
+  async getActiveIngredientVocabulary(): Promise<Array<{ id: string; slug: string; name: string; nameAr: string | null; aliases: string[]; familySlug: string | null }>> {
+    return this.prisma.ingredient.findMany({
+      where: { isActiveIngredient: true, status: 'APPROVED' }, orderBy: { slug: 'asc' },
+      select: { id: true, slug: true, name: true, nameAr: true, aliases: true, familySlug: true },
+    });
   }
 
   /** Reviewed usage rules for the given SKUs, for product detail / routine building. */

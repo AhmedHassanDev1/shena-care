@@ -48,6 +48,27 @@ export class CareProfileService {
     return profile;
   }
 
+  /**
+   * The part of a care profile a consultation may start from: skin type, the fragrance preference, chosen concerns and
+   * the safety answers. Nothing that identifies the customer. A customer with no profile gets empty values, never an error.
+   */
+  async consultationSnapshot(customerId: string) {
+    const profile = await this.prisma.customerCareProfile.findUnique({
+      where: { customerId },
+      select: { skinType: true, fragranceFree: true, concerns: { select: { concern: { select: { slug: true, isActive: true } } } }, safetyFlags: true },
+    });
+    const flags = profile?.safetyFlags;
+    return {
+      skinType: profile?.skinType ?? null,
+      fragranceFree: profile?.fragranceFree ?? null,
+      concernSlugs: (profile?.concerns ?? []).filter(row => row.concern.isActive).map(row => row.concern.slug),
+      safety: {
+        pregnant: flags?.pregnant ?? 'UNKNOWN', breastfeeding: flags?.breastfeeding ?? 'UNKNOWN',
+        prescriptionTopical: flags?.prescriptionTopical ?? 'UNKNOWN', oralRetinoid: flags?.oralRetinoid ?? 'UNKNOWN',
+      } as { pregnant: 'YES' | 'NO' | 'UNKNOWN'; breastfeeding: 'YES' | 'NO' | 'UNKNOWN'; prescriptionTopical: 'YES' | 'NO' | 'UNKNOWN'; oralRetinoid: 'YES' | 'NO' | 'UNKNOWN' },
+    };
+  }
+
   async updateProfile(customerId: string, dto: UpdateCustomerCareProfileDto) {
     // Check if exists
     await this.getProfile(customerId);

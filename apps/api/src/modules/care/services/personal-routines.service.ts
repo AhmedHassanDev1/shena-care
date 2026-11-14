@@ -6,6 +6,7 @@ import { PersonalRoutineDto, RoutineStepInputDto, SaveAiRoutineDto } from '../dt
 import { ResolvedStep, RoutineContentService, RoutineView } from './routine-content.service';
 import { cleanNote, findUnsupportedClaim } from './routine-claims';
 import { ImportIssue } from './routine-import';
+import { RoutineCompatibilityService } from './routine-compatibility.service';
 
 export const MAX_PERSONAL_ROUTINES = 20;
 const isUniqueViolation = (error: unknown) => error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -43,7 +44,11 @@ export class ReadyRoutinesService {
  */
 @Injectable()
 export class PersonalRoutinesService {
-  constructor(private readonly prisma: PrismaService, private readonly content: RoutineContentService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly content: RoutineContentService,
+    private readonly compatibility: RoutineCompatibilityService,
+  ) {}
 
   async list(customerId: string) {
     const rows = await this.prisma.routine.findMany({
@@ -196,6 +201,14 @@ export class PersonalRoutinesService {
     // All or nothing: one invalid step means nothing is saved, so a half-validated routine never exists.
     if (issues.length) throw new UnprocessableEntityException({ code: 'PROPOSAL_INVALID', message: 'The proposal has steps that cannot be saved', issues });
     if (!resolved.length) throw new BadRequestException('The proposal has no steps');
+
+    // The customer may have edited the proposal: the shared compatibility rules run again on exactly what is being saved.
+    const compatibility = await this.compatibility.check(
+      resolved.map(step => ({ skuId: step.product.skuId, slot: step.timing })), await this.compatibility.savedSafety(customerId));
+    const blocking = compatibility.issues.filter(issue => issue.severity === 'BLOCK');
+    if (blocking.length) {
+      throw new UnprocessableEntityException({ code: 'ROUTINE_INCOMPATIBLE', message: 'The routine has products that should not be used together or do not suit your safety answers', issues: blocking });
+    }
 
     try {
       const id = await this.prisma.$transaction(async tx => {

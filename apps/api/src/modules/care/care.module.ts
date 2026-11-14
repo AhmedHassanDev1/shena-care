@@ -5,7 +5,6 @@ import { CareController } from './care.controller';
 import { CareTaxonomyController } from './care-taxonomy.controller';
 import { CatalogModule } from '../catalog/public';
 import { CommerceModule } from '../commerce/public';
-import { GuidanceModule } from '../guidance/guidance.module';
 import { AiModule } from '../../platform/ai/ai.module';
 
 import { MessagingModule } from '../messaging/messaging.module';
@@ -28,12 +27,14 @@ import { RoutineStudioService } from './services/routine-studio.service';
 import { PersonalRoutinesService, ReadyRoutinesService } from './services/personal-routines.service';
 import { RoutineStudioController } from './routine-studio.controller';
 import { PersonalRoutinesController, ReadyRoutinesController } from './personal-routines.controller';
+import { RoutineCompatibilityService } from './services/routine-compatibility.service';
+import { RoutineCompatibilityController } from './routine-compatibility.controller';
 
 @Module({
-  imports: [CatalogModule, CommerceModule, MessagingModule, GuidanceModule, AiModule],
+  imports: [CatalogModule, CommerceModule, MessagingModule, AiModule],
   // RoutineCatalogController before CareController: GET care/routines/featured must not reach GET care/routines/:id.
   controllers: [
-    CareTaxonomyController, RoutineCatalogController, RoutineAdminController, CareController, RoutineWorkspaceController,
+    CareTaxonomyController, RoutineCompatibilityController, RoutineCatalogController, RoutineAdminController, CareController, RoutineWorkspaceController,
     MyRoutinesController, RoutineStudioController, ReadyRoutinesController, PersonalRoutinesController,
   ],
   providers: [
@@ -41,12 +42,12 @@ import { PersonalRoutinesController, ReadyRoutinesController } from './personal-
     ReplenishmentEstimatorService, AdaptiveCheckinService, LifecycleTriggerService,
     RetentionMetricsService, CareEventListener, RoutineWorkspaceService, RoutineProposalService,
     RoutineEngineService, MyRoutinesService, RoutineCatalogService,
-    RoutineContentService, RoutineStudioService, ReadyRoutinesService, PersonalRoutinesService,
+    RoutineContentService, RoutineStudioService, ReadyRoutinesService, PersonalRoutinesService, RoutineCompatibilityService,
   ],
   exports: [
     CareService, CareProfileService, CareReminderOrchestrator,
     ReplenishmentEstimatorService, AdaptiveCheckinService, LifecycleTriggerService,
-    RetentionMetricsService, RoutineWorkspaceService, RoutineProposalService, MyRoutinesService,
+    RetentionMetricsService, RoutineWorkspaceService, RoutineProposalService, MyRoutinesService, RoutineCompatibilityService,
   ],
 })
 export class CareModule {}

@@ -2914,11 +2914,15 @@ enum GuidanceSessionStatus {
 }
 
 model GuidanceSession {
-  id         String                @id @default(uuid()) @db.Uuid
-  customerId String                @map("customer_id")
-  status     GuidanceSessionStatus @default(active)
-  createdAt  DateTime              @default(now()) @map("created_at")
-  updatedAt  DateTime              @updatedAt @map("updated_at")
+  id          String                @id @default(uuid()) @db.Uuid
+  customerId  String                @map("customer_id")
+  status      GuidanceSessionStatus @default(active)
+  /// What the consultation has learned about the need so far (care area, concerns, skin type, safety answers). No identity data.
+  context     Json?
+  /// Where the customer opened the consultation: { kind, concernSlug?, categorySlug?, productSlug? }.
+  pageContext Json?                 @map("page_context")
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
 
   messages GuidanceMessage[]
 
@@ -3012,12 +3016,82 @@ model GuidanceMessage {
   role      GuidanceMessageRole
   content   String
   proposal  Json? // Store structured routine proposal if returned by AI
+  /// Structured turn of the care consultation: recommendations with reasons, citations, routine draft, escalation, source.
+  payload   Json?
   createdAt DateTime            @default(now()) @map("created_at")
 
   session GuidanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@map("guidance_messages")
+  @@schema("care")
+}
+
+/// One sourced statement of care knowledge: what an ingredient does, which concern it is relevant to, how a product type is
+/// used, a precaution, or when to see a professional. Every row names its source, when it was retrieved, how strong the
+/// evidence is and whether a qualified professional has reviewed it. Product-specific facts stay in Catalog
+/// (ingredients, usage rules, safety warnings); this table holds the general knowledge the consultation reasons with.
+model KnowledgeEntry {
+  id            String    @id @default(uuid()) @db.Uuid
+  /// Stable identifier of the statement, so a re-seed or re-research updates the row instead of duplicating it.
+  key           String    @unique @db.VarChar(120)
+  /// INGREDIENT | INGREDIENT_FAMILY | PRODUCT_TYPE | CONCERN | GENERAL
+  subjectType   String    @map("subject_type") @db.VarChar(24)
+  /// Ingredient slug, ingredient family slug, product type or concern slug (no relation across contexts).
+  subjectKey    String    @map("subject_key") @db.VarChar(80)
+  /// FUNCTION | CONCERN_RELEVANCE | USAGE | PRECAUTION | COMPATIBILITY | LIMITATION | ESCALATION | OVERVIEW
+  topic         String    @db.VarChar(24)
+  /// Concern this statement is about (CONCERN_RELEVANCE, ESCALATION, OVERVIEW).
+  concernSlug   String?   @map("concern_slug") @db.VarChar(80)
+  careArea      CareArea? @map("care_area")
+  /// For CONCERN_RELEVANCE: PRIMARY (the evidence names it for this concern) | SUPPORTIVE (helps the routine around it).
+  strength      String?   @db.VarChar(12)
+  statementEn   String    @map("statement_en")
+  statementAr   String    @map("statement_ar")
+  /// VERIFIED_FACT (manufacturer/label/regulator states it) | EVIDENCE_SUPPORTED (published guidance or literature)
+  /// | INFERENCE (reasoned from the above, said as such) | CONFLICT (sources disagree; never used to recommend).
+  evidenceClass String    @map("evidence_class") @db.VarChar(24)
+  sourceTitle   String    @map("source_title")
+  sourceUrl     String?   @map("source_url")
+  /// MANUFACTURER | PRODUCT_LABEL | REGULATOR | PROFESSIONAL_BODY | CLINICAL_GUIDELINE | PEER_REVIEWED | SHINACARE_POLICY
+  sourceType    String    @map("source_type") @db.VarChar(30)
+  retrievedAt   DateTime  @map("retrieved_at")
+  /// AUTO_ACCEPTED (low-risk, sourced) | PENDING_PROFESSIONAL_REVIEW | PROFESSIONALLY_REVIEWED | REJECTED
+  reviewStatus  String    @default("PENDING_PROFESSIONAL_REVIEW") @map("review_status") @db.VarChar(30)
+  reviewedBy    String?   @map("reviewed_by")
+  reviewedAt    DateTime? @map("reviewed_at")
+  /// 0..1: how directly the source supports the statement as worded.
+  confidence    Float     @default(0.7)
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([subjectType, subjectKey])
+  @@index([concernSlug, topic])
+  @@map("knowledge_entries")
+  @@schema("care")
+}
+
+/// One AI gateway call made for a customer: the basis of per-customer limits and of cost monitoring.
+model AiUsageEvent {
+  id               String   @id @default(uuid()) @db.Uuid
+  customerId       String   @map("customer_id")
+  sessionId        String?  @map("session_id") @db.Uuid
+  /// consult.understand | consult.respond
+  task             String   @db.VarChar(40)
+  model            String?  @db.VarChar(80)
+  promptTokens     Int      @default(0) @map("prompt_tokens")
+  completionTokens Int      @default(0) @map("completion_tokens")
+  costUsd          Decimal  @default(0) @map("cost_usd") @db.Decimal(12, 6)
+  latencyMs        Int      @default(0) @map("latency_ms")
+  /// OK | UNAVAILABLE | TIMEOUT | INVALID | LIMITED
+  outcome          String   @db.VarChar(16)
+  usedFallback     Boolean  @default(false) @map("used_fallback")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([customerId, createdAt])
+  @@index([createdAt])
+  @@map("ai_usage_events")
   @@schema("care")
 }
 
