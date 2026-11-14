@@ -669,10 +669,16 @@ export class CanonicalResearchService {
   /** Brings an image a reviewed source shows into private storage bytes for the media workflow. Rights stay unknown until a person states them. */
   async fetchSourceImage(factId: string, imageUrl: string): Promise<{ buffer: Buffer; contentType: string; sourceUrl: string; sourceTier: SourceTier; skuId: string }> {
     const fact = await this.prisma.productFactProposal.findUnique({ where: { id: factId } });
-    if (!fact || fact.field !== 'media.sourceImages') throw new NotFoundException('Image evidence not found');
+    if (!fact || fact.field !== 'media.sourceImages' || fact.status === ProductFactStatus.REJECTED) throw new NotFoundException('Image evidence not found');
     if (!(fact.value as string[]).includes(imageUrl)) throw new BadRequestException('This image is not in the evidence of this fact');
     const sku = await this.skuContext(fact.skuId);
     const evidence = (fact.evidence as unknown as FactEvidence[])[0];
+    if (!evidence?.sourceUrl) throw new BadRequestException('Image source provenance is missing');
+    const page = await this.fetcher.fetch(evidence.sourceUrl, { kind: 'page', isApprovedHost: this.approvedHost(sku) });
+    if (page.outcome !== 'OK' || !page.body) throw new ConflictException({ code: 'IMAGE_SOURCE_NOT_VERIFIED', message: `The product page could not be revalidated: ${page.outcome}` });
+    const current = extractProductFacts(page.body.toString('utf8'), page.finalUrl ?? evidence.sourceUrl, await this.expectation(sku));
+    const currentImages = current.facts.find(item => item.field === 'media.sourceImages')?.value as string[] | undefined;
+    if (!current.identityMatched || !currentImages?.includes(imageUrl)) throw new ConflictException({ code: 'IMAGE_VARIANT_NOT_CONFIRMED', message: 'The current product source does not bind this image to this SKU variant' });
     const fetched = await this.fetcher.fetch(imageUrl, { kind: 'image', isApprovedHost: host => this.approvedHost(sku)(host) || new URL(evidence.sourceUrl).hostname === host });
     if (fetched.outcome !== 'OK' || !fetched.body || !fetched.contentType) throw new ConflictException({ code: 'IMAGE_NOT_FETCHED', message: `The image could not be read: ${fetched.outcome}`, outcome: fetched.outcome });
     return { buffer: fetched.body, contentType: fetched.contentType, sourceUrl: evidence.sourceUrl, sourceTier: evidence.sourceTier, skuId: fact.skuId };

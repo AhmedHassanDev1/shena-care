@@ -10,7 +10,7 @@ import * as path from 'path';
 import sharp from 'sharp';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
-import { CatalogService } from '../../src/modules/catalog/public';
+import { CatalogService, CatalogIntakeService, CanonicalResearchService } from '../../src/modules/catalog/public';
 import { RESEARCH_TRANSPORT, ResearchTransport } from '../../src/modules/catalog/public';
 import { ResearchSourceFetcher } from '../../src/modules/catalog/research/research-source-fetcher';
 import { PrismaService } from '../../src/platform/database/prisma.service';
@@ -18,6 +18,7 @@ import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
 import { uniqueGtin } from '../fixtures/gtin';
+import { RESEARCH_SCHEMA_VERSION } from '../../src/modules/catalog/research/product-fact-extractor';
 
 const TEMPLATE = fs.readFileSync(path.join(__dirname, '../../assets/media-templates/sahel-soft-plinth-v1.webp'));
 const RULES = fs.readFileSync(path.join(__dirname, '../../assets/media-templates/sahel-soft-plinth.rules.json'), 'utf8');
@@ -131,7 +132,7 @@ describe('Product journey: intake, research, evidence, media, review, publicatio
     site.pages.set(url, { status: 200, body: productPage(`Hydra Barrier Cream ${run}`, 50, 'AQUA, GLYCERIN, NIACINAMIDE, CERAMIDE NP') });
 
     const started = (await asAdmin('post', `/catalog/workbench/skus/${skuId}/research`).send({ sourceUrls: [url] }).expect(201)).body;
-    expect(started).toMatchObject({ status: 'COMPLETE', schemaVersion: 1, attempts: 1 });
+    expect(started).toMatchObject({ status: 'COMPLETE', schemaVersion: RESEARCH_SCHEMA_VERSION, attempts: 1 });
     expect(started.sources[0]).toMatchObject({ url, tier: 'OFFICIAL_MANUFACTURER', outcome: 'OK', origin: 'ADMIN' });
 
     const before = await prisma.product.findUniqueOrThrow({ where: { id: productId } });
@@ -140,8 +141,8 @@ describe('Product journey: intake, research, evidence, media, review, publicatio
 
     const { facts } = await workbench(skuId);
     const inci = factOf(facts, 'composition.inci');
-    expect(inci).toMatchObject({ status: 'PROPOSED', value: ['AQUA', 'GLYCERIN', 'NIACINAMIDE', 'CERAMIDE NP'], schemaVersion: 1 });
-    expect(inci.evidence[0]).toMatchObject({ sourceUrl: url, sourceTier: 'OFFICIAL_MANUFACTURER', extractor: 'deterministic@1' });
+    expect(inci).toMatchObject({ status: 'PROPOSED', value: ['AQUA', 'GLYCERIN', 'NIACINAMIDE', 'CERAMIDE NP'], schemaVersion: RESEARCH_SCHEMA_VERSION });
+    expect(inci.evidence[0]).toMatchObject({ sourceUrl: url, sourceTier: 'OFFICIAL_MANUFACTURER', extractor: `deterministic@${RESEARCH_SCHEMA_VERSION}` });
     expect(inci.evidence[0].excerpt).toContain('GLYCERIN');
     expect(inci.confidence).toBeCloseTo(0.95);
     expect(factOf(facts, 'composition.activeConcentrations')).toBeUndefined();
@@ -261,6 +262,9 @@ describe('Product journey: intake, research, evidence, media, review, publicatio
     for (const actor of [hub, customer, supplier]) await api().post(`/catalog/workbench/skus/${skuId}/publish`).set(actor.auth).send({}).expect(403);
 
     await asAdmin('post', `/catalog/workbench/skus/${skuId}/research`).send({ sourceUrls: [url] }).expect(201);
+    const identity = await app.get(CanonicalResearchService).checkSource({ brand: brand.name, productName: name, size: 50, sizeUnit: 'ml', barcode: null, websiteUrl: new URL(url).origin }, url);
+    expect(identity).toMatchObject({ identityMatched: true, sizeConfirmed: true, tier: 'OFFICIAL_MANUFACTURER' });
+    await app.get(CatalogIntakeService).recordIdentityVerification(skuId, { status: 'EVIDENCE_VERIFIED', rule: 'EXACT_RECORDED_MANUFACTURER_PAGE', sourceUrls: [url], actorId: admin.id });
     const { facts } = await workbench(skuId);
     for (const field of ['composition.inci', 'usage.instructions', 'safety.warnings', 'identity.size', 'attributes.texture', 'usage.targetArea', 'usage.routinePeriod']) {
       if (factOf(facts, field)) await reviewFact(factOf(facts, field).id).expect(200);

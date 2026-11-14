@@ -7,7 +7,7 @@ import { rinseMode } from './catalog-decision-engine';
  * Deterministic extraction of product facts from one fetched page. Everything returned is literally on that page and carries the excerpt that states it; anything else
  * stays unknown. Versioned because a stored proposal must say which rules produced it.
  */
-export const RESEARCH_SCHEMA_VERSION = 1;
+export const RESEARCH_SCHEMA_VERSION = 2;
 
 export type FactField =
   | 'identity.name' | 'identity.brand' | 'identity.gtin' | 'identity.size'
@@ -558,7 +558,33 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
       } catch { /* invalid gallery URL */ }
     }
   }
-  const imageList = [...images].filter(url => url.startsWith('https://')).slice(0, 8);
+  // AEM configurable product pages bind each size to its own assets. Their generic
+  // OG/gallery hero can be another size (real Sensibio 250 ml -> default 500 ml).
+  const variantForms = [...html.matchAll(/<form\b[^>]*\bdata-product-variants=["']([^"']*)["'][^>]*>/gi)]
+    .filter(match => /\bdata-product-sku=/.test(match[0]));
+  if (variantForms.length) {
+    images.clear();
+    try {
+      const variants: unknown = JSON.parse(decode(variantForms[0][1]));
+      if (variantForms.length === 1 && Array.isArray(variants) && variants.length <= 200 && sku.size !== null) {
+        const matching = variants.filter(variant => {
+          if (!variant || typeof variant.name !== 'string') return false;
+          const sizes = sizesIn(variant.name), words = new Set(tokens(variant.name));
+          const dimensions = variant.variantAttributes;
+          return sizes.length === 1 && stated(sizes[0]) && wanted.length > 0 && wanted.filter(word => words.has(word)).length / wanted.length >= 0.5
+            && (!dimensions || (typeof dimensions === 'object' && Object.keys(dimensions).every(key => key === 'volume')))
+            && !VARIANT_QUALIFIERS.some(([, pattern]) => pattern.test(sku.productName) !== pattern.test(variant.name));
+        });
+        if (matching.length === 1 && Array.isArray(matching[0].assets)) {
+          const primary = matching[0].assets.filter((asset: { type?: string; position?: number; videoUrl?: string; path?: string }) =>
+            asset && asset.type === 'image' && asset.position === 0 && !asset.videoUrl && typeof asset.path === 'string');
+          if (primary.length === 1) addImage(primary[0].path);
+        }
+      }
+    } catch { /* malformed variant data cannot establish an image/size association */ }
+    if (!images.size) rejected.push({ field: 'media.sourceImages', reason: 'VARIANT_IMAGE_NOT_CONFIRMED', detail: 'No unique primary asset is bound to this exact variant' });
+  }
+  const imageList = [...images].filter(url => { try { const parsed = new URL(url); return parsed.protocol === 'https:' && !parsed.username && !parsed.password; } catch { return false; } }).slice(0, 8);
   if (imageList.length) add('media.sourceImages', imageList, imageList[0]);
 
   return { facts, rejected, identityMatched: true };
