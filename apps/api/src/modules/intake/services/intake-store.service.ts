@@ -33,6 +33,7 @@ export interface RowSettlement {
   processingMs?: number | null;
   cost?: unknown;
   stage?: string | null;
+  attempts?: number;
 }
 
 const json = (value: unknown) => (value === undefined ? undefined : value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue));
@@ -84,6 +85,7 @@ export class IntakeStoreService {
         outcome: row.outcome, reasonCode: row.reasonCode, reason: row.reason ?? null, matchedSkuId: row.matchedSkuId ?? null,
         candidates: json(row.candidates), evidence: json(row.evidence), readiness: json(row.readiness), processingMs: row.processingMs ?? null, cost: json(row.cost),
         stage: row.stage ?? null, leaseUntil: null, nextAttemptAt: null, lastError: null,
+        ...(row.attempts !== undefined && { attempts: row.attempts }),
       } })));
     }
   }

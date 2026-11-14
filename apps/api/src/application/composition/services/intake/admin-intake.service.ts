@@ -105,10 +105,11 @@ export class AdminIntakeService {
         const attempts = row.attempts + 1;
         const message = error instanceof Error ? error.message : String(error);
         if (attempts >= MAX_AUTOMATIC_ATTEMPTS) {
-          const hold = rowHold('RETRY_EXHAUSTED', undefined, `Kept failing after ${attempts} automatic attempts: ${message.slice(0, 200)}`);
+          const failure = { attempts, lastError: message.slice(0, 1000) };
+          const hold = rowHold('RETRY_EXHAUSTED', failure, `Kept failing after ${attempts} automatic attempts: ${message.slice(0, 200)}`);
           await this.store.settle([{ id: row.id, outcome: IntakeRowOutcome.UNRESOLVED, reasonCode: 'RETRY_EXHAUSTED', reason: hold.summary, matchedSkuId: row.matchedSkuId,
-            processingMs: Date.now() - started, cost: cost(), stage: 'UNRESOLVED' }]);
-          await this.decisions.open({ subjectType: 'IMPORT_ROW', subjectId: row.id, importRowId: row.id, hold, evidence: { name: row.rawName } });
+            attempts, evidence: { ...((row.evidence as object) ?? {}), terminalFailure: failure }, processingMs: Date.now() - started, cost: cost(), stage: 'UNRESOLVED' }]);
+          await this.decisions.open({ subjectType: 'IMPORT_ROW', subjectId: row.id, importRowId: row.id, hold, evidence: { name: row.rawName, ...failure } });
         } else {
           if (!(error instanceof Retry)) this.logger.warn(`Admin intake row ${row.id} attempt ${attempts}: ${message}`);
           await this.store.progress(row.id, { attempts, nextAttemptAt: new Date(Date.now() + nextAttemptDelayMs(attempts)), lastError: message, cost: cost() });
