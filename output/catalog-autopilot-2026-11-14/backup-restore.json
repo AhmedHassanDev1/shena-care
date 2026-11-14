@@ -1,0 +1,10 @@
+{
+  "scope": "LOCAL_TEST_DATABASE",
+  "format": "pg_dump custom",
+  "backupBytes": 482184,
+  "restoreDatabase": "catalog_autopilot_restore_20261114_test",
+  "pilotRowsOriginal": 10,
+  "pilotRowsRestored": 10,
+  "restoreVerified": true,
+  "sharedDatabaseTouched": false
+}

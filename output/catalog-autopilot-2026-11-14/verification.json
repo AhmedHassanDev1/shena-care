@@ -1,0 +1,61 @@
+{
+  "commit": "574622d",
+  "pythonBiRefNet": {
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "exit": 0
+  },
+  "fullRegression": {
+    "comparisonFile": "full-regression-comparison.json",
+    "baselineCommit": "2f97b0a",
+    "candidateCommit": "574622d",
+    "baselineTestsPassed": 835,
+    "baselineTestsFailed": 345,
+    "candidateTestsPassed": 863,
+    "candidateTestsFailed": 344,
+    "newlyFailingTests": 0,
+    "exit": 1
+  },
+  "scope": "guarded disposable localhost PostgreSQL",
+  "focused": {
+    "suitesPassed": 24,
+    "testsPassed": 136,
+    "testsFailed": 0,
+    "exit": 0
+  },
+  "api": {
+    "mainStandardBuildExit": 0,
+    "mainTypecheckExit": 0,
+    "changedFilesLintExit": 0,
+    "worktreeBuildExit": 0
+  },
+  "business": {
+    "typecheckExit": 0,
+    "productionBuildExit": 0,
+    "routes": 43,
+    "distDirectory": ".next-catalog-autopilot",
+    "generatedConfigChangesRestored": true
+  },
+  "graph": {
+    "exit": 0,
+    "nodes": 13999,
+    "edges": 37335,
+    "optionalDependencyWarning": "existing tree_sitter_sql missing"
+  },
+  "migration": {
+    "newMigrationsInThisBatch": 0,
+    "isolatedExistingMainMigrationsApplied": [
+      "20261114100000_finance_profit_model",
+      "20261114120000_purchase_batches",
+      "20261114130000_staff_phone"
+    ],
+    "totalMigrations": 90,
+    "backupRestoreVerified": true,
+    "sharedDatabaseTouched": false,
+    "productionDatabaseTouched": false,
+    "productionDeploymentPerformed": false
+  },
+  "tooling": {
+    "pnpm": "Attempted automatic workspace preparation; cancelled on certificate errors. Used existing installed Node package tools; no manifest/lock changes or TLS bypass."
+  }
+}

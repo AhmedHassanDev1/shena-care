@@ -1,0 +1,76 @@
+{
+  "scope": "ISOLATED_LOCAL_TEST_DATABASE",
+  "commercialLaunchReady": false,
+  "optionalInciHoldResolved": "e9b39f31-7cb5-4764-8443-f592bbf74b32",
+  "biodermaImage": {
+    "outcome": "ROBOTS_DISALLOWED",
+    "reason": "The image could not be read: ROBOTS_DISALLOWED",
+    "imageUrl": "https://back-ac-prod.bioderma.com/media/catalog/product/cache/b443460c314aa18d2c50e93a48ddeb50/1/f/1f26b0eb103da154cfa311076857c14e7d41080fd3ba13c60a33656d418c0721-_7b159703_7d__7b_7d__7b28703a_7d.jpg",
+    "factId": "d6027721-4bfe-4840-bf4d-ef090d983ee8"
+  },
+  "sa": {
+    "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+    "assetId": "2f4f85f9-15f2-4767-acd6-5d6021269724",
+    "hash": "9f56f7745a0cef9e11e0d1a3f0fe0997348c5bf424d28d070b6d65c9edce026a",
+    "width": 200,
+    "height": 400,
+    "reviewedAutomatically": false,
+    "readiness": {
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "productId": "10fab1e0-f087-47cf-8332-5fef12f3d234",
+      "isPublished": true,
+      "ready": true,
+      "blockers": [],
+      "warnings": [
+        "BARCODE_MISSING",
+        "CARTON_UNVERIFIED",
+        "EDITORIAL_IMAGE_NOT_APPROVED"
+      ],
+      "media": {
+        "PRIMARY_PACKSHOT": "PUBLISHED",
+        "TEXTURE_SENSORY": "MISSING",
+        "INGREDIENT_STORY": "MISSING",
+        "PACKAGING_PROOF": "MISSING",
+        "CATEGORY_EDITORIAL": "MISSING"
+      },
+      "facts": {
+        "total": 13,
+        "applied": [
+          "attributes.nonComedogenic",
+          "composition.fragrance",
+          "composition.inci",
+          "composition.keyIngredients",
+          "identity.size",
+          "marketing.description",
+          "suitability.skinTypes",
+          "usage.instructions"
+        ],
+        "pending": [],
+        "unverified": [
+          "claims.manufacturerStated",
+          "identity.name",
+          "media.sourceImages",
+          "usage.instructions"
+        ],
+        "conflicts": []
+      },
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "barcodeStatus": "UNKNOWN",
+        "barcode": null
+      },
+      "packaging": {
+        "outerCarton": "UNVERIFIED"
+      },
+      "openExceptions": 0,
+      "commerce": {
+        "isListed": true,
+        "price": {
+          "amount": 100,
+          "currency": "EGP"
+        }
+      }
+    },
+    "testPriceScope": "EXPLICIT_OWNER_DEV_ONLY_EGP_100"
+  }
+}

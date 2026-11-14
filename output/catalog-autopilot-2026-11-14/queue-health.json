@@ -1,0 +1,15 @@
+{
+  "scope": "ISOLATED_LOCAL_TEST_DATABASE",
+  "intakeJobs": [
+    {
+      "_count": {
+        "_all": 5
+      },
+      "status": "COMPLETED"
+    }
+  ],
+  "pendingRows": 0,
+  "expiredLeases": 0,
+  "activeJobs": [],
+  "optionalPendingEnhancements": 1
+}

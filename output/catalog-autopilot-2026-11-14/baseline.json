@@ -1,0 +1,727 @@
+{
+  "job": {
+    "id": "9b9438e4-5de5-4eae-a56b-3833617bd8d2",
+    "status": "COMPLETED",
+    "totals": {
+      "total": 10,
+      "UNRESOLVED": 4,
+      "DRAFT_CREATED": 3,
+      "LINKED_EXISTING": 3
+    },
+    "completedAt": "2026-11-13T20:00:48.703Z"
+  },
+  "rows": [
+    {
+      "id": "d8962ea9-8fe9-4f6d-904f-4d4da101e021",
+      "rowNumber": 2,
+      "rawName": "CeraVe Hydrating Facial Cleanser 236ml",
+      "outcome": "LINKED_EXISTING",
+      "reasonCode": "EXISTING_SKU:SAME_VERIFIED_PAGE",
+      "reason": null,
+      "attempts": 0,
+      "leaseUntil": null,
+      "nextAttemptAt": null,
+      "matchedSkuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "sourceCells": {
+        "url": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+        "name": "CeraVe Hydrating Facial Cleanser 236ml"
+      }
+    },
+    {
+      "id": "d9ca769a-dfb8-4db3-a672-6fed303fc22b",
+      "rowNumber": 3,
+      "rawName": "CeraVe Foaming Facial Cleanser 236ml",
+      "outcome": "LINKED_EXISTING",
+      "reasonCode": "EXISTING_SKU:SAME_VERIFIED_PAGE",
+      "reason": null,
+      "attempts": 0,
+      "leaseUntil": null,
+      "nextAttemptAt": null,
+      "matchedSkuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "sourceCells": {
+        "url": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+        "name": "CeraVe Foaming Facial Cleanser 236ml"
+      }
+    },
+    {
+      "id": "9179102b-0603-455b-bc55-a8d1bc546352",
+      "rowNumber": 4,
+      "rawName": "CeraVe Moisturizing Cream 454g",
+      "outcome": "LINKED_EXISTING",
+      "reasonCode": "EXISTING_SKU:SAME_VERIFIED_PAGE",
+      "reason": null,
+      "attempts": 0,
+      "leaseUntil": null,
+      "nextAttemptAt": null,
+      "matchedSkuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "sourceCells": {
+        "url": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+        "name": "CeraVe Moisturizing Cream 454g"
+      }
+    },
+    {
+      "id": "73e1ce23-c8fd-4c31-803b-77645cd52ae7",
+      "rowNumber": 5,
+      "rawName": "CeraVe SA Smoothing Cleanser 236ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "attempts": 0,
+      "leaseUntil": null,
+      "nextAttemptAt": null,
+      "matchedSkuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "sourceCells": {
+        "url": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+        "name": "CeraVe SA Smoothing Cleanser 236ml"
+      }
+    },
+    {
+      "id": "c0fe7d60-10e3-4500-b87d-909c555ad18e",
+      "rowNumber": 6,
+      "rawName": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "attempts": 0,
+      "leaseUntil": null,
+      "nextAttemptAt": null,
+      "matchedSkuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "sourceCells": {
+        "url": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+        "name": "The Ordinary Niacinamide 10% + Zinc 1% 30ml"
+      }
+    },
+    {
+      "id": "e4c758d5-6de5-40a0-abf1-1a4b5805ff48",
+      "rowNumber": 7,
+      "rawName": "The Ordinary Hyaluronic Acid 2% + B5 30ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "PAGE_NAMES_ANOTHER_VARIANT",
+      "reason": "The official page found is for Hyaluronic Acid 2% + B5 (with Ceramides), not exactly \"Hyaluronic Acid 2% + B5\"",
+      "attempts": 0,
+      "leaseUntil": null,
+      "nextAttemptAt": null,
+      "matchedSkuId": null,
+      "sourceCells": {
+        "url": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-with-ceramides-100637.html",
+        "name": "The Ordinary Hyaluronic Acid 2% + B5 30ml"
+      }
+    },
+    {
+      "id": "cfbac0e3-cdd9-447b-86f9-92aaa830c6d4",
+      "rowNumber": 8,
+      "rawName": "La Roche-Posay Effaclar Purifying Foaming Gel 200ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "RETRY_EXHAUSTED",
+      "reason": "Kept failing after 5 automatic attempts: BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED",
+      "attempts": 4,
+      "leaseUntil": null,
+      "nextAttemptAt": null,
+      "matchedSkuId": null,
+      "sourceCells": {
+        "url": "https://www.laroche-posay.co.uk/en_GB/effaclar-purifying-cleansing-gel/LRP_103.html",
+        "name": "La Roche-Posay Effaclar Purifying Foaming Gel 200ml"
+      }
+    },
+    {
+      "id": "31c71f90-b89d-453d-b5ee-1fb2de296921",
+      "rowNumber": 9,
+      "rawName": "La Roche-Posay Cicaplast Baume B5+ 40ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "RETRY_EXHAUSTED",
+      "reason": "Kept failing after 5 automatic attempts: BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED",
+      "attempts": 4,
+      "leaseUntil": null,
+      "nextAttemptAt": null,
+      "matchedSkuId": null,
+      "sourceCells": {
+        "url": "https://www.laroche-posay.co.uk/en_GB/cicaplast-baume-b5-repairing-balm/LRP_035.html",
+        "name": "La Roche-Posay Cicaplast Baume B5+ 40ml"
+      }
+    },
+    {
+      "id": "e0c2ce0e-2148-4344-8c05-0442d5512488",
+      "rowNumber": 10,
+      "rawName": "Cetaphil Gentle Skin Cleanser 236ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "SIZE_NOT_CONFIRMED",
+      "reason": "The product page names the product but not this size, so the variant is not proven",
+      "attempts": 0,
+      "leaseUntil": null,
+      "nextAttemptAt": null,
+      "matchedSkuId": null,
+      "sourceCells": {
+        "url": "https://www.cetaphil.com/us/cleansers/gentle-skin-cleanser/302990110227.html",
+        "name": "Cetaphil Gentle Skin Cleanser 236ml"
+      }
+    },
+    {
+      "id": "bc94a63f-3870-4245-8c36-22460318c359",
+      "rowNumber": 11,
+      "rawName": "Bioderma Sensibio H2O 250ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "reason": null,
+      "attempts": 0,
+      "leaseUntil": null,
+      "nextAttemptAt": null,
+      "matchedSkuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "sourceCells": {
+        "url": "https://www.bioderma.co.uk/our-products/sensibio/h2o",
+        "name": "Bioderma Sensibio H2O 250ml"
+      }
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "acb716d6-b135-4e4d-a4a0-696108f3faba",
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "e4c758d5-6de5-40a0-abf1-1a4b5805ff48",
+      "skuId": null,
+      "reasonCode": "PAGE_NAMES_ANOTHER_VARIANT",
+      "status": "OPEN",
+      "summary": "The official page found is for Hyaluronic Acid 2% + B5 (with Ceramides), not exactly \"Hyaluronic Acid 2% + B5\"",
+      "recommended": {
+        "label": "Give the exact product name or its official page URL",
+        "action": "CORRECT"
+      },
+      "evidence": {
+        "name": "The Ordinary Hyaluronic Acid 2% + B5 30ml",
+        "checks": [
+          {
+            "url": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-with-ceramides-100637.html",
+            "title": "Hyaluronic Acid 2% + B5 (with Ceramides)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "f37cb0b6-b3b7-4bea-8727-eda1174972b2",
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "e0c2ce0e-2148-4344-8c05-0442d5512488",
+      "skuId": null,
+      "reasonCode": "SIZE_NOT_CONFIRMED",
+      "status": "OPEN",
+      "summary": "The product page names the product but not this size, so the variant is not proven",
+      "recommended": {
+        "label": "Add the page for this exact size",
+        "action": "CORRECT",
+        "payload": {
+          "url": "https://www.cetaphil.com/us/cleansers/gentle-skin-cleanser/302990110227.html"
+        }
+      },
+      "evidence": {
+        "name": "Cetaphil Gentle Skin Cleanser 236ml",
+        "checks": [
+          {
+            "url": "https://www.cetaphil.com/us/cleansers/gentle-skin-cleanser/302990110227.html",
+            "tier": "OFFICIAL_MANUFACTURER",
+            "outcome": "OK",
+            "reasons": [
+              "SIZE_NOT_CONFIRMED_BY_PAGE"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ebe4182d-6b0e-46e7-886b-61d044e561f6",
+      "subjectType": "FACT",
+      "subjectId": "2853b38f-f272-4b5b-87e0-eee09c928e05",
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "reasonCode": "REAL_VALIDATION_SOURCE_FORMULA_CONFLICT",
+      "status": "OPEN",
+      "summary": "Official cream page highlights Niacinamide but its INCI does not list it; formula claim requires review",
+      "recommended": null,
+      "evidence": {
+        "inci": [
+          "AQUA / WATER",
+          "GLYCERIN",
+          "CETEARYL ALCOHOL",
+          "CAPRYLIC/CAPRIC TRIGLYCERIDE",
+          "CETYL ALCOHOL",
+          "CETEARETH-20",
+          "PETROLATUM",
+          "DIMETHICONE",
+          "PHENOXYETHANOL",
+          "BEHENTRIMONIUM METHOSULFATE",
+          "POTASSIUM PHOSPHATE",
+          "ETHYLHEXYLGLYCERIN",
+          "SODIUM LAUROYL LACTYLATE",
+          "DISODIUM EDTA",
+          "DIPOTASSIUM PHOSPHATE",
+          "CERAMIDE NP",
+          "CERAMIDE AP",
+          "PHYTOSPHINGOSINE",
+          "CHOLESTEROL",
+          "XANTHAN GUM",
+          "CARBOMER",
+          "SODIUM HYALURONATE",
+          "TOCOPHEROL",
+          ". CERAMIDE EOP"
+        ],
+        "requested": "CeraVe Moisturizing Cream 454g",
+        "keyIngredients": [
+          {
+            "name": "Ceramides",
+            "function": "To help protect the natural skin barrier"
+          },
+          {
+            "name": "Hyaluronic Acid",
+            "function": "Helps retain skin's natural moisture"
+          },
+          {
+            "name": "Niacinamide",
+            "function": "Helps calm skin"
+          }
+        ],
+        "sourceEvidence": [
+          {
+            "excerpt": "Ceramides: To help protect the natural skin barrier; Hyaluronic Acid: Helps retain skin's natural moisture; Niacinamide: Helps calm skin",
+            "extractor": "deterministic@1",
+            "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+            "observedAt": "2026-11-13T17:46:58.611Z",
+            "sourceTier": "OFFICIAL_MANUFACTURER",
+            "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+          }
+        ]
+      }
+    },
+    {
+      "id": "10569d46-0eaf-4972-9e5f-7173b5d218fc",
+      "subjectType": "FACT",
+      "subjectId": "2f074620-ef16-487f-970c-1658ff891837",
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "reasonCode": "REAL_VALIDATION_NAVIGATION_AS_INGREDIENT",
+      "status": "RESOLVED",
+      "summary": "Navigation text was applied as a key ingredient",
+      "recommended": null,
+      "evidence": {
+        "inci": [
+          "Aqua (Water)",
+          "Niacinamide",
+          "Pentylene Glycol",
+          "Zinc PCA",
+          "Dimethyl Isosorbide",
+          "Tamarindus Indica Seed Gum",
+          "Xanthan Gum",
+          "Isoceteth-20",
+          "Ethoxydiglycol",
+          "Phenoxyethanol",
+          "Chlorphenesin"
+        ],
+        "requested": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+        "keyIngredients": [
+          {
+            "name": "Learn More About Niacinamide",
+            "function": "Read More Here"
+          }
+        ],
+        "sourceEvidence": [
+          {
+            "excerpt": "Learn More About Niacinamide: Read More Here",
+            "extractor": "deterministic@1",
+            "sourceUrl": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+            "observedAt": "2026-11-13T17:49:00.396Z",
+            "sourceTier": "OFFICIAL_MANUFACTURER",
+            "contentHash": "364324c6851cbefcb4caba117cf6a56d84dbce61eb714d74bd92963772604edf"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2fb14460-eedc-4c27-bf98-a13bb0bd65d6",
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "cfbac0e3-cdd9-447b-86f9-92aaa830c6d4",
+      "skuId": null,
+      "reasonCode": "RETRY_EXHAUSTED",
+      "status": "OPEN",
+      "summary": "Kept failing after 5 automatic attempts: BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED",
+      "recommended": {
+        "label": "Retry now",
+        "action": "RETRY"
+      },
+      "evidence": {
+        "name": "La Roche-Posay Effaclar Purifying Foaming Gel 200ml"
+      }
+    },
+    {
+      "id": "7ba2d97a-365d-4356-b90a-cd6889c17fc8",
+      "subjectType": "IMPORT_ROW",
+      "subjectId": "31c71f90-b89d-453d-b5ee-1fb2de296921",
+      "skuId": null,
+      "reasonCode": "RETRY_EXHAUSTED",
+      "status": "OPEN",
+      "summary": "Kept failing after 5 automatic attempts: BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED",
+      "recommended": {
+        "label": "Retry now",
+        "action": "RETRY"
+      },
+      "evidence": {
+        "name": "La Roche-Posay Cicaplast Baume B5+ 40ml"
+      }
+    },
+    {
+      "id": "e9b39f31-7cb5-4764-8443-f592bbf74b32",
+      "subjectType": "SKU",
+      "subjectId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "reasonCode": "PILOT_INCI_UNVERIFIED",
+      "status": "OPEN",
+      "summary": "Manufacturer source does not supply a verified ingredient list. Owner requires unresolved ingredients held regardless of development test price.",
+      "recommended": {
+        "label": "Verify ingredient evidence",
+        "action": "RESOLVE"
+      },
+      "evidence": {
+        "sourceUrl": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water",
+        "priceMustNotBypass": true,
+        "developmentPilotOnly": true
+      }
+    }
+  ],
+  "observations": [
+    {
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "sellerDomain": "elghazawy.com",
+      "priceEgp": "650",
+      "regularPriceEgp": null,
+      "status": "REJECTED",
+      "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+      "evidenceExcerpt": "{\"name\":\"Cerave Hyaluronic Acid & Ceramides Face Wash for normal to dry skin - 236ml\",\"price\":650,\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "618",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave Hydrating Cleanser For Normal To Dry Skin With Hyaluronic Acid 236ml\",\"price\":\"618.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/OutOfStock\"}"
+    },
+    {
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "sellerDomain": "mainasrpharmacy.com",
+      "priceEgp": "630",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave Hydrating Cleanser for Normal to Dry Skin\",\"price\":\"630.00\",\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "849.15",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave 2X CeraVe Hydrating Cleanser For Very Dry To Dry Skin With Hyaluronic Acid & 3 Essential Ceramides - 236 Ml\",\"price\":\"849.15\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "618",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave Foaming Cleanser For Normal To Oily Skin With Hyaluronic Acid 236ml\",\"price\":\"618.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "610",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave Foaming Facial Cleanser 236 Ml\",\"price\":\"610.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "620",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave Foaming Cleanser Gel Moussant 236 ML\",\"price\":\"620.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/OutOfStock\"}"
+    },
+    {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "sellerDomain": "elghazawy.com",
+      "priceEgp": "540",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"CeraVe Foaming Cleanser for Normal to Oily Skin 236 ml\",\"price\":540,\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "1280",
+      "regularPriceEgp": null,
+      "status": "REJECTED",
+      "rejectReason": "SEVERAL_SIZES_IN_NAME",
+      "evidenceExcerpt": "{\"name\":\"Cerave Foaming Facial Cleanser (236ml) + Oil Control Moisturising Gel-Cream (52ml) \",\"price\":\"1280.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "1259",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave Moisturizing Cream 454g\",\"price\":\"1259.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "sellerDomain": "elghazawy.com",
+      "priceEgp": "1050",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"CeraVe Moisturizing Cream 454gm\",\"price\":1050,\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "1040",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave Moisturising Cream Dry To Very Dry 454g\",\"price\":\"1040.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "910",
+      "regularPriceEgp": null,
+      "status": "REJECTED",
+      "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+      "evidenceExcerpt": "{\"name\":\"Cerave CeraVe, Moisturising Cream, For Dry To Very Dry Skin, Moisturises And Helps Restore The Protective Skin Barrier Of The Face And Body, With 3\",\"price\":\"910.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "sellerDomain": "elghazawy.com",
+      "priceEgp": "755",
+      "regularPriceEgp": null,
+      "status": "REJECTED",
+      "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+      "evidenceExcerpt": "{\"name\":\"Cerave Moisturizing Cream 340g\",\"price\":755,\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "sellerDomain": "mainasrpharmacy.com",
+      "priceEgp": "850",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave Moisturising Cream\",\"price\":\"850.00\",\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "664",
+      "regularPriceEgp": null,
+      "status": "REJECTED",
+      "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+      "evidenceExcerpt": "{\"name\":\"Cerave Moisturizing Cream 177ML\",\"price\":\"664.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/OutOfStock\"}"
+    },
+    {
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "sellerDomain": "mainasrpharmacy.com",
+      "priceEgp": "850",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave Moisturising Cream\",\"price\":\"850.00\",\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "sellerDomain": "cosmostoreegypt.com",
+      "priceEgp": "700",
+      "regularPriceEgp": "820",
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"cerave sa smoothing cleanser 236ml\",\"price\":\"700.00\",\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "864.78",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave SA Smoothing Cleanser For Dry, Rough, Bumpy Skin 236 ml\",\"price\":\"864.78\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "995",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave SALICYLIC SMOOTHING CLEANSER 236 ML\",\"price\":\"995.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "735",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave CeraVe, SA Smoothing Cleanser, For Dry, Rough, Bumpy Skin, Gently Cleanses While Exfoliating, Without Disrupting The Protective Skin Barrier\",\"price\":\"735.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "600",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Cerave ceraave sa smoothing cleanser 236 ml \",\"price\":\"600.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "sellerDomain": "elghazawy.com",
+      "priceEgp": "600",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"CeraVe SA Smoothing Cleanser, 236 ml\",\"price\":600,\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "sellerDomain": "theordinary.com",
+      "priceEgp": "6",
+      "regularPriceEgp": null,
+      "status": "REJECTED",
+      "rejectReason": "CURRENCY_USD",
+      "evidenceExcerpt": "{\"name\":\"Niacinamide 10% + Zinc 1%\",\"price\":\"6.00\",\"priceCurrency\":\"USD\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "sellerDomain": "mainasrpharmacy.com",
+      "priceEgp": "650",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"The Ordinary Niacinamide 10% + Zinc 1% - 30ml\",\"price\":\"650.00\",\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "649",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"The Ordinary Niacinamide 10% + Zinc 1% Serum - 30ml\",\"price\":\"649.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "sellerDomain": "merlacare.com",
+      "priceEgp": "550",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"ذا اورديناري سيروم نياسيناميد 10% زنك 1% - 30 مل | The Ordinary Niacinamide 10% + Zinc 1% Serum 30ml - Merla Care\",\"price\":\"550\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "sellerDomain": "cosmostoreegypt.com",
+      "priceEgp": "550",
+      "regularPriceEgp": "650",
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"the ordinary niacinamide 10% + zinc 1% serum 30ml\",\"price\":\"550.00\",\"priceCurrency\":\"EGP\",\"availability\":\"https://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "sellerDomain": "medstic.net",
+      "priceEgp": "595",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"buy the ordinary niacinamide 10% + zinc 1% at the best price in egypt\",\"price\":\"595\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/OutOfStock\"}"
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "756",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"The Ordinary Niacinamide 10% + Zinc 1% High Strength Vitamin & Mineral Blemish Formula 30 ml\",\"price\":\"756.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "1329",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"The Ordinary Niacinamide 10% + Zinc 1% Skin Serum -30ML \",\"price\":\"1329.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "609",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"The Ordinary Niacinamide 10% + Zinc 1% Oil Control Serum – 30ml – Pore Minimizing, Acne Care & Skin Balancing Solution for Clear, Smooth & Even Skin\",\"price\":\"609.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "690",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Bioderma Sensibio H2O, Micellar Water Makeup Remover, Cleanses and Soothes, Senstive Skin - Face And Eyes - 250ML\",\"price\":\"690.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "663",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Bioderma Bioderma Sensibio H2O Micellar Water Makeup Remover (250ml) - For Sensitive to Normal Skin\",\"price\":\"663.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/OutOfStock\"}"
+    },
+    {
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "998.98",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Bioderma SENSIBIO H2O PINK 250 ML\",\"price\":\"998.98\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "870",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Bioderma Sensibio H2O The Original Micellar Water Cleanses, Removes Makeup & Sooths 250 ml\",\"price\":\"870.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "864.78",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Bioderma Sensibio H2O Micellar Water Make Up Remover 250 Ml\",\"price\":\"864.78\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    },
+    {
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "sellerDomain": "jumia.com.eg",
+      "priceEgp": "699",
+      "regularPriceEgp": null,
+      "status": "ACCEPTED",
+      "rejectReason": null,
+      "evidenceExcerpt": "{\"name\":\"Bioderma Sensibio H2o Make-up Removing Micellar Solution  250ml\",\"price\":\"699.00\",\"priceCurrency\":\"EGP\",\"availability\":\"http://schema.org/InStock\"}"
+    }
+  ]
+}

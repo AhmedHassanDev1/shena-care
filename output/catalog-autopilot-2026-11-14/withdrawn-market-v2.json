@@ -1,0 +1,1552 @@
+{
+  "status": "WITHDRAWN_NOT_CURRENT_REFERENCE",
+  "reason": "Shared cleanser words and related-product metadata accepted prices for another product. Replaced by exact market-price@3 title validation. Historical observations retained; no selling prices or supplier costs were changed.",
+  "originalReport": {
+    "scope": "ISOLATED_LOCAL_TEST_DATABASE",
+    "sourcePolicy": "market-price@2",
+    "pricesAreAdvisoryOnly": true,
+    "products": [
+      {
+        "name": "CeraVe Hydrating Facial Cleanser 236ml",
+        "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+        "durationMs": 13010,
+        "result": {
+          "check": {
+            "id": "aa70d2b0-5e30-4a98-967d-dc815867ce22",
+            "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+            "status": "REFERENCE_READY",
+            "reasonCode": null,
+            "reference": {
+              "maxEgp": 630,
+              "minEgp": 630,
+              "sellers": 1,
+              "currency": "EGP",
+              "evidence": [
+                {
+                  "id": "fdc2535a-0325-42b3-bc2d-b46145651d9f",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://mainasrpharmacy.com/products/cerave-blemish-control-cleanser-gel-236ml/",
+                  "observedAt": "2026-11-13T23:49:25.851Z",
+                  "sourceType": "ESTABLISHED_PHARMACY",
+                  "sellerDomain": "mainasrpharmacy.com",
+                  "regularPriceEgp": 630
+                }
+              ],
+              "excluded": [
+                {
+                  "id": "07f30fe5-efb2-48c7-9a78-d26dadcdaf38",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "924330e7-92ed-4ef6-851f-4b58a433f638",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "b4bd6af0-3399-4109-b231-5d347cd0fecc",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                }
+              ],
+              "medianEgp": 630,
+              "priceType": "REGULAR",
+              "confidence": "MEDIUM",
+              "freshestAt": "2026-11-13T23:49:25.851Z",
+              "observations": 1,
+              "regularMedianEgp": 630,
+              "priceReviewRequired": false
+            },
+            "coverage": {
+              "REUSED": {
+                "pages": 4,
+                "accepted": 4,
+                "rejected": {}
+              },
+              "OFFICIAL": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "NO_STRUCTURED_PRICE": 1
+                }
+              },
+              "DISCOVERED": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "SELLER_NOT_VERIFIED": 1
+                }
+              },
+              "TRUSTED_RETAILER": {
+                "pages": 8,
+                "accepted": 0,
+                "rejected": {
+                  "SIZE_NOT_CONFIRMED": 1,
+                  "NO_STRUCTURED_PRICE": 3,
+                  "PAGE_IS_ANOTHER_PRODUCT": 4
+                }
+              }
+            },
+            "cost": {
+              "rule": "market-price@2",
+              "searches": 2,
+              "pageFetches": 10
+            },
+            "requestedBy": "799ef251-3244-4071-aab1-087f3d5775bd",
+            "startedAt": "2026-11-13T23:54:07.264Z",
+            "completedAt": "2026-11-13T23:54:20.171Z"
+          },
+          "reference": {
+            "minEgp": 630,
+            "medianEgp": 630,
+            "maxEgp": 630,
+            "regularMedianEgp": 630,
+            "sellers": 1,
+            "observations": 1,
+            "excluded": [
+              {
+                "id": "07f30fe5-efb2-48c7-9a78-d26dadcdaf38",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "924330e7-92ed-4ef6-851f-4b58a433f638",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "b4bd6af0-3399-4109-b231-5d347cd0fecc",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              }
+            ],
+            "freshestAt": "2026-11-13T23:49:25.851Z",
+            "currency": "EGP",
+            "priceType": "REGULAR",
+            "confidence": "MEDIUM",
+            "priceReviewRequired": false,
+            "evidence": [
+              {
+                "id": "fdc2535a-0325-42b3-bc2d-b46145651d9f",
+                "sourceUrl": "https://mainasrpharmacy.com/products/cerave-blemish-control-cleanser-gel-236ml/",
+                "sellerDomain": "mainasrpharmacy.com",
+                "regularPriceEgp": 630,
+                "priceType": "REGULAR",
+                "sourceType": "ESTABLISHED_PHARMACY",
+                "observedAt": "2026-11-13T23:49:25.851Z"
+              }
+            ]
+          },
+          "pricing": {
+            "state": "WAIT_FOR_SUPPLIER_COST",
+            "purchaseCost": null,
+            "note": "Market data is kept; no selling price until a validated supplier purchase cost exists"
+          }
+        },
+        "observations": [
+          {
+            "id": "fdc2535a-0325-42b3-bc2d-b46145651d9f",
+            "sourceUrl": "https://mainasrpharmacy.com/products/cerave-blemish-control-cleanser-gel-236ml/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:49:25.851Z",
+            "priceEgp": "630",
+            "regularPriceEgp": "630",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Blemish Control Cleanser Gel – 236ml\\\",\\\"price\\\":630,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "8e00ba64-a98d-4819-83c2-d20a330a87cd",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270231815/CERAVE+Hydrating+Cleanser+Cream+473ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:15.477Z",
+            "priceEgp": "960",
+            "regularPriceEgp": "960",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Hyaluronic Acid & Ceramides Face Wash for normal to dry skin - 473ml\\\",\\\"price\\\":960,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "a358c849-da46-4fd8-8c35-bc6ad8b8d924",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270226486/Cerave+Hydrating+Cleanser+236ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:23.803Z",
+            "priceEgp": "650",
+            "regularPriceEgp": "650",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Hyaluronic Acid & Ceramides Face Wash for normal to dry skin - 236ml\\\",\\\"price\\\":650,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "c7834388-99fd-4daa-ba95-ee7fdeb96067",
+            "sourceUrl": "https://elghazawy.com/ar/product/38074270226486/Cerave+Hydrating+Cleanser+for+Normal+to+Dry+Skin%2C+236ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:24.352Z",
+            "priceEgp": "650",
+            "regularPriceEgp": "650",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"غسول سيرافي كريمى  بالهيالورونيك والسيراميد للبشرة الجافة والعادية مرطب - 236 مل\\\",\\\"price\\\":650,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "014e6e2f-c22e-4743-b871-85b2056cc087",
+            "sourceUrl": "https://mainasrpharmacy.com/ar/products/cerave-hydrating-cleanser-for-normal-to-dry-skin-473ml-with-hyaluronic-acid-3-essential-ceramides/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:49:14.910Z",
+            "priceEgp": "630",
+            "regularPriceEgp": "630",
+            "status": "REJECTED",
+            "rejectReason": "SIZE_NOT_CONFIRMED",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Hydrating Cleanser for Normal to Dry Skin\\\",\\\"price\\\":630,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "11b0c157-1cfb-4adc-8bc9-05424223b2c8",
+            "sourceUrl": "https://www.elghazawy.com/en/product/38074270226486/Cerave-Hydrating-Cleanser-236ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:54:16.231Z",
+            "priceEgp": "650",
+            "regularPriceEgp": "650",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Hyaluronic Acid & Ceramides Face Wash for normal to dry skin - 236ml\\\",\\\"price\\\":650,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "fcd8f36b-017d-4dc6-946b-4a35af4d75d3",
+            "sourceUrl": "https://el-emshaty-pharmacy.com/product/cerave-hydrating-cleanser-236-ml/",
+            "sellerDomain": "el-emshaty-pharmacy.com",
+            "observedAt": "2026-11-13T23:54:20.163Z",
+            "priceEgp": "620",
+            "regularPriceEgp": null,
+            "status": "REJECTED",
+            "rejectReason": "SELLER_NOT_VERIFIED",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"PROMOTIONAL\",\"sourceType\":\"UNVERIFIED\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"CeraVe Hydrating Cleanser 236 ml - Elemshaty Pharmacy | صيدلية الإمشاطي\\\",\\\"price\\\":620,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"PROMOTIONAL\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          }
+        ]
+      },
+      {
+        "name": "CeraVe Foaming Facial Cleanser 236ml",
+        "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+        "durationMs": 7665,
+        "result": {
+          "check": {
+            "id": "60ee41b3-88c1-4edb-bb0c-85c9fd40e016",
+            "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+            "status": "REFERENCE_READY",
+            "reasonCode": null,
+            "reference": {
+              "maxEgp": 630,
+              "minEgp": 570,
+              "sellers": 2,
+              "currency": "EGP",
+              "evidence": [
+                {
+                  "id": "0136954e-0500-4cdb-a37e-323a2b45a5e2",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://elghazawy.com/en/product/38074270272874/CeraVe-Foaming-Cleanser-for-Normal-to-Oily-Skin-236-ml",
+                  "observedAt": "2026-11-13T23:49:34.569Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "elghazawy.com",
+                  "regularPriceEgp": 540
+                },
+                {
+                  "id": "88d11cd5-e85e-4aae-a865-d8fa83359b32",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://mainasrpharmacy.com/products/cerave-blemish-control-cleanser-gel-236ml/",
+                  "observedAt": "2026-11-13T23:49:30.826Z",
+                  "sourceType": "ESTABLISHED_PHARMACY",
+                  "sellerDomain": "mainasrpharmacy.com",
+                  "regularPriceEgp": 630
+                },
+                {
+                  "id": "fe0a70a1-d23b-44de-ad08-55e65a8dfb2a",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://elghazawy.com/en/product/38074270277652/CeraVe+SA+Smoothing+Cleanser%2C+236+ml",
+                  "observedAt": "2026-11-13T23:49:29.096Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "elghazawy.com",
+                  "regularPriceEgp": 600
+                }
+              ],
+              "excluded": [
+                {
+                  "id": "57f7f3cf-dfe7-4a9e-affe-2768af738b0e",
+                  "reason": "LIST_PRICE_NOT_CORROBORATED"
+                },
+                {
+                  "id": "d59da2c0-056e-4a3c-ae1e-beacee2452db",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "20edb654-4ff5-4344-9b52-8a4dbc31e7d9",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "4a2b2db0-0822-4d52-b0c2-d6b710e3e87a",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "5dc7f658-b378-4927-b990-dab74494188c",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                }
+              ],
+              "medianEgp": 600,
+              "priceType": "REGULAR",
+              "confidence": "HIGH",
+              "freshestAt": "2026-11-13T23:49:34.569Z",
+              "observations": 3,
+              "regularMedianEgp": 600,
+              "priceReviewRequired": false
+            },
+            "coverage": {
+              "REUSED": {
+                "pages": 8,
+                "accepted": 8,
+                "rejected": {}
+              },
+              "OFFICIAL": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "NO_STRUCTURED_PRICE": 1
+                }
+              },
+              "TRUSTED_RETAILER": {
+                "pages": 8,
+                "accepted": 4,
+                "rejected": {
+                  "PAGE_IS_ANOTHER_PRODUCT": 4
+                }
+              }
+            },
+            "cost": {
+              "rule": "market-price@2",
+              "searches": 1,
+              "pageFetches": 9
+            },
+            "requestedBy": "799ef251-3244-4071-aab1-087f3d5775bd",
+            "startedAt": "2026-11-13T23:54:20.222Z",
+            "completedAt": "2026-11-13T23:54:27.848Z"
+          },
+          "reference": {
+            "minEgp": 570,
+            "medianEgp": 600,
+            "maxEgp": 630,
+            "regularMedianEgp": 600,
+            "sellers": 2,
+            "observations": 3,
+            "excluded": [
+              {
+                "id": "57f7f3cf-dfe7-4a9e-affe-2768af738b0e",
+                "reason": "LIST_PRICE_NOT_CORROBORATED"
+              },
+              {
+                "id": "d59da2c0-056e-4a3c-ae1e-beacee2452db",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "20edb654-4ff5-4344-9b52-8a4dbc31e7d9",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "4a2b2db0-0822-4d52-b0c2-d6b710e3e87a",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "5dc7f658-b378-4927-b990-dab74494188c",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              }
+            ],
+            "freshestAt": "2026-11-13T23:49:34.569Z",
+            "currency": "EGP",
+            "priceType": "REGULAR",
+            "confidence": "HIGH",
+            "priceReviewRequired": false,
+            "evidence": [
+              {
+                "id": "0136954e-0500-4cdb-a37e-323a2b45a5e2",
+                "sourceUrl": "https://elghazawy.com/en/product/38074270272874/CeraVe-Foaming-Cleanser-for-Normal-to-Oily-Skin-236-ml",
+                "sellerDomain": "elghazawy.com",
+                "regularPriceEgp": 540,
+                "priceType": "REGULAR",
+                "sourceType": "TRUSTED_RETAILER",
+                "observedAt": "2026-11-13T23:49:34.569Z"
+              },
+              {
+                "id": "88d11cd5-e85e-4aae-a865-d8fa83359b32",
+                "sourceUrl": "https://mainasrpharmacy.com/products/cerave-blemish-control-cleanser-gel-236ml/",
+                "sellerDomain": "mainasrpharmacy.com",
+                "regularPriceEgp": 630,
+                "priceType": "REGULAR",
+                "sourceType": "ESTABLISHED_PHARMACY",
+                "observedAt": "2026-11-13T23:49:30.826Z"
+              },
+              {
+                "id": "fe0a70a1-d23b-44de-ad08-55e65a8dfb2a",
+                "sourceUrl": "https://elghazawy.com/en/product/38074270277652/CeraVe+SA+Smoothing+Cleanser%2C+236+ml",
+                "sellerDomain": "elghazawy.com",
+                "regularPriceEgp": 600,
+                "priceType": "REGULAR",
+                "sourceType": "TRUSTED_RETAILER",
+                "observedAt": "2026-11-13T23:49:29.096Z"
+              }
+            ]
+          },
+          "pricing": {
+            "state": "WAIT_FOR_SUPPLIER_COST",
+            "purchaseCost": null,
+            "note": "Market data is kept; no selling price until a validated supplier purchase cost exists"
+          }
+        },
+        "observations": [
+          {
+            "id": "fe0a70a1-d23b-44de-ad08-55e65a8dfb2a",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270277652/CeraVe+SA+Smoothing+Cleanser%2C+236+ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:29.096Z",
+            "priceEgp": "600",
+            "regularPriceEgp": "600",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"CeraVe SA Smoothing Cleanser, 236 ml\\\",\\\"price\\\":600,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "88d11cd5-e85e-4aae-a865-d8fa83359b32",
+            "sourceUrl": "https://mainasrpharmacy.com/products/cerave-blemish-control-cleanser-gel-236ml/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:49:30.826Z",
+            "priceEgp": "630",
+            "regularPriceEgp": "630",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Blemish Control Cleanser Gel – 236ml\\\",\\\"price\\\":630,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "05e10288-e72f-476f-b4ac-f6974d7f023f",
+            "sourceUrl": "https://www.elghazawy.com/ar/product/38074270226484/ghsol-jl-rgho-bshr-dhny-mn-syraf-473-ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:31.434Z",
+            "priceEgp": "960",
+            "regularPriceEgp": "960",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"غسول سيرافى رغوي بالنياسيناميد للبشرة العادية الى الدهنية - 473 مل\\\",\\\"price\\\":960,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "ce9a44cf-4080-4606-98e4-986d7c7b8c79",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270286976/Cerave+Blemish+Control+Cleanser+For+Blemish-Prone+Skin%2C+236+Ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:31.690Z",
+            "priceEgp": "730",
+            "regularPriceEgp": "730",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Salicylic Acid & Ceramide Face Wash For Blemish-Prone Skin - 236 ml\\\",\\\"price\\\":730,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "45de6034-26d9-408e-a43a-781123697ce4",
+            "sourceUrl": "https://www.elghazawy.com/en/product/38074270226486/Cerave-Hydrating-Cleanser-236ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:31.949Z",
+            "priceEgp": "650",
+            "regularPriceEgp": "650",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Hyaluronic Acid & Ceramides Face Wash for normal to dry skin - 236ml\\\",\\\"price\\\":650,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "57f7f3cf-dfe7-4a9e-affe-2768af738b0e",
+            "sourceUrl": "https://www.cosmostoreegypt.com/shop/cerave-sa-smoothing-cleanser-236ml/",
+            "sellerDomain": "cosmostoreegypt.com",
+            "observedAt": "2026-11-13T23:49:34.289Z",
+            "priceEgp": "700",
+            "regularPriceEgp": "820",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"LIST_CANDIDATE\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"cerave sa smoothing cleanser 236ml\\\",\\\"price\\\":700,\\\"regularPrice\\\":820,\\\"priceType\\\":\\\"LIST_CANDIDATE\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "0136954e-0500-4cdb-a37e-323a2b45a5e2",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270272874/CeraVe-Foaming-Cleanser-for-Normal-to-Oily-Skin-236-ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:34.569Z",
+            "priceEgp": "540",
+            "regularPriceEgp": "540",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"CeraVe Foaming Cleanser for Normal to Oily Skin 236 ml\\\",\\\"price\\\":540,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "3ba43b51-67e1-4ea1-b49c-1580081d815d",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270226484/page/about-us",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:29.398Z",
+            "priceEgp": "960",
+            "regularPriceEgp": "960",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Niacinamide Foaming Face Wash for Normal to Oily Skin - 473ml\\\",\\\"price\\\":960,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          }
+        ]
+      },
+      {
+        "name": "CeraVe Moisturizing Cream 454g",
+        "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+        "durationMs": 9834,
+        "result": {
+          "check": {
+            "id": "808c95a0-3b14-41cb-a25a-7f59fca9d531",
+            "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+            "status": "UNAVAILABLE",
+            "reasonCode": "PRICE_ONLY_REVIEW_REQUIRED",
+            "reference": {
+              "maxEgp": 1050,
+              "minEgp": 1050,
+              "sellers": 1,
+              "currency": "EGP",
+              "evidence": [
+                {
+                  "id": "8c883874-b12d-44d4-b891-4457b89e0f1d",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://elghazawy.com/en/product/38074270232611/CeraVe+Moisturizing+Cream+454gm",
+                  "observedAt": "2026-11-13T23:49:40.189Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "elghazawy.com",
+                  "regularPriceEgp": 1050
+                }
+              ],
+              "excluded": [
+                {
+                  "id": "ab870ac1-a67f-43bd-816e-20d4792e8cb5",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "b1b80a8f-1045-4988-98f2-40a9065823bf",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "667a1a2b-e8cc-478b-8751-7edee0dbed23",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "b368428e-745b-4e22-aa1e-ee4f144ab4cb",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "d64ba9cf-c4e4-4902-82c8-74fe6e4d4308",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                }
+              ],
+              "medianEgp": 1050,
+              "priceType": "REGULAR",
+              "confidence": "UNVERIFIED",
+              "freshestAt": "2026-11-13T23:49:40.189Z",
+              "observations": 1,
+              "regularMedianEgp": 1050,
+              "priceReviewRequired": false
+            },
+            "coverage": {
+              "REUSED": {
+                "pages": 6,
+                "accepted": 6,
+                "rejected": {}
+              },
+              "OFFICIAL": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "NO_STRUCTURED_PRICE": 1
+                }
+              },
+              "DISCOVERED": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "FETCH_RATE_LIMITED": 1
+                }
+              },
+              "TRUSTED_RETAILER": {
+                "pages": 8,
+                "accepted": 1,
+                "rejected": {
+                  "SIZE_NOT_CONFIRMED": 1,
+                  "NO_STRUCTURED_PRICE": 5,
+                  "PAGE_IS_ANOTHER_PRODUCT": 1
+                }
+              }
+            },
+            "cost": {
+              "rule": "market-price@2",
+              "searches": 2,
+              "pageFetches": 10
+            },
+            "requestedBy": "799ef251-3244-4071-aab1-087f3d5775bd",
+            "startedAt": "2026-11-13T23:54:27.884Z",
+            "completedAt": "2026-11-13T23:54:37.684Z"
+          },
+          "reference": {
+            "minEgp": 1050,
+            "medianEgp": 1050,
+            "maxEgp": 1050,
+            "regularMedianEgp": 1050,
+            "sellers": 1,
+            "observations": 1,
+            "excluded": [
+              {
+                "id": "ab870ac1-a67f-43bd-816e-20d4792e8cb5",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "b1b80a8f-1045-4988-98f2-40a9065823bf",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "667a1a2b-e8cc-478b-8751-7edee0dbed23",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "b368428e-745b-4e22-aa1e-ee4f144ab4cb",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "d64ba9cf-c4e4-4902-82c8-74fe6e4d4308",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              }
+            ],
+            "freshestAt": "2026-11-13T23:49:40.189Z",
+            "currency": "EGP",
+            "priceType": "REGULAR",
+            "confidence": "UNVERIFIED",
+            "priceReviewRequired": false,
+            "evidence": [
+              {
+                "id": "8c883874-b12d-44d4-b891-4457b89e0f1d",
+                "sourceUrl": "https://elghazawy.com/en/product/38074270232611/CeraVe+Moisturizing+Cream+454gm",
+                "sellerDomain": "elghazawy.com",
+                "regularPriceEgp": 1050,
+                "priceType": "REGULAR",
+                "sourceType": "TRUSTED_RETAILER",
+                "observedAt": "2026-11-13T23:49:40.189Z"
+              }
+            ]
+          },
+          "pricing": {
+            "state": "WAIT_FOR_SUPPLIER_COST",
+            "purchaseCost": null,
+            "note": "Market data is kept; no selling price until a validated supplier purchase cost exists"
+          }
+        },
+        "observations": [
+          {
+            "id": "98f58afa-6cb9-46b2-b105-386123f40688",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270226488/Cerave+Moisturizing+Cream+340g",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:39.934Z",
+            "priceEgp": "755",
+            "regularPriceEgp": "755",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Moisturizing Cream 340g\\\",\\\"price\\\":755,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "fe1f4826-873e-4cf8-8562-46e0d6a67e47",
+            "sourceUrl": "https://elghazawy.com/ar/product/38074270232611/CeraVe+Moisturizing+Cream+454gm",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:44.702Z",
+            "priceEgp": "1050",
+            "regularPriceEgp": "1050",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"كريم مرطب من سيرافى 454 جم\\\",\\\"price\\\":1050,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "d97f94d7-16cb-4d69-a756-73d37c9f7bd1",
+            "sourceUrl": "https://mainasrpharmacy.com/products/cerave-moisturising-cream/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:49:49.253Z",
+            "priceEgp": "850",
+            "regularPriceEgp": "850",
+            "status": "REJECTED",
+            "rejectReason": "SIZE_NOT_CONFIRMED",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Moisturising Cream\\\",\\\"price\\\":850,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "8c883874-b12d-44d4-b891-4457b89e0f1d",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270232611/CeraVe+Moisturizing+Cream+454gm",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:40.189Z",
+            "priceEgp": "1050",
+            "regularPriceEgp": "1050",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"CeraVe Moisturizing Cream 454gm\\\",\\\"price\\\":1050,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "66b9ebaf-196a-4f21-bc4a-e61eb2b6d5be",
+            "sourceUrl": "https://mainasrpharmacy.com/products/cerave-moisturising-cream-2/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:49:44.415Z",
+            "priceEgp": "850",
+            "regularPriceEgp": "850",
+            "status": "REJECTED",
+            "rejectReason": "SIZE_NOT_CONFIRMED",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Moisturising Cream\\\",\\\"price\\\":850,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "dd508257-df24-48f9-a8c7-fb8d20960d5f",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270231815/CERAVE+Hydrating+Cleanser+Cream+473ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:49.523Z",
+            "priceEgp": "960",
+            "regularPriceEgp": "960",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Hyaluronic Acid & Ceramides Face Wash for normal to dry skin - 473ml\\\",\\\"price\\\":960,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "2f04e70b-6a9c-4274-b080-c2b4fed57b55",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270226489/Cerave+Reparative+Hand+Cream+with+hyaluronic+acid+50ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:49.787Z",
+            "priceEgp": "315",
+            "regularPriceEgp": "315",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"CeraVe Moisturizing Cream, Hand Moisturizer with Hyaluronic Acid for Very Rough and Dry Hands, 50 ml\\\",\\\"price\\\":315,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "4311ce0d-a069-4aa6-b56e-5bc9e64f18e8",
+            "sourceUrl": "https://elghazawy.com/ar/product/38074270226488/Cerave+Moisturizing+Cream+340g",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:50.051Z",
+            "priceEgp": "755",
+            "regularPriceEgp": null,
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"PROMOTIONAL\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"كريم مرطب من سيرافى 340 جم\\\",\\\"price\\\":755,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"PROMOTIONAL\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "dfa9aa3e-4f60-4f6f-af39-689930adb086",
+            "sourceUrl": "https://elghazawy.com/ar/product/38074270232611/CeraVe+Moisturizing+Cream+454gm",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:54:32.642Z",
+            "priceEgp": "1050",
+            "regularPriceEgp": null,
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"PROMOTIONAL\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"كريم مرطب من سيرافى 454 جم\\\",\\\"price\\\":1050,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"PROMOTIONAL\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          }
+        ]
+      },
+      {
+        "name": "CeraVe SA Smoothing Cleanser 236ml",
+        "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+        "durationMs": 8788,
+        "result": {
+          "check": {
+            "id": "bfdea3a2-2ef0-4027-8b09-895c8d9423c8",
+            "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+            "status": "REFERENCE_READY",
+            "reasonCode": null,
+            "reference": {
+              "maxEgp": 630,
+              "minEgp": 600,
+              "sellers": 2,
+              "currency": "EGP",
+              "evidence": [
+                {
+                  "id": "a06903a1-a3ba-4a5e-a269-750e666b95f4",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://elghazawy.com/en/product/38074270277652/CeraVe+SA+Smoothing+Cleanser+236+ml",
+                  "observedAt": "2026-11-13T23:49:57.323Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "elghazawy.com",
+                  "regularPriceEgp": 600
+                },
+                {
+                  "id": "0bc0cff2-81ae-47da-8413-ee428b6f9dcb",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://mainasrpharmacy.com/products/cerave-blemish-control-cleanser-gel-236ml/",
+                  "observedAt": "2026-11-13T23:49:57.069Z",
+                  "sourceType": "ESTABLISHED_PHARMACY",
+                  "sellerDomain": "mainasrpharmacy.com",
+                  "regularPriceEgp": 630
+                }
+              ],
+              "excluded": [
+                {
+                  "id": "0b2d991c-beb1-42cf-ae09-59d0407a4d65",
+                  "reason": "LIST_PRICE_NOT_CORROBORATED"
+                },
+                {
+                  "id": "860549d0-8a7b-4766-bf91-57cffdaddc43",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "b93ed7c4-4280-4e8d-98d0-baf9872fc41b",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "275506a9-0687-440e-8184-57fb20cee777",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "96c4b18a-6ec6-456f-9518-936b14195c08",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "bdc22d78-f43a-4c72-b25a-4c9322668e46",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "5b43a625-3bb7-4455-893e-b179004fe14b",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                }
+              ],
+              "medianEgp": 615,
+              "priceType": "REGULAR",
+              "confidence": "HIGH",
+              "freshestAt": "2026-11-13T23:49:57.323Z",
+              "observations": 2,
+              "regularMedianEgp": 615,
+              "priceReviewRequired": false
+            },
+            "coverage": {
+              "REUSED": {
+                "pages": 9,
+                "accepted": 9,
+                "rejected": {}
+              },
+              "OFFICIAL": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "NO_STRUCTURED_PRICE": 1
+                }
+              },
+              "TRUSTED_RETAILER": {
+                "pages": 8,
+                "accepted": 3,
+                "rejected": {
+                  "NO_STRUCTURED_PRICE": 3,
+                  "PAGE_IS_ANOTHER_PRODUCT": 2
+                }
+              }
+            },
+            "cost": {
+              "rule": "market-price@2",
+              "searches": 1,
+              "pageFetches": 9
+            },
+            "requestedBy": "799ef251-3244-4071-aab1-087f3d5775bd",
+            "startedAt": "2026-11-13T23:54:37.724Z",
+            "completedAt": "2026-11-13T23:54:46.471Z"
+          },
+          "reference": {
+            "minEgp": 600,
+            "medianEgp": 615,
+            "maxEgp": 630,
+            "regularMedianEgp": 615,
+            "sellers": 2,
+            "observations": 2,
+            "excluded": [
+              {
+                "id": "0b2d991c-beb1-42cf-ae09-59d0407a4d65",
+                "reason": "LIST_PRICE_NOT_CORROBORATED"
+              },
+              {
+                "id": "860549d0-8a7b-4766-bf91-57cffdaddc43",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "b93ed7c4-4280-4e8d-98d0-baf9872fc41b",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "275506a9-0687-440e-8184-57fb20cee777",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "96c4b18a-6ec6-456f-9518-936b14195c08",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "bdc22d78-f43a-4c72-b25a-4c9322668e46",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "5b43a625-3bb7-4455-893e-b179004fe14b",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              }
+            ],
+            "freshestAt": "2026-11-13T23:49:57.323Z",
+            "currency": "EGP",
+            "priceType": "REGULAR",
+            "confidence": "HIGH",
+            "priceReviewRequired": false,
+            "evidence": [
+              {
+                "id": "a06903a1-a3ba-4a5e-a269-750e666b95f4",
+                "sourceUrl": "https://elghazawy.com/en/product/38074270277652/CeraVe+SA+Smoothing+Cleanser+236+ml",
+                "sellerDomain": "elghazawy.com",
+                "regularPriceEgp": 600,
+                "priceType": "REGULAR",
+                "sourceType": "TRUSTED_RETAILER",
+                "observedAt": "2026-11-13T23:49:57.323Z"
+              },
+              {
+                "id": "0bc0cff2-81ae-47da-8413-ee428b6f9dcb",
+                "sourceUrl": "https://mainasrpharmacy.com/products/cerave-blemish-control-cleanser-gel-236ml/",
+                "sellerDomain": "mainasrpharmacy.com",
+                "regularPriceEgp": 630,
+                "priceType": "REGULAR",
+                "sourceType": "ESTABLISHED_PHARMACY",
+                "observedAt": "2026-11-13T23:49:57.069Z"
+              }
+            ]
+          },
+          "pricing": {
+            "state": "WAIT_FOR_SUPPLIER_COST",
+            "purchaseCost": null,
+            "note": "Market data is kept; no selling price until a validated supplier purchase cost exists"
+          }
+        },
+        "observations": [
+          {
+            "id": "f94dc680-7354-44da-a054-30df3a063576",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270267983/cerave+sa+smoothing+cleanser+473+ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:53.868Z",
+            "priceEgp": "920",
+            "regularPriceEgp": "920",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"CeraVe SA Smoothing Cleanser, 473 ml\\\",\\\"price\\\":920,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "7c9e1ba3-b014-4543-b833-c71c0273fe11",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270286976/Cerave+Blemish+Control+Cleanser+For+Blemish-Prone+Skin%2C+236+Ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:54.189Z",
+            "priceEgp": "730",
+            "regularPriceEgp": "730",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Salicylic Acid & Ceramide Face Wash For Blemish-Prone Skin - 236 ml\\\",\\\"price\\\":730,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "0bc0cff2-81ae-47da-8413-ee428b6f9dcb",
+            "sourceUrl": "https://mainasrpharmacy.com/products/cerave-blemish-control-cleanser-gel-236ml/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:49:57.069Z",
+            "priceEgp": "630",
+            "regularPriceEgp": "630",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Cerave Blemish Control Cleanser Gel – 236ml\\\",\\\"price\\\":630,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "a06903a1-a3ba-4a5e-a269-750e666b95f4",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270277652/CeraVe+SA+Smoothing+Cleanser+236+ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:49:57.323Z",
+            "priceEgp": "600",
+            "regularPriceEgp": "600",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"CeraVe SA Smoothing Cleanser, 236 ml\\\",\\\"price\\\":600,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "0b2d991c-beb1-42cf-ae09-59d0407a4d65",
+            "sourceUrl": "https://www.cosmostoreegypt.com/shop/cerave-sa-smoothing-cleanser-236ml/",
+            "sellerDomain": "cosmostoreegypt.com",
+            "observedAt": "2026-11-13T23:49:53.611Z",
+            "priceEgp": "700",
+            "regularPriceEgp": "820",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"LIST_CANDIDATE\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"cerave sa smoothing cleanser 236ml\\\",\\\"price\\\":700,\\\"regularPrice\\\":820,\\\"priceType\\\":\\\"LIST_CANDIDATE\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          }
+        ]
+      },
+      {
+        "name": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+        "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+        "durationMs": 12915,
+        "result": {
+          "check": {
+            "id": "b1feb817-6202-4fd4-ad5a-4a682cc689ab",
+            "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+            "status": "REFERENCE_READY",
+            "reasonCode": null,
+            "reference": {
+              "maxEgp": 675,
+              "minEgp": 650,
+              "sellers": 3,
+              "currency": "EGP",
+              "evidence": [
+                {
+                  "id": "b4c90e51-0353-438e-b412-705df35462c5",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-solution-egcg-30ml-2/",
+                  "observedAt": "2026-11-13T23:50:16.785Z",
+                  "sourceType": "ESTABLISHED_PHARMACY",
+                  "sellerDomain": "mainasrpharmacy.com",
+                  "regularPriceEgp": 700
+                },
+                {
+                  "id": "1f4f2a95-5e32-4cc4-be57-c4bf0cb413ed",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-30-ml/",
+                  "observedAt": "2026-11-13T23:50:07.888Z",
+                  "sourceType": "ESTABLISHED_PHARMACY",
+                  "sellerDomain": "mainasrpharmacy.com",
+                  "regularPriceEgp": 650
+                },
+                {
+                  "id": "267f5671-1b74-4da1-8018-108bfd1959eb",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://elghazawy.com/en/product/38074270222442/THE-ORDINARY-NIACINAMIDE-SERUM-30ML",
+                  "observedAt": "2026-11-13T23:50:06.403Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "elghazawy.com",
+                  "regularPriceEgp": 665
+                },
+                {
+                  "id": "8fbdc96f-e12a-4af6-88e5-f249b06e946b",
+                  "priceType": "LIST_CANDIDATE",
+                  "sourceUrl": "https://www.cosmostoreegypt.com/shop/the-ordinary-niacinamide-10-zinc-1-serum/",
+                  "observedAt": "2026-11-13T23:50:06.051Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "cosmostoreegypt.com",
+                  "regularPriceEgp": 650
+                }
+              ],
+              "excluded": [
+                {
+                  "id": "2cfaab95-59f5-4060-91b4-b8e342cda7be",
+                  "reason": "NO_REGULAR_PRICE"
+                },
+                {
+                  "id": "a5660046-f64f-467f-978c-c36b104f75b7",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "d828d706-a0b8-4e9b-a901-d20675681a9e",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "20f5d429-65ef-45cc-89e7-e4e9d9abf73d",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "c828be09-156e-469e-984b-81731247f4b1",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "1d20f710-dd35-41a0-9784-864a694a2f2a",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "5ee7106f-f048-4f97-a17f-00bdba85ca49",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "d835aedd-9f27-470e-b748-ff89434f3e76",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "d6478b46-1cd9-451b-8c68-e5fe84d7688f",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                }
+              ],
+              "medianEgp": 665,
+              "priceType": "REGULAR",
+              "confidence": "HIGH",
+              "freshestAt": "2026-11-13T23:50:16.785Z",
+              "observations": 4,
+              "regularMedianEgp": 665,
+              "priceReviewRequired": false
+            },
+            "coverage": {
+              "REUSED": {
+                "pages": 13,
+                "accepted": 13,
+                "rejected": {}
+              },
+              "OFFICIAL": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "CURRENCY_USD": 1
+                }
+              },
+              "TRUSTED_RETAILER": {
+                "pages": 8,
+                "accepted": 5,
+                "rejected": {
+                  "SIZE_NOT_CONFIRMED": 1,
+                  "NO_STRUCTURED_PRICE": 2
+                }
+              }
+            },
+            "cost": {
+              "rule": "market-price@2",
+              "searches": 1,
+              "pageFetches": 9
+            },
+            "requestedBy": "799ef251-3244-4071-aab1-087f3d5775bd",
+            "startedAt": "2026-11-13T23:54:46.511Z",
+            "completedAt": "2026-11-13T23:54:59.392Z"
+          },
+          "reference": {
+            "minEgp": 650,
+            "medianEgp": 665,
+            "maxEgp": 675,
+            "regularMedianEgp": 665,
+            "sellers": 3,
+            "observations": 4,
+            "excluded": [
+              {
+                "id": "2cfaab95-59f5-4060-91b4-b8e342cda7be",
+                "reason": "NO_REGULAR_PRICE"
+              },
+              {
+                "id": "a5660046-f64f-467f-978c-c36b104f75b7",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "d828d706-a0b8-4e9b-a901-d20675681a9e",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "20f5d429-65ef-45cc-89e7-e4e9d9abf73d",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "c828be09-156e-469e-984b-81731247f4b1",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "1d20f710-dd35-41a0-9784-864a694a2f2a",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "5ee7106f-f048-4f97-a17f-00bdba85ca49",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "d835aedd-9f27-470e-b748-ff89434f3e76",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "d6478b46-1cd9-451b-8c68-e5fe84d7688f",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              }
+            ],
+            "freshestAt": "2026-11-13T23:50:16.785Z",
+            "currency": "EGP",
+            "priceType": "REGULAR",
+            "confidence": "HIGH",
+            "priceReviewRequired": false,
+            "evidence": [
+              {
+                "id": "b4c90e51-0353-438e-b412-705df35462c5",
+                "sourceUrl": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-solution-egcg-30ml-2/",
+                "sellerDomain": "mainasrpharmacy.com",
+                "regularPriceEgp": 700,
+                "priceType": "REGULAR",
+                "sourceType": "ESTABLISHED_PHARMACY",
+                "observedAt": "2026-11-13T23:50:16.785Z"
+              },
+              {
+                "id": "1f4f2a95-5e32-4cc4-be57-c4bf0cb413ed",
+                "sourceUrl": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-30-ml/",
+                "sellerDomain": "mainasrpharmacy.com",
+                "regularPriceEgp": 650,
+                "priceType": "REGULAR",
+                "sourceType": "ESTABLISHED_PHARMACY",
+                "observedAt": "2026-11-13T23:50:07.888Z"
+              },
+              {
+                "id": "267f5671-1b74-4da1-8018-108bfd1959eb",
+                "sourceUrl": "https://elghazawy.com/en/product/38074270222442/THE-ORDINARY-NIACINAMIDE-SERUM-30ML",
+                "sellerDomain": "elghazawy.com",
+                "regularPriceEgp": 665,
+                "priceType": "REGULAR",
+                "sourceType": "TRUSTED_RETAILER",
+                "observedAt": "2026-11-13T23:50:06.403Z"
+              },
+              {
+                "id": "8fbdc96f-e12a-4af6-88e5-f249b06e946b",
+                "sourceUrl": "https://www.cosmostoreegypt.com/shop/the-ordinary-niacinamide-10-zinc-1-serum/",
+                "sellerDomain": "cosmostoreegypt.com",
+                "regularPriceEgp": 650,
+                "priceType": "LIST_CANDIDATE",
+                "sourceType": "TRUSTED_RETAILER",
+                "observedAt": "2026-11-13T23:50:06.051Z"
+              }
+            ]
+          },
+          "pricing": {
+            "state": "WAIT_FOR_SUPPLIER_COST",
+            "purchaseCost": null,
+            "note": "Market data is kept; no selling price until a validated supplier purchase cost exists"
+          }
+        },
+        "observations": [
+          {
+            "id": "5e1db156-a2cb-4e27-bf95-333431d94023",
+            "sourceUrl": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+            "sellerDomain": "theordinary.com",
+            "observedAt": "2026-11-13T23:50:00.876Z",
+            "priceEgp": "6",
+            "regularPriceEgp": null,
+            "status": "REJECTED",
+            "rejectReason": "CURRENCY_USD",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"PROMOTIONAL\",\"sourceType\":\"OFFICIAL\",\"currency\":\"USD\",\"excerpt\":\"{\\\"name\\\":\\\"Niacinamide 10% + Zinc 1%\\\",\\\"price\\\":6,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"PROMOTIONAL\\\",\\\"currency\\\":\\\"USD\\\"}\"}"
+          },
+          {
+            "id": "267f5671-1b74-4da1-8018-108bfd1959eb",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270222442/THE-ORDINARY-NIACINAMIDE-SERUM-30ML",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:50:06.403Z",
+            "priceEgp": "665",
+            "regularPriceEgp": "665",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"The Ordinary Niacinamide 10% + Zinc 1%  30 ml\\\",\\\"price\\\":665,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "8fbdc96f-e12a-4af6-88e5-f249b06e946b",
+            "sourceUrl": "https://www.cosmostoreegypt.com/shop/the-ordinary-niacinamide-10-zinc-1-serum/",
+            "sellerDomain": "cosmostoreegypt.com",
+            "observedAt": "2026-11-13T23:50:06.051Z",
+            "priceEgp": "550",
+            "regularPriceEgp": "650",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"LIST_CANDIDATE\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"the ordinary niacinamide 10% + zinc 1% serum 30ml\\\",\\\"price\\\":550,\\\"regularPrice\\\":650,\\\"priceType\\\":\\\"LIST_CANDIDATE\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "1f4f2a95-5e32-4cc4-be57-c4bf0cb413ed",
+            "sourceUrl": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-30-ml/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:50:07.888Z",
+            "priceEgp": "650",
+            "regularPriceEgp": "650",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"The Ordinary Niacinamide 10% + Zinc 1% - 30ml\\\",\\\"price\\\":650,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "dd40d2f9-c822-47fb-9477-e70d7e7a383f",
+            "sourceUrl": "https://medstic.net/en/product/the-ordinary-niacinamide-10-zinc-1/",
+            "sellerDomain": "medstic.net",
+            "observedAt": "2026-11-13T23:50:11.735Z",
+            "priceEgp": "595",
+            "regularPriceEgp": null,
+            "status": "REJECTED",
+            "rejectReason": "SIZE_NOT_CONFIRMED",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"PROMOTIONAL\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"buy the ordinary niacinamide 10% + zinc 1% at the best price in egypt\\\",\\\"price\\\":595,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"PROMOTIONAL\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "b4c90e51-0353-438e-b412-705df35462c5",
+            "sourceUrl": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-solution-egcg-30ml-2/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:50:16.785Z",
+            "priceEgp": "700",
+            "regularPriceEgp": "700",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"The Ordinary Niacinamide 10% Zinc 1% Solution Egcg - 30ml\\\",\\\"price\\\":700,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "2cfaab95-59f5-4060-91b4-b8e342cda7be",
+            "sourceUrl": "https://merlacare.com/product/the-ordinary-niacinamide-10-zinc-1-serum-30ml/",
+            "sellerDomain": "merlacare.com",
+            "observedAt": "2026-11-13T23:50:10.780Z",
+            "priceEgp": "550",
+            "regularPriceEgp": null,
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"PROMOTIONAL\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"ذا اورديناري سيروم نياسيناميد 10% زنك 1% - 30 مل | The Ordinary Niacinamide 10% + Zinc 1% Serum 30ml - Merla Care\\\",\\\"price\\\":550,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"PROMOTIONAL\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          }
+        ]
+      },
+      {
+        "name": "Bioderma Sensibio H2O 250ml",
+        "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+        "durationMs": 55537,
+        "result": {
+          "check": {
+            "id": "aa081b37-9bb0-4284-b31f-6524fbebb233",
+            "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+            "status": "REFERENCE_READY",
+            "reasonCode": null,
+            "reference": {
+              "maxEgp": 749,
+              "minEgp": 749,
+              "sellers": 1,
+              "currency": "EGP",
+              "evidence": [
+                {
+                  "id": "bccb366e-12ab-402c-9d57-5cabd567839f",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://mainasrpharmacy.com/ar/products/bioderma-sensibio-h2o-250-ml/",
+                  "observedAt": "2026-11-13T23:55:06.141Z",
+                  "sourceType": "ESTABLISHED_PHARMACY",
+                  "sellerDomain": "mainasrpharmacy.com",
+                  "regularPriceEgp": 749
+                }
+              ],
+              "excluded": [
+                {
+                  "id": "1e4b9102-f887-424a-9d81-e27e82ad5784",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "40b8bfdd-ddc4-40ca-8b00-282cd72374a4",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "affb92c6-89dc-4274-841f-b07563f8d7f0",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "3b314fef-9397-44ed-891d-7fe37c9bf2ed",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "3c78c3fa-e60b-49a4-a5ff-52e764b05431",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                },
+                {
+                  "id": "7e006d5d-86ca-4a1a-bef9-c53e28b362fe",
+                  "reason": "UNVERIFIED_PRICE_EVIDENCE"
+                }
+              ],
+              "medianEgp": 749,
+              "priceType": "REGULAR",
+              "confidence": "MEDIUM",
+              "freshestAt": "2026-11-13T23:55:06.141Z",
+              "observations": 1,
+              "regularMedianEgp": 749,
+              "priceReviewRequired": false
+            },
+            "coverage": {
+              "REUSED": {
+                "pages": 6,
+                "accepted": 6,
+                "rejected": {}
+              },
+              "OFFICIAL": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "NO_STRUCTURED_PRICE": 1
+                }
+              },
+              "DISCOVERED": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "FETCH_TIMEOUT": 1
+                }
+              },
+              "TRUSTED_RETAILER": {
+                "pages": 8,
+                "accepted": 1,
+                "rejected": {
+                  "SIZE_NOT_CONFIRMED": 2,
+                  "NO_STRUCTURED_PRICE": 2,
+                  "PAGE_IS_ANOTHER_PRODUCT": 3
+                }
+              }
+            },
+            "cost": {
+              "rule": "market-price@2",
+              "searches": 2,
+              "pageFetches": 10
+            },
+            "requestedBy": "799ef251-3244-4071-aab1-087f3d5775bd",
+            "startedAt": "2026-11-13T23:54:59.420Z",
+            "completedAt": "2026-11-13T23:55:54.928Z"
+          },
+          "reference": {
+            "minEgp": 749,
+            "medianEgp": 749,
+            "maxEgp": 749,
+            "regularMedianEgp": 749,
+            "sellers": 1,
+            "observations": 1,
+            "excluded": [
+              {
+                "id": "1e4b9102-f887-424a-9d81-e27e82ad5784",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "40b8bfdd-ddc4-40ca-8b00-282cd72374a4",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "affb92c6-89dc-4274-841f-b07563f8d7f0",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "3b314fef-9397-44ed-891d-7fe37c9bf2ed",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "3c78c3fa-e60b-49a4-a5ff-52e764b05431",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              },
+              {
+                "id": "7e006d5d-86ca-4a1a-bef9-c53e28b362fe",
+                "reason": "UNVERIFIED_PRICE_EVIDENCE"
+              }
+            ],
+            "freshestAt": "2026-11-13T23:55:06.141Z",
+            "currency": "EGP",
+            "priceType": "REGULAR",
+            "confidence": "MEDIUM",
+            "priceReviewRequired": false,
+            "evidence": [
+              {
+                "id": "bccb366e-12ab-402c-9d57-5cabd567839f",
+                "sourceUrl": "https://mainasrpharmacy.com/ar/products/bioderma-sensibio-h2o-250-ml/",
+                "sellerDomain": "mainasrpharmacy.com",
+                "regularPriceEgp": 749,
+                "priceType": "REGULAR",
+                "sourceType": "ESTABLISHED_PHARMACY",
+                "observedAt": "2026-11-13T23:55:06.141Z"
+              }
+            ]
+          },
+          "pricing": {
+            "state": "WAIT_FOR_SUPPLIER_COST",
+            "purchaseCost": null,
+            "note": "Market data is kept; no selling price until a validated supplier purchase cost exists"
+          }
+        },
+        "observations": [
+          {
+            "id": "138914f0-6e08-490a-95a3-5558fb258ad4",
+            "sourceUrl": "https://mainasrpharmacy.com/products/bioderma-sensibio-gel-cleansing-foaming-gel-for-sensitive-skin-200ml/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:50:51.833Z",
+            "priceEgp": "825",
+            "regularPriceEgp": "825",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Bioderma Sensibio Gel Cleansing Foaming Gel For Sensitive Skin – 200ml\\\",\\\"price\\\":825,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "c0bff8f2-aaeb-4dac-8f8d-f57b5847a814",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270268164/TELOFILL-MICELLAR-WATER--For-All-Skin-types-250ML",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:50:52.419Z",
+            "priceEgp": "185",
+            "regularPriceEgp": "185",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Tellofill Micellar Water Makeup Remover - 250ml\\\",\\\"price\\\":185,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "a930e571-b7a8-470d-80e4-d0cc13318d4a",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270294747/Nutshell+Argan+%26+Hyaluronic+Acid+Micellar+Water%2C+250+Ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:50:52.717Z",
+            "priceEgp": "150",
+            "regularPriceEgp": "150",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Nutshell Micellar Water Makeup Remover with Argan Oil and Hyaluronic Acid - 250ml\\\",\\\"price\\\":150,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "d41c565a-6568-4907-87ba-b741948b570f",
+            "sourceUrl": "https://elghazawy.com/ar/product/38074270298686/Dear+Micellar+Cleansing+Water%2C+250+Ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:50:52.969Z",
+            "priceEgp": "160",
+            "regularPriceEgp": "160",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"مزيل ميكب دير ماء ميسيلار - 250 مل\\\",\\\"price\\\":160,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "4b922103-0b7e-4058-83d8-3ae909b8cca8",
+            "sourceUrl": "https://elghazawy.com/en/product/38074270295100/Leaves+Whitening+Micellar+Water+5%2A1+%2CHydration+%2C+200Ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:50:53.229Z",
+            "priceEgp": "195",
+            "regularPriceEgp": "195",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Leaves 5-in-1 Micellar Water for Brightening and Hydration - 200ml\\\",\\\"price\\\":195,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "bd58efc1-3472-4fed-8796-068c661df62a",
+            "sourceUrl": "https://mainasrpharmacy.com/products/bioderma-sensibio-h2o-micellar-solution/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:50:42.083Z",
+            "priceEgp": "749",
+            "regularPriceEgp": null,
+            "status": "REJECTED",
+            "rejectReason": "SIZE_NOT_CONFIRMED",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"PROMOTIONAL\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Bioderma Sensibio H2O Micellar Solution\\\",\\\"price\\\":749,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"PROMOTIONAL\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "1150105f-8383-43e1-9903-547ab6c8e169",
+            "sourceUrl": "https://mainasrpharmacy.com/products/bioderma-sebium-h2o-micellar-water/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:50:46.970Z",
+            "priceEgp": "620",
+            "regularPriceEgp": "620",
+            "status": "REJECTED",
+            "rejectReason": "SIZE_NOT_CONFIRMED",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Bioderma Sébium H2o Micellar Water\\\",\\\"price\\\":620,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "51192ff2-63a6-4b3e-8035-d172a1369951",
+            "sourceUrl": "https://elghazawy.com/en/product/172258/page/about-us",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:50:52.090Z",
+            "priceEgp": "215",
+            "regularPriceEgp": "215",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Bioderma Purifying Cleansing Water Serum 250 ml\\\",\\\"price\\\":215,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "bccb366e-12ab-402c-9d57-5cabd567839f",
+            "sourceUrl": "https://mainasrpharmacy.com/ar/products/bioderma-sensibio-h2o-250-ml/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:55:06.141Z",
+            "priceEgp": "749",
+            "regularPriceEgp": "749",
+            "status": "ACCEPTED",
+            "rejectReason": null,
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Bioderma Sensibio H2o 250ml\\\",\\\"price\\\":749,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "7e82114c-6c68-4f70-a3c6-fa33ff01327a",
+            "sourceUrl": "https://mainasrpharmacy.com/ar/products/urolinda-exfoliation-cream/",
+            "sellerDomain": "mainasrpharmacy.com",
+            "observedAt": "2026-11-13T23:55:18.447Z",
+            "priceEgp": "120",
+            "regularPriceEgp": "120",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"ESTABLISHED_PHARMACY\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"Urolinda Exfoliation Cream\\\",\\\"price\\\":120,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          },
+          {
+            "id": "adf3eb59-7648-4a68-92cb-f3d55c51b973",
+            "sourceUrl": "https://elghazawy.com/ar/product/172258/syrom-mhlol-maey-mnthf-omnky-llbshr-mn-byodyrma-250-ml",
+            "sellerDomain": "elghazawy.com",
+            "observedAt": "2026-11-13T23:55:18.701Z",
+            "priceEgp": "215",
+            "regularPriceEgp": "215",
+            "status": "REJECTED",
+            "rejectReason": "PAGE_IS_ANOTHER_PRODUCT",
+            "evidenceExcerpt": "{\"rule\":\"market-price@2\",\"priceType\":\"REGULAR\",\"sourceType\":\"TRUSTED_RETAILER\",\"currency\":\"EGP\",\"excerpt\":\"{\\\"name\\\":\\\"سيروم محلول مائي منظف ومنقي للبشرة من بيوديرما 250 مل\\\",\\\"price\\\":215,\\\"regularPrice\\\":null,\\\"priceType\\\":\\\"REGULAR\\\",\\\"currency\\\":\\\"EGP\\\"}\"}"
+          }
+        ]
+      }
+    ],
+    "commercialValuesUnchanged": true
+  }
+}

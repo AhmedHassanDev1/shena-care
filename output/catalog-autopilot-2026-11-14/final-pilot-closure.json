@@ -1,0 +1,1214 @@
+{
+  "scope": "ISOLATED_LOCAL_TEST_DATABASE",
+  "commercialLaunchReady": false,
+  "developmentOnlyPrices": true,
+  "jobId": "9b9438e4-5de5-4eae-a56b-3833617bd8d2",
+  "jobStatus": "COMPLETED",
+  "terminalRows": 10,
+  "automaticDrafts": 3,
+  "linked": 3,
+  "skipped": 0,
+  "unresolved": 4,
+  "readySkus": [
+    {
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "name": "CeraVe Hydrating Facial Cleanser 236ml",
+      "publicApi": 200,
+      "publicImage": 200,
+      "sourceHash": "d629621a2a3e8056cf82b11edaae00f41ad663a5ee9c75ca79e58c9f8ace4b55",
+      "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+      "rights": "MANUFACTURER_PUBLISHED",
+      "originalWidth": 400,
+      "originalHeight": 450,
+      "priceScope": "EXPLICIT_OWNER_DEV_ONLY",
+      "priceEgp": 100
+    },
+    {
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "name": "CeraVe Foaming Facial Cleanser 236ml",
+      "publicApi": 200,
+      "publicImage": 200,
+      "sourceHash": "92e82e14b92b7140f941b475092c8c39223de81952a8c2d68a8b55ef3826eb4c",
+      "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+      "rights": "MANUFACTURER_PUBLISHED",
+      "originalWidth": 400,
+      "originalHeight": 450,
+      "priceScope": "EXPLICIT_OWNER_DEV_ONLY",
+      "priceEgp": 100
+    },
+    {
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "name": "CeraVe SA Smoothing Cleanser 236ml",
+      "publicApi": 200,
+      "publicImage": 200,
+      "sourceHash": "9f56f7745a0cef9e11e0d1a3f0fe0997348c5bf424d28d070b6d65c9edce026a",
+      "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+      "rights": "MANUFACTURER_PUBLISHED",
+      "originalWidth": 200,
+      "originalHeight": 400,
+      "priceScope": "EXPLICIT_OWNER_DEV_ONLY",
+      "priceEgp": 100
+    },
+    {
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "name": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+      "publicApi": 200,
+      "publicImage": 200,
+      "sourceHash": "9924b6608463d5d305a11d79823ecc9c0e8e78c14a835c6b6036a9690e78b493",
+      "sourceUrl": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+      "rights": "MANUFACTURER_PUBLISHED",
+      "originalWidth": 900,
+      "originalHeight": 900,
+      "priceScope": "EXPLICIT_OWNER_DEV_ONLY",
+      "priceEgp": 950
+    }
+  ],
+  "rows": [
+    {
+      "rowId": "d8962ea9-8fe9-4f6d-904f-4d4da101e021",
+      "name": "CeraVe Hydrating Facial Cleanser 236ml",
+      "outcome": "LINKED_EXISTING",
+      "reasonCode": "EXISTING_SKU:SAME_VERIFIED_PAGE",
+      "attempts": 0,
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "criticalExceptions": [],
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "CeraVe",
+        "product": "Hydrating Cleanser",
+        "size": 236,
+        "unit": "ml",
+        "variant": "236 ml",
+        "barcode": null
+      },
+      "readiness": {
+        "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+        "productId": "c2ca32fb-5583-4648-a85d-736622e11e16",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "PENDING_REVIEW"
+        },
+        "facts": {
+          "total": 11,
+          "applied": [
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 100,
+            "currency": "EGP"
+          }
+        }
+      },
+      "flags": {
+        "pdp": {
+          "ready": true,
+          "missing": []
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": true,
+          "missing": [],
+          "purchaseCost": null,
+          "marketReference": {
+            "status": "UNAVAILABLE",
+            "reasonCode": "NO_RELIABLE_OBSERVATION",
+            "reference": null,
+            "checkedAt": "2026-11-14T01:02:06.020Z"
+          }
+        },
+        "criticalOpen": []
+      },
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": null,
+        "reasonCode": "NO_VERIFIED_REGULAR_PRICE"
+      },
+      "finalDecision": "AUTO_LINK"
+    },
+    {
+      "rowId": "d9ca769a-dfb8-4db3-a672-6fed303fc22b",
+      "name": "CeraVe Foaming Facial Cleanser 236ml",
+      "outcome": "LINKED_EXISTING",
+      "reasonCode": "EXISTING_SKU:SAME_VERIFIED_PAGE",
+      "attempts": 0,
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "criticalExceptions": [],
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "CeraVe",
+        "product": "Foaming Cleanser",
+        "size": 236,
+        "unit": "ml",
+        "variant": "236 ml",
+        "barcode": null
+      },
+      "readiness": {
+        "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+        "productId": "e8374cf1-f57c-447f-b4fb-04476e9b9ba3",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "attributes.nonComedogenic",
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 100,
+            "currency": "EGP"
+          }
+        }
+      },
+      "flags": {
+        "pdp": {
+          "ready": true,
+          "missing": []
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": true,
+          "missing": [],
+          "purchaseCost": null,
+          "marketReference": {
+            "status": "UNAVAILABLE",
+            "reasonCode": "REGULAR_PRICE_NOT_CORROBORATED",
+            "reference": {
+              "maxEgp": 540,
+              "minEgp": 540,
+              "sellers": 1,
+              "currency": "EGP",
+              "evidence": [
+                {
+                  "id": "3ebe5b90-37b4-4919-957d-2d014f9041e5",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://elghazawy.com/en/product/38074270272874/CeraVe-Foaming-Cleanser-for-Normal-to-Oily-Skin-236-ml",
+                  "observedAt": "2026-11-14T01:02:12.413Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "elghazawy.com",
+                  "regularPriceEgp": 540
+                }
+              ],
+              "excluded": [],
+              "medianEgp": 540,
+              "priceType": "REGULAR",
+              "confidence": "UNVERIFIED",
+              "freshestAt": "2026-11-14T01:02:12.413Z",
+              "observations": 1,
+              "regularMedianEgp": 540,
+              "priceReviewRequired": false
+            },
+            "checkedAt": "2026-11-14T01:02:13.506Z"
+          }
+        },
+        "criticalOpen": []
+      },
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": {
+          "minEgp": 540,
+          "medianEgp": 540,
+          "maxEgp": 540,
+          "regularMedianEgp": 540,
+          "sellers": 1,
+          "observations": 1,
+          "excluded": [],
+          "freshestAt": "2026-11-14T01:02:12.413Z",
+          "currency": "EGP",
+          "priceType": "REGULAR",
+          "confidence": "UNVERIFIED",
+          "priceReviewRequired": false,
+          "evidence": [
+            {
+              "id": "3ebe5b90-37b4-4919-957d-2d014f9041e5",
+              "sourceUrl": "https://elghazawy.com/en/product/38074270272874/CeraVe-Foaming-Cleanser-for-Normal-to-Oily-Skin-236-ml",
+              "sellerDomain": "elghazawy.com",
+              "regularPriceEgp": 540,
+              "priceType": "REGULAR",
+              "sourceType": "TRUSTED_RETAILER",
+              "observedAt": "2026-11-14T01:02:12.413Z"
+            }
+          ]
+        },
+        "reasonCode": "REGULAR_PRICE_NOT_CORROBORATED"
+      },
+      "finalDecision": "AUTO_LINK"
+    },
+    {
+      "rowId": "9179102b-0603-455b-bc55-a8d1bc546352",
+      "name": "CeraVe Moisturizing Cream 454g",
+      "outcome": "LINKED_EXISTING",
+      "reasonCode": "EXISTING_SKU:SAME_VERIFIED_PAGE",
+      "attempts": 0,
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "criticalExceptions": [
+        {
+          "id": "ebe4182d-6b0e-46e7-886b-61d044e561f6",
+          "reasonCode": "REAL_VALIDATION_SOURCE_FORMULA_CONFLICT",
+          "summary": "Official cream page highlights Niacinamide but its INCI does not list it; formula claim requires review",
+          "recommended": {
+            "label": "Reconcile Niacinamide feature with the exact 454 g manufacturer INCI or a reliable stock label; keep unpublished meanwhile",
+            "action": "CORRECT"
+          },
+          "evidence": {
+            "inci": [
+              "AQUA / WATER",
+              "GLYCERIN",
+              "CETEARYL ALCOHOL",
+              "CAPRYLIC/CAPRIC TRIGLYCERIDE",
+              "CETYL ALCOHOL",
+              "CETEARETH-20",
+              "PETROLATUM",
+              "DIMETHICONE",
+              "PHENOXYETHANOL",
+              "BEHENTRIMONIUM METHOSULFATE",
+              "POTASSIUM PHOSPHATE",
+              "ETHYLHEXYLGLYCERIN",
+              "SODIUM LAUROYL LACTYLATE",
+              "DISODIUM EDTA",
+              "DIPOTASSIUM PHOSPHATE",
+              "CERAMIDE NP",
+              "CERAMIDE AP",
+              "PHYTOSPHINGOSINE",
+              "CHOLESTEROL",
+              "XANTHAN GUM",
+              "CARBOMER",
+              "SODIUM HYALURONATE",
+              "TOCOPHEROL",
+              ". CERAMIDE EOP"
+            ],
+            "requested": "CeraVe Moisturizing Cream 454g",
+            "keyIngredients": [
+              {
+                "name": "Ceramides",
+                "function": "To help protect the natural skin barrier"
+              },
+              {
+                "name": "Hyaluronic Acid",
+                "function": "Helps retain skin's natural moisture"
+              },
+              {
+                "name": "Niacinamide",
+                "function": "Helps calm skin"
+              }
+            ],
+            "sourceEvidence": [
+              {
+                "excerpt": "Ceramides: To help protect the natural skin barrier; Hyaluronic Acid: Helps retain skin's natural moisture; Niacinamide: Helps calm skin",
+                "extractor": "deterministic@1",
+                "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+                "observedAt": "2026-11-13T17:46:58.611Z",
+                "sourceTier": "OFFICIAL_MANUFACTURER",
+                "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+              }
+            ]
+          }
+        }
+      ],
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "CeraVe",
+        "product": "Moisturising Cream",
+        "size": 454,
+        "unit": "g",
+        "variant": "454 g",
+        "barcode": null
+      },
+      "readiness": {
+        "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+        "productId": "3218ffce-0cf4-4f42-9cf6-c68d41b29e81",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "CRITICAL_EXCEPTION_OPEN",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "APPROVED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "attributes.nonComedogenic",
+            "attributes.texture",
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 1,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      },
+      "flags": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "CRITICAL_REVIEW_OPEN"
+          ]
+        },
+        "chatbot": {
+          "ready": false,
+          "missing": [
+            "CRITICAL_REVIEW_OPEN"
+          ]
+        },
+        "routine": {
+          "ready": false,
+          "missing": [
+            "CRITICAL_REVIEW_OPEN"
+          ],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "SELLING_PRICE_NOT_APPROVED",
+            "NOT_COMMERCIALLY_ORDERABLE",
+            "PRODUCT_NOT_READY"
+          ],
+          "purchaseCost": null,
+          "marketReference": {
+            "status": "UNAVAILABLE",
+            "reasonCode": "REGULAR_PRICE_NOT_CORROBORATED",
+            "reference": {
+              "maxEgp": 1050,
+              "minEgp": 1050,
+              "sellers": 1,
+              "currency": "EGP",
+              "evidence": [
+                {
+                  "id": "6d94e674-4231-4da5-b3d6-2278b323b5fd",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://elghazawy.com/en/product/38074270232611/CeraVe+Moisturizing+Cream+454gm",
+                  "observedAt": "2026-11-14T01:02:14.619Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "elghazawy.com",
+                  "regularPriceEgp": 1050
+                }
+              ],
+              "excluded": [],
+              "medianEgp": 1050,
+              "priceType": "REGULAR",
+              "confidence": "UNVERIFIED",
+              "freshestAt": "2026-11-14T01:02:14.619Z",
+              "observations": 1,
+              "regularMedianEgp": 1050,
+              "priceReviewRequired": false
+            },
+            "checkedAt": "2026-11-14T01:02:19.900Z"
+          }
+        },
+        "criticalOpen": [
+          {
+            "reasonCode": "REAL_VALIDATION_SOURCE_FORMULA_CONFLICT",
+            "field": "composition.keyIngredients",
+            "summary": "Official cream page highlights Niacinamide but its INCI does not list it; formula claim requires review"
+          }
+        ]
+      },
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": {
+          "minEgp": 1050,
+          "medianEgp": 1050,
+          "maxEgp": 1050,
+          "regularMedianEgp": 1050,
+          "sellers": 1,
+          "observations": 1,
+          "excluded": [],
+          "freshestAt": "2026-11-14T01:02:14.619Z",
+          "currency": "EGP",
+          "priceType": "REGULAR",
+          "confidence": "UNVERIFIED",
+          "priceReviewRequired": false,
+          "evidence": [
+            {
+              "id": "6d94e674-4231-4da5-b3d6-2278b323b5fd",
+              "sourceUrl": "https://elghazawy.com/en/product/38074270232611/CeraVe+Moisturizing+Cream+454gm",
+              "sellerDomain": "elghazawy.com",
+              "regularPriceEgp": 1050,
+              "priceType": "REGULAR",
+              "sourceType": "TRUSTED_RETAILER",
+              "observedAt": "2026-11-14T01:02:14.619Z"
+            }
+          ]
+        },
+        "reasonCode": "REGULAR_PRICE_NOT_CORROBORATED"
+      },
+      "publicStatus": 404,
+      "finalDecision": "AUTO_LINK"
+    },
+    {
+      "rowId": "73e1ce23-c8fd-4c31-803b-77645cd52ae7",
+      "name": "CeraVe SA Smoothing Cleanser 236ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "attempts": 0,
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "criticalExceptions": [],
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "CeraVe",
+        "product": "SA Smoothing Cleanser",
+        "size": 236,
+        "unit": "ml",
+        "variant": "236 ml",
+        "barcode": null
+      },
+      "readiness": {
+        "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+        "productId": "10fab1e0-f087-47cf-8332-5fef12f3d234",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 13,
+          "applied": [
+            "attributes.nonComedogenic",
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages",
+            "usage.instructions"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 100,
+            "currency": "EGP"
+          }
+        }
+      },
+      "flags": {
+        "pdp": {
+          "ready": true,
+          "missing": []
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": [],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": true,
+          "missing": [],
+          "purchaseCost": null,
+          "marketReference": {
+            "status": "UNAVAILABLE",
+            "reasonCode": "REGULAR_PRICE_NOT_CORROBORATED",
+            "reference": {
+              "maxEgp": 600,
+              "minEgp": 600,
+              "sellers": 1,
+              "currency": "EGP",
+              "evidence": [
+                {
+                  "id": "faf228a1-cb21-41ca-87a2-a0f028cab6bf",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://elghazawy.com/en/product/38074270277652/CeraVe+SA+Smoothing+Cleanser+236+ml",
+                  "observedAt": "2026-11-14T01:02:24.585Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "elghazawy.com",
+                  "regularPriceEgp": 600
+                }
+              ],
+              "excluded": [
+                {
+                  "id": "4962d5ee-d7c3-45aa-9552-53679b4a7195",
+                  "reason": "LIST_PRICE_NOT_CORROBORATED"
+                }
+              ],
+              "medianEgp": 600,
+              "priceType": "REGULAR",
+              "confidence": "UNVERIFIED",
+              "freshestAt": "2026-11-14T01:02:24.585Z",
+              "observations": 1,
+              "regularMedianEgp": 600,
+              "priceReviewRequired": false
+            },
+            "checkedAt": "2026-11-14T01:02:31.766Z"
+          }
+        },
+        "criticalOpen": []
+      },
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": {
+          "minEgp": 600,
+          "medianEgp": 600,
+          "maxEgp": 600,
+          "regularMedianEgp": 600,
+          "sellers": 1,
+          "observations": 1,
+          "excluded": [
+            {
+              "id": "4962d5ee-d7c3-45aa-9552-53679b4a7195",
+              "reason": "LIST_PRICE_NOT_CORROBORATED"
+            }
+          ],
+          "freshestAt": "2026-11-14T01:02:24.585Z",
+          "currency": "EGP",
+          "priceType": "REGULAR",
+          "confidence": "UNVERIFIED",
+          "priceReviewRequired": false,
+          "evidence": [
+            {
+              "id": "faf228a1-cb21-41ca-87a2-a0f028cab6bf",
+              "sourceUrl": "https://elghazawy.com/en/product/38074270277652/CeraVe+SA+Smoothing+Cleanser+236+ml",
+              "sellerDomain": "elghazawy.com",
+              "regularPriceEgp": 600,
+              "priceType": "REGULAR",
+              "sourceType": "TRUSTED_RETAILER",
+              "observedAt": "2026-11-14T01:02:24.585Z"
+            }
+          ]
+        },
+        "reasonCode": "REGULAR_PRICE_NOT_CORROBORATED"
+      },
+      "finalDecision": "AUTO_ACCEPT"
+    },
+    {
+      "rowId": "c0fe7d60-10e3-4500-b87d-909c555ad18e",
+      "name": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "attempts": 0,
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "criticalExceptions": [],
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "The Ordinary",
+        "product": "Niacinamide 10% + Zinc 1%",
+        "size": 30,
+        "unit": "ml",
+        "variant": "30 ml",
+        "barcode": null
+      },
+      "readiness": {
+        "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+        "productId": "917cddef-6e31-474c-ae30-db74fb8e62ed",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "composition.inci",
+            "identity.size",
+            "marketing.description",
+            "safety.warnings",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "composition.activeConcentrations",
+            "identity.brand",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 950,
+            "currency": "EGP"
+          }
+        }
+      },
+      "flags": {
+        "pdp": {
+          "ready": true,
+          "missing": []
+        },
+        "chatbot": {
+          "ready": true,
+          "missing": []
+        },
+        "routine": {
+          "ready": true,
+          "missing": []
+        },
+        "selling": {
+          "ready": true,
+          "missing": [],
+          "purchaseCost": null,
+          "marketReference": {
+            "status": "REFERENCE_READY",
+            "reasonCode": null,
+            "reference": {
+              "maxEgp": 665,
+              "minEgp": 650,
+              "sellers": 3,
+              "currency": "EGP",
+              "evidence": [
+                {
+                  "id": "94345748-b58f-48d8-933a-261fbe41acea",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://elghazawy.com/en/product/38074270222442/THE-ORDINARY-NIACINAMIDE-SERUM-30ML",
+                  "observedAt": "2026-11-14T01:02:37.604Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "elghazawy.com",
+                  "regularPriceEgp": 665
+                },
+                {
+                  "id": "755cfc72-582e-4268-a618-d538f3855445",
+                  "priceType": "REGULAR",
+                  "sourceUrl": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-30-ml/",
+                  "observedAt": "2026-11-14T01:02:37.256Z",
+                  "sourceType": "ESTABLISHED_PHARMACY",
+                  "sellerDomain": "mainasrpharmacy.com",
+                  "regularPriceEgp": 650
+                },
+                {
+                  "id": "50d7b74f-1a6d-411e-a2c7-dd217e9da4fd",
+                  "priceType": "LIST_CANDIDATE",
+                  "sourceUrl": "https://www.cosmostoreegypt.com/shop/the-ordinary-niacinamide-10-zinc-1-serum/",
+                  "observedAt": "2026-11-14T01:02:35.078Z",
+                  "sourceType": "TRUSTED_RETAILER",
+                  "sellerDomain": "cosmostoreegypt.com",
+                  "regularPriceEgp": 650
+                }
+              ],
+              "excluded": [],
+              "medianEgp": 650,
+              "priceType": "REGULAR",
+              "confidence": "HIGH",
+              "freshestAt": "2026-11-14T01:02:37.604Z",
+              "observations": 3,
+              "regularMedianEgp": 650,
+              "priceReviewRequired": false
+            },
+            "checkedAt": "2026-11-14T01:02:42.928Z"
+          }
+        },
+        "criticalOpen": []
+      },
+      "market": {
+        "status": "REFERENCE_READY",
+        "reference": {
+          "minEgp": 650,
+          "medianEgp": 650,
+          "maxEgp": 665,
+          "regularMedianEgp": 650,
+          "sellers": 3,
+          "observations": 3,
+          "excluded": [],
+          "freshestAt": "2026-11-14T01:02:37.604Z",
+          "currency": "EGP",
+          "priceType": "REGULAR",
+          "confidence": "HIGH",
+          "priceReviewRequired": false,
+          "evidence": [
+            {
+              "id": "94345748-b58f-48d8-933a-261fbe41acea",
+              "sourceUrl": "https://elghazawy.com/en/product/38074270222442/THE-ORDINARY-NIACINAMIDE-SERUM-30ML",
+              "sellerDomain": "elghazawy.com",
+              "regularPriceEgp": 665,
+              "priceType": "REGULAR",
+              "sourceType": "TRUSTED_RETAILER",
+              "observedAt": "2026-11-14T01:02:37.604Z"
+            },
+            {
+              "id": "755cfc72-582e-4268-a618-d538f3855445",
+              "sourceUrl": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-30-ml/",
+              "sellerDomain": "mainasrpharmacy.com",
+              "regularPriceEgp": 650,
+              "priceType": "REGULAR",
+              "sourceType": "ESTABLISHED_PHARMACY",
+              "observedAt": "2026-11-14T01:02:37.256Z"
+            },
+            {
+              "id": "50d7b74f-1a6d-411e-a2c7-dd217e9da4fd",
+              "sourceUrl": "https://www.cosmostoreegypt.com/shop/the-ordinary-niacinamide-10-zinc-1-serum/",
+              "sellerDomain": "cosmostoreegypt.com",
+              "regularPriceEgp": 650,
+              "priceType": "LIST_CANDIDATE",
+              "sourceType": "TRUSTED_RETAILER",
+              "observedAt": "2026-11-14T01:02:35.078Z"
+            }
+          ]
+        },
+        "reasonCode": null
+      },
+      "finalDecision": "AUTO_ACCEPT"
+    },
+    {
+      "rowId": "e4c758d5-6de5-40a0-abf1-1a4b5805ff48",
+      "name": "The Ordinary Hyaluronic Acid 2% + B5 30ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "PAGE_NAMES_ANOTHER_VARIANT",
+      "attempts": 0,
+      "skuId": null,
+      "criticalExceptions": [
+        {
+          "id": "acb716d6-b135-4e4d-a4a0-696108f3faba",
+          "reasonCode": "PAGE_NAMES_ANOTHER_VARIANT",
+          "summary": "The official page found is for Hyaluronic Acid 2% + B5 (with Ceramides), not exactly \"Hyaluronic Acid 2% + B5\"",
+          "recommended": {
+            "label": "Give the exact product name or its official page URL",
+            "action": "CORRECT"
+          },
+          "evidence": {
+            "name": "The Ordinary Hyaluronic Acid 2% + B5 30ml",
+            "checks": [
+              {
+                "url": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-with-ceramides-100637.html",
+                "title": "Hyaluronic Acid 2% + B5 (with Ceramides)"
+              }
+            ]
+          }
+        }
+      ],
+      "finalDecision": "HOLD_CRITICAL"
+    },
+    {
+      "rowId": "cfbac0e3-cdd9-447b-86f9-92aaa830c6d4",
+      "name": "La Roche-Posay Effaclar Purifying Foaming Gel 200ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "RETRY_EXHAUSTED",
+      "attempts": 5,
+      "skuId": null,
+      "criticalExceptions": [
+        {
+          "id": "2fb14460-eedc-4c27-bf98-a13bb0bd65d6",
+          "reasonCode": "RETRY_EXHAUSTED",
+          "summary": "Kept failing after 5 automatic attempts: BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED; exact identity remains unverified, so creating this SKU would be unsafe.",
+          "recommended": {
+            "label": "Provide a permitted manufacturer page for La Roche-Posay Effaclar Purifying Foaming Gel 200ml or restore official site access before retrying",
+            "action": "CORRECT"
+          },
+          "evidence": {
+            "attempts": 5,
+            "lastError": "BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED",
+            "sourceCells": {
+              "url": "https://www.laroche-posay.co.uk/en_GB/effaclar-purifying-cleansing-gel/LRP_103.html",
+              "name": "La Roche-Posay Effaclar Purifying Foaming Gel 200ml"
+            },
+            "providerRecheck": "official-source-recheck.json: no additional approved candidates"
+          }
+        }
+      ],
+      "finalDecision": "HOLD_CRITICAL"
+    },
+    {
+      "rowId": "31c71f90-b89d-453d-b5ee-1fb2de296921",
+      "name": "La Roche-Posay Cicaplast Baume B5+ 40ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "RETRY_EXHAUSTED",
+      "attempts": 5,
+      "skuId": null,
+      "criticalExceptions": [
+        {
+          "id": "7ba2d97a-365d-4356-b90a-cd6889c17fc8",
+          "reasonCode": "RETRY_EXHAUSTED",
+          "summary": "Kept failing after 5 automatic attempts: BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED; exact identity remains unverified, so creating this SKU would be unsafe.",
+          "recommended": {
+            "label": "Provide a permitted manufacturer page for La Roche-Posay Cicaplast Baume B5+ 40ml or restore official site access before retrying",
+            "action": "CORRECT"
+          },
+          "evidence": {
+            "attempts": 5,
+            "lastError": "BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED",
+            "sourceCells": {
+              "url": "https://www.laroche-posay.co.uk/en_GB/cicaplast-baume-b5-repairing-balm/LRP_035.html",
+              "name": "La Roche-Posay Cicaplast Baume B5+ 40ml"
+            },
+            "providerRecheck": "official-source-recheck.json: no additional approved candidates"
+          }
+        }
+      ],
+      "finalDecision": "HOLD_CRITICAL"
+    },
+    {
+      "rowId": "e0c2ce0e-2148-4344-8c05-0442d5512488",
+      "name": "Cetaphil Gentle Skin Cleanser 236ml",
+      "outcome": "UNRESOLVED",
+      "reasonCode": "SIZE_NOT_CONFIRMED",
+      "attempts": 0,
+      "skuId": null,
+      "criticalExceptions": [
+        {
+          "id": "f37cb0b6-b3b7-4bea-8727-eda1174972b2",
+          "reasonCode": "SIZE_NOT_CONFIRMED",
+          "summary": "The product page names the product but not this size, so the variant is not proven",
+          "recommended": {
+            "label": "Add the page for this exact size",
+            "action": "CORRECT",
+            "payload": {
+              "url": "https://www.cetaphil.com/us/cleansers/gentle-skin-cleanser/302990110227.html"
+            }
+          },
+          "evidence": {
+            "name": "Cetaphil Gentle Skin Cleanser 236ml",
+            "checks": [
+              {
+                "url": "https://www.cetaphil.com/us/cleansers/gentle-skin-cleanser/302990110227.html",
+                "tier": "OFFICIAL_MANUFACTURER",
+                "outcome": "OK",
+                "reasons": [
+                  "SIZE_NOT_CONFIRMED_BY_PAGE"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "finalDecision": "HOLD_CRITICAL"
+    },
+    {
+      "rowId": "bc94a63f-3870-4245-8c36-22460318c359",
+      "name": "Bioderma Sensibio H2O 250ml",
+      "outcome": "DRAFT_CREATED",
+      "reasonCode": "IDENTITY_VERIFIED_DRAFT_CREATED",
+      "attempts": 0,
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "criticalExceptions": [
+        {
+          "id": "3eb76422-d8b8-43aa-bcba-0ad35f413cde",
+          "reasonCode": "PRIMARY_IMAGE_SOURCE_RESTRICTED",
+          "summary": "The exact 250 ml manufacturer asset is bound to variant 28703A, but its CDN robots policy denies fetching. Without permitted original bytes its identity/label and image quality cannot be approved.",
+          "recommended": {
+            "label": "Supply a permitted authentic manufacturer 250 ml original or an accessible official exact-variant packshot URL",
+            "action": "CORRECT"
+          },
+          "evidence": {
+            "factId": "d6027721-4bfe-4840-bf4d-ef090d983ee8",
+            "reason": "The image could not be read: ROBOTS_DISALLOWED",
+            "outcome": "ROBOTS_DISALLOWED",
+            "imageUrl": "https://back-ac-prod.bioderma.com/media/catalog/product/cache/b443460c314aa18d2c50e93a48ddeb50/1/f/1f26b0eb103da154cfa311076857c14e7d41080fd3ba13c60a33656d418c0721-_7b159703_7d__7b_7d__7b28703a_7d.jpg"
+          }
+        }
+      ],
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "Bioderma",
+        "product": "Sensibio H2O Micellar Water",
+        "size": 250,
+        "unit": "ml",
+        "variant": "250 ml",
+        "barcode": null
+      },
+      "readiness": {
+        "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+        "productId": "15cb059e-6d0f-40d1-86eb-c73bd12f36d8",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "CRITICAL_EXCEPTION_OPEN",
+          "PRIMARY_PACKSHOT_NOT_APPROVED",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED",
+          "INGREDIENTS_NOT_REVIEWED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "MISSING",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 7,
+          "applied": [
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions"
+          ],
+          "pending": [
+            "media.sourceImages"
+          ],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 1,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      },
+      "flags": {
+        "pdp": {
+          "ready": false,
+          "missing": [
+            "PRIMARY_IMAGE_MISSING",
+            "CRITICAL_REVIEW_OPEN"
+          ]
+        },
+        "chatbot": {
+          "ready": false,
+          "missing": [
+            "NO_VERIFIED_COMPOSITION_OR_CLAIMS",
+            "CRITICAL_REVIEW_OPEN"
+          ]
+        },
+        "routine": {
+          "ready": false,
+          "missing": [
+            "ROUTINE_ROLE_UNKNOWN",
+            "CRITICAL_REVIEW_OPEN"
+          ],
+          "warnings": [
+            "ROUTINE_PERIOD_UNKNOWN"
+          ]
+        },
+        "selling": {
+          "ready": false,
+          "missing": [
+            "SELLING_PRICE_NOT_APPROVED",
+            "NOT_COMMERCIALLY_ORDERABLE",
+            "PRODUCT_NOT_READY"
+          ],
+          "purchaseCost": null,
+          "marketReference": {
+            "status": "UNAVAILABLE",
+            "reasonCode": "NO_RELIABLE_OBSERVATION",
+            "reference": null,
+            "checkedAt": "2026-11-14T01:02:55.691Z"
+          }
+        },
+        "criticalOpen": [
+          {
+            "reasonCode": "PRIMARY_IMAGE_SOURCE_RESTRICTED",
+            "field": "media.primary",
+            "summary": "The exact 250 ml manufacturer asset is bound to variant 28703A, but its CDN robots policy denies fetching. Without permitted original bytes its identity/label and image quality cannot be approved."
+          }
+        ]
+      },
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": null,
+        "reasonCode": "NO_VERIFIED_REGULAR_PRICE"
+      },
+      "publicStatus": 404,
+      "finalDecision": "AUTO_ACCEPT"
+    }
+  ],
+  "drainWorked": 0,
+  "duplicateIdentityCount": 0,
+  "criticalProducts": 6,
+  "remainingPendingRows": 0,
+  "remainingLeases": 0,
+  "replayWorked": 0,
+  "beforeReplay": {
+    "products": 27,
+    "skus": 27,
+    "facts": 81,
+    "assets": 14
+  },
+  "afterReplay": {
+    "products": 27,
+    "skus": 27,
+    "facts": 81,
+    "assets": 14
+  },
+  "priceCoverage": {
+    "verifiedSkuCount": 6,
+    "reliable": 1,
+    "priceOnlyReview": 0,
+    "uncorroboratedRegular": 3,
+    "noReliableObservation": 2,
+    "unverifiedIdentityNotPriced": 4
+  }
+}
