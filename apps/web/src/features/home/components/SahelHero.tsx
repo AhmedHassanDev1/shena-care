@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { PageContainer } from '@/components/layout/page-container';
 import { Icon } from '@/components/ui/icon';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
+import { useTilt } from './useTilt';
 
 /**
  * ShinaCare Sahel Hero Section
@@ -20,6 +21,7 @@ import { useMessages } from '@/lib/i18n/LocaleProvider';
  */
 export function SahelHero() {
   const m = useMessages();
+  const { containerStyle, imageStyle, textStyle, containerProps } = useTilt();
 
   return (
     <section
@@ -29,10 +31,15 @@ export function SahelHero() {
       {/* =========================================================================
           DESKTOP VIEW (1024px+): Full-width photographic backdrop with products
           on the left (end in RTL) and typography on the right (start in RTL).
+          3D parallax tilt on desktop pointer devices. Mobile and reduced-motion = flat.
           ========================================================================= */}
-      <div className="relative hidden w-full lg:flex lg:min-h-[500px] xl:min-h-[540px] items-center justify-start overflow-hidden">
+      <div
+        className="relative hidden w-full lg:flex lg:min-h-[500px] xl:min-h-[540px] items-center justify-start overflow-hidden"
+        style={containerStyle}
+        {...containerProps}
+      >
         {/* Photographic background: authentic Stitch high-res asset */}
-        <div className="absolute inset-0 z-0 animate-hero-fade">
+        <div className="absolute inset-0 z-0 animate-hero-fade" style={imageStyle}>
           <Image
             src="/assets/home/sahel-hero-desktop.webp"
             alt={m.sahelHeroAltDesktop}
@@ -45,7 +52,7 @@ export function SahelHero() {
 
         {/* Content container over start side (Right in RTL) */}
         <PageContainer className="relative z-10 w-full">
-          <div className="flex flex-col items-start text-start max-w-xl py-10 lg:py-12">
+          <div className="flex flex-col items-start text-start max-w-xl py-10 lg:py-12" style={textStyle}>
             {/* Eyebrow */}
             <div
               dir="ltr"

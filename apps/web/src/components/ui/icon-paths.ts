@@ -4,6 +4,7 @@
 export const ICON_PATHS = {
   // Navigation and chrome
   home: '<path d="M4.5 10.5 12 4.5l7.5 6v9h-5v-5h-5v5h-5z"/>', // icon-038 / FloatingNav
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>', // mobile department menu
   shop: '<rect x="4.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.5"/>', // icon-039
   routine: '<path d="M3.5 17.5h17"/><path d="M7.5 17.5a4.5 4.5 0 0 1 9 0"/><path d="M12 6.5v2.5"/><path d="M6 9.5l1.4 1.4"/><path d="M18 9.5l-1.4 1.4"/>', // icon-034 (sun on the horizon)
   evening: '<path d="M18.5 14.5A7 7 0 0 1 9.5 5.5a7 7 0 1 0 9 9z"/>', // icon-043 (moon)

@@ -41,8 +41,8 @@ export function buildRoutineChoices(products: ProductView[], profiles: RoutinePr
     return [{ skuId: sku.id, slug: product.slug, name: product.name, brand: product.brand.name,
       variantName: sku.variantName, size: sku.size, sizeUnit: sku.sizeUnit,
       price: sku.price?.amount ?? null, currency: sku.price?.currency ?? null, canOrder: sku.canOrder,
-      imageUrl: product.media.find(media => (media as any).skuId === sku.id && media.isPrimary)?.url
-        ?? product.media.find(media => (media as any).skuId === sku.id)?.url ?? product.media.find(media => media.isPrimary)?.url ?? null,
+      imageUrl: product.media.find(media => (media as { skuId?: string | null }).skuId === sku.id && media.isPrimary)?.url
+        ?? product.media.find(media => (media as { skuId?: string | null }).skuId === sku.id)?.url ?? product.media.find(media => media.isPrimary)?.url ?? null,
       role: profile.primaryRole, roleStatus: profile.primaryRoleStatus, domain: profile.routineDomain }];
   }));
 }

@@ -93,7 +93,7 @@ export function MobileDock({ active }: MobileDockProps) {
                   )}
                 >
                   <div className="relative flex items-center justify-center">
-                    <Icon name={it.icon} size={20} />
+                    <Icon name={it.icon} size={20} strokeWidth={1.75} />
                     {it.id === 'cart' && isLoading ? (
                       <span className="absolute -top-1.5 -end-2.5 flex size-4 items-center justify-center rounded-full bg-cobalt">
                         <Spinner size="xs" className="text-chalk" />
