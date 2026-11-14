@@ -7,7 +7,7 @@ import { rinseMode } from './catalog-decision-engine';
  * Deterministic extraction of product facts from one fetched page. Everything returned is literally on that page and carries the excerpt that states it; anything else
  * stays unknown. Versioned because a stored proposal must say which rules produced it.
  */
-export const RESEARCH_SCHEMA_VERSION = 2;
+export const RESEARCH_SCHEMA_VERSION = 3;
 
 export type FactField =
   | 'identity.name' | 'identity.brand' | 'identity.gtin' | 'identity.size'
@@ -54,6 +54,9 @@ export function htmlToLines(html: string): string[] {
 function structuredLines(html: string): string[] {
   const body = html
     .replace(/<!--[\s\S]*?-->/g, ' ')
+    // Bazaarvoice's itemReviewed often names an older size than the current
+    // selected product. A review aggregate is not identity evidence.
+    .replace(/<([a-z][a-z0-9]*)\b[^>]*\bclass=["'][^"']*\bbvseo-itemReviewed\b[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<(script|style|noscript|svg|nav|footer|template)\b[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<h[1-6]\b/gi, match => `\n${HEADING_BOUNDARY}\n${match}`)
     .replace(BLOCK_TAGS, '\n')
@@ -519,13 +522,20 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
 
   const images = new Set<string>();
   const addImage = (value: unknown) => {
-    if (typeof value === 'string') { try { images.add(new URL(value, pageUrl).toString()); } catch { /* not a URL */ } }
+    if (typeof value === 'string') {
+      try {
+        const url = new URL(value, pageUrl);
+        // Named campaign/infographic directories cannot establish a primary
+        // packshot, even when a manufacturer embeds them on its product page.
+        if (!/\/(?:infographics?|homepage|campaigns?|banners?)(?:\/|$)/i.test(decodeURIComponent(url.pathname))) images.add(url.toString());
+      } catch { /* not a URL */ }
+    }
     else if (Array.isArray(value)) value.forEach(addImage);
     else if (value && typeof value === 'object') addImage((value as { url?: unknown; contentUrl?: unknown }).url ?? (value as { contentUrl?: unknown }).contentUrl);
   };
   if (product) addImage(product.image);
   const og = meta(html, 'og:image');
-  if (og) addImage(og);
+  if (og && !images.size) addImage(og);
   // A product page may expose a small hero image but a usable alternate in its gallery.
   // Keep only gallery files in the hero image's exact directory; other folders can be related products or campaign art.
   const hero = [...images][0];
@@ -583,6 +593,24 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
       }
     } catch { /* malformed variant data cannot establish an image/size association */ }
     if (!images.size) rejected.push({ field: 'media.sourceImages', reason: 'VARIANT_IMAGE_NOT_CONFIRMED', detail: 'No unique primary asset is bound to this exact variant' });
+  } else {
+    // SFCC size selectors expose every offered size while their hero/JSON-LD
+    // describes only the selected one (real Cetaphil 236 ml -> default 1 L).
+    const selectors = [...html.matchAll(/<select\b([^>]*)>([\s\S]*?)<\/select>/gi)]
+      .filter(match => /\bclass=["'][^"']*\bselect-size\b[^"']*["']/i.test(match[1]));
+    if (selectors.length) {
+      const selected = selectors.flatMap(selector => [...selector[2].matchAll(/<option\b([^>]*)>([\s\S]*?)<\/option>/gi)]
+        .filter(option => /(?:^|\s)selected(?:\s|=|$)/i.test(option[1]))
+        .flatMap(option => sizesIn(htmlToLines(option[2]).join(' '))));
+      if (selectors.length !== 1 || selected.length !== 1 || !stated(selected[0])) images.clear();
+      else for (const image of images) {
+        try {
+          const namedSizes = sizesIn(decodeURIComponent(new URL(image).pathname));
+          if (namedSizes.some(size => !stated(size))) images.delete(image);
+        } catch { images.delete(image); }
+      }
+      if (!images.size) rejected.push({ field: 'media.sourceImages', reason: 'VARIANT_IMAGE_NOT_CONFIRMED', detail: 'The selected size does not bind a primary image to this exact SKU' });
+    }
   }
   const imageList = [...images].filter(url => { try { const parsed = new URL(url); return parsed.protocol === 'https:' && !parsed.username && !parsed.password; } catch { return false; } }).slice(0, 8);
   if (imageList.length) add('media.sourceImages', imageList, imageList[0]);
