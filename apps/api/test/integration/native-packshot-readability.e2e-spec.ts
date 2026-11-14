@@ -34,6 +34,7 @@ describe('native small manufacturer packshot readability review', () => {
       await expect(media.publish(asset.id, admin.id)).rejects.toThrow('Native label review is missing');
       await expect(media.review(asset.id, { decision: 'APPROVED', reason: 'Image examined in native resolution' }, admin.id)).rejects.toThrow();
       await expect(media.review(asset.id, { decision: 'APPROVED', reason: 'Image examined in native resolution', evidence: { labelText: 'CeraVe SA Smoothing Cleanser 500 ml' } } as never, admin.id)).rejects.toThrow();
+      await expect(media.review(asset.id, { decision: 'APPROVED', reason: 'Image examined in native resolution', evidence: { labelText: 'CeraVe SA Smoothing Cleanser 1236 ml' } } as never, admin.id)).rejects.toThrow();
       await expect(media.review(asset.id, { decision: 'APPROVED', reason: 'Image examined in native resolution', evidence: { labelText: 'CeraVe SA Smoothing Cleanser 8 FL OZ / 236 ml' } } as never, customer.id)).rejects.toThrow();
       const reviewed = await media.review(asset.id, { decision: 'APPROVED', reason: 'Native label is readable: brand, SA Smoothing Cleanser, 8 FL OZ / 236 ml; original pump and bottle intact',
         evidence: { labelText: 'CeraVe SA Smoothing Cleanser 8 FL OZ / 236 ml' } } as never, admin.id);

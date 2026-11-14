@@ -10,7 +10,7 @@ import { MediaProcessingError, QualityReport } from '../../../platform/storage/p
 import { MediaTemplateService } from './media-template.service';
 import { CatalogService } from './catalog.service';
 import { usableIdentityResolution } from '../research/catalog-decision-engine';
-import { identityWords } from '../research/identity-text';
+import { foldIdentityText, identityWords } from '../research/identity-text';
 
 /** Private storage owner segment for catalog media; no supplier owns these objects. */
 const MEDIA_OWNER = 'catalog-media';
@@ -251,12 +251,13 @@ export class ProductMediaService {
         const labelText = dto.evidence?.labelText;
         const labelWords = new Set(identityWords(typeof labelText === 'string' ? labelText : ''));
         const requiredWords = identityWords(`${sku.product.brand.name} ${sku.product.name}`);
-        const netContent = `${sku.size?.toNumber()}${sku.sizeUnit ?? ''}`.toLowerCase();
-        const compactLabel = typeof labelText === 'string' ? labelText.toLowerCase().replace(/[^\p{L}\p{N}.]/gu, '') : '';
+        const escapePattern = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const netContent = new RegExp('(?:^|[^0-9.])' + escapePattern(String(sku.size?.toNumber())) + '\\s*' + escapePattern(sku.sizeUnit ?? '') + '(?![a-z0-9])', 'i');
+        const exactNetContent = typeof labelText === 'string' && netContent.test(foldIdentityText(labelText));
         if (asset.role !== MediaRole.PRIMARY_PACKSHOT || asset.parentAssetId || asset.originType !== MediaOriginType.verified
           || asset.sourceType !== 'OFFICIAL_MANUFACTURER' || asset.rightsStatus !== MediaRightsStatus.MANUFACTURER_PUBLISHED
           || !['EVIDENCE_VERIFIED', 'BARCODE_VERIFIED', 'ADMIN_VERIFIED'].includes(sku.identityStatus)
-          || !sku.size || !sku.sizeUnit || !labelText || labelText.length > 1000 || requiredWords.some(word => !labelWords.has(word)) || !compactLabel.includes(netContent)) {
+          || !sku.size || !sku.sizeUnit || !labelText || labelText.length > 1000 || requiredWords.some(word => !labelWords.has(word)) || !exactNetContent) {
           throw new ConflictException({ code: 'NATIVE_LABEL_REVIEW_REQUIRED', message: 'A native small packshot needs readable brand, product and exact net-content label evidence for this verified SKU' });
         }
         facts = { nativeLabelReadability: { labelText, contentHash: asset.contentHash, reviewedBy: actorId, reviewedAt: new Date().toISOString(), size: sku.size.toNumber(), sizeUnit: sku.sizeUnit } };
