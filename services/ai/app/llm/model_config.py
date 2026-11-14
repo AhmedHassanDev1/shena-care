@@ -17,6 +17,8 @@ from app.core.config import get_settings
 
 # OpenRouter's router over its zero-price models. Used for every task in the development free-model mode.
 FREE_ROUTER = "openrouter/free"
+# Development free mode only: multiplier on every task's max_tokens (see _resolved).
+FREE_MODE_TOKEN_FACTOR = 4
 
 
 def is_free_model(model: str) -> bool:
@@ -98,8 +100,13 @@ def _resolved() -> dict[str, TaskConfig]:
 
     if get_settings().free_models_only:
         # Development free-model mode: one free router per task and nothing after it, whatever the overrides say.
-        # Token budgets and timeouts stay as configured; only the model list changes.
-        configs = {task: replace(cfg, tier="free", models=(FREE_ROUTER,)) for task, cfg in configs.items()}
+        # Free models are mostly reasoning models: their hidden reasoning is spent from max_tokens, and with the
+        # production budgets they often stop (finish_reason=length) before writing the JSON answer. Free calls cost
+        # nothing, so the development budget is multiplied; production budgets are untouched.
+        configs = {
+            task: replace(cfg, tier="free", models=(FREE_ROUTER,), max_tokens=cfg.max_tokens * FREE_MODE_TOKEN_FACTOR)
+            for task, cfg in configs.items()
+        }
     return configs
 
 

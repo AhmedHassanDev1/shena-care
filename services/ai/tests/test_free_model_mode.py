@@ -42,10 +42,10 @@ def test_development_routes_every_task_to_free_router_only(monkeypatch):
         assert cfg.models == ("openrouter/free",)
 
 
-def test_free_mode_keeps_budgets_and_timeouts(monkeypatch):
+def test_free_mode_raises_budgets_keeps_timeouts(monkeypatch):
     _enable(monkeypatch)
     cfg = model_config.task_config("consult.respond")
-    assert (cfg.max_tokens, cfg.timeout_s) == (3200, 50.0)
+    assert (cfg.max_tokens, cfg.timeout_s) == (3200 * model_config.FREE_MODE_TOKEN_FACTOR, 50.0)
 
 
 def test_production_default_is_unchanged():
@@ -109,3 +109,8 @@ async def test_gateway_refuses_paid_model_in_free_mode(monkeypatch):
     with pytest.raises(ProviderLimitError):
         await gw.complete_json("consult.respond", system="s", user="u")
     assert calls == []
+
+
+def test_production_token_budgets_are_unchanged():
+    assert model_config.task_config("consult.understand").max_tokens == 900
+    assert model_config.task_config("consult.respond").max_tokens == 3200
