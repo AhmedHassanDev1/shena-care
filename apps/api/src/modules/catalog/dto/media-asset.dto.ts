@@ -73,7 +73,7 @@ export class ReviewMediaAssetDto {
   /** Where the texture was verified, for TEXTURE_SENSORY. */
   @IsOptional()
   @IsObject()
-  evidence?: { textureSourceUrl?: string };
+  evidence?: { textureSourceUrl?: string; labelText?: string };
 }
 
 const parseJsonField = ({ value }: { value: unknown }) => {

@@ -10,6 +10,7 @@ import { MediaProcessingError, QualityReport } from '../../../platform/storage/p
 import { MediaTemplateService } from './media-template.service';
 import { CatalogService } from './catalog.service';
 import { usableIdentityResolution } from '../research/catalog-decision-engine';
+import { identityWords } from '../research/identity-text';
 
 /** Private storage owner segment for catalog media; no supplier owns these objects. */
 const MEDIA_OWNER = 'catalog-media';
@@ -66,7 +67,13 @@ export class ProductMediaService {
     }
 
     const image = await this.processor.inspect(file.buffer);
-    if (IDENTITY_ROLES.includes(dto.role) && !usableIdentityResolution(image.width, image.height)) {
+    const needsLabelReview = IDENTITY_ROLES.includes(dto.role) && !usableIdentityResolution(image.width, image.height);
+    // Quarantine a native manufacturer portrait for an explicit label review. This
+    // does not change automatic approval thresholds or allow processing/upscaling.
+    const readablePortraitCandidate = dto.role === MediaRole.PRIMARY_PACKSHOT && dto.originType === MediaOriginType.verified
+      && dto.sourceType === 'OFFICIAL_MANUFACTURER' && dto.rightsStatus === MediaRightsStatus.MANUFACTURER_PUBLISHED && isTrustedMediaSource(dto.sourceUrl)
+      && image.width >= 200 && image.height >= 400 && image.height / image.width >= 1.5;
+    if (needsLabelReview && !readablePortraitCandidate) {
       throw new BadRequestException('Identity image resolution is too low');
     }
     const contentHash = crypto.createHash('sha256').update(file.buffer).digest('hex');
@@ -87,6 +94,7 @@ export class ProductMediaService {
           sourceUrl: dto.sourceUrl, sourcePublisher: dto.sourcePublisher, sourceType: dto.sourceType, rightsStatus: dto.rightsStatus,
           capturedAt: dto.capturedAt ? new Date(dto.capturedAt) : null,
           processingStatus: MediaProcessingStatus.SUCCEEDED, createdBy: actorId,
+          ...(needsLabelReview && { qualityReport: { warnings: ['NATIVE_LABEL_REVIEW_REQUIRED'], nativeWidth: image.width, nativeHeight: image.height } }),
         },
       });
     } catch (error) {
@@ -238,6 +246,21 @@ export class ProductMediaService {
       if (SOURCE_CHECKED_ROLES.includes(asset.role) && !isTrustedMediaSource(asset.sourceUrl)) {
         throw new ConflictException('Identity images need a trusted manufacturer or distributor source');
       }
+      if (IDENTITY_ROLES.includes(asset.role) && !usableIdentityResolution(asset.width ?? 0, asset.height ?? 0)) {
+        const sku = await this.prisma.sku.findUniqueOrThrow({ where: { id: asset.skuId }, include: { product: { include: { brand: true } } } });
+        const labelText = dto.evidence?.labelText;
+        const labelWords = new Set(identityWords(typeof labelText === 'string' ? labelText : ''));
+        const requiredWords = identityWords(`${sku.product.brand.name} ${sku.product.name}`);
+        const netContent = `${sku.size?.toNumber()}${sku.sizeUnit ?? ''}`.toLowerCase();
+        const compactLabel = typeof labelText === 'string' ? labelText.toLowerCase().replace(/[^\p{L}\p{N}.]/gu, '') : '';
+        if (asset.role !== MediaRole.PRIMARY_PACKSHOT || asset.parentAssetId || asset.originType !== MediaOriginType.verified
+          || asset.sourceType !== 'OFFICIAL_MANUFACTURER' || asset.rightsStatus !== MediaRightsStatus.MANUFACTURER_PUBLISHED
+          || !['EVIDENCE_VERIFIED', 'BARCODE_VERIFIED', 'ADMIN_VERIFIED'].includes(sku.identityStatus)
+          || !sku.size || !sku.sizeUnit || !labelText || labelText.length > 1000 || requiredWords.some(word => !labelWords.has(word)) || !compactLabel.includes(netContent)) {
+          throw new ConflictException({ code: 'NATIVE_LABEL_REVIEW_REQUIRED', message: 'A native small packshot needs readable brand, product and exact net-content label evidence for this verified SKU' });
+        }
+        facts = { nativeLabelReadability: { labelText, contentHash: asset.contentHash, reviewedBy: actorId, reviewedAt: new Date().toISOString(), size: sku.size.toNumber(), sizeUnit: sku.sizeUnit } };
+      }
       if (asset.role === MediaRole.CATEGORY_EDITORIAL) {
         const warnings = (asset.qualityReport as unknown as QualityReport | null)?.warnings ?? [];
         // Warnings that can mean visible damage need a person to look at the result and say so; scale-only notes do not.
@@ -255,7 +278,7 @@ export class ProductMediaService {
     return this.prisma.mediaAsset.update({
       where: { id: assetId },
       data: { reviewStatus: dto.decision === 'APPROVED' ? MediaReviewStatus.APPROVED : MediaReviewStatus.REJECTED,
-        reviewedBy: actorId, reviewedAt: new Date(), reviewNote: dto.reason, verifiedFacts: facts },
+        reviewedBy: actorId, reviewedAt: new Date(), reviewNote: dto.reason, verifiedFacts: facts, reviewedAutomatically: false },
     });
   }
 
@@ -280,7 +303,7 @@ export class ProductMediaService {
         const parent = await this.getAsset(asset.parentAssetId);
         if (parent.reviewStatus !== MediaReviewStatus.APPROVED) [approve, reason] = [false, 'ORIGINAL_NOT_APPROVED'];
       }
-      else if (asset.role === MediaRole.CATEGORY_EDITORIAL && ((asset.qualityReport as any)?.warnings ?? []).includes('NEURAL_CUTOUT_FAILED')) {
+      else if (asset.role === MediaRole.CATEGORY_EDITORIAL && ((asset.qualityReport as { warnings?: string[] } | null)?.warnings ?? []).includes('NEURAL_CUTOUT_FAILED')) {
         [approve, reason] = [false, 'NEURAL_CUTOUT_FAILED'];
       }
     }
@@ -312,6 +335,10 @@ export class ProductMediaService {
     if (asset.publishedMediaId) return asset;
     if (asset.reviewStatus !== MediaReviewStatus.APPROVED) throw new ConflictException('Only an approved asset can be published');
     if (asset.processingStatus !== MediaProcessingStatus.SUCCEEDED || !asset.storageUrl) throw new ConflictException('Asset has no processed file');
+    if (IDENTITY_ROLES.includes(asset.role) && !usableIdentityResolution(asset.width ?? 0, asset.height ?? 0)) {
+      const proof = (asset.verifiedFacts as { nativeLabelReadability?: { contentHash?: string; reviewedBy?: string } } | null)?.nativeLabelReadability;
+      if (!proof || proof.contentHash !== asset.contentHash || proof.reviewedBy !== asset.reviewedBy) throw new ConflictException('Native label review is missing for this original');
+    }
     if (asset.parentAssetId) {
       const parent = await this.getAsset(asset.parentAssetId);
       if (parent.reviewStatus === MediaReviewStatus.REJECTED) throw new ConflictException('The original of this copy was rejected');
