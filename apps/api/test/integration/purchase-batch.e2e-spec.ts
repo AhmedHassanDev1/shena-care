@@ -70,12 +70,12 @@ describe('Purchase batches (e2e)', () => {
       latitude: 29.9602, longitude: 31.2569, locationSource: 'map_pin', locationConfirmed: true,
       quoteVersion: quote.quoteVersion, cartRevision: quote.revision, idempotencyKey: randomUUID(),
     }).expect(201);
-    await events.dispatchPending(); // order.placed is an outbox event; its consumer creates the supply requirement
+    await events.dispatchPending({ aggregateId: placed.body.id }); // Await only this order's outbox work.
     // The app's own dispatcher may hold the event; the demand exists once its requirement does.
     for (let attempt = 0; attempt < 100; attempt++) {
       if (await prisma.supplyRequirement.findUnique({ where: { orderItemId: placed.body.items[0].id } })) break;
       await pause(100);
-      await events.dispatchPending();
+      await events.dispatchPending({ aggregateId: placed.body.id });
     }
     return { customer, order: placed.body as { id: string; orderNumber: string; items: Array<{ id: string }> } };
   };
@@ -102,6 +102,10 @@ describe('Purchase batches (e2e)', () => {
     await prisma.fulfillmentLocationOperator.create({ data: { locationId, operatorId: hub.id } });
     skuA = await createOrderableSku(prisma);
     skuB = await createOrderableSku(prisma);
+    // Earlier suites can leave a due outbox row without a supply requirement.
+    // Materialize that existing demand before parking it, so a later checkout's
+    // dispatcher cannot introduce unrelated lines inside this suite's cutoff.
+    await events.dispatchPending({ limit: 1000 });
     // Demand left on this database by earlier suites is parked in a batch of its own, so every count below is about this suite's orders only.
     await batches.cutNow(randomUUID(), admin.id);
   });
