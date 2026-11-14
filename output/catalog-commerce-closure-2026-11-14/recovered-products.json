@@ -1,0 +1,457 @@
+{
+  "scope": "ISOLATED_CLONE_ONLY",
+  "worked": 2,
+  "results": [
+    {
+      "name": "The Ordinary Hyaluronic Acid 2% + B5 (Original Formulation) 30ml",
+      "outcome": "DRAFT_CREATED",
+      "reason": null,
+      "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+      "evidence": {
+        "media": {
+          "primary": "APPROVED",
+          "editorial": "PENDING",
+          "rejectedSources": [
+            {
+              "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw56cd0f2e/Images/products/The%20Ordinary/rdn-hyaluronic-acid-2pct-b5-30ml.png?sw=340&sh=340&sm=fit",
+              "reason": "RESOLUTION_TOO_LOW:340x340"
+            }
+          ]
+        },
+        "market": {
+          "check": {
+            "id": "6d1f5bdf-3029-47d4-a4c3-dce1f9e0aa74",
+            "cost": {
+              "rule": "market-price@4",
+              "searches": 0,
+              "pageFetches": 0
+            },
+            "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+            "status": "UNAVAILABLE",
+            "coverage": {
+              "REUSED": {
+                "pages": 0,
+                "accepted": 0,
+                "rejected": {}
+              },
+              "OFFICIAL": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "CURRENCY_USD": 1
+                }
+              }
+            },
+            "reference": null,
+            "startedAt": "2026-11-14T09:41:55.395Z",
+            "reasonCode": "NO_RELIABLE_OBSERVATION",
+            "completedAt": "2026-11-14T09:41:55.414Z",
+            "requestedBy": "12f44997-7887-4bb5-916f-33248d5cab7b"
+          },
+          "pricing": {
+            "note": "Market evidence is advisory. Commerce owns selling-price approval; this sourcing mode does not require a supplier offer cost",
+            "state": "OWNED_BY_COMMERCE",
+            "purchaseCost": null
+          },
+          "reference": null
+        },
+        "profile": {
+          "primaryRole": {
+            "basis": "PRODUCT_TYPE:serum",
+            "value": "SERUM",
+            "status": "RULE_DERIVED"
+          },
+          "productType": "serum",
+          "routinePeriod": {
+            "basis": "REVIEWED_USAGE_RULE",
+            "value": "BOTH",
+            "source": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+            "status": "VERIFIED",
+            "excerpt": "Apply a few drops to the face in the morning and evening."
+          }
+        },
+        "identity": {
+          "size": {
+            "unit": "ml",
+            "value": 30
+          },
+          "tier": "OFFICIAL_MANUFACTURER",
+          "basis": "CREATED",
+          "brand": {
+            "id": "518412f9-f915-46fa-93c8-dc9d82be32a7",
+            "name": "The Ordinary",
+            "basis": "CATALOG_EXACT",
+            "aliases": [
+              "اورجيناري",
+              "the-ordinary",
+              "ordinary",
+              "ذا اورديناري",
+              "ذي اورديناري",
+              "اورديناري"
+            ]
+          },
+          "checks": [
+            {
+              "url": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "outcome": "OK",
+              "reasons": [],
+              "pageTitle": "Hyaluronic Acid 2% + B5 (Original Formulation)",
+              "sizeConfirmed": true,
+              "identityMatched": true
+            }
+          ],
+          "created": true,
+          "verifiedBy": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+          "productName": "Hyaluronic Acid 2% + B5 (Original Formulation)",
+          "verifiedTitle": "Hyaluronic Acid 2% + B5 (Original Formulation)"
+        },
+        "enrichment": {
+          "runs": [
+            {
+              "tier": "OFFICIAL",
+              "status": "COMPLETE",
+              "sources": [
+                "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1"
+              ]
+            }
+          ],
+          "holds": [],
+          "applied": [
+            "composition.inci",
+            "identity.size",
+            "marketing.description",
+            "usage.routinePeriod",
+            "usage.instructions",
+            "safety.warnings"
+          ],
+          "coverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "VERIFIED",
+            "composition.inci": "VERIFIED",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "VERIFIED",
+            "usage.routinePeriod": "VERIFIED",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "UNKNOWN",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNVERIFIED",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNVERIFIED",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          },
+          "rejected": [],
+          "unverified": [
+            "identity.name",
+            "claims.manufacturerStated",
+            "identity.brand",
+            "media.sourceImages",
+            "composition.activeConcentrations"
+          ],
+          "stillMissing": []
+        }
+      },
+      "readiness": {
+        "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+        "productId": "83dbbc95-caf3-4994-8e42-1935f5ad9627",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "APPROVED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "PENDING_REVIEW"
+        },
+        "facts": {
+          "total": 11,
+          "applied": [
+            "composition.inci",
+            "identity.size",
+            "marketing.description",
+            "safety.warnings",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "composition.activeConcentrations",
+            "identity.brand",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      }
+    },
+    {
+      "name": "Cetaphil Gentle Skin Cleanser 236ml",
+      "outcome": "DRAFT_CREATED",
+      "reason": null,
+      "skuId": "ad4c3947-a35f-4d6d-af02-cab4c0ff623f",
+      "evidence": {
+        "media": {
+          "primary": "MISSING",
+          "editorial": "MISSING",
+          "rejectedSources": [
+            {
+              "url": "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw4f531114/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%201L%201.jpg?sw=900&sh=900&sm=fit&q=85",
+              "reason": "The image could not be read: ROBOTS_DISALLOWED"
+            },
+            {
+              "url": "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw3ae47699/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%201.jpg?sw=900&sh=900&sm=fit&q=85",
+              "reason": "The image could not be read: ROBOTS_DISALLOWED"
+            },
+            {
+              "url": "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw64f1c21e/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%202.jpg?sw=900&sh=900&sm=fit&q=85",
+              "reason": "The image could not be read: ROBOTS_DISALLOWED"
+            },
+            {
+              "url": "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw199f5cd7/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%203.jpg?sw=900&sh=900&sm=fit&q=85",
+              "reason": "The image could not be read: ROBOTS_DISALLOWED"
+            },
+            {
+              "url": "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw59c6db23/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%204.jpg?sw=900&sh=900&sm=fit&q=85",
+              "reason": "The image could not be read: ROBOTS_DISALLOWED"
+            },
+            {
+              "url": "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dwbaebbdad/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%205.jpg?sw=900&sh=900&sm=fit&q=85",
+              "reason": "The image could not be read: ROBOTS_DISALLOWED"
+            },
+            {
+              "url": "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw6e1b8f09/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%206.jpg?sw=900&sh=900&sm=fit&q=85",
+              "reason": "The image could not be read: ROBOTS_DISALLOWED"
+            },
+            {
+              "url": "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw813535b2/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%207.jpg?sw=900&sh=900&sm=fit&q=85",
+              "reason": "The image could not be read: ROBOTS_DISALLOWED"
+            }
+          ]
+        },
+        "market": {
+          "check": {
+            "id": "f3bd5acd-db12-4509-875c-b95402e6a25c",
+            "cost": {
+              "rule": "market-price@4",
+              "searches": 0,
+              "pageFetches": 0
+            },
+            "skuId": "ad4c3947-a35f-4d6d-af02-cab4c0ff623f",
+            "status": "UNAVAILABLE",
+            "coverage": {
+              "REUSED": {
+                "pages": 0,
+                "accepted": 0,
+                "rejected": {}
+              },
+              "OFFICIAL": {
+                "pages": 1,
+                "accepted": 0,
+                "rejected": {
+                  "NO_STRUCTURED_PRICE": 1
+                }
+              }
+            },
+            "reference": null,
+            "startedAt": "2026-11-14T09:41:57.333Z",
+            "reasonCode": "NO_RELIABLE_OBSERVATION",
+            "completedAt": "2026-11-14T09:41:57.335Z",
+            "requestedBy": "12f44997-7887-4bb5-916f-33248d5cab7b"
+          },
+          "pricing": {
+            "note": "Market evidence is advisory. Commerce owns selling-price approval; this sourcing mode does not require a supplier offer cost",
+            "state": "OWNED_BY_COMMERCE",
+            "purchaseCost": null
+          },
+          "reference": null
+        },
+        "profile": {
+          "primaryRole": {
+            "basis": "PRODUCT_TYPE:cleanser",
+            "value": "CLEANSER",
+            "status": "RULE_DERIVED"
+          },
+          "productType": "cleanser",
+          "routinePeriod": {
+            "basis": "NOT_STATED_BY_A_CREDIBLE_SOURCE",
+            "value": "UNKNOWN",
+            "status": "UNKNOWN"
+          }
+        },
+        "identity": {
+          "size": {
+            "unit": "ml",
+            "value": 236
+          },
+          "tier": "OFFICIAL_MANUFACTURER",
+          "basis": "CREATED",
+          "brand": {
+            "id": "dafd345e-7d1f-4b60-8457-1508bda4d15c",
+            "name": "Cetaphil",
+            "basis": "CATALOG_EXACT",
+            "aliases": [
+              "سيتافيل",
+              "سيتافل"
+            ]
+          },
+          "checks": [
+            {
+              "url": "https://www.cetaphil.co.uk/cleansers/gentle-skin-cleanser/5020465202554-1.html",
+              "tier": "OFFICIAL_MANUFACTURER",
+              "outcome": "OK",
+              "reasons": [],
+              "pageTitle": "Gentle Skin Cleanser",
+              "sizeConfirmed": true,
+              "identityMatched": true
+            }
+          ],
+          "created": true,
+          "verifiedBy": "https://www.cetaphil.co.uk/cleansers/gentle-skin-cleanser/5020465202554-1.html",
+          "productName": "Gentle Skin Cleanser",
+          "verifiedTitle": "Gentle Skin Cleanser"
+        },
+        "enrichment": {
+          "runs": [
+            {
+              "tier": "OFFICIAL",
+              "status": "COMPLETE",
+              "sources": [
+                "https://www.cetaphil.co.uk/cleansers/gentle-skin-cleanser/5020465202554-1.html"
+              ]
+            }
+          ],
+          "holds": [],
+          "applied": [
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes"
+          ],
+          "coverage": {
+            "identity.gtin": "UNKNOWN",
+            "identity.name": "UNVERIFIED",
+            "identity.size": "VERIFIED",
+            "attributes.spf": "UNKNOWN",
+            "identity.brand": "UNVERIFIED",
+            "safety.warnings": "UNKNOWN",
+            "composition.inci": "UNKNOWN",
+            "usage.targetArea": "UNKNOWN",
+            "attributes.texture": "UNKNOWN",
+            "media.sourceImages": "UNVERIFIED",
+            "usage.instructions": "UNKNOWN",
+            "usage.routinePeriod": "UNKNOWN",
+            "composition.fragrance": "UNKNOWN",
+            "marketing.description": "VERIFIED",
+            "suitability.hairTypes": "UNKNOWN",
+            "suitability.skinTypes": "VERIFIED",
+            "attributes.uvFilterType": "UNKNOWN",
+            "attributes.broadSpectrum": "UNKNOWN",
+            "attributes.nonComedogenic": "UNKNOWN",
+            "claims.manufacturerStated": "UNKNOWN",
+            "merchandising.productLine": "UNKNOWN",
+            "composition.keyIngredients": "UNKNOWN",
+            "composition.activeConcentrations": "UNKNOWN",
+            "attributes.waterResistanceMinutes": "UNKNOWN"
+          },
+          "rejected": [],
+          "unverified": [
+            "identity.name",
+            "media.sourceImages",
+            "identity.brand"
+          ],
+          "stillMissing": [
+            "composition.inci",
+            "usage.instructions",
+            "claims.manufacturerStated"
+          ]
+        }
+      },
+      "readiness": {
+        "skuId": "ad4c3947-a35f-4d6d-af02-cab4c0ff623f",
+        "productId": "9be7eccd-40ce-4f2c-a1cf-20f2b232e87b",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "PRIMARY_PACKSHOT_NOT_APPROVED",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED",
+          "INGREDIENTS_NOT_REVIEWED",
+          "USAGE_NOT_REVIEWED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "MISSING",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 6,
+          "applied": [
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes"
+          ],
+          "pending": [],
+          "unverified": [
+            "identity.brand",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      }
+    }
+  ]
+}

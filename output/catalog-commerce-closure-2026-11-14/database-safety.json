@@ -1,0 +1,13 @@
+{
+  "sourceDatabase": "catalog_blockers_20261113_test",
+  "targetDatabase": "catalog_commerce_closure_20261114_test",
+  "host": "127.0.0.1",
+  "port": "5434",
+  "urlsEqual": true,
+  "backupBytes": 538267,
+  "restoreVerified": true,
+  "pilotRows": 10,
+  "migrationsExecuted": [],
+  "sharedWrites": false,
+  "destructiveOperations": false
+}

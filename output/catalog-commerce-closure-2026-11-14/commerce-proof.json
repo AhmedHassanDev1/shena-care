@@ -1,0 +1,107 @@
+{
+  "scope": "ISOLATED_TEST_ONLY",
+  "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+  "expectedDevPrice": 100,
+  "startedAt": "2026-11-14T09:40:37.102Z",
+  "checks": [
+    {
+      "name": "public-listing-exact-variant-price",
+      "passed": true,
+      "status": 200,
+      "productId": "10fab1e0-f087-47cf-8332-5fef12f3d234",
+      "brand": "CeraVe",
+      "productName": "SA Smoothing Cleanser",
+      "size": 236,
+      "unit": "ml"
+    },
+    {
+      "name": "authentic-original-delivery",
+      "passed": true,
+      "status": 200,
+      "sha256": "9f56f7745a0cef9e11e0d1a3f0fe0997348c5bf424d28d070b6d65c9edce026a",
+      "width": 200,
+      "height": 400,
+      "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+      "rightsStatus": "MANUFACTURER_PUBLISHED"
+    },
+    {
+      "name": "real-otp-session",
+      "passed": true,
+      "send": 201,
+      "verify": 201,
+      "invalidCode": 400
+    },
+    {
+      "name": "workbench-and-procurement-access-control",
+      "passed": true,
+      "anonymous": 401,
+      "customer": 403
+    },
+    {
+      "name": "unknown-variant",
+      "passed": true,
+      "status": 400,
+      "cartUnchanged": true
+    },
+    {
+      "name": "zero-quantity",
+      "passed": true,
+      "status": 400,
+      "cartUnchanged": true
+    },
+    {
+      "name": "client-price-injection",
+      "passed": true,
+      "status": 400,
+      "cartUnchanged": true
+    },
+    {
+      "name": "unpublished-contradictory-product-denied",
+      "passed": true,
+      "status": 400,
+      "cartUnchanged": true
+    },
+    {
+      "name": "cart-persistence-and-owner-isolation",
+      "passed": true,
+      "quantity": 2,
+      "revision": 2
+    },
+    {
+      "name": "failed-checkouts-atomic-price-and-quote-owner-guards",
+      "passed": true,
+      "anonymous": 401,
+      "otherQuoteOwner": 409,
+      "injectedTotal": 400,
+      "staleRevision": 409,
+      "ordersUnchanged": true,
+      "allocationsUnchanged": true
+    },
+    {
+      "name": "checkout-persisted-replay-and-order-ownership",
+      "passed": true,
+      "orderId": "5d638dae-2d54-4a5b-9358-bb2b28eb8ef5",
+      "quantity": 2,
+      "unitPrice": 100,
+      "duplicateOrders": 0,
+      "ownOrder": 200,
+      "otherOwner": 404,
+      "anonymous": 401
+    },
+    {
+      "name": "internal-buy-list-exact-order-demand",
+      "passed": true,
+      "status": 200,
+      "orderId": "5d638dae-2d54-4a5b-9358-bb2b28eb8ef5",
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "quantity": 2,
+      "durableEventsDelivered": 1
+    },
+    {
+      "name": "selling-prices-listings-and-offers-unchanged",
+      "passed": true
+    }
+  ],
+  "stage": "PASSED",
+  "durationMs": 1002
+}

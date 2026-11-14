@@ -1,0 +1,1721 @@
+{
+  "scope": "ISOLATED_TEST_ONLY",
+  "overlappingGroupsDoNotSum": true,
+  "groups": [
+    {
+      "group": "bootstrap-identity-pricing-navigation",
+      "exit": 0,
+      "suitesPassed": 8,
+      "suitesFailed": 0,
+      "testsPassed": 50,
+      "testsFailed": 0,
+      "skipped": 0,
+      "durationMs": 17861,
+      "tests": [
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) intake: Admin only, starts unpublished, refuses duplicates and treats another size as another SKU under the same product",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) research: facts land as proposals with field-level provenance; Catalog is untouched until a person approves; approval writes through Catalog and is idempotent",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) safe writes: an existing different value is never silently overwritten and a different size stays a different SKU",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) consistency: two sources agreeing merge evidence without duplicates; disagreeing sources become a conflict that blocks publication until a person settles it",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) provider failure: an outage changes nothing in Catalog, stays open, and resuming reads only what failed; refusals are recorded, never worked around",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) complete journey: intake → research → evidence → image from the source → editorial on the supplied template → Admin review → publication → storefront PDP with explicit roles",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-module-injection.spec.ts",
+          "name": "Catalog owner module injection retains the concrete BrandService token when imported through the public contract",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-module-injection.spec.ts",
+          "name": "Catalog owner module injection retains every canonical research owner-service injection token",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/market-regular-price.e2e-spec.ts",
+          "name": "regular-price evidence persistence and Admin boundary rejects customer/anonymous research and retains regular/promo evidence without commercial mutation",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-identity-gate.e2e-spec.ts",
+          "name": "publication identity gate over authenticated HTTP denies anonymous/customer callers and blocks an unverified identity despite a valid barcode",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-navigation-repair.e2e-spec.ts",
+          "name": "withdraw an already applied navigation-only ingredient claim preserves source/value audit and unrelated claims, is idempotent, and rejects a customer actor",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/architecture/module-boundaries.spec.ts",
+          "name": "Architecture Tests Module Boundaries should not allow Commerce to import Catalog repositories",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/architecture/module-boundaries.spec.ts",
+          "name": "Architecture Tests Module Boundaries should not allow Catalog to import Commerce",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/architecture/module-boundaries.spec.ts",
+          "name": "Architecture Tests Module Boundaries should not allow direct ORM entity sharing across contexts",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/architecture/module-boundaries.spec.ts",
+          "name": "Architecture Tests Public API Contracts should have explicit public.ts for each business module",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/architecture/module-boundaries.spec.ts",
+          "name": "Architecture Tests Public API Contracts should only export services and types from public.ts",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/architecture/module-boundaries.spec.ts",
+          "name": "Architecture Tests Database Schema Organization should use schema-qualified table names",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/architecture/module-boundaries.spec.ts",
+          "name": "Architecture Tests Code Organization should not have circular dependencies between modules",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/brand-alias-normalization.spec.ts",
+          "name": "reviewed brand aliases keep Arabic and English identity resolves formatting of an existing reviewed spelling سِيـرَافِي",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/brand-alias-normalization.spec.ts",
+          "name": "reviewed brand aliases keep Arabic and English identity resolves formatting of an existing reviewed spelling Cera Ve",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/brand-alias-normalization.spec.ts",
+          "name": "reviewed brand aliases keep Arabic and English identity resolves formatting of an existing reviewed spelling La Roche–Posay",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/brand-alias-normalization.spec.ts",
+          "name": "reviewed brand aliases keep Arabic and English identity resolves formatting of an existing reviewed spelling ذا أورديناري",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/brand-alias-normalization.spec.ts",
+          "name": "reviewed brand aliases keep Arabic and English identity resolves formatting of an existing reviewed spelling فيشى",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/brand-alias-normalization.spec.ts",
+          "name": "reviewed brand aliases keep Arabic and English identity does not erase letters or collide unrelated brand keys",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/brand-alias-normalization.spec.ts",
+          "name": "reviewed brand aliases keep Arabic and English identity does not invent aliases or repair ambiguous short brand typos",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/brand-alias-normalization.spec.ts",
+          "name": "reviewed brand aliases keep Arabic and English identity retains every existing dictionary entry and never merges different canonical brands",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine matched rows policy rejections SKIP with no person; matcher rejections SKIP; an earlier duplicate waits for its product",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine matched rows a verified link is AUTO_LINK; NEW_CANDIDATE is decided later by source verification, never here",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine matched rows competing identities and conflicts are critical, with a precomputed resolution when one SKU is suggested",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine independent support for linking an existing SKU name and size alone never link",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine independent support for linking an existing SKU the pipeline created the SKU from this fingerprint: link (re-import)",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine independent support for linking an existing SKU the same verified source page: link; a different page: no",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine independent support for linking an existing SKU a barcode only links when the SKU barcode is VERIFIED; a merchant-recorded one does not",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine new products: identity by evidence, barcode optional an official page naming the product and size verifies identity without a barcode",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine new products: identity by evidence, barcode optional no source at all: HOLD for a URL; a retailer page alone is not enough",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine new products: identity by evidence, barcode optional a page about another product or size is a critical contradiction, not a silent pass",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine new products: identity by evidence, barcode optional a page naming no size leaves the variant unproven",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine new products: identity by evidence, barcode optional a transient failure retries automatically",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine new products: identity by evidence, barcode optional a stated barcode the manufacturer page contradicts is a critical conflict; one it does not mention is fine",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine facts consistent manufacturer facts apply with zero clicks; retailer-only facts stay unknown",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine facts descriptive conflicts settle by authority, or stay unknown when equal; never a hold",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine facts two trusted ingredient lists or sizes that disagree open one critical exception",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine facts rinse-off versus leave-on instructions from trusted sources is critical; a single consistent instruction applies",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine facts marketing never overrides explicit instructions; treatment claims never reach the description",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine facts the ingredient list outranks a fragrance-free claim; warnings accumulate; evidence-only fields are never applied",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine facts missing facts produce no verdict at all: unknown is never turned into a negative fact",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine facts reads rinse modes and medical claims in English and Arabic",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine media chooses the best authentic image at or above 400 px; never upscales a small one; never reuses another SKU proof",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine media accepts native portrait bottle packshots that remain legible at card width",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-decision-engine.spec.ts",
+          "name": "Catalog decision engine media approves an editorial derivative only with no damage warnings",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "group": "cart-checkout-buy-list-integrity",
+      "exit": 0,
+      "suitesPassed": 5,
+      "suitesFailed": 0,
+      "testsPassed": 53,
+      "testsFailed": 0,
+      "skipped": 0,
+      "durationMs": 27462,
+      "tests": [
+        {
+          "file": "api/test/integration/buy-list-journey.e2e-spec.ts",
+          "name": "Customer order across Admin / Hub / Driver workspaces via the Buy List (e2e) moves two real orders from checkout to settled cash with no manual data fixes",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) authenticated cart returns an empty cart initially",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) authenticated cart adds, merges same SKU into one line, updates and removes",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) authenticated cart enforces quantity limits and input validation",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) authenticated cart rejects unknown / unsellable SKUs",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) authenticated cart rejects stale revisions with 409 and accepts the fresh one",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) authenticated cart clear empties the cart",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) authenticated cart isolates carts between customers",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) guest cart GET without owner returns an empty projection and persists nothing",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) guest cart creates a guest cart on first add, returns an opaque token, and resumes with it",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) guest cart rejects malformed and unknown cart tokens; mutations without a cart",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) guest cart an authenticated session takes precedence over a guest token",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) guest -> account adoption re-owns the guest cart when the customer has none, and a replay is a no-op",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) guest -> account adoption merges into an existing customer cart: same SKU sums (clamped), different SKU appended",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) guest -> account adoption does not let one customer adopt a cart that already belongs to another",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) price + availability projection flags price changed since add, with backend price remaining the truth",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) price + availability projection projects an unlisted line as unavailable and excludes it from the total",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/cart.e2e-spec.ts",
+          "name": "Cart APIs (e2e) checkout integration checkout consumes the customer cart and bumps its revision",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) submits one order, snapshots accepted terms, clears the cart, and replays after a lost response",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) creates only one order when the same submission is sent concurrently",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) rejects a changed commercial quote with typed review-required conflict",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) rejects a stale cart revision and leaves the quote unconsumed",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) rolls back the cart claim when order creation fails",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) rejects key reuse with a different request and rejects another cart owner",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) sign-in required to place an order (owner decision 2026-10-18, supersedes GLO-71 guest checkout) keeps the guest cart and the quote open without a session",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) sign-in required to place an order (owner decision 2026-10-18, supersedes GLO-71 guest checkout) refuses a guest submission with SIGN_IN_REQUIRED and creates nothing",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) sign-in required to place an order (owner decision 2026-10-18, supersedes GLO-71 guest checkout) refuses a staff session with CUSTOMER_ACCOUNT_REQUIRED",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) sign-in required to place an order (owner decision 2026-10-18, supersedes GLO-71 guest checkout) places the guest cart once after sign-in adopts it, and a replay returns the same order",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Positive Path: Active & Sellable SKU should evaluate seeded active SKU as SELLABLE with active price and listed state",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Validation Path: Invalid UUID Format should return INVALID_SKU_ID when skuId is not a valid UUID",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Catalog Boundary: SKU Existence & State should return SKU_NOT_FOUND when SKU does not exist in Catalog",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Catalog Boundary: SKU Existence & State should return SKU_INACTIVE when SKU is marked inactive in Catalog",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Catalog Boundary: SKU Existence & State should return SKU_INACTIVE when parent Product is not published",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce Listing State should return LISTING_NOT_FOUND when SKU has no listing record",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce Listing State should return NOT_LISTED when SKU listing has isListed = false",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce SellingPrice Rules should return PRICE_NOT_FOUND when no selling prices exist for SKU",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce SellingPrice Rules should return PRICE_EXPIRED when price validUntil is in the past",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce SellingPrice Rules should return PRICE_EXPIRED when price validFrom is in the future",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce SellingPrice Rules should return PRICE_INACTIVE when selling price isActive = false",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/commerce-sellability.e2e-spec.ts",
+          "name": "Commerce Sellability Evaluation (GLO-101 e2e) Commerce SellingPrice Rules should resolve current active price when historical expired price also exists",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not trust invalid structured GTIN 1234567890123",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not trust invalid structured GTIN 0000000000000",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not trust invalid structured GTIN EAN3337875597180",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not trust invalid structured GTIN 3337875597181",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not accept a valid GTIN-8 mislabelled as GTIN-13",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects retains checksum-valid structured GTIN and genuine ingredient features",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not turn navigation into an ingredient: Learn More About Niacinamide",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not turn navigation into an ingredient: Read more about Hyaluronic Acid",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not turn navigation into an ingredient: Shop Niacinamide",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects a barcode alone never authorizes identity media: 1234567890123",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects a barcode alone never authorizes identity media: 3337875597180",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects keeps evidence-verified no-barcode identity and refuses an invalid asserted barcode",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects publication requires verified identity even with a checksum-valid barcode present",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "group": "exact-source-variant-and-native-media",
+      "exit": 0,
+      "suitesPassed": 8,
+      "suitesFailed": 0,
+      "testsPassed": 37,
+      "testsFailed": 0,
+      "skipped": 0,
+      "durationMs": 9829,
+      "tests": [
+        {
+          "file": "api/test/integration/native-packshot-readability.e2e-spec.ts",
+          "name": "native small manufacturer packshot readability review quarantines a real 200x400 original; rejects automatic approval, wrong labels and customers; preserves bytes on explicit verified-label review",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) intake: Admin only, starts unpublished, refuses duplicates and treats another size as another SKU under the same product",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) research: facts land as proposals with field-level provenance; Catalog is untouched until a person approves; approval writes through Catalog and is idempotent",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) safe writes: an existing different value is never silently overwritten and a different size stays a different SKU",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) consistency: two sources agreeing merge evidence without duplicates; disagreeing sources become a conflict that blocks publication until a person settles it",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) provider failure: an outage changes nothing in Catalog, stays open, and resuming reads only what failed; refusals are recorded, never worked around",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/catalog-publication.e2e-spec.ts",
+          "name": "Product journey: intake, research, evidence, media, review, publication, storefront (e2e) complete journey: intake → research → evidence → image from the source → editorial on the supplied template → Admin review → publication → storefront PDP with explicit roles",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not trust invalid structured GTIN 1234567890123",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not trust invalid structured GTIN 0000000000000",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not trust invalid structured GTIN EAN3337875597180",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not trust invalid structured GTIN 3337875597181",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not accept a valid GTIN-8 mislabelled as GTIN-13",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects retains checksum-valid structured GTIN and genuine ingredient features",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not turn navigation into an ingredient: Learn More About Niacinamide",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not turn navigation into an ingredient: Read more about Hyaluronic Acid",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects does not turn navigation into an ingredient: Shop Niacinamide",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects a barcode alone never authorizes identity media: 1234567890123",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects a barcode alone never authorizes identity media: 3337875597180",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects keeps evidence-verified no-barcode identity and refuses an invalid asserted barcode",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/catalog-integrity-closure.spec.ts",
+          "name": "confirmed catalog integrity defects publication requires verified identity even with a checksum-valid barcode present",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/source-image-variant-proof.spec.ts",
+          "name": "source image import revalidates exact current variant evidence refuses a previously extracted default 500 ml image for the 250 ml SKU",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/source-image-variant-proof.spec.ts",
+          "name": "source image import revalidates exact current variant evidence imports only the current exact-variant original bytes and source",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/source-image-variant-proof.spec.ts",
+          "name": "source image import revalidates exact current variant evidence cannot import rejected image evidence",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/selected-packshot-variant.spec.ts",
+          "name": "real Cetaphil selected-size and review-text failure cases never imports the selected 1L image for an offered 236ml variant",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/selected-packshot-variant.spec.ts",
+          "name": "real Cetaphil selected-size and review-text failure cases abstains from generic hero images when no size is selected",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/selected-packshot-variant.spec.ts",
+          "name": "real Cetaphil selected-size and review-text failure cases retains the selected exact variant image",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/selected-packshot-variant.spec.ts",
+          "name": "real Cetaphil selected-size and review-text failure cases does not prove product size from an aggregate review label alone",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/selected-packshot-variant.spec.ts",
+          "name": "real Cetaphil selected-size and review-text failure cases rejects a stale 1L hero even when the selector now says 236ml",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/selected-packshot-variant.spec.ts",
+          "name": "real Cetaphil selected-size and review-text failure cases does not promote a sitewide campaign OG image over the product structured packshot",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/micellar-usage-extraction.spec.ts",
+          "name": "literal micellar-water instructions from the pilot manufacturer page retains the soak, cleanse and no-rinse instructions without inventing ingredients",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/micellar-usage-extraction.spec.ts",
+          "name": "literal micellar-water instructions from the pilot manufacturer page does not use instructions from a related product or navigation prose",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/product-gallery-extraction.spec.ts",
+          "name": "official native product gallery evidence retains an explicit exact-product gallery original across locale directories",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/product-gallery-extraction.spec.ts",
+          "name": "official native product gallery evidence does not collect generic images, another product, foreign hosts or related-product galleries",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/product-variant-gallery.spec.ts",
+          "name": "manufacturer configurable product variant images (Bioderma pilot) extracts the original asset explicitly bound to 250 ml, without the default 500 ml hero or other gallery roles",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/product-variant-gallery.spec.ts",
+          "name": "manufacturer configurable product variant images (Bioderma pilot) does not fall back to the default hero when the requested variant has no matching packshot",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/product-variant-gallery.spec.ts",
+          "name": "manufacturer configurable product variant images (Bioderma pilot) refuses ambiguous variant bindings and additional formulation dimensions",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/unit/product-variant-gallery.spec.ts",
+          "name": "manufacturer configurable product variant images (Bioderma pilot) rejects an unsafe image URL and never turns a manufacturer SKU code into a GTIN",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "group": "procurement-checkout-regression",
+      "exit": 0,
+      "suitesPassed": 3,
+      "suitesFailed": 0,
+      "testsPassed": 14,
+      "testsFailed": 0,
+      "skipped": 0,
+      "durationMs": 21314,
+      "tests": [
+        {
+          "file": "api/test/integration/purchase-batch.e2e-spec.ts",
+          "name": "Purchase batches (e2e) runs the whole workflow: demand → scheduled batch → sent + ETA → partial/full receipt → Hub allocation, with no double counting",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/purchase-batch.e2e-spec.ts",
+          "name": "Purchase batches (e2e) lets a cancelled order drop out of an open batch and closes the batch without a click",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/purchase-batch.e2e-spec.ts",
+          "name": "Purchase batches (e2e) keeps old batches and demand intact when the schedule changes, and only Admin can change it",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) submits one order, snapshots accepted terms, clears the cart, and replays after a lost response",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) creates only one order when the same submission is sent concurrently",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) rejects a changed commercial quote with typed review-required conflict",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) rejects a stale cart revision and leaves the quote unconsumed",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) rolls back the cart claim when order creation fails",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) rejects key reuse with a different request and rejects another cart owner",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) sign-in required to place an order (owner decision 2026-10-18, supersedes GLO-71 guest checkout) keeps the guest cart and the quote open without a session",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) sign-in required to place an order (owner decision 2026-10-18, supersedes GLO-71 guest checkout) refuses a guest submission with SIGN_IN_REQUIRED and creates nothing",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) sign-in required to place an order (owner decision 2026-10-18, supersedes GLO-71 guest checkout) refuses a staff session with CUSTOMER_ACCOUNT_REQUIRED",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/checkout.e2e-spec.ts",
+          "name": "Order submission (e2e) sign-in required to place an order (owner decision 2026-10-18, supersedes GLO-71 guest checkout) places the guest cart once after sign-in adopts it, and a replay returns the same order",
+          "status": "passed"
+        },
+        {
+          "file": "api/test/integration/buy-list-journey.e2e-spec.ts",
+          "name": "Customer order across Admin / Hub / Driver workspaces via the Buy List (e2e) moves two real orders from checkout to settled cash with no manual data fixes",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "group": "storefront-contracts-and-logic",
+      "exit": 0,
+      "suitesPassed": 35,
+      "suitesFailed": 0,
+      "testsPassed": 177,
+      "testsFailed": 0,
+      "skipped": 0,
+      "durationMs": 49583,
+      "tests": [
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "productHighlights returns nothing when the catalog carries no facts",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "productHighlights keeps a fixed order and only reviewed facts",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "knownSkinTypes drops values the storefront cannot name and keeps taxonomy order",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "splitIngredients splits an INCI list",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "splitIngredients leaves prose and short text as written",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "splitSteps uses the author lines and strips list markers",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "splitSteps splits a short paragraph into sentences",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "splitSteps keeps a single instruction whole",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "featuredIngredientIndex finds the ingredient the title names, including salts and derivatives",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "featuredIngredientIndex returns -1 when the title names none or is not Latin text",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "resolveRoutinePosition places a sunscreen into step 04 Protect and explains its order",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "resolveRoutinePosition switches to Hair domain pipeline for shampoo / conditioner",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "resolveRoutinePosition does not guess a routine step when primaryRoleStatus is UNKNOWN",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "resolveUsageGuide uses verified AM usage rule and ignores unknown fields without inventing indicators",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "resolveUsageGuide omits both morning and evening pills when timing is UNKNOWN",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "resolveUsageGuide uses singular daily label for once daily, general daily for DAY with null counts, and deduplicates repeated instructions",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "editorial formatting and gallery media helpers resolves natural block direction based on Arabic vs Latin script presence",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "editorial formatting and gallery media helpers restores spacing on mashed copy and removes adjacent duplicate sentences",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "editorial formatting and gallery media helpers truncates long descriptions at word boundaries without chopping mid-word",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "editorial formatting and gallery media helpers orders primary media first and deduplicates repeated gallery URLs",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "resolveHeroFeatureBadges, resolveKeyIngredients, resolveFullInciList caps hero feature badges to 3 and merges suitable skin type",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/product-facts.test.ts",
+          "name": "resolveHeroFeatureBadges, resolveKeyIngredients, resolveFullInciList deduplicates active ingredients and orders INCI by position",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/catalog-chat.test.ts",
+          "name": "catalog grounded chat cards matches an Arabic cleanser request to live catalog products",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/catalog-chat.test.ts",
+          "name": "catalog grounded chat cards never offers a SKU that the public API says cannot be ordered",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/catalog-chat.test.ts",
+          "name": "catalog grounded chat cards prefers a named catalog product over a broad cleanser category match",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/catalog-chat.test.ts",
+          "name": "catalog grounded chat cards classifies compare, routine, search, and general consultation intents accurately",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/catalog-chat.test.ts",
+          "name": "catalog grounded chat cards picks two same-category products cleanly for comparison without inventing products",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/catalog-chat.test.ts",
+          "name": "catalog grounded chat cards builds a strictly factual comparison from ProductDetail specs",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/catalog-chat.test.ts",
+          "name": "catalog grounded chat cards maps catalog sequence steps back to real sellable products",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/spotlight-products.test.ts",
+          "name": "SpotlightProducts & Product Card Specification Product Card Editorial Improvements translates product titles to Arabic primary titles and preserves original English as secondary",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/spotlight-products.test.ts",
+          "name": "SpotlightProducts & Product Card Specification Product Card Editorial Improvements resolves known Arabic names accurately across all catalog product categories",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/spotlight-products.test.ts",
+          "name": "SpotlightProducts & Product Card Specification Product Card Editorial Improvements derives two compact chips: chip1 (category/type) and chip2 (skin-type/SPF/size)",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/spotlight-products.test.ts",
+          "name": "SpotlightProducts & Product Card Specification Product Card Editorial Improvements derives SPF chip2 and benefit badge when product has SPF protection and no discount",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/spotlight-products.test.ts",
+          "name": "SpotlightProducts & Product Card Specification Product Card Editorial Improvements derives discount percent and discount badge when on promotion",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/spotlight-products.test.ts",
+          "name": "SpotlightProducts & Product Card Specification Product Card Editorial Improvements handles rating and review count truthfully without fabrication",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/spotlight-products.test.ts",
+          "name": "SpotlightProducts & Product Card Specification Product Card Editorial Improvements prefers genuine front-facing PRIMARY_PACKSHOT and avoids back-label PACKAGING_PROOF",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/spotlight-products.test.ts",
+          "name": "SpotlightProducts & Product Card Specification SpotlightProducts Section Translations & Reassurance has complete translation parity in Arabic and English for all section elements and filter tabs",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/shina-workflows.test.ts",
+          "name": "shina workflows builds a real context lookup message when opened via ?product=",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/shina-workflows.test.ts",
+          "name": "shina workflows returns an honest empty result state when catalog search has no matches",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/shina-workflows.test.ts",
+          "name": "shina workflows executes dual getProductDetail calls for factual product comparisons",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/shina-workflows.test.ts",
+          "name": "shina workflows runs real catalog routine sequencing without fabricating profiles",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/shina-workflows.test.ts",
+          "name": "shina workflows maps clarification DTO to clarification activity state and verified products",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/auth/lib/auth-helpers.test.ts",
+          "name": "normalizeEgyptianMobile accepts local, international and Arabic-Indic forms of all Egyptian operators (010, 011, 012, 015)",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/auth/lib/auth-helpers.test.ts",
+          "name": "normalizeEgyptianMobile rejects short, landline and foreign numbers",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/auth/lib/auth-helpers.test.ts",
+          "name": "normalizeEgyptianMobile shows the number as the boards do, Western and grouped",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/auth/lib/auth-helpers.test.ts",
+          "name": "return targets only keeps same-origin paths",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/auth/lib/auth-helpers.test.ts",
+          "name": "return targets builds the sign-in link for a task, with the expiry reason",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/auth/lib/auth-helpers.test.ts",
+          "name": "return targets builds the registration link preserving returnTo",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/auth/lib/auth-helpers.test.ts",
+          "name": "API error contract reads the code and retryAfter wherever the error filter nests them",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/auth/lib/auth-helpers.test.ts",
+          "name": "OTP challenge takes code length, expiry and the resend moment from the server response",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/auth/lib/auth-helpers.test.ts",
+          "name": "OTP challenge attaches customer registration name when signing up",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/auth/lib/auth-helpers.test.ts",
+          "name": "cartChangedByAdoption is unchanged only for the same SKUs with the same quantities",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/routine-section.test.ts",
+          "name": "RoutineSection Data Architecture & Strict Mock Policy contains deterministic mock routines matching the approved Stitch design specifications",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/routine-section.test.ts",
+          "name": "RoutineSection Data Architecture & Strict Mock Policy maps backend FeaturedRoutineDto accurately to RoutineCardModel",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/routine-section.test.ts",
+          "name": "RoutineSection Data Architecture & Strict Mock Policy strictly isolates mock routines so they cannot leak into pure production mode",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/routine-section.test.ts",
+          "name": "RoutineSection Data Architecture & Strict Mock Policy provides authentic photographic assets in public/images/home",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/related-products.test.ts",
+          "name": "selectRelatedProducts excludes the viewed product and repeated products while keeping catalog order",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/related-products.test.ts",
+          "name": "rankRelatedProducts excludes current product/duplicates, prioritizes same category & concerns, and excludes cross-domain items",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/related-products.test.ts",
+          "name": "rankRelatedProducts returns empty array when no genuine domain/category/concern relation exists",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/card-model.test.ts",
+          "name": "toCardModel joins same-unit sizes as «٣٠ أو ٦٠ مل» and reads «من» when variant prices differ",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/card-model.test.ts",
+          "name": "toCardModel marks a product with no orderable priced SKU as unavailable, with no price",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/card-model.test.ts",
+          "name": "toCardModel keeps Western digits and the catalog category name in English",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/card-model.test.ts",
+          "name": "toCardModel builds one category chip for cleansers",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/card-model.test.ts",
+          "name": "toCardModel builds one category chip for shampoos",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/card-model.test.ts",
+          "name": "toCardModel builds one category chip for hair-treatments-styling",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/card-model.test.ts",
+          "name": "toCardModel omits the chip when taxonomy is missing",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/card-model.test.ts",
+          "name": "toCardModel derives arabicName, englishName, two compact chips, and benefit badge in Arabic",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/card-model.test.ts",
+          "name": "toCardModel prefers PRIMARY_PACKSHOT over PACKAGING_PROOF",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/card-model.test.ts",
+          "name": "categoryLabel falls back to the catalog name for categories it does not translate",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/orders/reorder.test.ts",
+          "name": "Buy Again / Reorder Client Flow calls cart reorder API and projects cart with items",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/orders/reorder.test.ts",
+          "name": "Buy Again / Reorder Client Flow orders.reorder delegates to cart.reorder and handles partial items",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/shina-api.test.ts",
+          "name": "shina-api guidance integration throws 401 UNAUTHENTICATED before calling backend when no token exists",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/shina-api.test.ts",
+          "name": "shina-api guidance integration forwards token and AbortSignal to POST /guidance/sessions, /messages, and /retry",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/shina-api.test.ts",
+          "name": "shina-api guidance integration returns null gracefully when GET /care/profiles responds 404",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shina/lib/shina-api.test.ts",
+          "name": "shina-api guidance integration maps resolvedProducts and GuidanceProposal into verified Shina routine steps",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/account/profile.test.ts",
+          "name": "Customer Profile Helpers & Contracts hides synthetic placeholder emails while preserving customer emails",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/account/profile.test.ts",
+          "name": "Customer Profile Helpers & Contracts sorts default delivery address first without mutating original array",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/account/profile.test.ts",
+          "name": "Customer Profile Helpers & Contracts formats Cairo and Giza governorates in the active locale",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/account/profile.test.ts",
+          "name": "Customer Profile Helpers & Contracts prefills new address form cleanly with profile name and mobile",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/account/profile.test.ts",
+          "name": "Customer Profile Helpers & Contracts enforces Egyptian mobile, Cairo/Giza bounds, and confirmed map pin on address form",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/components/ProductReviewFlow.test.ts",
+          "name": "Product Reviews API client requests review eligibility with optional bearer token",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/components/ProductReviewFlow.test.ts",
+          "name": "Product Reviews API client submits review rating (with optional body) and bearer token to server endpoint",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/components/ProductReviewFlow.test.ts",
+          "name": "PDP Product Reviews UI contracts exposes Arabic CTA label أضف تقييمك in both bilingual dictionaries",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/components/ProductReviewFlow.test.ts",
+          "name": "PDP Product Reviews UI contracts opens existing AuthModal in-place for guests without redirecting away from PDP",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/components/ProductReviewFlow.test.ts",
+          "name": "PDP Product Reviews UI contracts keeps test reviews visually distinguished and handles optional body safely",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/components/ProductReviewFlow.test.ts",
+          "name": "PDP Product Reviews UI contracts supports required 1-5 stars, optional written review, blocked reasons, and dev-mode banner",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/components/ProductReviewFlow.test.ts",
+          "name": "PDP Product Reviews UI contracts gates DevEmailLoginPanel behind non-production, explicit flag, and localhost",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/account/address-book.test.ts",
+          "name": "Address Book and Checkout Integration (Maps Phase 2) maps saved address to valid checkout data contract",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/account/address-book.test.ts",
+          "name": "Address Book and Checkout Integration (Maps Phase 2) validates CreateCustomerAddressInput payload structure",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/account/address-book.test.ts",
+          "name": "Address Book and Checkout Integration (Maps Phase 2) guarantees orders remain immutable even if saved address is modified or deleted",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/checkout-contract.test.ts",
+          "name": "Checkout and Order Tracking Contracts constructs a compliant CheckoutData payload with mandatory confirmed pin",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/checkout-contract.test.ts",
+          "name": "Checkout and Order Tracking Contracts verifies order tracking contract preserves confirmed pin and delivery address",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/components/DeliveryLocationPicker.test.ts",
+          "name": "DeliveryLocationPicker bounds and rules accepts locations inside the Cairo & Giza service area",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/components/DeliveryLocationPicker.test.ts",
+          "name": "DeliveryLocationPicker bounds and rules rejects locations outside the Cairo & Giza service area",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/components/DeliveryLocationPicker.test.ts",
+          "name": "DeliveryLocationPicker bounds and rules detects default unplaced map centres that the backend rejects",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/components/DeliveryLocationPicker.test.ts",
+          "name": "DeliveryLocationPicker bounds and rules ensures all preconfigured quick areas are within service area and not on default centres",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/components/DeliveryLocationPicker.test.ts",
+          "name": "DeliveryLocationPicker bounds and rules matches the exact backend SERVICE_AREA_BOUNDS contract",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/components/DeliveryLocationPicker.test.ts",
+          "name": "DeliveryLocationPicker bounds and rules configures ShinaCare fulfillment hub as future route origin separate from customer coordinates",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/components/DeliveryLocationPicker.test.ts",
+          "name": "DeliveryLocationPicker bounds and rules preserves accurate projection math for slippy map fallback",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatEgp shows Arabic-Indic digits, the Arabic thousands separator and «ج.م» after the amount in Arabic",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatEgp keeps Western digits and \"EGP 1,050\" in English",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatEgp refuses to label an amount in a currency it does not know",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatEgp never mixes numeral systems inside one price",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatAmount / currencyLabel splits amount and currency for layouts that style them apart",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatPackSize translates known units and localises the digits",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatPackSize returns null without a usable size",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatNumber uses the digits of the interface language",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatDate / formatTime reads «١٨ أكتوبر ٢٠٢٦» and «٩:١٢ ص» in Arabic (Cairo time)",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatDate / formatTime keeps Western digits in English",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatClock counts down m:ss in the interface digits",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/format.test.ts",
+          "name": "formatProductCount agrees the Arabic noun with the number",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/lib/checkout-location.test.ts",
+          "name": "checkout location rejects a missing, unconfirmed, invalid, default, or outside-service pin",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/lib/checkout-location.test.ts",
+          "name": "checkout location finds a local area with Arabic or English search and skips blank requests",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/lib/checkout-location.test.ts",
+          "name": "checkout location persists a confirmed saved-address pin and propagates API failure",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/lib/checkout-location.test.ts",
+          "name": "checkout location accepts coordinate search but marks unavailable service area",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/lib/checkout-location.test.ts",
+          "name": "checkout location uses provider coordinates, rejects malformed results, and reports API failure with local fallback",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/lib/checkout-draft.test.ts",
+          "name": "toGovernorate maps the Arabic and English names to the values the API accepts",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/lib/checkout-draft.test.ts",
+          "name": "EGYPT_MOBILE matches the API pattern",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/lib/checkout-draft.test.ts",
+          "name": "checkout draft keeps what the customer entered, and nothing after it is cleared",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/checkout/lib/checkout-draft.test.ts",
+          "name": "cart review before checkout asks once for a changed price and always for an unavailable product",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/orders/lib/order-stages.test.ts",
+          "name": "trackingSteps shows cash as a step with no payment action and waits on confirmation",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/orders/lib/order-stages.test.ts",
+          "name": "trackingSteps marks only what the server reports reached",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/orders/lib/order-stages.test.ts",
+          "name": "trackingSteps flags a decision, a failed delivery and a cancellation",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/orders/lib/order-stages.test.ts",
+          "name": "order stage helpers maps tones and the finished filter",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/orders/lib/order-stages.test.ts",
+          "name": "order stage helpers writes the stored governorate in the interface language",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/category-editorial.test.ts",
+          "name": "CategoryEditorial assets & specifications has both authentic Stitch editorial photography assets on disk with valid dimensions and file size",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/category-editorial.test.ts",
+          "name": "CategoryEditorial assets & specifications provides complete Arabic and English translations for the Category Showcase section",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/category-editorial.test.ts",
+          "name": "CategoryEditorial assets & specifications matches the approved Stitch project 15850160123086413494 Arabic copy verbatim",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/category-editorial.test.ts",
+          "name": "CategoryEditorial assets & specifications generates valid and functional category routes for both departments",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/search-helpers.test.ts",
+          "name": "search-helpers normalizes whitespace and caps queries at 120 chars",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/search-helpers.test.ts",
+          "name": "search-helpers matches active brands across Arabic, English, and slug forms with prefix priority",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/search-helpers.test.ts",
+          "name": "search-helpers builds keyboard options matching section order and appends view-all only with results",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/search-helpers.test.ts",
+          "name": "search-helpers steps active option index with wrap-around and boundary keys",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/concern-shelf.test.ts",
+          "name": "ConcernShelf assets & translations has all six concern WebP assets on disk with valid file sizes",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/concern-shelf.test.ts",
+          "name": "ConcernShelf assets & translations provides complete Arabic and English translations for the section header and assistant panel",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/concern-shelf.test.ts",
+          "name": "ConcernShelf assets & translations matches the approved Arabic copy from Google Stitch project 15204893810740198793",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/concern-shelf.test.ts",
+          "name": "ConcernShelf assets & translations ensures all six concerns have authentic titles, descriptions, and valid href resolution",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shell/header-nav.test.ts",
+          "name": "header-nav exposes only Skin, Hair, and Brands in display order",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shell/header-nav.test.ts",
+          "name": "header-nav activates Skin on skin-care category or resolved child department",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shell/header-nav.test.ts",
+          "name": "header-nav activates Hair on hair-care category and not Skin or Brands",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shell/header-nav.test.ts",
+          "name": "header-nav activates Brands on `/products` and `/products?brand=...`, never during generic search",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/shell/header-nav.test.ts",
+          "name": "header-nav returns false across all items outside `/products`",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/hooks/useProductDetail.test.ts",
+          "name": "useProductDetail Data Architecture & Mock Prevention queries real product via getProductDetail with slug and no fake placeholder data",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/hooks/useProductDetail.test.ts",
+          "name": "useProductDetail Data Architecture & Mock Prevention delegates directly to getProductDetail in queryFn",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/hooks/useProductDetail.test.ts",
+          "name": "useProductDetail Data Architecture & Mock Prevention propagates API error in queryFn instead of catching and returning mock data",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/sahel-hero.test.ts",
+          "name": "SahelHero assets & translations has both desktop and mobile WebP assets on disk with valid file size",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/sahel-hero.test.ts",
+          "name": "SahelHero assets & translations provides complete Arabic and English translations for Sahel Hero",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/components/sahel-hero.test.ts",
+          "name": "SahelHero assets & translations has the approved Arabic copy from Google Stitch project 1325875511695454376",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/api/discovery.test.ts",
+          "name": "sanitizeFilters keeps valid slugs and a trimmed search",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/api/discovery.test.ts",
+          "name": "sanitizeFilters drops values the API would reject instead of sending a 400-bound request",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/api/discovery.test.ts",
+          "name": "sanitizeFilters caps the search length at the API maximum",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/api/discovery.test.ts",
+          "name": "withoutFacet drops only the given facet and keeps search, other facets and concern",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/api/discovery.test.ts",
+          "name": "facetDisplayName uses the facet name when the API lists the value",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/api/discovery.test.ts",
+          "name": "facetDisplayName names a root category the facets never list instead of showing its slug",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/api/discovery.test.ts",
+          "name": "facetDisplayName falls back to the slug when nothing names it",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/lib/concern-chips.test.ts",
+          "name": "homepage concern chips are the six customer concerns, not product categories",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/lib/concern-chips.test.ts",
+          "name": "homepage concern chips open the concern filter when the taxonomy defines the concern",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/lib/concern-chips.test.ts",
+          "name": "homepage concern chips fall back to the catalog search for the label until the taxonomy defines the concern",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/lib/concern-chips.test.ts",
+          "name": "homepage concern chips never match a concern of the other care area",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/listing.test.ts",
+          "name": "listingContext (PLPStates «سياق الصفحة») shows the department banner only on a department’s first, unfiltered page",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/listing.test.ts",
+          "name": "listingContext (PLPStates «سياق الصفحة») prefers search, then brand, then all",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/listing.test.ts",
+          "name": "departmentOf / toQueryString resolves a child category to its root department",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/listing.test.ts",
+          "name": "departmentOf / toQueryString serialises only set filters",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/routine/lib/catalog-routine.test.ts",
+          "name": "live routine choices joins only published catalog SKUs with a matching routine profile and current commerce data",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/routine/lib/catalog-routine.test.ts",
+          "name": "live routine choices does not create a routine choice when the live SKU has no profile",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/hooks/useHomeProducts.test.ts",
+          "name": "home discovery shows an empty catalog as empty, without fallback products",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/hooks/useHomeProducts.test.ts",
+          "name": "home discovery surfaces API failure so the existing retry UI can render",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/api-client.test.ts",
+          "name": "apiClient request headers does not request a JSON preflight for a bodyless public GET",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/api-client.test.ts",
+          "name": "apiClient request headers keeps JSON content type for requests with a body",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/media-roles.test.ts",
+          "name": "media roles leads the PDP gallery with the editorial image, then the identity packshot, then the carton",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/media-roles.test.ts",
+          "name": "media roles uses the identity packshot in compact contexts, even when the editorial image comes first",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/catalog/lib/media-roles.test.ts",
+          "name": "media roles keeps older media without a role working: primary first",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/lib/home-assets.test.ts",
+          "name": "homepage image registry points every photograph at a real, non-empty file with positive dimensions",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/lib/home-assets.test.ts",
+          "name": "homepage image registry points every brand logo at a real file keyed by the catalog slug",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/messages.test.ts",
+          "name": "message dictionaries have the same keys in Arabic and English, so no screen shows a missing string",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/lib/i18n/messages.test.ts",
+          "name": "message dictionaries keep placeholders ({name}) identical across languages",
+          "status": "passed"
+        },
+        {
+          "file": "web/src/features/home/lib/section-number.test.ts",
+          "name": "sectionNumber pads to two digits in the active digit system",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "file": "apps/api/src/modules/catalog/research/brand-research.service.ts",
+    "baselineErrors": 1,
+    "currentErrors": 1,
+    "newErrors": 0
+  },
+  {
+    "file": "apps/api/src/modules/catalog/research/brand-enrichment.service.ts",
+    "baselineErrors": 9,
+    "currentErrors": 9,
+    "newErrors": 0
+  },
+  {
+    "file": "apps/api/src/modules/catalog/research/canonical-research.service.ts",
+    "baselineErrors": 0,
+    "currentErrors": 0,
+    "newErrors": 0
+  },
+  {
+    "file": "apps/api/src/modules/catalog/research/ingredient-ontology.service.ts",
+    "baselineErrors": 8,
+    "currentErrors": 8,
+    "newErrors": 0
+  }
+]

@@ -1,0 +1,2261 @@
+{
+  "scope": "ISOLATED_CLONE_ONLY",
+  "observedAt": "2026-11-14T10:31:28.646Z",
+  "jobId": "9b9438e4-5de5-4eae-a56b-3833617bd8d2",
+  "counts": {
+    "terminal": 10,
+    "created": 5,
+    "linked": 3,
+    "unresolved": 2,
+    "skipped": 0,
+    "ready": 5,
+    "held": 5
+  },
+  "products": [
+    {
+      "rowId": "d8962ea9-8fe9-4f6d-904f-4d4da101e021",
+      "name": "CeraVe Hydrating Facial Cleanser 236ml",
+      "outcome": "LINKED_EXISTING",
+      "attempts": 0,
+      "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "CeraVe",
+        "name": "Hydrating Cleanser",
+        "size": 236,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "evidence": {
+          "history": [
+            {
+              "at": "2026-11-13T17:04:59.850Z",
+              "rule": "intake-admin@1",
+              "status": "EVIDENCE_VERIFIED",
+              "actorId": "9a1b0c4e-1111-4c4e-9a1b-0c4e11110001"
+            }
+          ],
+          "sourceUrls": [
+            "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser"
+          ],
+          "fingerprints": [
+            "d8c635381e9869884103c25cafff550f55ebe64f"
+          ]
+        }
+      },
+      "appliedFacts": [
+        {
+          "id": "14d93a79-a4e6-4d7b-916b-edf499dc5423",
+          "field": "usage.instructions",
+          "schemaVersion": 1,
+          "value": [
+            "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly."
+          ],
+          "evidence": [
+            {
+              "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "id": "18bd5d1f-fc37-409d-8a30-3e6e9a30ced6",
+          "field": "composition.fragrance",
+          "schemaVersion": 1,
+          "value": "FREE",
+          "evidence": [
+            {
+              "excerpt": "kin hydration after just one use.\nSuitable for normal to dry skin.\nCleanses and hydrates.\nFragrance free, soap free and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural barri",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "id": "35333220-aef5-4fea-b284-c82e2117f59c",
+          "field": "marketing.description",
+          "schemaVersion": 1,
+          "value": "Product Page for CeraVe Hydrating Facial Cleanser",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Hydrating Facial Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "id": "4e5acbeb-3307-4546-bf19-161958f9b0a0",
+          "field": "suitability.skinTypes",
+          "schemaVersion": 1,
+          "value": [
+            "normal",
+            "dry",
+            "sensitive"
+          ],
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Hydrating Facial Cleanser\nFor Normal to Dry Skin\nA moisturising cleansing lotion for normal to dry skin with 3 essential ceramides to help",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "id": "5186d834-0b9d-47c1-bdd3-9070f7550a23",
+          "field": "usage.routinePeriod",
+          "schemaVersion": 1,
+          "value": "BOTH",
+          "evidence": [
+            {
+              "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "id": "7b8ca3c6-a694-41b5-82af-8a7bb4aed90f",
+          "field": "identity.size",
+          "schemaVersion": 1,
+          "value": {
+            "unit": "ml",
+            "value": 236
+          },
+          "evidence": [
+            {
+              "excerpt": "with 3 essential ceramides to help protect skin’s natural barrier.\nSizes available: 88ml, 236 ml, 473 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 88ml, 236 ml, 473 ml.\nShare",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "id": "05c12b49-64b0-45d9-8e64-6841eeb4de3f",
+          "field": "composition.inci",
+          "schemaVersion": 1,
+          "value": [
+            "AQUA/WATER",
+            "GLYCERIN",
+            "CETEARYL ALCOHOL",
+            "PHENOXYETHANOL",
+            "STEARYL ALCOHOL",
+            "CETYLE ALCOHOL",
+            "PEG-40 STEARATE",
+            "BEHENTRIMONIUM METHOSULFATE",
+            "GLYCERYL STEARATE",
+            "POLYSORBATE 20",
+            "ETHLYHEXYLGLYCERIN",
+            "POTASSIUM PHOSPHATE",
+            "DISODIUM EDTA",
+            "DIPOTASSIUM PHOSPHATE",
+            "SODIUM LAUROYL LACTYLATE",
+            "CERAMIDE NP",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "SODIUM HYALURONATE",
+            "XANTHUM GUM",
+            "CARBOMER",
+            "TOCOPHEROL",
+            "CERAMIDE EOP"
+          ],
+          "evidence": [
+            {
+              "excerpt": "AQUA/WATER, GLYCERIN, CETEARYL ALCOHOL, PHENOXYETHANOL, STEARYL ALCOHOL, CETYLE ALCOHOL, PEG-40 STEARATE, BEHENTRIMONIUM METHOSULFATE, GLYCERYL STEARATE, POLYSORBATE 20, ETHLYHEXYLGLYCERIN, POTASSIUM PHOSPHATE, DISODIUM EDTA, DIPOTASSIUM PHOSPHATE, SODIUM LAUROYL LACTYLATE, CERAMIDE NP, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, SODIUM HYALURONATE, XANTHUM GUM, CARBOMER, TOCOPHEROL, CERAMIDE EOP",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        },
+        {
+          "id": "3d5083e1-3845-4dd8-96c3-096a83d366b8",
+          "field": "composition.keyIngredients",
+          "schemaVersion": 1,
+          "value": [
+            {
+              "name": "Ceramides",
+              "function": "To help protect the natural skin barrier"
+            },
+            {
+              "name": "Hyaluronic Acid",
+              "function": "Helps retain skin's natural moisture"
+            }
+          ],
+          "evidence": [
+            {
+              "excerpt": "Ceramides: To help protect the natural skin barrier; Hyaluronic Acid: Helps retain skin's natural moisture",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+              "observedAt": "2026-11-13T17:04:58.941Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "bfc3432ec5ffaff8fef644a4a92ede566ded93190d40ddec37d6f699389d5656"
+            }
+          ]
+        }
+      ],
+      "readiness": {
+        "skuId": "f154cdbd-d948-466c-b7b1-33358274e205",
+        "productId": "c2ca32fb-5583-4648-a85d-736622e11e16",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "PENDING_REVIEW"
+        },
+        "facts": {
+          "total": 11,
+          "applied": [
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 100,
+            "currency": "EGP"
+          }
+        }
+      },
+      "criticalExceptions": [],
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": null,
+        "reason": "NO_VERIFIED_REGULAR_PRICE"
+      },
+      "public": {
+        "status": 200,
+        "imageStatus": 200,
+        "sha256": "d629621a2a3e8056cf82b11edaae00f41ad663a5ee9c75ca79e58c9f8ace4b55",
+        "width": 400,
+        "height": 450,
+        "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/hydrating-cleanser",
+        "rights": "MANUFACTURER_PUBLISHED",
+        "priceScope": "DEV_ONLY",
+        "priceEgp": 100
+      }
+    },
+    {
+      "rowId": "d9ca769a-dfb8-4db3-a672-6fed303fc22b",
+      "name": "CeraVe Foaming Facial Cleanser 236ml",
+      "outcome": "LINKED_EXISTING",
+      "attempts": 0,
+      "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "CeraVe",
+        "name": "Foaming Cleanser",
+        "size": 236,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "evidence": {
+          "history": [
+            {
+              "at": "2026-11-13T17:45:30.619Z",
+              "rule": "intake-admin@1",
+              "status": "EVIDENCE_VERIFIED",
+              "actorId": "13bd3aa0-2563-4dfe-8ca3-0d48f4133f49"
+            }
+          ],
+          "sourceUrls": [
+            "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser"
+          ],
+          "fingerprints": [
+            "091e593c2eb7cf24acbf8d33271b27f97012a23c"
+          ]
+        }
+      },
+      "appliedFacts": [
+        {
+          "id": "97ace0f9-1f5a-45b1-a6d9-af3fa2fc0ede",
+          "field": "composition.keyIngredients",
+          "schemaVersion": 1,
+          "value": [
+            {
+              "name": "Ceramides",
+              "function": "To help protect the natural skin barrier"
+            }
+          ],
+          "evidence": [
+            {
+              "excerpt": "Ceramides: To help protect the natural skin barrier",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "id": "36e40f88-6d3d-4fb5-9d67-dc3e8b069805",
+          "field": "composition.inci",
+          "schemaVersion": 1,
+          "value": [
+            "AQUA/WATER",
+            "GLYCERIN",
+            "COCO-BETAINE",
+            "PROPYLENE GLYCOL",
+            "SODIUM COCOYL",
+            "GLYCINATE",
+            "PEG-120 METHYL GLUCOSE DIOLEATE",
+            "SODIUM CHLORIDE",
+            "ACRYLATES COPOLYMER",
+            "CITRIC ACID",
+            "CAPRYLOYL GLYCINE",
+            "CAPRYLOYL GLYCOL",
+            "SODIUM HYDROXIDE",
+            "NIACINAIDE",
+            "DISODIUM EDTA",
+            "SODIUM HYALURONATE",
+            "SODIUM LAUOYL",
+            "LACTYLATE",
+            "CERAMIDE NP",
+            "PHENOXYETHANOL",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "XANTHAN GUM",
+            "CARBOMER",
+            "ETHLHEXYLGLYERIN",
+            "CERAMIDE EOP"
+          ],
+          "evidence": [
+            {
+              "excerpt": "AQUA/WATER, GLYCERIN, COCO-BETAINE, PROPYLENE GLYCOL, SODIUM COCOYL, GLYCINATE, PEG-120 METHYL GLUCOSE DIOLEATE, SODIUM CHLORIDE, ACRYLATES COPOLYMER, CITRIC ACID, CAPRYLOYL GLYCINE, CAPRYLOYL GLYCOL, SODIUM HYDROXIDE, NIACINAIDE, DISODIUM EDTA, SODIUM HYALURONATE, SODIUM LAUOYL, LACTYLATE, CERAMIDE NP, PHENOXYETHANOL, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, XANTHAN GUM, CARBOMER, ETHLHEXYLGLY",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "id": "153071e2-d791-4845-baec-58e029a971a6",
+          "field": "marketing.description",
+          "schemaVersion": 1,
+          "value": "Product Page for CeraVe Foaming Facial Cleanser",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Foaming Facial Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "id": "20178e4c-99bb-4147-a3b2-36da43650291",
+          "field": "usage.routinePeriod",
+          "schemaVersion": 1,
+          "value": "BOTH",
+          "evidence": [
+            {
+              "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "id": "2b8efcb7-49a9-4142-a6dc-7cfbe1302c46",
+          "field": "composition.fragrance",
+          "schemaVersion": 1,
+          "value": "FREE",
+          "evidence": [
+            {
+              "excerpt": "ective skin barrier of the face.\nSuitable for normal to oily skin.\nCleanses and purifies.\nFragrance free, soap free and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural barri",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "id": "4d564b68-1b47-42e4-981f-b28d547fc29d",
+          "field": "suitability.skinTypes",
+          "schemaVersion": 1,
+          "value": [
+            "normal",
+            "oily",
+            "sensitive"
+          ],
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Foaming Facial Cleanser\nFor Normal to Oily Skin\nA purifying, foaming cleanser for normal to oily skin enriched with 3 essential ceramides",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "id": "53626be6-a677-42a8-8430-ff444174b15c",
+          "field": "attributes.nonComedogenic",
+          "schemaVersion": 1,
+          "value": true,
+          "evidence": [
+            {
+              "excerpt": "ease for 24 hour hydration\n3 Essential Ceramides\nTo help protect the natural skin barrier\nNon-Comedogenic\nWon't clog pores\nGentle on Skin\nSuitable for Sensitive skin\nFragrance Free\nTo avoid fragr",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "id": "cff82e01-3f25-42a2-beb0-cd95b275a65b",
+          "field": "usage.instructions",
+          "schemaVersion": 1,
+          "value": [
+            "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly."
+          ],
+          "evidence": [
+            {
+              "excerpt": "Use morning and evening. Apply to wet hands and massage into the skin, then rinse thoroughly.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        },
+        {
+          "id": "d4019dd5-ab6f-44de-97b3-3b07027fc310",
+          "field": "identity.size",
+          "schemaVersion": 1,
+          "value": {
+            "unit": "ml",
+            "value": 236
+          },
+          "evidence": [
+            {
+              "excerpt": "with 3 essential ceramides to help protect skin’s natural barrier.\nSizes available: 88ml, 236 ml, 473 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 88ml, 236 ml, 473 ml.\nShare",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+              "observedAt": "2026-11-13T17:45:29.893Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "982db843a8d0f9e8e18ce4fdcf44ffb18b452fd74ba8dc5ce3ba38ee02b4e4d2"
+            }
+          ]
+        }
+      ],
+      "readiness": {
+        "skuId": "268ce850-4bdd-4199-b621-5aaa5058390d",
+        "productId": "e8374cf1-f57c-447f-b4fb-04476e9b9ba3",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "attributes.nonComedogenic",
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 100,
+            "currency": "EGP"
+          }
+        }
+      },
+      "criticalExceptions": [],
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": {
+          "minEgp": 540,
+          "medianEgp": 540,
+          "maxEgp": 540,
+          "regularMedianEgp": 540,
+          "sellers": 1,
+          "observations": 1,
+          "excluded": [],
+          "freshestAt": "2026-11-14T01:02:12.413Z",
+          "currency": "EGP",
+          "priceType": "REGULAR",
+          "confidence": "UNVERIFIED",
+          "priceReviewRequired": false,
+          "evidence": [
+            {
+              "id": "3ebe5b90-37b4-4919-957d-2d014f9041e5",
+              "sourceUrl": "https://elghazawy.com/en/product/38074270272874/CeraVe-Foaming-Cleanser-for-Normal-to-Oily-Skin-236-ml",
+              "sellerDomain": "elghazawy.com",
+              "regularPriceEgp": 540,
+              "priceType": "REGULAR",
+              "sourceType": "TRUSTED_RETAILER",
+              "observedAt": "2026-11-14T01:02:12.413Z"
+            }
+          ]
+        },
+        "reason": "REGULAR_PRICE_NOT_CORROBORATED"
+      },
+      "public": {
+        "status": 200,
+        "imageStatus": 200,
+        "sha256": "92e82e14b92b7140f941b475092c8c39223de81952a8c2d68a8b55ef3826eb4c",
+        "width": 400,
+        "height": 450,
+        "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/foaming-cleanser",
+        "rights": "MANUFACTURER_PUBLISHED",
+        "priceScope": "DEV_ONLY",
+        "priceEgp": 100
+      }
+    },
+    {
+      "rowId": "9179102b-0603-455b-bc55-a8d1bc546352",
+      "name": "CeraVe Moisturizing Cream 454g",
+      "outcome": "LINKED_EXISTING",
+      "attempts": 0,
+      "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "CeraVe",
+        "name": "Moisturising Cream",
+        "size": 454,
+        "sizeUnit": "g",
+        "barcode": null,
+        "evidence": {
+          "history": [
+            {
+              "at": "2026-11-13T17:46:59.226Z",
+              "rule": "intake-admin@1",
+              "status": "EVIDENCE_VERIFIED",
+              "actorId": "ca236de9-9b0a-40b6-a6bb-4b43c697af2e"
+            }
+          ],
+          "sourceUrls": [
+            "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream"
+          ],
+          "fingerprints": [
+            "a46170f1bc1c710e0d7092dcd120b426e754c123"
+          ]
+        }
+      },
+      "appliedFacts": [
+        {
+          "id": "06d3317a-ab28-43f1-b033-a106776b5ff6",
+          "field": "usage.instructions",
+          "schemaVersion": 1,
+          "value": [
+            "Apply to the face and body, as often as needed."
+          ],
+          "evidence": [
+            {
+              "excerpt": "Apply to the face and body, as often as needed.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "id": "e909c790-5b23-4346-b220-1a9ad0851205",
+          "field": "composition.inci",
+          "schemaVersion": 1,
+          "value": [
+            "AQUA / WATER",
+            "GLYCERIN",
+            "CETEARYL ALCOHOL",
+            "CAPRYLIC/CAPRIC TRIGLYCERIDE",
+            "CETYL ALCOHOL",
+            "CETEARETH-20",
+            "PETROLATUM",
+            "DIMETHICONE",
+            "PHENOXYETHANOL",
+            "BEHENTRIMONIUM METHOSULFATE",
+            "POTASSIUM PHOSPHATE",
+            "ETHYLHEXYLGLYCERIN",
+            "SODIUM LAUROYL LACTYLATE",
+            "DISODIUM EDTA",
+            "DIPOTASSIUM PHOSPHATE",
+            "CERAMIDE NP",
+            "CERAMIDE AP",
+            "PHYTOSPHINGOSINE",
+            "CHOLESTEROL",
+            "XANTHAN GUM",
+            "CARBOMER",
+            "SODIUM HYALURONATE",
+            "TOCOPHEROL",
+            ". CERAMIDE EOP"
+          ],
+          "evidence": [
+            {
+              "excerpt": "AQUA / WATER, GLYCERIN, CETEARYL ALCOHOL, CAPRYLIC/CAPRIC TRIGLYCERIDE, CETYL ALCOHOL, CETEARETH-20, PETROLATUM, DIMETHICONE, PHENOXYETHANOL, BEHENTRIMONIUM METHOSULFATE, POTASSIUM PHOSPHATE, ETHYLHEXYLGLYCERIN, SODIUM LAUROYL LACTYLATE, DISODIUM EDTA, DIPOTASSIUM PHOSPHATE, CERAMIDE NP, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, XANTHAN GUM, CARBOMER, SODIUM HYALURONATE, TOCOPHEROL,. CERAMIDE EO",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "id": "2853b38f-f272-4b5b-87e0-eee09c928e05",
+          "field": "composition.keyIngredients",
+          "schemaVersion": 1,
+          "value": [
+            {
+              "name": "Ceramides",
+              "function": "To help protect the natural skin barrier"
+            },
+            {
+              "name": "Hyaluronic Acid",
+              "function": "Helps retain skin's natural moisture"
+            },
+            {
+              "name": "Niacinamide",
+              "function": "Helps calm skin"
+            }
+          ],
+          "evidence": [
+            {
+              "excerpt": "Ceramides: To help protect the natural skin barrier; Hyaluronic Acid: Helps retain skin's natural moisture; Niacinamide: Helps calm skin",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "id": "3c318ccc-fc9c-4545-b556-fdc98722caab",
+          "field": "suitability.skinTypes",
+          "schemaVersion": 1,
+          "value": [
+            "dry"
+          ],
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Moisturising Cream\nFor Dry Skin\nA rich moisturising cream for all day hydration with 3 essential ceramides to help protec",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "id": "42572910-985c-475e-a684-bdb6d5472abd",
+          "field": "attributes.nonComedogenic",
+          "schemaVersion": 1,
+          "value": true,
+          "evidence": [
+            {
+              "excerpt": "ive skin barrier.\nRicher formula locks in moisture for 24 hour hydration.\nFragrance free, non-comedogenic and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural barrier.\nRecomme",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "id": "8fe55f70-62ff-46c7-8129-61b0e69cfe36",
+          "field": "identity.size",
+          "schemaVersion": 1,
+          "value": {
+            "unit": "g",
+            "value": 454
+          },
+          "evidence": [
+            {
+              "excerpt": "3 essential ceramides to help protect the skin’s natural barrier.\nSizes available: 340g, 454g.\ncerave_find_in_stores\nBuy Online\nSizes available: 340g, 454g.\nShare this product:\nPRODU",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "id": "92ea69f8-2667-4145-ba28-b914a375d92d",
+          "field": "composition.fragrance",
+          "schemaVersion": 1,
+          "value": "FREE",
+          "evidence": [
+            {
+              "excerpt": "ains the protective skin barrier.\nRicher formula locks in moisture for 24 hour hydration.\nFragrance free, non-comedogenic and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "id": "cc4a8cf8-ce20-42d3-9320-7cf5cfa55269",
+          "field": "attributes.texture",
+          "schemaVersion": 1,
+          "value": "CREAM",
+          "evidence": [
+            {
+              "excerpt": "CeraVe Moisturising Cream",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        },
+        {
+          "id": "de1b9e1c-f742-44c7-8a3b-948c06c47ac1",
+          "field": "marketing.description",
+          "schemaVersion": 1,
+          "value": "Product Page for CeraVe Moisturising Cream",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe Moisturising Cream",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+              "observedAt": "2026-11-13T17:46:58.611Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "228c51df9167078e9d0a00b517cac38804598c6ca27e84d92109c1f15af61df3"
+            }
+          ]
+        }
+      ],
+      "readiness": {
+        "skuId": "54f9dfb7-5cb5-4cea-b1a7-7d472dd074f8",
+        "productId": "3218ffce-0cf4-4f42-9cf6-c68d41b29e81",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "CRITICAL_EXCEPTION_OPEN",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "APPROVED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "attributes.nonComedogenic",
+            "attributes.texture",
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 1,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      },
+      "criticalExceptions": [
+        {
+          "id": "ebe4182d-6b0e-46e7-886b-61d044e561f6",
+          "reasonCode": "REAL_VALIDATION_SOURCE_FORMULA_CONFLICT",
+          "field": "composition.keyIngredients",
+          "summary": "Official cream page highlights Niacinamide but its INCI does not list it; formula claim requires review",
+          "recommended": {
+            "label": "Reconcile Niacinamide feature with the exact 454 g manufacturer INCI or a reliable stock label; keep unpublished meanwhile",
+            "action": "CORRECT"
+          }
+        }
+      ],
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": {
+          "minEgp": 1050,
+          "medianEgp": 1050,
+          "maxEgp": 1050,
+          "regularMedianEgp": 1050,
+          "sellers": 1,
+          "observations": 1,
+          "excluded": [],
+          "freshestAt": "2026-11-14T01:02:14.619Z",
+          "currency": "EGP",
+          "priceType": "REGULAR",
+          "confidence": "UNVERIFIED",
+          "priceReviewRequired": false,
+          "evidence": [
+            {
+              "id": "6d94e674-4231-4da5-b3d6-2278b323b5fd",
+              "sourceUrl": "https://elghazawy.com/en/product/38074270232611/CeraVe+Moisturizing+Cream+454gm",
+              "sellerDomain": "elghazawy.com",
+              "regularPriceEgp": 1050,
+              "priceType": "REGULAR",
+              "sourceType": "TRUSTED_RETAILER",
+              "observedAt": "2026-11-14T01:02:14.619Z"
+            }
+          ]
+        },
+        "reason": "REGULAR_PRICE_NOT_CORROBORATED"
+      },
+      "public": {
+        "status": 404
+      }
+    },
+    {
+      "rowId": "73e1ce23-c8fd-4c31-803b-77645cd52ae7",
+      "name": "CeraVe SA Smoothing Cleanser 236ml",
+      "outcome": "DRAFT_CREATED",
+      "attempts": 0,
+      "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "CeraVe",
+        "name": "SA Smoothing Cleanser",
+        "size": 236,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "evidence": {
+          "history": [
+            {
+              "at": "2026-11-13T17:48:41.056Z",
+              "rule": "intake-admin@1",
+              "status": "EVIDENCE_VERIFIED",
+              "actorId": "12f44997-7887-4bb5-916f-33248d5cab7b"
+            }
+          ],
+          "sourceUrls": [
+            "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser"
+          ],
+          "fingerprints": [
+            "fedf332f69cd3c8bbb14cfbba70d5456dc05b5d3"
+          ]
+        }
+      },
+      "appliedFacts": [
+        {
+          "id": "dd294dd1-d3a8-48da-8605-206c59e6e04d",
+          "field": "marketing.description",
+          "schemaVersion": 1,
+          "value": "Product Page for CeraVe SA Smoothing Cleanser",
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe SA Smoothing Cleanser",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-13T17:48:40.461Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "e12fed8fd896abef4325df90e041dae57ab0c9b6a8d7532c6df46235c6ae26ba"
+            },
+            {
+              "excerpt": "Product Page for CeraVe SA Smoothing Cleanser",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-14T00:21:15.136Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "64fb865be1e4f68fa2ce919339cf0b59e11b69d07b20011242f49a82459cfa3e"
+            }
+          ]
+        },
+        {
+          "id": "147a4f5c-d115-4694-a148-6d126a53f0a5",
+          "field": "usage.instructions",
+          "schemaVersion": 1,
+          "value": [
+            "Massage cleanser onto wet skin."
+          ],
+          "evidence": [
+            {
+              "excerpt": "Massage cleanser onto wet skin.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-13T17:48:40.461Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "e12fed8fd896abef4325df90e041dae57ab0c9b6a8d7532c6df46235c6ae26ba"
+            }
+          ]
+        },
+        {
+          "id": "0ee0f745-5530-450b-a7b0-9f6f5dcbbc54",
+          "field": "identity.size",
+          "schemaVersion": 1,
+          "value": {
+            "unit": "ml",
+            "value": 236
+          },
+          "evidence": [
+            {
+              "excerpt": "y, Rough, Bumpy Skin\nSalicylic acid foaming gel cleanser for smooth skin\nSizes available: 236 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 236 ml.\nShare this product:\nPRODUCT",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-13T17:48:40.461Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "e12fed8fd896abef4325df90e041dae57ab0c9b6a8d7532c6df46235c6ae26ba"
+            },
+            {
+              "excerpt": "y, Rough, Bumpy Skin\nSalicylic acid foaming gel cleanser for smooth skin\nSizes available: 236 ml.\ncerave_find_in_stores\nBuy Online\nSizes available: 236 ml.\nShare this product:\nPRODUCT",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-14T00:21:15.136Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "64fb865be1e4f68fa2ce919339cf0b59e11b69d07b20011242f49a82459cfa3e"
+            }
+          ]
+        },
+        {
+          "id": "ab0e1f58-7baf-4363-bb96-d6489e5f5c1e",
+          "field": "composition.inci",
+          "schemaVersion": 1,
+          "value": [
+            "AQUA / WATER",
+            "SODIUM LAUROYL SARCOSINATE",
+            "COCAMIDOPROPYL HYDROXYSULTAINE",
+            "GLYCERIN",
+            "NIACINAMIDE",
+            "GLUCONOLACTONE",
+            "SODIUM METHYL COCOYL TAURATE",
+            "PEG-150 PENTAERYTHRITYL TETRASTEARATE",
+            "CERAMIDE NP",
+            "CERAMIDE AP",
+            "CERAMIDE EOP",
+            "CARBOMER",
+            "CALCIUM GLUCONATE",
+            "SALICYLIC ACID",
+            "SODIUM BENZOATE",
+            "SODIUM LAUROYL LACTYLATE",
+            "CHOLESTEROL",
+            "PHENOXYETHANOL",
+            "DISODIUM EDTA",
+            "TETRASODIUM EDTA",
+            "HYDROLYZED HYALURONIC ACID",
+            "PHYTOSPHINGOSINE",
+            "XANTHAN GUM",
+            "ETHYLHEXYLGLYCERIN"
+          ],
+          "evidence": [
+            {
+              "excerpt": "AQUA / WATER, SODIUM LAUROYL SARCOSINATE, COCAMIDOPROPYL HYDROXYSULTAINE, GLYCERIN, NIACINAMIDE, GLUCONOLACTONE, SODIUM METHYL COCOYL TAURATE, PEG-150 PENTAERYTHRITYL TETRASTEARATE, CERAMIDE NP, CERAMIDE AP, CERAMIDE EOP, CARBOMER, CALCIUM GLUCONATE, SALICYLIC ACID, SODIUM BENZOATE, SODIUM LAUROYL LACTYLATE, CHOLESTEROL, PHENOXYETHANOL, DISODIUM EDTA, TETRASODIUM EDTA, HYDROLYZED HYALURONIC ACID, ",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-13T17:48:40.461Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "e12fed8fd896abef4325df90e041dae57ab0c9b6a8d7532c6df46235c6ae26ba"
+            },
+            {
+              "excerpt": "AQUA / WATER, SODIUM LAUROYL SARCOSINATE, COCAMIDOPROPYL HYDROXYSULTAINE, GLYCERIN, NIACINAMIDE, GLUCONOLACTONE, SODIUM METHYL COCOYL TAURATE, PEG-150 PENTAERYTHRITYL TETRASTEARATE, CERAMIDE NP, CERAMIDE AP, CERAMIDE EOP, CARBOMER, CALCIUM GLUCONATE, SALICYLIC ACID, SODIUM BENZOATE, SODIUM LAUROYL LACTYLATE, CHOLESTEROL, PHENOXYETHANOL, DISODIUM EDTA, TETRASODIUM EDTA, HYDROLYZED HYALURONIC ACID, ",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-14T00:21:15.136Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "64fb865be1e4f68fa2ce919339cf0b59e11b69d07b20011242f49a82459cfa3e"
+            }
+          ]
+        },
+        {
+          "id": "8f47f565-5a8f-419f-84f4-c79ad5ec9af1",
+          "field": "composition.fragrance",
+          "schemaVersion": 1,
+          "value": "FREE",
+          "evidence": [
+            {
+              "excerpt": "d makeup.\nStar ingredients: Salicylic Acid, Hyaluronic Acid.\nFree of physical exfoliants.\nFragrance-free, non-irritating, non-comedogenic.\nWith 3 essential ceramides to protect skin's natural ba",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-13T17:48:40.461Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "e12fed8fd896abef4325df90e041dae57ab0c9b6a8d7532c6df46235c6ae26ba"
+            },
+            {
+              "excerpt": "d makeup.\nStar ingredients: Salicylic Acid, Hyaluronic Acid.\nFree of physical exfoliants.\nFragrance-free, non-irritating, non-comedogenic.\nWith 3 essential ceramides to protect skin's natural ba",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-14T00:21:15.136Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "64fb865be1e4f68fa2ce919339cf0b59e11b69d07b20011242f49a82459cfa3e"
+            }
+          ]
+        },
+        {
+          "id": "85989621-53ef-41d4-86fe-2669f3b0fc69",
+          "field": "attributes.nonComedogenic",
+          "schemaVersion": 1,
+          "value": true,
+          "evidence": [
+            {
+              "excerpt": "cylic Acid, Hyaluronic Acid.\nFree of physical exfoliants.\nFragrance-free, non-irritating, non-comedogenic.\nWith 3 essential ceramides to protect skin's natural barrier.\nRecommended use in conjunc",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-13T17:48:40.461Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "e12fed8fd896abef4325df90e041dae57ab0c9b6a8d7532c6df46235c6ae26ba"
+            },
+            {
+              "excerpt": "cylic Acid, Hyaluronic Acid.\nFree of physical exfoliants.\nFragrance-free, non-irritating, non-comedogenic.\nWith 3 essential ceramides to protect skin's natural barrier.\nRecommended use in conjunc",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-14T00:21:15.136Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "64fb865be1e4f68fa2ce919339cf0b59e11b69d07b20011242f49a82459cfa3e"
+            }
+          ]
+        },
+        {
+          "id": "82d3c4d4-2bb6-40f6-843b-49e757bee0c3",
+          "field": "suitability.skinTypes",
+          "schemaVersion": 1,
+          "value": [
+            "sensitive"
+          ],
+          "evidence": [
+            {
+              "excerpt": "Product Page for CeraVe SA Smoothing Cleanser\nFor Dry, Rough, Bumpy Skin\nSuitable for rough and bumpy skin. Also suitable for skin prone to Keratosis Piliaris.\nRe",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-13T17:48:40.461Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "e12fed8fd896abef4325df90e041dae57ab0c9b6a8d7532c6df46235c6ae26ba"
+            },
+            {
+              "excerpt": "Product Page for CeraVe SA Smoothing Cleanser\nFor Dry, Rough, Bumpy Skin\nSuitable for rough and bumpy skin. Also suitable for skin prone to Keratosis Piliaris.\nRe",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-14T00:21:15.136Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "64fb865be1e4f68fa2ce919339cf0b59e11b69d07b20011242f49a82459cfa3e"
+            }
+          ]
+        },
+        {
+          "id": "f3e81053-4249-46a0-9a4c-9736fa589f45",
+          "field": "composition.keyIngredients",
+          "schemaVersion": 1,
+          "value": [
+            {
+              "name": "Salicylic Acid",
+              "function": "Helps exfoliate and soften - essential in"
+            },
+            {
+              "name": "Ceramides",
+              "function": "To help protect the natural skin barrier"
+            }
+          ],
+          "evidence": [
+            {
+              "excerpt": "Salicylic Acid: Helps exfoliate and soften - essential in; Ceramides: To help protect the natural skin barrier",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-13T17:48:40.461Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "e12fed8fd896abef4325df90e041dae57ab0c9b6a8d7532c6df46235c6ae26ba"
+            },
+            {
+              "excerpt": "Salicylic Acid: Helps exfoliate and soften - essential in; Ceramides: To help protect the natural skin barrier",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+              "observedAt": "2026-11-14T00:21:15.136Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "64fb865be1e4f68fa2ce919339cf0b59e11b69d07b20011242f49a82459cfa3e"
+            }
+          ]
+        }
+      ],
+      "readiness": {
+        "skuId": "7f912a33-f84e-43b6-b7fa-ae945b0e7188",
+        "productId": "10fab1e0-f087-47cf-8332-5fef12f3d234",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 13,
+          "applied": [
+            "attributes.nonComedogenic",
+            "composition.fragrance",
+            "composition.inci",
+            "composition.keyIngredients",
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name",
+            "media.sourceImages",
+            "usage.instructions"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 100,
+            "currency": "EGP"
+          }
+        }
+      },
+      "criticalExceptions": [],
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": {
+          "minEgp": 600,
+          "medianEgp": 600,
+          "maxEgp": 600,
+          "regularMedianEgp": 600,
+          "sellers": 1,
+          "observations": 1,
+          "excluded": [
+            {
+              "id": "4962d5ee-d7c3-45aa-9552-53679b4a7195",
+              "reason": "LIST_PRICE_NOT_CORROBORATED"
+            }
+          ],
+          "freshestAt": "2026-11-14T01:02:24.585Z",
+          "currency": "EGP",
+          "priceType": "REGULAR",
+          "confidence": "UNVERIFIED",
+          "priceReviewRequired": false,
+          "evidence": [
+            {
+              "id": "faf228a1-cb21-41ca-87a2-a0f028cab6bf",
+              "sourceUrl": "https://elghazawy.com/en/product/38074270277652/CeraVe+SA+Smoothing+Cleanser+236+ml",
+              "sellerDomain": "elghazawy.com",
+              "regularPriceEgp": 600,
+              "priceType": "REGULAR",
+              "sourceType": "TRUSTED_RETAILER",
+              "observedAt": "2026-11-14T01:02:24.585Z"
+            }
+          ]
+        },
+        "reason": "REGULAR_PRICE_NOT_CORROBORATED"
+      },
+      "public": {
+        "status": 200,
+        "imageStatus": 200,
+        "sha256": "9f56f7745a0cef9e11e0d1a3f0fe0997348c5bf424d28d070b6d65c9edce026a",
+        "width": 200,
+        "height": 400,
+        "sourceUrl": "https://africa.cerave.com/en/our-products/cleansers/sa-smoothing-cleanser",
+        "rights": "MANUFACTURER_PUBLISHED",
+        "priceScope": "DEV_ONLY",
+        "priceEgp": 100
+      }
+    },
+    {
+      "rowId": "c0fe7d60-10e3-4500-b87d-909c555ad18e",
+      "name": "The Ordinary Niacinamide 10% + Zinc 1% 30ml",
+      "outcome": "DRAFT_CREATED",
+      "attempts": 0,
+      "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "The Ordinary",
+        "name": "Niacinamide 10% + Zinc 1%",
+        "size": 30,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "evidence": {
+          "history": [
+            {
+              "at": "2026-11-13T17:49:01.331Z",
+              "rule": "intake-admin@1",
+              "status": "EVIDENCE_VERIFIED",
+              "actorId": "12f44997-7887-4bb5-916f-33248d5cab7b"
+            }
+          ],
+          "sourceUrls": [
+            "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html"
+          ],
+          "fingerprints": [
+            "49b444886b26926086e7b81f1f256e10b476d4c6"
+          ]
+        }
+      },
+      "appliedFacts": [
+        {
+          "id": "382ac590-1da0-435d-b195-fa94aab5920b",
+          "field": "marketing.description",
+          "schemaVersion": 1,
+          "value": "A universal serum for blemish-prone skin that smooths, brightens, and supports.",
+          "evidence": [
+            {
+              "excerpt": "A universal serum for blemish-prone skin that smooths, brightens, and supports.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+              "observedAt": "2026-11-13T17:49:00.396Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "364324c6851cbefcb4caba117cf6a56d84dbce61eb714d74bd92963772604edf"
+            }
+          ]
+        },
+        {
+          "id": "74025799-a40e-4b53-9a7c-57985eb6c81a",
+          "field": "identity.size",
+          "schemaVersion": 1,
+          "value": {
+            "unit": "ml",
+            "value": 30
+          },
+          "evidence": [
+            {
+              "excerpt": "ng Purchase on theordinary.com from 12:00am EST November\n02, 2026 to 11:59pm EST November 30, 2026 or at standalone\nDECIEM/The Ordinary stores during store hours, while supplies last",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+              "observedAt": "2026-11-13T17:49:00.396Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "364324c6851cbefcb4caba117cf6a56d84dbce61eb714d74bd92963772604edf"
+            }
+          ]
+        },
+        {
+          "id": "871d6dbf-594c-4df8-a88a-076c3f589dd9",
+          "field": "usage.routinePeriod",
+          "schemaVersion": 1,
+          "value": "BOTH",
+          "evidence": [
+            {
+              "excerpt": "Apply a few drops to the face in the morning and evening.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+              "observedAt": "2026-11-13T17:49:00.396Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "364324c6851cbefcb4caba117cf6a56d84dbce61eb714d74bd92963772604edf"
+            }
+          ]
+        },
+        {
+          "id": "8eff0537-28c5-4446-8cf6-178d81b401dc",
+          "field": "usage.instructions",
+          "schemaVersion": 1,
+          "value": [
+            "Apply a few drops to the face in the morning and evening."
+          ],
+          "evidence": [
+            {
+              "excerpt": "Apply a few drops to the face in the morning and evening.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+              "observedAt": "2026-11-13T17:49:00.396Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "364324c6851cbefcb4caba117cf6a56d84dbce61eb714d74bd92963772604edf"
+            }
+          ]
+        },
+        {
+          "id": "98144213-5211-4858-8aa8-478200197377",
+          "field": "safety.warnings",
+          "schemaVersion": 1,
+          "value": [
+            "If irritation occurs, rinse oﬀ, cease use, and consult a physician.",
+            "Use only as directed on unbroken skin.",
+            "Keep out of reach of children."
+          ],
+          "evidence": [
+            {
+              "excerpt": "If irritation occurs, rinse oﬀ, cease use, and consult a physician. Use only as directed on unbroken skin. Keep out of reach of children.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+              "observedAt": "2026-11-13T17:49:00.396Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "364324c6851cbefcb4caba117cf6a56d84dbce61eb714d74bd92963772604edf"
+            }
+          ]
+        },
+        {
+          "id": "c9e2b9f3-5e8c-4b73-bea4-4ddfd20bdf33",
+          "field": "composition.inci",
+          "schemaVersion": 1,
+          "value": [
+            "Aqua (Water)",
+            "Niacinamide",
+            "Pentylene Glycol",
+            "Zinc PCA",
+            "Dimethyl Isosorbide",
+            "Tamarindus Indica Seed Gum",
+            "Xanthan Gum",
+            "Isoceteth-20",
+            "Ethoxydiglycol",
+            "Phenoxyethanol",
+            "Chlorphenesin"
+          ],
+          "evidence": [
+            {
+              "excerpt": "Aqua (Water), Niacinamide, Pentylene Glycol, Zinc PCA, Dimethyl Isosorbide, Tamarindus Indica Seed Gum, Xanthan Gum, Isoceteth-20, Ethoxydiglycol, Phenoxyethanol, Chlorphenesin.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+              "observedAt": "2026-11-13T17:49:00.396Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "364324c6851cbefcb4caba117cf6a56d84dbce61eb714d74bd92963772604edf"
+            }
+          ]
+        }
+      ],
+      "readiness": {
+        "skuId": "e2ac479e-2ce3-47d3-89ab-d79de225879f",
+        "productId": "917cddef-6e31-474c-ae30-db74fb8e62ed",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "composition.inci",
+            "identity.size",
+            "marketing.description",
+            "safety.warnings",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "composition.activeConcentrations",
+            "identity.brand",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 950,
+            "currency": "EGP"
+          }
+        }
+      },
+      "criticalExceptions": [],
+      "market": {
+        "status": "REFERENCE_READY",
+        "reference": {
+          "minEgp": 650,
+          "medianEgp": 650,
+          "maxEgp": 665,
+          "regularMedianEgp": 650,
+          "sellers": 3,
+          "observations": 3,
+          "excluded": [],
+          "freshestAt": "2026-11-14T01:02:37.604Z",
+          "currency": "EGP",
+          "priceType": "REGULAR",
+          "confidence": "HIGH",
+          "priceReviewRequired": false,
+          "evidence": [
+            {
+              "id": "94345748-b58f-48d8-933a-261fbe41acea",
+              "sourceUrl": "https://elghazawy.com/en/product/38074270222442/THE-ORDINARY-NIACINAMIDE-SERUM-30ML",
+              "sellerDomain": "elghazawy.com",
+              "regularPriceEgp": 665,
+              "priceType": "REGULAR",
+              "sourceType": "TRUSTED_RETAILER",
+              "observedAt": "2026-11-14T01:02:37.604Z"
+            },
+            {
+              "id": "755cfc72-582e-4268-a618-d538f3855445",
+              "sourceUrl": "https://mainasrpharmacy.com/products/the-ordinary-niacinamide-10-zinc-1-30-ml/",
+              "sellerDomain": "mainasrpharmacy.com",
+              "regularPriceEgp": 650,
+              "priceType": "REGULAR",
+              "sourceType": "ESTABLISHED_PHARMACY",
+              "observedAt": "2026-11-14T01:02:37.256Z"
+            },
+            {
+              "id": "50d7b74f-1a6d-411e-a2c7-dd217e9da4fd",
+              "sourceUrl": "https://www.cosmostoreegypt.com/shop/the-ordinary-niacinamide-10-zinc-1-serum/",
+              "sellerDomain": "cosmostoreegypt.com",
+              "regularPriceEgp": 650,
+              "priceType": "LIST_CANDIDATE",
+              "sourceType": "TRUSTED_RETAILER",
+              "observedAt": "2026-11-14T01:02:35.078Z"
+            }
+          ]
+        },
+        "reason": null
+      },
+      "public": {
+        "status": 200,
+        "imageStatus": 200,
+        "sha256": "9924b6608463d5d305a11d79823ecc9c0e8e78c14a835c6b6036a9690e78b493",
+        "width": 900,
+        "height": 900,
+        "sourceUrl": "https://theordinary.com/en-us/niacinamide-10-zinc-1-serum-100436.html",
+        "rights": "MANUFACTURER_PUBLISHED",
+        "priceScope": "DEV_ONLY",
+        "priceEgp": 950
+      }
+    },
+    {
+      "rowId": "e4c758d5-6de5-40a0-abf1-1a4b5805ff48",
+      "name": "The Ordinary Hyaluronic Acid 2% + B5 (Original Formulation) 30ml",
+      "outcome": "DRAFT_CREATED",
+      "attempts": 0,
+      "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "The Ordinary",
+        "name": "Hyaluronic Acid 2% + B5 (Original Formulation)",
+        "size": 30,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "evidence": {
+          "history": [
+            {
+              "at": "2026-11-14T09:41:53.397Z",
+              "rule": "intake-admin@1",
+              "status": "EVIDENCE_VERIFIED",
+              "actorId": "12f44997-7887-4bb5-916f-33248d5cab7b"
+            }
+          ],
+          "sourceUrls": [
+            "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1"
+          ],
+          "fingerprints": [
+            "13d751cf2d850881f15a513dd8292bf1978c1e4d"
+          ]
+        }
+      },
+      "appliedFacts": [
+        {
+          "id": "12432fb5-d3ec-42be-8220-955328822d3c",
+          "field": "identity.size",
+          "schemaVersion": 2,
+          "value": {
+            "unit": "ml",
+            "value": 30
+          },
+          "evidence": [
+            {
+              "excerpt": "ng Purchase on theordinary.com from 12:00am EST November\n02, 2026 to 11:59pm EST November 30, 2026 or at standalone\nDECIEM/The Ordinary stores during store hours, while supplies last",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:41:52.016Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "1ced00d70e95304053df845005ea0ccc077c3279745d1f504db3a2e7972ed718"
+            },
+            {
+              "excerpt": "ng Purchase on theordinary.com from 12:00am EST November\n02, 2026 to 11:59pm EST November 30, 2026 or at standalone\nDECIEM/The Ordinary stores during store hours, while supplies last",
+              "extractor": "deterministic@3",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:51:48.760Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "7d0320d257373db805a070c9d0cd8081a419be255a85a3db00121b2cc001b87f"
+            }
+          ]
+        },
+        {
+          "id": "70bc40a2-c541-4704-99ab-cdb47ddcd082",
+          "field": "composition.inci",
+          "schemaVersion": 2,
+          "value": [
+            "Aqua (Water)",
+            "Sodium Hyaluronate",
+            "Pentylene Glycol",
+            "Propanediol",
+            "Sodium Hyaluronate Crosspolymer",
+            "Panthenol",
+            "Ahnfeltia Concinna Extract",
+            "Glycerin",
+            "Trisodium Ethylenediamine Disuccinate",
+            "Citric Acid",
+            "Isoceteth-20",
+            "Ethoxydiglycol",
+            "Ethylhexylglycerin",
+            "Hexylene Glycol",
+            "1,2-Hexanediol",
+            "Phenoxyethanol",
+            "Caprylyl Glycol"
+          ],
+          "evidence": [
+            {
+              "excerpt": "Aqua (Water), Sodium Hyaluronate, Pentylene Glycol, Propanediol, Sodium Hyaluronate Crosspolymer, Panthenol, Ahnfeltia Concinna Extract, Glycerin, Trisodium Ethylenediamine Disuccinate, Citric Acid, Isoceteth-20, Ethoxydiglycol, Ethylhexylglycerin, Hexylene Glycol, 1,2-Hexanediol, Phenoxyethanol, Caprylyl Glycol.",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:41:52.016Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "1ced00d70e95304053df845005ea0ccc077c3279745d1f504db3a2e7972ed718"
+            },
+            {
+              "excerpt": "Aqua (Water), Sodium Hyaluronate, Pentylene Glycol, Propanediol, Sodium Hyaluronate Crosspolymer, Panthenol, Ahnfeltia Concinna Extract, Glycerin, Trisodium Ethylenediamine Disuccinate, Citric Acid, Isoceteth-20, Ethoxydiglycol, Ethylhexylglycerin, Hexylene Glycol, 1,2-Hexanediol, Phenoxyethanol, Caprylyl Glycol.",
+              "extractor": "deterministic@3",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:51:48.760Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "7d0320d257373db805a070c9d0cd8081a419be255a85a3db00121b2cc001b87f"
+            }
+          ]
+        },
+        {
+          "id": "9b6b708e-988e-4ee6-8075-e208318e16a9",
+          "field": "usage.instructions",
+          "schemaVersion": 2,
+          "value": [
+            "Apply a few drops to the face in the morning and evening."
+          ],
+          "evidence": [
+            {
+              "excerpt": "Apply a few drops to the face in the morning and evening.",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:41:52.016Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "1ced00d70e95304053df845005ea0ccc077c3279745d1f504db3a2e7972ed718"
+            },
+            {
+              "excerpt": "Apply a few drops to the face in the morning and evening.",
+              "extractor": "deterministic@3",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:51:48.760Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "7d0320d257373db805a070c9d0cd8081a419be255a85a3db00121b2cc001b87f"
+            }
+          ]
+        },
+        {
+          "id": "91420e43-fefb-4117-a29c-a73a8779866e",
+          "field": "usage.routinePeriod",
+          "schemaVersion": 2,
+          "value": "BOTH",
+          "evidence": [
+            {
+              "excerpt": "Apply a few drops to the face in the morning and evening.",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:41:52.016Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "1ced00d70e95304053df845005ea0ccc077c3279745d1f504db3a2e7972ed718"
+            },
+            {
+              "excerpt": "Apply a few drops to the face in the morning and evening.",
+              "extractor": "deterministic@3",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:51:48.760Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "7d0320d257373db805a070c9d0cd8081a419be255a85a3db00121b2cc001b87f"
+            }
+          ]
+        },
+        {
+          "id": "4fd69956-a4dc-42a8-b667-3074c2ee377c",
+          "field": "marketing.description",
+          "schemaVersion": 2,
+          "value": "The original hyaluronic acid serum for hydrated, smoother-looking skin.",
+          "evidence": [
+            {
+              "excerpt": "The original hyaluronic acid serum for hydrated, smoother-looking skin.",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:41:52.016Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "1ced00d70e95304053df845005ea0ccc077c3279745d1f504db3a2e7972ed718"
+            },
+            {
+              "excerpt": "The original hyaluronic acid serum for hydrated, smoother-looking skin.",
+              "extractor": "deterministic@3",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:51:48.760Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "7d0320d257373db805a070c9d0cd8081a419be255a85a3db00121b2cc001b87f"
+            }
+          ]
+        },
+        {
+          "id": "ef01ae0e-9de0-497a-bea3-d4941e379867",
+          "field": "safety.warnings",
+          "schemaVersion": 2,
+          "value": [
+            "If irritation occurs, rinse off, cease use, and consult a physician.",
+            "Use only as directed on unbroken skin.",
+            "Keep out of reach of children."
+          ],
+          "evidence": [
+            {
+              "excerpt": "If irritation occurs, rinse off, cease use, and consult a physician. Use only as directed on unbroken skin. Keep out of reach of children.",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:41:52.016Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "1ced00d70e95304053df845005ea0ccc077c3279745d1f504db3a2e7972ed718"
+            },
+            {
+              "excerpt": "If irritation occurs, rinse off, cease use, and consult a physician. Use only as directed on unbroken skin. Keep out of reach of children.",
+              "extractor": "deterministic@3",
+              "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+              "observedAt": "2026-11-14T09:51:48.760Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "7d0320d257373db805a070c9d0cd8081a419be255a85a3db00121b2cc001b87f"
+            }
+          ]
+        }
+      ],
+      "readiness": {
+        "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+        "productId": "83dbbc95-caf3-4994-8e42-1935f5ad9627",
+        "isPublished": true,
+        "ready": true,
+        "blockers": [],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "PUBLISHED",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "PENDING_REVIEW"
+        },
+        "facts": {
+          "total": 12,
+          "applied": [
+            "composition.inci",
+            "identity.size",
+            "marketing.description",
+            "safety.warnings",
+            "usage.instructions",
+            "usage.routinePeriod"
+          ],
+          "pending": [],
+          "unverified": [
+            "claims.manufacturerStated",
+            "composition.activeConcentrations",
+            "identity.brand",
+            "identity.name",
+            "media.sourceImages"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 0,
+        "commerce": {
+          "isListed": true,
+          "price": {
+            "amount": 100,
+            "currency": "EGP"
+          }
+        }
+      },
+      "criticalExceptions": [],
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": null,
+        "reason": "NO_VERIFIED_REGULAR_PRICE"
+      },
+      "public": {
+        "status": 200,
+        "imageStatus": 200,
+        "sha256": "741b042d7dca0edd0c85cd41fb6c07656ed4e50fbbab7890c4d51899f48e75ae",
+        "width": 1200,
+        "height": 1200,
+        "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+        "rights": "MANUFACTURER_PUBLISHED",
+        "priceScope": "DEV_ONLY",
+        "priceEgp": 100
+      }
+    },
+    {
+      "rowId": "cfbac0e3-cdd9-447b-86f9-92aaa830c6d4",
+      "name": "La Roche-Posay Effaclar Purifying Foaming Gel 200ml",
+      "outcome": "UNRESOLVED",
+      "attempts": 5,
+      "skuId": null,
+      "criticalExceptions": [
+        {
+          "id": "2fb14460-eedc-4c27-bf98-a13bb0bd65d6",
+          "reasonCode": "RETRY_EXHAUSTED",
+          "summary": "Kept failing after 5 automatic attempts: BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED; exact identity remains unverified, so creating this SKU would be unsafe.",
+          "recommended": {
+            "label": "Provide a permitted manufacturer page for La Roche-Posay Effaclar Purifying Foaming Gel 200ml or restore official site access before retrying",
+            "action": "CORRECT"
+          }
+        }
+      ]
+    },
+    {
+      "rowId": "31c71f90-b89d-453d-b5ee-1fb2de296921",
+      "name": "La Roche-Posay Cicaplast Baume B5+ 40ml",
+      "outcome": "UNRESOLVED",
+      "attempts": 5,
+      "skuId": null,
+      "criticalExceptions": [
+        {
+          "id": "7ba2d97a-365d-4356-b90a-cd6889c17fc8",
+          "reasonCode": "RETRY_EXHAUSTED",
+          "summary": "Kept failing after 5 automatic attempts: BRAND_RESEARCH_UNAVAILABLE:SITE_ACCESS_DENIED; exact identity remains unverified, so creating this SKU would be unsafe.",
+          "recommended": {
+            "label": "Provide a permitted manufacturer page for La Roche-Posay Cicaplast Baume B5+ 40ml or restore official site access before retrying",
+            "action": "CORRECT"
+          }
+        }
+      ]
+    },
+    {
+      "rowId": "e0c2ce0e-2148-4344-8c05-0442d5512488",
+      "name": "Cetaphil Gentle Skin Cleanser 236ml",
+      "outcome": "DRAFT_CREATED",
+      "attempts": 0,
+      "skuId": "ad4c3947-a35f-4d6d-af02-cab4c0ff623f",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "Cetaphil",
+        "name": "Gentle Skin Cleanser",
+        "size": 236,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "evidence": {
+          "history": [
+            {
+              "at": "2026-11-14T09:41:57.054Z",
+              "rule": "intake-admin@1",
+              "status": "EVIDENCE_VERIFIED",
+              "actorId": "12f44997-7887-4bb5-916f-33248d5cab7b"
+            }
+          ],
+          "sourceUrls": [
+            "https://www.cetaphil.co.uk/cleansers/gentle-skin-cleanser/5020465202554-1.html"
+          ],
+          "fingerprints": [
+            "36821bf8be2515f9d8326d7e0145476739e18ded"
+          ]
+        }
+      },
+      "appliedFacts": [
+        {
+          "id": "e4f4b5d7-8f90-4f95-9a73-08aae0353de6",
+          "field": "suitability.skinTypes",
+          "schemaVersion": 2,
+          "value": [
+            "sensitive"
+          ],
+          "evidence": [
+            {
+              "excerpt": "<p><strong>For normal to dry, sensitive skin</strong></p>\r\n\r\n<p class=\"mb-3\">This cleansing formula for face & body is clinically prov",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://www.cetaphil.co.uk/cleansers/gentle-skin-cleanser/5020465202554-1.html",
+              "observedAt": "2026-11-14T09:41:55.914Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "74fbbd3893041a0871816014b521086a39ac9f62363979f8e2a9f18a47a463ff"
+            },
+            {
+              "excerpt": "<p><strong>For normal to dry, sensitive skin</strong></p>\r\n\r\n<p class=\"mb-3\">This cleansing formula for face & body is clinically prov",
+              "extractor": "deterministic@3",
+              "sourceUrl": "https://www.cetaphil.co.uk/cleansers/gentle-skin-cleanser/5020465202554-1.html",
+              "observedAt": "2026-11-14T09:47:29.362Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ed7e249f424f84edaffec70cdcf188a9a46c5225b1e4171f119ae01feed9fc80"
+            }
+          ]
+        },
+        {
+          "id": "7b2fda3a-62b4-4a58-8277-eda6d6b8b0d8",
+          "field": "marketing.description",
+          "schemaVersion": 2,
+          "value": "For normal to dry, sensitive skin This cleansing formula for face & body is clinically proven to remove dirt, make up and impurities gently while preserving the skin's natural moisture barrier. Can be used with or without water. Designed with a science backed blend of Niacinamide (essential vitamin B3) , Panthenol (pro-vitamin B5) and hydrating Glycerin to help improve the resilience of sensitive skin Clinically proven continuous hydration to protect against dryness while leaving the skin hydrated after cleansing Dermatologist tested and clinically proven to be gentle on sensitive skin",
+          "evidence": [
+            {
+              "excerpt": "<p><strong>For normal to dry, sensitive skin</strong></p>\r\n\r\n<p class=\"mb-3\">This cleansing formula for face & body is clinically proven to remove dirt, make up and impurities gently while preserving the skin's natural moisture barrier. Can be used with or without water.</p>\r\n\r\n<ul>\r\n\t<li>Designed with a science backed blend of Niacinamide (essential vitamin B3) , Panthenol (pro-vitamin B5) and hy",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://www.cetaphil.co.uk/cleansers/gentle-skin-cleanser/5020465202554-1.html",
+              "observedAt": "2026-11-14T09:41:55.914Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "74fbbd3893041a0871816014b521086a39ac9f62363979f8e2a9f18a47a463ff"
+            },
+            {
+              "excerpt": "<p><strong>For normal to dry, sensitive skin</strong></p>\r\n\r\n<p class=\"mb-3\">This cleansing formula for face & body is clinically proven to remove dirt, make up and impurities gently while preserving the skin's natural moisture barrier. Can be used with or without water.</p>\r\n\r\n<ul>\r\n\t<li>Designed with a science backed blend of Niacinamide (essential vitamin B3) , Panthenol (pro-vitamin B5) and hy",
+              "extractor": "deterministic@3",
+              "sourceUrl": "https://www.cetaphil.co.uk/cleansers/gentle-skin-cleanser/5020465202554-1.html",
+              "observedAt": "2026-11-14T09:47:29.362Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "ed7e249f424f84edaffec70cdcf188a9a46c5225b1e4171f119ae01feed9fc80"
+            }
+          ]
+        },
+        {
+          "id": "541c1b9c-a457-4830-902d-d47872a0c2c8",
+          "field": "identity.size",
+          "schemaVersion": 2,
+          "value": {
+            "unit": "ml",
+            "value": 236
+          },
+          "evidence": [
+            {
+              "excerpt": "Products\nProduct categories\nCleansers\nGentle Skin Cleanser\nCetaphil Gentle Skin Cleanser 236ml is rated\n4.5 out of\n5 by\n1343 .\ny_2026, m_11, d_13, h_6\nbvseo_bulk, prod_bvrr, vn_bulk_",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://www.cetaphil.co.uk/cleansers/gentle-skin-cleanser/5020465202554-1.html",
+              "observedAt": "2026-11-14T09:41:55.914Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "74fbbd3893041a0871816014b521086a39ac9f62363979f8e2a9f18a47a463ff"
+            }
+          ]
+        }
+      ],
+      "readiness": {
+        "skuId": "ad4c3947-a35f-4d6d-af02-cab4c0ff623f",
+        "productId": "9be7eccd-40ce-4f2c-a1cf-20f2b232e87b",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "CRITICAL_EXCEPTION_OPEN",
+          "PRIMARY_PACKSHOT_NOT_APPROVED",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED",
+          "INGREDIENTS_NOT_REVIEWED",
+          "USAGE_NOT_REVIEWED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "MISSING",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 6,
+          "applied": [
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes"
+          ],
+          "pending": [],
+          "unverified": [
+            "identity.brand",
+            "identity.name"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 1,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      },
+      "criticalExceptions": [
+        {
+          "id": "bfdb9594-2aca-4e8e-8254-e9d88e9d718e",
+          "reasonCode": "EXACT_VARIANT_IMAGE_UNVERIFIED",
+          "field": "media.primary",
+          "summary": "Manufacturer explicitly offers 236ml, but the page selects 1L and its default hero is a 1L packshot. Original image CDN also disallows fetching. No exact 236ml primary image has been approved.",
+          "recommended": {
+            "label": "Provide a permitted authentic manufacturer 236ml original with readable size label; do not use the default 1L image",
+            "action": "CORRECT"
+          }
+        }
+      ],
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": null,
+        "reason": "NO_VERIFIED_REGULAR_PRICE"
+      },
+      "public": {
+        "status": 404
+      }
+    },
+    {
+      "rowId": "bc94a63f-3870-4245-8c36-22460318c359",
+      "name": "Bioderma Sensibio H2O 250ml",
+      "outcome": "DRAFT_CREATED",
+      "attempts": 0,
+      "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+      "identity": {
+        "status": "EVIDENCE_VERIFIED",
+        "brand": "Bioderma",
+        "name": "Sensibio H2O Micellar Water",
+        "size": 250,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "evidence": {
+          "history": [
+            {
+              "at": "2026-11-13T17:49:35.377Z",
+              "rule": "intake-admin@1",
+              "status": "EVIDENCE_VERIFIED",
+              "actorId": "12f44997-7887-4bb5-916f-33248d5cab7b"
+            }
+          ],
+          "sourceUrls": [
+            "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water"
+          ],
+          "fingerprints": [
+            "211e7b0c79496d21c44a3ef915de57ac54c0f2b4"
+          ]
+        }
+      },
+      "appliedFacts": [
+        {
+          "id": "acfc45de-f01c-42b7-bfbc-518d09dc786f",
+          "field": "identity.size",
+          "schemaVersion": 1,
+          "value": {
+            "unit": "ml",
+            "value": 250
+          },
+          "evidence": [
+            {
+              "excerpt": "rt a decrease in unpleasant sensation in 28 days*\nPump bottle 850 ml\nBottle 500 ml\nBottle 250 ml\nBottle 100 ml\nBuy online\nProduct description\nAll skin types\nSensitive skin\nSENSIBIO H2",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water",
+              "observedAt": "2026-11-13T17:49:31.219Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "90eae27c8c505b677106f506e2bc6eb9b987575f392d784c8ea25fce34f9ed91"
+            },
+            {
+              "excerpt": "rt a decrease in unpleasant sensation in 28 days*\nPump bottle 850 ml\nBottle 500 ml\nBottle 250 ml\nBottle 100 ml\nBuy online\nProduct description\nAll skin types\nSensitive skin\nSENSIBIO H2",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water",
+              "observedAt": "2026-11-13T23:58:33.968Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "6a3648e14d7ad91cf63df3c2d3a3f59df14214204d4dc8017a3e55727343d8f2"
+            }
+          ]
+        },
+        {
+          "id": "ac03ffb4-8b38-4174-9d25-b56d0601730d",
+          "field": "suitability.skinTypes",
+          "schemaVersion": 1,
+          "value": [
+            "sensitive"
+          ],
+          "evidence": [
+            {
+              "excerpt": "BIODERMA Sensibio H2O Micellar Water: The pure, original skin soothed and freed from make-up and pollution. Face make-up remover for sensitive skin.\nBi",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water",
+              "observedAt": "2026-11-13T17:49:31.219Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "90eae27c8c505b677106f506e2bc6eb9b987575f392d784c8ea25fce34f9ed91"
+            },
+            {
+              "excerpt": "BIODERMA Sensibio H2O Micellar Water: The pure, original skin soothed and freed from make-up and pollution. Face make-up remover for sensitive skin.\nBi",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water",
+              "observedAt": "2026-11-13T23:58:33.968Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "6a3648e14d7ad91cf63df3c2d3a3f59df14214204d4dc8017a3e55727343d8f2"
+            }
+          ]
+        },
+        {
+          "id": "62bc9ea9-28b3-485d-82a3-9cd510c08abc",
+          "field": "marketing.description",
+          "schemaVersion": 1,
+          "value": "BIODERMA Sensibio H2O Micellar Water: The pure, original skin soothed and freed from make-up and pollution. Face make-up remover for sensitive skin.",
+          "evidence": [
+            {
+              "excerpt": "BIODERMA Sensibio H2O Micellar Water: The pure, original skin soothed and freed from make-up and pollution. Face make-up remover for sensitive skin.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water",
+              "observedAt": "2026-11-13T17:49:31.219Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "90eae27c8c505b677106f506e2bc6eb9b987575f392d784c8ea25fce34f9ed91"
+            },
+            {
+              "excerpt": "BIODERMA Sensibio H2O Micellar Water: The pure, original skin soothed and freed from make-up and pollution. Face make-up remover for sensitive skin.",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water",
+              "observedAt": "2026-11-13T23:58:33.968Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "6a3648e14d7ad91cf63df3c2d3a3f59df14214204d4dc8017a3e55727343d8f2"
+            }
+          ]
+        },
+        {
+          "id": "c8ec7236-5fab-4fb2-bbb0-e931564813a8",
+          "field": "usage.instructions",
+          "schemaVersion": 1,
+          "value": [
+            "Soak a reusable cotton-pad with Sensibio H2O.",
+            "Cleanse and remove makeup from face and eyes.",
+            "No need to rinse-off for skincare benefits."
+          ],
+          "evidence": [
+            {
+              "excerpt": "Soak a reusable cotton-pad with Sensibio H2O. Cleanse and remove makeup from face and eyes. No need to rinse-off for skincare benefits.",
+              "extractor": "deterministic@1",
+              "sourceUrl": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water",
+              "observedAt": "2026-11-13T19:48:41.599Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "90eae27c8c505b677106f506e2bc6eb9b987575f392d784c8ea25fce34f9ed91"
+            },
+            {
+              "excerpt": "Soak a reusable cotton-pad with Sensibio H2O. Cleanse and remove makeup from face and eyes. No need to rinse-off for skincare benefits.",
+              "extractor": "deterministic@2",
+              "sourceUrl": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water",
+              "observedAt": "2026-11-13T23:58:33.968Z",
+              "sourceTier": "OFFICIAL_MANUFACTURER",
+              "contentHash": "6a3648e14d7ad91cf63df3c2d3a3f59df14214204d4dc8017a3e55727343d8f2"
+            }
+          ]
+        }
+      ],
+      "readiness": {
+        "skuId": "2b37feab-dce7-4190-82cf-00c9b2f56ce4",
+        "productId": "15cb059e-6d0f-40d1-86eb-c73bd12f36d8",
+        "isPublished": false,
+        "ready": false,
+        "blockers": [
+          "CRITICAL_EXCEPTION_OPEN",
+          "PRIMARY_PACKSHOT_NOT_APPROVED",
+          "LISTING_NOT_ACTIVE",
+          "SELLING_PRICE_MISSING"
+        ],
+        "warnings": [
+          "BARCODE_MISSING",
+          "CARTON_UNVERIFIED",
+          "EDITORIAL_IMAGE_NOT_APPROVED",
+          "INGREDIENTS_NOT_REVIEWED"
+        ],
+        "media": {
+          "PRIMARY_PACKSHOT": "MISSING",
+          "TEXTURE_SENSORY": "MISSING",
+          "INGREDIENT_STORY": "MISSING",
+          "PACKAGING_PROOF": "MISSING",
+          "CATEGORY_EDITORIAL": "MISSING"
+        },
+        "facts": {
+          "total": 7,
+          "applied": [
+            "identity.size",
+            "marketing.description",
+            "suitability.skinTypes",
+            "usage.instructions"
+          ],
+          "pending": [
+            "media.sourceImages"
+          ],
+          "unverified": [
+            "claims.manufacturerStated",
+            "identity.name"
+          ],
+          "conflicts": []
+        },
+        "identity": {
+          "status": "EVIDENCE_VERIFIED",
+          "barcodeStatus": "UNKNOWN",
+          "barcode": null
+        },
+        "packaging": {
+          "outerCarton": "UNVERIFIED"
+        },
+        "openExceptions": 1,
+        "commerce": {
+          "isListed": false,
+          "price": null
+        }
+      },
+      "criticalExceptions": [
+        {
+          "id": "3eb76422-d8b8-43aa-bcba-0ad35f413cde",
+          "reasonCode": "PRIMARY_IMAGE_SOURCE_RESTRICTED",
+          "field": "media.primary",
+          "summary": "The exact 250 ml manufacturer asset is bound to variant 28703A, but its CDN robots policy denies fetching. Without permitted original bytes its identity/label and image quality cannot be approved.",
+          "recommended": {
+            "label": "Supply a permitted authentic manufacturer 250 ml original or an accessible official exact-variant packshot URL",
+            "action": "CORRECT"
+          }
+        }
+      ],
+      "market": {
+        "status": "UNAVAILABLE",
+        "reference": null,
+        "reason": "NO_VERIFIED_REGULAR_PRICE"
+      },
+      "public": {
+        "status": 404
+      }
+    }
+  ],
+  "provenanceErrors": [],
+  "identityErrors": [],
+  "duplicateIdentityKeys": 0,
+  "replayWorked": 0,
+  "optionalPendingEnhancements": 2,
+  "commercialLaunchApproved": false
+}

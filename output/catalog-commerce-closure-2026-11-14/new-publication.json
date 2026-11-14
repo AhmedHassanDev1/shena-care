@@ -1,0 +1,116 @@
+{
+  "scope": "ISOLATED_CLONE_ONLY",
+  "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+  "devOnlyPrice": 100,
+  "commercialLaunchApproved": false,
+  "before": {
+    "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+    "productId": "83dbbc95-caf3-4994-8e42-1935f5ad9627",
+    "isPublished": false,
+    "ready": false,
+    "blockers": [
+      "LISTING_NOT_ACTIVE",
+      "SELLING_PRICE_MISSING"
+    ],
+    "warnings": [
+      "BARCODE_MISSING",
+      "CARTON_UNVERIFIED",
+      "EDITORIAL_IMAGE_NOT_APPROVED"
+    ],
+    "media": {
+      "PRIMARY_PACKSHOT": "APPROVED",
+      "TEXTURE_SENSORY": "MISSING",
+      "INGREDIENT_STORY": "MISSING",
+      "PACKAGING_PROOF": "MISSING",
+      "CATEGORY_EDITORIAL": "PENDING_REVIEW"
+    },
+    "facts": {
+      "total": 12,
+      "applied": [
+        "composition.inci",
+        "identity.size",
+        "marketing.description",
+        "safety.warnings",
+        "usage.instructions",
+        "usage.routinePeriod"
+      ],
+      "pending": [],
+      "unverified": [
+        "claims.manufacturerStated",
+        "composition.activeConcentrations",
+        "identity.brand",
+        "identity.name",
+        "media.sourceImages"
+      ],
+      "conflicts": []
+    },
+    "identity": {
+      "status": "EVIDENCE_VERIFIED",
+      "barcodeStatus": "UNKNOWN",
+      "barcode": null
+    },
+    "packaging": {
+      "outerCarton": "UNVERIFIED"
+    },
+    "openExceptions": 0,
+    "commerce": {
+      "isListed": false,
+      "price": null
+    }
+  },
+  "after": {
+    "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+    "productId": "83dbbc95-caf3-4994-8e42-1935f5ad9627",
+    "isPublished": true,
+    "ready": true,
+    "blockers": [],
+    "warnings": [
+      "BARCODE_MISSING",
+      "CARTON_UNVERIFIED",
+      "EDITORIAL_IMAGE_NOT_APPROVED"
+    ],
+    "media": {
+      "PRIMARY_PACKSHOT": "PUBLISHED",
+      "TEXTURE_SENSORY": "MISSING",
+      "INGREDIENT_STORY": "MISSING",
+      "PACKAGING_PROOF": "MISSING",
+      "CATEGORY_EDITORIAL": "PENDING_REVIEW"
+    },
+    "facts": {
+      "total": 12,
+      "applied": [
+        "composition.inci",
+        "identity.size",
+        "marketing.description",
+        "safety.warnings",
+        "usage.instructions",
+        "usage.routinePeriod"
+      ],
+      "pending": [],
+      "unverified": [
+        "claims.manufacturerStated",
+        "composition.activeConcentrations",
+        "identity.brand",
+        "identity.name",
+        "media.sourceImages"
+      ],
+      "conflicts": []
+    },
+    "identity": {
+      "status": "EVIDENCE_VERIFIED",
+      "barcodeStatus": "UNKNOWN",
+      "barcode": null
+    },
+    "packaging": {
+      "outerCarton": "UNVERIFIED"
+    },
+    "openExceptions": 0,
+    "commerce": {
+      "isListed": true,
+      "price": {
+        "amount": 100,
+        "currency": "EGP"
+      }
+    }
+  }
+}

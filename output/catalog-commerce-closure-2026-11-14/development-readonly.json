@@ -1,0 +1,40 @@
+{
+  "observedAt": "2026-11-14T10:30:39.321Z",
+  "scope": "CONFIGURED_DEVELOPMENT_ENVIRONMENT_READ_ONLY",
+  "writesPerformed": false,
+  "services": [
+    {
+      "name": "API",
+      "status": "UNREACHABLE"
+    },
+    {
+      "name": "Business",
+      "status": "UNREACHABLE"
+    },
+    {
+      "name": "Storefront",
+      "status": "UNREACHABLE"
+    },
+    {
+      "name": "AI",
+      "status": "UNREACHABLE"
+    }
+  ],
+  "configuration": {
+    "sourcingMode": "INTERNAL_BUY_LIST",
+    "aiTokenConfigured": false,
+    "aiPseudonymSecretConfigured": false,
+    "fileProvider": "local",
+    "mediaProvider": "cloudinary"
+  },
+  "database": {
+    "configuredTargetIsLocal": false,
+    "isTestDatabase": false,
+    "urlsPresent": true,
+    "readOnlyCheck": {
+      "connected": true,
+      "products": 11,
+      "skus": 11
+    }
+  }
+}

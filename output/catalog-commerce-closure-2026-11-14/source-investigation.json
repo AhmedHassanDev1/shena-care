@@ -1,0 +1,443 @@
+{
+  "readOnly": true,
+  "results": [
+    {
+      "name": "Cream Africa",
+      "expected": {
+        "brand": "CeraVe",
+        "productName": "Moisturizing Cream",
+        "size": 454,
+        "sizeUnit": "g",
+        "barcode": null,
+        "websiteUrl": "https://africa.cerave.com"
+      },
+      "check": {
+        "url": "https://africa.cerave.com/en/our-products/moisturizers/moisturising-cream",
+        "tier": "OFFICIAL_MANUFACTURER",
+        "outcome": "OK",
+        "retryable": false,
+        "pageGtin": null,
+        "identityMatched": true,
+        "sizeConfirmed": true,
+        "rejectedReasons": [],
+        "pageTitle": "CeraVe Moisturising Cream"
+      },
+      "durationMs": 1362,
+      "observedAt": "2026-11-14T09:30:40.254Z",
+      "sourceHash": "386a44bd8e746ac8027ee83a792134067e4a885243b8bb492d705ee6af9275d4",
+      "extraction": {
+        "facts": [
+          {
+            "field": "identity.name",
+            "value": "CeraVe Moisturising Cream",
+            "excerpt": "CeraVe Moisturising Cream"
+          },
+          {
+            "field": "identity.size",
+            "value": {
+              "value": 454,
+              "unit": "g"
+            },
+            "excerpt": "3 essential ceramides to help protect the skin’s natural barrier.\nSizes available: 340g, 454g.\ncerave_find_in_stores\nBuy Online\nSizes available: 340g, 454g.\nShare this product:\nPRODU"
+          },
+          {
+            "field": "composition.inci",
+            "value": [
+              "AQUA / WATER",
+              "GLYCERIN",
+              "CETEARYL ALCOHOL",
+              "CAPRYLIC/CAPRIC TRIGLYCERIDE",
+              "CETYL ALCOHOL",
+              "CETEARETH-20",
+              "PETROLATUM",
+              "DIMETHICONE",
+              "PHENOXYETHANOL",
+              "BEHENTRIMONIUM METHOSULFATE",
+              "POTASSIUM PHOSPHATE",
+              "ETHYLHEXYLGLYCERIN",
+              "SODIUM LAUROYL LACTYLATE",
+              "DISODIUM EDTA",
+              "DIPOTASSIUM PHOSPHATE",
+              "CERAMIDE NP",
+              "CERAMIDE AP",
+              "PHYTOSPHINGOSINE",
+              "CHOLESTEROL",
+              "XANTHAN GUM",
+              "CARBOMER",
+              "SODIUM HYALURONATE",
+              "TOCOPHEROL",
+              ". CERAMIDE EOP"
+            ],
+            "excerpt": "AQUA / WATER, GLYCERIN, CETEARYL ALCOHOL, CAPRYLIC/CAPRIC TRIGLYCERIDE, CETYL ALCOHOL, CETEARETH-20, PETROLATUM, DIMETHICONE, PHENOXYETHANOL, BEHENTRIMONIUM METHOSULFATE, POTASSIUM PHOSPHATE, ETHYLHEXYLGLYCERIN, SODIUM LAUROYL LACTYLATE, DISODIUM EDTA, DIPOTASSIUM PHOSPHATE, CERAMIDE NP, CERAMIDE AP, PHYTOSPHINGOSINE, CHOLESTEROL, XANTHAN GUM, CARBOMER, SODIUM HYALURONATE, TOCOPHEROL,. CERAMIDE EO"
+          },
+          {
+            "field": "composition.fragrance",
+            "value": "FREE",
+            "excerpt": "ains the protective skin barrier.\nRicher formula locks in moisture for 24 hour hydration.\nFragrance free, non-comedogenic and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural"
+          },
+          {
+            "field": "attributes.texture",
+            "value": "CREAM",
+            "excerpt": "CeraVe Moisturising Cream"
+          },
+          {
+            "field": "attributes.nonComedogenic",
+            "value": true,
+            "excerpt": "ive skin barrier.\nRicher formula locks in moisture for 24 hour hydration.\nFragrance free, non-comedogenic and hypoallergenic.\nWith 3 essential ceramides to protect skin's natural barrier.\nRecomme"
+          },
+          {
+            "field": "usage.instructions",
+            "value": [
+              "Apply to the face and body, as often as needed."
+            ],
+            "excerpt": "Apply to the face and body, as often as needed."
+          },
+          {
+            "field": "suitability.skinTypes",
+            "value": [
+              "dry"
+            ],
+            "excerpt": "Product Page for CeraVe Moisturising Cream\nFor Dry Skin\nA rich moisturising cream for all day hydration with 3 essential ceramides to help protec"
+          },
+          {
+            "field": "marketing.description",
+            "value": "Product Page for CeraVe Moisturising Cream",
+            "excerpt": "Product Page for CeraVe Moisturising Cream"
+          },
+          {
+            "field": "claims.manufacturerStated",
+            "value": [
+              "For Dry Skin: A rich moisturising cream for all day hydration with 3 essential ceramides to help protect the skin’s natural barrier.",
+              "MVE Delivery Technology: Controlled release for 24 hour hydration",
+              "3 Essential Ceramides: To help protect the natural skin barrier",
+              "Hyaluronic Acid: Helps retain skin's natural moisture",
+              "Niacinamide: Helps calm skin"
+            ],
+            "excerpt": "For Dry Skin: A rich moisturising cream for all day hydration with 3 essential ceramides to help protect the skin’s natural barrier. MVE Delivery Technology: Controlled release for 24 hour hydration 3 Essential Ceramides: To help protect the natural skin barrier Hyaluronic Acid: Helps retain skin's natural moisture Niacinamide: Helps calm skin"
+          },
+          {
+            "field": "composition.keyIngredients",
+            "value": [
+              {
+                "name": "Ceramides",
+                "function": "To help protect the natural skin barrier"
+              },
+              {
+                "name": "Hyaluronic Acid",
+                "function": "Helps retain skin's natural moisture"
+              },
+              {
+                "name": "Niacinamide",
+                "function": "Helps calm skin"
+              }
+            ],
+            "excerpt": "Ceramides: To help protect the natural skin barrier; Hyaluronic Acid: Helps retain skin's natural moisture; Niacinamide: Helps calm skin"
+          },
+          {
+            "field": "media.sourceImages",
+            "value": [
+              "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/New-Product-Images/Moisturising-Cream-Winner-Logo.png",
+              "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/02_Moisturizing_Cream_on_Elbow_5.jpg",
+              "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/Product/Moisturizing_Cream_on_Arm_6.jpg"
+            ],
+            "excerpt": "https://africa.cerave.com/en/-/media/Project/Loreal/BrandSites/CeraVe/Master/AfricaHub/English/New-Product-Images/Moisturising-Cream-Winner-Logo.png"
+          }
+        ],
+        "rejected": [],
+        "identityMatched": true
+      }
+    },
+    {
+      "name": "Ordinary ORIGINAL",
+      "expected": {
+        "brand": "The Ordinary",
+        "productName": "Hyaluronic Acid 2% + B5",
+        "size": 30,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "websiteUrl": "https://theordinary.com"
+      },
+      "check": {
+        "url": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+        "tier": "OFFICIAL_MANUFACTURER",
+        "outcome": "OK",
+        "retryable": false,
+        "pageGtin": null,
+        "identityMatched": true,
+        "sizeConfirmed": true,
+        "rejectedReasons": [],
+        "pageTitle": "Hyaluronic Acid 2% + B5 (Original Formulation)"
+      },
+      "durationMs": 1294,
+      "observedAt": "2026-11-14T09:30:41.556Z",
+      "sourceHash": "7d0320d257373db805a070c9d0cd8081a419be255a85a3db00121b2cc001b87f",
+      "extraction": {
+        "facts": [
+          {
+            "field": "identity.name",
+            "value": "Hyaluronic Acid 2% + B5 (Original Formulation)",
+            "excerpt": "Hyaluronic Acid 2% + B5 (Original Formulation)"
+          },
+          {
+            "field": "identity.brand",
+            "value": "The Ordinary",
+            "excerpt": "brand: The Ordinary"
+          },
+          {
+            "field": "identity.size",
+            "value": {
+              "value": 30,
+              "unit": "ml"
+            },
+            "excerpt": "ng Purchase on theordinary.com from 12:00am EST November\n02, 2026 to 11:59pm EST November 30, 2026 or at standalone\nDECIEM/The Ordinary stores during store hours, while supplies last"
+          },
+          {
+            "field": "composition.inci",
+            "value": [
+              "Aqua (Water)",
+              "Sodium Hyaluronate",
+              "Pentylene Glycol",
+              "Propanediol",
+              "Sodium Hyaluronate Crosspolymer",
+              "Panthenol",
+              "Ahnfeltia Concinna Extract",
+              "Glycerin",
+              "Trisodium Ethylenediamine Disuccinate",
+              "Citric Acid",
+              "Isoceteth-20",
+              "Ethoxydiglycol",
+              "Ethylhexylglycerin",
+              "Hexylene Glycol",
+              "1,2-Hexanediol",
+              "Phenoxyethanol",
+              "Caprylyl Glycol"
+            ],
+            "excerpt": "Aqua (Water), Sodium Hyaluronate, Pentylene Glycol, Propanediol, Sodium Hyaluronate Crosspolymer, Panthenol, Ahnfeltia Concinna Extract, Glycerin, Trisodium Ethylenediamine Disuccinate, Citric Acid, Isoceteth-20, Ethoxydiglycol, Ethylhexylglycerin, Hexylene Glycol, 1,2-Hexanediol, Phenoxyethanol, Caprylyl Glycol."
+          },
+          {
+            "field": "composition.activeConcentrations",
+            "value": [
+              {
+                "ingredient": "Hyaluronic Acid",
+                "percent": 2
+              }
+            ],
+            "excerpt": "Hyaluronic Acid 2% + B5 (Original Formulation) | The Ordinary\nYour gift card details\nSkip to main content\nSk"
+          },
+          {
+            "field": "usage.instructions",
+            "value": [
+              "Apply a few drops to the face in the morning and evening."
+            ],
+            "excerpt": "Apply a few drops to the face in the morning and evening."
+          },
+          {
+            "field": "usage.routinePeriod",
+            "value": "BOTH",
+            "excerpt": "Apply a few drops to the face in the morning and evening."
+          },
+          {
+            "field": "safety.warnings",
+            "value": [
+              "If irritation occurs, rinse off, cease use, and consult a physician.",
+              "Use only as directed on unbroken skin.",
+              "Keep out of reach of children."
+            ],
+            "excerpt": "If irritation occurs, rinse off, cease use, and consult a physician. Use only as directed on unbroken skin. Keep out of reach of children."
+          },
+          {
+            "field": "marketing.description",
+            "value": "The original hyaluronic acid serum for hydrated, smoother-looking skin.",
+            "excerpt": "The original hyaluronic acid serum for hydrated, smoother-looking skin."
+          },
+          {
+            "field": "claims.manufacturerStated",
+            "value": [
+              "Your gift card details: Skip to main content",
+              "Are you sure you want to quit?: If you quit, your current answers will be lost.",
+              "10% Off Is On Its Way.: Thank you for creating your personalized profile and subscribing to our email list. Check your inbox for your promo code.",
+              "Is this product right for you?: Ask us about this product or tell us about your skin and we'll personalize a recommendation.",
+              "Discover if this product is right for you:: Build my regimen",
+              "Product Details: Learn more",
+              "Your Privacy and Our Tool: Using this tool involves the collection and use of certain information to help us provide you with relevant recommendations and answers and to help the tool improve.",
+              "Product & Safety Guidance: Read full product & safety Guidance",
+              "Recycling Instructions: Read full recycling instructions",
+              "Before Recycling:: Empty the contents of the container. Remove cap, lid,",
+              "Packaging items with adhesive-based labels:: Contact your local recycling facility to ensure",
+              "Dropper Lids:: Dispose of via our in-store recycling program.",
+              "Disclaimer:: We work to provide our customers with accurate guidelines on packaging recyclability; however, please ensure your city or municipal program is consulted before recycling an item.",
+              "Formulation Compatibility Tool: See if this product is compatible with other formulations from The Ordinary."
+            ],
+            "excerpt": "Your gift card details: Skip to main content Are you sure you want to quit?: If you quit, your current answers will be lost. 10% Off Is On Its Way.: Thank you for creating your personalized profile and subscribing to our email list. Check your inbox for your promo code. Is this product right for you?: Ask us about this product or tell us about your skin and we'll personalize a recommendation. Disc"
+          },
+          {
+            "field": "media.sourceImages",
+            "value": [
+              "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw56cd0f2e/Images/products/The%20Ordinary/rdn-hyaluronic-acid-2pct-b5-30ml.png?sw=900&sh=900&sm=fit",
+              "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw9e5ba9f0/Images/products/The%20Ordinary/infographics/ord-hyaluronic-acid-2pct-b5-original-formulation-ingredient-graphic.jpg?sw=900&sh=900&sm=fit",
+              "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw3abb223d/Images/products/The%20Ordinary/infographics/ord-hyaluronic-acid-2pct-b5-original-formulation-benefits-graphic.jpg?sw=900&sh=900&sm=fit",
+              "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dwffbd9417/Images/products/The%20Ordinary/infographics/ord-hyaluronic-acid-2pct-b5-serum-comparison-graphic.jpg?sw=900&sh=900&sm=fit",
+              "https://theordinary.com/on/demandware.static/-/Library-Sites-DeciemSharedLibrary/default/dw665025d6/theordinary/homepage/slotA/heroes-slot-a-mobile.jpg",
+              "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw56cd0f2e/Images/products/The%20Ordinary/rdn-hyaluronic-acid-2pct-b5-30ml.png?sw=340&sh=340&sm=fit",
+              "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw56cd0f2e/Images/products/The%20Ordinary/rdn-hyaluronic-acid-2pct-b5-30ml.png?sw=860&sh=860&sm=fit",
+              "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw56cd0f2e/Images/products/The%20Ordinary/rdn-hyaluronic-acid-2pct-b5-30ml.png?sw=1200&sh=1200&sm=fit"
+            ],
+            "excerpt": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw56cd0f2e/Images/products/The%20Ordinary/rdn-hyaluronic-acid-2pct-b5-30ml.png?sw=900&sh=900&sm=fit"
+          }
+        ],
+        "rejected": [],
+        "identityMatched": true
+      }
+    },
+    {
+      "name": "Effaclar UK",
+      "expected": {
+        "brand": "La Roche-Posay",
+        "productName": "Effaclar Purifying Foaming Gel",
+        "size": 200,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "websiteUrl": "https://www.laroche-posay.co.uk"
+      },
+      "check": {
+        "url": "https://www.laroche-posay.co.uk/en_GB/effaclar-purifying-cleansing-gel/LRP_050.html?dwvar_LRP__050_size=200ML",
+        "tier": "OFFICIAL_MANUFACTURER",
+        "outcome": "ACCESS_DENIED",
+        "retryable": false,
+        "pageGtin": null,
+        "identityMatched": false,
+        "sizeConfirmed": null,
+        "rejectedReasons": [
+          "ACCESS_DENIED"
+        ]
+      },
+      "durationMs": 719,
+      "observedAt": "2026-11-14T09:30:42.287Z"
+    },
+    {
+      "name": "Cicaplast UK",
+      "expected": {
+        "brand": "La Roche-Posay",
+        "productName": "Cicaplast Baume B5+",
+        "size": 40,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "websiteUrl": "https://www.laroche-posay.co.uk"
+      },
+      "check": {
+        "url": "https://www.laroche-posay.co.uk/en_GB/cicaplast-baume-b5-repairing-balm/LRP_035.html?dwvar_LRP__035_size=40ML",
+        "tier": "OFFICIAL_MANUFACTURER",
+        "outcome": "ACCESS_DENIED",
+        "retryable": false,
+        "pageGtin": null,
+        "identityMatched": false,
+        "sizeConfirmed": null,
+        "rejectedReasons": [
+          "ACCESS_DENIED"
+        ]
+      },
+      "durationMs": 168,
+      "observedAt": "2026-11-14T09:30:42.456Z"
+    },
+    {
+      "name": "Cetaphil UK",
+      "expected": {
+        "brand": "Cetaphil",
+        "productName": "Gentle Skin Cleanser",
+        "size": 236,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "websiteUrl": "https://www.cetaphil.co.uk"
+      },
+      "check": {
+        "url": "https://www.cetaphil.co.uk/cleansers/gentle-skin-cleanser/5020465202554-1.html",
+        "tier": "OFFICIAL_MANUFACTURER",
+        "outcome": "OK",
+        "retryable": false,
+        "pageGtin": null,
+        "identityMatched": true,
+        "sizeConfirmed": true,
+        "rejectedReasons": [],
+        "pageTitle": "Gentle Skin Cleanser"
+      },
+      "durationMs": 1189,
+      "observedAt": "2026-11-14T09:30:43.646Z",
+      "sourceHash": "ff86a8cf2d3a72c31e7d3ffd7259313fe492b93140f337f94d41857800cd5958",
+      "extraction": {
+        "facts": [
+          {
+            "field": "identity.name",
+            "value": "Gentle Skin Cleanser",
+            "excerpt": "Gentle Skin Cleanser"
+          },
+          {
+            "field": "identity.brand",
+            "value": "Cetaphil",
+            "excerpt": "brand: Cetaphil"
+          },
+          {
+            "field": "identity.size",
+            "value": {
+              "value": 236,
+              "unit": "ml"
+            },
+            "excerpt": "Products\nProduct categories\nCleansers\nGentle Skin Cleanser\nCetaphil Gentle Skin Cleanser 236ml is rated\n4.5 out of\n5 by\n1343 .\ny_2026, m_11, d_13, h_6\nbvseo_bulk, prod_bvrr, vn_bulk_"
+          },
+          {
+            "field": "suitability.skinTypes",
+            "value": [
+              "sensitive"
+            ],
+            "excerpt": "<p><strong>For normal to dry, sensitive skin</strong></p>\r\n\r\n<p class=\"mb-3\">This cleansing formula for face & body is clinically prov"
+          },
+          {
+            "field": "marketing.description",
+            "value": "For normal to dry, sensitive skin This cleansing formula for face & body is clinically proven to remove dirt, make up and impurities gently while preserving the skin's natural moisture barrier. Can be used with or without water. Designed with a science backed blend of Niacinamide (essential vitamin B3) , Panthenol (pro-vitamin B5) and hydrating Glycerin to help improve the resilience of sensitive skin Clinically proven continuous hydration to protect against dryness while leaving the skin hydrated after cleansing Dermatologist tested and clinically proven to be gentle on sensitive skin",
+            "excerpt": "<p><strong>For normal to dry, sensitive skin</strong></p>\r\n\r\n<p class=\"mb-3\">This cleansing formula for face & body is clinically proven to remove dirt, make up and impurities gently while preserving the skin's natural moisture barrier. Can be used with or without water.</p>\r\n\r\n<ul>\r\n\t<li>Designed with a science backed blend of Niacinamide (essential vitamin B3) , Panthenol (pro-vitamin B5) and hy"
+          },
+          {
+            "field": "media.sourceImages",
+            "value": [
+              "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw4f531114/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%201L%201.jpg?sw=900&sh=900&sm=fit&q=85",
+              "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw3ae47699/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%201.jpg?sw=900&sh=900&sm=fit&q=85",
+              "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw64f1c21e/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%202.jpg?sw=900&sh=900&sm=fit&q=85",
+              "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw199f5cd7/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%203.jpg?sw=900&sh=900&sm=fit&q=85",
+              "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw59c6db23/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%204.jpg?sw=900&sh=900&sm=fit&q=85",
+              "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dwbaebbdad/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%205.jpg?sw=900&sh=900&sm=fit&q=85",
+              "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw6e1b8f09/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%206.jpg?sw=900&sh=900&sm=fit&q=85",
+              "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw813535b2/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%20B+%207.jpg?sw=900&sh=900&sm=fit&q=85"
+            ],
+            "excerpt": "https://www.cetaphil.co.uk/dw/image/v2/bggn_prd/on/demandware.static/-/Sites-galderma-uk-m-catalog/default/dw4f531114/REVIVE%202026/Gentle%20Skin%20Cleanser/GSC%201L%201.jpg?sw=900&sh=900&sm=fit&q=85"
+          }
+        ],
+        "rejected": [],
+        "identityMatched": true
+      }
+    },
+    {
+      "name": "Bioderma UK",
+      "expected": {
+        "brand": "Bioderma",
+        "productName": "Sensibio H2O",
+        "size": 250,
+        "sizeUnit": "ml",
+        "barcode": null,
+        "websiteUrl": "https://www.bioderma.co.uk"
+      },
+      "check": {
+        "url": "https://www.bioderma.co.uk/our-products/sensibio/h2o",
+        "tier": "OFFICIAL_MANUFACTURER",
+        "outcome": "NOT_FOUND",
+        "retryable": false,
+        "pageGtin": null,
+        "identityMatched": false,
+        "sizeConfirmed": null,
+        "rejectedReasons": [
+          "NOT_FOUND"
+        ]
+      },
+      "durationMs": 664,
+      "observedAt": "2026-11-14T09:30:44.314Z"
+    }
+  ]
+}

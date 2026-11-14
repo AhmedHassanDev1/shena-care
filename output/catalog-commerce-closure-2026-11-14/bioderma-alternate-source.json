@@ -1,0 +1,81 @@
+{
+  "url": "https://www.bioderma.co.uk/p/sensibio-h2o-micellar-water?page=1",
+  "outcome": "OK",
+  "hash": "a8a4f072b3e88ced6e2737f732749c7270bd0ef0404bfd27c3ee884a2736039b",
+  "observedAt": "2026-11-14T10:00:05.515Z",
+  "extraction": {
+    "facts": [
+      {
+        "field": "identity.name",
+        "value": "Sensibio H2O Micellar Water",
+        "excerpt": "Sensibio H2O Micellar Water"
+      },
+      {
+        "field": "identity.size",
+        "value": {
+          "value": 250,
+          "unit": "ml"
+        },
+        "excerpt": "rt a decrease in unpleasant sensation in 28 days*\nPump bottle 850 ml\nBottle 500 ml\nBottle 250 ml\nBottle 100 ml\nBuy online\nProduct description\nAll skin types\nSensitive skin\nSENSIBIO H2"
+      },
+      {
+        "field": "usage.instructions",
+        "value": [
+          "Soak a reusable cotton-pad with Sensibio H2O.",
+          "Cleanse and remove makeup from face and eyes.",
+          "No need to rinse-off for skincare benefits."
+        ],
+        "excerpt": "Soak a reusable cotton-pad with Sensibio H2O. Cleanse and remove makeup from face and eyes. No need to rinse-off for skincare benefits."
+      },
+      {
+        "field": "suitability.skinTypes",
+        "value": [
+          "sensitive"
+        ],
+        "excerpt": "BIODERMA Sensibio H2O Micellar Water: The pure, original skin soothed and freed from make-up and pollution. Face make-up remover for sensitive skin.\nBi"
+      },
+      {
+        "field": "marketing.description",
+        "value": "BIODERMA Sensibio H2O Micellar Water: The pure, original skin soothed and freed from make-up and pollution. Face make-up remover for sensitive skin.",
+        "excerpt": "BIODERMA Sensibio H2O Micellar Water: The pure, original skin soothed and freed from make-up and pollution. Face make-up remover for sensitive skin."
+      },
+      {
+        "field": "claims.manufacturerStated",
+        "value": [
+          "Minimalist biomimetic formula (only 10 ingredients) for maximum efficacy & perfect tolerance of sensitive skin.",
+          "- Powerful & deep cleansing efficacy",
+          "- Lasting soothing action",
+          "- Respected sensitive skin ecosystem",
+          "Leave-on formula",
+          "Very good tolerance - Non-rinse – Unfragranced – Non-greasy or sticky finish",
+          "Sensibio: H2O Micellar Water",
+          "Product description: All skin types",
+          "Results: Immediate results",
+          "Ecobiology: Increases the skin's tolerance threshold",
+          "FAQ: Your most frequently asked questions about H2O Micellar Water",
+          "Expert Skin Advice and Insights: Skin cleansing",
+          "Micellar Water: The Ultimate Skincare Guide: Discover",
+          "Key information about sensitive or intolerant skin: Discover"
+        ],
+        "excerpt": "Minimalist biomimetic formula (only 10 ingredients) for maximum efficacy & perfect tolerance of sensitive skin. - Powerful & deep cleansing efficacy - Lasting soothing action - Respected sensitive skin ecosystem Leave-on formula Very good tolerance - Non-rinse – Unfragranced – Non-greasy or sticky finish Sensibio: H2O Micellar Water Product description: All skin types Results: Immediate results Ec"
+      },
+      {
+        "field": "media.sourceImages",
+        "value": [
+          "https://back-ac-prod.bioderma.com/media/catalog/product/cache/b443460c314aa18d2c50e93a48ddeb50/1/f/1f26b0eb103da154cfa311076857c14e7d41080fd3ba13c60a33656d418c0721-_7b159703_7d__7b_7d__7b28703a_7d.jpg"
+        ],
+        "excerpt": "https://back-ac-prod.bioderma.com/media/catalog/product/cache/b443460c314aa18d2c50e93a48ddeb50/1/f/1f26b0eb103da154cfa311076857c14e7d41080fd3ba13c60a33656d418c0721-_7b159703_7d__7b_7d__7b28703a_7d.jpg"
+      }
+    ],
+    "rejected": [],
+    "identityMatched": true
+  },
+  "manufacturerVariant28703A": true,
+  "imageAttempt": {
+    "url": "https://back-ac-prod.bioderma.com/media/catalog/product/cache/b443460c314aa18d2c50e93a48ddeb50/1/f/1f26b0eb103da154cfa311076857c14e7d41080fd3ba13c60a33656d418c0721-_7b159703_7d__7b_7d__7b28703a_7d.jpg",
+    "finalUrl": "https://back-ac-prod.bioderma.com/media/catalog/product/cache/b443460c314aa18d2c50e93a48ddeb50/1/f/1f26b0eb103da154cfa311076857c14e7d41080fd3ba13c60a33656d418c0721-_7b159703_7d__7b_7d__7b28703a_7d.jpg",
+    "outcome": "ROBOTS_DISALLOWED",
+    "fetchedAt": "2026-11-14T10:00:07.551Z",
+    "detail": "robots.txt could not be read"
+  }
+}

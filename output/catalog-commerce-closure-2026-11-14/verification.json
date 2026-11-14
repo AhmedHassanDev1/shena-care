@@ -1,0 +1,29 @@
+{
+  "scope": "ISOLATED_TEST_ONLY",
+  "verifiedCodeAndTestsCommit": "feaba13",
+  "finalReadiness": "BLOCKED",
+  "pilot": { "terminal": 10, "verifiedIdentities": 8, "technicallySellable": 5, "held": 5, "duplicateIdentityKeys": 0, "provenanceErrors": 0, "identityErrors": 0, "replayWork": 0, "commercialLaunchApproved": false },
+  "focusedEvidence": "focused-tests.json",
+  "realCommerceEvidence": ["commerce-proof.json", "ordinary-commerce-proof.json"],
+  "fullApiSuite": { "exit": 1, "passed": 1111, "failed": 104, "skipped": 1, "suitesPassed": 140, "suitesFailed": 27, "durationSeconds": 266.763, "newlyFailingTestIdentities": 0, "databaseInitializationFailures": 0, "evidence": "final-full-suite-comparison.json" },
+  "checks": [
+    { "name": "Standard main API production build and typecheck", "exit": 0, "commands": ["node ../../node_modules/@nestjs/cli/bin/nest.js build", "node ../../node_modules/typescript/bin/tsc --noEmit"], "cwd": "apps/api", "productionConfigModified": false },
+    { "name": "Isolated Business production build", "exit": 0, "routes": 43, "cwd": "apps/business", "command": "NEXT_DIST_DIR=.next-catalog-commerce node ../../apps/api/scripts/with-system-ca.cjs node_modules/next/dist/bin/next build --webpack", "sslVerification": true },
+    { "name": "Isolated Business typecheck", "exit": 0, "cwd": "apps/business", "command": "node node_modules/typescript/bin/tsc --noEmit" },
+    { "name": "Main Business ordinary typecheck", "exit": 2, "cause": "Existing generated .next and .next-ux route cache collision; isolated production build and typecheck passed" },
+    { "name": "Storefront typecheck", "exit": 0, "cwd": "apps/web", "command": "node node_modules/typescript/bin/tsc --noEmit --preserveSymlinks" },
+    { "name": "Storefront tests", "exit": 0, "suites": 35, "tests": 177, "testMatchOverride": "**/src/**/*.test.ts", "reason": "Absolute Windows worktree glob failed discovery; relative testMatch exercised all existing tests" },
+    { "name": "Storefront tokens/core design/classes", "exit": 0 },
+    { "name": "Storefront asset provenance check", "exit": 1, "cause": "Missing docs/frontend/homepage-image-manifest.md and 16 existing unlisted assets" },
+    { "name": "Changed extractor/regression/commerce proof lint", "exit": 0 },
+    { "name": "Existing Catalog research-file lint", "exit": 1, "preExistingErrors": 18, "newErrors": 0, "evidence": "bootstrap-lint-comparison.json" },
+    { "name": "AI mock tests before interruption", "exit": 0, "passed": 66, "skipped": 3, "freshPostResumeRerun": "BLOCKED_SYSTEM_PYTHON_MISSING" },
+    { "name": "Bundled Python BiRefNet regression retry", "exit": 1, "modelFailureFallbackPassed": 1, "tlsTestImportBlocked": "requests dependency unavailable in bundled Python" },
+    { "name": "Graph update", "exit": 1, "cause": "Installed launcher points at missing Python 3.14; bundled-Python retry lacks matching tree_sitter._binding" }
+  ],
+  "sharedDatabaseWrites": false,
+  "productionDeployment": false,
+  "newMigrations": 0,
+  "newDependencies": 0,
+  "remainingNeuralWorkerIssue": "Existing measured CPU cold/inference times exceed the 60-second budget; original and profile WIP remain separate"
+}

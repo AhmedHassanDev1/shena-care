@@ -1,0 +1,1237 @@
+{
+  "scope": "INDEPENDENT_LOCAL_TEST_DATABASES_RESTORED_FROM_IDENTICAL_BACKUP",
+  "baseline": "2f97b0a",
+  "previousCandidate": "574622d",
+  "candidate": "feaba13",
+  "baselineStats": {
+    "suitesPassed": 100,
+    "suitesFailed": 56,
+    "passed": 835,
+    "failed": 345,
+    "skipped": 1
+  },
+  "previousStats": {
+    "suitesPassed": 110,
+    "suitesFailed": 55,
+    "passed": 863,
+    "failed": 344,
+    "skipped": 1
+  },
+  "candidateStats": {
+    "suitesPassed": 140,
+    "suitesFailed": 27,
+    "passed": 1089,
+    "failed": 126,
+    "skipped": 1
+  },
+  "newFailures": [
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) 4. enforces RBAC permissions for early batch flush",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) 8. provides operational visibility into the procurement queue and checkpoints",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supplier-quantity.e2e-spec.ts",
+      "test": "Supplier offer quantity caps allocation (e2e) serializes direct quantity edits with procurement and trusted feed commits",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled settles 450/450/450 exactly once; a reused reference must repeat the same count",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled records shortage and overage explicitly instead of marking them paid",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled keeps money exact in Decimal (100.10 + 200.20 = 300.30)",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled rejects wrong courier, undelivered, failed and never-declared cash",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled scopes counting to the hub and its operators; other roles are denied",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled settles a collection once under concurrent counts, and one batch per concurrent duplicate reference",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads workspace/me returns roles with supplier and hub scope only for the signed-in account",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads driver directory is for planners only and exposes id and name, nothing else",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads payables ledger is admin only",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads driver history is the driver's own and empty for a new driver; staff cannot call it",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads run detail is visible to its hub, its driver and admin only",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads picking state is hub-scoped",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads operations dashboard KPIs: aggregates pipeline, Cairo hourly inflow, and enforces server-side financial RBAC",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) rejects anonymous access to supplier, offer, purchase-order and brand administration",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) rejects customers from the same administration endpoints",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) isolates suppliers: A cannot read or change B offers or purchase orders",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) GLO-206: A cannot rewrite B lines by smuggling them into its own confirmation",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) keeps admin-only actions away from hub operators",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    }
+  ],
+  "failedSuites": [
+    "test/integration/media-editorial.e2e-spec.ts",
+    "test/integration/glo-242-product-identity.e2e-spec.ts",
+    "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+    "test/integration/glo285-media-service.e2e-spec.ts",
+    "test/integration/glo-236-durable-events.e2e-spec.ts",
+    "test/integration/supplier-quantity.e2e-spec.ts",
+    "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+    "test/integration/c0-workspace-reads.e2e-spec.ts",
+    "test/integration/glo-239-operational-queues.e2e-spec.ts",
+    "test/integration/availability-resolution.e2e-spec.ts",
+    "test/integration/glo-240-delivery-recovery.e2e-spec.ts",
+    "test/integration/catalog-intake.e2e-spec.ts",
+    "test/integration/glo-205-security-regressions.e2e-spec.ts",
+    "test/integration/glo-237-po-lineage.e2e-spec.ts",
+    "test/integration/supply-plan.e2e-spec.ts",
+    "test/integration/fulfillment-receiving.e2e-spec.ts",
+    "test/integration/rt-operational-hardening.e2e-spec.ts",
+    "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+    "test/integration/product-sku-media.e2e-spec.ts",
+    "test/integration/glo-77-candidate-review-publish.e2e-spec.ts",
+    "test/integration/glo-243-supplier-exceptions-shortfalls.e2e-spec.ts",
+    "test/integration/catalog-policy.e2e-spec.ts",
+    "test/integration/brand-research.e2e-spec.ts",
+    "test/integration/availability-expiry.e2e-spec.ts",
+    "test/integration/product-discovery.e2e-spec.ts",
+    "test/integration/catalog-enhancement-pending.e2e-spec.ts",
+    "test/unit/product-read-performance.spec.ts"
+  ],
+  "failures": [
+    {
+      "file": "test/integration/media-editorial.e2e-spec.ts",
+      "test": "Editorial product media on replaceable templates (e2e) replacement without code: a new template file makes version 2, reprocessing creates new pending copies, the live image stays until approved, then is replaced; rollback works",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 200 \"OK\", got 400 \"Bad Request\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\media-editorial.e2e-spec.ts:189:37)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n----\n    at Test._assertStatus (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:376:14)\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:432:13\n    at Test._assertFunction (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:409:13)\n    at Test.assert (C:\\Users\\El-mo"
+    },
+    {
+      "file": "test/integration/glo-242-product-identity.e2e-spec.ts",
+      "test": "GLO-242 canonical product identity at Hub receiving and preparation (e2e) receiving needs identity evidence; unknown, mismatched and damaged goods are not received",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-242-product-identity.e2e-spec.ts:144:46)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) automatically distributes 4/6 by delivery priority and immediately consolidates only eligible recovery",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) automatically recovers repeated shared partials using estimated leads without revoking confirmed stock or changing delivery promises",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) does not issue an estimated-lead fallback that cannot meet the existing delivery constraint",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) consolidates 2 + 1 + 3 and confirms 6/6 without duplicate commitments",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) consolidates 2 + 1 + 3 and confirms 0/6 without duplicate commitments",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) rolls back an interrupted partial answer and retries without losing or duplicating quantity",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) expires an unanswered issued PO atomically and rejects a late supplier confirmation",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) 1. consolidates 3 customer orders requesting SKU A (2 + 1 + 3) into 1 PO line for 6 with correct individual allocations",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) 2. respects dispatch checkpoints and midnight-crossing operating window (08:55, 09:00, 11:59, 12:00, 23:59, 00:01, 00:59, 01:01)",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) 3. respects Friday closures and Saturday reopening",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) 4. enforces RBAC permissions for early batch flush",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) 5. prevents double batching under concurrent flushes",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) 6. handles supplier fallback and subsequent batching on shortages",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) 7. preserves lineage when order is cancelled before vs after batch dispatch",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-283-supplier-po-batching.e2e-spec.ts",
+      "test": "GLO-283 Supplier PO Batching Production Verification (e2e) 8. provides operational visibility into the procurement queue and checkpoints",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo285-media-service.e2e-spec.ts",
+      "test": "GLO-285 product media service runs 5 diverse SKUs from original to a published, genuine primary packshot, with lineage and truthful missing roles",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 200 \"OK\", got 400 \"Bad Request\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo285-media-service.e2e-spec.ts:100:58)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n----\n    at Test._assertStatus (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:376:14)\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:432:13\n    at Test._assertFunction (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:409:13)\n    at Test.assert (C:\\Users\\"
+    },
+    {
+      "file": "test/integration/glo285-media-service.e2e-spec.ts",
+      "test": "GLO-285 product media service a published packshot reaches the storefront catalog read; an unreviewed one never does",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toHaveLength(expected)\n\nExpected length: 1\nReceived length: 0\nReceived array:  []\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo285-media-service.e2e-spec.ts:114:27)"
+    },
+    {
+      "file": "test/integration/glo285-media-service.e2e-spec.ts",
+      "test": "GLO-285 product media service is idempotent: the same image and role returns the same asset, and publishing twice writes once",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 200 \"OK\", got 400 \"Bad Request\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo285-media-service.e2e-spec.ts:123:52)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n----\n    at Test._assertStatus (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:376:14)\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:432:13\n    at Test._assertFunction (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:409:13)\n    at Test.assert (C:\\Users\\"
+    },
+    {
+      "file": "test/integration/glo-236-durable-events.e2e-spec.ts",
+      "test": "GLO-236 durable events and atomic transitions (e2e) order.placed → supply plan is written with the order and delivered exactly once",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 1\nReceived: 0\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-236-durable-events.e2e-spec.ts:90:121)"
+    },
+    {
+      "file": "test/integration/supplier-quantity.e2e-spec.ts",
+      "test": "Supplier offer quantity caps allocation (e2e) allocates only what the supplier reports, and opens an action requirement once it is used up",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supplier-quantity.e2e-spec.ts",
+      "test": "Supplier offer quantity caps allocation (e2e) never over-allocates when orders arrive at the same moment",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supplier-quantity.e2e-spec.ts",
+      "test": "Supplier offer quantity caps allocation (e2e) serializes direct quantity edits with procurement and trusted feed commits",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supplier-quantity.e2e-spec.ts",
+      "test": "Supplier offer quantity caps allocation (e2e) 21 reported, 10 reserved and confirmed leaves 11, including after a newer physical-stock snapshot",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supplier-quantity.e2e-spec.ts",
+      "test": "Supplier offer quantity caps allocation (e2e) counts again from the supplier's newest number",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supplier-quantity.e2e-spec.ts",
+      "test": "Supplier offer quantity caps allocation (e2e) treats zero as out of stock and rejects nonsense; no reported quantity means no cap",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled settles 450/450/450 exactly once; a reused reference must repeat the same count",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled records shortage and overage explicitly instead of marking them paid",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled keeps money exact in Decimal (100.10 + 200.20 = 300.30)",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled rejects wrong courier, undelivered, failed and never-declared cash",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled scopes counting to the hub and its operators; other roles are denied",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) COD: expected vs declared vs counted vs settled settles a collection once under concurrent counts, and one batch per concurrent duplicate reference",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) supplier payables pays received quantity at the PO cost snapshot, once, even after the live offer changes",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) supplier payables pays only what was accepted: zero confirmed is a zero payable",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-238-financial-integrity.e2e-spec.ts",
+      "test": "GLO-238 COD settlement and supplier payable integrity (e2e) supplier payables a still-unanswered PO has nothing payable",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads workspace/me returns roles with supplier and hub scope only for the signed-in account",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads driver directory is for planners only and exposes id and name, nothing else",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads founder order console: list, detail by id or order number, and admin-only",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads payables ledger is admin only",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads driver history is the driver's own and empty for a new driver; staff cannot call it",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads run detail is visible to its hub, its driver and admin only",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads picking state is hub-scoped",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/c0-workspace-reads.e2e-spec.ts",
+      "test": "C0 Business Workspace reads operations dashboard KPIs: aggregates pipeline, Cairo hourly inflow, and enforces server-side financial RBAC",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-239-operational-queues.e2e-spec.ts",
+      "test": "GLO-239 role-scoped operational queues (e2e) hub receivables: confirmed lineage still to arrive, scoped to the receiving hub, no PII",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-239-operational-queues.e2e-spec.ts:83:46)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/availability-resolution.e2e-spec.ts",
+      "test": "Customer availability resolution + order amendment (e2e) replaces a short item with an explicit, priced candidate; replay is idempotent; original snapshot is kept",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: \"ACTION_REQUIRED\"\nReceived: \"CONFIRMING_PRODUCTS\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\availability-resolution.e2e-spec.ts:107:29)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/availability-resolution.e2e-spec.ts",
+      "test": "Customer availability resolution + order amendment (e2e) continues without the item and keeps the other line; cannot continue when it is the only item",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'availableActions')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\availability-resolution.e2e-spec.ts:175:21)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/availability-resolution.e2e-spec.ts",
+      "test": "Customer availability resolution + order amendment (e2e) cancels the order through the canonical cancellation lifecycle (guest, token-scoped)",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\availability-resolution.e2e-spec.ts:206:45)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/availability-resolution.e2e-spec.ts",
+      "test": "Customer availability resolution + order amendment (e2e) never applies a stale decision: changed availability or order state demands review",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\availability-resolution.e2e-spec.ts:226:70)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/availability-resolution.e2e-spec.ts",
+      "test": "Customer availability resolution + order amendment (e2e) treats a same-SKU internal supplier fallback as no customer action, and rejects a candidate whose price changed",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\availability-resolution.e2e-spec.ts:249:51)"
+    },
+    {
+      "file": "test/integration/glo-240-delivery-recovery.e2e-spec.ts",
+      "test": "GLO-240 failed delivery retry, return to sender and cancellation (e2e) staff cancellation cancels a packed parcel on a planning run with goods in flight and opens an exception",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-240-delivery-recovery.e2e-spec.ts:186:48)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/catalog-intake.e2e-spec.ts",
+      "test": "Catalog Intake (e2e) links supplier rows to existing SKUs only, with a reason for every other row",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toMatchObject(expected)\n\n- Expected  - 2\n+ Received  + 1\n\n  Object {\n-   \"CRITICAL\": 1,\n+   \"CRITICAL\": 3,\n    \"INVALID\": 1,\n    \"SKIPPED\": 1,\n    \"UNMATCHED\": 1,\n-   \"UPDATED\": 2,\n    \"total\": 6,\n  }\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-intake.e2e-spec.ts:86:25)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/catalog-intake.e2e-spec.ts",
+      "test": "Catalog Intake (e2e) records a price change as history and leaves unchanged offers MATCHED",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toMatchObject(expected)\n\n- Expected  - 2\n+ Received  + 0\n\n  Object {\n-   \"MATCHED\": 1,\n-   \"UPDATED\": 1,\n    \"total\": 2,\n  }\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-intake.e2e-spec.ts:119:25)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/catalog-intake.e2e-spec.ts",
+      "test": "Catalog Intake (e2e) lets an Admin settle a critical row; the wording is learned for the next file",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toMatchObject(expected)\n\n- Expected  - 1\n+ Received  + 0\n\n  Object {\n-   \"UPDATED\": 1,\n    \"total\": 1,\n  }\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-intake.e2e-spec.ts:133:25)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/catalog-intake.e2e-spec.ts",
+      "test": "Catalog Intake (e2e) leaves an Admin name unresolved, with a review item, when no official source can be read",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toMatchObject(expected)\n\n- Expected  - 1\n+ Received  + 1\n\n  Object {\n    \"matchedSkuId\": null,\n    \"outcome\": \"UNRESOLVED\",\n-   \"reasonCode\": \"NO_IDENTITY_SOURCE\",\n+   \"reasonCode\": \"POLICY_BRAND_AMBIGUOUS\",\n  }\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-intake.e2e-spec.ts:153:17)"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) rejects anonymous access to supplier, offer, purchase-order and brand administration",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) rejects customers from the same administration endpoints",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) isolates suppliers: A cannot read or change B offers or purchase orders",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) GLO-206: A cannot rewrite B lines by smuggling them into its own confirmation",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) keeps admin-only actions away from hub operators",
+      "priorStatus": "passed",
+      "baselineStatus": "passed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-205-security-regressions.e2e-spec.ts",
+      "test": "GLO-205 security regressions (e2e) refuses evidence, media and candidate approval by suppliers and customers",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-237-po-lineage.e2e-spec.ts",
+      "test": "GLO-237 supplier PO ↔ allocation lineage (e2e) consolidates two orders into one PO line with N:1 quantity-aware lineage, exactly once",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-237-po-lineage.e2e-spec.ts",
+      "test": "GLO-237 supplier PO ↔ allocation lineage (e2e) maps a single-allocation partial directly and leaves the rest for a customer decision",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/glo-237-po-lineage.e2e-spec.ts",
+      "test": "GLO-237 supplier PO ↔ allocation lineage (e2e) maps a zero/price-changed answer to unavailable allocations with no payable quantity",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supply-plan.e2e-spec.ts",
+      "test": "Availability confirmation and supply plan (e2e) turns a real submitted checkout into one sourcing request",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supply-plan.e2e-spec.ts",
+      "test": "Availability confirmation and supply plan (e2e) creates one request, uses eligible ranked offers, and confirms without exposing suppliers in tracking",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supply-plan.e2e-spec.ts",
+      "test": "Availability confirmation and supply plan (e2e) falls back for the same SKU after partial confirmation and handles duplicate confirmation safely",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supply-plan.e2e-spec.ts",
+      "test": "Availability confirmation and supply plan (e2e) emits a typed shortage only after sources are exhausted and keeps the original order unchanged",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supply-plan.e2e-spec.ts",
+      "test": "Availability confirmation and supply plan (e2e) reports a partial shortage after fallback rejects and serializes concurrent confirmation attempts",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/supply-plan.e2e-spec.ts",
+      "test": "Availability confirmation and supply plan (e2e) does not count confirmation from a source that became unavailable",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": true,
+      "message": "PrismaClientInitializationError: Can't reach database server at `127.0.0.1:5434`\n\nPlease make sure your database server is running at `127.0.0.1:5434`.\n    at t (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:112:2488)\n    at Proxy.onModuleInit (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\database\\prisma.service.ts:16:5)\n    at async Promise.all (index 0)\n    at callModuleInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@nestjs\\core\\hooks\\on-module-init.hook.js:43:5)\n    at Proxy.callInitHook (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\sh"
+    },
+    {
+      "file": "test/integration/fulfillment-receiving.e2e-spec.ts",
+      "test": "Fulfillment supplier receiving and order allocation (e2e) enforces authentication, role, location ownership, and receiving capability",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at makeConfirmedAllocation (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\fulfillment-receiving.e2e-spec.ts:80:55)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\fulfillment-receiving.e2e-spec.ts:130:21)"
+    },
+    {
+      "file": "test/integration/fulfillment-receiving.e2e-spec.ts",
+      "test": "Fulfillment supplier receiving and order allocation (e2e) rejects pending, mismatched, excessive, and unacceptable receipts without changing inventory",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at makeConfirmedAllocation (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\fulfillment-receiving.e2e-spec.ts:80:55)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\fulfillment-receiving.e2e-spec.ts:150:21)"
+    },
+    {
+      "file": "test/integration/fulfillment-receiving.e2e-spec.ts",
+      "test": "Fulfillment supplier receiving and order allocation (e2e) receives partial quantities idempotently and keeps allocated goods out of sellable stock",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at makeConfirmedAllocation (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\fulfillment-receiving.e2e-spec.ts:80:55)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\fulfillment-receiving.e2e-spec.ts:196:21)"
+    },
+    {
+      "file": "test/integration/rt-operational-hardening.e2e-spec.ts",
+      "test": "Red-team operational hardening RT04 / RT08 / RT14 (e2e) RT04: lot/expiry evidence is kept; an already-expired pack is held as a receiving exception",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\rt-operational-hardening.e2e-spec.ts:102:46)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 2. durable order.placed creates exactly one supply plan; a second order shares the consolidated PO",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:133:150)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 3. supplier confirms its own PO only; Ready is not a Hub receipt",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:155:56)\n    at Promise.then.completed (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndReject"
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 4. Hub receives real quantities against the lineage with identity evidence",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toHaveLength(expected)\n\nExpected length: 2\nReceived length: 0\nReceived array:  []\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:175:89)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 5. barcode-verified preparation, thermal documents, truthful print status, packed identity",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 201 \"Created\", got 400 \"Bad Request\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:192:115)\n    at Promise.then.completed (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (no"
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 6. assigned driver manifest with secured pin, custody scan, atomic dispatch, failed attempt and retry",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 201 \"Created\", got 400 \"Bad Request\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:215:122)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n----\n    at Test._assertStatus (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:376:14)\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:432:13\n    at Test._assertFunction (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:409:13)\n    at Test.assert (C"
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 7. delivery with door-cash declaration; staff cannot fake a COD delivery",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 409 \"Conflict\", got 400 \"Bad Request\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:244:125)\n    at Promise.then.completed (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (n"
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 8. physical cash count settles exactly once at the right hub for the right courier",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 409 \"Conflict\", got 404 \"Not Found\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:264:97)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n----\n    at Test._assertStatus (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:376:14)\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:432:13\n    at Test._assertFunction (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:409:13)\n    at Test.assert (C:\\"
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 9. supplier payable from received quantity at the PO cost snapshot, paid once",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:274:83)"
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 10. item return and manual COD refund: bounded by cash received, paid only with proof, once",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 400 \"Bad Request\", got 409 \"Conflict\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:285:127)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n----\n    at Test._assertStatus (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:376:14)\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:432:13\n    at Test._assertFunction (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:409:13)\n    at Test.assert ("
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 11. the second order is cancelled with its goods at the hub: audited, released, exception opened",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:295:73)\n    at Promise.then.completed (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndReject"
+    },
+    {
+      "file": "test/integration/c2c-backend-acceptance.e2e-spec.ts",
+      "test": "C1 backend Cart-to-Cash acceptance (GLO-235) 12. cross-domain state is consistent and nothing reports success that did not happen",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'id')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\c2c-backend-acceptance.e2e-spec.ts:306:83)\n    at Promise.then.completed (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndReject"
+    },
+    {
+      "file": "test/integration/product-sku-media.e2e-spec.ts",
+      "test": "Product, SKU & Media Management (e2e) ProductMedia Management APIs should add primary media with verified origin to a product",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "BadRequestException: Verified media requires trusted evidence and an identity review\n    at requireMediaReview (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\security\\media-review.ts:47:11)\n    at CatalogService.validateVerifiedMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1453:38)\n    at CatalogService.addMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1299:18)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT"
+    },
+    {
+      "file": "test/integration/product-sku-media.e2e-spec.ts",
+      "test": "Product, SKU & Media Management (e2e) ProductMedia Management APIs should add second media and reset primary status when second is marked primary",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "BadRequestException: Verified media requires trusted evidence and an identity review\n    at requireMediaReview (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\security\\media-review.ts:47:11)\n    at CatalogService.validateVerifiedMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1453:38)\n    at CatalogService.addMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1299:18)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT"
+    },
+    {
+      "file": "test/integration/product-sku-media.e2e-spec.ts",
+      "test": "Product, SKU & Media Management (e2e) ProductMedia Management APIs should update media metadata and sort order",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "PrismaClientValidationError: \nInvalid `this.prisma.productMedia.findUnique()` invocation in\nC:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1351:50\n\n  1348 }\n  1349 \n  1350 async updateMedia(id: string, dto: UpdateProductMediaDto, reviewerId?: string): Promise<PublishedMedia> {\n→ 1351   const media = await this.prisma.productMedia.findUnique({\n           where: {\n             id: undefined,\n         ?   AND?: ProductMediaWhereInput | ProductMediaWhereInput[],\n         ?   OR?: ProductMediaWhereInput[],\n         ?   NOT?: ProductMediaWhereInput | ProductMediaWhereInput[],\n         ?   productId?: U"
+    },
+    {
+      "file": "test/integration/product-sku-media.e2e-spec.ts",
+      "test": "Product, SKU & Media Management (e2e) ProductMedia Management APIs should not let a non-reviewer re-point verified media to a new image",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).rejects.toThrow(expected)\n\nExpected constructor: BadRequestException\nReceived constructor: PrismaClientValidationError\n\nReceived message: \"\nInvalid `this.prisma.productMedia.findUnique()` invocation in\nC:\\\\Users\\\\El-mostakbal.DESKTOP-PM74NIT\\\\.codex\\\\worktrees\\\\catalog-gate-closure\\\\shena care\\\\apps\\\\api\\\\src\\\\modules\\\\catalog\\\\services\\\\catalog.service.ts:1351:50·\n  1348 }\n  1349·\n  1350 async updateMedia(id: string, dto: UpdateProductMediaDto, reviewerId?: string): Promise<PublishedMedia> {\n→ 1351   const media = await this.prisma.productMedia.findUnique({\n           where: {\n             id: undefined,\n         ?   AND?: ProductMediaWhereInput | ProductMediaWhereIn"
+    },
+    {
+      "file": "test/integration/product-sku-media.e2e-spec.ts",
+      "test": "Product, SKU & Media Management (e2e) ProductMedia Management APIs should delete a media item and return no content",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "PrismaClientValidationError: \nInvalid `this.prisma.productMedia.findUnique()` invocation in\nC:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1401:50\n\n  1398 }\n  1399 \n  1400 async deleteMedia(id: string): Promise<void> {\n→ 1401   const media = await this.prisma.productMedia.findUnique({\n           where: {\n             id: undefined,\n         ?   AND?: ProductMediaWhereInput | ProductMediaWhereInput[],\n         ?   OR?: ProductMediaWhereInput[],\n         ?   NOT?: ProductMediaWhereInput | ProductMediaWhereInput[],\n         ?   productId?: UuidFilter | String,\n         ?   type?: EnumMediaTypeFilter"
+    },
+    {
+      "file": "test/integration/glo-77-candidate-review-publish.e2e-spec.ts",
+      "test": "GLO-77 Candidate Review & Publish (e2e) completes the full GLO-77 candidate lifecycle: list, view evidence/conflicts, correct, approve, publish to canonical catalog, and verify retry idempotency",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 201 \"Created\", got 404 \"Not Found\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-77-candidate-review-publish.e2e-spec.ts:76:8)\n    at Promise.then.completed (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at _runTest (C:\\Users\\El-mos"
+    },
+    {
+      "file": "test/integration/glo-243-supplier-exceptions-shortfalls.e2e-spec.ts",
+      "test": "GLO-237/243 supplier exceptions and receiving shortfalls (e2e) a carton/MOQ the order cannot use is an explicit exception and the order falls back",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'lines')\n    at procure (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-243-supplier-exceptions-shortfalls.e2e-spec.ts:45:51)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-243-supplier-exceptions-shortfalls.e2e-spec.ts:69:45)"
+    },
+    {
+      "file": "test/integration/glo-243-supplier-exceptions-shortfalls.e2e-spec.ts",
+      "test": "GLO-237/243 supplier exceptions and receiving shortfalls (e2e) a late supplier price increase never changes the PO cost or the customer total",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'lines')\n    at procure (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-243-supplier-exceptions-shortfalls.e2e-spec.ts:45:51)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-243-supplier-exceptions-shortfalls.e2e-spec.ts:88:45)"
+    },
+    {
+      "file": "test/integration/glo-243-supplier-exceptions-shortfalls.e2e-spec.ts",
+      "test": "GLO-237/243 supplier exceptions and receiving shortfalls (e2e) 8 ready → 7 handed over → 6 received: two attributed shortfalls, no phantom stock, paid for 6",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'lines')\n    at procure (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-243-supplier-exceptions-shortfalls.e2e-spec.ts:45:51)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\glo-243-supplier-exceptions-shortfalls.e2e-spec.ts:107:56)"
+    },
+    {
+      "file": "test/integration/catalog-policy.e2e-spec.ts",
+      "test": "Catalog Policy (e2e) is Admin-only",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 401 \"Unauthorized\", got 404 \"Not Found\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:73:62)\n    at Promise.then.completed (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at _runTest (C:\\Users\\El-mostakbal.DESK"
+    },
+    {
+      "file": "test/integration/catalog-policy.e2e-spec.ts",
+      "test": "Catalog Policy (e2e) adds a brand once: a second spelling of the same canonical brand is refused with the existing record",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 200 \"OK\", got 404 \"Not Found\"\n    at policy (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:35:104)\n    at addBrand (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:43:36)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:83:27)\n----\n    at Test._assertStatus (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:376:14)\n    at C:\\Users\\El-mo"
+    },
+    {
+      "file": "test/integration/catalog-policy.e2e-spec.ts",
+      "test": "Catalog Policy (e2e) allows exact leaves per brand, refuses parents and stale edits, and keeps every version",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 200 \"OK\", got 404 \"Not Found\"\n    at policy (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:35:104)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:96:26)\n    at Promise.then.completed (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircu"
+    },
+    {
+      "file": "test/integration/catalog-policy.e2e-spec.ts",
+      "test": "Catalog Policy (e2e) disables and re-enables a brand without touching its products, and remembers its categories",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 200 \"OK\", got 404 \"Not Found\"\n    at policy (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:35:104)\n    at patch (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:39:36)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:112:19)\n----\n    at Test._assertStatus (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:376:14)\n    at C:\\Users\\El-most"
+    },
+    {
+      "file": "test/integration/catalog-policy.e2e-spec.ts",
+      "test": "Catalog Policy (e2e) excludes only canonical products of the same brand, and restores them",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 200 \"OK\", got 404 \"Not Found\"\n    at policy (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:35:104)\n    at patch (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:39:36)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:120:19)\n    at Promise.then.completed (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise "
+    },
+    {
+      "file": "test/integration/catalog-policy.e2e-spec.ts",
+      "test": "Catalog Policy (e2e) drives intake: SKIP early, HOLD the unknown, SKIP excluded products after identity, ACCEPT the rest",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 200 \"OK\", got 404 \"Not Found\"\n    at policy (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:35:104)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-policy.e2e-spec.ts:130:28)\n    at Promise.then.completed (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCirc"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) is Admin-only",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 401 \"Unauthorized\", got 404 \"Not Found\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:96:91)\n----\n    at Test._assertStatus (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:376:14)\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:432:13\n    at Test._assertFunction (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:409:13)\n    at Test.assert (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) adds an unknown brand end to end: sourced research, review, one canonical Brand, policy, then intake decisions",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 201\nReceived: 404\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:111:69\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:111:19)"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) refuses a second record: a typed name or an official name that is already a Brand returns the existing one",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toEqual(expected) // deep equality\n\n- Expected  - 3\n+ Received  + 3\n\n  Array [\n-   409,\n-   \"BRAND_EXISTS\",\n-   \"5f3086d8-456c-4a3a-9e2d-5417ca96296b\",\n+   404,\n+   undefined,\n+   undefined,\n  ]\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:171:68)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) marks everything unverified when the site is not the brand's own domain, and the server will not upgrade it",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toEqual(expected) // deep equality\n\n- Expected  - 2\n+ Received  + 2\n\n  Array [\n-   201,\n-   undefined,\n+   404,\n    undefined,\n+   \"Cannot POST /ingestion/eligibility/brands/research\",\n  ]\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:188:71)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) falls back to manual entry when research is unavailable, never inventing anything",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toMatchObject(expected)\n\nMatcher error: received value must be a non-null object\n\nReceived has value: undefined\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:206:27)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) does not guess a site for an Arabic-only name: it asks for the English name, then keeps the Arabic as an alias",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toMatchObject(expected)\n\nMatcher error: received value must be a non-null object\n\nReceived has value: undefined\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:236:27)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) offers candidates for an Arabic-only name, reads nothing on its own, and lets the Admin choose",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toMatchObject(expected)\n\nMatcher error: received value must be a non-null object\n\nReceived has value: undefined\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:267:19)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) resolves a reviewed Arabic spelling to the brand we already hold before searching anything",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toEqual(expected) // deep equality\n\n- Expected  - 3\n+ Received  + 3\n\n  Array [\n-   409,\n-   \"BRAND_EXISTS\",\n-   \"fa4928ae-5a1b-457d-a097-cb8f555db982\",\n+   404,\n+   undefined,\n+   undefined,\n  ]\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:287:59)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) stores an SVG-only logo as a rasterized PNG, and never keeps an unsafe SVG",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "TypeError: Cannot read properties of undefined (reading 'logo')\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:306:27)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) keeps unsafe input out: non-https and private websites are refused before any request",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toEqual(expected) // deep equality\n\n- Expected  - 2\n+ Received  + 2\n\n  Array [\n-   400,\n-   \"INVALID_WEBSITE\",\n+   404,\n+   undefined,\n  ]\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:331:43)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) writes nothing when the save cannot complete: alias conflicts, stale policy and a changed logo",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expected 200 \"OK\", got 404 \"Not Found\"\n    at version (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:51:105)\n    at save (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:66:35)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:341:28)\n----\n    at Test._assertStatus (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\supertest\\lib\\test.js:376:14)\n    at C:\\Users\\El-most"
+    },
+    {
+      "file": "test/integration/brand-research.e2e-spec.ts",
+      "test": "Smart Add Brand (e2e) rate-limits lookups per Admin",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\brand-research.e2e-spec.ts:372:63)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "file": "test/integration/availability-expiry.e2e-spec.ts",
+      "test": "Availability decision window and expiry (e2e) opens the decision by itself with a deadline, and leaves it alone before the window ends",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "NotFoundError: No AvailabilityDecision found\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:31:5146\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:31:5086\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\availability-expiry.e2e-spec.ts:73:22)"
+    },
+    {
+      "file": "test/integration/availability-expiry.e2e-spec.ts",
+      "test": "Availability decision window and expiry (e2e) drops the unavailable item and continues the order, keeping the original delivery fee",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "NotFoundError: No AvailabilityDecision found\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:31:5146\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:31:5086\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\availability-expiry.e2e-spec.ts:85:22)"
+    },
+    {
+      "file": "test/integration/availability-expiry.e2e-spec.ts",
+      "test": "Availability decision window and expiry (e2e) cancels the order when the unavailable item was the only one",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: \"cancelled\"\nReceived: \"placed\"\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\availability-expiry.e2e-spec.ts:108:88)"
+    },
+    {
+      "file": "test/integration/availability-expiry.e2e-spec.ts",
+      "test": "Availability decision window and expiry (e2e) does not touch a decision the customer already answered",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "NotFoundError: No AvailabilityDecision found\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:31:5146\n    at C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\Desktop\\shena care\\node_modules\\@prisma\\client\\runtime\\library.js:31:5086\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\availability-expiry.e2e-spec.ts:117:22)"
+    },
+    {
+      "file": "test/integration/product-discovery.e2e-spec.ts",
+      "test": "GLO-182/183 public discovery and detail (PostgreSQL) groups eligible variants, counts eligible products and fills pages after all gates",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "BadRequestException: Verified media requires trusted evidence and an identity review\n    at requireMediaReview (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\security\\media-review.ts:47:11)\n    at CatalogService.validateVerifiedMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1453:38)\n    at CatalogService.addMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1299:18)\n    at fixture (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\wor"
+    },
+    {
+      "file": "test/integration/product-discovery.e2e-spec.ts",
+      "test": "GLO-182/183 public discovery and detail (PostgreSQL) searches names, SKU codes and barcode; combines filters and validates input",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "BadRequestException: Verified media requires trusted evidence and an identity review\n    at requireMediaReview (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\security\\media-review.ts:47:11)\n    at CatalogService.validateVerifiedMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1453:38)\n    at CatalogService.addMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1299:18)\n    at fixture (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\wor"
+    },
+    {
+      "file": "test/integration/product-discovery.e2e-spec.ts",
+      "test": "GLO-182/183 public discovery and detail (PostgreSQL) normalizes Arabic, ranks exact names, finds curated concerns and suggests only sellable products",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "BadRequestException: Verified media requires trusted evidence and an identity review\n    at requireMediaReview (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\security\\media-review.ts:47:11)\n    at CatalogService.validateVerifiedMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1453:38)\n    at CatalogService.addMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1299:18)\n    at fixture (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\wor"
+    },
+    {
+      "file": "test/integration/product-discovery.e2e-spec.ts",
+      "test": "GLO-182/183 public discovery and detail (PostgreSQL) keeps the insertion watermark and rejects cursor reuse with changed filters",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "BadRequestException: Verified media requires trusted evidence and an identity review\n    at requireMediaReview (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\security\\media-review.ts:47:11)\n    at CatalogService.validateVerifiedMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1453:38)\n    at CatalogService.addMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1299:18)\n    at fixture (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\wor"
+    },
+    {
+      "file": "test/integration/product-discovery.e2e-spec.ts",
+      "test": "GLO-182/183 public discovery and detail (PostgreSQL) reacts immediately to withdrawn supplier availability without leaking an incomplete detail",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "BadRequestException: Verified media requires trusted evidence and an identity review\n    at requireMediaReview (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\security\\media-review.ts:47:11)\n    at CatalogService.validateVerifiedMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1453:38)\n    at CatalogService.addMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1299:18)\n    at fixture (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\wor"
+    },
+    {
+      "file": "test/integration/product-discovery.e2e-spec.ts",
+      "test": "GLO-182/183 public discovery and detail (PostgreSQL) composes detail identity, approved media, Commerce price and stock freshness",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "BadRequestException: Verified media requires trusted evidence and an identity review\n    at requireMediaReview (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\security\\media-review.ts:47:11)\n    at CatalogService.validateVerifiedMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1453:38)\n    at CatalogService.addMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1299:18)\n    at fixture (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\wor"
+    },
+    {
+      "file": "test/integration/product-discovery.e2e-spec.ts",
+      "test": "GLO-182/183 public discovery and detail (PostgreSQL) returns only manual/expert placements in active public templates",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "BadRequestException: Verified media requires trusted evidence and an identity review\n    at requireMediaReview (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\security\\media-review.ts:47:11)\n    at CatalogService.validateVerifiedMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1453:38)\n    at CatalogService.addMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1299:18)\n    at fixture (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\wor"
+    },
+    {
+      "file": "test/integration/product-discovery.e2e-spec.ts",
+      "test": "GLO-182/183 public discovery and detail (PostgreSQL) fails closed for incomplete detail and invalidated exact identity review",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "BadRequestException: Verified media requires trusted evidence and an identity review\n    at requireMediaReview (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\platform\\security\\media-review.ts:47:11)\n    at CatalogService.validateVerifiedMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1453:38)\n    at CatalogService.addMedia (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\catalog.service.ts:1299:18)\n    at fixture (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\wor"
+    },
+    {
+      "file": "test/integration/catalog-enhancement-pending.e2e-spec.ts",
+      "test": "deferred enhancement with PostgreSQL and an authentic original photo keeps the original bytes and persists one pending, unpublishable derivative",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "ConflictException: No active media template serves this product category\n    at MediaTemplateService.resolveForSku (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\media-template.service.ts:131:23)\n    at ProductMediaService.requestEditorial (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\src\\modules\\catalog\\services\\product-media.service.ts:115:22)\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\integration\\catalog-enhancement-pending.e2e-spec.ts:32:20)"
+    },
+    {
+      "file": "test/unit/product-read-performance.spec.ts",
+      "test": "public product read batching keeps the reviewed-media eligibility gate when validating SKUs in bulk",
+      "priorStatus": "failed",
+      "baselineStatus": "failed",
+      "databaseConnectionFailure": false,
+      "message": "Error: expect(received).toMatchObject(expected)\n\n- Expected  - 1\n+ Received  + 1\n\n  Object {\n    \"isActive\": true,\n-   \"isProductPublished\": true,\n+   \"isProductPublished\": false,\n  }\n    at Object.<anonymous> (C:\\Users\\El-mostakbal.DESKTOP-PM74NIT\\.codex\\worktrees\\catalog-gate-closure\\shena care\\apps\\api\\test\\unit\\product-read-performance.spec.ts:22:29)"
+    }
+  ],
+  "fullSuiteExit": 1
+}

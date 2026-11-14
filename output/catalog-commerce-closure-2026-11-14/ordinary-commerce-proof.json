@@ -1,0 +1,109 @@
+{
+  "scope": "ISOLATED_TEST_ONLY",
+  "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+  "expectedDevPrice": 100,
+  "startedAt": "2026-11-14T10:20:12.988Z",
+  "checks": [
+    {
+      "name": "public-listing-exact-variant-price",
+      "passed": true,
+      "status": 200,
+      "productId": "83dbbc95-caf3-4994-8e42-1935f5ad9627",
+      "brand": "The Ordinary",
+      "productName": "Hyaluronic Acid 2% + B5 (Original Formulation)",
+      "size": 30,
+      "unit": "ml"
+    },
+    {
+      "name": "authentic-original-delivery",
+      "passed": true,
+      "status": 200,
+      "sha256": "741b042d7dca0edd0c85cd41fb6c07656ed4e50fbbab7890c4d51899f48e75ae",
+      "width": 1200,
+      "height": 1200,
+      "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+      "rightsStatus": "MANUFACTURER_PUBLISHED"
+    },
+    {
+      "name": "real-otp-session",
+      "passed": true,
+      "send": 201,
+      "verify": 201,
+      "malformedCode": 400,
+      "wrongCode": 401
+    },
+    {
+      "name": "workbench-and-procurement-access-control",
+      "passed": true,
+      "anonymous": 401,
+      "customer": 403
+    },
+    {
+      "name": "unknown-variant",
+      "passed": true,
+      "status": 400,
+      "cartUnchanged": true
+    },
+    {
+      "name": "zero-quantity",
+      "passed": true,
+      "status": 400,
+      "cartUnchanged": true
+    },
+    {
+      "name": "client-price-injection",
+      "passed": true,
+      "status": 400,
+      "cartUnchanged": true
+    },
+    {
+      "name": "unpublished-contradictory-product-denied",
+      "passed": true,
+      "status": 400,
+      "cartUnchanged": true
+    },
+    {
+      "name": "cart-persistence-and-owner-isolation",
+      "passed": true,
+      "quantity": 2,
+      "revision": 2
+    },
+    {
+      "name": "failed-checkouts-atomic-price-and-quote-owner-guards",
+      "passed": true,
+      "anonymous": 401,
+      "otherQuoteOwner": 409,
+      "injectedTotal": 400,
+      "staleRevision": 409,
+      "ordersUnchanged": true,
+      "allocationsUnchanged": true
+    },
+    {
+      "name": "checkout-persisted-replay-and-order-ownership",
+      "passed": true,
+      "orderId": "3d306882-5925-4ce7-b275-c6f10b787734",
+      "quantity": 2,
+      "unitPrice": 100,
+      "duplicateOrders": 0,
+      "concurrentSubmissions": 2,
+      "ownOrder": 200,
+      "otherOwner": 404,
+      "anonymous": 401
+    },
+    {
+      "name": "internal-buy-list-exact-order-demand",
+      "passed": true,
+      "status": 200,
+      "orderId": "3d306882-5925-4ce7-b275-c6f10b787734",
+      "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+      "quantity": 2,
+      "durableEventsDelivered": 1
+    },
+    {
+      "name": "selling-prices-listings-and-offers-unchanged",
+      "passed": true
+    }
+  ],
+  "stage": "PASSED",
+  "durationMs": 2348
+}

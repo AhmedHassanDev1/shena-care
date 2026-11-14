@@ -1,0 +1,14 @@
+{
+  "ordinarySku": "a30ad05a-d192-479b-9900-2f4c27793d11",
+  "ordinaryOriginal": {
+    "assetId": "fe60ae64-0670-4402-b5b3-76518a3badf4",
+    "contentHash": "6d8b78ba961ec932ae58f7c27e67d93876cab8f89a68ddb29c2133dfd6f80882",
+    "width": 1150,
+    "height": 920,
+    "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1",
+    "reviewStatus": "APPROVED",
+    "localFile": "ordinary-original-30ml.png"
+  },
+  "cetaphilSku": "ad4c3947-a35f-4d6d-af02-cab4c0ff623f",
+  "cetaphilImagesRejected": true
+}

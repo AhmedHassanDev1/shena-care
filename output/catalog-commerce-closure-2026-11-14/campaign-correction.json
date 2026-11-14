@@ -1,0 +1,27 @@
+{
+  "scope": "ISOLATED_CLONE_ONLY",
+  "skuId": "a30ad05a-d192-479b-9900-2f4c27793d11",
+  "withdrawn": {
+    "assetId": "fe60ae64-0670-4402-b5b3-76518a3badf4",
+    "sha256": "6d8b78ba961ec932ae58f7c27e67d93876cab8f89a68ddb29c2133dfd6f80882",
+    "published": false,
+    "reason": "CAMPAIGN_NOT_PRIMARY_PACKSHOT"
+  },
+  "correct": {
+    "assetId": "acd9333a-4190-4243-8dcb-015f4a544574",
+    "sha256": "741b042d7dca0edd0c85cd41fb6c07656ed4e50fbbab7890c4d51899f48e75ae",
+    "width": 1200,
+    "height": 1200,
+    "sourceUrl": "https://theordinary.com/en-us/hyaluronic-acid-2-b5-serum-original-formulation-100425.html?dwvar_100425_size=30ml&quantity=1"
+  },
+  "result": {
+    "primary": "APPROVED",
+    "editorial": "PENDING",
+    "rejectedSources": [
+      {
+        "url": "https://theordinary.com/dw/image/v2/BFKJ_PRD/on/demandware.static/-/Sites-deciem-master/default/dw56cd0f2e/Images/products/The%20Ordinary/rdn-hyaluronic-acid-2pct-b5-30ml.png?sw=340&sh=340&sm=fit",
+        "reason": "RESOLUTION_TOO_LOW:340x340"
+      }
+    ]
+  }
+}
