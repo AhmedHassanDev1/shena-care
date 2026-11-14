@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { MediaOriginType, MediaType } from '@prisma/client';
 import { PrismaService } from '../../src/platform/database/prisma.service';
+import { uniqueGtin } from './gtin';
 
 /** Trusted manufacturer page accepted by the media-review policy (platform/security/media-review.ts). */
 export const FIXTURE_SOURCE_URL = 'https://www.cerave.com/skincare/moisturizers/moisturizing-cream';
@@ -27,6 +28,7 @@ export function reviewedMediaMetadata(sku: ReviewableSku, reviewerId: string) {
     reviewedAt: new Date().toISOString(),
     skuId: sku.id,
     barcode: sku.barcode,
+    identityVerification: 'ADMIN_VERIFIED',
     size: sku.size,
     sizeUnit: sku.sizeUnit,
     variantName: sku.variantName,
@@ -40,7 +42,7 @@ export async function attachReviewedMedia(prisma: PrismaService, skuId: string) 
   const reviewer = await ensureFixtureReviewer(prisma);
   const current = await prisma.sku.findUniqueOrThrow({ where: { id: skuId } });
   const sku = await prisma.sku.update({ where: { id: skuId }, data: {
-    barcode: current.barcode ?? 'REVIEWED-' + randomUUID(), size: current.size ?? 50, sizeUnit: current.sizeUnit ?? 'ml',
+    barcode: current.barcode ?? uniqueGtin(), size: current.size ?? 50, sizeUnit: current.sizeUnit ?? 'ml',
   } });
   return prisma.productMedia.create({ data: {
     productId: sku.productId, type: MediaType.image, url: `https://cdn.fixtures.test/${randomUUID()}.png`, isPrimary: true,
@@ -63,7 +65,7 @@ export async function createSellableSku(prisma: PrismaService) {
     brandId: brand.id, name: 'Test Product', slug: 'test-product-' + suffix, isPublished: true,
   } });
   const sku = await prisma.sku.create({ data: {
-    productId: product.id, code: 'TEST-' + suffix, variantName: '50 ml', size: 50, sizeUnit: 'ml', barcode: 'TEST-BAR-' + suffix,
+    productId: product.id, code: 'TEST-' + suffix, variantName: '50 ml', size: 50, sizeUnit: 'ml', barcode: uniqueGtin(),
   } });
   await prisma.productMedia.create({ data: {
     productId: product.id, type: MediaType.image, url: `https://cdn.fixtures.test/${suffix}.png`, isPrimary: true,

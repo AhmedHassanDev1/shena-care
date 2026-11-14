@@ -72,6 +72,20 @@ describe('Customer order across Admin / Hub / Driver workspaces via the Buy List
     // Order placement is an outbox event; its durable consumer creates the supply requirement the Buy List reads.
     await events.dispatchPending();
 
+    // Immediate dispatch may already have claimed one event. Await the actual
+    // durable deliveries rather than treating SKIP LOCKED as a completed drain.
+    const orderIds = [first.order.id, second.order.id];
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const pending = await prisma.domainEvent.count({
+        where: { aggregateId: { in: orderIds }, status: { not: 'delivered' } },
+      });
+      if (!pending) break;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    expect(await prisma.domainEvent.count({
+      where: { aggregateId: { in: orderIds }, status: { not: 'delivered' } },
+    })).toBe(0);
+
     expect(await buyRow()).toMatchObject({ toBuy: 5, orderCount: 2, acquired: 0 });
     // The Buy List is internal: the driver and the customers cannot read it.
     await http().get('/buy-list').set(driver.auth).expect(403);
