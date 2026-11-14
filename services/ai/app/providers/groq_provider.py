@@ -20,7 +20,7 @@ class GroqProvider:
             raise ProviderUnavailableError("GROQ_API_KEY is not configured")
         self.api_key = settings.groq_api_key
 
-    async def _call_chat_completions(self, system_prompt: str, user_prompt: str, temperature: float = 0.2) -> dict:
+    async def _call_chat_completions(self, system_prompt: str, user_prompt: str, temperature: float = 0.2, task: str = "") -> dict:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -79,7 +79,7 @@ Return a JSON object with the following schema:
         user_prompt = f"Candidate Ref: {request.candidateRef}\nSource Type: {request.sourceType}\nTitle: {request.rawTitle}\nBrand: {request.brand}\nBarcode: {request.barcode}\nEvidence: {json.dumps(request.researchEvidence if hasattr(request, 'researchEvidence') else None)}"
         
         try:
-            result_json = await self._call_chat_completions(system_prompt, user_prompt)
+            result_json = await self._call_chat_completions(system_prompt, user_prompt, task="enrichment.product")
             from app.contracts.enrichment import ProductEnrichmentSuggestions
             
             suggestions = ProductEnrichmentSuggestions(
@@ -147,7 +147,7 @@ Based on the user profile and chat history, return a JSON response with the foll
         user_prompt = f"Profile: {json.dumps(profile_dict)}\nDraft: {json.dumps(draft_dict)}\nAvailable Catalog Products: {catalog_str}\nHistory: {json.dumps(history_list)}"
         
         try:
-            result_json = await self._call_chat_completions(system_prompt, user_prompt, temperature=0.5)
+            result_json = await self._call_chat_completions(system_prompt, user_prompt, temperature=0.5, task="guidance.legacy")
             from app.contracts.guidance import GuidanceRecommendationResult, RoutineProposal, RoutineStepProposal
             
             proposal_data = result_json.get("proposal")
@@ -209,7 +209,7 @@ Return a JSON object with the following schema:
         user_prompt = f"Facts: {json.dumps(request.facts)}\nResearch Evidence: {json.dumps(request.researchEvidence)}"
         
         try:
-            result_json = await self._call_chat_completions(system_prompt, user_prompt, temperature=0.3)
+            result_json = await self._call_chat_completions(system_prompt, user_prompt, temperature=0.3, task="content.generate")
             
             # Map back to GeneratedContent using defaults for missing fields
             content = GeneratedContent(
