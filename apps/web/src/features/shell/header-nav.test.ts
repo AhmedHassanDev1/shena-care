@@ -7,12 +7,22 @@ describe('header-nav', () => {
     navBrands: 'الماركات',
   };
 
-  it('exposes only Skin, Hair, and Brands in display order', () => {
+  it('exposes By concern, Skin, Hair and Brands in display order', () => {
     expect(getHeaderNavItems(labels)).toEqual([
+      { key: 'concerns', href: '/corner', label: 'حسب الاهتمام' },
       { key: 'skin', href: '/products?category=skin-care', label: 'البشرة' },
       { key: 'hair', href: '/products?category=hair-care', label: 'الشعر' },
       { key: 'brands', href: '/products', label: 'الماركات' },
     ]);
+  });
+
+  it('names By concern from the same-language dictionary when not passed, and activates it on the Corner', () => {
+    expect(getHeaderNavItems({ navSkin: 'Skin', navHair: 'Hair', navBrands: 'Brands' })[0].label).toBe('By concern');
+    expect(getHeaderNavItems({ ...labels, navConcerns: 'X' })[0].label).toBe('X');
+    expect(isHeaderNavActive('concerns', { pathname: '/corner' })).toBe(true);
+    expect(isHeaderNavActive('concerns', { pathname: '/corner/acne' })).toBe(true);
+    expect(isHeaderNavActive('concerns', { pathname: '/products', categoryParam: 'skin-care' })).toBe(false);
+    expect(isHeaderNavActive('skin', { pathname: '/corner/acne' })).toBe(false);
   });
 
   it('activates Skin on skin-care category or resolved child department', () => {

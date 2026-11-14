@@ -5,7 +5,7 @@ import { OptionalAuthGuard } from '../accounts/guards/optional-auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
 import { Roles } from '../accounts/decorators/roles.decorator';
 import { CurrentUser } from '../accounts/decorators/current-user.decorator';
-import { RoutineCompatibilityService } from '../care/public';
+import { CareService, RoutineCompatibilityService } from '../care/public';
 import { ConsultationService } from './consultation/consultation.service';
 import { CreateGuidanceSessionDto, RecommendationRequestDto, SendGuidanceMessageDto } from './dto/guidance.dto';
 import { KnowledgeService } from './knowledge/knowledge.service';
@@ -32,6 +32,12 @@ export class GuidanceController {
     return this.consultation.getSession(customer.id, sessionId);
   }
 
+  /** Re-runs the last turn when its answer failed (the customer's message is already saved). */
+  @Post('sessions/:sessionId/retry')
+  retry(@CurrentUser() customer: { id: string }, @Param('sessionId') sessionId: string) {
+    return this.consultation.retryLast(customer.id, sessionId);
+  }
+
   @Post('sessions/:sessionId/messages')
   sendMessage(@CurrentUser() customer: { id: string }, @Param('sessionId') sessionId: string, @Body() dto: SendGuidanceMessageDto) {
     return this.consultation.sendMessage(customer.id, sessionId, dto.content, dto.locale);
@@ -48,7 +54,15 @@ export class CareIntelligenceController {
     private readonly recommendations: RecommendationService,
     private readonly knowledge: KnowledgeService,
     private readonly compatibility: RoutineCompatibilityService,
+    private readonly care: CareService,
   ) {}
+
+  /** Concerns with how many orderable products are linked to each (the Corner index). */
+  @Get('concerns')
+  async concerns() {
+    const concerns = (await this.care.getPublicConcerns()).map(c => ({ slug: c.slug, name: c.name, careArea: c.careArea as 'skin' | 'hair' }));
+    return this.recommendations.concernShelf(concerns);
+  }
 
   @Post('recommendations')
   @UseGuards(OptionalAuthGuard)

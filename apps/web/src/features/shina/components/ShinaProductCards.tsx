@@ -37,6 +37,8 @@ interface CompactProductCardProps {
     canOrder: boolean;
     stepBadge?: string;
     variantName?: string | null;
+    /** Why the engine recommended it (from the consultation); shown under the name. */
+    rationale?: string;
   };
   onAddToBag: (product: Pick<ShinaProduct, 'skuId' | 'name' | 'canOrder'>) => Promise<void>;
   isAdding: boolean;
@@ -89,6 +91,12 @@ function CompactProductCard({
         </Link>
         {product.variantName ? (
           <p className="truncate text-11 text-stone">{product.variantName}</p>
+        ) : null}
+        {product.rationale ? (
+          <p className="line-clamp-3 text-11 leading-snug text-ink">
+            <span className="font-semibold">{m.shinaWhyFits}: </span>
+            {product.rationale}
+          </p>
         ) : null}
         <p className="pt-0.5 font-display text-14 font-bold text-ink">
           {product.canOrder && product.price != null && product.price > 0
@@ -301,6 +309,9 @@ interface ShinaRoutineCardProps {
   addingSkuId: string | null;
   addedSkuIds: ReadonlySet<string>;
   isBatchAdding?: boolean;
+  /** Offered for an assistant routine the backend allows saving; the tap itself is the customer's confirmation. */
+  onSave?: () => void;
+  saveState?: 'pending' | 'saved' | 'failed';
 }
 
 export function ShinaRoutineCard({
@@ -310,6 +321,8 @@ export function ShinaRoutineCard({
   addingSkuId,
   addedSkuIds,
   isBatchAdding = false,
+  onSave,
+  saveState,
 }: ShinaRoutineCardProps) {
   const m = useMessages();
   const locale = useLocale();
@@ -422,6 +435,28 @@ export function ShinaRoutineCard({
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {onSave ? (
+        <div className="mt-3 flex flex-col gap-1.5 border-t border-line/60 pt-3">
+          <p className="m-0 text-12 text-stone">{m.shinaSaveRoutineConfirm}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saveState === 'pending' || saveState === 'saved'}
+              aria-busy={saveState === 'pending'}
+              className="inline-flex min-h-control-s items-center gap-1.5 rounded-pill bg-ink px-3.5 font-display text-12 font-bold text-chalk transition-colors hover:bg-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <Icon name={saveState === 'saved' ? 'check' : 'routine'} size={15} />
+              <span>{saveState === 'pending' ? m.shinaSaveRoutinePending : saveState === 'saved' ? m.shinaSaveRoutineSaved : m.shinaSaveRoutine}</span>
+            </button>
+            {saveState === 'saved' ? (
+              <Link href={routes.myRoutine} className="text-12 font-bold text-cobalt underline decoration-1 underline-offset-2">{m.shinaSaveRoutineSaved}</Link>
+            ) : null}
+            {saveState === 'failed' ? <span role="alert" className="text-12 font-semibold text-tomato-ink">{m.shinaSaveRoutineFailed}</span> : null}
+          </div>
+        </div>
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line/60 pt-3">

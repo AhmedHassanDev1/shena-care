@@ -204,7 +204,8 @@ class LlmGateway:
             choice = body["choices"][0]
             data = _extract_json(choice["message"].get("content"))
         except ProviderResponseInvalidError as exc:
-            logger.warning("llm invalid output task=%s model=%s attempt=%s", task, body.get("model"), attempt)
+            finish = (body.get("choices") or [{}])[0].get("finish_reason") if isinstance(body.get("choices"), list) else None
+            logger.warning("llm invalid output task=%s model=%s attempt=%s finish_reason=%s", task, body.get("model"), attempt, finish)
             return exc, True, True
         except (KeyError, IndexError, TypeError, AttributeError):
             return ProviderResponseInvalidError("OpenRouter response had no message"), True, True

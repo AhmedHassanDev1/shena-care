@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 're
 import Image from 'next/image';
 import { useReducedMotion } from 'motion/react';
 import { Icon } from '@/components/ui/icon';
+import { GlassBadge } from '@/components/ui/glass-badge';
+import { MessageBox } from '@/components/ui/message-box';
+import { saveAiRoutine } from '@/features/care/api/care-intelligence';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useCart } from '@/features/cart/hooks/useCart';
 import { getProductDetail } from '@/features/catalog/api/discovery';
@@ -40,6 +43,8 @@ import {
 export interface ShinaChatViewProps {
   initialQuery?: string;
   contextProductSlug?: string;
+  /** Opened from a Corner concern page: the consultation starts with that concern in mind. */
+  contextConcernSlug?: string;
 }
 
 function isAbortError(err: unknown): boolean {
@@ -49,7 +54,7 @@ function isAbortError(err: unknown): boolean {
   );
 }
 
-export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatViewProps) {
+export function ShinaChatView({ initialQuery, contextProductSlug, contextConcernSlug }: ShinaChatViewProps) {
   const m = useMessages();
   const locale = useLocale();
   const prefersReducedMotion = Boolean(useReducedMotion());
@@ -63,6 +68,9 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
   const [addingSkuId, setAddingSkuId] = useState<string | null>(null);
   const [addedSkuIds, setAddedSkuIds] = useState<Set<string>>(() => new Set());
   const [isBatchAdding, setIsBatchAdding] = useState(false);
+  // Saving an assistant routine: per message, idle → pending → saved | failed. Never automatic.
+  const [routineSaves, setRoutineSaves] = useState<Record<string, 'pending' | 'saved' | 'failed'>>({});
+  const slotLabels = { AM: m.shinaSlotAm, PM: m.shinaSlotPm, AS_NEEDED: m.shinaSlotAsNeeded };
 
   const sessionIdRef = useRef<string | null>(null);
   const hasServerUserTurnRef = useRef(false);
@@ -203,17 +211,22 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
       }
 
       if (!sessionIdRef.current) {
-        const session = await createGuidanceSession(signal);
+        const page = contextConcernSlug
+          ? { kind: 'corner' as const, concernSlug: contextConcernSlug }
+          : contextProductSlug
+            ? { kind: 'product' as const, productSlug: contextProductSlug }
+            : undefined;
+        const session = await createGuidanceSession(signal, page);
         sessionIdRef.current = session.id;
         hasServerUserTurnRef.current = false;
       }
 
-      const response = await sendGuidanceMessage(sessionIdRef.current, query, signal);
+      const response = await sendGuidanceMessage(sessionIdRef.current, query, signal, locale);
       hasServerUserTurnRef.current = true;
       lastFailedQueryRef.current = null;
-      return mapGuidanceDtoToMessage(response, locale, true);
+      return mapGuidanceDtoToMessage(response, locale, true, slotLabels);
     },
-    [locale],
+    [locale, contextConcernSlug, contextProductSlug],
   );
 
   const submitQuery = useCallback(
@@ -345,8 +358,9 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
           return;
         }
 
+        const dailyLimit = err instanceof ApiError && err.status === 429;
         const retryable =
-          err instanceof ApiError
+          dailyLimit ? false : err instanceof ApiError
             ? Boolean((err.data as { retryable?: boolean } | undefined)?.retryable ?? err.status >= 500)
             : true;
 
@@ -357,8 +371,9 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
           {
             id: createMessageId('err'),
             role: 'assistant',
-            content:
-              err instanceof ApiError && err.message
+            content: dailyLimit
+              ? m.shinaDailyLimit
+              : err instanceof ApiError && err.message
                 ? locale === 'ar'
                   ? 'خدمة المستشارة الذكية غير متاحة مؤقتًا حاليًا. يمكنك إعادة المحاولة أو البحث في الكتالوج مباشرة.'
                   : `${err.message} You can retry or search the live catalog directly.`
@@ -378,7 +393,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
         }
       }
     },
-    [abortActiveRequest, isAuthenticated, loadCatalog, locale, m.shinaGuestNotice, sendAiTurn, voice],
+    [abortActiveRequest, isAuthenticated, loadCatalog, locale, m.shinaGuestNotice, m.shinaDailyLimit, sendAiTurn, voice],
   );
 
   const handleRetryLast = useCallback(
@@ -393,7 +408,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
 
         try {
           const retried = await retryGuidanceMessage(sessionIdRef.current, controller.signal);
-          const outcome = mapGuidanceDtoToMessage(retried, locale, true);
+          const outcome = mapGuidanceDtoToMessage(retried, locale, true, slotLabels);
           lastFailedQueryRef.current = null;
           setMessages((prev) => [...prev, outcome.message]);
           setActivityState(outcome.state);
@@ -509,6 +524,17 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
     },
     [addItem, locale, m.cardAddFailed],
   );
+
+  /** Saves the routine exactly as reviewed; the customer's tap on «Save» is the explicit confirmation. */
+  const handleSaveRoutine = useCallback(async (messageId: string, save: NonNullable<NonNullable<ShinaMessage['routine']>['save']>) => {
+    setRoutineSaves((prev) => ({ ...prev, [messageId]: 'pending' }));
+    try {
+      await withAuth(() => saveAiRoutine({ idempotencyKey: crypto.randomUUID(), title: save.title, careArea: save.careArea, steps: save.steps }));
+      setRoutineSaves((prev) => ({ ...prev, [messageId]: 'saved' }));
+    } catch {
+      setRoutineSaves((prev) => ({ ...prev, [messageId]: 'failed' }));
+    }
+  }, [withAuth]);
 
   const handleResetSession = useCallback(() => {
     abortActiveRequest();
@@ -708,6 +734,20 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                   {msg.content}
                 </div>
 
+                {msg.consult?.fallback ? <GlassBadge tone="quiet">{m.shinaFallbackBadge}</GlassBadge> : null}
+
+                {msg.consult?.escalation?.length ? (
+                  <MessageBox tone="warn" title={m.shinaEscalationTitle} className="w-full sm:max-w-3xl">
+                    <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                      {msg.consult.escalation.map((reason) => <li key={reason}>{reason}</li>)}
+                    </ul>
+                  </MessageBox>
+                ) : null}
+
+                {msg.consult?.routineNote ? (
+                  <MessageBox tone="info" className="w-full sm:max-w-3xl">{msg.consult.routineNote}</MessageBox>
+                ) : null}
+
                 {msg.requiresAuthPrompt ? (
                   <button
                     type="button"
@@ -740,6 +780,8 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                 {msg.routine ? (
                   <ShinaRoutineCard
                     routine={msg.routine}
+                    saveState={routineSaves[msg.id]}
+                    onSave={msg.routine.save ? () => handleSaveRoutine(msg.id, msg.routine!.save!) : undefined}
                     onAddToBag={handleAddToBag}
                     onAddManyToBag={handleAddManyToBag}
                     addingSkuId={addingSkuId}
@@ -771,6 +813,21 @@ export function ShinaChatView({ initialQuery, contextProductSlug }: ShinaChatVie
                         <span>{m.shinaSearchCatalogFallback}</span>
                       </button>
                     ) : null}
+                  </div>
+                ) : null}
+
+                {msg.consult?.citations?.length ? (
+                  <div className="flex flex-col gap-1 text-11 text-stone">
+                    <span className="font-semibold text-ink">{m.shinaSourcesTitle}</span>
+                    <ul className="m-0 flex list-none flex-wrap gap-x-3 gap-y-1 p-0">
+                      {msg.consult.citations.map((source) => (
+                        <li key={source.title}>
+                          {source.url ? (
+                            <a href={source.url} target="_blank" rel="noopener noreferrer" className="underline decoration-1 underline-offset-2 hover:text-cobalt"><bdi>{source.title}</bdi></a>
+                          ) : <bdi>{source.title}</bdi>}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 ) : null}
 

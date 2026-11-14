@@ -1,5 +1,7 @@
 import { apiClient, ApiError } from '@/lib/api-client';
+import type { Locale } from '@/lib/i18n/messages';
 import { auth } from '@/lib/auth';
+import type { CompatibilityIssue, KnowledgeView, RecommendedItem } from '@/features/care/api/care-intelligence';
 import type {
   CustomerCareProfileSummary,
   ShinaGuidanceType,
@@ -8,37 +10,30 @@ import type {
   ShinaRoutineStep,
 } from './shina-types';
 
-export interface ApiResolvedProduct {
-  productId: string;
-  skuId: string;
-  slug: string;
-  name: string;
-  brand: string;
-  price: number;
-  currency: string;
-  variantName: string;
-  category: string;
-  imageUrl?: string | null;
-  canOrder: boolean;
+/** One step of an assistant routine: the product the engine chose, the slot, and the manufacturer's own directions. */
+export interface ConsultRoutineStep {
+  slot: 'AM' | 'PM' | 'AS_NEEDED';
+  why: string;
+  howToUse: string | null;
+  item: RecommendedItem;
 }
 
-export interface GuidanceProposalStep {
-  order: number;
-  title: string;
-  timing: 'am' | 'pm' | 'both' | 'as_needed';
-  recommendedProductName?: string | null;
-  instructions?: string | null;
-  isOptional?: boolean;
-}
-
-export interface GuidanceProposal {
-  name?: string | null;
-  description?: string | null;
-  careArea: 'skin' | 'hair';
-  concernSlugs?: string[];
-  amSteps?: GuidanceProposalStep[];
-  pmSteps?: GuidanceProposalStep[];
-  reasoning?: string | null;
+/** The structured part of an assistant turn (apps/api guidance/consultation ConsultPayload). */
+export interface ConsultPayload {
+  version: number;
+  /** AI = worded by the model from grounded data; FALLBACK = the AI was unavailable, engine output only. */
+  source: 'AI' | 'FALLBACK';
+  intent: string;
+  language: Locale;
+  recommendations: Array<RecommendedItem & { why: string }>;
+  routine: { title: string; careArea: 'skin' | 'hair'; steps: ConsultRoutineStep[]; issues: CompatibilityIssue[]; canSave: boolean } | null;
+  routineNote: string | null;
+  citations: KnowledgeView[];
+  followUpQuestion: string | null;
+  quickReplies: string[];
+  escalation: { required: boolean; reasons: Array<{ code: string; text: string }> } | null;
+  excluded: Array<{ name: string; text: string }>;
+  understood: Record<string, unknown>;
 }
 
 export interface GuidanceMessageDto {
@@ -46,19 +41,26 @@ export interface GuidanceMessageDto {
   sessionId: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  proposal?: GuidanceProposal | null;
+  payload?: ConsultPayload | null;
+  /** Older stored turns (before the consultation payload) only carry this. */
   type?: ShinaGuidanceType;
-  resolvedProducts?: ApiResolvedProduct[];
   createdAt: string;
 }
 
 export interface GuidanceSessionDto {
   id: string;
-  customerId: string;
   status: string;
+  understood?: Record<string, unknown>;
   messages?: GuidanceMessageDto[];
   createdAt: string;
-  updatedAt: string;
+}
+
+/** Where the consultation was opened from, so it starts with that concern or product in mind. */
+export interface ConsultPageContext {
+  kind: 'home' | 'corner' | 'category' | 'product' | 'routine' | 'cart' | 'other';
+  concernSlug?: string;
+  categorySlug?: string;
+  productSlug?: string;
 }
 
 function requireToken(): string {
@@ -69,39 +71,28 @@ function requireToken(): string {
   return token;
 }
 
-export async function createGuidanceSession(signal?: AbortSignal): Promise<GuidanceSessionDto> {
+export async function createGuidanceSession(signal?: AbortSignal, page?: ConsultPageContext): Promise<GuidanceSessionDto> {
   const token = requireToken();
-  return apiClient.post<GuidanceSessionDto>('/guidance/sessions', {}, { token, signal });
+  return apiClient.post<GuidanceSessionDto>('/guidance/sessions', page ? { page } : {}, { token, signal });
 }
 
 export async function getGuidanceSession(sessionId: string, signal?: AbortSignal): Promise<GuidanceSessionDto> {
   const token = requireToken();
-  return apiClient.get<GuidanceSessionDto>(`/guidance/sessions/${encodeURIComponent(sessionId)}`, {
-    token,
-    signal,
-  });
+  return apiClient.get<GuidanceSessionDto>(`/guidance/sessions/${encodeURIComponent(sessionId)}`, { token, signal });
 }
 
-export async function sendGuidanceMessage(
-  sessionId: string,
-  content: string,
-  signal?: AbortSignal,
-): Promise<GuidanceMessageDto> {
+export async function sendGuidanceMessage(sessionId: string, content: string, signal?: AbortSignal, locale?: Locale): Promise<GuidanceMessageDto> {
   const token = requireToken();
   return apiClient.post<GuidanceMessageDto>(
     `/guidance/sessions/${encodeURIComponent(sessionId)}/messages`,
-    { content },
+    locale ? { content, locale } : { content },
     { token, signal },
   );
 }
 
 export async function retryGuidanceMessage(sessionId: string, signal?: AbortSignal): Promise<GuidanceMessageDto> {
   const token = requireToken();
-  return apiClient.post<GuidanceMessageDto>(
-    `/guidance/sessions/${encodeURIComponent(sessionId)}/retry`,
-    {},
-    { token, signal },
-  );
+  return apiClient.post<GuidanceMessageDto>(`/guidance/sessions/${encodeURIComponent(sessionId)}/retry`, {}, { token, signal });
 }
 
 export async function getCustomerCareProfile(signal?: AbortSignal): Promise<CustomerCareProfileSummary | null> {
@@ -117,67 +108,68 @@ export async function getCustomerCareProfile(signal?: AbortSignal): Promise<Cust
   }
 }
 
-export function resolvedProductToShinaProduct(item: ApiResolvedProduct): ShinaProduct {
+/** A recommended catalog product as a chat card, carrying the reason it was recommended. */
+export function recommendedToShinaProduct(item: RecommendedItem, why?: string): ShinaProduct {
   return {
     id: item.productId,
     slug: item.slug,
     name: item.name,
     brand: item.brand,
-    price: item.price,
-    currency: item.currency || 'EGP',
+    price: item.price.amount,
+    currency: item.price.currency,
     skuId: item.skuId,
-    variantName: item.variantName,
-    category: item.category,
+    variantName: item.variantName ?? undefined,
+    category: item.category?.name ?? '',
     imageUrl: item.imageUrl ?? undefined,
-    canOrder: Boolean(item.canOrder),
+    canOrder: item.canOrder,
+    rationale: why?.trim() || item.reasons[0]?.text,
   };
 }
 
-function findMatchingResolvedProduct(
-  recommendedName: string | null | undefined,
-  resolved: ShinaProduct[],
-): ShinaProduct | null {
-  if (!recommendedName?.trim() || resolved.length === 0) return null;
-  const target = recommendedName.trim().toLowerCase();
-  return (
-    resolved.find((item) => {
-      const name = item.name.toLowerCase();
-      const full = `${item.brand} ${item.name}`.toLowerCase();
-      return name === target || full === target || target.includes(name) || full.includes(target);
-    }) ?? null
-  );
-}
+const SLOT_TIMING: Record<ConsultRoutineStep['slot'], ShinaRoutineStep['timing']> = { AM: 'am', PM: 'pm', AS_NEEDED: 'as_needed' };
 
-export function proposalToRoutinePreview(
-  proposal: GuidanceProposal | null | undefined,
-  resolvedProducts?: ApiResolvedProduct[],
+/**
+ * An assistant routine as the chat's routine card. Every step is a product the engine picked and the shared
+ * compatibility rules checked; «how to use» is the manufacturer's text or nothing. `save` is only offered when the
+ * backend allows it, and saving still needs the customer's own tap.
+ */
+export function consultRoutineToPreview(
+  routine: ConsultPayload['routine'],
+  locale: Locale,
+  slotLabels: Record<ConsultRoutineStep['slot'], string>,
 ): ShinaRoutinePreview | undefined {
-  if (!proposal) return undefined;
-
-  const am = proposal.amSteps ?? [];
-  const pm = proposal.pmSteps ?? [];
-  if (am.length === 0 && pm.length === 0) return undefined;
-
-  const mappedProducts = (resolvedProducts ?? []).map(resolvedProductToShinaProduct);
-  const toStep = (step: GuidanceProposalStep, fallbackTiming: 'am' | 'pm'): ShinaRoutineStep => ({
-    order: step.order,
-    title: step.title,
-    timing: step.timing || fallbackTiming,
-    instructions: step.instructions ?? null,
-    isOptional: Boolean(step.isOptional),
-    product: findMatchingResolvedProduct(step.recommendedProductName, mappedProducts),
-  });
-
-  const steps: ShinaRoutineStep[] = [
-    ...am.map((step) => toStep(step, 'am')),
-    ...pm.map((step) => toStep(step, 'pm')),
-  ];
-
+  if (!routine || routine.steps.length === 0) return undefined;
+  const steps: ShinaRoutineStep[] = routine.steps.map((step, index) => ({
+    order: index + 1,
+    title: step.item.name,
+    timing: SLOT_TIMING[step.slot],
+    instructions: step.why || null,
+    isOptional: false,
+    roleLabel: slotLabels[step.slot],
+    product: recommendedToShinaProduct(step.item, step.why),
+  }));
+  const issues = routine.issues
+    .filter((issue) => issue.severity !== 'INFO' || issue.code === 'INGREDIENTS_UNVERIFIED')
+    .map((issue) => ({ severity: issue.severity, text: locale === 'ar' ? issue.textAr : issue.textEn }));
   return {
-    title: proposal.name?.trim() || 'ShinaCare Routine',
-    description: proposal.description ?? proposal.reasoning ?? null,
-    careArea: proposal.careArea || 'skin',
+    title: routine.title,
+    description: null,
+    careArea: routine.careArea,
     source: 'ai-guidance',
     steps,
+    notes: issues.map((issue) => issue.text),
+    save: routine.canSave
+      ? {
+          title: routine.title.slice(0, 120),
+          careArea: routine.careArea,
+          steps: routine.steps.map((step) => ({
+            title: step.item.name.slice(0, 80),
+            timing: step.slot,
+            skuId: step.item.skuId,
+            reason: step.why ? step.why.slice(0, 280) : undefined,
+          })),
+          issues,
+        }
+      : undefined,
   };
 }

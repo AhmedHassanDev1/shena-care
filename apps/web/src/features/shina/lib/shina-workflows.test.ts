@@ -182,4 +182,31 @@ describe('shina workflows', () => {
     expect(res.state).toBe('clarification');
     expect(res.message.sourceKind).toBe('ai-guidance');
   });
+
+  it('shows the consultation payload: follow-up question, quick replies, escalation and sources', () => {
+    const asked = mapGuidanceDtoToMessage({
+      id: 'm2', sessionId: 's1', role: 'assistant', content: 'محتاجة أعرف حاجة واحدة.', createdAt: '2026-11-14T00:00:00Z',
+      payload: {
+        version: 1, source: 'AI', intent: 'recommend_products', language: 'ar', recommendations: [], routine: null, routineNote: null,
+        citations: [], followUpQuestion: 'بشرتك نوعها إيه؟', quickReplies: ['دهنية', 'جافة'], escalation: null, excluded: [], understood: {},
+      },
+    }, 'ar', true);
+    expect(asked.state).toBe('clarification');
+    expect(asked.message.content).toContain('بشرتك نوعها إيه؟');
+    expect(asked.message.suggestions).toEqual(['دهنية', 'جافة']);
+
+    const escalated = mapGuidanceDtoToMessage({
+      id: 'm3', sessionId: 's1', role: 'assistant', content: 'لازم دكتور يشوفها.', createdAt: '2026-11-14T00:00:00Z',
+      payload: {
+        version: 1, source: 'FALLBACK', intent: 'recommend_products', language: 'ar', recommendations: [], routine: null, routineNote: null,
+        citations: [{ id: 'k1', topic: 'ESCALATION', subject: { type: 'CONCERN', key: 'acne' }, concernSlug: 'acne', statement: 'See a doctor if…',
+          evidenceClass: 'EVIDENCE_SUPPORTED', professionallyReviewed: false,
+          source: { title: 'NHS — Acne', url: 'https://www.nhs.uk/conditions/acne/', type: 'CLINICAL_GUIDELINE', retrievedAt: '2026-11-14T00:00:00Z' } }],
+        followUpQuestion: null, quickReplies: [], escalation: { required: true, reasons: [{ code: 'INFECTION_SIGNS', text: 'فيه علامات عدوى.' }] },
+        excluded: [], understood: {},
+      },
+    }, 'ar', true);
+    expect(escalated.state).toBe('warning');
+    expect(escalated.message.consult).toMatchObject({ fallback: true, escalation: ['فيه علامات عدوى.'], citations: [{ title: 'NHS — Acne', professionallyReviewed: false }] });
+  });
 });

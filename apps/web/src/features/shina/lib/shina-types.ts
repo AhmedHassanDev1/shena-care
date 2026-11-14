@@ -68,6 +68,7 @@ export interface ShinaRoutinePreview {
   steps: ShinaRoutineStep[];
   notes?: string[];
   excludedCount?: number;
+  save?: ShinaRoutineSave;
 }
 
 export type ShinaSourceKind =
@@ -95,10 +96,32 @@ export interface ShinaMessage {
   retryable?: boolean;
   requiresAuthPrompt?: boolean;
   pendingQuery?: string;
+  consult?: ShinaConsultExtras;
 }
 
 export interface CustomerCareProfileSummary {
   skinType?: string | null;
   sensitivities?: string | null;
   concerns?: Array<{ concern?: { name: string; slug: string } }>;
+}
+
+/** What the consultation adds to an assistant turn (apps/api guidance ConsultPayload, mapped for the chat). */
+export interface ShinaConsultExtras {
+  /** The answer came from the catalogue engine because the AI was unavailable. */
+  fallback?: boolean;
+  /** «See a professional» reasons decided by the backend; when present, no product is recommended for the problem. */
+  escalation?: string[];
+  /** Sourced statements the answer relied on. */
+  citations?: Array<{ title: string; url: string | null; professionallyReviewed: boolean }>;
+  /** Why no personal routine was built (e.g. pregnancy needs a professional's review first). */
+  routineNote?: string | null;
+}
+
+/** An assistant routine the customer can review and save to My Routines (never saved without their explicit tap). */
+export interface ShinaRoutineSave {
+  title: string;
+  careArea: 'skin' | 'hair';
+  steps: Array<{ title: string; timing: 'AM' | 'PM' | 'AS_NEEDED'; skuId: string; reason?: string }>;
+  /** Compatibility notes from the shared routine rules, already in the customer's language. */
+  issues: Array<{ severity: 'BLOCK' | 'WARN' | 'INFO'; text: string }>;
 }

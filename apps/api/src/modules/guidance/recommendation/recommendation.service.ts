@@ -28,7 +28,8 @@ export interface RecommendationInput {
 export interface RecommendedItem {
   productId: string; skuId: string; slug: string; name: string; brand: string; brandSlug: string
   productType: string | null; role: string | null; careArea: 'skin' | 'hair' | null
-  variantName: string | null; sizeLabel: string | null; imageUrl: string | null
+  variantName: string | null; sizeLabel: string | null; size: number | null; sizeUnit: string | null; imageUrl: string | null
+  category: { slug: string; name: string } | null
   price: { amount: number; currency: string; compareAtAmount: number | null }
   canOrder: true
   matchLevel: 'STRONG' | 'GOOD' | 'BASIC'
@@ -116,6 +117,37 @@ export class RecommendationService {
     return (await this.run(input, locale)).result;
   }
 
+  /**
+   * The Corner shelf: every active concern with how many orderable products the engine links to it, from one catalog
+   * load. A concern with nothing to show is reported with count 0 so the storefront can hide it (never a dead shelf).
+   * Safety answers are unknown here, so products held back for a safety question are not counted.
+   */
+  async concernShelf(concerns: Array<{ slug: string; name: string; careArea: 'skin' | 'hair' }>) {
+    const [products, vocabulary, knowledge, rules] = await Promise.all([
+      this.catalog.getCareProductFacts({}),
+      this.catalog.getActiveIngredientVocabulary() as Promise<IngredientVocabulary[]>,
+      this.knowledge.forEngine(),
+      this.compatibility.rules(),
+    ]);
+    const terms = await this.commerce.getSellingTermsBatch(products.flatMap(product => product.variants.map(variant => variant.skuId)));
+    const offers = new Map<string, Offer>();
+    for (const [skuId, term] of terms) if (term) offers.set(skuId, { skuId, canOrder: term.canOrder, price: term.price });
+    const safetyRules: EngineSafetyRule[] = rules.filter(rule => rule.kind === 'EXCLUDE_CONDITION' && !!rule.condition)
+      .map(rule => ({ key: rule.key, subjectType: rule.subjectType, subject: rule.subject, condition: rule.condition!, noteAr: rule.noteAr, sourceTitle: rule.sourceTitle, sourceUrl: rule.sourceUrl }));
+    const facts = new Map(products.map(product => [product.productId, product]));
+    return concerns.map(concern => {
+      const result = recommend({ careArea: concern.careArea, concerns: [concern.slug], productTypes: [], safety: { ...UNKNOWN_SAFETY },
+        avoidIngredientIds: [], unresolvedAvoidTerms: [], limit: 24, perTypeLimit: null }, products, offers, knowledge, safetyRules, vocabulary);
+      const lead = result.ranked.find(item => facts.get(item.productId)?.imageUrl);
+      return {
+        slug: concern.slug, name: concern.name, careArea: concern.careArea, productCount: result.ranked.length,
+        heldForSafety: result.needsSafetyAnswer.length > 0,
+        productTypes: [...new Set(result.ranked.map(item => item.productType).filter((type): type is string => !!type))],
+        leadImageUrl: lead ? facts.get(lead.productId)!.imageUrl : null,
+      };
+    });
+  }
+
   /** The customer's words -> ontology ingredients. A word that matches nothing is returned as unresolved, never guessed. */
   private async resolveSensitivities(terms: string[]): Promise<{ ids: string[]; unresolved: string[] }> {
     const ids: string[] = [];
@@ -141,7 +173,8 @@ export class RecommendationService {
     return {
       productId: product.productId, skuId: item.skuId, slug: product.slug, name: product.name, brand: product.brandName, brandSlug: product.brandSlug,
       productType: item.productType, role: item.role, careArea: item.careArea,
-      variantName: variant?.variantName ?? null, sizeLabel: variant ? sizeLabel(variant.size, variant.sizeUnit) : null, imageUrl: product.imageUrl,
+      variantName: variant?.variantName ?? null, sizeLabel: variant ? sizeLabel(variant.size, variant.sizeUnit) : null, size: variant?.size ?? null, sizeUnit: variant?.sizeUnit ?? null,
+      imageUrl: product.imageUrl, category: product.categorySlug ? { slug: product.categorySlug, name: product.categoryName ?? product.categorySlug } : null,
       price: item.price!, canOrder: true, matchLevel: item.matchLevel,
       reasons: item.reasons.map(r => ({ code: r.code, basis: r.basis, text: locale === 'ar' ? r.textAr : r.textEn, concernSlug: r.concernSlug, source: source(r.knowledgeId) })),
       cautions: item.cautions.map(c => ({ code: c.code, basis: c.basis, text: locale === 'ar' ? c.textAr : c.textEn, source: source(c.knowledgeId) })),

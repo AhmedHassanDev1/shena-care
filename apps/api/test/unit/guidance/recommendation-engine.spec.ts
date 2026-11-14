@@ -65,6 +65,18 @@ describe('Recommendation engine V1 (GLO-302)', () => {
     expect(serum.cautions.some(c => c.code === 'UNVERIFIED_INCI_WITH_CONDITION')).toBe(true);
   });
 
+  it('does not hold a hair wash back with the skin-treatment safety rules', () => {
+    const acidRule = { ...RETINOID_PREGNANCY_RULE, key: 'oral-isotretinoin-hydroxy-acids', subject: 'hydroxy-acids', condition: 'ORAL_RETINOID' };
+    const result = recommend(query({ careArea: 'hair', concerns: ['dandruff'] }), [shampoo], offersFor([shampoo]), knowledge, [acidRule], VOCABULARY);
+    expect(result.ranked.map(r => r.productId)).toEqual([shampoo.productId]);
+    expect(result.needsSafetyAnswer).toEqual([]);
+    // ...while the same rule still holds a leave-on skin product with that acid
+    const toner = facts({ name: 'Salicylic Acid Toner', type: 'toner', ingredients: [['salicylic-acid', 'hydroxy-acids', true]] });
+    const skin = recommend(query({ concerns: ['acne'] }), [toner], offersFor([toner]), knowledge, [acidRule], VOCABULARY);
+    expect(skin.ranked).toHaveLength(0);
+    expect(skin.needsSafetyAnswer).toEqual(['ORAL_RETINOID']);
+  });
+
   it('applies a manufacturer contraindication for the customer condition', () => {
     const warned = facts({ name: 'Warned Serum', type: 'serum', warnings: [{ kind: 'CONTRAINDICATION', condition: 'BREASTFEEDING' }] });
     const result = recommend(query({ productTypes: ['serum'], safety: { ...UNKNOWN_SAFETY, breastfeeding: 'YES', pregnant: 'NO' } }),

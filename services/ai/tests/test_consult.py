@@ -186,6 +186,17 @@ async def test_understanding_outside_the_vocabulary_is_dropped(openrouter_env):
     assert result.context.budgetMax is None
 
 
+async def test_over_long_fields_are_trimmed_not_discarded(openrouter_env):
+    model_output = {
+        "message": "م" * 3000, "followUpQuestion": None, "quickReplies": ["أ", "ب", "ج", "د", "هـ"],
+        "recommendations": [{"ref": "P1", "why": "سبب " * 200}], "routine": None, "citations": [],
+    }
+    result = await ConsultService(_provider(model_output)).respond(RespondRequest(**_respond_body()), correlation_id="t")
+    assert len(result.message) == 2400
+    assert len(result.quickReplies) == 4
+    assert [r.ref for r in result.recommendations] == ["P1"] and len(result.recommendations[0].why) == 400
+
+
 async def test_output_that_breaks_the_contract_is_an_invalid_response(openrouter_env):
     from fastapi import HTTPException
     request = UnderstandRequest(**_understand_body("hi"))

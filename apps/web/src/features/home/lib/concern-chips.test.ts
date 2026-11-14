@@ -11,8 +11,8 @@ describe('homepage concern chips', () => {
 
   it('open the concern filter when the taxonomy defines the concern', () => {
     const taxonomy = [concern('acne-prone', 'Acne', 'skin'), concern('hair-fall', 'Hair Fall', 'hair')];
-    expect(concernHref(chip('acne'), 'حب الشباب', taxonomy)).toEqual({ href: '/products?concern=acne-prone', filtered: true });
-    expect(concernHref(chip('hair-loss'), 'تساقط الشعر', taxonomy)).toEqual({ href: '/products?concern=hair-fall', filtered: true });
+    expect(concernHref(chip('acne'), 'حب الشباب', taxonomy)).toEqual({ href: '/corner/acne-prone', filtered: true });
+    expect(concernHref(chip('hair-loss'), 'تساقط الشعر', taxonomy)).toEqual({ href: '/corner/hair-fall', filtered: true });
   });
 
   it('fall back to the catalog search for the label until the taxonomy defines the concern', () => {

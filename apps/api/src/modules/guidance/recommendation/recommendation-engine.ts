@@ -320,7 +320,10 @@ export function recommend(
     }
 
     let held = false;
-    for (const rule of safetyRules) {
+    // The condition rules (pregnancy, breastfeeding, oral isotretinoin) come from guidance on leave-on facial and body
+    // treatments; a hair wash that lists an acid in its INCI is not what they are about. Hair products are judged by their
+    // own manufacturer warnings (above), not by these skin rules.
+    for (const rule of area === 'hair' ? [] : safetyRules) {
       const answer = safetyAnswer(query.safety, rule.condition);
       if (answer === null || answer === 'NO' || !ruleMatches(rule, product, actives)) continue;
       const condition = rule.condition as SafetyCondition;

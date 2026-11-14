@@ -6,7 +6,7 @@ import { routes } from '@/lib/routes';
 /**
  * The six customer concerns the homepage leads with. These are CONCERNS (what the customer wants to fix), never product
  * categories. Each chip resolves against the public concern taxonomy (GET /care/concerns): when a concern with a matching
- * slug or name exists the chip opens the concern filter (`?concern=`); until the taxonomy defines it, the chip opens the
+ * slug or name exists the chip opens the concern's Corner page (`/corner/<slug>`); until the taxonomy defines it, the chip opens the
  * catalog search for its label, which is a supported route and never a dead end.
  */
 export interface ConcernChip {
@@ -40,5 +40,6 @@ export function findConcern(chip: ConcernChip, concerns: readonly Concern[]): Co
 
 export function concernHref(chip: ConcernChip, label: string, concerns: readonly Concern[]): { href: string; filtered: boolean } {
   const concern = findConcern(chip, concerns);
-  return concern ? { href: routes.productsByConcern(concern.slug), filtered: true } : { href: routes.productsSearch(label), filtered: false };
+  // A concern the taxonomy defines opens its Corner page (products, why they fit, sourced guidance).
+  return concern ? { href: routes.cornerConcern(concern.slug), filtered: true } : { href: routes.productsSearch(label), filtered: false };
 }

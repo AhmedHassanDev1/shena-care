@@ -37,7 +37,7 @@ class TaskConfig:
 # task -> (tier, max_tokens, temperature, timeout seconds)
 _TASKS: dict[str, tuple[str, int, float | None, float]] = {
     "consult.understand": ("economy", 900, None, 25.0),
-    "consult.respond": ("strong", 1800, None, 45.0),
+    "consult.respond": ("strong", 3200, None, 50.0),
     "guidance.legacy": ("strong", 2000, None, 45.0),
     "enrichment.product": ("economy", 2000, None, 30.0),
     "content.generate": ("economy", 3500, None, 45.0),

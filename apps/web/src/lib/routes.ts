@@ -21,6 +21,16 @@ export const routes = {
   productsSearch: (query: string) => `/products?q=${encodeURIComponent(query)}`,
   /** Catalog listing narrowed by a curated care concern slug. */
   productsByConcern: (slug: string) => `/products?concern=${encodeURIComponent(slug)}`,
+  /** The Corner: discovery by concern (what the customer wants to care for). */
+  corner: '/corner',
+  cornerConcern: (slug: string) => `/corner/${encodeURIComponent(slug)}`,
+  /** The care consultation, opened with the page's context. */
+  shinaFor: (context: { concern?: string; product?: string; q?: string }) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(context)) if (value) params.set(key, value);
+    const query = params.toString();
+    return query ? `/shina?${query}` : '/shina';
+  },
   routines: '/routines',
   routine: (id: string) => `/routines/${encodeURIComponent(id)}`,
   routineDetail: (slug: string) => `/routines/${encodeURIComponent(slug)}`,

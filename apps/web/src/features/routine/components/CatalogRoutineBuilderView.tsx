@@ -14,6 +14,7 @@ import { formatEgp, formatNumber, formatPackSize } from '@/lib/i18n/format';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { routes } from '@/lib/routes';
 import { buildRoutineChoices, getRoutineProfiles, sequenceRoutine, type RoutineChoice, type SequencedRoutine } from '../lib/catalog-routine';
+import { RoutineCompatibilityPanel } from '@/features/care/components/RoutineCompatibilityPanel';
 
 const roleLabels: Record<string, { ar: string; en: string }> = {
   CLEANSER: { ar: 'غسول', en: 'Cleanser' }, MOISTURIZER: { ar: 'مرطب', en: 'Moisturizer' },
@@ -134,6 +135,7 @@ export function CatalogRoutineBuilderView() {
         <Button onClick={() => void addAll()} loading={cartState === 'pending'} pendingLabel={t.adding} disabled={cartState === 'pending'}>{cartState === 'success' ? t.added : t.add}</Button>
         {cartState === 'success' ? <Link href={routes.cart}>{t.viewCart}</Link> : null}
       </div> : null}
+      {result.steps.length ? <RoutineCompatibilityPanel steps={result.steps.map(step => ({ skuId: step.skuId, timing: domain === 'SKIN' ? period : 'AS_NEEDED' }))} /> : null}
       {cartState === 'error' ? <p role="alert">{t.addError}</p> : null}
     </Section> : null}
   </>;

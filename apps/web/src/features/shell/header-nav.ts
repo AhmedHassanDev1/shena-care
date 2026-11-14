@@ -1,6 +1,7 @@
+import { getMessages } from '@/lib/i18n/messages';
 import { mainCategorySlugs, routes } from '@/lib/routes';
 
-export const HEADER_NAV_KEYS = ['skin', 'hair', 'brands'] as const;
+export const HEADER_NAV_KEYS = ['concerns', 'skin', 'hair', 'brands'] as const;
 export type HeaderNavKey = (typeof HEADER_NAV_KEYS)[number];
 
 export interface HeaderNavItem {
@@ -13,6 +14,8 @@ export interface HeaderNavLabels {
   navSkin: string;
   navHair: string;
   navBrands: string;
+  /** «حسب الاهتمام»; when a caller does not pass it, the label comes from the dictionary of the same language. */
+  navConcerns?: string;
 }
 
 export interface HeaderNavLocation {
@@ -23,12 +26,16 @@ export interface HeaderNavLocation {
   departmentSlug?: string | null;
 }
 
+const concernsLabel = (labels: HeaderNavLabels) =>
+  labels.navConcerns ?? getMessages(/[\u0600-\u06FF]/.test(labels.navSkin) ? 'ar' : 'en').navConcerns;
+
 /**
- * Returns the essential storefront header navigation items in display order:
- * Skin, Hair, Brands.
+ * The storefront's two doors, in display order: By concern (the Corner) first, then the category shelves Skin and
+ * Hair, then Brands. Both doors lead to the same catalog.
  */
 export function getHeaderNavItems(labels: HeaderNavLabels): readonly HeaderNavItem[] {
   return [
+    { key: 'concerns', href: routes.corner, label: concernsLabel(labels) },
     { key: 'skin', href: routes.productsByCategory(mainCategorySlugs.skin), label: labels.navSkin },
     { key: 'hair', href: routes.productsByCategory(mainCategorySlugs.hair), label: labels.navHair },
     { key: 'brands', href: routes.products, label: labels.navBrands },
@@ -47,7 +54,9 @@ function normalizePathname(pathname: string | null | undefined): string {
  * queries or sub-categories never highlight unrelated items.
  */
 export function isHeaderNavActive(key: HeaderNavKey, location: HeaderNavLocation): boolean {
-  if (normalizePathname(location.pathname) !== routes.products) {
+  const pathname = normalizePathname(location.pathname);
+  if (key === 'concerns') return pathname === routes.corner || pathname.startsWith(`${routes.corner}/`);
+  if (pathname !== routes.products) {
     return false;
   }
 

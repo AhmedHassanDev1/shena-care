@@ -157,6 +157,17 @@ describe('Care consultation, recommendations and knowledge (GLO-301 / GLO-302 / 
       expect(pregnant.body.excluded.find((e: { productId: string }) => e.productId === products.retinol.productId)).toMatchObject({ code: 'SAFETY_CONDITION' });
     });
 
+    it('lists each concern with how many orderable products it has, so an empty shelf can be hidden', async () => {
+      const res = await request(app.getHttpServer()).get('/guidance/concerns').expect(200);
+      const ours = res.body.find((c: { slug: string }) => c.slug === concern);
+      // retinol is held until pregnancy is answered, the unlisted moisturizer is not orderable
+      expect(ours).toMatchObject({ careArea: 'skin', productCount: 2, heldForSafety: true });
+      expect(ours.productTypes.sort()).toEqual(['cleanser', 'sunscreen']);
+      expect(ours.leadImageUrl).toMatch(/^https:\/\/cdn\.fixtures\.test\//);
+      const item = (await request(app.getHttpServer()).post('/guidance/recommendations').send({ concerns: [concern], productTypes: ['cleanser'] }).expect(201)).body.items[0];
+      expect(item).toMatchObject({ size: 50, sizeUnit: 'ml', category: { slug: 'skin-care' } });
+    });
+
     it('answers a no-match with an empty list and validates its input', async () => {
       const none = await recommend({ careArea: 'hair', concerns: [concern] }).expect(201);
       expect(none.body.items).toEqual([]);
@@ -333,6 +344,18 @@ describe('Care consultation, recommendations and knowledge (GLO-301 / GLO-302 / 
       } finally {
         delete process.env.AI_CONSULT_DAILY_MESSAGES;
       }
+    });
+
+    it('retries an unanswered message without saving it twice, and only for its owner', async () => {
+      const session = await newSession();
+      await prisma.guidanceMessage.create({ data: { sessionId: session.id, role: 'user', content: 'عايزة غسول' } });
+      ai.understand = understood({ careArea: 'skin', productTypes: ['cleanser'] });
+      await request(app.getHttpServer()).post(`/guidance/sessions/${session.id}/retry`).set(auth(otherToken)).expect(403);
+      const res = await request(app.getHttpServer()).post(`/guidance/sessions/${session.id}/retry`).set(auth()).expect(201);
+      expect(res.body.payload.recommendations).toHaveLength(1);
+      const roles = (await prisma.guidanceMessage.findMany({ where: { sessionId: session.id }, orderBy: { createdAt: 'asc' } })).map(m => m.role);
+      expect(roles).toEqual(['user', 'assistant']);
+      await request(app.getHttpServer()).post(`/guidance/sessions/${session.id}/retry`).set(auth()).expect(400); // already answered
     });
 
     it('rejects empty and oversized messages', async () => {

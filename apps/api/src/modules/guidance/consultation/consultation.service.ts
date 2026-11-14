@@ -119,6 +119,20 @@ export class ConsultationService {
     await this.assertWithinLimits(customerId);
 
     await this.prisma.guidanceMessage.create({ data: { sessionId, role: GuidanceMessageRole.user, content: text } });
+    return this.runTurn(customerId, session, text, requestedLocale);
+  }
+
+  /** Answers the last customer message again when no answer was stored for it (e.g. the request was interrupted). */
+  async retryLast(customerId: string, sessionId: string) {
+    const session = await this.owned(customerId, sessionId);
+    const last = await this.prisma.guidanceMessage.findFirst({ where: { sessionId, role: { not: GuidanceMessageRole.system } }, orderBy: { createdAt: 'desc' } });
+    if (!last || last.role !== GuidanceMessageRole.user) throw new BadRequestException('There is no unanswered message to retry');
+    await this.assertWithinLimits(customerId);
+    return this.runTurn(customerId, session, last.content);
+  }
+
+  private async runTurn(customerId: string, session: { id: string; context: Prisma.JsonValue; pageContext: Prisma.JsonValue }, text: string, requestedLocale?: 'ar' | 'en') {
+    const sessionId = session.id;
     const history = await this.prisma.guidanceMessage.findMany({ where: { sessionId, role: { not: GuidanceMessageRole.system } }, orderBy: { createdAt: 'desc' }, take: HISTORY_TURNS });
     const turns: ConsultTurn[] = history.reverse().map(m => ({ role: m.role === GuidanceMessageRole.user ? 'user' : 'assistant', content: m.content.slice(0, 2000) }));
     const recentClarifications = history.filter(m => m.role === GuidanceMessageRole.assistant).slice(-2)

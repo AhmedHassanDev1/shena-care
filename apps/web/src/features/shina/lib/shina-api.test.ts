@@ -3,8 +3,8 @@ import { auth } from '@/lib/auth';
 import {
   createGuidanceSession,
   getCustomerCareProfile,
-  proposalToRoutinePreview,
-  resolvedProductToShinaProduct,
+  consultRoutineToPreview,
+  recommendedToShinaProduct,
   retryGuidanceMessage,
   sendGuidanceMessage,
 } from './shina-api';
@@ -97,49 +97,42 @@ describe('shina-api guidance integration', () => {
     await expect(getCustomerCareProfile()).resolves.toBeNull();
   });
 
-  it('maps resolvedProducts and GuidanceProposal into verified Shina routine steps', () => {
-    const resolved = [
-      {
-        productId: 'p1',
-        skuId: 'sku-1',
-        slug: 'cleanser-a',
-        name: 'Antioxidant Facial Cleanser',
-        brand: 'StarVille',
-        price: 185,
-        currency: 'EGP',
-        variantName: '200 ml',
-        category: 'Cleansers',
-        imageUrl: 'https://cdn.example/1.jpg',
-        canOrder: true,
-      },
-    ];
+  it('sends the page context when a consultation starts from a concern', async () => {
+    mockedAuth.getToken.mockReturnValue('tok-123');
+    mockedApiClient.post.mockResolvedValueOnce({ id: 'sess-2', status: 'active' } as never);
+    await createGuidanceSession(undefined, { kind: 'corner', concernSlug: 'acne' });
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/guidance/sessions', { page: { kind: 'corner', concernSlug: 'acne' } }, { token: 'tok-123', signal: undefined });
+  });
 
-    expect(resolvedProductToShinaProduct(resolved[0])).toMatchObject({
-      slug: 'cleanser-a',
-      skuId: 'sku-1',
-      price: 185,
-      canOrder: true,
-    });
+  it('maps an engine-picked routine into chat steps with the reason, and offers saving only when allowed', () => {
+    const item = {
+      productId: 'p1', skuId: 'sku-1', slug: 'cleanser-a', name: 'Antioxidant Facial Cleanser', brand: 'StarVille', brandSlug: 'starville',
+      productType: 'cleanser', role: 'CLEANSER', careArea: 'skin' as const, variantName: '200 ml', sizeLabel: '200 ml', size: 200, sizeUnit: 'ml',
+      imageUrl: 'https://cdn.example/1.jpg', category: { slug: 'cleansers', name: 'Cleansers' },
+      price: { amount: 185, currency: 'EGP', compareAtAmount: null }, canOrder: true as const, matchLevel: 'GOOD' as const,
+      reasons: [{ code: 'TYPE_FOR_CONCERN', basis: 'EVIDENCE' as const, text: 'Gentle cleansing helps acne-prone skin.' }],
+      cautions: [], unknowns: [], keyActives: [], usage: { text: 'Massage onto wet skin, rinse.', period: null, verified: false },
+    };
+    expect(recommendedToShinaProduct(item, 'Why it fits')).toMatchObject({ slug: 'cleanser-a', skuId: 'sku-1', price: 185, canOrder: true, rationale: 'Why it fits' });
+    expect(recommendedToShinaProduct(item).rationale).toBe('Gentle cleansing helps acne-prone skin.');
 
-    const preview = proposalToRoutinePreview(
-      {
-        name: 'Morning Care',
-        careArea: 'skin',
-        amSteps: [
-          {
-            order: 1,
-            title: 'Cleanse',
-            timing: 'am',
-            recommendedProductName: 'Antioxidant Facial Cleanser',
-            instructions: 'Gentle wash',
-          },
-        ],
-        pmSteps: [],
-      },
-      resolved,
-    );
-
-    expect(preview?.steps).toHaveLength(1);
-    expect(preview?.steps[0].product?.slug).toBe('cleanser-a');
+    const labels = { AM: 'Morning', PM: 'Evening', AS_NEEDED: 'As needed' };
+    const routine = {
+      title: 'Acne care', careArea: 'skin' as const, canSave: true,
+      steps: [{ slot: 'AM' as const, why: 'Start clean', howToUse: 'Massage onto wet skin, rinse.', item }, { slot: 'PM' as const, why: 'End clean', howToUse: null, item }],
+      issues: [
+        { code: 'INGREDIENTS_UNVERIFIED', severity: 'INFO' as const, textAr: 'غير موثّق', textEn: 'Not verified', skuIds: ['sku-1'] },
+        { code: 'DUPLICATE_ROLE', severity: 'INFO' as const, textAr: 'تكرار', textEn: 'Duplicate', skuIds: ['sku-1'] },
+      ],
+    };
+    const preview = consultRoutineToPreview(routine, 'en', labels);
+    expect(preview?.steps.map((step) => [step.timing, step.roleLabel, step.instructions])).toEqual([['am', 'Morning', 'Start clean'], ['pm', 'Evening', 'End clean']]);
+    expect(preview?.notes).toEqual(['Not verified']); // only the INFO issue that matters to the customer
+    expect(preview?.save?.steps).toEqual([
+      { title: 'Antioxidant Facial Cleanser', timing: 'AM', skuId: 'sku-1', reason: 'Start clean' },
+      { title: 'Antioxidant Facial Cleanser', timing: 'PM', skuId: 'sku-1', reason: 'End clean' },
+    ]);
+    expect(consultRoutineToPreview({ ...routine, canSave: false }, 'en', labels)?.save).toBeUndefined();
+    expect(consultRoutineToPreview(null, 'en', labels)).toBeUndefined();
   });
 });

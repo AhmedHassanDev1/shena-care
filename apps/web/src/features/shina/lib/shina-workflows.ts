@@ -14,8 +14,8 @@ import {
   toChatProduct,
 } from './catalog-chat';
 import {
-  proposalToRoutinePreview,
-  resolvedProductToShinaProduct,
+  consultRoutineToPreview,
+  recommendedToShinaProduct,
   type GuidanceMessageDto,
 } from './shina-api';
 import type { ShinaActivityState, ShinaMessage, ShinaProduct } from './shina-types';
@@ -276,32 +276,59 @@ export async function runCatalogRoutineWorkflow(
   };
 }
 
+/**
+ * An assistant turn from the consultation API as a chat message. Products, routine, sources and escalation all come
+ * from the structured payload; the text is shown as written. Older stored turns without a payload show their text only.
+ */
 export function mapGuidanceDtoToMessage(
   dto: GuidanceMessageDto,
   locale: Locale,
   isAuthenticated: boolean,
+  slotLabels: { AM: string; PM: string; AS_NEEDED: string } = locale === 'ar'
+    ? { AM: 'الصبح', PM: 'بالليل', AS_NEEDED: 'عند الحاجة' }
+    : { AM: 'Morning', PM: 'Evening', AS_NEEDED: 'As needed' },
 ): { message: ShinaMessage; state: ShinaActivityState } {
-  const products = (dto.resolvedProducts ?? []).map(resolvedProductToShinaProduct);
-  const routine = proposalToRoutinePreview(dto.proposal, dto.resolvedProducts);
-  const isClarification = dto.type === 'clarification';
+  const payload = dto.payload ?? null;
+  const routine = payload ? consultRoutineToPreview(payload.routine, locale, slotLabels) : undefined;
+  // Products already shown as routine steps are not repeated as separate cards.
+  const inRoutine = new Set(routine?.steps.map((step) => step.product?.skuId).filter(Boolean) as string[]);
+  const products = (payload?.recommendations ?? [])
+    .filter((item) => !inRoutine.has(item.skuId))
+    .map((item) => recommendedToShinaProduct(item, item.why));
+  const followUp = payload?.followUpQuestion?.trim();
+  const asksQuestion = Boolean(followUp) && products.length === 0 && !routine;
+  const isClarification = asksQuestion || dto.type === 'clarification';
+  const content = followUp && !dto.content.includes(followUp) ? `${dto.content}
+
+${followUp}` : dto.content;
+  const quickReplies = payload?.quickReplies?.filter(Boolean) ?? [];
 
   return {
-    state: isClarification ? 'clarification' : 'completed',
+    state: payload?.escalation?.required ? 'warning' : isClarification ? 'clarification' : 'completed',
     message: {
       id: dto.id || createMessageId('ai'),
       role: 'assistant',
-      content: dto.content,
+      content,
       timestamp: formatTimeLabel(locale),
       sourceKind: 'ai-guidance',
-      guidanceType: dto.type,
+      guidanceType: isClarification ? 'clarification' : routine ? 'proposal' : products.length ? 'shortlist' : 'answer',
       products: products.length > 0 ? products : undefined,
       routine,
-      suggestions: buildFollowUpSuggestions({
-        locale,
-        products,
-        hasRoutine: Boolean(routine),
-        isAuthenticated,
-      }),
+      consult: payload
+        ? {
+            fallback: payload.source === 'FALLBACK',
+            escalation: payload.escalation?.required ? payload.escalation.reasons.map((reason) => reason.text) : undefined,
+            citations: payload.citations.map((citation) => ({
+              title: citation.source.title,
+              url: citation.source.url,
+              professionallyReviewed: citation.professionallyReviewed,
+            })),
+            routineNote: payload.routineNote,
+          }
+        : undefined,
+      suggestions: quickReplies.length
+        ? quickReplies
+        : buildFollowUpSuggestions({ locale, products, hasRoutine: Boolean(routine), isAuthenticated }),
     },
   };
 }
