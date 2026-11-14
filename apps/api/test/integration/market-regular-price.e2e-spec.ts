@@ -54,6 +54,10 @@ describe('regular-price evidence persistence and Admin boundary', () => {
     expect(observations.find(o => o.sourceUrl === marketplace)).toMatchObject({ status: 'REJECTED', rejectReason: 'SELLER_NOT_VERIFIED' });
     expect(await db.sellingPrice.findMany({ where: { skuId } })).toEqual(before);
     expect(await db.listing.count({ where: { skuId } })).toBe(0);
+    const legacy = await db.marketPriceCheck.create({ data: { skuId, requestedBy: admin.id, status: 'REFERENCE_READY', coverage: {}, cost: { rule: 'market-price@1' },
+      reference: { medianEgp: 50 }, startedAt: new Date(Date.now() + 60000) } });
+    const current = await api.get(url).set(admin.auth).expect(200);
+    expect(current.body.check.id).not.toBe(legacy.id);
     await api.post(url).set(admin.auth).send({ force: true }).expect(200);
     expect(await db.retailPriceObservation.count({ where: { skuId } })).toBe(observations.length);
   });

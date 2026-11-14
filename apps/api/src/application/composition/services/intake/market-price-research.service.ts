@@ -4,7 +4,7 @@ import {
   CatalogIntakeService, extractProductFacts, hostIsBrandDomain, ProductResearchService, ResearchSourceFetcher, VERIFIED_IDENTITY_STATES,
 } from '../../../../modules/catalog/public';
 import { checkObservation, extractPageOffers, MARKET_RULE_VERSION, MarketPriceStoreService, marketReference, MarketSourceType, readMarketPriceEvidence } from '../../../../modules/intake/public';
-import { OfferIntakeService } from '../../../../modules/sourcing/public';
+import { getSourcingMode, OfferIntakeService } from '../../../../modules/sourcing/public';
 
 /** Fresh enough: observations older than this are not a current market price. */
 export const MARKET_MAX_AGE_DAYS = 14;
@@ -61,7 +61,8 @@ export class MarketPriceResearchService {
   private pricingState(cost: { purchasePrice: number; consumerPrice: number | null; supplierCount: number } | null) {
     return cost ? { state: 'READY_FOR_PRICING_DECISION', purchaseCost: cost.purchasePrice, supplierConsumerPrice: cost.consumerPrice, suppliers: cost.supplierCount,
       note: 'Commerce owns the selling price: an Admin approves it; nothing is copied or published automatically' }
-      : { state: 'WAIT_FOR_SUPPLIER_COST', purchaseCost: null, note: 'Market data is kept; no selling price until a validated supplier purchase cost exists' };
+      : getSourcingMode() === 'OFFER_BASED' ? { state: 'WAIT_FOR_SUPPLIER_COST', purchaseCost: null, note: 'Market data is kept; offer-based pricing still needs a validated supplier purchase cost' }
+        : { state: 'OWNED_BY_COMMERCE', purchaseCost: null, note: 'Market evidence is advisory. Commerce owns selling-price approval; this sourcing mode does not require a supplier offer cost' };
   }
 
   async research(skuId: string, actorId: string, options: { force?: boolean } = {}) {

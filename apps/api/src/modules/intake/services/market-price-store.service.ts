@@ -58,20 +58,20 @@ export class MarketPriceStoreService {
   }
 
   async startCheck(skuId: string, requestedBy: string) {
-    return this.prisma.marketPriceCheck.create({ data: { skuId, requestedBy, status: MarketPriceCheckStatus.UNAVAILABLE, coverage: {} } });
+    return this.prisma.marketPriceCheck.create({ data: { skuId, requestedBy, status: MarketPriceCheckStatus.UNAVAILABLE, coverage: {}, cost: { rule: MARKET_RULE_VERSION } } });
   }
 
   async finishCheck(id: string, data: { status: MarketPriceCheckStatus; reasonCode: string | null; reference: unknown; coverage: unknown; cost: unknown }) {
     return this.prisma.marketPriceCheck.update({ where: { id }, data: { status: data.status, reasonCode: data.reasonCode, reference: data.reference === null ? Prisma.JsonNull : data.reference as Prisma.InputJsonValue,
-      coverage: data.coverage as Prisma.InputJsonValue, cost: data.cost as Prisma.InputJsonValue, completedAt: new Date() } });
+      coverage: data.coverage as Prisma.InputJsonValue, cost: (data.cost ?? { rule: MARKET_RULE_VERSION }) as Prisma.InputJsonValue, completedAt: new Date() } });
   }
 
   async latestCheck(skuId: string) {
-    return this.prisma.marketPriceCheck.findFirst({ where: { skuId }, orderBy: { startedAt: 'desc' } });
+    return this.prisma.marketPriceCheck.findFirst({ where: { skuId, cost: { path: ['rule'], equals: MARKET_RULE_VERSION } }, orderBy: { startedAt: 'desc' } });
   }
 
   async latestChecks(skuIds: string[]) {
-    const checks = await this.prisma.marketPriceCheck.findMany({ where: { skuId: { in: skuIds } }, orderBy: { startedAt: 'desc' } });
+    const checks = await this.prisma.marketPriceCheck.findMany({ where: { skuId: { in: skuIds }, cost: { path: ['rule'], equals: MARKET_RULE_VERSION } }, orderBy: { startedAt: 'desc' } });
     const map = new Map<string, (typeof checks)[number]>();
     for (const check of checks) if (!map.has(check.skuId)) map.set(check.skuId, check);
     return map;

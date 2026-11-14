@@ -6,7 +6,7 @@ import {
   ProductMediaService, VERIFIED_IDENTITY_STATES,
 } from '../../../../modules/catalog/public';
 import { CommerceService } from '../../../../modules/commerce/public';
-import { OfferIntakeService } from '../../../../modules/sourcing/public';
+import { getSourcingMode, OfferIntakeService } from '../../../../modules/sourcing/public';
 import { MarketPriceStoreService } from '../../../../modules/intake/public';
 
 const MAX_IMAGE_CANDIDATES = 6;
@@ -24,7 +24,7 @@ export interface IntakeReadiness {
   pdp: ReadinessFlag;
   chatbot: ReadinessFlag;
   routine: ReadinessFlag;
-  /** Selling needs a validated supplier cost and an Admin-approved selling price; the pipeline never sets a price. */
+  /** Commerce orderability and the configured sourcing policy; research never sets a selling price. */
   selling: ReadinessFlag & { purchaseCost: number | null; marketReference: unknown };
   criticalOpen: Array<{ reasonCode: string; field: string | null; summary: string }>;
 }
@@ -138,9 +138,9 @@ export class CatalogEnrichmentService {
   /** Four independent answers: can the PDP show it, can the chatbot advise on it, can the routine builder place it, and can it be sold (price comes later). */
   async readiness(skuId: string): Promise<IntakeReadiness> {
     const sku = await this.catalog.getSkuDetail(skuId);
-    const [media, facts, profile, open, price, costs, market] = await Promise.all([
+    const [media, facts, profile, open, terms, costs, market] = await Promise.all([
       this.media.readiness(skuId), this.research.factSummary(skuId), this.catalog.getRoutineProfile(skuId), this.decisions.openForSku(skuId),
-      this.commerce.getCurrentSellingPrice(skuId), this.offers.purchaseCosts([skuId]), this.market.latestCheck(skuId),
+      this.commerce.getSellingTerms(skuId), this.offers.purchaseCosts([skuId]), this.market.latestCheck(skuId),
     ]);
     const verified = VERIFIED_IDENTITY_STATES.has(sku.identityStatus);
     const applied = new Set(facts.applied);
@@ -150,9 +150,9 @@ export class CatalogEnrichmentService {
     const pdp = flag([
       !verified && 'IDENTITY_NOT_VERIFIED', !sku.product.categoryId && 'CATEGORY_MISSING',
       !READY_MEDIA.includes(media.roles.PRIMARY_PACKSHOT) && 'PRIMARY_IMAGE_MISSING',
-      !(applied.has('marketing.description') || applied.has('claims.manufacturerStated') || applied.has('composition.keyIngredients')) && 'NO_VERIFIED_DESCRIPTION',
       critical.length > 0 && 'CRITICAL_REVIEW_OPEN',
     ]);
+    if (!(applied.has('marketing.description') || applied.has('claims.manufacturerStated') || applied.has('composition.keyIngredients'))) pdp.warnings = ['DESCRIPTION_NOT_VERIFIED'];
     const chatbot = flag([
       !verified && 'IDENTITY_NOT_VERIFIED',
       !(applied.has('composition.inci') || applied.has('claims.manufacturerStated') || applied.has('composition.keyIngredients')) && 'NO_VERIFIED_COMPOSITION_OR_CLAIMS',
@@ -165,7 +165,8 @@ export class CatalogEnrichmentService {
     ]);
     if (profile && profile.routinePeriod === 'UNKNOWN' && !profile.periodEligibility) routine.warnings = ['ROUTINE_PERIOD_UNKNOWN'];
     const cost = costs.get(skuId) ?? null;
-    const selling = { ...flag([!cost && 'NO_SUPPLIER_COST', !price && 'SELLING_PRICE_NOT_APPROVED']), purchaseCost: cost?.purchasePrice ?? null,
+    const selling = { ...flag([getSourcingMode() === 'OFFER_BASED' && !cost && 'NO_SUPPLIER_COST', !terms?.price && 'SELLING_PRICE_NOT_APPROVED',
+      !terms?.canOrder && 'NOT_COMMERCIALLY_ORDERABLE', !pdp.ready && 'PRODUCT_NOT_READY']), purchaseCost: cost?.purchasePrice ?? null,
       marketReference: market ? { status: market.status, reasonCode: market.reasonCode, reference: market.reference, checkedAt: market.completedAt ?? market.startedAt } : null };
     return { pdp, chatbot, routine, selling, criticalOpen: critical.map(item => ({ reasonCode: item.reasonCode, field: item.field, summary: item.summary })) };
   }
