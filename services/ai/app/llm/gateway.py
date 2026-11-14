@@ -15,7 +15,7 @@ from dataclasses import dataclass
 import httpx
 
 from app.core.config import get_settings
-from app.llm.model_config import TaskConfig, task_config
+from app.llm.model_config import TaskConfig, is_free_model, task_config
 from app.llm.usage import CallUsage, ledger
 from app.providers.base import ProviderError, ProviderResponseInvalidError, ProviderUnavailableError
 
@@ -124,6 +124,13 @@ class LlmGateway:
         schema_name: str = "result",
     ) -> LlmResult:
         cfg = task_config(task)
+        if self._settings.free_models_only:
+            # Hard guard for the development free-model mode: never put a paid model on the wire.
+            paid = [m for m in cfg.models if not is_free_model(m)]
+            if paid:
+                msg = f"free-model mode refuses non-free models for {task}: {', '.join(paid)}"
+                ledger.record_failure(task, "limit", msg)
+                raise ProviderLimitError(msg)
         refusal = ledger.admit(self._settings.max_requests_per_minute, self._settings.daily_cost_limit_usd)
         if refusal:
             ledger.record_failure(task, "limit", refusal)
@@ -220,6 +227,8 @@ class LlmGateway:
         configured_primary = task_config(task).models[0]
         used_fallback = model.split(":")[0] != configured_primary.split(":")[0] and not model.startswith(configured_primary)
         latency_ms = (time.monotonic() - started) * 1000
+        if self._settings.free_models_only and usage.cost_usd > 0:
+            logger.error("free-model mode but OpenRouter reported cost=%.6f task=%s model=%s", usage.cost_usd, task, model)
         ledger.record(task, model, usage, latency_ms, used_fallback=used_fallback)
         logger.info(
             "llm ok task=%s model=%s fallback=%s prompt=%s completion=%s cost=%.6f latency_ms=%.0f attempts=%s",

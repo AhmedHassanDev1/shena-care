@@ -13,6 +13,16 @@ import os
 from dataclasses import dataclass, replace
 from functools import lru_cache
 
+from app.core.config import get_settings
+
+# OpenRouter's router over its zero-price models. Used for every task in the development free-model mode.
+FREE_ROUTER = "openrouter/free"
+
+
+def is_free_model(model: str) -> bool:
+    """A model id that OpenRouter bills at zero: the free router itself or an explicit ':free' variant."""
+    return model == FREE_ROUTER or model.endswith(":free")
+
 # Defaults chosen from the live OpenRouter catalogue on 2026-11-14 (all support structured outputs).
 DEFAULT_TIERS: dict[str, tuple[str, ...]] = {
     # Simple, high-volume work: intent extraction, field extraction.
@@ -85,6 +95,11 @@ def _resolved() -> dict[str, TaskConfig]:
                 temperature=float(patch["temperature"]) if patch.get("temperature") is not None else current.temperature,
                 timeout_s=float(patch.get("timeout_s", current.timeout_s)),
             )
+
+    if get_settings().free_models_only:
+        # Development free-model mode: one free router per task and nothing after it, whatever the overrides say.
+        # Token budgets and timeouts stay as configured; only the model list changes.
+        configs = {task: replace(cfg, tier="free", models=(FREE_ROUTER,)) for task, cfg in configs.items()}
     return configs
 
 

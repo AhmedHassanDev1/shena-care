@@ -114,6 +114,8 @@ async def ops_models() -> dict:
         "provider": settings.provider,
         "openrouterConfigured": bool(settings.openrouter_api_key),
         "dataCollection": settings.openrouter_data_collection,
+        "environment": settings.environment,
+        "freeModelsOnly": settings.free_models_only,
         "tasks": [
             {"task": c.task, "tier": c.tier, "models": list(c.models), "maxTokens": c.max_tokens,
              "temperature": c.temperature, "timeoutSeconds": c.timeout_s}

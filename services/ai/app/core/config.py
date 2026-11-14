@@ -48,6 +48,15 @@ class Settings:
         self.max_requests_per_minute = max(1, _int("AI_MAX_REQUESTS_PER_MINUTE", 120))
         self.daily_cost_limit_usd = max(0.0, _float("AI_DAILY_COST_LIMIT_USD", 10.0))
 
+        # --- Development-only free-model mode ---
+        # AI_FREE_MODELS_ONLY=true routes every task to OpenRouter's free router with no paid fallback, but only when
+        # AI_ENVIRONMENT=development. Anywhere else (including when AI_ENVIRONMENT is unset) it is ignored, so a stray
+        # flag can never change production routing.
+        self.environment = (os.getenv("AI_ENVIRONMENT", "production") or "production").strip().lower()
+        requested = os.getenv("AI_FREE_MODELS_ONLY", "false").strip().lower() == "true"
+        self.free_models_only = requested and self.environment == "development"
+        self.free_models_ignored = requested and not self.free_models_only
+
 
 @lru_cache
 def get_settings() -> Settings:
