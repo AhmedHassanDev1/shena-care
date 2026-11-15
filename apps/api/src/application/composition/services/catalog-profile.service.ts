@@ -174,8 +174,13 @@ export class CatalogProfileService {
       field ? { value: field.value, status: field.status === 'VERIFIED' ? 'VERIFIED' : 'UNVERIFIED', basis, source: field.sourceUrl, excerpt: field.excerpt, ...(field.note && { note: field.note }) } : null;
     const recorded = (value: unknown, basis = 'BRAND_RECORD'): Field => (value ? { value, status: 'RECORDED', basis } : { value: null, status: 'UNKNOWN', basis: evidence ? 'NOT_STATED_ON_PAGES_READ' : 'NOT_RESEARCHED' });
     const researchedAliases = (evidence?.aliases ?? []).filter(a => a.status === 'VERIFIED').map(a => a.value);
+    // Strings are reviewed admin spellings. Research records retain their provenance and
+    // are replaced by the latest research, so withdrawn aliases cannot survive a refresh.
+    const storedAliases = (brand.profile as { aliases?: unknown } | null)?.aliases;
+    const adminAliases = Array.isArray(storedAliases) ? storedAliases.filter((a): a is string => typeof a === 'string') : [];
     const profile = {
       rule: 'brand-profile@2',
+      aliases: [...adminAliases, ...(evidence?.aliases ?? []).filter(a => a.status === 'VERIFIED')],
       identity: {
         canonicalName: { value: brand.name, status: 'VERIFIED', basis: 'CANONICAL_BRAND_RECORD' },
         aliases: { value: researchedAliases, status: researchedAliases.length ? 'VERIFIED' : 'UNKNOWN', basis: 'OFFICIAL_NAMES' },

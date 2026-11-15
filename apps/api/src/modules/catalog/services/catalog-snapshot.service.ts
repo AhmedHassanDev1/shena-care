@@ -87,7 +87,7 @@ const readAliases = (profile: unknown): string[] => {
   const raw = (profile as { aliases?: unknown } | null)?.aliases;
   if (!Array.isArray(raw)) return [];
   return raw.flatMap(item => typeof item === 'string' ? [item]
-    : item && typeof item === 'object' && typeof (item as { value?: unknown }).value === 'string' && (item as { status?: string }).status !== 'UNVERIFIED' ? [(item as { value: string }).value] : []);
+    : item && typeof item === 'object' && typeof (item as { value?: unknown }).value === 'string' && (item as { status?: string }).status === 'VERIFIED' ? [(item as { value: string }).value] : []);
 };
 
 /**

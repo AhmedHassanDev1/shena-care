@@ -67,7 +67,10 @@ function normalizeAliases(raw: unknown): string[] {
 
 function extractBrandAliases(profile: unknown): string[] {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return [];
-  return normalizeAliases((profile as Record<string, unknown>).aliases);
+  const raw = (profile as Record<string, unknown>).aliases;
+  if (!Array.isArray(raw)) return [];
+  return normalizeAliases(raw.flatMap(item => typeof item === 'string' ? [item]
+    : item && typeof item === 'object' && item.status === 'VERIFIED' && typeof item.value === 'string' ? [item.value] : []));
 }
 
 function mergeBrandProfile(
