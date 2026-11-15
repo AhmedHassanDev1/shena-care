@@ -92,6 +92,7 @@ async def test_gateway_sends_only_the_free_router(monkeypatch):
     assert seen["body"]["models"] == ["openrouter/free"]
     assert seen["body"]["provider"]["data_collection"] == "deny"
     assert seen["body"]["provider"]["require_parameters"] is True
+    assert seen["body"]["reasoning"] == {"enabled": False}
     assert result.usage.cost_usd == 0
 
 
@@ -114,3 +115,55 @@ async def test_gateway_refuses_paid_model_in_free_mode(monkeypatch):
 def test_production_token_budgets_are_unchanged():
     assert model_config.task_config("consult.understand").max_tokens == 900
     assert model_config.task_config("consult.respond").max_tokens == 3200
+
+
+async def test_free_mode_retries_a_transient_404_from_the_free_router(monkeypatch):
+    _enable(monkeypatch)
+    calls = {"n": 0}
+
+    def handler(request):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(404, json={"error": {"code": 404, "message": "No endpoints found matching your data policy"}})
+        return httpx.Response(200, json={"model": "x:free", "choices": [{"message": {"content": "{\"ok\": true}"}}], "usage": {"cost": 0}})
+
+    async def no_sleep(_):
+        return None
+
+    gw = LlmGateway(transport=httpx.MockTransport(handler), sleep=no_sleep)
+    result = await gw.complete_json("consult.understand", system="s", user="u")
+    assert calls["n"] == 2 and result.data == {"ok": True}
+
+
+async def test_production_does_not_retry_a_404_with_a_single_model(monkeypatch):
+    monkeypatch.setenv("AI_MODELS_ECONOMY", "vendor/only-model")
+    _reload()
+    calls = {"n": 0}
+
+    def handler(request):
+        calls["n"] += 1
+        return httpx.Response(404, json={"error": {"code": 404, "message": "gone"}})
+
+    async def no_sleep(_):
+        return None
+
+    gw = LlmGateway(transport=httpx.MockTransport(handler), sleep=no_sleep)
+    with pytest.raises(Exception):
+        await gw.complete_json("consult.understand", system="s", user="u")
+    assert calls["n"] == 1
+
+
+async def test_production_payload_has_no_reasoning_override():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"model": "anthropic/claude-haiku-5.5", "choices": [{"message": {"content": "{}"}}], "usage": {"cost": 0.001}})
+
+    async def no_sleep(_):
+        return None
+
+    gw = LlmGateway(transport=httpx.MockTransport(handler), sleep=no_sleep)
+    await gw.complete_json("consult.understand", system="s", user="u")
+    assert "reasoning" not in seen["body"]
+    assert seen["body"]["models"] == list(model_config.DEFAULT_TIERS["economy"])

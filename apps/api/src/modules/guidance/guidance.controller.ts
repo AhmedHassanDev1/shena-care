@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, Param, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { Role } from '@prisma/client';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { OptionalAuthGuard } from '../accounts/guards/optional-auth.guard';
@@ -6,7 +7,7 @@ import { RolesGuard } from '../accounts/guards/roles.guard';
 import { Roles } from '../accounts/decorators/roles.decorator';
 import { CurrentUser } from '../accounts/decorators/current-user.decorator';
 import { CareService, RoutineCompatibilityService } from '../care/public';
-import { ConsultationService } from './consultation/consultation.service';
+import { ConsultationService, TurnAbortedError, TurnStream } from './consultation/consultation.service';
 import { CreateGuidanceSessionDto, RecommendationRequestDto, SendGuidanceMessageDto } from './dto/guidance.dto';
 import { KnowledgeService } from './knowledge/knowledge.service';
 import { RecommendationService } from './recommendation/recommendation.service';
@@ -41,6 +42,68 @@ export class GuidanceController {
   @Post('sessions/:sessionId/messages')
   sendMessage(@CurrentUser() customer: { id: string }, @Param('sessionId') sessionId: string, @Body() dto: SendGuidanceMessageDto) {
     return this.consultation.sendMessage(customer.id, sessionId, dto.content, dto.locale);
+  }
+
+  /**
+   * The same turn as POST .../messages, delivered as server-sent events so the answer appears while it is written:
+   * `start`, `status` {stage}, `delta` {text}, `reset` (discard the text shown so far), then `final` (the stored
+   * message, identical to the non-streaming response) or `error`. Validation and limit errors arrive as ordinary
+   * HTTP errors because nothing is streamed until the request has been accepted. Closing the connection cancels
+   * the turn and the model call behind it.
+   */
+  @Post('sessions/:sessionId/messages/stream')
+  async sendMessageStream(
+    @CurrentUser() customer: { id: string }, @Param('sessionId') sessionId: string, @Body() dto: SendGuidanceMessageDto,
+    @Req() req: Request, @Res() res: Response,
+  ) {
+    await this.streamTurn(res, stream => this.consultation.sendMessage(customer.id, sessionId, dto.content, dto.locale, stream));
+  }
+
+  /** Streaming variant of POST .../retry. */
+  @Post('sessions/:sessionId/retry/stream')
+  async retryStream(@CurrentUser() customer: { id: string }, @Param('sessionId') sessionId: string, @Req() req: Request, @Res() res: Response) {
+    await this.streamTurn(res, stream => this.consultation.retryLast(customer.id, sessionId, stream));
+  }
+
+  private async streamTurn(res: Response, run: (stream: TurnStream) => Promise<unknown>): Promise<void> {
+    const abort = new AbortController();
+    // The customer closed the tab, navigated away or pressed stop: stop the turn and the model call behind it.
+    res.on('close', () => { if (!res.writableFinished) abort.abort(); });
+    let started = false;
+    const write = (event: string, data: unknown) => {
+      if (res.writableEnded || res.destroyed) return;
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+    const stream: TurnStream = {
+      signal: abort.signal,
+      begin: () => {
+        if (started) return;
+        started = true;
+        res.status(200);
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.flushHeaders();
+        write('start', {});
+      },
+      status: stage => write('status', { stage }),
+      delta: text => write('delta', { text }),
+      reset: () => write('reset', {}),
+    };
+    try {
+      const message = await run(stream);
+      write('final', message);
+      res.end();
+    } catch (error) {
+      if (error instanceof TurnAbortedError || abort.signal.aborted) {
+        if (!res.writableEnded) res.end();
+        return;
+      }
+      if (!started) throw error; // rejected before streaming began: a normal HTTP error response
+      write('error', { statusCode: error instanceof HttpException ? error.getStatus() : 500, message: error instanceof HttpException ? error.message : 'The consultation failed' });
+      res.end();
+    }
   }
 }
 

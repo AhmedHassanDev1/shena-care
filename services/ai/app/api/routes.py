@@ -1,4 +1,8 @@
+import json
+import logging
+
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi.responses import StreamingResponse
 
 from app.contracts.enrichment import (
     HealthResponse,
@@ -26,6 +30,7 @@ from app.services.guidance_service import GuidanceService
 from app.services.content_service import ContentGenerationService
 
 router = APIRouter()
+logger = logging.getLogger("shenacare.ai.routes")
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -104,6 +109,40 @@ async def consult_respond(
     x_correlation_id: str | None = Header(default=None, alias="X-Correlation-ID"),
 ) -> RespondResult:
     return await _consult_service().respond(request, correlation_id=x_correlation_id)
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.post("/v1/consult/respond/stream", dependencies=[Depends(require_service_token)])
+async def consult_respond_stream(
+    request: RespondRequest,
+    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-ID"),
+) -> StreamingResponse:
+    """Server-sent events: `delta` {text} while the answer is written, `reset` when a retry discards shown text,
+    then one `final` (the full RespondResult, grounded) or one `error` {status, detail}."""
+    service = _consult_service()
+
+    async def events():
+        try:
+            async for kind, payload in service.respond_stream(request, correlation_id=x_correlation_id):
+                if kind == "delta":
+                    yield _sse("delta", {"text": payload})
+                elif kind == "reset":
+                    yield _sse("reset", {})
+                else:
+                    yield _sse("final", payload.model_dump(mode="json"))
+        except HTTPException as exc:
+            yield _sse("error", {"status": exc.status_code, "detail": exc.detail})
+        except Exception:  # noqa: BLE001 - the stream is already open, so report instead of raising
+            logger.exception("consult respond stream crashed correlation=%s", x_correlation_id)
+            yield _sse("error", {"status": 500, "detail": "AI stream failed"})
+
+    return StreamingResponse(
+        events(), media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/v1/ops/models", dependencies=[Depends(require_service_token)])

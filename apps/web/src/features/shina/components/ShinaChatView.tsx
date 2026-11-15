@@ -19,8 +19,9 @@ import { buildStarterSuggestions, classifyShinaIntent } from '../lib/catalog-cha
 import {
   createGuidanceSession,
   getCustomerCareProfile,
-  sendGuidanceMessage,
-  retryGuidanceMessage,
+  streamGuidanceMessage,
+  streamRetryGuidanceMessage,
+  type GuidanceStreamHandlers,
 } from '../lib/shina-api';
 import {
   buildContextProductMessage,
@@ -203,8 +204,35 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
     [abortActiveRequest, isAuthenticated, loadCatalog, locale],
   );
 
+  /**
+   * Progress handlers that grow a provisional assistant message while the answer is written. `finish` swaps it for the
+   * final message in place (or appends it when no text ever arrived); `discard` removes it after a failure or a stop.
+   */
+  const startDraft = useCallback(() => {
+    const draftId = createMessageId('ai-draft');
+    let text = '';
+    const progress: Omit<GuidanceStreamHandlers, 'signal'> = {
+      onStatus: (stage) => setActivityState(stage === 'searching' ? 'searching' : 'thinking'),
+      onDelta: (chunk) => {
+        text += chunk;
+        setActivityState('streaming');
+        setActivityDetail(undefined);
+        const draft: ShinaMessage = { id: draftId, role: 'assistant', content: text, timestamp: formatTimeLabel(locale), sourceKind: 'ai-guidance', isStreaming: true };
+        setMessages((prev) => (prev.some((item) => item.id === draftId) ? prev.map((item) => (item.id === draftId ? draft : item)) : [...prev, draft]));
+      },
+      onReset: () => {
+        text = '';
+        setMessages((prev) => prev.filter((item) => item.id !== draftId));
+      },
+    };
+    const finish = (message: ShinaMessage) =>
+      setMessages((prev) => (prev.some((item) => item.id === draftId) ? prev.map((item) => (item.id === draftId ? message : item)) : [...prev, message]));
+    const discard = () => setMessages((prev) => prev.filter((item) => item.id !== draftId));
+    return { progress, finish, discard };
+  }, [locale]);
+
   const sendAiTurn = useCallback(
-    async (query: string, signal: AbortSignal): Promise<{ message: ShinaMessage; state: ShinaActivityState }> => {
+    async (query: string, signal: AbortSignal, progress?: Omit<GuidanceStreamHandlers, 'signal'>): Promise<{ message: ShinaMessage; state: ShinaActivityState }> => {
       if (!profileLoadedRef.current) {
         profileLoadedRef.current = true;
         getCustomerCareProfile(signal).catch(() => null);
@@ -221,7 +249,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
         hasServerUserTurnRef.current = false;
       }
 
-      const response = await sendGuidanceMessage(sessionIdRef.current, query, signal, locale);
+      const response = await streamGuidanceMessage(sessionIdRef.current, query, { ...(progress ?? { onDelta: () => undefined }), signal }, locale);
       hasServerUserTurnRef.current = true;
       lastFailedQueryRef.current = null;
       return mapGuidanceDtoToMessage(response, locale, true, slotLabels);
@@ -282,8 +310,15 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
           setActivityState(
             intent === 'routine' ? 'routine' : intent === 'search' ? 'searching' : 'thinking',
           );
-          const outcome = await sendAiTurn(text, controller.signal);
-          setMessages((prev) => [...prev, outcome.message]);
+          const draft = startDraft();
+          let outcome: { message: ShinaMessage; state: ShinaActivityState };
+          try {
+            outcome = await sendAiTurn(text, controller.signal, draft.progress);
+          } catch (streamError) {
+            draft.discard();
+            throw streamError;
+          }
+          draft.finish(outcome.message);
           setActivityState(outcome.state);
           setActivityDetail(undefined);
           return;
@@ -393,7 +428,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
         }
       }
     },
-    [abortActiveRequest, isAuthenticated, loadCatalog, locale, m.shinaGuestNotice, m.shinaDailyLimit, sendAiTurn, voice],
+    [abortActiveRequest, isAuthenticated, loadCatalog, locale, m.shinaGuestNotice, m.shinaDailyLimit, sendAiTurn, startDraft, voice],
   );
 
   const handleRetryLast = useCallback(
@@ -406,15 +441,17 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
         setActivityState('thinking');
         setActivityDetail(targetQuery ?? undefined);
 
+        const draft = startDraft();
         try {
-          const retried = await retryGuidanceMessage(sessionIdRef.current, controller.signal);
+          const retried = await streamRetryGuidanceMessage(sessionIdRef.current, { ...draft.progress, signal: controller.signal });
           const outcome = mapGuidanceDtoToMessage(retried, locale, true, slotLabels);
           lastFailedQueryRef.current = null;
-          setMessages((prev) => [...prev, outcome.message]);
+          draft.finish(outcome.message);
           setActivityState(outcome.state);
           setActivityDetail(undefined);
           return;
         } catch (err) {
+          draft.discard();
           if (isAbortError(err)) return;
           setActivityState('warning');
           setActivityDetail(undefined);
@@ -711,7 +748,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
             }
 
             return (
-              <article key={msg.id} className="flex w-full flex-col items-start gap-2.5">
+              <article key={msg.id} aria-busy={msg.isStreaming || undefined} className="flex w-full flex-col items-start gap-2.5">
                 <div className="flex items-center gap-2 text-11 text-ink/75">
                   <ShinaMascot state="idle" size="xs" decorative />
                   <span className="font-medium text-ink">{m.shinaAssistantTitle}</span>

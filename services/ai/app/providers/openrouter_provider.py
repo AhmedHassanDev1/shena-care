@@ -5,6 +5,7 @@ the transport; the consultation tasks use strict JSON schemas. Model choice live
 """
 
 import logging
+from collections.abc import AsyncIterator
 
 import httpx
 
@@ -108,3 +109,22 @@ class OpenRouterProvider(GroqProvider):
         except Exception as exc:
             logger.warning("response broke the contract model=%s: %s", result.model, str(exc)[:500])
             raise ProviderResponseInvalidError(f"Response did not match the contract: {exc}") from exc
+
+    async def respond_stream(self, request: RespondRequest) -> AsyncIterator[tuple[str, object]]:
+        """Same call as respond(), streamed: ("delta", text) / ("reset", None) / ("final", RespondResult)."""
+        async for kind, payload in self.gateway.stream_json(
+            "consult.respond",
+            system=RESPOND_SYSTEM,
+            user=respond_user_prompt(request),
+            schema=RESPOND_SCHEMA,
+            schema_name="consult_response",
+            text_field="message",
+        ):
+            if kind != "final":
+                yield kind, payload
+                continue
+            try:
+                yield "final", RespondResult(**_fit_response(payload.data), providerMetadata=payload.metadata())
+            except Exception as exc:
+                logger.warning("streamed response broke the contract model=%s: %s", payload.model, str(exc)[:500])
+                raise ProviderResponseInvalidError(f"Response did not match the contract: {exc}") from exc

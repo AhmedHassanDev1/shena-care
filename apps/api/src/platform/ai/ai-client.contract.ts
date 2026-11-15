@@ -229,6 +229,8 @@ export const AiErrorKind = {
   INCOMPATIBLE_SCHEMA: 'ai_incompatible_schema',
   /** The AI gateway refused the call locally (per-minute window or daily cost ceiling). */
   LIMITED: 'ai_limited',
+  /** The caller went away (or aborted) while the call was running. */
+  CANCELLED: 'ai_cancelled',
 } as const;
 
 export type AiErrorKindValue = (typeof AiErrorKind)[keyof typeof AiErrorKind];
@@ -244,6 +246,16 @@ export class AiClientError extends Error {
   }
 }
 
+/** What a streamed consultation answer reports while it is being written. */
+export interface ConsultStreamHandlers {
+  /** The next piece of the answer text, as the model writes it. */
+  onDelta(text: string): void
+  /** A retry started after text had been shown: everything shown so far must be discarded. */
+  onReset(): void
+  /** Aborting stops the call and the model's generation. */
+  signal?: AbortSignal
+}
+
 export const AI_CLIENT = Symbol('AI_CLIENT');
 
 @Injectable()
@@ -253,6 +265,14 @@ export abstract class AiClient implements ProductEnrichmentCaller {
   abstract generateContent(input: ProductContentGenerationInput, correlationId?: string): Promise<ProductContentGenerationResult>;
   abstract consultUnderstand(input: ConsultUnderstandRequest, correlationId?: string): Promise<ConsultUnderstandResult>;
   abstract consultRespond(input: ConsultRespondRequest, correlationId?: string): Promise<ConsultRespondResult>;
+
+  /**
+   * consultRespond that reports the answer text while it is written. A client that cannot stream (test doubles,
+   * the offline provider) simply answers at once: the handlers are never called and the result is the same.
+   */
+  async consultRespondStream(input: ConsultRespondRequest, _handlers: ConsultStreamHandlers, correlationId?: string): Promise<ConsultRespondResult> {
+    return this.consultRespond(input, correlationId);
+  }
 }
 
 export interface ProductEnrichmentCaller {

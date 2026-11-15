@@ -1,4 +1,5 @@
-import { apiClient, ApiError } from '@/lib/api-client';
+import { apiClient, ApiError, openEventStream } from '@/lib/api-client';
+import { readEventStream } from '@/lib/event-stream';
 import type { Locale } from '@/lib/i18n/messages';
 import { auth } from '@/lib/auth';
 import type { CompatibilityIssue, KnowledgeView, RecommendedItem } from '@/features/care/api/care-intelligence';
@@ -95,6 +96,61 @@ export async function sendGuidanceMessage(sessionId: string, content: string, si
 export async function retryGuidanceMessage(sessionId: string, signal?: AbortSignal): Promise<GuidanceMessageDto> {
   const token = requireToken();
   return apiClient.post<GuidanceMessageDto>(`/guidance/sessions/${encodeURIComponent(sessionId)}/retry`, {}, { token, signal });
+}
+
+/** What a streamed answer reports while it is being written. */
+export interface GuidanceStreamHandlers {
+  /** Where the turn is: reading the question, searching the catalogue, or writing the answer. */
+  onStatus?: (stage: 'understanding' | 'searching' | 'writing') => void;
+  /** The next piece of the answer text, exactly as the model wrote it. */
+  onDelta: (text: string) => void;
+  /** A retry started after text had been shown: drop everything shown so far. */
+  onReset?: () => void;
+  signal?: AbortSignal;
+}
+
+async function consumeGuidanceStream(response: Response, handlers: GuidanceStreamHandlers): Promise<GuidanceMessageDto> {
+  let final: GuidanceMessageDto | null = null;
+  let failure: ApiError | null = null;
+  await readEventStream(response.body!, ({ event, data }) => {
+    const payload = (data ?? {}) as Record<string, unknown>;
+    if (event === 'status' && typeof payload.stage === 'string') {
+      handlers.onStatus?.(payload.stage as 'understanding' | 'searching' | 'writing');
+    } else if (event === 'delta' && typeof payload.text === 'string') {
+      handlers.onDelta(payload.text);
+    } else if (event === 'reset') {
+      handlers.onReset?.();
+    } else if (event === 'final') {
+      final = payload as unknown as GuidanceMessageDto;
+    } else if (event === 'error') {
+      const status = typeof payload.statusCode === 'number' ? payload.statusCode : 500;
+      failure = new ApiError(typeof payload.message === 'string' ? payload.message : 'The consultation failed', status === 429 ? 'RATE_LIMITED' : 'SERVER', status);
+    }
+  });
+  if (failure) throw failure;
+  if (!final) {
+    // The connection closed before the answer was complete (network drop, server restart): retryable.
+    throw new ApiError('The connection closed before the answer finished', 'NETWORK', 503);
+  }
+  return final;
+}
+
+/** sendGuidanceMessage as a stream: the same stored message comes back last, after the text has been reported. */
+export async function streamGuidanceMessage(sessionId: string, content: string, handlers: GuidanceStreamHandlers, locale?: Locale): Promise<GuidanceMessageDto> {
+  const token = requireToken();
+  const response = await openEventStream(
+    `/guidance/sessions/${encodeURIComponent(sessionId)}/messages/stream`,
+    locale ? { content, locale } : { content },
+    { token, signal: handlers.signal },
+  );
+  return consumeGuidanceStream(response, handlers);
+}
+
+/** retryGuidanceMessage as a stream. */
+export async function streamRetryGuidanceMessage(sessionId: string, handlers: GuidanceStreamHandlers): Promise<GuidanceMessageDto> {
+  const token = requireToken();
+  const response = await openEventStream(`/guidance/sessions/${encodeURIComponent(sessionId)}/retry/stream`, {}, { token, signal: handlers.signal });
+  return consumeGuidanceStream(response, handlers);
 }
 
 export async function getCustomerCareProfile(signal?: AbortSignal): Promise<CustomerCareProfileSummary | null> {
