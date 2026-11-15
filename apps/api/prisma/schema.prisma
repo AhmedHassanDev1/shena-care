@@ -1884,6 +1884,9 @@ model FulfillmentLocation {
   receipts            FulfillmentReceipt[]
   deliveryBatches     DeliveryBatch[]
 
+  hubScanAttempts HubScanAttempt[]
+  returnReceipts  ReturnReceipt[]
+
   @@map("fulfillment_locations")
   @@schema("fulfillment")
 }
@@ -2099,14 +2102,79 @@ model FulfillmentReceipt {
   actorId                     String                 @map("actor_id") @db.Uuid
   inventoryTransactionId      String                 @unique @map("inventory_transaction_id") @db.Uuid
   receivedAt                  DateTime               @default(now()) @map("received_at")
+  /// A correction is a compensating receipt: negative quantity, pointing at the receipt it reverses (at most once). GLO-315.
+  reversesReceiptId           String?                @unique @map("reverses_receipt_id") @db.Uuid
+  correctionReason            String?                @map("correction_reason") @db.VarChar(40)
+  correctionNote              String?                @map("correction_note")
 
   location             FulfillmentLocation  @relation(fields: [locationId], references: [id], onDelete: Restrict)
   inventoryTransaction InventoryTransaction @relation(fields: [inventoryTransactionId], references: [id], onDelete: Restrict)
+  reverses             FulfillmentReceipt?  @relation("ReceiptReversal", fields: [reversesReceiptId], references: [id], onDelete: Restrict)
+  reversal             FulfillmentReceipt?  @relation("ReceiptReversal")
 
   @@index([sourceAllocationId])
   @@index([orderId, orderItemId])
   @@index([locationId, skuId])
   @@map("fulfillment_receipts")
+  @@schema("fulfillment")
+}
+
+/// A scan at the Hub that changed nothing (unknown / wrong / duplicate / not-yet-bought barcode). Order-level, so it exists
+/// even before a shipment does; never touches receipt quantities. GLO-315.
+model HubScanAttempt {
+  id             String   @id @default(uuid()) @db.Uuid
+  locationId     String   @map("location_id") @db.Uuid
+  /// desk | return
+  context        String   @db.VarChar(20)
+  orderId        String   @map("order_id") @db.Uuid
+  resolutionId   String?  @map("resolution_id") @db.Uuid
+  clientScanId   String   @map("client_scan_id") @db.Uuid
+  barcodeScanned String?  @map("barcode_scanned") @db.VarChar(64)
+  skuId          String?  @map("sku_id") @db.Uuid
+  outcomeCode    String   @map("outcome_code") @db.VarChar(60)
+  actorId        String   @map("actor_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  location FulfillmentLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@unique([orderId, clientScanId])
+  @@index([orderId, createdAt])
+  @@map("hub_scan_attempts")
+  @@schema("fulfillment")
+}
+
+/// Physical inspection of goods a customer sent back (GLO-315). Separate from the refund: this only records what arrived and its
+/// disposition. Append-only: a correction is a new row that supersedes the old one (at most once). No Ordering relation on purpose.
+model ReturnReceipt {
+  id               String    @id @default(uuid()) @db.Uuid
+  locationId       String    @map("location_id") @db.Uuid
+  resolutionId     String    @map("resolution_id") @db.Uuid
+  orderId          String    @map("order_id") @db.Uuid
+  orderItemId      String    @map("order_item_id") @db.Uuid
+  skuId            String    @map("sku_id") @db.Uuid
+  quantity         Int
+  identityMethod   String    @map("identity_method") @db.VarChar(20)
+  barcodeScanned   String?   @map("barcode_scanned") @db.VarChar(64)
+  /// SEALED_INTACT | OPENED_UNUSED | USED | DAMAGED | EXPIRED
+  inspectionResult String    @map("inspection_result") @db.VarChar(20)
+  /// RETURN_TO_SUPPLIER (sealed and intact only) | WRITE_OFF | QUARANTINE
+  disposition      String    @db.VarChar(24)
+  lotNumber        String?   @map("lot_number") @db.VarChar(64)
+  expiryDate       DateTime? @map("expiry_date") @db.Date
+  note             String?
+  supersedesId     String?   @unique @map("supersedes_id") @db.Uuid
+  correctionReason String?   @map("correction_reason")
+  idempotencyKey   String    @unique @map("idempotency_key") @db.Uuid
+  actorId          String    @map("actor_id") @db.Uuid
+  receivedAt       DateTime  @default(now()) @map("received_at")
+
+  location   FulfillmentLocation @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  supersedes ReturnReceipt?      @relation("ReturnInspectionCorrection", fields: [supersedesId], references: [id], onDelete: Restrict)
+  correction ReturnReceipt?      @relation("ReturnInspectionCorrection")
+
+  @@index([resolutionId])
+  @@index([locationId])
+  @@map("return_receipts")
   @@schema("fulfillment")
 }
 

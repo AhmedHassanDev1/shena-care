@@ -4,7 +4,8 @@ import { RoutePlanningService } from './services/route-planning.service';
 import { RouteOptimizationService } from './services/route-optimization.service';
 import { DispatchPlanningService } from './services/dispatch-planning.service';
 import { HubDeskService } from './services/hub-desk.service';
-import { DeskScanDto } from './dto/hub-desk.dto';
+import { HubReturnsService } from './services/hub-returns.service';
+import { CorrectInspectionDto, DeskScanDto, InspectReturnDto, ReverseReceiptDto } from './dto/hub-desk.dto';
 import { PlanRouteDto } from './dto/routing.dto';
 import { ApplyOptimizationDto, OptimizationOptionsDto } from './dto/optimization.dto';
 import { PlanDispatchDto, ApproveDispatchPlanDto } from './dto/dispatch-planning.dto';
@@ -26,6 +27,7 @@ export class FulfillmentController {
     private readonly routeOptimizationService: RouteOptimizationService,
     private readonly dispatchPlanningService: DispatchPlanningService,
     private readonly hubDesk: HubDeskService,
+    private readonly hubReturns: HubReturnsService,
   ) {}
 
   @Post('locations')
@@ -223,6 +225,36 @@ export class FulfillmentController {
   @RequirePermissions('hub.prepare')
   async deskVerify(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUser() actor: FulfillmentActor) {
     return this.hubDesk.verify(locationId, orderId, actor);
+  }
+
+  @Post('locations/:id/desk/receipts/:receiptId/reverse')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.receive')
+  async deskReverse(@Param('id') locationId: string, @Param('receiptId', ParseUUIDPipe) receiptId: string, @Body() dto: ReverseReceiptDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.reverse(locationId, receiptId, dto, actor);
+  }
+
+  // --- Hub Returns (GLO-315): physical inspection; the refund decision stays with Ordering/admin ---
+
+  @Get('locations/:id/returns')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('return.read')
+  async listReturns(@Param('id') locationId: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubReturns.list(locationId, actor);
+  }
+
+  @Post('locations/:id/returns/:resolutionId/inspections')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('return.manage')
+  async inspectReturn(@Param('id') locationId: string, @Param('resolutionId', ParseUUIDPipe) resolutionId: string, @Body() dto: InspectReturnDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubReturns.inspect(locationId, resolutionId, dto, actor);
+  }
+
+  @Post('locations/:id/returns/:resolutionId/inspections/:inspectionId/correct')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('return.manage')
+  async correctInspection(@Param('id') locationId: string, @Param('resolutionId', ParseUUIDPipe) resolutionId: string, @Param('inspectionId', ParseUUIDPipe) inspectionId: string, @Body() dto: CorrectInspectionDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubReturns.correct(locationId, resolutionId, inspectionId, dto, actor);
   }
 
   // --- Hub work queues (GLO-239) ---

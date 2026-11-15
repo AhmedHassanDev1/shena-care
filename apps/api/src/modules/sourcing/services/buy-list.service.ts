@@ -326,6 +326,8 @@ export class BuyListService {
         confirmedQuantity: allocation.confirmedQuantity, receivedQuantity, shortQuantity: 0,
         remainingQuantity: allocation.confirmedQuantity - receivedQuantity,
         purchaseOrderId: null as string | null, purchaseOrderStatus: 'internal_buy_list', supplierName: null as string | null, readyAt: allocation.confirmedAt,
+        /** The Buy List count this unit belongs to; its actual cost (if recorded) is keyed by it. */
+        acquireKey: allocation.evidenceRef!.slice(EVIDENCE_PREFIX.length),
       }];
     });
   }

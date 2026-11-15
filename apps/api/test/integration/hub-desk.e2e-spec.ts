@@ -141,6 +141,10 @@ describe('Hub desk: scan once = receipt + verification (e2e)', () => {
     const soon = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
     await scan(order.id, { barcodeScanned: skuA.barcode, expiryDate: soon }).expect(400).expect(res => expect(res.body.code).toBe('RECEIVING_EXCEPTION'));
     expect(await receiptCount(order.id)).toBe(0);
+    // Refused scans are recorded at order level even though no shipment exists yet, and changed no quantity.
+    expect(await prisma.shipment.count({ where: { orderId: order.id } })).toBe(0);
+    expect((await prisma.hubScanAttempt.findMany({ where: { orderId: order.id }, orderBy: { createdAt: 'asc' } })).map(a => a.outcomeCode))
+      .toEqual(['NOT_PURCHASED_YET', 'PRODUCT_IDENTITY_REVIEW_REQUIRED', 'WRONG_ITEM']);
 
     // First A unit: received against the exact line. A retry of the same physical scan replays, never double-counts.
     const scanId = randomUUID();
@@ -154,10 +158,9 @@ describe('Hub desk: scan once = receipt + verification (e2e)', () => {
     const dup = await scan(order.id, { barcodeScanned: skuA.barcode, expiryDate: EXPIRY }).expect(201);
     expect(dup.body).toMatchObject({ outcome: 'rejected', code: 'NOT_PURCHASED_YET' });
     expect(await receiptCount(order.id)).toBe(1);
-    // The rejection is on the shipment's audit trail now that a shipment exists.
     const shipment = await prisma.shipment.findUniqueOrThrow({ where: { orderId: order.id } });
     expect(shipment.status).toBe('pending');
-    expect(await prisma.shipmentEvent.count({ where: { shipmentId: shipment.id, type: 'DESK_SCAN_REJECTED', reasonCode: 'NOT_PURCHASED_YET' } })).toBe(1);
+    expect(await prisma.hubScanAttempt.count({ where: { orderId: order.id, outcomeCode: 'NOT_PURCHASED_YET' } })).toBe(2);
     // The lot/expiry just recorded is offered for the next unit of the same SKU.
     expect((await deskOrder(order.id)).lastLots[skuA.id]).toMatchObject({ lotNumber: 'LOT-A1', expiryDate: EXPIRY });
 

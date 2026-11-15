@@ -9,6 +9,7 @@ import { ROUTE_OPTIMIZATION_PROVIDER } from './routing/route-optimization.provid
 import { MapboxOptimizationProvider } from './routing/mapbox-optimization.provider';
 import { FulfillmentController } from './fulfillment.controller';
 import { HubDeskService } from './services/hub-desk.service';
+import { HubReturnsService } from './services/hub-returns.service';
 import { OrderingModule } from '../ordering/public';
 import { OperationsModule } from '../operations/operations.module';
 import { CatalogModule } from '../catalog/public';
@@ -20,6 +21,7 @@ import { SourcingModule } from '../sourcing/public';
   providers: [
     FulfillmentService,
     HubDeskService,
+    HubReturnsService,
     RoutePlanningService,
     RouteOptimizationService,
     DispatchPlanningService,

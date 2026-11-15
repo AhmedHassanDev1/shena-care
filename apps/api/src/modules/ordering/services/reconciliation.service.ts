@@ -136,6 +136,52 @@ export class ReconciliationService {
     });
   }
 
+  /** Appends an audit note to a resolution's trail without changing its status (Hub inspections, corrections). */
+  async recordResolutionNote(tx: Prisma.TransactionClient, resolutionId: string, actorId: string, notes: string) {
+    const current = await tx.orderResolution.findUnique({ where: { id: resolutionId }, select: { status: true } });
+    if (!current) throw new NotFoundException('Resolution not found');
+    await tx.orderResolutionEvent.create({ data: { resolutionId, status: current.status, actorId, notes } });
+  }
+
+  /**
+   * Return cases the Hub works on (GLO-315): customer returns that need the physical goods, with their lines and the refund state
+   * as read-only context. The refund decision stays with ShinaCare admin; nothing here moves it.
+   */
+  async listReturnCases(orderIds: string[], statuses: OrderResolutionStatus[]) {
+    if (!orderIds.length) return [];
+    const rows = await this.prisma.orderResolution.findMany({
+      where: { orderId: { in: orderIds }, type: OrderResolutionType.return, status: { in: statuses } },
+      include: { items: { include: { orderItem: true } }, order: { select: { orderNumber: true } }, refundTransaction: { select: { status: true, amount: true, currency: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map(row => this.presentReturnCase(row));
+  }
+
+  async getReturnCase(resolutionId: string) {
+    if (!this.isUuid(resolutionId)) throw new BadRequestException('Invalid resolution ID');
+    const row = await this.prisma.orderResolution.findFirst({
+      where: { id: resolutionId, type: OrderResolutionType.return },
+      include: { items: { include: { orderItem: true } }, order: { select: { orderNumber: true } }, refundTransaction: { select: { status: true, amount: true, currency: true } } },
+    });
+    return row ? this.presentReturnCase(row) : null;
+  }
+
+  private presentReturnCase(row: Prisma.OrderResolutionGetPayload<{ include: { items: { include: { orderItem: true } }; order: { select: { orderNumber: true } }; refundTransaction: { select: { status: true; amount: true; currency: true } } } }>) {
+    const details = (row.resolutionDetails as Record<string, unknown> | null) ?? {};
+    return {
+      resolutionId: row.id, orderId: row.orderId, orderNumber: row.order.orderNumber, status: row.status, reasonCode: row.reasonCode,
+      requestedAt: row.createdAt,
+      requiresPhysicalReturn: details.requiresPhysicalReturn !== false,
+      safetyReport: details.escalateToSafety === true,
+      description: typeof details.description === 'string' ? details.description : null,
+      refund: row.refundTransaction ? { status: row.refundTransaction.status, amount: row.refundTransaction.amount.toFixed(2), currency: row.refundTransaction.currency } : null,
+      items: row.items.map(item => ({
+        orderItemId: item.orderItemId, skuId: item.orderItem.skuId, quantity: item.quantity,
+        productName: item.orderItem.productName ?? null, variantName: item.orderItem.variantName ?? null, skuCode: item.orderItem.skuCode ?? null,
+      })),
+    };
+  }
+
   /**
    * Records who bears the loss of a return and what happens to the goods (owner decision 2026-10-25). Stored with the
    * resolution's details and appended to its audit trail; the monthly statement reads it. A later correction replaces it

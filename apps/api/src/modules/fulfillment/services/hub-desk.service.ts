@@ -1,9 +1,10 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { ShipmentStatus } from '@prisma/client';
+import { Prisma, ShipmentStatus } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { OrderingService } from '../../ordering/public';
 import { CatalogService } from '../../catalog/public';
-import { DeskScanDto } from '../dto/hub-desk.dto';
+import { PurchaseCostService } from '../../sourcing/public';
+import { DeskScanDto, ReverseReceiptDto } from '../dto/hub-desk.dto';
 import { FulfillmentActor, FulfillmentService } from './fulfillment.service';
 
 /** Shipments the one-person desk still works on: receiving, verification, packaging and printing. */
@@ -13,6 +14,8 @@ const DESK_SHIPMENT_STATUSES: ShipmentStatus[] = [
 ];
 const OPEN_ORDER_STATUSES = ['placed', 'confirmed', 'packing'];
 const PRINT_EVENTS = ['LABEL_GENERATED', 'LABEL_PRINTED', 'RECEIPT_PRINTED', 'PRINT_FAILED'];
+// A received unit can still be corrected until the parcel is printed or packed (mirrors FulfillmentService.reverseReceipt).
+const CORRECTABLE: ShipmentStatus[] = [ShipmentStatus.pending, ShipmentStatus.ready_to_prepare, ShipmentStatus.preparing, ShipmentStatus.prepared];
 
 export type DeskStage = 'waiting_purchase' | 'receiving' | 'verifying' | 'packing';
 export type DeskScanOutcome = 'received' | 'verified' | 'rejected';
@@ -31,7 +34,16 @@ export interface DeskLine {
   received: number
   /** Units counted by the preparation verification. */
   verified: number
+  /** Actual purchase cost of the purchase the next unit belongs to: recorded already, or still to be captured at this receipt. */
+  cost: { acquireKey: string; recorded: boolean; listUnitPrice: string | null; discountPerUnit: string | null; finalUnitCost: string | null } | null
 }
+
+/** One physically received unit (a committed scan) that can still be corrected with a compensating event. */
+export interface DeskUnit {
+  receiptId: string; skuId: string; quantity: number; lotNumber: string | null; expiryDate: string | null; receivedAt: Date; correctable: boolean
+}
+
+export interface DeskCorrection { receiptId: string; reversesReceiptId: string; skuId: string; reason: string | null; note: string | null; at: Date; actorId: string }
 
 export interface DeskOrder {
   orderId: string; orderNumber: string; orderStatus: string; placedAt: Date; governorate: string | null; area: string | null
@@ -39,6 +51,11 @@ export interface DeskOrder {
   stage: DeskStage
   lines: DeskLine[]
   printEvents: string[]
+  /** Units currently counted as received (corrected ones are gone from here and listed in `corrections`). */
+  units: DeskUnit[]
+  corrections: DeskCorrection[]
+  /** Scans refused for this order (they changed nothing). */
+  rejectedScans: number
 }
 
 /**
@@ -56,6 +73,7 @@ export class HubDeskService {
     private readonly fulfillment: FulfillmentService,
     private readonly ordering: OrderingService,
     private readonly catalog: CatalogService,
+    private readonly purchaseCosts: PurchaseCostService,
   ) {}
 
   async getDesk(locationId: string, actor: FulfillmentActor) {
@@ -66,19 +84,26 @@ export class HubDeskService {
         where: { locationId, status: { in: DESK_SHIPMENT_STATUSES } },
         include: {
           items: true,
-          preparationSessions: { orderBy: { startedAt: 'desc' }, take: 1, include: { scanEvents: { where: { isSuccessful: true }, select: { skuId: true } } } },
+          preparationSessions: { where: { status: { not: 'failed' } }, orderBy: { startedAt: 'desc' }, take: 1, include: { scanEvents: { where: { isSuccessful: true }, select: { skuId: true } } } },
           events: { where: { type: { in: PRINT_EVENTS } }, select: { type: true } },
         },
       }),
     ]);
     const orderIds = [...new Set([...receivables.map(r => r.orderId), ...shipments.map(s => s.orderId)])];
-    const [orders, receipts] = await Promise.all([
+    const [orders, receipts, receiptRows, attempts] = await Promise.all([
       Promise.all(orderIds.map(id => this.ordering.getOrder(id))),
       this.prisma.fulfillmentReceipt.groupBy({ by: ['orderItemId'], where: { orderId: { in: orderIds } }, _sum: { quantity: true } }),
+      this.prisma.fulfillmentReceipt.findMany({ where: { orderId: { in: orderIds } }, orderBy: { receivedAt: 'asc' } }),
+      this.prisma.hubScanAttempt.groupBy({ by: ['orderId'], where: { orderId: { in: orderIds } }, _count: { _all: true } }),
     ]);
+    const costs = await this.purchaseCosts.recordedByKeys(receivables.map(r => (r as { acquireKey?: string }).acquireKey).filter((k): k is string => !!k));
     const receivedByItem = new Map(receipts.map(row => [row.orderItemId, row._sum.quantity ?? 0]));
     const awaitingByItem = new Map<string, number>();
     for (const r of receivables) awaitingByItem.set(r.orderItemId, (awaitingByItem.get(r.orderItemId) ?? 0) + r.remainingQuantity);
+    // The purchase the next unit of each line belongs to (oldest first, as the receive command picks it).
+    const nextPurchase = new Map<string, string>();
+    for (const r of receivables) { const key = (r as { acquireKey?: string }).acquireKey; if (key && !nextPurchase.has(r.orderItemId)) nextPurchase.set(r.orderItemId, key) }
+    const attemptsByOrder = new Map(attempts.map(row => [row.orderId, row._count._all]));
     const shipmentByOrder = new Map(shipments.map(s => [s.orderId, s]));
     const open = orders.filter((o): o is NonNullable<typeof o> => !!o && OPEN_ORDER_STATUSES.includes(o.status));
     const labels = await this.catalog.getSkuLabels(open.flatMap(o => o.items.map(i => i.skuId)));
@@ -95,8 +120,18 @@ export class HubDeskService {
           skuCode: label?.skuCode ?? item.skuCode ?? null, barcode: label?.barcode ?? null, imageUrl: label?.imageUrl ?? null,
           required: item.quantity, purchased: received + (awaitingByItem.get(item.id) ?? 0), received,
           verified: Math.min(scans.filter(scan => scan.skuId === item.skuId).length, item.quantity),
+          cost: (() => {
+            const key = nextPurchase.get(item.id);
+            if (!key) return null;
+            const recorded = costs.get(key);
+            return { acquireKey: key, recorded: !!recorded, listUnitPrice: recorded?.listUnitPrice ?? null, discountPerUnit: recorded?.discountPerUnit ?? null, finalUnitCost: recorded?.finalUnitCost ?? null };
+          })(),
         };
       });
+      const rows = receiptRows.filter(row => row.orderId === order.id);
+      const reversedIds = new Set(rows.map(row => row.reversesReceiptId).filter((id): id is string => !!id));
+      const printed = shipment?.events.some(event => ['LABEL_PRINTED', 'RECEIPT_PRINTED'].includes(event.type)) ?? false;
+      const correctable = (!shipment || CORRECTABLE.includes(shipment.status)) && !printed;
       return {
         orderId: order.id, orderNumber: order.orderNumber, orderStatus: order.status, placedAt: order.createdAt,
         governorate: order.governorate ?? null, area: order.area ?? null,
@@ -104,11 +139,20 @@ export class HubDeskService {
         stage: this.stageOf(shipment?.status ?? null, lines),
         lines,
         printEvents: [...new Set(shipment?.events.map(e => e.type) ?? [])],
+        units: rows.filter(row => !row.reversesReceiptId && !reversedIds.has(row.id)).map(row => ({
+          receiptId: row.id, skuId: row.skuId, quantity: row.quantity, lotNumber: row.lotNumber,
+          expiryDate: row.expiryDate ? row.expiryDate.toISOString().slice(0, 10) : null, receivedAt: row.receivedAt, correctable,
+        })),
+        corrections: rows.filter(row => row.reversesReceiptId).map(row => ({
+          receiptId: row.id, reversesReceiptId: row.reversesReceiptId!, skuId: row.skuId, reason: row.correctionReason, note: row.correctionNote, at: row.receivedAt, actorId: row.actorId,
+        })),
+        rejectedScans: attemptsByOrder.get(order.id) ?? 0,
       };
     });
     const order: Record<DeskStage, number> = { receiving: 0, verifying: 1, packing: 2, waiting_purchase: 3 };
     result.sort((a, b) => order[a.stage] - order[b.stage] || +new Date(a.placedAt) - +new Date(b.placedAt));
-    return { orders: result, lastLots: await this.lastLots(locationId, open.flatMap(o => o.items.map(i => i.skuId))) };
+    const skuIds = open.flatMap(o => o.items.map(i => i.skuId));
+    return { orders: result, lastLots: await this.lastLots(locationId, skuIds), lastCosts: Object.fromEntries(await this.purchaseCosts.lastCostBySku(skuIds)) };
   }
 
   /**
@@ -158,6 +202,15 @@ export class HubDeskService {
       const required = items.reduce((sum, item) => sum + item.quantity, 0);
       return this.reject(shipment?.id, (received._sum.quantity ?? 0) >= required ? 'ALREADY_COMPLETE' : 'NOT_PURCHASED_YET', dto, actor, orderId, locationId, unit.skuId);
     }
+    // A cost already recorded for this purchase must match what is entered now; a different value is a correction, never a silent overwrite.
+    const acquireKey = (target as { acquireKey?: string }).acquireKey;
+    if (dto.cost && acquireKey) {
+      PurchaseCostService.finalUnitCost(dto.cost);
+      const recorded = (await this.purchaseCosts.recordedByKeys([acquireKey])).get(acquireKey);
+      if (recorded && (Number(recorded.listUnitPrice) !== dto.cost.listUnitPrice || Number(recorded.discountPerUnit) !== (dto.cost.discountPerUnit ?? 0))) {
+        throw new ConflictException({ code: 'COST_MISMATCH', message: 'This purchase already has a different recorded cost; correct that cost with a reason instead', recorded });
+      }
+    }
     if (!dto.expiryDate) {
       throw new BadRequestException({ code: 'EXPIRY_REQUIRED', skuId: unit.skuId, message: 'Enter the expiry date printed on the pack before scanning it in' });
     }
@@ -169,6 +222,11 @@ export class HubDeskService {
       ...(dto.barcodeScanned ? { barcodeScanned: dto.barcodeScanned } : { manualReason: dto.manualReason, manualChecks: dto.manualChecks }),
       ...(dto.lotNumber ? { lotNumber: dto.lotNumber } : {}), expiryDate: dto.expiryDate,
     }, actor);
+    if (dto.cost && acquireKey) {
+      // After the unit is in: a replay of the same values is a no-op; the first value for this purchase is stored once.
+      await this.purchaseCosts.record({ acquireKey, listUnitPrice: dto.cost.listUnitPrice, discountPerUnit: dto.cost.discountPerUnit }, actor.id)
+        .catch(error => { if ((error as { response?: { code?: string } })?.response?.code !== 'COST_ALREADY_RECORDED') throw error; });
+    }
     if (receipt.shipment?.status === ShipmentStatus.ready_to_prepare) {
       await this.fulfillment.verifyPreparationFromReceipts(receipt.shipment.id, actor);
     }
@@ -198,14 +256,22 @@ export class HubDeskService {
     return { outcome: kind, ...extra, order: desk.orders.find(o => o.orderId === orderId) ?? null };
   }
 
-  private async reject(shipmentId: string | undefined, code: DeskRejectCode, dto: DeskScanDto, actor: FulfillmentActor, orderId: string, locationId: string, skuId?: string) {
-    if (shipmentId) {
-      await this.prisma.shipmentEvent.create({ data: {
-        shipmentId, type: 'DESK_SCAN_REJECTED', actorId: actor.id, reasonCode: code,
-        notes: `${dto.barcodeScanned ? `barcode ${dto.barcodeScanned}` : 'manual check'}${skuId ? ` → sku ${skuId}` : ''} (scan ${dto.clientScanId})`,
-      } });
-    }
+  /** An order-level record of a refused scan (exists before any shipment does); receipt quantities are never touched. */
+  private async reject(_shipmentId: string | undefined, code: DeskRejectCode, dto: DeskScanDto, actor: FulfillmentActor, orderId: string, locationId: string, skuId?: string) {
+    await this.prisma.hubScanAttempt.create({ data: {
+      locationId, context: 'desk', orderId, clientScanId: dto.clientScanId, barcodeScanned: dto.barcodeScanned ?? null,
+      skuId: skuId ?? null, outcomeCode: code, actorId: actor.id,
+    } }).catch(error => { if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) throw error; });
     return this.outcome('rejected', orderId, locationId, actor, { code, ...(skuId ? { skuId } : {}) });
+  }
+
+  /** Corrects one received unit with a compensating event (the original stays in the audit trail). */
+  async reverse(locationId: string, receiptId: string, dto: ReverseReceiptDto, actor: FulfillmentActor) {
+    await this.fulfillment.assertDeskLocation(locationId, actor);
+    const receipt = await this.prisma.fulfillmentReceipt.findUnique({ where: { id: receiptId }, select: { locationId: true, orderId: true } });
+    if (!receipt || receipt.locationId !== locationId) throw new NotFoundException('Receipt not found at this Hub');
+    const result = await this.fulfillment.reverseReceipt(receiptId, dto, actor);
+    return { ...result, ...(await this.outcome('verified', receipt.orderId, locationId, actor, {})) };
   }
 
   /** Lot/expiry last recorded at this Hub for each SKU, offered for confirmation (never applied silently). */
