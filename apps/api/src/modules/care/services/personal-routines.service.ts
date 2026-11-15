@@ -3,7 +3,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { Prisma, RecommendationSource } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { PersonalRoutineDto, RoutineStepInputDto, SaveAiRoutineDto } from '../dto/routine-content.dto';
-import { ResolvedStep, RoutineContentService, RoutineView } from './routine-content.service';
+import { ApiTiming, ResolvedStep, RoutineContentService, RoutineView } from './routine-content.service';
 import { cleanNote, findUnsupportedClaim } from './routine-claims';
 import { ImportIssue } from './routine-import';
 import { RoutineCompatibilityService } from './routine-compatibility.service';
@@ -62,6 +62,29 @@ export class PersonalRoutinesService {
   async get(customerId: string, id: string): Promise<RoutineView> {
     await this.owned(customerId, id);
     return (await this.content.present(id))!;
+  }
+
+  /**
+   * What a customer can put in the cart from this routine (owner only): the main product of each step that is sellable right now, one per
+   * SKU, optionally only one time of day. Steps whose product is not sellable are returned so the UI can say so; nothing is substituted
+   * and nothing is added here (the composition layer adds to the cart through Ordering).
+   */
+  async purchasable(customerId: string, id: string, timing: ApiTiming | 'ALL' = 'ALL') {
+    await this.owned(customerId, id);
+    const view = (await this.content.present(id))!;
+    const items: Array<{ stepId: string; title: string; timing: string; skuId: string }> = [];
+    const unavailable: Array<{ stepId: string; title: string; timing: string; skuId: string | null; state: string }> = [];
+    for (const step of view.steps) {
+      if (timing !== 'ALL' && step.timing !== timing) continue;
+      const product = step.product;
+      if (!product || !product.skuId || product.state !== 'AVAILABLE') {
+        unavailable.push({ stepId: step.id, title: step.title, timing: step.timing, skuId: product?.skuId ?? null, state: product?.state ?? 'MISSING' });
+        continue;
+      }
+      if (items.some(item => item.skuId === product.skuId)) continue;
+      items.push({ stepId: step.id, title: step.title, timing: step.timing, skuId: product.skuId });
+    }
+    return { routineId: id, items, unavailable };
   }
 
   /** Another customer's routine is indistinguishable from a missing one. */

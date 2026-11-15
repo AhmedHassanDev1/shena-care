@@ -80,6 +80,11 @@ export class SwapRoutineItemDto {
   @IsUUID() productId!: string;
 }
 
+/** Which part of a personal routine to put in the cart: one time of day, or everything (default). */
+export class PersonalRoutineCartDto {
+  @IsOptional() @IsIn(['AM', 'PM', 'AS_NEEDED', 'ALL']) timing?: 'AM' | 'PM' | 'AS_NEEDED' | 'ALL';
+}
+
 export class RoutineCartDto {
   @IsOptional() @IsIn(['IMMEDIATE', 'ALL']) phase?: 'IMMEDIATE' | 'ALL';
 }
