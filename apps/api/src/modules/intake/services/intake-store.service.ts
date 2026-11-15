@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { IntakeJobStatus, IntakeRowOutcome, IntakeSource, Prisma } from '@prisma/client';
+import { createHash } from 'crypto';
 import { PrismaService } from '../../../platform/database/prisma.service';
 
 export interface NewIntakeRow {
@@ -45,17 +46,34 @@ export const ADMIN_ROW_LEASE_MS = 10 * 60_000;
 export class IntakeStoreService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** The same submission (same bytes or names, same submitter) resolves to the job it already created. */
+  /** The same submission and submitter, within the supplier's boundary, replays its existing job. */
   async createJob(input: { source: IntakeSource; supplierId: string | null; submittedBy: string; inputKind: 'SINGLE' | 'BULK' | 'FILE'; checksum: string;
     fileName?: string | null; mimeType?: string | null; sizeBytes?: number | null; columnMap?: unknown }): Promise<{ job: { id: string; status: IntakeJobStatus }; replay: boolean }> {
-    const existing = await this.prisma.intakeJob.findUnique({ where: { source_sourceChecksum_submittedBy: { source: input.source, sourceChecksum: input.checksum, submittedBy: input.submittedBy } },
-      select: { id: true, status: true } });
+    const sourceChecksum = input.source === IntakeSource.SUPPLIER
+      ? createHash('sha256').update(JSON.stringify([input.supplierId, input.checksum])).digest('hex') : input.checksum;
+    const key = { source: input.source, sourceChecksum, submittedBy: input.submittedBy };
+    const existing = await this.prisma.intakeJob.findUnique({ where: { source_sourceChecksum_submittedBy: key }, select: { id: true, status: true } })
+      // Keep old idempotency keys usable, but only inside their recorded supplier.
+      ?? (input.source === IntakeSource.SUPPLIER ? await this.prisma.intakeJob.findFirst({
+        where: { source: input.source, sourceChecksum: input.checksum, submittedBy: input.submittedBy, supplierId: input.supplierId },
+        select: { id: true, status: true },
+      }) : null);
     if (existing && existing.status !== IntakeJobStatus.FAILED) return { job: existing, replay: true };
     if (existing) await this.prisma.intakeJob.delete({ where: { id: existing.id } });
-    const job = await this.prisma.intakeJob.create({ data: { source: input.source, supplierId: input.supplierId, submittedBy: input.submittedBy, inputKind: input.inputKind,
-      sourceChecksum: input.checksum, sourceFileName: input.fileName ?? null, sourceMimeType: input.mimeType ?? null, sourceSizeBytes: input.sizeBytes ?? null,
-      columnMap: json(input.columnMap ?? null) }, select: { id: true, status: true } });
-    return { job, replay: false };
+    try {
+      const job = await this.prisma.intakeJob.create({ data: { source: input.source, supplierId: input.supplierId, submittedBy: input.submittedBy, inputKind: input.inputKind,
+        sourceChecksum, sourceFileName: input.fileName ?? null, sourceMimeType: input.mimeType ?? null, sourceSizeBytes: input.sizeBytes ?? null,
+        columnMap: json(input.columnMap ?? null) }, select: { id: true, status: true } });
+      return { job, replay: false };
+    } catch (error) {
+      // Another request may win the same idempotency key after our initial read.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const winner = await this.prisma.intakeJob.findUnique({ where: { source_sourceChecksum_submittedBy: key },
+          select: { id: true, status: true } });
+        if (winner) return { job: winner, replay: true };
+      }
+      throw error;
+    }
   }
 
   async addRows(jobId: string, rows: NewIntakeRow[]) {
@@ -107,7 +125,8 @@ export class IntakeStoreService {
     });
     const leased: string[] = [];
     for (const row of due) {
-      const claimed = await this.prisma.intakeRow.updateMany({ where: { id: row.id, outcome: IntakeRowOutcome.PENDING, OR: [{ leaseUntil: null }, { leaseUntil: { lt: now } }] },
+      const claimed = await this.prisma.intakeRow.updateMany({ where: { id: row.id, outcome: IntakeRowOutcome.PENDING, OR: [{ leaseUntil: null }, { leaseUntil: { lt: now } }],
+        AND: [{ OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] }] },
         data: { leaseUntil: new Date(now.getTime() + ADMIN_ROW_LEASE_MS) } });
       if (claimed.count) leased.push(row.id);
     }
