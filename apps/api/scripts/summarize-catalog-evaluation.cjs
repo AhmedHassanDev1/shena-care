@@ -9,6 +9,7 @@ const dataset = JSON.parse(fs.readFileSync(path.join(datasetDirectory, 'dataset.
 const runtime = JSON.parse(fs.readFileSync(path.join(runtimeDirectory, 'runtime.json'), 'utf8'));
 const inputHash = crypto.createHash('sha256').update(fs.readFileSync(path.join(datasetDirectory, 'input.csv'))).digest('hex');
 if (runtime.inputSha256 !== inputHash) throw new Error('Runtime report does not belong to this exact input batch');
+if (runtime.job?.status !== 'COMPLETED' || runtime.rows.some(row => row.outcome === 'PENDING')) throw new Error('Evaluation job is incomplete; pending retries are not measured outcomes');
 if (runtime.rows.length !== dataset.rows.length || new Set(runtime.rows.map(r => r.expectedId)).size !== dataset.rows.length) throw new Error('Incomplete or duplicated runtime outcomes');
 if (runtime.codeChangedDuringRun) throw new Error('Source changed during the run; this is not a fixed-code evaluation');
 const countBy = (items, key) => items.reduce((counts, item) => { const value = key(item); counts[value] = (counts[value] ?? 0) + 1; return counts; }, {});
@@ -21,7 +22,7 @@ const identified = rows.filter(r => r.actual), correct = identified.filter(r => 
 const wrong = identified.filter(r => !r.identityComparison.correct);
 const unresolved = rows.filter(r => r.outcome === 'UNRESOLVED');
 const readinessHolds = identified.filter(r => !r.readiness?.pdp.ready || r.readiness?.criticalOpen?.length);
-const usage = rows.reduce((counts, row) => { for (const [key, value] of Object.entries(row.cost ?? {})) counts[key] = (counts[key] ?? 0) + value; return counts; }, {});
+const usage = (runtime.observations ?? rows).reduce((counts, row) => { for (const [key, value] of Object.entries(row.cost ?? {})) counts[key] = (counts[key] ?? 0) + value; return counts; }, {});
 const report = {
   schema: 1, seed: dataset.seed, policyVersion: dataset.policyVersion, inputSha256: inputHash,
   code: runtime.code ?? null, codeAfter: runtime.codeAfter ?? null, codeChangedDuringRun: runtime.codeChangedDuringRun ?? null,
@@ -44,6 +45,7 @@ const report = {
     minimumReviewRows: new Set([...unresolved, ...readinessHolds].map(r => r.rowId)).size,
     boundary: 'Lower bound on review demand, not a timed human-labeling study. Pricing approval and missing guidance evidence are separate.' },
   cost: { usage, paidDiscoveryRequests: usage.searches ?? 0, llmRequests: 0, currencyCost: null,
+    observationBasis: runtime.observations ? 'Recorded attempt outcomes including retry observations' : 'Latest row costs only; earlier retry usage may be absent',
     boundary: 'No paid discovery or LLM calls configured. Network/compute/storage costs were not metered; an unknown monetary cost is not reported as zero.' },
   mismatches: wrong.map(r => ({ id: r.expectedId, input: r.input, actual: r.actual, dimensions: r.identityComparison })),
 };

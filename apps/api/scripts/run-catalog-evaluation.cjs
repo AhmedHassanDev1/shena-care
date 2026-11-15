@@ -70,7 +70,7 @@ if (codeBefore.sourceDiff) throw new Error('Commit evaluation code before measur
     const job = await app.get(AdminIntakeService).submit({ actorId, file: { buffer, originalname: 'evaluation-100.csv', mimetype: 'text/csv', size: buffer.length }, researchPrices: false });
     const fingerprint = require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(datasetDirectory, 'input.csv'))).digest('hex');
     const report = fs.existsSync(reportFile) ? JSON.parse(fs.readFileSync(reportFile)) : { startedAt: new Date().toISOString(), code: codeBefore, inputSha256: fingerprint, jobId: job.jobId, database: new URL(process.env.DATABASE_URL).pathname,
-      lane: 'NAMES_AND_MANUFACTURER_URLS_REAL_OWNER_PIPELINE_NO_PAID_DISCOVERY_NO_PRICE_RESEARCH_NO_PUBLICATION', rows: [] };
+      lane: 'NAMES_AND_MANUFACTURER_URLS_REAL_OWNER_PIPELINE_NO_PAID_DISCOVERY_NO_PRICE_RESEARCH_NO_PUBLICATION', rows: [], observations: [] };
     if (report.jobId !== job.jobId || report.inputSha256 !== fingerprint || report.database !== new URL(process.env.DATABASE_URL).pathname) throw new Error('Refusing to combine different evaluation runs');
     if (JSON.stringify(report.code) !== JSON.stringify(codeBefore)) throw new Error('Refusing to resume an evaluation with different source code');
     const runner = app.get(IntakeRunnerService), enrichment = app.get(CatalogEnrichmentService);
@@ -87,6 +87,7 @@ if (codeBefore.sourceDiff) throw new Error('Commit evaluation code before measur
           identityMatchesOracle: sku && oracle ? compareEvaluationIdentity(oracle.expected, { name: sku.product.name, brand: sku.product.brand.name, size: sku.size?.toNumber() ?? null, sizeUnit: sku.sizeUnit, packCount: sku.packCount }).correct : null,
           actual: sku ? { name: sku.product.name, brand: sku.product.brand.name, size: sku.size?.toNumber(), sizeUnit: sku.sizeUnit, packCount: sku.packCount, barcode: sku.barcode, identityStatus: sku.identityStatus } : null,
           readiness: sku ? await enrichment.readiness(sku.id) : null };
+        report.observations.push({ rowId: row.id, attempts: row.attempts, outcome: row.outcome, cost: row.cost, observedAt: new Date().toISOString() });
         report.rows = report.rows.filter(r => r.rowId !== row.id); report.rows.push(result);
         console.log(JSON.stringify({ row: row.rowNumber, outcome: row.outcome, reason: row.reasonCode, identityMatchesOracle: result.identityMatchesOracle }));
       }
@@ -98,11 +99,18 @@ if (codeBefore.sourceDiff) throw new Error('Commit evaluation code before measur
     } while (worked);
     report.job = await db.intakeJob.findUnique({ where: { id: job.jobId } });
     report.allRows = await db.intakeRow.findMany({ where: { jobId: job.jobId }, select: { id: true, rowNumber: true, stage: true, outcome: true, reasonCode: true, attempts: true, nextAttemptAt: true } });
-    report.finishedAt = new Date().toISOString();
+    report.complete = report.job.status === 'COMPLETED' && report.allRows.every(row => row.outcome !== 'PENDING');
+    if (report.complete) report.finishedAt = new Date().toISOString();
+    else { delete report.finishedAt; report.incompleteAt = new Date().toISOString(); }
     report.codeAfter = codeSnapshot();
     report.codeChangedDuringRun = JSON.stringify(codeBefore) !== JSON.stringify(report.codeAfter);
     fs.writeFileSync(reportFile, JSON.stringify(report, null, 2));
     if (report.codeChangedDuringRun) throw new Error('Source changed during evaluation; evidence preserved but this is not a fixed-code run');
+    if (!report.complete) {
+      console.log(JSON.stringify({ stage: 'INCOMPLETE_RETRY_SCHEDULED', pending: report.allRows.filter(row => row.outcome === 'PENDING').length }));
+      process.exitCode = 2;
+      return;
+    }
     console.log(JSON.stringify({ stage: 'drained', rows: report.rows.length, published: report.publishedProducts, prices: report.sellingPrices }));
   } finally { await app.close(); }
 })().catch(error => { console.error(String(error.message).slice(-1200)); process.exitCode = 1; });
