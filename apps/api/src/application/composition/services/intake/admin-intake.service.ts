@@ -341,14 +341,21 @@ export class AdminIntakeService {
     verified: { verifiedBy: SourceCheck; size: { value: number; unit: string }; productName: string }, snapshot: Awaited<ReturnType<CatalogSnapshotService['identitySnapshot']>>) {
     const officialGtin = verified.verifiedBy.tier === 'OFFICIAL_MANUFACTURER' ? verified.verifiedBy.pageGtin : null;
     const name = this.canonicalName(verified, brand);
-    // Same verified page and same size, or the same wording/barcode the matcher can prove: the product already exists.
+    const exactName = (other: string) => identityWords(other).join(' ') === identityWords(name).join(' ');
+    const packCount = parsed.packCount ?? 1;
+    // A verified native title identifies the variant. Fuzzy wording can retrieve
+    // candidates, but must not merge distinct named formulas (Refresh/Hydrate).
     const samePage = snapshot.skus.filter(sku => sku.brandId === brand.id && sku.sourceUrls.some(url => url === verified.verifiedBy.url)
+      && exactName(sku.productName) && (sku.packCount ?? 1) === packCount
       && sku.size !== null && Math.abs(sku.size - verified.size.value) <= sku.size * 0.01 && (sku.sizeUnit ?? '').toLowerCase() === verified.size.unit);
     if (samePage.length === 1) return { skuId: samePage[0].skuId, created: false, basis: 'SAME_VERIFIED_PAGE' };
     const index = new CandidateIndex(snapshot, new Map(), new Map());
     const verdict = index.match({ name: `${brand.name} ${name}`, barcode: officialGtin ?? row.barcode, code: null, measure: { size: verified.size.value, unit: verified.size.unit },
       measureConflict: false, packCount: parsed.packCount ?? null, fingerprint: '' });
-    if (verdict.kind === 'MATCH' && (verdict.basis === 'BARCODE' || verdict.score >= 0.7)) return { skuId: verdict.skuId, created: false, basis: verdict.basis };
+    if (verdict.kind === 'MATCH' && (verdict.basis === 'BARCODE' || (verdict.score >= 0.7 && snapshot.skus.some(sku =>
+      sku.skuId === verdict.skuId && exactName(sku.productName) && (sku.packCount ?? 1) === packCount)))) {
+      return { skuId: verdict.skuId, created: false, basis: verdict.basis };
+    }
     if (verdict.kind === 'CONFLICT') throw new Unresolved({ reasonCode: 'IDENTITY_CONFLICT', severity: 'CRITICAL', summary: verdict.detail,
       recommended: { action: 'RESOLVE', label: 'Decide whether this is the existing SKU' } }, { candidates: verdict.candidates });
 
@@ -356,7 +363,7 @@ export class AdminIntakeService {
     const slug = (() => { try { return decodeURIComponent(new URL(verified.verifiedBy.url).pathname).replace(/[-_/.]+/g, ' '); } catch { return ''; } })();
     const category = await this.categoryFor(`${name} ${row.rawName}`) ?? await this.categoryFor(`${name} ${slug}`);
     const unit = verified.size.unit === 'piece' ? 'piece' : verified.size.unit;
-    const code = `SC-${brand.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() || 'BR'}-${createHash('sha256').update(`${brand.id}|${name.toLowerCase()}|${verified.size.value}${unit}`).digest('hex').slice(0, 8).toUpperCase()}`;
+    const code = `SC-${brand.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() || 'BR'}-${createHash('sha256').update(`${brand.id}|${name.toLowerCase()}|${verified.size.value}${unit}${packCount > 1 ? `|pack:${packCount}` : ''}`).digest('hex').slice(0, 8).toUpperCase()}`;
     try {
       const result = await this.catalog.intake({ brandId: brand.id, categoryId: category?.id, name, variantName: `${verified.size.value} ${unit}`, skuCode: code,
         size: verified.size.value, sizeUnit: unit, packCount: parsed.packCount ?? undefined, barcode: officialGtin ?? row.barcode ?? undefined });

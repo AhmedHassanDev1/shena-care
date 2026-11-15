@@ -326,6 +326,12 @@ export class CandidateIndex {
     if (markerClash(rowMarkers.percents, entry.markers.percents)) vetoes.push('STRENGTH_DIFFERS');
     if (markerClash(rowMarkers.spf, entry.markers.spf)) vetoes.push('SPF_DIFFERS');
     if (titleFactConflict(rowTitle, entry.title)) vetoes.push('STATED_FACTS_CONTRADICT');
+    const wording = compareTitles(rowTitle, entry.title);
+    if (wording.unreadInRow && entry.title.descriptors.some(word => wording.onlyCatalog.includes(word))) {
+      // Different native variant names are identity evidence, even when most
+      // words, size and a supplied hard identifier agree (Refresh vs Hydrate).
+      vetoes.push('NAMED_VARIANT_DIFFERS');
+    }
     const shared = rowMarkers.percents.some(value => entry.markers.percents.includes(value)) || rowMarkers.spf.some(value => entry.markers.spf.includes(value));
     return { skuId: entry.sku.skuId, label: entry.label, score: Math.round(wordingOverlap(rowTitle, entry.title) * 100) / 100,
       supports: wordingSupportsTitle(rowTitle, entry.title, shared), measure, vetoes };
