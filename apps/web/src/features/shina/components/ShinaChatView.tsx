@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import Image from 'next/image';
-import { useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Icon } from '@/components/ui/icon';
 import { GlassBadge } from '@/components/ui/glass-badge';
 import { MessageBox } from '@/components/ui/message-box';
@@ -34,6 +33,8 @@ import {
 } from '../lib/shina-workflows';
 import type { ShinaActivityState, ShinaMessage, ShinaProduct } from '../lib/shina-types';
 import { ShinaActivityCapsule } from './ShinaActivityCapsule';
+import { ShinaHeader } from './ShinaHeader';
+import { ShinaMarkdown } from './ShinaMarkdown';
 import { ShinaMascot } from './ShinaMascot';
 import {
   ShinaComparisonCard,
@@ -55,12 +56,16 @@ function isAbortError(err: unknown): boolean {
   );
 }
 
-export function ShinaChatView({ initialQuery, contextProductSlug, contextConcernSlug }: ShinaChatViewProps) {
+export function ShinaChatView({
+  initialQuery,
+  contextProductSlug,
+  contextConcernSlug,
+}: ShinaChatViewProps) {
   const m = useMessages();
   const locale = useLocale();
   const prefersReducedMotion = Boolean(useReducedMotion());
   const { isAuthenticated, isLoading: authLoading, withAuth } = useAuth();
-  const { addItem } = useCart();
+  const { cart, addItem } = useCart();
 
   const [messages, setMessages] = useState<ShinaMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -69,6 +74,9 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
   const [addingSkuId, setAddingSkuId] = useState<string | null>(null);
   const [addedSkuIds, setAddedSkuIds] = useState<Set<string>>(() => new Set());
   const [isBatchAdding, setIsBatchAdding] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+
   // Saving an assistant routine: per message, idle → pending → saved | failed. Never automatic.
   const [routineSaves, setRoutineSaves] = useState<Record<string, 'pending' | 'saved' | 'failed'>>({});
   const slotLabels = { AM: m.shinaSlotAm, PM: m.shinaSlotPm, AS_NEEDED: m.shinaSlotAsNeeded };
@@ -80,6 +88,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
   const lastFailedQueryRef = useRef<string | null>(null);
   const bootstrappedRef = useRef(false);
   const profileLoadedRef = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -99,12 +108,27 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
     activityState === 'recommending' ||
     activityState === 'streaming';
 
-  const scrollToLatest = useCallback(() => {
-    bottomAnchorRef.current?.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'end',
-    });
-  }, [prefersReducedMotion]);
+  const scrollToLatest = useCallback(
+    (force = false) => {
+      const el = scrollContainerRef.current;
+      if (!el) return;
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      if (!force && distanceFromBottom > 240) return;
+
+      bottomAnchorRef.current?.scrollIntoView({
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        block: 'end',
+      });
+    },
+    [prefersReducedMotion],
+  );
+
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setShowScrollBottom(distanceFromBottom > 160);
+  }, []);
 
   useEffect(() => {
     scrollToLatest();
@@ -115,7 +139,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
     if (!vv) return;
     const onResize = () => {
       if (vv.height < window.innerHeight - 120) {
-        scrollToLatest();
+        scrollToLatest(true);
       }
     };
     vv.addEventListener('resize', onResize);
@@ -126,7 +150,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 112)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
   }, [draft]);
 
   const abortActiveRequest = useCallback(() => {
@@ -142,6 +166,15 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
     return () => {
       abortRef.current?.abort();
     };
+  }, []);
+
+  const handleCopyMessage = useCallback((id: string, text: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+      }).catch(() => {});
+    }
   }, []);
 
   const loadCatalog = useCallback(async (signal?: AbortSignal): Promise<ProductView[]> => {
@@ -254,7 +287,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
       lastFailedQueryRef.current = null;
       return mapGuidanceDtoToMessage(response, locale, true, slotLabels);
     },
-    [locale, contextConcernSlug, contextProductSlug],
+    [locale, contextConcernSlug, contextProductSlug, slotLabels],
   );
 
   const submitQuery = useCallback(
@@ -395,9 +428,11 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
 
         const dailyLimit = err instanceof ApiError && err.status === 429;
         const retryable =
-          dailyLimit ? false : err instanceof ApiError
-            ? Boolean((err.data as { retryable?: boolean } | undefined)?.retryable ?? err.status >= 500)
-            : true;
+          dailyLimit
+            ? false
+            : err instanceof ApiError
+              ? Boolean((err.data as { retryable?: boolean } | undefined)?.retryable ?? err.status >= 500)
+              : true;
 
         setActivityState('warning');
         setActivityDetail(undefined);
@@ -428,7 +463,17 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
         }
       }
     },
-    [abortActiveRequest, isAuthenticated, loadCatalog, locale, m.shinaGuestNotice, m.shinaDailyLimit, sendAiTurn, startDraft, voice],
+    [
+      abortActiveRequest,
+      isAuthenticated,
+      loadCatalog,
+      locale,
+      m.shinaDailyLimit,
+      m.shinaGuestNotice,
+      sendAiTurn,
+      startDraft,
+      voice,
+    ],
   );
 
   const handleRetryLast = useCallback(
@@ -470,7 +515,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
         await submitQuery(targetQuery, { skipUserEcho: true });
       }
     },
-    [abortActiveRequest, isAuthenticated, locale, runCatalogFallback, submitQuery],
+    [abortActiveRequest, isAuthenticated, locale, runCatalogFallback, slotLabels, submitQuery],
   );
 
   const handlePromptAuth = useCallback(
@@ -562,16 +607,28 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
     [addItem, locale, m.cardAddFailed],
   );
 
-  /** Saves the routine exactly as reviewed; the customer's tap on «Save» is the explicit confirmation. */
-  const handleSaveRoutine = useCallback(async (messageId: string, save: NonNullable<NonNullable<ShinaMessage['routine']>['save']>) => {
-    setRoutineSaves((prev) => ({ ...prev, [messageId]: 'pending' }));
-    try {
-      await withAuth(() => saveAiRoutine({ idempotencyKey: crypto.randomUUID(), title: save.title, careArea: save.careArea, steps: save.steps }));
-      setRoutineSaves((prev) => ({ ...prev, [messageId]: 'saved' }));
-    } catch {
-      setRoutineSaves((prev) => ({ ...prev, [messageId]: 'failed' }));
-    }
-  }, [withAuth]);
+  const handleSaveRoutine = useCallback(
+    async (
+      messageId: string,
+      save: NonNullable<NonNullable<ShinaMessage['routine']>['save']>,
+    ) => {
+      setRoutineSaves((prev) => ({ ...prev, [messageId]: 'pending' }));
+      try {
+        await withAuth(() =>
+          saveAiRoutine({
+            idempotencyKey: crypto.randomUUID(),
+            title: save.title,
+            careArea: save.careArea,
+            steps: save.steps,
+          }),
+        );
+        setRoutineSaves((prev) => ({ ...prev, [messageId]: 'saved' }));
+      } catch {
+        setRoutineSaves((prev) => ({ ...prev, [messageId]: 'failed' }));
+      }
+    },
+    [withAuth],
+  );
 
   const handleResetSession = useCallback(() => {
     abortActiveRequest();
@@ -637,165 +694,188 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
     <section
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
       aria-label={m.shinaAssistantTitle}
-      className="relative flex flex-1 min-h-0 flex-col overflow-hidden bg-sand font-display text-ink"
+      className="relative flex h-full flex-1 flex-col overflow-hidden bg-chalk font-display text-ink"
     >
-      {/* Warm sunlit studio plaster backdrop synced with Stitch & SAHEL */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <Image
-          src="/images/shina/shina-ambient-bg.webp"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center opacity-90 select-none"
-        />
-        <div className="absolute inset-0 shina-ambient-glow" />
+      {/* Sahel Shutter Light Signature Atmosphere */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 select-none overflow-hidden opacity-45"
+        aria-hidden="true"
+      >
+        <div className="shutter soft warm absolute inset-0 size-full" />
       </div>
+
+      {/* Sleek, Focused Chat Header */}
+      <ShinaHeader
+        state={effectiveState}
+        onResetSession={handleResetSession}
+        cartItemCount={cart?.itemCount ?? 0}
+      />
 
       {/* Hidden H1 for accessibility */}
       <h1 className="sr-only">{m.shinaAssistantTitle}</h1>
 
-      {/* Minimal floating controls (ChatGPT-style: compact mascot icon + New Chat icon button) */}
-      <div className="pointer-events-none absolute inset-x-0 top-3.5 z-20 px-4 sm:px-6">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between">
-          <div
-            className="pointer-events-auto flex items-center justify-center rounded-full p-0.5 drop-shadow-sm transition-transform hover:scale-105"
-            title={m.shinaAssistantTitle}
-            aria-label={m.shinaAssistantTitle}
-          >
-            <ShinaMascot state={effectiveState} size="sm" decorative />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleResetSession}
-            title={m.shinaNewSession}
-            aria-label={m.shinaNewSession}
-            className="pointer-events-auto inline-flex size-9 items-center justify-center rounded-full border border-linen/85 bg-linen/75 text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt hover:bg-linen hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
-          >
-            <Icon name="plus" size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Scrollable Message Stream */}
-      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto px-4 pt-14 pb-4 sm:px-6 sm:pt-14 sm:pb-6">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 pb-6">
+      {/* Main Message Stream Container */}
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="relative z-10 flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6"
+      >
+        <div className="mx-auto flex w-full max-w-2xl sm:max-w-3xl flex-col gap-6 pb-6">
+          {/* Welcome Screen when conversation is fresh */}
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center gap-2.5 py-1 text-center sm:gap-4 sm:py-8">
+            <motion.div
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center gap-4 py-6 text-center sm:gap-5 sm:py-12"
+            >
               <ShinaMascot
                 state={effectiveState === 'idle' ? 'idle' : effectiveState}
                 size="hero"
                 alt={m.shinaAssistantTitle}
               />
 
-              <div className="space-y-1 sm:space-y-1.5">
-                <h2 className="font-display text-24 font-bold text-ink sm:text-30">
+              <div className="space-y-1.5 sm:space-y-2">
+                <h2 className="font-display text-24 font-extrabold text-ink sm:text-30">
                   {m.shinaWelcomeHeading}
                 </h2>
-                <p className="mx-auto max-w-md text-13 font-medium leading-snug text-ink/85 sm:text-14 sm:leading-relaxed">
+                <p className="mx-auto max-w-lg font-text text-13 font-medium leading-relaxed text-stone sm:text-14">
                   {m.shinaWelcomeBody}
                 </p>
               </div>
 
               {!authLoading ? (
                 isAuthenticated ? (
-                  <p className="inline-flex items-center gap-1.5 rounded-pill border border-ok/35 bg-ok-tint/85 px-4 py-1.5 text-12 font-semibold text-ok shadow-elevation-1 backdrop-blur-sm">
+                  <p className="inline-flex items-center gap-1.5 rounded-pill border border-ok/30 bg-ok-tint px-3.5 py-1 font-display text-12 font-bold text-ok shadow-elevation-1">
                     <Icon name="check" size={14} />
                     <span>{m.shinaAiConnectedNote}</span>
                   </p>
                 ) : (
-                  <div className="flex w-full max-w-lg flex-col items-center justify-between gap-2 rounded-card border border-linen/80 bg-linen/70 px-3 py-2 text-start shadow-elevation-1 backdrop-blur-md sm:flex-row sm:gap-3 sm:px-4 sm:py-3">
-                    <p className="text-11 font-medium leading-snug text-ink/85 sm:text-12 sm:leading-relaxed">{m.shinaGuestNotice}</p>
+                  <div className="flex w-full max-w-md flex-col items-center justify-between gap-2.5 rounded-card border border-line bg-linen/90 p-3 text-start shadow-elevation-1 sm:flex-row sm:gap-3 sm:p-3.5">
+                    <p className="font-text text-12 leading-snug text-stone">
+                      {m.shinaGuestNotice}
+                    </p>
                     <button
                       type="button"
                       onClick={() => handlePromptAuth()}
-                      className="inline-flex min-h-control-s shrink-0 items-center justify-center gap-1.5 rounded-pill bg-cobalt px-3.5 font-display text-12 font-bold text-chalk transition-colors hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt sm:px-4"
+                      className="inline-flex min-h-control-s shrink-0 items-center justify-center gap-1.5 rounded-pill bg-cobalt px-4 font-display text-12 font-bold text-chalk shadow-action transition-colors hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
                     >
-                      <Icon name="user" size={16} />
+                      <Icon name="user" size={15} />
                       <span>{m.shinaSignInAction}</span>
                     </button>
                   </div>
                 )
               ) : null}
 
-              <div className="grid w-full max-w-xl grid-cols-2 gap-2 pt-0.5 sm:flex sm:max-w-3xl sm:flex-wrap sm:justify-center sm:gap-2.5 sm:pt-1">
-                {starterChips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    disabled={isBusy}
-                    onClick={() => submitQuery(chip)}
-                    className="inline-flex min-h-control-s items-center justify-center rounded-card border border-linen/85 bg-linen/70 px-3 py-1.5 text-center font-display text-12 font-semibold text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt/50 hover:bg-linen/90 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:opacity-50 sm:rounded-pill sm:px-3.5 sm:py-2"
-                  >
-                    {chip}
-                  </button>
-                ))}
+              {/* Starter Question Chips */}
+              <div className="w-full max-w-xl pt-2">
+                <p className="mb-2.5 font-text text-11 font-medium text-stone">
+                  {locale === 'ar' ? 'أسئلة مقترحة للبدء:' : 'Suggested prompts to start:'}
+                </p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {starterChips.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => submitQuery(chip)}
+                      className="flex min-h-control-s items-center justify-start rounded-card border border-line/70 bg-linen/70 px-3.5 py-2 text-start font-display text-12 font-semibold text-ink shadow-elevation-1 transition-all hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:opacity-50"
+                    >
+                      <span className="truncate">{chip}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            </motion.div>
           ) : null}
 
+          {/* Message Stream */}
           {messages.map((msg) => {
             if (msg.role === 'user') {
               return (
-                <div key={msg.id} className="flex flex-col items-end gap-1">
-                  <div className="max-w-xl rounded-card bg-cobalt px-4 py-2.5 text-14 leading-relaxed text-chalk shadow-action sm:text-15">
+                <motion.div
+                  key={msg.id}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 8, scale: 0.99 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex flex-col items-end gap-1 ps-8 sm:ps-16"
+                >
+                  <div className="max-w-xl rounded-24 rounded-ee-6 bg-cobalt px-4.5 py-2.5 font-text text-14 leading-relaxed text-chalk shadow-action sm:text-15">
                     {msg.content}
                   </div>
-                  <span className="px-1 text-11 text-stone">{msg.timestamp}</span>
-                </div>
+                  <span className="px-1.5 font-text text-11 text-stone">{msg.timestamp}</span>
+                </motion.div>
               );
             }
 
             return (
-              <article key={msg.id} aria-busy={msg.isStreaming || undefined} className="flex w-full flex-col items-start gap-2.5">
-                <div className="flex items-center gap-2 text-11 text-ink/75">
+              <motion.article
+                key={msg.id}
+                aria-busy={msg.isStreaming || undefined}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="group flex w-full flex-col items-start gap-3"
+              >
+                {/* Assistant Metadata Header */}
+                <div className="flex items-center gap-2 font-text text-11 text-stone">
                   <ShinaMascot state="idle" size="xs" decorative />
-                  <span className="font-medium text-ink">{m.shinaAssistantTitle}</span>
+                  <span className="font-display font-extrabold text-ink">
+                    {m.shinaAssistantTitle}
+                  </span>
                   <span aria-hidden="true">·</span>
-                  <span>
+                  <span className="rounded-pill border border-line/60 bg-linen px-2 py-0.5">
                     {msg.sourceKind === 'ai-guidance' ? m.shinaSourceAi : m.shinaSourceCatalog}
                   </span>
                   <span aria-hidden="true">·</span>
                   <span>{msg.timestamp}</span>
                 </div>
 
+                {/* Editorial Message Content (No oversized box) */}
                 <div
                   className={cn(
-                    'w-fit max-w-full rounded-card border px-4 py-3 text-14 leading-relaxed shadow-elevation-1 backdrop-blur-md whitespace-pre-line sm:max-w-3xl sm:text-15',
+                    'w-full max-w-full font-text text-14 leading-relaxed sm:text-15',
                     msg.isError
-                      ? 'border-tomato/40 bg-tomato/10 text-tomato-ink'
-                      : 'border-linen/80 bg-linen/80 text-ink',
+                      ? 'rounded-card border border-tomato/30 bg-linen p-3.5 text-tomato-ink shadow-elevation-1'
+                      : 'text-ink',
                   )}
                 >
-                  {msg.content}
+                  <ShinaMarkdown content={msg.content} />
                 </div>
 
-                {msg.consult?.fallback ? <GlassBadge tone="quiet">{m.shinaFallbackBadge}</GlassBadge> : null}
+                {/* Consult Badges / Escalations */}
+                {msg.consult?.fallback ? (
+                  <GlassBadge tone="quiet">{m.shinaFallbackBadge}</GlassBadge>
+                ) : null}
 
                 {msg.consult?.escalation?.length ? (
-                  <MessageBox tone="warn" title={m.shinaEscalationTitle} className="w-full sm:max-w-3xl">
-                    <ul className="m-0 flex list-none flex-col gap-1 p-0">
-                      {msg.consult.escalation.map((reason) => <li key={reason}>{reason}</li>)}
+                  <MessageBox tone="warn" title={m.shinaEscalationTitle} className="w-full">
+                    <ul className="m-0 flex list-none flex-col gap-1 p-0 font-text text-12">
+                      {msg.consult.escalation.map((reason) => (
+                        <li key={reason}>{reason}</li>
+                      ))}
                     </ul>
                   </MessageBox>
                 ) : null}
 
                 {msg.consult?.routineNote ? (
-                  <MessageBox tone="info" className="w-full sm:max-w-3xl">{msg.consult.routineNote}</MessageBox>
+                  <MessageBox tone="info" className="w-full font-text text-12">
+                    {msg.consult.routineNote}
+                  </MessageBox>
                 ) : null}
 
                 {msg.requiresAuthPrompt ? (
                   <button
                     type="button"
                     onClick={() => handlePromptAuth(msg.pendingQuery)}
-                    className="inline-flex min-h-control-s items-center gap-2 rounded-pill bg-cobalt px-4 font-display text-13 font-bold text-chalk shadow-action transition-colors hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                    className="inline-flex min-h-control-s items-center gap-2 rounded-pill bg-cobalt px-4 font-display text-13 font-bold text-chalk shadow-action transition-all hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95"
                   >
-                    <Icon name="user" size={16} />
+                    <Icon name="user" size={15} />
                     <span>{m.shinaSignInAction}</span>
                   </button>
                 ) : null}
 
+                {/* Dedicated Rich Components */}
                 {msg.products && msg.products.length > 0 ? (
                   <ShinaProductCarousel
                     products={msg.products}
@@ -818,7 +898,12 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
                   <ShinaRoutineCard
                     routine={msg.routine}
                     saveState={routineSaves[msg.id]}
-                    onSave={msg.routine.save ? (steps) => handleSaveRoutine(msg.id, { ...msg.routine!.save!, steps }) : undefined}
+                    onSave={
+                      msg.routine.save
+                        ? (steps) =>
+                            handleSaveRoutine(msg.id, { ...msg.routine!.save!, steps })
+                        : undefined
+                    }
                     onAddToBag={handleAddToBag}
                     onAddManyToBag={handleAddManyToBag}
                     addingSkuId={addingSkuId}
@@ -827,70 +912,107 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
                   />
                 ) : null}
 
-                {msg.isError ? (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {msg.retryable !== false ? (
-                      <button
-                        type="button"
-                        onClick={() => handleRetryLast(msg.pendingQuery)}
-                        className="inline-flex min-h-control-s items-center gap-1.5 rounded-pill border border-tomato/35 bg-chalk px-3.5 font-display text-12 font-bold text-tomato-ink transition-colors hover:bg-tomato/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
-                      >
-                        <Icon name="retry" size={15} />
-                        <span>{m.shinaRetryAction}</span>
-                      </button>
-                    ) : null}
-
-                    {msg.pendingQuery ? (
-                      <button
-                        type="button"
-                        onClick={() => runCatalogFallback(msg.pendingQuery!)}
-                        className="inline-flex min-h-control-s items-center gap-1.5 rounded-pill border border-line bg-linen px-3.5 font-display text-12 font-bold text-ink transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
-                      >
-                        <Icon name="search" size={15} />
-                        <span>{m.shinaSearchCatalogFallback}</span>
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-
+                {/* Citations */}
                 {msg.consult?.citations?.length ? (
-                  <div className="flex flex-col gap-1 text-11 text-stone">
+                  <div className="flex flex-col gap-1 font-text text-11 text-stone">
                     <span className="font-semibold text-ink">{m.shinaSourcesTitle}</span>
                     <ul className="m-0 flex list-none flex-wrap gap-x-3 gap-y-1 p-0">
                       {msg.consult.citations.map((source) => (
                         <li key={source.title}>
                           {source.url ? (
-                            <a href={source.url} target="_blank" rel="noopener noreferrer" className="underline decoration-1 underline-offset-2 hover:text-cobalt"><bdi>{source.title}</bdi></a>
-                          ) : <bdi>{source.title}</bdi>}
+                            <a
+                              href={source.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-cobalt underline decoration-1 underline-offset-2 hover:text-cobalt-deep"
+                            >
+                              <bdi>{source.title}</bdi>
+                            </a>
+                          ) : (
+                            <bdi>{source.title}</bdi>
+                          )}
                         </li>
                       ))}
                     </ul>
                   </div>
                 ) : null}
 
-                {(msg.products?.length || msg.routine || msg.sourceKind === 'ai-guidance') && !msg.isError ? (
-                  <p className="text-11 text-ink/75">{m.shinaSafetyNote}</p>
+                {/* Safety Footnote */}
+                {(msg.products?.length || msg.routine || msg.sourceKind === 'ai-guidance') &&
+                !msg.isError ? (
+                  <p className="font-text text-11 text-stone leading-relaxed">
+                    {m.shinaSafetyNote}
+                  </p>
                 ) : null}
 
+                {/* Message Actions (Copy, Retry, Search Fallback) */}
+                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleCopyMessage(msg.id, msg.content)}
+                    aria-label={locale === 'ar' ? 'نسخ الرسالة' : 'Copy message'}
+                    className="inline-flex items-center gap-1.5 rounded-pill border border-line/50 bg-linen/60 px-3 py-1 font-display text-11 font-bold text-stone shadow-elevation-1 backdrop-blur-md transition-all hover:border-cobalt hover:bg-chalk/80 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95"
+                  >
+                    <Icon
+                      name={copiedId === msg.id ? 'check' : 'copy'}
+                      size={13}
+                      className={copiedId === msg.id ? 'text-ok' : undefined}
+                    />
+                    <span>
+                      {copiedId === msg.id
+                        ? locale === 'ar'
+                          ? 'تم النسخ'
+                          : 'Copied'
+                        : locale === 'ar'
+                          ? 'نسخ'
+                          : 'Copy'}
+                    </span>
+                  </button>
+
+                  {msg.isError && msg.retryable !== false ? (
+                    <button
+                      type="button"
+                      onClick={() => handleRetryLast(msg.pendingQuery)}
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-tomato/30 bg-chalk/80 px-3 py-1 font-display text-11 font-bold text-tomato-ink backdrop-blur-md transition-colors hover:bg-tomato/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                    >
+                      <Icon name="retry" size={13} />
+                      <span>{m.shinaRetryAction}</span>
+                    </button>
+                  ) : null}
+
+                  {msg.isError && msg.pendingQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => runCatalogFallback(msg.pendingQuery!)}
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-line/50 bg-linen/60 px-3 py-1 font-display text-11 font-bold text-ink backdrop-blur-md transition-colors hover:border-cobalt hover:bg-chalk/80 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                    >
+                      <Icon name="search" size={13} />
+                      <span>{m.shinaSearchCatalogFallback}</span>
+                    </button>
+                  ) : null}
+                </div>
+
+                {/* Follow-up Question Chips */}
                 {msg.suggestions && msg.suggestions.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 pt-1">
                     {msg.suggestions.map((chip) => (
                       <button
                         key={chip}
                         type="button"
                         disabled={isBusy}
                         onClick={() => submitQuery(chip)}
-                        className="inline-flex min-h-control-s items-center rounded-pill border border-linen/80 bg-linen/70 px-3 py-1 font-display text-12 font-semibold text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt/50 hover:bg-linen hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:opacity-50"
+                        className="inline-flex min-h-control-s items-center rounded-pill border border-line/50 bg-linen/60 px-3.5 py-1.5 font-display text-12 font-bold text-ink shadow-elevation-1 backdrop-blur-md transition-all hover:border-cobalt hover:bg-chalk/80 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:opacity-50"
                       >
                         {chip}
                       </button>
                     ))}
                   </div>
                 ) : null}
-              </article>
+              </motion.article>
             );
           })}
 
+          {/* Active AI Capsule Indicator */}
           {effectiveState !== 'idle' && effectiveState !== 'completed' ? (
             <div className="flex justify-start">
               <ShinaActivityCapsule
@@ -906,13 +1028,32 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
         </div>
       </div>
 
-      {/* Compact Anchored Composer (48-52px height, 650-720px max width) */}
-      <footer className="relative z-20 shrink-0 bg-gradient-to-t from-sand/35 via-chalk/10 to-transparent px-4 pb-3 pt-1 sm:px-6 sm:pb-4">
-        <div className="mx-auto w-full max-w-2xl space-y-2">
+      {/* Floating Scroll to Latest Button (Positioned at bottom near composer like standard chats) */}
+      <AnimatePresence>
+        {showScrollBottom ? (
+          <motion.button
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: 10, scale: 0.9 }}
+            transition={{ duration: 0.15 }}
+            type="button"
+            onClick={() => scrollToLatest(true)}
+            className="absolute bottom-20 end-4 sm:end-8 z-30 inline-flex size-10 items-center justify-center rounded-full border border-line/50 bg-chalk/60 text-ink shadow-elevation-2 backdrop-blur-xl transition-all hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-90"
+            aria-label={locale === 'ar' ? 'الانتقال لآخر الرسائل' : 'Scroll to latest'}
+            title={locale === 'ar' ? 'الانتقال للأحدث' : 'Scroll to latest'}
+          >
+            <Icon name="chevron-down" size={18} />
+          </motion.button>
+        ) : null}
+      </AnimatePresence>
+
+      {/* Sticky Bottom Composer */}
+      <footer className="relative z-20 shrink-0 border-t border-line/30 bg-chalk/40 px-4 pb-3 pt-2.5 backdrop-blur-xl sm:px-6 sm:pb-4 sm:pt-3">
+        <div className="mx-auto w-full max-w-2xl sm:max-w-3xl space-y-2">
           {voice.errorKind ? (
             <div
               role="status"
-              className="flex items-center justify-between gap-2 rounded-card border border-tomato/30 bg-linen/85 px-3 py-2 text-12 text-tomato-ink backdrop-blur-md"
+              className="flex items-center justify-between gap-2 rounded-card border border-tomato/30 bg-linen/70 p-2.5 font-text text-12 text-tomato-ink shadow-elevation-1 backdrop-blur-md"
             >
               <span>
                 {voice.errorKind === 'unsupported'
@@ -925,7 +1066,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
                 type="button"
                 onClick={voice.clearError}
                 aria-label={m.close}
-                className="inline-flex size-7 items-center justify-center rounded-full hover:bg-sand"
+                className="inline-flex size-7 items-center justify-center rounded-full hover:bg-sand/40"
               >
                 <Icon name="close" size={14} />
               </button>
@@ -939,7 +1080,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
                 submitQuery(draft);
               }
             }}
-            className="shina-composer-glass flex min-h-12 items-end gap-1.5 rounded-pill border border-linen/90 bg-linen/50 p-1.5 backdrop-blur-xl transition-all hover:bg-linen/60 focus-within:border-cobalt/80 focus-within:bg-linen/75 focus-within:shadow-focus-field"
+            className="flex min-h-12 items-end gap-1.5 rounded-24 border border-line/50 bg-linen/50 p-1.5 shadow-elevation-1 backdrop-blur-xl transition-all hover:border-line-2/40 hover:bg-linen/70 focus-within:border-cobalt focus-within:bg-chalk/80 focus-within:shadow-focus-field"
           >
             <button
               type="button"
@@ -951,7 +1092,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
                 'inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
                 voice.isListening
                   ? 'bg-tomato text-chalk'
-                  : 'text-ink/70 hover:bg-linen/60 hover:text-ink',
+                  : 'text-stone hover:bg-sand/40 hover:text-ink',
               )}
             >
               <Icon name={voice.isListening ? 'mic-off' : 'mic'} size={18} />
@@ -965,7 +1106,7 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
               onKeyDown={handleComposerKeyDown}
               placeholder={m.shinaComposerPlaceholder}
               aria-label={m.shinaComposerAriaLabel}
-              className="max-h-24 min-h-9 w-full resize-none bg-transparent px-2 py-1.5 text-13.5 leading-snug text-ink placeholder:text-ink/60 focus:outline-none sm:text-14"
+              className="max-h-32 min-h-9 w-full resize-none bg-transparent px-2.5 py-1.5 font-text text-14 leading-relaxed text-ink placeholder:text-stone/60 focus:outline-none"
             />
 
             {isBusy ? (
@@ -973,16 +1114,16 @@ export function ShinaChatView({ initialQuery, contextProductSlug, contextConcern
                 type="button"
                 onClick={abortActiveRequest}
                 aria-label={m.shinaCancelRequest}
-                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-tomato text-chalk shadow-action transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-tomato text-chalk shadow-action transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95"
               >
-                <Icon name="stop" size={16} />
+                <Icon name="stop" size={15} />
               </button>
             ) : (
               <button
                 type="submit"
                 disabled={!draft.trim()}
                 aria-label={m.shinaSend}
-                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-cobalt text-chalk shadow-action transition-colors hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:cursor-not-allowed disabled:bg-cobalt/35 disabled:text-linen"
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-cobalt text-chalk shadow-action transition-all hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:cursor-not-allowed disabled:bg-cobalt/35 disabled:text-linen"
               >
                 <Icon name="arrow-up" size={18} />
               </button>

@@ -141,7 +141,7 @@ function RoutineBars({ reduced }: { reduced: boolean }) {
       {bars.map((i) => (
         <motion.span
           key={i}
-          className="inline-block h-1.5 w-3 origin-left rounded-pill bg-cobalt/60"
+          className="inline-block h-1.5 w-3 origin-start rounded-pill bg-cobalt/60"
           animate={reduced ? undefined : { scaleX: [0, 1, 1] }}
           transition={
             reduced
