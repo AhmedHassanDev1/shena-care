@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import {
   ClipboardList, FileSpreadsheet, Heart, History, LayoutDashboard, ListChecks,
-  LogOut, PackageOpen, Printer, Receipt, Route, ScanLine,
-  Radio, ShoppingBag, Settings2, Store, Truck, UserRound, Users, Wallet,
+  LogOut, PackageOpen, Route, ScanLine,
+  Radio, ShoppingBag, Settings2, Store, Truck, Undo2, UserRound, Users, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -50,14 +50,14 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   hub: {
     title: 'المخزن',
     items: [
-      { id: 'buy-list', label: 'قائمة المشتريات', icon: ClipboardList, href: '/hub/buy-list' },
-      { id: 'receive', label: 'الاستلام', icon: PackageOpen, href: '/hub/receive' },
-      { id: 'costs', label: 'تكلفة الفواتير', icon: Wallet, href: '/hub/costs', supplierFlow: true },
-      { id: 'pick', label: 'التجهيز', icon: ScanLine, href: '/hub/prepare' },
-      { id: 'pack', label: 'التغليف والطباعة', icon: Printer, href: '/hub/pack' },
+      // One-person Hub (GLO-315): five task screens. The receive / prepare / pack / order-cost pages remain for deep links, but
+      // the Orders & Preparation desk does receipt, verification, printing and packaging in one place.
+      { id: 'buy-list', label: 'المشتريات', icon: ClipboardList, href: '/hub/buy-list' },
+      { id: 'orders', label: 'الطلبات والتجهيز', icon: ScanLine, href: '/hub/orders' },
       { id: 'handoff', label: 'التسليم للمندوب', icon: Truck, href: '/hub/dispatch' },
-      { id: 'order-costs', label: 'تكلفة الطلبات', icon: Receipt, href: '/hub/order-costs' },
+      { id: 'returns', label: 'المرتجعات', icon: Undo2, href: '/hub/returns', comingSoon: true },
       { id: 'cash', label: 'عدّ النقدية', icon: Wallet, href: '/hub/cash' },
+      { id: 'costs', label: 'تكلفة الفواتير', icon: Wallet, href: '/hub/costs', supplierFlow: true },
     ],
   },
   driver: {

@@ -838,6 +838,87 @@ export class FulfillmentService {
     });
   }
 
+  /** Public identity check for the Hub desk (same rules as receiving and picking, GLO-242). */
+  async resolveUnitIdentity(input: { barcodeScanned?: string; skuId?: string; manualReason?: string; manualChecks?: string[] }) {
+    return this.checkUnitIdentity(input);
+  }
+
+  /** Hub desk access: the location exists, can prepare orders, and the actor operates it. */
+  async assertDeskLocation(locationId: string, actor: FulfillmentActor): Promise<void> {
+    if (!this.isUuid(locationId)) throw new BadRequestException('Invalid location ID');
+    await this.getOperationalLocation(locationId, FulfillmentCapability.PREPARE_ORDERS);
+    await this.assertLocationAccess(locationId, actor);
+  }
+
+  /**
+   * One-person Hub (GLO-315): the barcode scan that received a unit against its order line already
+   * proved that unit's identity for that exact order, so each accepted receipt unit counts once as the
+   * preparation verification. Starts (or resumes) the session, records one scan event per received
+   * unit (clientScanId `rcpt:<receiptId>:<n>`, so retries never double-count), and completes the
+   * session only when every line matches exactly. Receipts are never altered. Idempotent.
+   */
+  async verifyPreparationFromReceipts(shipmentId: string, actor: FulfillmentActor) {
+    if (!this.isUuid(shipmentId)) throw new BadRequestException('Invalid shipment ID');
+    const shipment = await this.prisma.shipment.findUnique({ where: { id: shipmentId }, include: { items: true } });
+    if (!shipment) throw new NotFoundException('Shipment not found');
+    await this.assertHubShipmentAccess(shipment, actor);
+    if (shipment.status !== ShipmentStatus.ready_to_prepare && shipment.status !== ShipmentStatus.preparing) {
+      return this.getPreparationState(shipmentId, actor);
+    }
+    // A concurrent call may have started (or already completed) the session: resume it instead of failing.
+    const session = await this.startPreparationSession(shipmentId, {}, actor).catch(async error => {
+      const active = await this.prisma.shipmentPreparationSession.findFirst({ where: { shipmentId, status: PreparationSessionStatus.in_progress } });
+      if (active) return active;
+      const now = await this.prisma.shipment.findUnique({ where: { id: shipmentId }, select: { status: true } });
+      if (now && now.status !== ShipmentStatus.ready_to_prepare && now.status !== ShipmentStatus.preparing) return null;
+      throw error;
+    });
+    if (!session) return this.getPreparationState(shipmentId, actor);
+    const receipts = await this.prisma.fulfillmentReceipt.findMany({ where: { orderId: shipment.orderId }, orderBy: { receivedAt: 'asc' } });
+    const complete = await this.prisma.$transaction(async tx => {
+      await this.lockPreparationSession(tx, session.id);
+      const existing = await tx.preparationScanEvent.findMany({ where: { sessionId: session.id }, select: { clientScanId: true, skuId: true, isSuccessful: true } });
+      const seen = new Set(existing.map(event => event.clientScanId).filter((id): id is string => !!id));
+      let added = 0;
+      let allMatch = true;
+      for (const item of shipment.items) {
+        let missing = item.quantity - existing.filter(event => event.isSuccessful && event.skuId === item.skuId).length;
+        for (const receipt of receipts.filter(row => row.skuId === item.skuId)) {
+          for (let unit = 0; unit < receipt.quantity && missing > 0; unit++) {
+            const clientScanId = `rcpt:${receipt.id}:${unit}`;
+            if (seen.has(clientScanId)) continue;
+            await tx.preparationScanEvent.create({ data: {
+              sessionId: session.id, skuId: item.skuId, barcodeScanned: receipt.barcodeScanned, isSuccessful: true,
+              verificationMethod: receipt.identityMethod, operatorId: receipt.actorId, clientScanId,
+              manualReason: receipt.identityMethod === 'manual' ? `receipt ${receipt.id}: ${receipt.identityNote ?? ''}`.slice(0, 500) : null,
+            } });
+            seen.add(clientScanId);
+            missing--;
+            added++;
+          }
+        }
+        if (missing !== 0) allMatch = false;
+      }
+      if (added) {
+        await tx.shipmentEvent.create({ data: { shipmentId, type: 'VERIFIED_BY_RECEIPT_SCAN', actorId: actor.id,
+          notes: `${added} unit(s) verified by their receipt scan` } });
+      }
+      return allMatch;
+    }, { timeout: 30000 }).catch(async error => {
+      // Lost the race to a call that already completed this session: nothing left to do.
+      const now = await this.prisma.shipmentPreparationSession.findUnique({ where: { id: session.id }, select: { status: true } });
+      if (now?.status === PreparationSessionStatus.completed) return false;
+      throw error;
+    });
+    if (complete) {
+      await this.completePreparationSession(session.id, actor).catch(async error => {
+        const now = await this.prisma.shipmentPreparationSession.findUnique({ where: { id: session.id }, select: { status: true } });
+        if (now?.status !== PreparationSessionStatus.completed) throw error;
+      });
+    }
+    return this.getPreparationState(shipmentId, actor);
+  }
+
   /** Row lock on an in-progress preparation session; scans and completion serialize on it. */
   private async lockPreparationSession(tx: Prisma.TransactionClient, sessionId: string) {
     const rows = await tx.$queryRaw<Array<{ status: string }>>`

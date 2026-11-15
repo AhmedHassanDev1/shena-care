@@ -1,8 +1,10 @@
-import { Controller, Post, Body, Get, Param, Patch, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseUUIDPipe, Patch, Delete, UseGuards, Query } from '@nestjs/common';
 import { FulfillmentService } from './services/fulfillment.service';
 import { RoutePlanningService } from './services/route-planning.service';
 import { RouteOptimizationService } from './services/route-optimization.service';
 import { DispatchPlanningService } from './services/dispatch-planning.service';
+import { HubDeskService } from './services/hub-desk.service';
+import { DeskScanDto } from './dto/hub-desk.dto';
 import { PlanRouteDto } from './dto/routing.dto';
 import { ApplyOptimizationDto, OptimizationOptionsDto } from './dto/optimization.dto';
 import { PlanDispatchDto, ApproveDispatchPlanDto } from './dto/dispatch-planning.dto';
@@ -23,6 +25,7 @@ export class FulfillmentController {
     private readonly routePlanningService: RoutePlanningService,
     private readonly routeOptimizationService: RouteOptimizationService,
     private readonly dispatchPlanningService: DispatchPlanningService,
+    private readonly hubDesk: HubDeskService,
   ) {}
 
   @Post('locations')
@@ -197,6 +200,29 @@ export class FulfillmentController {
   @Roles('ADMIN', 'DRIVER')
   async completeBatch(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
     return this.fulfillmentService.completeBatch(id, actor);
+  }
+
+  // --- One-person Hub desk (GLO-315): receive + verify with one scan ---
+
+  @Get('locations/:id/desk')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.receive', 'hub.prepare')
+  async getDesk(@Param('id') locationId: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.getDesk(locationId, actor);
+  }
+
+  @Post('locations/:id/desk/orders/:orderId/scan')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.receive', 'hub.prepare')
+  async deskScan(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @Body() dto: DeskScanDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.scan(locationId, orderId, dto, actor);
+  }
+
+  @Post('locations/:id/desk/orders/:orderId/verify')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.prepare')
+  async deskVerify(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.verify(locationId, orderId, actor);
   }
 
   // --- Hub work queues (GLO-239) ---
