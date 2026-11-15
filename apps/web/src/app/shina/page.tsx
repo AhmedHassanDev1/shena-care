@@ -8,7 +8,7 @@ export default function ShinaPage({
   searchParams?: { q?: string; product?: string; concern?: string };
 }) {
   return (
-    <StorefrontShell nav="shina" hideFooter className="h-dvh overflow-hidden bg-chalk">
+    <StorefrontShell nav="shina" hideHeader hideDock hideFooter className="h-dvh overflow-hidden bg-chalk">
       <Suspense fallback={null}>
         <ShinaChatView
           initialQuery={searchParams?.q}
