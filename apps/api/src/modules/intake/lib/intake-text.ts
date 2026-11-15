@@ -70,7 +70,7 @@ export interface MeasureReading { measures: Measure[]; packCount: number | null;
 // "200 ml", "200ml", "200مل", "1.5 L", "50 gm"; units may be glued or separated.
 const MEASURE = /(?<![\d.,-])((?:\d+(?:[.,]\d+)?|[.,]\d+))\s*(ml|mls|m\.l|milliliters?|millilitres?|cc|مل|ملي|ملل|مللي|ملى|مليلتر|ميلي|ltr|liters?|litres?|لتر|ليتر|l|gms?|gr|grams?|gramme|g|جم|جرام|غرام|جرامات|kgs?|كجم|كيلو(?:جرام)?)(?![\p{L}])/giu;
 // "x2", "2x", "2 x 30ml", "عدد 2", "2 قطعه", "pack of 3", "عرض 2"
-const PACK = /(?:\b(?:pack|set)\s+of\s+(\d{1,2})\b|(?:^|\s)[x×*]\s*(\d{1,2})(?!\s*(?:ml|g|مل|جم))(?!\d)|\b(\d{1,2})\s*[x×*](?=\s*\d)|(?:عدد|عرض)\s*(\d{1,2})(?!\d)|(?<!\d)(\d{1,2})\s*(?:pcs|pieces|قطعه|قطعة|قطع)(?![\p{L}]))/iu;
+const PACK = /(?:\b(?:pack|set)\s+of\s+(\d{1,2})\b|(?:^|\s)[x×*]\s*(\d{1,2})(?!\s*(?:ml|g|مل|جم))(?!\d)|\b(\d{1,2})\s*[x×*](?=\s*\d)|(?:عدد|عرض)\s*(\d{1,2})(?!\d)|(?<!\d)(\d{1,2})\s*(?:pcs|pieces|ampoules?|vials?|امبولات|أمبولات|قطعه|قطعة|قطع)(?![\p{L}]))/iu;
 
 /** Sizes, units and pack count a product line states. Several different sizes are all returned; the caller decides what that means. */
 export function readMeasures(text: string): MeasureReading {

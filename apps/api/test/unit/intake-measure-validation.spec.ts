@@ -13,4 +13,12 @@ describe('intake physical measure validation', () => {
       expect(readMeasures(text).measures).toEqual([]);
     },
   );
+  it.each(['Hair serum (4 Ampoules * 15 Ml)', 'Hair serum 4 vials x 15 ml', 'سيروم ٤ أمبولات ١٥ مل'])(
+    'keeps the stated pack count separate from per-unit volume: %s', text => {
+      expect(readMeasures(text)).toMatchObject({ packCount: 4, measures: [{ size: 15, unit: 'ml' }] });
+    },
+  );
+  it('does not reinterpret an ampoule volume as a pack count', () => {
+    expect(readMeasures('Hair serum ampoules 15 ml').packCount).toBeNull();
+  });
 });
