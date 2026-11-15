@@ -1,0 +1,2626 @@
+{
+  "schema": 1,
+  "createdAt": "2026-11-15T10:38:53.099Z",
+  "policyVersion": 23,
+  "seed": "shinacare-eligible-20261115-v2",
+  "selectionMethod": "All discovered native manufacturer product titles with an explicit unambiguous size and an eligible care type; apply current scope exclusions; deduplicate exact identities including packs and promotional-title duplicates; deterministic round-robin brand/type strata. No pipeline success filter. URL-and-title-bound Arabic input spellings preserve the expected manufacturer identity.",
+  "oracleBoundary": "Manufacturer title and net-content ground truth only. Barcode, ingredients, medical claims, media approval, prices and publication remain independent pipeline checks.",
+  "discoveredPages": 277,
+  "scopeExclusions": [
+    {
+      "url": "https://www.shop.eva-cosmetics.com/products/eva-clinic-bebe-diaper-rash-cream-100-gm",
+      "title": "Eva Clinic Bebe Diaper Rash Cream 100 Gm",
+      "scope": {
+        "decision": "SKIP",
+        "reasonCode": "OUT_OF_SCOPE_BABY_FEEDING_DIAPERS",
+        "detail": "A baby feeding diapers product; the catalog holds none"
+      }
+    }
+  ],
+  "eligibleDistinctCandidates": 123,
+  "requested": 100,
+  "actual": 100,
+  "complete": true,
+  "rows": [
+    {
+      "id": "SC-EVAL-001",
+      "inputName": "Bobai Sunscreen Extra Lightening gel spf ٥٠ جم",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Bobai Sunscreen Extra Lightening gel spf 50 gm",
+        "brand": "Bobai",
+        "sourceBrand": "Bobai",
+        "size": 50,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224010337565",
+        "barcode": null
+      },
+      "brand": "Bobai",
+      "categoryType": "sunscreen",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/bobai-sunscreen-extra-lightening-gel-spf-50",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/bobai",
+        "observedAt": "2026-11-15T09:58:47.126Z",
+        "contentHash": "00c89bb7ee21d452eac3766797bb2ecafe7ecdcf6ba6b0e5d4add37a6bbd935f"
+      },
+      "selectionKey": "07a60b5aa4fe9f3ed506d50c9d3adbb426e88d1202f2f5017aab86d1d5dbbabd"
+    },
+    {
+      "id": "SC-EVAL-002",
+      "inputName": "كلاري بلسم شعر ٣٠٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Clary Hair Conditioner 300 ml",
+        "brand": "Clary Corporation",
+        "sourceBrand": "Clary",
+        "size": 300,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008073659",
+        "barcode": null
+      },
+      "brand": "Clary Corporation",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/clary-hair-conditioner-300ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/clary",
+        "observedAt": "2026-11-15T09:59:02.209Z",
+        "contentHash": "8e5d84d6941c024d08ecf3e67f52d1837d1e36ca4b2620b20050cdc26860937e"
+      },
+      "selectionKey": "3edb5c11ce067b506a75bf9018b2290d1562717b949e585ab76769928921b765"
+    },
+    {
+      "id": "SC-EVAL-003",
+      "inputName": "كلاري ماسك شعر ٣٠٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Clary Hair Mask 300 ml",
+        "brand": "Clary Corporation",
+        "sourceBrand": "Clary",
+        "size": 300,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008073482",
+        "barcode": null
+      },
+      "brand": "Clary Corporation",
+      "categoryType": "hair-mask",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/clary-hair-mask-300ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/clary",
+        "observedAt": "2026-11-15T09:59:08.309Z",
+        "contentHash": "603f6fe56f7cef000f7b9b9e0ab01551d0d16625cf3b11c7916507eb7d006743"
+      },
+      "selectionKey": "a810fc611034b328870479a1fb7d0f7e861b50610349bfdd5555747acecae75d"
+    },
+    {
+      "id": "SC-EVAL-004",
+      "inputName": "كلاري كريم شعر ليف إن ٣٠٠ جم",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Clary Hair Leave In Cream 300 gm",
+        "brand": "Clary Corporation",
+        "sourceBrand": "Clary",
+        "size": 300,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012632197",
+        "barcode": null
+      },
+      "brand": "Clary Corporation",
+      "categoryType": "leave-in",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/clary-hair-leave-in-cream-300gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/clary",
+        "observedAt": "2026-11-15T09:59:06.781Z",
+        "contentHash": "1028281546aa081759cc9e22441ca1d07e88256bb0d911bef08d2c1844ce3d32"
+      },
+      "selectionKey": "11c9125c3e17b068f2edbc935262881905a1dd8dd0c01d2a741c7aa361c800f8"
+    },
+    {
+      "id": "SC-EVAL-005",
+      "inputName": "كلاري سيروم ١٠٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Clary Serum 100 ml",
+        "brand": "Clary Corporation",
+        "sourceBrand": "Clary",
+        "size": 100,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008073475",
+        "barcode": null
+      },
+      "brand": "Clary Corporation",
+      "categoryType": "serum",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/clary-serum-100ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/clary",
+        "observedAt": "2026-11-15T09:59:14.427Z",
+        "contentHash": "2a910cb74d9bb2b61c73a8212e3fbc2a19f4fdc23ebb340ee509f604e6a56ee6"
+      },
+      "selectionKey": "47ced36fedd6f40052231f19c5c0b4ac519e8203a2bea24fd81218a70baa8ac5"
+    },
+    {
+      "id": "SC-EVAL-006",
+      "inputName": "كلاري شامبو ضد القشرة ٣٠٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "CLARY Antidandruff Shampoo 300 ml",
+        "brand": "Clary Corporation",
+        "sourceBrand": "Clary",
+        "size": 300,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012633286",
+        "barcode": null
+      },
+      "brand": "Clary Corporation",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/clary-antidandruff-shampoo-320-ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/clary",
+        "observedAt": "2026-11-15T09:58:57.731Z",
+        "contentHash": "6970d14a568b4252607d2221b1656f8f94f0e2e89786f83820f93cebd8f6d572"
+      },
+      "selectionKey": "11ec60b5e276ac5fa00d4593a2653db10987b9803b1b5b12affb2ed505bd2b01"
+    },
+    {
+      "id": "SC-EVAL-007",
+      "inputName": "كلاري ميست شعر SPF50 ١٢٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Clary Hair Mist SPF50 120 ml",
+        "brand": "Clary Corporation",
+        "sourceBrand": "Clary",
+        "size": 120,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224010337817",
+        "barcode": null
+      },
+      "brand": "Clary Corporation",
+      "categoryType": "sunscreen",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/clary-hair-mist-spf50-120-ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/clary",
+        "observedAt": "2026-11-15T09:59:11.290Z",
+        "contentHash": "ede45a4ec3ffd63d157f06c8bf100bc03c5c408449b63f1f3440f96a68b368d5"
+      },
+      "selectionKey": "ed959bbe57215f3c9a4a4a1aac1b6b42133006c5bbc927e796705b42ef893858"
+    },
+    {
+      "id": "SC-EVAL-008",
+      "inputName": "Eva Recipe Conditioner Berries Scent 350 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Recipe Conditioner Berries Scent 350 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 350,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "91825",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-optimum-care-recipe-hydrating-blend-conditioner-berries-scent-350-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:49.156Z",
+        "contentHash": "12b6ecb9a5793a2233bc19e3e558e8a923cabf43e185dbf5a89b5dc65d21a2a6"
+      },
+      "selectionKey": "0d4a241a145387b7a5aebc8e92694ce5e8183990045a9999a22b82d3c8975929"
+    },
+    {
+      "id": "SC-EVAL-009",
+      "inputName": "إيفا أدفانسد كير كلينيك شيا وبذور كتان كيرلز أنجل ماسك ترطيب ٢٠٠ جم",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Eva Advanced Care Clinic Shea Butter & Linseed Curls Angel Moisture Quenching Mask 200 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 200,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94327",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "face-mask",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-curls-mask-shea-butter-linseed-200-gm-jar",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:17.570Z",
+        "contentHash": "477d5483f6f799112d50d1a91529b240568059f81bfbc9d22d046c7f21fece33"
+      },
+      "selectionKey": "276fb8033ee6ca78f4706fc49b572bc51086aba637f3e7930bd5a6699b62e336"
+    },
+    {
+      "id": "SC-EVAL-010",
+      "inputName": "Aloe Eva Strengthening Hair Mask Pouch With Aloe Vera & Silk Proteins ٢٥٠ جم",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Aloe Eva Strengthening Hair Mask Pouch With Aloe Vera & Silk Proteins 250 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 250,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93180",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-mask",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-strengthening-hair-mask-pouch-with-aloe-vera-silk-proteins-250-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T09:59:58.718Z",
+        "contentHash": "526d1fb01a89f192fc5bd97e36e751e77595a76eb0ef5bb219c68f0c873421ea"
+      },
+      "selectionKey": "81736005f39e5fb4deed53a3e65dbc10da754998b543d921be8b07cc27316388"
+    },
+    {
+      "id": "SC-EVAL-011",
+      "inputName": "Eva Hair Clinic Keratin Oil Replacement 210 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Hair Clinic Keratin Oil Replacement 210 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 210,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93060",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-oil",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-keratin-oil-replacement-190-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:37.214Z",
+        "contentHash": "694dfe0e2fef73293841588cca0479404dc31bbcc0637322f00a8294de13b4d4"
+      },
+      "selectionKey": "03daa7be48b5fe5175696b4e8860ebeb58f650c911636827634d19455db9e4f8"
+    },
+    {
+      "id": "SC-EVAL-012",
+      "inputName": "إيفا هوني كريم شعر ١٨٥ جم",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Eva Honey Hair Cream 185 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 185,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93255",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-styling",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-honey-hair-cream-185-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:41.688Z",
+        "contentHash": "9ee1e24568c9eb5213d505a2f6e9672d843bd397dbec8e7fcb120f1c25763975"
+      },
+      "selectionKey": "2ed8cde2d25674bbb623dad39f7f9aaa5f83c809a230e7b425c3dc4e649e11fb"
+    },
+    {
+      "id": "SC-EVAL-013",
+      "inputName": "Eva Hair Clinic Curls Leave-In Shea Butter & Linseed ٢٣٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Hair Clinic Curls Leave-In Shea Butter & Linseed 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94324",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "leave-in",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-curls-leave-in-shea-butter-linseed-200-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:14.590Z",
+        "contentHash": "2f03025dcdeb195a36dbb9c3139799af06ef495f3cf37e758dd86221e741e4a1"
+      },
+      "selectionKey": "68a72f40024b54db455985a1c19fa465c69494784aa39b534a27fce949b99539"
+    },
+    {
+      "id": "SC-EVAL-014",
+      "inputName": "Eva Recipe Lotion For Sensitive Skin Vanilla Scent 370 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Recipe Lotion For Sensitive Skin Vanilla Scent 370 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 370,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "91828",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-optimum-care-recipe-soothing-blend-lotion-for-sensitive-skin-vanilla-scent-370-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:59.749Z",
+        "contentHash": "2dac9da26d6dc348be06acaa1da1bb9c79feb25a1d39bf1763f60923ff5e312c"
+      },
+      "selectionKey": "4768bf4e86c0545b4a28f559b20176613026f9cf36253171942e6709bbce72f0"
+    },
+    {
+      "id": "SC-EVAL-015",
+      "inputName": "Eva Hair Clinic Keratin UV Protective Serum 100 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Hair Clinic Keratin UV Protective Serum 100 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 100,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93058",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "serum",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-keratin-uv-protective-serum-100-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:40.214Z",
+        "contentHash": "6305274d8299841178bd7067752a4150060a858eb1ef984c3c1625a5a1f4c4e2"
+      },
+      "selectionKey": "4f4c08d265103f94a56a61f847f65e8cc46916ebb5cb986edf434a0a46df928d"
+    },
+    {
+      "id": "SC-EVAL-016",
+      "inputName": "Eva Recipe Hydrating Blend Shampoo Berries Scent  ( Special Offer 15 % ) ٣٥٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Recipe Hydrating Blend Shampoo Berries Scent 350 Ml ( Special Offer 15 % )",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 350,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "999519",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-recipe-shampoo-berries-scent-350-ml-copy",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:03:14.887Z",
+        "contentHash": "1620c5f159435d9553a37364b28028df90c61ddad3c193c7a7f8400d4a32b3ba"
+      },
+      "selectionKey": "060bd2e64503d2acc26fdced5ab6f52cf04276a14dfcf3a2a61c3b9da51b9349"
+    },
+    {
+      "id": "SC-EVAL-017",
+      "inputName": "StarVille Femme Intimate Cleansing Foam Refresh 150 ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "StarVille Femme Intimate Cleansing Foam Refresh 150 ml",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 150,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012632715",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "cleanser",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-femme-intimate-cleansing-foam-refresh",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:57:07.650Z",
+        "contentHash": "e2d467a79791806c6dae45dc06e5a9aa359da116279c4ee65cadd34600e35c32"
+      },
+      "selectionKey": "0ccdbaa8d4b87bd786d46e6fb0d3d95defcbd6b3e5f93012a4a0e6c7bd8689ad"
+    },
+    {
+      "id": "SC-EVAL-018",
+      "inputName": "Starville Whitening Cream 60 gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Starville Whitening Cream 60 gm",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 60,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008059738",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-whitening-cream",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:57:31.735Z",
+        "contentHash": "568427ce372e05a0eecee37a29852f347a0d71aca3a1942266cd2c000b4d5c1e"
+      },
+      "selectionKey": "1daa0bcc8642d73f2844a2f261ba7ba9b13b5c42d8885b9bbac7569c6b073147"
+    },
+    {
+      "id": "SC-EVAL-019",
+      "inputName": "ستارفيل سيروم حمض الهيالورونيك ٣٠ جم",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "StarVille Hyaluronic Acid Serum 30 gm",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 30,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224010337947",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "serum",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-hyaluronic-acid-serum-30-gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:57:15.140Z",
+        "contentHash": "1b1c43c188f121ea7ed12dd4b5280566c190197574f46a8ecd66dba0237f4c55"
+      },
+      "selectionKey": "8825a560031403cca72ada181912180bd31e5cf3f19612e4c98e16871abd4368"
+    },
+    {
+      "id": "SC-EVAL-020",
+      "inputName": "Capixy Hair Hydrating Conditioner 250ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Capixy Hair Hydrating Conditioner 250ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224001455490",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-hair-hydrating-conditioner-250ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:50.135Z",
+        "contentHash": "ae5b1f307098e5d3d7d3de365999e384f442ef7ed6ca69414a4844f9f6cd66ef"
+      },
+      "selectionKey": "0277ed01fc8aafef86aa00c8e014ca6d72f63a6b2653d01fc771478facb1904c"
+    },
+    {
+      "id": "SC-EVAL-021",
+      "inputName": "Capixy Hair Mask 250ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Capixy Hair Mask 250ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224001455483",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "hair-mask",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-hair-mask-250ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:51.746Z",
+        "contentHash": "0760454e28f76d98b82339f2f96cd06965f24eab1dfe006d1d5d609588a0ce3e"
+      },
+      "selectionKey": "c2dba9f37a0a1060c9d475b6d9eb7b7cb4b6154b898bea8def2049e13daca50b"
+    },
+    {
+      "id": "SC-EVAL-022",
+      "inputName": "Capixy Hair Oil Elixir ٣٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Capixy Hair Oil Elixir 30 ML",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 30,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224001455971",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "hair-oil",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-oil",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:38:00.733Z",
+        "contentHash": "897785e9f777c87977df87edb760c1b07981ca08c81857058bba033226788929"
+      },
+      "selectionKey": "952a7ba0e968cb6c8ae7c2189cbc3ad2f8ba2316d744220c562baaab8b386ba9"
+    },
+    {
+      "id": "SC-EVAL-023",
+      "inputName": "Capixy Leave-in Heat protection spray 200 ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Capixy Leave-in Heat protection spray 200 ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 200,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223018450405",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "leave-in",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-leave-in-heat-protection-spray-200-ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:57.674Z",
+        "contentHash": "634b3dbf7ca1bf69ff2b4199ea9c47256358dd8c0b8a4126b83d0d131deaa938"
+      },
+      "selectionKey": "6c2f32fe2556fbe3518dc0221e95d372eed91d1b8366ecec6933123573ceb536"
+    },
+    {
+      "id": "SC-EVAL-024",
+      "inputName": "Capixy Cream 120ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Capixy Cream 120ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 120,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224010938069",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-cream-120ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:47.123Z",
+        "contentHash": "d52866d11101e2c938336ca165e7e9352d8f015e74a71ed6d7590f3e75fdca18"
+      },
+      "selectionKey": "115c7d204a3c412bbbb8266a8c6e1548a532bbe3878a7fecf498a8b20ee3d6b7"
+    },
+    {
+      "id": "SC-EVAL-025",
+      "inputName": "Capixy Lashes Treatment Serum ١٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Capixy Lashes Treatment Serum 10ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 10,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224001455247",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "serum",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-lashes-treatment-serum-10ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:56.157Z",
+        "contentHash": "b4fb6f108fd79dcb62be547b1dd5448b1e97e154352d0291e0a8f298cfd5b691"
+      },
+      "selectionKey": "2eda50f44911a11d7668a9cc0fc8c8bf8593973cff830aa9b7b87f0204b63cd2"
+    },
+    {
+      "id": "SC-EVAL-026",
+      "inputName": "Capixy Advance Repair Shampoo 250ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Capixy Advance Repair Shampoo 250ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223018450399",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-advance-repair-shampoo-250ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:39.564Z",
+        "contentHash": "daf8e2a3b5b547be4cbfe0a92068c611af9acd0c085b22d6e7c564d4994b6d18"
+      },
+      "selectionKey": "63341a1fcb4657ea9228ff0d0c073bc66c6963ecd61f8221ea856a4f591b5c4e"
+    },
+    {
+      "id": "SC-EVAL-027",
+      "inputName": "شان كريم جسم مرطب قوام ثقيل ٤٧٠ جم",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "SHAAN BODY CREAM Heavy Texture Body Moisturizer 470 Gm",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 470,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012634269",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "body-moisturizer",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-body-cream-heavy-texture-body-moisturizer-470-gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:55:05.549Z",
+        "contentHash": "590dffb24dca6f0153782686d30c85fd5d7fd6963b99199739f691f14785b2b0"
+      },
+      "selectionKey": "1c0b2a0c7b8f7e6bc0da1b6beba393f3643d4292aff265cbc977d9afa3924f9f"
+    },
+    {
+      "id": "SC-EVAL-028",
+      "inputName": "شان غسول وجه مضاد للأكسدة ٢٥٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Shaan Antioxidant Facial Cleanser 250 ml",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008073383",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "cleanser",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-facial-cleanser-250-gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:15.506Z",
+        "contentHash": "9131034d11a88f027819c316012025e0704c0d38693fd7eef494b0917274f3c4"
+      },
+      "selectionKey": "db5a316341dd9135492200cef701d9e7e614288016699777678c52dae7b8775a"
+    },
+    {
+      "id": "SC-EVAL-029",
+      "inputName": "Shaan Lip Balm Rose 5 gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Shaan Lip Balm Rose 5 gm",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 5,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012631121",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "lip-care",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-lip-balm-rose-5-gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:21.650Z",
+        "contentHash": "da4751f9ea1440faa1932e35fc62fa038c73c3ddf0e2b07b738fdbf07d9a4d5a"
+      },
+      "selectionKey": "20089032301fb01e10a298a212fbfd73c5a5283b03fd54cf6a0dd0cf1891bd89"
+    },
+    {
+      "id": "SC-EVAL-030",
+      "inputName": "Shaan CICA ARNICA+ cream 40gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Shaan CICA ARNICA+ cream 40gm",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 40,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012633125",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-cica-arnica-cream-40gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:10.903Z",
+        "contentHash": "b0b0da777c0c686adbc7eb1ec15b5a1ebaed6b084672929dc0f002af02086465"
+      },
+      "selectionKey": "0d73db7a235bcef4561e4f51e81bf0c9a1b9c2c35b4a66a97724a374a77c8e19"
+    },
+    {
+      "id": "SC-EVAL-031",
+      "inputName": "BOBAI Mist Spray 50+ Sunscreen ٢٠٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "BOBAI Mist Spray 50+ Sunscreen 200ml",
+        "brand": "Bobai",
+        "sourceBrand": "Bobai",
+        "size": 200,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012633330",
+        "barcode": null
+      },
+      "brand": "Bobai",
+      "categoryType": "sunscreen",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/bobai-mist-spray-50-sunscreen-200ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/bobai",
+        "observedAt": "2026-11-15T09:58:44.155Z",
+        "contentHash": "8f5a9e29059cfbcd6705497561908556508810f4fa9d0565af35f7d4f8ccf505"
+      },
+      "selectionKey": "73ccb8776bcdef515167016a62e3957a7cc5540b3a47055ac5a7c0252d8c46e8"
+    },
+    {
+      "id": "SC-EVAL-032",
+      "inputName": "كلاري شامبو شعر ٣٠٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Clary Hair Shampoo 300 ml",
+        "brand": "Clary Corporation",
+        "sourceBrand": "Clary",
+        "size": 300,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008073666",
+        "barcode": null
+      },
+      "brand": "Clary Corporation",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/clary-hair-shampoo-300ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/clary",
+        "observedAt": "2026-11-15T09:59:12.806Z",
+        "contentHash": "7e624911fd14569c14c9c74095dee41bf2332e208433f1fc77cc5bdc29ae7026"
+      },
+      "selectionKey": "1fd3fd67337b5c6230d6fa4f7f755ce7d651da9688e91520975f1dd6c9b91400"
+    },
+    {
+      "id": "SC-EVAL-033",
+      "inputName": "إيفا ريسيبي بلسم برائحة جوز الهند ٣٥٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Eva Recipe Conditioner Coconut Scent 350 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 350,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "91826",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-optimum-care-recipe-nourishing-blend-conditioner-coconut-scent-350-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:52.158Z",
+        "contentHash": "3ac368dcbf76b783d82998780880378766a8219507dff34b7dda0dedacf7b518"
+      },
+      "selectionKey": "12cfe2971cdd819365ab9af40903287e4e75852a27bcf5b745d4ea1da09640b4"
+    },
+    {
+      "id": "SC-EVAL-034",
+      "inputName": "Eva Hair Clinic Keratin Hair Mask ٢٠٠ جم",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Hair Clinic Keratin Hair Mask 200 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 200,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93059",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-mask",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-keratin-hair-mask-200-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:34.149Z",
+        "contentHash": "a7bec6164f8546d005e1942d5e93d1614b3529479bb08b0cf3e6ffc3966361ff"
+      },
+      "selectionKey": "88324a37227f70c90bbb7737fdde7a62e0d66f0d303001217e463ea291c834bb"
+    },
+    {
+      "id": "SC-EVAL-035",
+      "inputName": "Aloe Eva Strengthening Hair Oil Replacement With Aloe Vera & Yoghurt Proteins 250 Ml ( Special Offer 25 % )",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Aloe Eva Strengthening Hair Oil Replacement With Aloe Vera & Yoghurt Proteins 250 Ml ( Special Offer 25 % )",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "999402",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-oil",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-strengthening-hair-oil-replacement-with-aloe-vera-yoghurt-proteins-250-ml-special-offer-25",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:00:04.767Z",
+        "contentHash": "a06126b53d50bc857dcfa56e76ed5392aac501558bc6c417229c5f9cfeaa6de4"
+      },
+      "selectionKey": "0f0d438821b67fd402fe34bed87372fbc48abb9da0be29ebe3fc1267a90f6ad7"
+    },
+    {
+      "id": "SC-EVAL-036",
+      "inputName": "Eva Honey Hair Cream 85 Gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Honey Hair Cream 85 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 85,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93254",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-styling",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-honey-hair-cream-85-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:44.775Z",
+        "contentHash": "f4b202b1f1085c38f6e6f5cb0d9c9ea42e631939c9c7cc193270a47713bf51ad"
+      },
+      "selectionKey": "30a96130c7b212e636e79bb4ca2b5acc9918da14a78ce0450270549d6ac8d626"
+    },
+    {
+      "id": "SC-EVAL-037",
+      "inputName": "Eva Advanced Care Clinic Kids’ Curls Curl Moisturizing leave-in conditioner For Wavy, Curly, And Coily Hair ٢٠٠ جم",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Advanced Care Clinic Kids’ Curls Curl Moisturizing leave-in conditioner For Wavy, Curly, And Coily Hair 200 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 200,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94332",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "leave-in",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-advanced-care-clinic-kids-curls-curl-moisturizing-leave-in-conditioner-for-wavy-curly-and-coily-hair-200-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:01:26.272Z",
+        "contentHash": "532a2641219a3a8cf338f43529c2d6785ff803b1d152377fd8787fab7c1deb5c"
+      },
+      "selectionKey": "96c5d9007fdbb4923761f9ee16c3e34c1f4ad6514a1ffb013d63fdc34fd80f02"
+    },
+    {
+      "id": "SC-EVAL-038",
+      "inputName": "Eva Recipe Hydrating Blend Lotion For Normal Skin Berries Scent 370 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Recipe Hydrating Blend Lotion For Normal Skin Berries Scent 370 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 370,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "91832",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-optimum-care-recipe-hydrating-blend-lotion-for-normal-skin-berries-scent-370-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:50.689Z",
+        "contentHash": "137ea77c2be988d1f73e81d66839bfb043979d34c66e276b34e15b4c5e49adf5"
+      },
+      "selectionKey": "4d8a4c585283da05e9fd1e97e82cef5fa32986ecb15c027aa9a03cdde2b5fdb0"
+    },
+    {
+      "id": "SC-EVAL-039",
+      "inputName": "Eva Hair Clinic Gold Argan Serum With Gold And Argan Oil 90 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Hair Clinic Gold Argan Serum With Gold And Argan Oil 90 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 90,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94304",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "serum",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-gold-argan-serum-with-gold-and-argan-oil-90-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:25.135Z",
+        "contentHash": "1a186de86c71e45cee22ca93a6b9de83aaf9b184ff120b049b6ff4b4c724f511"
+      },
+      "selectionKey": "c15be1f174165740794357824f2496608e0c06b79d3a4b824fa40c8041192dfb"
+    },
+    {
+      "id": "SC-EVAL-040",
+      "inputName": "Eva Clinic Bebe Toddler Shampoo (12 - 36 Months) ٢٠٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Clinic Bebe Toddler Shampoo (12 - 36 Months) 200 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 200,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94055",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-clinic-bebe-toddler-shampoo-12-36-months-200-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:01:57.950Z",
+        "contentHash": "4ce804218a356646498fe21fe010e722840f64895ce6df1143dd5c23068d1c28"
+      },
+      "selectionKey": "0f7f1ceaf24c45b318355055a5b5b5116e26de55ec3388ff7609a3108f991c30"
+    },
+    {
+      "id": "SC-EVAL-041",
+      "inputName": "Starville Acne Prone Skin Facial Cleanser 100 ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Starville Acne Prone Skin Facial Cleanser 100 ml",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 100,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224010337893",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "cleanser",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-acne-prone-skin-facial-cleanser-100-ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:55:14.544Z",
+        "contentHash": "771df26c0ec48a02c642b2540856ada3ee662523dcbf827155a531da66b96260"
+      },
+      "selectionKey": "0e64051f1a54e4e3df6a60d0ea38d54bad133d367f4c1ed1c8bd228882065cc5"
+    },
+    {
+      "id": "SC-EVAL-042",
+      "inputName": "ستارفيل لوشن للبشرة المعرضة لحب الشباب ٢٣٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "StarVille Acne Prone Skin Lotion 230 ml",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012633026",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-acne-prone-skin-lotion-230-ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:56:58.555Z",
+        "contentHash": "abfbce28f6a70e1bf3f058ff3152731f1366881856bc2045ea854454bf0476ab"
+      },
+      "selectionKey": "63427f02d008a32f9ab6ca453353a7f74c723b3fbeb0be780b9116a9be1d137b"
+    },
+    {
+      "id": "SC-EVAL-043",
+      "inputName": "Starville Vitamin C Serum ٣٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Starville Vitamin C Serum 30 ml",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 30,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008073338",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "serum",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-vitamin-c-serum-30-ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:57:21.159Z",
+        "contentHash": "5569400f2f1e4a9efa3a0c5ba6475e62b56162f4a60da23f2488bce4eb134eba"
+      },
+      "selectionKey": "9ad8f679714c0de5b81f6052a091835332bd31e41c72e64797ce3a74ab08716a"
+    },
+    {
+      "id": "SC-EVAL-044",
+      "inputName": "Capixy Anti-Dandruff Hair conditioner 250ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Capixy Anti-Dandruff Hair conditioner 250ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223018450368",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-anti-dandruff-hair-conditioner-250ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:41.069Z",
+        "contentHash": "a5fb0b0338c14083d4924d183b78627bf7833f38729c33c65cd327317aff4d9e"
+      },
+      "selectionKey": "86d6836bb98883c78067ecd517ac76bb56682437e69745a48ee872e05c07849b"
+    },
+    {
+      "id": "SC-EVAL-045",
+      "inputName": "Capixy Advance Repair Leave in Hair Mask 250ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Capixy Advance Repair Leave in Hair Mask 250ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223018450375",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "leave-in",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-advance-repair-leave-in-hair-mask-250ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:38.062Z",
+        "contentHash": "91201d49c9f1499a9bd13f43ce988e6a6e1737045b2b417bb8dfdb9ba765daf4"
+      },
+      "selectionKey": "9b382d530f983cdd4da0b3e73bbd2552f0b6992e736c76851f642034c870cefd"
+    },
+    {
+      "id": "SC-EVAL-046",
+      "inputName": "Capixy nail Fertilizer Serum ٤ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Capixy nail Fertilizer Serum 4ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 4,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223018451082",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "serum",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-nail-fertilizer-serum-4ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:59.178Z",
+        "contentHash": "452fefa53bf6b54f8c2e46beeec4ada0c59f69fe6af16ae9137ea5cb47724f31"
+      },
+      "selectionKey": "5964d0389cf35dc8e43967358963b68d52f8e04e62246eeccdf76139f0c1dd7b"
+    },
+    {
+      "id": "SC-EVAL-047",
+      "inputName": "Capixy Shampoo 250ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Capixy Shampoo 250ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224010938106",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-shampoo-250ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:38:02.244Z",
+        "contentHash": "57ce90ced99edd4dc7dc09de190fa8153b4f5a992bd928b543810dc50f895451"
+      },
+      "selectionKey": "8639a0c65439504b68985159e2b6bd5335c3950a8412b7b374dc8706e59cdde0"
+    },
+    {
+      "id": "SC-EVAL-048",
+      "inputName": "Shaan Hand Cream 60gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Shaan Hand Cream 60gm",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 60,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012631039",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "body-moisturizer",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-hand-cream-50gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:16.906Z",
+        "contentHash": "1db439e123c8d023859f38ac278af38a3fec24917d88e8030ceee9cc7c5e83bc"
+      },
+      "selectionKey": "372d87d52ec26389276af2ac2f0576c161997e37669b780f7cbadc5067a800ec"
+    },
+    {
+      "id": "SC-EVAL-049",
+      "inputName": "شان بلسم شفاه SPF30 ٥ جم",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Shaan Lip Balm SPF 30 5 gm",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 5,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008073956",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "lip-care",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-lip-balm-spf-30-5-gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:22.991Z",
+        "contentHash": "3af29ab036ef151f5f92fcc06fcb5e9c3660296955a52de27328e1c66cef377c"
+      },
+      "selectionKey": "4afb900b474dc678070b082f006d30ff0f90666b06ad0b7b7b4174190c00d1cd"
+    },
+    {
+      "id": "SC-EVAL-050",
+      "inputName": "Shaan Urea 10% Body Moisturizer 200 Gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Shaan Urea 10% Body Moisturizer 200 Gm",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 200,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012634276",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/urea-10-cream-body-moisturizer",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:41.155Z",
+        "contentHash": "ab1d4780557b9c49ff68a4426d9f614d89c71623a51eb9d2b1913a124887dc32"
+      },
+      "selectionKey": "3196fa13f2c1dedbb4bc74fb103e8ccd5fe7ea418ceff725a22ef5b40f2d013a"
+    },
+    {
+      "id": "SC-EVAL-051",
+      "inputName": "بوباي سبراي واقي شمس سبورت مقاوم للماء ٢٠٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Bobai Sport Water Resistant Sunscreen Spray 200 ml",
+        "brand": "Bobai",
+        "sourceBrand": "Bobai",
+        "size": 200,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224000547127",
+        "barcode": null
+      },
+      "brand": "Bobai",
+      "categoryType": "sunscreen",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/bobai-sport-water-resistant-sunscreen-spray-200ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/bobai",
+        "observedAt": "2026-11-15T09:58:45.601Z",
+        "contentHash": "7270f9bb6248dde614aeb64bdf71e8a062c2185ad6dfb8a2a288e2e5abc29dd7"
+      },
+      "selectionKey": "87a0f3129a4c71e88c4d701f4697d3ffcaafac4c694445552cafc042b3312ca7"
+    },
+    {
+      "id": "SC-EVAL-052",
+      "inputName": "Eva Advanced Care Clinic Forever Long Lengthening Conditioner For Damaged Hair ٢٣٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Advanced Care Clinic Forever Long Lengthening Conditioner For Damaged Hair 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94344",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-advanced-care-clinic-forever-long-lengthening-conditioner-for-damaged-hair-230-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:01:06.701Z",
+        "contentHash": "cfc53e9b73a92cc66891c78a3a53a3ec67eb1cc9ef32fc062a3e5888518c022f"
+      },
+      "selectionKey": "157fa632daf5399b1ca34571883cd9ed24adbc2d2ce50166e68dfdaa6b66def2"
+    },
+    {
+      "id": "SC-EVAL-053",
+      "inputName": "Eva Hair Clinic Gold Argan Mask With Gold And Argan Oil 200 Gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Hair Clinic Gold Argan Mask With Gold And Argan Oil 200 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 200,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94303",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-mask",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-gold-argan-mask-with-gold-and-argan-oil-200-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:23.622Z",
+        "contentHash": "bb404d4ef2131b9ccdb75517dd186a0b00d94fb2a6e7f0ce4866f538fa25d159"
+      },
+      "selectionKey": "89e5d1833bc587cb22e259e32d321c75a48dd22a54810738576a69619bc32752"
+    },
+    {
+      "id": "SC-EVAL-054",
+      "inputName": "ألو إيفا زيت شعر بالألوفيرا ٢٥٥ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Aloe Eva Strengthening Hair Oil With Aloe Vera 255 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 255,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93107",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-oil",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-strengthening-hair-oil-with-aloe-vera-255-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:00:07.791Z",
+        "contentHash": "955f0ad06a9482fd1e69703d06df379a5a7181b6d912baef6b8ad0c3d7cbfb4b"
+      },
+      "selectionKey": "252e24a97363c41a026380a5fa2270fdcb48a570c81b8cc9feaf4157576c5a15"
+    },
+    {
+      "id": "SC-EVAL-055",
+      "inputName": "Aloe Eva Hair Styling Cream With Aloe Vera ٤٥ جم",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Aloe Eva Hair Styling Cream With Aloe Vera 45 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 45,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93247",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-styling",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-hair-styling-cream-with-aloe-vera-45-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T09:59:47.753Z",
+        "contentHash": "d6bfb1008c19f54b0d595389e17562e89cda78e1bb40baa2c00d4abefe1fe8b6"
+      },
+      "selectionKey": "42794e76b83ab89ecec13fe826ad491d3b4f5e3af1feaadf7c7f47c697a7fd22"
+    },
+    {
+      "id": "SC-EVAL-056",
+      "inputName": "Eva Hair Clinic Keratin Leave in Cream 230 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Hair Clinic Keratin Leave in Cream 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93057",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "leave-in",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-keratin-leave-in-cream-200-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:35.659Z",
+        "contentHash": "5dcf2b62923795fcf2980c7a1db294dc54d5d5ab80669fde0e56a2cde6000ff8"
+      },
+      "selectionKey": "9a424135c4dee5caf814fba2e6c7c3e8a9b404a5443b7b1b0920200d9eae0857"
+    },
+    {
+      "id": "SC-EVAL-057",
+      "inputName": "Eva Advanced Care Clinic Bond Repair Concentrated Cream 230 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Advanced Care Clinic Bond Repair Concentrated Cream 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94349",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-advanced-care-clinic-bond-repair-concentrated-cream-230-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:01:00.613Z",
+        "contentHash": "1bce90bcc836bfbb4664d1cef03192a92e52a7b6cdda1cf188992bb60fe43b63"
+      },
+      "selectionKey": "4fcc614c081b363587ab748c889d8979d247ced300732904aa98798aa9f8ca3b"
+    },
+    {
+      "id": "SC-EVAL-058",
+      "inputName": "Eva Advanced Care Clinic Bond Repair Shampoo ٢٣٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Advanced Care Clinic Bond Repair Shampoo 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94347",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-advanced-care-clinic-bond-repair-shampoo-230-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:01:02.146Z",
+        "contentHash": "949aebea08474827f4bd98381b8b3ab1a55c6078ebd924f87b649041bf2a3b5a"
+      },
+      "selectionKey": "20f356e1fbcff9af8e20f410670ba41811a3194080f0eea30392a0d82f9f9a8c"
+    },
+    {
+      "id": "SC-EVAL-059",
+      "inputName": "Starville Whitening Cleanser 400 ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Starville Whitening Cleanser 400 ml",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 400,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012632401",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "cleanser",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-whitening-cleanser-400-ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:57:30.277Z",
+        "contentHash": "77a56a0e4016ba5e5952ba9dc1504f73415526de711a5ac469ac09b7df1f0d72"
+      },
+      "selectionKey": "1cd0fda113c647cd28f55c65e9331d49c95e84d22645ddf31e8fdcc67e25e050"
+    },
+    {
+      "id": "SC-EVAL-060",
+      "inputName": "Starville Acne Prone Skin Cream 60 gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Starville Acne Prone Skin Cream 60 gm",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 60,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008059752",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-acne-prone-skin-cream",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:55:11.535Z",
+        "contentHash": "2ebeed6d564d5c906f16ff9deda9c81d1c553928d99a40fd7a4e9b6aaef177b2"
+      },
+      "selectionKey": "f49917795969d66303102e52bcaf64743ee5224f01cb167aabae1f7c4efd9a93"
+    },
+    {
+      "id": "SC-EVAL-061",
+      "inputName": "Capixy Advance Repair Conditioner ٢٥٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Capixy Advance Repair Conditioner 250ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223018450382",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-advance-repair-conditioner-250ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:36.526Z",
+        "contentHash": "1154159d7f2da26f5cf7aa9cf74be33daff27b5fbcb2bb1ff767919da522a96a"
+      },
+      "selectionKey": "9679d842d67d2a4fd46cefef394753d3944e880b9721d068dba2a10f5d93bf7c"
+    },
+    {
+      "id": "SC-EVAL-062",
+      "inputName": "Capixy Anti- Dandruff Serum Spray 120ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Capixy Anti- Dandruff Serum Spray 120ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 120,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223018450351",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "serum",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-anti-dandruff-serum-spray-120ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:44.099Z",
+        "contentHash": "922cdaa53b8c84af08b2e7fc820e5fdd07173d46c94ffef92f315b3cca7cdf6b"
+      },
+      "selectionKey": "851c7b030a405a21b95b5908e106fba3e571db5da528e175d88e97795c39fe24"
+    },
+    {
+      "id": "SC-EVAL-063",
+      "inputName": "Capixy Anti-Dandruff Hair Shampoo 250ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Capixy Anti-Dandruff Hair Shampoo 250ml",
+        "brand": "capixy",
+        "sourceBrand": "Capixy",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223018450344",
+        "barcode": null
+      },
+      "brand": "capixy",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://e-majestic.com/products/capixy-anti-dandruff-hair-shampoo-250ml",
+        "manufacturerProof": "https://e-majestic.com/pages/capixy",
+        "observedAt": "2026-11-15T10:37:42.568Z",
+        "contentHash": "dab704787f25d00ad3437b8ff375bcf0be0a9b680f9951325b87801c229e3303"
+      },
+      "selectionKey": "e503740f69ace441fce778c53824243fccf816a58022f4f14580875893460d68"
+    },
+    {
+      "id": "SC-EVAL-064",
+      "inputName": "Shaan Lip Balm Strawberry ٥ جم",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Shaan Lip Balm Strawberry 5 gm",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 5,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012631107",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "lip-care",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-lip-balm-strawberry-5-gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:24.502Z",
+        "contentHash": "cd16701aab98a766e35d245b6748cffd5244f14565813aff84d818a2c56bae5e"
+      },
+      "selectionKey": "5035f44492b248fe1d8617901132f88a55b0a34cece5f020bd566933f5aa92e9"
+    },
+    {
+      "id": "SC-EVAL-065",
+      "inputName": "Shaan CICA cream 60 ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Shaan CICA cream 60 ml",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 60,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012633118",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-cica-cream-60-gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:12.439Z",
+        "contentHash": "439c5b2fc08d34cad375cce658baf15b4ef954a0097d23cdf98d9f61f1661e72"
+      },
+      "selectionKey": "86ed47d320a523f41a395a99c34e5569676be56e98ab202819e937d55bfea0a8"
+    },
+    {
+      "id": "SC-EVAL-066",
+      "inputName": "بوباي واقي شمس أويل ديفنس فلويد SPF50 ٧٥ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Bobai Sun Screen oil Defense Fluid spf 50 75ML",
+        "brand": "Bobai",
+        "sourceBrand": "Bobai",
+        "size": 75,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224010337954",
+        "barcode": null
+      },
+      "brand": "Bobai",
+      "categoryType": "sunscreen",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/bobai-sunscreen-oil-defense-fluid-spf-50",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/bobai",
+        "observedAt": "2026-11-15T09:58:50.207Z",
+        "contentHash": "ccdcf5c1c0f64908626ab0b5630924642fc4a29f622328f656de31fab96d42ff"
+      },
+      "selectionKey": "e00279193d82bb08c4697732a05bb77453d8f0075eb00de5e72f72785a348468"
+    },
+    {
+      "id": "SC-EVAL-067",
+      "inputName": "Eva Recipe Conditioner Marshmallow Scent ٣٥٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Recipe Conditioner Marshmallow Scent 350 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 350,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "91827",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-optimum-care-recipe-silk-shine-blend-conditioner-marshmallow-scent-350-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:58.212Z",
+        "contentHash": "92e5ba50a83d3532315d5250d78d47940646c79bbc769030d2d7726f46db0221"
+      },
+      "selectionKey": "18f981d27ade2a1b5b53683d34cd79599bd6c3163ff5453acff2e54d6484a8ba"
+    },
+    {
+      "id": "SC-EVAL-068",
+      "inputName": "Aloe Eva Strengthening Hair Mask Pouch With Aloe Vera 250 Gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Aloe Eva Strengthening Hair Mask Pouch With Aloe Vera 250 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 250,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93179",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-mask",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-strengthening-hair-mask-pouch-with-aloe-vera-250-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T09:59:57.231Z",
+        "contentHash": "878425c5a716feb9d82754573056c346259088b9a38b81c4246abe8b24f4e5d6"
+      },
+      "selectionKey": "aa99123d6dde5c2b94fe1047fc566353dc70107782d8ea98db34abd1e1af26da"
+    },
+    {
+      "id": "SC-EVAL-069",
+      "inputName": "Aloe Eva Hair Strengthening Oil With Aloe Vera & Moroccan Argan Oil 85 Ml ( Special Offer 10 % )",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Aloe Eva Hair Strengthening Oil With Aloe Vera & Moroccan Argan Oil 85 Ml ( Special Offer 10 % )",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 85,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "999492",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-oil",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-hair-strengthening-oil-with-aloe-vera-moroccan-argan-oil-85-ml-special-offer-10",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T09:59:31.266Z",
+        "contentHash": "334547d6e9a83cedc477383dc9973616881e19323e87a47598dbb2b67f92dcb9"
+      },
+      "selectionKey": "4c7c8db236a112bd615806ea7803e7e7c08b1915c77c126b6c7b622a3ed451b2"
+    },
+    {
+      "id": "SC-EVAL-070",
+      "inputName": "Aloe Eva Hair Styling Cream With Aloe Vera ٨٥ جم",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Aloe Eva Hair Styling Cream With Aloe Vera 85 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 85,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93248",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-styling",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-hair-styling-cream-with-aloe-vera-85-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T09:59:48.293Z",
+        "contentHash": "79754882281067412651cfc9f29c64df72ab5b80964cfb286c64dda28e1c81b6"
+      },
+      "selectionKey": "5d3b7c7b8d0d5364378de6f41ca062adfe47846f3c60e03e3119c22de867b06b"
+    },
+    {
+      "id": "SC-EVAL-071",
+      "inputName": "Eva Recipe Age Defying Blend Lotion For Normal Skin Mocha Scent 370 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Recipe Age Defying Blend Lotion For Normal Skin Mocha Scent 370 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 370,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "91830",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-optimum-care-recipe-age-defying-blend-lotion-for-normal-skin-mocha-scent-370-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:46.249Z",
+        "contentHash": "e6123776cf317caa815ff76fa7d1e6c3c8d892c41f945af735df1bd790c3e25a"
+      },
+      "selectionKey": "6640ded0c72d87c62ff8cd65cde252a1dbd8140d111fa7a4d60fe73b7efc934b"
+    },
+    {
+      "id": "SC-EVAL-072",
+      "inputName": "Aloe Eva Hair Strengthening Shampoo With Aloe Vera & Moroccan Argan Oil 230 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Aloe Eva Hair Strengthening Shampoo With Aloe Vera & Moroccan Argan Oil 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93004",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-hair-strengthening-shampoo-with-aloe-vera-moroccan-argan-oil-230-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T09:59:32.770Z",
+        "contentHash": "c3e373989306a90685c29528ce51191cc9df6888e6f6bb91cc6b40b25433dece"
+      },
+      "selectionKey": "31f4583efd5915a993a55f3520ce072e71f23706cec009e7ccf82c08c611651f"
+    },
+    {
+      "id": "SC-EVAL-073",
+      "inputName": "Starville Acne Prone Skin Facial Cleanser ٢٠٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Starville Acne Prone Skin Facial Cleanser 200 ml",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 200,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008059790",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "cleanser",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-acne-prone-skin-facial-cleanser",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:55:13.304Z",
+        "contentHash": "4e51ff08b186361c17a787d55dd3ff45f7534d753619b16c29a25fce1a162d0e"
+      },
+      "selectionKey": "1e9c5753c57f268c03bb76cd79441e95b411b2644e2249f5a9ae958b997ab875"
+    },
+    {
+      "id": "SC-EVAL-074",
+      "inputName": "Shaan Lip Balm Cherry 5 gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Shaan Lip Balm Cherry 5 gm",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 5,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012631114",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "lip-care",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-lip-balm-cherry-5-gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:19.996Z",
+        "contentHash": "0728715ec98d049733350999abf02e343a4085f0eb9d3872f8804d60c54ab82a"
+      },
+      "selectionKey": "b916ff4145cc19384047e15e6c95b58ec7e801b7ae3350873d05ddb5c8fc79e6"
+    },
+    {
+      "id": "SC-EVAL-075",
+      "inputName": "Shaan Rejuvenation Cream 120 gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Shaan Rejuvenation Cream 120 gm",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 120,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008073024",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-rejuvenation-cream-120-gm",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:30.599Z",
+        "contentHash": "5491ed76c9921226f52c6aff3bc871bceedf0eca457428e6b1d488f3b5910bda"
+      },
+      "selectionKey": "c8fc29ab744f9cd3f1eecf8e7c278f39efa71ffb774f31526a2f127710c1bcf4"
+    },
+    {
+      "id": "SC-EVAL-076",
+      "inputName": "Eva Advanced Care Clinic Bond Repair Conditioner ٢٣٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Advanced Care Clinic Bond Repair Conditioner 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94348",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-advanced-care-clinic-bond-repair-shampoo-230-ml-copy",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:01:03.641Z",
+        "contentHash": "41bcbcd11dd35c8b00095280059d724a6dfd4f761ba0717d0d807ce18bf273e1"
+      },
+      "selectionKey": "2856eb867d1e27643a80981672e5d8a51c01781ac7df9720e49ca1dda6978842"
+    },
+    {
+      "id": "SC-EVAL-077",
+      "inputName": "إيفا أدفانسد كير كلينيك فوريفر لونج ماسك للشعر التالف ٢٠٠ جم",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Eva Advanced Care Clinic Forever Long Lengthening & Moisturizing Mask For Damaged Hair 200 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 200,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94345",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-mask",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-advanced-care-clinic-forever-long-lengthening-moisturizing-mask-for-damaged-hair-200-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:01:09.675Z",
+        "contentHash": "d9b577510d58227fa86e5557fd53dfda992860150432de01a694ae6296da0bcb"
+      },
+      "selectionKey": "bb5deb28f76acd18113f5d6e35e4c6322b058f347d0aadc63cc586e371b47e15"
+    },
+    {
+      "id": "SC-EVAL-078",
+      "inputName": "Eva Hair Clinic Gold Argan Heat Guard With Gold And Argan Oil 200 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Hair Clinic Gold Argan Heat Guard With Gold And Argan Oil 200 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 200,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94305",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-oil",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-gold-argan-heat-guard-with-gold-and-argan-oil-200-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:22.095Z",
+        "contentHash": "27f4beb55af344b8d23b5974933936c0e61fc60e72c129d53c18f634608d9783"
+      },
+      "selectionKey": "5c64b1209be2b8fff6a21bb3544ae56309e50ffba8fb876479a0e4a2296c3bc0"
+    },
+    {
+      "id": "SC-EVAL-079",
+      "inputName": "Eva Honey Hair Cream ٤٥ جم",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Honey Hair Cream 45 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 45,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93253",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-styling",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-honey-hair-cream-45-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:43.172Z",
+        "contentHash": "98ba94348e6e9f1d38c9bf793ba79dea1bbcdf33a8ab79a23dbb0f05d5c74b39"
+      },
+      "selectionKey": "74e3d0f7bb2f6707491edb2bfc017437f4f6a3dabeb2cafe800cf8d5d0f354af"
+    },
+    {
+      "id": "SC-EVAL-080",
+      "inputName": "Eva Clinic Bebe Lotion 200 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Clinic Bebe Lotion 200 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 200,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94058",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-clinic-bebe-lotion-200-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:01:51.960Z",
+        "contentHash": "14b2becd3cc44d924cb5aac244cd2aed7765f636e9d5ea4afc389fcb27d1ce41"
+      },
+      "selectionKey": "85b27e19c6b723aa352bc536a07c650fe5e2088861c69e7d6adc6ba9d35b3bf7"
+    },
+    {
+      "id": "SC-EVAL-081",
+      "inputName": "إيفا بروفيشنال شامبو ١ لتر",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Eva Professional Shampoo 1 liter",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 1,
+        "sizeUnit": "l",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "34301",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-professional-shampoo-1-liter",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:03:02.762Z",
+        "contentHash": "590db3945d93df4ca4727af032c4e4b0a6ca3536b75ad3b60eab90c0d5b0ba9d"
+      },
+      "selectionKey": "682918601e22eb36df0f96fc2a6d22161c9614ad048c326504548aaf552ae4a1"
+    },
+    {
+      "id": "SC-EVAL-082",
+      "inputName": "StarVille Femme Intimate Cleansing Foam Hydrate ١٥٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "StarVille Femme Intimate Cleansing Foam Hydrate 150 ml",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 150,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012632708",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "cleanser",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-femme-intimate-cleansing-foam-hydrate-150-ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:57:06.089Z",
+        "contentHash": "9c220654e44ce508e2bc7a27fb8dca4fd6457583633707ee9ec69fc148e6ad43"
+      },
+      "selectionKey": "de41aa582fd6e1e3938d0b9d4160d9a461056250023df298336f66ef36defe25"
+    },
+    {
+      "id": "SC-EVAL-083",
+      "inputName": "شان كريم جل أويلو مات ٦٠ جم",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Shaan Oily Matte Cream-Gel 60 gm",
+        "brand": "shaan",
+        "sourceBrand": "shaan",
+        "size": 60,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6223012634245",
+        "barcode": null
+      },
+      "brand": "shaan",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/shaan-oily-matte-cream-gel-for-oily-face-skin",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/shaan",
+        "observedAt": "2026-11-15T09:58:29.026Z",
+        "contentHash": "26d727cf9613ba067c44ec04c6e1d258c5518ae9e3bce31624ede21a6d7d0268"
+      },
+      "selectionKey": "d60efe7fd72146b2ff24c27c91833b826a6efaacec9487134c85c2c82b04c1fa"
+    },
+    {
+      "id": "SC-EVAL-084",
+      "inputName": "Eva Hair Clinic Keratin Conditioner 230 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Hair Clinic Keratin Conditioner 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93056",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-keratin-conditioner-230-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:32.678Z",
+        "contentHash": "2cf96a86e14b8fd59cbd6f8140f81217ea06c83c5a71ee6df3e661e3c7bba1c2"
+      },
+      "selectionKey": "38c4226da040a98cc7852a73dbbf73123ddacbcaa4209535bd8c13419317cd7a"
+    },
+    {
+      "id": "SC-EVAL-085",
+      "inputName": "Eva Hair Clinic Curls Mask Shea Butter & Linseed ٢٠٠ جم",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Hair Clinic Curls Mask Shea Butter & Linseed 200 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 200,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94323",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-mask",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-curls-mask-shea-butter-linseed-200-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:16.037Z",
+        "contentHash": "e46fad3a4bb80bccad4617b2d146e9f344b78e516c065ac987028fce1c7629ff"
+      },
+      "selectionKey": "be24ec74dd5a07e1caf8ea3c9a8cd08781e1cebac81c5dbf0b47874567d3b52a"
+    },
+    {
+      "id": "SC-EVAL-086",
+      "inputName": "Aloe Eva Strengthening Hair Oil Replacement With Aloe Vera 250 Ml ( Special Offer 25 % )",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Aloe Eva Strengthening Hair Oil Replacement With Aloe Vera 250 Ml ( Special Offer 25 % )",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 250,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "999400",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-oil",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-strengthening-hair-oil-replacement-with-aloe-vera-250-ml-special-offer-25",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:00:01.724Z",
+        "contentHash": "8095fe515b9b3e9cd2cfd5042a9f1cb5d501e28c9ceb81137b2f381e08c2192b"
+      },
+      "selectionKey": "6f65619d38b7757465a492241773bb8edcba2752ee10b0fda1e73de3b3cd30fb"
+    },
+    {
+      "id": "SC-EVAL-087",
+      "inputName": "Eva Advanced Care Clinic Curls Angle Moisture Quenching Holding Hair Gel For Wavy, Curly And Coily Hair 230 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Advanced Care Clinic Curls Angle Moisture Quenching Holding Hair Gel For Wavy, Curly And Coily Hair 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94325",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-styling",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-advanced-care-clinic-curls-angle-moisture-quenching-holding-hair-gel-for-wavy-curly-and-coily-hair-230-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:01:05.154Z",
+        "contentHash": "6a01d7ebc52e9c8022a2be943a7b0776ac287beffb976ff5e86b3fdf14dabfc7"
+      },
+      "selectionKey": "97d628c33a81bed270ba708602ba2140647722703715c5183e9c862a486b17f6"
+    },
+    {
+      "id": "SC-EVAL-088",
+      "inputName": "Eva Recipe Lotion For Dry Skin Peach Scent ٣٧٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Recipe Lotion For Dry Skin Peach Scent 370 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 370,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "91833",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-optimum-care-recipe-revival-blend-lotion-for-dry-skin-peach-scent-370-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:56.708Z",
+        "contentHash": "0eb1e85461d0decedf8af678b5b31a608c9fdffd1bab76723c27c1821bae05e3"
+      },
+      "selectionKey": "b00ba9d443f40369cf66217a3a42f85b3354716f1a8fb91b91a710b3709cc3ba"
+    },
+    {
+      "id": "SC-EVAL-089",
+      "inputName": "Eva Advanced Care Clinic Forever Long Lengthening Shampoo For Damaged Hair 230 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Advanced Care Clinic Forever Long Lengthening Shampoo For Damaged Hair 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94343",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-advanced-care-clinic-forever-long-lengthening-shampoo-for-damaged-hair-230-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:01:12.666Z",
+        "contentHash": "e89ea0c5b82c47a6a91aa0c4edcb1155f46886f52c3f238f2c61f610859c2a39"
+      },
+      "selectionKey": "71dea7045bbea4cb8d1f902736a6b89672c4dfaf7c4cddc52d9b4457eb6dd636"
+    },
+    {
+      "id": "SC-EVAL-090",
+      "inputName": "Starville Whitening Cleanser 200 ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Starville Whitening Cleanser 200 ml",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 200,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224008073819",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "cleanser",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-whitening-cleanser",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:57:28.764Z",
+        "contentHash": "afe9f082d63e2005a3201742111a24af5fab9afe146ac22a325ef381620b2722"
+      },
+      "selectionKey": "eb5024ba816c852aef486a570b0f2d3127eaf9ac685dcbac2aea91f0ce833a9b"
+    },
+    {
+      "id": "SC-EVAL-091",
+      "inputName": "Eva Hair Clinic Curls Conditioner Shea Butter & Linseed ٢٣٠ مل",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Eva Hair Clinic Curls Conditioner Shea Butter & Linseed 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94322",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-curls-conditioner-shea-butter-linseed-230-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:13.050Z",
+        "contentHash": "c9b4e7ece173b8c86ccce6d446e076d2cf47e2ee5d63ecf93cff964f06eee178"
+      },
+      "selectionKey": "5630e960575b07d49a8d9c56df4fd109e1648f1e50a691e170ba54354a0d655f"
+    },
+    {
+      "id": "SC-EVAL-092",
+      "inputName": "Aloe Eva Strengthening Hair Mask Pouch With Aloe Vera & Yoghurt Proteins 250 Gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Aloe Eva Strengthening Hair Mask Pouch With Aloe Vera & Yoghurt Proteins 250 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 250,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93181",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-mask",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-strengthening-hair-mask-pouch-with-aloe-vera-yoghurt-proteins-250-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:00:00.224Z",
+        "contentHash": "7ce2903b22b65bea268c66f14968dada3e644e084167648f415675fe0b9f72a0"
+      },
+      "selectionKey": "f388e32e132695a7f47d09a26ccf9ccf16c6e8bf7c7671bdad2150b8957f30e1"
+    },
+    {
+      "id": "SC-EVAL-093",
+      "inputName": "Aloe Eva Strengthening Hair Oil With Aloe Vera 85 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Aloe Eva Strengthening Hair Oil With Aloe Vera 85 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 85,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93105",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-oil",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-strengthening-hair-oil-with-aloe-vera-85-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:00:10.772Z",
+        "contentHash": "df7eb2f85cad9e34821bdf07d3956025c18e931f50d022b97fc27d0925b2fad2"
+      },
+      "selectionKey": "7466145b79df8629d3d8caf08ac17bc40f3bd9d28351541470aa01c491befafa"
+    },
+    {
+      "id": "SC-EVAL-094",
+      "inputName": "Aloe Eva Hair Styling Cream With Aloe Vera ١٨٥ جم",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Aloe Eva Hair Styling Cream With Aloe Vera 185 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 185,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93249",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-styling",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-hair-styling-cream-with-aloe-vera-185-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T09:59:34.268Z",
+        "contentHash": "073cb15f92913d24cc220465b7f6d1c2488cdfdaeb34af22a58a49c346b9b0b6"
+      },
+      "selectionKey": "aed208258e0d719b4a605df47d09ea22ce6f45976acdefc6dbfeec27d4d48535"
+    },
+    {
+      "id": "SC-EVAL-095",
+      "inputName": "Eva Recipe Lotion For Normal Skin Marshmallow Scent 370 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Recipe Lotion For Normal Skin Marshmallow Scent 370 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 370,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "91831",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "moisturizer",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-optimum-care-recipe-radiance-blend-lotion-for-normal-skin-marshmallow-scent-370-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:55.217Z",
+        "contentHash": "01dc48325d8ac5988f2877d07faf66c818af48c73ce39ef850db0aac6af8655f"
+      },
+      "selectionKey": "dc3b12fce75ae225b4312ffdce03c8ce2fdc3b353c47ea9cc94d0773bcdb6d28"
+    },
+    {
+      "id": "SC-EVAL-096",
+      "inputName": "Eva Hair Clinic Gold Argan Shampoo With Gold And Argan Oil 230 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Hair Clinic Gold Argan Shampoo With Gold And Argan Oil 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94301",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "shampoo",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-gold-argan-shampoo-with-gold-and-argan-oil-230-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:26.620Z",
+        "contentHash": "cdb5498cbf80d6484d30f9f76c6c26382b72755adc145a8f036e574f16ea3908"
+      },
+      "selectionKey": "85f0579ae32fe80866be7d50671b20150f70043ae9d2c633a2ec406898fbadcd"
+    },
+    {
+      "id": "SC-EVAL-097",
+      "inputName": "ستارفيل غسول وجه للبشرة المعرضة لحب الشباب ٤٠٠ مل",
+      "inputLanguage": "AR",
+      "inputTransformation": "Operator-authored Arabic input spelling for the same real SKU. This is not a manufacturer translation or a new factual claim.",
+      "expected": {
+        "name": "Starville Acne Prone Skin Facial Cleanser 400 ml",
+        "brand": "StarVille",
+        "sourceBrand": "StarVille",
+        "size": 400,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "6224010337909",
+        "barcode": null
+      },
+      "brand": "StarVille",
+      "categoryType": "cleanser",
+      "source": {
+        "url": "https://shop.parkvillepharma.com/products/starville-acne-prone-skin-facial-cleanser-400-ml",
+        "manufacturerProof": "https://www.parkvillepharma.com/brand/starville",
+        "observedAt": "2026-11-15T09:56:55.434Z",
+        "contentHash": "0328939bb02079606a71bf44f46bb435577b18c9c18c816f584fd6fd0cbbab9c"
+      },
+      "selectionKey": "fcf6fe9bb9a6aa9896696ff4ca66afe8ba34e120b7d6d11e583c16967afef999"
+    },
+    {
+      "id": "SC-EVAL-098",
+      "inputName": "Eva Hair Clinic Gold Argan Conditioner With Gold And Argan Oil 230 Ml",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Eva Hair Clinic Gold Argan Conditioner With Gold And Argan Oil 230 Ml",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 230,
+        "sizeUnit": "ml",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "94302",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "conditioner",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/eva-hair-clinic-gold-argan-conditioner-with-gold-and-argan-oil-230-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T10:02:20.592Z",
+        "contentHash": "4c06be55bbbc9a8c912497e02c8ce375fb6cabe58fb2ac926ef4ddf5eba701ee"
+      },
+      "selectionKey": "64b6d72f8df519664b4f5611b711d900bf4bd752b8c83e48425f4578d925b4a9"
+    },
+    {
+      "id": "SC-EVAL-099",
+      "inputName": "Aloe Eva Hair Strengthening Mask Pouch With Aloe Vera & Moroccan Argan Oil 250 Gm",
+      "inputLanguage": "EN",
+      "inputTransformation": "Exact manufacturer title",
+      "expected": {
+        "name": "Aloe Eva Hair Strengthening Mask Pouch With Aloe Vera & Moroccan Argan Oil 250 Gm",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 250,
+        "sizeUnit": "g",
+        "packCount": null,
+        "packText": null,
+        "manufacturerProductCode": "93012",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-mask",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-hair-strengthening-mask-pouch-with-aloe-vera-moroccan-argan-oil-250-gm",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T09:59:25.238Z",
+        "contentHash": "46c74235390e6cbe0524c9293a959bb7607f9de0114c0a94412d52a70c539393"
+      },
+      "selectionKey": "fdd77b30c649ff3c22acabe4e3c6edafb5503d1f0e73db476e49be92301de025"
+    },
+    {
+      "id": "SC-EVAL-100",
+      "inputName": "Aloe Eva Hair Strengthening Ampoules With Aloe Vera & Moroccan Argan Oil ( 4 Ampoules * 15 Ml )",
+      "inputLanguage": "MIXED_AR_EN",
+      "inputTransformation": "Arabic digits and net-content unit spelling; same manufacturer identity",
+      "expected": {
+        "name": "Aloe Eva Hair Strengthening Ampoules With Aloe Vera & Moroccan Argan Oil ( 4 Ampoules * 15 Ml )",
+        "brand": "Eva Cosmetics",
+        "sourceBrand": "Eva",
+        "size": 15,
+        "sizeUnit": "ml",
+        "packCount": 4,
+        "packText": "4 Ampoules",
+        "manufacturerProductCode": "93010",
+        "barcode": null
+      },
+      "brand": "Eva Cosmetics",
+      "categoryType": "hair-oil",
+      "source": {
+        "url": "https://www.shop.eva-cosmetics.com/products/aloe-eva-hair-strengthening-ampoules-with-aloe-vera-moroccan-argan-oil-4-ampoules-15-ml",
+        "manufacturerProof": "https://eva-cosmetics.com/",
+        "observedAt": "2026-11-15T09:59:22.208Z",
+        "contentHash": "9fb14730ce358eac5927dcb8074b5e955b5b92a3e84eead6f62c90cb9efcf05b"
+      },
+      "selectionKey": "753d2831628fc6768bdd557645afd2df21a126730c806a59e40267777828a0e6"
+    }
+  ]
+}

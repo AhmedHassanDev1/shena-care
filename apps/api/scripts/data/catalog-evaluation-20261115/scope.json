@@ -1,0 +1,605 @@
+{
+  "policyVersion": 23,
+  "rows": [
+    {
+      "id": "SC-EVAL-001",
+      "categoryId": "86b2f262-379b-4b94-a6fb-485cd654d0b2",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-002",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-003",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-004",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-005",
+      "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-006",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-007",
+      "categoryId": "86b2f262-379b-4b94-a6fb-485cd654d0b2",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-008",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-009",
+      "categoryId": null,
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-010",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-011",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-012",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-013",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-014",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-015",
+      "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-016",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-017",
+      "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-018",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-019",
+      "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-020",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-021",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-022",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-023",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-024",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-025",
+      "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-026",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-027",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-028",
+      "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-029",
+      "categoryId": null,
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-030",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-031",
+      "categoryId": "86b2f262-379b-4b94-a6fb-485cd654d0b2",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-032",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-033",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-034",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-035",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-036",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-037",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-038",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-039",
+      "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-040",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-041",
+      "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-042",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-043",
+      "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-044",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-045",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-046",
+      "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-047",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-048",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-049",
+      "categoryId": null,
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-050",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-051",
+      "categoryId": "86b2f262-379b-4b94-a6fb-485cd654d0b2",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-052",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-053",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-054",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-055",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-056",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-057",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-058",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-059",
+      "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-060",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-061",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-062",
+      "categoryId": "d97b6c27-034e-4d80-810b-59270da1efdb",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-063",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-064",
+      "categoryId": null,
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-065",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-066",
+      "categoryId": "86b2f262-379b-4b94-a6fb-485cd654d0b2",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-067",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-068",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-069",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-070",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-071",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-072",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-073",
+      "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-074",
+      "categoryId": null,
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-075",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-076",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-077",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-078",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-079",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-080",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-081",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-082",
+      "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-083",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-084",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-085",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-086",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-087",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-088",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-089",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-090",
+      "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-091",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-092",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-093",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-094",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-095",
+      "categoryId": "06fd62be-5e4c-4b8a-aa36-498c8c78152d",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-096",
+      "categoryId": "54be8317-71b3-440d-92e7-14d630d96a7a",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-097",
+      "categoryId": "6cb0932b-94c3-487f-b70f-4a5e7e859dd6",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-098",
+      "categoryId": "8348236c-bf76-4216-abfb-e7d9cd989341",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-099",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    },
+    {
+      "id": "SC-EVAL-100",
+      "categoryId": "79853ea7-a892-4985-9818-bfe7aa8312aa",
+      "decision": "CONTINUE",
+      "reasonCode": "CATALOG_BRAND"
+    }
+  ]
+}
