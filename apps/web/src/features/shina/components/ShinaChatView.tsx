@@ -658,6 +658,14 @@ export function ShinaChatView({
       aria-label={m.shinaAssistantTitle}
       className="relative flex h-full flex-1 flex-col overflow-hidden bg-chalk font-display text-ink"
     >
+      {/* Sahel Shutter Light Signature Atmosphere */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 select-none overflow-hidden opacity-45"
+        aria-hidden="true"
+      >
+        <div className="shutter soft warm absolute inset-0 size-full" />
+      </div>
+
       {/* Sleek, Focused Chat Header */}
       <ShinaHeader
         state={effectiveState}
@@ -904,7 +912,7 @@ export function ShinaChatView({
                     type="button"
                     onClick={() => handleCopyMessage(msg.id, msg.content)}
                     aria-label={locale === 'ar' ? 'نسخ الرسالة' : 'Copy message'}
-                    className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-linen/90 px-3 py-1 font-display text-11 font-bold text-stone shadow-elevation-1 transition-all hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95"
+                    className="inline-flex items-center gap-1.5 rounded-pill border border-line/50 bg-linen/60 px-3 py-1 font-display text-11 font-bold text-stone shadow-elevation-1 backdrop-blur-md transition-all hover:border-cobalt hover:bg-chalk/80 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95"
                   >
                     <Icon
                       name={copiedId === msg.id ? 'check' : 'copy'}
@@ -926,7 +934,7 @@ export function ShinaChatView({
                     <button
                       type="button"
                       onClick={() => handleRetryLast(msg.pendingQuery)}
-                      className="inline-flex items-center gap-1.5 rounded-pill border border-tomato/30 bg-chalk px-3 py-1 font-display text-11 font-bold text-tomato-ink transition-colors hover:bg-tomato/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-tomato/30 bg-chalk/80 px-3 py-1 font-display text-11 font-bold text-tomato-ink backdrop-blur-md transition-colors hover:bg-tomato/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
                     >
                       <Icon name="retry" size={13} />
                       <span>{m.shinaRetryAction}</span>
@@ -937,7 +945,7 @@ export function ShinaChatView({
                     <button
                       type="button"
                       onClick={() => runCatalogFallback(msg.pendingQuery!)}
-                      className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-linen px-3 py-1 font-display text-11 font-bold text-ink transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-line/50 bg-linen/60 px-3 py-1 font-display text-11 font-bold text-ink backdrop-blur-md transition-colors hover:border-cobalt hover:bg-chalk/80 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
                     >
                       <Icon name="search" size={13} />
                       <span>{m.shinaSearchCatalogFallback}</span>
@@ -954,7 +962,7 @@ export function ShinaChatView({
                         type="button"
                         disabled={isBusy}
                         onClick={() => submitQuery(chip)}
-                        className="inline-flex min-h-control-s items-center rounded-pill border border-line bg-linen/90 px-3.5 py-1.5 font-display text-12 font-bold text-ink shadow-elevation-1 transition-all hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:opacity-50"
+                        className="inline-flex min-h-control-s items-center rounded-pill border border-line/50 bg-linen/60 px-3.5 py-1.5 font-display text-12 font-bold text-ink shadow-elevation-1 backdrop-blur-md transition-all hover:border-cobalt hover:bg-chalk/80 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:opacity-50"
                       >
                         {chip}
                       </button>
@@ -981,32 +989,32 @@ export function ShinaChatView({
         </div>
       </div>
 
-      {/* Floating Scroll to Latest Button */}
+      {/* Floating Scroll to Latest Button (Positioned at bottom near composer like standard chats) */}
       <AnimatePresence>
         {showScrollBottom ? (
           <motion.button
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 10, scale: 0.95 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 10, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={prefersReducedMotion ? undefined : { opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: 10, scale: 0.9 }}
+            transition={{ duration: 0.15 }}
             type="button"
             onClick={() => scrollToLatest(true)}
-            className="absolute bottom-22 start-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-1.5 rounded-pill border border-line bg-chalk/95 px-4 py-1.5 font-display text-12 font-bold text-ink shadow-elevation-2 backdrop-blur-md transition-all hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95"
+            className="absolute bottom-20 end-4 sm:end-8 z-30 inline-flex size-10 items-center justify-center rounded-full border border-line/50 bg-chalk/60 text-ink shadow-elevation-2 backdrop-blur-xl transition-all hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-90"
             aria-label={locale === 'ar' ? 'الانتقال لآخر الرسائل' : 'Scroll to latest'}
+            title={locale === 'ar' ? 'الانتقال للأحدث' : 'Scroll to latest'}
           >
-            <Icon name="chevron-down" size={14} />
-            <span>{locale === 'ar' ? 'الانتقال للأحدث' : 'Scroll to latest'}</span>
+            <Icon name="chevron-down" size={18} />
           </motion.button>
         ) : null}
       </AnimatePresence>
 
       {/* Sticky Bottom Composer */}
-      <footer className="relative z-20 shrink-0 border-t border-line/40 bg-chalk/95 px-4 pb-3 pt-2.5 backdrop-blur-md sm:px-6 sm:pb-4 sm:pt-3">
+      <footer className="relative z-20 shrink-0 border-t border-line/30 bg-chalk/40 px-4 pb-3 pt-2.5 backdrop-blur-xl sm:px-6 sm:pb-4 sm:pt-3">
         <div className="mx-auto w-full max-w-2xl sm:max-w-3xl space-y-2">
           {voice.errorKind ? (
             <div
               role="status"
-              className="flex items-center justify-between gap-2 rounded-card border border-tomato/30 bg-linen p-2.5 font-text text-12 text-tomato-ink shadow-elevation-1"
+              className="flex items-center justify-between gap-2 rounded-card border border-tomato/30 bg-linen/70 p-2.5 font-text text-12 text-tomato-ink shadow-elevation-1 backdrop-blur-md"
             >
               <span>
                 {voice.errorKind === 'unsupported'
@@ -1033,7 +1041,7 @@ export function ShinaChatView({
                 submitQuery(draft);
               }
             }}
-            className="flex min-h-12 items-end gap-1.5 rounded-24 border border-line bg-linen/90 p-1.5 shadow-elevation-1 backdrop-blur-xl transition-all hover:border-line-2/40 hover:bg-linen focus-within:border-cobalt focus-within:bg-chalk focus-within:shadow-focus-field"
+            className="flex min-h-12 items-end gap-1.5 rounded-24 border border-line/50 bg-linen/50 p-1.5 shadow-elevation-1 backdrop-blur-xl transition-all hover:border-line-2/40 hover:bg-linen/70 focus-within:border-cobalt focus-within:bg-chalk/80 focus-within:shadow-focus-field"
           >
             <button
               type="button"

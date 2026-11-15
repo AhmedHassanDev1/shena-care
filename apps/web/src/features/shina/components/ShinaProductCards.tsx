@@ -60,86 +60,77 @@ export function CompactProductCard({
   const locale = useLocale();
 
   return (
-    <article
+    <motion.article
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.15 }}
       className={cn(
-        'group relative flex items-center gap-3 rounded-card border border-line/60 bg-chalk/90 p-3 shadow-elevation-1 transition-all duration-fast hover:border-line-2/40 hover:bg-chalk hover:shadow-elevation-2',
+        'group relative flex flex-col justify-between rounded-card border border-line/50 bg-chalk/45 p-2 shadow-elevation-1 backdrop-blur-xl transition-colors duration-fast hover:border-cobalt/40 hover:bg-chalk/75 hover:shadow-elevation-2',
         className,
       )}
     >
-      {/* Product Image */}
-      <Link
-        href={routes.product(product.slug)}
-        className="relative size-20 shrink-0 overflow-hidden rounded-image border border-line/40 bg-sand/20 p-1 transition-transform group-hover:scale-102 sm:size-22"
-      >
-        <ProductTile
-          src={product.imageUrl ?? null}
-          alt={product.name}
-          name={product.name}
-          fit="contain"
-          className="size-full rounded-none bg-transparent"
-        />
-        {product.stepBadge ? (
-          <span className="pointer-events-none absolute start-1 top-1 max-w-full truncate rounded-pill bg-linen/95 px-1.5 py-0.5 font-text text-11 font-medium text-stone shadow-elevation-1">
-            {product.stepBadge}
-          </span>
-        ) : null}
-      </Link>
-
-      {/* Meta details */}
-      <div className="min-w-0 flex-1 space-y-0.5">
-        <p className="truncate font-text text-11 font-semibold uppercase tracking-wider text-stone">
-          {product.brand}
-        </p>
+      <div>
+        {/* 1. Petite Product Image */}
         <Link
           href={routes.product(product.slug)}
-          className="line-clamp-2 block font-display text-13 font-bold leading-snug text-ink transition-colors hover:text-cobalt sm:text-14"
+          className="relative block aspect-square w-full overflow-hidden rounded-image border border-line/30 bg-sand/15 p-1.5 transition-transform duration-fast group-hover:scale-102"
         >
-          {product.name}
+          <ProductTile
+            src={product.imageUrl ?? null}
+            alt={product.name}
+            name={product.name}
+            fit="contain"
+            className="size-full rounded-none bg-transparent"
+          />
+          {product.stepBadge ? (
+            <span className="pointer-events-none absolute start-1 top-1 max-w-[85%] truncate rounded-pill bg-linen/95 px-1.5 py-0.5 font-text text-11 font-medium text-stone shadow-elevation-1">
+              {product.stepBadge}
+            </span>
+          ) : null}
         </Link>
-        {product.variantName ? (
-          <p className="truncate font-text text-11 text-stone">{product.variantName}</p>
-        ) : null}
-        {product.rationale ? (
-          <p className="line-clamp-1 font-text text-11 leading-snug text-stone">
-            <span className="font-semibold text-cobalt">✓ </span>
-            {product.rationale}
+
+        {/* 2. Brand & Name */}
+        <div className="mt-1.5 min-w-0">
+          <p className="truncate font-text text-11 font-semibold uppercase tracking-wider text-stone">
+            {product.brand}
           </p>
-        ) : null}
-        <p className="pt-0.5 font-display text-14 font-extrabold text-ink sm:text-15">
+          <Link
+            href={routes.product(product.slug)}
+            title={product.name}
+            className="mt-0.5 line-clamp-1 block font-display text-12 font-bold leading-snug text-ink transition-colors hover:text-cobalt"
+          >
+            {product.name}
+          </Link>
+        </div>
+      </div>
+
+      {/* 3. Price & Compact Action Row */}
+      <div className="mt-2 flex items-center justify-between gap-1 border-t border-line/30 pt-1.5">
+        <span className="font-display text-12 font-black text-ink sm:text-13">
           {product.canOrder && product.price != null && product.price > 0
             ? formatAmount(product.price, locale)
             : m.shinaUnavailableProduct}
-        </p>
-      </div>
+        </span>
 
-      {/* Primary Action Button */}
-      <div className="shrink-0 self-center">
         <button
           type="button"
           disabled={!product.canOrder || isAdding}
           aria-busy={isAdding}
           onClick={() => onAddToBag(product)}
           aria-label={fillMessage(m.cardAddLabel, { name: product.name })}
+          title={isAdded ? m.shinaAddedToBag : m.shinaAddToBag}
           className={cn(
-            'inline-flex min-h-control-s items-center justify-center gap-1.5 rounded-pill px-3.5 font-display text-12 font-bold shadow-action transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:cursor-not-allowed disabled:opacity-50',
+            'inline-flex size-7 shrink-0 items-center justify-center rounded-full shadow-action transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-90 disabled:cursor-not-allowed disabled:opacity-40',
             !product.canOrder
-              ? 'border border-line bg-sand/60 text-stone'
+              ? 'bg-sand/60 text-stone'
               : isAdded
                 ? 'bg-citron text-ink'
-                : 'bg-cobalt text-chalk hover:bg-cobalt-deep active:scale-95',
+                : 'bg-cobalt text-chalk hover:bg-cobalt-deep',
           )}
         >
-          <Icon name={isAdded ? 'check' : 'bag'} size={15} />
-          <span>
-            {!product.canOrder
-              ? m.shinaUnavailableProduct
-              : isAdded
-                ? m.shinaAddedToBag
-                : m.shinaAddToBag}
-          </span>
+          <Icon name={isAdded ? 'check' : 'bag'} size={13} />
         </button>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -154,11 +145,11 @@ export function ShinaProductCarousel({
 
   if (products.length === 0) return null;
 
-  // Single product: display a comfortable wide card
+  // Single product: display a petite compact vertical card
   if (products.length === 1) {
     const p = products[0];
     return (
-      <div className="w-full">
+      <div className="w-[140px] sm:w-[155px]">
         <CompactProductCard
           product={p}
           onAddToBag={onAddToBag}
@@ -170,18 +161,20 @@ export function ShinaProductCarousel({
     );
   }
 
-  // Two products: clean dual-column grid on desktop, swipeable on mobile
+  // Two products: clean dual compact cards
   if (products.length === 2) {
     return (
-      <div className="grid w-full min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2">
+      <div className="flex flex-wrap gap-2.5">
         {products.map((product) => (
-          <CompactProductCard
-            key={`${product.slug}-${product.skuId}`}
-            product={product}
-            onAddToBag={onAddToBag}
-            isAdding={addingSkuId === product.skuId}
-            isAdded={addedSkuIds.has(product.skuId)}
-          />
+          <div key={`${product.slug}-${product.skuId}`} className="w-[135px] sm:w-[150px]">
+            <CompactProductCard
+              product={product}
+              onAddToBag={onAddToBag}
+              isAdding={addingSkuId === product.skuId}
+              isAdded={addedSkuIds.has(product.skuId)}
+              className="h-full"
+            />
+          </div>
         ))}
       </div>
     );
@@ -190,26 +183,26 @@ export function ShinaProductCarousel({
   // 3+ products: swipeable carousel with desktop navigation
   return (
     <div className="relative w-full min-w-0">
-      <div className="mb-2 hidden items-center justify-between sm:flex">
+      <div className="mb-1.5 flex items-center justify-between">
         <span className="font-text text-11 font-medium text-stone">
           {products.length} منتجات موصى بها
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="hidden items-center gap-1 sm:flex">
           <button
             type="button"
             onClick={() => swiper?.slidePrev()}
             aria-label={m.pdpCarouselPrev}
-            className="inline-flex size-8 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-elevation-1 transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+            className="inline-flex size-7 items-center justify-center rounded-full border border-line bg-chalk/60 text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
           >
-            <Icon name="chevron-back" size={15} />
+            <Icon name="chevron-back" size={13} />
           </button>
           <button
             type="button"
             onClick={() => swiper?.slideNext()}
             aria-label={m.pdpCarouselNext}
-            className="inline-flex size-8 items-center justify-center rounded-full border border-line bg-chalk text-ink shadow-elevation-1 transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+            className="inline-flex size-7 items-center justify-center rounded-full border border-line bg-chalk/60 text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
           >
-            <Icon name="chevron-forward" size={15} />
+            <Icon name="chevron-forward" size={13} />
           </button>
         </div>
       </div>
@@ -217,16 +210,13 @@ export function ShinaProductCarousel({
       <Swiper
         modules={[Navigation, A11y, Keyboard]}
         onSwiper={setSwiper}
-        spaceBetween={10}
-        slidesPerView={1.12}
+        spaceBetween={8}
+        slidesPerView="auto"
         keyboard={{ enabled: true }}
-        breakpoints={{
-          640: { slidesPerView: 2, slidesPerGroup: 2 },
-        }}
-        className="w-full"
+        className="w-full !overflow-visible"
       >
         {products.map((product) => (
-          <SwiperSlide key={`${product.slug}-${product.skuId}`} className="h-auto">
+          <SwiperSlide key={`${product.slug}-${product.skuId}`} className="h-auto !w-[135px] sm:!w-[150px]">
             <CompactProductCard
               product={product}
               onAddToBag={onAddToBag}
@@ -263,13 +253,13 @@ export function ShinaComparisonCard({
   return (
     <section
       aria-label={comparison.title}
-      className="w-full min-w-0 rounded-card border border-line/70 bg-chalk/90 p-3.5 shadow-elevation-1 backdrop-blur-md transition-shadow hover:shadow-elevation-2 sm:p-4"
+      className="w-full min-w-0 rounded-card border border-line/40 bg-chalk/40 p-2.5 shadow-elevation-1 backdrop-blur-xl transition-shadow hover:shadow-elevation-2 sm:p-3"
     >
       {/* Comparison Header */}
-      <div className="mb-3 flex items-center justify-between gap-2 border-b border-line/40 pb-2.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
-            <Icon name="swap" size={15} />
+      <div className="mb-2 flex items-center justify-between gap-2 border-b border-line/30 pb-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
+            <Icon name="swap" size={13} />
           </span>
           <h3 className="truncate font-display text-13 font-bold text-ink sm:text-14">
             {comparison.title}
@@ -280,11 +270,11 @@ export function ShinaComparisonCard({
           <button
             type="button"
             onClick={() => setShowDiffs((v) => !v)}
-            className="inline-flex min-h-control-s shrink-0 items-center gap-1 rounded-pill bg-linen px-3 font-display text-12 font-bold text-cobalt transition-colors hover:bg-sand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+            className="inline-flex min-h-6 shrink-0 items-center gap-1 rounded-pill bg-linen/60 px-2.5 font-display text-11 font-bold text-cobalt transition-colors hover:bg-sand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
           >
             <Icon
               name="chevron-down"
-              size={14}
+              size={12}
               className={cn('transition-transform duration-fast', showDiffs && 'rotate-180')}
             />
             <span>
@@ -301,15 +291,17 @@ export function ShinaComparisonCard({
       </div>
 
       {/* Side-by-side Product Cards */}
-      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+      <div className="flex flex-wrap items-stretch gap-2.5">
         {comparison.products.map((item) => (
-          <CompactProductCard
-            key={`${item.slug}-${item.skuId}`}
-            product={item}
-            onAddToBag={onAddToBag}
-            isAdding={addingSkuId === item.skuId}
-            isAdded={addedSkuIds.has(item.skuId)}
-          />
+          <div key={`${item.slug}-${item.skuId}`} className="w-[130px] sm:w-[150px]">
+            <CompactProductCard
+              product={item}
+              onAddToBag={onAddToBag}
+              isAdding={addingSkuId === item.skuId}
+              isAdded={addedSkuIds.has(item.skuId)}
+              className="h-full"
+            />
+          </div>
         ))}
       </div>
 
@@ -320,21 +312,21 @@ export function ShinaComparisonCard({
             initial={prefersReduced ? undefined : { opacity: 0, height: 0 }}
             animate={prefersReduced ? undefined : { opacity: 1, height: 'auto' }}
             exit={prefersReduced ? undefined : { opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="mt-3.5 grid grid-cols-1 gap-2.5 border-t border-line/50 pt-3 md:grid-cols-2">
+            <div className="mt-2.5 grid grid-cols-1 gap-2 border-t border-line/30 pt-2 sm:grid-cols-2">
               {comparison.products.map((item) => (
                 <div
                   key={`specs-${item.slug}-${item.skuId}`}
-                  className="rounded-card border border-line/60 bg-linen/70 p-3 text-12 shadow-elevation-1"
+                  className="rounded-card border border-line/30 bg-linen/50 p-2 text-11 shadow-elevation-1 backdrop-blur-md"
                 >
-                  <p className="font-display text-13 font-bold text-ink">{item.name}</p>
-                  <dl className="mt-2.5 space-y-2">
+                  <p className="font-display text-12 font-bold text-ink">{item.name}</p>
+                  <dl className="mt-1.5 space-y-1.5">
                     {item.specs.map((spec) => (
                       <div
                         key={`${item.slug}-${spec.label}`}
-                        className="flex items-baseline justify-between gap-3 border-b border-line/40 pb-1.5 font-text text-11"
+                        className="flex items-baseline justify-between gap-2 border-b border-line/20 pb-1 font-text text-11"
                       >
                         <dt className="shrink-0 text-stone">{spec.label}</dt>
                         <dd className="font-semibold text-ink text-end">{spec.value}</dd>
@@ -423,26 +415,26 @@ export function ShinaRoutineCard({
   return (
     <section
       aria-label={routine.title}
-      className="w-full min-w-0 rounded-card border border-line/70 bg-chalk/90 p-3.5 shadow-elevation-1 backdrop-blur-md transition-shadow hover:shadow-elevation-2 sm:p-4.5"
+      className="w-full min-w-0 rounded-card border border-line/40 bg-chalk/40 p-2.5 shadow-elevation-1 backdrop-blur-xl transition-shadow hover:shadow-elevation-2 sm:p-3"
     >
       {/* Routine Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/50 pb-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-citron text-ink shadow-elevation-1">
-            <Icon name="routine" size={18} />
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/30 pb-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-citron text-ink shadow-elevation-1">
+            <Icon name="routine" size={15} />
           </span>
           <div className="min-w-0">
-            <h3 className="font-display text-14 font-extrabold text-ink sm:text-15">
+            <h3 className="truncate font-display text-13 font-extrabold text-ink sm:text-14">
               {routine.title}
             </h3>
             {routine.description ? (
-              <p className="font-text text-12 text-stone leading-snug">{routine.description}</p>
+              <p className="line-clamp-1 font-text text-11 text-stone leading-snug">{routine.description}</p>
             ) : null}
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="rounded-pill border border-line/60 bg-linen px-2.5 py-0.5 font-text text-11 font-medium text-stone">
+          <span className="rounded-pill border border-line/40 bg-linen/70 px-2 py-0.5 font-text text-11 font-medium text-stone">
             {routine.source === 'ai-guidance' ? m.shinaSourceAi : m.shinaSourceCatalog}
           </span>
           <span className="rounded-pill bg-cobalt/10 px-2 py-0.5 font-text text-11 font-bold text-cobalt">
@@ -451,109 +443,52 @@ export function ShinaRoutineCard({
         </div>
       </div>
 
-      {/* Steps list */}
-      <ol className="mt-3.5 space-y-2.5">
+      {/* Steps list - Compact rows */}
+      <ol className="mt-2 space-y-1.5">
         {current.map(({ step, index, options, product: prod, removed: isRemoved }) => {
           const isAdding = prod ? addingSkuId === prod.skuId : false;
           const isAdded = prod ? addedSkuIds.has(prod.skuId) : false;
-          const swapped = (pick[index] ?? 0) % Math.max(options.length, 1) > 0;
 
           return (
             <li
               key={`${step.order}-${step.title}-${index}`}
               className={cn(
-                'flex flex-col gap-2.5 rounded-card border border-line/50 bg-linen/60 p-3 transition-colors hover:border-line hover:bg-linen/90 sm:flex-row sm:items-center sm:justify-between',
+                'flex items-center justify-between gap-2 rounded-card border border-line/30 bg-linen/40 p-2 backdrop-blur-md transition-colors hover:bg-linen/70',
                 isRemoved && 'opacity-50',
               )}
             >
-              <div className="flex min-w-0 items-start gap-2.5">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-cobalt font-display text-11 font-bold text-chalk">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-cobalt font-display text-11 font-bold text-chalk">
                   {step.order || index + 1}
                 </span>
 
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1 font-text text-11 font-medium text-stone">
-                      <Icon name={step.timing === 'pm' ? 'evening' : 'routine'} size={13} />
-                      <span>{step.roleLabel ?? step.timing.toUpperCase()}</span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="font-text text-11 text-stone">
+                      {step.roleLabel ?? step.timing.toUpperCase()}
                     </span>
                     {isRemoved ? (
-                      <span className="font-text text-11 font-semibold text-stone">
-                        · {m.shinaStepRemoved}
-                      </span>
+                      <span className="font-text text-11 text-stone">· {m.shinaStepRemoved}</span>
                     ) : null}
                   </div>
                   <p
                     className={cn(
-                      'font-display text-13 font-bold text-ink leading-snug sm:text-14',
+                      'line-clamp-1 font-display text-12 font-bold text-ink leading-snug',
                       isRemoved && 'line-through',
                     )}
                   >
                     {editable && prod ? prod.name : step.title}
                   </p>
-                  {(swapped ? prod?.rationale : step.instructions) ? (
-                    <p className="font-text text-12 text-stone leading-snug">
-                      {swapped ? prod?.rationale : step.instructions}
-                    </p>
-                  ) : null}
-
-                  {editable ? (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {options.length > 1 && !isRemoved ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPick((prev) => ({
-                              ...prev,
-                              [index]: ((prev[index] ?? 0) + 1) % options.length,
-                            }))
-                          }
-                          className="inline-flex min-h-control-s items-center gap-1 rounded-pill border border-line bg-chalk px-3 font-display text-12 font-bold text-ink transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
-                        >
-                          <Icon name="retry" size={13} />
-                          <span>{m.shinaSwapProduct}</span>
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setRemoved((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(index)) next.delete(index);
-                            else next.add(index);
-                            return next;
-                          })
-                        }
-                        aria-pressed={isRemoved}
-                        className="inline-flex min-h-control-s items-center gap-1 rounded-pill border border-line bg-chalk px-3 font-display text-12 font-bold text-ink transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
-                      >
-                        <span>{isRemoved ? m.shinaRestoreStep : m.shinaRemoveStep}</span>
-                      </button>
-                    </div>
-                  ) : null}
                 </div>
               </div>
 
               {prod && !isRemoved ? (
-                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line/40 pt-2 sm:border-t-0 sm:pt-0">
-                  <Link
-                    href={routes.product(prod.slug)}
-                    className="flex items-center gap-2 font-display text-12 font-bold text-cobalt transition-colors hover:underline"
-                  >
-                    <ProductTile
-                      src={prod.imageUrl ?? null}
-                      alt={prod.name}
-                      name={prod.name}
-                      size="thumb"
-                      fit="cover"
-                      className="size-9 rounded-image"
-                    />
-                    <span>
-                      {prod.canOrder && prod.price > 0
-                        ? formatAmount(prod.price, locale)
-                        : m.shinaUnavailableProduct}
-                    </span>
-                  </Link>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="font-display text-11 font-extrabold text-ink">
+                    {prod.canOrder && prod.price > 0
+                      ? formatAmount(prod.price, locale)
+                      : m.shinaUnavailableProduct}
+                  </span>
 
                   <button
                     type="button"
@@ -561,15 +496,15 @@ export function ShinaRoutineCard({
                     aria-busy={isAdding}
                     onClick={() => onAddToBag(prod)}
                     aria-label={fillMessage(m.cardAddLabel, { name: prod.name })}
+                    title={isAdded ? m.shinaAddedToBag : m.shinaAddToBag}
                     className={cn(
-                      'inline-flex min-h-control-s items-center gap-1 rounded-pill px-3 font-display text-12 font-bold shadow-action transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:cursor-not-allowed disabled:opacity-50',
+                      'inline-flex size-7 shrink-0 items-center justify-center rounded-full shadow-action transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-90 disabled:cursor-not-allowed disabled:opacity-40',
                       isAdded
                         ? 'bg-citron text-ink'
-                        : 'bg-cobalt text-chalk hover:bg-cobalt-deep active:scale-95',
+                        : 'bg-cobalt text-chalk hover:bg-cobalt-deep',
                     )}
                   >
-                    <Icon name={isAdded ? 'check' : 'plus'} size={14} />
-                    <span>{isAdded ? m.shinaAddedToBag : m.shinaAddToBag}</span>
+                    <Icon name={isAdded ? 'check' : 'bag'} size={13} />
                   </button>
                 </div>
               ) : null}

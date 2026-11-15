@@ -38,7 +38,7 @@ export function ShinaHeader({
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-14 w-full shrink-0 items-center justify-between border-b border-line/50 bg-chalk/90 px-3 backdrop-blur-md sm:px-6',
+        'sticky top-0 z-30 flex h-14 w-full shrink-0 items-center justify-between border-b border-line/30 bg-chalk/40 px-3 backdrop-blur-xl sm:px-6',
         className,
       )}
     >
