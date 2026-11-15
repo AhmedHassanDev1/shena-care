@@ -7,6 +7,24 @@ const page = (body: string, head = '') => `<html><head><title>Acme Derma Hydra B
 const fieldOf = (facts: Array<{ field: string; value: unknown }>, field: string) => facts.find(fact => fact.field === field)?.value;
 
 describe('deterministic product fact extraction', () => {
+  it.each(['1 liter', '1 litre', '١ لتر', '۱ لیتر'])(
+    'confirms the explicitly stated litre size without losing a wrong-size veto: %s', measure => {
+      const html = `<h1>Acme Derma Hydra Barrier Cream ${measure}</h1>`;
+      const result = extractProductFacts(html, 'https://acme.example/hydra', { ...SKU, size: 1000 });
+      expect(result.identityMatched).toBe(true);
+      expect(fieldOf(result.facts, 'identity.size')).toEqual({ value: 1000, unit: 'ml' });
+      expect(extractProductFacts(html, 'https://acme.example/hydra', SKU)).toMatchObject({ identityMatched: false, facts: [] });
+    },
+  );
+  it('retains native smaller srcset alternatives for a bound packshot that may exceed the upload limit', () => {
+    const html = page('<img srcset="/cdn/shop/files/hydra.png?width=2000 2000w,/cdn/shop/files/hydra.png?width=1000 1000w,/cdn/shop/files/banner.png?width=600 600w">',
+      '<meta property="og:image" content="https://acme.example/cdn/shop/files/hydra.png?width=2048">');
+    expect(fieldOf(extractProductFacts(html, 'https://acme.example/hydra', SKU).facts, 'media.sourceImages')).toEqual([
+      'https://acme.example/cdn/shop/files/hydra.png?width=2048',
+      'https://acme.example/cdn/shop/files/hydra.png?width=2000',
+      'https://acme.example/cdn/shop/files/hydra.png?width=1000',
+    ]);
+  });
   it('matches fully understood Arabic identity terms to the same native English product', () => {
     const html = '<h1>Clary Hair Conditioner 300 ml</h1><p>Clary</p>';
     const expected = { brand: 'Clary Corporation', brandAliases: ['Clary', 'كلاري'], productName: 'بلسم شعر', size: 300, sizeUnit: 'ml', barcode: null };
@@ -57,7 +75,7 @@ describe('deterministic product fact extraction', () => {
     const html = page('<img data-srcset="/media/hydra/2.jpg?w=420 420w,/media/hydra/2.jpg?w=1440 1440w"><img data-srcset="/media/other/other.jpg?w=1440 1440w">',
       '<script type="application/ld+json">{"@type":"Product","name":"Hydra Barrier Cream 50 ml","brand":{"name":"Acme Derma"},"image":["https://acme.example/media/hydra/hero-image.png","https://acme.example/media/hydra/2.jpg?w=1440"]}</script>');
     const images = fieldOf(extractProductFacts(html, 'https://acme.example/hydra', SKU).facts, 'media.sourceImages');
-    expect(images).toEqual(['https://acme.example/media/hydra/hero-image.png', 'https://acme.example/media/hydra/2.jpg?w=1440']);
+    expect(images).toEqual(['https://acme.example/media/hydra/hero-image.png', 'https://acme.example/media/hydra/2.jpg?w=1440', 'https://acme.example/media/hydra/2.jpg?w=420']);
   });
 
   it('rejects unrelated srcsets sharing a CDN directory and only expands a bound asset', () => {

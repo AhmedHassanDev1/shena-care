@@ -8,7 +8,7 @@ import { compareTitles, foldIdentityText, hasArabic, parseIdentityTitle } from '
  * Deterministic extraction of product facts from one fetched page. Everything returned is literally on that page and carries the excerpt that states it; anything else
  * stays unknown. Versioned because a stored proposal must say which rules produced it.
  */
-export const RESEARCH_SCHEMA_VERSION = 4;
+export const RESEARCH_SCHEMA_VERSION = 5;
 
 export type FactField =
   | 'identity.name' | 'identity.brand' | 'identity.gtin' | 'identity.size'
@@ -124,13 +124,13 @@ const fold = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[
 const tokens = (value: string) => fold(value).split(' ').filter(token => token.length > 2);
 
 // Units in any letter case ("30 Ml", "50 GM": regression from the real Eva shop titles, 2026-11-07).
-const SIZE_PATTERN = /(?<![\p{L}\p{N}.,])(\d+(?:[.,]\d+)?)\s?(ml|mL|ML|Ml|fl\.?\s?oz|FL\.?\s?OZ|oz|OZ|g|G|gm|Gm|GM|gr|Gr|GR|kg|Kg|KG|l|L|مل|ملل|جم|جرام|غ)(?![\p{L}\p{N}])/gu;
+const SIZE_PATTERN = /(?<![\p{L}\p{N}.,])(\d+(?:[.,]\d+)?)\s?(ml|millilit(?:er|re)s?|fl\.?\s?oz|oz|g|gm|gr|kg|l|lit(?:er|re)s?|مل|ملل|مليلتر|لتر|ليتر|جم|جرام|غ)(?![\p{L}\p{N}])/giu;
 function canonicalUnit(unit: string): string | null {
   const folded = unit.toLowerCase().replace(/[.\s]/g, '');
-  if (folded === 'ml' || folded === 'مل' || folded === 'ملل') return 'ml';
+  if (/^(ml|millilit(?:er|re)s?|مل|ملل|مليلتر)$/.test(folded)) return 'ml';
   if (folded === 'g' || folded === 'gm' || folded === 'gr' || folded === 'جم' || folded === 'جرام' || folded === 'غ') return 'g';
   if (folded === 'floz' || folded === 'oz') return 'oz';
-  if (folded === 'l') return 'l';
+  if (/^(l|lit(?:er|re)s?|لتر|ليتر)$/.test(folded)) return 'l';
   if (folded === 'kg') return 'kg';
   return null;
 }
@@ -147,7 +147,7 @@ export function sameSize(page: { value: number; unit: string }, size: number | n
 
 function sizesIn(text: string): Array<{ value: number; unit: string }> {
   const sizes = new Map<string, { value: number; unit: string }>();
-  for (const match of text.matchAll(SIZE_PATTERN)) {
+  for (const match of foldIdentityText(text).matchAll(SIZE_PATTERN)) {
     const unit = canonicalUnit(match[2]);
     const value = Number(match[1].replace(',', '.'));
     if (unit && value > 0) sizes.set(`${value}${unit}`, { value, unit });
@@ -576,11 +576,14 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
     }));
     for (const match of html.matchAll(/(?:data-)?srcset=["']([^"']+)["']/gi)) {
       const options = match[1].replace(/&amp;/g, '&').split(',').map(part => part.trim().split(/\s+/)).filter(parts => parts[0]);
-      const best = options.sort((a, b) => (Number.parseInt(b[1] ?? '0', 10) || 0) - (Number.parseInt(a[1] ?? '0', 10) || 0))[0];
-      try {
-        const url = new URL(best[0], pageUrl);
-        if (url.protocol === 'https:' && boundAssets.has(`${url.origin}${url.pathname}`)) images.add(url.toString());
-      } catch { /* invalid gallery URL */ }
+      // Smaller native renditions can fit storage limits when the largest file
+      // cannot. Every option must independently retain the exact bound asset.
+      for (const option of options.sort((a, b) => (Number.parseInt(b[1] ?? '0', 10) || 0) - (Number.parseInt(a[1] ?? '0', 10) || 0))) {
+        try {
+          const url = new URL(option[0], pageUrl);
+          if (url.protocol === 'https:' && boundAssets.has(`${url.origin}${url.pathname}`)) images.add(url.toString());
+        } catch { /* invalid gallery URL */ }
+      }
     }
   }
   // AEM configurable product pages bind each size to its own assets. Their generic
