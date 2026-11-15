@@ -319,6 +319,15 @@ export function recommend(
       continue;
     }
 
+    const unansweredWarning = (product.safetyWarnings ?? []).find(w => w.kind === 'CONTRAINDICATION' && w.condition && safetyAnswer(query.safety, w.condition) === 'UNKNOWN');
+    if (unansweredWarning) {
+      const condition = unansweredWarning.condition as SafetyCondition;
+      needsSafetyAnswer.add(condition);
+      excluded.push({ productId: product.productId, name: product.name, code: 'SAFETY_UNANSWERED', condition,
+        textAr: `محتاجين نعرف الأول بخصوص ${CONDITION_AR[condition]} قبل ما نرشّحه`, textEn: `We need to know about ${CONDITION_EN[condition]} before suggesting it` });
+      continue;
+    }
+
     let held = false;
     // The condition rules (pregnancy, breastfeeding, oral isotretinoin) come from guidance on leave-on facial and body
     // treatments; a hair wash that lists an acid in its INCI is not what they are about. Hair products are judged by their

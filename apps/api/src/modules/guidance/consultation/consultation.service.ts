@@ -10,7 +10,7 @@ import { CareProfileService, CareService, CompatibilityIssue, RoutineCompatibili
 import { KnowledgeRow, KnowledgeService, KnowledgeView, toView } from '../knowledge/knowledge.service';
 import { RecommendationInput, RecommendationRun, RecommendationService, RecommendedItem } from '../recommendation/recommendation.service';
 import {
-  EMPTY_CONTEXT, Escalation, FALLBACK_TEXT, Slot, decideEscalation, fallbackQuestion, fallbackUnderstanding, mergeContext, readContext,
+  EMPTY_CONTEXT, Escalation, FALLBACK_TEXT, Slot, decideEscalation, fallbackQuestion, mergeContext, readContext,
   routineBlockedReason, slotsFor,
 } from './consultation-rules';
 
@@ -151,7 +151,6 @@ export class ConsultationService {
       : null;
 
     // 1. Understand
-    let aiDown = false;
     let understanding: Pick<ConsultUnderstandResult, 'intent' | 'language' | 'context' | 'mentionedProducts' | 'mentionedIngredients' | 'redFlags' | 'missing' | 'needsClarification'>;
     const fallbackLanguage: 'ar' | 'en' = /[؀-ۿ]/.test(text) ? 'ar' : requestedLocale ?? 'en';
     try {
@@ -160,10 +159,19 @@ export class ConsultationService {
       await this.recordUsage(customerId, sessionId, 'consult.understand', 'OK', result.providerMetadata);
       understanding = result;
     } catch (error) {
-      aiDown = true;
       await this.recordUsage(customerId, sessionId, 'consult.understand', this.outcomeOf(error));
-      const fallback = fallbackUnderstanding(text, known, concerns, productTypes);
-      understanding = { ...fallback, language: fallbackLanguage, mentionedProducts: [], mentionedIngredients: [], redFlags: [] };
+      // Keyword matching cannot assess new safety disclosures or medical red flags.
+      // Preserve the last understood context, but do not use it to clear this turn.
+      const payload: ConsultPayload = {
+        version: CONSULT_PAYLOAD_VERSION, source: 'FALLBACK', intent: 'general_care', language: fallbackLanguage,
+        recommendations: [], routine: null, routineNote: null, citations: [], followUpQuestion: null,
+        quickReplies: [], escalation: null, excluded: [], understood: known,
+      };
+      const saved = await this.prisma.guidanceMessage.create({ data: {
+        sessionId, role: GuidanceMessageRole.assistant, content: FALLBACK_TEXT.understandingUnavailable[fallbackLanguage],
+        payload: payload as unknown as Prisma.InputJsonValue,
+      } });
+      return { id: saved.id, sessionId, role: saved.role, content: saved.content, payload, createdAt: saved.createdAt };
     }
     const locale: 'ar' | 'en' = understanding.language === 'en' ? 'en' : 'ar';
     const context = mergeContext(known, understanding.context, vocabulary);
@@ -255,20 +263,18 @@ export class ConsultationService {
 
     // 3. Word the answer
     let reply: ConsultRespondResult | null = null;
-    if (!aiDown) {
-      try {
-        reply = await this.ai.consultRespond({
+    try {
+      reply = await this.ai.consultRespond({
           customerId, locale, intent, messages: turns, context, pageContext, candidates,
           excluded: excluded.map(e => `${e.name}: ${e.text}`), knowledge: knowledgeItems,
           routineDraft: routineDraft.map(step => ({ ref: refOf.get(step.item.productId)!, slot: step.slot.toLowerCase() as 'am' | 'pm' | 'as_needed', role: step.item.role })),
           routineIssues: [...routineIssues.filter(i => i.severity !== 'INFO' || i.code === 'INGREDIENTS_UNVERIFIED').map(i => (locale === 'ar' ? i.textAr : i.textEn)), ...(routineNote ? [routineNote] : [])].slice(0, 8),
           escalation: escalation.reasons.map(r => r.code), mustClarify, missing,
-        }, sessionId);
-        await this.recordUsage(customerId, sessionId, 'consult.respond', 'OK', reply.providerMetadata);
-      } catch (error) {
-        await this.recordUsage(customerId, sessionId, 'consult.respond', this.outcomeOf(error));
-        this.logger.warn(`consultation ${sessionId}: AI respond failed (${error instanceof AiClientError ? error.kind : 'unknown'}); using the deterministic answer`);
-      }
+      }, sessionId);
+      await this.recordUsage(customerId, sessionId, 'consult.respond', 'OK', reply.providerMetadata);
+    } catch (error) {
+      await this.recordUsage(customerId, sessionId, 'consult.respond', this.outcomeOf(error));
+      this.logger.warn(`consultation ${sessionId}: AI respond failed (${error instanceof AiClientError ? error.kind : 'unknown'}); using the deterministic answer`);
     }
 
     // 4. Map refs back to real products; anything else is discarded

@@ -173,6 +173,7 @@ export function fallbackQuestion(missing: string[], locale: 'ar' | 'en'): { ques
 }
 
 export const FALLBACK_TEXT = {
+  understandingUnavailable: { ar: 'المساعد الذكي مش متاح دلوقتي، ومش قادر أفهم طلبك بشكل موثوق. جرّبي تاني بعد شوية أو تصفّحي المنتجات.', en: 'The AI assistant is unavailable right now and cannot reliably understand your request. Please try again shortly or browse the products.' },
   unavailable: { ar: 'المساعد الذكي مش متاح دلوقتي، فدي ترشيحات محرّك الكتالوج حسب اللي فهمته من طلبك.', en: 'The AI assistant is unavailable right now, so these are the catalogue engine’s matches for your request.' },
   nothing: { ar: 'المساعد الذكي مش متاح دلوقتي، ومفيش في الكتالوج الحالي منتج مطابق للي فهمته من طلبك. جرّبي تاني بعد شوية أو تصفّحي المنتجات.', en: 'The AI assistant is unavailable right now and nothing in the current catalogue matches what I understood. Try again shortly or browse the products.' },
   clarify: { ar: 'المساعد الذكي مش متاح دلوقتي، بس أقدر أرشّح من الكتالوج لو عرفت:', en: 'The AI assistant is unavailable right now, but I can suggest from the catalogue if I know:' },

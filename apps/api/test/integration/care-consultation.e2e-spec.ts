@@ -299,19 +299,31 @@ describe('Care consultation, recommendations and knowledge (GLO-301 / GLO-302 / 
       expect(res.body.payload.escalation.reasons.map((r: { code: string }) => r.code)).toEqual(['INFECTION_SIGNS', 'SEVERE_OR_PAINFUL']);
     });
 
-    it('keeps answering from the engine when the AI is down, and says so', async () => {
+    it('withholds recommendations when understanding is unavailable, while shopping stays available', async () => {
       ai.down = true;
       const session = await newSession();
       const res = await say(session.id, `عايزة غسول عشان حب الشباب ${tag}`).expect(201);
       expect(res.body.payload.source).toBe('FALLBACK');
       expect(res.body.content).toContain('مش متاح');
-      expect(res.body.payload.recommendations.map((r: { productId: string }) => r.productId)).toEqual([products.cleanser.productId]);
-      expect(res.body.payload.recommendations[0].why).toBeTruthy();
+      expect(res.body.payload).toMatchObject({ recommendations: [], routine: null, escalation: null, followUpQuestion: null, quickReplies: [] });
 
       const vague = await say((await newSession()).id, 'ممكن مساعدة؟').expect(201);
-      expect(vague.body.payload).toMatchObject({ source: 'FALLBACK', recommendations: [], quickReplies: ['البشرة', 'الشعر'] });
+      expect(vague.body.payload).toMatchObject({ source: 'FALLBACK', recommendations: [], routine: null, quickReplies: [] });
       // Shopping is untouched by the outage.
       await request(app.getHttpServer()).post('/guidance/recommendations').send({ careArea: 'skin', productTypes: ['cleanser'] }).expect(201);
+    });
+
+    it('does not reuse earlier clearance for new medical disclosures when understanding fails', async () => {
+      const session = await newSession();
+      ai.understand = understood({ careArea: 'skin', productTypes: ['cleanser'], safety: NOT_PREGNANT });
+      const first = await say(session.id, 'عايزة غسول').expect(201);
+      expect(first.body.payload.recommendations).not.toEqual([]);
+      ai.down = true;
+      const res = await say(session.id, 'أنا حامل وعندي حبوب مؤلمة وفيها صديد، عايزة روتين وغسول').expect(201);
+      expect(res.body.payload).toMatchObject({ source: 'FALLBACK', recommendations: [], routine: null, escalation: null, understood: first.body.payload.understood });
+      const stored = await request(app.getHttpServer()).get(`/guidance/sessions/${session.id}`).set(auth()).expect(200);
+      expect(stored.body.understood).toEqual(first.body.payload.understood);
+      expect(stored.body.messages[stored.body.messages.length - 1].payload.recommendations).toEqual([]);
     });
 
     it('falls back when only the wording call fails', async () => {

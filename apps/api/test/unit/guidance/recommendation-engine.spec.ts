@@ -85,6 +85,21 @@ describe('Recommendation engine V1 (GLO-302)', () => {
     expect(result.excluded[0]).toMatchObject({ code: 'PRODUCT_WARNING' });
   });
 
+  it.each(['skin', 'hair'] as const)('holds a %s product with a manufacturer contraindication until answered', area => {
+    const type = area === 'hair' ? 'shampoo' : 'serum';
+    const warned = facts({ name: 'Manufacturer Warned Product', type, area, warnings: [{ kind: 'CONTRAINDICATION', condition: 'BREASTFEEDING' }] });
+    const runWarning = (breastfeeding: 'YES' | 'NO' | 'UNKNOWN') => recommend(
+      query({ careArea: area, productTypes: [type], safety: { ...UNKNOWN_SAFETY, breastfeeding } }),
+      [warned], offersFor([warned]), [], [], VOCABULARY,
+    );
+    const unanswered = runWarning('UNKNOWN');
+    expect(unanswered.ranked).toEqual([]);
+    expect(unanswered.needsSafetyAnswer).toEqual(['BREASTFEEDING']);
+    expect(unanswered.excluded).toEqual([expect.objectContaining({ code: 'SAFETY_UNANSWERED', condition: 'BREASTFEEDING' })]);
+    expect(runWarning('YES').excluded[0].code).toBe('PRODUCT_WARNING');
+    expect(runWarning('NO').ranked.map(item => item.productId)).toEqual([warned.productId]);
+  });
+
   it('reads an active named on the product as NAMED and says the ingredient list is not verified', () => {
     const actives = productActives(niacinamideSerum, VOCABULARY);
     expect(actives).toEqual([expect.objectContaining({ slug: 'niacinamide', level: 'NAMED' })]);
