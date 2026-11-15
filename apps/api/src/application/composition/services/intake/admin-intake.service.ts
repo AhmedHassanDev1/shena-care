@@ -3,7 +3,7 @@ import { IntakeJobStatus, IntakeRowOutcome, IntakeSource } from '@prisma/client'
 import { createHash } from 'crypto';
 import {
   BrandResearchService, CanonicalResearchService, CatalogDecisionLogService, CatalogIntakeService, CatalogSnapshotService, decideFromFoundPages, decideNewProduct,
-  hasArabic, HoldReason, hostIsBrandDomain, identityWords, parseIdentityTitle, phoneticSkeleton, titleFactConflict, MAX_AUTOMATIC_ATTEMPTS, nextAttemptDelayMs, ProductResearchService, productTypeRule, readProductType, ResearchSourceFetcher,
+  gtinKey, hasArabic, HoldReason, hostIsBrandDomain, identityWords, parseIdentityTitle, phoneticSkeleton, titleFactConflict, MAX_AUTOMATIC_ATTEMPTS, nextAttemptDelayMs, ProductResearchService, productTypeRule, readProductType, ResearchSourceFetcher,
   rowHold, SourceCheck, sizeFromFoundPages,
 } from '../../../../modules/catalog/public';
 import {
@@ -343,11 +343,18 @@ export class AdminIntakeService {
     const name = this.canonicalName(verified, brand);
     const exactName = (other: string) => identityWords(other).join(' ') === identityWords(name).join(' ');
     const packCount = parsed.packCount ?? 1;
+    const sameIdentity = snapshot.skus.filter(sku => sku.brandId === brand.id && exactName(sku.productName) && (sku.packCount ?? 1) === packCount
+      && sku.size !== null && Math.abs(sku.size - verified.size.value) <= sku.size * 0.01 && (sku.sizeUnit ?? '').toLowerCase() === verified.size.unit);
+    const knownBarcodes = sameIdentity.filter(sku => sku.barcodes.length > 0);
+    const matchesOfficialGtin = (sku: (typeof snapshot.skus)[number]) => Boolean(officialGtin && sku.barcodes.some(barcode => gtinKey(barcode) === gtinKey(officialGtin)));
+    if (officialGtin && knownBarcodes.length && !knownBarcodes.some(matchesOfficialGtin)) {
+      throw new Unresolved(rowHold('BARCODE_CONFLICT', { sourceGtin: officialGtin, candidates: knownBarcodes.map(sku => ({ skuId: sku.skuId, barcodes: sku.barcodes })) },
+        'The manufacturer barcode contradicts the approved barcode for this named product and pack'));
+    }
     // A verified native title identifies the variant. Fuzzy wording can retrieve
     // candidates, but must not merge distinct named formulas (Refresh/Hydrate).
-    const samePage = snapshot.skus.filter(sku => sku.brandId === brand.id && sku.sourceUrls.some(url => url === verified.verifiedBy.url)
-      && exactName(sku.productName) && (sku.packCount ?? 1) === packCount
-      && sku.size !== null && Math.abs(sku.size - verified.size.value) <= sku.size * 0.01 && (sku.sizeUnit ?? '').toLowerCase() === verified.size.unit);
+    const samePage = sameIdentity.filter(sku => sku.sourceUrls.some(url => url === verified.verifiedBy.url)
+      && (!officialGtin || !sku.barcodes.length || matchesOfficialGtin(sku)));
     if (samePage.length === 1) return { skuId: samePage[0].skuId, created: false, basis: 'SAME_VERIFIED_PAGE' };
     const index = new CandidateIndex(snapshot, new Map(), new Map());
     const verdict = index.match({ name: `${brand.name} ${name}`, barcode: officialGtin ?? row.barcode, code: null, measure: { size: verified.size.value, unit: verified.size.unit },

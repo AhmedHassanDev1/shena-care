@@ -320,6 +320,7 @@ export class CandidateIndex {
     if (measure === 'DIFFERENT') vetoes.push('SIZE_DIFFERS');
     if (measure === 'UNKNOWN') vetoes.push('SIZE_NOT_COMPARABLE');
     if ((row.packCount ?? 1) !== entry.sku.packCount) vetoes.push('PACK_DIFFERS');
+    if (row.barcode && entry.sku.barcodes.length && !entry.sku.barcodes.some(barcode => gtinKey(barcode) === gtinKey(row.barcode!))) vetoes.push('BARCODE_DIFFERS');
     // A strength stated on one side only is unknown, not a clash ("Niacinamide 10%" vs "Niacinamide 10% + Zinc 1%"); two sets neither of which contains the other clash.
     const subset = (x: Array<string | number>, y: Array<string | number>) => x.every(value => y.includes(value));
     const markerClash = (a: Array<string | number>, b: Array<string | number>) => a.length > 0 && b.length > 0 && !subset(a, b) && !subset(b, a);

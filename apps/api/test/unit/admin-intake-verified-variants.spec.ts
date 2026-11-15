@@ -14,9 +14,9 @@ describe('verified manufacturer variants stay distinct during Admin intake', () 
     const service = Object.create(AdminIntakeService.prototype) as AdminIntakeService;
     Object.assign(service, { catalog, snapshots: { leafCategoriesByName: jest.fn().mockResolvedValue(new Map([['cleansers', 'category']])) }, decisions: { record: jest.fn() } });
     const locate = service as unknown as { locateOrCreate: (...args: unknown[]) => Promise<{ skuId: string; created: boolean; basis: string }> };
-    const run = (name: string, page: string, count: number | null = null) => locate.locateOrCreate(
+    const run = (name: string, page: string, count: number | null = null, gtin: string | null = null) => locate.locateOrCreate(
       { rawName: `StarVille ${name} 150 ml`, barcode: null, job: { submittedBy: 'actor' } }, { packCount: count }, brand,
-      { verifiedBy: { tier: 'OFFICIAL_MANUFACTURER', url: page, pageTitle: `StarVille ${name} 150 ml`, pageGtin: null }, size: { value: 150, unit: 'ml' }, productName: name }, snapshot);
+      { verifiedBy: { tier: 'OFFICIAL_MANUFACTURER', url: page, pageTitle: `StarVille ${name} 150 ml`, pageGtin: gtin }, size: { value: 150, unit: 'ml' }, productName: name }, snapshot);
     return { run, catalog, snapshot };
   }
   it('creates Refresh separately from Hydrate despite matching brand, size and most wording', async () => {
@@ -49,5 +49,19 @@ describe('verified manufacturer variants stay distinct during Admin intake', () 
       measure: readMeasures('150 ml').measures[0], measureConflict: false, packCount: null, fingerprint: '' });
     expect(result.kind).not.toBe('MATCH');
     expect(result.candidates[0].vetoes).toContain('NAMED_VARIANT_DIFFERS');
+  });
+  it('holds a manufacturer barcode conflict even when page, native name and size match', async () => {
+    const f = fixture();
+    f.snapshot.skus[0].barcodes = ['3337875597180'];
+    await expect(f.run('Femme Intimate Cleansing Foam Hydrate', oldPage, null, '6223012632708')).rejects.toMatchObject({ hold: { reasonCode: 'BARCODE_CONFLICT' } });
+    expect(f.catalog.intake).not.toHaveBeenCalled();
+  });
+  it('does not soft-match an unknown supplier barcode over a different approved barcode', () => {
+    const f = fixture();
+    f.snapshot.skus[0].barcodes = ['3337875597180'];
+    const result = new CandidateIndex(f.snapshot, new Map(), new Map()).match({ name: 'StarVille Femme Intimate Cleansing Foam Hydrate 150 ml',
+      barcode: '6223012632708', code: null, measure: { size: 150, unit: 'ml' }, measureConflict: false, packCount: null, fingerprint: '' });
+    expect(result.kind).not.toBe('MATCH');
+    expect(result.candidates[0].vetoes).toContain('BARCODE_DIFFERS');
   });
 });
