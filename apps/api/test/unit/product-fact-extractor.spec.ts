@@ -7,6 +7,25 @@ const page = (body: string, head = '') => `<html><head><title>Acme Derma Hydra B
 const fieldOf = (facts: Array<{ field: string; value: unknown }>, field: string) => facts.find(fact => fact.field === field)?.value;
 
 describe('deterministic product fact extraction', () => {
+  it('matches fully understood Arabic identity terms to the same native English product', () => {
+    const html = '<h1>Clary Hair Conditioner 300 ml</h1><p>Clary</p>';
+    const expected = { brand: 'Clary Corporation', brandAliases: ['Clary', 'كلاري'], productName: 'بلسم شعر', size: 300, sizeUnit: 'ml', barcode: null };
+    expect(extractProductFacts(html, 'https://shop.parkvillepharma.com/products/clary-hair-conditioner', expected)).toMatchObject({ identityMatched: true,
+      facts: expect.arrayContaining([expect.objectContaining({ field: 'identity.size', value: { value: 300, unit: 'ml' } })]) });
+    expect(extractProductFacts(html, 'https://shop.parkvillepharma.com/products/clary-hair-conditioner', { ...expected, productName: 'بلسم شعر زمرد' }).identityMatched).toBe(false);
+  });
+  it.each(['Niacinamide 5% Serum 30 ml', 'Niacinamide Serum 30 ml'])(
+    'refuses a page that does not confirm the requested strength: %s', title => {
+      const html = `<h1>Acme Derma ${title}</h1>`;
+      expect(extractProductFacts(html, 'https://acme.example/niacinamide', { ...SKU, productName: 'Niacinamide 10% Serum', size: 30 }).identityMatched).toBe(false);
+    },
+  );
+  it('cannot enrich Hydrate with another named variant from the same manufacturer and size', () => {
+    const html = '<h1>StarVille Femme Intimate Cleansing Foam Refresh 150 ml</h1><h2>Ingredients</h2><p>AQUA, GLYCERIN, PARFUM</p>';
+    expect(extractProductFacts(html, 'https://shop.parkvillepharma.com/products/refresh', {
+      brand: 'StarVille', productName: 'Femme Intimate Cleansing Foam Hydrate', size: 150, sizeUnit: 'ml', barcode: null,
+    })).toMatchObject({ identityMatched: false, facts: [] });
+  });
   it('extracts identity, INCI, usage, warnings and structured data, each with its excerpt', () => {
     const html = page(`
       <h2>Ingredients</h2><p>AQUA, GLYCERIN, NIACINAMIDE, CERAMIDE NP, PHENOXYETHANOL</p>

@@ -2,12 +2,13 @@ import { createHash } from 'crypto';
 import { isValidGtin } from '../../../platform/security/gtin';
 import { readProductType } from './product-type';
 import { rinseMode } from './catalog-decision-engine';
+import { compareTitles, foldIdentityText, hasArabic, parseIdentityTitle } from './identity-text';
 
 /**
  * Deterministic extraction of product facts from one fetched page. Everything returned is literally on that page and carries the excerpt that states it; anything else
  * stays unknown. Versioned because a stored proposal must say which rules produced it.
  */
-export const RESEARCH_SCHEMA_VERSION = 3;
+export const RESEARCH_SCHEMA_VERSION = 4;
 
 export type FactField =
   | 'identity.name' | 'identity.brand' | 'identity.gtin' | 'identity.size'
@@ -289,6 +290,15 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   const wanted = tokens(sku.productName);
   const seen = new Set(tokens(identityText));
   const overlap = wanted.length ? wanted.filter(token => seen.has(token)).length / wanted.length : 0;
+  const labels = [sku.brand, ...(sku.brandAliases ?? [])];
+  const requested = parseIdentityTitle(foldIdentityText(sku.productName).replace(SIZE_PATTERN, ' '), labels);
+  const native = parseIdentityTitle(foldIdentityText(identityText).replace(SIZE_PATTERN, ' '), labels);
+  const comparison = compareTitles(requested, native);
+  const namedVariantClash = comparison.unreadInRow && native.descriptors.some(word => comparison.onlyCatalog.includes(word));
+  // Only existing bilingual identity terms/fully accounted names qualify.
+  // Unknown descriptors and additional named formulation facts stay unresolved.
+  const crossLanguageMatch = hasArabic(sku.productName) !== hasArabic(identityText) && requested.facts.type.size > 0
+    && comparison.onlySupplier.length === 0 && comparison.onlyCatalog.length === 0;
   const brandEvidence = fold(`${identityText} ${brandName ?? ''} ${pageUrl}`);
   const brandFound = [sku.brand, ...(sku.brandAliases ?? [])].some(name =>
     brandEvidence.includes(fold(name)) || tokens(name).every(token => brandEvidence.includes(token)));
@@ -298,9 +308,12 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   const spfOf = (value: string) => [...new Set([...value.matchAll(SPF_PATTERN)].map(match => Number(match[1] ?? match[2])))];
   const [rowSpf, pageSpf] = [spfOf(sku.productName), spfOf(identityText)];
   const spfClash = rowSpf.length === 1 && pageSpf.length === 1 && rowSpf[0] !== pageSpf[0];
-  const identityMatched = overlap >= 0.5 && brandFound && !variantClash && !spfClash;
+  const percentages = (value: string) => [...new Set([...foldIdentityText(value).matchAll(/(\d+(?:[.,]\d+)?)\s*%/g)].map(match => Number(match[1].replace(',', '.'))))].sort((a, b) => a - b);
+  const rowStrength = percentages(sku.productName), pageStrength = percentages(identityText);
+  const strengthUnconfirmed = rowStrength.length > 0 && rowStrength.join(',') !== pageStrength.join(',');
+  const identityMatched = (overlap >= 0.5 || crossLanguageMatch) && brandFound && !variantClash && !namedVariantClash && !spfClash && !strengthUnconfirmed;
   if (!identityMatched) {
-    const why = variantClash ? ` (${variantClash[0]}: stated by ${variantClash[1].test(sku.productName) ? 'the row' : 'the page'} only)` : spfClash ? ` (SPF ${rowSpf[0]} vs ${pageSpf[0]})` : '';
+    const why = variantClash ? ` (${variantClash[0]}: stated by ${variantClash[1].test(sku.productName) ? 'the row' : 'the page'} only)` : spfClash ? ` (SPF ${rowSpf[0]} vs ${pageSpf[0]})` : strengthUnconfirmed ? ' (requested strength is not confirmed by the native product title)' : '';
     rejected.push({ field: '*', reason: 'IDENTITY_MISMATCH', detail: `Page is about "${title.slice(0, 120)}", not ${sku.brand} ${sku.productName}${why}` });
     return { facts: [], rejected, identityMatched: false };
   }
