@@ -14,6 +14,7 @@ import { FactEvidenceItem, ProductResearchService, VerificationStatus } from './
 import { hostIsBrandDomain, ValidatedFacts } from './research-evidence';
 import { FetchedSource, RETRYABLE_OUTCOMES, ResearchSourceFetcher } from './research-source-fetcher';
 import { discoverProductSources, isVerifiedBrandShop } from './product-source-discovery';
+import { curatedSpellings, verifiedProfileAliases } from './brand-aliases';
 
 export type SourceTier = 'OFFICIAL_MANUFACTURER' | 'TRUSTED_DISTRIBUTOR' | 'RETAILER';
 export interface RunSource { url: string; tier: SourceTier; origin: 'ADMIN' | 'PROVIDER'; outcome: string; detail?: string; contentHash?: string; fetchedAt?: string; factCount?: number }
@@ -146,10 +147,14 @@ export class CanonicalResearchService {
   }
 
   private async expectation(sku: Awaited<ReturnType<CanonicalResearchService['skuContext']>>): Promise<SkuExpectation> {
-    const policy = await this.prisma.ingestionEligibilityPolicy.findFirst({ where: { status: 'APPROVED' }, orderBy: { version: 'desc' }, select: { document: true } });
+    const [policy, drafts] = await Promise.all([
+      this.prisma.ingestionEligibilityPolicy.findFirst({ where: { status: 'APPROVED' }, orderBy: { version: 'desc' }, select: { document: true } }),
+      this.prisma.brandDraft.findMany({ where: { status: 'APPROVED', canonicalBrandId: sku.product.brandId }, select: { aliases: true } }),
+    ]);
     const document = policy?.document as { brands?: Array<{ id: string; effect?: string | null; aliases?: string[] }> } | undefined;
     const rule = document?.brands?.find(brand => brand.id === sku.product.brandId && brand.effect === 'ALLOW');
-    return { brand: sku.product.brand.name, brandAliases: rule?.aliases ?? [], productName: sku.product.name, size: sku.size?.toNumber() ?? null, sizeUnit: sku.sizeUnit, barcode: sku.barcode };
+    const aliases = [...(rule?.aliases ?? []), ...drafts.flatMap(draft => draft.aliases), ...verifiedProfileAliases(sku.product.brand.profile), ...curatedSpellings(sku.product.brand.name)];
+    return { brand: sku.product.brand.name, brandAliases: [...new Set(aliases)], productName: sku.product.name, size: sku.size?.toNumber() ?? null, sizeUnit: sku.sizeUnit, barcode: sku.barcode };
   }
 
   private approvedHost(sku: Awaited<ReturnType<CanonicalResearchService['skuContext']>>) {
@@ -166,6 +171,7 @@ export class CanonicalResearchService {
       return (brandSite !== null && (bare === brandSite || bare.endsWith(`.${brandSite}`)))
         || configured.some(allowed => bare === allowed || bare.endsWith(`.${allowed}`))
         || hostIsBrandDomain(host, sku.product.brand.name)
+        || isVerifiedBrandShop(host, sku.product.brand.name)
         || isTrustedMediaSource(`https://${host}/`);
     };
   }
@@ -175,7 +181,7 @@ export class CanonicalResearchService {
     try {
       const host = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
       const site = brand.websiteUrl ? new URL(brand.websiteUrl).hostname.toLowerCase().replace(/^www\./, '') : null;
-      return (site !== null && (host === site || host.endsWith(`.${site}`))) || hostIsBrandDomain(host, brand.name);
+      return (site !== null && (host === site || host.endsWith(`.${site}`))) || hostIsBrandDomain(host, brand.name) || isVerifiedBrandShop(host, brand.name);
     } catch { return false; }
   }
 

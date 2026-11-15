@@ -27,6 +27,7 @@ export function isTrustedMediaSource(value: string): boolean {
       'vichy.fr', 'vichyusa.com', 'eucerin.com', 'eucerinus.com',
       'aveneusa.com', 'eau-thermale-avene.com', 'bioderma.com', 'bioderma.co.uk', 'theordinary.com',
       'loreal-paris-me.com',
+      'e-majestic.com',
       ...(process.env.MEDIA_TRUSTED_SOURCE_HOSTS || '').split(',').map(h => h.trim().toLowerCase()).filter(Boolean),
     ];
     return url.protocol === 'https:' && !url.username && !url.password &&

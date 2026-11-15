@@ -46,7 +46,31 @@ export const BRAND_ALIASES: Record<string, { canonicalName: string; slug: string
   'نيفيا': { canonicalName: 'NIVEA', slug: 'nivea' },
   'nivea': { canonicalName: 'NIVEA', slug: 'nivea' },
   'isdin': { canonicalName: 'ISDIN', slug: 'isdin' },
+  // Native Product.brand is "Eva" on the verified Eva Cosmetics manufacturer
+  // shop (shop.eva-cosmetics.com). Spellings never replace exact SKU evidence.
+  'eva': { canonicalName: 'Eva Cosmetics', slug: 'eva-cosmetics' },
+  'ايفا': { canonicalName: 'Eva Cosmetics', slug: 'eva-cosmetics' },
+  // Arabic transliterations used for retrieval; manufacturer identity checks
+  // and collision handling remain independent of this dictionary.
+  'شان': { canonicalName: 'Shaan', slug: 'shaan' },
+  'بوباي': { canonicalName: 'Bobai', slug: 'bobai' },
+  'كابكسي': { canonicalName: 'Capixy', slug: 'capixy' },
+  'كابيكسي': { canonicalName: 'Capixy', slug: 'capixy' },
+  'كلاري': { canonicalName: 'Clary Corporation', slug: 'clary-corporation' },
 };
+
+/** Admin strings and explicitly verified evidence only; proposals never authorize a spelling. */
+export function verifiedProfileAliases(profile: unknown): string[] {
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return [];
+  const aliases = (profile as { aliases?: unknown }).aliases;
+  if (!Array.isArray(aliases)) return [];
+  return aliases.flatMap((item: unknown) => {
+    if (typeof item === 'string') return [item];
+    if (!item || typeof item !== 'object') return [];
+    const record = item as { status?: unknown; value?: unknown };
+    return record.status === 'VERIFIED' && typeof record.value === 'string' ? [record.value] : [];
+  });
+}
 
 /** Folding used for every alias key; the same function backs the resolver and the pure lookup below. */
 export function normalizeBrandKey(str: string): string {

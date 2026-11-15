@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { curatedSpellings } from '../research/brand-aliases';
+import { curatedSpellings, verifiedProfileAliases as readAliases } from '../research/brand-aliases';
 
 export interface SnapshotBrand {
   id: string;
@@ -82,13 +82,6 @@ export interface CatalogIdentitySnapshot {
   categories: Array<{ id: string; name: string; parentId: string | null; isLeaf: boolean; isActive: boolean }>;
   skus: SnapshotSku[];
 }
-
-const readAliases = (profile: unknown): string[] => {
-  const raw = (profile as { aliases?: unknown } | null)?.aliases;
-  if (!Array.isArray(raw)) return [];
-  return raw.flatMap(item => typeof item === 'string' ? [item]
-    : item && typeof item === 'object' && typeof (item as { value?: unknown }).value === 'string' && (item as { status?: string }).status === 'VERIFIED' ? [(item as { value: string }).value] : []);
-};
 
 /**
  * The identity facts intake matching needs, read once per batch: active canonical SKUs (identity only, no commercial data), brands with every reviewed spelling,

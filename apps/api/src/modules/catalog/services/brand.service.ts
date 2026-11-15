@@ -5,6 +5,7 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { CreateBrandDto, UpdateBrandDto } from '../dto/brand.dto';
 import { CreateProductLineDto, UpdateProductLineDto } from '../dto/product-line.dto';
 import { slugify } from '../utils/slug.util';
+import { verifiedProfileAliases } from '../research/brand-aliases';
 
 export interface ProductLineSummary {
   id: string;
@@ -66,11 +67,7 @@ function normalizeAliases(raw: unknown): string[] {
 }
 
 function extractBrandAliases(profile: unknown): string[] {
-  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return [];
-  const raw = (profile as Record<string, unknown>).aliases;
-  if (!Array.isArray(raw)) return [];
-  return normalizeAliases(raw.flatMap(item => typeof item === 'string' ? [item]
-    : item && typeof item === 'object' && item.status === 'VERIFIED' && typeof item.value === 'string' ? [item.value] : []));
+  return normalizeAliases(verifiedProfileAliases(profile));
 }
 
 function mergeBrandProfile(

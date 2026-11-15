@@ -30,6 +30,8 @@ const ARABIC_PRODUCT_WORDS: Record<string, string> = {
 const OWNER_SHOPS: Record<string, string> = {
   shaan: 'shop.parkvillepharma.com', starville: 'shop.parkvillepharma.com', bobai: 'shop.parkvillepharma.com',
   'eva cosmetics': 'shop.eva-cosmetics.com',
+  // e-majestic.com/pages/capixy identifies its own brand and links majestic.bio.
+  capixy: 'e-majestic.com',
 };
 const EGYPTIAN_BRAND_SPELLINGS: Record<string, string> = {
   shaan: 'شان', bobai: 'بوباي', 'eva cosmetics': 'ايفا', 'l oreal paris': 'لوريال باريس',
