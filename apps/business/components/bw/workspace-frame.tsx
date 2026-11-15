@@ -55,7 +55,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'buy-list', label: 'المشتريات', icon: ClipboardList, href: '/hub/buy-list' },
       { id: 'orders', label: 'الطلبات والتجهيز', icon: ScanLine, href: '/hub/orders' },
       { id: 'handoff', label: 'التسليم للمندوب', icon: Truck, href: '/hub/dispatch' },
-      { id: 'returns', label: 'المرتجعات', icon: Undo2, href: '/hub/returns', comingSoon: true },
+      { id: 'returns', label: 'المرتجعات', icon: Undo2, href: '/hub/returns' },
       { id: 'cash', label: 'عدّ النقدية', icon: Wallet, href: '/hub/cash' },
       { id: 'costs', label: 'تكلفة الفواتير', icon: Wallet, href: '/hub/costs', supplierFlow: true },
     ],
