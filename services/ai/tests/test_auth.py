@@ -61,3 +61,20 @@ def test_local_development_switch_allows_unauthenticated(monkeypatch: pytest.Mon
 
 def test_health_needs_no_token() -> None:
     assert client.get("/health").status_code == 200
+
+
+@pytest.mark.parametrize("environment", ["production", "staging", ""])
+def test_unauthenticated_switch_is_ignored_outside_development(monkeypatch: pytest.MonkeyPatch, environment: str) -> None:
+    from app.core.config import Settings
+
+    monkeypatch.setenv("AI_ENVIRONMENT", environment)
+    monkeypatch.setenv("AI_ALLOW_UNAUTHENTICATED", "true")
+    assert Settings().allow_unauthenticated is False
+
+
+def test_unauthenticated_switch_works_only_in_development(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.core.config import Settings
+
+    monkeypatch.setenv("AI_ENVIRONMENT", "development")
+    monkeypatch.setenv("AI_ALLOW_UNAUTHENTICATED", "true")
+    assert Settings().allow_unauthenticated is True

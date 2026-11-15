@@ -99,6 +99,8 @@ export interface ShinaMessage {
   requiresAuthPrompt?: boolean;
   pendingQuery?: string;
   consult?: ShinaConsultExtras;
+  /** An answer that is still being written: its text grows until the final message replaces it. */
+  isStreaming?: boolean;
 }
 
 export interface CustomerCareProfileSummary {

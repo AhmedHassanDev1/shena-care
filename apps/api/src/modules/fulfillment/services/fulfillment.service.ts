@@ -4,6 +4,7 @@ import { OrderingService, PaymentsService, ReconciliationService, navigationUrl 
 import { CatalogService, ProductIdentityService } from '../../catalog/public';
 import { BuyListService, PurchaseOrderService, SupplyPlanService } from '../../sourcing/public';
 import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, AdjustInventoryDto, ReceiveAllocatedGoodsDto, CreateDeliveryBatchDto, DeliveryStopInputDto } from '../dto/fulfillment.dto';
+import { ReverseReceiptDto } from '../dto/hub-desk.dto';
 import { FulfillmentCapability, ShipmentStatus, PreparationSessionStatus, Prisma, Role } from '@prisma/client';
 import * as crypto from 'crypto';
 import { isValidShipmentBarcode, signShipmentBarcode } from './shipment-label';
@@ -85,6 +86,9 @@ const EVENT_STATUS: Record<string, ShipmentStatus | undefined> = {
   FAILED: ShipmentStatus.failed,
   RECEIVED_BACK: ShipmentStatus.packed,
 };
+
+// Receipts can be reversed only while the parcel has not been printed or packed (GLO-315).
+const CORRECTABLE_SHIPMENT_STATUSES: ShipmentStatus[] = [ShipmentStatus.pending, ShipmentStatus.ready_to_prepare, ShipmentStatus.preparing, ShipmentStatus.prepared];
 
 const isUniqueViolation = (error: unknown) =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -838,6 +842,164 @@ export class FulfillmentService {
     });
   }
 
+  /**
+   * Compensating correction of one committed receipt (GLO-315). Nothing is edited or deleted: a negative receipt that points at the
+   * original is appended, stock and the shipment are brought back in the same transaction, and the unit becomes receivable again.
+   * Allowed until the parcel is printed or packed; refused for supplier purchase-order receipts (counted on the PO line) and for a
+   * receipt that is itself a correction or already corrected. Idempotent on `idempotencyKey`.
+   */
+  async reverseReceipt(receiptId: string, dto: ReverseReceiptDto, actor: FulfillmentActor) {
+    if (!this.isUuid(receiptId)) throw new BadRequestException('Invalid receipt ID');
+    const original = await this.prisma.fulfillmentReceipt.findUnique({ where: { id: receiptId } });
+    if (!original) throw new NotFoundException('Receipt not found');
+    await this.getOperationalLocation(original.locationId, FulfillmentCapability.RECEIVE_SUPPLIER_GOODS);
+    await this.assertLocationAccess(original.locationId, actor);
+
+    const replay = await this.prisma.fulfillmentReceipt.findUnique({ where: { idempotencyKey: dto.idempotencyKey } });
+    if (replay) {
+      if (replay.reversesReceiptId !== receiptId || replay.actorId !== actor.id) {
+        throw new ConflictException('Idempotency key was already used for a different correction');
+      }
+      return { replayed: true, correctionId: replay.id, receiptId, orderId: replay.orderId };
+    }
+    if (original.reversesReceiptId) throw new ConflictException({ code: 'RECEIPT_IS_CORRECTION', message: 'A correction cannot be corrected; scan the unit again if it was reversed by mistake' });
+
+    const created = await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(44081, hashtext(${original.orderId}))::text AS locked`;
+      const current = await tx.fulfillmentReceipt.findUniqueOrThrow({ where: { id: receiptId }, include: { reversal: { select: { id: true } } } });
+      if (current.reversal) throw new ConflictException({ code: 'ALREADY_CORRECTED', message: 'This receipt was already corrected' });
+      if (await this.purchaseOrders.hasPurchaseOrderLineage(tx, current.sourceAllocationId)) {
+        throw new ConflictException({ code: 'SUPPLIER_PO_RECEIPT', message: 'This unit belongs to a supplier purchase order; record a shortfall or exception instead of reversing it' });
+      }
+      const order = await tx.order.findUniqueOrThrow({ where: { id: current.orderId } });
+      if (!['placed', 'confirmed', 'packing'].includes(order.status)) {
+        throw new ConflictException({ code: 'ORDER_NOT_OPEN', message: `Order is ${order.status}; goods received for it cannot be corrected here` });
+      }
+      const shipment = await tx.shipment.findUnique({ where: { orderId: current.orderId }, include: { events: { select: { type: true } } } });
+      if (shipment) {
+        const printedOrPacked = shipment.events.some(event => ['LABEL_PRINTED', 'RECEIPT_PRINTED', 'PACKED'].includes(event.type));
+        if (!CORRECTABLE_SHIPMENT_STATUSES.includes(shipment.status) || printedOrPacked) {
+          throw new ConflictException({ code: 'ALREADY_PACKED', message: 'The parcel is already printed or packed; reopen it through the returns flow instead' });
+        }
+      }
+      const balance = await tx.inventoryBalance.findUnique({ where: { locationId_skuId: { locationId: current.locationId, skuId: current.skuId } } });
+      if (!balance || balance.orderAllocatedExternalGoods < current.quantity) {
+        throw new ConflictException({ code: 'STOCK_ALREADY_CONSUMED', message: 'The goods this receipt added are no longer on hand; nothing can be reversed' });
+      }
+      const inventoryTransaction = await tx.inventoryTransaction.create({ data: {
+        balanceId: balance.id, type: 'REVERSE_ORDER_ALLOCATED', quantity: -current.quantity,
+        reason: `Receipt correction (${dto.reason}): ${dto.note.trim()}`.slice(0, 300), actorId: actor.id, referenceId: current.sourceAllocationId,
+      } });
+      await tx.inventoryBalance.update({ where: { id: balance.id }, data: { orderAllocatedExternalGoods: { decrement: current.quantity } } });
+      const correction = await tx.fulfillmentReceipt.create({ data: {
+        locationId: current.locationId, supplyRequestId: current.supplyRequestId, sourceAllocationId: current.sourceAllocationId,
+        orderId: current.orderId, orderItemId: current.orderItemId, skuId: current.skuId, variantName: current.variantName,
+        quantity: -current.quantity, allocationConfirmedQuantity: current.allocationConfirmedQuantity, condition: current.condition,
+        idempotencyKey: dto.idempotencyKey, identityMethod: 'correction', barcodeScanned: current.barcodeScanned,
+        lotNumber: current.lotNumber, expiryDate: current.expiryDate, actorId: actor.id, inventoryTransactionId: inventoryTransaction.id,
+        reversesReceiptId: current.id, correctionReason: dto.reason, correctionNote: dto.note.trim(),
+      } });
+      if (shipment) {
+        // Goods are short again: the parcel goes back to waiting and any verification built on the reversed scan is voided.
+        if (shipment.status !== ShipmentStatus.pending) {
+          await tx.shipment.update({ where: { id: shipment.id }, data: { status: ShipmentStatus.pending } });
+          const voided = await tx.shipmentPreparationSession.updateMany({
+            where: { shipmentId: shipment.id, status: { in: [PreparationSessionStatus.in_progress, PreparationSessionStatus.completed] } },
+            data: { status: PreparationSessionStatus.failed, completedAt: new Date() },
+          });
+          if (voided.count) await tx.shipmentEvent.create({ data: { shipmentId: shipment.id, type: 'PREPARATION_REOPENED', actorId: actor.id, notes: 'A received unit was corrected; verification will be redone when the order is complete again' } });
+        }
+        await tx.shipmentEvent.create({ data: { shipmentId: shipment.id, type: 'RECEIPT_CORRECTED', actorId: actor.id, reasonCode: dto.reason.slice(0, 40), notes: `receipt ${current.id} reversed: ${dto.note.trim()}` } });
+      }
+      return correction;
+    }, { timeout: 30000 }).catch(error => {
+      if (isUniqueViolation(error)) throw new ConflictException({ code: 'ALREADY_CORRECTED', message: 'This receipt was corrected concurrently' });
+      throw error;
+    });
+    return { replayed: false, correctionId: created.id, receiptId, orderId: created.orderId };
+  }
+
+  /** Public identity check for the Hub desk (same rules as receiving and picking, GLO-242). */
+  async resolveUnitIdentity(input: { barcodeScanned?: string; skuId?: string; manualReason?: string; manualChecks?: string[] }) {
+    return this.checkUnitIdentity(input);
+  }
+
+  /** Hub desk access: the location exists, can prepare orders, and the actor operates it. */
+  async assertDeskLocation(locationId: string, actor: FulfillmentActor): Promise<void> {
+    if (!this.isUuid(locationId)) throw new BadRequestException('Invalid location ID');
+    await this.getOperationalLocation(locationId, FulfillmentCapability.PREPARE_ORDERS);
+    await this.assertLocationAccess(locationId, actor);
+  }
+
+  /**
+   * One-person Hub (GLO-315): the barcode scan that received a unit against its order line already
+   * proved that unit's identity for that exact order, so each accepted receipt unit counts once as the
+   * preparation verification. Starts (or resumes) the session, records one scan event per received
+   * unit (clientScanId `rcpt:<receiptId>:<n>`, so retries never double-count), and completes the
+   * session only when every line matches exactly. Receipts are never altered. Idempotent.
+   */
+  async verifyPreparationFromReceipts(shipmentId: string, actor: FulfillmentActor) {
+    if (!this.isUuid(shipmentId)) throw new BadRequestException('Invalid shipment ID');
+    const shipment = await this.prisma.shipment.findUnique({ where: { id: shipmentId }, include: { items: true } });
+    if (!shipment) throw new NotFoundException('Shipment not found');
+    await this.assertHubShipmentAccess(shipment, actor);
+    if (shipment.status !== ShipmentStatus.ready_to_prepare && shipment.status !== ShipmentStatus.preparing) {
+      return this.getPreparationState(shipmentId, actor);
+    }
+    // A concurrent call may have started (or already completed) the session: resume it instead of failing.
+    const session = await this.startPreparationSession(shipmentId, {}, actor).catch(async error => {
+      const active = await this.prisma.shipmentPreparationSession.findFirst({ where: { shipmentId, status: PreparationSessionStatus.in_progress } });
+      if (active) return active;
+      const now = await this.prisma.shipment.findUnique({ where: { id: shipmentId }, select: { status: true } });
+      if (now && now.status !== ShipmentStatus.ready_to_prepare && now.status !== ShipmentStatus.preparing) return null;
+      throw error;
+    });
+    if (!session) return this.getPreparationState(shipmentId, actor);
+    const receipts = await this.prisma.fulfillmentReceipt.findMany({ where: { orderId: shipment.orderId, reversesReceiptId: null, reversal: { is: null } }, orderBy: { receivedAt: 'asc' } });
+    const complete = await this.prisma.$transaction(async tx => {
+      await this.lockPreparationSession(tx, session.id);
+      const existing = await tx.preparationScanEvent.findMany({ where: { sessionId: session.id }, select: { clientScanId: true, skuId: true, isSuccessful: true } });
+      const seen = new Set(existing.map(event => event.clientScanId).filter((id): id is string => !!id));
+      let added = 0;
+      let allMatch = true;
+      for (const item of shipment.items) {
+        let missing = item.quantity - existing.filter(event => event.isSuccessful && event.skuId === item.skuId).length;
+        for (const receipt of receipts.filter(row => row.skuId === item.skuId)) {
+          for (let unit = 0; unit < receipt.quantity && missing > 0; unit++) {
+            const clientScanId = `rcpt:${receipt.id}:${unit}`;
+            if (seen.has(clientScanId)) continue;
+            await tx.preparationScanEvent.create({ data: {
+              sessionId: session.id, skuId: item.skuId, barcodeScanned: receipt.barcodeScanned, isSuccessful: true,
+              verificationMethod: receipt.identityMethod, operatorId: receipt.actorId, clientScanId,
+              manualReason: receipt.identityMethod === 'manual' ? `receipt ${receipt.id}: ${receipt.identityNote ?? ''}`.slice(0, 500) : null,
+            } });
+            seen.add(clientScanId);
+            missing--;
+            added++;
+          }
+        }
+        if (missing !== 0) allMatch = false;
+      }
+      if (added) {
+        await tx.shipmentEvent.create({ data: { shipmentId, type: 'VERIFIED_BY_RECEIPT_SCAN', actorId: actor.id,
+          notes: `${added} unit(s) verified by their receipt scan` } });
+      }
+      return allMatch;
+    }, { timeout: 30000 }).catch(async error => {
+      // Lost the race to a call that already completed this session: nothing left to do.
+      const now = await this.prisma.shipmentPreparationSession.findUnique({ where: { id: session.id }, select: { status: true } });
+      if (now?.status === PreparationSessionStatus.completed) return false;
+      throw error;
+    });
+    if (complete) {
+      await this.completePreparationSession(session.id, actor).catch(async error => {
+        const now = await this.prisma.shipmentPreparationSession.findUnique({ where: { id: session.id }, select: { status: true } });
+        if (now?.status !== PreparationSessionStatus.completed) throw error;
+      });
+    }
+    return this.getPreparationState(shipmentId, actor);
+  }
+
   /** Row lock on an in-progress preparation session; scans and completion serialize on it. */
   private async lockPreparationSession(tx: Prisma.TransactionClient, sessionId: string) {
     const rows = await tx.$queryRaw<Array<{ status: string }>>`
@@ -1148,7 +1310,7 @@ export class FulfillmentService {
    */
   async cancelShipmentForOrder(tx: Prisma.TransactionClient, orderId: string, actorId: string): Promise<{ goodsReceived: boolean }> {
     const shipment = await tx.shipment.findUnique({ where: { orderId }, include: { deliveryStops: { where: { status: 'active' }, include: { batch: true } } } });
-    const receipts = await tx.fulfillmentReceipt.count({ where: { orderId } });
+    const receipts = (await tx.fulfillmentReceipt.aggregate({ where: { orderId }, _sum: { quantity: true } }))._sum.quantity ?? 0;
     if (!shipment) return { goodsReceived: receipts > 0 };
     if (!CANCELLABLE.includes(shipment.status) || shipment.deliveryStops.some(stop => stop.batch.status !== 'planning')) {
       throw new ConflictException({ code: 'CANCELLATION_TOO_LATE', message: `The parcel is already ${shipment.status}; use the delivery return flow` });
@@ -1558,6 +1720,7 @@ export class FulfillmentService {
       this.prisma.fulfillmentReceipt.findMany({ where: { orderId }, orderBy: { receivedAt: 'asc' } }),
     ]);
     if (shipment) await this.assertHubShipmentAccess(shipment, actor);
+    const scanAttempts = shipment ? await this.prisma.hubScanAttempt.findMany({ where: { orderId }, orderBy: { createdAt: 'asc' } }) : [];
     return {
       shipment: shipment ? {
         id: shipment.id, status: shipment.status, trackingNumber: shipment.trackingNumber, location: shipment.location,
@@ -1573,7 +1736,9 @@ export class FulfillmentService {
       receipts: receipts.map(r => ({
         id: r.id, skuId: r.skuId, quantity: r.quantity, condition: r.condition, identityMethod: r.identityMethod,
         lotNumber: r.lotNumber, expiryDate: r.expiryDate, receivedAt: r.receivedAt, locationId: r.locationId,
+        reversesReceiptId: r.reversesReceiptId, correctionReason: r.correctionReason, correctionNote: r.correctionNote,
       })),
+      scanAttempts: scanAttempts.map(a => ({ id: a.id, context: a.context, outcomeCode: a.outcomeCode, barcode: a.barcodeScanned, skuId: a.skuId, actorId: a.actorId, createdAt: a.createdAt })),
     };
   }
 

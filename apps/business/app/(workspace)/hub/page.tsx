@@ -5,6 +5,6 @@ import { useRouter } from 'next/navigation'
 
 export default function HubHome() {
   const router = useRouter()
-  React.useEffect(() => { router.replace('/hub/receive') }, [router])
+  React.useEffect(() => { router.replace('/hub/orders') }, [router])
   return null
 }

@@ -81,6 +81,47 @@ export interface RequestOptions extends RequestInit {
   token?: string;
 }
 
+async function failFromResponse(response: Response, token?: string): Promise<never> {
+  let errorData: ErrorBody;
+  try {
+    errorData = await response.json();
+  } catch {
+    errorData = { message: response.statusText };
+  }
+  // A rejected session must not linger: drop it so the app falls back to signed-out instead of failing every request.
+  if (response.status === 401 && token && typeof window !== 'undefined') {
+    localStorage.removeItem(SESSION_TOKEN_KEY);
+  }
+  throw new ApiError(
+    errorMessage(errorData) || 'Request failed',
+    normalizeError(response.status, errorData),
+    response.status,
+    errorData
+  );
+}
+
+/**
+ * POSTs and returns the still-open response of a server-sent-events endpoint (read it with readEventStream).
+ * Rejections that happen before the stream starts (401, 404, 429, validation) fail exactly like any other call.
+ */
+export async function openEventStream(endpoint: string, body: unknown, options: RequestOptions = {}): Promise<Response> {
+  const { token, ...fetchOptions } = options;
+  const response = await fetch(`${requireApiUrl()}${endpoint}`, {
+    cache: 'no-store',
+    ...fetchOptions,
+    method: 'POST',
+    body: JSON.stringify(body ?? {}),
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!response.ok) return failFromResponse(response, token);
+  if (!response.body) throw new ApiError('This browser cannot read a streamed answer', 'NETWORK', 0);
+  return response;
+}
+
 async function fetchApi<T>(
   endpoint: string,
   options: RequestOptions = {}
@@ -105,22 +146,7 @@ async function fetchApi<T>(
   });
 
   if (!response.ok) {
-    let errorData: ErrorBody;
-    try {
-      errorData = await response.json();
-    } catch {
-      errorData = { message: response.statusText };
-    }
-    // A rejected session must not linger: drop it so the app falls back to signed-out instead of failing every request.
-    if (response.status === 401 && token && typeof window !== 'undefined') {
-      localStorage.removeItem(SESSION_TOKEN_KEY);
-    }
-    throw new ApiError(
-      errorMessage(errorData) || 'Request failed',
-      normalizeError(response.status, errorData),
-      response.status,
-      errorData
-    );
+    return failFromResponse(response, token);
   }
 
   if (response.status === 204) {

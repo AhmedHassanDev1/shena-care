@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { ChevronLeft, RefreshCw, Scissors } from 'lucide-react'
 import { Button, Code, Notice, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { Meter, Segmented } from '@/components/bw/ops'
-import { PendingCosts, type PendingCost } from '@/components/workspace/buy-costs'
 import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api, newKey } from '@/lib/api'
@@ -31,7 +30,6 @@ type View = 'active' | 'closed'
 function BatchListBody() {
   const [view, setView] = React.useState<View>('active')
   const { data, error, loading, reload } = useApi<BatchOverview>(`/purchase-batches?status=${view}`, { pollMs: 30000 })
-  const pendingCosts = useApi<{ pending: number; items: PendingCost[] }>('/buy-list/costs?pending=true&take=50', { pollMs: 30000 })
   // One key per intended early cut: a retry after a lost response replays instead of cutting twice.
   const cutKey = React.useRef(newKey())
   const cut = useCommand(() => api<{ batchId: string | null; number: number | null; empty?: boolean }>('/purchase-batches/cut', { body: { idempotencyKey: cutKey.current } }))
@@ -85,8 +83,6 @@ function BatchListBody() {
             {cutNote ? <p role="status" className="basis-full text-bw-small text-bw-ink-soft">{cutNote}</p> : null}
             {cut.error ? <div className="basis-full"><CommandError error={cut.error} /></div> : null}
           </section>
-
-          {pendingCosts.data && pendingCosts.data.items.length > 0 ? <PendingCosts items={pendingCosts.data.items} onSaved={() => { pendingCosts.reload(); reload() }} /> : null}
 
           <Segmented label="عرض الدفعات" value={view} onChange={setView} items={[
             { value: 'active', label: 'شغّالة' },

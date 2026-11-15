@@ -47,7 +47,7 @@ import { RoutineCompatibilityController } from './routine-compatibility.controll
   exports: [
     CareService, CareProfileService, CareReminderOrchestrator,
     ReplenishmentEstimatorService, AdaptiveCheckinService, LifecycleTriggerService,
-    RetentionMetricsService, RoutineWorkspaceService, RoutineProposalService, MyRoutinesService, RoutineCompatibilityService,
+    RetentionMetricsService, RoutineWorkspaceService, RoutineProposalService, MyRoutinesService, PersonalRoutinesService, RoutineCompatibilityService,
   ],
 })
 export class CareModule {}

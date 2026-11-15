@@ -15,6 +15,23 @@ import {
 } from './consultation-rules';
 
 export const CONSULT_PAYLOAD_VERSION = 1;
+
+/** The customer went away mid-turn; nothing more is computed or stored for it. */
+export class TurnAbortedError extends Error {
+  constructor() { super('The consultation turn was cancelled'); this.name = 'TurnAbortedError'; }
+}
+
+/**
+ * What a streaming caller gets told while a turn runs. `begin` is called once the request has been accepted (after
+ * validation, before any model work), so errors raised earlier are still ordinary HTTP errors.
+ */
+export interface TurnStream {
+  signal: AbortSignal
+  begin(): void
+  status(stage: 'understanding' | 'searching' | 'writing'): void
+  delta(text: string): void
+  reset(): void
+}
 const HISTORY_TURNS = 14;
 const MAX_MESSAGE_LENGTH = 1500;
 
@@ -112,7 +129,7 @@ export class ConsultationService {
 
   // ── One turn ────────────────────────────────────────────────────────────────────────────────────────────
 
-  async sendMessage(customerId: string, sessionId: string, content: string, requestedLocale?: 'ar' | 'en') {
+  async sendMessage(customerId: string, sessionId: string, content: string, requestedLocale?: 'ar' | 'en', stream?: TurnStream) {
     const text = (content ?? '').trim();
     if (!text) throw new BadRequestException('Message is empty');
     if (text.length > MAX_MESSAGE_LENGTH) throw new BadRequestException(`Message is longer than ${MAX_MESSAGE_LENGTH} characters`);
@@ -120,19 +137,20 @@ export class ConsultationService {
     await this.assertWithinLimits(customerId);
 
     await this.prisma.guidanceMessage.create({ data: { sessionId, role: GuidanceMessageRole.user, content: text } });
-    return this.runTurn(customerId, session, text, requestedLocale);
+    return this.runTurn(customerId, session, text, requestedLocale, stream);
   }
 
   /** Answers the last customer message again when no answer was stored for it (e.g. the request was interrupted). */
-  async retryLast(customerId: string, sessionId: string) {
+  async retryLast(customerId: string, sessionId: string, stream?: TurnStream) {
     const session = await this.owned(customerId, sessionId);
     const last = await this.prisma.guidanceMessage.findFirst({ where: { sessionId, role: { not: GuidanceMessageRole.system } }, orderBy: { createdAt: 'desc' } });
     if (!last || last.role !== GuidanceMessageRole.user) throw new BadRequestException('There is no unanswered message to retry');
     await this.assertWithinLimits(customerId);
-    return this.runTurn(customerId, session, last.content);
+    return this.runTurn(customerId, session, last.content, undefined, stream);
   }
 
-  private async runTurn(customerId: string, session: { id: string; context: Prisma.JsonValue; pageContext: Prisma.JsonValue }, text: string, requestedLocale?: 'ar' | 'en') {
+  private async runTurn(customerId: string, session: { id: string; context: Prisma.JsonValue; pageContext: Prisma.JsonValue }, text: string, requestedLocale?: 'ar' | 'en', stream?: TurnStream) {
+    stream?.begin();
     const sessionId = session.id;
     const history = await this.prisma.guidanceMessage.findMany({ where: { sessionId, role: { not: GuidanceMessageRole.system } }, orderBy: { createdAt: 'desc' }, take: HISTORY_TURNS });
     const turns: ConsultTurn[] = history.reverse().map(m => ({ role: m.role === GuidanceMessageRole.user ? 'user' : 'assistant', content: m.content.slice(0, 2000) }));
@@ -151,6 +169,7 @@ export class ConsultationService {
       : null;
 
     // 1. Understand
+    stream?.status('understanding');
     let understanding: Pick<ConsultUnderstandResult, 'intent' | 'language' | 'context' | 'mentionedProducts' | 'mentionedIngredients' | 'redFlags' | 'missing' | 'needsClarification'>;
     const fallbackLanguage: 'ar' | 'en' = /[؀-ۿ]/.test(text) ? 'ar' : requestedLocale ?? 'en';
     try {
@@ -159,6 +178,7 @@ export class ConsultationService {
       await this.recordUsage(customerId, sessionId, 'consult.understand', 'OK', result.providerMetadata);
       understanding = result;
     } catch (error) {
+      if (stream?.signal.aborted) throw new TurnAbortedError();
       await this.recordUsage(customerId, sessionId, 'consult.understand', this.outcomeOf(error));
       // Keyword matching cannot assess new safety disclosures or medical red flags.
       // Preserve the last understood context, but do not use it to clear this turn.
@@ -173,12 +193,14 @@ export class ConsultationService {
       } });
       return { id: saved.id, sessionId, role: saved.role, content: saved.content, payload, createdAt: saved.createdAt };
     }
+    if (stream?.signal.aborted) throw new TurnAbortedError();
     const locale: 'ar' | 'en' = understanding.language === 'en' ? 'en' : 'ar';
     const context = mergeContext(known, understanding.context, vocabulary);
     const intent = understanding.intent;
     await this.prisma.guidanceSession.update({ where: { id: sessionId }, data: { context: context as unknown as Prisma.InputJsonValue } });
 
     // 2. Decide and retrieve
+    stream?.status('searching');
     const escalation = decideEscalation(understanding.redFlags ?? [], locale);
     const conversational = intent === 'smalltalk' || intent === 'out_of_scope';
     const wantsRoutine = intent === 'build_routine';
@@ -262,17 +284,24 @@ export class ConsultationService {
     const excluded = (run?.result.excluded ?? []).filter(e => e.code !== 'UNAVAILABLE').slice(0, 6);
 
     // 3. Word the answer
+    if (stream?.signal.aborted) throw new TurnAbortedError();
+    stream?.status('writing');
     let reply: ConsultRespondResult | null = null;
     try {
-      reply = await this.ai.consultRespond({
+      const respondRequest = {
           customerId, locale, intent, messages: turns, context, pageContext, candidates,
           excluded: excluded.map(e => `${e.name}: ${e.text}`), knowledge: knowledgeItems,
           routineDraft: routineDraft.map(step => ({ ref: refOf.get(step.item.productId)!, slot: step.slot.toLowerCase() as 'am' | 'pm' | 'as_needed', role: step.item.role })),
           routineIssues: [...routineIssues.filter(i => i.severity !== 'INFO' || i.code === 'INGREDIENTS_UNVERIFIED').map(i => (locale === 'ar' ? i.textAr : i.textEn)), ...(routineNote ? [routineNote] : [])].slice(0, 8),
           escalation: escalation.reasons.map(r => r.code), mustClarify, missing,
-      }, sessionId);
+      };
+      // Streaming changes delivery only; product references and persistence keep the same validation.
+      reply = stream
+        ? await this.ai.consultRespondStream(respondRequest, { onDelta: text => stream.delta(text), onReset: () => stream.reset(), signal: stream.signal }, sessionId)
+        : await this.ai.consultRespond(respondRequest, sessionId);
       await this.recordUsage(customerId, sessionId, 'consult.respond', 'OK', reply.providerMetadata);
     } catch (error) {
+      if (stream?.signal.aborted) throw new TurnAbortedError();
       await this.recordUsage(customerId, sessionId, 'consult.respond', this.outcomeOf(error));
       this.logger.warn(`consultation ${sessionId}: AI respond failed (${error instanceof AiClientError ? error.kind : 'unknown'}); using the deterministic answer`);
     }
@@ -301,7 +330,7 @@ export class ConsultationService {
         routineNote,
         citations: reply.citations.map(ref => knowledgeByRef.get(ref)).filter((row): row is KnowledgeRow => !!row).map(row => toView(row, locale)),
         followUpQuestion: escalation.required ? null : reply.followUpQuestion?.trim() || null,
-        quickReplies: escalation.required ? [] : (reply.quickReplies ?? []).map(q => q.trim()).filter(Boolean).slice(0, 4),
+        quickReplies: escalation.required ? [] : (reply.quickReplies ?? []).map(q => q.trim()).filter(q => q && !/^[PK]\d{1,2}$/.test(q)).slice(0, 4),
         escalation: escalation.required ? escalation : null,
         excluded: excluded.map(e => ({ name: e.name, text: e.text })), understood: context,
       };

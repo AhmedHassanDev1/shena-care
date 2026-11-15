@@ -771,6 +771,11 @@ export class PurchaseOrderService implements OnModuleInit, OnModuleDestroy {
     await this.completeIfAllArrived(tx, link.line.purchaseOrderId);
   }
 
+  /** True when this allocation is part of a supplier purchase order (its receipts are counted on the PO line, so Hub corrections refuse). */
+  async hasPurchaseOrderLineage(tx: Tx, sourceAllocationId: string): Promise<boolean> {
+    return !!(await tx.purchaseOrderLineAllocation.findUnique({ where: { sourceAllocationId }, select: { id: true } }));
+  }
+
   /** A supplier exception must explain a non-full answer consistently; it is recorded, never applied. */
   private lineException(requested: number, line: { status: PurchaseOrderLineStatus; exceptionCode?: string; exceptionNote?: string;
     proposedQuantity?: number; proposedUnitCost?: number }) {

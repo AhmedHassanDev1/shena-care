@@ -13,6 +13,7 @@ import {
   ProductContentGenerationResult,
   ConsultRespondRequest,
   ConsultRespondResult,
+  ConsultStreamHandlers,
   ConsultUnderstandRequest,
   ConsultUnderstandResult,
 } from './ai-client.contract';
@@ -257,6 +258,119 @@ export class HttpAiClient implements AiClient {
       throw new AiClientError(AiErrorKind.INVALID_RESPONSE, 'AI response is missing its message or recommendations');
     }
     return body as unknown as ConsultRespondResult;
+  }
+
+  /**
+   * consultRespond over server-sent events (services/ai /v1/consult/respond/stream): `onDelta` gets the answer text
+   * as it is written, and the returned result is the same grounded object consultRespond would have returned.
+   * Aborting `handlers.signal` closes the connection, which stops generation at the model provider.
+   */
+  async consultRespondStream(input: ConsultRespondRequest, handlers: ConsultStreamHandlers, correlationId?: string): Promise<ConsultRespondResult> {
+    const { customerId, ...rest } = input;
+    const url = `${this.baseUrl.replace(/\/$/, '')}/v1/consult/respond/stream`;
+    const resolvedCorrelationId = correlationId || randomUUID();
+    const controller = new AbortController();
+    const forwardAbort = () => controller.abort();
+    if (handlers.signal?.aborted) controller.abort();
+    else handlers.signal?.addEventListener('abort', forwardAbort, { once: true });
+    // Idle timeout, not a total one: a long answer may keep streaming as long as bytes keep arriving.
+    const idleMs = this.timeoutMs * 2;
+    let timedOut = false;
+    let timer: NodeJS.Timeout | undefined;
+    const arm = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { timedOut = true; controller.abort(); }, idleMs);
+    };
+    const startTime = Date.now();
+    let firstDeltaMs: number | null = null;
+    const failure = (err: unknown): AiClientError => {
+      if (err instanceof AiClientError) return err;
+      if (handlers.signal?.aborted) return new AiClientError(AiErrorKind.CANCELLED, 'AI consult respond stream was cancelled');
+      if (timedOut) return new AiClientError(AiErrorKind.TIMEOUT, 'AI consult respond stream timed out');
+      return new AiClientError(AiErrorKind.UNAVAILABLE, 'AI service unreachable');
+    };
+    try {
+      arm();
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          headers: { ...this.requestHeaders(resolvedCorrelationId), Accept: 'text/event-stream' },
+          body: JSON.stringify({ subject: this.pseudonymize(customerId), ...rest }),
+          signal: controller.signal,
+        });
+      } catch (err) {
+        throw failure(err);
+      }
+      if (response.status === 429) throw new AiClientError(AiErrorKind.LIMITED, 'AI gateway limit reached', 429);
+      if (response.status === 503) throw new AiClientError(AiErrorKind.UNAVAILABLE, 'AI service reported provider unavailable', 503);
+      if (!response.ok || !response.body) {
+        throw new AiClientError(AiErrorKind.INVALID_RESPONSE, `AI service returned unexpected status ${response.status}`, response.status);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let final: Record<string, unknown> | null = null;
+      const handle = (block: string) => {
+        let event = 'message';
+        const data: string[] = [];
+        for (const line of block.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim();
+          else if (line.startsWith('data:')) data.push(line.slice(5).replace(/^ /, ''));
+        }
+        if (!data.length) return;
+        let parsed: Record<string, unknown>;
+        try { parsed = JSON.parse(data.join('\n')) as Record<string, unknown>; } catch { return; }
+        if (event === 'delta' && typeof parsed.text === 'string') {
+          if (firstDeltaMs === null) firstDeltaMs = Date.now() - startTime;
+          handlers.onDelta(parsed.text);
+        } else if (event === 'reset') {
+          handlers.onReset();
+        } else if (event === 'final') {
+          final = parsed;
+        } else if (event === 'error') {
+          const status = Number(parsed.status);
+          throw new AiClientError(
+            status === 429 ? AiErrorKind.LIMITED : status === 502 ? AiErrorKind.INVALID_RESPONSE : AiErrorKind.UNAVAILABLE,
+            `AI stream failed: ${String(parsed.detail ?? 'unknown')}`.slice(0, 200), Number.isFinite(status) ? status : undefined,
+          );
+        }
+      };
+      for (;;) {
+        let chunk: { done: boolean; value?: Uint8Array };
+        try {
+          chunk = await reader.read();
+        } catch (err) {
+          throw failure(err);
+        }
+        if (chunk.done) break;
+        arm();
+        buffer += decoder.decode(chunk.value, { stream: true });
+        let boundary: number;
+        while ((boundary = buffer.indexOf('\n\n')) >= 0) {
+          const block = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+          handle(block);
+        }
+      }
+      if (buffer.trim()) handle(buffer);
+
+      const body = final as Record<string, unknown> | null;
+      if (!body) throw failure(new AiClientError(AiErrorKind.INVALID_RESPONSE, 'AI stream ended without a result'));
+      if (body.schemaVersion !== '1') {
+        throw new AiClientError(AiErrorKind.INCOMPATIBLE_SCHEMA, `Unsupported AI consult schemaVersion ${String(body.schemaVersion)}`);
+      }
+      if (typeof body.message !== 'string' || !body.message.trim() || !Array.isArray(body.recommendations)) {
+        throw new AiClientError(AiErrorKind.INVALID_RESPONSE, 'AI response is missing its message or recommendations');
+      }
+      this.logger.log(`AI consult respond stream success firstDeltaMs=${firstDeltaMs ?? 'none'} latencyMs=${Date.now() - startTime} correlation=${resolvedCorrelationId}`);
+      return body as unknown as ConsultRespondResult;
+    } finally {
+      if (timer) clearTimeout(timer);
+      handlers.signal?.removeEventListener('abort', forwardAbort);
+      controller.abort(); // a no-op once the stream is complete; closes the connection on every early exit
+    }
   }
 
   private async postConsult(step: 'understand' | 'respond', payload: Record<string, unknown>, correlationId?: string): Promise<Record<string, unknown>> {

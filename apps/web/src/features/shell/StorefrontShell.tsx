@@ -13,6 +13,8 @@ export interface StorefrontShellProps {
   nav?: FloatingNavItem | 'none' | string;
   phoneFocus?: Omit<FocusHeaderProps, 'desktopBack' | 'secure'>;
   phoneHeader?: ReactNode;
+  /** Hide the top header completely for focused fullscreen workspaces like Ask Shina. */
+  hideHeader?: boolean;
   navMode?: 'static' | 'scroll-up';
   searchDefault?: string;
   className?: string;
@@ -34,6 +36,7 @@ export function StorefrontShell({
   children,
   phoneFocus,
   phoneHeader,
+  hideHeader = false,
   searchDefault,
   className,
   dock,
@@ -45,16 +48,18 @@ export function StorefrontShell({
 
   return (
     <div className={cn('flex min-h-dvh flex-col', className)}>
-      {phoneFocus || phoneHeader ? (
-        <>
-          <div className="lg:hidden">{phoneFocus ? <FocusHeader {...phoneFocus} /> : phoneHeader}</div>
-          <div className="hidden lg:block">
-            <SiteHeader searchDefault={searchDefault} />
-          </div>
-        </>
-      ) : (
-        <SiteHeader searchDefault={searchDefault} />
-      )}
+      {!hideHeader ? (
+        phoneFocus || phoneHeader ? (
+          <>
+            <div className="lg:hidden">{phoneFocus ? <FocusHeader {...phoneFocus} /> : phoneHeader}</div>
+            <div className="hidden lg:block">
+              <SiteHeader searchDefault={searchDefault} />
+            </div>
+          </>
+        ) : (
+          <SiteHeader searchDefault={searchDefault} />
+        )
+      ) : null}
       <div className={cn('flex-1 flex flex-col min-h-0', showDock && 'pb-24 lg:pb-0')}>{children}</div>
       {!hideFooter ? (
         <div className={cn(phoneFocus && 'hidden lg:block')}>

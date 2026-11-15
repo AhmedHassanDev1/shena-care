@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Headers, Param, ParseUUIDPipe, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
 import { OptionalAuthGuard } from '../../../modules/accounts/guards/optional-auth.guard';
-import { MyRoutinesService, RoutineCartDto, RoutineProposalService } from '../../../modules/care/public';
+import { MyRoutinesService, PersonalRoutineCartDto, PersonalRoutinesService, RoutineCartDto, RoutineProposalService } from '../../../modules/care/public';
 import { CartOwner, CartService } from '../../../modules/ordering/public';
 
 type AuthedRequest = { user?: { id: string }; headers: Record<string, string | string[] | undefined> };
@@ -18,6 +18,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export class RoutineCartController {
   constructor(
     private readonly myRoutines: MyRoutinesService,
+    private readonly personal: PersonalRoutinesService,
     private readonly proposals: RoutineProposalService,
     private readonly cart: CartService,
   ) {}
@@ -27,6 +28,18 @@ export class RoutineCartController {
   async addSavedRoutine(@Param('id', ParseUUIDPipe) id: string, @Body() dto: RoutineCartDto, @Req() req: AuthedRequest & { user: { id: string } }) {
     const items = await this.myRoutines.purchasableItems(id, req.user.id, dto.phase ?? 'ALL');
     return this.addAll({ customerId: req.user.id }, items);
+  }
+
+  /**
+   * «ضيف الروتين للسلة» for a routine on the shared Routine domain (manual, copied Ready Routine or saved AI routine). Owner only; adds the
+   * sellable main product of each step, once per SKU, never doubling a line already in the cart; unsellable steps are reported, not replaced.
+   */
+  @Post('personal-routines/:id/cart')
+  @UseGuards(AuthGuard)
+  async addPersonalRoutine(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PersonalRoutineCartDto, @Req() req: AuthedRequest & { user: { id: string } }) {
+    const { items, unavailable } = await this.personal.purchasable(req.user.id, id, dto.timing ?? 'ALL');
+    const result = await this.addAll({ customerId: req.user.id }, items.map(item => ({ roleKey: item.stepId, skuId: item.skuId })));
+    return { ...result, unavailable };
   }
 
   @Post('workspace/proposals/:id/cart')

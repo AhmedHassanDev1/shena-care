@@ -32,7 +32,7 @@ class Settings:
         # Shared secret the ShenaCare API sends as "Authorization: Bearer <token>" on every /v1 call.
         self.service_token = os.getenv("AI_SERVICE_TOKEN") or None
         # Local development only: lets /v1 run without a token. Never set it on staging or production.
-        self.allow_unauthenticated = os.getenv("AI_ALLOW_UNAUTHENTICATED", "false").lower() == "true"
+        self.allow_unauthenticated_requested = os.getenv("AI_ALLOW_UNAUTHENTICATED", "false").lower() == "true"
 
         # --- OpenRouter gateway (server-side only; the key never leaves this service) ---
         self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPEN_ROUTER_API_KEY") or None
@@ -47,6 +47,18 @@ class Settings:
         # Process-wide safety nets. Per-customer limits live in the ShenaCare API, which knows the customer.
         self.max_requests_per_minute = max(1, _int("AI_MAX_REQUESTS_PER_MINUTE", 120))
         self.daily_cost_limit_usd = max(0.0, _float("AI_DAILY_COST_LIMIT_USD", 10.0))
+
+        # --- Development-only free-model mode ---
+        # AI_FREE_MODELS_ONLY=true routes every task to OpenRouter's free router with no paid fallback, but only when
+        # AI_ENVIRONMENT=development. Anywhere else (including when AI_ENVIRONMENT is unset) it is ignored, so a stray
+        # flag can never change production routing.
+        self.environment = (os.getenv("AI_ENVIRONMENT", "production") or "production").strip().lower()
+        requested = os.getenv("AI_FREE_MODELS_ONLY", "false").strip().lower() == "true"
+        self.free_models_only = requested and self.environment == "development"
+        self.free_models_ignored = requested and not self.free_models_only
+        # The unauthenticated switch is honoured only in development: anywhere else the service token is mandatory,
+        # so a stray AI_ALLOW_UNAUTHENTICATED can never open the /v1 routes on a deployed service.
+        self.allow_unauthenticated = self.allow_unauthenticated_requested and self.environment == "development"
 
 
 @lru_cache

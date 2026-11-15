@@ -6,7 +6,6 @@ import { useParams } from 'next/navigation'
 import { ArrowRight, ChevronDown, Copy, MessageCircle, Printer, RefreshCw, Undo2 } from 'lucide-react'
 import { Button, Code, Field, Notice, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { Flash, Meter } from '@/components/bw/ops'
-import { CostInput, costFrom, egp } from '@/components/workspace/buy-costs'
 import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api, newKey } from '@/lib/api'
@@ -190,9 +189,6 @@ const orderStateLabel = { received: 'اتستلم', pending: 'مستني', unava
 
 function LineRow({ batch, line, onChanged }: { batch: BatchDetail; line: BatchLine; onChanged: () => void }) {
   const [quantity, setQuantity] = React.useState(String(line.remaining))
-  const [showCost, setShowCost] = React.useState(false)
-  const [listPrice, setListPrice] = React.useState('')
-  const [discount, setDiscount] = React.useState('')
   const [confirmUnavailable, setConfirmUnavailable] = React.useState(false)
   const [showOrders, setShowOrders] = React.useState(false)
   const [message, setMessage] = React.useState<{ tone: 'ok' | 'warn'; text: string } | null>(null)
@@ -201,10 +197,8 @@ function LineRow({ batch, line, onChanged }: { batch: BatchDetail; line: BatchLi
   const key = React.useRef(newKey())
   React.useEffect(() => { setQuantity(String(line.remaining)); key.current = newKey() }, [line.remaining])
 
-  const typedCost = costFrom(listPrice, discount)
-  const costInvalid = (listPrice !== '' || discount !== '') && !typedCost
   const receive = useCommand(() => api<{ replayed: boolean }>(`/purchase-batches/${batch.id}/lines/${line.id}/receive`, {
-    body: { quantity: Number(quantity), idempotencyKey: key.current, ...(typedCost ? { cost: { listUnitPrice: typedCost.listUnitPrice, discountPerUnit: typedCost.discountPerUnit } } : {}) },
+    body: { quantity: Number(quantity), idempotencyKey: key.current },
   }))
   const unavailable = useCommand(() => api(`/purchase-batches/${batch.id}/lines/${line.id}/unavailable`, { body: {} }))
   const reopen = useCommand(() => api('/buy-list/reopen', { body: { skuId: line.skuId, orderIds: line.orders.filter((o) => o.state === 'unavailable').map((o) => o.orderId) } }))
@@ -224,8 +218,7 @@ function LineRow({ batch, line, onChanged }: { batch: BatchDetail; line: BatchLi
     const result = await receive.execute()
     if (result) {
       key.current = newKey()
-      setMessage({ tone: 'ok', text: `اتسجّل استلام ${qty} قطعة${typedCost ? ' بتكلفتها' : ' — التكلفة لسه مش مسجّلة'}` })
-      setListPrice(''); setDiscount('')
+      setMessage({ tone: 'ok', text: `اتسجّل شراء ${qty} قطعة. الوصول الفعلي والتكلفة بيتسجّلوا في «الطلبات والتجهيز» وقت المسح.` })
       onChanged()
     } else onChanged() // a stale count (cancelled order, another receipt) is refreshed so the next try uses the fresh numbers
   }
@@ -246,20 +239,19 @@ function LineRow({ batch, line, onChanged }: { batch: BatchDetail; line: BatchLi
         </div>
 
         <Qty label="مطلوب" value={line.required} />
-        <Qty label="وصل" value={line.received} tone={line.received > 0 ? 'ok' : undefined} />
+        <Qty label="اتشترى" value={line.received} tone={line.received > 0 ? 'ok' : undefined} />
         <Qty label="فاضل" value={line.remaining} tone={line.remaining > 0 ? 'warn' : undefined} />
 
         <div className="min-w-0">
           {canReceive ? (
             <form className="flex flex-wrap items-center gap-2" onSubmit={(event) => { event.preventDefault(); void submit() }}>
-              <label htmlFor={inputId} className="sr-only">الكمية اللي وصلت فعلًا</label>
+              <label htmlFor={inputId} className="sr-only">الكمية اللي اتشترت</label>
               <input
                 id={inputId} dir="ltr" inputMode="numeric" autoComplete="off" value={quantity} aria-invalid={over || undefined}
                 onChange={(event) => { setQuantity(event.target.value.replace(/[^\d]/g, '')); key.current = newKey() }}
                 className={cn('bw-control h-bw-control w-16 rounded-bw-field border bg-bw-page/60 text-center text-bw-body font-semibold tabular-nums text-bw-ink', over ? 'border-bw-danger' : 'border-bw-line-field')}
               />
-              <Button type="submit" loading={receive.pending} disabled={!valid || busy || costInvalid} className="flex-1 sm:flex-none">استلمت</Button>
-              <button type="button" aria-expanded={showCost} onClick={() => setShowCost((v) => !v)} className="h-9 rounded-bw-field px-2 text-[12px] font-semibold text-bw-cobalt transition-colors hover:bg-bw-veil-3">{showCost ? 'من غير تكلفة' : '+ تكلفة'}</button>
+              <Button type="submit" loading={receive.pending} disabled={!valid || busy} className="flex-1 sm:flex-none">تم الشراء</Button>
               {confirmUnavailable ? (
                 <span className="flex items-center gap-1.5">
                   <Button type="button" variant="danger" size="sm" loading={unavailable.pending} disabled={busy} onClick={async () => { if (await unavailable.execute()) { setConfirmUnavailable(false); onChanged() } }}>تأكيد: العميل هيتسأل</Button>
@@ -268,15 +260,7 @@ function LineRow({ batch, line, onChanged }: { batch: BatchDetail; line: BatchLi
               ) : (
                 <button type="button" disabled={busy} onClick={() => setConfirmUnavailable(true)} className="h-9 rounded-bw-field px-2 text-[12px] font-semibold text-bw-danger transition-colors hover:bg-bw-danger-soft">مش متاح</button>
               )}
-              {showCost ? (
-                <span className="flex basis-full flex-wrap items-center gap-1.5">
-                  <CostInput id={`${inputId}-l`} label="سعر القائمة للقطعة" placeholder="سعر القطعة" value={listPrice} onChange={setListPrice} invalid={costInvalid} />
-                  <CostInput id={`${inputId}-d`} label="الخصم للقطعة" placeholder="خصم" value={discount} onChange={setDiscount} invalid={costInvalid} />
-                  {typedCost ? <span className="text-[12px] text-bw-ink-soft" aria-live="polite">التكلفة <strong className="text-bw-ink tabular-nums">{egp(typedCost.final)}</strong> للقطعة</span> : null}
-                </span>
-              ) : null}
               {over ? <p role="alert" className="basis-full text-[12px] text-bw-danger">أكتر من المتبقي (<Code>{line.remaining}</Code>)</p> : null}
-              {costInvalid ? <p role="alert" className="basis-full text-[12px] text-bw-danger">الخصم لازم يكون أقل من سعر القائمة، والاتنين أرقام.</p> : null}
             </form>
           ) : (
             <p className="text-[12px] text-bw-ink-subtle md:text-end">

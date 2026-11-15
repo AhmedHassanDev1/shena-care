@@ -12,3 +12,6 @@ export * from './routing/mapbox-optimization.provider';
 export * from './dto/routing.dto';
 export * from './dto/optimization.dto';
 export * from './dto/dispatch-planning.dto';
+export * from './services/hub-desk.service';
+export * from './dto/hub-desk.dto';
+export * from './services/hub-returns.service';

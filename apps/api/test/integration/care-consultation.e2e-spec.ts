@@ -8,6 +8,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { AiClient, ConsultUnderstandRequest, ConsultUnderstandResult } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { ensureFixtureReviewer, FIXTURE_SOURCE_URL } from '../fixtures/sellable-sku';
+import { ConsultationService, TurnAbortedError } from '../../src/modules/guidance/consultation/consultation.service';
 
 function ean13(): string {
   const body = Array.from({ length: 12 }, () => Math.floor(Math.random() * 10));
@@ -333,6 +334,17 @@ describe('Care consultation, recommendations and knowledge (GLO-301 / GLO-302 / 
       const res = await say(session.id, 'عايزة غسول').expect(201);
       expect(res.body.payload.source).toBe('FALLBACK');
       expect(res.body.payload.recommendations).toHaveLength(1);
+    });
+
+    it('does not persist an outage answer for an aborted streaming turn', async () => {
+      const session = await newSession();
+      const abort = new AbortController();
+      abort.abort();
+      ai.down = true;
+      await expect(app.get(ConsultationService).sendMessage(customerId, session.id, 'عايزة غسول', 'ar', {
+        signal: abort.signal, begin() {}, status() {}, delta() {}, reset() {},
+      })).rejects.toBeInstanceOf(TurnAbortedError);
+      expect(await prisma.guidanceMessage.count({ where: { sessionId: session.id, role: 'assistant' } })).toBe(0);
     });
 
     it('records usage per call and enforces the per-customer daily limit', async () => {

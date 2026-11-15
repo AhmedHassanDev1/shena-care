@@ -99,6 +99,20 @@ export class PurchaseCostService {
     });
   }
 
+  /** Recorded costs of the given purchases (Buy List counts), keyed by acquire key. */
+  async recordedByKeys(acquireKeys: string[]): Promise<Map<string, BatchCostView>> {
+    if (!acquireKeys.length) return new Map();
+    const rows = await this.prisma.purchaseCostBatch.findMany({ where: { acquireKey: { in: [...new Set(acquireKeys)] } } });
+    return new Map(rows.map(row => [row.acquireKey, this.present(row)]));
+  }
+
+  /** The most recently recorded cost of each SKU: only ever offered as a suggestion to confirm, never applied. */
+  async lastCostBySku(skuIds: string[]): Promise<Map<string, { listUnitPrice: string; discountPerUnit: string; recordedAt: Date }>> {
+    if (!skuIds.length) return new Map();
+    const rows = await this.prisma.purchaseCostBatch.findMany({ where: { skuId: { in: [...new Set(skuIds)] } }, orderBy: { recordedAt: 'desc' }, distinct: ['skuId'] });
+    return new Map(rows.map(row => [row.skuId, { listUnitPrice: row.listUnitPrice.toFixed(2), discountPerUnit: row.discountPerUnit.toFixed(2), recordedAt: row.recordedAt }]));
+  }
+
   /** Recent Buy List purchases with their cost (or null while pending), newest first. */
   async batches(filter: { pendingOnly?: boolean; take: number }) {
     const allocations = await this.prisma.sourceAllocation.findMany({
