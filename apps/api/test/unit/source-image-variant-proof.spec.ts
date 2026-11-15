@@ -25,4 +25,16 @@ describe('source image import revalidates exact current variant evidence', () =>
     await expect(service.fetchSourceImage('fact', image(250))).rejects.toThrow();
     expect(fetcher.fetch).not.toHaveBeenCalled();
   });
+  it('refuses stale evidence for another product in the same CDN folder before fetching its bytes', async () => {
+    const { service, fetcher } = setup();
+    const hero = image(250), unrelated = 'https://back-ac-prod.bioderma.com/another-product.jpg';
+    (service as unknown as { prisma: { productFactProposal: { findUnique: jest.Mock } } }).prisma.productFactProposal.findUnique.mockResolvedValue({
+      skuId: 'sku', field: 'media.sourceImages', status: 'PROPOSED', value: [unrelated],
+      evidence: [{ sourceUrl: page, sourceTier: 'OFFICIAL_MANUFACTURER' }],
+    });
+    fetcher.fetch.mockResolvedValue({ outcome: 'OK', body: Buffer.from(`<h1>Bioderma Sensibio H2O 250 ml</h1><meta property="og:image" content="${hero}"><img srcset="${unrelated} 2000w">`), contentType: 'text/html' });
+    await expect(service.fetchSourceImage('fact', unrelated)).rejects.toMatchObject({ response: { code: 'IMAGE_VARIANT_NOT_CONFIRMED' } });
+    expect(fetcher.fetch).toHaveBeenCalledTimes(1);
+    expect(fetcher.fetch).toHaveBeenCalledWith(page, expect.objectContaining({ kind: 'page' }));
+  });
 });

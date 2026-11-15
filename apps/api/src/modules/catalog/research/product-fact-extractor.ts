@@ -536,8 +536,8 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   if (product) addImage(product.image);
   const og = meta(html, 'og:image');
   if (og && !images.size) addImage(og);
-  // A product page may expose a small hero image but a usable alternate in its gallery.
-  // Keep only gallery files in the hero image's exact directory; other folders can be related products or campaign art.
+  // Shared CDN directories contain other products and campaign art. Expand only
+  // assets already bound by product metadata or the validated native gallery.
   const hero = [...images][0];
   if (hero) {
     const heroUrl = new URL(hero);
@@ -557,14 +557,16 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
         if (url.protocol === 'https:' && url.hostname === heroUrl.hostname && galleryWords.every(word => filename.includes(word))) images.add(url.toString());
       } catch { /* invalid gallery URL */ }
     }
-    const directory = heroUrl.pathname.slice(0, heroUrl.pathname.lastIndexOf('/') + 1);
+    const boundAssets = new Set([...images].map(image => {
+      const url = new URL(image);
+      return `${url.origin}${url.pathname}`;
+    }));
     for (const match of html.matchAll(/(?:data-)?srcset=["']([^"']+)["']/gi)) {
       const options = match[1].replace(/&amp;/g, '&').split(',').map(part => part.trim().split(/\s+/)).filter(parts => parts[0]);
       const best = options.sort((a, b) => (Number.parseInt(b[1] ?? '0', 10) || 0) - (Number.parseInt(a[1] ?? '0', 10) || 0))[0];
       try {
         const url = new URL(best[0], pageUrl);
-        if (url.protocol === 'https:' && url.hostname === heroUrl.hostname && url.pathname.startsWith(directory) &&
-            url.pathname.slice(directory.length).indexOf('/') === -1) images.add(url.toString());
+        if (url.protocol === 'https:' && boundAssets.has(`${url.origin}${url.pathname}`)) images.add(url.toString());
       } catch { /* invalid gallery URL */ }
     }
   }

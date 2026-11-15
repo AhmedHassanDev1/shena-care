@@ -34,11 +34,24 @@ describe('deterministic product fact extraction', () => {
     for (const field of ['identity.gtin', 'composition.inci', 'composition.activeConcentrations', 'composition.fragrance', 'usage.instructions', 'safety.warnings']) expect(fieldOf(facts, field)).toBeUndefined();
   });
 
-  it('includes an exact product gallery image beside the official hero image', () => {
+  it('includes a gallery image explicitly bound to the product beside its official hero', () => {
     const html = page('<img data-srcset="/media/hydra/2.jpg?w=420 420w,/media/hydra/2.jpg?w=1440 1440w"><img data-srcset="/media/other/other.jpg?w=1440 1440w">',
-      '<meta property="og:image" content="https://acme.example/media/hydra/hero-image.png">');
+      '<script type="application/ld+json">{"@type":"Product","name":"Hydra Barrier Cream 50 ml","brand":{"name":"Acme Derma"},"image":["https://acme.example/media/hydra/hero-image.png","https://acme.example/media/hydra/2.jpg?w=1440"]}</script>');
     const images = fieldOf(extractProductFacts(html, 'https://acme.example/hydra', SKU).facts, 'media.sourceImages');
     expect(images).toEqual(['https://acme.example/media/hydra/hero-image.png', 'https://acme.example/media/hydra/2.jpg?w=1440']);
+  });
+
+  it('rejects unrelated srcsets sharing a CDN directory and only expands a bound asset', () => {
+    const html = page(`
+      <img srcset="/cdn/shop/files/hydra.png?width=400 400w,/cdn/shop/files/hydra.png?width=1200 1200w">
+      <img srcset="/cdn/shop/files/home-campaign.png?width=2400 2400w">
+      <img srcset="/cdn/shop/files/other-product.png?width=2000 2000w">`,
+      '<meta property="og:image" content="https://acme.example/cdn/shop/files/hydra.png?width=400">');
+    const result = extractProductFacts(html, 'https://acme.example/products/hydra', SKU);
+    expect(fieldOf(result.facts, 'media.sourceImages')).toEqual([
+      'https://acme.example/cdn/shop/files/hydra.png?width=400',
+      'https://acme.example/cdn/shop/files/hydra.png?width=1200',
+    ]);
   });
 
   it('prefers product-named directions when a page accidentally mixes lotion and cleanser instructions', () => {
