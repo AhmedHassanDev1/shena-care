@@ -50,3 +50,19 @@ This is a development cohort used to expose and repair identity defects, not a b
 PDP readiness, guidance readiness and commercial eligibility are separate. This lane collects no market prices and never publishes. The ten-product pilot separately exercised current retail research; none met the corroborated regular-price gate. Numeric automatic selling-price rules remain unapproved; confirmed order prices are untouched. Whole-order contribution and actual acquisition costs remain owned by Commerce/Hub and current Admin Settings.
 
 `summary.json` in the runtime output records counts, holds, review-demand lower bound, measured time and fetch usage. It refuses a non-completed job or pending rows. The runner exits 2 with `INCOMPLETE_RETRY_SCHEDULED` when durable retries remain; resume the same committed code/output after the source recovers. Do not defeat site rate limits or relabel pending rows as identity failures. Attempt observations retain retry usage; older reports containing only the latest row costs state that limitation. Unmetered network/compute/storage costs stay unknown. Pre-repair and repaired runs keep separate input checksums and denominators.
+
+## Retained observations
+
+All three observations below use the same v2 input fingerprint `0e30624828c27151d9e71fd0fdd4c0571b9c03d5d23aca82dc1582b054fa2a3d`. This development cohort was used for fixes. Source availability differs between runs, so these are not a controlled comparison or blind accuracy study.
+
+| Observation | Identified / correct | Technical PDP | Guidance | Holds / review floor | Published / prices |
+|---|---|---|---|---|---|
+| Exploratory before repair | 19 / 19 | 16 | 11 | 81 unresolved / at least 84 review rows | 0 / 0 |
+| Exploratory after repair, source changed while running | 78 / 78 | 71 | 11 | 22 unresolved / at least 29 review rows | 0 / 0 |
+| Fixed code `8800760`, live run completed 16 November | 2 / 2 | 2 | 0 | 98 retry-exhausted / at least 98 review rows | 0 / 0 |
+
+The fixed-code run completed all 100 row outcomes: two drafts and 98 explicit `RETRY_EXHAUSTED` outcomes after temporary source unavailability. Precision is **2/2**, coverage **2/100**; it is not evidence of universal identity precision. Source rate limiting (HTTP 429 with Retry-After) was observed separately. No source refusal was bypassed. The 98 rows need source recovery/retry, not invented identities or automatic publication.
+
+The recorded 1,921,655 ms wall duration includes retry backoff and orchestration gaps between CLI invocations; it is not a production throughput estimate. Latest/terminal row processing times do not include every prior attempt. Usage records 497 non-cached fetcher page invocations and 12 image invocations, including cooldown/refusal outcomes; these are not exact wire-level request counts. Paid discovery and LLM calls were disabled. Monetary infrastructure cost remains unknown.
+
+`results/` preserves separate exploratory and fixed-code summaries plus verification provenance. The allowlist, public brands and approved draft aliases were rechecked in an explicit read-only transaction on 16 November and were unchanged. Commercial readiness remains zero. The ten-product pilot's separate price research still supplies no corroborated regular-retail reference; historical DEV prices are not approval, and no automatic selling-price formula was activated.

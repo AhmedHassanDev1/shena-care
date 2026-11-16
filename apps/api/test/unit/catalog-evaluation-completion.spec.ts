@@ -14,6 +14,7 @@ describe('evaluation measurement completion', () => {
     ['PROCESSING', 'PENDING', false], ['PROCESSING', 'DRAFT_CREATED', false], ['COMPLETED', 'PENDING', false], ['COMPLETED', 'UNRESOLVED', true],
   ])('validates job %s with 100 %s rows', (status, outcome, complete) => {
     const directory = mkdtempSync(join(tmpdir(), 'shinacare-evaluation-'));
+    if (dirname(resolve(directory)) !== resolve(tmpdir()) || !directory.startsWith(join(tmpdir(), 'shinacare-evaluation-'))) throw new Error('Unexpected temporary test directory');
     try {
       writeFileSync(join(directory, 'runtime.json'), JSON.stringify({ inputSha256, job: { status },
         rows: dataset.rows.map((row: { id: string }, index: number) => ({ expectedId: row.id, rowId: String(index), outcome, actual: null })),
@@ -27,7 +28,6 @@ describe('evaluation measurement completion', () => {
         expect(result.stderr).toContain('Evaluation job is incomplete');
       }
     } finally {
-      if (dirname(resolve(directory)) !== resolve(tmpdir()) || !directory.startsWith(join(tmpdir(), 'shinacare-evaluation-'))) throw new Error('Unexpected temporary test directory');
       rmSync(directory, { recursive: true, force: true });
     }
   });

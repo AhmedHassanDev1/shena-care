@@ -1,0 +1,89 @@
+{
+  "measurementStatus": "EXPLORATORY_WORKTREE_CHANGED_DURING_RUN_NOT_FIXED_COMMIT",
+  "blindHoldout": false,
+  "schema": 1,
+  "seed": "shinacare-eligible-20261115-v2",
+  "policyVersion": 23,
+  "inputSha256": "0e30624828c27151d9e71fd0fdd4c0571b9c03d5d23aca82dc1582b054fa2a3d",
+  "lane": "NAMES_AND_MANUFACTURER_URLS_REAL_OWNER_PIPELINE_NO_PAID_DISCOVERY_NO_PRICE_RESEARCH_NO_PUBLICATION",
+  "database": "/astra_evaluation_hardened_20261115_test",
+  "startedAt": "2026-11-15T10:52:14.998Z",
+  "finishedAt": "2026-11-15T10:59:32.385Z",
+  "elapsedMs": 437387,
+  "rowProcessingMs": 431728,
+  "population": {
+    "requested": 100,
+    "evaluated": 100,
+    "brands": {
+      "Bobai": 4,
+      "Clary Corporation": 7,
+      "Eva Cosmetics": 51,
+      "StarVille": 12,
+      "capixy": 14,
+      "shaan": 12
+    },
+    "languages": {
+      "MIXED_AR_EN": 28,
+      "AR": 22,
+      "EN": 50
+    },
+    "categories": {
+      "sunscreen": 5,
+      "conditioner": 12,
+      "hair-mask": 10,
+      "leave-in": 6,
+      "serum": 8,
+      "shampoo": 12,
+      "face-mask": 1,
+      "hair-oil": 9,
+      "hair-styling": 7,
+      "moisturizer": 16,
+      "cleanser": 8,
+      "body-moisturizer": 2,
+      "lip-care": 4
+    },
+    "distinctPhysicalSizes": 34,
+    "knownMultipacks": 1
+  },
+  "identities": {
+    "identified": 78,
+    "correct": 78,
+    "incorrect": 0,
+    "precision": 1,
+    "coverage": 0.78,
+    "oracle": "Literal manufacturer title after brand/measurement formatting removal, canonical brand, net content, unit and pack count. This is not an independent expert formulation or GTIN audit."
+  },
+  "outcomes": {
+    "DRAFT_CREATED": 78,
+    "UNRESOLVED": 22
+  },
+  "holds": {
+    "NO_IDENTITY_SOURCE": 22
+  },
+  "technicalPdpReady": 71,
+  "guidanceReady": 11,
+  "commercialEligibility": {
+    "ready": 0,
+    "published": 0,
+    "sellingPrices": 0,
+    "boundary": "Draft-only evaluation; no price research in this lane and no approved automatic selling-price policy. PDP readiness is not commercial publication approval."
+  },
+  "intervention": {
+    "unresolvedRows": 22,
+    "additionalPdpOrCriticalRows": 7,
+    "minimumReviewRows": 29,
+    "boundary": "Lower bound on review demand, not a timed human-labeling study. Pricing approval and missing guidance evidence are separate."
+  },
+  "cost": {
+    "usage": {
+      "searches": 0,
+      "pageFetches": 100,
+      "imageFetches": 199
+    },
+    "paidDiscoveryRequests": 0,
+    "llmRequests": 0,
+    "currencyCost": null,
+    "boundary": "No paid discovery or LLM calls configured. Network/compute/storage costs were not metered; an unknown monetary cost is not reported as zero."
+  },
+  "mismatches": []
+}

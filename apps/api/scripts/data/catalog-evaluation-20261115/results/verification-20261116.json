@@ -1,0 +1,90 @@
+{
+  "sourceBinding": {
+    "verified": 100,
+    "total": 100,
+    "boundary": "Archived manufacturer HTML hash and native primary Product/title/URL binding, not fact or commercial approval."
+  },
+  "policyReadOnlyRefresh": {
+    "observedAt": "2026-11-16T00:36:04.315Z",
+    "version": 23,
+    "unchangedDocument": true,
+    "unchangedPublicBrandsAndApprovedDrafts": true
+  },
+  "fullApi": {
+    "head": "8800760fb1fc61c7bd020c718cac3678a37a654b",
+    "exit": 1,
+    "suitesPassed": 152,
+    "suitesFailed": 29,
+    "testsPassed": 1243,
+    "testsFailed": 103,
+    "skipped": 0,
+    "addedFailureAgainstBaseline": "catalog-identity-gate: expected 409, observed 500; local PostgreSQL connection failure is retained in logs. Focused integrated gate passed.",
+    "boundary": "Release gate remains RED. Later search spellings/currency guards have focused and real-pilot proof; no newer full-suite PASS is claimed."
+  },
+  "integratedFocused": {
+    "head": "8800760fb1fc61c7bd020c718cac3678a37a654b",
+    "suites": 14,
+    "testsPassed": 111,
+    "testsFailed": 0
+  },
+  "pythonOffline": {
+    "testsPassed": 111,
+    "skippedOptInLive": 3,
+    "exit": 0,
+    "boundary": "Existing venv; mocks/fake transport; not live-provider proof."
+  },
+  "lastLiveAiProbe": {
+    "head": "229a837bc4d7c97ad6a5fd5f6471f5ecd6d00778",
+    "codeChangedDuringRun": false,
+    "exit": 0,
+    "testsPassed": 1,
+    "deselected": 2,
+    "lane": "SYNTHETIC_CONTRACT_FIXTURES_FREE_ONLY_NO_PAID_FALLBACK_DATA_COLLECTION_DENY",
+    "usage": [
+      {
+        "day": "2026-11-16",
+        "dayCostUsd": 0,
+        "requestsLastMinute": 1,
+        "byTask": {
+          "consult.respond": {
+            "calls": 1,
+            "failures": 0,
+            "fallbacks": 1,
+            "promptTokens": 1319,
+            "completionTokens": 982,
+            "costUsd": 0,
+            "avgLatencyMs": 7399.8
+          }
+        },
+        "byModel": {
+          "baidu/ernie-5.5-flash-preview:free": {
+            "calls": 1,
+            "failures": 0,
+            "fallbacks": 1,
+            "promptTokens": 1319,
+            "completionTokens": 982,
+            "costUsd": 0,
+            "avgLatencyMs": 7399.8
+          }
+        },
+        "recentErrors": []
+      }
+    ],
+    "boundary": "One live response contract fixture, not sustained reliability or semantic grounding approval. Earlier runs include a Windows stdout-encoding failure, an actual mandatory-reasoning 400 and an actual incomplete-JSON/long-response failure; all are retained. No paid fallback or privacy relaxation was used."
+  },
+  "realPilotHttpSearch": {
+    "head": "229a837bc4d7c97ad6a5fd5f6471f5ecd6d00778",
+    "queries": 15,
+    "expectedIdentitiesPresent": 15,
+    "invalidSortStatus": 400,
+    "privateFilterStatus": 400,
+    "sortedAmountsAscending": true,
+    "countsUnchanged": true,
+    "latencyMs": {
+      "p50": 47.7494999999999,
+      "p95": 163.8119999999999,
+      "maximum": 831.8752000000004
+    },
+    "boundary": "PUBLIC_HTTP_READS_RESTORED_REAL_TEN_PRODUCT_PILOT_HISTORICAL_DEV_PRICES_NOT_COMMERCIAL_APPROVAL; fifteen sequential local reads over the retained ten-product pilot, not a production-scale SLO."
+  }
+}

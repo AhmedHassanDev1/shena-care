@@ -1,0 +1,121 @@
+{
+  "measurementStatus": "COMPLETED_REAL_PIPELINE_WITH_SOURCE_AVAILABILITY_FAILURES",
+  "blindHoldout": false,
+  "timeBoundary": "Elapsed time includes durable retry backoff and orchestration gaps between CLI invocations. rowProcessingMs sums latest/terminal row measurements, not all attempts. This is not a production throughput estimate.",
+  "usageBoundary": "Fetch counters are non-cached fetcher invocations, including refusals/cooldowns; they are not exact wire-level HTTP request counts.",
+  "schema": 1,
+  "seed": "shinacare-eligible-20261115-v2",
+  "policyVersion": 23,
+  "inputSha256": "0e30624828c27151d9e71fd0fdd4c0571b9c03d5d23aca82dc1582b054fa2a3d",
+  "code": {
+    "head": "8800760fb1fc61c7bd020c718cac3678a37a654b",
+    "sourceDiff": "",
+    "files": {
+      "src/application/composition/services/intake/admin-intake.service.ts": "91df6974cd17bea4f4fe2f75c09890e08ea3ceb6727f6c2b7834de43b7621ac3",
+      "src/application/composition/services/intake/catalog-enrichment.service.ts": "a42c4befe834b254a21acaf021138d3db6db42eb986ea15f06754e4607d50df8",
+      "src/modules/catalog/research/product-fact-extractor.ts": "3973faa3a3a4fdd4c05aebd2c6cae4fe1add556d9a270c3d03fdd0d467a73738",
+      "src/modules/catalog/research/canonical-research.service.ts": "ce3679870159dac68270366bcb6e171237a4ed53e712c444712ba4d01900d1d6",
+      "src/modules/catalog/research/brand-aliases.ts": "91a0189d5673eedf998be60c6c1baafdf67fae499ede1014f714f6f8665f561c",
+      "src/modules/intake/lib/intake-text.ts": "84109e9ac655b1a6941ed220cc1b70cd5ec2a7b5b7b7c86f01039500ac7e035d",
+      "src/modules/intake/lib/matching.ts": "77673fd2218ebc9f0e379bdfb7b565ca4174d008b177e12cefa2e585cef698ed",
+      "scripts/lib/catalog-evaluation-oracle.ts": "c0936a29a9c02cd0829c62f70b5e5f595aa7990e70d2a98107b18a1e86397b58"
+    }
+  },
+  "codeAfter": {
+    "head": "8800760fb1fc61c7bd020c718cac3678a37a654b",
+    "sourceDiff": "",
+    "files": {
+      "src/application/composition/services/intake/admin-intake.service.ts": "91df6974cd17bea4f4fe2f75c09890e08ea3ceb6727f6c2b7834de43b7621ac3",
+      "src/application/composition/services/intake/catalog-enrichment.service.ts": "a42c4befe834b254a21acaf021138d3db6db42eb986ea15f06754e4607d50df8",
+      "src/modules/catalog/research/product-fact-extractor.ts": "3973faa3a3a4fdd4c05aebd2c6cae4fe1add556d9a270c3d03fdd0d467a73738",
+      "src/modules/catalog/research/canonical-research.service.ts": "ce3679870159dac68270366bcb6e171237a4ed53e712c444712ba4d01900d1d6",
+      "src/modules/catalog/research/brand-aliases.ts": "91a0189d5673eedf998be60c6c1baafdf67fae499ede1014f714f6f8665f561c",
+      "src/modules/intake/lib/intake-text.ts": "84109e9ac655b1a6941ed220cc1b70cd5ec2a7b5b7b7c86f01039500ac7e035d",
+      "src/modules/intake/lib/matching.ts": "77673fd2218ebc9f0e379bdfb7b565ca4174d008b177e12cefa2e585cef698ed",
+      "scripts/lib/catalog-evaluation-oracle.ts": "c0936a29a9c02cd0829c62f70b5e5f595aa7990e70d2a98107b18a1e86397b58"
+    }
+  },
+  "codeChangedDuringRun": false,
+  "lane": "NAMES_AND_MANUFACTURER_URLS_REAL_OWNER_PIPELINE_NO_PAID_DISCOVERY_NO_PRICE_RESEARCH_NO_PUBLICATION",
+  "database": "/astra_evaluation_live_20261116_test",
+  "startedAt": "2026-11-16T00:39:35.971Z",
+  "finishedAt": "2026-11-16T01:11:37.626Z",
+  "elapsedMs": 1921655,
+  "rowProcessingMs": 28557,
+  "population": {
+    "requested": 100,
+    "evaluated": 100,
+    "brands": {
+      "Bobai": 4,
+      "Clary Corporation": 7,
+      "Eva Cosmetics": 51,
+      "StarVille": 12,
+      "capixy": 14,
+      "shaan": 12
+    },
+    "languages": {
+      "MIXED_AR_EN": 28,
+      "AR": 22,
+      "EN": 50
+    },
+    "categories": {
+      "sunscreen": 5,
+      "conditioner": 12,
+      "hair-mask": 10,
+      "leave-in": 6,
+      "serum": 8,
+      "shampoo": 12,
+      "face-mask": 1,
+      "hair-oil": 9,
+      "hair-styling": 7,
+      "moisturizer": 16,
+      "cleanser": 8,
+      "body-moisturizer": 2,
+      "lip-care": 4
+    },
+    "distinctPhysicalSizes": 34,
+    "knownMultipacks": 1
+  },
+  "identities": {
+    "identified": 2,
+    "correct": 2,
+    "incorrect": 0,
+    "precision": 1,
+    "coverage": 0.02,
+    "oracle": "Literal manufacturer title after brand/measurement formatting removal, canonical brand, net content, unit and pack count. This is not an independent expert formulation or GTIN audit."
+  },
+  "outcomes": {
+    "DRAFT_CREATED": 2,
+    "UNRESOLVED": 98
+  },
+  "holds": {
+    "RETRY_EXHAUSTED": 98
+  },
+  "technicalPdpReady": 2,
+  "guidanceReady": 0,
+  "commercialEligibility": {
+    "ready": 0,
+    "published": 0,
+    "sellingPrices": 0,
+    "boundary": "Draft-only evaluation; no price research in this lane and no approved automatic selling-price policy. PDP readiness is not commercial publication approval."
+  },
+  "intervention": {
+    "unresolvedRows": 98,
+    "additionalPdpOrCriticalRows": 0,
+    "minimumReviewRows": 98,
+    "boundary": "Lower bound on review demand, not a timed human-labeling study. Pricing approval and missing guidance evidence are separate."
+  },
+  "cost": {
+    "usage": {
+      "searches": 0,
+      "pageFetches": 497,
+      "imageFetches": 12
+    },
+    "paidDiscoveryRequests": 0,
+    "llmRequests": 0,
+    "currencyCost": null,
+    "observationBasis": "Recorded attempt outcomes including retry observations",
+    "boundary": "No paid discovery or LLM calls configured. Network/compute/storage costs were not metered; an unknown monetary cost is not reported as zero."
+  },
+  "mismatches": []
+}
