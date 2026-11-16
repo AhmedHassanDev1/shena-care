@@ -1,4 +1,21 @@
 {
+  "currentMainVerification": {
+    "head": "b75c23074c69413cd92eb3115b856e0344309e16",
+    "apiFocusedSuites": 17,
+    "apiTestsPassed": 159,
+    "apiTestsFailed": 0,
+    "pythonTestsPassed": 111,
+    "pythonOptInLiveSkipped": 3,
+    "typecheckExit": 0,
+    "targetedLintExit": 0,
+    "apiBuildExit": 0,
+    "realPilotHttpQueries": 15,
+    "realPilotExpectedIdentitiesPresent": 15,
+    "invalidSortStatus": 400,
+    "privateVisibilityInputStatus": 400,
+    "pilotCatalogCountsUnchanged": true,
+    "boundary": "Fresh checks on locally integrated main. This evidence-only follow-up does not change production source. The earlier complete API suite remains RED."
+  },
   "sourceBinding": {
     "verified": 100,
     "total": 100,
