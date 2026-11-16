@@ -1,5 +1,6 @@
 """Gateway behaviour against a fake OpenRouter (httpx.MockTransport): no network, no key spent."""
 
+import asyncio
 import json
 
 import httpx
@@ -42,6 +43,30 @@ def _ok(content: dict | str, model="anthropic/claude-haiku-5.5", cost=0.0004):
 
 def _gateway(handler):
     return LlmGateway(transport=httpx.MockTransport(handler), sleep=_no_sleep)
+
+
+async def test_complete_request_has_a_wall_clock_deadline_even_when_bytes_keep_arriving(monkeypatch):
+    monkeypatch.setenv("AI_LLM_MAX_RETRIES", "0")
+    monkeypatch.setenv("AI_MODEL_CONFIG_JSON", json.dumps({"consult.understand": {"timeout_s": 0.05}}))
+    get_settings.cache_clear()
+    model_config.reset_model_config_cache()
+    state = {"closed": False}
+
+    class Trickle(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            for _ in range(100):
+                yield b" "
+                await asyncio.sleep(0.01)
+            yield b'{"choices":[{"message":{"content":"{}"}}]}'
+
+        async def aclose(self):
+            state["closed"] = True
+
+    gateway = _gateway(lambda _request: httpx.Response(200, stream=Trickle()))
+    with pytest.raises(ProviderUnavailableError):
+        await asyncio.wait_for(gateway.complete_json("consult.understand", system="s", user="u"), 0.5)
+    assert state["closed"]
+    assert ledger.snapshot()["byTask"]["consult.understand"]["failures"] == 1
 
 
 async def test_sends_models_in_fallback_order_with_privacy_and_schema():

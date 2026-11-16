@@ -229,12 +229,14 @@ class LlmGateway:
         async with httpx.AsyncClient(**client_options) as client:
             for attempt in range(1, max_attempts + 1):
                 try:
-                    response = await client.post(
+                    # httpx's read timeout restarts whenever bytes arrive. Bound
+                    # the whole non-streaming attempt, including a trickled body.
+                    response = await asyncio.wait_for(client.post(
                         f"{self._settings.openrouter_base_url}/chat/completions",
                         headers=self._headers(),
                         json=self._payload(cfg, models, chat, schema, schema_name),
-                    )
-                except httpx.TimeoutException as exc:
+                    ), timeout=cfg.timeout_s)
+                except (httpx.TimeoutException, TimeoutError) as exc:
                     last_error = ProviderUnavailableError(f"OpenRouter timed out after {cfg.timeout_s}s")
                     logger.warning("llm timeout task=%s attempt=%s", task, attempt)
                 except httpx.RequestError as exc:
