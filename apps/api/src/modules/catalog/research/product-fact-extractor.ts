@@ -2,13 +2,13 @@ import { createHash } from 'crypto';
 import { isValidGtin } from '../../../platform/security/gtin';
 import { readProductType } from './product-type';
 import { rinseMode } from './catalog-decision-engine';
-import { compareTitles, foldIdentityText, hasArabic, parseIdentityTitle } from './identity-text';
+import { compareTitles, foldIdentityText, gtinKey, hasArabic, parseIdentityTitle } from './identity-text';
 
 /**
  * Deterministic extraction of product facts from one fetched page. Everything returned is literally on that page and carries the excerpt that states it; anything else
  * stays unknown. Versioned because a stored proposal must say which rules produced it.
  */
-export const RESEARCH_SCHEMA_VERSION = 5;
+export const RESEARCH_SCHEMA_VERSION = 6;
 
 export type FactField =
   | 'identity.name' | 'identity.brand' | 'identity.gtin' | 'identity.size'
@@ -30,10 +30,14 @@ export const ALL_FACT_FIELDS: readonly FactField[] = [
 export const CRITICAL_FACT_PREFIXES = ['identity.', 'composition.', 'safety.'];
 
 export interface ExtractedFact { field: FactField; value: unknown; excerpt: string }
-export interface SkuExpectation { brand: string; brandAliases?: string[]; productName: string; size: number | null; sizeUnit: string | null; barcode: string | null }
+export interface SkuExpectation {
+  brand: string; brandAliases?: string[]; productName: string; size: number | null; sizeUnit: string | null; barcode: string | null;
+  /** Existing canonical primary and approved aliases, supplied by their owner. Pre-identity lookup does not assert this set. */
+  knownBarcodes?: string[];
+}
 export interface PageExtraction {
   facts: ExtractedFact[];
-  rejected: Array<{ field: string; reason: string; detail?: string }>;
+  rejected: Array<{ field: string; reason: string; detail?: string; value?: unknown }>;
   /** False when the page is about something else: nothing from it may describe this SKU. */
   identityMatched: boolean;
 }
@@ -346,6 +350,11 @@ export function extractProductFacts(html: string, pageUrl: string, sku: SkuExpec
   const unambiguousSize = sku.size !== null && (titleSizes.length ? titleSizes : bodySizes).length > 0
     && (titleSizes.length ? titleSizes : bodySizes).every(stated);
   const gtin = product && products.length === 1 && unambiguousSize ? gtinOf(product) : null;
+  const known = new Set((sku.knownBarcodes ?? []).filter(isValidGtin).map(gtinKey));
+  if (gtin && known.size && !known.has(gtinKey(gtin))) {
+    rejected.push({ field: 'identity.gtin', reason: 'BARCODE_MISMATCH', value: gtin, detail: `Native product GTIN ${gtin} differs from the canonical SKU's known barcodes` });
+    return { facts: [], rejected, identityMatched: false };
+  }
   if (gtin) add('identity.gtin', gtin, `structured data gtin: ${gtin}`);
 
   // INCI

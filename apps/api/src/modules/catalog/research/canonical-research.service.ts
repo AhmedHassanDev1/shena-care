@@ -15,6 +15,7 @@ import { hostIsBrandDomain, ValidatedFacts } from './research-evidence';
 import { FetchedSource, RETRYABLE_OUTCOMES, ResearchSourceFetcher } from './research-source-fetcher';
 import { discoverProductSources, isVerifiedBrandShop } from './product-source-discovery';
 import { curatedSpellings, verifiedProfileAliases } from './brand-aliases';
+import { gtinKey } from './identity-text';
 
 export type SourceTier = 'OFFICIAL_MANUFACTURER' | 'TRUSTED_DISTRIBUTOR' | 'RETAILER';
 export interface RunSource { url: string; tier: SourceTier; origin: 'ADMIN' | 'PROVIDER'; outcome: string; detail?: string; contentHash?: string; fetchedAt?: string; factCount?: number }
@@ -141,7 +142,8 @@ export class CanonicalResearchService {
   }
 
   private async skuContext(skuId: string) {
-    const sku = await this.prisma.sku.findUnique({ where: { id: skuId }, include: { product: { include: { brand: true } } } });
+    const sku = await this.prisma.sku.findUnique({ where: { id: skuId }, include: { product: { include: { brand: true } },
+      barcodeAliases: { where: { status: 'approved' }, select: { barcode: true } } } });
     if (!sku) throw new NotFoundException('Canonical SKU not found');
     return sku;
   }
@@ -154,7 +156,8 @@ export class CanonicalResearchService {
     const document = policy?.document as { brands?: Array<{ id: string; effect?: string | null; aliases?: string[] }> } | undefined;
     const rule = document?.brands?.find(brand => brand.id === sku.product.brandId && brand.effect === 'ALLOW');
     const aliases = [...(rule?.aliases ?? []), ...drafts.flatMap(draft => draft.aliases), ...verifiedProfileAliases(sku.product.brand.profile), ...curatedSpellings(sku.product.brand.name)];
-    return { brand: sku.product.brand.name, brandAliases: [...new Set(aliases)], productName: sku.product.name, size: sku.size?.toNumber() ?? null, sizeUnit: sku.sizeUnit, barcode: sku.barcode };
+    return { brand: sku.product.brand.name, brandAliases: [...new Set(aliases)], productName: sku.product.name, size: sku.size?.toNumber() ?? null, sizeUnit: sku.sizeUnit, barcode: sku.barcode,
+      knownBarcodes: [sku.barcode, ...(sku.barcodeAliases ?? []).map(alias => alias.barcode)].filter((barcode): barcode is string => !!barcode) };
   }
 
   private approvedHost(sku: Awaited<ReturnType<CanonicalResearchService['skuContext']>>) {
@@ -386,6 +389,8 @@ export class CanonicalResearchService {
 
     try {
       const collected: Array<{ fact: ExtractedFact; evidence: FactEvidence }> = [];
+      const barcodeConflictingSources = new Set<string>();
+      const sourceKey = (raw: string) => { const url = new URL(raw); url.hash = ''; return url.href; };
       for (const source of sources) {
         if (source.outcome !== 'PENDING' && !RETRYABLE_OUTCOMES.has(source.outcome as FetchedSource['outcome'])) continue;
         const fetched = await this.fetcher.fetch(source.url, { kind: 'page', isApprovedHost: isApproved, bypassCache: source.outcome !== 'PENDING' });
@@ -394,6 +399,17 @@ export class CanonicalResearchService {
         const extraction = extractProductFacts(fetched.body.toString('utf8'), fetched.finalUrl, expected);
         rejected.push(...extraction.rejected.map(item => ({ ...item, sourceUrl: source.url })));
         source.factCount = extraction.facts.length;
+        for (const refusal of extraction.rejected) {
+          if (refusal.reason !== 'BARCODE_MISMATCH' || typeof refusal.value !== 'string') continue;
+          barcodeConflictingSources.add(sourceKey(source.url));
+          barcodeConflictingSources.add(sourceKey(fetched.finalUrl));
+          // Retain the contradiction for the existing review/publication hold;
+          // none of this page's formula or other descriptive facts may enter.
+          const excerpt = refusal.detail ?? `Native product GTIN: ${refusal.value}`;
+          collected.push({ fact: { field: 'identity.gtin', value: refusal.value, excerpt }, evidence: {
+            sourceUrl: fetched.finalUrl, sourceTier: source.tier, excerpt, observedAt: fetched.fetchedAt,
+            contentHash: fetched.contentHash, extractor: `deterministic@${RESEARCH_SCHEMA_VERSION}` } });
+        }
         for (const fact of extraction.facts) {
           collected.push({ fact, evidence: { sourceUrl: fetched.finalUrl, sourceTier: source.tier, excerpt: fact.excerpt, observedAt: fetched.fetchedAt, contentHash: fetched.contentHash, extractor: `deterministic@${RESEARCH_SCHEMA_VERSION}` } });
         }
@@ -410,6 +426,10 @@ export class CanonicalResearchService {
         }
         rejected.push(...(result.rejectedFacts ?? []).map(item => ({ field: item.field, reason: item.reason, value: item.value })));
         for (const reading of result.sourceReadings ?? []) {
+          if (barcodeConflictingSources.has(sourceKey(reading.source.url))) {
+            rejected.push({ field: '*', reason: 'BARCODE_CONFLICTING_SOURCE', sourceUrl: reading.source.url });
+            continue;
+          }
           const recorded = sources.find(source => source.url === reading.source.url);
           if (recorded) Object.assign(recorded, { outcome: 'OK', fetchedAt: result.researchedAt });
           for (const fact of this.factsFromProvider(reading.facts, reading.evidences, reading.contentKind)) {
@@ -552,7 +572,7 @@ export class CanonicalResearchService {
         return; // Evidence only: identity is confirmed by people at intake, claims stay marked as the manufacturer's words, and images enter through media review.
       case 'identity.gtin': {
         const gtin = fact.value as string;
-        if (sku.barcode === gtin) return;
+        if ((sku.barcode && gtinKey(sku.barcode) === gtinKey(gtin)) || (sku.barcodeAliases ?? []).some(alias => gtinKey(alias.barcode) === gtinKey(gtin))) return;
         if (sku.barcode) throw new ConflictException({ code: 'CATALOG_VALUE_EXISTS', message: 'This SKU has a different barcode; resolve the identity by hand', current: sku.barcode });
         await this.catalog.updateSku(sku.id, { barcode: gtin });
         // Only a manufacturer's own statement verifies a barcode; anything else is recorded as an Admin assertion.

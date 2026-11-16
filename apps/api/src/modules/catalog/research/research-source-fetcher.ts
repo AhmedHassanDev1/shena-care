@@ -19,6 +19,7 @@ export interface FetchedSource {
   contentHash?: string;
   fetchedAt: string;
   detail?: string;
+  retryAfterAt?: string;
 }
 
 /** Whether a failure says something about this attempt (worth resuming) or about the source itself (not). */
@@ -145,6 +146,7 @@ export class ResearchSourceFetcher {
   private readonly robots = new Map<string, { expires: number; rules: RobotsRules }>();
   private readonly breakers = new Map<string, { failures: number; openUntil: number }>();
   private readonly lastRequest = new Map<string, number>();
+  private readonly rateLimits = new Map<string, number>();
 
   constructor(@Optional() @Inject(RESEARCH_TRANSPORT) private readonly transport: ResearchTransport = new NodeResearchTransport()) {}
 
@@ -178,7 +180,7 @@ export class ResearchSourceFetcher {
       const res = await this.transport.get(`${url.origin}/robots.txt`, { accept: 'text/plain', timeoutMs: FETCH_TIMEOUT_MS });
       if (res.status === 200) rules = parseRobots(Buffer.from(await res.arrayBuffer()).toString('utf8'));
       else if (res.status === 404 || res.status === 410) rules = { allows: [], disallows: [] };
-      else if (res.status === 429) return 'RATE_LIMITED';
+      else if (res.status === 429) { this.rateLimit(url.host, res.headers.get('retry-after')); return 'RATE_LIMITED'; }
       else if (res.status >= 400 && res.status < 500) return 'ROBOTS_DISALLOWED';
       else return 'UPSTREAM_ERROR';
     } catch {
@@ -186,6 +188,15 @@ export class ResearchSourceFetcher {
     }
     this.robots.set(url.host, { expires: Date.now() + ROBOTS_TTL_MS, rules });
     return rules;
+  }
+
+  private rateLimit(host: string, header: string | null): number {
+    const now = Date.now();
+    const parsed = header && /^\d+$/.test(header.trim()) ? now + Number(header.trim()) * 1000 : header ? Date.parse(header) : NaN;
+    const until = Number.isFinite(parsed) && parsed >= now && parsed <= 8.64e15 ? parsed : now + 60_000;
+    const deadline = Math.max(until, this.rateLimits.get(host) ?? 0);
+    this.rateLimits.set(host, deadline);
+    return deadline;
   }
 
   private tripped(host: string) {
@@ -224,9 +235,13 @@ export class ResearchSourceFetcher {
       if (!options.isApprovedHost(current.hostname.toLowerCase())) return fail(current.toString(), 'HOST_NOT_APPROVED', current.hostname);
       hosts.push(current.hostname.toLowerCase());
       if (!(await this.assertPublic(current))) return fail(current.toString(), 'UNSAFE_URL');
+      const limitedUntil = this.rateLimits.get(current.host) ?? 0;
+      if (limitedUntil > Date.now()) return { ...fail(current.toString(), 'RATE_LIMITED', 'Waiting for the source Retry-After deadline'), retryAfterAt: new Date(limitedUntil).toISOString() };
+      this.rateLimits.delete(current.host);
       if (this.tripped(current.host)) return fail(current.toString(), 'CIRCUIT_OPEN');
       const rules = await this.robotsFor(current);
-      if (typeof rules === 'string') return fail(current.toString(), rules, 'robots.txt could not be read');
+      if (typeof rules === 'string') return { ...fail(current.toString(), rules, 'robots.txt could not be read'),
+        ...(rules === 'RATE_LIMITED' && { retryAfterAt: new Date(this.rateLimits.get(current.host)!).toISOString() }) };
       if (!robotsAllows(rules, `${current.pathname}${current.search}`)) return fail(current.toString(), 'ROBOTS_DISALLOWED');
 
       const outcome = await this.request(current, options.kind);
@@ -264,9 +279,13 @@ export class ResearchSourceFetcher {
       }
       if (res.status === 401 || res.status === 403 || res.status === 451) return { source: source('ACCESS_DENIED', `HTTP ${res.status}`) };
       if (res.status === 404 || res.status === 410) return { source: source('NOT_FOUND', `HTTP ${res.status}`) };
-      if (res.status === 429 || res.status >= 500) {
+      if (res.status === 429) {
+        const until = this.rateLimit(url.host, res.headers.get('retry-after'));
+        return { source: source('RATE_LIMITED', 'HTTP 429', { retryAfterAt: new Date(until).toISOString() }) };
+      }
+      if (res.status >= 500) {
         this.record(url.host, false);
-        last = source(res.status === 429 ? 'RATE_LIMITED' : 'UPSTREAM_ERROR', `HTTP ${res.status}`);
+        last = source('UPSTREAM_ERROR', `HTTP ${res.status}`);
         continue;
       }
       if (res.status !== 200) return { source: source('UPSTREAM_ERROR', `HTTP ${res.status}`) };
@@ -304,5 +323,6 @@ export class ResearchSourceFetcher {
     this.robots.clear();
     this.breakers.clear();
     this.lastRequest.clear();
+    this.rateLimits.clear();
   }
 }

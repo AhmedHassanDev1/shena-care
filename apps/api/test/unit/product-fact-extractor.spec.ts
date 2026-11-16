@@ -7,6 +7,18 @@ const page = (body: string, head = '') => `<html><head><title>Acme Derma Hydra B
 const fieldOf = (facts: Array<{ field: string; value: unknown }>, field: string) => facts.find(fact => fact.field === field)?.value;
 
 describe('deterministic product fact extraction', () => {
+  it('does not enrich an established canonical SKU from a page with a conflicting known GTIN', () => {
+    const html = page('<h2>Ingredients</h2><p>AQUA, GLYCERIN, PARFUM</p>', '<script type="application/ld+json">{"@type":"Product","name":"Hydra Barrier Cream 50 ml","gtin13":"6223012632708"}</script>');
+    const expected = { ...SKU, knownBarcodes: ['3337875597180'] };
+    expect(extractProductFacts(html, 'https://acme.example/hydra', expected)).toMatchObject({ identityMatched: false, facts: [],
+      rejected: expect.arrayContaining([expect.objectContaining({ reason: 'BARCODE_MISMATCH' })]) });
+  });
+  it('accepts an explicitly approved canonical barcode alias, including zero padding', () => {
+    const html = page('<h2>Ingredients</h2><p>AQUA, GLYCERIN, PARFUM</p>', '<script type="application/ld+json">{"@type":"Product","name":"Hydra Barrier Cream 50 ml","gtin14":"06223012632708"}</script>');
+    const expected = { ...SKU, knownBarcodes: ['3337875597180', '6223012632708'] };
+    expect(extractProductFacts(html, 'https://acme.example/hydra', expected)).toMatchObject({ identityMatched: true,
+      facts: expect.arrayContaining([expect.objectContaining({ field: 'composition.inci' })]) });
+  });
   it.each(['1 liter', '1 litre', '١ لتر', '۱ لیتر'])(
     'confirms the explicitly stated litre size without losing a wrong-size veto: %s', measure => {
       const html = `<h1>Acme Derma Hydra Barrier Cream ${measure}</h1>`;
@@ -185,6 +197,41 @@ describe('research source safety', () => {
     };
   };
   const approved = () => true;
+
+  it.each(['60', 'HTTP_DATE', 'invalid'])("honours a source's Retry-After without another request: %s", header => {
+    const clock = jest.spyOn(Date, 'now');
+    let now = Date.now(), limited = true;
+    clock.mockImplementation(() => now);
+    const retryAfter = header === 'HTTP_DATE' ? new Date(now + 60_000).toUTCString() : header;
+    const t = site({ 'https://acme.example/robots.txt': () => ({ status: 404 }),
+      'https://acme.example/x': () => limited ? { status: 429, headers: { 'retry-after': retryAfter } } : { status: 200, body: '<html>ok</html>' } });
+    const fetcher = new ResearchSourceFetcher(t);
+    return (async () => {
+      try {
+        expect((await fetcher.fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved })).outcome).toBe('RATE_LIMITED');
+        expect(t.calls.filter(url => url.endsWith('/x'))).toHaveLength(1);
+        expect((await fetcher.fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved, bypassCache: true })).outcome).toBe('RATE_LIMITED');
+        expect(t.calls.filter(url => url.endsWith('/x'))).toHaveLength(1);
+        now += 61_000; limited = false;
+        expect((await fetcher.fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved })).outcome).toBe('OK');
+      } finally { clock.mockRestore(); }
+    })();
+  });
+
+  it('keeps rate-limited robots unknown, respects its cooldown, and reads the rules after recovery', async () => {
+    const clock = jest.spyOn(Date, 'now');
+    let now = Date.now(), limited = true;
+    clock.mockImplementation(() => now);
+    const t = site({ 'https://acme.example/robots.txt': () => limited ? { status: 429, headers: { 'retry-after': '60' } } : { status: 200, body: 'User-agent: *\nDisallow: /' } });
+    const fetcher = new ResearchSourceFetcher(t);
+    try {
+      for (let i = 0; i < 2; i++) expect((await fetcher.fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved })).outcome).toBe('RATE_LIMITED');
+      expect(t.calls).toEqual(['https://acme.example/robots.txt']);
+      now += 61_000; limited = false;
+      expect((await fetcher.fetch('https://acme.example/x', { kind: 'page', isApprovedHost: approved })).outcome).toBe('ROBOTS_DISALLOWED');
+      expect(t.calls).toEqual(['https://acme.example/robots.txt', 'https://acme.example/robots.txt']);
+    } finally { clock.mockRestore(); }
+  });
 
   it('rechecks both original and redirected cached hosts against each caller policy', async () => {
     const t = site({
