@@ -45,6 +45,19 @@ describe('Arabic/English PostgreSQL search retrieval', () => {
   it('supports a bounded spelling error and exact line filtering', async () => {
     expect(await search('cleasner', { productLine: `hydrating-${run}` })).toEqual([ids.cleanser]);
   });
+  it.each(['لوريال شامبو', 'L’Oreal shampoo'])('retrieves the Paris consumer brand for its common search spelling: %s', async q => {
+    const previous = await db.brand.findUnique({ where: { name: "L'Oréal Paris" } });
+    const brand = previous ?? await db.brand.create({ data: { name: "L'Oréal Paris", slug: `loreal-paris-${run}` } });
+    const product = await db.product.create({ data: { name: 'Elvive Hyaluron Shampoo', brandId: brand.id, slug: `loreal-${randomUUID()}`, isPublished: true } });
+    try {
+      await db.sku.create({ data: { productId: product.id, code: `ELVIVE-${randomUUID()}`, variantName: '200 ml' } });
+      expect(await provider.search({ q, brand: brand.slug, snapshotAt: new Date() })).toContain(product.id);
+    } finally {
+      await db.sku.deleteMany({ where: { productId: product.id } });
+      await db.product.delete({ where: { id: product.id } });
+      if (!previous) await db.brand.delete({ where: { id: brand.id } });
+    }
+  });
   it('ranks the exact SKU code before a product with that text as its name', async () => {
     const code = `cleanser-${run}`;
     await db.product.update({ where: { id: ids.cream }, data: { name: code } });

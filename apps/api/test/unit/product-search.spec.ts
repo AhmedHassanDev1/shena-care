@@ -6,13 +6,20 @@ describe('product search', () => {
     const ids = ['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002'];
     const products = ids.map(id => ({ id, name: 'Serum', concerns: [], brand: { name: 'Brand', slug: 'brand' } }));
     const service = new DiscoveryService({ getPublishedProductsByIds: async () => products } as never,
-      { composeProducts: async () => products.map((p, index) => ({ ...p, skus: [{ id: p.id, price: { amount: index ? 50 : 100 } }] })) } as never,
+      { composeProducts: async () => products.map((p, index) => ({ ...p, skus: [{ id: p.id, price: { amount: index ? 50 : 100, currency: 'EGP' } }] })) } as never,
       { search: async () => ids } as never, { getPublicConcerns: async () => [] } as never);
     const first = await service.discover({ q: 'serum', sort: 'price-asc', limit: 1 } as never);
     expect(first.items.map(p => p.id)).toEqual([ids[1]]);
     const next = await service.discover({ q: 'serum', sort: 'price-asc', limit: 1, cursor: first.pageInfo.nextCursor! } as never);
     expect(next.items.map(p => p.id)).toEqual([ids[0]]);
     await expect(service.discover({ q: 'serum', sort: 'price-desc', cursor: first.pageInfo.nextCursor! } as never)).rejects.toThrow('Invalid discovery cursor');
+  });
+  it('does not compare numeric prices in different currencies', async () => {
+    const products = ['a', 'b'].map(id => ({ id, name: 'Serum', concerns: [], brand: { name: 'Brand', slug: 'brand' } }));
+    const service = new DiscoveryService({ getPublishedProductsByIds: async () => products } as never,
+      { composeProducts: async () => products.map((p, index) => ({ ...p, skus: [{ id: p.id, price: { amount: 50, currency: index ? 'SAR' : 'EGP' } }] })) } as never,
+      { search: async () => ['a', 'b'] } as never, { getPublicConcerns: async () => [] } as never);
+    await expect(service.discover({ q: 'serum', sort: 'price-asc' })).rejects.toThrow('different currencies');
   });
   it('retains a reviewed Arabic alias result after composition and rechecks only visible variants', async () => {
     const id = '00000000-0000-0000-0000-000000000001';

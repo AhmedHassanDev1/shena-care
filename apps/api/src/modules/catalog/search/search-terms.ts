@@ -10,6 +10,14 @@ const SPELLINGS = [
 export interface SearchTerm { alternatives: string[]; brandIds: string[] }
 export interface SearchBrandAlias { brandId: string; spellings: string[] }
 
+/** Search shorthand for the exact Paris consumer brand, never an intake identity alias.
+ * Native Arabic label: https://www.loreal-paris-me.com/ar/about-us
+ */
+export function searchBrandSpellings(name: string): string[] {
+  const key = name.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  return key === 'lorealparis' ? ['لوريال', 'لوريال باريس', 'loreal', "l'oreal", 'l’oreal', "l'oréal", 'l’oréal'] : [];
+}
+
 /** One adjacent-letter swap, with whole-word boundaries; identifiers never enter this path. */
 export function transpositionPattern(term: string): string | null {
   if (!/^[\p{L}]{5,24}$/u.test(term)) return null;

@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { SearchFilters, SearchProvider } from './search-provider';
 import { normalizeSearchText } from './search-text';
-import { searchTerms, transpositionPattern } from './search-terms';
+import { searchBrandSpellings, searchTerms, transpositionPattern } from './search-terms';
 import { curatedSpellings, verifiedProfileAliases } from '../research/brand-aliases';
 
 @Injectable()
@@ -27,7 +27,7 @@ export class PostgresSearchProvider implements SearchProvider {
       this.prisma.brandDraft.findMany({ where: { status: 'APPROVED', canonicalBrandId: { not: null } }, select: { canonicalBrandId: true, aliases: true } }),
     ]) : [[], []];
     const groups = searchTerms(q, brands.map(b => ({ brandId: b.id, spellings: [b.name, b.slug.replace(/-/g, ' '),
-      ...curatedSpellings(b.name), ...verifiedProfileAliases(b.profile), ...drafts.filter(d => d.canonicalBrandId === b.id).flatMap(d => d.aliases)] })));
+      ...curatedSpellings(b.name), ...searchBrandSpellings(b.name), ...verifiedProfileAliases(b.profile), ...drafts.filter(d => d.canonicalBrandId === b.id).flatMap(d => d.aliases)] })));
     const escaped = q.replace(/[!%_]/g, '!$&');
     const prefix = `${escaped}%`;
     const contains = `%${escaped}%`;

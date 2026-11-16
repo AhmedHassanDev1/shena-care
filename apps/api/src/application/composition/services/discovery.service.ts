@@ -97,6 +97,10 @@ export class DiscoveryService {
       } while (scanAfter);
     }
     if (filters.sort !== 'relevance') {
+      if (filters.sort === 'price-asc' || filters.sort === 'price-desc') {
+        const currencies = new Set(visible.flatMap(product => product.skus.flatMap(sku => sku.price ? [sku.price.currency.toUpperCase()] : [])));
+        if (currencies.size > 1) throw new BadRequestException('Cannot sort prices across different currencies');
+      }
       const minimumPrice = (product: ProductView) => Math.min(...product.skus.flatMap(sku =>
         sku.price && Number.isFinite(sku.price.amount) ? [sku.price.amount] : []));
       visible.sort((a, b) => {
