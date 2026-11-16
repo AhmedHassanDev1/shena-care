@@ -123,7 +123,13 @@ export interface ObservationCheck {
 export function checkObservation(offer: PageOffer, expected: { brand: string; size: number | null; sizeUnit: string | null; barcode: string | null; productName: string },
   page: { identityMatched: boolean; sellerTrust: 'OFFICIAL' | 'TRUSTED_RETAILER' | 'DISCOVERED'; title?: string }): ObservationCheck {
   const reject = (reason: string): ObservationCheck => ({ accepted: false, reason, confidence: 0 });
-  if (!page.identityMatched) return reject('PAGE_IS_ANOTHER_PRODUCT');
+  const wanted = parseIdentityTitle(stripMeasures(expected.productName), [expected.brand]);
+  const matchesTitle = (name: string) => {
+    const found = parseIdentityTitle(stripMeasures(name), [expected.brand]);
+    return !titleFactConflict(wanted, found) && wordingSupportsTitle(wanted, found, false);
+  };
+  const ownTitle = page.title ?? offer.pageTitle;
+  if (!page.identityMatched) return reject(ownTitle && !matchesTitle(ownTitle) ? 'PAGE_TITLE_DIFFERS' : 'PAGE_IS_ANOTHER_PRODUCT');
   if (page.sellerTrust === 'DISCOVERED') return reject('SELLER_NOT_VERIFIED');
   if (offer.currency !== 'EGP') return reject(offer.currency ? `CURRENCY_${offer.currency}` : 'CURRENCY_NOT_STATED');
   if (BUNDLE.test(normalizeCell(offer.name))) return reject('BUNDLE_OR_SET');
@@ -137,13 +143,7 @@ export function checkObservation(offer: PageOffer, expected: { brand: string; si
   const [a, b] = [variantMarkers(offer.name), variantMarkers(expected.productName)];
   if (a.spf.join() !== b.spf.join()) return reject('SPF_DIFFERS');
   if (a.percents.join() !== b.percents.join()) return reject('STRENGTH_DIFFERS');
-  const wanted = parseIdentityTitle(stripMeasures(expected.productName), [expected.brand]);
-  const matchesTitle = (name: string) => {
-    const found = parseIdentityTitle(stripMeasures(name), [expected.brand]);
-    return !titleFactConflict(wanted, found) && wordingSupportsTitle(wanted, found, false);
-  };
   if (!matchesTitle(offer.name)) return reject('PRODUCT_NAME_DIFFERS');
-  const ownTitle = page.title ?? offer.pageTitle;
   if (ownTitle && !matchesTitle(ownTitle)) return reject('PAGE_TITLE_DIFFERS');
   if (offer.price < 5 || offer.price > 50000) return reject('IMPLAUSIBLE_PRICE');
   const sizeConfirmed = stated.measures.length === 1 || Boolean(offer.gtin && expected.barcode);
