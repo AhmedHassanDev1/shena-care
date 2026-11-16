@@ -1,7 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min, Matches, IsNotEmpty, MinLength } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, Matches, IsNotEmpty, MinLength } from 'class-validator';
+
+export const DISCOVERY_SORTS = ['relevance', 'name-asc', 'price-asc', 'price-desc'] as const;
+export type DiscoverySort = typeof DISCOVERY_SORTS[number];
 
 export class DiscoveryQueryDto {
+  @IsOptional() @IsIn(DISCOVERY_SORTS)
+  sort?: DiscoverySort;
+
   @IsOptional() @IsString() @MaxLength(120)
   q?: string;
 

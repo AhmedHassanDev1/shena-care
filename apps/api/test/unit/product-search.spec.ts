@@ -2,10 +2,43 @@ import { normalizeSearchText } from '../../src/modules/catalog/search/search-tex
 import { DiscoveryService } from '../../src/application/composition/services/discovery.service';
 
 describe('product search', () => {
+  it('sorts visible prices with stable pagination and binds the cursor to the selected sort', async () => {
+    const ids = ['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002'];
+    const products = ids.map(id => ({ id, name: 'Serum', concerns: [], brand: { name: 'Brand', slug: 'brand' } }));
+    const service = new DiscoveryService({ getPublishedProductsByIds: async () => products } as never,
+      { composeProducts: async () => products.map((p, index) => ({ ...p, skus: [{ id: p.id, price: { amount: index ? 50 : 100 } }] })) } as never,
+      { search: async () => ids } as never, { getPublicConcerns: async () => [] } as never);
+    const first = await service.discover({ q: 'serum', sort: 'price-asc', limit: 1 } as never);
+    expect(first.items.map(p => p.id)).toEqual([ids[1]]);
+    const next = await service.discover({ q: 'serum', sort: 'price-asc', limit: 1, cursor: first.pageInfo.nextCursor! } as never);
+    expect(next.items.map(p => p.id)).toEqual([ids[0]]);
+    await expect(service.discover({ q: 'serum', sort: 'price-desc', cursor: first.pageInfo.nextCursor! } as never)).rejects.toThrow('Invalid discovery cursor');
+  });
+  it('retains a reviewed Arabic alias result after composition and rechecks only visible variants', async () => {
+    const id = '00000000-0000-0000-0000-000000000001';
+    const product = { id, name: 'Hydrating Cleanser', concerns: [], brand: { name: 'CeraVe', slug: 'cerave' } };
+    const provider = { search: jest.fn(async () => [id]) };
+    const service = new DiscoveryService({ getPublishedProductsByIds: async () => [product] } as never,
+      { composeProducts: async () => [{ ...product, skus: [{ id: 'visible-sku' }] }] } as never, provider as never,
+      { getPublicConcerns: async () => [] } as never);
+    expect((await service.discover({ q: 'سيرافي غسول' })).items.map(p => p.id)).toEqual([id]);
+    expect(provider.search).toHaveBeenLastCalledWith(expect.objectContaining({ visibility: { productIds: [id], skuIds: ['visible-sku'] } }));
+  });
+  it('removes a match supported only by a hidden SKU after the owner gates run', async () => {
+    const id = '00000000-0000-0000-0000-000000000001';
+    const product = { id, name: 'Cleanser', concerns: [], brand: { name: 'Brand', slug: 'brand' } };
+    const provider = { search: jest.fn(async (filters: { visibility?: unknown }) => filters.visibility ? [] : [id]) };
+    const service = new DiscoveryService({ getPublishedProductsByIds: async () => [product] } as never,
+      { composeProducts: async () => [{ ...product, skus: [{ id: 'visible-sku', code: 'OTHER' }] }] } as never, provider as never,
+      { getPublicConcerns: async () => [] } as never);
+    expect((await service.discover({ q: 'HIDDEN-SKU' })).items).toEqual([]);
+  });
   it.each([
     ['  إِسْتِخدام آمن  ', 'استخدام امن'],
     ['كريم للْبشرة', 'كريم للبشره'],
     ['CeraVe  SERUM', 'cerave serum'],
+    ['ＣｅｒａＶｅ ٢٣٦ ۲۳۶', 'cerave 236 236'],
+    ['سيروم\u200d للشعر', 'سيروم للشعر'],
   ])('normalizes Arabic and English search text', (input, expected) => {
     expect(normalizeSearchText(input)).toBe(expected);
   });
@@ -51,7 +84,7 @@ describe('product search', () => {
       ({ id, name: 'Serum', concerns: [], brand: { name: 'Brand', slug: 'brand' } }))) };
     const views = { composeProducts: jest.fn(async (batch: Array<{ id: string; name: string; brand: { name: string; slug: string } }>) =>
       batch.map(p => ({ ...p, slug: p.id, skus: [] }))) };
-    const provider = { suggest: jest.fn(async () => ids) };
+    const provider = { suggest: jest.fn(async () => ids), search: jest.fn(async () => ids) };
     const service = new DiscoveryService(catalog as never, views as never, provider as never,
       { getPublicConcerns: jest.fn(async () => []) } as never);
 

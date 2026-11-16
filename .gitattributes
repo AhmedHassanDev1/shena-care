@@ -6,3 +6,4 @@ apps/api/prisma/migrations/20261101040000_glo284_schedule_and_formula_integrity/
 apps/api/prisma/migrations/20261101050000_glo284_sku_ingredient_formula_isolation/migration.sql text eol=lf
 # Evaluation fingerprints include the exact UTF-8 input bytes on every platform.
 apps/api/scripts/data/catalog-evaluation-20261115/input.csv -text
+apps/api/prisma/migrations/20261116010000_search_unicode_normalization/migration.sql text eol=lf

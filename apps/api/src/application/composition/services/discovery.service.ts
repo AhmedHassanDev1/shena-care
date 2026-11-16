@@ -19,13 +19,16 @@ export class DiscoveryService {
       concern: query.concern, matchedConcern: matched?.slug, snapshotAt };
   }
 
-  private matchesVisible(product: PublishedProduct, visible: ProductView, filters: SearchFilters): boolean {
-    const q = normalizeSearchText(filters.q);
-    if (!q) return true;
-    if (filters.matchedConcern && product.concerns.includes(filters.matchedConcern)) return true;
-    return [visible.name, visible.brand.name,
-      ...visible.skus.flatMap(s => [s.code, s.barcode ?? '', s.variantName])]
-      .some(value => normalizeSearchText(value).includes(q));
+  private async recheckVisible(views: Array<ProductView | null>, filters: SearchFilters): Promise<Array<ProductView | null>> {
+    if (!filters.q) return views;
+    const visible = views.filter((view): view is ProductView => view !== null);
+    if (!visible.length) return views;
+    // Reuse Catalog's reviewed aliases/typo rules, while excluding matches whose
+    // only evidence was a SKU removed by Commerce/media/availability gates.
+    const ids = new Set(await this.searchProvider.search({ ...filters, visibility: {
+      productIds: visible.map(view => view.id), skuIds: visible.flatMap(view => view.skus.map(sku => sku.id)),
+    } }));
+    return views.map(view => view && ids.has(view.id) ? view : null);
   }
 
   async suggest(query: SuggestQueryDto) {
@@ -39,7 +42,7 @@ export class DiscoveryService {
       for (let i = start; i < Math.min(start + 50, ids.length) && items.length < (query.limit ?? 8); i += 10) {
         const selected = ids.slice(i, i + 10).map(id => byId.get(id)).filter((p): p is PublishedProduct => !!p);
         const composed = await this.views.composeProducts(selected);
-        const visible = composed.map((view, index) => view && this.matchesVisible(selected[index], view, filters) ? view : null);
+        const visible = await this.recheckVisible(composed, filters);
         for (const view of visible) {
           if (view) items.push({ id: view.id, name: view.name, slug: view.slug,
             brand: { name: view.brand.name, slug: view.brand.slug } });
@@ -52,7 +55,7 @@ export class DiscoveryService {
 
   async discover(query: DiscoveryQueryDto) {
     const filters = { q: query.q?.trim() || undefined, category: query.category, brand: query.brand,
-      productLine: query.productLine, concern: query.concern };
+      productLine: query.productLine, concern: query.concern, sort: query.sort ?? 'relevance' };
     const fingerprint = createHash('sha256').update(JSON.stringify(filters)).digest('hex');
     let snapshotAt = new Date();
     let afterId: string | undefined;
@@ -78,7 +81,7 @@ export class DiscoveryService {
         for (let i = start; i < Math.min(start + 100, ids.length); i += 100) {
           const selected = ids.slice(i, i + 100).map(id => byId.get(id)).filter((p): p is PublishedProduct => !!p);
           const views = await this.views.composeProducts(selected, evaluatedAt);
-          const composed = views.map((view, index) => view && this.matchesVisible(selected[index], view, searchFilters) ? view : null);
+          const composed = await this.recheckVisible(views, searchFilters);
           visible.push(...composed.filter((p): p is ProductView => p !== null));
         }
       }
@@ -93,6 +96,21 @@ export class DiscoveryService {
         scanAfter = batch.nextAfterId ?? undefined;
       } while (scanAfter);
     }
+    if (filters.sort !== 'relevance') {
+      const minimumPrice = (product: ProductView) => Math.min(...product.skus.flatMap(sku =>
+        sku.price && Number.isFinite(sku.price.amount) ? [sku.price.amount] : []));
+      visible.sort((a, b) => {
+        let comparison: number;
+        if (filters.sort === 'name-asc') comparison = a.name.localeCompare(b.name, 'ar');
+        else {
+          const left = minimumPrice(a), right = minimumPrice(b);
+          comparison = !Number.isFinite(left) || !Number.isFinite(right)
+            ? Number(!Number.isFinite(left)) - Number(!Number.isFinite(right))
+            : (left - right) * (filters.sort === 'price-desc' ? -1 : 1);
+        }
+        return comparison || a.id.localeCompare(b.id);
+      });
+    }
     const facets = (key: 'brand' | 'category' | 'productLine') => {
       const counts = new Map<string, { slug: string; name: string; count: number }>();
       for (const product of visible) {
@@ -104,9 +122,10 @@ export class DiscoveryService {
       return [...counts.values()].sort((a, b) => a.slug.localeCompare(b.slug));
     };
     const limit = query.limit ?? 20;
-    const afterIndex = afterId && filters.q ? visible.findIndex(p => p.id === afterId) : -1;
-    if (afterId && filters.q && afterIndex < 0) throw new BadRequestException('Invalid discovery cursor or changed results');
-    const remaining = filters.q ? visible.slice(afterIndex + 1) : visible.filter(p => !afterId || p.id > afterId);
+    const ordered = Boolean(filters.q) || filters.sort !== 'relevance';
+    const afterIndex = afterId && ordered ? visible.findIndex(p => p.id === afterId) : -1;
+    if (afterId && ordered && afterIndex < 0) throw new BadRequestException('Invalid discovery cursor or changed results');
+    const remaining = ordered ? visible.slice(afterIndex + 1) : visible.filter(p => !afterId || p.id > afterId);
     const items = remaining.slice(0, limit);
     const hasNextPage = remaining.length > limit;
     const nextCursor = hasNextPage ? Buffer.from(JSON.stringify({ v: 1, f: fingerprint, t: snapshotAt.toISOString(), id: items[items.length - 1].id })).toString('base64url') : null;

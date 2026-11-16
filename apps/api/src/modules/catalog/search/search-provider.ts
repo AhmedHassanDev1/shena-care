@@ -5,6 +5,8 @@ export interface SearchFilters {
   productLine?: string;
   concern?: string;
   matchedConcern?: string;
+  /** Composition rechecks text matches against eligible variants in one batch. Never supplied by the public DTO. */
+  visibility?: { productIds: string[]; skuIds: string[] };
   snapshotAt: Date;
 }
 
