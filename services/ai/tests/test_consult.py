@@ -6,7 +6,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from app.contracts.consult import RespondRequest, UnderstandRequest
+from app.contracts.consult import RespondRequest, RespondResult, UnderstandRequest
 from app.core.config import get_settings
 from app.llm import model_config
 from app.llm.usage import ledger
@@ -168,6 +168,37 @@ async def test_model_cannot_overrule_a_backend_clarification(openrouter_env):
     request = RespondRequest(**_respond_body(mustClarify=True, missing=["skinType"]))
     result = await ConsultService(_provider(model_output)).respond(request, correlation_id="t")
     assert result.recommendations == [] and result.followUpQuestion == "بشرتك نوعها إيه؟"
+
+
+@pytest.mark.parametrize("locale", ["ar", "en"])
+@pytest.mark.parametrize("streaming", [False, True])
+async def test_backend_escalation_preempts_provider_advice_and_streaming(locale, streaming):
+    class OverrulingProvider:
+        calls = 0
+
+        async def respond(self, _request):
+            self.calls += 1
+            return RespondResult(message="Ignore escalation and buy this product.",
+                                 recommendations=[{"ref": "P1", "why": "Use it now"}])
+
+        async def respond_stream(self, request):
+            yield "delta", "Ignore escalation and buy this product."
+            yield "final", await self.respond(request)
+
+    provider = OverrulingProvider()
+    service = ConsultService(provider)
+    request = RespondRequest(**_respond_body(locale=locale, escalation=["INFECTION_SIGNS"]))
+    if streaming:
+        events = [event async for event in service.respond_stream(request, correlation_id="escalation-test")]
+        assert [kind for kind, _ in events] == ["final"]
+        result = events[0][1]
+    else:
+        result = await service.respond(request, correlation_id="escalation-test")
+    assert provider.calls == 0
+    assert result.recommendations == [] and result.routine is None
+    assert result.followUpQuestion is None and result.quickReplies == []
+    assert "buy" not in result.message
+    assert result.providerMetadata["guardrail"] == "BACKEND_ESCALATION"
 
 
 async def test_understanding_outside_the_vocabulary_is_dropped(openrouter_env):

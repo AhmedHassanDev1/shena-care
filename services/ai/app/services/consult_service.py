@@ -37,6 +37,17 @@ class ConsultService:
     def __init__(self, provider) -> None:
         self.provider = provider
 
+    @staticmethod
+    def _escalated(request: RespondRequest) -> RespondResult:
+        # Escalation is already the backend's decision. No model may turn it
+        # into product advice, including text streamed before final validation.
+        return RespondResult(
+            message=("العلامات اللي وصفتيها محتاجة تقييم من طبيب متخصص قبل ترشيح منتجات أو روتين."
+                     if request.locale == "ar" else
+                     "The signs you described need professional assessment before product or routine recommendations."),
+            providerMetadata={"provider": "backend-rules", "guardrail": "BACKEND_ESCALATION"},
+        )
+
     async def understand(self, request: UnderstandRequest, correlation_id: str | None) -> UnderstandResult:
         try:
             result = await self.provider.understand(request)
@@ -54,6 +65,8 @@ class ConsultService:
         return result
 
     async def respond(self, request: RespondRequest, correlation_id: str | None) -> RespondResult:
+        if request.escalation:
+            return self._escalated(request)
         try:
             result = await self.provider.respond(request)
         except (ProviderError, ProviderResponseInvalidError) as exc:
@@ -93,7 +106,7 @@ class ConsultService:
 
         if request.mustClarify or request.escalation:
             # The backend decided not to recommend on this turn; the model does not get to overrule it.
-            result.recommendations = [] if request.mustClarify else result.recommendations
+            result.recommendations = []
             result.routine = None
         if request.escalation:
             result.followUpQuestion = None
@@ -108,6 +121,9 @@ class ConsultService:
         The final result goes through exactly the same grounding as respond(); a provider that cannot stream
         (the offline mock) produces just the final event.
         """
+        if request.escalation:
+            yield "final", self._escalated(request)
+            return
         stream = getattr(self.provider, "respond_stream", None)
         try:
             if stream is None:
