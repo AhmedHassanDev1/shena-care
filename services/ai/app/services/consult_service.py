@@ -16,11 +16,22 @@ _OPAQUE_REF = re.compile(r"^[PK]\d{1,2}$")
 _INLINE_REFS = re.compile(r"\s*[\(\[]\s*(?:[PK]\d{1,2}\s*[,\u060c;]?\s*)+[\)\]]")
 
 
-def _scrub(text):
-    if not isinstance(text, str) or not _INLINE_REFS.search(text):
+def _scrub(text, candidates=None):
+    if not isinstance(text, str):
         return text
-    cleaned = _INLINE_REFS.sub("", text).strip()
-    return cleaned or text
+    cleaned = _INLINE_REFS.sub("", text)
+    if candidates:
+        for c in candidates:
+            ref = getattr(c, "ref", None) or (c.get("ref") if isinstance(c, dict) else None)
+            brand = getattr(c, "brand", "") or (c.get("brand", "") if isinstance(c, dict) else "")
+            name = getattr(c, "name", "") or (c.get("name", "") if isinstance(c, dict) else "")
+            if ref and (brand or name):
+                display = f"{brand} {name}".strip()
+                cleaned = re.sub(rf"\b{re.escape(ref)}\b", display, cleaned)
+    cleaned = re.sub(r"\bK\d{1,2}\b", "", cleaned)
+    if _INLINE_REFS.search(text) and not cleaned.strip():
+        return text
+    return cleaned
 
 
 def _http_error(exc: Exception) -> HTTPException:
@@ -90,17 +101,17 @@ class ConsultService:
         result.recommendations = kept
         result.citations = [c for c in dict.fromkeys(result.citations) if c in knowledge_refs]
         result.quickReplies = [q for q in result.quickReplies if q.strip() and not _OPAQUE_REF.match(q.strip())]
-        result.message = _scrub(result.message)
-        result.followUpQuestion = _scrub(result.followUpQuestion)
+        result.message = _scrub(result.message, request.candidates)
+        result.followUpQuestion = _scrub(result.followUpQuestion, request.candidates)
         for rec in result.recommendations:
-            rec.why = _scrub(rec.why)
+            rec.why = _scrub(rec.why, request.candidates)
 
         if result.routine is not None:
             # A routine may only contain what the backend ordered and checked.
             result.routine.steps = [s for s in result.routine.steps if (s.ref, s.slot) in draft]
             for step in result.routine.steps:
-                step.why = _scrub(step.why)
-                step.howToUse = _scrub(step.howToUse)
+                step.why = _scrub(step.why, request.candidates)
+                step.howToUse = _scrub(step.howToUse, request.candidates)
             if not result.routine.steps:
                 result.routine = None
 

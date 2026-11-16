@@ -1,0 +1,28 @@
+{
+  "firstVisibleTokenMs": 13592,
+  "turn1TotalMs": 45009,
+  "turn2TotalMs": 2049,
+  "turn3TotalMs": 17,
+  "streamUpdatesCount": 1,
+  "productsFound": 3,
+  "products": [
+    {
+      "brand": "StarVille",
+      "name": "",
+      "price": "اسأل شينا"
+    },
+    {
+      "brand": "StarVille",
+      "name": "",
+      "price": "١٠٥"
+    },
+    {
+      "brand": "shaan",
+      "name": "",
+      "price": "١١٠"
+    }
+  ],
+  "comparisonFound": true,
+  "routineFound": true,
+  "conversationTurnsVerified": 1
+}

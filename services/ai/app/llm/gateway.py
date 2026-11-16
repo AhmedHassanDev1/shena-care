@@ -26,6 +26,16 @@ logger = logging.getLogger("shenacare.ai.llm")
 RETRYABLE_STATUS = {408, 409, 425, 429, 500, 502, 503, 504, 520, 522, 524, 529}
 
 
+def _default_ssl_context() -> ssl.SSLContext:
+    ctx = ssl.create_default_context()
+    if hasattr(ctx, "load_default_certs"):
+        try:
+            ctx.load_default_certs()
+        except Exception:
+            pass
+    return ctx
+
+
 class ProviderLimitError(ProviderUnavailableError):
     """The gateway refused the call locally (per-minute window or daily cost ceiling)."""
 
@@ -225,7 +235,7 @@ class LlmGateway:
         if self._transport is not None:
             client_options["transport"] = self._transport
         else:
-            client_options["verify"] = ssl.create_default_context()
+            client_options["verify"] = _default_ssl_context()
         async with httpx.AsyncClient(**client_options) as client:
             for attempt in range(1, max_attempts + 1):
                 try:
@@ -299,7 +309,7 @@ class LlmGateway:
         if self._transport is not None:
             client_options["transport"] = self._transport
         else:
-            client_options["verify"] = ssl.create_default_context()
+            client_options["verify"] = _default_ssl_context()
 
         try:
             async with httpx.AsyncClient(**client_options) as client:
