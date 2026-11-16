@@ -92,8 +92,25 @@ async def test_gateway_sends_only_the_free_router(monkeypatch):
     assert seen["body"]["models"] == ["openrouter/free"]
     assert seen["body"]["provider"]["data_collection"] == "deny"
     assert seen["body"]["provider"]["require_parameters"] is True
-    assert seen["body"]["reasoning"] == {"enabled": False}
+    assert "reasoning" not in seen["body"]
     assert result.usage.cost_usd == 0
+
+
+async def test_free_router_accepts_an_endpoint_with_mandatory_reasoning(monkeypatch):
+    _enable(monkeypatch)
+    seen = []
+
+    def handler(request):
+        payload = json.loads(request.content)
+        seen.append(payload)
+        if payload.get("reasoning", {}).get("enabled") is False:
+            return httpx.Response(400, json={"error": {"code": 400, "message": "Reasoning is mandatory for this endpoint and cannot be disabled."}})
+        return httpx.Response(200, json={"model": "mandatory-reasoning:free", "choices": [{"message": {"content": '{"ok": true}'}}], "usage": {"cost": 0}})
+
+    result = await LlmGateway(transport=httpx.MockTransport(handler)).complete_json("consult.understand", system="s", user="u")
+    assert result.data == {"ok": True}
+    assert len(seen) == 1 and seen[0]["models"] == ["openrouter/free"]
+    assert seen[0]["provider"]["data_collection"] == "deny"
 
 
 async def test_gateway_refuses_paid_model_in_free_mode(monkeypatch):

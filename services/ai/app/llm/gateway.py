@@ -171,11 +171,8 @@ class LlmGateway:
         }
         if cfg.temperature is not None:
             payload["temperature"] = cfg.temperature
-        if self._settings.free_models_only:
-            # Free models are mostly reasoning models. Left on, hidden reasoning ate the whole token budget (empty message,
-            # finish_reason=length) or took minutes; measured with the real understanding prompt, switching it off gave
-            # ~200-token answers in 4-20 s. Development free mode only: production payloads are untouched.
-            payload["reasoning"] = {"enabled": False}
+        # Dynamic routers may select endpoints with mandatory reasoning. Leave
+        # model-specific reasoning controls unset instead of disabling them.
         if schema is not None:
             payload["response_format"] = {
                 "type": "json_schema",
