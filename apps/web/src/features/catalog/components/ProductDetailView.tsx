@@ -166,6 +166,7 @@ function Detail({ product }: { product: ProductDetail }) {
   const [addError, setAddError] = useState<string | null>(null);
   const buyRef = useRef<HTMLDivElement>(null);
   const [buyInView, setBuyInView] = useState(true);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     setSelectedSkuId(product.selectedSkuId || product.skus[0]?.id || '');
@@ -182,7 +183,13 @@ function Detail({ product }: { product: ProductDetail }) {
     if (!el) return;
     const observer = new IntersectionObserver(([entry]) => setBuyInView(entry.isIntersecting), { threshold: 0.4 });
     observer.observe(el);
-    return () => observer.disconnect();
+    const onScroll = () => setScrolled(window.scrollY > 240);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
   const fallbackVariant: PublicVariant = {
@@ -268,187 +275,196 @@ function Detail({ product }: { product: ProductDetail }) {
 
   return (
     <article className="pb-32 lg:pb-12">
-      <Section labelledBy="pdp-title" rhythm="compact" className="gap-4 pb-6 pt-2 lg:gap-6 lg:pb-12 lg:pt-5">
-        <nav aria-label={m.plpBreadcrumb} className="text-13 font-medium text-stone">
-          <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0">
-            <li><Link href={routes.home} className="transition-colors hover:text-cobalt">{m.plpHome}</Link></li>
-            <li aria-hidden="true" className="opacity-40">/</li>
-            <li><Link href={routes.products} className="transition-colors hover:text-cobalt">{m.plpAllProducts}</Link></li>
-            {product.category ? (
-              <>
-                <li aria-hidden="true" className="opacity-40">/</li>
-                <li>
-                  <Link href={`${routes.products}?category=${encodeURIComponent(product.category.slug)}`} className="transition-colors hover:text-cobalt">
-                    {product.category.name}
-                  </Link>
-                </li>
-              </>
-            ) : null}
-          </ol>
-        </nav>
-
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-12">
-          <div className="min-w-0 lg:col-span-7">
-            <ProductGallery
-              images={visibleImages}
-              index={safeImageIndex}
-              onIndexChange={setActiveImageIndex}
-              productName={product.name}
-              liked={liked}
-              onToggleLike={handleWishlist}
-              onZoom={() => setZoomOpen(true)}
-              onImageError={markImageFailed}
-            />
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-5 text-start lg:sticky lg:top-24 lg:col-span-5">
-            <div className="flex flex-col gap-2">
-              {product.brand?.name ? (
-                <p className="m-0 flex flex-wrap items-center gap-x-3 font-display text-17 font-semibold text-cobalt">
-                  <bdi>{product.brand.name}</bdi>
-                  {product.productLine?.name ? <span className="font-medium text-stone"><bdi>{product.productLine.name}</bdi></span> : null}
-                </p>
+      <div className="bg-sand/40">
+        <Section labelledBy="pdp-title" rhythm="compact" className="gap-4 pb-8 pt-2 lg:gap-6 lg:pb-14 lg:pt-5">
+          <nav aria-label={m.plpBreadcrumb} className="text-13 font-medium text-stone">
+            <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0">
+              <li><Link href={routes.home} className="transition-colors hover:text-cobalt">{m.plpHome}</Link></li>
+              <li aria-hidden="true" className="opacity-40">/</li>
+              <li><Link href={routes.products} className="transition-colors hover:text-cobalt">{m.plpAllProducts}</Link></li>
+              {product.category ? (
+                <>
+                  <li aria-hidden="true" className="opacity-40">/</li>
+                  <li>
+                    <Link href={`${routes.products}?category=${encodeURIComponent(product.category.slug)}`} className="transition-colors hover:text-cobalt">
+                      {product.category.name}
+                    </Link>
+                  </li>
+                </>
               ) : null}
-              <h1 id="pdp-title" className="m-0 font-display text-display-1 font-extrabold tracking-tight text-ink">
-                <bdi>{product.name}</bdi>
-              </h1>
-              <HeroRating slug={product.slug} />
+            </ol>
+          </nav>
+
+          <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-14">
+            <div className="min-w-0 lg:col-span-7">
+              <ProductGallery
+                images={visibleImages}
+                index={safeImageIndex}
+                onIndexChange={setActiveImageIndex}
+                productName={product.name}
+                liked={liked}
+                onToggleLike={handleWishlist}
+                onZoom={() => setZoomOpen(true)}
+                onImageError={markImageFailed}
+              />
             </div>
 
-            {heroBadges.length > 0 ? (
-              <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-                {heroBadges.map((badge) => (
-                  <li key={badge.id} className="inline-flex items-center gap-1.5 rounded-pill bg-linen px-3.5 py-2 text-14 font-medium text-ink shadow-outline-hairline">
-                    <Icon name={badge.icon} size={16} className="shrink-0 text-cobalt" />
-                    <span>{badge.label}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            <div className="flex flex-col gap-5 border-t border-ink/20 pt-5">
-              {skus.length > 1 ? (
-                <div role="group" aria-label={m.pdpSizeLabel} className="flex flex-col gap-2">
-                  <span className="text-15 font-semibold text-stone">{m.pdpSizeLabel}</span>
-                  <div className="flex flex-wrap gap-2">
-                    {skus.map((sku) => {
-                      const isSelected = sku.id === variant.id;
-                      return (
-                        <button
-                          key={sku.id}
-                          type="button"
-                          onClick={() => handleSelectVariant(sku.id)}
-                          aria-pressed={isSelected}
-                          className={cn(
-                            'h-control-m min-w-20 cursor-pointer rounded-pill px-5 font-display text-16 transition-[background-color,color,box-shadow] duration-fast',
-                            isSelected ? 'bg-ink font-bold text-chalk shadow-elevation-1' : 'bg-chalk font-medium text-ink shadow-outline-control hover:bg-sand',
-                            !(sku.canOrder && sku.price) && 'opacity-60',
-                          )}
-                        >
-                          {formatVariantLabel(sku)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : skus.length === 1 ? (
-                <p className="m-0 text-15 text-stone">{m.pdpSizeLabel} <bdi dir="ltr" className="font-semibold text-ink">{formatVariantLabel(skus[0])}</bdi></p>
-              ) : null}
-
-              {canPurchase ? (
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <span className="font-display text-display-1 font-extrabold leading-none text-ink tabular-nums">
-                      {formatAmount(priceAmount, locale)}
-                    </span>
-                    <span className="font-display text-18 font-bold text-ink">{m.pdpCurrencyEgp}</span>
-                    {hasDiscount ? (
-                      <>
-                        <span className="text-16 text-stone line-through tabular-nums">{formatAmount(compareAtAmount, locale)}</span>
-                        <span className="rounded-pill bg-tomato px-2.5 py-0.5 font-display text-14 font-bold text-ink tabular-nums">
-                          {formatPercent(discountPercent, locale)}
-                        </span>
-                      </>
-                    ) : null}
-                  </div>
-                  <p className="m-0 inline-flex items-center gap-2 text-14 font-medium text-ok">
-                    <span aria-hidden="true" className="size-2 rounded-full bg-ok" />
-                    {m.vxPdpStockLive}
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-start gap-1.5">
-                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-sand px-4 py-2 font-display text-15 font-bold text-ink">
-                    {m.pdpUnavailableNow}
-                  </span>
-                  {otherVariantAvailable ? <span className="text-14 text-stone">{m.pdpOtherSizeAvailable}</span> : null}
-                </div>
-              )}
-
+            <div className="flex min-w-0 flex-col gap-6 text-start lg:col-span-5">
               <div className="flex flex-col gap-3">
-                <div ref={buyRef} className="flex items-stretch gap-3">
-                  <QuantityStepper
-                    value={quantity}
-                    displayValue={formatNumber(quantity, locale)}
-                    min={1}
-                    max={MAX_LINE_QUANTITY}
-                    disabled={!canPurchase || addState === 'pending'}
-                    onChange={(next) => {
-                      setQuantity(next);
-                      setAddError(null);
-                    }}
-                    labels={{ group: m.pdpQuantity, decrease: m.pdpDecrease, increase: m.pdpIncrease }}
-                    className="min-h-control-xl shrink-0 rounded-pill bg-chalk shadow-outline-control"
-                  />
-                  <AsyncButton
-                    state={asyncState}
-                    variant="cobalt"
-                    size="l"
-                    disabled={!canPurchase}
-                    pendingLabel={m.pdpAdding}
-                    successLabel={m.pdpAdded}
-                    onClick={handleAddToCart}
-                    className="min-h-control-xl min-w-0 flex-1"
-                  >
-                    <Icon name="cart" size={20} strokeWidth={2} />
-                    <span className="truncate">{canPurchase ? m.pdpAddCta : m.pdpOutOfStock}</span>
-                  </AsyncButton>
-                </div>
-
-                <AnimatePresence initial={false}>
-                  {addState === 'added' ? (
-                    <motion.div
-                      key="added"
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3, ease: EASE_STANDARD }}
-                      className="flex items-center justify-between gap-3 border-s-4 border-ok ps-3"
-                      role="status"
-                    >
-                      <span className="inline-flex items-center gap-2 text-15 font-semibold text-ok">
-                        <Icon name="check" size={16} strokeWidth={2.4} />
-                        {fillMessage(m.pdpAddedToast, { size: formatVariantLabel(variant) })}
-                      </span>
-                      <button type="button" onClick={() => router.push(routes.cart)} className="cursor-pointer font-display text-15 font-bold text-cobalt hover:underline">
-                        {m.pdpViewCart}
-                      </button>
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
-                {addError ? <p role="alert" className="m-0 text-14 font-semibold text-tomato-ink">{addError}</p> : null}
+                {product.brand?.name ? (
+                  <p className="m-0 flex flex-wrap items-baseline gap-x-3 font-display text-18 font-semibold text-cobalt">
+                    <bdi>{product.brand.name}</bdi>
+                    {product.productLine?.name ? <span className="text-16 font-medium text-stone"><bdi>{product.productLine.name}</bdi></span> : null}
+                  </p>
+                ) : null}
+                <h1 id="pdp-title" className="m-0 font-display text-display-1 font-extrabold tracking-tight text-ink lg:text-52 lg:leading-tight">
+                  <bdi>{product.name}</bdi>
+                </h1>
+                {product.category || skus.length === 1 ? (
+                  <p className="m-0 flex flex-wrap items-center gap-x-3 text-17 text-stone">
+                    {product.category ? <span>{product.category.name}</span> : null}
+                    {skus.length === 1 ? <bdi dir="ltr" className="font-semibold text-ink">{formatVariantLabel(skus[0])}</bdi> : null}
+                  </p>
+                ) : null}
+                <HeroRating slug={product.slug} />
               </div>
 
-              <p className="m-0 flex items-center gap-2 border-t border-line pt-4 text-14 text-stone">
-                <Icon name="truck" size={18} className="shrink-0 text-ink" />
-                {m.vxPdpDeliveryLine}
-              </p>
+              {heroBadges.length > 0 ? (
+                <ul className="m-0 flex list-none flex-wrap gap-x-6 gap-y-2 p-0">
+                  {heroBadges.map((badge) => (
+                    <li key={badge.id} className="inline-flex items-center gap-2 text-16 font-medium text-ink">
+                      <Icon name={badge.icon} size={18} className="shrink-0 text-cobalt" />
+                      <span>{badge.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              <div className="flex flex-col gap-5 border-t border-ink/20 pt-6">
+                {skus.length > 1 ? (
+                  <div role="group" aria-label={m.pdpSizeLabel} className="flex flex-col gap-2">
+                    <span className="text-15 font-semibold text-stone">{m.pdpSizeLabel}</span>
+                    <div className="flex flex-wrap gap-2">
+                      {skus.map((sku) => {
+                        const isSelected = sku.id === variant.id;
+                        return (
+                          <button
+                            key={sku.id}
+                            type="button"
+                            onClick={() => handleSelectVariant(sku.id)}
+                            aria-pressed={isSelected}
+                            className={cn(
+                              'h-control-m min-w-20 cursor-pointer rounded-pill px-5 font-display text-16 transition-[background-color,color,box-shadow] duration-fast',
+                              isSelected ? 'bg-ink font-bold text-chalk shadow-elevation-1' : 'bg-transparent font-medium text-ink shadow-outline-control hover:bg-chalk',
+                              !(sku.canOrder && sku.price) && 'opacity-60',
+                            )}
+                          >
+                            {formatVariantLabel(sku)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {canPurchase ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span className="font-display text-display-1 font-extrabold leading-none text-ink tabular-nums lg:text-64">
+                        {formatAmount(priceAmount, locale)}
+                      </span>
+                      <span className="font-display text-20 font-bold text-ink">{m.pdpCurrencyEgp}</span>
+                      {hasDiscount ? (
+                        <>
+                          <span className="text-17 text-stone line-through tabular-nums">{formatAmount(compareAtAmount, locale)}</span>
+                          <span className="rounded-pill bg-tomato px-2.5 py-0.5 font-display text-14 font-bold text-ink tabular-nums">
+                            {formatPercent(discountPercent, locale)}
+                          </span>
+                        </>
+                      ) : null}
+                    </div>
+                    <p className="m-0 inline-flex items-center gap-2 text-15 font-medium text-ok">
+                      <span aria-hidden="true" className="size-2 rounded-full bg-ok" />
+                      {m.vxPdpStockLive}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-start gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-sand px-4 py-2 font-display text-15 font-bold text-ink">
+                      {m.pdpUnavailableNow}
+                    </span>
+                    {otherVariantAvailable ? <span className="text-14 text-stone">{m.pdpOtherSizeAvailable}</span> : null}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-3">
+                  <div ref={buyRef} className="flex items-stretch gap-3">
+                    <QuantityStepper
+                      value={quantity}
+                      displayValue={formatNumber(quantity, locale)}
+                      min={1}
+                      max={MAX_LINE_QUANTITY}
+                      disabled={!canPurchase || addState === 'pending'}
+                      onChange={(next) => {
+                        setQuantity(next);
+                        setAddError(null);
+                      }}
+                      labels={{ group: m.pdpQuantity, decrease: m.pdpDecrease, increase: m.pdpIncrease }}
+                      className="min-h-control-xl shrink-0 rounded-pill bg-transparent shadow-outline-control"
+                    />
+                    <AsyncButton
+                      state={asyncState}
+                      variant="cobalt"
+                      size="l"
+                      disabled={!canPurchase}
+                      pendingLabel={m.pdpAdding}
+                      successLabel={m.pdpAdded}
+                      onClick={handleAddToCart}
+                      className="min-h-control-xl min-w-0 flex-1"
+                    >
+                      <Icon name="cart" size={20} strokeWidth={2} />
+                      <span className="truncate">{canPurchase ? m.pdpAddCta : m.pdpOutOfStock}</span>
+                    </AsyncButton>
+                  </div>
+
+                  <AnimatePresence initial={false}>
+                    {addState === 'added' ? (
+                      <motion.div
+                        key="added"
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3, ease: EASE_STANDARD }}
+                        className="flex items-center justify-between gap-3 border-s-4 border-ok ps-3"
+                        role="status"
+                      >
+                        <span className="inline-flex items-center gap-2 text-15 font-semibold text-ok">
+                          <Icon name="check" size={16} strokeWidth={2.4} />
+                          {fillMessage(m.pdpAddedToast, { size: formatVariantLabel(variant) })}
+                        </span>
+                        <button type="button" onClick={() => router.push(routes.cart)} className="cursor-pointer font-display text-15 font-bold text-cobalt hover:underline">
+                          {m.pdpViewCart}
+                        </button>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                  {addError ? <p role="alert" className="m-0 text-14 font-semibold text-tomato-ink">{addError}</p> : null}
+                </div>
+
+                <div className="flex flex-col gap-2 border-t border-ink/15 pt-4">
+                  <p className="m-0 flex items-center gap-2 text-15 text-stone">
+                    <Icon name="truck" size={18} className="shrink-0 text-ink" />
+                    {m.vxPdpDeliveryLine}
+                  </p>
+                  <ArrowLink href={routes.shinaFor({ product: product.slug })} className="self-start">{m.vxPdpAskShina}</ArrowLink>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </Section>
+        </Section>
+      </div>
 
-      <SectionJump items={tabs} label={m.vxPdpSections} />
+      <SectionJump items={tabs.length >= 4 ? tabs : []} label={m.vxPdpSections} />
 
       <ProductBenefitsStrip product={product} variant={variant} />
 
@@ -473,7 +489,7 @@ function Detail({ product }: { product: ProductDetail }) {
 
       {/* Phone buy bar: appears when the buy panel has scrolled away; sits above the bottom dock. */}
       <AnimatePresence>
-        {!buyInView && canPurchase ? (
+        {!buyInView && scrolled && canPurchase ? (
           <motion.div
             key="sticky-buy"
             className="fixed inset-x-0 z-nav flex items-center gap-3 border-t border-line bg-chalk px-4 py-3 lg:hidden"

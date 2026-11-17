@@ -43,7 +43,7 @@ export function usePdpContent(product: ProductDetail, variant: PublicVariant) {
 /** One information block: the title on the start side, the content beside it on desktop, stacked on phones. */
 function PdpBlock({ id, title, icon, children }: { id: string; title: string; icon: IconName; children: ReactNode }) {
   return (
-    <Section labelledBy={id} rhythm="compact" className="py-6 lg:py-10">
+    <Section labelledBy={id} rhythm="compact" className="py-4 lg:py-8">
       <Reveal className="grid grid-cols-1 gap-4 border-t border-line pt-6 lg:grid-cols-12 lg:gap-10 lg:pt-10">
         <div className="flex items-start gap-2.5 lg:col-span-4">
           <Icon name={icon} size={22} className="mt-1.5 shrink-0 text-cobalt" />
@@ -127,7 +127,7 @@ export function ProductAbout({
         {(expanded ? paragraphs : [collapsedCopy]).map((paragraph, idx) => (
           <p
             key={`${idx}-${paragraph.slice(0, 24)}`}
-            className={cn('m-0 text-start text-body text-ink', !expanded && isExpandable && 'line-clamp-4')}
+            className={cn('m-0 text-start font-display text-20 leading-32 text-ink lg:text-22 lg:leading-34', !expanded && isExpandable && 'line-clamp-4')}
           >
             {paragraph}
           </p>
@@ -328,8 +328,7 @@ export function RoutinePlacement({
       <Reveal className="w-full border-t border-line pt-6 lg:pt-10">
         <div
           className={cn(
-            'flex flex-col gap-6',
-            resolved.confirmed && resolved.steps.length > 0 && 'lg:flex-row lg:items-center lg:justify-between lg:gap-10',
+            'flex flex-col gap-8',
           )}
         >
           {/* Title & Description */}
@@ -338,7 +337,7 @@ export function RoutinePlacement({
               'text-start',
               resolved.confirmed &&
                 resolved.steps.length > 0 &&
-                'lg:w-1/3 lg:border-e lg:border-line lg:pe-8'
+                ''
             )}
           >
             <div className="flex items-start gap-2.5 mb-2">
@@ -357,10 +356,10 @@ export function RoutinePlacement({
 
           {/* 4-Step Horizontal Connected Timeline */}
           {resolved.confirmed && resolved.steps.length > 0 ? (
-            <div className="relative flex w-full items-start justify-between px-1 sm:px-2 pt-6 lg:w-2/3">
+            <div className="relative flex w-full items-start justify-between px-1 sm:px-2 pt-6 max-w-4xl">
               <div
                 aria-hidden="true"
-                className="absolute inset-x-10 sm:inset-x-12 top-[44px] md:top-[48px] h-px bg-line-2 z-0"
+                className="absolute inset-x-10 sm:inset-x-12 top-[48px] md:top-[52px] h-px bg-line-2 z-0"
               />
 
               {resolved.steps.map((step) => (
@@ -386,8 +385,8 @@ export function RoutinePlacement({
                     className={cn(
                       'flex items-center justify-center rounded-full transition-all',
                       step.isCurrent
-                        ? 'size-10 md:size-12 bg-cobalt text-chalk ring-4 ring-cobalt/15'
-                        : 'size-10 md:size-12 bg-chalk border border-line-2 text-stone'
+                        ? 'size-12 md:size-14 bg-cobalt text-chalk ring-4 ring-cobalt/15'
+                        : 'size-12 md:size-14 bg-transparent border border-line-2 text-stone'
                     )}
                   >
                     <Icon name={step.icon} size={step.isCurrent ? 20 : 18} strokeWidth={1.8} />
@@ -395,7 +394,7 @@ export function RoutinePlacement({
 
                   <span
                     className={cn(
-                      'mt-1.5 font-display text-13 md:text-14 leading-tight',
+                      'mt-2 font-display text-15 md:text-17 leading-tight',
                       step.isCurrent ? 'font-bold text-cobalt' : 'font-semibold text-ink'
                     )}
                   >

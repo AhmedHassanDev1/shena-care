@@ -54,7 +54,7 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
         ref={stageRef}
         onPointerMove={onPointerMove}
         onPointerLeave={() => setZoomAt(null)}
-        className="group relative aspect-[4/5] w-full overflow-hidden rounded-sheet bg-linen lg:aspect-[5/4]"
+        className="group relative aspect-[6/5] w-full overflow-hidden lg:aspect-[5/4]"
       >
         <AnimatePresence initial={false} mode="popLayout">
           <motion.div
@@ -80,9 +80,10 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
               name={productName}
               priority
               sizes="(min-width: 1024px) 640px, 100vw"
+              fit="contain"
               onImageError={() => current && onImageError(current.url)}
-              className="size-full rounded-none bg-linen"
-              imageClassName="transition-transform duration-base ease-standard"
+              className="size-full rounded-none bg-transparent"
+              imageClassName="p-3 mix-blend-multiply lg:p-8"
             />
           </motion.div>
         </AnimatePresence>
@@ -91,7 +92,7 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
         {zoomAt && current ? (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-10 hidden overflow-hidden bg-linen lg:block"
+            className="pointer-events-none absolute inset-0 z-10 hidden overflow-hidden bg-sand lg:block"
           >
             <Image
               src={current.url}
@@ -100,7 +101,7 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
               draggable={false}
               unoptimized={!canOptimizeImage(current.url)}
               sizes="1200px"
-              className="select-none object-contain"
+              className="select-none object-contain mix-blend-multiply"
               style={{ transform: `scale(${ZOOM})`, transformOrigin: `${zoomAt.x}% ${zoomAt.y}%` }}
             />
           </div>
@@ -174,8 +175,7 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
                   aria-label={label(i)}
                   onClick={() => onIndexChange(i)}
                   className={cn(
-                    'relative block size-16 cursor-pointer overflow-hidden rounded-image bg-linen transition-opacity duration-fast lg:size-20',
-                    active ? 'opacity-100' : 'opacity-60 hover:opacity-100',
+                    'relative block size-16 cursor-pointer overflow-hidden rounded-image bg-transparent lg:size-20',
                   )}
                 >
                   <ProductTile
@@ -185,7 +185,8 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
                     size="thumb"
                     sizes="80px"
                     onImageError={() => onImageError(img.url)}
-                    className="size-full rounded-none bg-linen"
+                    className="size-full rounded-none bg-transparent"
+                    imageClassName="mix-blend-multiply"
                   />
                   {active ? (
                     <motion.span
