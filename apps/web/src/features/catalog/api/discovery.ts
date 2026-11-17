@@ -21,6 +21,7 @@ export interface DiscoveryFilters {
   category?: string;
   productLine?: string;
   concern?: string;
+  skinType?: string;
 }
 
 export interface DiscoveryPage {
@@ -46,6 +47,8 @@ export function sanitizeFilters(raw: Record<string, string | undefined>): Discov
     if (value && SLUG.test(value)) filters[key] = value;
   }
   if (raw.concern && SLUG.test(raw.concern)) filters.concern = raw.concern;
+  const skin = raw.skinType ?? raw.skin;
+  if (skin && SLUG.test(skin)) filters.skinType = skin;
   if (raw.sort && ['relevance', 'name-asc', 'price-asc', 'price-desc'].includes(raw.sort)) filters.sort = raw.sort as DiscoveryFilters['sort'];
   return filters;
 }
@@ -215,6 +218,16 @@ export interface PublicContent {
   usage: string | null;
   warnings: string | null;
   verifiedFacts?: Array<{ skuId: string; field: string; value: string; sourceUrl: string; sourceType: string; verifiedAt: string }>;
+  nameAr?: string | null;
+  nameEn?: string | null;
+  descriptionAr?: string | null;
+  descriptionEn?: string | null;
+  shortDescriptionAr?: string | null;
+  shortDescriptionEn?: string | null;
+  usageAr?: string | null;
+  usageEn?: string | null;
+  benefitsAr?: string[];
+  benefitsEn?: string[];
 }
 
 export interface PublicUsageRule {
@@ -236,6 +249,8 @@ export interface PublicVariant {
   code: string;
   barcode: string | null;
   variantName: string;
+  nameAr?: string | null;
+  nameEn?: string | null;
   size: number | null;
   sizeUnit: string | null;
   price: PublicPrice | null;
@@ -245,12 +260,20 @@ export interface PublicVariant {
   estimatedDaysOfUse?: number | null;
   media: PublicMedia[];
   content: PublicContent | null;
+  descriptionAr?: string | null;
+  descriptionEn?: string | null;
+  shortDescriptionAr?: string | null;
+  shortDescriptionEn?: string | null;
   usageRules?: PublicUsageRule[];
+  usageAr?: string | null;
+  usageEn?: string | null;
   routineProfile?: PublicRoutineProfile | null;
   keyIngredients?: PublicKeyIngredient[];
   inciIngredients?: PublicInciIngredient[];
   safetyWarnings?: PublicSafetyWarning[];
   benefits?: string[];
+  benefitsAr?: string[];
+  benefitsEn?: string[];
   promotions: {
     orderDiscountAmount?: number;
     subtotalAfterDiscount?: number;
@@ -262,10 +285,20 @@ export interface PublicVariant {
 export interface ProductDetail extends ProductFactFields {
   id: string;
   name: string;
+  nameAr?: string | null;
+  nameEn?: string | null;
   slug: string;
   description: string | null;
+  descriptionAr?: string | null;
+  descriptionEn?: string | null;
+  shortDescriptionAr?: string | null;
+  shortDescriptionEn?: string | null;
   usage: string | null;
+  usageAr?: string | null;
+  usageEn?: string | null;
   warnings: string | null;
+  warningsAr?: string | null;
+  warningsEn?: string | null;
   brand: { id: string; name: string; slug: string };
   productLine: { id: string; name: string; slug: string } | null;
   category: { id: string; name: string; slug: string; parentId: string | null } | null;
@@ -283,6 +316,8 @@ export interface ProductDetail extends ProductFactFields {
   inciIngredients?: PublicInciIngredient[];
   safetyWarnings?: PublicSafetyWarning[];
   benefits?: string[];
+  benefitsAr?: string[];
+  benefitsEn?: string[];
   evaluatedAt: string;
 }
 

@@ -19,9 +19,9 @@ export class PostgresSearchProvider implements SearchProvider {
   }
 
   private async find(filters: SearchFilters, limit?: number, offset = 0): Promise<string[]> {
-    const q = normalizeSearchText(filters.q);
+    const q = normalizeSearchText(filters.q || '');
     if (q.length > 120 || [...q].some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) return [];
-    if (!q && !filters.concern) return [];
+    if (!q && !filters.concern && !filters.skinType) return [];
     if (filters.visibility && !filters.visibility.productIds.length) return [];
     const [brands, drafts, ingredients] = /\p{L}/u.test(q) ? await Promise.all([
       this.prisma.brand.findMany({ select: { id: true, name: true, slug: true, profile: true } }),
@@ -82,7 +82,7 @@ export class PostgresSearchProvider implements SearchProvider {
       return Prisma.sql`(${Prisma.join(alternatives, ' OR ')})`;
     });
     // All SKU-dependent words must be satisfied by the same active, visible SKU.
-    const textMatch = Prisma.sql`EXISTS (SELECT 1 FROM catalog.skus s WHERE s.product_id = p.id AND s.is_active
+    const textMatch = Prisma.sql`EXISTS (SELECT 1 FROM catalog.skus s WHERE s.product_id = p.id AND s.is_active AND ${visibleSku}
       AND (${q ? Prisma.sql`(${concernMatch} OR (${Prisma.join(terms, ' AND ')}))` : Prisma.sql`TRUE`}))`;
     const rows = await this.prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT p.id FROM catalog.products p
@@ -105,6 +105,7 @@ export class PostgresSearchProvider implements SearchProvider {
         ${filters.category ? Prisma.sql`AND (c.slug = ${filters.category} OR parent.slug = ${filters.category})` : Prisma.empty}
         ${filters.productLine ? Prisma.sql`AND pl.slug = ${filters.productLine}` : Prisma.empty}
         ${filters.concern ? Prisma.sql`AND p.concerns @> ARRAY[${filters.concern}]::text[]` : Prisma.empty}
+        ${filters.skinType ? Prisma.sql`AND (p.suitable_skin_types @> ARRAY[${filters.skinType.toLowerCase()}]::text[] OR p.suitable_skin_types @> ARRAY[${filters.skinType.toUpperCase()}]::text[] OR p.suitable_skin_types @> ARRAY['all']::text[] OR p.suitable_skin_types @> ARRAY['ALL']::text[] OR EXISTS (SELECT 1 FROM catalog.sku_routine_profiles rp JOIN catalog.skus s2 ON s2.id = rp.sku_id WHERE s2.product_id = p.id AND s2.is_active AND ${filters.visibility ? (filters.visibility.skuIds.length ? Prisma.sql`s2.id IN (${uuidList(filters.visibility.skuIds)})` : Prisma.sql`FALSE`) : Prisma.sql`TRUE`} AND rp.suitability->'skinTypes'->>'status' = 'VERIFIED' AND rp.suitability->'skinTypes'->'value' ?| ARRAY[${filters.skinType.toLowerCase()}, ${filters.skinType.toUpperCase()}, 'all', 'ALL']::text[]))` : Prisma.empty}
         AND ${textMatch}
       ORDER BY
         CASE WHEN EXISTS (SELECT 1 FROM catalog.skus s WHERE s.product_id = p.id AND s.is_active AND ${visibleSku}

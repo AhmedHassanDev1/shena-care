@@ -16,11 +16,11 @@ export class DiscoveryService {
     const concerns = q ? await this.care.getPublicConcerns() : [];
     const matched = concerns.find(c => normalizeSearchText(c.name) === normalizeSearchText(q) || c.slug === q);
     return { q, category: query.category, brand: query.brand, productLine: query.productLine,
-      concern: query.concern, matchedConcern: matched?.slug, snapshotAt };
+      concern: query.concern, matchedConcern: matched?.slug, skinType: query.skinType, snapshotAt };
   }
 
   private async recheckVisible(views: Array<ProductView | null>, filters: SearchFilters): Promise<Array<ProductView | null>> {
-    if (!filters.q) return views;
+    if (!filters.q && !filters.concern && !filters.skinType) return views;
     const visible = views.filter((view): view is ProductView => view !== null);
     if (!visible.length) return views;
     // Reuse Catalog's reviewed aliases/typo rules, while excluding matches whose
@@ -60,7 +60,7 @@ export class DiscoveryService {
 
   async discover(query: DiscoveryQueryDto) {
     const filters = { q: query.q?.trim() || undefined, category: query.category, brand: query.brand,
-      productLine: query.productLine, concern: query.concern, sort: query.sort ?? 'relevance' };
+      productLine: query.productLine, concern: query.concern, skinType: query.skinType, sort: query.sort ?? 'relevance' };
     const fingerprint = createHash('sha256').update(JSON.stringify(filters)).digest('hex');
     let snapshotAt = new Date();
     let afterId: string | undefined;
@@ -77,7 +77,7 @@ export class DiscoveryService {
     // Full eligibility evaluation is necessary for honest facets/totals.
     const visible: ProductView[] = [];
     const evaluatedAt = new Date();
-    if (filters.q || filters.concern) {
+    if (filters.q || filters.concern || filters.skinType) {
       const searchFilters = await this.searchFilters(query, snapshotAt);
       const ids = await this.searchProvider.search(searchFilters);
       for (let start = 0; start < ids.length; start += 100) {

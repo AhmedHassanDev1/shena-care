@@ -23,6 +23,9 @@ export class DiscoveryQueryDto {
   @IsOptional() @IsString() @MaxLength(160) @Matches(/^[a-z0-9-]+$/)
   concern?: string;
 
+  @IsOptional() @IsString() @MaxLength(80) @Matches(/^[a-z0-9-]+$/)
+  skinType?: string;
+
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100)
   limit?: number;
 
@@ -45,6 +48,9 @@ export class SuggestQueryDto {
 
   @IsOptional() @IsString() @MaxLength(160) @Matches(/^[a-z0-9-]+$/)
   concern?: string;
+
+  @IsOptional() @IsString() @MaxLength(80) @Matches(/^[a-z0-9-]+$/)
+  skinType?: string;
 
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(10)
   limit?: number;

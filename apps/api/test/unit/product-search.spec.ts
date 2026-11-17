@@ -109,4 +109,22 @@ describe('product search', () => {
     expect(result.items).toHaveLength(2);
     expect(views.composeProducts.mock.calls[0][0]).toHaveLength(10);
   });
+
+  it('passes concern and skinType filters to the search provider and discovers matching products', async () => {
+    const id = '00000000-0000-0000-0000-000000000001';
+    const product = { id, name: 'Acne Cleanser', concerns: ['acne'], brand: { name: 'Brand', slug: 'brand' } };
+    const provider = { search: jest.fn(async () => [id]) };
+    const service = new DiscoveryService(
+      { getPublishedProductsByIds: async () => [product] } as never,
+      { composeProducts: async () => [{ ...product, skus: [{ id: 'sku-1' }] }] } as never,
+      provider as never,
+      { getPublicConcerns: async () => [{ slug: 'acne', name: 'Acne' }] } as never,
+    );
+    const result = await service.discover({ concern: 'acne', skinType: 'oily' } as never);
+    expect(result.items.map(p => p.id)).toEqual([id]);
+    expect(provider.search).toHaveBeenCalledWith(expect.objectContaining({
+      concern: 'acne',
+      skinType: 'oily',
+    }));
+  });
 });
