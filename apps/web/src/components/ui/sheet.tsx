@@ -27,6 +27,7 @@ SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
 const sheetVariants = cva("fixed z-overlay flex flex-col bg-linen text-ink shadow-elevation-3", {
   variants: {
     side: {
+      full: "inset-0 h-dvh pb-safe",
       bottom: "inset-x-0 bottom-0 max-h-[88dvh] rounded-t-sheet pb-safe motion-safe:data-[state=open]:animate-sheet-in-bottom",
       end: "inset-y-0 end-0 h-full w-[88%] max-w-[420px] rounded-s-sheet [--sheet-from:-100%] ltr:[--sheet-from:100%] motion-safe:data-[state=open]:animate-sheet-in-end",
     },

@@ -2,6 +2,15 @@ import { normalizeSearchText } from '../../src/modules/catalog/search/search-tex
 import { DiscoveryService } from '../../src/application/composition/services/discovery.service';
 
 describe('product search', () => {
+  it('finds eligible suggestions beyond a page of hidden candidates', async () => {
+    const ids = Array.from({ length: 101 }, (_, n) => `00000000-0000-0000-0000-${String(n + 1).padStart(12, '0')}`);
+    const product = (id: string) => ({ id, name: 'Cleanser', slug: id, brand: { name: 'Brand', slug: 'brand' }, skus: [] });
+    const service = new DiscoveryService({ getPublishedProductsByIds: async (batch: string[]) => batch.map(product) } as never,
+      { composeProducts: async (batch: Array<{ id: string }>) => batch.map(p => p.id === ids[100] ? product(p.id) : null) } as never,
+      { suggest: async (_filters: unknown, limit: number, offset = 0) => ids.slice(offset, offset + limit), search: async () => ids } as never,
+      { getPublicConcerns: async () => [] } as never);
+    expect((await service.suggest({ q: 'cleanser', limit: 1 })).items.map(item => item.id)).toEqual([ids[100]]);
+  });
   it('sorts visible prices with stable pagination and binds the cursor to the selected sort', async () => {
     const ids = ['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002'];
     const products = ids.map(id => ({ id, name: 'Serum', concerns: [], brand: { name: 'Brand', slug: 'brand' } }));

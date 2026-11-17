@@ -23,6 +23,7 @@ export function useListingFilters(): DiscoveryFilters {
         category: params.get('category') ?? undefined,
         productLine: params.get('productLine') ?? undefined,
         concern: params.get('concern') ?? undefined,
+        sort: params.get('sort') ?? undefined,
       }),
     [params],
   );

@@ -15,6 +15,7 @@ export interface DiscoveryFacet {
 }
 
 export interface DiscoveryFilters {
+  sort?: 'relevance' | 'name-asc' | 'price-asc' | 'price-desc';
   q?: string;
   brand?: string;
   category?: string;
@@ -45,6 +46,7 @@ export function sanitizeFilters(raw: Record<string, string | undefined>): Discov
     if (value && SLUG.test(value)) filters[key] = value;
   }
   if (raw.concern && SLUG.test(raw.concern)) filters.concern = raw.concern;
+  if (raw.sort && ['relevance', 'name-asc', 'price-asc', 'price-desc'].includes(raw.sort)) filters.sort = raw.sort as DiscoveryFilters['sort'];
   return filters;
 }
 
@@ -84,6 +86,8 @@ export interface ProductSuggestion {
   name: string;
   slug: string;
   brand: { name: string; slug: string };
+  imageUrl?: string | null;
+  category?: { name: string; slug: string } | null;
 }
 
 export async function suggestProducts(q: string, limit = 8, signal?: AbortSignal): Promise<{ items: ProductSuggestion[]; query: string }> {

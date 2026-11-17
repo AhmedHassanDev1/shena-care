@@ -9,12 +9,27 @@ export interface SearchBrandCandidate {
 
 export type SearchOption =
   | { id: string; kind: 'brand'; href: string; slug: string; label: string }
-  | { id: string; kind: 'product'; href: string; slug: string; label: string; brandName: string }
+  | { id: string; kind: 'product'; href: string; slug: string; label: string; brandName: string; imageUrl?: string | null }
+  | { id: string; kind: 'category'; href: string; label: string }
   | { id: string; kind: 'view-all'; href: string; label: string };
 
 /** Trims, collapses repeated whitespace, and caps length to match the API suggestion limit. */
 export function normalizeSearchQuery(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ').slice(0, 120);
+}
+
+/** Session-only submitted queries; never persist keystrokes or personal identifiers. */
+export function rememberSearch(previous: readonly string[], raw: string): string[] {
+  const query = normalizeSearchQuery(raw);
+  if (query.length < 2 || /[@\d٠-٩۰-۹]/u.test(query)) return [...previous].slice(0, 5);
+  return [query, ...previous.filter(value => normalizeSearchFold(value) !== normalizeSearchFold(query))].slice(0, 5);
+}
+
+export function readRecentSearches(raw: string | null): string[] {
+  try {
+    const value: unknown = JSON.parse(raw ?? '[]');
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.length >= 2 && item.length <= 120 && !/[@\d٠-٩۰-۹]/u.test(item)).slice(0, 5) : [];
+  } catch { return []; }
 }
 
 /** Normalizes Arabic alef/teh/yeh forms, strips tashkeel, and folds Latin case for matching. */
@@ -73,6 +88,7 @@ export function buildSearchOptions(input: {
   query: string;
   brands: ReadonlyArray<SearchBrandCandidate>;
   products: ReadonlyArray<ProductSuggestion>;
+  categories?: ReadonlyArray<{ slug: string; name: string }>;
   viewAllLabel?: string;
 }): SearchOption[] {
   const options: SearchOption[] = [];
@@ -95,10 +111,15 @@ export function buildSearchOptions(input: {
       slug: product.slug,
       label: product.name,
       brandName: product.brand.name,
+      ...(product.imageUrl !== undefined ? { imageUrl: product.imageUrl } : {}),
     });
   }
 
   const normalized = normalizeSearchQuery(input.query);
+  for (const category of input.categories ?? []) options.push({
+    id: `category:${category.slug}`, kind: 'category', label: category.name,
+    href: `${routes.productsSearch(normalized)}&category=${encodeURIComponent(category.slug)}`,
+  });
   if (input.viewAllLabel && normalized.length >= 2 && options.length > 0) {
     options.push({
       id: 'search:view-all',

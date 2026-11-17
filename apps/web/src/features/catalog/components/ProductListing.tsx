@@ -128,6 +128,16 @@ export function ProductListing() {
         <Skeleton className="h-[160px] rounded-24 lg:h-[212px] lg:rounded-sheet" />
       )}
 
+      {filters.q ? <label className="flex items-center justify-end gap-3 text-label text-ink">
+        <span>{m.searchSort}</span>
+        <select aria-label={m.searchSort} value={filters.sort ?? 'relevance'}
+          onChange={event => navigate({ ...filters, sort: event.target.value as DiscoveryFilters['sort'] })}
+          className="min-h-11 max-w-full rounded-input border border-line-2 bg-linen px-3 text-14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt">
+          <option value="relevance">{m.searchSortRelevance}</option><option value="name-asc">{m.searchSortName}</option>
+          <option value="price-asc">{m.searchSortPriceAsc}</option><option value="price-desc">{m.searchSortPriceDesc}</option>
+        </select>
+      </label> : null}
+
       {/* Phone: quick type pills, then the sticky «فلترة» bar (PLPMobile, PLPMobileScrolled). */}
       <div className="flex flex-col gap-3 lg:hidden">
         {department && groups.type.length ? (

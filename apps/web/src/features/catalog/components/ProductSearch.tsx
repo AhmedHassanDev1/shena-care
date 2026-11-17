@@ -4,420 +4,176 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { ProductTile } from '@/components/ui/product-tile';
 import { SearchField } from '@/components/ui/search-field';
-import { apiClient } from '@/lib/api-client';
-import { useMessages } from '@/lib/i18n/LocaleProvider';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
-import { suggestProducts, type ProductSuggestion } from '../api/discovery';
-import {
-  buildSearchOptions,
-  matchActiveBrands,
-  normalizeSearchQuery,
-  stepActiveIndex,
-  type SearchBrandCandidate,
-} from '../lib/search-helpers';
-
-interface BrandApiRecord extends SearchBrandCandidate {
-  id?: string;
-}
+import { suggestProducts } from '../api/discovery';
+import { categoryLabel } from '../lib/card-model';
+import { buildSearchOptions, normalizeSearchQuery, readRecentSearches, rememberSearch, stepActiveIndex } from '../lib/search-helpers';
 
 interface ProductSearchProps {
   id: string;
   label: string;
   placeholder: string;
   defaultValue?: string;
+  mobile?: boolean;
 }
 
-const DEBOUNCE_MS = 250;
-const MAX_CACHE_ENTRIES = 25;
+const HISTORY_KEY = 'shinacare.search.session.v1';
 
-function SearchErrorBanner({
-  errorText,
-  retryLabel,
-  onRetry,
-  className,
-}: {
-  errorText: string;
-  retryLabel: string;
-  onRetry: () => void;
-  className?: string;
-}) {
-  return (
-    <div className={cn('flex items-center justify-between gap-3 px-4 py-3.5', className)} role="status">
-      <span className="text-13.5 font-medium text-tomato-ink">{errorText}</span>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-pill border border-line-2/30 bg-chalk px-3.5 text-13 font-semibold text-ink transition-colors duration-fast hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
-      >
-        <Icon name="retry" size={14} />
-        <span>{retryLabel}</span>
-      </button>
-    </div>
-  );
-}
-
-/**
- * Header product and brand search backed by `/products/suggestions` and `/brands`.
- * Supports Arabic/English input, debounced autocomplete, keyboard navigation, and
- * explicit loading, empty, and recoverable error states.
- */
-export function ProductSearch({ id, label, placeholder, defaultValue = '' }: ProductSearchProps) {
+/** Anchored desktop combobox and full-screen mobile search share the same public API. */
+export function ProductSearch(props: ProductSearchProps) {
+  const [open, setOpen] = useState(false);
   const m = useMessages();
+  if (!props.mobile) return <SearchCombobox {...props} />;
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button type="button" aria-label={props.label} className="flex min-h-11 w-full items-center gap-3 rounded-pill border border-line-2/30 bg-linen px-4 text-start text-14.5 text-stone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt">
+          <Icon name="search" size={18} /><span className="truncate">{props.defaultValue || props.placeholder}</span>
+        </button>
+      </SheetTrigger>
+      <SheetContent side="full" closeLabel={m.searchClose} aria-describedby={undefined}>
+        <SheetTitle className="px-4 pb-4 pe-16 pt-4 text-title">{props.label}</SheetTitle>
+        <div className="flex min-h-0 flex-1 flex-col px-4"><SearchCombobox {...props} onNavigate={() => setOpen(false)} /></div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function SearchCombobox({ id, label, placeholder, defaultValue = '', mobile, onNavigate }: ProductSearchProps & { onNavigate?: () => void }) {
+  const m = useMessages();
+  const locale = useLocale();
   const router = useRouter();
-
   const [query, setQuery] = useState(defaultValue);
-  const [focused, setFocused] = useState(false);
-  const [products, setProducts] = useState<ProductSuggestion[]>([]);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const [debounced, setDebounced] = useState('');
+  const [focused, setFocused] = useState(Boolean(mobile));
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [retryNonce, setRetryNonce] = useState(0);
-
+  const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-  const cacheRef = useRef<Map<string, ProductSuggestion[]>>(new Map());
-  const prevRetryRef = useRef(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const normalized = normalizeSearchQuery(query);
+  const ready = normalized.length >= 2 && normalized === debounced;
 
+  useEffect(() => { setQuery(defaultValue); }, [defaultValue]);
   useEffect(() => {
-    setQuery(defaultValue);
-  }, [defaultValue]);
+    const timer = window.setTimeout(() => setDebounced(normalized), 250);
+    setActiveIndex(-1);
+    return () => window.clearTimeout(timer);
+  }, [normalized]);
 
-  const normalizedQuery = useMemo(() => normalizeSearchQuery(query), [query]);
-
-  const { data: brandsData } = useQuery({
-    queryKey: ['brands', 'public'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient.get<BrandApiRecord[]>('/brands');
-        return Array.isArray(res) && res.length > 0 ? res : null;
-      } catch {
-        return null;
-      }
-    },
-    enabled: focused || normalizedQuery.length >= 2,
-    staleTime: 5 * 60 * 1000,
+  const suggestions = useQuery({
+    queryKey: ['search-suggestions', debounced],
+    queryFn: ({ signal }) => suggestProducts(debounced, 6, signal),
+    enabled: focused && ready,
+    // An offline search must expose its retry state instead of silently pausing forever.
+    networkMode: 'always',
+    staleTime: 15_000,
+    gcTime: 60_000,
+    retry: false,
   });
+  // Previous results are never selectable while a different query debounces or fails.
+  const products = ready && !suggestions.isError ? suggestions.data?.items : undefined;
+  const options = useMemo(() => {
+    const items = products ?? [];
+    const brands = [...new Map(items.map(item => [item.brand.slug, item.brand])).values()].slice(0, 3);
+    const categories = [...new Map(items.flatMap(item => item.category ? [[item.category.slug, item.category] as const] : [])).values()]
+      .slice(0, 3).map(category => ({ ...category, name: categoryLabel(category, locale) ?? category.name }));
+    return buildSearchOptions({ query: normalized, brands, products: items, categories, viewAllLabel: fillMessage(m.searchViewAll, { q: normalized }) });
+  }, [products, normalized, locale, m.searchViewAll]);
+  const active = options[activeIndex];
+  const listId = `${id}-options`;
+  const showPanel = focused || Boolean(mobile);
+  const loading = normalized.length >= 2 && (!ready || suggestions.isPending || suggestions.isFetching);
+  const close = () => { setFocused(false); setActiveIndex(-1); };
+
+  function readHistory() {
+    try { setRecent(readRecentSearches(sessionStorage.getItem(HISTORY_KEY))); } catch { setRecent([]); }
+  }
+  function navigate(href: string, submitted = normalized) {
+    try {
+      const next = rememberSearch(readRecentSearches(sessionStorage.getItem(HISTORY_KEY)), submitted);
+      sessionStorage.setItem(HISTORY_KEY, JSON.stringify(next)); setRecent(next);
+    } catch { /* Storage is optional. */ }
+    close(); onNavigate?.(); router.push(href);
+  }
 
   useEffect(() => {
-    if (!focused || normalizedQuery.length < 2) {
-      if (normalizedQuery.length < 2) {
-        setProducts([]);
-        setStatus('idle');
-      }
-      return;
-    }
-
-    const isRetry = retryNonce !== prevRetryRef.current;
-    prevRetryRef.current = retryNonce;
-    if (isRetry) {
-      cacheRef.current.delete(normalizedQuery);
-    }
-
-    const cached = cacheRef.current.get(normalizedQuery);
-    if (cached) {
-      setProducts(cached);
-      setStatus('loaded');
-      return;
-    }
-
-    const controller = new AbortController();
-    setStatus('loading');
-
-    const timer = window.setTimeout(() => {
-      suggestProducts(normalizedQuery, 6, controller.signal)
-        .then((result) => {
-          if (controller.signal.aborted) return;
-          if (cacheRef.current.size >= MAX_CACHE_ENTRIES) {
-            const oldestKey = cacheRef.current.keys().next().value;
-            if (oldestKey !== undefined) cacheRef.current.delete(oldestKey);
-          }
-          cacheRef.current.set(normalizedQuery, result.items);
-          setProducts(result.items);
-          setStatus('loaded');
-        })
-        .catch(() => {
-          if (controller.signal.aborted) return;
-          setProducts([]);
-          setStatus('error');
-        });
-    }, DEBOUNCE_MS);
-
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
+    if (active) document.getElementById(`${id}-${active.id}`)?.scrollIntoView({ block: 'nearest' });
+  }, [active, id]);
+  useEffect(() => {
+    if (!focused || mobile) return;
+    const onPointer = (event: PointerEvent) => {
+      if (event.target instanceof Node && !panelRef.current?.contains(event.target)) setFocused(false);
     };
-  }, [normalizedQuery, focused, retryNonce]);
-
-  useEffect(() => {
-    setActiveIndex(-1);
-  }, [normalizedQuery]);
-
-  const matchedBrands = useMemo(
-    () => matchActiveBrands(brandsData, normalizedQuery, 3),
-    [brandsData, normalizedQuery],
-  );
-
-  const viewAllLabel = useMemo(
-    () => (normalizedQuery.length >= 2 ? fillMessage(m.searchViewAll, { q: normalizedQuery }) : ''),
-    [m.searchViewAll, normalizedQuery],
-  );
-
-  const options = useMemo(
-    () =>
-      buildSearchOptions({
-        query: normalizedQuery,
-        brands: matchedBrands,
-        products,
-        viewAllLabel,
-      }),
-    [normalizedQuery, matchedBrands, products, viewAllLabel],
-  );
-
-  const clampedIndex = activeIndex >= 0 && activeIndex < options.length ? activeIndex : -1;
-  const activeOption = clampedIndex >= 0 ? options[clampedIndex] ?? null : null;
-
-  const listboxId = `${id}-listbox`;
-  const showPopup = focused && normalizedQuery.length >= 2;
-  const hasResults = options.length > 0;
-  const brandOptions = options.filter((o) => o.kind === 'brand');
-  const productOptions = options.filter((o) => o.kind === 'product');
-  const viewAllOption = options.find((o) => o.kind === 'view-all') ?? null;
-
-  const closePopup = () => {
-    setFocused(false);
-    setActiveIndex(-1);
-  };
-
-  const handleClear = () => {
-    setQuery('');
-    setProducts([]);
-    setStatus('idle');
-    setActiveIndex(-1);
-    setFocused(true);
-    inputRef.current?.focus();
-  };
-
-  const handleRetry = () => {
-    setRetryNonce((n) => n + 1);
-    inputRef.current?.focus();
-  };
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (showPopup && activeOption) {
-      closePopup();
-      router.push(activeOption.href);
-      return;
-    }
-    closePopup();
-    router.push(normalizedQuery ? routes.productsSearch(normalizedQuery) : routes.products);
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Escape') {
-      if (showPopup) {
-        event.preventDefault();
-        closePopup();
-      } else if (query.length > 0) {
-        event.preventDefault();
-        handleClear();
-      }
-      return;
-    }
-
-    if (
-      event.key === 'ArrowDown' ||
-      event.key === 'ArrowUp' ||
-      event.key === 'Home' ||
-      event.key === 'End'
-    ) {
-      if (!normalizedQuery || normalizedQuery.length < 2) return;
-      if (!focused) setFocused(true);
-      if (options.length === 0) return;
-      event.preventDefault();
-      setActiveIndex((prev) => stepActiveIndex(prev, options.length, event.key as 'ArrowDown' | 'ArrowUp' | 'Home' | 'End'));
-    }
-  };
-
-  const optionIndexById = new Map(options.map((opt, idx) => [opt.id, idx]));
+    document.addEventListener('pointerdown', onPointer);
+    return () => document.removeEventListener('pointerdown', onPointer);
+  }, [focused, mobile]);
 
   return (
-    <div
-      className="relative w-full"
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          closePopup();
-        }
-      }}
-    >
-      <SearchField
-        id={id}
-        variant="compact"
-        inputRef={inputRef}
-        action={routes.products}
-        onFormSubmit={handleSubmit}
-        label={label}
-        placeholder={placeholder}
-        maxLength={120}
-        value={query}
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={showPopup}
-        aria-controls={listboxId}
-        aria-activedescendant={activeOption ? `${id}-${activeOption.id}` : undefined}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          setFocused(true);
+    <div ref={panelRef} className={cn('relative w-full', mobile && 'flex min-h-0 flex-1 flex-col')}
+      onBlur={event => { if (!mobile && !event.currentTarget.contains(event.relatedTarget)) close(); }}>
+      <SearchField id={id} variant="compact" inputRef={inputRef} action={routes.products} label={label}
+        placeholder={placeholder} value={query} maxLength={120} autoFocus={mobile} role="combobox" aria-autocomplete="list"
+        aria-expanded={showPanel && options.length > 0} aria-controls={options.length ? listId : undefined}
+        aria-activedescendant={active ? `${id}-${active.id}` : undefined}
+        onFocus={() => { setFocused(true); readHistory(); }}
+        onChange={event => { setQuery(event.target.value); setActiveIndex(-1); setFocused(true); }}
+        onFormSubmit={event => { event.preventDefault(); if (active) navigate(active.href); else if (normalized) navigate(routes.productsSearch(normalized)); }}
+        onKeyDown={event => {
+          if (event.nativeEvent.isComposing) return;
+          if (event.key === 'Escape' && !mobile) { event.preventDefault(); close(); }
+          else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) && options.length) {
+            event.preventDefault(); setFocused(true); setActiveIndex(index => stepActiveIndex(index, options.length, event.key as 'ArrowDown' | 'ArrowUp' | 'Home' | 'End'));
+          }
         }}
-        onFocus={() => setFocused(true)}
-        onKeyDown={handleKeyDown}
-        endAdornment={
-          query.length > 0 ? (
-            <button
-              type="button"
-              aria-label={m.searchClear}
-              onClick={handleClear}
-              className="flex size-8 shrink-0 items-center justify-center rounded-full text-stone transition-colors duration-fast ease-standard hover:bg-sand/60 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
-            >
-              <Icon name="close" size={16} />
-            </button>
-          ) : null
-        }
-      />
+        endAdornment={query ? <button type="button" aria-label={m.searchClear} onClick={() => { setQuery(''); setActiveIndex(-1); inputRef.current?.focus(); readHistory(); }}
+          className="flex size-11 shrink-0 items-center justify-center rounded-full text-stone hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"><Icon name="close" size={18} /></button> : null} />
 
-      {showPopup ? (
-        <div
-          id={listboxId}
-          role="listbox"
-          aria-label={label}
-          className="absolute inset-x-0 top-full z-overlay mt-2 max-h-96 overflow-y-auto rounded-card border border-line bg-linen shadow-elevation-2 font-display"
-        >
-          {status === 'loading' && !hasResults ? (
-            <div className="space-y-2 px-4 py-3" aria-live="polite">
-              <p className="m-0 text-12.5 font-medium text-stone">{m.searchLoading}</p>
-              <div className="h-9 rounded-input bg-sand/50 animate-breathe" />
-              <div className="h-9 rounded-input bg-sand/50 animate-breathe" />
-              <div className="h-9 rounded-input bg-sand/40 animate-breathe" />
-            </div>
-          ) : null}
-
-          {status === 'error' && !hasResults ? (
-            <SearchErrorBanner errorText={m.searchError} retryLabel={m.plpRetry} onRetry={handleRetry} />
-          ) : null}
-
-          {status === 'loaded' && !hasResults ? (
-            <div className="px-4 py-4 text-center" role="status">
-              <p className="m-0 text-14 font-medium text-stone">{m.searchEmpty}</p>
-            </div>
-          ) : null}
-
-          {hasResults ? (
-            <div className={cn('py-1.5 transition-opacity duration-fast', status === 'loading' && 'opacity-70')}>
-              {brandOptions.length > 0 ? (
-                <div>
-                  <div className="px-4 pb-1 pt-2 text-11.5 font-semibold tracking-wide text-stone">
-                    {m.searchBrandsGroup}
-                  </div>
-                  {brandOptions.map((item) => {
-                    const idx = optionIndexById.get(item.id) ?? -1;
-                    const isActive = idx === clampedIndex;
-                    return (
-                      <Link
-                        key={item.id}
-                        id={`${id}-${item.id}`}
-                        role="option"
-                        aria-selected={isActive}
-                        href={item.href}
-                        onMouseEnter={() => setActiveIndex(idx)}
-                        onClick={closePopup}
-                        className={cn(
-                          'flex min-h-11 items-center justify-between gap-3 px-4 text-14.5 font-medium text-ink no-underline transition-colors duration-fast',
-                          isActive ? 'bg-chalk text-cobalt' : 'hover:bg-chalk/80 hover:text-cobalt',
-                        )}
-                      >
-                        <span className="truncate font-serif italic text-15">
-                          <bdi>{item.label}</bdi>
-                        </span>
-                        <Icon name="chevron-forward" size={16} className="shrink-0 text-stone" />
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : null}
-
-              {productOptions.length > 0 ? (
-                <div className={brandOptions.length > 0 ? 'mt-1 border-t border-line/70 pt-1' : undefined}>
-                  <div className="px-4 pb-1 pt-2 text-11.5 font-semibold tracking-wide text-stone">
-                    {m.searchProductsGroup}
-                  </div>
-                  {productOptions.map((item) => {
-                    if (item.kind !== 'product') return null;
-                    const idx = optionIndexById.get(item.id) ?? -1;
-                    const isActive = idx === clampedIndex;
-                    return (
-                      <Link
-                        key={item.id}
-                        id={`${id}-${item.id}`}
-                        role="option"
-                        aria-selected={isActive}
-                        href={item.href}
-                        onMouseEnter={() => setActiveIndex(idx)}
-                        onClick={closePopup}
-                        className={cn(
-                          'flex min-h-11 items-center justify-between gap-3 px-4 py-1.5 text-14.5 text-ink no-underline transition-colors duration-fast',
-                          isActive ? 'bg-chalk text-cobalt' : 'hover:bg-chalk/80',
-                        )}
-                      >
-                        <span className="min-w-0 flex-1 truncate font-medium">
-                          <bdi>{item.label}</bdi>
-                        </span>
-                        <span className="shrink-0 font-serif italic text-13 text-stone">
-                          <bdi>{item.brandName}</bdi>
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : status === 'loading' && brandOptions.length > 0 ? (
-                <div className="border-t border-line/70 px-4 py-2.5">
-                  <p className="m-0 text-12.5 text-stone">{m.searchLoading}</p>
-                </div>
-              ) : status === 'error' && brandOptions.length > 0 ? (
-                <SearchErrorBanner
-                  errorText={m.searchError}
-                  retryLabel={m.plpRetry}
-                  onRetry={handleRetry}
-                  className="mt-1 border-t border-line/70"
-                />
-              ) : null}
-
-              {viewAllOption ? (
-                <div className="mt-1 border-t border-line pt-1">
-                  <Link
-                    id={`${id}-${viewAllOption.id}`}
-                    role="option"
-                    aria-selected={optionIndexById.get(viewAllOption.id) === clampedIndex}
-                    href={viewAllOption.href}
-                    onMouseEnter={() => setActiveIndex(optionIndexById.get(viewAllOption.id) ?? -1)}
-                    onClick={closePopup}
-                    className={cn(
-                      'flex min-h-11 items-center justify-between gap-2 px-4 text-13.5 font-semibold text-cobalt no-underline transition-colors duration-fast',
-                      optionIndexById.get(viewAllOption.id) === clampedIndex
-                        ? 'bg-chalk'
-                        : 'hover:bg-chalk/80',
-                    )}
-                  >
-                    <span className="truncate">{viewAllOption.label}</span>
-                    <Icon name="arrow-forward" size={16} className="shrink-0" />
-                  </Link>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+      {showPanel ? <div className={cn('overflow-y-auto overscroll-contain bg-linen text-ink', mobile
+        ? 'mt-4 min-h-0 flex-1 pb-safe' : 'absolute end-0 top-full z-overlay mt-2 w-full min-w-80 max-w-[calc(100vw-2rem)] max-h-[70dvh] rounded-card shadow-elevation-2')}>
+        {normalized.length < 2 ? <div className="px-4 py-4">
+          <p className="m-0 text-14 text-stone">{m.searchHint}</p>
+          {recent.length ? <section aria-label={m.searchRecent} className="mt-5">
+            <div className="flex items-center justify-between gap-3"><h3 className="m-0 text-label font-semibold">{m.searchRecent}</h3>
+              <Button variant="text" size="s" onClick={() => { try { sessionStorage.removeItem(HISTORY_KEY); } catch { /* Storage may be disabled. */ } setRecent([]); }}>{m.searchClearHistory}</Button></div>
+            {recent.map(value => <button key={value} type="button" onClick={() => navigate(routes.productsSearch(value), value)}
+              className="flex min-h-11 w-full items-center gap-3 text-start text-14 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"><Icon name="search" size={16} /><bdi>{value}</bdi></button>)}
+          </section> : null}
+        </div> : null}
+        <div role="status" aria-live="polite">
+          {loading ? <div className="space-y-3 px-4 py-4"><p className="m-0 text-13 text-stone">{m.searchLoading}</p><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : null}
+          {ready && suggestions.isError ? <div className="flex items-center justify-between gap-3 px-4 py-4"><p className="m-0 text-14 text-tomato-ink">{m.searchError}</p><Button variant="text" size="s" onClick={() => suggestions.refetch()}>{m.plpRetry}</Button></div> : null}
+          {ready && suggestions.isSuccess && !products?.length && !loading ? <p className="m-0 px-4 py-6 text-14 text-stone">{m.searchEmpty}</p> : null}
         </div>
-      ) : null}
+        {options.length ? <div id={listId} role="listbox" aria-label={label} className="py-2">
+          {(['brand', 'product', 'category', 'view-all'] as const).map(kind => {
+            const group = options.filter(option => option.kind === kind);
+            if (!group.length) return null;
+            const heading = kind === 'brand' ? m.searchBrandsGroup : kind === 'product' ? m.searchProductsGroup : kind === 'category' ? m.searchCategoriesGroup : m.searchSubmit;
+            return <div key={kind} role="group" aria-label={heading}>
+              {kind !== 'view-all' ? <p aria-hidden="true" className="m-0 px-4 pb-1 pt-3 text-12 font-semibold text-stone">{heading}</p> : null}
+              {group.map(option => <Link key={option.id} id={`${id}-${option.id}`} href={option.href} role="option" aria-selected={active?.id === option.id}
+                onMouseEnter={() => setActiveIndex(options.indexOf(option))}
+                onClick={event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate(option.href); } }}
+                className={cn('flex min-h-11 items-center gap-3 px-4 py-2 text-14 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cobalt',
+                  active?.id === option.id ? 'bg-sand/50 text-cobalt' : 'hover:bg-sand/30', kind === 'view-all' && 'mt-2 border-t border-line font-semibold text-cobalt')}>
+                {option.kind === 'product' ? <ProductTile src={option.imageUrl ?? null} alt="" name={option.label} size="thumb" fit="contain" className="size-14 shrink-0" /> : null}
+                <span className="min-w-0 flex-1"><bdi className={cn('block font-medium', option.kind === 'product' ? 'line-clamp-2' : 'truncate')}>{option.label}</bdi>
+                  {option.kind === 'product' ? <bdi className="mt-1 block text-12 text-stone">{option.brandName}</bdi> : null}</span>
+                <Icon name="arrow-forward" size={16} className="shrink-0" />
+              </Link>)}
+            </div>;
+          })}
+        </div> : null}
+      </div> : null}
     </div>
   );
 }
