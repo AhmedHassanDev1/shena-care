@@ -42,6 +42,26 @@
         "name": "conflict",
         "value": "#FBE3D9",
         "usage": "Routine conflict card warm peach background."
+      },
+      {
+        "name": "dawn",
+        "value": "#F8EDD3",
+        "usage": "Routines morning ground: warm sunlit chalk behind the Morning atmosphere. Ink text 15.4:1, stone 5.0:1."
+      },
+      {
+        "name": "sunlight",
+        "value": "#F0B940",
+        "usage": "Routines morning light: edge rays and golden ambient glow only, never text or controls."
+      },
+      {
+        "name": "evening-ground",
+        "value": "#E8E6EE",
+        "usage": "Routines evening ground: cool smoke-lilac chalk behind the Evening atmosphere. Ink text 14.6:1, stone 5.3:1."
+      },
+      {
+        "name": "moonlight",
+        "value": "#7F90E8",
+        "usage": "Routines evening light: muted cobalt/indigo edge glow and moon halo only, never text or controls."
       }
     ]
   },
