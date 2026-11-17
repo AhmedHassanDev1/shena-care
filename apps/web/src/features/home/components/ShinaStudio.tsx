@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { PageContainer } from '@/components/layout/page-container';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { Icon } from '@/components/ui/icon';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { routes, shellRoutes } from '@/lib/routes';
@@ -79,7 +80,7 @@ export function ShinaStudio() {
                 {/* Primary CTA: Structured Routine Builder */}
                 <Link
                   href={routes.routineBuilder}
-                  className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-pill bg-cobalt px-8 text-14 font-bold text-chalk shadow-elevation-1 transition-all duration-fast hover:bg-cobalt-deep hover:shadow-elevation-2 active:scale-95 md:w-auto whitespace-nowrap"
+                  className={buttonVariants({ variant: 'cobalt', size: 'l', className: 'group w-full md:w-auto' })}
                 >
                   <span>{m.atelierPrimaryCta}</span>
                   <Icon
@@ -93,7 +94,7 @@ export function ShinaStudio() {
                 {/* Secondary CTA: Conversational Beauty Advisor */}
                 <Link
                   href={shellRoutes.shina}
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-pill border border-line bg-chalk px-7 text-14 font-bold text-ink shadow-elevation-1 transition-all duration-fast hover:border-cobalt hover:bg-linen hover:text-cobalt active:scale-95 md:w-auto whitespace-nowrap"
+                  className={buttonVariants({ variant: 'ghost', size: 'l', className: 'w-full md:w-auto' })}
                 >
                   <Icon name="sparkles" size={15} className="text-cobalt" />
                   <span>{m.atelierSecondaryCta}</span>

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { Icon } from '@/components/ui/icon';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -406,10 +407,8 @@ function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
           setDraft(filters);
           setOpen(true);
         }}
-        className="group relative flex h-13 w-full items-center justify-center gap-2.5 overflow-hidden rounded-pill bg-ink/85 px-6 text-15 font-bold text-chalk backdrop-blur-xl border border-chalk/20 shadow-elevation-2 transition-all hover:bg-ink active:scale-[0.98]"
+        className={buttonVariants({ variant: 'ink', size: 'l', className: 'group w-full' })}
       >
-        {/* Specular glass reflection highlight */}
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-pill bg-gradient-to-b from-chalk/20 to-transparent" />
         <Icon name="filter" size={19} className="transition-transform group-hover:scale-110" />
         <span>{m.plpFilterButton}</span>
         {applied ? (

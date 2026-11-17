@@ -292,7 +292,8 @@ export function ProductReviewComposer({
               size="l"
               state={submitState}
               pendingLabel={m.pdpReviewSubmitting}
-              className="w-full rounded-pill bg-cobalt text-chalk hover:bg-cobalt-deep font-semibold"
+              variant="cobalt"
+              className="w-full"
             >
               {m.pdpSendReview}
             </AsyncButton>

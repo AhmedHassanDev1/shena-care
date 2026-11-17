@@ -253,6 +253,92 @@ bdi {
   }
 
   /*
+   * Sahel Brand Loader (3D): one glossy citron sun that bobs on its own contact shadow, with a cobalt comet circling it
+   * on a tilted ring. The ring is drawn twice, back half behind the sphere and front half over it, so it really passes
+   * around the sun.
+   */
+  .brand-loader {
+    position: relative;
+    width: 136px;
+    height: 136px;
+    flex: none;
+  }
+  .brand-loader__sun {
+    position: absolute;
+    inset: 30px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, #FDFFC9 0%, #F1F663 20%, #E4EE3C 48%, #B7C018 100%);
+    box-shadow:
+      inset -9px -11px 20px rgba(107, 52, 16, 0.3),
+      inset 5px 6px 12px rgba(255, 255, 255, 0.6),
+      0 16px 22px -12px rgba(107, 52, 16, 0.5);
+    animation: brandLoaderBob 2s ease-in-out infinite;
+  }
+  .brand-loader__tilt {
+    position: absolute;
+    inset: 0;
+    transform: perspective(520px) rotateX(72deg);
+    pointer-events: none;
+  }
+  .brand-loader__tilt--back {
+    clip-path: inset(0 0 50% 0);
+  }
+  .brand-loader__tilt--front {
+    clip-path: inset(50% 0 0 0);
+  }
+  .brand-loader__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, rgb(var(--cobalt-rgb) / 0) 0%, rgb(var(--cobalt-rgb) / 0.08) 45%, var(--cobalt) 100%);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: brandLoaderSpin 1.5s linear infinite;
+  }
+  .brand-loader__shadow {
+    position: absolute;
+    left: 31%;
+    top: 112px;
+    width: 38%;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(107, 52, 16, 0.32);
+    filter: blur(5px);
+    animation: brandLoaderShadow 2s ease-in-out infinite;
+  }
+  .brand-loader-screen {
+    animation: brandLoaderIn 320ms var(--ease-standard) 180ms both;
+  }
+  @keyframes brandLoaderSpin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes brandLoaderBob {
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  @keyframes brandLoaderShadow {
+    50% {
+      transform: scale(0.8);
+      opacity: 0.6;
+    }
+  }
+  @keyframes brandLoaderIn {
+    from {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .brand-loader__sun,
+    .brand-loader__ring,
+    .brand-loader__shadow {
+      animation: none;
+    }
+  }
+
+  /*
    * Sahel Shutter Loading — Pending state for any button performing a loading action (aria-busy="true").
    * Delicate diagonal slatted shutter lines (118deg) gliding with fast, crisp linear motion.
    */

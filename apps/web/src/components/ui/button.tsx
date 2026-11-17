@@ -128,7 +128,7 @@ const AsyncButton = React.forwardRef<HTMLButtonElement, AsyncButtonProps>(
         ref={ref}
         type={props.type ?? "button"}
         className={cn(
-          buttonVariants({ variant, size, state: success ? "success" : "idle" }),
+          buttonVariants({ variant, size, state: success ? "success" : state === "error" ? "error" : "idle" }),
           resolving ? "sl-inward" : "sl",
           (variant === "ghost" || variant === "linen" || variant === "light" || variant === "onDark" || variant === "text") && "sl-light",
           className

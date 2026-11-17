@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { Icon } from '@/components/ui/icon';
 import type { RoutineCardModel } from '@/features/routine/types/routine.types';
 
@@ -115,7 +116,7 @@ export function RoutineCard({ routine, className = '', isMobileOnly = false }: R
         <div className="mt-4 pt-1">
           <Link
             href={routine.detailHref}
-            className="flex h-12 w-full items-center justify-between rounded-pill bg-cobalt px-5 font-display text-13 md:text-14 font-bold text-chalk shadow-elevation-1 transition-all duration-fast hover:bg-cobalt-deep hover:shadow-elevation-2 active:scale-[0.98]"
+            className={buttonVariants({ variant: 'cobalt', size: 'm', className: 'group w-full justify-between' })}
           >
             <span className="flex-grow text-center">اكتشف الروتين</span>
             <Icon

@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { Icon } from '@/components/ui/icon';
 import { ProductTile } from '@/components/ui/product-tile';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
@@ -246,18 +247,15 @@ export function ProductCard({ product, priority = false, feature = false }: Prod
               aria-haspopup={multi ? 'dialog' : undefined}
               aria-expanded={multi ? pickerOpen : undefined}
               aria-busy={state === 'pending' && !multi ? true : undefined}
-              disabled={state === 'pending' && !multi}
+              aria-disabled={state === 'pending' && !multi ? true : undefined}
               aria-describedby={state === 'error' && !multi ? errorId : undefined}
               onClick={start}
-              className={cn(
-                'sl inline-flex h-9 flex-none items-center justify-center gap-1.5 rounded-pill bg-cobalt px-3 text-12 font-bold text-chalk shadow-elevation-1 transition-all duration-fast hover:bg-cobalt-deep hover:shadow-elevation-2 active:scale-95 disabled:cursor-wait sm:px-3.5',
-                multi && pickerOpen && 'bg-cobalt-deep'
-              )}
+              className={cn(buttonVariants({ variant: 'cobalt', size: 'xs' }), 'sl flex-none', multi && pickerOpen && 'bg-cobalt-deep')}
             >
               {state === 'pending' && !multi ? (
                 <Spinner size="xs" className="text-chalk" />
               ) : (
-                <Icon name={state === 'error' && !multi ? 'retry' : 'cart'} size={15} className="flex-none" />
+                <Icon name={state === 'error' && !multi ? 'retry' : 'cart'} size={16} className="flex-none" />
               )}
               <span>
                 {state === 'pending' && !multi
