@@ -152,7 +152,7 @@ export function StepsEditor({ draft, apply, undo }: Props) {
         </div>
 
         {steps.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 rounded-card bg-linen/60 p-6 shadow-outline-hairline">
+          <div className="flex flex-col items-start gap-3 routine-glass rounded-card p-6">
             <p className="m-0 font-display text-20 font-bold text-ink">{emptyTitle}</p>
             <p className="m-0 max-w-narrow font-display text-15 leading-24 text-stone">{m.rtEmptyBody}</p>
           </div>

@@ -40,7 +40,7 @@ export const otherTiming = (timing: StepTiming): StepTiming => (timing === 'AM' 
 const stepNumber = (index: number) => String(index + 1).padStart(2, '0');
 
 const CARD =
-  'relative rounded-card bg-linen/80 shadow-outline-hairline shadow-elevation-1 backdrop-blur-sm transition-shadow duration-base ease-standard';
+  'routine-glass relative rounded-card transition-shadow duration-base ease-standard';
 
 function ToolButton({ icon, label, onClick, disabled, danger, bordered }: { icon: IconName; label: string; onClick?: () => void; disabled?: boolean; danger?: boolean; bordered?: boolean }) {
   return (

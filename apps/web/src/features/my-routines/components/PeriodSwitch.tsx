@@ -36,7 +36,7 @@ export function PeriodSwitch({ counts, className }: { counts?: Partial<Record<Ro
       role="radiogroup"
       aria-label={m.rtPeriodSwitchLabel}
       onKeyDown={onKeyDown}
-      className={cn('relative grid h-13 grid-cols-2 rounded-pill bg-sand/70 p-1 shadow-outline-hairline', className)}
+      className={cn('relative grid h-13 grid-cols-2 routine-glass--tabs rounded-pill p-1', className)}
     >
       <span
         aria-hidden="true"

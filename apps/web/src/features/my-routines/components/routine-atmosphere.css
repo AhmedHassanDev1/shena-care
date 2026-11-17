@@ -1,18 +1,16 @@
 /*
- * Routines atmosphere: shutter light.
+ * Routines atmosphere: natural shutter light + frosted glass. (The band positions, widths and strengths are deliberately
+ * irregular - produced once from a seeded generator - so the light never reads as a repeating stripe pattern. Tune them by hand.)
  *
- * Morning is a warm linen room with soft diagonal bands of sun entering from the upper-left, as through blinds. Evening is a
- * deep cobalt/indigo room with cool luminous bands entering from the upper-right. The light is strongest at its edge and
- * fades toward the content; the middle of the page, where text sits, stays clean ground.
+ * Morning: a warm cream wall with sun filtered through blinds from the upper-left. Evening: a deep indigo room with cool blue
+ * beams from the upper-right. Three soft layers per theme (bright slats, shadow slats, a wide diffuse wash) at slightly different
+ * angles and widths, blurred, masked to one corner and fading toward the content.
  *
  * Rules this file keeps:
- *  - CSS only: gradients, masks and layered backgrounds. No images, no drawn scenery.
- *  - Tokens only. The Evening theme remaps the surface tokens (chalk, linen, ink, stone, cobalt…) to night-* tokens on <html>,
- *    so every shared component, the header and the sheets follow without a second stylesheet.
- *  - Morning and Evening are separate layers that cross-fade (gradients cannot be transitioned directly).
- *  - The light never sits in front of content (z-index -1) and never covers the whole page with stripes: a mask confines it
- *    to one corner and fades it out.
- *  - Motion is a very slow drift of the band layer (transform only) and stops under prefers-reduced-motion.
+ *  - CSS only: gradients, masks, blur, opacity. No images, no drawn scenery.
+ *  - Tokens only. The Evening theme remaps surface tokens (chalk, linen, ink, stone, cobalt…) to night-* tokens on <html>.
+ *  - The sky is portalled behind the whole page (fixed, z-index -1), so a translucent header and the glass cards show it.
+ *  - Motion is a very slow drift (transform only), different per layer; it stops under prefers-reduced-motion.
  */
 
 /* ── Evening theme: surface tokens remapped for the whole document while a routine page is open ── */
@@ -56,16 +54,24 @@ html[data-routine-theme='AM'] {
   --chalk: var(--dawn);
   --chalk-rgb: var(--dawn-rgb);
 }
-/* Ground and text flip together (no background fade): a fade here would leave light text on a light ground for a moment. Only the light bands cross-fade. */
+
+/* The site header lets the light through on routine pages (the reference's glass header). */
+/* Not while the phone menu is open: that panel lives inside the header and needs its solid ground. */
+html[data-routine-theme] header.sticky:not(.z-overlay) {
+  background-color: color-mix(in srgb, var(--chalk) 46%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+  border-color: color-mix(in srgb, var(--ink) 10%, transparent);
+}
 
 .routine-stage {
   position: relative;
-  isolation: isolate;
   flex: 1 1 auto;
 }
 
+/* ── The sky ── */
 .routine-sky {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
@@ -78,84 +84,501 @@ html[data-routine-theme='AM'] {
   opacity: 0;
   transition: opacity 1100ms var(--ease-standard);
 }
-.routine-stage[data-period='AM'] .routine-sky__am,
-.routine-stage[data-period='PM'] .routine-sky__pm {
+html[data-routine-theme='AM'] .routine-sky__am,
+html[data-routine-theme='PM'] .routine-sky__pm {
   opacity: 1;
 }
 
+/* Ambient: a warm wash from the corner and a slightly deeper wall toward the far bottom edge. */
 .routine-sky__am {
   background:
-    radial-gradient(70% 55% at 0% 0%, color-mix(in srgb, var(--sunlight) 22%, transparent), transparent 70%),
-    linear-gradient(180deg, color-mix(in srgb, var(--white) 30%, transparent), transparent 40%);
+    linear-gradient(color-mix(in srgb, var(--dune) 30%, transparent), color-mix(in srgb, var(--dune) 30%, transparent)),
+    radial-gradient(95% 75% at 0% 0%, color-mix(in srgb, var(--sunlight) 30%, transparent), transparent 68%),
+    radial-gradient(120% 70% at 30% 125%, color-mix(in srgb, var(--dune) 55%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--white) 38%, transparent), transparent 45%);
 }
 .routine-sky__pm {
   background:
-    radial-gradient(70% 55% at 100% 0%, color-mix(in srgb, var(--night-glow) 30%, transparent), transparent 70%),
-    radial-gradient(60% 50% at 0% 100%, color-mix(in srgb, var(--night-raised) 80%, transparent), transparent 75%);
+    radial-gradient(75% 62% at 100% 0%, color-mix(in srgb, var(--night-glow) 36%, transparent), transparent 66%),
+    radial-gradient(60% 45% at 92% 8%, color-mix(in srgb, var(--night-cobalt) 30%, transparent), transparent 70%),
+    radial-gradient(90% 60% at 0% 110%, color-mix(in srgb, var(--night-raised) 90%, transparent), transparent 72%);
 }
 
-/* The bands: one oversized layer of soft diagonal slats, masked to a corner so it fades toward the content. */
-.routine-sky__bands {
+/* The slats. Oversized so the drift never shows an edge; one blurred element with two gradients, plus a wider, softer wash. */
+.routine-sky__mask {
   position: absolute;
-  inset: -20% -10%;
+  inset: 0;
+}
+html[data-routine-theme='AM'] .routine-sky__mask,
+.routine-sky__am .routine-sky__mask {
+  -webkit-mask-image: radial-gradient(150% 125% at 0% 0%, black 0%, rgb(0 0 0 / 0.88) 34%, rgb(0 0 0 / 0.5) 58%, transparent 86%);
+  mask-image: radial-gradient(150% 125% at 0% 0%, black 0%, rgb(0 0 0 / 0.88) 34%, rgb(0 0 0 / 0.5) 58%, transparent 86%);
+}
+.routine-sky__pm .routine-sky__mask {
+  -webkit-mask-image: radial-gradient(112% 100% at 100% 0%, black 0%, rgb(0 0 0 / 0.86) 30%, rgb(0 0 0 / 0.4) 52%, transparent 76%);
+  mask-image: radial-gradient(112% 100% at 100% 0%, black 0%, rgb(0 0 0 / 0.86) 30%, rgb(0 0 0 / 0.4) 52%, transparent 76%);
+}
+.routine-sky__bands,
+.routine-sky__bands::before {
+  position: absolute;
+  inset: -25% -15%;
+  content: '';
   will-change: transform;
 }
-.routine-sky__am .routine-sky__bands {
-  /* Alternating soft shadow and bright slat, like sun through blinds on a linen wall. */
-  background: repeating-linear-gradient(
-    112deg,
-    transparent 0,
-    transparent 2rem,
-    color-mix(in srgb, var(--dune) 42%, transparent) 4.5rem,
-    transparent 6.5rem,
-    color-mix(in srgb, var(--white) 88%, transparent) 9rem,
-    color-mix(in srgb, var(--sunlight) 30%, transparent) 11rem,
-    transparent 13.5rem,
-    transparent 16rem
-  );
-  -webkit-mask-image: linear-gradient(135deg, black 0%, black 18%, transparent 62%);
-  mask-image: linear-gradient(135deg, black 0%, black 18%, transparent 62%);
-  animation: routine-bands-drift-am 90s ease-in-out infinite alternate;
+.routine-sky__bands {
+  filter: blur(7px);
 }
-.routine-sky__pm .routine-sky__bands {
-  background: repeating-linear-gradient(
-    68deg,
-    transparent 0,
-    transparent 3.5rem,
-    color-mix(in srgb, var(--night-glow) 70%, transparent) 5.5rem,
-    color-mix(in srgb, var(--night-cobalt) 45%, transparent) 7.5rem,
-    transparent 10rem,
-    transparent 13rem
-  );
-  -webkit-mask-image: linear-gradient(225deg, black 0%, black 12%, transparent 55%);
-  mask-image: linear-gradient(225deg, black 0%, black 12%, transparent 55%);
-  animation: routine-bands-drift-pm 90s ease-in-out infinite alternate;
+.routine-sky__bands::before {
+  inset: 0;
+  filter: blur(22px);
 }
 
-@keyframes routine-bands-drift-am {
-  from { transform: translate3d(-1.5%, -1%, 0); }
-  to { transform: translate3d(1.5%, 1%, 0); }
+/* Morning: slats descend to the right from the upper-left. */
+.routine-sky__am .routine-sky__bands {
+  background:
+    linear-gradient(24deg,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 8.1%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 6.1%, transparent) 9.4%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 33.8%, transparent) 11.05%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 99.8%, transparent) 12.7%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 14%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 99.8%, transparent) 15.3%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 33.8%, transparent) 16.95%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 6.1%, transparent) 18.6%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 19.9%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 18.14%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 6.9%, transparent) 19.28%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 38%, transparent) 20.72%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 22.17%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 23.31%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 24.45%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 38%, transparent) 25.9%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 6.9%, transparent) 27.34%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 28.48%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 26.87%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 7.9%, transparent) 28.02%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 43.6%, transparent) 29.5%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 30.97%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 32.13%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 33.28%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 43.6%, transparent) 34.75%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 7.9%, transparent) 36.23%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 37.38%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 36.65%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 8.4%, transparent) 37.76%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 46.2%, transparent) 39.16%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 40.56%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 41.66%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 42.76%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 46.2%, transparent) 44.16%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 8.4%, transparent) 45.56%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 46.66%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 48.36%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 8.5%, transparent) 49.09%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 47%, transparent) 50.02%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 50.95%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 51.68%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 52.41%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 47%, transparent) 53.34%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 8.5%, transparent) 54.27%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 55%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 54.4%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 8.1%, transparent) 55.51%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 44.8%, transparent) 56.93%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 58.34%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 59.46%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 60.57%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 44.8%, transparent) 61.98%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 8.1%, transparent) 63.4%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 64.51%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 64.98%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 9.4%, transparent) 65.9%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 51.5%, transparent) 67.07%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 68.24%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 69.16%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 70.08%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 51.5%, transparent) 71.24%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 9.4%, transparent) 72.41%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 73.33%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 75.34%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 7.9%, transparent) 75.97%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 43.3%, transparent) 76.77%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 77.58%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 78.21%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 100%, transparent) 78.84%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 43.3%, transparent) 79.64%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 7.9%, transparent) 80.44%,
+    color-mix(in srgb, color-mix(in srgb, var(--white) 96%, var(--sunlight)) 0%, transparent) 81.07%),
+    linear-gradient(26deg,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 11.36%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 3.8%, transparent) 12.75%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 20.8%, transparent) 14.51%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 61.3%, transparent) 16.27%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 94.4%, transparent) 17.65%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 61.3%, transparent) 19.04%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 20.8%, transparent) 20.8%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 3.8%, transparent) 22.56%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 23.94%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 20.74%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 3.8%, transparent) 22.4%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 20.7%, transparent) 24.52%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 61.1%, transparent) 26.63%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 94.1%, transparent) 28.3%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 61.1%, transparent) 29.96%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 20.7%, transparent) 32.08%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 3.8%, transparent) 34.19%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 35.86%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 31.94%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 4.1%, transparent) 33.52%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 22.4%, transparent) 35.55%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 66%, transparent) 37.57%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 100%, transparent) 39.15%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 66%, transparent) 40.74%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 22.4%, transparent) 42.76%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 4.1%, transparent) 44.78%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 46.37%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 44.6%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 4.7%, transparent) 45.61%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 25.6%, transparent) 46.91%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 75.8%, transparent) 48.21%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 100%, transparent) 49.23%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 75.8%, transparent) 50.24%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 25.6%, transparent) 51.54%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 4.7%, transparent) 52.84%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 53.85%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 48.93%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 5.3%, transparent) 50.62%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 29.1%, transparent) 52.78%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 85.9%, transparent) 54.93%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 100%, transparent) 56.62%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 85.9%, transparent) 58.32%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 29.1%, transparent) 60.47%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 5.3%, transparent) 62.63%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 64.32%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 61.08%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 3.7%, transparent) 62.71%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 20.3%, transparent) 64.79%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 59.8%, transparent) 66.86%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 92.1%, transparent) 68.49%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 59.8%, transparent) 70.12%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 20.3%, transparent) 72.2%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 3.7%, transparent) 74.28%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 75.91%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 73.16%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 4.4%, transparent) 74.46%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 24.1%, transparent) 76.1%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 71.3%, transparent) 77.75%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 100%, transparent) 79.05%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 71.3%, transparent) 80.35%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 24.1%, transparent) 82%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 4.4%, transparent) 83.65%,
+    color-mix(in srgb, color-mix(in srgb, var(--tan) 88%, var(--dune)) 0%, transparent) 84.94%);
+  animation: routine-drift-a 110s ease-in-out infinite alternate;
 }
-@keyframes routine-bands-drift-pm {
-  from { transform: translate3d(1.5%, -1%, 0); }
-  to { transform: translate3d(-1.5%, 1%, 0); }
+.routine-sky__am .routine-sky__bands::before {
+  background: linear-gradient(20deg,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 0%, transparent) 6.32%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 1.3%, transparent) 9.5%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 7.4%, transparent) 13.54%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 21.9%, transparent) 17.59%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 33.6%, transparent) 20.77%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 21.9%, transparent) 23.95%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 7.4%, transparent) 28%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 1.3%, transparent) 32.05%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 0%, transparent) 35.23%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 0%, transparent) 30.04%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 2.3%, transparent) 32.48%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 12.5%, transparent) 35.58%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 36.9%, transparent) 38.68%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 56.7%, transparent) 41.11%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 36.9%, transparent) 43.54%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 12.5%, transparent) 46.64%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 2.3%, transparent) 49.74%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 0%, transparent) 52.17%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 0%, transparent) 47.47%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 2%, transparent) 50.13%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 10.9%, transparent) 53.52%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 32.1%, transparent) 56.9%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 49.4%, transparent) 59.56%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 32.1%, transparent) 62.22%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 10.9%, transparent) 65.61%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 2%, transparent) 68.99%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 0%, transparent) 71.65%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 0%, transparent) 66.62%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 1.9%, transparent) 68.98%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 10.5%, transparent) 71.97%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 31.1%, transparent) 74.97%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 47.8%, transparent) 77.32%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 31.1%, transparent) 79.68%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 10.5%, transparent) 82.67%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 1.9%, transparent) 85.67%,
+    color-mix(in srgb, color-mix(in srgb, var(--sunlight) 55%, var(--white)) 0%, transparent) 88.03%);
+  animation: routine-drift-b 75s ease-in-out infinite alternate;
 }
+
+/* Evening: the same light mirrored, entering from the upper-right. */
+.routine-sky__pm .routine-sky__bands {
+  background:
+    linear-gradient(336deg,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 11.46%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 7%, transparent) 12.02%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 38.7%, transparent) 12.73%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 13.44%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 14%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 14.56%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 38.7%, transparent) 15.27%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 7%, transparent) 15.98%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 16.54%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 15.16%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 8%, transparent) 16.15%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 44.2%, transparent) 17.4%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 18.65%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 19.63%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 20.61%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 44.2%, transparent) 21.87%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 8%, transparent) 23.12%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 24.1%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 25.82%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 6.9%, transparent) 26.34%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 37.7%, transparent) 27.02%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 27.69%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 28.21%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 28.74%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 37.7%, transparent) 29.41%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 6.9%, transparent) 30.08%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 30.61%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 29.89%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 7.5%, transparent) 31.23%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 41.3%, transparent) 32.94%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 34.65%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 36%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 37.34%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 41.3%, transparent) 39.05%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 7.5%, transparent) 40.76%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 42.11%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 44.87%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 10%, transparent) 45.42%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 54.9%, transparent) 46.13%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 46.83%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 47.39%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 47.94%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 54.9%, transparent) 48.64%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 10%, transparent) 49.35%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 49.9%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 47.86%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 9.1%, transparent) 49.13%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 50.2%, transparent) 50.74%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 52.34%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 53.61%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 54.87%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 50.2%, transparent) 56.48%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 9.1%, transparent) 58.09%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 59.35%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 62.45%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 11.2%, transparent) 63%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 61.5%, transparent) 63.71%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 64.41%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 64.96%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 65.52%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 61.5%, transparent) 66.22%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 11.2%, transparent) 66.93%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 67.48%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 67.45%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 10.4%, transparent) 68.18%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 57.1%, transparent) 69.12%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 70.05%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 70.79%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 71.52%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 57.1%, transparent) 72.46%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 10.4%, transparent) 73.39%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 74.12%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 73.7%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 9.8%, transparent) 74.51%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 54.1%, transparent) 75.53%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 76.56%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 77.37%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 100%, transparent) 78.18%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 54.1%, transparent) 79.21%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 9.8%, transparent) 80.24%,
+    color-mix(in srgb, color-mix(in srgb, var(--night-glow) 94%, var(--night-ink)) 0%, transparent) 81.04%),
+    linear-gradient(334deg,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 10.99%,
+    color-mix(in srgb, var(--night-ground) 2.8%, transparent) 12.57%,
+    color-mix(in srgb, var(--night-ground) 15.4%, transparent) 14.57%,
+    color-mix(in srgb, var(--night-ground) 45.5%, transparent) 16.58%,
+    color-mix(in srgb, var(--night-ground) 70%, transparent) 18.15%,
+    color-mix(in srgb, var(--night-ground) 45.5%, transparent) 19.73%,
+    color-mix(in srgb, var(--night-ground) 15.4%, transparent) 21.73%,
+    color-mix(in srgb, var(--night-ground) 2.8%, transparent) 23.73%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 25.31%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 25.09%,
+    color-mix(in srgb, var(--night-ground) 3.5%, transparent) 25.99%,
+    color-mix(in srgb, var(--night-ground) 19.2%, transparent) 27.13%,
+    color-mix(in srgb, var(--night-ground) 56.7%, transparent) 28.28%,
+    color-mix(in srgb, var(--night-ground) 87.2%, transparent) 29.18%,
+    color-mix(in srgb, var(--night-ground) 56.7%, transparent) 30.08%,
+    color-mix(in srgb, var(--night-ground) 19.2%, transparent) 31.23%,
+    color-mix(in srgb, var(--night-ground) 3.5%, transparent) 32.37%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 33.27%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 32.8%,
+    color-mix(in srgb, var(--night-ground) 4%, transparent) 33.75%,
+    color-mix(in srgb, var(--night-ground) 21.8%, transparent) 34.95%,
+    color-mix(in srgb, var(--night-ground) 64.4%, transparent) 36.15%,
+    color-mix(in srgb, var(--night-ground) 99.1%, transparent) 37.1%,
+    color-mix(in srgb, var(--night-ground) 64.4%, transparent) 38.04%,
+    color-mix(in srgb, var(--night-ground) 21.8%, transparent) 39.24%,
+    color-mix(in srgb, var(--night-ground) 4%, transparent) 40.44%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 41.39%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 37.36%,
+    color-mix(in srgb, var(--night-ground) 3.8%, transparent) 38.92%,
+    color-mix(in srgb, var(--night-ground) 20.7%, transparent) 40.9%,
+    color-mix(in srgb, var(--night-ground) 61.1%, transparent) 42.88%,
+    color-mix(in srgb, var(--night-ground) 94%, transparent) 44.44%,
+    color-mix(in srgb, var(--night-ground) 61.1%, transparent) 46%,
+    color-mix(in srgb, var(--night-ground) 20.7%, transparent) 47.98%,
+    color-mix(in srgb, var(--night-ground) 3.8%, transparent) 49.97%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 51.53%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 49.71%,
+    color-mix(in srgb, var(--night-ground) 4.2%, transparent) 50.97%,
+    color-mix(in srgb, var(--night-ground) 23.3%, transparent) 52.58%,
+    color-mix(in srgb, var(--night-ground) 68.9%, transparent) 54.19%,
+    color-mix(in srgb, var(--night-ground) 100%, transparent) 55.45%,
+    color-mix(in srgb, var(--night-ground) 68.9%, transparent) 56.71%,
+    color-mix(in srgb, var(--night-ground) 23.3%, transparent) 58.32%,
+    color-mix(in srgb, var(--night-ground) 4.2%, transparent) 59.93%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 61.19%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 59.85%,
+    color-mix(in srgb, var(--night-ground) 3.9%, transparent) 60.82%,
+    color-mix(in srgb, var(--night-ground) 21.3%, transparent) 62.05%,
+    color-mix(in srgb, var(--night-ground) 62.8%, transparent) 63.29%,
+    color-mix(in srgb, var(--night-ground) 96.6%, transparent) 64.26%,
+    color-mix(in srgb, var(--night-ground) 62.8%, transparent) 65.23%,
+    color-mix(in srgb, var(--night-ground) 21.3%, transparent) 66.46%,
+    color-mix(in srgb, var(--night-ground) 3.9%, transparent) 67.69%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 68.66%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 66.44%,
+    color-mix(in srgb, var(--night-ground) 4%, transparent) 67.67%,
+    color-mix(in srgb, var(--night-ground) 21.7%, transparent) 69.23%,
+    color-mix(in srgb, var(--night-ground) 64.2%, transparent) 70.79%,
+    color-mix(in srgb, var(--night-ground) 98.8%, transparent) 72.02%,
+    color-mix(in srgb, var(--night-ground) 64.2%, transparent) 73.24%,
+    color-mix(in srgb, var(--night-ground) 21.7%, transparent) 74.8%,
+    color-mix(in srgb, var(--night-ground) 4%, transparent) 76.36%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 77.59%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 73.72%,
+    color-mix(in srgb, var(--night-ground) 4.2%, transparent) 75.33%,
+    color-mix(in srgb, var(--night-ground) 23%, transparent) 77.37%,
+    color-mix(in srgb, var(--night-ground) 68%, transparent) 79.4%,
+    color-mix(in srgb, var(--night-ground) 100%, transparent) 81.01%,
+    color-mix(in srgb, var(--night-ground) 68%, transparent) 82.61%,
+    color-mix(in srgb, var(--night-ground) 23%, transparent) 84.65%,
+    color-mix(in srgb, var(--night-ground) 4.2%, transparent) 86.69%,
+    color-mix(in srgb, var(--night-ground) 0%, transparent) 88.29%);
+  animation: routine-drift-c 110s ease-in-out infinite alternate;
+}
+.routine-sky__pm .routine-sky__bands::before {
+  background: linear-gradient(340deg,
+    color-mix(in srgb, var(--night-cobalt) 0%, transparent) 12.13%,
+    color-mix(in srgb, var(--night-cobalt) 0.9%, transparent) 14.32%,
+    color-mix(in srgb, var(--night-cobalt) 5.1%, transparent) 17.11%,
+    color-mix(in srgb, var(--night-cobalt) 14.9%, transparent) 19.9%,
+    color-mix(in srgb, var(--night-cobalt) 23%, transparent) 22.09%,
+    color-mix(in srgb, var(--night-cobalt) 14.9%, transparent) 24.28%,
+    color-mix(in srgb, var(--night-cobalt) 5.1%, transparent) 27.07%,
+    color-mix(in srgb, var(--night-cobalt) 0.9%, transparent) 29.86%,
+    color-mix(in srgb, var(--night-cobalt) 0%, transparent) 32.05%,
+    color-mix(in srgb, var(--night-cobalt) 0%, transparent) 21.45%,
+    color-mix(in srgb, var(--night-cobalt) 1.1%, transparent) 24.7%,
+    color-mix(in srgb, var(--night-cobalt) 5.9%, transparent) 28.84%,
+    color-mix(in srgb, var(--night-cobalt) 17.3%, transparent) 32.98%,
+    color-mix(in srgb, var(--night-cobalt) 26.6%, transparent) 36.24%,
+    color-mix(in srgb, var(--night-cobalt) 17.3%, transparent) 39.49%,
+    color-mix(in srgb, var(--night-cobalt) 5.9%, transparent) 43.63%,
+    color-mix(in srgb, var(--night-cobalt) 1.1%, transparent) 47.78%,
+    color-mix(in srgb, var(--night-cobalt) 0%, transparent) 51.03%,
+    color-mix(in srgb, var(--night-cobalt) 0%, transparent) 49.5%,
+    color-mix(in srgb, var(--night-cobalt) 1.6%, transparent) 51.55%,
+    color-mix(in srgb, var(--night-cobalt) 8.6%, transparent) 54.15%,
+    color-mix(in srgb, var(--night-cobalt) 25.3%, transparent) 56.76%,
+    color-mix(in srgb, var(--night-cobalt) 38.9%, transparent) 58.81%,
+    color-mix(in srgb, var(--night-cobalt) 25.3%, transparent) 60.86%,
+    color-mix(in srgb, var(--night-cobalt) 8.6%, transparent) 63.46%,
+    color-mix(in srgb, var(--night-cobalt) 1.6%, transparent) 66.07%,
+    color-mix(in srgb, var(--night-cobalt) 0%, transparent) 68.12%,
+    color-mix(in srgb, var(--night-cobalt) 0%, transparent) 56.7%,
+    color-mix(in srgb, var(--night-cobalt) 1.4%, transparent) 60.05%,
+    color-mix(in srgb, var(--night-cobalt) 7.5%, transparent) 64.32%,
+    color-mix(in srgb, var(--night-cobalt) 22.3%, transparent) 68.58%,
+    color-mix(in srgb, var(--night-cobalt) 34.3%, transparent) 71.93%,
+    color-mix(in srgb, var(--night-cobalt) 22.3%, transparent) 75.28%,
+    color-mix(in srgb, var(--night-cobalt) 7.5%, transparent) 79.55%,
+    color-mix(in srgb, var(--night-cobalt) 1.4%, transparent) 83.81%,
+    color-mix(in srgb, var(--night-cobalt) 0%, transparent) 87.16%);
+  animation: routine-drift-d 75s ease-in-out infinite alternate;
+}
+
+@keyframes routine-drift-a { from { transform: translate3d(-1.2%, -0.8%, 0); } to { transform: translate3d(1.6%, 1.2%, 0); } }
+@keyframes routine-drift-b { from { transform: translate3d(1%, 0.6%, 0); } to { transform: translate3d(-1.4%, -0.9%, 0); } }
+@keyframes routine-drift-c { from { transform: translate3d(1.2%, -0.8%, 0); } to { transform: translate3d(-1.6%, 1.2%, 0); } }
+@keyframes routine-drift-d { from { transform: translate3d(-1%, 0.6%, 0); } to { transform: translate3d(1.4%, -0.9%, 0); } }
 
 @media (max-width: 639px) {
-  /* A phone is mostly "edge": fainter bands confined to the top so text never competes with them. */
-  .routine-sky__am .routine-sky__bands,
-  .routine-sky__pm .routine-sky__bands {
-    opacity: 0.7;
-    -webkit-mask-image: linear-gradient(180deg, black 0%, transparent 34%);
-    mask-image: linear-gradient(180deg, black 0%, transparent 34%);
+  /* A phone is mostly edge: the light is confined to the top and thinner, so text never competes with it. */
+  .routine-sky__am .routine-sky__mask {
+    -webkit-mask-image: radial-gradient(170% 52% at 0% 0%, black 0%, rgb(0 0 0 / 0.55) 40%, transparent 72%);
+    mask-image: radial-gradient(170% 52% at 0% 0%, black 0%, rgb(0 0 0 / 0.55) 40%, transparent 72%);
   }
+  .routine-sky__pm .routine-sky__mask {
+    -webkit-mask-image: radial-gradient(170% 52% at 100% 0%, black 0%, rgb(0 0 0 / 0.6) 40%, transparent 72%);
+    mask-image: radial-gradient(170% 52% at 100% 0%, black 0%, rgb(0 0 0 / 0.6) 40%, transparent 72%);
+  }
+  .routine-sky__bands { filter: blur(5px); }
+  .routine-sky__bands::before { filter: blur(14px); }
+}
+
+/* ── Frosted glass: step cards, the sidebar panel, the Morning/Evening track ── */
+.routine-glass,
+html[data-routine-theme='AM'] .routine-glass {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--white) 70%, transparent) 0%, color-mix(in srgb, var(--white) 38%, transparent) 55%, color-mix(in srgb, var(--linen) 50%, transparent) 100%);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  backdrop-filter: blur(18px) saturate(1.3);
+  border: 1px solid color-mix(in srgb, var(--white) 75%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--white) 95%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--dune) 45%, transparent),
+    0 20px 40px -24px color-mix(in srgb, var(--tan) 60%, transparent),
+    0 3px 10px -4px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+html[data-routine-theme='PM'] .routine-glass {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--night-glow) 22%, transparent) 0%, color-mix(in srgb, var(--night-raised) 58%, transparent) 52%, color-mix(in srgb, var(--night-ground) 44%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--night-ink) 15%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--night-ink) 24%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--night-ground) 70%, transparent),
+    0 22px 46px -22px color-mix(in srgb, var(--night-ground) 95%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--night-glow) 6%, transparent);
+}
+/* The track behind the Morning/Evening tabs: lighter glass; the active tab stays solid cobalt. */
+.routine-glass--tabs,
+html[data-routine-theme='AM'] .routine-glass--tabs {
+  background: color-mix(in srgb, var(--white) 34%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid color-mix(in srgb, var(--white) 70%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 85%, transparent), 0 8px 22px -16px color-mix(in srgb, var(--tan) 55%, transparent);
+}
+html[data-routine-theme='PM'] .routine-glass--tabs {
+  background: color-mix(in srgb, var(--night-raised) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--night-ink) 14%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--night-ink) 18%, transparent), 0 10px 26px -16px color-mix(in srgb, var(--night-ground) 95%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .routine-sky__layer {
     transition-duration: 0.01ms;
   }
-  .routine-sky__bands {
+  .routine-sky__bands,
+  .routine-sky__bands::before {
     animation: none !important;
   }
 }

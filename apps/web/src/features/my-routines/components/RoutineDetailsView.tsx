@@ -288,7 +288,7 @@ function Details({ id }: { id: string }) {
       <header className="flex flex-col gap-3">
         {back}
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-          <div className="flex min-w-0 max-w-narrow flex-1 flex-col gap-2">
+          <div className="flex min-w-0 max-w-narrow basis-full flex-col gap-2 md:flex-1 md:basis-auto">
             {editing ? (
               <TextField label={m.rtNameLabel} value={draft.title} maxLength={TITLE_MAX} onChange={(event) => setTitle(event.target.value)} />
             ) : (
@@ -346,7 +346,7 @@ function Details({ id }: { id: string }) {
                 {activeSteps.length ? (
                   <div className="mt-3">{list(activeSteps)}</div>
                 ) : (
-                  <div className="mt-2 flex flex-col items-start gap-3 rounded-card bg-linen/60 p-6 shadow-outline-hairline">
+                  <div className="mt-2 flex flex-col items-start gap-3 routine-glass rounded-card p-6">
                     <p className="m-0 font-display text-20 font-bold text-ink">{active === 'PM' ? m.rtEmptyEveningTitle : m.rtEmptyMorningTitle}</p>
                     <Button variant="ghost" size="m" onClick={startEdit}><Icon name="plus" size={18} />{m.rtAddStep}</Button>
                   </div>
@@ -362,7 +362,7 @@ function Details({ id }: { id: string }) {
           )}
         </div>
 
-        <aside aria-label={m.rtRoutineContext} className="flex flex-col gap-6 rounded-sheet bg-linen/70 p-5 shadow-outline-hairline shadow-elevation-2 backdrop-blur-sm md:p-6 lg:col-span-5 lg:sticky lg:top-28 lg:self-start xl:col-span-4 xl:col-start-9">
+        <aside aria-label={m.rtRoutineContext} className="flex flex-col gap-6 routine-glass rounded-sheet p-5 md:p-6 lg:col-span-5 lg:sticky lg:top-28 lg:self-start xl:col-span-4 xl:col-start-9">
           <section aria-labelledby="detail-context" className="flex flex-col gap-2">
             <h2 id="detail-context" className="m-0 font-display text-display-3 font-bold text-ink">{m.rtRoutineContext}</h2>
             <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-display text-14 leading-24">
