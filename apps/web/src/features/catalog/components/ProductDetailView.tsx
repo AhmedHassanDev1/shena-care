@@ -268,8 +268,8 @@ function Detail({ product }: { product: ProductDetail }) {
 
   return (
     <article className="pb-32 lg:pb-12">
-      <div className="bg-sand/40">
-        <Section labelledBy="pdp-title" rhythm="compact" className="gap-4 pb-8 pt-2 lg:gap-6 lg:pb-14 lg:pt-5">
+      <>
+        <Section labelledBy="pdp-title" rhythm="compact" className="gap-4 pb-8 pt-2 lg:gap-6 lg:pb-10 lg:pt-5">
           <nav aria-label={m.plpBreadcrumb} className="text-13 font-medium text-stone">
             <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0">
               <li><Link href={routes.home} className="transition-colors hover:text-cobalt">{m.plpHome}</Link></li>
@@ -288,7 +288,7 @@ function Detail({ product }: { product: ProductDetail }) {
             </ol>
           </nav>
 
-          <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-14">
+          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-14">
             <div className="min-w-0 lg:col-span-7">
               <ProductGallery
                 images={visibleImages}
@@ -461,7 +461,7 @@ function Detail({ product }: { product: ProductDetail }) {
             </div>
           </div>
         </Section>
-      </div>
+      </>
 
       <ProductBenefitsStrip product={product} variant={variant} />
 

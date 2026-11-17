@@ -27,18 +27,22 @@ export interface ProductGalleryProps {
 const ZOOM = 1.9;
 
 /**
- * Product photo stage. Photographs cross-fade as the shopper moves between them (opacity and scale only); a mouse
- * hovering the stage magnifies the spot under the pointer, a finger swipes between photos, and the keyboard gets
- * previous/next buttons. Touch never zooms by hover: the expand button opens the full-size view instead.
+ * Product photo stage. The photograph is shown exactly as the catalog has it: no ground, no tint, no crop, and in its
+ * own proportions (the frame takes the picture's aspect ratio once it has loaded, so it is never squeezed into a
+ * square). Photographs cross-fade as the shopper moves between them; a mouse hovering the stage magnifies the spot
+ * under the pointer, a finger swipes between photos, and the keyboard gets previous/next buttons. Touch never zooms
+ * by hover: the expand button opens the full-size view instead.
  */
 export function ProductGallery({ images, index, onIndexChange, productName, liked, onToggleLike, onZoom, onImageError }: ProductGalleryProps) {
   const m = useMessages();
   const locale = useLocale();
   const stageRef = useRef<HTMLDivElement>(null);
   const [zoomAt, setZoomAt] = useState<{ x: number; y: number } | null>(null);
+  const [ratios, setRatios] = useState<Record<string, number>>({});
   const count = images.length;
   const safeIndex = count > 0 ? Math.min(index, count - 1) : 0;
   const current = images[safeIndex];
+  const ratio = current ? ratios[current.url] ?? 1 : 1;
   const go = (delta: number) => count > 1 && onIndexChange((safeIndex + delta + count) % count);
   const label = (i: number) => fillMessage(m.pdpShowImage, { i: formatNumber(i + 1, locale) });
 
@@ -54,20 +58,17 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
         ref={stageRef}
         onPointerMove={onPointerMove}
         onPointerLeave={() => setZoomAt(null)}
-        className="group relative aspect-[6/5] w-full overflow-hidden lg:aspect-[5/4]"
+        style={{ aspectRatio: ratio }}
+        className="group relative w-full overflow-hidden"
       >
-        {/* Sahel stage: the citron sun behind the pack, warm afternoon wash and shutter slats falling across it. */}
-        <span aria-hidden="true" className="absolute -end-12 -top-12 size-40 rounded-full bg-citron lg:-end-20 lg:-top-20 lg:size-80" />
-        <span aria-hidden="true" className="slat-warm" />
-        <span aria-hidden="true" className="slat-light" />
         <AnimatePresence initial={false} mode="popLayout">
           <motion.div
             key={current?.id || current?.url || 'empty'}
             className="absolute inset-0 touch-pan-y"
-            initial={{ opacity: 0, scale: 1.04 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.45, ease: EASE_STANDARD }}
+            transition={{ duration: 0.4, ease: EASE_STANDARD }}
             drag={count > 1 ? 'x' : false}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.25}
@@ -78,26 +79,33 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
               go(forward ? 1 : -1);
             }}
           >
-            <ProductTile
-              src={current?.url ?? null}
-              alt={current?.altText || productName}
-              name={productName}
-              priority
-              sizes="(min-width: 1024px) 640px, 100vw"
-              fit="contain"
-              onImageError={() => current && onImageError(current.url)}
-              className="size-full rounded-none bg-transparent"
-              imageClassName="p-3 mix-blend-multiply lg:p-8"
-            />
+            {current ? (
+              <Image
+                src={current.url}
+                alt={current.altText || productName}
+                fill
+                priority
+                unoptimized={!canOptimizeImage(current.url)}
+                sizes="(min-width: 1024px) 640px, 100vw"
+                onLoad={(event) => {
+                  const img = event.currentTarget;
+                  if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    const next = img.naturalWidth / img.naturalHeight;
+                    setRatios((prev) => (prev[current.url] === next ? prev : { ...prev, [current.url]: next }));
+                  }
+                }}
+                onError={() => onImageError(current.url)}
+                className="select-none object-contain"
+              />
+            ) : (
+              <ProductTile src={null} alt={productName} name={productName} className="size-full rounded-none bg-transparent" />
+            )}
           </motion.div>
         </AnimatePresence>
 
         {/* Magnifier: a mouse-only copy of the photo scaled around the pointer; never rendered for touch. */}
         {zoomAt && current ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-10 hidden overflow-hidden bg-sand lg:block"
-          >
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 hidden overflow-hidden bg-chalk lg:block">
             <Image
               src={current.url}
               alt=""
@@ -105,7 +113,7 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
               draggable={false}
               unoptimized={!canOptimizeImage(current.url)}
               sizes="1200px"
-              className="select-none object-contain mix-blend-multiply"
+              className="select-none object-contain"
               style={{ transform: `scale(${ZOOM})`, transformOrigin: `${zoomAt.x}% ${zoomAt.y}%` }}
             />
           </div>
@@ -178,9 +186,7 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
                   aria-selected={active}
                   aria-label={label(i)}
                   onClick={() => onIndexChange(i)}
-                  className={cn(
-                    'relative block size-16 cursor-pointer overflow-hidden rounded-image bg-transparent lg:size-20',
-                  )}
+                  className="relative block size-16 cursor-pointer overflow-hidden rounded-image lg:size-20"
                 >
                   <ProductTile
                     src={img.url}
@@ -190,7 +196,6 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
                     sizes="80px"
                     onImageError={() => onImageError(img.url)}
                     className="size-full rounded-none bg-transparent"
-                    imageClassName="mix-blend-multiply"
                   />
                   {active ? (
                     <motion.span
