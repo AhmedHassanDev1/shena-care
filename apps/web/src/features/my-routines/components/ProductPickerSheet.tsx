@@ -119,6 +119,8 @@ export function ProductPickerSheet({ open, onOpenChange, target, careArea, taken
     [catalog.options, area]);
   const showSuggestions = target.mode === 'add' && !text && !role && !!suggestions.data?.length;
   const blockAdd = full && target.mode === 'add';
+  // A product whose type is not known yet would be named after itself; hold those rows until the routine profiles arrive.
+  const waiting = catalog.profilesPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -160,6 +162,7 @@ export function ProductPickerSheet({ open, onOpenChange, target, careArea, taken
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+          {waiting ? <p role="status" className="m-0 mb-2 font-display text-13 leading-20 text-stone">{m.rtPickPreparing}</p> : null}
           {blockAdd ? <MessageBox tone="warn" className="mb-3">{fillMessage(m.rtPickFull, { n: 30 })}</MessageBox> : null}
 
           {showSuggestions ? (
@@ -168,7 +171,7 @@ export function ProductPickerSheet({ open, onOpenChange, target, careArea, taken
               <p className="m-0 mb-1 font-display text-13 leading-20 text-stone">{m.rtSuggestedNote}</p>
               <ul className="m-0 list-none p-0">
                 {suggestions.data!.map((option) => (
-                  <OptionRow key={`s-${option.skuId}`} option={option} suggested timing={target.timing} taken={takenSkus.has(option.skuId)} disabled={blockAdd} onPick={() => onPick(option)} />
+                  <OptionRow key={`s-${option.skuId}`} option={option} suggested timing={target.timing} taken={takenSkus.has(option.skuId)} disabled={blockAdd || (waiting && !option.role)} onPick={() => onPick(option)} />
                 ))}
               </ul>
             </section>
@@ -197,7 +200,7 @@ export function ProductPickerSheet({ open, onOpenChange, target, careArea, taken
           ) : (
             <ul className="m-0 list-none p-0">
               {filtered.map((option) => (
-                <OptionRow key={option.skuId} option={option} timing={target.timing} taken={takenSkus.has(option.skuId)} disabled={blockAdd} onPick={() => onPick(option)} />
+                <OptionRow key={option.skuId} option={option} timing={target.timing} taken={takenSkus.has(option.skuId)} disabled={blockAdd || (waiting && !option.role)} onPick={() => onPick(option)} />
               ))}
             </ul>
           )}

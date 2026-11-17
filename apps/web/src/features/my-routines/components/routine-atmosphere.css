@@ -47,15 +47,16 @@ html[data-routine-theme='PM'] {
   --ok-rgb: var(--night-ok-rgb);
   --ok-tint: var(--night-ok-tint);
   --ok-tint-rgb: var(--night-ok-tint-rgb);
+  /* bg-white is a raised surface (focused fields, auth inputs) and text-white sits on bright fills (success): both read correctly as the dark raised tone. */
+  --white: var(--night-raised);
+  --white-rgb: var(--night-raised-rgb);
   color-scheme: dark;
 }
 html[data-routine-theme='AM'] {
   --chalk: var(--dawn);
   --chalk-rgb: var(--dawn-rgb);
 }
-body {
-  transition: background-color 900ms var(--ease-standard);
-}
+/* Ground and text flip together (no background fade): a fade here would leave light text on a light ground for a moment. Only the light bands cross-fade. */
 
 .routine-stage {
   position: relative;
@@ -151,7 +152,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body,
   .routine-sky__layer {
     transition-duration: 0.01ms;
   }

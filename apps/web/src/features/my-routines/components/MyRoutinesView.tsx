@@ -137,8 +137,8 @@ function RoutineRow({ item, detail, detailPending, busy, copying, onDuplicate, o
               ))}
             </ul>
             <p className="m-0 min-w-0 flex-1 font-display text-15 leading-24 text-ink">
-              {here.slice(0, 3).map((step) => step.title).join(' · ')}
-              {here.length > 3 ? <span className="text-stone"> · {fillMessage(m.rtMoreSteps, { n: formatNumber(here.length - 3) })}</span> : null}
+              <bdi>{here.slice(0, 3).map((step) => step.title).join(' · ')}</bdi>
+              {here.length > 3 ? <span className="whitespace-nowrap text-stone"> · <bdi>{fillMessage(m.rtMoreSteps, { n: formatNumber(here.length - 3) })}</bdi></span> : null}
             </p>
           </>
         ) : detail ? (
