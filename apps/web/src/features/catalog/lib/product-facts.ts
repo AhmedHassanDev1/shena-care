@@ -388,7 +388,9 @@ export function resolveUsageGuide(
   if (rinseMode === 'RINSE_OFF') frequencyChips.push(m.pdpRinseRinseOff);
   else if (rinseMode === 'LEAVE_ON') frequencyChips.push(m.pdpRinseLeaveOn);
 
+  const localized = resolveLocalizedProductContent(product, variant, locale);
   const instructionsJoined =
+    localized.usage ||
     variant.content?.usage?.trim() ||
     product.usage?.trim() ||
     rules
@@ -566,4 +568,100 @@ export function resolveFullInciList(
       .filter(Boolean);
   }
   return splitIngredients(variant.content?.ingredients) ?? [];
+}
+
+export interface LocalizedProductContent {
+  name: string;
+  description: string | null;
+  shortDescription: string | null;
+  usage: string | null;
+  benefits: string[];
+}
+
+const ARABIC_SCRIPT_RE = /[\u0600-\u06FF]/;
+
+/**
+ * Resolves localized product content based on the active storefront locale ('ar' vs 'en').
+ * When in Arabic ('ar' / dir="rtl"): selects verified Arabic descriptions, names, usage and benefits if available.
+ * When in English ('en' / dir="ltr"): selects verified English descriptions, names, usage and benefits.
+ */
+export function resolveLocalizedProductContent(
+  product: ProductDetail,
+  variant: PublicVariant,
+  locale: 'ar' | 'en'
+): LocalizedProductContent {
+  const isAr = locale === 'ar';
+  const content = variant.content;
+  const contentMatchesLocale = content?.language === locale;
+
+  let name = product.name;
+  let description: string | null = null;
+  let usage: string | null = null;
+  let benefits: string[] = [];
+
+  if (isAr) {
+    name = variant.nameAr || content?.nameAr || product.nameAr || (contentMatchesLocale && content?.name ? content.name : null) || product.name;
+    description =
+      variant.descriptionAr ||
+      content?.descriptionAr ||
+      product.descriptionAr ||
+      (contentMatchesLocale && content?.description ? content.description : null) ||
+      (product.description && ARABIC_SCRIPT_RE.test(product.description) ? product.description : null) ||
+      product.description ||
+      content?.description ||
+      null;
+    usage =
+      variant.usageAr ||
+      content?.usageAr ||
+      product.usageAr ||
+      (contentMatchesLocale && content?.usage ? content.usage : null) ||
+      product.usage ||
+      null;
+    benefits =
+      variant.benefitsAr ||
+      content?.benefitsAr ||
+      product.benefitsAr ||
+      (contentMatchesLocale && content?.benefits ? content.benefits : null) ||
+      variant.benefits ||
+      product.benefits ||
+      [];
+  } else {
+    name = variant.nameEn || content?.nameEn || product.nameEn || (contentMatchesLocale && content?.name ? content.name : null) || product.name;
+    description =
+      variant.descriptionEn ||
+      content?.descriptionEn ||
+      product.descriptionEn ||
+      (contentMatchesLocale && content?.description ? content.description : null) ||
+      (product.description && !ARABIC_SCRIPT_RE.test(product.description) ? product.description : null) ||
+      product.description ||
+      content?.description ||
+      null;
+    usage =
+      variant.usageEn ||
+      content?.usageEn ||
+      product.usageEn ||
+      (contentMatchesLocale && content?.usage ? content.usage : null) ||
+      product.usage ||
+      null;
+    benefits =
+      variant.benefitsEn ||
+      content?.benefitsEn ||
+      product.benefitsEn ||
+      (contentMatchesLocale && content?.benefits ? content.benefits : null) ||
+      variant.benefits ||
+      product.benefits ||
+      [];
+  }
+
+  const trimmedDesc = description?.trim() || null;
+  const trimmedUsage = usage?.trim() || null;
+  const cleanBenefits = benefits.filter(Boolean).slice(0, 3);
+
+  return {
+    name,
+    description: trimmedDesc,
+    shortDescription: trimmedDesc,
+    usage: trimmedUsage,
+    benefits: cleanBenefits,
+  };
 }

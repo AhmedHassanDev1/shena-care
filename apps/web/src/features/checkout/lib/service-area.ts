@@ -31,7 +31,7 @@ export const CAIRO_GIZA_AREAS = [
   { nameAr: 'مصر الجديدة', nameEn: 'Heliopolis', lat: 30.0898, lng: 31.3285 },
   { nameAr: 'التجمع الخامس', nameEn: 'New Cairo', lat: 30.0131, lng: 31.4289 },
   { nameAr: 'الشيخ زايد', nameEn: 'Sheikh Zayed', lat: 30.0488, lng: 30.9856 },
-  { nameAr: '٦ أكتوبر', nameEn: '6th of October', lat: 29.9737, lng: 30.9529 },
+  { nameAr: '6 أكتوبر', nameEn: '6th of October', lat: 29.9737, lng: 30.9529 },
   { nameAr: 'الزمالك', nameEn: 'Zamalek', lat: 30.0614, lng: 31.2198 },
 ] as const;
 

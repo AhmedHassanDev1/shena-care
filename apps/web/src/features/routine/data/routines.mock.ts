@@ -17,7 +17,7 @@ export const MOCK_ROUTINES: RoutineCardModel[] = [
     categoryLabelAr: 'البشرة',
     periodLabelAr: 'روتين صباحي',
     periodBadgeAr: 'صباحي',
-    stepsCountBadgeAr: '٣ خطوات أساسية',
+    stepsCountBadgeAr: '3 خطوات أساسية',
     stepsCountMobileBadgeAr: '03 خطوات',
     steps: [
       { stepNumber: '01', labelAr: 'تنظيف' },
@@ -37,7 +37,7 @@ export const MOCK_ROUTINES: RoutineCardModel[] = [
     categoryLabelAr: 'الشعر',
     periodLabelAr: 'روتين أسبوعي',
     periodBadgeAr: 'أسبوعي',
-    stepsCountBadgeAr: '٤ خطوات متتالية',
+    stepsCountBadgeAr: '4 خطوات متتالية',
     stepsCountMobileBadgeAr: '04 خطوات',
     steps: [
       { stepNumber: '01', labelAr: 'زيت دافئ' },

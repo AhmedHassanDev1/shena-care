@@ -16,6 +16,39 @@ import type {
 export type ChatProduct = ShinaProduct;
 export type ShinaIntent = 'compare' | 'routine' | 'product-lookup' | 'search' | 'chat';
 
+/**
+ * Safely resolves the most relevant image URL from product media for chat cards.
+ * Checks sku-specific primary media, primary packshots, primary images, packaging proof,
+ * and falls back to any available image URL so valid images are never dropped.
+ */
+export function resolveProductImageUrl(
+  media: ProductView['media'] | undefined,
+  skuId?: string | null,
+): string | undefined {
+  if (!media || media.length === 0) return undefined;
+  const isPackshot = (item: unknown) => (item as { role?: string })?.role === 'PRIMARY_PACKSHOT';
+  const isProof = (item: unknown) => (item as { role?: string })?.role === 'PACKAGING_PROOF';
+
+  if (skuId) {
+    const skuPrimary = media.find(
+      (item) => (item as { skuId?: string | null }).skuId === skuId && item.isPrimary && item.url,
+    );
+    if (skuPrimary?.url) return skuPrimary.url;
+  }
+
+  const primary = media.find((item) => item.isPrimary && item.url);
+  if (primary?.url) return primary.url;
+
+  const packshot = media.find((item) => isPackshot(item) && item.url);
+  if (packshot?.url) return packshot.url;
+
+  const proof = media.find((item) => isProof(item) && item.url);
+  if (proof?.url) return proof.url;
+
+  const anyImage = media.find((item) => item.url);
+  return anyImage?.url;
+}
+
 /** A chat card can only represent a currently sellable public SKU returned by Catalog. */
 export function toChatProduct(product: ProductView): ChatProduct | null {
   const sku = product.skus.find((item) => item.canOrder && item.price?.currency === 'EGP');
@@ -30,9 +63,7 @@ export function toChatProduct(product: ProductView): ChatProduct | null {
     skuId: sku.id,
     variantName: sku.variantName,
     category: product.category?.name ?? '',
-    imageUrl:
-      product.media.find((item) => (item as { skuId?: string | null }).skuId === sku.id && item.isPrimary)?.url ??
-      product.media.find((item) => item.isPrimary)?.url,
+    imageUrl: resolveProductImageUrl(product.media, sku.id),
     canOrder: true,
   };
 }
@@ -53,9 +84,7 @@ export function productViewToShinaProduct(product: ProductView): ShinaProduct | 
     skuId: fallbackSku.id,
     variantName: fallbackSku.variantName,
     category: product.category?.name ?? '',
-    imageUrl:
-      product.media.find((item) => (item as { skuId?: string | null }).skuId === fallbackSku.id && item.isPrimary)?.url ??
-      product.media.find((item) => item.isPrimary)?.url,
+    imageUrl: resolveProductImageUrl(product.media, fallbackSku.id),
     canOrder: false,
   };
 }

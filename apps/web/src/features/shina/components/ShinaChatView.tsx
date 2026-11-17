@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Icon } from '@/components/ui/icon';
 import { GlassBadge } from '@/components/ui/glass-badge';
 import { MessageBox } from '@/components/ui/message-box';
+import { Wordmark } from '@/components/ui/wordmark';
 import { saveAiRoutine } from '@/features/care/api/care-intelligence';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useCart } from '@/features/cart/hooks/useCart';
@@ -696,12 +697,47 @@ export function ShinaChatView({
       aria-label={m.shinaAssistantTitle}
       className="relative flex h-full flex-1 flex-col overflow-hidden bg-chalk font-display text-ink"
     >
-      {/* Sahel Shutter Light Signature Atmosphere */}
+      {/* SAHEL Soft Shutter Sunlight Effect (Full-viewport, organic fade from upper-left to bottom-right) */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 select-none overflow-hidden opacity-45"
+        className="pointer-events-none absolute inset-0 z-0 select-none overflow-hidden"
         aria-hidden="true"
       >
-        <div className="shutter soft warm absolute inset-0 size-full" />
+        {/* Soft morning ambient champagne glow at upper-left origin */}
+        <div
+          className="absolute -top-36 -start-36 h-[600px] w-[600px] rounded-full opacity-45 blur-3xl pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(circle at 35% 35%, rgba(255, 230, 185, 0.55) 0%, rgba(245, 215, 160, 0.25) 45%, transparent 75%)',
+          }}
+        />
+
+        {/* Diagonal Shutter Light Rays: 4-6 broad, softly blurred warm sunlight bands extending from upper-left toward lower-right */}
+        <div
+          className="absolute inset-0 size-full pointer-events-none"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(128deg, rgba(255, 255, 255, 0) 0px, rgba(255, 255, 255, 0) 48px, rgba(165, 110, 50, 0.11) 48px, rgba(165, 110, 50, 0.11) 84px, rgba(255, 255, 255, 0) 84px, rgba(255, 255, 255, 0) 130px)',
+            maskImage:
+              'radial-gradient(ellipse 90% 85% at 0% 0%, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.55) 30%, rgba(0, 0, 0, 0.18) 55%, transparent 80%)',
+            WebkitMaskImage:
+              'radial-gradient(ellipse 90% 85% at 0% 0%, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.55) 30%, rgba(0, 0, 0, 0.18) 55%, transparent 80%)',
+            filter: 'blur(5px)',
+          }}
+        />
+
+        {/* Warm champagne light sweep highlighting the ray crests */}
+        <div
+          className="absolute inset-0 size-full pointer-events-none opacity-30"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(128deg, rgba(255, 235, 195, 0.35) 0px, rgba(255, 235, 195, 0.35) 46px, transparent 46px, transparent 130px)',
+            maskImage:
+              'radial-gradient(ellipse 80% 75% at 0% 0%, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 35%, transparent 65%)',
+            WebkitMaskImage:
+              'radial-gradient(ellipse 80% 75% at 0% 0%, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 35%, transparent 65%)',
+            filter: 'blur(7px)',
+          }}
+        />
       </div>
 
       {/* Sleek, Focused Chat Header */}
@@ -729,14 +765,32 @@ export function ShinaChatView({
               transition={{ duration: 0.3 }}
               className="flex flex-col items-center gap-4 py-6 text-center sm:gap-5 sm:py-12"
             >
-              <ShinaMascot
-                state={effectiveState === 'idle' ? 'idle' : effectiveState}
-                size="hero"
-                alt={m.shinaAssistantTitle}
-              />
+              {/* Shina Care Brand Logo & Identity Hero */}
+              <div className="relative flex flex-col items-center gap-3 py-1">
+                {/* Brand Seal / Mascot Stage */}
+                <div className="relative flex items-center justify-center">
+                  <div className="relative flex size-20 sm:size-24 items-center justify-center rounded-full border border-line/60 bg-chalk/85 shadow-elevation-1 backdrop-blur-xl transition-transform duration-base hover:scale-105">
+                    <ShinaMascot
+                      state={effectiveState === 'idle' ? 'idle' : effectiveState}
+                      size="md"
+                      alt={m.shinaAssistantTitle}
+                    />
+                  </div>
+                  {/* Citron Brand Sun Dot Accent */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute -top-0.5 -end-0.5 size-3.5 rounded-full bg-citron ring-2 ring-chalk shadow-elevation-1"
+                  />
+                </div>
+
+                {/* ShinaCare Wordmark */}
+                <div className="flex items-center justify-center">
+                  <Wordmark size="header" withLatin className="justify-center text-ink" />
+                </div>
+              </div>
 
               <div className="space-y-1.5 sm:space-y-2">
-                <h2 className="font-display text-24 font-extrabold text-ink sm:text-30">
+                <h2 className="font-display text-20 font-extrabold text-ink sm:text-26">
                   {m.shinaWelcomeHeading}
                 </h2>
                 <p className="mx-auto max-w-lg font-text text-13 font-medium leading-relaxed text-stone sm:text-14">
@@ -795,15 +849,43 @@ export function ShinaChatView({
               return (
                 <motion.div
                   key={msg.id}
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: 8, scale: 0.99 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 10, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex flex-col items-end gap-1 ps-8 sm:ps-16"
+                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                  className="group relative flex flex-col items-end gap-1.5 ps-10 sm:ps-20"
                 >
-                  <div className="max-w-xl rounded-24 rounded-ee-6 bg-cobalt px-4.5 py-2.5 font-text text-14 leading-relaxed text-chalk shadow-action sm:text-15">
-                    {msg.content}
+                  <div className="relative max-w-xl rounded-24 rounded-ee-6 bg-cobalt px-5 py-3 font-text text-14 leading-relaxed text-chalk shadow-action sm:text-15">
+                    <p className="whitespace-pre-wrap selection:bg-citron selection:text-ink">
+                      {msg.content}
+                    </p>
                   </div>
-                  <span className="px-1.5 font-text text-11 text-stone">{msg.timestamp}</span>
+
+                  <div className="flex items-center gap-2 px-1 text-stone">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyMessage(msg.id, msg.content)}
+                      aria-label={locale === 'ar' ? 'نسخ الرسالة' : 'Copy message'}
+                      title={locale === 'ar' ? 'نسخ الرسالة' : 'Copy message'}
+                      className="inline-flex items-center gap-1 rounded-pill px-1.5 py-0.5 font-display text-11 font-medium transition-colors hover:text-cobalt focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cobalt opacity-80 group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                    >
+                      <Icon
+                        name={copiedId === msg.id ? 'check' : 'copy'}
+                        size={12}
+                        className={copiedId === msg.id ? 'text-ok' : undefined}
+                      />
+                      <span>
+                        {copiedId === msg.id
+                          ? locale === 'ar'
+                            ? 'تم النسخ'
+                            : 'Copied'
+                          : locale === 'ar'
+                            ? 'نسخ'
+                            : 'Copy'}
+                      </span>
+                    </button>
+                    <span aria-hidden="true" className="text-11 text-stone/50">·</span>
+                    <span className="font-text text-11 text-stone/80">{msg.timestamp}</span>
+                  </div>
                 </motion.div>
               );
             }
@@ -812,31 +894,31 @@ export function ShinaChatView({
               <motion.article
                 key={msg.id}
                 aria-busy={msg.isStreaming || undefined}
-                initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                className="group flex w-full flex-col items-start gap-3"
+                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                className="group flex w-full flex-col items-start gap-3 pe-4 sm:pe-12"
               >
-                {/* Assistant Metadata Header */}
-                <div className="flex items-center gap-2 font-text text-11 text-stone">
+                {/* Assistant Identity Row */}
+                <div className="flex items-center gap-2.5 font-text text-11 text-stone">
                   <ShinaMascot state="idle" size="xs" decorative />
                   <span className="font-display font-extrabold text-ink">
                     {m.shinaAssistantTitle}
                   </span>
-                  <span aria-hidden="true">·</span>
-                  <span className="rounded-pill border border-line/60 bg-linen px-2 py-0.5">
+                  <span aria-hidden="true" className="text-stone/40">·</span>
+                  <span className="rounded-pill border border-line/60 bg-linen/90 px-2 py-0.5 font-medium">
                     {msg.sourceKind === 'ai-guidance' ? m.shinaSourceAi : m.shinaSourceCatalog}
                   </span>
-                  <span aria-hidden="true">·</span>
-                  <span>{msg.timestamp}</span>
+                  <span aria-hidden="true" className="text-stone/40">·</span>
+                  <span className="font-text text-stone/80">{msg.timestamp}</span>
                 </div>
 
-                {/* Editorial Message Content (No oversized box) */}
+                {/* Editorial Message Content (Clean, open typography, no heavy card border) */}
                 <div
                   className={cn(
                     'w-full max-w-full font-text text-14 leading-relaxed sm:text-15',
                     msg.isError
-                      ? 'rounded-card border border-tomato/30 bg-linen p-3.5 text-tomato-ink shadow-elevation-1'
+                      ? 'rounded-card border border-tomato/30 bg-linen/90 p-4 text-tomato-ink shadow-elevation-1'
                       : 'text-ink',
                   )}
                 >
@@ -875,87 +957,68 @@ export function ShinaChatView({
                   </button>
                 ) : null}
 
-                {/* Dedicated Rich Components */}
+                {/* Dedicated Rich Components (Products, Comparison, Routine) */}
                 {msg.products && msg.products.length > 0 ? (
-                  <ShinaProductCarousel
-                    products={msg.products}
-                    onAddToBag={handleAddToBag}
-                    addingSkuId={addingSkuId}
-                    addedSkuIds={addedSkuIds}
-                  />
+                  <div className="w-full pt-1">
+                    <ShinaProductCarousel
+                      products={msg.products}
+                      onAddToBag={handleAddToBag}
+                      addingSkuId={addingSkuId}
+                      addedSkuIds={addedSkuIds}
+                    />
+                  </div>
                 ) : null}
 
                 {msg.comparison ? (
-                  <ShinaComparisonCard
-                    comparison={msg.comparison}
-                    onAddToBag={handleAddToBag}
-                    addingSkuId={addingSkuId}
-                    addedSkuIds={addedSkuIds}
-                  />
+                  <div className="w-full pt-1">
+                    <ShinaComparisonCard
+                      comparison={msg.comparison}
+                      onAddToBag={handleAddToBag}
+                      addingSkuId={addingSkuId}
+                      addedSkuIds={addedSkuIds}
+                    />
+                  </div>
                 ) : null}
 
                 {msg.routine ? (
-                  <ShinaRoutineCard
-                    routine={msg.routine}
-                    saveState={routineSaves[msg.id]}
-                    onSave={
-                      msg.routine.save
-                        ? (steps) =>
-                            handleSaveRoutine(msg.id, { ...msg.routine!.save!, steps })
-                        : undefined
-                    }
-                    onAddToBag={handleAddToBag}
-                    onAddManyToBag={handleAddManyToBag}
-                    addingSkuId={addingSkuId}
-                    addedSkuIds={addedSkuIds}
-                    isBatchAdding={isBatchAdding}
-                  />
-                ) : null}
-
-                {/* Citations */}
-                {msg.consult?.citations?.length ? (
-                  <div className="flex flex-col gap-1 font-text text-11 text-stone">
-                    <span className="font-semibold text-ink">{m.shinaSourcesTitle}</span>
-                    <ul className="m-0 flex list-none flex-wrap gap-x-3 gap-y-1 p-0">
-                      {msg.consult.citations.map((source) => (
-                        <li key={source.title}>
-                          {source.url ? (
-                            <a
-                              href={source.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-medium text-cobalt underline decoration-1 underline-offset-2 hover:text-cobalt-deep"
-                            >
-                              <bdi>{source.title}</bdi>
-                            </a>
-                          ) : (
-                            <bdi>{source.title}</bdi>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="w-full pt-1">
+                    <ShinaRoutineCard
+                      routine={msg.routine}
+                      saveState={routineSaves[msg.id]}
+                      onSave={
+                        msg.routine.save
+                          ? (steps) =>
+                              handleSaveRoutine(msg.id, { ...msg.routine!.save!, steps })
+                          : undefined
+                      }
+                      onAddToBag={handleAddToBag}
+                      onAddManyToBag={handleAddManyToBag}
+                      addingSkuId={addingSkuId}
+                      addedSkuIds={addedSkuIds}
+                      isBatchAdding={isBatchAdding}
+                    />
                   </div>
                 ) : null}
 
                 {/* Safety Footnote */}
                 {(msg.products?.length || msg.routine || msg.sourceKind === 'ai-guidance') &&
                 !msg.isError ? (
-                  <p className="font-text text-11 text-stone leading-relaxed">
+                  <p className="font-text text-11 text-stone/80 leading-relaxed pt-0.5">
                     {m.shinaSafetyNote}
                   </p>
                 ) : null}
 
-                {/* Message Actions (Copy, Retry, Search Fallback) */}
-                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                {/* Message Actions (Compact, quiet toolbar: Copy, Retry) */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 opacity-90 transition-opacity hover:opacity-100">
                   <button
                     type="button"
                     onClick={() => handleCopyMessage(msg.id, msg.content)}
-                    aria-label={locale === 'ar' ? 'نسخ الرسالة' : 'Copy message'}
-                    className="inline-flex items-center gap-1.5 rounded-pill border border-line/50 bg-linen/60 px-3 py-1 font-display text-11 font-bold text-stone shadow-elevation-1 backdrop-blur-md transition-all hover:border-cobalt hover:bg-chalk/80 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95"
+                    aria-label={locale === 'ar' ? 'نسخ الإجابة' : 'Copy response'}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-line/60 bg-linen/80 px-2.5 py-1 font-display text-11 font-bold text-stone shadow-elevation-1 backdrop-blur-md transition-all hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95"
                   >
                     <Icon
                       name={copiedId === msg.id ? 'check' : 'copy'}
-                      size={13}
+                      size={12}
                       className={copiedId === msg.id ? 'text-ok' : undefined}
                     />
                     <span>
@@ -969,13 +1032,27 @@ export function ShinaChatView({
                     </span>
                   </button>
 
+                  {/* Regenerate / Retry response button for assistant messages */}
+                  {!msg.isError && messages[messages.length - 1]?.id === msg.id && (
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => handleRetryLast()}
+                      aria-label={locale === 'ar' ? 'إعادة الإجابة' : 'Regenerate'}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-line/60 bg-linen/80 px-2.5 py-1 font-display text-11 font-bold text-stone shadow-elevation-1 backdrop-blur-md transition-all hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:opacity-40"
+                    >
+                      <Icon name="retry" size={12} />
+                      <span>{locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}</span>
+                    </button>
+                  )}
+
                   {msg.isError && msg.retryable !== false ? (
                     <button
                       type="button"
                       onClick={() => handleRetryLast(msg.pendingQuery)}
-                      className="inline-flex items-center gap-1.5 rounded-pill border border-tomato/30 bg-chalk/80 px-3 py-1 font-display text-11 font-bold text-tomato-ink backdrop-blur-md transition-colors hover:bg-tomato/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-tomato/30 bg-chalk px-3 py-1 font-display text-11 font-bold text-tomato-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:bg-tomato/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95"
                     >
-                      <Icon name="retry" size={13} />
+                      <Icon name="retry" size={12} />
                       <span>{m.shinaRetryAction}</span>
                     </button>
                   ) : null}
@@ -984,24 +1061,24 @@ export function ShinaChatView({
                     <button
                       type="button"
                       onClick={() => runCatalogFallback(msg.pendingQuery!)}
-                      className="inline-flex items-center gap-1.5 rounded-pill border border-line/50 bg-linen/60 px-3 py-1 font-display text-11 font-bold text-ink backdrop-blur-md transition-colors hover:border-cobalt hover:bg-chalk/80 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-line/50 bg-linen/60 px-3 py-1 font-display text-11 font-bold text-ink backdrop-blur-md transition-colors hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
                     >
-                      <Icon name="search" size={13} />
+                      <Icon name="search" size={12} />
                       <span>{m.shinaSearchCatalogFallback}</span>
                     </button>
                   ) : null}
                 </div>
 
-                {/* Follow-up Question Chips */}
+                {/* Follow-up Question Chips (Refined, cleaner pill styling) */}
                 {msg.suggestions && msg.suggestions.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 pt-1">
+                  <div className="flex flex-wrap items-center gap-2 pt-1.5">
                     {msg.suggestions.map((chip) => (
                       <button
                         key={chip}
                         type="button"
                         disabled={isBusy}
                         onClick={() => submitQuery(chip)}
-                        className="inline-flex min-h-control-s items-center rounded-pill border border-line/50 bg-linen/60 px-3.5 py-1.5 font-display text-12 font-bold text-ink shadow-elevation-1 backdrop-blur-md transition-all hover:border-cobalt hover:bg-chalk/80 hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:opacity-50"
+                        className="inline-flex min-h-7 items-center rounded-full border border-line/70 bg-chalk/70 px-3 py-1 font-display text-11 font-bold text-ink shadow-elevation-1 backdrop-blur-md transition-all hover:border-cobalt hover:bg-chalk hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:opacity-50"
                       >
                         {chip}
                       </button>
@@ -1048,12 +1125,12 @@ export function ShinaChatView({
       </AnimatePresence>
 
       {/* Sticky Bottom Composer */}
-      <footer className="relative z-20 shrink-0 border-t border-line/30 bg-chalk/40 px-4 pb-3 pt-2.5 backdrop-blur-xl sm:px-6 sm:pb-4 sm:pt-3">
+      <footer className="relative z-20 shrink-0 border-t border-line/30 bg-chalk/60 px-4 pb-3 pt-2.5 backdrop-blur-xl sm:px-6 sm:pb-4 sm:pt-3">
         <div className="mx-auto w-full max-w-2xl sm:max-w-3xl space-y-2">
           {voice.errorKind ? (
             <div
               role="status"
-              className="flex items-center justify-between gap-2 rounded-card border border-tomato/30 bg-linen/70 p-2.5 font-text text-12 text-tomato-ink shadow-elevation-1 backdrop-blur-md"
+              className="flex items-center justify-between gap-2 rounded-card border border-tomato/30 bg-linen/90 p-2.5 font-text text-12 text-tomato-ink shadow-elevation-1 backdrop-blur-md"
             >
               <span>
                 {voice.errorKind === 'unsupported'
@@ -1080,18 +1157,18 @@ export function ShinaChatView({
                 submitQuery(draft);
               }
             }}
-            className="flex min-h-12 items-end gap-1.5 rounded-24 border border-line/50 bg-linen/50 p-1.5 shadow-elevation-1 backdrop-blur-xl transition-all hover:border-line-2/40 hover:bg-linen/70 focus-within:border-cobalt focus-within:bg-chalk/80 focus-within:shadow-focus-field"
+            className="group relative flex min-h-12 items-end gap-2 rounded-full border border-line/60 bg-linen/70 p-1.5 shadow-elevation-1 backdrop-blur-xl transition-all duration-base hover:border-cobalt/40 hover:bg-linen/90 focus-within:border-cobalt focus-within:bg-chalk focus-within:shadow-focus-field"
           >
             <button
               type="button"
-              onClick={voice.isListening ? voice.stopListening : voice.startListening}
+              onClick={voice.isListening ? voice.stopListening : () => voice.startListening(draft)}
               aria-pressed={voice.isListening}
               aria-label={voice.isListening ? m.shinaVoiceStop : m.shinaVoiceStart}
               title={!voice.isSupported ? m.shinaVoiceUnsupported : undefined}
               className={cn(
-                'inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
+                'inline-flex size-9 shrink-0 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95',
                 voice.isListening
-                  ? 'bg-tomato text-chalk'
+                  ? 'bg-tomato text-chalk shadow-elevation-1 animate-pulse'
                   : 'text-stone hover:bg-sand/40 hover:text-ink',
               )}
             >
@@ -1114,6 +1191,7 @@ export function ShinaChatView({
                 type="button"
                 onClick={abortActiveRequest}
                 aria-label={m.shinaCancelRequest}
+                title={m.shinaCancelRequest}
                 className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-tomato text-chalk shadow-action transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95"
               >
                 <Icon name="stop" size={15} />

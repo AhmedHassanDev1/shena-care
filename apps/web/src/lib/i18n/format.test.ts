@@ -40,9 +40,9 @@ describe('formatAmount / currencyLabel', () => {
 
 describe('formatPackSize', () => {
   it('translates known units and localises the digits', () => {
-    expect(formatPackSize(500, 'ml', 'ar')).toBe('٥٠٠ مل');
+    expect(formatPackSize(500, 'ml', 'ar')).toBe('500 مل');
     expect(formatPackSize(500, 'ml', 'en')).toBe('500 ml');
-    expect(formatPackSize(30, 'pcs', 'ar')).toBe('٣٠ pcs');
+    expect(formatPackSize(30, 'pcs', 'ar')).toBe('30 pcs');
   });
 
   it('returns null without a usable size', () => {
@@ -52,17 +52,17 @@ describe('formatPackSize', () => {
 });
 
 describe('formatNumber', () => {
-  it('uses the digits of the interface language', () => {
-    expect(formatNumber(6, 'ar')).toBe('٦');
-    expect(formatNumber(1250, 'ar')).toBe('١٬٢٥٠');
+  it('uses Western digits across all languages', () => {
+    expect(formatNumber(6, 'ar')).toBe('6');
+    expect(formatNumber(1250, 'ar')).toBe('1,250');
     expect(formatNumber(1250, 'en')).toBe('1,250');
   });
 });
 
 describe('formatDate / formatTime', () => {
-  it('reads «١٨ أكتوبر ٢٠٢٦» and «٩:١٢ ص» in Arabic (Cairo time)', () => {
-    expect(formatDate('2026-10-18T10:00:00Z', 'ar')).toBe('١٨ أكتوبر ٢٠٢٦');
-    expect(formatTime('2026-10-18T06:12:00Z', 'ar')).toBe('٩:١٢ ص');
+  it('reads «18 أكتوبر 2026» and «9:12 ص» in Arabic (Cairo time, Western digits)', () => {
+    expect(formatDate('2026-10-18T10:00:00Z', 'ar')).toBe('18 أكتوبر 2026');
+    expect(formatTime('2026-10-18T06:12:00Z', 'ar')).toBe('9:12 ص');
   });
 
   it('keeps Western digits in English', () => {
@@ -72,8 +72,8 @@ describe('formatDate / formatTime', () => {
 });
 
 describe('formatClock', () => {
-  it('counts down m:ss in the interface digits', () => {
-    expect(formatClock(65, 'ar')).toBe('١:٠٥');
+  it('counts down m:ss in Western digits', () => {
+    expect(formatClock(65, 'ar')).toBe('1:05');
     expect(formatClock(60, 'en')).toBe('1:00');
     expect(formatClock(9, 'en')).toBe('0:09');
     expect(formatClock(-3, 'en')).toBe('0:00');
@@ -81,11 +81,11 @@ describe('formatClock', () => {
 });
 
 describe('formatProductCount', () => {
-  it('agrees the Arabic noun with the number', () => {
+  it('agrees the Arabic noun with the number using Western digits', () => {
     expect(formatProductCount(1, 'ar')).toBe('منتج واحد');
     expect(formatProductCount(2, 'ar')).toBe('منتجين');
-    expect(formatProductCount(4, 'ar')).toBe('٤ منتجات');
-    expect(formatProductCount(12, 'ar')).toBe('١٢ منتج');
+    expect(formatProductCount(4, 'ar')).toBe('4 منتجات');
+    expect(formatProductCount(12, 'ar')).toBe('12 منتج');
     expect(formatProductCount(1, 'en')).toBe('1 product');
     expect(formatProductCount(3, 'en')).toBe('3 products');
   });

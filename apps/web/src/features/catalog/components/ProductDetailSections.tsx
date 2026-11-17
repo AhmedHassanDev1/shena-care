@@ -12,9 +12,11 @@ import {
   formatReadableCopy,
   resolveFullInciList,
   resolveKeyIngredients,
+  resolveLocalizedProductContent,
   resolveRoutinePosition,
   resolveTextDirection,
   resolveUsageGuide,
+  splitSteps,
 } from '../lib/product-facts';
 
 const BENEFIT_ICONS: readonly IconName[] = ['layers', 'droplet', 'shield'];
@@ -23,19 +25,14 @@ const BENEFIT_ICONS: readonly IconName[] = ['layers', 'droplet', 'shield'];
 export function usePdpContent(product: ProductDetail, variant: PublicVariant) {
   const locale = useLocale();
   const m = useMessages();
-  const description = variant.content?.description?.trim() || product.description?.trim() || null;
-  const hasAbout = formatReadableCopy(description).length > 0;
+  const localized = resolveLocalizedProductContent(product, variant, locale);
+  const hasAbout = formatReadableCopy(localized.description).length > 0;
   const hasIngredients =
     resolveKeyIngredients(product, variant).length > 0 ||
     resolveFullInciList(product, variant, locale).length > 0 ||
     Boolean(variant.content?.ingredients?.trim());
   const guide = resolveUsageGuide(product, variant, locale, m);
-  const hasUsage =
-    formatReadableCopy(guide.instructionsText).length > 0 ||
-    guide.showMorning ||
-    guide.showEvening ||
-    guide.frequencyChips.length > 0 ||
-    Boolean(guide.warningsText);
+  const hasUsage = (guide.instructionsText ? splitSteps(guide.instructionsText).length > 0 : false) || Boolean(guide.warningsText);
   return { hasAbout, hasIngredients, hasUsage };
 }
 
@@ -69,9 +66,8 @@ export function ProductBenefitsStrip({
   product: ProductDetail;
   variant: PublicVariant;
 }) {
-  const benefits = (
-    variant.benefits?.length ? variant.benefits : product.benefits ?? []
-  ).slice(0, 3);
+  const locale = useLocale();
+  const benefits = resolveLocalizedProductContent(product, variant, locale).benefits.slice(0, 3);
 
   if (benefits.length === 0) return null;
 
@@ -113,11 +109,12 @@ export function ProductAbout({
   const m = useMessages();
   const [expanded, setExpanded] = useState(false);
 
-  const description = variant.content?.description?.trim() || product.description?.trim() || null;
+  const locale = useLocale();
+  const description = resolveLocalizedProductContent(product, variant, locale).description;
   const paragraphs = formatReadableCopy(description);
   const collapsedCopy = paragraphs.join(' ');
   const isExpandable = paragraphs.length > 1 || collapsedCopy.length > 165;
-  const copyDir = resolveTextDirection(description);
+  const copyDir = resolveTextDirection(description) || (locale === 'ar' ? 'rtl' : 'ltr');
 
   if (paragraphs.length === 0) return null;
 
@@ -310,8 +307,8 @@ export function ProductActiveIngredients({
 }
 
 /**
- * Stitch Section E — Routine Position (`مكانه في الروتين`) Lighter Connected Timeline.
- * Directly embedded in the editorial flow without heavy tinted block backgrounds.
+ * Where the product sits in a routine, and how to use it: the routine sequence, morning/evening timing, the numbered
+ * usage steps and the safety warning, all from the product's own data. Nothing is shown when the catalog has none of it.
  */
 export function RoutinePlacement({
   product,
@@ -320,204 +317,136 @@ export function RoutinePlacement({
   product: ProductDetail;
   variant: PublicVariant;
 }) {
+  const locale = useLocale();
   const m = useMessages();
   const resolved = resolveRoutinePosition(product, variant, m);
+  const guide = resolveUsageGuide(product, variant, locale, m);
+
+  const usageStepsList = guide.instructionsText ? splitSteps(guide.instructionsText) : [];
+  const hasUsageSteps = usageStepsList.length > 0;
+  const hasWarnings = Boolean(guide.warningsText);
+  const warningParagraphs = formatReadableCopy(guide.warningsText);
+  const warningsDir = resolveTextDirection(guide.warningsText);
+  const steps = resolved.confirmed && resolved.steps.length > 0 ? resolved.steps : [];
+  const hasTiming = guide.showMorning || guide.showEvening || guide.frequencyChips.length > 0;
+
+  if (steps.length === 0 && !hasUsageSteps && !hasWarnings) return null;
 
   return (
     <PdpBlock id={`pdp-routine-${product.id}`} title={m.pdpRoutineStepTitle} icon="layers">
       <div className="flex flex-col gap-8">
-          <p className="m-0 text-body text-stone">{resolved.summaryLine}</p>
-
-          {/* 4-Step Horizontal Connected Timeline */}
-          {resolved.confirmed && resolved.steps.length > 0 ? (
-            <div className="relative flex w-full items-start justify-between px-1 sm:px-2 pt-6 max-w-4xl">
-              <div
-                aria-hidden="true"
-                className="absolute inset-x-10 sm:inset-x-12 top-[48px] md:top-[52px] h-px bg-line-2 z-0"
-              />
-
-              {resolved.steps.map((step) => (
-                <div
-                  key={`${step.number}-${step.label}`}
-                  aria-current={step.isCurrent ? 'step' : undefined}
-                  className="relative z-10 flex flex-1 flex-col items-center text-center"
-                >
-                  {/* Floating pill above active circle */}
-                  {step.isCurrent ? (
-                    <div className="absolute -top-6 flex flex-col items-center">
-                      <span className="whitespace-nowrap rounded-pill bg-ink px-2.5 py-0.5 text-12 font-bold text-citron">
-                        {m.pdpRoutineBadgeThisProduct}
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className="h-1.5 w-1.5 -mt-1 rotate-45 bg-ink"
-                      />
-                    </div>
-                  ) : null}
-
-                  <div
-                    className={cn(
-                      'flex items-center justify-center rounded-full transition-all',
-                      step.isCurrent
-                        ? 'size-12 md:size-14 bg-citron text-ink ring-4 ring-citron/30'
-                        : 'size-12 md:size-14 bg-transparent border border-line-2 text-stone'
-                    )}
-                  >
-                    <Icon name={step.icon} size={step.isCurrent ? 20 : 18} strokeWidth={1.8} />
-                  </div>
-
-                  <span
-                    className={cn(
-                      'mt-2 font-display text-15 md:text-17 leading-tight',
-                      step.isCurrent ? 'font-bold text-ink' : 'font-semibold text-ink'
-                    )}
-                  >
-                    {step.label}
-                  </span>
-                  <span
-                    className={cn(
-                      'text-12 tabular-nums',
-                      step.isCurrent ? 'font-bold text-ink' : 'text-stone'
-                    )}
-                  >
-                    {step.number}
-                  </span>
-                </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="m-0 max-w-narrow text-body text-stone">{resolved.summaryLine}</p>
+          {hasTiming ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {guide.showMorning ? (
+                <span className="inline-flex items-center gap-1.5 rounded-pill bg-citron px-3 py-1 text-13 font-bold text-ink">
+                  <Icon name="sun" size={14} className="shrink-0" />
+                  <span>{m.pdpRoutinePeriodMorning}</span>
+                </span>
+              ) : null}
+              {guide.showEvening ? (
+                <span className="inline-flex items-center gap-1.5 rounded-pill bg-ink px-3 py-1 text-13 font-bold text-chalk">
+                  <Icon name="evening" size={14} className="shrink-0" />
+                  <span>{m.pdpRoutinePeriodEvening}</span>
+                </span>
+              ) : null}
+              {guide.frequencyChips.map((chip) => (
+                <span key={chip} className="rounded-pill px-3 py-1 text-12 font-semibold text-stone shadow-outline-hairline">
+                  {chip}
+                </span>
               ))}
             </div>
           ) : null}
-      </div>
-    </PdpBlock>
-  );
-}
+        </div>
 
-/**
- * Stitch Section F — Usage Timing, Application Instructions & Subtle Warning (`طريقة الاستخدام`).
- * Removes unnecessary boxed wrapper around usage; keeps one subtle warning box only when verified warnings exist.
- */
-export function ProductUsage({
-  product,
-  variant,
-}: {
-  product: ProductDetail;
-  variant: PublicVariant;
-}) {
-  const locale = useLocale();
-  const m = useMessages();
-  const guide = resolveUsageGuide(product, variant, locale, m);
+        {steps.length > 0 ? (
+          <div className="relative flex w-full max-w-4xl items-start justify-between px-1 pt-6 sm:px-2">
+            <div aria-hidden="true" className="absolute inset-x-10 top-[48px] z-0 h-px bg-line-2 sm:inset-x-12 md:top-[52px]" />
+            {steps.map((step) => (
+              <div
+                key={`${step.number}-${step.label}`}
+                aria-current={step.isCurrent ? 'step' : undefined}
+                className="relative z-10 flex flex-1 flex-col items-center text-center"
+              >
+                {step.isCurrent ? (
+                  <div className="absolute -top-6 flex flex-col items-center">
+                    <span className="whitespace-nowrap rounded-pill bg-ink px-2.5 py-0.5 text-12 font-bold text-citron">
+                      {m.pdpRoutineBadgeThisProduct}
+                    </span>
+                    <span aria-hidden="true" className="-mt-1 h-1.5 w-1.5 rotate-45 bg-ink" />
+                  </div>
+                ) : null}
+                <div
+                  className={cn(
+                    'flex items-center justify-center rounded-full transition-all',
+                    step.isCurrent
+                      ? 'size-12 bg-citron text-ink ring-4 ring-citron/30 md:size-14'
+                      : 'size-12 border border-line-2 bg-transparent text-stone md:size-14',
+                  )}
+                >
+                  <Icon name={step.icon} size={step.isCurrent ? 20 : 18} strokeWidth={1.8} />
+                </div>
+                <span className={cn('mt-2 font-display text-15 leading-tight md:text-17', step.isCurrent ? 'font-bold text-ink' : 'font-semibold text-ink')}>
+                  {step.label}
+                </span>
+                <span className={cn('text-12 tabular-nums', step.isCurrent ? 'font-bold text-ink' : 'text-stone')}>{step.number}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
-  const hasTiming = guide.showMorning || guide.showEvening;
-  const hasFrequency = guide.frequencyChips.length > 0;
-  const hasMetaPills = hasTiming || hasFrequency;
-  const hasWarnings = Boolean(guide.warningsText);
-  const instructionParagraphs = formatReadableCopy(guide.instructionsText);
-  const instructionsDir = resolveTextDirection(guide.instructionsText);
-  const warningParagraphs = formatReadableCopy(guide.warningsText);
-  const warningsDir = resolveTextDirection(guide.warningsText);
-  const [textureFailed, setTextureFailed] = useState(false);
-
-  if (!hasMetaPills && instructionParagraphs.length === 0 && !hasWarnings) return null;
-
-  return (
-    <PdpBlock id={`pdp-usage-${product.id}`} title={m.pdpUsage} icon="droplet">
-      <div className="flex flex-col gap-4">
-        {/* Seamless Usage Content + Single Subtle Optional Warning */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
+        {hasUsageSteps ? (
           <div
             className={cn(
-              'flex flex-col md:flex-row md:items-start gap-3 md:gap-5',
-              hasWarnings ? 'lg:col-span-8' : 'lg:col-span-12'
+              'grid gap-5 border-t border-line/70 pt-5 md:gap-0',
+              usageStepsList.length === 1 && 'grid-cols-1',
+              usageStepsList.length === 2 && 'grid-cols-1 md:grid-cols-2',
+              usageStepsList.length >= 3 && 'grid-cols-1 md:grid-cols-3',
             )}
           >
-            {/* Morning / Evening & Verified Cadence Pills */}
-            {hasMetaPills ? (
-              <>
-                <div className="flex items-center flex-wrap gap-2 shrink-0">
-                  {guide.showMorning ? (
-                    <div className="inline-flex items-center gap-1.5 rounded-pill bg-citron/35 px-3 py-1.5 text-13 font-bold text-ink">
-                      <Icon name="sun" size={15} className="text-ink shrink-0" />
-                      <span>{m.pdpRoutinePeriodMorning}</span>
-                    </div>
-                  ) : null}
-                  {guide.showEvening ? (
-                    <div className="inline-flex items-center gap-1.5 rounded-pill bg-cobalt/10 px-3 py-1.5 text-13 font-bold text-cobalt">
-                      <Icon name="evening" size={15} className="text-cobalt shrink-0" />
-                      <span>{m.pdpRoutinePeriodEvening}</span>
-                    </div>
-                  ) : null}
-                  {guide.frequencyChips.map((chip) => (
-                    <span
-                      key={chip}
-                      className="rounded-pill border border-line bg-chalk px-3 py-1 text-12 font-semibold text-stone"
-                    >
-                      {chip}
-                    </span>
-                  ))}
-                </div>
+            {usageStepsList.slice(0, 3).map((stepText, idx) => {
+              const stepTitle = idx === 0 ? m.pdpUsageAmountTitle : idx === 1 ? m.pdpUsageMethodTitle : m.pdpUsageFrequencyTitle;
+              const stepIcon: IconName = idx === 0 ? 'droplet' : idx === 1 ? 'sparkles' : 'sun';
+              return (
                 <div
-                  aria-hidden="true"
-                  className="hidden md:block self-stretch w-px bg-line shrink-0"
-                />
-              </>
-            ) : null}
-
-            {/* Instructions Text & Real Texture Swatch (only if uploaded) */}
-            <div className="flex items-start justify-between gap-4 text-start min-w-0 max-w-2xl">
-              <div className="flex flex-col gap-1 min-w-0">
-                {instructionParagraphs.length > 0 ? (
-                  <div dir={instructionsDir} className="flex flex-col gap-1 text-start">
-                    {instructionParagraphs.map((paragraph, idx) => (
-                      <p
-                        key={`${idx}-${paragraph.slice(0, 24)}`}
-                        className="m-0 text-start text-body text-ink"
-                      >
-                        {paragraph}
-                      </p>
-                    ))}
+                  key={`${idx}-${stepText.slice(0, 16)}`}
+                  className={cn(
+                    'flex flex-col gap-1.5 text-start',
+                    idx === 0 && 'md:pe-6',
+                    idx === 1 && 'md:border-s md:border-line/70 md:px-6',
+                    idx === 2 && 'md:border-s md:border-line/70 md:ps-6',
+                  )}
+                >
+                  <div className="flex items-center gap-2 text-16 font-bold text-ink">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-citron text-12 font-black tabular-nums text-ink">
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                    <Icon name={stepIcon} size={16} strokeWidth={2} />
+                    <span>{stepTitle}</span>
                   </div>
-                ) : (
-                  <p className="m-0 text-14 leading-22 text-stone">
-                    {m.pdpUsageNone}
-                  </p>
-                )}
-              </div>
-
-              {guide.textureMedia && !textureFailed ? (
-                <div className="relative h-10 w-14 overflow-hidden rounded-14 border border-line shrink-0 bg-chalk">
-                  <ProductTile
-                    key={guide.textureMedia.url}
-                    src={guide.textureMedia.url}
-                    alt={guide.textureMedia.altText || m.pdpUsageTextureAlt}
-                    name={product.name}
-                    size="thumb"
-                    sizes="56px"
-                    onImageError={() => setTextureFailed(true)}
-                    className="size-full rounded-none bg-chalk"
-                  />
+                  <p className="m-0 ps-8 text-15 leading-24 text-stone md:ps-0">{stepText}</p>
                 </div>
-              ) : null}
+              );
+            })}
+          </div>
+        ) : null}
+
+        {hasWarnings ? (
+          <div className="border-s-4 border-tomato ps-4 text-start">
+            <div className="mb-1 flex items-center gap-1.5 text-tomato-ink">
+              <Icon name="alert" size={16} strokeWidth={2} />
+              <h3 className="m-0 text-14 font-bold">{m.pdpWarningTitle}</h3>
+            </div>
+            <div dir={warningsDir} className="flex flex-col gap-1">
+              {warningParagraphs.map((p, idx) => (
+                <p key={idx} className="m-0 text-14 leading-22 text-ink/80">
+                  {p}
+                </p>
+              ))}
             </div>
           </div>
-
-          {hasWarnings ? (
-            <div className="lg:col-span-4 rounded-16 border border-tomato/20 bg-conflict px-3.5 py-3 flex flex-col justify-center text-start">
-              <div className="flex items-center gap-1.5 text-tomato-ink mb-1">
-                <Icon name="alert" size={15} strokeWidth={2} className="shrink-0" />
-                <h3 className="m-0 text-13 font-bold">{m.pdpWarningTitle}</h3>
-              </div>
-              <div dir={warningsDir} className="flex flex-col gap-1 text-start">
-                {warningParagraphs.map((paragraph, idx) => (
-                  <p
-                    key={`${idx}-${paragraph.slice(0, 24)}`}
-                    className="m-0 text-start text-13 leading-20 text-ink/80"
-                  >
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
+        ) : null}
       </div>
     </PdpBlock>
   );

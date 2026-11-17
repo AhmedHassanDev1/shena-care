@@ -12,8 +12,9 @@ describe('listingContext (PLPStates «سياق الصفحة»)', () => {
     expect(listingContext({ category: 'cleansers' }, tree)).toMatchObject({ kind: 'filtered', department: { slug: 'skin-care' } });
   });
 
-  it('prefers search, then brand, then all', () => {
+  it('prefers search, then concern, then brand, then all', () => {
     expect(listingContext({ q: 'vitamin', category: 'skin-care' }, tree)).toEqual({ kind: 'search', q: 'vitamin' });
+    expect(listingContext({ concern: 'acne' }, tree)).toEqual({ kind: 'concern', concern: 'acne', department: null });
     expect(listingContext({ brand: 'eva-cosmetics' }, tree)).toEqual({ kind: 'brand', brand: 'eva-cosmetics' });
     expect(listingContext({}, tree)).toEqual({ kind: 'all' });
   });
@@ -26,8 +27,9 @@ describe('departmentOf / toQueryString', () => {
     expect(departmentOf(undefined, tree)).toBeNull();
   });
 
-  it('serialises only set filters', () => {
+  it('serialises only set filters and maps skinType to skin', () => {
     expect(toQueryString({ category: 'skin-care', brand: undefined })).toBe('?category=skin-care');
+    expect(toQueryString({ concern: 'acne', skinType: 'oily', sort: 'price-asc' })).toBe('?concern=acne&skin=oily&sort=price-asc');
     expect(toQueryString({})).toBe('');
   });
 });

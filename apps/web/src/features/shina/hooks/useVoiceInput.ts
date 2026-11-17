@@ -63,23 +63,19 @@ export function useVoiceInput({ locale, onTranscript }: UseVoiceInputOptions) {
   const onTranscriptRef = useRef(onTranscript);
   onTranscriptRef.current = onTranscript;
 
-  useEffect(() => {
-    setIsSupported(Boolean(getSpeechRecognitionConstructor()));
-    return () => {
-      try {
-        recognitionRef.current?.abort();
-      } catch {
-        // Ignore teardown abort errors when recognition already stopped.
-      }
-      recognitionRef.current = null;
-    };
-  }, []);
+  const baseTextRef = useRef('');
+  const latestTranscriptRef = useRef('');
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const clearError = useCallback(() => {
-    setErrorKind(null);
+  const clearSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
   }, []);
 
   const stopListening = useCallback(() => {
+    clearSilenceTimer();
     const active = recognitionRef.current;
     if (active) {
       try {
@@ -90,76 +86,138 @@ export function useVoiceInput({ locale, onTranscript }: UseVoiceInputOptions) {
     } else {
       setIsListening(false);
     }
+  }, [clearSilenceTimer]);
+
+  const resetSilenceTimer = useCallback(() => {
+    clearSilenceTimer();
+    // 15 seconds of complete silence before auto-stopping
+    silenceTimerRef.current = setTimeout(() => {
+      stopListening();
+    }, 15000);
+  }, [clearSilenceTimer, stopListening]);
+
+  useEffect(() => {
+    setIsSupported(Boolean(getSpeechRecognitionConstructor()));
+    return () => {
+      clearSilenceTimer();
+      try {
+        recognitionRef.current?.abort();
+      } catch {
+        // Ignore teardown abort errors when recognition already stopped.
+      }
+      recognitionRef.current = null;
+    };
+  }, [clearSilenceTimer]);
+
+  const clearError = useCallback(() => {
+    setErrorKind(null);
   }, []);
 
-  const startListening = useCallback(() => {
-    const Recognition = getSpeechRecognitionConstructor();
-    if (!Recognition) {
-      setErrorKind('unsupported');
-      setIsListening(false);
-      return;
-    }
+  const startListening = useCallback(
+    (currentText?: string | unknown) => {
+      const Recognition = getSpeechRecognitionConstructor();
+      if (!Recognition) {
+        setErrorKind('unsupported');
+        setIsListening(false);
+        return;
+      }
 
-    if (recognitionRef.current) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {
+          // Ignore abort on prior session.
+        }
+      }
+
+      setErrorKind(null);
+      baseTextRef.current = typeof currentText === 'string' ? currentText.trim() : '';
+      latestTranscriptRef.current = '';
+
+      const recognition = new Recognition();
+      recognition.lang = locale === 'ar' ? 'ar-EG' : 'en-US';
+      recognition.interimResults = true;
+      recognition.continuous = true;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        resetSilenceTimer();
+      };
+
+      recognition.onresult = (event: SpeechRecognitionEventLike) => {
+        resetSilenceTimer();
+
+        const finalParts: string[] = [];
+        const interimParts: string[] = [];
+
+        for (let i = 0; i < event.results.length; i += 1) {
+          const result = event.results[i];
+          const phrase = result?.[0]?.transcript?.trim();
+          if (!phrase) continue;
+          if (result.isFinal) {
+            finalParts.push(phrase);
+          } else {
+            interimParts.push(phrase);
+          }
+        }
+
+        const finalTranscript = finalParts.join(' ');
+        const interimTranscript = interimParts.join(' ');
+        const sessionTranscript = [finalTranscript, interimTranscript].filter(Boolean).join(' ').trim();
+
+        if (sessionTranscript) {
+          latestTranscriptRef.current = sessionTranscript;
+          const fullText = baseTextRef.current
+            ? `${baseTextRef.current} ${sessionTranscript}`
+            : sessionTranscript;
+          onTranscriptRef.current(fullText, Boolean(finalTranscript && !interimTranscript));
+        }
+      };
+
+      recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
+        clearSilenceTimer();
+        const code = event.error ?? '';
+        if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture') {
+          setErrorKind('denied');
+        } else if (code !== 'aborted' && code !== 'no-speech') {
+          setErrorKind('error');
+        }
+        setIsListening(false);
+
+        // Preserve already captured transcript even if the native UI was closed or aborted
+        if (latestTranscriptRef.current) {
+          const fullText = baseTextRef.current
+            ? `${baseTextRef.current} ${latestTranscriptRef.current}`
+            : latestTranscriptRef.current;
+          onTranscriptRef.current(fullText, true);
+        }
+      };
+
+      recognition.onend = () => {
+        clearSilenceTimer();
+        setIsListening(false);
+        recognitionRef.current = null;
+
+        // Ensure captured transcript is permanently committed
+        if (latestTranscriptRef.current) {
+          const fullText = baseTextRef.current
+            ? `${baseTextRef.current} ${latestTranscriptRef.current}`
+            : latestTranscriptRef.current;
+          onTranscriptRef.current(fullText, true);
+        }
+      };
+
+      recognitionRef.current = recognition;
       try {
-        recognitionRef.current.abort();
+        recognition.start();
       } catch {
-        // Ignore abort on prior session.
-      }
-    }
-
-    setErrorKind(null);
-    const recognition = new Recognition();
-    recognition.lang = locale === 'ar' ? 'ar-EG' : 'en-US';
-    recognition.interimResults = true;
-    recognition.continuous = false;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onresult = (event: SpeechRecognitionEventLike) => {
-      let combined = '';
-      let isFinal = false;
-      for (let i = 0; i < event.results.length; i += 1) {
-        const result = event.results[i];
-        if (result?.[0]?.transcript) {
-          combined += `${result[0].transcript} `;
-        }
-        if (result?.isFinal) {
-          isFinal = true;
-        }
-      }
-      const cleaned = combined.trim();
-      if (cleaned) {
-        onTranscriptRef.current(cleaned, isFinal);
-      }
-    };
-
-    recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
-      const code = event.error ?? '';
-      if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture') {
-        setErrorKind('denied');
-      } else if (code !== 'aborted' && code !== 'no-speech') {
+        recognitionRef.current = null;
+        setIsListening(false);
         setErrorKind('error');
       }
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      recognitionRef.current = null;
-    };
-
-    recognitionRef.current = recognition;
-    try {
-      recognition.start();
-    } catch {
-      recognitionRef.current = null;
-      setIsListening(false);
-      setErrorKind('error');
-    }
-  }, [locale]);
+    },
+    [clearSilenceTimer, locale, resetSilenceTimer],
+  );
 
   return {
     isSupported,

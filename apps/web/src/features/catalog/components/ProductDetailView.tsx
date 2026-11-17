@@ -24,12 +24,11 @@ import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import type { ProductDetail, PublicVariant } from '../api/discovery';
 import { useProductDetail } from '../hooks/useProductDetail';
-import { dedupeGalleryMedia, resolveHeroFeatureBadges } from '../lib/product-facts';
+import { dedupeGalleryMedia, resolveHeroFeatureBadges, resolveLocalizedProductContent } from '../lib/product-facts';
 import {
   ProductAbout,
   ProductActiveIngredients,
   ProductBenefitsStrip,
-  ProductUsage,
   RoutinePlacement,
   usePdpContent,
 } from './ProductDetailSections';
@@ -38,59 +37,50 @@ import { HeroRating, ProductReviews } from './ProductReviews';
 import { SimilarProducts } from './SimilarProducts';
 
 /**
- * Loading skeleton matching the approved 7-section Stitch PDP layout.
+ * Loading skeleton matching the approved 5-section Stitch PDP layout.
  */
 export function ProductDetailSkeleton() {
   const m = useMessages();
   return (
     <article aria-busy="true" aria-label={m.loading} className="pb-24 lg:pb-14">
       <Section labelledBy="pdp-skeleton-title" rhythm="compact" className="pt-3 lg:pt-5">
-        <div className="flex w-full flex-col gap-7">
+        <div className="mx-auto w-full max-w-[1140px] flex flex-col gap-7">
           <span id="pdp-skeleton-title" className="sr-only">
             {m.loading}
           </span>
 
           {/* Hero Grid Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             <div className="lg:col-span-7 flex flex-col items-center gap-3">
-              <div className="flex items-start gap-3 w-full">
-                <Skeleton className="flex-1 aspect-[4/3.6] lg:aspect-square rounded-24" />
-                <div className="hidden lg:flex flex-col gap-2.5 w-[80px] shrink-0">
-                  {Array.from({ length: 4 }, (_, i) => (
-                    <Skeleton key={i} className="aspect-square w-full rounded-14" />
-                  ))}
-                </div>
+              <Skeleton className="w-full aspect-[4/3.5] lg:aspect-square rounded-24" />
+              <div className="grid grid-cols-4 gap-2.5 w-full">
+                {Array.from({ length: 4 }, (_, i) => (
+                  <Skeleton key={i} className="aspect-square w-full rounded-14" />
+                ))}
               </div>
-              <Skeleton className="h-2.5 w-16 rounded-pill" />
             </div>
 
             <div className="lg:col-span-5 flex flex-col gap-3">
-              <Skeleton className="h-7 w-24 rounded-pill" />
-              <Skeleton className="h-10 w-4/5 rounded-14" />
+              <Skeleton className="h-6 w-24 rounded-pill" />
+              <Skeleton className="h-9 w-4/5 rounded-14" />
               <Skeleton className="h-5 w-2/3 rounded-14" />
-              <Skeleton className="h-5 w-40 rounded-pill" />
-              <div className="flex gap-3 py-3 border-b border-line">
-                <Skeleton className="h-5 w-20 rounded-pill" />
-                <Skeleton className="h-5 w-24 rounded-pill" />
-                <Skeleton className="h-5 w-20 rounded-pill" />
-              </div>
-              <div className="flex justify-between items-center pt-1">
-                <Skeleton className="h-5 w-14 rounded-pill" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-11 w-24 rounded-14" />
-                  <Skeleton className="h-11 w-24 rounded-14" />
-                </div>
-              </div>
-              <Skeleton className="h-10 w-32 rounded-14 my-2" />
+              <Skeleton className="h-8 w-full rounded-14" />
+              <Skeleton className="h-10 w-36 rounded-14 my-1" />
               <div className="flex gap-3">
                 <Skeleton className="h-12 flex-1 rounded-14" />
                 <Skeleton className="h-12 w-28 rounded-14" />
               </div>
+              <Skeleton className="h-10 w-full rounded-14" />
+              <div className="grid grid-cols-3 gap-2 pt-2">
+                <Skeleton className="h-14 rounded-14" />
+                <Skeleton className="h-14 rounded-14" />
+                <Skeleton className="h-14 rounded-14" />
+              </div>
             </div>
           </div>
 
-          <Skeleton className="h-24 w-full rounded-24" />
-          <Skeleton className="h-36 w-full rounded-24" />
+          <Skeleton className="h-44 w-full rounded-24" />
+          <Skeleton className="h-44 w-full rounded-24" />
         </div>
       </Section>
     </article>
@@ -221,6 +211,8 @@ function Detail({ product }: { product: ProductDetail }) {
 
   const heroBadges = resolveHeroFeatureBadges(product, m);
   const content = usePdpContent(product, variant);
+  const localized = resolveLocalizedProductContent(product, variant, locale);
+  const conciseDescription = localized.shortDescription;
   const skus = product.skus ?? [];
   const canPurchase = Boolean(variant.canOrder && variant.price && variant.price.amount > 0);
   const otherVariantAvailable = !canPurchase && skus.some((s) => s.id !== variant.id && s.canOrder && s.price);
@@ -294,7 +286,7 @@ function Detail({ product }: { product: ProductDetail }) {
                 images={visibleImages}
                 index={safeImageIndex}
                 onIndexChange={setActiveImageIndex}
-                productName={product.name}
+                productName={localized.name}
                 liked={liked}
                 onToggleLike={handleWishlist}
                 onZoom={() => setZoomOpen(true)}
@@ -311,12 +303,17 @@ function Detail({ product }: { product: ProductDetail }) {
                   </p>
                 ) : null}
                 <h1 id="pdp-title" className="m-0 font-display text-display-1 font-extrabold tracking-tight text-ink lg:text-52 lg:leading-tight">
-                  <bdi>{product.name}</bdi>
+                  <bdi>{localized.name}</bdi>
                 </h1>
                 {product.category || skus.length === 1 ? (
                   <p className="m-0 flex flex-wrap items-center gap-x-3 text-17 text-stone">
                     {product.category ? <span>{product.category.name}</span> : null}
                     {skus.length === 1 ? <bdi dir="ltr" className="font-semibold text-ink">{formatVariantLabel(skus[0])}</bdi> : null}
+                  </p>
+                ) : null}
+                {conciseDescription ? (
+                  <p dir="auto" className="m-0 line-clamp-3 max-w-narrow text-body text-stone">
+                    {conciseDescription}
                   </p>
                 ) : null}
                 <HeroRating slug={product.slug} />
@@ -472,7 +469,6 @@ function Detail({ product }: { product: ProductDetail }) {
             {content.hasAbout ? <ProductAbout product={product} variant={variant} /> : null}
             {content.hasIngredients ? <ProductActiveIngredients product={product} variant={variant} /> : null}
             <RoutinePlacement product={product} variant={variant} />
-            {content.hasUsage ? <ProductUsage product={product} variant={variant} /> : null}
           </div>
           {pending.length > 0 ? (
             <div className="mt-6 flex flex-col gap-1 border-s-4 border-cobalt ps-4">
