@@ -466,25 +466,35 @@ function Detail({ product }: { product: ProductDetail }) {
 
       <ProductBenefitsStrip product={product} variant={variant} />
 
-      <Section labelledBy="pdp-details-title" rhythm="default" className="pb-2 lg:pb-4">
-        <h2 id="pdp-details-title" className="sr-only">{m.pdpDetails}</h2>
-        <div className="mx-auto w-full max-w-4xl">
-          <div className="border-t border-ink/20">
-            {content.hasAbout ? <ProductAbout product={product} variant={variant} /> : null}
-            {content.hasIngredients ? <ProductActiveIngredients product={product} variant={variant} /> : null}
-            <RoutinePlacement product={product} variant={variant} />
+      {content.hasAbout || content.hasIngredients || content.hasRoutine || pending.length > 0 ? (
+        <Section labelledBy="pdp-details-title" rhythm="default" className="pb-2 lg:pb-4">
+          <h2 id="pdp-details-title" className="sr-only">{m.pdpDetails}</h2>
+          <div className="mx-auto w-full max-w-4xl">
+            {content.hasAbout || content.hasIngredients || content.hasRoutine ? (
+              <div className="border-t border-ink/20">
+                {content.hasAbout ? <ProductAbout product={product} variant={variant} /> : null}
+                {content.hasIngredients ? <ProductActiveIngredients product={product} variant={variant} /> : null}
+                {content.hasRoutine ? <RoutinePlacement product={product} variant={variant} /> : null}
+              </div>
+            ) : null}
+            {pending.length > 0 ? (
+              <div className="mt-6 flex flex-col gap-1 border-s-4 border-cobalt ps-4">
+                <p id="pdp-pending-title" className="m-0 font-display text-17 font-bold text-ink">{m.vxPdpPendingTitle}</p>
+                <p className="m-0 text-15 text-stone">{fillMessage(m.vxPdpPendingBody, { items: pending.join(locale === 'ar' ? '، ' : ', ') })}</p>
+                <ArrowLink href={routes.shinaFor({ product: product.slug })} className="self-start">{m.vxPdpAskShina}</ArrowLink>
+              </div>
+            ) : null}
           </div>
-          {pending.length > 0 ? (
-            <div className="mt-6 flex flex-col gap-1 border-s-4 border-cobalt ps-4">
-              <p id="pdp-pending-title" className="m-0 font-display text-17 font-bold text-ink">{m.vxPdpPendingTitle}</p>
-              <p className="m-0 text-15 text-stone">{fillMessage(m.vxPdpPendingBody, { items: pending.join(locale === 'ar' ? '، ' : ', ') })}</p>
-              <ArrowLink href={routes.shinaFor({ product: product.slug })} className="self-start">{m.vxPdpAskShina}</ArrowLink>
-            </div>
-          ) : null}
-        </div>
-      </Section>
+        </Section>
+      ) : null}
 
-      <div id="pdp-reviews" className="scroll-mt-32"><ProductReviews slug={product.slug} skuId={variant?.id} /></div>
+      <div id="pdp-reviews" className="scroll-mt-32">
+        <ProductReviews
+          slug={product.slug}
+          skuId={variant?.id}
+          showTopBorder={!(content.hasAbout || content.hasIngredients || content.hasRoutine || pending.length > 0)}
+        />
+      </div>
 
       <SimilarProducts product={product} />
 

@@ -33,7 +33,9 @@ export function usePdpContent(product: ProductDetail, variant: PublicVariant) {
     Boolean(variant.content?.ingredients?.trim());
   const guide = resolveUsageGuide(product, variant, locale, m);
   const hasUsage = (guide.instructionsText ? splitSteps(guide.instructionsText).length > 0 : false) || Boolean(guide.warningsText);
-  return { hasAbout, hasIngredients, hasUsage };
+  const routine = resolveRoutinePosition(product, variant, m);
+  const hasRoutine = (routine.confirmed && routine.steps.length > 0) || hasUsage;
+  return { hasAbout, hasIngredients, hasUsage, hasRoutine };
 }
 
 /** One information block: the title on the start side, the content beside it on desktop, stacked on phones. */
@@ -78,7 +80,7 @@ export function ProductBenefitsStrip({
       </h2>
       <ul
         className={cn(
-          'm-0 grid list-none grid-cols-1 gap-5 border-y border-line p-0 py-5 sm:gap-0',
+          'm-0 grid list-none grid-cols-1 gap-5 border-t border-line p-0 py-5 sm:gap-0',
           benefits.length === 2 && 'sm:grid-cols-2',
           benefits.length >= 3 && 'sm:grid-cols-3',
         )}
@@ -336,23 +338,23 @@ export function RoutinePlacement({
     <PdpBlock id={`pdp-routine-${product.id}`} title={m.pdpRoutineStepTitle} icon="layers">
       <div className="flex flex-col gap-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="m-0 max-w-narrow text-body text-stone">{resolved.summaryLine}</p>
+          <p className="m-0 max-w-narrow font-display text-15 font-semibold text-ink/85">{resolved.summaryLine}</p>
           {hasTiming ? (
             <div className="flex flex-wrap items-center gap-2">
               {guide.showMorning ? (
-                <span className="inline-flex items-center gap-1.5 rounded-pill bg-citron px-3 py-1 text-13 font-bold text-ink">
+                <span className="inline-flex items-center gap-1.5 rounded-pill bg-citron px-3 py-1 text-13 font-bold text-ink shadow-outline-hairline">
                   <Icon name="sun" size={14} className="shrink-0" />
                   <span>{m.pdpRoutinePeriodMorning}</span>
                 </span>
               ) : null}
               {guide.showEvening ? (
-                <span className="inline-flex items-center gap-1.5 rounded-pill bg-ink px-3 py-1 text-13 font-bold text-chalk">
+                <span className="inline-flex items-center gap-1.5 rounded-pill bg-ink px-3 py-1 text-13 font-bold text-chalk shadow-outline-hairline">
                   <Icon name="evening" size={14} className="shrink-0" />
                   <span>{m.pdpRoutinePeriodEvening}</span>
                 </span>
               ) : null}
               {guide.frequencyChips.map((chip) => (
-                <span key={chip} className="rounded-pill px-3 py-1 text-12 font-semibold text-stone shadow-outline-hairline">
+                <span key={chip} className="rounded-pill bg-chalk px-3 py-1 text-12 font-semibold text-stone shadow-outline-hairline">
                   {chip}
                 </span>
               ))}
@@ -381,16 +383,16 @@ export function RoutinePlacement({
                   className={cn(
                     'flex items-center justify-center rounded-full transition-all',
                     step.isCurrent
-                      ? 'size-12 bg-citron text-ink ring-4 ring-citron/30 md:size-14'
-                      : 'size-12 border border-line-2 bg-transparent text-stone md:size-14',
+                      ? 'size-12 bg-citron text-ink shadow-elevation-1 ring-4 ring-citron/30 md:size-14'
+                      : 'size-12 border border-line bg-chalk text-stone shadow-outline-hairline ring-4 ring-linen transition-colors duration-fast hover:border-cobalt hover:text-cobalt md:size-14',
                   )}
                 >
                   <Icon name={step.icon} size={step.isCurrent ? 20 : 18} strokeWidth={1.8} />
                 </div>
-                <span className={cn('mt-2 font-display text-15 leading-tight md:text-17', step.isCurrent ? 'font-bold text-ink' : 'font-semibold text-ink')}>
+                <span className={cn('mt-2.5 font-display text-15 leading-tight md:text-17', step.isCurrent ? 'font-bold text-ink' : 'font-medium text-stone')}>
                   {step.label}
                 </span>
-                <span className={cn('text-12 tabular-nums', step.isCurrent ? 'font-bold text-ink' : 'text-stone')}>{step.number}</span>
+                <span className={cn('text-12 tabular-nums', step.isCurrent ? 'font-bold text-cobalt' : 'text-stone/70')}>{step.number}</span>
               </div>
             ))}
           </div>
@@ -418,14 +420,14 @@ export function RoutinePlacement({
                     idx === 2 && 'md:border-s md:border-line/70 md:ps-6',
                   )}
                 >
-                  <div className="flex items-center gap-2 text-16 font-bold text-ink">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-citron text-12 font-black tabular-nums text-ink">
+                  <div className="flex items-center gap-2 text-15 font-bold text-ink">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-citron text-11 font-black tabular-nums text-ink shadow-outline-hairline">
                       {String(idx + 1).padStart(2, '0')}
                     </span>
-                    <Icon name={stepIcon} size={16} strokeWidth={2} />
+                    <Icon name={stepIcon} size={16} strokeWidth={2} className="text-cobalt shrink-0" />
                     <span>{stepTitle}</span>
                   </div>
-                  <p className="m-0 ps-8 text-15 leading-24 text-stone md:ps-0">{stepText}</p>
+                  <p className="m-0 ps-8 text-14 leading-22 text-stone md:ps-0">{stepText}</p>
                 </div>
               );
             })}

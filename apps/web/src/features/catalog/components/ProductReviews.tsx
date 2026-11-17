@@ -85,7 +85,15 @@ export function HeroRating({ slug }: { slug: string }) {
  * - Single-review interactive carousel with pagination dots
  * - Honest neutral empty state when `count === 0` (never fabricates ratings or quotes).
  */
-export function ProductReviews({ slug, skuId }: { slug: string; skuId?: string }) {
+export function ProductReviews({
+  slug,
+  skuId,
+  showTopBorder = false,
+}: {
+  slug: string;
+  skuId?: string;
+  showTopBorder?: boolean;
+}) {
   const locale = useLocale();
   const m = useMessages();
   const queryClient = useQueryClient();
@@ -148,7 +156,13 @@ export function ProductReviews({ slug, skuId }: { slug: string; skuId?: string }
 
   return (
     <Section id={`reviews-${slug}`} labelledBy={`pdp-reviews-title-${slug}`} rhythm="compact" className="py-6 lg:py-10">
-      <div aria-busy={isPending} className="mx-auto flex w-full max-w-4xl flex-col gap-5 border-t border-ink/20 pt-6 lg:pt-8">
+      <div
+        aria-busy={isPending}
+        className={cn(
+          'mx-auto flex w-full max-w-4xl flex-col gap-5',
+          showTopBorder ? 'border-t border-ink/20 pt-6 lg:pt-8' : 'pt-2 lg:pt-4',
+        )}
+      >
         {/* Section Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
