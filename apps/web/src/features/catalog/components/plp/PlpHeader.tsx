@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Chip } from '@/components/ui/chip';
-import { ConcernBridge } from '@/features/corner/components/ConcernBridge';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { formatNumber } from '@/lib/i18n/format';
 import { fillMessage } from '@/lib/i18n/messages';
@@ -12,6 +11,7 @@ import { cn } from '@/lib/utils';
 import type { DiscoveryFilters } from '../../api/discovery';
 import { categoryLabel, type CardModel } from '../../lib/card-model';
 import type { CategoryNode, ListingContext } from '../../lib/listing';
+import { BrandLineHeader } from './BrandLineHeader';
 
 interface PlpHeaderProps {
   context: ListingContext;
@@ -20,7 +20,15 @@ interface PlpHeaderProps {
   tree: CategoryNode[] | undefined;
   filters: DiscoveryFilters;
   onNavigate: (next: DiscoveryFilters) => void;
+  /** Department page: the subcategory selector, rendered directly under the title and description. */
+  rail?: ReactNode;
+  /** Brand Line page: the brand and line the discovery facets report for the current results. */
+  /** Labels of the subcategories that hold sellable products; the one-line description lists only these. */
+  typeLabels?: string[];
+  line?: { brand: { slug: string; name: string } | undefined; name: string | undefined };
 }
+
+type Crumb = { href: string; label: string };
 
 const CONCERN_METAS: Record<string, { crumb: string; title: string; desc: string }> = {
   acne: {
@@ -46,36 +54,29 @@ const CONCERN_METAS: Record<string, { crumb: string; title: string; desc: string
 };
 
 /**
- * Listing header (PLP, PLPMobile, PLPStates «سياق الصفحة»): the department banner only on a department's first,
- * unfiltered page; a brand title in Latin caps with department pills; search results «نتايج «…»» with department
- * pills; a plain title + «بعد الفلترة» after filtering. Breadcrumbs everywhere.
+ * Listing header (PLP, PLPMobile, PLPStates «سياق الصفحة»). A department page is compact: breadcrumb, title, one line
+ * and the subcategory selector (`rail`) straight above the listing, with no trust badge or concern chips competing
+ * for attention. A Brand Line page shows the brand identity and line (BrandLineHeader). Brand and search pages keep
+ * their department pills; a plain title + «بعد الفلترة» after filtering. Breadcrumbs everywhere.
  */
-export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHeaderProps) {
+export function PlpHeader({ context, total, tree, filters, onNavigate, rail, line, typeLabels }: PlpHeaderProps) {
   const m = useMessages();
   const locale = useLocale();
   const count = total === null ? null : fillMessage(m.plpCount, { n: formatNumber(total, locale) });
 
-  const crumbs = (current: string, middle?: { href: string; label: string }) => (
+  const crumbs = (current: string, ...middle: Crumb[]) => (
     <nav aria-label={m.plpBreadcrumb}>
       <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-12.5 leading-20 text-stone lg:text-13">
-        <li className="inline-flex items-center gap-2">
-          <Link href={routes.home} className="inline-flex min-h-10 min-w-10 items-center justify-center font-medium text-stone hover:text-ink underline decoration-1 underline-offset-4">
-            {m.plpHome}
-          </Link>
-          <span aria-hidden="true" className="opacity-70">
-            ›
-          </span>
-        </li>
-        {middle ? (
-          <li className="inline-flex items-center gap-2">
-            <Link href={middle.href} className="inline-flex min-h-10 min-w-10 items-center justify-center font-medium text-stone hover:text-ink underline decoration-1 underline-offset-4">
-              {middle.label}
+        {[{ href: routes.home, label: m.plpHome }, ...middle].map((step) => (
+          <li key={step.href} className="inline-flex items-center gap-2">
+            <Link href={step.href} className="inline-flex min-h-10 min-w-10 items-center justify-center font-medium text-stone hover:text-ink underline decoration-1 underline-offset-4">
+              {step.label}
             </Link>
             <span aria-hidden="true" className="opacity-70">
               ›
             </span>
           </li>
-        ) : null}
+        ))}
         <li aria-current="page" className="font-semibold text-ink">
           {current}
         </li>
@@ -97,14 +98,18 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
       </div>
     ) : null;
 
-  const plain = (title: string, body: ReactNode, crumb: ReactNode, aside?: ReactNode, titleLatin = false) => (
+  const trustBadge = (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-sand px-2.5 py-0.5 text-12 font-bold text-ink" title={m.plpPharmacyTrust}>
+      <span className="size-1.5 rounded-full bg-citron" />
+      <span>{m.plpPharmacyBadge}</span>
+    </span>
+  );
+
+  const plain = (title: string, body: ReactNode, crumb: ReactNode, aside?: ReactNode, titleLatin = false, trust = true) => (
     <section aria-labelledby="plp-h" className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2.5">
         {crumb}
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-sand px-2.5 py-0.5 text-12 font-bold text-ink" title={m.plpPharmacyTrust}>
-          <span className="size-1.5 rounded-full bg-citron" />
-          <span>{m.plpPharmacyBadge}</span>
-        </span>
+        {trust ? trustBadge : null}
       </div>
       <h1
         id="plp-h"
@@ -122,15 +127,37 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
   if (context.kind === 'department') {
     const d = context.department;
     const title = categoryLabel(d, locale) ?? d.name;
-    const list = d.children.map((child) => categoryLabel(child, locale) ?? child.name).join('، ');
-    return plain(
-      title,
-      list ? fillMessage(m.plpDeptBody, { list }) : null,
-      crumbs(title),
-      <div className="flex flex-col gap-3">
-        {deptPills(d.slug)}
-        <ConcernBridge departmentSlug={d.slug} />
-      </div>
+    const list = (typeLabels?.length ? typeLabels : d.children.map((child) => categoryLabel(child, locale) ?? child.name)).join('، ');
+    const crumb = context.child
+      ? crumbs(categoryLabel(context.child, locale) ?? context.child.name, { href: routes.productsByCategory(d.slug), label: title })
+      : crumbs(title);
+    return (
+      <section aria-labelledby="plp-h" className="flex flex-col gap-3">
+        {crumb}
+        <div className="flex flex-col gap-1.5">
+          <h1 id="plp-h" className="m-0 text-30 font-bold leading-tight text-ink md:text-34">
+            {title}
+          </h1>
+          {list ? <p className="m-0 text-14.5 leading-22 text-stone">{list}</p> : null}
+        </div>
+        {rail ? (
+          <div className="pt-1">
+            <h2 className="sr-only">{m.plpSubcategories}</h2>
+            {rail}
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+
+  if (context.kind === 'line' && line) {
+    const brandCrumbs: Crumb[] = [{ href: routes.products, label: m.plpBrands }];
+    if (line.brand) brandCrumbs.push({ href: routes.productsByBrand(line.brand.slug), label: line.brand.name });
+    return (
+      <section aria-labelledby="plp-h" className="flex flex-col gap-3">
+        {crumbs(line.name ?? context.line, ...brandCrumbs)}
+        <BrandLineHeader lineSlug={context.line} brand={line.brand} lineName={line.name} total={total} />
+      </section>
     );
   }
 

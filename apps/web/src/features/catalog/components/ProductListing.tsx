@@ -23,6 +23,7 @@ import { ProductCard, ProductCardSkeleton } from './ProductCard';
 import { AppliedFilters, type AppliedFilter } from './plp/AppliedFilters';
 import { FilterPanel, type FacetGroups } from './plp/FilterPanel';
 import { PlpHeader } from './plp/PlpHeader';
+import { SubcategoryRail, type SubcategoryItem } from './plp/SubcategoryRail';
 
 /** Board grid: 12 visible before the next page (PLP «١٥ منتج · ظاهر ١٢»). */
 const PAGE_SIZE = 12;
@@ -86,6 +87,44 @@ export function ProductListing() {
     enabled: Boolean(typeBase),
     staleTime: 60_000,
   }).data?.total;
+
+  // Department page: one real packshot per subcategory for the selector (first product of each child in the department).
+  const isDepartment = context.kind === 'department';
+  const sample = useQuery({
+    queryKey: ['discovery', 'facet', 'sample', toQueryString(typeBase ?? {})],
+    queryFn: () => discoverProducts(typeBase!, undefined, 100),
+    enabled: Boolean(typeBase) && isDepartment,
+    staleTime: 60_000,
+  }).data;
+  const railItems: SubcategoryItem[] = useMemo(() => {
+    if (context.kind !== 'department') return [];
+    const firstOf = new Map<string, ReturnType<typeof toCardModel>>();
+    for (const item of sample?.items ?? []) {
+      const slug = item.category?.slug;
+      if (slug && !firstOf.has(slug)) firstOf.set(slug, toCardModel(item, locale, m.sizeOr));
+    }
+    // Only subcategories that hold sellable products (the backend facet), in the catalog's own order.
+    const counts = new Map(groups.type.map((f) => [f.slug, f.count]));
+    return context.department.children
+      .filter((child) => (counts.get(child.slug) ?? 0) > 0)
+      .map((child) => {
+        const label = categoryLabel(child, locale) ?? child.name;
+        const card = firstOf.get(child.slug);
+        return { slug: child.slug, label, count: counts.get(child.slug) ?? 0, imageUrl: card?.imageUrl ?? null, imageAlt: card?.imageAlt ?? label };
+      });
+  }, [context, sample, groups.type, locale, m.sizeOr]);
+  const rail =
+    context.kind === 'department' && railItems.length > 0 ? (
+      <SubcategoryRail
+        ariaLabel={m.plpSubcategories}
+        departmentLabel={categoryLabel(context.department, locale) ?? context.department.name}
+        total={deptTotal ?? null}
+        selected={context.child?.slug}
+        items={railItems}
+        onSelect={(slug) => navigate({ ...filters, category: slug ?? context.department.slug })}
+      />
+    ) : undefined;
+  const railShown = Boolean(rail);
 
   const concerns = useQuery({
     queryKey: ['care', 'concerns', 'public'],
@@ -151,7 +190,17 @@ export function ProductListing() {
   return (
     <div className="flex flex-col gap-6 pb-14 lg:gap-10">
       {treeReady ? (
-        <PlpHeader context={context} total={total} prints={products.slice(0, 2)} tree={tree.data} filters={filters} onNavigate={navigate} />
+        <PlpHeader
+          context={context}
+          total={total}
+          prints={products.slice(0, 2)}
+          tree={tree.data}
+          filters={filters}
+          onNavigate={navigate}
+          rail={rail}
+          typeLabels={railItems.map((item) => item.label)}
+          line={context.kind === 'line' ? { brand: groups.brand[0] && { slug: groups.brand[0].slug, name: groups.brand[0].name }, name: first?.facets.productLines.find((l) => l.slug === filters.productLine)?.name } : undefined}
+        />
       ) : (
         <Skeleton className="h-[160px] rounded-24 lg:h-[212px] lg:rounded-sheet" />
       )}
@@ -204,7 +253,7 @@ export function ProductListing() {
 
       {/* Phone: quick type pills, mobile count + sort bar, sticky «فلترة» bar */}
       <div className="flex flex-col gap-3 lg:hidden">
-        {groups.type.length > 0 ? (
+        {groups.type.length > 0 && !railShown ? (
           <div role="group" aria-label={m.plpType} className="-mx-4 flex gap-2 overflow-x-auto px-4 py-1.5 scrollbar-none">
             <Chip
               selected={!filters.category}
@@ -295,7 +344,7 @@ export function ProductListing() {
               </div>
 
               {/* Desktop Quick Category Chips */}
-              {groups.type.length > 0 ? (
+              {groups.type.length > 0 && !railShown ? (
                 <div role="group" aria-label={m.plpType} className="flex flex-wrap items-center gap-1.5">
                   <Chip
                     selected={!filters.category}
@@ -338,10 +387,6 @@ export function ProductListing() {
 
             <AppliedFilters filters={applied} onClearAll={clearAll} />
           </div>
-          <p role="status" aria-live="polite" className="m-0 mb-3 text-15 font-bold leading-24 text-ink lg:hidden">
-            {total !== null ? fillMessage(m.plpCount, { n: formatNumber(total, locale) }) : null}
-            {total !== null && products.length < total ? <span className="font-medium text-stone">{fillMessage(m.plpShown, { n: formatNumber(products.length, locale) })}</span> : null}
-          </p>
 
           {query.status === 'pending' ? (
             <Grid>{Array.from({ length: 6 }, (_, i) => <ProductCardSkeleton key={i} />)}</Grid>

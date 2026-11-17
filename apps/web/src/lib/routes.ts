@@ -17,6 +17,10 @@ export const routes = {
   order: (idOrNumber: string) => `/orders/${encodeURIComponent(idOrNumber)}`,
   /** Catalog listing narrowed by a category slug (GET /products?category=). */
   productsByCategory: (slug: string) => `/products?category=${encodeURIComponent(slug)}`,
+  /** Brand Line page: the catalog listing narrowed to one ProductLine (GET /products/discovery?productLine=). */
+  productsByLine: (slug: string) => `/products?productLine=${encodeURIComponent(slug)}`,
+  /** Catalog listing narrowed by a brand slug. */
+  productsByBrand: (slug: string) => `/products?brand=${encodeURIComponent(slug)}`,
   /** Ranked catalog search over products, brands, concerns and SKUs. */
   productsSearch: (query: string) => `/products?q=${encodeURIComponent(query)}`,
   /** Catalog listing narrowed by a curated care concern slug. */

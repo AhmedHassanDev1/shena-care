@@ -299,7 +299,11 @@ function Detail({ product }: { product: ProductDetail }) {
                 {product.brand?.name ? (
                   <p className="m-0 flex flex-wrap items-baseline gap-x-3 font-serif text-26 italic text-cobalt">
                     <bdi>{product.brand.name}</bdi>
-                    {product.productLine?.name ? <span className="font-display text-16 font-medium not-italic text-stone"><bdi>{product.productLine.name}</bdi></span> : null}
+                    {product.productLine?.name ? (
+                      <Link href={routes.productsByLine(product.productLine.slug)} className="font-display text-16 font-medium not-italic text-stone underline decoration-1 underline-offset-4 hover:text-ink">
+                        <bdi>{product.productLine.name}</bdi>
+                      </Link>
+                    ) : null}
                   </p>
                 ) : null}
                 <h1 id="pdp-title" className="m-0 font-display text-display-1 font-extrabold tracking-tight text-ink lg:text-52 lg:leading-tight">

@@ -57,7 +57,9 @@ export function departmentOf(slug: string | undefined, tree: CategoryNode[] | un
 
 /** What the listing header shows (PLPStates «سياق الصفحة»): the banner only on a department's first, unfiltered page. */
 export type ListingContext =
-  | { kind: 'department'; department: CategoryNode }
+  /** A department page; `child` is the subcategory chosen from its selector (still the same page, never a new one). */
+  | { kind: 'department'; department: CategoryNode; child: CategoryNode['children'][number] | null }
+  | { kind: 'line'; line: string; brand?: string }
   | { kind: 'brand'; brand: string }
   | { kind: 'search'; q: string }
   | { kind: 'concern'; concern: string; department: CategoryNode | null }
@@ -69,8 +71,12 @@ export function listingContext(filters: DiscoveryFilters, tree: CategoryNode[] |
   const extra = Boolean(filters.brand || filters.productLine || filters.skinType);
   if (filters.q) return { kind: 'search', q: filters.q };
   if (filters.concern) return { kind: 'concern', concern: filters.concern, department };
+  if (filters.productLine && !filters.category && !filters.skinType) return { kind: 'line', line: filters.productLine, brand: filters.brand };
   if (filters.brand && !filters.category && !filters.productLine) return { kind: 'brand', brand: filters.brand };
-  if (department && filters.category === department.slug && !extra) return { kind: 'department', department };
+  if (department && !extra) {
+    const child = department.children.find((c) => c.slug === filters.category) ?? null;
+    return { kind: 'department', department, child };
+  }
   if (filters.category || extra) return { kind: 'filtered', department };
   return { kind: 'all' };
 }

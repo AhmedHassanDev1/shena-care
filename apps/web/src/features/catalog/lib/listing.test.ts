@@ -1,3 +1,4 @@
+import { routes } from '@/lib/routes';
 import { departmentOf, listingContext, toQueryString, type CategoryNode } from './listing';
 
 const tree: CategoryNode[] = [
@@ -9,7 +10,29 @@ describe('listingContext (PLPStates «سياق الصفحة»)', () => {
   it('shows the department banner only on a department’s first, unfiltered page', () => {
     expect(listingContext({ category: 'skin-care' }, tree)).toMatchObject({ kind: 'department', department: { slug: 'skin-care' } });
     expect(listingContext({ category: 'skin-care', brand: 'eva' }, tree)).toMatchObject({ kind: 'filtered', department: { slug: 'skin-care' } });
-    expect(listingContext({ category: 'cleansers' }, tree)).toMatchObject({ kind: 'filtered', department: { slug: 'skin-care' } });
+  });
+
+  it('keeps a chosen subcategory on the department page (same page, selector stays) and carries the child', () => {
+    expect(listingContext({ category: 'skin-care' }, tree)).toMatchObject({ kind: 'department', child: null });
+    expect(listingContext({ category: 'cleansers' }, tree)).toMatchObject({
+      kind: 'department',
+      department: { slug: 'skin-care' },
+      child: { slug: 'cleansers' },
+    });
+    expect(listingContext({ category: 'cleansers', brand: 'eva' }, tree)).toMatchObject({ kind: 'filtered', department: { slug: 'skin-care' } });
+    expect(listingContext({ category: 'unknown-slug' }, tree)).toMatchObject({ kind: 'filtered', department: null });
+  });
+
+  it('shows the Brand Line header for a product line, never mixing it with categories or concerns', () => {
+    expect(listingContext({ productLine: 'l-oral-paris-hyaluron-moisture' }, tree)).toEqual({
+      kind: 'line',
+      line: 'l-oral-paris-hyaluron-moisture',
+      brand: undefined,
+    });
+    expect(listingContext({ productLine: 'x', brand: 'loral-paris' }, tree)).toMatchObject({ kind: 'line', brand: 'loral-paris' });
+    expect(listingContext({ productLine: 'x', category: 'cleansers' }, tree)).toMatchObject({ kind: 'filtered' });
+    expect(listingContext({ productLine: 'x', concern: 'acne' }, tree)).toMatchObject({ kind: 'concern' });
+    expect(listingContext({ productLine: 'x', q: 'serum' }, tree)).toMatchObject({ kind: 'search' });
   });
 
   it('prefers search, then concern, then brand, then all', () => {
@@ -31,5 +54,13 @@ describe('departmentOf / toQueryString', () => {
     expect(toQueryString({ category: 'skin-care', brand: undefined })).toBe('?category=skin-care');
     expect(toQueryString({ concern: 'acne', skinType: 'oily', sort: 'price-asc' })).toBe('?concern=acne&skin=oily&sort=price-asc');
     expect(toQueryString({})).toBe('');
+  });
+});
+
+describe('Brand Line and category routes', () => {
+  it('builds URLs the existing discovery filters already understand', () => {
+    expect(routes.productsByLine('l-oral-paris-hyaluron-moisture')).toBe('/products?productLine=l-oral-paris-hyaluron-moisture');
+    expect(routes.productsByBrand('loral-paris')).toBe('/products?brand=loral-paris');
+    expect(toQueryString({ productLine: 'x', brand: 'y' })).toBe('?productLine=x&brand=y');
   });
 });
