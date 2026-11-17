@@ -22,6 +22,29 @@ interface PlpHeaderProps {
   onNavigate: (next: DiscoveryFilters) => void;
 }
 
+const CONCERN_METAS: Record<string, { crumb: string; title: string; desc: string }> = {
+  acne: {
+    crumb: 'حب الشباب',
+    title: 'العناية بالبشرة المعرضة للحبوب',
+    desc: 'اكتشف المنتجات المرتبطة باحتياج بشرتك.',
+  },
+  'blackheads-pimples': {
+    crumb: 'الحبوب والرؤوس السوداء',
+    title: 'العناية بالحبوب والرؤوس السوداء',
+    desc: 'منتجات لطيفة لتنقية المسام وتوازن البشرة.',
+  },
+  dryness: {
+    crumb: 'الجفاف والترطيب',
+    title: 'العناية بالجفاف والترطيب',
+    desc: 'منتجات غنية لاستعادة الترطيب وحاجز البشرة.',
+  },
+  'dark-spots': {
+    crumb: 'البقع الداكنة',
+    title: 'العناية بالبقع الداكنة وآثار الحبوب',
+    desc: 'منتجات لتوحيد لون البشرة وتقليل التصبغات.',
+  },
+};
+
 /**
  * Listing header (PLP, PLPMobile, PLPStates «سياق الصفحة»): the department banner only on a department's first,
  * unfiltered page; a brand title in Latin caps with department pills; search results «نتايج «…»» with department
@@ -108,6 +131,19 @@ export function PlpHeader({ context, total, tree, filters, onNavigate }: PlpHead
         {deptPills(d.slug)}
         <ConcernBridge departmentSlug={d.slug} />
       </div>
+    );
+  }
+
+  if (context.kind === 'concern') {
+    const meta = CONCERN_METAS[context.concern] ?? {
+      crumb: context.concern,
+      title: context.concern === 'acne' ? 'العناية بالبشرة المعرضة للحبوب' : context.concern,
+      desc: 'اكتشف المنتجات المرتبطة باحتياج بشرتك.',
+    };
+    return plain(
+      meta.title,
+      meta.desc,
+      crumbs(meta.crumb, { href: routes.corner, label: 'مشاكل البشرة' })
     );
   }
 

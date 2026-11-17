@@ -23,6 +23,8 @@ export function useListingFilters(): DiscoveryFilters {
         category: params.get('category') ?? undefined,
         productLine: params.get('productLine') ?? undefined,
         concern: params.get('concern') ?? undefined,
+        skinType: params.get('skin') ?? params.get('skinType') ?? undefined,
+        sort: params.get('sort') ?? undefined,
       }),
     [params],
   );
@@ -30,7 +32,11 @@ export function useListingFilters(): DiscoveryFilters {
 
 export function toQueryString(filters: DiscoveryFilters): string {
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);
+  for (const [key, value] of Object.entries(filters)) {
+    if (!value) continue;
+    if (key === 'skinType') params.set('skin', value);
+    else params.set(key, value);
+  }
   const query = params.toString();
   return query ? `?${query}` : '';
 }
@@ -54,14 +60,16 @@ export type ListingContext =
   | { kind: 'department'; department: CategoryNode }
   | { kind: 'brand'; brand: string }
   | { kind: 'search'; q: string }
+  | { kind: 'concern'; concern: string; department: CategoryNode | null }
   | { kind: 'filtered'; department: CategoryNode | null }
   | { kind: 'all' };
 
 export function listingContext(filters: DiscoveryFilters, tree: CategoryNode[] | undefined): ListingContext {
   const department = departmentOf(filters.category, tree);
-  const extra = Boolean(filters.brand || filters.productLine || filters.concern);
+  const extra = Boolean(filters.brand || filters.productLine || filters.skinType);
   if (filters.q) return { kind: 'search', q: filters.q };
-  if (filters.brand && !filters.category && !filters.productLine && !filters.concern) return { kind: 'brand', brand: filters.brand };
+  if (filters.concern) return { kind: 'concern', concern: filters.concern, department };
+  if (filters.brand && !filters.category && !filters.productLine) return { kind: 'brand', brand: filters.brand };
   if (department && filters.category === department.slug && !extra) return { kind: 'department', department };
   if (filters.category || extra) return { kind: 'filtered', department };
   return { kind: 'all' };

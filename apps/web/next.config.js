@@ -16,11 +16,49 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: '**.cloudinary.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
       },
       {
         protocol: 'http',
         hostname: 'localhost',
+        port: '3001',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '4107',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '3001',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '4107',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '3000',
       },
       {
         protocol: 'http',
@@ -35,6 +73,19 @@ const nextConfig = {
         hostname: '127.0.0.1',
       },
     ],
+  },
+  async rewrites() {
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+    return [
+      {
+        source: '/storage/:path*',
+        destination: `${apiUrl}/storage/:path*`,
+      },
+      {
+        source: '/uploads/:path*',
+        destination: `${apiUrl}/uploads/:path*`,
+      },
+    ];
   },
   async redirects() {
     return [

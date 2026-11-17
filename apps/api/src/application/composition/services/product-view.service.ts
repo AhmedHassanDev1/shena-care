@@ -90,7 +90,7 @@ export class ProductViewService {
 
   async composeProducts(products: PublishedProduct[], at = new Date()): Promise<Array<ProductView | null>> {
     const eligibleSkus = products.map(product => product.skus
-      .filter(sku => product.media.some(media => media.skuId === sku.id)).sort((a, b) => a.id.localeCompare(b.id)));
+      .filter(sku => product.media.some(media => !media.skuId || media.skuId === sku.id)).sort((a, b) => a.id.localeCompare(b.id)));
     const termsBySku = await this.commerceService.getSellingTermsBatch(eligibleSkus.flat().map(sku => sku.id));
     return Promise.all(products.map(async (product, index) => {
       const skusWithCommerce = await Promise.all(eligibleSkus[index].map(async (sku) => {
@@ -112,6 +112,8 @@ export class ProductViewService {
       }));
 
       if (!product.media.length || !skusWithCommerce.some(sku => sku.canOrder)) return null;
+      const orderableMedia = product.media.filter(m => !m.skuId || skusWithCommerce.some(sku => sku.id === m.skuId && sku.canOrder));
+      const media = orderableMedia.length > 0 ? orderableMedia : product.media;
       return {
         id: product.id,
         name: product.name,
@@ -133,7 +135,7 @@ export class ProductViewService {
         productLine: product.productLine ?? null,
         category: product.category ?? null,
         skus: skusWithCommerce.filter(sku => sku.canOrder),
-        media: product.media.filter(m => skusWithCommerce.some(sku => sku.id === m.skuId && sku.canOrder)),
+        media,
       };
     }));
   }
