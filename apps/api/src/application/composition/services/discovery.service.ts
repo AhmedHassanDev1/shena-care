@@ -5,6 +5,26 @@ import { CareService } from '../../../modules/care/public';
 import { DiscoveryQueryDto, SuggestQueryDto } from '../dto/discovery.dto';
 import { ProductView, ProductViewService } from './product-view.service';
 
+function pickViewImageUrl(media: ProductView['media'] | undefined): string | null {
+  if (!media || !media.length) return null;
+  const isImage = (m: (typeof media)[number]) =>
+    !m.type || m.type.toLowerCase() === 'image' || m.type.toLowerCase().startsWith('image/');
+  const images = media.filter(m => m.url && isImage(m));
+  const pool = images.length ? images : media.filter(m => Boolean(m.url));
+  if (!pool.length) return null;
+  const isProof = (m: (typeof pool)[number]) => m.role === 'PACKAGING_PROOF';
+  const isPackshot = (m: (typeof pool)[number]) => m.role === 'PRIMARY_PACKSHOT';
+
+  const chosen =
+    pool.find(isPackshot) ??
+    pool.find(m => m.isPrimary && !isProof(m)) ??
+    pool.find(m => !isProof(m)) ??
+    pool.find(m => m.isPrimary) ??
+    pool[0];
+
+  return chosen?.url ?? null;
+}
+
 @Injectable()
 export class DiscoveryService {
   constructor(private readonly catalog: CatalogService, private readonly views: ProductViewService,
@@ -48,7 +68,7 @@ export class DiscoveryService {
         for (const view of visible) {
           if (view) items.push({ id: view.id, name: view.name, slug: view.slug,
             brand: { name: view.brand.name, slug: view.brand.slug },
-            imageUrl: (view.media?.find(media => media.isPrimary && media.type === 'image') ?? view.media?.find(media => media.type === 'image'))?.url ?? null,
+            imageUrl: pickViewImageUrl(view.media),
             category: view.category ? { name: view.category.name, slug: view.category.slug } : null });
           if (items.length >= (query.limit ?? 8)) break;
         }

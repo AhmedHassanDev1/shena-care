@@ -27,12 +27,12 @@ const product = (skus: ProductView['skus'], over: Partial<ProductView> = {}): Pr
 });
 
 describe('toCardModel', () => {
-  it('joins same-unit sizes as «٣٠ أو ٦٠ مل» and reads «من» when variant prices differ', () => {
+  it('joins same-unit sizes as «30 أو 60 مل» and reads «من» when variant prices differ', () => {
     const card = toCardModel(
       product([sku(), sku({ id: 'sku-2', size: 60, price: { amount: 1150, currency: 'EGP', compareAtAmount: null } })]),
       'ar',
     );
-    expect(card.sizeLine).toBe('٣٠ أو ٦٠ مل');
+    expect(card.sizeLine).toBe('30 أو 60 مل');
     expect(card.price).toEqual({ amount: 750, currency: 'EGP' });
     expect(card.priceIsFrom).toBe(true);
     expect(card.variants).toHaveLength(2);
@@ -93,6 +93,30 @@ describe('toCardModel', () => {
       'ar'
     );
     expect(card.imageUrl).toBe('https://cdn/front-packshot.jpg');
+  });
+
+  it('handles uppercase IMAGE type and mime types gracefully', () => {
+    const card = toCardModel(
+      product([sku()], {
+        media: [
+          { id: 'm-1', type: 'IMAGE', url: 'https://cdn/uppercase.jpg', altText: null, isPrimary: true },
+        ],
+      }),
+      'ar'
+    );
+    expect(card.imageUrl).toBe('https://cdn/uppercase.jpg');
+  });
+
+  it('falls back to any media item with url when type is unspecified or unknown', () => {
+    const card = toCardModel(
+      product([sku()], {
+        media: [
+          { id: 'm-1', type: 'other', url: 'https://cdn/fallback.jpg', altText: null, isPrimary: true },
+        ],
+      }),
+      'ar'
+    );
+    expect(card.imageUrl).toBe('https://cdn/fallback.jpg');
   });
 });
 

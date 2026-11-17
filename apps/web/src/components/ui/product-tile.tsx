@@ -3,7 +3,7 @@
 import * as React from "react"
 import Image from "next/image"
 
-import { canOptimizeImage } from "@/lib/images"
+import { canOptimizeImage, resolveImageUrl } from "@/lib/images"
 import { useMessages } from "@/lib/i18n/LocaleProvider"
 import { fillMessage } from "@/lib/i18n/messages"
 import { cn } from "@/lib/utils"
@@ -38,36 +38,39 @@ export function ProductTile({ src, alt, name, size = "tile", priority, sizes, cl
   const imgRef = React.useRef<HTMLImageElement>(null)
   const onImageErrorRef = React.useRef(onImageError)
   onImageErrorRef.current = onImageError
+
+  const resolvedSrc = React.useMemo(() => resolveImageUrl(src), [src])
+
   React.useEffect(() => {
     setFailed(false)
-  }, [src])
+  }, [resolvedSrc])
   // An image that failed before hydration never fires onError: check once on mount.
   React.useEffect(() => {
     const img = imgRef.current
-    if (img && img.complete && img.naturalWidth === 0) {
+    if (img && img.complete && img.naturalWidth === 0 && Boolean(img.currentSrc || img.src)) {
       setFailed(true)
       onImageErrorRef.current?.()
     }
-  }, [src])
+  }, [resolvedSrc])
   const [line1, line2] = m.tilePending.split("|")
   const thumb = size === "thumb"
 
   return (
     <div className={cn("relative overflow-hidden rounded-image bg-sand/30", !thumb && "aspect-square", className)}>
-      {src && !failed ? (
+      {resolvedSrc && !failed ? (
         <Image
           ref={imgRef}
-          src={src}
+          src={resolvedSrc}
           alt={alt}
           fill
           priority={priority}
-          unoptimized={!canOptimizeImage(src)}
+          unoptimized={!canOptimizeImage(resolvedSrc)}
           sizes={sizes ?? (thumb ? "96px" : "(min-width: 1024px) 288px, 46vw")}
           onError={() => {
             setFailed(true)
             onImageErrorRef.current?.()
           }}
-          className={cn("size-full transition-transform duration-base ease-standard group-hover/card:scale-105", fit === "contain" ? "object-contain" : "object-cover", imageClassName)}
+          className={cn("size-full select-none", fit === "contain" ? "object-contain" : "object-cover", imageClassName)}
         />
       ) : failed ? (
         <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-12 font-medium leading-17 text-stone font-display">

@@ -174,16 +174,21 @@ export function resolveArabicProductName(name: string): string {
 }
 
 function pickImage(media: ProductView['media']) {
-  const images = media.filter((item) => item.type === 'image' && item.url);
+  if (!media || !media.length) return null;
+  const isImage = (item: (typeof media)[number]) =>
+    !item.type || item.type.toLowerCase() === 'image' || item.type.toLowerCase().startsWith('image/');
+  const images = media.filter((item) => item.url && isImage(item));
+  const pool = images.length ? images : media.filter((item) => Boolean(item.url));
+  if (!pool.length) return null;
   const isProof = (item: unknown) => (item as { role?: string })?.role === 'PACKAGING_PROOF';
   const isPackshot = (item: unknown) => (item as { role?: string })?.role === 'PRIMARY_PACKSHOT';
 
   return (
-    images.find(isPackshot) ??
-    images.find((item) => item.isPrimary && !isProof(item)) ??
-    images.find((item) => !isProof(item)) ??
-    images.find((item) => item.isPrimary) ??
-    images[0] ??
+    pool.find(isPackshot) ??
+    pool.find((item) => item.isPrimary && !isProof(item)) ??
+    pool.find((item) => !isProof(item)) ??
+    pool.find((item) => item.isPrimary) ??
+    pool[0] ??
     null
   );
 }
