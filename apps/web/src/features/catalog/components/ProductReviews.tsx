@@ -150,25 +150,32 @@ export function ProductReviews({ slug, skuId }: { slug: string; skuId?: string }
     <Section id={`reviews-${slug}`} labelledBy={`pdp-reviews-title-${slug}`} rhythm="compact" className="py-2 lg:py-3">
       <div aria-busy={isPending} className="mx-auto flex w-full max-w-[1140px] flex-col gap-3.5 border-t border-line pt-4 lg:pt-5">
         {/* Section Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-ink">
-            <Icon name="star" size={18} className="text-cobalt shrink-0" />
-            <h2
-              id={`pdp-reviews-title-${slug}`}
-              className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
-            >
-              {m.pdpReviewsSectionTitle}
-            </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-full bg-cobalt/10 text-cobalt shrink-0">
+              <Icon name="star" size={20} strokeWidth={1.8} />
+            </div>
+            <div>
+              <h2
+                id={`pdp-reviews-title-${slug}`}
+                className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
+              >
+                {m.pdpReviewsTitle}
+              </h2>
+              <p className="m-0 text-13 text-stone">
+                {m.pdpReviewsSubtitle}
+              </p>
+            </div>
           </div>
 
           <Button
             type="button"
-            variant="light"
+            variant="cobalt"
             size="s"
-            className="rounded-pill gap-1.5"
+            className="rounded-pill gap-1.5 self-start sm:self-auto shadow-elevation-1"
             onClick={handleOpenReviewComposer}
           >
-            <Icon name="star" size={14} className="text-cobalt shrink-0" />
+            <Icon name="star" size={14} className="text-chalk shrink-0" />
             <span>{m.pdpWriteReview}</span>
           </Button>
         </div>
@@ -192,9 +199,9 @@ export function ProductReviews({ slug, skuId }: { slug: string; skuId?: string }
               <p className="m-0 text-13 font-medium text-stone">{m.pdpReviewOnlyTestNote}</p>
             ) : null}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-              {/* Overall Score Card */}
+              {/* Overall Score Summary (Unboxed) */}
               {hasSummaryReviews && summary ? (
-              <div className="lg:col-span-3 rounded-24 border border-line bg-linen p-5 md:p-6 flex items-center justify-around lg:flex-col lg:justify-center text-center shadow-elevation-1">
+              <div className="lg:col-span-3 py-3 flex items-center justify-around lg:flex-col lg:justify-center text-center">
                 <span className="font-display text-40 font-bold leading-none text-ink tabular-nums lg:mb-1.5">
                   {formatNumber(Number((summary.average ?? 0).toFixed(1)), locale)}
                 </span>
@@ -213,11 +220,11 @@ export function ProductReviews({ slug, skuId }: { slug: string; skuId?: string }
               </div>
               ) : null}
 
-              {/* Single-Review Carousel Card (single Prev/Next button pair responsive across mobile & desktop) */}
+              {/* Single-Review Carousel (Completely unboxed, open editorial layout) */}
               <div
                 className={cn(
-                  'rounded-24 border border-line bg-linen p-4 md:p-5 flex flex-wrap lg:flex-nowrap items-center justify-between gap-2.5 lg:gap-4 shadow-elevation-1',
-                  hasSummaryReviews ? 'lg:col-span-9' : 'lg:col-span-12',
+                  'flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 lg:gap-6 py-2',
+                  hasSummaryReviews ? 'lg:col-span-9 lg:border-s lg:border-line lg:ps-6' : 'lg:col-span-12',
                 )}
               >
                 {/* Prev Button (mobile top-start, desktop start) */}
@@ -323,6 +330,47 @@ export function ProductReviews({ slug, skuId }: { slug: string; skuId?: string }
             ) : null}
           </>
         )}
+
+        {/* Ask ShinaCare Inline Contextual Question Strip */}
+        <div className="mt-2 pt-4 border-t border-line/70">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-20 border border-line/70 bg-sand/30 p-2 sm:p-2.5 sm:pe-3">
+            <div className="flex items-center gap-2.5 shrink-0 text-start ps-1 sm:ps-2">
+              <div className="relative flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-full bg-citron text-ink font-bold text-11 sm:text-12 border border-line shadow-elevation-1">
+                <span>شِينا</span>
+                <span className="absolute -top-0.5 -end-0.5 size-2 rounded-full bg-cobalt ring-2 ring-chalk" />
+              </div>
+              <div>
+                <span className="font-display text-13 font-bold text-ink block leading-tight">
+                  {m.pdpAskShinaDirect}
+                </span>
+                <span className="text-11 sm:text-12 text-stone block leading-tight">
+                  {m.pdpAskShinaDirectSubtitle}
+                </span>
+              </div>
+            </div>
+
+            <form
+              action="/shina"
+              method="GET"
+              className="flex-1 max-w-xl flex items-center gap-2"
+            >
+              <input type="hidden" name="product" value={slug} />
+              <input
+                type="text"
+                name="q"
+                placeholder={m.pdpAskShinaPlaceholder}
+                className="flex-1 h-9 sm:h-10 rounded-pill bg-chalk border border-line px-3.5 sm:px-4 text-12 sm:text-13 text-ink placeholder:text-stone focus:outline-none focus:border-cobalt transition-colors font-display"
+              />
+              <button
+                type="submit"
+                className="h-9 sm:h-10 px-3.5 sm:px-4 rounded-pill bg-cobalt hover:bg-cobalt/90 text-chalk text-12 sm:text-13 font-display font-bold flex items-center gap-1.5 transition-all shadow-elevation-1 cursor-pointer shrink-0"
+              >
+                <span>{m.pdpAskShinaSubmit}</span>
+                <Icon name="arrow-forward" size={14} className="text-chalk" />
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
 
       <ProductReviewComposer

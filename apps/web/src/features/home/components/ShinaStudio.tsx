@@ -23,9 +23,9 @@ export function ShinaStudio() {
   const atelier = HOME_IMAGES.atelier;
 
   const routineSteps = [
-    { step: '١', label: m.atelierStep1, icon: 'sun' as const },
-    { step: '٢', label: m.atelierStep2, icon: 'science' as const },
-    { step: '٣', label: m.atelierStep3, icon: 'shield' as const },
+    { step: '1', label: m.atelierStep1, icon: 'sun' as const },
+    { step: '2', label: m.atelierStep2, icon: 'science' as const },
+    { step: '3', label: m.atelierStep3, icon: 'shield' as const },
   ];
 
   const microFeatures = [

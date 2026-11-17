@@ -50,14 +50,21 @@ export function SimilarProducts({ product }: { product: ProductDetail }) {
       className="py-2.5 lg:py-4"
     >
       <div className="mx-auto flex w-full max-w-[1140px] flex-col gap-3.5 border-t border-line pt-4 lg:pt-5">
-        <div className="flex items-center gap-2 text-ink">
-          <Icon name="sparkles" size={18} className="text-cobalt shrink-0" />
-          <h2
-            id={headingId}
-            className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
-          >
-            {m.pdpSimilarTitle}
-          </h2>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-full bg-cobalt/10 text-cobalt shrink-0">
+            <Icon name="routine" size={20} strokeWidth={1.8} />
+          </div>
+          <div>
+            <h2
+              id={headingId}
+              className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
+            >
+              {m.pdpSimilarTitle}
+            </h2>
+            <p className="m-0 text-13 text-stone">
+              {m.pdpRoutineComplementarySubtitle}
+            </p>
+          </div>
         </div>
 
         {!mounted ? (

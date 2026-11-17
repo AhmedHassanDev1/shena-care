@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { A11y, Keyboard } from 'swiper/modules';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import type { Swiper as SwiperType } from 'swiper';
 import { Section } from '@/components/layout/section';
 import { AsyncButton, Button, buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -17,24 +20,24 @@ import { ApiError } from '@/lib/api-client';
 import { MAX_LINE_QUANTITY } from '@/lib/cart';
 import { formatAmount, formatNumber } from '@/lib/i18n/format';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import type { Messages } from '@/lib/i18n/messages';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import type { ProductDetail, PublicVariant } from '../api/discovery';
 import { useProductDetail } from '../hooks/useProductDetail';
-import { dedupeGalleryMedia, resolveHeroFeatureBadges } from '../lib/product-facts';
+import { dedupeGalleryMedia, resolveHeroFeatureBadges, resolveLocalizedProductContent } from '../lib/product-facts';
 import {
+  BENEFIT_ICONS,
   ProductAbout,
   ProductActiveIngredients,
-  ProductBenefitsStrip,
-  ProductUsage,
   RoutinePlacement,
 } from './ProductDetailSections';
 import { HeroRating, ProductReviews } from './ProductReviews';
 import { SimilarProducts } from './SimilarProducts';
 
 /**
- * Loading skeleton matching the approved 7-section Stitch PDP layout.
+ * Loading skeleton matching the approved 5-section Stitch PDP layout.
  */
 export function ProductDetailSkeleton() {
   const m = useMessages();
@@ -47,46 +50,37 @@ export function ProductDetailSkeleton() {
           </span>
 
           {/* Hero Grid Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             <div className="lg:col-span-7 flex flex-col items-center gap-3">
-              <div className="flex items-start gap-3 w-full">
-                <Skeleton className="flex-1 aspect-[4/3.6] lg:aspect-square rounded-24" />
-                <div className="hidden lg:flex flex-col gap-2.5 w-[80px] shrink-0">
-                  {Array.from({ length: 4 }, (_, i) => (
-                    <Skeleton key={i} className="aspect-square w-full rounded-14" />
-                  ))}
-                </div>
+              <Skeleton className="w-full aspect-[4/3.5] lg:aspect-square rounded-24" />
+              <div className="grid grid-cols-4 gap-2.5 w-full">
+                {Array.from({ length: 4 }, (_, i) => (
+                  <Skeleton key={i} className="aspect-square w-full rounded-14" />
+                ))}
               </div>
-              <Skeleton className="h-2.5 w-16 rounded-pill" />
             </div>
 
             <div className="lg:col-span-5 flex flex-col gap-3">
-              <Skeleton className="h-7 w-24 rounded-pill" />
-              <Skeleton className="h-10 w-4/5 rounded-14" />
+              <Skeleton className="h-6 w-24 rounded-pill" />
+              <Skeleton className="h-9 w-4/5 rounded-14" />
               <Skeleton className="h-5 w-2/3 rounded-14" />
-              <Skeleton className="h-5 w-40 rounded-pill" />
-              <div className="flex gap-3 py-3 border-b border-line">
-                <Skeleton className="h-5 w-20 rounded-pill" />
-                <Skeleton className="h-5 w-24 rounded-pill" />
-                <Skeleton className="h-5 w-20 rounded-pill" />
-              </div>
-              <div className="flex justify-between items-center pt-1">
-                <Skeleton className="h-5 w-14 rounded-pill" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-11 w-24 rounded-14" />
-                  <Skeleton className="h-11 w-24 rounded-14" />
-                </div>
-              </div>
-              <Skeleton className="h-10 w-32 rounded-14 my-2" />
+              <Skeleton className="h-8 w-full rounded-14" />
+              <Skeleton className="h-10 w-36 rounded-14 my-1" />
               <div className="flex gap-3">
                 <Skeleton className="h-12 flex-1 rounded-14" />
                 <Skeleton className="h-12 w-28 rounded-14" />
               </div>
+              <Skeleton className="h-10 w-full rounded-14" />
+              <div className="grid grid-cols-3 gap-2 pt-2">
+                <Skeleton className="h-14 rounded-14" />
+                <Skeleton className="h-14 rounded-14" />
+                <Skeleton className="h-14 rounded-14" />
+              </div>
             </div>
           </div>
 
-          <Skeleton className="h-24 w-full rounded-24" />
-          <Skeleton className="h-36 w-full rounded-24" />
+          <Skeleton className="h-44 w-full rounded-24" />
+          <Skeleton className="h-44 w-full rounded-24" />
         </div>
       </Section>
     </article>
@@ -149,6 +143,12 @@ function Detail({ product }: { product: ProductDetail }) {
   const m = useMessages();
   const { withAuth } = useAuth();
   const { addItem } = useCart();
+  const swiperRef = useRef<SwiperType | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const initialSkuId = product.selectedSkuId || product.skus[0]?.id || '';
   const [selectedSkuId, setSelectedSkuId] = useState(initialSkuId);
@@ -163,6 +163,7 @@ function Detail({ product }: { product: ProductDetail }) {
   useEffect(() => {
     setSelectedSkuId(product.selectedSkuId || product.skus[0]?.id || '');
     setActiveImageIndex(0);
+    swiperRef.current?.slideTo(0);
     setFailedUrls({});
     setQuantity(1);
     setAddState('idle');
@@ -207,11 +208,19 @@ function Detail({ product }: { product: ProductDetail }) {
   };
   const showPrevImage = () => {
     if (visibleImages.length <= 1) return;
-    setActiveImageIndex((prev) => (prev - 1 + visibleImages.length) % visibleImages.length);
+    if (swiperRef.current) {
+      swiperRef.current.slidePrev();
+    } else {
+      setActiveImageIndex((prev) => (prev - 1 + visibleImages.length) % visibleImages.length);
+    }
   };
   const showNextImage = () => {
     if (visibleImages.length <= 1) return;
-    setActiveImageIndex((prev) => (prev + 1) % visibleImages.length);
+    if (swiperRef.current) {
+      swiperRef.current.slideNext();
+    } else {
+      setActiveImageIndex((prev) => (prev + 1) % visibleImages.length);
+    }
   };
 
   const heroBadges = resolveHeroFeatureBadges(product, m);
@@ -222,6 +231,7 @@ function Detail({ product }: { product: ProductDetail }) {
   const handleSelectVariant = (skuId: string) => {
     setSelectedSkuId(skuId);
     setActiveImageIndex(0);
+    swiperRef.current?.slideTo(0);
     setFailedUrls({});
     setAddError(null);
     setAddState('idle');
@@ -261,10 +271,26 @@ function Detail({ product }: { product: ProductDetail }) {
   const priceAmount = variant.price?.amount ?? 0;
   const compareAtAmount = variant.price?.compareAtAmount ?? 0;
   const hasDiscount = canPurchase && compareAtAmount > priceAmount;
+  const saveAmount = compareAtAmount - priceAmount;
+  const savePercent = hasDiscount && compareAtAmount > 0 ? Math.round((saveAmount / compareAtAmount) * 100) : 0;
+
+  // Resolve texture badge text
+  const textureValue = product.texture;
+  const textureKey = textureValue ? `texture${textureValue}` : null;
+  const textureLabel = textureKey && textureKey in m ? (m[textureKey as keyof Messages] as string) : null;
+
+  // Resolve localized product content based on active storefront locale/direction ('ar' vs 'en')
+  const localized = resolveLocalizedProductContent(product, variant, locale);
+
+  // Concise editorial description below product title (respects active direction: ar -> Arabic, en -> English)
+  const conciseDescription = localized.shortDescription || localized.description;
+
+  // Top 3 benefits highlights for the Buy Box grid (strictly genuine product data only, localized)
+  const topBenefits = localized.benefits.slice(0, 3);
 
   return (
     <article className="pb-12 lg:pb-10">
-      {/* Stitch Section A — Product Hero & Gallery */}
+      {/* Stitch Section 1 — Hero Gallery & Buy Box */}
       <Section labelledBy="pdp-title" rhythm="compact" className="pt-2 pb-2.5 lg:pt-4 lg:pb-3">
         <div className="mx-auto w-full max-w-[1140px] flex flex-col gap-3 lg:gap-4">
           {/* Breadcrumb */}
@@ -296,153 +322,187 @@ function Detail({ product }: { product: ProductDetail }) {
               ) : null}
               <li aria-hidden="true" className="opacity-40">/</li>
               <li aria-current="page" className="font-bold text-ink truncate max-w-[260px]">
-                {product.name}
+                {localized.name}
               </li>
             </ol>
           </nav>
 
-          {/* 12-Col Hero Grid: Gallery (col-span-7) + Info (col-span-5) */}
+          {/* 12-Col Hero Grid: Gallery (col-span-7) + Buy Box (col-span-5) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-start">
-            {/* Gallery Column */}
-            <div className="lg:col-span-7 flex flex-col items-center">
-              <div className="flex items-start gap-3 w-full">
-                {/* Main Hero Image */}
-                <div className="relative flex-1 aspect-[5/4] lg:aspect-square rounded-24 overflow-hidden bg-linen border border-line shadow-elevation-1 group">
+            {/* Gallery Column (col-span-7) */}
+            <div className="lg:col-span-7 flex flex-col items-center w-full">
+              {/* Main Packshot Container with Interactive Drag/Swipe Gallery */}
+              <div className="relative w-full aspect-[4/3.5] lg:aspect-square rounded-24 overflow-hidden bg-linen border border-line shadow-elevation-1">
+                {visibleImages.length > 1 && mounted ? (
+                  <Swiper
+                    key={`gallery-${product.id}-${variant.id}-${locale}`}
+                    modules={[A11y, Keyboard]}
+                    dir={locale === 'ar' ? 'rtl' : 'ltr'}
+                    slidesPerView={1}
+                    speed={300}
+                    grabCursor={true}
+                    simulateTouch={true}
+                    touchEventsTarget="container"
+                    watchOverflow={true}
+                    preventClicks={true}
+                    preventClicksPropagation={true}
+                    keyboard={{ enabled: true }}
+                    observer={true}
+                    observeParents={true}
+                    resizeObserver={true}
+                    onSwiper={(swiper) => {
+                      swiperRef.current = swiper;
+                    }}
+                    onSlideChange={(swiper) => {
+                      setActiveImageIndex(swiper.activeIndex);
+                    }}
+                    className="absolute inset-0 size-full select-none"
+                  >
+                    {visibleImages.map((img, idx) => (
+                      <SwiperSlide key={img.id || img.url} className="relative size-full">
+                        <ProductTile
+                          src={img.url}
+                          alt={img.altText || product.name}
+                          name={product.name}
+                          priority={idx === 0}
+                          fit="cover"
+                          sizes="(min-width: 1024px) 640px, 100vw"
+                          onImageError={() => markImageFailed(img.url)}
+                          className="size-full rounded-none bg-linen"
+                          imageClassName="select-none pointer-events-none"
+                        />
+                      </SwiperSlide>
+                    ))}
+                  </Swiper>
+                ) : (
                   <ProductTile
                     key={currentImage?.id || currentImage?.url || 'empty'}
                     src={currentImage?.url ?? null}
                     alt={currentImage?.altText || product.name}
                     name={product.name}
                     priority
-                    sizes="(min-width: 1024px) 580px, 100vw"
+                    sizes="(min-width: 1024px) 640px, 100vw"
                     onImageError={() => currentImage && markImageFailed(currentImage.url)}
                     className="size-full rounded-none bg-linen"
-                    imageClassName="transition-transform duration-500 ease-out group-hover:scale-105"
+                    imageClassName="select-none pointer-events-none"
                   />
+                )}
 
-                  {visibleImages.length > 1 ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={showPrevImage}
-                        aria-label={fillMessage(m.pdpShowImage, {
-                          i: formatNumber(
-                            ((safeImageIndex - 1 + visibleImages.length) % visibleImages.length) + 1,
-                            locale
-                          ),
-                        })}
-                        className="hidden lg:flex absolute top-1/2 -translate-y-1/2 start-3 z-10 size-9 items-center justify-center rounded-full bg-chalk/90 border border-line text-ink shadow-elevation-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-chalk cursor-pointer"
-                      >
-                        <Icon name="chevron-back" size={18} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={showNextImage}
-                        aria-label={fillMessage(m.pdpShowImage, {
-                          i: formatNumber(((safeImageIndex + 1) % visibleImages.length) + 1, locale),
-                        })}
-                        className="hidden lg:flex absolute top-1/2 -translate-y-1/2 end-3 z-10 size-9 items-center justify-center rounded-full bg-chalk/90 border border-line text-ink shadow-elevation-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-chalk cursor-pointer"
-                      >
-                        <Icon name="chevron-forward" size={18} />
-                      </button>
-                    </>
-                  ) : null}
+                {/* Floating Texture Swatch / Label at top-start */}
+                {textureLabel ? (
+                  <div className="pointer-events-none absolute top-3.5 start-3.5 z-10 flex items-center gap-1.5 rounded-pill bg-chalk/90 border border-line px-3 py-1 shadow-elevation-1 text-12 font-bold text-ink">
+                    <span className="size-2 rounded-full bg-ok animate-pulse" />
+                    <span>{textureLabel}</span>
+                  </div>
+                ) : null}
 
-                  {/* Top-End Wishlist Button */}
-                  <button
-                    type="button"
-                    aria-label={liked ? m.wishlistRemove : m.wishlistAdd}
-                    aria-pressed={liked}
-                    onClick={handleWishlist}
-                    className={cn(
-                      'absolute top-3.5 end-3.5 z-10 flex size-10 items-center justify-center rounded-full bg-chalk/90 border border-line shadow-elevation-1 transition active:scale-90 cursor-pointer',
-                      liked ? 'text-tomato-ink' : 'text-ink hover:text-tomato-ink'
-                    )}
-                  >
-                    <Icon name="heart" size={19} strokeWidth={2} fill={liked ? 'currentColor' : 'none'} />
-                  </button>
-
-                  {/* Bottom-End Expand Zoom Button */}
-                  {currentImage ? (
+                {/* Prev / Next Chevrons on packshot */}
+                {visibleImages.length > 1 ? (
+                  <>
                     <button
                       type="button"
-                      aria-label={m.pdpZoom}
-                      onClick={() => setZoomOpen(true)}
-                      className="absolute bottom-3.5 end-3.5 z-10 flex size-9 items-center justify-center rounded-full bg-chalk/90 border border-line text-ink shadow-elevation-1 transition hover:scale-105 active:scale-95 cursor-pointer"
+                      onClick={showPrevImage}
+                      aria-label={fillMessage(m.pdpShowImage, {
+                        i: formatNumber(
+                          ((safeImageIndex - 1 + visibleImages.length) % visibleImages.length) + 1,
+                          locale
+                        ),
+                      })}
+                      className="hidden sm:flex absolute top-1/2 -translate-y-1/2 start-3 z-10 size-9 items-center justify-center rounded-full bg-chalk/90 border border-line text-ink shadow-elevation-1 transition hover:bg-chalk cursor-pointer"
                     >
-                      <Icon name="expand" size={16} strokeWidth={2} />
+                      <Icon name="chevron-back" size={18} />
                     </button>
-                  ) : null}
-                </div>
+                    <button
+                      type="button"
+                      onClick={showNextImage}
+                      aria-label={fillMessage(m.pdpShowImage, {
+                        i: formatNumber(((safeImageIndex + 1) % visibleImages.length) + 1, locale),
+                      })}
+                      className="hidden sm:flex absolute top-1/2 -translate-y-1/2 end-3 z-10 size-9 items-center justify-center rounded-full bg-chalk/90 border border-line text-ink shadow-elevation-1 transition hover:bg-chalk cursor-pointer"
+                    >
+                      <Icon name="chevron-forward" size={18} />
+                    </button>
+                  </>
+                ) : null}
 
-                {/* Desktop Vertical Thumbnail Strip */}
-                {visibleImages.length > 1 ? (
-                  <div className="hidden lg:flex flex-col gap-2.5 w-[80px] shrink-0">
-                    {visibleImages.slice(0, 4).map((img, idx) => {
-                      const isActive = idx === safeImageIndex;
-                      return (
-                        <button
-                          key={img.id || img.url}
-                          type="button"
-                          onClick={() => setActiveImageIndex(idx)}
-                          aria-label={fillMessage(m.pdpShowImage, { i: formatNumber(idx + 1, locale) })}
-                          aria-current={isActive ? 'true' : undefined}
-                          className={cn(
-                            'relative w-full aspect-square rounded-14 overflow-hidden bg-linen transition-all cursor-pointer',
-                            isActive
-                              ? 'border-2 border-cobalt shadow-elevation-1'
-                              : 'border border-line hover:border-cobalt/50 opacity-85 hover:opacity-100'
-                          )}
-                        >
-                          <ProductTile
-                            src={img.url}
-                            alt={img.altText || `${product.name} ${idx + 1}`}
-                            name={product.name}
-                            size="thumb"
-                            sizes="80px"
-                            onImageError={() => markImageFailed(img.url)}
-                            className="size-full rounded-none bg-linen"
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
+                {/* Top-End Wishlist Button */}
+                <button
+                  type="button"
+                  aria-label={liked ? m.wishlistRemove : m.wishlistAdd}
+                  aria-pressed={liked}
+                  onClick={handleWishlist}
+                  className={cn(
+                    'absolute top-3.5 end-3.5 z-10 flex size-10 items-center justify-center rounded-full bg-chalk/90 border border-line shadow-elevation-1 transition active:scale-90 cursor-pointer',
+                    liked ? 'text-tomato-ink' : 'text-ink hover:text-tomato-ink'
+                  )}
+                >
+                  <Icon name="heart" size={19} strokeWidth={2} fill={liked ? 'currentColor' : 'none'} />
+                </button>
+
+                {/* Bottom-End Expand Zoom Button */}
+                {currentImage ? (
+                  <button
+                    type="button"
+                    aria-label={m.pdpZoom}
+                    onClick={() => setZoomOpen(true)}
+                    className="absolute bottom-3.5 end-3.5 z-10 flex size-9 items-center justify-center rounded-full bg-chalk/90 border border-line text-ink shadow-elevation-1 transition hover:scale-105 active:scale-95 cursor-pointer"
+                  >
+                    <Icon name="expand" size={16} strokeWidth={2} />
+                  </button>
                 ) : null}
               </div>
 
-              {/* Gallery Dots Indicator */}
+              {/* Genuine Thumbnail Strip Below Packshot (Only available product images) */}
               {visibleImages.length > 1 ? (
                 <div
-                  role="tablist"
-                  aria-label={m.pdpGalleryLabel}
-                  className="flex items-center justify-center gap-1.5 mt-2 lg:mt-3"
+                  className={cn(
+                    'grid gap-2.5 w-full mt-3',
+                    visibleImages.length === 2 && 'grid-cols-2 max-w-[280px]',
+                    visibleImages.length === 3 && 'grid-cols-3 max-w-[420px]',
+                    visibleImages.length >= 4 && 'grid-cols-4'
+                  )}
                 >
                   {visibleImages.map((img, idx) => {
-                    const isActive = idx === safeImageIndex;
+                    const isSelected = safeImageIndex === idx;
                     return (
                       <button
-                        key={img.id || img.url}
+                        key={img.id || img.url || `thumb-${idx}`}
                         type="button"
-                        onClick={() => setActiveImageIndex(idx)}
+                        onClick={() => {
+                          setActiveImageIndex(idx);
+                          swiperRef.current?.slideTo(idx);
+                        }}
                         aria-label={fillMessage(m.pdpShowImage, { i: formatNumber(idx + 1, locale) })}
-                        aria-current={isActive ? 'true' : undefined}
+                        aria-current={isSelected ? 'true' : undefined}
                         className={cn(
-                          'rounded-full transition-all cursor-pointer',
-                          isActive ? 'size-2.5 bg-cobalt' : 'size-2 bg-line-2 hover:bg-stone/60'
+                          'relative aspect-square w-full rounded-14 overflow-hidden bg-linen transition-all cursor-pointer',
+                          isSelected
+                            ? 'border-2 border-cobalt shadow-elevation-1 ring-2 ring-cobalt/20'
+                            : 'border border-line hover:border-cobalt/50 opacity-80 hover:opacity-100'
                         )}
-                      />
+                      >
+                        <ProductTile
+                          src={img.url}
+                          alt={img.altText || `${product.name} ${idx + 1}`}
+                          name={product.name}
+                          size="thumb"
+                          sizes="(min-width: 1024px) 140px, 25vw"
+                          onImageError={() => markImageFailed(img.url)}
+                          className="size-full rounded-none bg-linen"
+                        />
+                      </button>
                     );
                   })}
                 </div>
               ) : null}
             </div>
 
-            {/* Product Info Column */}
+            {/* Buy Box Column (col-span-5) */}
             <div className="lg:col-span-5 flex flex-col text-start pt-0.5">
               {/* Brand Badge */}
               {product.brand?.name ? (
-                <div className="mb-1.5 lg:mb-2">
-                  <span className="inline-block rounded-pill bg-cobalt/10 px-3.5 py-1 text-12 sm:text-13 font-bold text-cobalt">
+                <div className="mb-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-cobalt/10 px-3 py-1 text-12 font-bold text-cobalt tracking-wide">
                     {product.brand.name}
                   </span>
                 </div>
@@ -451,41 +511,83 @@ function Detail({ product }: { product: ProductDetail }) {
               {/* Product Title */}
               <h1
                 id="pdp-title"
-                className="m-0 font-display text-28 sm:text-32 lg:text-34 font-bold leading-34 sm:leading-38 lg:leading-40 text-ink mb-1 lg:mb-2"
+                className="m-0 font-display text-24 sm:text-28 lg:text-32 font-black tracking-tight leading-tight text-ink mb-2"
               >
-                {product.name}
+                {localized.name}
               </h1>
 
-              {/* Product Line Subtitle (when available) */}
-              {product.productLine?.name ? (
-                <p className="m-0 text-15 font-medium text-stone mb-2 lg:mb-2.5">
-                  {product.productLine.name}
+              {/* Concise Editorial Description */}
+              {conciseDescription ? (
+                <p
+                  className="m-0 text-13 sm:text-14 leading-20 sm:leading-22 text-stone/90 line-clamp-2 mb-2 font-normal"
+                  dir={locale === 'ar' ? 'rtl' : 'ltr'}
+                >
+                  {conciseDescription}
                 </p>
               ) : null}
 
-              {/* Rating Summary */}
-              <div className="mb-2.5 lg:mb-3.5">
-                <HeroRating slug={product.slug} />
+              {/* Rating & Stock Status Strip */}
+              <div className="py-2.5 my-2 border-y border-line/70 flex items-center justify-between gap-3">
+                <div>
+                  <HeroRating slug={product.slug} />
+                </div>
+
+                {canPurchase ? (
+                  <div className="flex items-center gap-1.5 text-12 font-bold text-ok">
+                    <span className="size-2 rounded-full bg-ok animate-pulse" />
+                    <span>{m.pdpInStockImmediate}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-12 font-bold text-stone">
+                    <span className="size-2 rounded-full bg-stone" />
+                    <span>{m.pdpUnavailableNow}</span>
+                  </div>
+                )}
               </div>
 
-              {/* Mini Feature Badges Row (max 3 reviewed facts) */}
-              {heroBadges.length > 0 ? (
-                <div className="flex items-center flex-wrap gap-3 sm:gap-4 text-13 text-stone pb-3 mb-3 lg:pb-4 lg:mb-4 border-b border-line">
-                  {heroBadges.map((badge) => (
-                    <div key={badge.id} className="flex items-center gap-1.5">
-                      <Icon name={badge.icon} size={16} className="text-cobalt shrink-0" />
-                      <span>{badge.label}</span>
+              {/* Standalone Price Block */}
+              <div className="my-2.5">
+                {canPurchase ? (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="font-display text-30 sm:text-34 font-black text-cobalt tabular-nums leading-none tracking-tight">
+                        {formatAmount(priceAmount, locale)}
+                      </span>
+                      <span className="text-16 font-extrabold text-cobalt">{m.pdpCurrencyEgp}</span>
+                      {hasDiscount ? (
+                        <>
+                          <span className="text-14 text-stone line-through tabular-nums ms-1.5">
+                            {formatAmount(compareAtAmount, locale)} {m.pdpCurrencyEgp}
+                          </span>
+                          <span className="rounded-pill bg-ok/10 px-2.5 py-0.5 text-12 font-bold text-ok tabular-nums">
+                            {fillMessage(m.pdpSaveAmount, {
+                              amount: `${formatAmount(saveAmount, locale)} ${m.pdpCurrencyEgp}`,
+                              percent: formatNumber(savePercent, locale),
+                            })}
+                          </span>
+                        </>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="border-b border-line mb-3 lg:mb-4" />
-              )}
+                    <p className="m-0 text-12 text-stone/80">
+                      {m.pdpVatAndShippingNotice}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-sand px-3.5 py-1.5 text-13 font-bold text-ink">
+                      {m.pdpUnavailableNow}
+                    </span>
+                    {otherVariantAvailable ? (
+                      <span className="text-12 text-stone">{m.pdpOtherSizeAvailable}</span>
+                    ) : null}
+                  </div>
+                )}
+              </div>
 
               {/* Size Selector */}
-              {skus.length > 0 ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-3 lg:mb-4">
-                  <span className="text-15 font-medium text-stone shrink-0">{m.pdpSizeLabel}</span>
+              {skus.length > 1 ? (
+                <div className="flex flex-col gap-1.5 mb-3">
+                  <span className="text-13 font-bold text-ink">{m.pdpSizeLabel}</span>
                   <div className="flex flex-wrap items-center gap-2">
                     {skus.map((sku) => {
                       const isSelected = sku.id === variant.id;
@@ -497,10 +599,10 @@ function Detail({ product }: { product: ProductDetail }) {
                           onClick={() => handleSelectVariant(sku.id)}
                           aria-pressed={isSelected}
                           className={cn(
-                            'min-h-[44px] min-w-[76px] rounded-14 px-4 py-2 text-14 transition-all cursor-pointer flex items-center justify-center',
+                            'min-h-[40px] min-w-[72px] rounded-14 px-3.5 py-1.5 text-13 transition-all cursor-pointer flex items-center justify-center',
                             isSelected
-                              ? 'border-2 border-cobalt bg-chalk font-bold text-ink shadow-elevation-1'
-                              : 'border border-line-2 bg-linen/70 hover:bg-chalk text-stone hover:text-ink',
+                              ? 'border-2 border-cobalt bg-chalk font-bold text-cobalt shadow-elevation-1'
+                              : 'border border-line bg-linen/60 hover:bg-chalk text-stone hover:text-ink',
                             !skuAvailable && 'opacity-65'
                           )}
                         >
@@ -512,34 +614,8 @@ function Detail({ product }: { product: ProductDetail }) {
                 </div>
               ) : null}
 
-              {/* Price Display / Availability State */}
-              <div className="mb-3.5 lg:mb-5">
-                {canPurchase ? (
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="font-display text-32 lg:text-40 font-bold text-cobalt tabular-nums leading-none">
-                      {formatAmount(priceAmount, locale)}
-                    </span>
-                    <span className="text-16 font-bold text-cobalt">{m.pdpCurrencyEgp}</span>
-                    {hasDiscount ? (
-                      <span className="text-15 text-stone line-through tabular-nums ms-1">
-                        {formatAmount(compareAtAmount, locale)} {m.pdpCurrencyEgp}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-1.5 items-start">
-                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-sand px-3.5 py-1.5 text-13 font-bold text-ink">
-                      {m.pdpUnavailableNow}
-                    </span>
-                    {otherVariantAvailable ? (
-                      <span className="text-12 text-stone">{m.pdpOtherSizeAvailable}</span>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-
-              {/* Cart Actions Row: Add to Cart CTA + Quantity Stepper */}
-              <div className="flex items-center gap-2.5 sm:gap-3">
+              {/* Cart Actions: Add to Cart CTA + QuantityStepper */}
+              <div className="flex items-center gap-2.5 sm:gap-3 mb-2.5">
                 <AsyncButton
                   state={addState === 'pending' ? 'pending' : 'idle'}
                   variant="cobalt"
@@ -547,7 +623,7 @@ function Detail({ product }: { product: ProductDetail }) {
                   disabled={!canPurchase || addState === 'pending'}
                   pendingLabel={m.pdpAdding}
                   onClick={handleAddToCart}
-                  className="min-h-[52px] flex-1 min-w-0 rounded-14 px-5 font-bold text-16 shadow-elevation-2"
+                  className="min-h-[50px] flex-1 min-w-0 rounded-14 px-5 font-bold text-15 sm:text-16 shadow-elevation-2"
                 >
                   <Icon name={addState === 'added' ? 'check' : 'cart'} size={20} strokeWidth={2} />
                   <span className="truncate">
@@ -574,9 +650,42 @@ function Detail({ product }: { product: ProductDetail }) {
                     decrease: m.pdpDecrease,
                     increase: m.pdpIncrease,
                   }}
-                  className="min-h-[52px] min-w-[104px] rounded-14 border border-line-2 bg-chalk shadow-elevation-1"
+                  className="min-h-[50px] min-w-[100px] rounded-14 border border-line-2 bg-chalk shadow-elevation-1"
                 />
               </div>
+
+              {/* Quick Consultation CTA */}
+              <Link
+                href={`/shina?product=${encodeURIComponent(product.name)}`}
+                className="w-full min-h-[42px] rounded-14 border border-cobalt/25 bg-cobalt/5 hover:bg-cobalt/10 text-cobalt font-bold text-13 flex items-center justify-center gap-2 transition-colors mb-3"
+              >
+                <Icon name="sparkles" size={16} />
+                <span>{m.pdpConsultExpert}</span>
+              </Link>
+
+              {/* Top 3 Benefits Strip below Buy Box (Completely unboxed) */}
+              {topBenefits.length > 0 ? (
+                <div className="grid grid-cols-3 gap-1 pt-3 border-t border-line text-center">
+                  {topBenefits.map((text, idx) => (
+                    <div
+                      key={`${idx}-${text}`}
+                      className={cn(
+                        'flex flex-col items-center justify-center gap-1 px-1.5 py-1 text-center',
+                        idx > 0 && 'border-s border-line'
+                      )}
+                    >
+                      <Icon
+                        name={BENEFIT_ICONS[idx % BENEFIT_ICONS.length]}
+                        size={18}
+                        className="text-cobalt shrink-0"
+                      />
+                      <span className="text-11 sm:text-12 font-bold text-ink leading-tight line-clamp-2">
+                        {text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
               {/* Add-to-cart error feedback */}
               {addError ? (
@@ -601,25 +710,19 @@ function Detail({ product }: { product: ProductDetail }) {
         </div>
       </Section>
 
-      {/* Stitch Section B — Three Key Benefits (shown only when reviewed benefits exist) */}
-      <ProductBenefitsStrip product={product} variant={variant} />
-
-      {/* Stitch Section C — About Product */}
+      {/* Stitch Section C — About Product (expandable for deeper manufacturer information) */}
       <ProductAbout product={product} variant={variant} />
 
-      {/* Stitch Section D — Active Ingredients & INCI */}
-      <ProductActiveIngredients product={product} variant={variant} />
-
-      {/* Stitch Section E — Routine Position */}
+      {/* Stitch Section 2 — Routine Placement (`استخدامه في روتينك`) Connected Timeline + 3 Usage Cards */}
       <RoutinePlacement product={product} variant={variant} />
 
-      {/* Stitch Section F — Usage Instructions & Warnings */}
-      <ProductUsage product={product} variant={variant} />
+      {/* Stitch Section 3 — Active Ingredients (`المكونات الفعالة والنشطة`) */}
+      <ProductActiveIngredients product={product} variant={variant} />
 
-      {/* Stitch Section G — Customer Reviews */}
+      {/* Stitch Section 4 — Customer Reviews & Expert Consultation (`آراء المستخدمين واستفسارات الخبراء`) */}
       <ProductReviews slug={product.slug} skuId={variant?.id} />
 
-      {/* Storefront Section — Similar Products (منتجات مشابهة) */}
+      {/* Stitch Section 5 — Complete Your Routine / Similar Products (`منتجات تكمل روتينك`) */}
       <SimilarProducts product={product} />
 
       {/* Gallery Image Zoom Dialog */}

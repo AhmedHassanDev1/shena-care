@@ -323,7 +323,7 @@ export const MOCK_RELATED_CARDS: CardModel[] = [
     chip2: null,
     benefitBadge: null,
     categorySlug: 'skin-care',
-    sizeLine: '٥٠ مل',
+    sizeLine: '50 مل',
     imageUrl:
       'https://lh3.googleusercontent.com/aida/ALJJyrBzRQTIcE5KydOZRlcKaTtVftNTl6sZ-bDhj79lE_OnHJw5CHU7xB8oj92Lmoy-Dhxjmy2UkwFgBgOBw9eYb-pbATfzJyfXSeuApUnxgpcYAuVoE3fATq8VG8yrkb_CcP1s6HgOqnUWQGiRBax9crg_rCJZjiUSz8gDXqbKfbkMulEjJnbHUdts3vY7o48ubKazCZXIVLecGUOcedTQr58SE9wsE7kkg2nmmVJO2Z2S',
     imageAlt: 'كريم مرطب بحمض الهيالورونيك من StarVille',
@@ -334,7 +334,7 @@ export const MOCK_RELATED_CARDS: CardModel[] = [
     variants: [
       {
         skuId: 'sku-rel-1',
-        label: '٥٠ مل',
+        label: '50 مل',
         price: { amount: 320, currency: 'EGP' },
         canOrder: true,
       },
@@ -355,7 +355,7 @@ export const MOCK_RELATED_CARDS: CardModel[] = [
     chip2: null,
     benefitBadge: null,
     categorySlug: 'skin-care',
-    sizeLine: '٣٠ مل',
+    sizeLine: '30 مل',
     imageUrl:
       'https://lh3.googleusercontent.com/aida/ALJJyrCV_lz1lDbKEZKQvu3ELUODUSAMlLxK6eKpNxO7DoYEIvfukmBxhFglOIXdF6V8EKXC0lB4adE9K72x4ds0Q9VIrlUVR7IwDdTtXMSIKKIR1dRkk4ZXy1JNpiglCf34qsSRQ8YgJGeD2WfP2kFtlHmF5_Emo_9C3BhzHDR1TH_4_jXMrGD1FUwYK3skb187gC8I1hs-ec1NOLBCKaBwTt1stxMbqLACdkWWkq-rm6U',
     imageAlt: 'سيروم فيتامين C بتركيز 5% من StarVille',
@@ -366,7 +366,7 @@ export const MOCK_RELATED_CARDS: CardModel[] = [
     variants: [
       {
         skuId: 'sku-rel-2',
-        label: '٣٠ مل',
+        label: '30 مل',
         price: { amount: 460, currency: 'EGP' },
         canOrder: true,
       },
@@ -387,7 +387,7 @@ export const MOCK_RELATED_CARDS: CardModel[] = [
     chip2: null,
     benefitBadge: null,
     categorySlug: 'skin-care',
-    sizeLine: '٦٠ مل',
+    sizeLine: '60 مل',
     imageUrl:
       'https://lh3.googleusercontent.com/aida/ALJJyrCHzoiiwefwjDtSGg1JOPJIUk-7GT7qkZsFcEX56RT-j1rVn2XshZTjCu9Cf6J6YG0ZrsGn13YegAy3ePBgv5QQC7XZlbDN8OHJgTZUgZwyNsN7V9-yBzbdJkEB-oZJWlmlHKcL4vgpjZkrzhd8o3CdOG3dhL62xFd0lZMhT1Dy00NeSidAzPX_7LqSDJmbHMgpnhhTxOwV4UU3yZZlRnVj4ZXazmfCqiUWYp_-G5oA',
     imageAlt: 'واقي شمس جل SPF 50+ من StarVille',
@@ -398,7 +398,7 @@ export const MOCK_RELATED_CARDS: CardModel[] = [
     variants: [
       {
         skuId: 'sku-rel-3',
-        label: '٦٠ مل',
+        label: '60 مل',
         price: { amount: 390, currency: 'EGP' },
         canOrder: true,
       },
@@ -419,7 +419,7 @@ export const MOCK_RELATED_CARDS: CardModel[] = [
     chip2: null,
     benefitBadge: null,
     categorySlug: 'skin-care',
-    sizeLine: '١٥٠ مل',
+    sizeLine: '150 مل',
     imageUrl:
       'https://lh3.googleusercontent.com/aida/ALJJyrDHZVlZQuXFqk-RJK58brcnj2qO6pKIPOvzt8VMYBxEwIt-TDECpDpGO4EgxmQvhYbWdct4kgN8USdBiQ1xy8x4eVt7zYWj2Gtrg4uWiJoynZDBkieH1qMhWb5322Zci7NxtJGxLw4v0y6TMh42lVa3GErxpmZGkgsYrWdixECyWMF95ErFpIBiG7aikpVwb6BQ6WUVL61qMzLranotcwEhlry_8ucBQa7CChivjJk',
     imageAlt: 'تونر منقي ومنعش للمسام من StarVille',
@@ -430,7 +430,7 @@ export const MOCK_RELATED_CARDS: CardModel[] = [
     variants: [
       {
         skuId: 'sku-rel-4',
-        label: '١٥٠ مل',
+        label: '150 مل',
         price: { amount: 290, currency: 'EGP' },
         canOrder: true,
       },

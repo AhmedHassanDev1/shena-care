@@ -137,7 +137,7 @@ export function RoutineBuilderView() {
       const items: ProposalItem[] = [
         {
           id: 'b-am1',
-          num: '٠١',
+          num: '01',
           period: 'morning',
           stepName: 'تنظيف لطيف وموازنة الإفرازات',
           productName: isAcne
@@ -147,7 +147,7 @@ export function RoutineBuilderView() {
             : 'Eva Skin Clinic Vitamin C Facial Wash And Exfoliator',
           brand: isAcne ? 'StarVille' : 'Eva Cosmetics',
           actives: isAcne ? 'شجرة الشاي + ساليسيليك' : isAging ? 'كولاجين طبيعي' : 'فيتامين سي نقي',
-          usage: 'رغوة خفيفة لمدة ٦٠ ثانية مع ماء فاتر صباحاً ومساءً.',
+          usage: 'رغوة خفيفة لمدة 60 ثانية مع ماء فاتر صباحاً ومساءً.',
           price: isAcne ? 175 : isAging ? 135 : 130,
           skuId: isAcne
             ? '936dec18-8dc4-47bc-aecc-e92bdf8859d7'
@@ -160,7 +160,7 @@ export function RoutineBuilderView() {
         },
         {
           id: 'b-am2',
-          num: '٠٢',
+          num: '02',
           period: 'morning',
           stepName: 'سيروم علاجي مستهدف',
           productName: isDry
@@ -168,7 +168,7 @@ export function RoutineBuilderView() {
             : 'Eva Skin Clinic Vitamin C Facial Serum',
           brand: 'Eva Cosmetics',
           actives: isDry ? 'حمض الهيالورونيك النقي' : 'فيتامين سي المركز',
-          usage: '٣ قطرات توزع بالطبطبة الخفيفة على بشرة نظيفة.',
+          usage: '3 قطرات توزع بالطبطبة الخفيفة على بشرة نظيفة.',
           price: isDry ? 220 : 195,
           skuId: isDry
             ? '512e9b2f-6eb7-4464-9df0-375577e0c10a'
@@ -179,7 +179,7 @@ export function RoutineBuilderView() {
         },
         {
           id: 'b-am3',
-          num: '٠٣',
+          num: '03',
           period: 'morning',
           stepName: 'ترطيب وحماية حاجز البشرة',
           productName: isAcne
@@ -202,13 +202,13 @@ export function RoutineBuilderView() {
         },
         {
           id: 'b-am4',
-          num: '٠٤',
+          num: '04',
           period: 'morning',
           stepName: 'وقاية شمسية واسعة SPF 50+',
           productName: 'Eva Skin Clinic Acne-Prone Skin Sunscreen SPF 50+',
           brand: 'Eva Cosmetics',
           actives: 'فلاتر شمسية حديثة سريعة الامتصاص',
-          usage: 'مقدار إصبعين قبل التعرض للشمس بـ ١٥ دقيقة.',
+          usage: 'مقدار إصبعين قبل التعرض للشمس بـ 15 دقيقة.',
           price: 180,
           skuId: 'ca6773ec-2a62-4682-9c15-ac1e019d2349',
           productSlug: 'eva-acne-sunscreen-40',
@@ -223,7 +223,7 @@ export function RoutineBuilderView() {
       const items: ProposalItem[] = [
         {
           id: 'b-h1',
-          num: '٠١',
+          num: '01',
           period: 'morning',
           stepName: 'شامبو تنقية وترميم ألياف الشعر',
           productName: isDamage
@@ -242,7 +242,7 @@ export function RoutineBuilderView() {
         },
         {
           id: 'b-h2',
-          num: '٠٢',
+          num: '02',
           period: 'morning',
           stepName: 'بلسم فك التشابك والترطيب المكثف',
           productName: isDamage
@@ -250,7 +250,7 @@ export function RoutineBuilderView() {
             : 'Frizz Off Conditioner',
           brand: 'The Hair Addict',
           actives: isDamage ? 'أحماض أمينية مدعمة' : 'زبدة الشيا وزيت المورينجا',
-          usage: 'يترك ٤ دقائق على أطوال الشعر ثم يفك التشابك ويشطف.',
+          usage: 'يترك 4 دقائق على أطوال الشعر ثم يفك التشابك ويشطف.',
           price: isDamage ? 290 : 250,
           skuId: isDamage
             ? 'c74485b2-90e9-4b59-9139-3b4413a92829'
@@ -261,7 +261,7 @@ export function RoutineBuilderView() {
         },
         {
           id: 'b-h3',
-          num: '٠٣',
+          num: '03',
           period: 'morning',
           stepName: 'كريم التصفيف والتغذية وحبس الرطوبة',
           productName: isDamage
@@ -360,7 +360,7 @@ export function RoutineBuilderView() {
         <div className="flex flex-col gap-3 rounded-card border border-line bg-linen p-5 shadow-elevation-1 sm:p-6">
           <div className="flex items-center justify-between">
             <span className="text-12 font-bold text-cobalt">
-              الخطوة {currentStep} من ٤
+              الخطوة {currentStep} من 4
             </span>
             <span className="text-12 text-stone">
               {currentStep === 1

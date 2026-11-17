@@ -102,7 +102,7 @@ describe('SpotlightProducts & Product Card Specification', () => {
     it('derives discount percent and discount badge when on promotion', () => {
       const card = toCardModel(makeProduct(), 'ar');
       expect(card.discountPercent).toBe(15);
-      expect(card.benefitBadge).toBe('خصم ١٥٪');
+      expect(card.benefitBadge).toBe('خصم 15٪');
       expect(card.compareAtPrice).toEqual({ amount: 130, currency: 'EGP' });
     });
 

@@ -40,7 +40,7 @@ interface CompactProductCardProps {
     canOrder: boolean;
     stepBadge?: string;
     variantName?: string | null;
-    /** Why the engine recommended it (from the consultation); shown under the name. */
+    category?: string;
     rationale?: string;
   };
   onAddToBag: (product: Pick<ShinaProduct, 'skuId' | 'name' | 'canOrder'>) => Promise<void>;
@@ -49,6 +49,13 @@ interface CompactProductCardProps {
   className?: string;
 }
 
+/**
+ * Modern, Compact & Wider Chat-Fit Product Card:
+ * - Horizontal/proportional layout tailored for chat width without occupying huge vertical space.
+ * - Image fills its container nicely (full width/height fit with clean padding).
+ * - Compact height, wider footprint, modern rounded styling.
+ * - Prominent cobalt add-to-bag action and clear pricing.
+ */
 export function CompactProductCard({
   product,
   onAddToBag,
@@ -61,38 +68,47 @@ export function CompactProductCard({
 
   return (
     <motion.article
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.15 }}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        'group relative flex flex-col justify-between rounded-card border border-line/50 bg-chalk/45 p-2 shadow-elevation-1 backdrop-blur-xl transition-colors duration-fast hover:border-cobalt/40 hover:bg-chalk/75 hover:shadow-elevation-2',
+        'group relative flex flex-col justify-between rounded-card border border-line/60 bg-chalk/80 p-2 shadow-elevation-1 backdrop-blur-xl',
         className,
       )}
     >
       <div>
-        {/* 1. Petite Product Image */}
+        {/* 1. Full-bleed Proportional Product Image Stage (fills layout width & height) */}
         <Link
           href={routes.product(product.slug)}
-          className="relative block aspect-square w-full overflow-hidden rounded-image border border-line/30 bg-sand/15 p-1.5 transition-transform duration-fast group-hover:scale-102"
+          className="relative block aspect-square w-full overflow-hidden rounded-image border border-line/30 bg-sand/25"
         >
           <ProductTile
             src={product.imageUrl ?? null}
             alt={product.name}
             name={product.name}
-            fit="contain"
-            className="size-full rounded-none bg-transparent"
+            fit="cover"
+            imageClassName="object-cover"
+            className="size-full aspect-auto rounded-none bg-transparent [&_img]:object-cover"
           />
           {product.stepBadge ? (
-            <span className="pointer-events-none absolute start-1 top-1 max-w-[85%] truncate rounded-pill bg-linen/95 px-1.5 py-0.5 font-text text-11 font-medium text-stone shadow-elevation-1">
+            <span className="pointer-events-none absolute start-1.5 top-1.5 max-w-[85%] truncate rounded-pill bg-linen/95 px-1.5 py-0.5 font-display text-10.5 font-bold text-stone shadow-elevation-1">
               {product.stepBadge}
             </span>
           ) : null}
         </Link>
 
         {/* 2. Brand & Name */}
-        <div className="mt-1.5 min-w-0">
-          <p className="truncate font-text text-11 font-semibold uppercase tracking-wider text-stone">
-            {product.brand}
-          </p>
+        <div className="mt-1.5 min-w-0 px-0.5">
+          <div className="flex items-center justify-between gap-1">
+            <span className="truncate font-text text-11 font-bold uppercase tracking-wider text-stone/80">
+              {product.brand}
+            </span>
+            {product.category ? (
+              <span className="truncate rounded-pill bg-sand/40 px-1.5 py-0.2 font-text text-10.5 text-stone/70">
+                {product.category}
+              </span>
+            ) : null}
+          </div>
           <Link
             href={routes.product(product.slug)}
             title={product.name}
@@ -103,9 +119,9 @@ export function CompactProductCard({
         </div>
       </div>
 
-      {/* 3. Price & Compact Action Row */}
-      <div className="mt-2 flex items-center justify-between gap-1 border-t border-line/30 pt-1.5">
-        <span className="font-display text-12 font-black text-ink sm:text-13">
+      {/* 3. Price & Quick Add Action */}
+      <div className="mt-2 flex items-center justify-between gap-1 border-t border-line/35 pt-1.5 px-0.5">
+        <span className="font-display text-12 font-extrabold text-ink sm:text-13">
           {product.canOrder && product.price != null && product.price > 0
             ? formatAmount(product.price, locale)
             : m.shinaUnavailableProduct}
@@ -119,7 +135,7 @@ export function CompactProductCard({
           aria-label={fillMessage(m.cardAddLabel, { name: product.name })}
           title={isAdded ? m.shinaAddedToBag : m.shinaAddToBag}
           className={cn(
-            'inline-flex size-7 shrink-0 items-center justify-center rounded-full shadow-action transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-90 disabled:cursor-not-allowed disabled:opacity-40',
+            'inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-display text-11 font-bold shadow-action transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:cursor-not-allowed disabled:opacity-40',
             !product.canOrder
               ? 'bg-sand/60 text-stone'
               : isAdded
@@ -127,7 +143,10 @@ export function CompactProductCard({
                 : 'bg-cobalt text-chalk hover:bg-cobalt-deep',
           )}
         >
-          <Icon name={isAdded ? 'check' : 'bag'} size={13} />
+          <Icon name={isAdded ? 'check' : 'bag'} size={12} />
+          <span>
+            {isAdded ? (locale === 'ar' ? 'أُضيف' : 'Added') : (locale === 'ar' ? 'إضافة' : 'Add')}
+          </span>
         </button>
       </div>
     </motion.article>
@@ -141,15 +160,16 @@ export function ShinaProductCarousel({
   addedSkuIds,
 }: ShinaProductCarouselProps) {
   const m = useMessages();
+  const locale = useLocale();
   const [swiper, setSwiper] = useState<SwiperType | null>(null);
 
   if (products.length === 0) return null;
 
-  // Single product: display a petite compact vertical card
+  // Single product: wider, compact card perfectly proportioned for chat
   if (products.length === 1) {
     const p = products[0];
     return (
-      <div className="w-[140px] sm:w-[155px]">
+      <div className="w-full max-w-[260px] sm:max-w-[280px]">
         <CompactProductCard
           product={p}
           onAddToBag={onAddToBag}
@@ -161,48 +181,47 @@ export function ShinaProductCarousel({
     );
   }
 
-  // Two products: clean dual compact cards
+  // Two products: clean side-by-side wider cards
   if (products.length === 2) {
     return (
-      <div className="flex flex-wrap gap-2.5">
+      <div className="grid w-full grid-cols-1 gap-2.5 sm:grid-cols-2 max-w-[540px]">
         {products.map((product) => (
-          <div key={`${product.slug}-${product.skuId}`} className="w-[135px] sm:w-[150px]">
-            <CompactProductCard
-              product={product}
-              onAddToBag={onAddToBag}
-              isAdding={addingSkuId === product.skuId}
-              isAdded={addedSkuIds.has(product.skuId)}
-              className="h-full"
-            />
-          </div>
+          <CompactProductCard
+            key={`${product.slug}-${product.skuId}`}
+            product={product}
+            onAddToBag={onAddToBag}
+            isAdding={addingSkuId === product.skuId}
+            isAdded={addedSkuIds.has(product.skuId)}
+            className="w-full h-full"
+          />
         ))}
       </div>
     );
   }
 
-  // 3+ products: swipeable carousel with desktop navigation
+  // 3+ products: swipeable horizontal carousel with wider aspect
   return (
     <div className="relative w-full min-w-0">
       <div className="mb-1.5 flex items-center justify-between">
-        <span className="font-text text-11 font-medium text-stone">
-          {products.length} منتجات موصى بها
+        <span className="font-display text-11 font-bold text-stone">
+          {locale === 'ar' ? `${products.length} ترشيحات موثقة:` : `${products.length} Recommended:`}
         </span>
         <div className="hidden items-center gap-1 sm:flex">
           <button
             type="button"
             onClick={() => swiper?.slidePrev()}
             aria-label={m.pdpCarouselPrev}
-            className="inline-flex size-7 items-center justify-center rounded-full border border-line bg-chalk/60 text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+            className="inline-flex size-6 items-center justify-center rounded-full border border-line bg-chalk/80 text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cobalt active:scale-90"
           >
-            <Icon name="chevron-back" size={13} />
+            <Icon name="chevron-back" size={12} />
           </button>
           <button
             type="button"
             onClick={() => swiper?.slideNext()}
             aria-label={m.pdpCarouselNext}
-            className="inline-flex size-7 items-center justify-center rounded-full border border-line bg-chalk/60 text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+            className="inline-flex size-6 items-center justify-center rounded-full border border-line bg-chalk/80 text-ink shadow-elevation-1 backdrop-blur-md transition-colors hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cobalt active:scale-90"
           >
-            <Icon name="chevron-forward" size={13} />
+            <Icon name="chevron-forward" size={12} />
           </button>
         </div>
       </div>
@@ -216,7 +235,7 @@ export function ShinaProductCarousel({
         className="w-full !overflow-visible"
       >
         {products.map((product) => (
-          <SwiperSlide key={`${product.slug}-${product.skuId}`} className="h-auto !w-[135px] sm:!w-[150px]">
+          <SwiperSlide key={`${product.slug}-${product.skuId}`} className="h-auto !w-[190px] sm:!w-[210px]">
             <CompactProductCard
               product={product}
               onAddToBag={onAddToBag}
@@ -244,6 +263,7 @@ export function ShinaComparisonCard({
   addingSkuId,
   addedSkuIds,
 }: ShinaComparisonCardProps) {
+  const m = useMessages();
   const locale = useLocale();
   const prefersReduced = Boolean(useReducedMotion());
   const [showDiffs, setShowDiffs] = useState(false);
@@ -253,15 +273,15 @@ export function ShinaComparisonCard({
   return (
     <section
       aria-label={comparison.title}
-      className="w-full min-w-0 rounded-card border border-line/40 bg-chalk/40 p-2.5 shadow-elevation-1 backdrop-blur-xl transition-shadow hover:shadow-elevation-2 sm:p-3"
+      className="w-full min-w-0 rounded-card border border-line/50 bg-chalk/70 p-3 shadow-elevation-1 backdrop-blur-xl transition-shadow hover:shadow-elevation-2"
     >
-      {/* Comparison Header */}
-      <div className="mb-2 flex items-center justify-between gap-2 border-b border-line/30 pb-2">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-cobalt/10 text-cobalt">
-            <Icon name="swap" size={13} />
+      {/* Title & Toggle */}
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-line/30 pb-2">
+        <div className="flex items-center gap-2">
+          <span className="flex size-6 items-center justify-center rounded-full bg-sand text-cobalt">
+            <Icon name="sort" size={13} />
           </span>
-          <h3 className="truncate font-display text-13 font-bold text-ink sm:text-14">
+          <h3 className="font-display text-13 font-bold text-ink sm:text-14">
             {comparison.title}
           </h3>
         </div>
@@ -269,39 +289,39 @@ export function ShinaComparisonCard({
         {hasSpecs ? (
           <button
             type="button"
-            onClick={() => setShowDiffs((v) => !v)}
-            className="inline-flex min-h-6 shrink-0 items-center gap-1 rounded-pill bg-linen/60 px-2.5 font-display text-11 font-bold text-cobalt transition-colors hover:bg-sand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"
+            onClick={() => setShowDiffs((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-linen/80 px-2.5 py-0.5 font-display text-11 font-medium text-stone transition-colors hover:border-cobalt hover:text-cobalt"
           >
-            <Icon
-              name="chevron-down"
-              size={12}
-              className={cn('transition-transform duration-fast', showDiffs && 'rotate-180')}
+            <span
+              className={cn(
+                'size-1.5 rounded-full transition-colors',
+                showDiffs ? 'bg-cobalt' : 'bg-stone/40',
+              )}
             />
             <span>
-              {locale === 'ar'
-                ? showDiffs
+              {showDiffs
+                ? locale === 'ar'
                   ? 'إخفاء الفروقات'
-                  : 'عرض الفروقات'
-                : showDiffs
-                  ? 'Hide differences'
-                  : 'View differences'}
+                  : 'Hide differences'
+                : locale === 'ar'
+                  ? 'إظهار الفروقات فقط'
+                  : 'Show differences only'}
             </span>
           </button>
         ) : null}
       </div>
 
-      {/* Side-by-side Product Cards */}
-      <div className="flex flex-wrap items-stretch gap-2.5">
+      {/* Side-by-side Product Cards - Compact & Wider */}
+      <div className="grid grid-cols-2 gap-2.5">
         {comparison.products.map((item) => (
-          <div key={`${item.slug}-${item.skuId}`} className="w-[130px] sm:w-[150px]">
-            <CompactProductCard
-              product={item}
-              onAddToBag={onAddToBag}
-              isAdding={addingSkuId === item.skuId}
-              isAdded={addedSkuIds.has(item.skuId)}
-              className="h-full"
-            />
-          </div>
+          <CompactProductCard
+            key={`${item.slug}-${item.skuId}`}
+            product={item}
+            onAddToBag={onAddToBag}
+            isAdding={addingSkuId === item.skuId}
+            isAdded={addedSkuIds.has(item.skuId)}
+            className="h-full"
+          />
         ))}
       </div>
 
@@ -415,7 +435,7 @@ export function ShinaRoutineCard({
   return (
     <section
       aria-label={routine.title}
-      className="w-full min-w-0 rounded-card border border-line/40 bg-chalk/40 p-2.5 shadow-elevation-1 backdrop-blur-xl transition-shadow hover:shadow-elevation-2 sm:p-3"
+      className="w-full min-w-0 rounded-card border border-line/40 bg-chalk/70 p-2.5 shadow-elevation-1 backdrop-blur-xl transition-shadow hover:shadow-elevation-2 sm:p-3"
     >
       {/* Routine Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/30 pb-2">
@@ -443,7 +463,7 @@ export function ShinaRoutineCard({
         </div>
       </div>
 
-      {/* Steps list - Compact rows */}
+      {/* Steps list - Modern compact horizontal rows */}
       <ol className="mt-2 space-y-1.5">
         {current.map(({ step, index, options, product: prod, removed: isRemoved }) => {
           const isAdding = prod ? addingSkuId === prod.skuId : false;
@@ -453,7 +473,7 @@ export function ShinaRoutineCard({
             <li
               key={`${step.order}-${step.title}-${index}`}
               className={cn(
-                'flex items-center justify-between gap-2 rounded-card border border-line/30 bg-linen/40 p-2 backdrop-blur-md transition-colors hover:bg-linen/70',
+                'flex items-center justify-between gap-2 rounded-card border border-line/30 bg-linen/50 p-2 backdrop-blur-md transition-colors hover:bg-linen/80',
                 isRemoved && 'opacity-50',
               )}
             >
@@ -462,13 +482,29 @@ export function ShinaRoutineCard({
                   {step.order || index + 1}
                 </span>
 
+                {prod?.imageUrl ? (
+                  <Link
+                    href={routes.product(prod.slug)}
+                    className="relative size-9 shrink-0 overflow-hidden rounded-image border border-line/30 bg-sand/20"
+                  >
+                    <ProductTile
+                      src={prod.imageUrl}
+                      alt={prod.name}
+                      name={prod.name}
+                      fit="cover"
+                      imageClassName="object-cover"
+                      className="size-full rounded-none bg-transparent [&_img]:object-cover"
+                    />
+                  </Link>
+                ) : null}
+
                 <div className="min-w-0">
                   <div className="flex items-center gap-1">
-                    <span className="font-text text-11 text-stone">
+                    <span className="font-text text-10.5 font-bold uppercase tracking-wider text-stone/80">
                       {step.roleLabel ?? step.timing.toUpperCase()}
                     </span>
                     {isRemoved ? (
-                      <span className="font-text text-11 text-stone">· {m.shinaStepRemoved}</span>
+                      <span className="font-text text-10.5 text-stone">· {m.shinaStepRemoved}</span>
                     ) : null}
                   </div>
                   <p
@@ -498,13 +534,14 @@ export function ShinaRoutineCard({
                     aria-label={fillMessage(m.cardAddLabel, { name: prod.name })}
                     title={isAdded ? m.shinaAddedToBag : m.shinaAddToBag}
                     className={cn(
-                      'inline-flex size-7 shrink-0 items-center justify-center rounded-full shadow-action transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-90 disabled:cursor-not-allowed disabled:opacity-40',
+                      'inline-flex h-6.5 items-center gap-1 rounded-full px-2.5 font-display text-11 font-bold shadow-action transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cobalt active:scale-95 disabled:cursor-not-allowed disabled:opacity-40',
                       isAdded
                         ? 'bg-citron text-ink'
                         : 'bg-cobalt text-chalk hover:bg-cobalt-deep',
                     )}
                   >
-                    <Icon name={isAdded ? 'check' : 'bag'} size={13} />
+                    <Icon name={isAdded ? 'check' : 'bag'} size={11} />
+                    <span>{isAdded ? (locale === 'ar' ? 'أُضيف' : 'Added') : (locale === 'ar' ? 'إضافة' : 'Add')}</span>
                   </button>
                 </div>
               ) : null}
@@ -513,96 +550,48 @@ export function ShinaRoutineCard({
         })}
       </ol>
 
-      {/* Routine safety notes */}
-      {routine.notes && routine.notes.length > 0 && !edited ? (
-        <ul className="mt-3 space-y-1 rounded-card border border-line/50 bg-linen/70 p-2.5 font-text text-11 text-stone">
-          {routine.notes.map((note) => (
-            <li key={note} className="flex items-start gap-1.5">
-              <Icon name="shield" size={13} className="mt-0.5 shrink-0 text-cobalt" />
-              <span>{note}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {/* Routine compatibility panel on edit */}
-      {editable && edited ? (
-        <div className="mt-3 flex flex-col gap-2">
-          <p role="status" className="m-0 font-text text-12 text-stone">
-            {m.shinaRoutineEdited}
-          </p>
-          <RoutineCompatibilityPanel steps={checkSteps} onResult={setCompatibility} />
-        </div>
-      ) : null}
-
-      {/* Save routine action */}
-      {onSave ? (
-        <div className="mt-3.5 flex flex-col gap-1.5 border-t border-line/50 pt-3">
-          <p className="m-0 font-text text-11 text-stone">{m.shinaSaveRoutineConfirm}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={save}
-              disabled={
-                saveState === 'pending' || saveState === 'saved' || active.length === 0 || blocked
-              }
-              aria-busy={saveState === 'pending'}
-              className="inline-flex min-h-control-s items-center gap-1.5 rounded-pill bg-ink px-4 font-display text-12 font-bold text-chalk shadow-action transition-all hover:bg-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Icon name={saveState === 'saved' ? 'check' : 'routine'} size={14} />
-              <span>
-                {saveState === 'pending'
-                  ? m.shinaSaveRoutinePending
-                  : saveState === 'saved'
-                    ? m.shinaSaveRoutineSaved
-                    : m.shinaSaveRoutine}
-              </span>
-            </button>
-            {saveState === 'saved' ? (
-              <Link
-                href={routes.myRoutine}
-                className="font-display text-12 font-bold text-cobalt underline decoration-1 underline-offset-2"
-              >
-                {m.shinaSaveRoutineSaved}
-              </Link>
-            ) : null}
-            {blocked && compatibility ? (
-              <span role="alert" className="font-text text-12 font-semibold text-tomato-ink">
-                {m.shinaSaveBlocked}
-              </span>
-            ) : null}
-            {saveState === 'failed' ? (
-              <span role="alert" className="font-text text-12 font-semibold text-tomato-ink">
-                {m.shinaSaveRoutineFailed}
-              </span>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
-      {/* Batch add & builder buttons */}
-      <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-line/50 pt-3">
+      {/* Routine Actions Footer */}
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-line/30 pt-2">
         {orderableProducts.length > 0 ? (
           <button
             type="button"
             disabled={isBatchAdding}
-            aria-busy={isBatchAdding}
             onClick={() => onAddManyToBag(orderableProducts)}
-            className="inline-flex min-h-control-s items-center gap-1.5 rounded-pill bg-cobalt px-4 font-display text-12 font-bold text-chalk shadow-action transition-all hover:bg-cobalt-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95 disabled:opacity-50"
+            className="inline-flex h-7.5 items-center gap-1.5 rounded-full bg-cobalt px-3 font-display text-11 font-bold text-chalk shadow-action transition-all hover:bg-cobalt-deep active:scale-95 disabled:opacity-50"
           >
-            <Icon name="bag" size={15} />
-            <span>{fillMessage(m.shinaAddRoutineAvailable, { count: orderableProducts.length })}</span>
+            <Icon name="bag" size={13} />
+            <span>
+              {locale === 'ar'
+                ? `إضافة كل المنتجات (${orderableProducts.length})`
+                : `Add all (${orderableProducts.length})`}
+            </span>
+          </button>
+        ) : <div />}
+
+        {onSave ? (
+          <button
+            type="button"
+            onClick={save}
+            disabled={saveState === 'pending' || saveState === 'saved' || active.length === 0 || blocked}
+            className="inline-flex h-7.5 items-center gap-1.5 rounded-full border border-line bg-linen/90 px-3 font-display text-11 font-bold text-stone shadow-elevation-1 transition-all hover:border-cobalt hover:text-cobalt active:scale-95 disabled:opacity-60"
+          >
+            <Icon name={saveState === 'saved' ? 'check' : 'routine'} size={12} />
+            <span>
+              {saveState === 'pending'
+                ? m.shinaSaveRoutinePending
+                : saveState === 'saved'
+                  ? m.shinaSaveRoutineSaved
+                  : m.shinaSaveRoutine}
+            </span>
           </button>
         ) : null}
-
-        <Link
-          href={routes.routineBuilder}
-          className="inline-flex min-h-control-s items-center gap-1.5 rounded-pill border border-line bg-linen px-3.5 font-display text-12 font-bold text-ink transition-colors hover:border-cobalt hover:text-cobalt"
-        >
-          <Icon name="routine" size={14} />
-          <span>{m.shinaOpenRoutineBuilder}</span>
-        </Link>
       </div>
+
+      {editable && edited ? (
+        <div className="mt-2.5 flex flex-col gap-1.5">
+          <RoutineCompatibilityPanel steps={checkSteps} onResult={setCompatibility} />
+        </div>
+      ) : null}
     </section>
   );
 }

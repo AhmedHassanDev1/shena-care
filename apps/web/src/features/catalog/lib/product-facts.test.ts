@@ -9,6 +9,7 @@ import {
   resolveFullInciList,
   resolveHeroFeatureBadges,
   resolveKeyIngredients,
+  resolveLocalizedProductContent,
   resolveRoutinePosition,
   resolveTextDirection,
   resolveUsageGuide,
@@ -440,5 +441,89 @@ describe('resolveHeroFeatureBadges, resolveKeyIngredients, resolveFullInciList',
     const p = baseProduct(v);
     expect(resolveKeyIngredients(p, v)).toHaveLength(1);
     expect(resolveFullInciList(p, v, 'en')).toEqual(['Aqua', 'Glycerin']);
+  });
+});
+
+describe('resolveLocalizedProductContent', () => {
+  it('switches between Arabic and English when localized fields are provided', () => {
+    const v = baseVariant({
+      id: 'sku-eva',
+      nameAr: 'سيروم النياسيناميد للوجه',
+      nameEn: 'Niacinamide Facial Serum',
+      descriptionAr: 'سيروم إيفا سكين كلينيك بالنياسيناميد والزنك للبشرة الصافية',
+      descriptionEn: 'Eva Skin Clinic Niacinamide & Zinc serum for clear skin',
+      usageAr: 'يوضع من 2 إلى 4 قطرات صباحاً ومساءً',
+      usageEn: 'Apply 2 to 4 drops morning and evening',
+      benefitsAr: ['تقليل مظهر المسام', 'موازنة إفراز الدهون', 'ترطيب البشرة'],
+      benefitsEn: ['Minimizes appearance of pores', 'Balances sebum production', 'Hydrates the skin'],
+    });
+    const p = baseProduct(v, {
+      id: 'prod-eva',
+      name: 'Niacinamide Facial Serum',
+      slug: 'eva-cosmetics-niacinamide-facial-serum-mw9emwma',
+    });
+
+    const arContent = resolveLocalizedProductContent(p, v, 'ar');
+    expect(arContent.name).toBe('سيروم النياسيناميد للوجه');
+    expect(arContent.shortDescription).toContain('سيروم إيفا سكين كلينيك');
+    expect(arContent.description).toContain('سيروم إيفا سكين كلينيك');
+    expect(arContent.usage).toContain('يوضع من 2 إلى 4 قطرات');
+    expect(arContent.benefits).toHaveLength(3);
+    expect(arContent.benefits[0]).toBe('تقليل مظهر المسام');
+
+    const enContent = resolveLocalizedProductContent(p, v, 'en');
+    expect(enContent.name).toBe('Niacinamide Facial Serum');
+    expect(enContent.shortDescription).toContain('Eva Skin Clinic Niacinamide');
+    expect(enContent.description).toContain('Eva Skin Clinic Niacinamide');
+    expect(enContent.usage).toContain('Apply 2 to 4 drops');
+    expect(enContent.benefits).toHaveLength(3);
+    expect(enContent.benefits[0]).toBe('Minimizes appearance of pores');
+  });
+
+  it('truthfully reports null usage and empty benefits when not in database (no fabrication)', () => {
+    const v = baseVariant({ id: 'sku-eva' });
+    const p = baseProduct(v, {
+      id: 'prod-eva',
+      name: 'Niacinamide Facial Serum',
+      slug: 'eva-cosmetics-niacinamide-facial-serum-mw9emwma',
+      description: 'With Nicinamide for clear and hydrated skin ( 10% Nicinamide & 1% Zinc )',
+    });
+
+    const arContent = resolveLocalizedProductContent(p, v, 'ar');
+    expect(arContent.name).toBe('Niacinamide Facial Serum');
+    expect(arContent.description).toBe('With Nicinamide for clear and hydrated skin ( 10% Nicinamide & 1% Zinc )');
+    expect(arContent.usage).toBeNull();
+    expect(arContent.benefits).toEqual([]);
+
+    const enContent = resolveLocalizedProductContent(p, v, 'en');
+    expect(enContent.name).toBe('Niacinamide Facial Serum');
+    expect(enContent.description).toBe('With Nicinamide for clear and hydrated skin ( 10% Nicinamide & 1% Zinc )');
+    expect(enContent.usage).toBeNull();
+    expect(enContent.benefits).toEqual([]);
+  });
+
+  it('honors explicitly localized content fields on variant', () => {
+    const v = baseVariant({
+      id: 'sku-custom',
+      descriptionAr: 'وصف عربي مخصص',
+      descriptionEn: 'Custom English description',
+    });
+    const p = baseProduct(v, { name: 'Custom Cream' });
+
+    expect(resolveLocalizedProductContent(p, v, 'ar').description).toBe('وصف عربي مخصص');
+    expect(resolveLocalizedProductContent(p, v, 'en').description).toBe('Custom English description');
+  });
+
+  it('falls back gracefully to available product description', () => {
+    const v = baseVariant({ id: 'sku-generic' });
+    const p = baseProduct(v, {
+      name: 'Generic Cleanser',
+      slug: 'generic-cleanser',
+      description: 'A gentle universal cleanser',
+    });
+
+    const en = resolveLocalizedProductContent(p, v, 'en');
+    expect(en.description).toBe('A gentle universal cleanser');
+    expect(en.name).toBe('Generic Cleanser');
   });
 });

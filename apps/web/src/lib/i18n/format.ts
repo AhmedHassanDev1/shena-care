@@ -1,30 +1,32 @@
 import type { Locale } from './messages';
 
 /**
- * Display formatting for the storefront (SAHEL V18 handoff §RTL 4, owner decision 2026-10-18):
- * the Arabic storefront shows prices, totals, quantities, counts and dates in Arabic-Indic digits with the Arabic
- * thousands separator (٣٬٣٢٠) and «ج.م» after the amount; English shows Western digits and "EGP 1,050".
+ * Display formatting for the storefront:
+ * - Prices retain their localized representation (Arabic-Indic digits in Arabic: «٣٬٣٢٠ ج.م»,
+ *   Western digits in English: "EGP 3,320").
+ * - All other numbers across the entire website (counts, quantities, dates, times, pack sizes,
+ *   percentages, and countdowns) are formatted using English / Western digits (0-9).
  *
  * Display only: API payloads, stored values, calculations and validation never pass through these helpers.
  * Phone numbers, OTP codes, SKU codes and order/transaction references are technical identifiers and are
  * rendered as-is (Western digits, LTR) — never formatted here.
  */
 
-const numberLocale = (locale: Locale) => (locale === 'ar' ? 'ar-EG' : 'en-US');
+const priceNumberLocale = (locale: Locale) => (locale === 'ar' ? 'ar-EG' : 'en-US');
 
-/** Count, quantity or step number in the active language: ٣ / 3, ١٬٢٥٠ / 1,250. */
-export function formatNumber(value: number, locale: Locale): string {
-  return new Intl.NumberFormat(numberLocale(locale), { maximumFractionDigits: 2 }).format(value);
+/** Count, quantity or step number in Western digits across all languages: 3, 1,250. */
+export function formatNumber(value: number, _locale?: Locale): string {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
 }
 
-/** Whole percent from 0–100 in the active language: ٨٣٪ / 83%. */
-export function formatPercent(value: number, locale: Locale): string {
-  return new Intl.NumberFormat(numberLocale(locale), { style: 'percent', maximumFractionDigits: 0 }).format(value / 100);
+/** Whole percent from 0–100 in Western digits: 83%. */
+export function formatPercent(value: number, _locale?: Locale): string {
+  return new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 0 }).format(value / 100);
 }
 
-/** Amount without the currency label, for layouts that set «ج.م» / "EGP" in a smaller, lighter style. */
+/** Amount for prices without currency label: «٣٬٣٢٠» in Arabic, "3,320" in English. */
 export function formatAmount(amount: number, locale: Locale): string {
-  return new Intl.NumberFormat(numberLocale(locale), { maximumFractionDigits: 2 }).format(amount);
+  return new Intl.NumberFormat(priceNumberLocale(locale), { maximumFractionDigits: 2 }).format(amount);
 }
 
 /** «ج.م» in Arabic, "EGP" in English. */
@@ -44,7 +46,7 @@ export function formatEgp(amount: number, currency: string, locale: Locale): str
 
 const SIZE_UNITS_AR: Record<string, string> = { ml: 'مل', l: 'لتر', g: 'جم', gm: 'جم', kg: 'كجم', mg: 'ملجم' };
 
-/** «٥٠٠ مل» / "500 ml". Returns null when the SKU has no size. */
+/** «500 مل» / "500 ml" (Western digits for packaging sizes). Returns null when the SKU has no size. */
 export function formatPackSize(size: number | null, unit: string | null, locale: Locale): string | null {
   if (size === null || !Number.isFinite(size) || size <= 0) return null;
   const value = formatNumber(size, locale);
@@ -55,9 +57,9 @@ export function formatPackSize(size: number | null, unit: string | null, locale:
 
 const CAIRO = 'Africa/Cairo';
 
-/** «١٨ أكتوبر ٢٠٢٦» / "Oct 18, 2026" (Cairo time). */
+/** «18 أكتوبر 2026» / "Oct 18, 2026" (Cairo time, Western digits). */
 export function formatDate(value: string | Date, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-EG', {
     day: 'numeric',
     month: locale === 'ar' ? 'long' : 'short',
     year: 'numeric',
@@ -65,24 +67,24 @@ export function formatDate(value: string | Date, locale: Locale): string {
   }).format(new Date(value));
 }
 
-/** «٩:١٢ ص» / "9:12 AM" (Cairo time). */
+/** «9:12 ص» / "9:12 AM" (Cairo time, Western digits). */
 export function formatTime(value: string | Date, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-EG', {
     hour: 'numeric',
     minute: '2-digit',
     timeZone: CAIRO,
   }).format(new Date(value));
 }
 
-/** Countdown «m:ss» in the interface digits («١:٠٥» / "1:05"); announced once per state, never every second. */
-export function formatClock(totalSeconds: number, locale: Locale): string {
+/** Countdown «m:ss» in Western digits ("1:05"); announced once per state, never every second. */
+export function formatClock(totalSeconds: number, _locale?: Locale): string {
   const s = Math.max(0, Math.ceil(totalSeconds));
-  const fmt = new Intl.NumberFormat(numberLocale(locale), { minimumIntegerDigits: 2, useGrouping: false });
-  const minutes = new Intl.NumberFormat(numberLocale(locale), { useGrouping: false }).format(Math.floor(s / 60));
+  const fmt = new Intl.NumberFormat('en-US', { minimumIntegerDigits: 2, useGrouping: false });
+  const minutes = new Intl.NumberFormat('en-US', { useGrouping: false }).format(Math.floor(s / 60));
   return `${minutes}:${fmt.format(s % 60)}`;
 }
 
-/** «منتج واحد» / «منتجين» / «٣ منتجات» / «١٢ منتج» — Arabic number agreement; "1 product" / "3 products". */
+/** «منتج واحد» / «منتجين» / «3 منتجات» / «12 منتج» — Arabic number agreement with Western digits; "1 product" / "3 products". */
 export function formatProductCount(count: number, locale: Locale): string {
   if (locale === 'en') return `${formatNumber(count, locale)} ${count === 1 ? 'product' : 'products'}`;
   if (count === 1) return 'منتج واحد';
@@ -95,9 +97,9 @@ export function isolateLtr(text: string): string {
   return `⁦${text}⁩`;
 }
 
-/** «١٨ أكتوبر · ٩:١٢ ص» / "Oct 18 · 9:12 AM" (Cairo time): a stage time on the order timeline (OrdersD). */
+/** «18 أكتوبر · 9:12 ص» / "Oct 18 · 9:12 AM" (Cairo time): a stage time on the order timeline (OrdersD). */
 export function formatDayTime(value: string | Date, locale: Locale): string {
-  const day = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-EG', {
+  const day = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-EG', {
     day: 'numeric',
     month: locale === 'ar' ? 'long' : 'short',
     timeZone: CAIRO,

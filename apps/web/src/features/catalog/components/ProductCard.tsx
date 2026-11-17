@@ -61,7 +61,7 @@ export function ProductCard({ product, priority = false, feature = false }: Prod
     <article
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
       aria-label={`${product.brandName} ${displayName}`}
-      className="group group/card relative flex h-full min-w-0 flex-col overflow-hidden rounded-card border border-line/60 bg-linen font-display text-ink shadow-elevation-1 transition-all duration-base hover:-translate-y-1 hover:border-line-2/70 hover:shadow-elevation-2 focus-within:shadow-elevation-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+      className="group/card relative flex h-full min-w-0 flex-col overflow-hidden rounded-card border border-line/60 bg-linen font-display text-ink shadow-elevation-1 focus-within:shadow-elevation-2"
     >
       {/* Square Studio Image Stage */}
       <div className="relative aspect-square w-full overflow-hidden rounded-image border-b border-line/40 bg-sand/20">
@@ -83,19 +83,18 @@ export function ProductCard({ product, priority = false, feature = false }: Prod
         {/* Layer C: Natural pedestal contact shadow under the product base */}
         <div className="pointer-events-none absolute inset-x-10 bottom-2.5 h-3 rounded-full bg-stone/10 blur-[6px]" />
 
-        {/* Layer D: Product packaging image filling the layout with object-cover */}
-        <Link href={href} tabIndex={-1} aria-hidden="true" className="relative flex size-full items-center justify-center">
+        {/* Layer D: Product packaging image placed naturally within the image stage */}
+        <Link href={href} tabIndex={-1} aria-hidden="true" className="relative flex size-full items-center justify-center p-2.5 sm:p-3">
           <ProductTile
             src={product.imageUrl}
             alt={product.imageAlt}
             name={product.name}
             priority={priority}
-            fit="cover"
+            fit="contain"
             sizes={feature ? '(min-width: 1280px) 280px, (min-width: 1024px) 25vw, (min-width: 640px) 45vw, 78vw' : undefined}
             className={cn(
               'size-full aspect-auto rounded-none bg-transparent',
-              '[&_img]:object-cover sahel-packshot-shadow',
-              '[&_img]:transition-transform [&_img]:duration-500 [&_img]:ease-out group-hover:[&_img]:scale-105 group-focus-within:[&_img]:scale-105 motion-reduce:group-hover:[&_img]:scale-100',
+              '[&_img]:object-contain sahel-packshot-shadow',
               product.unavailable && '[&_img]:opacity-50'
             )}
           />
@@ -140,7 +139,7 @@ export function ProductCard({ product, priority = false, feature = false }: Prod
             );
           }}
           className={cn(
-            'absolute end-2.5 top-2.5 z-10 flex size-8 items-center justify-center rounded-full border border-line/60 bg-linen/90 text-ink shadow-elevation-1 backdrop-blur-md transition-all duration-fast hover:scale-105 hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt active:scale-95',
+            'absolute end-2.5 top-2.5 z-10 flex size-8 items-center justify-center rounded-full border border-line/60 bg-linen/90 text-ink shadow-elevation-1 backdrop-blur-md transition-colors duration-fast hover:border-cobalt hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
             wishlisted && 'border-cobalt text-cobalt'
           )}
         >
@@ -322,7 +321,7 @@ export function ProductCardSkeleton() {
         {/* Coastal Shutter Light Ray Indicator Label (Stitch Signature Pill) */}
         <div className="absolute bottom-2 start-2.5 z-10 flex items-center gap-1 rounded-pill bg-chalk/80 px-2 py-0.5 text-11 font-medium text-stone backdrop-blur-sm shadow-elevation-1">
           <span className="inline-block size-1.5 rounded-full bg-citron animate-pulse" />
-          <span>خطوط شيش متحركة (٢٥° · ٢.٨ث)</span>
+          <span>خطوط شيش متحركة (25° · 2.8ث)</span>
         </div>
       </div>
 
