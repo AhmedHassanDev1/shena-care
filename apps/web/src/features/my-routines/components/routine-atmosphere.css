@@ -102,17 +102,34 @@ html[data-routine-theme='PM'] .routine-sky__pm {
   background-position: right top;
 }
 
-/* Portrait screens: the photograph keeps its natural scale at the top of the screen (instead of being blown up to fill the height),
-   and its lower edge dissolves into the ground colour, so the light reads as the reference does and body text stays on calm ground. */
-@media (max-aspect-ratio: 1/1) {
+/* ── Responsive art direction (the picture is composed per screen shape, not just cropped) ──
+   Landscape / desktop (default above): the full composition with cover, anchored to its light corner.
+   Tablet portrait: the full picture at screen width along the top, its lower edge dissolving into the ground colour.
+   Phone portrait: a purpose-made crop of the lit 56% of the picture (531px source), scaled DOWN to the screen width, so the
+   shutter bands stay clearly visible and crisp (shown at 130% of the screen width, still below the source scale); the strongest light sits at the upper corner
+   and fades gradually behind the content. All sizes derive from the screen width, so nothing jumps when a phone's address bar
+   shows or hides, and the layer is fixed, so it is independent of how long the page is. */
+@media (max-aspect-ratio: 1/1) and (min-width: 768px) {
   .routine-sky__am {
-    background-image: linear-gradient(to bottom, transparent 62%, var(--dawn) 100%), url('/images/routines/morning-light.webp');
-    background-size: 100% 56vh, auto 56vh;
+    background-image: linear-gradient(to bottom, transparent 44%, var(--dawn) 94%), url('/images/routines/morning-light.webp');
+    background-size: 100% 50vw, 100% auto;
     background-position: left top, left top;
   }
   .routine-sky__pm {
-    background-image: linear-gradient(to bottom, transparent 62%, var(--night-ground) 100%), url('/images/routines/evening-light.webp');
-    background-size: 100% 56vh, auto 56vh;
+    background-image: linear-gradient(to bottom, transparent 44%, var(--night-ground) 94%), url('/images/routines/evening-light.webp');
+    background-size: 100% 50vw, 100% auto;
+    background-position: right top, right top;
+  }
+}
+@media (max-aspect-ratio: 1/1) and (max-width: 767px) {
+  .routine-sky__am {
+    background-image: linear-gradient(to bottom, transparent 42%, var(--dawn) 94%), url('/images/routines/morning-light-phone.webp');
+    background-size: 100% 116vw, 130% auto;
+    background-position: left top, left top;
+  }
+  .routine-sky__pm {
+    background-image: linear-gradient(to bottom, transparent 42%, var(--night-ground) 94%), url('/images/routines/evening-light-phone.webp');
+    background-size: 100% 116vw, 130% auto;
     background-position: right top, right top;
   }
 }

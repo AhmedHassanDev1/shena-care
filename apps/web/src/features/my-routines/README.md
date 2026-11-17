@@ -69,6 +69,14 @@ add these two rows when it is merged.
 | --- | --- | --- | --- |
 | `public/images/routines/morning-light.webp` | Morning sky, Routine pages | upper-left | `dawn` (#E5D9D0, sampled from the far edge) |
 | `public/images/routines/evening-light.webp` | Evening sky, Routine pages | upper-right | `night-ground` (#0C1645, sampled from the far edge) |
+| `public/images/routines/morning-light-phone.webp`, `evening-light-phone.webp` | phone crops of the two above | left / right | same |
 
-Each is one fixed full-viewport layer drawn with `cover` (landscape) or at 56vh with a faded lower edge (portrait), so it is never
-tiled or stretched out of ratio. The same routine pages (builder, list, details) share it; the theme is removed on leaving them.
+Each theme is one fixed full-viewport layer, so it is independent of page length (no tiling, nothing repeats on a long page), with art direction per screen shape:
+
+| Screen | Image | How it is placed |
+| --- | --- | --- |
+| Landscape / desktop | full picture (949px) | `cover`, anchored to its light corner |
+| Tablet portrait (≥768px) | full picture | screen width along the top, lower edge faded into the ground colour |
+| Phone portrait (<768px) | purpose-made crop of the lit 56% (531px, `*-phone.webp`) | 130% of screen width (still below source scale, so crisp), strongest light at the upper corner, faded into the ground colour |
+
+All sizes derive from the screen width, so a phone address bar showing or hiding never moves the light. Each fade reaches the solid ground colour just before the image ends (no seam). Tested at 320, 375, 768, 1440 and 1920 wide, landscape 812x375, and a long scrolling page.
