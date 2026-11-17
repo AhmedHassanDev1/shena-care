@@ -3,9 +3,18 @@ import {
   matchActiveBrands,
   normalizeSearchQuery,
   stepActiveIndex,
+  rememberSearch,
+  readRecentSearches,
 } from './search-helpers';
 
 describe('search-helpers', () => {
+  it('stores only distinct bounded submitted searches and ignores corrupt history', () => {
+    expect(rememberSearch(['غسول', 'serum'], ' غسول ')).toEqual(['غسول', 'serum']);
+    expect(rememberSearch(['one', 'two', 'three', 'four', 'five'], 'six')).toEqual(['six', 'one', 'two', 'three', 'four']);
+    expect(rememberSearch([], 'x')).toEqual([]);
+    expect(readRecentSearches('{broken')).toEqual([]);
+    expect(readRecentSearches('["غسول",12,null,"serum"]')).toEqual(['غسول', 'serum']);
+  });
   it('normalizes whitespace and caps queries at 120 chars', () => {
     expect(normalizeSearchQuery('   غسول    بشرة  ')).toBe('غسول بشرة');
     expect(normalizeSearchQuery('a'.repeat(150)).length).toBe(120);

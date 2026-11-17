@@ -242,6 +242,7 @@ export function SiteHeader({ searchDefault }: SiteHeaderProps) {
         <div className="px-4 pb-2.5 pt-0.5">
           <ProductSearch
             id="site-search-m"
+            mobile
             label={m.shellSearchLabel}
             placeholder={m.shellSearchPlaceholder}
             defaultValue={searchDefault}

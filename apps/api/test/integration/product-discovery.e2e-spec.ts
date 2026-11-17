@@ -1,9 +1,12 @@
 // These specs assert the strict confirmed-only storefront gate (SUPPLIER_PROVISIONAL_ORDERABLE=false); the default now also accepts a fresh supplier signal (see g08).
 process.env.SUPPLIER_PROVISIONAL_ORDERABLE = 'false';
+process.env.SOURCING_MODE = 'OFFER_BASED';
+process.env.SUPPLIER_AVAILABILITY_MAX_AGE_HOURS = '24';
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
+import { uniqueGtin } from '../fixtures/gtin';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { CatalogService } from '../../src/modules/catalog/public';
@@ -27,16 +30,17 @@ describe('GLO-182/183 public discovery and detail (PostgreSQL)', () => {
   const routineIds: string[] = [];
   const id = (n: number) => prefix + String(n).padStart(12, '0');
   let firstSku: string;
+  let firstBarcode: string;
 
   async function fixture(n: number, state = 'sellable', createdAt = new Date('2026-01-01')) {
     const product = await db.product.create({ data: { id: id(n), name: `Contract Cream ${n}`, slug: `${brandSlug}-${n}`,
       brandId, isPublished: state !== 'unpublished', createdAt } });
     products.push(product.id);
-    const sku = await db.sku.create({ data: { productId: product.id, code: `CONTRACT-${run}-${n}`, barcode: `contract-barcode-${n}`,
+    const sku = await db.sku.create({ data: { productId: product.id, code: `CONTRACT-${run}-${n}`, barcode: uniqueGtin(),
       variantName: '50 ml', size: 50, sizeUnit: 'ml' } });
     skuIds.push(sku.id);
     if (state !== 'unreviewed') await catalog.addMedia(product.id, { type: 'image', url: `https://www.cerave.com/contract-fixture-${run}-${n}.png`, originType: 'verified',
-      generationMetadata: { skuId: sku.id, barcode: sku.barcode, size: 50, sizeUnit: 'ml', variantName: '50 ml', isTest: false,
+      generationMetadata: { skuId: sku.id, barcode: sku.barcode, identityVerification: 'ADMIN_VERIFIED', size: 50, sizeUnit: 'ml', variantName: '50 ml', isTest: false,
         sourceUrl: 'https://www.cerave.com/skincare/moisturizers/moisturizing-cream', sourceType: 'OFFICIAL_MANUFACTURER', reviewedBy: reviewerId, reviewedAt: new Date().toISOString() } }, reviewerId);
     await db.listing.create({ data: { skuId: sku.id, isListed: state !== 'unlisted' } });
     if (state !== 'unpriced') await db.sellingPrice.create({ data: { skuId: sku.id, amount: 89, currency: 'SAR', validFrom: new Date('2026-01-01'),
@@ -57,9 +61,9 @@ describe('GLO-182/183 public discovery and detail (PostgreSQL)', () => {
     await app.init(); db = app.get(PrismaService); catalog = app.get(CatalogService);
     reviewerId = (await db.customer.create({ data: { name: 'Synthetic reviewer', email: `${run}@contract.test`, roles: ['ADMIN'] } })).id;
     brandId = (await db.brand.create({ data: { name: brandSlug, slug: brandSlug } })).id;
-    supplierId = (await db.supplier.create({ data: { name: 'Synthetic contract supplier', slug: brandSlug } })).id;
+    supplierId = (await db.supplier.create({ data: { name: `Synthetic contract supplier ${run}`, slug: brandSlug } })).id;
     for (const [n, state] of ['sellable', 'unpriced', 'stale', 'unpublished', 'unlisted', 'unreviewed', 'sellable', 'unconfirmed', 'unavailable', 'expired-price'].entries()) {
-      const sku = await fixture(n + 1, state); if (n === 0) firstSku = sku.id;
+      const sku = await fixture(n + 1, state); if (n === 0) { firstSku = sku.id; firstBarcode = sku.barcode!; }
     }
     // A sibling with price and stock but no exact reviewed image must remain hidden.
     const sibling = await db.sku.create({ data: { productId: id(1), code: `UNREVIEWED-${run}`, variantName: '100 ml', size: 100, sizeUnit: 'ml' } });
@@ -72,7 +76,7 @@ describe('GLO-182/183 public discovery and detail (PostgreSQL)', () => {
       ['Private customer routine', false, true, 'manual'], ['Inactive template', true, false, 'expert'],
       ['Generated template', true, true, 'ai'],
     ] as const) {
-      const routine = await db.routine.create({ data: { title: `${label} ${run}`, careArea: 'skin', isTemplate, isActive,
+      const routine = await db.routine.create({ data: { title: `${label} ${run}`, careArea: 'skin', isTemplate, isActive, status: 'PUBLISHED',
         steps: { create: { title: 'Moisturize', stepOrder: 1, timing: 'both', recommendations: { create: { productId: id(1), source } } } } } });
       routineIds.push(routine.id);
     }
@@ -110,7 +114,7 @@ describe('GLO-182/183 public discovery and detail (PostgreSQL)', () => {
   });
 
   it('searches names, SKU codes and barcode; combines filters and validates input', async () => {
-    for (const q of [`CONTRACT-${run}-1`, 'contract-barcode-1', 'Cream 1']) {
+    for (const q of [`CONTRACT-${run}-1`, firstBarcode, 'Cream 1']) {
       const result = await request(app.getHttpServer()).get('/products/discovery').query({ brand: brandSlug, q }).expect(200);
       expect(result.body.items.map((p: any) => p.id)).toEqual([id(1)]);
     }
@@ -138,6 +142,10 @@ describe('GLO-182/183 public discovery and detail (PostgreSQL)', () => {
       expect(filtered.body.items.map((p: { id: string }) => p.id)).toEqual([id(7)]);
       const suggestions = await request(app.getHttpServer()).get('/products/suggestions').query({ brand: brandSlug, q: 'سيروم' }).expect(200);
       expect(suggestions.body.items).toEqual([expect.objectContaining({ id: id(7), slug: `${brandSlug}-7` })]);
+      expect(suggestions.body.items[0]).toMatchObject({
+        imageUrl: `https://www.cerave.com/contract-fixture-${run}-7.png`,
+        category: null,
+      });
       expect(JSON.stringify(suggestions.body)).not.toMatch(/costPrice|supplierId|reviewedBy|availability/);
       await request(app.getHttpServer()).get('/products/suggestions').query({ q: 'x' }).expect(400);
       await request(app.getHttpServer()).get('/products/suggestions').query({ q: '   ' }).expect(400);
@@ -175,7 +183,7 @@ describe('GLO-182/183 public discovery and detail (PostgreSQL)', () => {
       const result = await request(app.getHttpServer()).get(path).expect(200);
       expect(result.body.id).toBe(id(1));
       expect(result.body.skus).toHaveLength(1);
-      expect(result.body.skus[0]).toMatchObject({ id: firstSku, barcode: 'contract-barcode-1', size: 50, sizeUnit: 'ml',
+      expect(result.body.skus[0]).toMatchObject({ id: firstSku, barcode: firstBarcode, size: 50, sizeUnit: 'ml',
         price: { amount: 89, currency: 'SAR' }, availability: { isAvailable: true, isFresh: true } });
       expect(Date.parse(result.body.skus[0].availability.validUntil)).toBeGreaterThan(Date.now());
       expect(result.body.media[0]).toMatchObject({ skuId: firstSku, originType: 'verified' });

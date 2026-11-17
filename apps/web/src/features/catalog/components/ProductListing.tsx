@@ -94,7 +94,12 @@ export function ProductListing() {
   });
 
   const navigate = (next: DiscoveryFilters) => router.push(`${pathname}${toQueryString(next)}`, { scroll: false });
-  const clearAll = () => navigate({ q: filters.q, category: department && context.kind !== 'search' ? department.slug : undefined });
+  const clearAll = () =>
+    navigate({
+      q: filters.q,
+      concern: filters.concern,
+      category: department && context.kind !== 'search' && context.kind !== 'concern' ? department.slug : undefined,
+    });
 
   const isRoot = (slug: string | undefined) => Boolean(slug && tree.data?.some((r) => r.slug === slug));
   const applied: AppliedFilter[] = [];
@@ -103,18 +108,40 @@ export function ProductListing() {
     applied.push({
       key: 'category',
       label: categoryLabel(facet ?? { slug: filters.category, name: filters.category }, locale) ?? filters.category,
-      onRemove: () => navigate({ ...filters, category: department?.slug }),
+      onRemove: () => navigate({ ...filters, category: context.kind === 'concern' ? undefined : department?.slug }),
     });
   }
   if (filters.brand && context.kind !== 'brand') {
     const facet = groups.brand.find((f) => f.slug === filters.brand);
     applied.push({ key: 'brand', label: (facet?.name ?? filters.brand).toUpperCase(), latin: true, onRemove: () => navigate({ ...filters, brand: undefined }) });
   }
+  if (filters.skinType) {
+    applied.push({
+      key: 'skinType',
+      label: filters.skinType === 'oily' ? m.concernRefineAcneOily : filters.skinType,
+      onRemove: () => navigate({ ...filters, skinType: undefined }),
+    });
+  }
+  if (filters.sort && filters.sort !== 'relevance') {
+    const sortLabel =
+      filters.sort === 'price-asc'
+        ? m.concernSortPriceAsc
+        : filters.sort === 'price-desc'
+        ? m.concernSortPriceDesc
+        : filters.sort === 'name-asc'
+        ? m.concernSortNameAsc
+        : filters.sort;
+    applied.push({
+      key: 'sort',
+      label: sortLabel,
+      onRemove: () => navigate({ ...filters, sort: undefined }),
+    });
+  }
   if (filters.concern) {
     applied.push({
       key: 'concern',
-      label: concerns.data?.find((c) => c.slug === filters.concern)?.name ?? filters.concern,
-      onRemove: () => navigate({ ...filters, concern: undefined }),
+      label: concerns.data?.find((c) => c.slug === filters.concern)?.name ?? (filters.concern === 'acne' ? 'حب الشباب' : filters.concern),
+      onRemove: () => navigate({ ...filters, concern: undefined, skinType: undefined }),
     });
   }
 
@@ -128,20 +155,103 @@ export function ProductListing() {
         <Skeleton className="h-[160px] rounded-24 lg:h-[212px] lg:rounded-sheet" />
       )}
 
-      {/* Phone: quick type pills, then the sticky «فلترة» bar (PLPMobile, PLPMobileScrolled). */}
+      {/* Section 2 — Concern Refinement (Personalization) */}
+      {context.kind === 'concern' && context.concern === 'acne' ? (
+        <section aria-labelledby="concern-refine-heading" className="flex flex-col gap-3 rounded-card border border-line/60 bg-linen p-4 sm:p-5 shadow-elevation-1">
+          <div className="flex items-center justify-between">
+            <h2 id="concern-refine-heading" className="m-0 font-display text-15 font-bold text-ink sm:text-16">
+              {m.plpConcernRefineTitle}
+            </h2>
+            <span className="font-text text-12 font-medium text-stone">
+              {filters.skinType ? m.concernRefineAcneOily : m.concernRefineAllAcne}
+            </span>
+          </div>
+          <div
+            role="group"
+            aria-label={m.plpConcernRefineTitle}
+            className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 py-1 scrollbar-none sm:mx-0 sm:px-0 sm:flex-wrap"
+          >
+            <button
+              type="button"
+              aria-pressed={!filters.skinType}
+              onClick={() => navigate({ ...filters, skinType: undefined })}
+              className={cn(
+                'inline-flex min-h-control-s items-center justify-center whitespace-nowrap rounded-pill px-4.5 font-display text-14 font-semibold transition-all duration-fast cursor-pointer',
+                !filters.skinType
+                  ? 'bg-cobalt text-chalk shadow-elevation-1'
+                  : 'border border-line/70 bg-chalk text-ink hover:border-ink/40'
+              )}
+            >
+              {m.concernRefineAllAcne}
+            </button>
+            <button
+              type="button"
+              aria-pressed={filters.skinType === 'oily'}
+              onClick={() => navigate({ ...filters, skinType: 'oily' })}
+              className={cn(
+                'inline-flex min-h-control-s items-center justify-center whitespace-nowrap rounded-pill px-4.5 font-display text-14 font-semibold transition-all duration-fast cursor-pointer',
+                filters.skinType === 'oily'
+                  ? 'bg-cobalt text-chalk shadow-elevation-1'
+                  : 'border border-line/70 bg-chalk text-ink hover:border-ink/40'
+              )}
+            >
+              {m.concernRefineAcneOily}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {/* Phone: quick type pills, mobile count + sort bar, sticky «فلترة» bar */}
       <div className="flex flex-col gap-3 lg:hidden">
-        {department && groups.type.length ? (
+        {groups.type.length > 0 ? (
           <div role="group" aria-label={m.plpType} className="-mx-4 flex gap-2 overflow-x-auto px-4 py-1.5 scrollbar-none">
-            <Chip selected={filters.category === department.slug} count={deptTotal !== undefined ? formatNumber(deptTotal, locale) : undefined} onClick={() => navigate({ ...filters, category: department.slug })}>
+            <Chip
+              selected={!filters.category}
+              count={total !== null ? formatNumber(total, locale) : undefined}
+              onClick={() => navigate({ ...filters, category: undefined })}
+            >
               {m.plpAll}
             </Chip>
             {groups.type.map((f) => (
-              <Chip key={f.slug} selected={filters.category === f.slug} count={formatNumber(f.count, locale)} onClick={() => navigate({ ...filters, category: f.slug })}>
+              <Chip
+                key={f.slug}
+                selected={filters.category === f.slug}
+                count={formatNumber(f.count, locale)}
+                onClick={() => navigate({ ...filters, category: filters.category === f.slug ? undefined : f.slug })}
+              >
                 {categoryLabel(f, locale)}
               </Chip>
             ))}
           </div>
         ) : null}
+
+        {/* Mobile Toolbar: Count + Sort */}
+        <div className="flex items-center justify-between gap-2 px-1">
+          <p role="status" aria-live="polite" className="m-0 text-14 font-bold text-ink">
+            {total !== null ? fillMessage(m.plpCount, { n: formatNumber(total, locale) }) : null}
+            {total !== null && products.length < total ? (
+              <span className="font-medium text-stone"> {fillMessage(m.plpShown, { n: formatNumber(products.length, locale) })}</span>
+            ) : null}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="plp-sort-mobile" className="text-12 font-semibold text-stone">
+              {filters.q ? m.searchSort : m.pdpSortLabel}:
+            </label>
+            <select
+              id="plp-sort-mobile"
+              aria-label={filters.q ? m.searchSort : undefined}
+              value={filters.sort ?? 'relevance'}
+              onChange={(e) => navigate({ ...filters, sort: e.target.value === 'relevance' ? undefined : (e.target.value as DiscoveryFilters['sort']) })}
+              className="h-control-s rounded-pill border border-line-2 bg-linen px-2.5 font-display text-12 font-semibold text-ink focus:border-cobalt focus:outline-none cursor-pointer"
+            >
+              <option value="relevance">{filters.q ? m.searchSortRelevance : m.concernSortRelevance}</option>
+              <option value="price-asc">{filters.q ? m.searchSortPriceAsc : m.concernSortPriceAsc}</option>
+              <option value="price-desc">{filters.q ? m.searchSortPriceDesc : m.concernSortPriceDesc}</option>
+              <option value="name-asc">{filters.q ? m.searchSortName : m.concernSortNameAsc}</option>
+            </select>
+          </div>
+        </div>
+
         <div className="sticky top-0 z-sticky -mx-4 bg-chalk/80 px-4 py-2.5 backdrop-blur-md shadow-outline-hairline">
           <MobileFilterSheet filters={filters} groups={groups} applied={applied.length} onApply={navigate} clearTo={() => clearAll()} />
         </div>
@@ -171,13 +281,60 @@ export function ProductListing() {
         ) : null}
 
         <div className="min-w-0 flex-1">
-          <div className="mb-7 hidden flex-col gap-4 pb-4 shadow-hairline-bottom lg:flex">
-            <p role="status" aria-live="polite" className="m-0 text-15 font-bold leading-24 text-ink">
-              {total !== null ? fillMessage(m.plpCount, { n: formatNumber(total, locale) }) : ' '}
-              {total !== null && products.length < total ? (
-                <span className="font-medium text-stone">{fillMessage(m.plpShown, { n: formatNumber(products.length, locale) })}</span>
+          {/* Section 3 — Desktop Product Listing Toolbar */}
+          <div className="mb-6 hidden flex-col gap-3 pb-4 shadow-hairline-bottom lg:flex">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-baseline gap-2">
+                <p role="status" aria-live="polite" className="m-0 text-16 font-bold leading-none text-ink">
+                  {total !== null ? fillMessage(m.plpCount, { n: formatNumber(total, locale) }) : ' '}
+                </p>
+                {total !== null && products.length < total ? (
+                  <span className="font-medium text-13 text-stone">{fillMessage(m.plpShown, { n: formatNumber(products.length, locale) })}</span>
+                ) : null}
+              </div>
+
+              {/* Desktop Quick Category Chips */}
+              {groups.type.length > 0 ? (
+                <div role="group" aria-label={m.plpType} className="flex flex-wrap items-center gap-1.5">
+                  <Chip
+                    selected={!filters.category}
+                    onClick={() => navigate({ ...filters, category: undefined })}
+                  >
+                    {m.plpAll}
+                  </Chip>
+                  {groups.type.map((f) => (
+                    <Chip
+                      key={f.slug}
+                      selected={filters.category === f.slug}
+                      count={formatNumber(f.count, locale)}
+                      onClick={() => navigate({ ...filters, category: filters.category === f.slug ? undefined : f.slug })}
+                    >
+                      {categoryLabel(f, locale)}
+                    </Chip>
+                  ))}
+                </div>
               ) : null}
-            </p>
+
+              {/* Desktop Sort Dropdown */}
+              <div className="flex items-center gap-2">
+                <label htmlFor="plp-sort-desktop" className="text-13 font-semibold text-stone">
+                  {filters.q ? m.searchSort : m.pdpSortLabel}:
+                </label>
+                <select
+                  id="plp-sort-desktop"
+                  aria-label={filters.q ? m.searchSort : undefined}
+                  value={filters.sort ?? 'relevance'}
+                  onChange={(e) => navigate({ ...filters, sort: e.target.value === 'relevance' ? undefined : (e.target.value as DiscoveryFilters['sort']) })}
+                  className="h-control-s rounded-pill border border-line-2 bg-linen px-3 font-display text-13 font-semibold text-ink focus:border-cobalt focus:outline-none cursor-pointer"
+                >
+                  <option value="relevance">{filters.q ? m.searchSortRelevance : m.concernSortRelevance}</option>
+                  <option value="price-asc">{filters.q ? m.searchSortPriceAsc : m.concernSortPriceAsc}</option>
+                  <option value="price-desc">{filters.q ? m.searchSortPriceDesc : m.concernSortPriceDesc}</option>
+                  <option value="name-asc">{filters.q ? m.searchSortName : m.concernSortNameAsc}</option>
+                </select>
+              </div>
+            </div>
+
             <AppliedFilters filters={applied} onClearAll={clearAll} />
           </div>
           <p role="status" aria-live="polite" className="m-0 mb-3 text-15 font-bold leading-24 text-ink lg:hidden">
@@ -237,7 +394,7 @@ export function ProductListing() {
 }
 
 function Grid({ children }: { children: ReactNode }) {
-  return <div className="grid grid-cols-1 gap-x-3 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-12">{children}</div>;
+  return <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3 lg:gap-6 lg:gap-y-10">{children}</div>;
 }
 
 function InfiniteStatus({ shown, total, hasNext, loading, failed, onMore, where }: {
@@ -390,7 +547,13 @@ function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
     enabled: open,
     staleTime: 60_000,
   });
-  const draftApplied = [draft.category && groups.type.some((f) => f.slug === draft.category), draft.brand, draft.concern].filter(Boolean).length;
+  const draftApplied = [
+    draft.category && groups.type.some((f) => f.slug === draft.category),
+    draft.brand,
+    draft.skinType,
+    draft.sort && draft.sort !== 'relevance',
+    draft.concern,
+  ].filter(Boolean).length;
 
   return (
     <Sheet
@@ -424,8 +587,62 @@ function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
             {draftApplied ? <span className="font-text text-14 font-medium text-stone">{fillMessage(m.plpSelected, { n: formatNumber(draftApplied, locale) })}</span> : null}
           </SheetTitle>
         </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4">
+          {draft.concern === 'acne' ? (
+            <div className="pb-3 pt-1.5 shadow-hairline-bottom">
+              <span className="mb-2 block font-display text-15 font-bold text-ink">
+                {m.plpConcernRefineTitle}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <Chip
+                  selected={!draft.skinType}
+                  onClick={() => setDraft({ ...draft, skinType: undefined })}
+                >
+                  {m.concernRefineAllAcne}
+                </Chip>
+                <Chip
+                  selected={draft.skinType === 'oily'}
+                  onClick={() => setDraft({ ...draft, skinType: 'oily' })}
+                >
+                  {m.concernRefineAcneOily}
+                </Chip>
+              </div>
+            </div>
+          ) : null}
+
           <FilterPanel variant="sheet" value={draft} onChange={setDraft} groups={groups} />
+
+          <div className="pb-3 pt-1.5 shadow-hairline-bottom">
+            <span className="mb-2 block font-display text-15 font-bold text-ink">
+              {m.pdpSortLabel}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <Chip
+                selected={!draft.sort || draft.sort === 'relevance'}
+                onClick={() => setDraft({ ...draft, sort: undefined })}
+              >
+                {m.concernSortRelevance}
+              </Chip>
+              <Chip
+                selected={draft.sort === 'price-asc'}
+                onClick={() => setDraft({ ...draft, sort: 'price-asc' })}
+              >
+                {m.concernSortPriceAsc}
+              </Chip>
+              <Chip
+                selected={draft.sort === 'price-desc'}
+                onClick={() => setDraft({ ...draft, sort: 'price-desc' })}
+              >
+                {m.concernSortPriceDesc}
+              </Chip>
+              <Chip
+                selected={draft.sort === 'name-asc'}
+                onClick={() => setDraft({ ...draft, sort: 'name-asc' })}
+              >
+                {m.concernSortNameAsc}
+              </Chip>
+            </div>
+          </div>
         </div>
         <SheetFooter className="items-center">
           <button

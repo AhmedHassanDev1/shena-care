@@ -16,11 +16,11 @@ export class DiscoveryService {
     const concerns = q ? await this.care.getPublicConcerns() : [];
     const matched = concerns.find(c => normalizeSearchText(c.name) === normalizeSearchText(q) || c.slug === q);
     return { q, category: query.category, brand: query.brand, productLine: query.productLine,
-      concern: query.concern, matchedConcern: matched?.slug, snapshotAt };
+      concern: query.concern, matchedConcern: matched?.slug, skinType: query.skinType, snapshotAt };
   }
 
   private async recheckVisible(views: Array<ProductView | null>, filters: SearchFilters): Promise<Array<ProductView | null>> {
-    if (!filters.q) return views;
+    if (!filters.q && !filters.concern && !filters.skinType) return views;
     const visible = views.filter((view): view is ProductView => view !== null);
     if (!visible.length) return views;
     // Reuse Catalog's reviewed aliases/typo rules, while excluding matches whose
@@ -34,28 +34,33 @@ export class DiscoveryService {
   async suggest(query: SuggestQueryDto) {
     const snapshotAt = new Date();
     const filters = await this.searchFilters(query, snapshotAt);
-    const ids = await this.searchProvider.suggest(filters, 100);
-    const items: Array<{ id: string; name: string; slug: string; brand: { name: string; slug: string } }> = [];
-    for (let start = 0; start < ids.length && items.length < (query.limit ?? 8); start += 50) {
-      const batch = await this.catalog.getPublishedProductsByIds(ids.slice(start, start + 50));
+    const items: Array<{ id: string; name: string; slug: string; brand: { name: string; slug: string };
+      imageUrl: string | null; category: { name: string; slug: string } | null }> = [];
+    for (let offset = 0; items.length < (query.limit ?? 8); offset += 50) {
+      const ids = await this.searchProvider.suggest(filters, 50, offset);
+      if (!ids.length) break;
+      const batch = await this.catalog.getPublishedProductsByIds(ids);
       const byId = new Map(batch.map(p => [p.id, p]));
-      for (let i = start; i < Math.min(start + 50, ids.length) && items.length < (query.limit ?? 8); i += 10) {
+      for (let i = 0; i < ids.length && items.length < (query.limit ?? 8); i += 10) {
         const selected = ids.slice(i, i + 10).map(id => byId.get(id)).filter((p): p is PublishedProduct => !!p);
         const composed = await this.views.composeProducts(selected);
         const visible = await this.recheckVisible(composed, filters);
         for (const view of visible) {
           if (view) items.push({ id: view.id, name: view.name, slug: view.slug,
-            brand: { name: view.brand.name, slug: view.brand.slug } });
+            brand: { name: view.brand.name, slug: view.brand.slug },
+            imageUrl: (view.media?.find(media => media.isPrimary && media.type === 'image') ?? view.media?.find(media => media.type === 'image'))?.url ?? null,
+            category: view.category ? { name: view.category.name, slug: view.category.slug } : null });
           if (items.length >= (query.limit ?? 8)) break;
         }
       }
+      if (ids.length < 50) break;
     }
     return { items, query: filters.q };
   }
 
   async discover(query: DiscoveryQueryDto) {
     const filters = { q: query.q?.trim() || undefined, category: query.category, brand: query.brand,
-      productLine: query.productLine, concern: query.concern, sort: query.sort ?? 'relevance' };
+      productLine: query.productLine, concern: query.concern, skinType: query.skinType, sort: query.sort ?? 'relevance' };
     const fingerprint = createHash('sha256').update(JSON.stringify(filters)).digest('hex');
     let snapshotAt = new Date();
     let afterId: string | undefined;
@@ -72,7 +77,7 @@ export class DiscoveryService {
     // Full eligibility evaluation is necessary for honest facets/totals.
     const visible: ProductView[] = [];
     const evaluatedAt = new Date();
-    if (filters.q || filters.concern) {
+    if (filters.q || filters.concern || filters.skinType) {
       const searchFilters = await this.searchFilters(query, snapshotAt);
       const ids = await this.searchProvider.search(searchFilters);
       for (let start = 0; start < ids.length; start += 100) {

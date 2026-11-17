@@ -15,6 +15,10 @@ describe('sanitizeFilters', () => {
   it('caps the search length at the API maximum', () => {
     expect(sanitizeFilters({ q: 'x'.repeat(200) }).q).toHaveLength(120);
   });
+  it('preserves only supported URL sort values', () => {
+    expect(sanitizeFilters({ q: 'غسول', sort: 'price-asc' })).toEqual({ q: 'غسول', sort: 'price-asc' });
+    expect(sanitizeFilters({ sort: 'random' })).toEqual({});
+  });
 });
 
 describe('withoutFacet', () => {
