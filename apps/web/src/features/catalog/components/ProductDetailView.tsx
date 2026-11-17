@@ -1,21 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'motion/react';
+import { SectionJump } from '@/components/layout/section-jump';
 import { Section } from '@/components/layout/section';
+import { EASE_STANDARD } from '@/components/motion/reveal';
+import { ArrowLink } from '@/components/ui/arrow-link';
 import { AsyncButton, Button, buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { ProductTile } from '@/components/ui/product-tile';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Toast } from '@/components/ui/toast';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useCart } from '@/features/cart/hooks/useCart';
 import { ApiError } from '@/lib/api-client';
 import { MAX_LINE_QUANTITY } from '@/lib/cart';
-import { formatAmount, formatNumber } from '@/lib/i18n/format';
+import { formatAmount, formatNumber, formatPercent } from '@/lib/i18n/format';
 import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
@@ -29,7 +32,9 @@ import {
   ProductBenefitsStrip,
   ProductUsage,
   RoutinePlacement,
+  usePdpContent,
 } from './ProductDetailSections';
+import { ProductGallery } from './ProductGallery';
 import { HeroRating, ProductReviews } from './ProductReviews';
 import { SimilarProducts } from './SimilarProducts';
 
@@ -41,7 +46,7 @@ export function ProductDetailSkeleton() {
   return (
     <article aria-busy="true" aria-label={m.loading} className="pb-24 lg:pb-14">
       <Section labelledBy="pdp-skeleton-title" rhythm="compact" className="pt-3 lg:pt-5">
-        <div className="mx-auto w-full max-w-[1140px] flex flex-col gap-7">
+        <div className="flex w-full flex-col gap-7">
           <span id="pdp-skeleton-title" className="sr-only">
             {m.loading}
           </span>
@@ -159,6 +164,8 @@ function Detail({ product }: { product: ProductDetail }) {
   const [quantity, setQuantity] = useState(1);
   const [addState, setAddState] = useState<'idle' | 'pending' | 'added'>('idle');
   const [addError, setAddError] = useState<string | null>(null);
+  const buyRef = useRef<HTMLDivElement>(null);
+  const [buyInView, setBuyInView] = useState(true);
 
   useEffect(() => {
     setSelectedSkuId(product.selectedSkuId || product.skus[0]?.id || '');
@@ -168,6 +175,15 @@ function Detail({ product }: { product: ProductDetail }) {
     setAddState('idle');
     setAddError(null);
   }, [product.id, product.selectedSkuId, product.skus]);
+
+  // The sticky phone bar shows only while the real buy panel is scrolled out of sight.
+  useEffect(() => {
+    const el = buyRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setBuyInView(entry.isIntersecting), { threshold: 0.4 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const fallbackVariant: PublicVariant = {
     id: product.id,
@@ -179,23 +195,14 @@ function Detail({ product }: { product: ProductDetail }) {
     price: null,
     isAvailable: false,
     canOrder: false,
-    availability: {
-      isAvailable: false,
-      isFresh: false,
-      confirmedAt: null,
-      observedAt: null,
-      validUntil: null,
-    },
+    availability: { isAvailable: false, isFresh: false, confirmedAt: null, observedAt: null, validUntil: null },
     media: product.media || [],
     content: null,
     promotions: null,
   };
 
   const variant =
-    product.skus.find((s) => s.id === selectedSkuId) ||
-    product.selectedVariant ||
-    product.skus[0] ||
-    fallbackVariant;
+    product.skus.find((s) => s.id === selectedSkuId) || product.selectedVariant || product.skus[0] || fallbackVariant;
 
   const rawImages = variant.media?.length ? variant.media : product.media ?? [];
   const uniqueImages = dedupeGalleryMedia(rawImages);
@@ -205,16 +212,9 @@ function Detail({ product }: { product: ProductDetail }) {
   const markImageFailed = (url: string) => {
     setFailedUrls((prev) => (prev[url] ? prev : { ...prev, [url]: true }));
   };
-  const showPrevImage = () => {
-    if (visibleImages.length <= 1) return;
-    setActiveImageIndex((prev) => (prev - 1 + visibleImages.length) % visibleImages.length);
-  };
-  const showNextImage = () => {
-    if (visibleImages.length <= 1) return;
-    setActiveImageIndex((prev) => (prev + 1) % visibleImages.length);
-  };
 
   const heroBadges = resolveHeroFeatureBadges(product, m);
+  const content = usePdpContent(product, variant);
   const skus = product.skus ?? [];
   const canPurchase = Boolean(variant.canOrder && variant.price && variant.price.amount > 0);
   const otherVariantAvailable = !canPurchase && skus.some((s) => s.id !== variant.id && s.canOrder && s.price);
@@ -228,16 +228,11 @@ function Detail({ product }: { product: ProductDetail }) {
   };
 
   const handleWishlist = () => {
-    withAuth(
-      () => {
-        setLiked((prev) => !prev);
-      },
-      {
-        title: m.pdpAuthRequiredWishlistTitle,
-        description: m.pdpAuthRequiredWishlistDesc,
-        intent: 'wishlist',
-      }
-    );
+    withAuth(() => setLiked((prev) => !prev), {
+      title: m.pdpAuthRequiredWishlistTitle,
+      description: m.pdpAuthRequiredWishlistDesc,
+      intent: 'wishlist',
+    });
   };
 
   const handleAddToCart = async () => {
@@ -250,246 +245,94 @@ function Detail({ product }: { product: ProductDetail }) {
       setTimeout(() => setAddState('idle'), 2500);
     } catch (err) {
       setAddState('idle');
-      if (err instanceof ApiError && err.status === 409) {
-        setAddError(m.pdpAddUnavailable);
-      } else {
-        setAddError(m.pdpAddFailed);
-      }
+      setAddError(err instanceof ApiError && err.status === 409 ? m.pdpAddUnavailable : m.pdpAddFailed);
     }
   };
 
   const priceAmount = variant.price?.amount ?? 0;
   const compareAtAmount = variant.price?.compareAtAmount ?? 0;
   const hasDiscount = canPurchase && compareAtAmount > priceAmount;
+  const discountPercent = hasDiscount ? Math.round(((compareAtAmount - priceAmount) / compareAtAmount) * 100) : 0;
+  const asyncState = addState === 'pending' ? 'pending' : addState === 'added' ? 'success' : 'idle';
+
+  const tabs: Array<{ id: string; label: string }> = [];
+  if (content.hasAbout) tabs.push({ id: 'pdp-about', label: m.vxPdpTabAbout });
+  if (content.hasIngredients) tabs.push({ id: 'pdp-ingredients', label: m.vxPdpTabIngredients });
+  tabs.push({ id: 'pdp-routine', label: m.vxPdpTabRoutine });
+  if (content.hasUsage) tabs.push({ id: 'pdp-usage', label: m.vxPdpTabUsage });
+  tabs.push({ id: 'pdp-reviews', label: m.vxPdpTabReviews });
+  const pending: string[] = [];
+  if (!content.hasAbout) pending.push(m.vxPdpTabAbout);
+  if (!content.hasIngredients) pending.push(m.vxPdpTabIngredients);
+  if (!content.hasUsage) pending.push(m.vxPdpTabUsage);
 
   return (
-    <article className="pb-12 lg:pb-10">
-      {/* Stitch Section A — Product Hero & Gallery */}
-      <Section labelledBy="pdp-title" rhythm="compact" className="pt-2 pb-2.5 lg:pt-4 lg:pb-3">
-        <div className="mx-auto w-full max-w-[1140px] flex flex-col gap-3 lg:gap-4">
-          {/* Breadcrumb */}
-          <nav aria-label={m.plpBreadcrumb} className="text-12 text-stone font-medium">
-            <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0">
-              <li>
-                <Link href={routes.home} className="hover:text-cobalt transition-colors">
-                  {m.plpHome}
-                </Link>
-              </li>
-              <li aria-hidden="true" className="opacity-40">/</li>
-              <li>
-                <Link href={routes.products} className="hover:text-cobalt transition-colors">
-                  {m.plpAllProducts}
-                </Link>
-              </li>
-              {product.category ? (
-                <>
-                  <li aria-hidden="true" className="opacity-40">/</li>
-                  <li>
-                    <Link
-                      href={`${routes.products}?category=${encodeURIComponent(product.category.slug)}`}
-                      className="hover:text-cobalt transition-colors"
-                    >
-                      {product.category.name}
-                    </Link>
-                  </li>
-                </>
-              ) : null}
-              <li aria-hidden="true" className="opacity-40">/</li>
-              <li aria-current="page" className="font-bold text-ink truncate max-w-[260px]">
-                {product.name}
-              </li>
-            </ol>
-          </nav>
+    <article className="pb-32 lg:pb-12">
+      <Section labelledBy="pdp-title" rhythm="compact" className="gap-4 pb-6 pt-2 lg:gap-6 lg:pb-12 lg:pt-5">
+        <nav aria-label={m.plpBreadcrumb} className="text-13 font-medium text-stone">
+          <ol className="m-0 flex list-none flex-wrap items-center gap-2 p-0">
+            <li><Link href={routes.home} className="transition-colors hover:text-cobalt">{m.plpHome}</Link></li>
+            <li aria-hidden="true" className="opacity-40">/</li>
+            <li><Link href={routes.products} className="transition-colors hover:text-cobalt">{m.plpAllProducts}</Link></li>
+            {product.category ? (
+              <>
+                <li aria-hidden="true" className="opacity-40">/</li>
+                <li>
+                  <Link href={`${routes.products}?category=${encodeURIComponent(product.category.slug)}`} className="transition-colors hover:text-cobalt">
+                    {product.category.name}
+                  </Link>
+                </li>
+              </>
+            ) : null}
+          </ol>
+        </nav>
 
-          {/* 12-Col Hero Grid: Gallery (col-span-7) + Info (col-span-5) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-start">
-            {/* Gallery Column */}
-            <div className="lg:col-span-7 flex flex-col items-center">
-              <div className="flex items-start gap-3 w-full">
-                {/* Main Hero Image */}
-                <div className="relative flex-1 aspect-[5/4] lg:aspect-square rounded-24 overflow-hidden bg-linen border border-line shadow-elevation-1 group">
-                  <ProductTile
-                    key={currentImage?.id || currentImage?.url || 'empty'}
-                    src={currentImage?.url ?? null}
-                    alt={currentImage?.altText || product.name}
-                    name={product.name}
-                    priority
-                    sizes="(min-width: 1024px) 580px, 100vw"
-                    onImageError={() => currentImage && markImageFailed(currentImage.url)}
-                    className="size-full rounded-none bg-linen"
-                    imageClassName="transition-transform duration-500 ease-out group-hover:scale-105"
-                  />
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-12">
+          <div className="min-w-0 lg:col-span-7">
+            <ProductGallery
+              images={visibleImages}
+              index={safeImageIndex}
+              onIndexChange={setActiveImageIndex}
+              productName={product.name}
+              liked={liked}
+              onToggleLike={handleWishlist}
+              onZoom={() => setZoomOpen(true)}
+              onImageError={markImageFailed}
+            />
+          </div>
 
-                  {visibleImages.length > 1 ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={showPrevImage}
-                        aria-label={fillMessage(m.pdpShowImage, {
-                          i: formatNumber(
-                            ((safeImageIndex - 1 + visibleImages.length) % visibleImages.length) + 1,
-                            locale
-                          ),
-                        })}
-                        className="hidden lg:flex absolute top-1/2 -translate-y-1/2 start-3 z-10 size-9 items-center justify-center rounded-full bg-chalk/90 border border-line text-ink shadow-elevation-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-chalk cursor-pointer"
-                      >
-                        <Icon name="chevron-back" size={18} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={showNextImage}
-                        aria-label={fillMessage(m.pdpShowImage, {
-                          i: formatNumber(((safeImageIndex + 1) % visibleImages.length) + 1, locale),
-                        })}
-                        className="hidden lg:flex absolute top-1/2 -translate-y-1/2 end-3 z-10 size-9 items-center justify-center rounded-full bg-chalk/90 border border-line text-ink shadow-elevation-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:bg-chalk cursor-pointer"
-                      >
-                        <Icon name="chevron-forward" size={18} />
-                      </button>
-                    </>
-                  ) : null}
-
-                  {/* Top-End Wishlist Button */}
-                  <button
-                    type="button"
-                    aria-label={liked ? m.wishlistRemove : m.wishlistAdd}
-                    aria-pressed={liked}
-                    onClick={handleWishlist}
-                    className={cn(
-                      'absolute top-3.5 end-3.5 z-10 flex size-10 items-center justify-center rounded-full bg-chalk/90 border border-line shadow-elevation-1 transition active:scale-90 cursor-pointer',
-                      liked ? 'text-tomato-ink' : 'text-ink hover:text-tomato-ink'
-                    )}
-                  >
-                    <Icon name="heart" size={19} strokeWidth={2} fill={liked ? 'currentColor' : 'none'} />
-                  </button>
-
-                  {/* Bottom-End Expand Zoom Button */}
-                  {currentImage ? (
-                    <button
-                      type="button"
-                      aria-label={m.pdpZoom}
-                      onClick={() => setZoomOpen(true)}
-                      className="absolute bottom-3.5 end-3.5 z-10 flex size-9 items-center justify-center rounded-full bg-chalk/90 border border-line text-ink shadow-elevation-1 transition hover:scale-105 active:scale-95 cursor-pointer"
-                    >
-                      <Icon name="expand" size={16} strokeWidth={2} />
-                    </button>
-                  ) : null}
-                </div>
-
-                {/* Desktop Vertical Thumbnail Strip */}
-                {visibleImages.length > 1 ? (
-                  <div className="hidden lg:flex flex-col gap-2.5 w-[80px] shrink-0">
-                    {visibleImages.slice(0, 4).map((img, idx) => {
-                      const isActive = idx === safeImageIndex;
-                      return (
-                        <button
-                          key={img.id || img.url}
-                          type="button"
-                          onClick={() => setActiveImageIndex(idx)}
-                          aria-label={fillMessage(m.pdpShowImage, { i: formatNumber(idx + 1, locale) })}
-                          aria-current={isActive ? 'true' : undefined}
-                          className={cn(
-                            'relative w-full aspect-square rounded-14 overflow-hidden bg-linen transition-all cursor-pointer',
-                            isActive
-                              ? 'border-2 border-cobalt shadow-elevation-1'
-                              : 'border border-line hover:border-cobalt/50 opacity-85 hover:opacity-100'
-                          )}
-                        >
-                          <ProductTile
-                            src={img.url}
-                            alt={img.altText || `${product.name} ${idx + 1}`}
-                            name={product.name}
-                            size="thumb"
-                            sizes="80px"
-                            onImageError={() => markImageFailed(img.url)}
-                            className="size-full rounded-none bg-linen"
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Gallery Dots Indicator */}
-              {visibleImages.length > 1 ? (
-                <div
-                  role="tablist"
-                  aria-label={m.pdpGalleryLabel}
-                  className="flex items-center justify-center gap-1.5 mt-2 lg:mt-3"
-                >
-                  {visibleImages.map((img, idx) => {
-                    const isActive = idx === safeImageIndex;
-                    return (
-                      <button
-                        key={img.id || img.url}
-                        type="button"
-                        onClick={() => setActiveImageIndex(idx)}
-                        aria-label={fillMessage(m.pdpShowImage, { i: formatNumber(idx + 1, locale) })}
-                        aria-current={isActive ? 'true' : undefined}
-                        className={cn(
-                          'rounded-full transition-all cursor-pointer',
-                          isActive ? 'size-2.5 bg-cobalt' : 'size-2 bg-line-2 hover:bg-stone/60'
-                        )}
-                      />
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-
-            {/* Product Info Column */}
-            <div className="lg:col-span-5 flex flex-col text-start pt-0.5">
-              {/* Brand Badge */}
+          <div className="flex min-w-0 flex-col gap-5 text-start lg:sticky lg:top-24 lg:col-span-5">
+            <div className="flex flex-col gap-2">
               {product.brand?.name ? (
-                <div className="mb-1.5 lg:mb-2">
-                  <span className="inline-block rounded-pill bg-cobalt/10 px-3.5 py-1 text-12 sm:text-13 font-bold text-cobalt">
-                    {product.brand.name}
-                  </span>
-                </div>
-              ) : null}
-
-              {/* Product Title */}
-              <h1
-                id="pdp-title"
-                className="m-0 font-display text-28 sm:text-32 lg:text-34 font-bold leading-34 sm:leading-38 lg:leading-40 text-ink mb-1 lg:mb-2"
-              >
-                {product.name}
-              </h1>
-
-              {/* Product Line Subtitle (when available) */}
-              {product.productLine?.name ? (
-                <p className="m-0 text-15 font-medium text-stone mb-2 lg:mb-2.5">
-                  {product.productLine.name}
+                <p className="m-0 flex flex-wrap items-center gap-x-3 font-display text-17 font-semibold text-cobalt">
+                  <bdi>{product.brand.name}</bdi>
+                  {product.productLine?.name ? <span className="font-medium text-stone"><bdi>{product.productLine.name}</bdi></span> : null}
                 </p>
               ) : null}
+              <h1 id="pdp-title" className="m-0 font-display text-display-1 font-extrabold tracking-tight text-ink">
+                <bdi>{product.name}</bdi>
+              </h1>
+              <HeroRating slug={product.slug} />
+            </div>
 
-              {/* Rating Summary */}
-              <div className="mb-2.5 lg:mb-3.5">
-                <HeroRating slug={product.slug} />
-              </div>
+            {heroBadges.length > 0 ? (
+              <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+                {heroBadges.map((badge) => (
+                  <li key={badge.id} className="inline-flex items-center gap-1.5 rounded-pill bg-linen px-3.5 py-2 text-14 font-medium text-ink shadow-outline-hairline">
+                    <Icon name={badge.icon} size={16} className="shrink-0 text-cobalt" />
+                    <span>{badge.label}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
 
-              {/* Mini Feature Badges Row (max 3 reviewed facts) */}
-              {heroBadges.length > 0 ? (
-                <div className="flex items-center flex-wrap gap-3 sm:gap-4 text-13 text-stone pb-3 mb-3 lg:pb-4 lg:mb-4 border-b border-line">
-                  {heroBadges.map((badge) => (
-                    <div key={badge.id} className="flex items-center gap-1.5">
-                      <Icon name={badge.icon} size={16} className="text-cobalt shrink-0" />
-                      <span>{badge.label}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="border-b border-line mb-3 lg:mb-4" />
-              )}
-
-              {/* Size Selector */}
-              {skus.length > 0 ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-3 lg:mb-4">
-                  <span className="text-15 font-medium text-stone shrink-0">{m.pdpSizeLabel}</span>
-                  <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-5 border-t border-ink/20 pt-5">
+              {skus.length > 1 ? (
+                <div role="group" aria-label={m.pdpSizeLabel} className="flex flex-col gap-2">
+                  <span className="text-15 font-semibold text-stone">{m.pdpSizeLabel}</span>
+                  <div className="flex flex-wrap gap-2">
                     {skus.map((sku) => {
                       const isSelected = sku.id === variant.id;
-                      const skuAvailable = Boolean(sku.canOrder && sku.price);
                       return (
                         <button
                           key={sku.id}
@@ -497,132 +340,171 @@ function Detail({ product }: { product: ProductDetail }) {
                           onClick={() => handleSelectVariant(sku.id)}
                           aria-pressed={isSelected}
                           className={cn(
-                            'min-h-[44px] min-w-[76px] rounded-14 px-4 py-2 text-14 transition-all cursor-pointer flex items-center justify-center',
-                            isSelected
-                              ? 'border-2 border-cobalt bg-chalk font-bold text-ink shadow-elevation-1'
-                              : 'border border-line-2 bg-linen/70 hover:bg-chalk text-stone hover:text-ink',
-                            !skuAvailable && 'opacity-65'
+                            'h-control-m min-w-20 cursor-pointer rounded-pill px-5 font-display text-16 transition-[background-color,color,box-shadow] duration-fast',
+                            isSelected ? 'bg-ink font-bold text-chalk shadow-elevation-1' : 'bg-chalk font-medium text-ink shadow-outline-control hover:bg-sand',
+                            !(sku.canOrder && sku.price) && 'opacity-60',
                           )}
                         >
-                          <span>{formatVariantLabel(sku)}</span>
+                          {formatVariantLabel(sku)}
                         </button>
                       );
                     })}
                   </div>
                 </div>
+              ) : skus.length === 1 ? (
+                <p className="m-0 text-15 text-stone">{m.pdpSizeLabel} <bdi dir="ltr" className="font-semibold text-ink">{formatVariantLabel(skus[0])}</bdi></p>
               ) : null}
 
-              {/* Price Display / Availability State */}
-              <div className="mb-3.5 lg:mb-5">
-                {canPurchase ? (
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="font-display text-32 lg:text-40 font-bold text-cobalt tabular-nums leading-none">
+              {canPurchase ? (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="font-display text-display-1 font-extrabold leading-none text-ink tabular-nums">
                       {formatAmount(priceAmount, locale)}
                     </span>
-                    <span className="text-16 font-bold text-cobalt">{m.pdpCurrencyEgp}</span>
+                    <span className="font-display text-18 font-bold text-ink">{m.pdpCurrencyEgp}</span>
                     {hasDiscount ? (
-                      <span className="text-15 text-stone line-through tabular-nums ms-1">
-                        {formatAmount(compareAtAmount, locale)} {m.pdpCurrencyEgp}
-                      </span>
+                      <>
+                        <span className="text-16 text-stone line-through tabular-nums">{formatAmount(compareAtAmount, locale)}</span>
+                        <span className="rounded-pill bg-tomato px-2.5 py-0.5 font-display text-14 font-bold text-ink tabular-nums">
+                          {formatPercent(discountPercent, locale)}
+                        </span>
+                      </>
                     ) : null}
                   </div>
-                ) : (
-                  <div className="flex flex-col gap-1.5 items-start">
-                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-sand px-3.5 py-1.5 text-13 font-bold text-ink">
-                      {m.pdpUnavailableNow}
-                    </span>
-                    {otherVariantAvailable ? (
-                      <span className="text-12 text-stone">{m.pdpOtherSizeAvailable}</span>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-
-              {/* Cart Actions Row: Add to Cart CTA + Quantity Stepper */}
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                <AsyncButton
-                  state={addState === 'pending' ? 'pending' : 'idle'}
-                  variant="cobalt"
-                  size="l"
-                  disabled={!canPurchase || addState === 'pending'}
-                  pendingLabel={m.pdpAdding}
-                  onClick={handleAddToCart}
-                  className="min-h-[52px] flex-1 min-w-0 rounded-14 px-5 font-bold text-16 shadow-elevation-2"
-                >
-                  <Icon name={addState === 'added' ? 'check' : 'cart'} size={20} strokeWidth={2} />
-                  <span className="truncate">
-                    {!canPurchase
-                      ? m.pdpOutOfStock
-                      : addState === 'added'
-                        ? m.pdpAdded
-                        : m.pdpAddCta}
-                  </span>
-                </AsyncButton>
-
-                <QuantityStepper
-                  value={quantity}
-                  displayValue={formatNumber(quantity, locale)}
-                  min={1}
-                  max={MAX_LINE_QUANTITY}
-                  disabled={!canPurchase || addState === 'pending'}
-                  onChange={(next) => {
-                    setQuantity(next);
-                    setAddError(null);
-                  }}
-                  labels={{
-                    group: m.pdpQuantity,
-                    decrease: m.pdpDecrease,
-                    increase: m.pdpIncrease,
-                  }}
-                  className="min-h-[52px] min-w-[104px] rounded-14 border border-line-2 bg-chalk shadow-elevation-1"
-                />
-              </div>
-
-              {/* Add-to-cart error feedback */}
-              {addError ? (
-                <p role="alert" className="mt-2.5 m-0 text-13 font-semibold text-tomato-ink">
-                  {addError}
-                </p>
-              ) : null}
-
-              {/* Add-to-cart success toast */}
-              {addState === 'added' ? (
-                <div className="mt-3">
-                  <Toast action={{ label: m.pdpViewCart, onClick: () => router.push(routes.cart) }}>
-                    <span className="flex items-center gap-2 text-ok font-bold">
-                      <Icon name="check" size={16} strokeWidth={2.4} />
-                      {fillMessage(m.pdpAddedToast, { size: formatVariantLabel(variant) })}
-                    </span>
-                  </Toast>
+                  <p className="m-0 inline-flex items-center gap-2 text-14 font-medium text-ok">
+                    <span aria-hidden="true" className="size-2 rounded-full bg-ok" />
+                    {m.vxPdpStockLive}
+                  </p>
                 </div>
-              ) : null}
+              ) : (
+                <div className="flex flex-col items-start gap-1.5">
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-sand px-4 py-2 font-display text-15 font-bold text-ink">
+                    {m.pdpUnavailableNow}
+                  </span>
+                  {otherVariantAvailable ? <span className="text-14 text-stone">{m.pdpOtherSizeAvailable}</span> : null}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3">
+                <div ref={buyRef} className="flex items-stretch gap-3">
+                  <QuantityStepper
+                    value={quantity}
+                    displayValue={formatNumber(quantity, locale)}
+                    min={1}
+                    max={MAX_LINE_QUANTITY}
+                    disabled={!canPurchase || addState === 'pending'}
+                    onChange={(next) => {
+                      setQuantity(next);
+                      setAddError(null);
+                    }}
+                    labels={{ group: m.pdpQuantity, decrease: m.pdpDecrease, increase: m.pdpIncrease }}
+                    className="min-h-control-xl shrink-0 rounded-pill bg-chalk shadow-outline-control"
+                  />
+                  <AsyncButton
+                    state={asyncState}
+                    variant="cobalt"
+                    size="l"
+                    disabled={!canPurchase}
+                    pendingLabel={m.pdpAdding}
+                    successLabel={m.pdpAdded}
+                    onClick={handleAddToCart}
+                    className="min-h-control-xl min-w-0 flex-1"
+                  >
+                    <Icon name="cart" size={20} strokeWidth={2} />
+                    <span className="truncate">{canPurchase ? m.pdpAddCta : m.pdpOutOfStock}</span>
+                  </AsyncButton>
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {addState === 'added' ? (
+                    <motion.div
+                      key="added"
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3, ease: EASE_STANDARD }}
+                      className="flex items-center justify-between gap-3 border-s-4 border-ok ps-3"
+                      role="status"
+                    >
+                      <span className="inline-flex items-center gap-2 text-15 font-semibold text-ok">
+                        <Icon name="check" size={16} strokeWidth={2.4} />
+                        {fillMessage(m.pdpAddedToast, { size: formatVariantLabel(variant) })}
+                      </span>
+                      <button type="button" onClick={() => router.push(routes.cart)} className="cursor-pointer font-display text-15 font-bold text-cobalt hover:underline">
+                        {m.pdpViewCart}
+                      </button>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+                {addError ? <p role="alert" className="m-0 text-14 font-semibold text-tomato-ink">{addError}</p> : null}
+              </div>
+
+              <p className="m-0 flex items-center gap-2 border-t border-line pt-4 text-14 text-stone">
+                <Icon name="truck" size={18} className="shrink-0 text-ink" />
+                {m.vxPdpDeliveryLine}
+              </p>
             </div>
           </div>
         </div>
       </Section>
 
-      {/* Stitch Section B — Three Key Benefits (shown only when reviewed benefits exist) */}
+      <SectionJump items={tabs} label={m.vxPdpSections} />
+
       <ProductBenefitsStrip product={product} variant={variant} />
 
-      {/* Stitch Section C — About Product */}
-      <ProductAbout product={product} variant={variant} />
+      {content.hasAbout ? <div id="pdp-about" className="scroll-mt-32"><ProductAbout product={product} variant={variant} /></div> : null}
+      {content.hasIngredients ? <div id="pdp-ingredients" className="scroll-mt-32"><ProductActiveIngredients product={product} variant={variant} /></div> : null}
+      <div id="pdp-routine" className="scroll-mt-32"><RoutinePlacement product={product} variant={variant} /></div>
+      {content.hasUsage ? <div id="pdp-usage" className="scroll-mt-32"><ProductUsage product={product} variant={variant} /></div> : null}
 
-      {/* Stitch Section D — Active Ingredients & INCI */}
-      <ProductActiveIngredients product={product} variant={variant} />
+      {pending.length > 0 ? (
+        <Section labelledBy="pdp-pending-title" rhythm="compact" className="py-4 lg:py-6">
+          <div className="flex flex-col gap-1 border-s-4 border-cobalt ps-4">
+            <p id="pdp-pending-title" className="m-0 font-display text-17 font-bold text-ink">{m.vxPdpPendingTitle}</p>
+            <p className="m-0 text-15 text-stone">{fillMessage(m.vxPdpPendingBody, { items: pending.join(locale === 'ar' ? '، ' : ', ') })}</p>
+            <ArrowLink href={routes.shinaFor({ product: product.slug })} className="self-start">{m.vxPdpAskShina}</ArrowLink>
+          </div>
+        </Section>
+      ) : null}
 
-      {/* Stitch Section E — Routine Position */}
-      <RoutinePlacement product={product} variant={variant} />
+      <div id="pdp-reviews" className="scroll-mt-32"><ProductReviews slug={product.slug} skuId={variant?.id} /></div>
 
-      {/* Stitch Section F — Usage Instructions & Warnings */}
-      <ProductUsage product={product} variant={variant} />
-
-      {/* Stitch Section G — Customer Reviews */}
-      <ProductReviews slug={product.slug} skuId={variant?.id} />
-
-      {/* Storefront Section — Similar Products (منتجات مشابهة) */}
       <SimilarProducts product={product} />
 
-      {/* Gallery Image Zoom Dialog */}
+      {/* Phone buy bar: appears when the buy panel has scrolled away; sits above the bottom dock. */}
+      <AnimatePresence>
+        {!buyInView && canPurchase ? (
+          <motion.div
+            key="sticky-buy"
+            className="fixed inset-x-0 z-nav flex items-center gap-3 border-t border-line bg-chalk px-4 py-3 lg:hidden"
+            style={{ bottom: 'calc(var(--bottom-nav-height) + 1.75rem + env(safe-area-inset-bottom, 0px))' }}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
+            transition={{ duration: 0.3, ease: EASE_STANDARD }}
+          >
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-13 text-stone"><bdi>{product.name}</bdi></span>
+              <span className="font-display text-20 font-extrabold text-ink tabular-nums">
+                {formatAmount(priceAmount * quantity, locale)} <span className="text-14 font-bold">{m.pdpCurrencyEgp}</span>
+              </span>
+            </div>
+            <AsyncButton
+              state={asyncState}
+              variant="cobalt"
+              size="m"
+              pendingLabel={m.pdpAdding}
+              successLabel={m.pdpAdded}
+              onClick={handleAddToCart}
+              className="shrink-0"
+            >
+              <Icon name="cart" size={18} strokeWidth={2} />
+              <span>{m.pdpAddCta}</span>
+            </AsyncButton>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
       {currentImage ? (
         <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
           <DialogContent closeLabel={m.pdpCloseZoom} className="max-w-lg p-4">

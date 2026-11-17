@@ -61,10 +61,10 @@ export function ProductCard({ product, priority = false, feature = false }: Prod
     <article
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
       aria-label={`${product.brandName} ${displayName}`}
-      className="group group/card relative flex h-full min-w-0 flex-col overflow-hidden rounded-card border border-line/60 bg-linen font-display text-ink shadow-elevation-1 transition-all duration-base hover:-translate-y-1 hover:border-line-2/70 hover:shadow-elevation-2 focus-within:shadow-elevation-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+      className="group group/card relative flex h-full min-w-0 flex-col font-display text-ink"
     >
       {/* Square Studio Image Stage */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-image border-b border-line/40 bg-sand/20">
+      <div className="relative aspect-square w-full overflow-hidden rounded-image bg-sand/20">
         {/* Layer A: Studio lighting & warm limestone ground */}
         <div className="pointer-events-none absolute inset-0 sahel-studio-ground" />
         <div className="pointer-events-none absolute inset-0 sahel-studio-spotlight" />
@@ -153,7 +153,7 @@ export function ProductCard({ product, priority = false, feature = false }: Prod
       ) : null}
 
       {/* Editorial Product Information */}
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3 sm:p-3.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-3">
         {/* Brand name in cobalt blue + Real Rating and Review count */}
         <div className="flex items-center justify-between gap-2">
           <p className="m-0 truncate text-11 font-bold uppercase tracking-wider text-cobalt sm:text-12" title={product.brandName}>

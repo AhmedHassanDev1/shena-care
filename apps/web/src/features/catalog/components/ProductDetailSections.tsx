@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Section } from '@/components/layout/section';
+import { Reveal } from '@/components/motion/reveal';
 import { Icon } from '@/components/ui/icon';
 import type { IconName } from '@/components/ui/icon-paths';
 import { ProductTile } from '@/components/ui/product-tile';
@@ -18,6 +19,44 @@ import {
 } from '../lib/product-facts';
 
 const BENEFIT_ICONS: readonly IconName[] = ['layers', 'droplet', 'shield'];
+
+/** Content the page actually has for this variant; sections without content are not rendered at all. */
+export function usePdpContent(product: ProductDetail, variant: PublicVariant) {
+  const locale = useLocale();
+  const m = useMessages();
+  const description = variant.content?.description?.trim() || product.description?.trim() || null;
+  const hasAbout = formatReadableCopy(description).length > 0;
+  const hasIngredients =
+    resolveKeyIngredients(product, variant).length > 0 ||
+    resolveFullInciList(product, variant, locale).length > 0 ||
+    Boolean(variant.content?.ingredients?.trim());
+  const guide = resolveUsageGuide(product, variant, locale, m);
+  const hasUsage =
+    formatReadableCopy(guide.instructionsText).length > 0 ||
+    guide.showMorning ||
+    guide.showEvening ||
+    guide.frequencyChips.length > 0 ||
+    Boolean(guide.warningsText);
+  return { hasAbout, hasIngredients, hasUsage };
+}
+
+/** One information block: the title on the start side, the content beside it on desktop, stacked on phones. */
+function PdpBlock({ id, title, icon, children }: { id: string; title: string; icon: IconName; children: ReactNode }) {
+  return (
+    <Section labelledBy={id} rhythm="compact" className="py-6 lg:py-10">
+      <Reveal className="grid grid-cols-1 gap-4 border-t border-line pt-6 lg:grid-cols-12 lg:gap-10 lg:pt-10">
+        <div className="flex items-start gap-2.5 lg:col-span-4">
+          <Icon name={icon} size={22} className="mt-1.5 shrink-0 text-cobalt" />
+          <h2 id={id} className="m-0 font-display text-display-2 font-bold text-ink">
+            {title}
+          </h2>
+        </div>
+        <div className="min-w-0 lg:col-span-8">{children}</div>
+      </Reveal>
+    </Section>
+  );
+}
+
 
 /**
  * Stitch Section B — Three Key Benefits Strip.
@@ -37,37 +76,26 @@ export function ProductBenefitsStrip({
   if (benefits.length === 0) return null;
 
   return (
-    <Section labelledBy={`pdp-benefits-${product.id}`} rhythm="compact" className="py-1.5 lg:py-2">
-      <div className="mx-auto w-full max-w-[1140px] border-y border-line py-3.5 lg:py-4">
-        <h2 id={`pdp-benefits-${product.id}`} className="sr-only">
-          {benefits.join(' · ')}
-        </h2>
-        <div
-          className={cn(
-            'grid text-center',
-            benefits.length === 1 && 'grid-cols-1',
-            benefits.length === 2 && 'grid-cols-2',
-            benefits.length >= 3 && 'grid-cols-3'
-          )}
-        >
-          {benefits.map((text, idx) => (
-            <div
-              key={`${idx}-${text}`}
-              className={cn(
-                'flex flex-col items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4',
-                idx > 0 && 'border-s border-line'
-              )}
-            >
-              <div className="flex size-8 sm:size-10 items-center justify-center text-cobalt">
-                <Icon name={BENEFIT_ICONS[idx % BENEFIT_ICONS.length]} size={26} strokeWidth={1.7} />
-              </div>
-              <span className="font-display text-13 sm:text-16 font-bold text-ink leading-20">
-                <span dir="auto">{text}</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+    <Section labelledBy={`pdp-benefits-${product.id}`} rhythm="compact" className="py-4 lg:py-8">
+      <h2 id={`pdp-benefits-${product.id}`} className="sr-only">
+        {benefits.join(' · ')}
+      </h2>
+      <ul
+        className={cn(
+          'm-0 grid list-none grid-cols-1 gap-5 border-y border-line p-0 py-5 sm:gap-0',
+          benefits.length === 2 && 'sm:grid-cols-2',
+          benefits.length >= 3 && 'sm:grid-cols-3',
+        )}
+      >
+        {benefits.map((text, idx) => (
+          <li key={`${idx}-${text}`} className={cn('flex items-center gap-4 sm:px-6', idx > 0 && 'sm:border-s sm:border-line')}>
+            <Icon name={BENEFIT_ICONS[idx % BENEFIT_ICONS.length]} size={28} strokeWidth={1.6} className="shrink-0 text-cobalt" />
+            <span className="font-display text-17 font-bold leading-snug text-ink">
+              <span dir="auto">{text}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }
@@ -91,69 +119,32 @@ export function ProductAbout({
   const isExpandable = paragraphs.length > 1 || collapsedCopy.length > 165;
   const copyDir = resolveTextDirection(description);
 
+  if (paragraphs.length === 0) return null;
+
   return (
-    <Section labelledBy={`pdp-about-${product.id}`} rhythm="compact" className="py-2 lg:py-3">
-      <div className="mx-auto flex w-full max-w-[1140px] flex-col gap-2">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span aria-hidden="true" className="text-18 font-bold text-cobalt select-none">
-              −
-            </span>
-            <h2
-              id={`pdp-about-${product.id}`}
-              className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
-            >
-              {m.pdpAboutEyebrow}
-            </h2>
-          </div>
-
-          {isExpandable ? (
-            <button
-              type="button"
-              onClick={() => setExpanded((prev) => !prev)}
-              aria-expanded={expanded}
-              className="inline-flex min-h-[36px] items-center gap-1 text-14 sm:text-15 font-bold text-cobalt hover:underline cursor-pointer"
-            >
-              <span>{expanded ? m.pdpShowLess : m.pdpReadMore}</span>
-              <Icon
-                name="chevron-down"
-                size={16}
-                className={cn('transition-transform duration-200', expanded && 'rotate-180')}
-              />
-            </button>
-          ) : null}
-        </div>
-
-        {paragraphs.length > 0 ? (
-          expanded ? (
-            <div dir={copyDir} className="flex w-full flex-col gap-2 text-start">
-              {paragraphs.map((paragraph, idx) => (
-                <p
-                  key={`${idx}-${paragraph.slice(0, 24)}`}
-                  className="m-0 text-start text-14 sm:text-15 leading-22 sm:leading-24 text-stone"
-                >
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          ) : (
-            <p
-              dir={copyDir}
-              className={cn(
-                'm-0 w-full text-start text-14 sm:text-15 leading-22 sm:leading-24 text-stone',
-                isExpandable && 'line-clamp-3'
-              )}
-            >
-              {collapsedCopy}
-            </p>
-          )
-        ) : (
-          <p className="m-0 text-start text-14 leading-22 text-stone">
-            {m.pdpContentPending}
+    <PdpBlock id={`pdp-about-${product.id}`} title={m.pdpAboutEyebrow} icon="package">
+      <div dir={copyDir} className="flex max-w-narrow flex-col gap-3 text-start">
+        {(expanded ? paragraphs : [collapsedCopy]).map((paragraph, idx) => (
+          <p
+            key={`${idx}-${paragraph.slice(0, 24)}`}
+            className={cn('m-0 text-start text-body text-ink', !expanded && isExpandable && 'line-clamp-4')}
+          >
+            {paragraph}
           </p>
-        )}
+        ))}
       </div>
-    </Section>
+      {isExpandable ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          aria-expanded={expanded}
+          className="mt-3 inline-flex min-h-control-s cursor-pointer items-center gap-1 font-display text-16 font-bold text-cobalt hover:underline"
+        >
+          <span>{expanded ? m.pdpShowLess : m.pdpReadMore}</span>
+          <Icon name="chevron-down" size={16} className={cn('transition-transform duration-fast', expanded && 'rotate-180')} />
+        </button>
+      ) : null}
+    </PdpBlock>
   );
 }
 
@@ -184,20 +175,11 @@ export function ProductActiveIngredients({
 
   const visibleKeyIngredients = keyIngredients.slice(0, 3);
 
-  return (
-    <Section labelledBy={`pdp-ingredients-${product.id}`} rhythm="compact" className="py-2 lg:py-3">
-      <div className="mx-auto flex w-full max-w-[1140px] flex-col gap-3 border-t border-line pt-4 lg:pt-5">
-        {/* Section Header */}
-        <div className="flex items-center gap-2 text-ink">
-          <Icon name="science" size={18} className="text-cobalt shrink-0" />
-          <h2
-            id={`pdp-ingredients-${product.id}`}
-            className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
-          >
-            {m.pdpActiveIngredientsTitle}
-          </h2>
-        </div>
+  if (!hasInci && visibleKeyIngredients.length === 0) return null;
 
+  return (
+    <PdpBlock id={`pdp-ingredients-${product.id}`} title={m.pdpActiveIngredientsTitle} icon="science">
+      <div className="flex flex-col gap-5">
         {/* Key Ingredients: Seamless editorial columns on desktop, hairline-divided rows on mobile */}
         {visibleKeyIngredients.length > 0 ? (
           <div
@@ -279,11 +261,7 @@ export function ProductActiveIngredients({
               );
             })}
           </div>
-        ) : (
-          <p className="m-0 text-14 text-stone">
-            {m.pdpIngredientsPending}
-          </p>
-        )}
+        ) : null}
 
         {/* Full INCI List Toggle & Expandable Hairline Block */}
         {hasInci ? (
@@ -327,7 +305,7 @@ export function ProductActiveIngredients({
           </div>
         ) : null}
       </div>
-    </Section>
+    </PdpBlock>
   );
 }
 
@@ -346,12 +324,12 @@ export function RoutinePlacement({
   const resolved = resolveRoutinePosition(product, variant, m);
 
   return (
-    <Section labelledBy={`pdp-routine-${product.id}`} rhythm="compact" className="py-2 lg:py-3">
-      <div className="mx-auto w-full max-w-[1140px] border-t border-line pt-4 lg:pt-5">
+    <Section labelledBy={`pdp-routine-${product.id}`} rhythm="compact" className="py-6 lg:py-10">
+      <Reveal className="w-full border-t border-line pt-6 lg:pt-10">
         <div
           className={cn(
-            'flex flex-col gap-4',
-            resolved.confirmed && resolved.steps.length > 0 && 'lg:flex-row lg:items-center lg:justify-between lg:gap-8'
+            'flex flex-col gap-6',
+            resolved.confirmed && resolved.steps.length > 0 && 'lg:flex-row lg:items-center lg:justify-between lg:gap-10',
           )}
         >
           {/* Title & Description */}
@@ -360,26 +338,26 @@ export function RoutinePlacement({
               'text-start',
               resolved.confirmed &&
                 resolved.steps.length > 0 &&
-                'lg:w-[34%] lg:border-e lg:border-line lg:pe-6'
+                'lg:w-1/3 lg:border-e lg:border-line lg:pe-8'
             )}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <Icon name="layers" size={18} className="text-cobalt shrink-0" />
+            <div className="flex items-start gap-2.5 mb-2">
+              <Icon name="layers" size={22} className="mt-1.5 text-cobalt shrink-0" />
               <h2
                 id={`pdp-routine-${product.id}`}
-                className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
+                className="m-0 font-display text-display-2 font-bold text-ink"
               >
                 {m.pdpRoutineStepTitle}
               </h2>
             </div>
-            <p className="m-0 text-14 leading-22 text-stone">
+            <p className="m-0 text-body text-stone">
               {resolved.summaryLine}
             </p>
           </div>
 
           {/* 4-Step Horizontal Connected Timeline */}
           {resolved.confirmed && resolved.steps.length > 0 ? (
-            <div className="relative flex w-full items-start justify-between px-1 sm:px-2 pt-6 lg:w-[66%]">
+            <div className="relative flex w-full items-start justify-between px-1 sm:px-2 pt-6 lg:w-2/3">
               <div
                 aria-hidden="true"
                 className="absolute inset-x-10 sm:inset-x-12 top-[44px] md:top-[48px] h-px bg-line-2 z-0"
@@ -436,7 +414,7 @@ export function RoutinePlacement({
             </div>
           ) : null}
         </div>
-      </div>
+      </Reveal>
     </Section>
   );
 }
@@ -466,20 +444,11 @@ export function ProductUsage({
   const warningsDir = resolveTextDirection(guide.warningsText);
   const [textureFailed, setTextureFailed] = useState(false);
 
-  return (
-    <Section labelledBy={`pdp-usage-${product.id}`} rhythm="compact" className="py-2 lg:py-3">
-      <div className="mx-auto flex w-full max-w-[1140px] flex-col gap-3 border-t border-line pt-4 lg:pt-5">
-        {/* Section Header */}
-        <div className="flex items-center gap-2 text-ink">
-          <Icon name="droplet" size={18} className="text-cobalt shrink-0" />
-          <h2
-            id={`pdp-usage-${product.id}`}
-            className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
-          >
-            {m.pdpUsage}
-          </h2>
-        </div>
+  if (!hasMetaPills && instructionParagraphs.length === 0 && !hasWarnings) return null;
 
+  return (
+    <PdpBlock id={`pdp-usage-${product.id}`} title={m.pdpUsage} icon="droplet">
+      <div className="flex flex-col gap-4">
         {/* Seamless Usage Content + Single Subtle Optional Warning */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
           <div
@@ -528,7 +497,7 @@ export function ProductUsage({
                     {instructionParagraphs.map((paragraph, idx) => (
                       <p
                         key={`${idx}-${paragraph.slice(0, 24)}`}
-                        className="m-0 text-start text-14 sm:text-15 leading-22 text-ink"
+                        className="m-0 text-start text-body text-ink"
                       >
                         {paragraph}
                       </p>
@@ -578,6 +547,6 @@ export function ProductUsage({
           ) : null}
         </div>
       </div>
-    </Section>
+    </PdpBlock>
   );
 }

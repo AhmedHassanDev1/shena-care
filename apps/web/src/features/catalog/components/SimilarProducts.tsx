@@ -47,14 +47,14 @@ export function SimilarProducts({ product }: { product: ProductDetail }) {
       id={`similar-${product.id}`}
       labelledBy={headingId}
       rhythm="compact"
-      className="py-2.5 lg:py-4"
+      className="py-6 lg:py-10"
     >
-      <div className="mx-auto flex w-full max-w-[1140px] flex-col gap-3.5 border-t border-line pt-4 lg:pt-5">
+      <div className="flex w-full flex-col gap-5 border-t border-line pt-6 lg:pt-10">
         <div className="flex items-center gap-2 text-ink">
-          <Icon name="sparkles" size={18} className="text-cobalt shrink-0" />
+          <Icon name="sparkles" size={22} className="text-cobalt shrink-0" />
           <h2
             id={headingId}
-            className="m-0 font-display text-19 sm:text-20 font-bold text-ink"
+            className="m-0 font-display text-display-2 font-bold text-ink"
           >
             {m.pdpSimilarTitle}
           </h2>

@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { MotionProvider } from '@/components/motion/motion-provider';
 import { QueryProvider } from '@/lib/react-query/query-provider';
 import { LocaleProvider } from '@/lib/i18n/LocaleProvider';
 import type { Locale } from '@/lib/i18n/messages';
@@ -18,8 +19,10 @@ export function AppProviders({
     <QueryProvider>
       <LocaleProvider locale={locale}>
         <AuthProvider>
-          {children}
-          <AuthReturnToast />
+          <MotionProvider>
+            {children}
+            <AuthReturnToast />
+          </MotionProvider>
         </AuthProvider>
       </LocaleProvider>
     </QueryProvider>

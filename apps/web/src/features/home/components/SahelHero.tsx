@@ -2,193 +2,135 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'motion/react';
 import { PageContainer } from '@/components/layout/page-container';
+import { EASE_STANDARD } from '@/components/motion/reveal';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { Icon } from '@/components/ui/icon';
-import { useMessages } from '@/lib/i18n/LocaleProvider';
-import { useTilt } from './useTilt';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
+import { formatNumber } from '@/lib/i18n/format';
+import { fillMessage } from '@/lib/i18n/messages';
+import { routes } from '@/lib/routes';
+import { useConcernShelf } from '../hooks/useConcernShelf';
+
+const LINE = { hidden: { opacity: 0, y: 28 }, shown: { opacity: 1, y: 0 } };
 
 /**
- * ShinaCare Sahel Hero Section
- *
- * Primary visual reference: Google Stitch Sahel Hero project (1325875511695454376).
- * - Desktop (1024px+): Full-width editorial scene with unbranded skincare & haircare
- *   products on travertine pedestals on the left, and Arabic display typography with
- *   dual CTAs positioned over natural chalk negative space on the right.
- * - Mobile (360px - 1023px): Editorial 4:3 still life at top, followed by English eyebrow,
- *   Arabic headline with Citron underline on «مش من المنتج.», body copy, full-width Tomato
- *   primary CTA, and lightweight secondary CTA link.
- * - Restrained animations with full prefers-reduced-motion safety.
+ * First screen. One orchestrated moment: the photograph settles, the headline lines rise in turn and the citron
+ * highlighter is drawn under the promise. After that the hero is still. The concern dock under the headline reads the
+ * live concern list, so the first thing a visitor can do is start from what bothers them.
  */
 export function SahelHero() {
   const m = useMessages();
-  const { containerStyle, imageStyle, textStyle, containerProps } = useTilt();
+  const locale = useLocale();
+  const shelf = useConcernShelf();
+  const dock = [...shelf.concerns].sort((a, b) => b.productCount - a.productCount).slice(0, 5);
 
   return (
-    <section
-      aria-label={m.sahelHeroEyebrow}
-      className="relative w-full overflow-hidden bg-chalk text-ink"
-    >
-      {/* =========================================================================
-          DESKTOP VIEW (1024px+): Full-width photographic backdrop with products
-          on the left (end in RTL) and typography on the right (start in RTL).
-          3D parallax tilt on desktop pointer devices. Mobile and reduced-motion = flat.
-          ========================================================================= */}
-      <div
-        className="relative hidden w-full lg:flex lg:min-h-[500px] xl:min-h-[540px] items-center justify-start overflow-hidden"
-        style={containerStyle}
-        {...containerProps}
+    <section aria-labelledby="home-hero-title" className="relative isolate w-full overflow-hidden bg-chalk text-ink">
+      {/* Photograph: full bleed on desktop, a framed still life above the copy on phones. */}
+      <motion.div
+        className="absolute inset-0 -z-10 hidden lg:block"
+        initial={{ scale: 1.06, opacity: 0.4 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 1.4, ease: EASE_STANDARD }}
       >
-        {/* Photographic background: authentic Stitch high-res asset */}
-        <div className="absolute inset-0 z-0 animate-hero-fade" style={imageStyle}>
+        <Image
+          src="/assets/home/sahel-hero-desktop.webp"
+          alt={m.sahelHeroAltDesktop}
+          fill
+          priority
+          sizes="(min-width: 1024px) 1440px, 100vw"
+          className="select-none object-cover object-start"
+        />
+      </motion.div>
+
+      <div className="px-4 pt-3 md:px-6 lg:hidden">
+        <div className="relative aspect-[5/4] w-full overflow-hidden rounded-sheet bg-sand shadow-elevation-1">
           <Image
-            src="/assets/home/sahel-hero-desktop.webp"
-            alt={m.sahelHeroAltDesktop}
+            src="/assets/home/sahel-hero-mobile.webp"
+            alt={m.sahelHeroAltMobile}
             fill
             priority
-            sizes="(min-width: 1024px) 1440px, 100vw"
-            className="object-cover object-center pointer-events-none select-none"
+            sizes="(max-width: 1023px) 100vw, 540px"
+            className="object-cover object-center"
           />
         </div>
-
-        {/* Content container over start side (Right in RTL) */}
-        <PageContainer className="relative z-10 w-full">
-          <div className="flex flex-col items-start text-start max-w-xl py-10 lg:py-12" style={textStyle}>
-            {/* Eyebrow */}
-            <div
-              dir="ltr"
-              className="inline-flex items-center gap-2 mb-4 select-none animate-hero-slide-1"
-            >
-              <span aria-hidden="true" className="w-7 h-1 bg-cobalt rounded-pill inline-block" />
-              <span className="text-13 font-extrabold tracking-widest text-cobalt uppercase">
-                {m.sahelHeroEyebrow}
-              </span>
-            </div>
-
-            {/* Arabic Headline with Citron Underline */}
-            <h1 className="font-display text-40 lg:text-52 font-extrabold text-ink leading-tight tracking-tight mb-4 animate-hero-slide-2">
-              <span className="block">{m.sahelHeroHeadlineStart}</span>
-              <span className="relative inline-block mt-1 whitespace-nowrap">
-                <span className="relative z-10">{m.sahelHeroHeadlineAccent}</span>
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-1 inset-x-0 h-3 bg-citron rounded-4 -z-0 opacity-90"
-                />
-              </span>
-            </h1>
-
-            {/* Supporting Description */}
-            <p className="font-text text-16 lg:text-18 leading-28 lg:leading-32 text-stone max-w-md mb-8 animate-hero-slide-3">
-              {m.sahelHeroDescription}
-            </p>
-
-            {/* Side-by-Side CTAs */}
-            <div className="flex flex-row items-center gap-4 animate-hero-slide-4">
-              {/* Primary CTA (Tomato Orange) */}
-              <Link
-                href="#shop"
-                className="group inline-flex h-control-l items-center justify-center gap-2.5 rounded-pill bg-tomato px-7 text-15 font-bold text-white shadow-elevation-1 transition-[background-color,box-shadow,transform] duration-fast hover:bg-tomato/90 hover:shadow-elevation-2 active:scale-[.98]"
-              >
-                <span>{m.sahelHeroPrimaryCta}</span>
-                <Icon
-                  name="arrow-forward"
-                  size={18}
-                  strokeWidth={2.2}
-                  className="transition-transform duration-fast group-hover:-translate-x-1"
-                />
-              </Link>
-
-              {/* Secondary CTA (Cobalt Blue Outline) */}
-              <Link
-                href="#routines"
-                className="inline-flex h-control-l items-center justify-center gap-2 rounded-pill bg-transparent px-6 text-15 font-bold text-cobalt shadow-outline-cobalt transition-colors duration-fast hover:bg-cobalt/10 active:scale-[.98]"
-              >
-                <span>{m.sahelHeroSecondaryCta}</span>
-                <Icon name="chevron-forward" size={16} strokeWidth={2.2} />
-              </Link>
-            </div>
-          </div>
-        </PageContainer>
       </div>
 
-      {/* =========================================================================
-          MOBILE VIEW (< 1024px: 360px, 390px, tablet):
-          Top editorial still life image, followed by eyebrow, headline, description,
-          full-width primary Tomato CTA, and secondary lightweight CTA.
-          ========================================================================= */}
-      <div className="flex flex-col lg:hidden w-full pb-4 md:pb-5">
-        {/* 1. Top Editorial Image */}
-        <div className="w-full relative px-4 md:px-6 pt-3 pb-2 animate-hero-fade">
-          <div className="relative w-full aspect-[4/3] rounded-image overflow-hidden shadow-elevation-1 bg-sand">
-            <Image
-              src="/assets/home/sahel-hero-mobile.webp"
-              alt={m.sahelHeroAltMobile}
-              fill
-              priority
-              sizes="(max-width: 1023px) 100vw, 540px"
-              className="object-cover object-center"
-            />
-          </div>
-        </div>
-
-        {/* 2. Content Block Below Image */}
-        <PageContainer className="flex flex-col items-start w-full text-start pt-3">
-          {/* Eyebrow */}
-          <div
-            dir="ltr"
-            className="inline-flex items-center gap-2 mb-2 select-none animate-hero-slide-1"
-          >
-            <span aria-hidden="true" className="w-5 h-1 bg-cobalt rounded-pill inline-block" />
-            <span className="text-12 font-extrabold tracking-widest text-cobalt uppercase">
-              {m.sahelHeroEyebrow}
-            </span>
-          </div>
-
-          {/* Arabic Headline */}
-          <h1 className="font-display text-28 sm:text-32 font-extrabold text-ink leading-tight tracking-tight mb-3 w-full animate-hero-slide-2">
-            <span className="block">{m.sahelHeroHeadlineStart}</span>
-            <span className="relative inline-block mt-0.5 whitespace-nowrap">
+      <PageContainer className="flex flex-col gap-6 pb-8 pt-6 lg:min-h-[640px] lg:justify-center lg:pb-12 lg:pt-12 xl:min-h-[680px]">
+        <motion.div
+          className="flex max-w-xl flex-col items-start gap-5 text-start lg:max-w-[600px] lg:gap-6"
+          initial="hidden"
+          animate="shown"
+          transition={{ staggerChildren: 0.1, delayChildren: 0.15 }}
+        >
+          <h1 id="home-hero-title" className="m-0 font-display text-display-hero font-extrabold tracking-tight text-ink">
+            <motion.span variants={LINE} transition={{ duration: 0.7, ease: EASE_STANDARD }} className="block">
+              {m.sahelHeroHeadlineStart}
+            </motion.span>
+            <motion.span variants={LINE} transition={{ duration: 0.7, ease: EASE_STANDARD }} className="relative mt-1 inline-block">
               <span className="relative z-10">{m.sahelHeroHeadlineAccent}</span>
-              <span
+              <motion.span
                 aria-hidden="true"
-                className="absolute bottom-1 inset-x-0 h-2.5 bg-citron rounded-4 -z-0 opacity-90"
+                className="absolute inset-x-0 bottom-1 z-0 h-3 origin-right rounded-4 bg-citron lg:bottom-2 lg:h-5"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 0.8, delay: 0.75, ease: EASE_STANDARD }}
               />
-            </span>
+            </motion.span>
           </h1>
 
-          {/* Supporting Description */}
-          <p className="font-text text-15 sm:text-16 leading-24 sm:leading-28 text-stone mb-4 sm:mb-5 w-full animate-hero-slide-3">
+          <motion.p variants={LINE} transition={{ duration: 0.6, ease: EASE_STANDARD }} className="m-0 max-w-md text-body text-stone">
             {m.sahelHeroDescription}
-          </p>
+          </motion.p>
 
-          {/* 3. Stacked CTAs */}
-          <div className="flex flex-col gap-3 w-full animate-hero-slide-4">
-            {/* Primary CTA (Tomato Full-Width Button) */}
-            <Link
-              href="#shop"
-              className="group flex h-control-l w-full items-center justify-center gap-2.5 rounded-pill bg-tomato px-6 text-15 font-bold text-white shadow-elevation-1 transition-[background-color,box-shadow,transform] duration-fast hover:bg-tomato/90 active:scale-[.98]"
-            >
+          <motion.div variants={LINE} transition={{ duration: 0.6, ease: EASE_STANDARD }} className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <Link href="#shop" className={buttonVariants({ variant: 'cobalt', size: 'l', className: 'w-full sm:w-auto' })}>
               <span>{m.sahelHeroPrimaryCta}</span>
-              <Icon
-                name="arrow-forward"
-                size={18}
-                strokeWidth={2.2}
-                className="transition-transform duration-fast group-hover:-translate-x-1"
-              />
+              <Icon name="arrow-forward" size={18} strokeWidth={2.2} />
             </Link>
-
-            {/* Secondary CTA (Lightweight Link Below Primary) */}
-            <Link
-              href="#routines"
-              className="inline-flex items-center justify-center gap-1.5 pt-1 text-15 font-bold text-cobalt transition-colors duration-fast hover:text-cobalt-deep"
+            <Link href={routes.routines} className={buttonVariants({ variant: 'ghost', size: 'l', className: 'w-full sm:w-auto' })}>
+              {m.sahelHeroSecondaryCta}
+            </Link>
+          </motion.div>
+          {/* Concern dock: the live shelf, busiest concern first. Hidden when the catalog has none (the atlas below says why). */}
+          {shelf.isPending || dock.length > 0 ? (
+            <motion.nav
+              aria-label={m.homeConcernNavLabel}
+              className="flex flex-col gap-3 border-t border-ink/15 pt-5"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.9, ease: EASE_STANDARD }}
             >
-              <span className="underline underline-offset-4 decoration-cobalt/40 hover:decoration-cobalt">
-                {m.sahelHeroSecondaryCta}
-              </span>
-              <Icon name="chevron-forward" size={16} strokeWidth={2.2} />
-            </Link>
-          </div>
-        </PageContainer>
-      </div>
+              <p className="m-0 font-display text-16 font-bold text-ink">{m.vxHeroDockTitle}</p>
+              <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+                {shelf.isPending
+                  ? Array.from({ length: 5 }, (_, i) => (
+                      <li key={i}>
+                        <Skeleton className="h-control-m w-36 rounded-pill" />
+                      </li>
+                    ))
+                  : dock.map((concern) => (
+                      <li key={concern.slug}>
+                        <Link
+                          href={routes.cornerConcern(concern.slug)}
+                          className="group inline-flex h-control-m items-center gap-2 rounded-pill bg-chalk px-4 font-display text-15 font-bold text-ink shadow-outline-hairline transition-[background-color,color,box-shadow] duration-fast hover:bg-cobalt hover:text-chalk hover:shadow-elevation-1"
+                        >
+                          <span>{concern.name}</span>
+                          <span className="text-13 font-medium text-stone tabular-nums transition-colors duration-fast group-hover:text-chalk/80">
+                            {fillMessage(m.vxProductsCount, { n: formatNumber(concern.productCount, locale) })}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+              </ul>
+            </motion.nav>
+          ) : null}
+        </motion.div>
+
+      </PageContainer>
     </section>
   );
 }

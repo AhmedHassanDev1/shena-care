@@ -19,7 +19,7 @@ export interface RoutineCardProps {
 export function RoutineCard({ routine, className = '', isMobileOnly = false }: RoutineCardProps) {
   return (
     <article
-      className={`group relative flex overflow-hidden rounded-card border border-line bg-linen shadow-elevation-1 transition-all duration-base hover:-translate-y-0.5 hover:shadow-elevation-2 ${
+      className={`group relative flex gap-5 ${
         isMobileOnly
           ? 'w-[300px] shrink-0 snap-start flex-col'
           : 'flex-col md:min-w-[560px] md:flex-1 md:flex-row'
@@ -27,7 +27,7 @@ export function RoutineCard({ routine, className = '', isMobileOnly = false }: R
     >
       {/* Photo Column / Header */}
       <div
-        className={`relative overflow-hidden bg-sand/30 shrink-0 ${
+        className={`relative overflow-hidden rounded-sheet bg-sand/30 shrink-0 ${
           isMobileOnly
             ? 'h-[140px] w-full'
             : 'h-[160px] w-full md:h-auto md:min-h-[340px] md:w-[45%]'
@@ -69,7 +69,7 @@ export function RoutineCard({ routine, className = '', isMobileOnly = false }: R
 
       {/* Content Column */}
       <div
-        className={`relative z-10 flex flex-grow flex-col justify-between bg-linen ${
+        className={`relative z-10 flex flex-grow flex-col justify-between ${
           isMobileOnly
             ? '-mt-2.5 rounded-t-card p-4 pt-3 pb-3.5 shadow-elevation-1'
             : 'p-5 md:w-[55%] md:p-6'

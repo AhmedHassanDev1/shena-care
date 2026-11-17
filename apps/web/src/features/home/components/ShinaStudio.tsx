@@ -37,7 +37,7 @@ export function ShinaStudio() {
   return (
     <section aria-labelledby="routine-atelier-title" className="py-4 md:py-5 lg:py-6">
       <PageContainer>
-        <div className="relative isolate overflow-hidden rounded-card border border-line bg-linen shadow-elevation-1 transition-all duration-base hover:shadow-elevation-2">
+        <div className="relative isolate border-t border-line pt-6 lg:pt-10">
           {/* Subtle Warm Limestone Architectural Ambient Glow */}
           <div
             aria-hidden="true"
