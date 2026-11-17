@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
-import { SectionJump } from '@/components/layout/section-jump';
 import { Section } from '@/components/layout/section';
 import { EASE_STANDARD } from '@/components/motion/reveal';
 import { ArrowLink } from '@/components/ui/arrow-link';
@@ -262,12 +261,6 @@ function Detail({ product }: { product: ProductDetail }) {
   const discountPercent = hasDiscount ? Math.round(((compareAtAmount - priceAmount) / compareAtAmount) * 100) : 0;
   const asyncState = addState === 'pending' ? 'pending' : addState === 'added' ? 'success' : 'idle';
 
-  const tabs: Array<{ id: string; label: string }> = [];
-  if (content.hasAbout) tabs.push({ id: 'pdp-about', label: m.vxPdpTabAbout });
-  if (content.hasIngredients) tabs.push({ id: 'pdp-ingredients', label: m.vxPdpTabIngredients });
-  tabs.push({ id: 'pdp-routine', label: m.vxPdpTabRoutine });
-  if (content.hasUsage) tabs.push({ id: 'pdp-usage', label: m.vxPdpTabUsage });
-  tabs.push({ id: 'pdp-reviews', label: m.vxPdpTabReviews });
   const pending: string[] = [];
   if (!content.hasAbout) pending.push(m.vxPdpTabAbout);
   if (!content.hasIngredients) pending.push(m.vxPdpTabIngredients);
@@ -312,9 +305,9 @@ function Detail({ product }: { product: ProductDetail }) {
             <div className="flex min-w-0 flex-col gap-6 text-start lg:col-span-5">
               <div className="flex flex-col gap-3">
                 {product.brand?.name ? (
-                  <p className="m-0 flex flex-wrap items-baseline gap-x-3 font-display text-18 font-semibold text-cobalt">
+                  <p className="m-0 flex flex-wrap items-baseline gap-x-3 font-serif text-26 italic text-cobalt">
                     <bdi>{product.brand.name}</bdi>
-                    {product.productLine?.name ? <span className="text-16 font-medium text-stone"><bdi>{product.productLine.name}</bdi></span> : null}
+                    {product.productLine?.name ? <span className="font-display text-16 font-medium not-italic text-stone"><bdi>{product.productLine.name}</bdi></span> : null}
                   </p>
                 ) : null}
                 <h1 id="pdp-title" className="m-0 font-display text-display-1 font-extrabold tracking-tight text-ink lg:text-52 lg:leading-tight">
@@ -370,8 +363,11 @@ function Detail({ product }: { product: ProductDetail }) {
                 {canPurchase ? (
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <span className="font-display text-display-1 font-extrabold leading-none text-ink tabular-nums lg:text-64">
-                        {formatAmount(priceAmount, locale)}
+                      <span className="relative inline-block">
+                        <span className="relative z-10 font-display text-display-1 font-extrabold leading-none text-ink tabular-nums lg:text-64">
+                          {formatAmount(priceAmount, locale)}
+                        </span>
+                        <span aria-hidden="true" className="absolute inset-x-0 bottom-0.5 z-0 h-3 rounded-4 bg-citron lg:bottom-1.5 lg:h-4" />
                       </span>
                       <span className="font-display text-20 font-bold text-ink">{m.pdpCurrencyEgp}</span>
                       {hasDiscount ? (
@@ -420,7 +416,7 @@ function Detail({ product }: { product: ProductDetail }) {
                       pendingLabel={m.pdpAdding}
                       successLabel={m.pdpAdded}
                       onClick={handleAddToCart}
-                      className="min-h-control-xl min-w-0 flex-1"
+                      className="min-h-control-xl min-w-0 flex-1 shadow-action"
                     >
                       <Icon name="cart" size={20} strokeWidth={2} />
                       <span className="truncate">{canPurchase ? m.pdpAddCta : m.pdpOutOfStock}</span>
@@ -456,7 +452,10 @@ function Detail({ product }: { product: ProductDetail }) {
                     <Icon name="truck" size={18} className="shrink-0 text-ink" />
                     {m.vxPdpDeliveryLine}
                   </p>
-                  <ArrowLink href={routes.shinaFor({ product: product.slug })} className="self-start">{m.vxPdpAskShina}</ArrowLink>
+                  <Link href={routes.shinaFor({ product: product.slug })} className="link-quiet inline-flex items-center gap-3 self-start font-display text-16 font-bold text-cobalt">
+                    <span aria-hidden="true" className="sun sm" />
+                    {m.vxPdpAskShina}
+                  </Link>
                 </div>
               </div>
             </div>
@@ -464,24 +463,26 @@ function Detail({ product }: { product: ProductDetail }) {
         </Section>
       </div>
 
-      <SectionJump items={tabs.length >= 4 ? tabs : []} label={m.vxPdpSections} />
-
       <ProductBenefitsStrip product={product} variant={variant} />
 
-      {content.hasAbout ? <div id="pdp-about" className="scroll-mt-32"><ProductAbout product={product} variant={variant} /></div> : null}
-      {content.hasIngredients ? <div id="pdp-ingredients" className="scroll-mt-32"><ProductActiveIngredients product={product} variant={variant} /></div> : null}
-      <div id="pdp-routine" className="scroll-mt-32"><RoutinePlacement product={product} variant={variant} /></div>
-      {content.hasUsage ? <div id="pdp-usage" className="scroll-mt-32"><ProductUsage product={product} variant={variant} /></div> : null}
-
-      {pending.length > 0 ? (
-        <Section labelledBy="pdp-pending-title" rhythm="compact" className="py-4 lg:py-6">
-          <div className="flex flex-col gap-1 border-s-4 border-cobalt ps-4">
-            <p id="pdp-pending-title" className="m-0 font-display text-17 font-bold text-ink">{m.vxPdpPendingTitle}</p>
-            <p className="m-0 text-15 text-stone">{fillMessage(m.vxPdpPendingBody, { items: pending.join(locale === 'ar' ? '، ' : ', ') })}</p>
-            <ArrowLink href={routes.shinaFor({ product: product.slug })} className="self-start">{m.vxPdpAskShina}</ArrowLink>
+      <Section labelledBy="pdp-details-title" rhythm="default" className="pb-2 lg:pb-4">
+        <h2 id="pdp-details-title" className="sr-only">{m.pdpDetails}</h2>
+        <div className="mx-auto w-full max-w-4xl">
+          <div className="border-t border-ink/20">
+            {content.hasAbout ? <ProductAbout product={product} variant={variant} /> : null}
+            {content.hasIngredients ? <ProductActiveIngredients product={product} variant={variant} /> : null}
+            <RoutinePlacement product={product} variant={variant} />
+            {content.hasUsage ? <ProductUsage product={product} variant={variant} /> : null}
           </div>
-        </Section>
-      ) : null}
+          {pending.length > 0 ? (
+            <div className="mt-6 flex flex-col gap-1 border-s-4 border-cobalt ps-4">
+              <p id="pdp-pending-title" className="m-0 font-display text-17 font-bold text-ink">{m.vxPdpPendingTitle}</p>
+              <p className="m-0 text-15 text-stone">{fillMessage(m.vxPdpPendingBody, { items: pending.join(locale === 'ar' ? '، ' : ', ') })}</p>
+              <ArrowLink href={routes.shinaFor({ product: product.slug })} className="self-start">{m.vxPdpAskShina}</ArrowLink>
+            </div>
+          ) : null}
+        </div>
+      </Section>
 
       <div id="pdp-reviews" className="scroll-mt-32"><ProductReviews slug={product.slug} skuId={variant?.id} /></div>
 

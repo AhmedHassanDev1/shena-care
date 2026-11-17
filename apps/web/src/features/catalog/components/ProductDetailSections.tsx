@@ -2,7 +2,6 @@
 
 import { useState, type ReactNode } from 'react';
 import { Section } from '@/components/layout/section';
-import { Reveal } from '@/components/motion/reveal';
 import { Icon } from '@/components/ui/icon';
 import type { IconName } from '@/components/ui/icon-paths';
 import { ProductTile } from '@/components/ui/product-tile';
@@ -41,19 +40,20 @@ export function usePdpContent(product: ProductDetail, variant: PublicVariant) {
 }
 
 /** One information block: the title on the start side, the content beside it on desktop, stacked on phones. */
-function PdpBlock({ id, title, icon, children }: { id: string; title: string; icon: IconName; children: ReactNode }) {
+function PdpBlock({ id, title, children }: { id: string; title: string; icon?: IconName; children: ReactNode }) {
   return (
-    <Section labelledBy={id} rhythm="compact" className="py-4 lg:py-8">
-      <Reveal className="grid grid-cols-1 gap-4 border-t border-line pt-6 lg:grid-cols-12 lg:gap-10 lg:pt-10">
-        <div className="flex items-start gap-2.5 lg:col-span-4">
-          <Icon name={icon} size={22} className="mt-1.5 shrink-0 text-cobalt" />
-          <h2 id={id} className="m-0 font-display text-display-2 font-bold text-ink">
+    <details open className="group border-b border-ink/20">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-3">
+          <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full bg-citron shadow-outline-hairline" />
+          <h2 id={id} className="m-0 font-display text-display-3 font-bold text-ink">
             {title}
           </h2>
-        </div>
-        <div className="min-w-0 lg:col-span-8">{children}</div>
-      </Reveal>
-    </Section>
+        </span>
+        <Icon name="chevron-down" size={20} className="shrink-0 text-stone transition-transform duration-fast group-open:rotate-180" />
+      </summary>
+      <div className="pb-7 text-start">{children}</div>
+    </details>
   );
 }
 
@@ -123,11 +123,11 @@ export function ProductAbout({
 
   return (
     <PdpBlock id={`pdp-about-${product.id}`} title={m.pdpAboutEyebrow} icon="package">
-      <div dir={copyDir} className="flex max-w-narrow flex-col gap-3 text-start">
+      <div dir={copyDir} className="flex flex-col gap-3 text-start">
         {(expanded ? paragraphs : [collapsedCopy]).map((paragraph, idx) => (
           <p
             key={`${idx}-${paragraph.slice(0, 24)}`}
-            className={cn('m-0 text-start font-display text-20 leading-32 text-ink lg:text-22 lg:leading-34', !expanded && isExpandable && 'line-clamp-4')}
+            className={cn('m-0 text-start text-body text-ink', !expanded && isExpandable && 'line-clamp-4')}
           >
             {paragraph}
           </p>
@@ -324,35 +324,9 @@ export function RoutinePlacement({
   const resolved = resolveRoutinePosition(product, variant, m);
 
   return (
-    <Section labelledBy={`pdp-routine-${product.id}`} rhythm="compact" className="py-6 lg:py-10">
-      <Reveal className="w-full border-t border-line pt-6 lg:pt-10">
-        <div
-          className={cn(
-            'flex flex-col gap-8',
-          )}
-        >
-          {/* Title & Description */}
-          <div
-            className={cn(
-              'text-start',
-              resolved.confirmed &&
-                resolved.steps.length > 0 &&
-                ''
-            )}
-          >
-            <div className="flex items-start gap-2.5 mb-2">
-              <Icon name="layers" size={22} className="mt-1.5 text-cobalt shrink-0" />
-              <h2
-                id={`pdp-routine-${product.id}`}
-                className="m-0 font-display text-display-2 font-bold text-ink"
-              >
-                {m.pdpRoutineStepTitle}
-              </h2>
-            </div>
-            <p className="m-0 text-body text-stone">
-              {resolved.summaryLine}
-            </p>
-          </div>
+    <PdpBlock id={`pdp-routine-${product.id}`} title={m.pdpRoutineStepTitle} icon="layers">
+      <div className="flex flex-col gap-8">
+          <p className="m-0 text-body text-stone">{resolved.summaryLine}</p>
 
           {/* 4-Step Horizontal Connected Timeline */}
           {resolved.confirmed && resolved.steps.length > 0 ? (
@@ -371,12 +345,12 @@ export function RoutinePlacement({
                   {/* Floating pill above active circle */}
                   {step.isCurrent ? (
                     <div className="absolute -top-6 flex flex-col items-center">
-                      <span className="whitespace-nowrap rounded-pill bg-cobalt px-2.5 py-0.5 text-12 font-bold text-chalk">
+                      <span className="whitespace-nowrap rounded-pill bg-ink px-2.5 py-0.5 text-12 font-bold text-citron">
                         {m.pdpRoutineBadgeThisProduct}
                       </span>
                       <span
                         aria-hidden="true"
-                        className="h-1.5 w-1.5 -mt-1 rotate-45 bg-cobalt"
+                        className="h-1.5 w-1.5 -mt-1 rotate-45 bg-ink"
                       />
                     </div>
                   ) : null}
@@ -385,7 +359,7 @@ export function RoutinePlacement({
                     className={cn(
                       'flex items-center justify-center rounded-full transition-all',
                       step.isCurrent
-                        ? 'size-12 md:size-14 bg-cobalt text-chalk ring-4 ring-cobalt/15'
+                        ? 'size-12 md:size-14 bg-citron text-ink ring-4 ring-citron/30'
                         : 'size-12 md:size-14 bg-transparent border border-line-2 text-stone'
                     )}
                   >
@@ -395,7 +369,7 @@ export function RoutinePlacement({
                   <span
                     className={cn(
                       'mt-2 font-display text-15 md:text-17 leading-tight',
-                      step.isCurrent ? 'font-bold text-cobalt' : 'font-semibold text-ink'
+                      step.isCurrent ? 'font-bold text-ink' : 'font-semibold text-ink'
                     )}
                   >
                     {step.label}
@@ -403,7 +377,7 @@ export function RoutinePlacement({
                   <span
                     className={cn(
                       'text-12 tabular-nums',
-                      step.isCurrent ? 'font-bold text-cobalt' : 'text-stone'
+                      step.isCurrent ? 'font-bold text-ink' : 'text-stone'
                     )}
                   >
                     {step.number}
@@ -412,9 +386,8 @@ export function RoutinePlacement({
               ))}
             </div>
           ) : null}
-        </div>
-      </Reveal>
-    </Section>
+      </div>
+    </PdpBlock>
   );
 }
 

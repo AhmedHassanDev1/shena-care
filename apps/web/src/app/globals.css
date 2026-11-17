@@ -119,6 +119,27 @@ bdi {
   }
 
   /*
+   * Sahel Shutter Light as overlay elements for the product stage: the same slats and warm afternoon wash, but without
+   * isolation, so a packshot can multiply onto the painted ground behind it.
+   */
+  .slat-light {
+    position: absolute;
+    inset: -20%;
+    z-index: 2;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    filter: blur(5px);
+    background: repeating-linear-gradient(118deg, rgba(255, 255, 255, 0) 0 40px, rgba(120, 60, 20, 0.09) 40px 60px);
+  }
+  .slat-warm {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(200deg, rgba(255, 196, 120, 0.38), rgba(255, 196, 120, 0) 60%);
+  }
+
+  /*
    * Sahel Category Showcase Shutter Variants:
    * Repeating diagonal slatted sunlight across tomato and cobalt department fields.
    */

@@ -56,6 +56,10 @@ export function ProductGallery({ images, index, onIndexChange, productName, like
         onPointerLeave={() => setZoomAt(null)}
         className="group relative aspect-[6/5] w-full overflow-hidden lg:aspect-[5/4]"
       >
+        {/* Sahel stage: the citron sun behind the pack, warm afternoon wash and shutter slats falling across it. */}
+        <span aria-hidden="true" className="absolute -end-12 -top-12 size-40 rounded-full bg-citron lg:-end-20 lg:-top-20 lg:size-80" />
+        <span aria-hidden="true" className="slat-warm" />
+        <span aria-hidden="true" className="slat-light" />
         <AnimatePresence initial={false} mode="popLayout">
           <motion.div
             key={current?.id || current?.url || 'empty'}
