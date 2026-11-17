@@ -1,12 +1,12 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { initialPeriod, isRoutinePeriod, PERIOD_STORAGE_KEY, ROUTINE_PERIOD_CONFIG, type PeriodConfig, type RoutinePeriod } from '../lib/period';
+import { initialPeriod, isRoutinePeriod, PERIOD_STORAGE_KEY, ROUTINE_PERIOD_CONFIG, serializeChoice, type PeriodConfig, type RoutinePeriod } from '../lib/period';
 
 interface PeriodContextValue {
   /** Null only before the browser clock has been read (server render and first paint); pages render neutral until then. */
   period: RoutinePeriod | null;
-  /** The customer's own choice. Remembered for this browser session so the three routine pages agree. */
+  /** The customer's own choice. Remembered for a few minutes so the three routine pages agree; after that the local clock decides again. */
   choose: (period: RoutinePeriod) => void;
 }
 
@@ -36,7 +36,7 @@ export function RoutinePeriodProvider({ children, config = ROUTINE_PERIOD_CONFIG
   const choose = useCallback((next: RoutinePeriod) => {
     setPeriod(next);
     try {
-      window.sessionStorage.setItem(PERIOD_STORAGE_KEY, next);
+      window.sessionStorage.setItem(PERIOD_STORAGE_KEY, serializeChoice(next, Date.now()));
     } catch {
       /* storage can be blocked; the choice still holds for this page */
     }

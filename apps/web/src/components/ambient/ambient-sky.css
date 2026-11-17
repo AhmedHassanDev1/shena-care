@@ -1,5 +1,5 @@
 /*
- * Routines atmosphere: photographic shutter light + frosted glass.
+ * Ambient sky (routine pages + Ask Shina): photographic shutter light + frosted glass.
  *
  * Morning and Evening are two supplied background-only photographs (public/images/routines, 949px WebP, ~9 KB each): warm cream
  * wall with sun through blinds from the upper-left, and deep indigo with blue light from the upper-right. Each is one fixed,
@@ -86,6 +86,10 @@ html[data-routine-theme] header.sticky:not(.z-overlay) {
   background-repeat: no-repeat;
   background-size: cover;
   transition: opacity 900ms var(--ease-standard);
+}
+/* The light starts at the START edge of the page: the layers are mirrored under RTL (Morning: upper-right, Evening: upper-left). */
+html[dir='rtl'] .routine-sky__layer {
+  transform: scaleX(-1);
 }
 html[data-routine-theme='AM'] .routine-sky__am,
 html[data-routine-theme='PM'] .routine-sky__pm {

@@ -30,10 +30,30 @@ export function resolvePeriod(date: Date, config: PeriodConfig = ROUTINE_PERIOD_
 
 export const isRoutinePeriod = (value: unknown): value is RoutinePeriod => value === 'AM' || value === 'PM';
 
+/** How long a manual Morning/Evening pick outranks the clock. After this, opening a routine follows the local time again. */
+export const MANUAL_CHOICE_TTL_MS = 15 * 60 * 1000;
+
+/** What is kept in sessionStorage: the pick and when it was made. */
+export const serializeChoice = (period: RoutinePeriod, nowMs: number): string => JSON.stringify({ p: period, t: nowMs });
+
+/** The customer's recent manual pick, or null when there is none, it is corrupt, or it is older than the TTL. */
+export function readChoice(raw: string | null | undefined, nowMs: number, ttlMs: number = MANUAL_CHOICE_TTL_MS): RoutinePeriod | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { p?: unknown; t?: unknown };
+    if (!isRoutinePeriod(parsed.p) || typeof parsed.t !== 'number') return null;
+    const age = nowMs - parsed.t;
+    return age >= 0 && age <= ttlMs ? parsed.p : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Initial period on entering a routine page: a choice the customer made earlier in this browser session wins over the
- * clock, so navigating between the three pages never flips what they picked.
+ * Period on opening a routine page. The default is the customer's own local time (the browser clock, so their time zone; no
+ * geolocation permission). A manual pick made within the last few minutes wins, so moving between the three routine pages
+ * never flips what they just chose; a fresh visit follows the clock again.
  */
-export function initialPeriod(stored: string | null | undefined, now: Date, config: PeriodConfig = ROUTINE_PERIOD_CONFIG): RoutinePeriod {
-  return isRoutinePeriod(stored) ? stored : resolvePeriod(now, config);
+export function initialPeriod(stored: string | null | undefined, now: Date, config: PeriodConfig = ROUTINE_PERIOD_CONFIG, ttlMs: number = MANUAL_CHOICE_TTL_MS): RoutinePeriod {
+  return readChoice(stored, now.getTime(), ttlMs) ?? resolvePeriod(now, config);
 }

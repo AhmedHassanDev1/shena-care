@@ -30,7 +30,7 @@ The older localStorage tracker and the earlier catalog builder (`features/routin
 18:00–05:59 (`ROUTINE_PERIOD_CONFIG`, overridable). The default applies once, on entering a page. A manual choice is kept in
 `sessionStorage` so the three pages agree, and nothing flips it afterwards (no timer).
 
-`RoutineStage` paints shutter light: `routine-atmosphere.css` cross-fades a Morning layer (warm linen ground, alternating soft
+`RoutineStage` paints shutter light: `components/ambient/ambient-sky.css` cross-fades a Morning layer (warm linen ground, alternating soft
 shadow/sun slats from the upper-left) and an Evening layer (deep indigo ground, cool luminous slats from the upper-right). CSS only
 (gradients and masks), masked to one corner so it fades toward the content, behind content, stops under `prefers-reduced-motion`.
 The Evening theme remaps the surface tokens (chalk, linen, ink, stone, cobalt…) to `night-*` tokens on `<html data-routine-theme>`,
