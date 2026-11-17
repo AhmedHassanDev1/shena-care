@@ -336,12 +336,17 @@ function Details({ id }: { id: string }) {
           ) : (
             <>
               <section aria-labelledby="detail-period" className="flex flex-col gap-1">
-                <h2 id="detail-period" className="m-0 font-display text-display-2 font-bold text-ink">{timingLabel(m, active)}</h2>
-                <p className="m-0 font-display text-14 text-stone">{stepsLabel(m, activeSteps.length, (n) => formatNumber(n))}</p>
+                <div className="flex items-stretch gap-4">
+                  <span aria-hidden="true" className="w-1 shrink-0 rounded-pill bg-cobalt" />
+                  <div className="flex flex-col">
+                    <h2 id="detail-period" className="m-0 font-display text-display-2 font-bold text-ink">{timingLabel(m, active)}</h2>
+                    <p className="m-0 font-display text-14 text-stone">{stepsLabel(m, activeSteps.length, (n) => formatNumber(n))}</p>
+                  </div>
+                </div>
                 {activeSteps.length ? (
-                  <div className="mt-2 border-t border-ink/10">{list(activeSteps)}</div>
+                  <div className="mt-3">{list(activeSteps)}</div>
                 ) : (
-                  <div className="mt-2 flex flex-col items-start gap-3 border-y border-ink/10 py-8">
+                  <div className="mt-2 flex flex-col items-start gap-3 rounded-card bg-linen/60 p-6 shadow-outline-hairline">
                     <p className="m-0 font-display text-20 font-bold text-ink">{active === 'PM' ? m.rtEmptyEveningTitle : m.rtEmptyMorningTitle}</p>
                     <Button variant="ghost" size="m" onClick={startEdit}><Icon name="plus" size={18} />{m.rtAddStep}</Button>
                   </div>
@@ -350,15 +355,15 @@ function Details({ id }: { id: string }) {
               {asNeeded.length ? (
                 <section aria-labelledby="detail-asneeded" className="flex flex-col gap-1">
                   <h2 id="detail-asneeded" className="m-0 font-display text-display-3 font-bold text-ink">{m.rtAsNeeded}</h2>
-                  <div className="mt-1 border-t border-ink/10">{list(asNeeded)}</div>
+                  <div className="mt-2">{list(asNeeded)}</div>
                 </section>
               ) : null}
             </>
           )}
         </div>
 
-        <aside aria-label={m.rtRoutineContext} className="flex flex-col gap-6 lg:col-span-5 lg:sticky lg:top-28 lg:self-start xl:col-span-4 xl:col-start-9">
-          <section aria-labelledby="detail-context" className="flex flex-col gap-2 border-t border-ink/15 pt-5 lg:border-t-0 lg:pt-0">
+        <aside aria-label={m.rtRoutineContext} className="flex flex-col gap-6 rounded-sheet bg-linen/70 p-5 shadow-outline-hairline shadow-elevation-2 backdrop-blur-sm md:p-6 lg:col-span-5 lg:sticky lg:top-28 lg:self-start xl:col-span-4 xl:col-start-9">
+          <section aria-labelledby="detail-context" className="flex flex-col gap-2">
             <h2 id="detail-context" className="m-0 font-display text-display-3 font-bold text-ink">{m.rtRoutineContext}</h2>
             <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-display text-14 leading-24">
               <dt className="text-stone">{m.rtAreaLabel}</dt><dd className="m-0 text-ink">{areaLabel(m, server.careArea)}</dd>

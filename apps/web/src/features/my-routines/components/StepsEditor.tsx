@@ -137,9 +137,12 @@ export function StepsEditor({ draft, apply, undo }: Props) {
     <div className="flex flex-col gap-6">
       <section aria-labelledby="routine-period-heading" className="flex flex-col gap-1">
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-          <div className="flex flex-col">
+          <div className="flex items-stretch gap-4">
+            <span aria-hidden="true" className="w-1 shrink-0 rounded-pill bg-cobalt" />
+            <div className="flex flex-col">
             <h2 id="routine-period-heading" className="m-0 font-display text-display-2 font-bold text-ink">{heading}</h2>
             <p aria-live="polite" className="m-0 font-display text-14 text-stone">{stepsLabel(m, steps.length, fmt)}</p>
+            </div>
           </div>
           {steps.length >= 2 ? (
             <Button variant="ghost" size="xs" loading={arranging} pendingLabel={m.rtAutoArranging} onClick={arrange}>
@@ -149,14 +152,14 @@ export function StepsEditor({ draft, apply, undo }: Props) {
         </div>
 
         {steps.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 border-y border-ink/10 py-8">
+          <div className="flex flex-col items-start gap-3 rounded-card bg-linen/60 p-6 shadow-outline-hairline">
             <p className="m-0 font-display text-20 font-bold text-ink">{emptyTitle}</p>
             <p className="m-0 max-w-narrow font-display text-15 leading-24 text-stone">{m.rtEmptyBody}</p>
           </div>
         ) : (
           <>
             <p className="m-0 font-display text-13 leading-20 text-stone">{m.rtOrderHint}</p>
-            <div className="border-t border-ink/10">{list(steps)}</div>
+            <div className="mt-2">{list(steps)}</div>
           </>
         )}
 
@@ -170,7 +173,7 @@ export function StepsEditor({ draft, apply, undo }: Props) {
         <section aria-labelledby="routine-asneeded-heading" className="flex flex-col gap-1">
           <h2 id="routine-asneeded-heading" className="m-0 font-display text-display-3 font-bold text-ink">{timingLabel(m, 'AS_NEEDED')}</h2>
           <p className="m-0 font-display text-14 text-stone">{stepsLabel(m, asNeeded.length, fmt)}</p>
-          <div className="border-t border-ink/10">{list(asNeeded)}</div>
+          <div className="mt-2">{list(asNeeded)}</div>
         </section>
       ) : null}
 

@@ -1,26 +1,66 @@
 /*
- * Routines atmosphere: the Morning / Evening light behind the three routine pages.
+ * Routines atmosphere: shutter light.
+ *
+ * Morning is a warm linen room with soft diagonal bands of sun entering from the upper-left, as through blinds. Evening is a
+ * deep cobalt/indigo room with cool luminous bands entering from the upper-right. The light is strongest at its edge and
+ * fades toward the content; the middle of the page, where text sits, stays clean ground.
  *
  * Rules this file keeps:
- *  - Light lives at the page edges. Every layer is masked so the middle of the page, where text sits, stays clean ground.
- *  - Ground colour (dawn / evening-ground) is tokens only; light is token colours mixed down to low alpha, never a hex.
+ *  - CSS only: gradients, masks and layered backgrounds. No images, no drawn scenery.
+ *  - Tokens only. The Evening theme remaps the surface tokens (chalk, linen, ink, stone, cobalt…) to night-* tokens on <html>,
+ *    so every shared component, the header and the sheets follow without a second stylesheet.
  *  - Morning and Evening are separate layers that cross-fade (gradients cannot be transitioned directly).
- *  - Motion is slow and transform/opacity only; prefers-reduced-motion freezes it.
- *  - Morning light enters from the start edge (right in Arabic, left in English); the moon sits on the end edge. RTL rules mirror it.
+ *  - The light never sits in front of content (z-index -1) and never covers the whole page with stripes: a mask confines it
+ *    to one corner and fades it out.
+ *  - Motion is a very slow drift of the band layer (transform only) and stops under prefers-reduced-motion.
  */
+
+/* ── Evening theme: surface tokens remapped for the whole document while a routine page is open ── */
+html[data-routine-theme='PM'] {
+  --chalk: var(--night-ground);
+  --chalk-rgb: var(--night-ground-rgb);
+  --linen: var(--night-raised);
+  --linen-rgb: var(--night-raised-rgb);
+  --sand: var(--night-sand);
+  --sand-rgb: var(--night-sand-rgb);
+  --dune: var(--night-sand);
+  --dune-rgb: var(--night-sand-rgb);
+  --dusk: var(--night-sand);
+  --dusk-rgb: var(--night-sand-rgb);
+  --ink: var(--night-ink);
+  --ink-rgb: var(--night-ink-rgb);
+  --stone: var(--night-stone);
+  --stone-rgb: var(--night-stone-rgb);
+  --line: var(--night-line);
+  --line-rgb: var(--night-line-rgb);
+  --line-2: var(--night-line-2);
+  --line-2-rgb: var(--night-line-2-rgb);
+  --cobalt: var(--night-cobalt);
+  --cobalt-rgb: var(--night-cobalt-rgb);
+  --cobalt-deep: var(--night-cobalt);
+  --cobalt-deep-rgb: var(--night-cobalt-rgb);
+  --tomato-ink: var(--night-alert);
+  --tomato-ink-rgb: var(--night-alert-rgb);
+  --conflict: var(--night-conflict);
+  --conflict-rgb: var(--night-conflict-rgb);
+  --ok: var(--night-ok);
+  --ok-rgb: var(--night-ok-rgb);
+  --ok-tint: var(--night-ok-tint);
+  --ok-tint-rgb: var(--night-ok-tint-rgb);
+  color-scheme: dark;
+}
+html[data-routine-theme='AM'] {
+  --chalk: var(--dawn);
+  --chalk-rgb: var(--dawn-rgb);
+}
+body {
+  transition: background-color 900ms var(--ease-standard);
+}
 
 .routine-stage {
   position: relative;
   isolation: isolate;
   flex: 1 1 auto;
-  background-color: var(--chalk);
-  transition: background-color 1100ms var(--ease-standard);
-}
-.routine-stage[data-period='AM'] {
-  background-color: var(--dawn);
-}
-.routine-stage[data-period='PM'] {
-  background-color: var(--evening-ground);
 }
 
 .routine-sky {
@@ -42,112 +82,80 @@
   opacity: 1;
 }
 
-/* ── Morning: warm sun low on the start edge, thin rays fanning in, a faint glow on the opposite lower edge ── */
 .routine-sky__am {
   background:
-    radial-gradient(52% 40% at 0% 0%, color-mix(in srgb, var(--sunlight) 42%, transparent), transparent 72%),
-    radial-gradient(38% 30% at 100% 100%, color-mix(in srgb, var(--sunlight) 20%, transparent), transparent 70%),
-    linear-gradient(to bottom, color-mix(in srgb, var(--citron) 14%, transparent), transparent 18%);
+    radial-gradient(70% 55% at 0% 0%, color-mix(in srgb, var(--sunlight) 22%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--white) 30%, transparent), transparent 40%);
 }
-html[dir='rtl'] .routine-sky__am {
-  background:
-    radial-gradient(52% 40% at 100% 0%, color-mix(in srgb, var(--sunlight) 42%, transparent), transparent 72%),
-    radial-gradient(38% 30% at 0% 100%, color-mix(in srgb, var(--sunlight) 20%, transparent), transparent 70%),
-    linear-gradient(to bottom, color-mix(in srgb, var(--citron) 14%, transparent), transparent 18%);
-}
-html[dir='rtl'] .routine-sky__pm {
-  background:
-    radial-gradient(54% 42% at 0% 0%, color-mix(in srgb, var(--moonlight) 34%, transparent), transparent 72%),
-    radial-gradient(46% 34% at 100% 100%, color-mix(in srgb, var(--cobalt) 16%, transparent), transparent 72%),
-    linear-gradient(to top, color-mix(in srgb, var(--moonlight) 16%, transparent), transparent 20%);
-}
-.routine-sky__rays {
-  position: absolute;
-  inset-block-start: -70vmax;
-  inset-inline-start: -70vmax;
-  width: 140vmax;
-  height: 140vmax;
-  background: repeating-conic-gradient(from 18deg, color-mix(in srgb, var(--sunlight) 30%, transparent) 0deg 2.2deg, transparent 2.2deg 9deg);
-  -webkit-mask-image: radial-gradient(circle, black 0, black 5%, transparent 24%);
-  mask-image: radial-gradient(circle, black 0, black 5%, transparent 24%);
-  animation: routine-rays-drift 60s ease-in-out infinite alternate;
-  transform-origin: 50% 50%;
-}
-html[dir='rtl'] .routine-sky__rays {
-  /* Mirror the fan so it opens toward the page, not off the edge. */
-  transform: scaleX(-1);
-  animation-name: routine-rays-drift-rtl;
-}
-
-/* ── Evening: muted cobalt/indigo haze on the edges and a quiet moon halo at the end edge ── */
 .routine-sky__pm {
   background:
-    radial-gradient(54% 42% at 100% 0%, color-mix(in srgb, var(--moonlight) 34%, transparent), transparent 72%),
-    radial-gradient(46% 34% at 0% 100%, color-mix(in srgb, var(--cobalt) 16%, transparent), transparent 72%),
-    linear-gradient(to top, color-mix(in srgb, var(--moonlight) 16%, transparent), transparent 20%);
-}
-.routine-sky__moon {
-  position: absolute;
-  inset-block-start: clamp(0.5rem, 2vw, 1.5rem);
-  inset-inline-end: -2rem;
-  width: clamp(5.5rem, 15vmin, 9rem);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--moonlight) 30%, transparent) 0, color-mix(in srgb, var(--moonlight) 12%, transparent) 46%, transparent 70%);
-  animation: routine-moon-breathe 14s ease-in-out infinite;
-}
-/* The moon itself: a crescent carved out of a disc with a mask, so it is a shape and not a blob. */
-.routine-sky__moon::before {
-  content: '';
-  position: absolute;
-  inset: 27%;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--white) 88%, transparent);
-  box-shadow: 0 0 1.5rem 0.25rem color-mix(in srgb, var(--moonlight) 30%, transparent);
-  -webkit-mask-image: radial-gradient(circle at 70% 30%, transparent 0 52%, black 54%);
-  mask-image: radial-gradient(circle at 70% 30%, transparent 0 52%, black 54%);
-}
-.routine-sky__stars {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 12% 9%, color-mix(in srgb, var(--white) 80%, transparent) 0 1.1px, transparent 1.7px),
-    radial-gradient(circle at 24% 4%, color-mix(in srgb, var(--white) 60%, transparent) 0 0.9px, transparent 1.5px),
-    radial-gradient(circle at 70% 12%, color-mix(in srgb, var(--white) 70%, transparent) 0 1px, transparent 1.6px),
-    radial-gradient(circle at 93% 30%, color-mix(in srgb, var(--white) 60%, transparent) 0 1px, transparent 1.6px),
-    radial-gradient(circle at 5% 46%, color-mix(in srgb, var(--white) 60%, transparent) 0 0.9px, transparent 1.5px),
-    radial-gradient(circle at 96% 64%, color-mix(in srgb, var(--white) 55%, transparent) 0 0.9px, transparent 1.5px),
-    radial-gradient(circle at 8% 88%, color-mix(in srgb, var(--white) 55%, transparent) 0 1px, transparent 1.6px);
-  -webkit-mask-image: linear-gradient(to right, black 0, transparent 22%, transparent 78%, black 100%);
-  mask-image: linear-gradient(to right, black 0, transparent 22%, transparent 78%, black 100%);
-  animation: routine-stars-twinkle 9s ease-in-out infinite alternate;
+    radial-gradient(70% 55% at 100% 0%, color-mix(in srgb, var(--night-glow) 30%, transparent), transparent 70%),
+    radial-gradient(60% 50% at 0% 100%, color-mix(in srgb, var(--night-raised) 80%, transparent), transparent 75%);
 }
 
-@keyframes routine-rays-drift {
-  from { transform: rotate(-4deg); }
-  to { transform: rotate(5deg); }
+/* The bands: one oversized layer of soft diagonal slats, masked to a corner so it fades toward the content. */
+.routine-sky__bands {
+  position: absolute;
+  inset: -20% -10%;
+  will-change: transform;
 }
-@keyframes routine-rays-drift-rtl {
-  from { transform: scaleX(-1) rotate(-4deg); }
-  to { transform: scaleX(-1) rotate(5deg); }
+.routine-sky__am .routine-sky__bands {
+  /* Alternating soft shadow and bright slat, like sun through blinds on a linen wall. */
+  background: repeating-linear-gradient(
+    112deg,
+    transparent 0,
+    transparent 2rem,
+    color-mix(in srgb, var(--dune) 42%, transparent) 4.5rem,
+    transparent 6.5rem,
+    color-mix(in srgb, var(--white) 88%, transparent) 9rem,
+    color-mix(in srgb, var(--sunlight) 30%, transparent) 11rem,
+    transparent 13.5rem,
+    transparent 16rem
+  );
+  -webkit-mask-image: linear-gradient(135deg, black 0%, black 18%, transparent 62%);
+  mask-image: linear-gradient(135deg, black 0%, black 18%, transparent 62%);
+  animation: routine-bands-drift-am 90s ease-in-out infinite alternate;
 }
-@keyframes routine-moon-breathe {
-  0%, 100% { opacity: 0.86; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.04); }
+.routine-sky__pm .routine-sky__bands {
+  background: repeating-linear-gradient(
+    68deg,
+    transparent 0,
+    transparent 3.5rem,
+    color-mix(in srgb, var(--night-glow) 70%, transparent) 5.5rem,
+    color-mix(in srgb, var(--night-cobalt) 45%, transparent) 7.5rem,
+    transparent 10rem,
+    transparent 13rem
+  );
+  -webkit-mask-image: linear-gradient(225deg, black 0%, black 12%, transparent 55%);
+  mask-image: linear-gradient(225deg, black 0%, black 12%, transparent 55%);
+  animation: routine-bands-drift-pm 90s ease-in-out infinite alternate;
 }
-@keyframes routine-stars-twinkle {
-  from { opacity: 0.55; }
-  to { opacity: 1; }
+
+@keyframes routine-bands-drift-am {
+  from { transform: translate3d(-1.5%, -1%, 0); }
+  to { transform: translate3d(1.5%, 1%, 0); }
+}
+@keyframes routine-bands-drift-pm {
+  from { transform: translate3d(1.5%, -1%, 0); }
+  to { transform: translate3d(-1.5%, 1%, 0); }
+}
+
+@media (max-width: 639px) {
+  /* A phone is mostly "edge": fainter bands confined to the top so text never competes with them. */
+  .routine-sky__am .routine-sky__bands,
+  .routine-sky__pm .routine-sky__bands {
+    opacity: 0.7;
+    -webkit-mask-image: linear-gradient(180deg, black 0%, transparent 34%);
+    mask-image: linear-gradient(180deg, black 0%, transparent 34%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .routine-stage,
+  body,
   .routine-sky__layer {
     transition-duration: 0.01ms;
   }
-  .routine-sky__rays,
-  .routine-sky__moon,
-  .routine-sky__stars {
-    animation: none;
+  .routine-sky__bands {
+    animation: none !important;
   }
 }
