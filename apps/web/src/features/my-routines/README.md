@@ -57,3 +57,18 @@ details share `StepsEditor`; every structural change is one entry in `useDraftHi
 5. **Writes are slow on the dev database** (a save or duplicate takes several seconds). The UI shows pending states and never
    assumes success.
 6. **Validation messages (unsupported-claim screening) come back in English** from the API; the page shows them verbatim.
+
+## Background photographs (asset register)
+
+The Morning/Evening backgrounds are two supplied background-only images, converted to WebP with Next's bundled encoder
+(quality 92, 949×462, 8–9 KB each). Source and rights: supplied by the project owner as the approved reference backgrounds (no text,
+no product, no people). Missing from `docs/frontend/homepage-image-manifest.md` only because that file is not part of this checkout;
+add these two rows when it is merged.
+
+| File | Use | Anchor | Ground colour behind it |
+| --- | --- | --- | --- |
+| `public/images/routines/morning-light.webp` | Morning sky, Routine pages | upper-left | `dawn` (#E5D9D0, sampled from the far edge) |
+| `public/images/routines/evening-light.webp` | Evening sky, Routine pages | upper-right | `night-ground` (#0C1645, sampled from the far edge) |
+
+Each is one fixed full-viewport layer drawn with `cover` (landscape) or at 56vh with a faded lower edge (portrait), so it is never
+tiled or stretched out of ratio. The same routine pages (builder, list, details) share it; the theme is removed on leaving them.

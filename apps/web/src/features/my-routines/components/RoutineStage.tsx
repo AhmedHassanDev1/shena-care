@@ -16,16 +16,8 @@ function Sky() {
   if (!host) return null;
   return createPortal(
     <div aria-hidden="true" className="routine-sky">
-      <div className="routine-sky__layer routine-sky__am">
-        <div className="routine-sky__mask">
-          <div className="routine-sky__bands" />
-        </div>
-      </div>
-      <div className="routine-sky__layer routine-sky__pm">
-        <div className="routine-sky__mask">
-          <div className="routine-sky__bands" />
-        </div>
-      </div>
+      <div className="routine-sky__layer routine-sky__am" />
+      <div className="routine-sky__layer routine-sky__pm" />
     </div>,
     host
   );

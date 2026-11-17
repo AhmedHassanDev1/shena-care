@@ -45,8 +45,8 @@
       },
       {
         "name": "dawn",
-        "value": "#F3E7D7",
-        "usage": "Routines morning ground: warm sunlit chalk behind the Morning atmosphere. Ink text 15.4:1, stone 5.0:1."
+        "value": "#E5D9D0",
+        "usage": "Routines morning ground: sampled from the far edge of the Morning photograph (public/images/routines/morning-light.webp). Ink text 15.4:1, stone 5.0:1."
       },
       {
         "name": "sunlight",
@@ -65,7 +65,7 @@
       },
       {
         "name": "night-ground",
-        "value": "#0B1240",
+        "value": "#0C1645",
         "usage": "Routines evening ground: deep indigo, never black. Replaces chalk inside the Evening theme."
       },
       {
