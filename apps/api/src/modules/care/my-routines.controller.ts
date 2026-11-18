@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { CurrentUser } from '../accounts/decorators/current-user.decorator';
-import { ActivateRoutineDto, RoutineStatusDto, SwapRoutineItemDto } from './dto/routine-workspace.dto';
+import { ActivateRoutineDto, RoutineStatusDto, SwapRoutineItemDto, SyncLocalRoutineDto } from './dto/routine-workspace.dto';
 import { MyRoutinesService } from './services/my-routines.service';
 
 type Customer = { id: string };
@@ -15,6 +15,11 @@ export class MyRoutinesController {
   @Get()
   list(@CurrentUser() customer: Customer) {
     return this.routines.listRoutines(customer.id);
+  }
+
+  @Post('sync')
+  sync(@CurrentUser() customer: Customer, @Body() dto: SyncLocalRoutineDto) {
+    return this.routines.syncLocalRoutine(customer.id, dto);
   }
 
   @Get(':id')

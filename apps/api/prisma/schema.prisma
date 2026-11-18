@@ -2932,19 +2932,68 @@ enum SkinType {
   @@schema("care")
 }
 
+enum HairType {
+  straight
+  wavy
+  curly
+  coily
+
+  @@schema("care")
+}
+
+enum ScalpType {
+  normal
+  dry
+  oily
+  sensitive
+
+  @@schema("care")
+}
+
+enum CareFocus {
+  skin
+  hair
+  both
+
+  @@schema("care")
+}
+
+enum SunExposure {
+  low
+  moderate
+  high
+
+  @@schema("care")
+}
+
+enum PreferredTexture {
+  gel
+  cream
+  lotion
+  fluid
+  rich_cream
+
+  @@schema("care")
+}
+
 model CustomerCareProfile {
-  id              String               @id @default(uuid()) @db.Uuid
-  customerId      String               @unique @map("customer_id")
-  skinType        SkinType?            @map("skin_type")
-  budget          Decimal?             @db.Decimal(10, 2)
-  currency        String?              @db.VarChar(3)
-  sensitivities   String?
-  routineId       String?              @map("routine_id") @db.Uuid
-  ageBand         CareAgeBand?         @map("age_band")
-  experienceLevel CareExperienceLevel? @map("experience_level")
-  fragranceFree   Boolean?             @map("fragrance_free")
-  createdAt       DateTime             @default(now()) @map("created_at")
-  updatedAt       DateTime             @updatedAt @map("updated_at")
+  id               String               @id @default(uuid()) @db.Uuid
+  customerId       String               @unique @map("customer_id")
+  skinType         SkinType?            @map("skin_type")
+  hairType         HairType?            @map("hair_type")
+  scalpType        ScalpType?           @map("scalp_type")
+  primaryFocus     CareFocus?           @default(both) @map("primary_focus")
+  sunExposure      SunExposure?         @map("sun_exposure")
+  preferredTexture PreferredTexture?    @map("preferred_texture")
+  budget           Decimal?             @db.Decimal(10, 2)
+  currency         String?              @db.VarChar(3)
+  sensitivities    String?
+  routineId        String?              @map("routine_id") @db.Uuid
+  ageBand          CareAgeBand?         @map("age_band")
+  experienceLevel  CareExperienceLevel? @map("experience_level")
+  fragranceFree    Boolean?             @map("fragrance_free")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
 
   routine          Routine?                     @relation(fields: [routineId], references: [id])
   concerns         CustomerCareProfileConcern[]

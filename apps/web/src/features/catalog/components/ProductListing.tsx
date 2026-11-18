@@ -88,31 +88,15 @@ export function ProductListing() {
     staleTime: 60_000,
   }).data?.total;
 
-  // Department page: one real packshot per subcategory for the selector (first product of each child in the department).
-  const isDepartment = context.kind === 'department';
-  const sample = useQuery({
-    queryKey: ['discovery', 'facet', 'sample', toQueryString(typeBase ?? {})],
-    queryFn: () => discoverProducts(typeBase!, undefined, 100),
-    enabled: Boolean(typeBase) && isDepartment,
-    staleTime: 60_000,
-  }).data;
+  // Department page: the selector lists the department's subcategories that hold sellable products (the backend facet),
+  // in the catalog's own order.
   const railItems: SubcategoryItem[] = useMemo(() => {
     if (context.kind !== 'department') return [];
-    const firstOf = new Map<string, ReturnType<typeof toCardModel>>();
-    for (const item of sample?.items ?? []) {
-      const slug = item.category?.slug;
-      if (slug && !firstOf.has(slug)) firstOf.set(slug, toCardModel(item, locale, m.sizeOr));
-    }
-    // Only subcategories that hold sellable products (the backend facet), in the catalog's own order.
     const counts = new Map(groups.type.map((f) => [f.slug, f.count]));
     return context.department.children
       .filter((child) => (counts.get(child.slug) ?? 0) > 0)
-      .map((child) => {
-        const label = categoryLabel(child, locale) ?? child.name;
-        const card = firstOf.get(child.slug);
-        return { slug: child.slug, label, count: counts.get(child.slug) ?? 0, imageUrl: card?.imageUrl ?? null, imageAlt: card?.imageAlt ?? label };
-      });
-  }, [context, sample, groups.type, locale, m.sizeOr]);
+      .map((child) => ({ slug: child.slug, label: categoryLabel(child, locale) ?? child.name, count: counts.get(child.slug) ?? 0 }));
+  }, [context, groups.type, locale]);
   const rail =
     context.kind === 'department' && railItems.length > 0 ? (
       <SubcategoryRail
@@ -601,6 +585,20 @@ function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
     draft.concern,
   ].filter(Boolean).length;
 
+  useEffect(() => {
+    if (!open) return;
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    const closeOnDesktop = (event: MediaQueryListEvent) => {
+      if (event.matches) setOpen(false);
+    };
+    if (desktop.matches) {
+      setOpen(false);
+      return;
+    }
+    desktop.addEventListener('change', closeOnDesktop);
+    return () => desktop.removeEventListener('change', closeOnDesktop);
+  }, [open]);
+
   return (
     <Sheet
       open={open}
@@ -623,7 +621,12 @@ function MobileFilterSheet({ filters, groups, applied, onApply, clearTo }: {
           <span className="inline-flex size-5.5 items-center justify-center rounded-full bg-cobalt text-12 font-bold text-chalk shadow-elevation-1">{formatNumber(applied, locale)}</span>
         ) : null}
       </button>
-      <SheetContent side="bottom" closeLabel={m.close} className="rounded-t-sheet bg-linen/95 backdrop-blur-2xl border-t border-chalk/50 shadow-elevation-3">
+      <SheetContent
+        side="bottom"
+        closeLabel={m.close}
+        overlayClassName="bg-transparent lg:hidden"
+        className="shutter soft rounded-t-sheet border-t border-ink/15 bg-chalk/75 shadow-elevation-3 backdrop-blur-md lg:hidden"
+      >
         <span aria-hidden="true" className="mt-2 h-1 w-10 self-center rounded-image bg-sand" />
         <SheetHeader className="pb-2 pt-2 shadow-hairline-bottom">
           <SheetTitle className="flex items-center gap-2 font-display text-24 font-bold leading-30 text-ink">

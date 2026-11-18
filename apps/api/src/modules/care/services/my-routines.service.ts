@@ -1,9 +1,10 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { Prisma, RoutineActivation, RoutineLifecycle, RoutinePurchasePhase, RoutineTier, UsageRoutinePeriod } from '@prisma/client';
+import { CareArea, Prisma, RoutineActivation, RoutineLifecycle, RoutineProposalStatus, RoutinePurchasePhase, RoutineTier, UsageRoutinePeriod } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
 import { areaSlot, buildProposal, crossRoutineConflicts, Tier } from '../engine/routine-engine';
 import { readSafety, RoutineEngineService, UNKNOWN_SAFETY } from './routine-engine.service';
+import { SyncLocalRoutineDto } from '../dto/routine-workspace.dto';
 
 type RoutineWithItems = Prisma.CustomerRoutineGetPayload<{ include: { items: true; careProfile: true } }>;
 
@@ -41,6 +42,179 @@ export class MyRoutinesService {
     const facts = new Map((await this.catalog.getRoutineProductFacts(
       routine.items.map(i => i.productId).filter((id): id is string => !!id))).map(f => [f.productId, f]));
     return this.present(routine, facts);
+  }
+
+  /**
+   * Safe localStorage -> CustomerRoutine synchronization.
+   * Enforces idempotency via localId, detects care area conflicts with existing active routines,
+   * prevents silent overwrites, and persists a canonical CustomerRoutine with full versioning.
+   */
+  async syncLocalRoutine(customerId: string, dto: SyncLocalRoutineDto) {
+    let profile = await this.prisma.customerCareProfile.findUnique({ where: { customerId } });
+    if (!profile) {
+      profile = await this.prisma.customerCareProfile.create({
+        data: { customerId },
+      });
+    }
+
+    // 1. Prevent duplicate imports: check if routine with this localId was already synced for this customer
+    const syncMarker = `SYNCED_FROM_LOCAL:${dto.localId}`;
+    const alreadySynced = await this.prisma.customerRoutine.findFirst({
+      where: {
+        careProfileId: profile.id,
+        statusReason: { contains: dto.localId },
+      },
+    });
+
+    if (alreadySynced) {
+      return {
+        status: 'ALREADY_SYNCED',
+        routineId: alreadySynced.id,
+        routine: await this.getRoutine(alreadySynced.id, customerId),
+        message: 'This routine was already imported previously.',
+      };
+    }
+
+    // 2. Check for conflicts with existing active cloud routine for this careArea
+    const existingActive = await this.prisma.customerRoutine.findFirst({
+      where: {
+        careProfileId: profile.id,
+        careArea: dto.category,
+        activation: RoutineActivation.ACTIVE,
+      },
+    });
+
+    if (existingActive) {
+      if (dto.conflictResolution === 'KEEP_CLOUD') {
+        return {
+          status: 'KEPT_CLOUD',
+          routineId: existingActive.id,
+          routine: await this.getRoutine(existingActive.id, customerId),
+          message: 'Retained existing active cloud routine.',
+        };
+      }
+
+      if (!dto.conflictResolution || dto.conflictResolution === 'PROMPT') {
+        return {
+          status: 'CONFLICT',
+          localId: dto.localId,
+          existingRoutine: await this.getRoutine(existingActive.id, customerId),
+          message: 'An active routine already exists for this care area. Choose KEEP_CLOUD, OVERWRITE_CLOUD, or IMPORT_AS_INACTIVE.',
+        };
+      }
+    }
+
+    // Determine activation state based on conflict resolution
+    const shouldActivate = !existingActive || dto.conflictResolution === 'OVERWRITE_CLOUD';
+
+    // 3. Find matching blueprint or fallback to care area blueprint
+    let blueprint = await this.prisma.routineBlueprint.findFirst({
+      where: {
+        careArea: dto.category,
+        ...(dto.concernSlug ? { concernSlug: dto.concernSlug } : {}),
+      },
+    });
+
+    if (!blueprint) {
+      blueprint = await this.prisma.routineBlueprint.findFirst({
+        where: { careArea: dto.category },
+      });
+    }
+
+    if (!blueprint) {
+      blueprint = await this.prisma.routineBlueprint.findFirst();
+    }
+
+    if (!blueprint) {
+      throw new BadRequestException('No routine blueprint available for synchronization');
+    }
+
+    // 4. Resolve SKUs to Products in bulk
+    const skuIds = dto.steps
+      .map(s => s.skuId)
+      .filter((id): id is string => !!id && /^[0-9a-f-]{36}$/i.test(id));
+
+    const skus = skuIds.length
+      ? await this.prisma.sku.findMany({ where: { id: { in: skuIds } }, select: { id: true, productId: true } })
+      : [];
+    const skuToProduct = new Map(skus.map(s => [s.id, s.productId]));
+
+    // 5. Transactionally create draft, proposal, CustomerRoutine, items, and version
+    const routineId = await this.prisma.$transaction(async tx => {
+      if (existingActive && dto.conflictResolution === 'OVERWRITE_CLOUD') {
+        await tx.customerRoutine.update({
+          where: { id: existingActive.id },
+          data: { activation: RoutineActivation.INACTIVE, statusReason: 'REPLACED_BY_LOCAL_SYNC' },
+        });
+      }
+
+      const draft = await tx.routineDraft.create({
+        data: {
+          customerId,
+          careArea: dto.category,
+          primaryConcern: dto.concernSlug ?? blueprint!.concernSlug,
+        },
+      });
+
+      const proposal = await tx.routineProposal.create({
+        data: {
+          draftId: draft.id,
+          status: RoutineProposalStatus.accepted,
+          snapshot: {
+            source: 'LOCAL_STORAGE_SYNC',
+            localId: dto.localId,
+            title: dto.title,
+            stepsCount: dto.steps.length,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      const routine = await tx.customerRoutine.create({
+        data: {
+          careProfileId: profile.id,
+          blueprintId: blueprint!.id,
+          blueprintVersion: blueprint!.version,
+          concernSlug: dto.concernSlug ?? blueprint!.concernSlug,
+          careArea: dto.category,
+          kind: blueprint!.kind,
+          titleAr: dto.title,
+          activation: shouldActivate ? RoutineActivation.ACTIVE : RoutineActivation.INACTIVE,
+          lifecycle: RoutineLifecycle.NOT_STARTED,
+          statusReason: syncMarker,
+          createdFromProposalId: proposal.id,
+          items: {
+            create: dto.steps.map((st, idx) => ({
+              roleKey: st.roleKey || `step-${idx + 1}`,
+              sortOrder: idx + 1,
+              isEssential: st.isEssential ?? true,
+              skuId: st.skuId && skuToProduct.has(st.skuId) ? st.skuId : null,
+              productId: st.skuId && skuToProduct.has(st.skuId) ? skuToProduct.get(st.skuId) : null,
+              reasonCodes: ['LOCAL_STORAGE_IMPORT'],
+              addedAtVersion: 1,
+            })),
+          },
+          versions: {
+            create: {
+              version: 1,
+              snapshot: {
+                source: 'LOCAL_STORAGE_SYNC',
+                localId: dto.localId,
+                title: dto.title,
+                steps: dto.steps,
+              } as unknown as Prisma.InputJsonValue,
+            },
+          },
+        },
+      });
+
+      return routine.id;
+    });
+
+    return {
+      status: 'SYNCED',
+      routineId,
+      routine: await this.getRoutine(routineId, customerId),
+    };
   }
 
   /** Activates when the care-area slot is free and no active ingredient collides; otherwise reports why. */

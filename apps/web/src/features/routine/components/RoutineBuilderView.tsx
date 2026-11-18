@@ -8,9 +8,10 @@ import { Icon } from '@/components/ui/icon';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
+import { auth } from '@/lib/auth';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useCart } from '@/features/cart/hooks/useCart';
-import { saveCustomerRoutine, type CustomerSavedRoutine } from '../lib/routineStorage';
+import { saveCustomerRoutine, syncSavedRoutineWithCloud, type CustomerSavedRoutine } from '../lib/routineStorage';
 import { getCuratedRoutineBySlug } from '../data/curatedRoutines';
 
 type FocusArea = 'skin' | 'hair';
@@ -312,6 +313,13 @@ export function RoutineBuilderView() {
         };
         saveCustomerRoutine(savedObj);
         setIsSaved(true);
+
+        const token = auth.getToken();
+        if (token) {
+          syncSavedRoutineWithCloud(token).catch((err) => {
+            console.warn('Failed to background sync routine with cloud:', err);
+          });
+        }
       },
       {
         title: 'احفظ روتينك المخصص',

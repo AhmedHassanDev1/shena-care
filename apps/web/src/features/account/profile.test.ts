@@ -114,4 +114,29 @@ describe('Customer Profile Helpers & Contracts', () => {
     expect(valid.fieldErrors).toEqual({});
     expect(valid.pinError).toBeNull();
   });
+
+  describe('Personal Care Hub (Care Profile API & Contracts)', () => {
+    it('structures care profile input with skin, hair, scalp, focus, sun exposure and texture correctly', () => {
+      const payload = {
+        skinType: 'combination' as const,
+        hairType: 'curly' as const,
+        scalpType: 'sensitive' as const,
+        primaryFocus: 'both' as const,
+        sunExposure: 'moderate' as const,
+        preferredTexture: 'gel' as const,
+        fragranceFree: true,
+        sensitivities: 'chamomile, parabens',
+        concerns: [{ concernId: 'concern-acne-uuid', severity: 2 }],
+      };
+
+      expect(payload.skinType).toBe('combination');
+      expect(payload.hairType).toBe('curly');
+      expect(payload.scalpType).toBe('sensitive');
+      expect(payload.primaryFocus).toBe('both');
+      expect(payload.sunExposure).toBe('moderate');
+      expect(payload.preferredTexture).toBe('gel');
+      expect(payload.fragranceFree).toBe(true);
+      expect(payload.concerns).toHaveLength(1);
+    });
+  });
 });

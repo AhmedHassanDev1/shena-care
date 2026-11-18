@@ -3,20 +3,25 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLink } from '@/components/ui/arrow-link';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { MessageBox } from '@/components/ui/message-box';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MorningAmbient } from '@/components/ambient/AmbientSky';
 import { useAuth } from '@/features/auth/AuthContext';
-import { displayMobile } from '@/features/auth/lib/auth-helpers';
-import { formatNumber } from '@/lib/i18n/format';
-import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
-import { fillMessage } from '@/lib/i18n/messages';
+import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { orders as ordersApi } from '@/lib/orders';
 import { routes } from '@/lib/routes';
+import { cn } from '@/lib/utils';
 import { useAddresses } from '../hooks/useAddresses';
+import { careProfileApi } from '../lib/care-profile-api';
+import { CareProfileOverview } from './CareProfileOverview';
+import { CareIdentitySection } from './CareIdentitySection';
+import { CareProfileEditModal } from './CareProfileEditModal';
+import { ActiveRoutineSpotlight } from './ActiveRoutineSpotlight';
+import { ShinaCareBanner } from './ShinaCareBanner';
 import { PersonalInfoSection } from './PersonalInfoSection';
 import { ProfileOrdersSection } from './ProfileOrdersSection';
 import { SavedAddressesSection } from './SavedAddressesSection';
@@ -28,6 +33,8 @@ export interface CustomerProfileViewProps {
   focusSection?: 'personal';
 }
 
+type AccountTab = 'care' | 'orders' | 'addresses' | 'personal' | 'support';
+
 export function ProfileSkeleton() {
   return (
     <div aria-busy="true" className="mx-auto flex max-w-container flex-col gap-8 py-4 lg:py-8">
@@ -35,29 +42,23 @@ export function ProfileSkeleton() {
         <Skeleton className="h-9 w-56 rounded-input" />
         <Skeleton className="h-5 w-48 rounded-pill" />
       </div>
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
-        <div className="flex flex-col gap-8 lg:col-span-7">
-          <Skeleton className="h-48 w-full rounded-card" />
-          <Skeleton className="h-44 w-full rounded-card" />
-        </div>
-        <div className="flex flex-col gap-6 lg:col-span-5">
-          <Skeleton className="h-56 w-full rounded-card" />
-          <Skeleton className="h-40 w-full rounded-card" />
-        </div>
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-44 w-full rounded-card" />
+        <Skeleton className="h-64 w-full rounded-card" />
       </div>
     </div>
   );
 }
 
 /**
- * Editorial SAHEL v4 Customer Profile experience for /account and /account/profile.
- * Unifies real authenticated customer identity, recent orders + tracking, Cairo/Giza saved addresses
- * synced with Checkout, editable personal details, verified security/logout, and customer support.
+ * Editorial Personal Care Hub & Customer Profile experience for /account and /account/profile.
+ * Unifies the customer's personal care identity (skin, hair, scalp, concerns), active routines,
+ * tailored Shina guidance, and commerce essentials (orders, Cairo/Giza addresses, account security).
  */
 export function CustomerProfileView({ focusSection }: CustomerProfileViewProps) {
   const m = useMessages();
-  const locale = useLocale();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const { user, isAuthenticated, isLoading: authLoading, openAuthModal, refreshUser } = useAuth();
   const { addresses } = useAddresses();
 
@@ -65,10 +66,24 @@ export function CustomerProfileView({ focusSection }: CustomerProfileViewProps) 
     () => searchParams.get('reason') === 'expired',
   );
   const [editPersonalRequested, setEditPersonalRequested] = useState(focusSection === 'personal');
+  const [isEditCareModalOpen, setIsEditCareModalOpen] = useState(false);
+
+  const initialTab: AccountTab = focusSection === 'personal' || searchParams.get('tab') === 'personal'
+    ? 'personal'
+    : (searchParams.get('tab') as AccountTab) || 'care';
+
+  const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
 
   const ordersQuery = useQuery({
     queryKey: ['my-orders'],
     queryFn: () => ordersApi.listMine(),
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  });
+
+  const careProfileQuery = useQuery({
+    queryKey: ['customer-care-profile'],
+    queryFn: () => careProfileApi.getProfile(),
     enabled: isAuthenticated,
     staleTime: 60_000,
   });
@@ -86,6 +101,7 @@ export function CustomerProfileView({ focusSection }: CustomerProfileViewProps) 
 
   useEffect(() => {
     if (focusSection === 'personal' && isAuthenticated) {
+      setActiveTab('personal');
       setEditPersonalRequested(true);
     }
   }, [focusSection, isAuthenticated]);
@@ -151,92 +167,77 @@ export function CustomerProfileView({ focusSection }: CustomerProfileViewProps) 
     );
   }
 
-  const displayName = user.name?.trim() || null;
   const orderItems = ordersQuery.data?.items ?? [];
   const totalOrders = ordersQuery.data?.total ?? orderItems.length;
 
-  const jumpToEditPersonal = () => {
-    setEditPersonalRequested(true);
-    document.getElementById('account-personal')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const quickNav = [
-    { href: '#account-orders', label: m.profileNavOrders },
-    { href: '#account-addresses', label: m.profileNavAddresses },
-    { href: '#account-personal', label: m.profileNavPersonal },
-    { href: '#account-security', label: m.profileNavSecurity },
-    { href: '#account-support', label: m.profileNavSupport },
+  const tabs: Array<{ id: AccountTab; label: string; icon: 'sparkles' | 'package' | 'pin' | 'user' | 'message'; count?: number }> = [
+    { id: 'care', label: m.profileNavCareHub, icon: 'sparkles' },
+    { id: 'orders', label: m.profileNavOrders, icon: 'package', count: totalOrders > 0 ? totalOrders : undefined },
+    { id: 'addresses', label: m.profileNavAddresses, icon: 'pin', count: addresses.length > 0 ? addresses.length : undefined },
+    { id: 'personal', label: m.profileNavPersonal, icon: 'user' },
+    { id: 'support', label: m.profileNavSupport, icon: 'message' },
   ];
 
   return (
-    <div className="pb-nav-safe py-2 lg:py-4">
-      <header className="border-b border-line pb-6 md:pb-8">
-        <div className="flex flex-col gap-3">
-          <h1 className="m-0 font-display text-display-1 font-extrabold text-ink">
-            {displayName
-              ? fillMessage(m.profileGreetingNamed, { name: displayName })
-              : m.profileGreetingUnnamed}
-          </h1>
+    <div className="pb-nav-safe relative flex flex-col gap-8 py-2 lg:py-6">
+      <MorningAmbient />
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-15 text-stone">
-            {user.phoneNumber ? (
-              <span className="inline-flex items-center gap-2">
-                <bdi dir="ltr" className="font-display font-bold tabular-nums text-ink">
-                  {displayMobile(user.phoneNumber)}
-                </bdi>
-                <span className="inline-flex items-center gap-1 rounded-pill bg-ok-tint px-2 py-0.5 text-12 font-semibold text-ok">
-                  <Icon name="check" size={12} strokeWidth={2.5} />
-                  <span>{m.profileVerifiedMobile}</span>
-                </span>
-              </span>
-            ) : null}
+      {/* Hero Overview */}
+      <CareProfileOverview
+        user={user}
+        careProfile={careProfileQuery.data ?? null}
+        isLoading={careProfileQuery.isLoading}
+        onEditCareProfile={() => setIsEditCareModalOpen(true)}
+      />
 
-            <span aria-hidden="true">·</span>
-            <span>
-              {totalOrders === 1
-                ? m.profileOrdersSummaryOne
-                : fillMessage(m.profileOrdersSummaryCount, {
-                    n: formatNumber(totalOrders, locale),
-                  })}
-            </span>
-            <span aria-hidden="true">·</span>
-            <span>
-              {addresses.length === 1
-                ? m.profileAddressesSummaryOne
-                : fillMessage(m.profileAddressesSummaryCount, {
-                    n: formatNumber(addresses.length, locale),
-                  })}
-            </span>
-          </div>
-
-          {!displayName ? (
-            <div>
-              <button
-                type="button"
-                onClick={jumpToEditPersonal}
-                className="text-link font-display text-15 font-semibold"
-              >
-                {m.profileAddNamePrompt}
-              </button>
-            </div>
-          ) : null}
-        </div>
-
-        <nav aria-label={m.profileSectionNavLabel} className="mt-5 flex flex-wrap gap-2 lg:hidden">
-          {quickNav.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="inline-flex min-h-control-s shrink-0 items-center whitespace-nowrap rounded-pill border border-line bg-linen px-4 font-display text-14 font-semibold text-ink no-underline transition-colors hover:bg-sand/50"
+      {/* Navigation Tabs */}
+      <div className="routine-glass--tabs sticky top-16 z-10 flex items-center justify-start gap-1 overflow-x-auto rounded-pill p-1.5 shadow-outline-hairline backdrop-blur-md">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'inline-flex min-h-control-s shrink-0 items-center gap-2 rounded-pill px-4.5 font-display text-14 font-semibold transition-all duration-fast',
+                isActive
+                  ? 'bg-cobalt text-chalk shadow-elevation-1'
+                  : 'text-ink hover:bg-sand/50 hover:text-cobalt'
+              )}
             >
-              {item.label}
-            </a>
-          ))}
-        </nav>
-      </header>
+              <Icon name={tab.icon} size={15} />
+              <span>{tab.label}</span>
+              {typeof tab.count === 'number' ? (
+                <span
+                  className={cn(
+                    'rounded-pill px-1.5 py-0.2 text-11 font-bold',
+                    isActive ? 'bg-chalk/20 text-chalk' : 'bg-sand text-stone'
+                  )}
+                >
+                  {tab.count}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
 
-      <div className="mt-7 grid grid-cols-1 gap-8 lg:mt-10 lg:grid-cols-12 lg:items-start lg:gap-10">
-        <div className="flex flex-col gap-10 lg:col-span-7">
+      {/* Tab Panels */}
+      {activeTab === 'care' ? (
+        <div className="flex flex-col gap-8">
+          <ActiveRoutineSpotlight isAuthenticated={isAuthenticated} />
+          <CareIdentitySection
+            careProfile={careProfileQuery.data ?? null}
+            isLoading={careProfileQuery.isLoading}
+            onEdit={() => setIsEditCareModalOpen(true)}
+          />
+          <ShinaCareBanner />
+        </div>
+      ) : null}
+
+      {activeTab === 'orders' ? (
+        <div className="mx-auto w-full max-w-container">
           <ProfileOrdersSection
             orders={orderItems}
             total={totalOrders}
@@ -244,29 +245,52 @@ export function CustomerProfileView({ focusSection }: CustomerProfileViewProps) 
             error={ordersQuery.error}
             onRetry={() => void ordersQuery.refetch()}
           />
+        </div>
+      ) : null}
 
+      {activeTab === 'addresses' ? (
+        <div className="mx-auto w-full max-w-container">
           <SavedAddressesSection
             profileFallback={{ name: user.name, phoneNumber: user.phoneNumber }}
             onSessionExpired={handleSessionExpired}
           />
         </div>
+      ) : null}
 
-        <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-5">
-          <PersonalInfoSection
-            user={user}
-            editingRequested={editPersonalRequested}
-            onEditingRequestedHandled={() => setEditPersonalRequested(false)}
-            onSessionExpired={handleSessionExpired}
-          />
+      {activeTab === 'personal' ? (
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start lg:gap-10">
+          <div className="lg:col-span-7">
+            <PersonalInfoSection
+              user={user}
+              editingRequested={editPersonalRequested}
+              onEditingRequestedHandled={() => setEditPersonalRequested(false)}
+              onSessionExpired={handleSessionExpired}
+            />
+          </div>
+          <div className="lg:col-span-5">
+            <SecuritySessionSection user={user} />
+          </div>
+        </div>
+      ) : null}
 
-          <SecuritySessionSection user={user} />
-
+      {activeTab === 'support' ? (
+        <div className="mx-auto w-full max-w-container">
           <SupportHelpSection
             orders={orderItems}
             onSessionExpired={handleSessionExpired}
           />
         </div>
-      </div>
+      ) : null}
+
+      {/* Care Profile Edit Modal */}
+      <CareProfileEditModal
+        isOpen={isEditCareModalOpen}
+        onClose={() => setIsEditCareModalOpen(false)}
+        initialProfile={careProfileQuery.data ?? null}
+        onSaved={() => {
+          void queryClient.invalidateQueries({ queryKey: ['customer-care-profile'] });
+        }}
+      />
     </div>
   );
 }

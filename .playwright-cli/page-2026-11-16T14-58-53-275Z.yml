@@ -1,0 +1,41 @@
+- generic [active] [ref=e1]:
+  - link "انتقل إلى المحتوى الرئيسي" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=e3]:
+    - region "اسأل شينا" [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "شينا كير — الرئيسية" [ref=e9] [cursor=pointer]:
+            - /url: /
+          - generic [ref=e18]:
+            - generic [ref=e19]:
+              - generic [ref=e20]: اسأل شينا
+              - generic [ref=e21]: AI
+            - paragraph [ref=e22]: متصلة بجلسة الاستشارة الذكية المخصصة
+        - generic [ref=e23]:
+          - button "محادثة جديدة" [ref=e24] [cursor=pointer]
+          - link "السلة" [ref=e27] [cursor=pointer]:
+            - /url: /cart
+      - heading "اسأل شينا" [level=1] [ref=e31]
+      - generic [ref=e34]:
+        - img "اسأل شينا" [ref=e37]
+        - generic [ref=e38]:
+          - heading "أهلاً بكِ، أنا شينا" [level=2] [ref=e39]
+          - paragraph [ref=e40]: اسأليني عن منتجات الكتالوج الحقيقية، قارني بين تركيبتين وفق المواصفات الموثقة، أو رتّبي روتينًا مناسبًا لبشرتك وشعرك.
+        - generic [ref=e41]:
+          - paragraph [ref=e42]: البحث في الكتالوج، مقارنة المنتجات، وإضافة السلة تعمل مباشرة. سجّلي دخولك لتفعيل المحادثة الذكية المخصصة.
+          - button "تسجيل الدخول للمحادثة الذكية" [ref=e43] [cursor=pointer]
+        - generic [ref=e48]:
+          - paragraph [ref=e49]: "أسئلة مقترحة للبدء:"
+          - generic [ref=e50]:
+            - button "أفضل غسول متاح الآن" [ref=e51] [cursor=pointer]
+            - button "قارني بين غسولين للبشرة" [ref=e53] [cursor=pointer]
+            - button "رتّبي لي روتين صباحي من الكتالوج" [ref=e55] [cursor=pointer]
+            - button "منتجات مناسبة للشعر الجاف" [ref=e57] [cursor=pointer]
+      - generic [ref=e62]:
+        - button "إدخال صوتي" [ref=e63] [cursor=pointer]
+        - textbox "اكتبي سؤالك لشينا" [ref=e67]:
+          - /placeholder: اسألي شينا عن منتج أو روتين…
+        - button "إرسال" [disabled] [ref=e68]
+  - button "Open Tanstack query devtools" [ref=e121] [cursor=pointer]
+  - alert [ref=e170]

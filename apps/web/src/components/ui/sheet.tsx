@@ -38,12 +38,13 @@ const sheetVariants = cva("fixed z-overlay flex flex-col bg-linen text-ink shado
 interface SheetContentProps extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>, VariantProps<typeof sheetVariants> {
   /** Accessible name of the close button, localized. */
   closeLabel: string
+  overlayClassName?: string
 }
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
-  ({ side, className, children, closeLabel, ...props }, ref) => (
+  ({ side, className, children, closeLabel, overlayClassName, ...props }, ref) => (
     <SheetPortal>
-      <SheetOverlay />
+      <SheetOverlay className={overlayClassName} />
       <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
         {children}
         <SheetPrimitive.Close className={cn(iconButtonVariants(), "absolute end-3 top-3")}>

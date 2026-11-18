@@ -63,7 +63,12 @@
     {
       "name": "api-verify",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "apps/api", "run", "start"],
+      "runtimeArgs": [
+        "--prefix",
+        "apps/api",
+        "run",
+        "start"
+      ],
       "port": 3013,
       "autoPort": false,
       "env": {
@@ -78,7 +83,15 @@
     {
       "name": "web-verify",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "C:\\Users\\EL-MOS~1.DES\\AppData\\Local\\Temp\\claude\\5bbf80a65474b04e\\6ed567e3-7890-45b3-a8de-9f3b4044dbf9\\scratchpad\\repo\\apps\\web", "run", "dev", "--", "-p", "3005"],
+      "runtimeArgs": [
+        "--prefix",
+        "C:\\Users\\EL-MOS~1.DES\\AppData\\Local\\Temp\\claude\\5bbf80a65474b04e\\6ed567e3-7890-45b3-a8de-9f3b4044dbf9\\scratchpad\\repo\\apps\\web",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3005"
+      ],
       "port": 3005,
       "autoPort": false,
       "env": {

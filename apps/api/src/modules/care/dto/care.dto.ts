@@ -1,6 +1,40 @@
 import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean, IsInt, Min, ValidateNested, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CareArea, RoutineTiming, RecommendationSource, SkinType } from '@prisma/client';
+import { CareArea, RoutineTiming, RecommendationSource, SkinType, CareAgeBand, CareExperienceLevel } from '@prisma/client';
+
+export enum HairType {
+  straight = 'straight',
+  wavy = 'wavy',
+  curly = 'curly',
+  coily = 'coily',
+}
+
+export enum ScalpType {
+  normal = 'normal',
+  dry = 'dry',
+  oily = 'oily',
+  sensitive = 'sensitive',
+}
+
+export enum CareFocus {
+  skin = 'skin',
+  hair = 'hair',
+  both = 'both',
+}
+
+export enum SunExposure {
+  low = 'low',
+  moderate = 'moderate',
+  high = 'high',
+}
+
+export enum PreferredTexture {
+  gel = 'gel',
+  cream = 'cream',
+  lotion = 'lotion',
+  fluid = 'fluid',
+  rich_cream = 'rich_cream',
+}
 
 export class CreateConcernDto {
   @IsString()
@@ -101,6 +135,38 @@ export class CreateCustomerCareProfileDto {
   @IsOptional()
   skinType?: SkinType;
 
+  @IsEnum(HairType)
+  @IsOptional()
+  hairType?: HairType;
+
+  @IsEnum(ScalpType)
+  @IsOptional()
+  scalpType?: ScalpType;
+
+  @IsEnum(CareFocus)
+  @IsOptional()
+  primaryFocus?: CareFocus;
+
+  @IsEnum(SunExposure)
+  @IsOptional()
+  sunExposure?: SunExposure;
+
+  @IsEnum(PreferredTexture)
+  @IsOptional()
+  preferredTexture?: PreferredTexture;
+
+  @IsEnum(CareAgeBand)
+  @IsOptional()
+  ageBand?: CareAgeBand;
+
+  @IsEnum(CareExperienceLevel)
+  @IsOptional()
+  experienceLevel?: CareExperienceLevel;
+
+  @IsBoolean()
+  @IsOptional()
+  fragranceFree?: boolean;
+
   @IsString()
   @IsOptional()
   sensitivities?: string;
@@ -123,6 +189,38 @@ export class UpdateCustomerCareProfileDto {
   @IsEnum(SkinType)
   @IsOptional()
   skinType?: SkinType;
+
+  @IsEnum(HairType)
+  @IsOptional()
+  hairType?: HairType;
+
+  @IsEnum(ScalpType)
+  @IsOptional()
+  scalpType?: ScalpType;
+
+  @IsEnum(CareFocus)
+  @IsOptional()
+  primaryFocus?: CareFocus;
+
+  @IsEnum(SunExposure)
+  @IsOptional()
+  sunExposure?: SunExposure;
+
+  @IsEnum(PreferredTexture)
+  @IsOptional()
+  preferredTexture?: PreferredTexture;
+
+  @IsEnum(CareAgeBand)
+  @IsOptional()
+  ageBand?: CareAgeBand;
+
+  @IsEnum(CareExperienceLevel)
+  @IsOptional()
+  experienceLevel?: CareExperienceLevel;
+
+  @IsBoolean()
+  @IsOptional()
+  fragranceFree?: boolean;
 
   @IsString()
   @IsOptional()

@@ -29,6 +29,7 @@ export const routes = {
   corner: '/corner',
   cornerConcern: (slug: string) => `/corner/${encodeURIComponent(slug)}`,
   /** The care consultation, opened with the page's context. */
+  shina: '/shina',
   shinaFor: (context: { concern?: string; product?: string; q?: string }) => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(context)) if (value) params.set(key, value);

@@ -11,6 +11,14 @@ export class CareProfileService {
       data: {
         customerId: dto.customerId,
         skinType: dto.skinType,
+        hairType: dto.hairType as any,
+        scalpType: dto.scalpType as any,
+        primaryFocus: dto.primaryFocus as any,
+        sunExposure: dto.sunExposure as any,
+        preferredTexture: dto.preferredTexture as any,
+        ageBand: dto.ageBand,
+        experienceLevel: dto.experienceLevel,
+        fragranceFree: dto.fragranceFree,
         budget: dto.budget,
         currency: dto.currency,
         sensitivities: dto.sensitivities,
@@ -26,6 +34,7 @@ export class CareProfileService {
       include: {
         concerns: { include: { concern: true } },
         routine: true,
+        safetyFlags: true,
       },
     });
 
@@ -38,6 +47,7 @@ export class CareProfileService {
       include: {
         concerns: { include: { concern: true } },
         routine: { include: { steps: { include: { recommendations: true } } } },
+        safetyFlags: true,
       },
     });
 
@@ -49,17 +59,26 @@ export class CareProfileService {
   }
 
   /**
-   * The part of a care profile a consultation may start from: skin type, the fragrance preference, chosen concerns and
+   * The part of a care profile a consultation may start from: skin type, hair type, the fragrance preference, chosen concerns and
    * the safety answers. Nothing that identifies the customer. A customer with no profile gets empty values, never an error.
    */
   async consultationSnapshot(customerId: string) {
     const profile = await this.prisma.customerCareProfile.findUnique({
       where: { customerId },
-      select: { skinType: true, fragranceFree: true, concerns: { select: { concern: { select: { slug: true, isActive: true } } } }, safetyFlags: true },
+      select: {
+        skinType: true,
+        hairType: true,
+        scalpType: true,
+        fragranceFree: true,
+        concerns: { select: { concern: { select: { slug: true, isActive: true } } } },
+        safetyFlags: true,
+      },
     });
     const flags = profile?.safetyFlags;
     return {
       skinType: profile?.skinType ?? null,
+      hairType: (profile as any)?.hairType ?? null,
+      scalpType: (profile as any)?.scalpType ?? null,
       fragranceFree: profile?.fragranceFree ?? null,
       concernSlugs: (profile?.concerns ?? []).filter(row => row.concern.isActive).map(row => row.concern.slug),
       safety: {
@@ -70,8 +89,14 @@ export class CareProfileService {
   }
 
   async updateProfile(customerId: string, dto: UpdateCustomerCareProfileDto) {
-    // Check if exists
-    await this.getProfile(customerId);
+    const existing = await this.prisma.customerCareProfile.findUnique({ where: { customerId } });
+
+    if (!existing) {
+      return this.createProfile({
+        ...dto,
+        customerId,
+      });
+    }
 
     // If concerns are provided, we replace the existing ones completely for simplicity in this MVP
     if (dto.concerns) {
@@ -84,6 +109,14 @@ export class CareProfileService {
       where: { customerId },
       data: {
         skinType: dto.skinType,
+        hairType: dto.hairType as any,
+        scalpType: dto.scalpType as any,
+        primaryFocus: dto.primaryFocus as any,
+        sunExposure: dto.sunExposure as any,
+        preferredTexture: dto.preferredTexture as any,
+        ageBand: dto.ageBand,
+        experienceLevel: dto.experienceLevel,
+        fragranceFree: dto.fragranceFree,
         sensitivities: dto.sensitivities,
         budget: dto.budget,
         currency: dto.currency,
@@ -100,6 +133,7 @@ export class CareProfileService {
       include: {
         concerns: { include: { concern: true } },
         routine: true,
+        safetyFlags: true,
       },
     });
 

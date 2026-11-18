@@ -254,8 +254,13 @@ export function SiteHeader({ searchDefault }: SiteHeaderProps) {
         ref={menuRef}
         id="mobile-department-menu"
         aria-hidden={!mobileMenuOpen}
+        onClick={(e) => {
+          if (e.target === menuRef.current) {
+            setMobileMenuOpen(false);
+          }
+        }}
         className={cn(
-          'shutter soft absolute inset-x-0 top-full z-nav h-[calc(100dvh-100%)] overflow-hidden border-t border-ink/15 bg-chalk/80 shadow-elevation-2 backdrop-blur-2xl transition-[opacity,transform,visibility] duration-base ease-standard motion-reduce:transition-none md:hidden',
+          'shutter soft absolute inset-x-0 top-full z-nav h-[calc(100dvh-100%)] overflow-hidden border-t border-ink/15 bg-chalk/75 shadow-elevation-2 backdrop-blur-md transition-[opacity,transform,visibility] duration-base ease-standard motion-reduce:transition-none md:hidden',
           mobileMenuOpen ? 'visible translate-y-0 opacity-100' : 'pointer-events-none invisible -translate-y-2 opacity-0',
         )}
       >

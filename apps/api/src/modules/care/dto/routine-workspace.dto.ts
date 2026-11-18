@@ -89,6 +89,27 @@ export class RoutineCartDto {
   @IsOptional() @IsIn(['IMMEDIATE', 'ALL']) phase?: 'IMMEDIATE' | 'ALL';
 }
 
+export class SyncLocalRoutineStepDto {
+  @IsString() @MaxLength(100) id!: string;
+  @IsIn(['morning', 'evening', 'both']) period!: 'morning' | 'evening' | 'both';
+  @IsString() @MaxLength(120) stepName!: string;
+  @IsOptional() @IsUUID() skuId?: string;
+  @IsOptional() @IsString() @MaxLength(60) roleKey?: string;
+  @IsOptional() @IsBoolean() isEssential?: boolean;
+}
+
+export const CONFLICT_RESOLUTIONS = ['PROMPT', 'KEEP_CLOUD', 'OVERWRITE_CLOUD', 'IMPORT_AS_INACTIVE'] as const;
+export type ConflictResolution = (typeof CONFLICT_RESOLUTIONS)[number];
+
+export class SyncLocalRoutineDto {
+  @IsString() @MaxLength(100) localId!: string;
+  @IsString() @MaxLength(120) title!: string;
+  @IsEnum(CareArea) category!: CareArea;
+  @IsOptional() @IsString() @MaxLength(80) concernSlug?: string;
+  @IsArray() @ValidateNested({ each: true }) @Type(() => SyncLocalRoutineStepDto) steps!: SyncLocalRoutineStepDto[];
+  @IsOptional() @IsIn(CONFLICT_RESOLUTIONS) conflictResolution?: ConflictResolution;
+}
+
 export class EligibilityDto {
   @IsUUID() productId!: string;
   @IsString() @Matches(SLUG) roleKey!: string;

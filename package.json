@@ -7,6 +7,8 @@
     "packages/*"
   ],
   "scripts": {
+    "dev:all": "node scripts/dev-all.mjs",
+    "start:all": "node scripts/dev-all.mjs",
     "dev": "npm run dev --workspace=api & npm run dev --workspace=web",
     "dev:api": "npm run dev --workspace=api",
     "dev:business": "npm --prefix apps/business run dev",
