@@ -88,9 +88,14 @@ export const ICON_PATHS = {
   layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>', // lucide layers
   leaf: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>', // lucide leaf
   logout: '<path d="M15 20h3.5a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 18.5 4H15"/><path d="M9 16.5 4.5 12 9 7.5"/><path d="M4.5 12H16"/>',
+  pencil: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>', // lucide pencil
+  'grip-vertical': '<circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>', // lucide grip-vertical
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>', // lucide undo-2
+  'arrow-down': '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>', // lucide arrow-down
+  'chevron-up': '<path d="m18 15-6-6-6 6"/>', // lucide chevron-up
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;
 
 /** Icons whose meaning depends on reading direction; they flip under dir="ltr". */
-export const DIRECTIONAL_ICONS: readonly IconName[] = ['chevron-back', 'chevron-forward', 'arrow-forward', 'returns', 'play', 'logout'];
+export const DIRECTIONAL_ICONS: readonly IconName[] = ['chevron-back', 'chevron-forward', 'arrow-forward', 'returns', 'play', 'logout', 'undo'];

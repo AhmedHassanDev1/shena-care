@@ -39,6 +39,8 @@ export const routes = {
   routine: (id: string) => `/routines/${encodeURIComponent(id)}`,
   routineDetail: (slug: string) => `/routines/${encodeURIComponent(slug)}`,
   myRoutine: '/account/routine',
+  /** One of the customer's saved routines (/account/routine/[id]). */
+  myRoutineDetail: (id: string) => `/account/routine/${encodeURIComponent(id)}`,
 } as const;
 
 /** Category slugs of the two MVP entry points (seeded catalog roots: apps/api seed.ts). */

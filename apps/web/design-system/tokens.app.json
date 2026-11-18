@@ -42,6 +42,91 @@
         "name": "conflict",
         "value": "#FBE3D9",
         "usage": "Routine conflict card warm peach background."
+      },
+      {
+        "name": "dawn",
+        "value": "#E5D9D0",
+        "usage": "Routines morning ground: sampled from the far edge of the Morning photograph (public/images/routines/morning-light.webp). Ink text 15.4:1, stone 5.0:1."
+      },
+      {
+        "name": "sunlight",
+        "value": "#F0B940",
+        "usage": "Routines morning light: edge rays and golden ambient glow only, never text or controls."
+      },
+      {
+        "name": "evening-ground",
+        "value": "#E8E6EE",
+        "usage": "Routines evening ground: cool smoke-lilac chalk behind the Evening atmosphere. Ink text 14.6:1, stone 5.3:1."
+      },
+      {
+        "name": "moonlight",
+        "value": "#7F90E8",
+        "usage": "Routines evening light: muted cobalt/indigo edge glow and moon halo only, never text or controls."
+      },
+      {
+        "name": "night-ground",
+        "value": "#0C1645",
+        "usage": "Routines evening ground: deep indigo, never black. Replaces chalk inside the Evening theme."
+      },
+      {
+        "name": "night-raised",
+        "value": "#131C5E",
+        "usage": "Routines evening raised surfaces (cards, sheets, inputs). Replaces linen."
+      },
+      {
+        "name": "night-sand",
+        "value": "#1C2878",
+        "usage": "Routines evening quiet fills (switch track, chips). Replaces sand/dune/dusk."
+      },
+      {
+        "name": "night-ink",
+        "value": "#F1F3FF",
+        "usage": "Routines evening primary text and ink buttons. Replaces ink."
+      },
+      {
+        "name": "night-stone",
+        "value": "#B4BCEB",
+        "usage": "Routines evening secondary text. Replaces stone."
+      },
+      {
+        "name": "night-line",
+        "value": "#2A3796",
+        "usage": "Routines evening hairlines. Replaces line."
+      },
+      {
+        "name": "night-line-2",
+        "value": "#8E9AE0",
+        "usage": "Routines evening control borders. Replaces line-2."
+      },
+      {
+        "name": "night-cobalt",
+        "value": "#6F8BFF",
+        "usage": "Routines evening action colour. Replaces cobalt; night-ground text on it."
+      },
+      {
+        "name": "night-glow",
+        "value": "#5E7CFF",
+        "usage": "Routines evening shutter-light bands and ambient glow only, never text."
+      },
+      {
+        "name": "night-alert",
+        "value": "#FF9F8A",
+        "usage": "Routines evening error text. Replaces tomato-ink."
+      },
+      {
+        "name": "night-conflict",
+        "value": "#3B1D44",
+        "usage": "Routines evening error tint. Replaces conflict."
+      },
+      {
+        "name": "night-ok",
+        "value": "#7EE0A8",
+        "usage": "Routines evening success text. Replaces ok."
+      },
+      {
+        "name": "night-ok-tint",
+        "value": "#123B33",
+        "usage": "Routines evening success tint. Replaces ok-tint."
       }
     ]
   },

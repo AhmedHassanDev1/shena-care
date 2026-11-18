@@ -167,6 +167,13 @@ export const apiClient = {
       ...options,
     }),
 
+  put: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
+    fetchApi<T>(endpoint, {
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+      ...options,
+    }),
+
   patch: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     fetchApi<T>(endpoint, {
       method: 'PATCH',

@@ -34,6 +34,7 @@ import {
 } from '../lib/shina-workflows';
 import type { ShinaActivityState, ShinaMessage, ShinaProduct } from '../lib/shina-types';
 import { ShinaActivityCapsule } from './ShinaActivityCapsule';
+import { MorningAmbient } from '@/components/ambient/AmbientSky';
 import { ShinaHeader } from './ShinaHeader';
 import { ShinaMarkdown } from './ShinaMarkdown';
 import { ShinaMascot } from './ShinaMascot';
@@ -695,50 +696,10 @@ export function ShinaChatView({
     <section
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
       aria-label={m.shinaAssistantTitle}
-      className="relative flex h-full flex-1 flex-col overflow-hidden bg-chalk font-display text-ink"
+      className="relative flex h-full flex-1 flex-col overflow-hidden font-display text-ink"
     >
-      {/* SAHEL Soft Shutter Sunlight Effect (Full-viewport, organic fade from upper-left to bottom-right) */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0 select-none overflow-hidden"
-        aria-hidden="true"
-      >
-        {/* Soft morning ambient champagne glow at upper-left origin */}
-        <div
-          className="absolute -top-36 -start-36 h-[600px] w-[600px] rounded-full opacity-45 blur-3xl pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(circle at 35% 35%, rgba(255, 230, 185, 0.55) 0%, rgba(245, 215, 160, 0.25) 45%, transparent 75%)',
-          }}
-        />
-
-        {/* Diagonal Shutter Light Rays: 4-6 broad, softly blurred warm sunlight bands extending from upper-left toward lower-right */}
-        <div
-          className="absolute inset-0 size-full pointer-events-none"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(128deg, rgba(255, 255, 255, 0) 0px, rgba(255, 255, 255, 0) 48px, rgba(165, 110, 50, 0.11) 48px, rgba(165, 110, 50, 0.11) 84px, rgba(255, 255, 255, 0) 84px, rgba(255, 255, 255, 0) 130px)',
-            maskImage:
-              'radial-gradient(ellipse 90% 85% at 0% 0%, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.55) 30%, rgba(0, 0, 0, 0.18) 55%, transparent 80%)',
-            WebkitMaskImage:
-              'radial-gradient(ellipse 90% 85% at 0% 0%, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.55) 30%, rgba(0, 0, 0, 0.18) 55%, transparent 80%)',
-            filter: 'blur(5px)',
-          }}
-        />
-
-        {/* Warm champagne light sweep highlighting the ray crests */}
-        <div
-          className="absolute inset-0 size-full pointer-events-none opacity-30"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(128deg, rgba(255, 235, 195, 0.35) 0px, rgba(255, 235, 195, 0.35) 46px, transparent 46px, transparent 130px)',
-            maskImage:
-              'radial-gradient(ellipse 80% 75% at 0% 0%, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 35%, transparent 65%)',
-            WebkitMaskImage:
-              'radial-gradient(ellipse 80% 75% at 0% 0%, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 35%, transparent 65%)',
-            filter: 'blur(7px)',
-          }}
-        />
-      </div>
+      {/* Morning shutter light (photograph), behind the whole page; Ask Shina is Morning-only. The light starts at the page's start edge. */}
+      <MorningAmbient />
 
       {/* Sleek, Focused Chat Header */}
       <ShinaHeader

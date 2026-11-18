@@ -1,0 +1,182 @@
+/*
+ * Ambient sky (routine pages + Ask Shina): photographic shutter light + frosted glass.
+ *
+ * Morning and Evening are two supplied background-only photographs (public/images/routines, 949px WebP, ~9 KB each): warm cream
+ * wall with sun through blinds from the upper-left, and deep indigo with blue light from the upper-right. Each is one fixed,
+ * full-viewport layer, drawn with `cover` and anchored to its light corner, so the light keeps its position on every screen
+ * shape (a phone shows the lit corner; a wide screen shows the whole fan). They cross-fade on a period switch.
+ *
+ * Rules this file keeps:
+ *  - No tiling, no stretching: `cover` + a fixed anchor corner. The ground colour behind each image is sampled from the image's far
+ *    edge (`dawn`, `night-ground`), so the page ground, the header and the footer match the photograph.
+ *  - Tokens only. The Evening theme remaps surface tokens (chalk, linen, ink, stone, cobalt…) to night-* tokens on <html>.
+ *  - The sky is portalled behind the whole page (fixed, z-index -1), so a translucent header and the glass cards show it.
+ *  - Nothing animates except the cross-fade; it is cut to ~0 under prefers-reduced-motion.
+ */
+
+/* ── Evening theme: surface tokens remapped for the whole document while a routine page is open ── */
+html[data-routine-theme='PM'] {
+  --chalk: var(--night-ground);
+  --chalk-rgb: var(--night-ground-rgb);
+  --linen: var(--night-raised);
+  --linen-rgb: var(--night-raised-rgb);
+  --sand: var(--night-sand);
+  --sand-rgb: var(--night-sand-rgb);
+  --dune: var(--night-sand);
+  --dune-rgb: var(--night-sand-rgb);
+  --dusk: var(--night-sand);
+  --dusk-rgb: var(--night-sand-rgb);
+  --ink: var(--night-ink);
+  --ink-rgb: var(--night-ink-rgb);
+  --stone: var(--night-stone);
+  --stone-rgb: var(--night-stone-rgb);
+  --line: var(--night-line);
+  --line-rgb: var(--night-line-rgb);
+  --line-2: var(--night-line-2);
+  --line-2-rgb: var(--night-line-2-rgb);
+  --cobalt: var(--night-cobalt);
+  --cobalt-rgb: var(--night-cobalt-rgb);
+  --cobalt-deep: var(--night-cobalt);
+  --cobalt-deep-rgb: var(--night-cobalt-rgb);
+  --tomato-ink: var(--night-alert);
+  --tomato-ink-rgb: var(--night-alert-rgb);
+  --conflict: var(--night-conflict);
+  --conflict-rgb: var(--night-conflict-rgb);
+  --ok: var(--night-ok);
+  --ok-rgb: var(--night-ok-rgb);
+  --ok-tint: var(--night-ok-tint);
+  --ok-tint-rgb: var(--night-ok-tint-rgb);
+  /* bg-white is a raised surface (focused fields, auth inputs) and text-white sits on bright fills (success): both read correctly as the dark raised tone. */
+  --white: var(--night-raised);
+  --white-rgb: var(--night-raised-rgb);
+  color-scheme: dark;
+}
+html[data-routine-theme='AM'] {
+  --chalk: var(--dawn);
+  --chalk-rgb: var(--dawn-rgb);
+}
+
+/* The site header lets the light through on routine pages (glass header). Not while the phone menu is open: that panel lives
+   inside the header and needs its solid ground. */
+html[data-routine-theme] header.sticky:not(.z-overlay) {
+  background-color: color-mix(in srgb, var(--chalk) 26%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(1.15);
+  backdrop-filter: blur(10px) saturate(1.15);
+  border-color: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.routine-stage {
+  position: relative;
+  flex: 1 1 auto;
+}
+
+/* ── The sky ── */
+.routine-sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+.routine-sky__layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-repeat: no-repeat;
+  background-size: cover;
+  transition: opacity 900ms var(--ease-standard);
+}
+/* The light starts at the START edge of the page: the layers are mirrored under RTL (Morning: upper-right, Evening: upper-left). */
+html[dir='rtl'] .routine-sky__layer {
+  transform: scaleX(-1);
+}
+html[data-routine-theme='AM'] .routine-sky__am,
+html[data-routine-theme='PM'] .routine-sky__pm {
+  opacity: 1;
+}
+.routine-sky__am {
+  background-color: var(--dawn);
+  background-image: url('/images/routines/morning-light.webp');
+  background-position: left top;
+}
+.routine-sky__pm {
+  background-color: var(--night-ground);
+  background-image: url('/images/routines/evening-light.webp');
+  background-position: right top;
+}
+
+/* ── Responsive art direction (the picture is composed per screen shape, not just cropped) ──
+   Landscape / desktop (default above): the full composition with cover, anchored to its light corner.
+   Tablet portrait: the full picture at screen width along the top, its lower edge dissolving into the ground colour.
+   Phone portrait: a purpose-made crop of the lit 56% of the picture (531px source), scaled DOWN to the screen width, so the
+   shutter bands stay clearly visible and crisp (shown at 130% of the screen width, still below the source scale); the strongest light sits at the upper corner
+   and fades gradually behind the content. All sizes derive from the screen width, so nothing jumps when a phone's address bar
+   shows or hides, and the layer is fixed, so it is independent of how long the page is. */
+@media (max-aspect-ratio: 1/1) and (min-width: 768px) {
+  .routine-sky__am {
+    background-image: linear-gradient(to bottom, transparent 44%, var(--dawn) 94%), url('/images/routines/morning-light.webp');
+    background-size: 100% 50vw, 100% auto;
+    background-position: left top, left top;
+  }
+  .routine-sky__pm {
+    background-image: linear-gradient(to bottom, transparent 44%, var(--night-ground) 94%), url('/images/routines/evening-light.webp');
+    background-size: 100% 50vw, 100% auto;
+    background-position: right top, right top;
+  }
+}
+@media (max-aspect-ratio: 1/1) and (max-width: 767px) {
+  .routine-sky__am {
+    background-image: linear-gradient(to bottom, transparent 42%, var(--dawn) 94%), url('/images/routines/morning-light-phone.webp');
+    background-size: 100% 116vw, 130% auto;
+    background-position: left top, left top;
+  }
+  .routine-sky__pm {
+    background-image: linear-gradient(to bottom, transparent 42%, var(--night-ground) 94%), url('/images/routines/evening-light-phone.webp');
+    background-size: 100% 116vw, 130% auto;
+    background-position: right top, right top;
+  }
+}
+
+/* ── Frosted glass: step cards, the sidebar panel, the Morning/Evening track ── */
+.routine-glass,
+html[data-routine-theme='AM'] .routine-glass {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--white) 70%, transparent) 0%, color-mix(in srgb, var(--white) 38%, transparent) 55%, color-mix(in srgb, var(--linen) 50%, transparent) 100%);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  backdrop-filter: blur(18px) saturate(1.3);
+  border: 1px solid color-mix(in srgb, var(--white) 75%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--white) 95%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--dune) 45%, transparent),
+    0 20px 40px -24px color-mix(in srgb, var(--tan) 60%, transparent),
+    0 3px 10px -4px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+html[data-routine-theme='PM'] .routine-glass {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--night-glow) 22%, transparent) 0%, color-mix(in srgb, var(--night-raised) 58%, transparent) 52%, color-mix(in srgb, var(--night-ground) 44%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--night-ink) 15%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--night-ink) 24%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--night-ground) 70%, transparent),
+    0 22px 46px -22px color-mix(in srgb, var(--night-ground) 95%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--night-glow) 6%, transparent);
+}
+/* The track behind the Morning/Evening tabs: lighter glass; the active tab stays solid cobalt. */
+.routine-glass--tabs,
+html[data-routine-theme='AM'] .routine-glass--tabs {
+  background: color-mix(in srgb, var(--white) 34%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid color-mix(in srgb, var(--white) 70%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--white) 85%, transparent), 0 8px 22px -16px color-mix(in srgb, var(--tan) 55%, transparent);
+}
+html[data-routine-theme='PM'] .routine-glass--tabs {
+  background: color-mix(in srgb, var(--night-raised) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--night-ink) 14%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--night-ink) 18%, transparent), 0 10px 26px -16px color-mix(in srgb, var(--night-ground) 95%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .routine-sky__layer {
+    transition-duration: 0.01ms;
+  }
+}

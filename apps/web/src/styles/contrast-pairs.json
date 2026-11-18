@@ -108,6 +108,114 @@
       "bg": "linen",
       "min": null,
       "note": "Warning indicator dot on linen"
+    },
+    {
+      "fg": "ink",
+      "bg": "dawn",
+      "min": 4.5,
+      "note": "Routines atmosphere: primary text on the dawn ground"
+    },
+    {
+      "fg": "stone",
+      "bg": "dawn",
+      "min": 4.5,
+      "note": "Routines atmosphere: secondary text on the dawn ground"
+    },
+    {
+      "fg": "cobalt",
+      "bg": "dawn",
+      "min": 4.5,
+      "note": "Routines atmosphere: cobalt links/active on the dawn ground"
+    },
+    {
+      "fg": "ink",
+      "bg": "evening-ground",
+      "min": 4.5,
+      "note": "Routines atmosphere: primary text on the evening-ground ground"
+    },
+    {
+      "fg": "stone",
+      "bg": "evening-ground",
+      "min": 4.5,
+      "note": "Routines atmosphere: secondary text on the evening-ground ground"
+    },
+    {
+      "fg": "cobalt",
+      "bg": "evening-ground",
+      "min": 4.5,
+      "note": "Routines atmosphere: cobalt links/active on the evening-ground ground"
+    },
+    {
+      "fg": "night-ink",
+      "bg": "night-ground",
+      "min": 4.5,
+      "note": "Routines evening theme: night-ink on night-ground"
+    },
+    {
+      "fg": "night-ink",
+      "bg": "night-raised",
+      "min": 4.5,
+      "note": "Routines evening theme: night-ink on night-raised"
+    },
+    {
+      "fg": "night-ink",
+      "bg": "night-sand",
+      "min": 4.5,
+      "note": "Routines evening theme: night-ink on night-sand"
+    },
+    {
+      "fg": "night-stone",
+      "bg": "night-ground",
+      "min": 4.5,
+      "note": "Routines evening theme: night-stone on night-ground"
+    },
+    {
+      "fg": "night-stone",
+      "bg": "night-raised",
+      "min": 4.5,
+      "note": "Routines evening theme: night-stone on night-raised"
+    },
+    {
+      "fg": "night-stone",
+      "bg": "night-sand",
+      "min": 4.5,
+      "note": "Routines evening theme: night-stone on night-sand"
+    },
+    {
+      "fg": "night-ground",
+      "bg": "night-cobalt",
+      "min": 4.5,
+      "note": "Routines evening theme: night-ground on night-cobalt"
+    },
+    {
+      "fg": "night-cobalt",
+      "bg": "night-ground",
+      "min": 3,
+      "note": "Routines evening theme: night-cobalt on night-ground"
+    },
+    {
+      "fg": "night-alert",
+      "bg": "night-ground",
+      "min": 4.5,
+      "note": "Routines evening theme: night-alert on night-ground"
+    },
+    {
+      "fg": "night-alert",
+      "bg": "night-raised",
+      "min": 4.5,
+      "note": "Routines evening theme: night-alert on night-raised"
+    },
+    {
+      "fg": "night-ok",
+      "bg": "night-ground",
+      "min": 4.5,
+      "note": "Routines evening theme: night-ok on night-ground"
+    },
+    {
+      "fg": "night-line-2",
+      "bg": "night-ground",
+      "min": 3,
+      "note": "Routines evening theme: night-line-2 on night-ground"
     }
   ]
 }
