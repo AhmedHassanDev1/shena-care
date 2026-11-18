@@ -124,7 +124,8 @@ describe('GLO-206 delivery object scope (e2e)', () => {
       await http().get(`/fulfillment/locations/${locA}/eligible-shipments`).set(hubB.auth).expect(403);
       await http().get(`/fulfillment/locations/${locA}/inventory`).set(hubB.auth).expect(403);
       await http().post('/fulfillment/delivery-batches').set(hubB.auth).send({ hubId: locA, name: 'Intruder run' }).expect(403);
-      await http().post(`/fulfillment/delivery-batches/${run1}/complete`).set(hubB.auth).expect(403); // role
+      // Delivery lets hub operators complete runs; another hub's run is still out of their scope (no longer a role refusal).
+      await http().post(`/fulfillment/delivery-batches/${run1}/complete`).set(hubB.auth).expect(404); // scope
       await http().patch(`/fulfillment/delivery-batches/${run1}/stops/sequence`).set(hubB.auth)
         .send({ stops: [{ shipmentId: s1, sequence: 1 }] }).expect(404); // scope
       await http().post(`/fulfillment/delivery-batches/${planningA}/dispatch`).set(hubB.auth).expect(404);

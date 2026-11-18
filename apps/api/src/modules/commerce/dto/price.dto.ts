@@ -72,3 +72,10 @@ export class UpdateSellingPriceDto {
   @IsOptional()
   isActive?: boolean;
 }
+
+/** Sets the storefront price of a SKU from now on: the current price is closed and a new one opens (history kept). */
+export class ChangeSellingPriceDto {
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  amount: number;
+}

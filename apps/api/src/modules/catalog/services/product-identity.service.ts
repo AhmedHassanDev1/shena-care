@@ -56,6 +56,35 @@ export class ProductIdentityService {
     });
   }
 
+  /**
+   * Reviewer-only: replaces the SKU's primary barcode with another one. The same uniqueness rule as an alias applies (the new code may not
+   * identify any other SKU), and the old code is kept as a RETIRED alias with who/when/why, so the history stays and it stops resolving.
+   */
+  async replacePrimaryBarcode(input: { skuId: string; barcode: string; evidenceRef?: string; reason: string; actorId: string }) {
+    const barcode = input.barcode.trim();
+    return this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(44100::int4, hashtext(${barcode})::int4)::text AS locked`;
+      const sku = await tx.sku.findUnique({ where: { id: input.skuId } });
+      if (!sku) throw new NotFoundException('SKU not found');
+      if (!sku.barcode) throw new BadRequestException({ code: 'SKU_HAS_NO_BARCODE', message: 'This SKU has no barcode to replace; register one instead' });
+      if (sku.barcode === barcode) return { skuId: sku.id, barcode, previousBarcode: sku.barcode, replayed: true };
+      const other = await tx.sku.findFirst({ where: { barcode, id: { not: input.skuId } }, select: { id: true } });
+      const otherAlias = await tx.skuBarcodeAlias.findFirst({ where: { barcode, status: 'approved', skuId: { not: input.skuId } } });
+      if (other || otherAlias) {
+        throw new ConflictException({ code: 'BARCODE_AMBIGUOUS', message: 'This code already identifies another SKU; resolve it in catalog review first' });
+      }
+      const previous = sku.barcode;
+      const now = new Date();
+      const retired = { source: 'other', evidenceRef: input.evidenceRef, reason: input.reason, approvedBy: input.actorId, approvedAt: now,
+        status: 'retired' as const, retiredBy: input.actorId, retiredAt: now };
+      const existing = await tx.skuBarcodeAlias.findUnique({ where: { barcode_skuId: { barcode: previous, skuId: input.skuId } } });
+      if (existing) await tx.skuBarcodeAlias.update({ where: { id: existing.id }, data: retired });
+      else await tx.skuBarcodeAlias.create({ data: { barcode: previous, skuId: input.skuId, ...retired } });
+      await tx.sku.update({ where: { id: input.skuId }, data: { barcode } });
+      return { skuId: sku.id, barcode, previousBarcode: previous, replayed: false };
+    });
+  }
+
   async retireAlias(id: string, actorId: string) {
     const alias = await this.prisma.skuBarcodeAlias.findUnique({ where: { id } });
     if (!alias) throw new NotFoundException('Barcode alias not found');

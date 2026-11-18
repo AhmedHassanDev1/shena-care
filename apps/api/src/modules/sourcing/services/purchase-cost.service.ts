@@ -136,6 +136,31 @@ export class PurchaseCostService {
     return { total: rows.length, pending: rows.filter(row => row.cost === null).length, items: rows.slice(0, filter.take) };
   }
 
+  /**
+   * The Buy List purchases that covered each order line, oldest first, with the units each covered and its recorded cost (null while pending).
+   * The Hub desk reads the line's supplier discount from here, so it keeps working after every unit has been received.
+   */
+  async purchasesForOrderItems(orderItemIds: string[]): Promise<Map<string, Array<{ acquireKey: string; units: number; cost: BatchCostView | null }>>> {
+    const result = new Map<string, Array<{ acquireKey: string; units: number; cost: BatchCostView | null }>>();
+    if (!orderItemIds.length) return result;
+    const allocations = await this.prisma.sourceAllocation.findMany({
+      where: { evidenceRef: { startsWith: EVIDENCE_PREFIX }, confirmedQuantity: { gt: 0 }, requirement: { orderItemId: { in: orderItemIds } } },
+      orderBy: { selectedAt: 'asc' },
+      include: { requirement: { select: { orderItemId: true } } },
+    });
+    const costs = await this.recordedByKeys(allocations.map(row => keyOf(row.evidenceRef!)));
+    for (const row of allocations) {
+      const itemId = row.requirement.orderItemId;
+      const key = keyOf(row.evidenceRef!);
+      const list = result.get(itemId) ?? [];
+      const existing = list.find(entry => entry.acquireKey === key);
+      if (existing) existing.units += row.confirmedQuantity;
+      else list.push({ acquireKey: key, units: row.confirmedQuantity, cost: costs.get(key) ?? null });
+      result.set(itemId, list);
+    }
+    return result;
+  }
+
   /** Purchase cost of order lines, from the Buy List purchases that covered them. */
   async costForOrderItems(orderItemIds: string[]): Promise<Map<string, OrderItemPurchaseCost>> {
     const result = new Map<string, OrderItemPurchaseCost>();

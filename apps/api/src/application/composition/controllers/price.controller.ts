@@ -14,6 +14,7 @@ import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
 import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
 import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import {
+  ChangeSellingPriceDto,
   CommerceService,
   CreateSellingPriceDto,
   UpdateSellingPriceDto,
@@ -21,6 +22,7 @@ import {
 
 @Controller('commerce/prices')
 @UseGuards(AuthGuard, RolesGuard)
+// Hub operators may READ prices (reference and prefill); every write is Admin only, so the storefront price is never edited by the Hub.
 @Roles('ADMIN', 'HUB_OPERATOR')
 export class PriceController {
   constructor(private readonly commerceService: CommerceService) {}
@@ -30,6 +32,7 @@ export class PriceController {
   // ---------------------------------------------------------------------------
 
   // POST /commerce/prices
+  @Roles('ADMIN')
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createSellingPrice(@Body() dto: CreateSellingPriceDto) {
@@ -60,13 +63,23 @@ export class PriceController {
   // Price Updates & Deactivation
   // ---------------------------------------------------------------------------
 
+  // POST /commerce/prices/skus/:skuId/change — new storefront price from now on (current price closed, history kept)
+  @Roles('ADMIN')
+  @Post('skus/:skuId/change')
+  @HttpCode(HttpStatus.OK)
+  async changeSellingPrice(@Param('skuId') skuId: string, @Body() dto: ChangeSellingPriceDto) {
+    return this.commerceService.changeSellingPrice(skuId, dto);
+  }
+
   // PATCH /commerce/prices/:id/deactivate
+  @Roles('ADMIN')
   @Patch(':id/deactivate')
   async deactivateSellingPrice(@Param('id') id: string) {
     return this.commerceService.deactivateSellingPrice(id);
   }
 
   // PATCH /commerce/prices/:id
+  @Roles('ADMIN')
   @Patch(':id')
   async updateSellingPrice(
     @Param('id') id: string,

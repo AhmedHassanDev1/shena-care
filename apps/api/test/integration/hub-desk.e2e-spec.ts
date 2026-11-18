@@ -136,8 +136,7 @@ describe('Hub desk: scan once = receipt + verification (e2e)', () => {
     expect(unknown.body).toMatchObject({ outcome: 'rejected', code: 'PRODUCT_IDENTITY_REVIEW_REQUIRED' });
     const wrong = await scan(order.id, { barcodeScanned: skuC.barcode, expiryDate: EXPIRY }).expect(201);
     expect(wrong.body).toMatchObject({ outcome: 'rejected', code: 'WRONG_ITEM', skuId: skuC.id });
-    // The expiry printed on the pack is required to receive it; a short-dated pack is a receiving exception.
-    await scan(order.id, { barcodeScanned: skuA.barcode }).expect(400).expect(res => expect(res.body.code).toBe('EXPIRY_REQUIRED'));
+    // Expiry is not asked in the preparation flow, but a date that is supplied still has to meet the minimum shelf life (short-dated = receiving exception).
     const soon = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
     await scan(order.id, { barcodeScanned: skuA.barcode, expiryDate: soon }).expect(400).expect(res => expect(res.body.code).toBe('RECEIVING_EXCEPTION'));
     expect(await receiptCount(order.id)).toBe(0);

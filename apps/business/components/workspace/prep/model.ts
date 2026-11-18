@@ -6,10 +6,15 @@ export type Stage = 'waiting_purchase' | 'receiving' | 'verifying' | 'packing'
 export interface DeskLine {
   orderItemId: string; skuId: string; productName: string | null; brandName: string | null; variantName: string | null
   skuCode: string | null; barcode: string | null; imageUrl: string | null; size: string | null
-  sizeUnit?: string | null; unitPrice?: number | null; texture?: string | null; categoryName?: string | null; productSlug?: string | null
+  sizeUnit?: string | null; unitPrice?: number | null; texture?: string | null; categoryName?: string | null
   required: number; purchased: number; received: number; verified: number
-  /** The purchase the next unit belongs to and whether its actual cost is already recorded. */
-  cost: { acquireKey: string; recorded: boolean; listUnitPrice: string | null; discountPerUnit: string | null; finalUnitCost: string | null } | null
+  productSlug: string | null
+  /** The purchase behind this line (the next unit's, else the latest): the supplier's list price, the discount obtained off it and its percentage. */
+  cost: DeskLineCost | null
+}
+export interface DeskLineCost {
+  acquireKey: string; recorded: boolean; units: number; version: number | null
+  listUnitPrice: string | null; discountPerUnit: string | null; discountPercent: string | null; finalUnitCost: string | null
 }
 export interface DeskUnit { receiptId: string; skuId: string; quantity: number; lotNumber: string | null; expiryDate: string | null; receivedAt: string; correctable: boolean }
 export interface DeskCorrection { receiptId: string; reversesReceiptId: string; skuId: string; reason: string | null; note: string | null; at: string }
@@ -28,8 +33,8 @@ export type Packaging = { packagingType: 'BAG' | 'BOX' | null; packagingCost: st
 /** What the person at the desk reads when a scan is refused: the problem and what to do, never a code. */
 export const REJECT: Record<string, string> = {
   WRONG_ITEM: 'المنتج ده مش في الطلب ده. رجّعه مكانه.',
-  PRODUCT_IDENTITY_REVIEW_REQUIRED: 'الباركود ده مش متسجّل لأي منتج. لو القطعة من الطلب وصنفها من غير باركود، سجّله من «مش بيتمسح؟».',
-  PRODUCT_IDENTITY_AMBIGUOUS: 'الباركود ده متسجّل لأكتر من منتج. اتحقق منه من «مش بيتمسح؟» أو اطلب مراجعة الكتالوج.',
+  PRODUCT_IDENTITY_REVIEW_REQUIRED: 'الباركود ده مش متسجّل لأي منتج. لو القطعة من الطلب وصنفها من غير باركود، افتح ⋯ على المنتج واختار «إضافة باركود».',
+  PRODUCT_IDENTITY_AMBIGUOUS: 'الباركود ده متسجّل لأكتر من منتج. سجّل القطعة بـ «تسجيل بدون باركود» من ⋯ أو اطلب مراجعة الكتالوج.',
   ALREADY_COMPLETE: 'الصنف ده كمل في الطلب. المسح ده اتكرر ومااتحسبش.',
   NOT_PURCHASED_YET: 'القطعة دي لسه ماتسجّلتش «اتشترت» في المشتريات. سجّلها هناك الأول.',
   ORDER_NOT_OPEN: 'الطلب ده اتلغى أو اتقفل. ماتجهزوش.',

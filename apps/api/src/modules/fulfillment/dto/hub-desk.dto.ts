@@ -93,7 +93,49 @@ export class RegisterBarcodeDto {
   note: string;
 }
 
-export const CORRECTION_REASONS = ['WRONG_UNIT_SCANNED', 'DUPLICATE_SCAN', 'DAMAGED_ON_INSPECTION', 'WRONG_ORDER', 'OTHER'] as const;
+/**
+ * The supplier discount obtained on one order line's purchase, as a percentage of the supplier's list price. Stored (as always) as the EGP
+ * discount per unit of that purchase; the percentage is only how the desk reads and edits it.
+ */
+export class SetLineDiscountDto {
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(99.99)
+  discountPercent: number;
+
+  /** Supplier list price per unit; only needed while the purchase has no recorded cost (a recorded list price is never changed from here). */
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(100000)
+  listUnitPrice?: number;
+}
+
+/** Replaces the barcode of a product that already has one (catalog reviewers only), after the unit in hand was verified against the order line. */
+export class CorrectBarcodeDto {
+  /** Client-generated id of this correction; a retry returns the original outcome. */
+  @IsUUID()
+  clientScanId: string;
+
+  @IsUUID()
+  skuId: string;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(14)
+  barcode: string;
+
+  @IsArray()
+  @IsIn(MANUAL_IDENTITY_CHECKS, { each: true })
+  checks: string[];
+
+  @IsString()
+  @MinLength(5)
+  @MaxLength(300)
+  note: string;
+}
+
+export const CORRECTION_REASONS =['WRONG_UNIT_SCANNED', 'DUPLICATE_SCAN', 'DAMAGED_ON_INSPECTION', 'WRONG_ORDER', 'OTHER'] as const;
 
 /** Compensating correction of one committed receipt scan. The original stays; a negative receipt points at it. */
 export class ReverseReceiptDto {

@@ -91,6 +91,13 @@ export class PackingReadinessService implements PackingGate, OnModuleInit {
     }
   }
 
+  async afterCostChanged(orderId: string) {
+    // Only once the packaging cost is known is the loss figure a real one; before that the handoff re-checks it anyway.
+    const record = await this.prisma.orderCostRecord.findUnique({ where: { orderId }, select: { packagingCost: true } });
+    if (!record?.packagingCost) return;
+    await this.profitability.flagIfLoss(orderId).catch(error => this.logger.warn(`Profit check of ${orderId} failed: ${(error as Error).message}`));
+  }
+
   async afterPacked(orderId: string) {
     await this.profitability.flagIfLoss(orderId).catch(error => this.logger.warn(`Profit check of ${orderId} failed: ${(error as Error).message}`));
   }

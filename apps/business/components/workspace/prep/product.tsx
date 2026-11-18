@@ -12,11 +12,14 @@ import { useCommand } from '@/lib/use-api'
 import { cn } from '@/lib/utils'
 import { type DeskLine, imageSrc, productTitle } from './model'
 
-/** The product photo from the catalog; without one the product's first letters stand in. */
-export function Thumb({ line, size = 'md' }: { line: DeskLine; size?: 'md' | 'lg' }) {
+/** The product photo from the catalog; without one the product's first letters stand in (never a drawn product). */
+export function Thumb({ line, size = 'md' }: { line: DeskLine; size?: 'md' | 'lg' | 'xl' }) {
   const [broken, setBroken] = React.useState(false)
   const src = imageSrc(line.imageUrl)
-  const box = size === 'lg' ? 'size-20 sm:size-24' : 'size-12 sm:size-14'
+  const img = React.useRef<HTMLImageElement>(null)
+  // A photo that already failed before this component hydrated never fires onError: check it once mounted.
+  React.useEffect(() => { const el = img.current; if (el && el.complete && el.naturalWidth === 0) setBroken(true) }, [src])
+  const box = size === 'xl' ? 'size-48' : size === 'lg' ? 'size-20 sm:size-24' : 'size-12 sm:size-14'
   if (!src || broken) {
     return (
       <span
@@ -33,11 +36,12 @@ export function Thumb({ line, size = 'md' }: { line: DeskLine; size?: 'md' | 'lg
   // eslint-disable-next-line @next/next/no-img-element
   return (
     <img
+      ref={img}
       src={src}
       alt=""
       loading="lazy"
       onError={() => setBroken(true)}
-      className={cn(box, 'shrink-0 rounded-bw-field border border-bw-line bg-bw-surface object-cover')}
+      className={cn(box, 'shrink-0 rounded-bw-field border border-bw-line bg-bw-surface', size === 'xl' ? 'object-contain' : 'object-cover')}
     />
   )
 }
