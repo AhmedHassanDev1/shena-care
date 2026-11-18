@@ -10,14 +10,15 @@ export type AmbientTheme = 'AM' | 'PM';
  * Photographic shutter light, fixed behind the whole page (portalled to <body> so a translucent header and glass surfaces show it).
  * Always aria-hidden and pointer-events none: it carries no information. `morningOnly` mounts only the Morning layer, so a page that
  * never shows Evening (the chatbot) never downloads the Evening picture. The light enters from the START edge of the page: upper-left in
- * LTR, upper-right in RTL (the stylesheet mirrors the layer under html[dir='rtl']).
+ * LTR, upper-right in RTL (the stylesheet mirrors the layer under html[dir='rtl']). `calm` swaps the Morning picture for a softened,
+ * linen-toned variant that fades out before the content (routine pages); the chatbot keeps the original.
  */
-export function AmbientSky({ morningOnly = false }: { morningOnly?: boolean }) {
+export function AmbientSky({ morningOnly = false, calm = false }: { morningOnly?: boolean; calm?: boolean }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
   useEffect(() => setHost(document.body), []);
   if (!host) return null;
   return createPortal(
-    <div aria-hidden="true" className="routine-sky">
+    <div aria-hidden="true" className={calm ? "routine-sky routine-sky--calm" : "routine-sky"}>
       <div className="routine-sky__layer routine-sky__am" />
       {morningOnly ? null : <div className="routine-sky__layer routine-sky__pm" />}
     </div>,

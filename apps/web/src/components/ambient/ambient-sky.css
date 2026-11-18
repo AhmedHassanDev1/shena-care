@@ -138,6 +138,40 @@ html[data-routine-theme='PM'] .routine-sky__pm {
   }
 }
 
+/* ── Calm Morning (routine pages): the same photograph, softened ──
+   `morning-calm*.webp` are the Morning pictures after a 5px diffusion blur, ~40% less colour and a light pull toward warm linen, so the
+   bands keep their irregular shape and shadow but lose the yellow glare. On top: a faint linen veil, and a fade that brings the
+   light back to the plain ground colour before the main content: the strongest light stays at the upper edge. Ask Shina does not
+   use this variant. */
+.routine-sky--calm .routine-sky__am {
+  background-image:
+    linear-gradient(to bottom, color-mix(in srgb, var(--linen) 16%, transparent) 0%, transparent 60%),
+    linear-gradient(to bottom, transparent 0%, transparent 9%, color-mix(in srgb, var(--dawn) 34%, transparent) 28%, color-mix(in srgb, var(--dawn) 78%, transparent) 44%, var(--dawn) 55%),
+    url('/images/routines/morning-calm.webp');
+  background-size: 100% 100%, 100% 100%, cover;
+  background-position: left top, left top, left top;
+}
+@media (max-aspect-ratio: 1/1) and (min-width: 768px) {
+  .routine-sky--calm .routine-sky__am {
+    background-image:
+      linear-gradient(to bottom, color-mix(in srgb, var(--linen) 16%, transparent) 0%, transparent 60%),
+      linear-gradient(to bottom, transparent 0%, transparent 8%, color-mix(in srgb, var(--dawn) 40%, transparent) 36%, var(--dawn) 86%),
+      url('/images/routines/morning-calm.webp');
+    background-size: 100% 50vw, 100% 50vw, 100% auto;
+    background-position: left top, left top, left top;
+  }
+}
+@media (max-aspect-ratio: 1/1) and (max-width: 767px) {
+  .routine-sky--calm .routine-sky__am {
+    background-image:
+      linear-gradient(to bottom, color-mix(in srgb, var(--linen) 16%, transparent) 0%, transparent 60%),
+      linear-gradient(to bottom, transparent 0%, transparent 12%, color-mix(in srgb, var(--dawn) 26%, transparent) 36%, var(--dawn) 88%),
+      url('/images/routines/morning-calm-phone.webp');
+    background-size: 100% 116vw, 100% 116vw, 130% auto;
+    background-position: left top, left top, left top;
+  }
+}
+
 /* ── Frosted glass: step cards, the sidebar panel, the Morning/Evening track ── */
 .routine-glass,
 html[data-routine-theme='AM'] .routine-glass {
