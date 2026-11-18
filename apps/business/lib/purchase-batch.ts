@@ -13,6 +13,8 @@ export interface BatchSummary {
 
 export interface BatchLine {
   id: string; skuId: string; productName: string | null; skuCode: string | null; variantName: string | null
+  /** Catalog brand of the SKU (the order snapshot's product name has none). Absent from older API responses. */
+  brandName?: string | null
   size: number | null; sizeUnit: string | null; packCount: number | null; barcode: string | null
   required: number; received: number; remaining: number; closedOut: number
   orders: Array<{ orderId: string; orderNumber: string; orderItemId: string; quantity: number; received: number; remaining: number; state: OrderState }>
@@ -45,33 +47,66 @@ export const ACTION_LABEL: Record<Exclude<BatchAction, null>, string> = {
 
 export const STATUS_LABEL: Record<BatchStatus, string> = { ready: 'جاهزة للطلب', sent: 'اتطلبت', closed: 'مقفولة' }
 
-/** The exact size/pack label that keeps two variants of one product visibly apart on paper. */
-export function lineVariant(line: Pick<BatchLine, 'variantName' | 'size' | 'sizeUnit' | 'packCount'>): string {
-  const parts = [line.variantName, line.size != null ? `${line.size}${line.sizeUnit ? ` ${line.sizeUnit}` : ''}` : null,
-    line.packCount && line.packCount > 1 ? `×${line.packCount}` : null].filter(Boolean) as string[]
-  return [...new Set(parts)].join(' · ')
+/** Capitalises a brand the catalog stored in all lowercase ("shaan" → "Shaan"); a brand with its own casing ("L'Oréal Paris") is left alone. */
+function brandLabel(brand: string | null | undefined): string {
+  const value = (brand ?? '').trim()
+  if (!value || !/[a-z]/.test(value) || value !== value.toLowerCase()) return value
+  return value.replace(/(^|[\s-])([a-z])/g, (_, lead: string, ch: string) => lead + ch.toUpperCase())
+}
+
+const squash = (value: string) => value.toLowerCase().replace(/\s+/g, '')
+
+export interface PurchaseLineName {
+  /** Shown small above the name; empty when the brand is already the first word of the product name. */
+  brand: string
+  /** Product, variant and size: what a person reads to recognise the item. */
+  title: string
+  /** Everything together: exactly what goes into the copied / shared text. */
+  full: string
+}
+
+/**
+ * The one way a batch line is named for people: brand + product + variant + size. Each piece is added only when the pieces before it
+ * do not already say it, so "Soothing Gel" with variant "120 g" and size 120 g reads "Shaan Soothing Gel 120 g", never "… 120 g 120 g".
+ */
+export function purchaseLineName(line: Pick<BatchLine, 'productName' | 'brandName' | 'variantName' | 'size' | 'sizeUnit' | 'packCount'>): PurchaseLineName {
+  const product = (line.productName ?? '').trim()
+  const brandText = brandLabel(line.brandName)
+  const brand = brandText && !squash(product).startsWith(squash(brandText)) ? brandText : ''
+  const sizeText = line.size != null ? `${Number(line.size)}${line.sizeUnit ? ` ${line.sizeUnit}` : ''}` : ''
+  let variant = (line.variantName ?? '').trim()
+  if (variant && sizeText && squash(variant) === squash(sizeText)) variant = ''
+  const size = sizeText && !squash(product + variant).includes(squash(sizeText)) ? sizeText : ''
+  const pack = line.packCount && line.packCount > 1 ? `${line.packCount}-pack` : ''
+  const title = [product, variant, size, pack].filter(Boolean).join(' ')
+  return { brand, title, full: [brand, title].filter(Boolean).join(' ') }
+}
+
+/** Every line of the batch, ordered by brand and name so every list built from it scans the same way. */
+export function orderedLines(batch: BatchDetail): BatchLine[] {
+  const key = (line: BatchLine) => purchaseLineName(line).full.toLowerCase()
+  return [...batch.lines].sort((a, b) => key(a).localeCompare(key(b)))
 }
 
 /** What is still to be ordered or collected: only lines with units left. */
 export function openLines(batch: BatchDetail): BatchLine[] {
-  return batch.lines.filter((line) => line.remaining > 0)
+  return orderedLines(batch).filter((line) => line.remaining > 0)
+}
+
+/** The numbers that head the purchase list: what is still to buy, or the whole batch once nothing is left to buy. */
+export function purchaseTotals(batch: BatchDetail): { products: number; units: number } {
+  const open = openLines(batch)
+  return open.length ? { products: open.length, units: open.reduce((sum, line) => sum + line.remaining, 0) } : { products: batch.skus, units: batch.units }
 }
 
 const WHEN = (value: Date) => value.toLocaleString('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' })
 
-/** Plain text for copying or WhatsApp. It is a message a person sends by hand; the system sends nothing. */
-export function batchText(batch: BatchDetail): string {
-  const rows = openLines(batch)
-  const header = `طلب شراء ShinaCare — دفعة #${batch.number}`
-  if (!rows.length) return `${header}\nمفيش حاجة مطلوبة في الدفعة دي.`
-  const lines = rows.map((line, index) => {
-    const label = [line.productName, lineVariant(line)].filter(Boolean).join(' — ')
-    const code = [line.skuCode, line.barcode].filter(Boolean).join(' / ')
-    return `${index + 1}. ${label}${code ? ` [${code}]` : ''} × ${line.remaining}`
-  })
-  const units = rows.reduce((sum, line) => sum + line.remaining, 0)
-  return [header, batch.expectedAt ? `الاستلام المتوقع: ${WHEN(new Date(batch.expectedAt))}` : null, ...lines, `الإجمالي: ${rows.length} صنف · ${units} قطعة`,
-    batch.note ? `ملاحظة: ${batch.note}` : null].filter(Boolean).join('\n')
+/**
+ * The text staff copy or share with a supplier by hand (the system sends nothing): one line per product, `name × quantity`, and
+ * nothing else. No codes, barcodes, ids, status, dates or notes, so it can be sent exactly as copied.
+ */
+export function purchaseListText(batch: BatchDetail): string {
+  return openLines(batch).map((line) => `${purchaseLineName(line).full} × ${line.remaining}`).join('\n')
 }
 
 export function whatsappUrl(text: string): string {
@@ -80,17 +115,16 @@ export function whatsappUrl(text: string): string {
 
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] as string)
 
-/** Self-contained printable checklist (no app chrome, no controls). */
+/** Self-contained printable checklist (no app chrome, no controls): the same names and quantities as the copied text, plus a tick box. */
 export function batchPrintHtml(batch: BatchDetail): string {
   const rows = openLines(batch)
-  const body = rows.map((line) => `<tr><td>${escapeHtml(line.productName ?? '—')}</td><td>${escapeHtml(lineVariant(line) || '—')}</td>`
-    + `<td dir="ltr">${escapeHtml([line.skuCode, line.barcode].filter(Boolean).join(' / '))}</td><td class="n">${line.remaining}</td><td class="box"></td></tr>`).join('')
-  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>دفعة شراء #${batch.number}</title><style>
-body{font:14px system-ui,sans-serif;margin:24px;color:#111}h1{font-size:18px;margin:0 0 4px}p{margin:0 0 12px;color:#444}
-table{border-collapse:collapse;width:100%}th,td{border:1px solid #888;padding:6px 8px;text-align:right;vertical-align:top}
-th{background:#eee}.n{text-align:center;font-weight:700}.box{width:48px}</style></head><body>
-<h1>دفعة شراء #${batch.number} — ShinaCare</h1><p>${escapeHtml(WHEN(new Date(batch.cutoffAt)))} — ${rows.length} صنف${batch.expectedAt ? ` — الاستلام المتوقع ${escapeHtml(WHEN(new Date(batch.expectedAt)))}` : ''}</p>
-${rows.length ? `<table><thead><tr><th>المنتج</th><th>النوع / الحجم</th><th>الكود</th><th>الكمية</th><th>تم</th></tr></thead><tbody>${body}</tbody></table>` : '<p>مفيش حاجة مطلوبة في الدفعة دي.</p>'}
+  const body = rows.map((line) => `<tr><td dir="auto">${escapeHtml(purchaseLineName(line).full)}</td><td class="n">${line.remaining}</td><td class="box"></td></tr>`).join('')
+  return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>قائمة المشتريات — دفعة #${batch.number}</title><style>
+body{font:15px system-ui,sans-serif;margin:24px;color:#111}h1{font-size:18px;margin:0 0 4px}p{margin:0 0 12px;color:#444}
+table{border-collapse:collapse;width:100%}th,td{border:1px solid #888;padding:7px 10px;text-align:right;vertical-align:middle}
+th{background:#eee}.n{width:64px;text-align:center;font-weight:700;font-size:17px}.box{width:48px}</style></head><body>
+<h1>قائمة المشتريات — دفعة #${batch.number}</h1><p>${escapeHtml(WHEN(new Date(batch.cutoffAt)))} — ${rows.length} منتج</p>
+${rows.length ? `<table><thead><tr><th>المنتج</th><th>الكمية</th><th>تم</th></tr></thead><tbody>${body}</tbody></table>` : '<p>مفيش حاجة مطلوبة في الدفعة دي.</p>'}
 </body></html>`
 }
 
