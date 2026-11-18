@@ -12,8 +12,18 @@ export function ShinaCareBanner() {
   return (
     <aside
       aria-label={m.profileShinaBannerTitle}
-      className="routine-glass relative overflow-hidden rounded-card p-6 md:p-8"
+      className="relative isolate overflow-hidden rounded-card border border-line bg-linen/95 p-6 shadow-elevation-1 md:p-8"
     >
+      {/* Subtle warm atmospheric glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-20 end-0 -z-10 size-72 rounded-full bg-sand/35 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-20 start-0 -z-10 size-72 rounded-full bg-tan/10 blur-3xl"
+      />
+
       <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
@@ -25,7 +35,7 @@ export function ShinaCareBanner() {
             </GlassBadge>
           </div>
 
-          <h3 className="m-0 font-display text-display-3 font-bold text-ink">
+          <h3 className="m-0 font-display text-20 md:text-24 font-extrabold text-ink leading-tight">
             {m.profileShinaBannerTitle}
           </h3>
 
@@ -36,7 +46,7 @@ export function ShinaCareBanner() {
 
         <Link
           href={routes.shina}
-          className="inline-flex h-control-m shrink-0 items-center justify-center gap-2 rounded-pill bg-cobalt px-6 font-display text-14 font-semibold text-chalk shadow-elevation-1 transition-colors hover:bg-cobalt-deep"
+          className="inline-flex h-control-m shrink-0 items-center justify-center gap-2 rounded-pill bg-cobalt px-6 font-display text-14 font-semibold text-chalk shadow-elevation-1 transition-all hover:bg-cobalt-deep active:scale-95"
         >
           <Icon name="message" size={16} />
           <span>{m.profileShinaBannerAction}</span>

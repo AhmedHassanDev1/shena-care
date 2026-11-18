@@ -68,8 +68,18 @@ export function CareProfileOverview({
   return (
     <section
       aria-label={m.profileCareHubTitle}
-      className="routine-glass relative overflow-hidden rounded-card p-6 md:p-8"
+      className="relative isolate overflow-hidden rounded-card border border-line bg-linen/95 p-6 shadow-elevation-1 md:p-8"
     >
+      {/* Subtle warm architectural ambient glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-24 end-0 -z-10 size-80 rounded-full bg-sand/35 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-24 start-0 -z-10 size-80 rounded-full bg-tan/10 blur-3xl"
+      />
+
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -87,13 +97,13 @@ export function CareProfileOverview({
             ) : null}
           </div>
 
-          <h1 className="m-0 font-display text-display-1 font-bold text-ink">
+          <h1 className="m-0 font-display text-24 md:text-32 font-black leading-tight text-ink">
             {displayName
               ? fillMessage(m.profileGreetingNamed, { name: displayName })
               : m.profileGreetingUnnamed}
           </h1>
 
-          <p className="m-0 max-w-xl text-15 leading-relaxed text-stone">
+          <p className="m-0 max-w-xl text-14 md:text-15 leading-relaxed text-stone">
             {m.profileCareHubSubtitle}
           </p>
         </div>
@@ -101,12 +111,12 @@ export function CareProfileOverview({
         <div className="flex shrink-0 items-center gap-3">
           <Button
             type="button"
-            variant="light"
+            variant={hasAnyCareData ? 'light' : 'cobalt'}
             size="m"
             onClick={onEditCareProfile}
-            className="rounded-pill shadow-outline-control"
+            className="rounded-pill shadow-elevation-1"
           >
-            <Icon name="pencil" size={16} />
+            <Icon name={hasAnyCareData ? 'pencil' : 'plus'} size={16} />
             <span>{hasAnyCareData ? m.profileEditCareProfile : m.profileCareProfileSetupAction}</span>
           </Button>
         </div>
@@ -122,35 +132,35 @@ export function CareProfileOverview({
         ) : hasAnyCareData ? (
           <div className="flex flex-wrap items-center gap-2.5">
             {skinName ? (
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-linen/90 px-3.5 py-1.5 text-13 font-medium text-ink shadow-elevation-1">
+              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line/70 bg-chalk/90 px-3.5 py-1.5 text-13 font-medium text-ink shadow-outline-hairline">
                 <span className="text-stone">{m.profileSkinTypeLabel}:</span>
                 <strong className="font-semibold text-ink">{skinName}</strong>
               </span>
             ) : null}
 
             {hairName ? (
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-linen/90 px-3.5 py-1.5 text-13 font-medium text-ink shadow-elevation-1">
+              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line/70 bg-chalk/90 px-3.5 py-1.5 text-13 font-medium text-ink shadow-outline-hairline">
                 <span className="text-stone">{m.profileHairTypeLabel}:</span>
                 <strong className="font-semibold text-ink">{hairName}</strong>
               </span>
             ) : null}
 
             {scalpName ? (
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-linen/90 px-3.5 py-1.5 text-13 font-medium text-ink shadow-elevation-1">
+              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line/70 bg-chalk/90 px-3.5 py-1.5 text-13 font-medium text-ink shadow-outline-hairline">
                 <span className="text-stone">{m.profileScalpTypeLabel}:</span>
                 <strong className="font-semibold text-ink">{scalpName}</strong>
               </span>
             ) : null}
 
             {focusName ? (
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-linen/90 px-3.5 py-1.5 text-13 font-medium text-ink shadow-elevation-1">
+              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line/70 bg-chalk/90 px-3.5 py-1.5 text-13 font-medium text-ink shadow-outline-hairline">
                 <span className="text-stone">{m.profileCareFocusLabel}:</span>
                 <strong className="font-semibold text-ink">{focusName}</strong>
               </span>
             ) : null}
 
             {sunName ? (
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-linen/90 px-3.5 py-1.5 text-13 font-medium text-ink shadow-elevation-1">
+              <span className="inline-flex items-center gap-1.5 rounded-pill border border-line/70 bg-chalk/90 px-3.5 py-1.5 text-13 font-medium text-ink shadow-outline-hairline">
                 <Icon name="sun" size={13} className="text-citron" />
                 <span className="font-medium text-stone">{sunName}</span>
               </span>
@@ -164,7 +174,7 @@ export function CareProfileOverview({
             ) : null}
           </div>
         ) : (
-          <div className="flex flex-col gap-3 rounded-card border border-line/80 bg-linen/60 p-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-3 rounded-card border border-line/70 bg-sand/20 p-4 md:flex-row md:items-center md:justify-between">
             <p className="m-0 text-14 leading-relaxed text-stone">
               {m.profileCareProfileEmpty}
             </p>

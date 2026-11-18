@@ -151,7 +151,7 @@ export function CareProfileEditModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-[620px] overflow-y-auto rounded-card bg-linen p-6 md:p-8" closeLabel={m.profileAddressCancel}>
+      <DialogContent className="max-h-[85vh] max-w-[620px] overflow-y-auto rounded-card border border-line bg-linen p-6 shadow-elevation-3 md:p-8" closeLabel={m.profileAddressCancel}>
         <DialogHeader className="border-b border-line pb-4">
           <DialogTitle className="text-display-3 font-bold text-ink">
             {m.profileEditCareProfile}
@@ -183,7 +183,7 @@ export function CareProfileEditModal({
                     'rounded-pill border px-3.5 py-1.5 text-13 font-medium transition-colors',
                     skinType === opt.value
                       ? 'border-cobalt bg-cobalt text-chalk shadow-elevation-1'
-                      : 'border-line bg-linen text-ink hover:bg-sand/40'
+                      : 'border-line/70 bg-chalk/90 text-ink shadow-outline-hairline hover:border-line hover:bg-sand/30'
                   )}
                 >
                   {opt.label}
@@ -207,7 +207,7 @@ export function CareProfileEditModal({
                     'rounded-pill border px-3.5 py-1.5 text-13 font-medium transition-colors',
                     hairType === opt.value
                       ? 'border-cobalt bg-cobalt text-chalk shadow-elevation-1'
-                      : 'border-line bg-linen text-ink hover:bg-sand/40'
+                      : 'border-line/70 bg-chalk/90 text-ink shadow-outline-hairline hover:border-line hover:bg-sand/30'
                   )}
                 >
                   {opt.label}
@@ -231,7 +231,7 @@ export function CareProfileEditModal({
                     'rounded-pill border px-3.5 py-1.5 text-13 font-medium transition-colors',
                     scalpType === opt.value
                       ? 'border-cobalt bg-cobalt text-chalk shadow-elevation-1'
-                      : 'border-line bg-linen text-ink hover:bg-sand/40'
+                      : 'border-line/70 bg-chalk/90 text-ink shadow-outline-hairline hover:border-line hover:bg-sand/30'
                   )}
                 >
                   {opt.label}
@@ -255,7 +255,7 @@ export function CareProfileEditModal({
                     'rounded-pill border px-3.5 py-1.5 text-13 font-medium transition-colors',
                     primaryFocus === opt.value
                       ? 'border-cobalt bg-cobalt text-chalk shadow-elevation-1'
-                      : 'border-line bg-linen text-ink hover:bg-sand/40'
+                      : 'border-line/70 bg-chalk/90 text-ink shadow-outline-hairline hover:border-line hover:bg-sand/30'
                   )}
                 >
                   {opt.label}
@@ -279,7 +279,7 @@ export function CareProfileEditModal({
                     'rounded-pill border px-3.5 py-1.5 text-13 font-medium transition-colors',
                     sunExposure === opt.value
                       ? 'border-cobalt bg-cobalt text-chalk shadow-elevation-1'
-                      : 'border-line bg-linen text-ink hover:bg-sand/40'
+                      : 'border-line/70 bg-chalk/90 text-ink shadow-outline-hairline hover:border-line hover:bg-sand/30'
                   )}
                 >
                   {opt.label}
@@ -303,7 +303,7 @@ export function CareProfileEditModal({
                     'rounded-pill border px-3.5 py-1.5 text-13 font-medium transition-colors',
                     preferredTexture === opt.value
                       ? 'border-cobalt bg-cobalt text-chalk shadow-elevation-1'
-                      : 'border-line bg-linen text-ink hover:bg-sand/40'
+                      : 'border-line/70 bg-chalk/90 text-ink shadow-outline-hairline hover:border-line hover:bg-sand/30'
                   )}
                 >
                   {opt.label}
@@ -313,7 +313,7 @@ export function CareProfileEditModal({
           </div>
 
           {/* Fragrance Preference */}
-          <div className="flex items-center justify-between rounded-card border border-line bg-sand/30 p-4">
+          <div className="flex items-center justify-between rounded-card border border-line/70 bg-sand/20 p-4">
             <div className="flex flex-col gap-1">
               <span className="font-display text-14 font-semibold text-ink">
                 {m.profileFragranceLabel}
@@ -352,7 +352,7 @@ export function CareProfileEditModal({
               value={sensitivities}
               onChange={(e) => setSensitivities(e.target.value)}
               placeholder="مثال: حساسية من زيت شجرة الشاي، حمض الساليسيليك…"
-              className="h-control-m rounded-input border border-line bg-linen px-4 font-display text-14 text-ink shadow-elevation-1 outline-none focus:border-cobalt"
+              className="h-control-m rounded-input border border-line/80 bg-chalk/90 px-4 font-display text-14 text-ink shadow-outline-hairline outline-none focus:border-cobalt"
             />
           </div>
 
@@ -374,7 +374,7 @@ export function CareProfileEditModal({
                         'rounded-pill border px-3 py-1.5 text-12 font-medium transition-colors',
                         isSelected
                           ? 'border-cobalt bg-cobalt text-chalk shadow-elevation-1'
-                          : 'border-line bg-linen text-ink hover:bg-sand/40'
+                          : 'border-line/70 bg-chalk/90 text-ink shadow-outline-hairline hover:border-line hover:bg-sand/30'
                       )}
                     >
                       {c.name}

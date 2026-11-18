@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { MessageBox } from '@/components/ui/message-box';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MorningAmbient } from '@/components/ambient/AmbientSky';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useMessages } from '@/lib/i18n/LocaleProvider';
 import { orders as ordersApi } from '@/lib/orders';
@@ -74,6 +73,37 @@ export function CustomerProfileView({ focusSection }: CustomerProfileViewProps) 
 
   const [activeTab, setActiveTab] = useState<AccountTab>(initialTab);
 
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const isDraggingTabs = useRef(false);
+  const dragStartX = useRef(0);
+  const dragScrollLeft = useRef(0);
+
+  const handleTabsMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    isDraggingTabs.current = true;
+    dragStartX.current = e.pageX - el.offsetLeft;
+    dragScrollLeft.current = el.scrollLeft;
+  };
+
+  const handleTabsMouseLeave = () => {
+    isDraggingTabs.current = false;
+  };
+
+  const handleTabsMouseUp = () => {
+    isDraggingTabs.current = false;
+  };
+
+  const handleTabsMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDraggingTabs.current) return;
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    const walk = (x - dragStartX.current) * 1.5;
+    el.scrollLeft = dragScrollLeft.current - walk;
+  };
+
   const ordersQuery = useQuery({
     queryKey: ['my-orders'],
     queryFn: () => ordersApi.listMine(),
@@ -119,18 +149,27 @@ export function CustomerProfileView({ focusSection }: CustomerProfileViewProps) 
           </MessageBox>
         ) : null}
 
-        <section className="rounded-card border border-line bg-linen p-6 md:p-10">
+        <section className="relative isolate overflow-hidden rounded-card border border-line bg-linen/95 p-6 shadow-elevation-1 md:p-10">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-24 end-0 -z-10 size-80 rounded-full bg-sand/30 blur-3xl"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-24 start-0 -z-10 size-80 rounded-full bg-tan/10 blur-3xl"
+          />
+
           <span
             aria-hidden="true"
-            className="mb-5 grid size-12 place-items-center rounded-pill bg-chalk text-cobalt shadow-outline-control"
+            className="mb-5 grid size-12 place-items-center rounded-pill border border-line/60 bg-chalk text-cobalt shadow-outline-hairline"
           >
             <Icon name="user" size={24} />
           </span>
 
-          <h1 className="m-0 font-display text-display-1 font-extrabold text-ink">
+          <h1 className="m-0 font-display text-24 md:text-32 font-black leading-tight text-ink">
             {m.profileSignedOutTitle}
           </h1>
-          <p className="m-0 mt-3 max-w-xl text-17 leading-relaxed text-stone">
+          <p className="m-0 mt-3 max-w-xl text-15 md:text-16 leading-relaxed text-stone">
             {m.profileSignedOutBody}
           </p>
 
@@ -180,8 +219,6 @@ export function CustomerProfileView({ focusSection }: CustomerProfileViewProps) 
 
   return (
     <div className="pb-nav-safe relative flex flex-col gap-8 py-2 lg:py-6">
-      <MorningAmbient />
-
       {/* Hero Overview */}
       <CareProfileOverview
         user={user}
@@ -191,19 +228,30 @@ export function CustomerProfileView({ focusSection }: CustomerProfileViewProps) 
       />
 
       {/* Navigation Tabs */}
-      <div className="routine-glass--tabs sticky top-16 z-10 flex items-center justify-start gap-1 overflow-x-auto rounded-pill p-1.5 shadow-outline-hairline backdrop-blur-md">
+      <div
+        ref={tabsContainerRef}
+        role="tablist"
+        aria-label={m.profileCareHubTitle}
+        onMouseDown={handleTabsMouseDown}
+        onMouseLeave={handleTabsMouseLeave}
+        onMouseUp={handleTabsMouseUp}
+        onMouseMove={handleTabsMouseMove}
+        className="no-scrollbar sticky top-16 z-10 flex items-center justify-start gap-1.5 overflow-x-auto rounded-pill border border-line/70 bg-linen/90 p-1.5 shadow-outline-hairline backdrop-blur-md touch-pan-x select-none"
+      >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'inline-flex min-h-control-s shrink-0 items-center gap-2 rounded-pill px-4.5 font-display text-14 font-semibold transition-all duration-fast',
+                'inline-flex min-h-control-s shrink-0 items-center gap-2 rounded-pill px-4 font-display text-13 md:text-14 font-semibold transition-all duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt',
                 isActive
                   ? 'bg-cobalt text-chalk shadow-elevation-1'
-                  : 'text-ink hover:bg-sand/50 hover:text-cobalt'
+                  : 'text-stone hover:bg-sand/40 hover:text-ink active:bg-sand/60'
               )}
             >
               <Icon name={tab.icon} size={15} />
@@ -212,7 +260,7 @@ export function CustomerProfileView({ focusSection }: CustomerProfileViewProps) 
                 <span
                   className={cn(
                     'rounded-pill px-1.5 py-0.2 text-11 font-bold',
-                    isActive ? 'bg-chalk/20 text-chalk' : 'bg-sand text-stone'
+                    isActive ? 'bg-chalk/20 text-chalk' : 'bg-sand/60 text-stone'
                   )}
                 >
                   {tab.count}

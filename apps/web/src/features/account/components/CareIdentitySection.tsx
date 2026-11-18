@@ -70,7 +70,7 @@ export function CareIdentitySection({
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="m-0 font-display text-title font-bold text-ink">
+          <h2 className="m-0 font-display text-20 md:text-24 font-extrabold text-ink">
             {m.profileCareHubTitle}
           </h2>
           <p className="m-0 mt-1 text-14 text-stone">
@@ -82,7 +82,7 @@ export function CareIdentitySection({
           variant="light"
           size="s"
           onClick={onEdit}
-          className="rounded-pill shadow-outline-control"
+          className="rounded-pill border border-line/80 bg-chalk/90 text-ink shadow-elevation-1 hover:bg-sand/40"
         >
           <Icon name="pencil" size={14} />
           <span>{m.profileEditCareProfile}</span>
@@ -91,7 +91,7 @@ export function CareIdentitySection({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* Skin Profile Card */}
-        <div className="routine-glass flex flex-col justify-between rounded-card p-6 shadow-elevation-1">
+        <div className="flex flex-col justify-between rounded-card border border-line bg-linen/95 p-6 shadow-elevation-1">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-line/60 pb-3">
               <span className="flex items-center gap-2 font-display text-17 font-bold text-ink">
@@ -129,7 +129,7 @@ export function CareIdentitySection({
                   {skinConcerns.map((c) => (
                     <span
                       key={c.id}
-                      className="inline-flex items-center gap-1 rounded-pill border border-line bg-linen/90 px-2.5 py-1 text-12 font-medium text-ink"
+                      className="inline-flex items-center gap-1 rounded-pill border border-line/70 bg-chalk/90 px-2.5 py-1 text-12 font-medium text-ink shadow-outline-hairline"
                     >
                       <Icon name="target" size={12} className="text-cobalt" />
                       <span>{c.concern.name}</span>
@@ -142,7 +142,7 @@ export function CareIdentitySection({
         </div>
 
         {/* Hair & Scalp Profile Card */}
-        <div className="routine-glass flex flex-col justify-between rounded-card p-6 shadow-elevation-1">
+        <div className="flex flex-col justify-between rounded-card border border-line bg-linen/95 p-6 shadow-elevation-1">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-line/60 pb-3">
               <span className="flex items-center gap-2 font-display text-17 font-bold text-ink">
@@ -178,7 +178,7 @@ export function CareIdentitySection({
                   {hairConcerns.map((c) => (
                     <span
                       key={c.id}
-                      className="inline-flex items-center gap-1 rounded-pill border border-line bg-linen/90 px-2.5 py-1 text-12 font-medium text-ink"
+                      className="inline-flex items-center gap-1 rounded-pill border border-line/70 bg-chalk/90 px-2.5 py-1 text-12 font-medium text-ink shadow-outline-hairline"
                     >
                       <Icon name="target" size={12} className="text-cobalt" />
                       <span>{c.concern.name}</span>
@@ -192,7 +192,7 @@ export function CareIdentitySection({
       </div>
 
       {/* Allergies, Sensitivities & Fragrance Preferences */}
-      <div className="routine-glass flex flex-col gap-3 rounded-card p-5 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 rounded-card border border-line/80 bg-linen/90 p-5 shadow-outline-hairline md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap items-center gap-3">
           <span className="inline-flex items-center gap-1.5 text-14 font-semibold text-ink">
             <Icon name="shield" size={16} className="text-cobalt" />
@@ -205,7 +205,7 @@ export function CareIdentitySection({
 
         <div className="flex items-center gap-2 border-t border-line/60 pt-2 md:border-0 md:pt-0">
           <span className="text-12 text-stone">{m.profileFragranceLabel}:</span>
-          <span className="rounded-pill bg-linen px-3 py-1 text-12 font-semibold text-ink shadow-elevation-1">
+          <span className="rounded-pill border border-line/70 bg-chalk/90 px-3 py-1 text-12 font-semibold text-ink shadow-outline-hairline">
             {careProfile?.fragranceFree ? m.profileFragranceFree : m.profileFragranceStandard}
           </span>
         </div>
@@ -218,7 +218,7 @@ export function CareIdentitySection({
           {otherConcerns.map((c) => (
             <span
               key={c.id}
-              className="rounded-pill border border-line bg-linen px-2.5 py-1 text-12 text-ink"
+              className="rounded-pill border border-line/70 bg-chalk/90 px-2.5 py-1 text-12 text-ink shadow-outline-hairline"
             >
               {c.concern.name}
             </span>
