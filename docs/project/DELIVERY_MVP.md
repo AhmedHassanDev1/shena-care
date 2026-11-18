@@ -1,0 +1,39 @@
+# Delivery MVP — dispatch, verified handoff, courier delivery, COD settlement
+
+Owners: `modules/fulfillment` (runs, custody, shipments), `modules/ordering` (order states, expected/declared/counted cash). Workspaces:
+Hub `/hub/dispatch`, Courier `/driver`, Admin, customer tracking (reads the same order/shipment states). No new tables.
+
+## Flow
+
+1. **Ready → planned.** `POST /fulfillment/locations/:id/dispatch/plan-preview` clusters packed parcels by distance (local heuristic, no paid
+   routing by default), respects each courier's `maxStops`/trips, returns unassigned parcels with a reason; `plan-approve` (fingerprint-checked,
+   idempotent) creates one `planning` run per trip. Preview and approve are scoped to the hubs the operator is assigned to (Admin: any).
+   Manual adjustment: add/remove/reorder stops (existing) and `PATCH /fulfillment/delivery-batches/:id/driver` to change the courier — only
+   while the run is `planning` and no parcel is in custody yet.
+2. **Verified handoff.** `POST …/delivery-batches/:id/handoff-scan { barcode }` (hub or the run's courier) answers with a typed outcome:
+   `SCANNED` (custody recorded once; the event notes who handed over / that the courier received), `DUPLICATE` (counted and audited as
+   `HANDOFF_DUPLICATE`, nothing changes), `NOT_IN_RUN` (a genuine label of another parcel, audited on that parcel as `HANDOFF_REJECTED`),
+   `UNKNOWN_PARCEL`, `INVALID_STATE`. Progress and `missingShipmentIds` come back with every scan; `GET …/delivery-batches/:id` shows per stop
+   `handoff { at, scannedById, receivedById }` and `duplicateScans`.
+3. **Dispatch gate.** `POST …/dispatch` is refused (`COURIER_REQUIRED`, `HANDOFF_INCOMPLETE` + the missing parcels) until a courier is assigned
+   and every active parcel was scanned into custody; then parcels → `out_for_delivery`, orders → `shipped`, expected COD per order is fixed.
+4. **Courier.** Only the run's courier sees it (`GET /fulfillment/driver/runs`); other couriers get 404/403. Delivered needs the cash declaration
+   (idempotent replay, a conflicting rewrite is a 409); failed needs a typed reason and the parcel stays in the courier's custody until the hub
+   takes it back (`RECEIVED_BACK` with the label scan), after which it can join another run (attempt history kept: `failed > delivered`).
+5. **COD settlement.** `GET /ordering/settlements/rounds/open` (expected vs declared per courier, hub-scoped) → `POST …/rounds` counts a courier's
+   cash once (reference = idempotency key; a different count under the same reference or nothing left to count is a 409). A shortage/overage is
+   recorded as a variance (`short`/`over`) for admin review, never silently settled. `runId`/`orderIds` scope a count to one run.
+
+## Safety rules enforced here
+
+- A confirmed order's **quantity, unit price, total and COD amount cannot be edited from the Hub or Delivery** (the desk line editor was removed);
+  commercial amendments go only through the customer-agreed availability decision workflow.
+- Price writes (`/commerce/prices`) are Admin only; the Hub may read.
+- Hub run list: `toAttempt` = stops still waiting for an outcome (a failed parcel in the courier's hands no longer keeps the run "on the road").
+
+## Verification
+
+`test/integration/delivery-mvp.e2e-spec.ts` (smart dispatch + capacity + approval + reassignment, handoff gate and scan outcomes, courier
+scope, delivery/failed/retry/COD, one counted settlement), plus the existing fulfillment, COD, finance, driver and golden-journey suites.
+Browser E2E on an isolated database covered: plan → approve → reassign → scan (wrong parcel refused) → dispatch → courier delivery with COD →
+failed delivery → receive back → cash count with a recorded shortage → close run, and another courier opening a foreign stop.

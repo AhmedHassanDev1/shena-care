@@ -6,6 +6,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { createSellableSku } from '../fixtures/sellable-sku';
 import { makeReadyToPack } from '../fixtures/pack-ready';
 import { signInCustomer } from '../fixtures/checkout';
+import { takeCustody } from '../fixtures/custody';
 
 /**
  * Fulfillment Lifecycle E2E Tests — GLO-150 + GLO-147
@@ -476,6 +477,10 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     });
 
     it('should dispatch the batch', async () => {
+      // A run leaves only with a courier who has every parcel in custody.
+      const courier = await prisma.customer.create({ data: { name: 'Lifecycle courier', email: `courier-${Date.now()}@fixtures.test`, roles: ['DRIVER'] } });
+      await prisma.deliveryBatch.update({ where: { id: batchId }, data: { driverId: courier.id } });
+      await takeCustody(app, { Authorization: authToken }, batchId);
       const res = await request(app.getHttpServer())
         .post(`/fulfillment/delivery-batches/${batchId}/dispatch`).set('Authorization', authToken)
         .expect(201);

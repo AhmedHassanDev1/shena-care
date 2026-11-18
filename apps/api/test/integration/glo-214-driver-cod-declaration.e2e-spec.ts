@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { takeCustody } from '../fixtures/custody';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -34,6 +35,7 @@ describe('GLO-214 driver COD declaration (e2e)', () => {
     const batch = await prisma.deliveryBatch.create({ data: { locationId, driverId: driver.id, status: 'planning',
       stops: { create: [{ shipmentId: shipment.id, sequence: 1 }] } } });
     batchIds.push(batch.id);
+    await takeCustody(app, hub.auth, batch.id);
     await http().post(`/fulfillment/delivery-batches/${batch.id}/dispatch`).set(hub.auth).expect(201);
     return { orderId: order.id, shipmentId: shipment.id };
   };

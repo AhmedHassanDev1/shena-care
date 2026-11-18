@@ -142,6 +142,7 @@ export class DispatchPlanningService {
       }
       hubLocationId = location.id;
       hubName = location.name;
+      await this.assertHubOperatorAssigned(actor, location.id);
     }
 
     const hubOrigin: RouteWaypoint = {
@@ -1060,6 +1061,13 @@ export class DispatchPlanningService {
     };
   }
 
+  /** Object-level scope: a hub operator plans only the hubs they are assigned to (Admin: any). */
+  private async assertHubOperatorAssigned(actor: FulfillmentActor, locationId: string) {
+    if (actor.roles.includes(Role.ADMIN)) return;
+    const assigned = await this.prisma.fulfillmentLocationOperator.findUnique({ where: { locationId_operatorId: { locationId, operatorId: actor.id } } });
+    if (!assigned) throw new ForbiddenException('You are not assigned to this hub');
+  }
+
   private assertDispatchPermission(actor: FulfillmentActor) {
     if (actor.roles.includes(Role.ADMIN) || actor.roles.includes(Role.HUB_OPERATOR)) {
       return;
@@ -1139,6 +1147,7 @@ export class DispatchPlanningService {
         where: { isActive: true },
       });
       if (defaultLocation) {
+        await this.assertHubOperatorAssigned(actor, defaultLocation.id);
         hubLocationId = defaultLocation.id;
         hubName = defaultLocation.name;
       }

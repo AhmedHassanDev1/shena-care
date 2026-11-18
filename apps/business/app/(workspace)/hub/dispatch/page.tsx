@@ -67,6 +67,8 @@ interface Run {
   stops: number
   stopOrderIds?: string[]
   attempts: Record<string, number>
+  /** Stops still waiting for a delivery outcome (a failed parcel in the courier's hands no longer counts). */
+  toAttempt?: number
 }
 
 interface RunStop {
@@ -173,7 +175,7 @@ function DispatchBody() {
   const packed = useApi<{ items: HubShipment[] }>(`/fulfillment/locations/${hub.id}/shipments?status=packed&take=100`, { pollMs: 15000 })
   const runs = useApi<{ items: Run[] }>(`/fulfillment/locations/${hub.id}/runs?status=planning,dispatched,completed&take=100`, { pollMs: 15000 })
   const failed = useApi<{ items: HubShipment[] }>(`/fulfillment/locations/${hub.id}/shipments?status=failed&take=100`, { pollMs: 15000 })
-  const collections = useApi<{ items: Collection[] }>(`/ordering/settlements/collections?locationId=${hub.id}&status=collected&take=200`, { pollMs: 15000 })
+  const collections = useApi<{ items: Collection[] }>(`/ordering/settlements/collections?locationId=${hub.id}&status=collected&take=100`, { pollMs: 15000 })
   const pastBatches = useApi<{ items: PastSettlementBatch[] }>(`/ordering/settlements/batches?locationId=${hub.id}&take=50`, { pollMs: 30000 })
 
   // Maps & lookups
@@ -233,7 +235,7 @@ function DispatchBody() {
   const activeRuns = React.useMemo(() => {
     return (runs.data?.items ?? []).filter((r) => {
       if (r.status !== 'dispatched') return false
-      const activeCount = r.attempts?.active ?? 0
+      const activeCount = r.toAttempt ?? r.attempts?.active ?? 0
       // If there are still active stops, it's out on delivery
       return activeCount > 0
     })
@@ -258,7 +260,7 @@ function DispatchBody() {
     // 1. Process runs that are dispatched (all stops attempted) or completed
     for (const r of runs.data?.items ?? []) {
       if (r.status === 'planning') continue
-      const activeStops = r.attempts?.active ?? 0
+      const activeStops = r.toAttempt ?? r.attempts?.active ?? 0
       if (activeStops > 0 && r.status === 'dispatched') continue // Still active on the road
 
       const cId = r.driverId
@@ -1069,6 +1071,7 @@ function AssignedTripsSection({
                       key={run.id}
                       run={run}
                       driver={name}
+                      couriers={[...driverName.entries()]}
                       onStartScan={(r) => setScanningRun(r)}
                       onChanged={onChanged}
                     />
@@ -1085,6 +1088,7 @@ function AssignedTripsSection({
               key={run.id}
               run={run}
               driver={run.driverId ? driverName.get(run.driverId) ?? shortId(run.driverId) : 'غير محدد'}
+              couriers={[...driverName.entries()]}
               onStartScan={(r) => setScanningRun(r)}
               onChanged={onChanged}
             />
@@ -1112,11 +1116,13 @@ function AssignedTripsSection({
 function AssignedTripCard({
   run,
   driver,
+  couriers,
   onStartScan,
   onChanged,
 }: {
   run: Run
   driver: string
+  couriers?: Array<[string, string]>
   onStartScan?: (run: Run) => void
   onChanged: () => void
 }) {
@@ -1126,6 +1132,9 @@ function AssignedTripCard({
     api(`/fulfillment/delivery-batches/${run.id}/dispatch`, { method: 'POST' })
   )
 
+  const reassign = useCommand((driverId: string) =>
+    api(`/fulfillment/delivery-batches/${run.id}/driver`, { method: 'PATCH', body: { driverId } })
+  )
   const stops = detail.data?.stops ?? []
   const handedOverCount = stops.filter((s) => s.handedOver).length
   const totalStops = stops.length || run.stops
@@ -1223,6 +1232,19 @@ function AssignedTripCard({
         </div>
       </div>
 
+      {/* The courier can change only while no parcel is in custody yet (the server refuses otherwise). */}
+      {couriers && couriers.length > 1 && handedOverCount === 0 && stops.length > 0 ? (
+        <Select
+          label="تغيير المندوب"
+          value={run.driverId ?? ''}
+          onChange={async (value) => {
+            if (value && value !== run.driverId && (await reassign.execute(value))) onChanged()
+          }}
+          className="w-full text-xs sm:w-64"
+          options={couriers.map(([id, name]) => [id, name] as [string, string])}
+        />
+      ) : null}
+      <CommandError error={reassign.error} />
       <CommandError error={dispatch.error} />
 
       {/* Collapsible Stops List */}

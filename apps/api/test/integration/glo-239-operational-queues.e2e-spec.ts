@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { takeCustody } from '../fixtures/custody';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -42,6 +43,7 @@ describe('GLO-239 role-scoped operational queues (e2e)', () => {
     const shipment = await prisma.shipment.create({ data: { orderId: order.id, locationId: hubAId, status: 'packed' } });
     const run = await http().post('/fulfillment/delivery-batches').set(hubA.auth).send({ hubId: hubAId, name: 'Q run', driverId: driverA.id }).expect(201);
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/stops`).set(hubA.auth).send({ stops: [{ shipmentId: shipment.id }] }).expect(201);
+    await takeCustody(app, hubA.auth, run.body.id);
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/dispatch`).set(hubA.auth).expect(201);
     if (declared >= 0) {
       await http().post(`/fulfillment/shipments/${shipment.id}/events`).set(driverA.auth).send({ type: 'DELIVERED', collectedAmount: declared }).expect(201);

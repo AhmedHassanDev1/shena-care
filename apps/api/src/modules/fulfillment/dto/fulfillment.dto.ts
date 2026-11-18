@@ -262,6 +262,11 @@ export class BatchHandoffScanDto {
   barcode: string;
 }
 
+export class ReassignBatchDriverDto {
+  @IsUUID()
+  driverId: string;
+}
+
 export class AdjustInventoryDto {
   @IsString()
   @IsNotEmpty()

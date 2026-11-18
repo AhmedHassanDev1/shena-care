@@ -1,6 +1,7 @@
 // A flat fee keeps the expected COD arithmetic readable; the tiered policy has its own suite.
 process.env.DELIVERY_FEE_POLICY = JSON.stringify({ bands: [{ maxKm: null, fee: 50 }], discountTiers: [], freeFrom: 100000 });
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { takeCustody } from '../fixtures/custody';
 import { Test } from '@nestjs/testing';
 import { randomUUID } from 'crypto';
 import request from 'supertest';
@@ -131,6 +132,7 @@ describe('Customer order across Admin / Hub / Driver workspaces via the Buy List
       .send({ hubId: locationId, name: 'Journey run', driverId: driver.id }).expect(201)).body;
     await http().post(`/fulfillment/delivery-batches/${batch.id}/stops`).set(hub.auth)
       .send({ stops: shipmentIds.map((shipmentId, index) => ({ shipmentId, sequence: index + 1 })) }).expect(201);
+    await takeCustody(app, hub.auth, batch.id);
     await http().post(`/fulfillment/delivery-batches/${batch.id}/dispatch`).set(hub.auth).expect(201);
 
     // The driver sees only the assigned stops; another driver sees none of them.

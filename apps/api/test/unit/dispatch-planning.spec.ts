@@ -150,10 +150,18 @@ describe('ShinaCare Maps Phase 3.3A — Adaptive Multi-Driver Dispatch Planner',
     it('allows administrators and hub operators to run planning preview', async () => {
       mockPrisma.shipment.findMany.mockResolvedValue([]);
       mockPrisma.customer.findMany.mockResolvedValue([{ id: 'driver-1', name: 'Driver Ahmed' }]);
+      mockPrisma.fulfillmentLocationOperator.findUnique.mockResolvedValue({ locationId: validHubId, operatorId: mockHubOperatorActor.id });
 
       const result = await service.planDispatch({ hubId: validHubId }, mockHubOperatorActor);
       expect(result).toBeDefined();
       expect(result.hubId).toBe(validHubId);
+    });
+  });
+
+  describe('Hub scope of the preview', () => {
+    it('refuses a hub operator who is not assigned to the hub being planned', async () => {
+      mockPrisma.fulfillmentLocationOperator.findUnique.mockResolvedValue(null);
+      await expect(service.planDispatch({ hubId: validHubId }, mockHubOperatorActor)).rejects.toThrow(ForbiddenException);
     });
   });
 

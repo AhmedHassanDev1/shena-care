@@ -1575,6 +1575,14 @@ export class FulfillmentService {
         await this.assertDeliveryPin(stop.shipment.orderId);
       }
 
+      // A run leaves the hub only with a courier who took custody of every parcel (label scanned), so nothing travels unverified.
+      if (!batch.driverId) throw new BadRequestException({ code: 'COURIER_REQUIRED', message: 'Assign a courier to the run before dispatching it' });
+      const custody = await tx.shipmentEvent.findMany({ where: { shipmentId: { in: batch.stops.map(stop => stop.shipmentId) }, type: 'HANDOFF_SCANNED' }, select: { shipmentId: true, createdAt: true } });
+      const missing = batch.stops.filter(stop => stop.status === 'active' && !custody.some(event => event.shipmentId === stop.shipmentId && event.createdAt >= stop.createdAt));
+      if (missing.length) {
+        throw new ConflictException({ code: 'HANDOFF_INCOMPLETE', message: 'Every parcel must be scanned into the courier\'s hands before the run leaves', missingShipmentIds: missing.map(stop => stop.shipmentId) });
+      }
+
       const claimed = await tx.deliveryBatch.updateMany({
         where: { id: batchId, status: 'planning' },
         data: {
@@ -1694,13 +1702,15 @@ export class FulfillmentService {
     const [total, rows] = await Promise.all([
       this.prisma.deliveryBatch.count({ where }),
       this.prisma.deliveryBatch.findMany({ where, orderBy: { createdAt: 'desc' }, take: filter.take, skip: filter.skip,
-        include: { stops: { select: { status: true, shipment: { select: { orderId: true } } } } } }),
+        include: { stops: { select: { status: true, shipment: { select: { orderId: true, status: true } } } } } }),
     ]);
     return { total, items: rows.map(run => ({
       id: run.id, status: run.status, driverId: run.driverId, plannedAt: run.plannedAt, dispatchedAt: run.dispatchedAt, completedAt: run.completedAt,
       stops: run.stops.length,
       stopOrderIds: run.stops.map(s => s.shipment.orderId),
       attempts: run.stops.reduce<Record<string, number>>((acc, stop) => ({ ...acc, [stop.status]: (acc[stop.status] ?? 0) + 1 }), {}),
+      // Stops still waiting for an outcome. A failed parcel stays an active stop until the hub takes it back, but the courier is done with it.
+      toAttempt: run.stops.filter(stop => stop.status === 'active' && !['delivered', 'failed', 'returned', 'cancelled'].includes(stop.shipment.status)).length,
     })) };
   }
 
@@ -1807,7 +1817,7 @@ export class FulfillmentService {
     if (!this.isUuid(batchId)) throw new NotFoundException('Batch not found');
     const batch = await this.prisma.deliveryBatch.findUnique({
       where: { id: batchId },
-      include: { stops: { orderBy: { sequence: 'asc' }, include: { shipment: { include: { events: { where: { type: 'HANDOFF_SCANNED' }, select: { createdAt: true } } } } } } },
+      include: { stops: { orderBy: { sequence: 'asc' }, include: { shipment: { include: { events: { where: { type: { in: ['HANDOFF_SCANNED', 'HANDOFF_DUPLICATE', 'HANDOFF_REJECTED'] } }, select: { type: true, createdAt: true, actorId: true } } } } } } },
     });
     if (!batch) throw new NotFoundException('Batch not found');
     await this.resolveBatchScope(batch, actor);
@@ -1819,95 +1829,101 @@ export class FulfillmentService {
         sequence: stop.sequence, shipmentId: stop.shipmentId, attemptStatus: stop.status, shipmentStatus: stop.shipment.status,
         orderId: stop.shipment.orderId,
         orderNumber: orders.get(stop.shipment.orderId)?.orderNumber ?? null, area: orders.get(stop.shipment.orderId)?.area ?? null,
-        handedOver: stop.shipment.events.some(event => event.createdAt >= stop.createdAt),
+        ...(() => {
+          const taken = stop.shipment.events.find(event => event.type === 'HANDOFF_SCANNED' && event.createdAt >= stop.createdAt);
+          return {
+            handedOver: !!taken,
+            // Custody trail: who scanned the parcel and when; the receiving courier is the run's courier.
+            handoff: taken ? { at: taken.createdAt, scannedById: taken.actorId, receivedById: batch.driverId } : null,
+            duplicateScans: stop.shipment.events.filter(event => event.type === 'HANDOFF_DUPLICATE' && event.createdAt >= stop.createdAt).length,
+          };
+        })(),
       })),
     };
   }
 
   /**
-   * Continuous barcode scanning for all parcels in a delivery run.
-   * Reuses isValidShipmentBarcode for HMAC validation and records HANDOFF_SCANNED.
+   * Continuous parcel scanning into the courier's custody for one run. Every outcome is a typed answer, never a crash:
+   * SCANNED (custody recorded once, by whom), DUPLICATE (already in custody; counted and audited, nothing changes),
+   * NOT_IN_RUN (a genuine label of another parcel; audited on that parcel), UNKNOWN_PARCEL (not a genuine label) and
+   * INVALID_STATE (the parcel is no longer packed / out for delivery). Reuses the signed label check.
    */
   async batchHandoffScan(batchId: string, barcode: string, actor: FulfillmentActor) {
     if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
     if (!barcode || typeof barcode !== 'string') throw new BadRequestException('Barcode is required');
+    const code = barcode.trim();
 
     const batch = await this.prisma.deliveryBatch.findUnique({
       where: { id: batchId },
-      include: {
-        stops: {
-          orderBy: { sequence: 'asc' },
-          include: {
-            shipment: {
-              include: {
-                events: {
-                  where: { type: 'HANDOFF_SCANNED' },
-                  select: { id: true, createdAt: true },
-                },
-              },
-            },
-          },
-        },
-      },
+      include: { stops: { orderBy: { sequence: 'asc' }, include: { shipment: { include: { events: { where: { type: 'HANDOFF_SCANNED' }, select: { id: true, createdAt: true } } } } } } },
     });
-
     if (!batch) throw new NotFoundException('Delivery run not found');
     await this.resolveBatchScope(batch, actor);
-
     if (batch.status !== 'planning' && batch.status !== 'dispatched') {
       throw new BadRequestException('Cannot scan handoff for a completed or cancelled run');
     }
 
-    const matchedStop = batch.stops.find((stop) =>
-      isValidShipmentBarcode(stop.shipmentId, barcode),
-    );
-
-    if (!matchedStop) {
-      throw new BadRequestException('Scanned barcode does not match any parcel in this delivery run');
-    }
-
-    const alreadyHandedOver = matchedStop.shipment.events.some(
-      (e) => e.createdAt >= matchedStop.createdAt,
-    );
-
-    if (!alreadyHandedOver) {
-      await this.prisma.shipmentEvent.create({
-        data: {
-          shipmentId: matchedStop.shipmentId,
-          type: 'HANDOFF_SCANNED',
-          actorId: actor.id,
-        },
-      });
-    }
-
-    const updatedEvents = await this.prisma.shipmentEvent.findMany({
-      where: {
-        shipmentId: { in: batch.stops.map((s) => s.shipmentId) },
-        type: 'HANDOFF_SCANNED',
-      },
-      select: { shipmentId: true, createdAt: true },
-    });
-
-    const handedOverShipmentIds = new Set(
-      batch.stops
-        .filter((stop) =>
-          updatedEvents.some(
-            (e) => e.shipmentId === stop.shipmentId && e.createdAt >= stop.createdAt,
-          ),
-        )
-        .map((s) => s.shipmentId),
-    );
-
-    return {
-      success: true,
-      batchId: batch.id,
-      shipmentId: matchedStop.shipmentId,
-      orderId: matchedStop.shipment.orderId,
-      alreadyScanned: alreadyHandedOver,
-      totalStops: batch.stops.length,
-      scannedStopsCount: handedOverShipmentIds.size,
-      isComplete: handedOverShipmentIds.size === batch.stops.length,
+    const taken = (stop: (typeof batch.stops)[number]) => stop.shipment.events.some(event => event.createdAt >= stop.createdAt);
+    const progress = (extra: { outcome: string; shipmentId?: string | null; orderId?: string | null; handedNow?: string }) => {
+      const handed = batch.stops.filter(stop => stop.status === 'active' && (taken(stop) || stop.shipmentId === extra.handedNow));
+      const active = batch.stops.filter(stop => stop.status === 'active');
+      return {
+        success: extra.outcome === 'SCANNED' || extra.outcome === 'DUPLICATE', outcome: extra.outcome, batchId: batch.id,
+        shipmentId: extra.shipmentId ?? null, orderId: extra.orderId ?? null, alreadyScanned: extra.outcome === 'DUPLICATE',
+        totalStops: active.length, scannedStopsCount: handed.length, isComplete: active.length > 0 && handed.length === active.length,
+        missingShipmentIds: active.filter(stop => !handed.includes(stop)).map(stop => stop.shipmentId),
+      };
     };
+
+    const stop = batch.stops.find(candidate => candidate.status === 'active' && isValidShipmentBarcode(candidate.shipmentId, code));
+    if (!stop) {
+      // A genuine label of some other parcel is worth an audit line on that parcel; anything else cannot be attributed.
+      let other: string | null = null;
+      const match = /^SHP-([0-9A-F]{8})-[0-9A-F]{16}$/i.exec(code);
+      if (match) {
+        const candidates = await this.prisma.$queryRaw<Array<{ id: string }>>`SELECT id::text AS id FROM fulfillment.shipments WHERE id::text LIKE ${match[1].toLowerCase() + '%'}`;
+        other = candidates.find(candidate => isValidShipmentBarcode(candidate.id, code))?.id ?? null;
+      }
+      if (other) {
+        await this.prisma.shipmentEvent.create({ data: { shipmentId: other, type: 'HANDOFF_REJECTED', actorId: actor.id, notes: `Scanned on run ${batch.id}, which it does not belong to` } });
+        return progress({ outcome: 'NOT_IN_RUN', shipmentId: other });
+      }
+      return progress({ outcome: 'UNKNOWN_PARCEL' });
+    }
+
+    if (taken(stop)) {
+      await this.prisma.shipmentEvent.create({ data: { shipmentId: stop.shipmentId, type: 'HANDOFF_DUPLICATE', actorId: actor.id, notes: 'Parcel was already in the courier\'s custody' } });
+      return progress({ outcome: 'DUPLICATE', shipmentId: stop.shipmentId, orderId: stop.shipment.orderId });
+    }
+    if (stop.shipment.status !== ShipmentStatus.packed) {
+      return progress({ outcome: 'INVALID_STATE', shipmentId: stop.shipmentId, orderId: stop.shipment.orderId });
+    }
+    const role = actor.roles.includes(Role.ADMIN) ? 'admin' : actor.roles.includes(Role.HUB_OPERATOR) && batch.driverId !== actor.id ? 'hub' : 'courier';
+    await this.prisma.shipmentEvent.create({ data: {
+      shipmentId: stop.shipmentId, type: 'HANDOFF_SCANNED', actorId: actor.id,
+      notes: role === 'courier' ? 'Received by the courier' : `Handed over by ${role} ${actor.id} to courier ${batch.driverId ?? 'unassigned'}`,
+    } });
+    return progress({ outcome: 'SCANNED', shipmentId: stop.shipmentId, orderId: stop.shipment.orderId, handedNow: stop.shipmentId });
+  }
+
+  /**
+   * Moves a planned run to another courier. Only while the run is still being prepared and no parcel is in custody yet,
+   * so a parcel is never taken from a courier who already holds it.
+   */
+  async reassignBatchDriver(batchId: string, driverId: string, actor: FulfillmentActor) {
+    if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
+    const driver = this.isUuid(driverId) ? await this.prisma.customer.findUnique({ where: { id: driverId } }) : null;
+    if (!driver || !driver.roles.includes(Role.DRIVER)) throw new BadRequestException('driverId must reference a driver account');
+    return this.prisma.$transaction(async tx => {
+      const batch = await tx.deliveryBatch.findUnique({ where: { id: batchId }, include: { stops: true } });
+      if (!batch) throw new NotFoundException('Batch not found');
+      if (await this.resolveBatchScope(batch, actor) === 'driver') throw new ForbiddenException('Hub access is required');
+      if (batch.status !== 'planning') throw new ConflictException({ code: 'RUN_ALREADY_DISPATCHED', message: 'A dispatched run cannot change courier' });
+      const custody = await tx.shipmentEvent.count({ where: { shipmentId: { in: batch.stops.map(stop => stop.shipmentId) }, type: 'HANDOFF_SCANNED' } });
+      if (custody > 0) throw new ConflictException({ code: 'HANDOFF_ALREADY_STARTED', message: 'Parcels are already scanned to the current courier; remove them from the run first' });
+      if (batch.driverId === driverId) return batch;
+      return tx.deliveryBatch.update({ where: { id: batchId }, data: { driverId } });
+    });
   }
 
   /** Whether anything physical exists for an order: hub receipts and the shipment status. */

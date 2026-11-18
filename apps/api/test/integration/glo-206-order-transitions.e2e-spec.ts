@@ -1,4 +1,5 @@
 import { ConflictException, INestApplication, ValidationPipe } from '@nestjs/common';
+import { takeCustody } from '../fixtures/custody';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -100,20 +101,24 @@ describe('GLO-206 order transitions and delivery convergence (e2e)', () => {
   });
 
   it('moves orders to shipped when their run is dispatched, and refuses cancelled orders', async () => {
+    const courier = (await prisma.customer.create({ data: { name: 'Transitions courier', email: `courier-${Date.now()}@fixtures.test`, roles: ['DRIVER'] } })).id;
     const orderId = await makeOrder('packing');
     const shipmentId = await makeShipment(orderId, 'packed');
-    const batch = await http().post('/fulfillment/delivery-batches').set(admin.auth).send({ hubId: locationId, name: 'Converge' }).expect(201);
+    const batch = await http().post('/fulfillment/delivery-batches').set(admin.auth).send({ hubId: locationId, name: 'Converge', driverId: courier }).expect(201);
     batchIds.push(batch.body.id);
     await http().post(`/fulfillment/delivery-batches/${batch.body.id}/stops`).set(admin.auth).send({ stops: [{ shipmentId }] }).expect(201);
+    await takeCustody(app, admin.auth, batch.body.id);
     await http().post(`/fulfillment/delivery-batches/${batch.body.id}/dispatch`).set(admin.auth).expect(201);
     expect(await statusOf(orderId)).toBe('shipped');
+    await takeCustody(app, admin.auth, batch.body.id);
     await http().post(`/fulfillment/delivery-batches/${batch.body.id}/dispatch`).set(admin.auth).expect(400);
 
     const cancelledOrder = await makeOrder('cancelled');
     const cancelledShipment = await makeShipment(cancelledOrder, 'packed');
-    const run = await http().post('/fulfillment/delivery-batches').set(admin.auth).send({ hubId: locationId, name: 'Stale' }).expect(201);
+    const run = await http().post('/fulfillment/delivery-batches').set(admin.auth).send({ hubId: locationId, name: 'Stale', driverId: courier }).expect(201);
     batchIds.push(run.body.id);
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/stops`).set(admin.auth).send({ stops: [{ shipmentId: cancelledShipment }] }).expect(201);
+    await takeCustody(app, admin.auth, run.body.id);
     const refused = await http().post(`/fulfillment/delivery-batches/${run.body.id}/dispatch`).set(admin.auth).expect(400);
     expect(refused.body.message).toMatch(/was cancelled/);
     expect((await prisma.shipment.findUniqueOrThrow({ where: { id: cancelledShipment } })).status).toBe('packed');

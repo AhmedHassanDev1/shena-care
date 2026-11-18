@@ -498,7 +498,7 @@ describe('Hub orders & preparation: barcode registration, handoff gate, loss rev
     expect(await money()).toEqual(before);
   });
 
-  it('integration: the Hub can read prices but never write them, and the desk line editor can never change a confirmed customer price', async () => {
+  it('integration: the Hub can read prices but never write them, and no desk route can change the quantity, price, total or COD of a confirmed order', async () => {
     const sku = await createOrderableSku(prisma, 100);
     const order = await checkout([{ sku, quantity: 1 }]);
     const itemId = order.items[0].id;
@@ -517,10 +517,12 @@ describe('Hub orders & preparation: barcode registration, handoff gate, loss rev
     await http().patch(`/commerce/prices/${current.id}`).set(hub.auth).send({ amount: 90 }).expect(403);
     await http().patch(`/commerce/prices/${current.id}/deactivate`).set(hub.auth).send({}).expect(403);
 
-    // The desk line editor refuses any change of the unit price; the order stays exactly as the customer confirmed it.
-    const patch = (body: Record<string, unknown>) => http().patch(`/fulfillment/locations/${locationId}/desk/orders/${order.id}/lines/${itemId}`).set(hub.auth).send(body);
-    await patch({ unitPrice: 80 }).expect(409).expect(res => expect(res.body.code).toBe('CUSTOMER_PRICE_FIXED'));
-    await patch({ quantity: 1, unitPrice: 100 }).expect(200);
+    // Confirmed orders have no operational editor: quantity, price, total and COD can only change through the customer-agreed availability workflow.
+    const patch = (body: Record<string, unknown>, auth = hub.auth) => http().patch(`/fulfillment/locations/${locationId}/desk/orders/${order.id}/lines/${itemId}`).set(auth).send(body);
+    for (const body of [{ unitPrice: 80 }, { quantity: 5 }, { quantity: 1, unitPrice: 100 }]) {
+      await patch(body).expect(404);
+      await patch(body, admin.auth).expect(404);
+    }
     expect(await snapshot()).toEqual(before);
   });
 });

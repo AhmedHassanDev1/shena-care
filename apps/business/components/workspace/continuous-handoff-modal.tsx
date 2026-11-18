@@ -100,8 +100,9 @@ export function ContinuousHandoffModal({
 
       const result = await api<{
         success: boolean
-        shipmentId: string
-        orderId: string
+        outcome?: 'SCANNED' | 'DUPLICATE' | 'NOT_IN_RUN' | 'UNKNOWN_PARCEL' | 'INVALID_STATE'
+        shipmentId: string | null
+        orderId: string | null
         alreadyScanned: boolean
         totalStops: number
         scannedStopsCount: number
@@ -134,6 +135,15 @@ export function ContinuousHandoffModal({
         if (result.isComplete && onComplete) {
           onComplete()
         }
+      } else {
+        // A refused scan counts for nothing; the server has audited it where it could.
+        const refused: Record<string, string> = {
+          NOT_IN_RUN: 'الطرد ده مش من المشوار ده. رجّعه مكانه.',
+          UNKNOWN_PARCEL: 'الباركود ده مش بتاع أي طرد. اقراه تاني من الورقة.',
+          INVALID_STATE: 'الطرد ده مش جاهز للتسليم (مش مغلّف أو خرج بالفعل).',
+        }
+        setFeedback({ type: 'error', message: refused[result.outcome ?? ''] ?? 'المسح اترفض.' })
+        setBarcodeInput('')
       }
     } catch (err: any) {
       setFeedback({
@@ -161,7 +171,7 @@ export function ContinuousHandoffModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="continuous-scan-title"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-bw-kohl/70 backdrop-blur-xs animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-bw-kohl/70 animate-in fade-in"
     >
       <div className="relative flex flex-col w-full max-w-lg max-h-[92vh] sm:max-h-[85vh] bg-bw-surface text-bw-ink rounded-t-bw-overlay sm:rounded-bw-overlay border border-bw-line shadow-bw-overlay overflow-hidden">
         {/* Header */}

@@ -1,4 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { takeCustody } from '../fixtures/custody';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { randomUUID } from 'crypto';
@@ -165,6 +166,7 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
     it('a delivery that cannot move the order changes nothing (no cash, no event, no notification)', async () => {
       const { orderId, shipmentId } = await packedStop(450);
       const run = await runOf(shipmentId);
+      await takeCustody(app, hub.auth, run.id);
       await http().post(`/fulfillment/delivery-batches/${run.id}/dispatch`).set(hub.auth).expect(201);
       // Another actor cancelled the order while the driver was on the road.
       await prisma.order.update({ where: { id: orderId }, data: { status: 'cancelled' } });
@@ -181,6 +183,7 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
     it('concurrent conflicting deliveries record exactly one declaration, event and order transition', async () => {
       const { orderId, shipmentId } = await packedStop(450);
       const run = await runOf(shipmentId);
+      await takeCustody(app, hub.auth, run.id);
       await http().post(`/fulfillment/delivery-batches/${run.id}/dispatch`).set(hub.auth).expect(201);
       const results = await Promise.all([
         http().post(`/fulfillment/shipments/${shipmentId}/events`).set(driver.auth).send({ type: 'DELIVERED', collectedAmount: 450 }),
@@ -206,6 +209,7 @@ describe('GLO-236 durable events and atomic transitions (e2e)', () => {
       const good = await packedStop(200);
       const bad = await packedStop(300, 'delivered'); // cannot move to shipped
       const run = await runOf(good.shipmentId, bad.shipmentId);
+      await takeCustody(app, hub.auth, run.id);
       await http().post(`/fulfillment/delivery-batches/${run.id}/dispatch`).set(hub.auth).expect(409);
 
       expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: run.id } })).status).toBe('planning');
