@@ -50,3 +50,7 @@ pgdata/
 STAFF_CREDENTIALS.md
 **/STAFF_CREDENTIALS.md
 *.egg-info/
+
+# One-off journey/seed scripts that hardcode session tokens or credentials must never be committed (see scripts/check-staged-secrets.cjs).
+apps/api/scripts/execute-e2e-*.ts
+**/*.secrets.*

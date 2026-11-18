@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "check:secrets": "node scripts/check-staged-secrets.cjs",
     "dev:all": "node scripts/dev-all.mjs",
     "start:all": "node scripts/dev-all.mjs",
     "dev": "npm run dev --workspace=api & npm run dev --workspace=web",
