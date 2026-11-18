@@ -407,4 +407,63 @@ describe('Hub orders & preparation: barcode registration, handoff gate, loss rev
     expect((await prisma.orderItem.findFirstOrThrow({ where: { orderId: next.id } })).price.toString()).toBe('130');
     expect((await orderLine()).price.toString()).toBe('100');
   });
+
+  it('scopes a discount edit to the purchase behind that line: other products, other purchases and earlier costs are untouched', async () => {
+    const a = await createOrderableSku(prisma);
+    const b = await createOrderableSku(prisma);
+    // One count of A covers two orders; B is bought separately. Order Y shares A's purchase with X.
+    const x = await checkout([{ sku: a, quantity: 1 }, { sku: b, quantity: 1 }]);
+    const y = await checkout([{ sku: a, quantity: 1 }]);
+    await buy(a, 2); await buy(b, 1);
+    for (const order of [x, y]) for (const item of order.items) {
+      const sku = item.skuId === a.id ? a : b;
+      await scan(order.id, { barcodeScanned: sku.barcode }).expect(201);
+    }
+    const lineOf = async (order: { id: string }, sku: OrderableSku) => (await deskOrder(order.id)).lines.find((l: any) => l.skuId === sku.id);
+    const batchOf = (key: string) => prisma.purchaseCostBatch.findUniqueOrThrow({ where: { acquireKey: key } });
+    const xa = await lineOf(x, a); const xb = await lineOf(x, b); const ya = await lineOf(y, a);
+    expect(xa.cost.acquireKey).toBe(ya.cost.acquireKey); // the same physical purchase
+    expect(xb.cost.acquireKey).not.toBe(xa.cost.acquireKey);
+
+    await putDiscount(x.id, xa.orderItemId, { discountPercent: 10, listUnitPrice: 200 }).expect(200);
+    // Only A's purchase got a cost (shared by the lines it covered, as recorded costs always are); B has none, and nothing else was created.
+    expect((await lineOf(y, a)).cost).toMatchObject({ recorded: true, discountPercent: '10.00' });
+    expect((await lineOf(x, b)).cost).toMatchObject({ recorded: false });
+    expect(await prisma.purchaseCostBatch.count({ where: { skuId: b.id } })).toBe(0);
+    expect(await prisma.purchaseCostBatch.count({ where: { skuId: a.id } })).toBe(1);
+
+    // A later purchase of the same SKU is its own batch: editing the new one never rewrites the earlier one.
+    const earlier = await batchOf(xa.cost.acquireKey);
+    const z = await checkout([{ sku: a, quantity: 1 }]);
+    await buy(a, 1);
+    await scan(z.id, { barcodeScanned: a.barcode }).expect(201);
+    const za = await lineOf(z, a);
+    expect(za.cost.acquireKey).not.toBe(xa.cost.acquireKey);
+    await putDiscount(z.id, za.orderItemId, { discountPercent: 30, listUnitPrice: 300 }).expect(200);
+    const after = await batchOf(xa.cost.acquireKey);
+    expect({ list: after.listUnitPrice.toString(), discount: after.discountPerUnit.toString(), version: after.version, history: after.history })
+      .toEqual({ list: earlier.listUnitPrice.toString(), discount: earlier.discountPerUnit.toString(), version: earlier.version, history: earlier.history });
+    expect((await batchOf(za.cost.acquireKey)).discountPerUnit.toString()).toBe('90');
+    // Editing B's line leaves A's purchases alone.
+    await putDiscount(x.id, xb.orderItemId, { discountPercent: 5, listUnitPrice: 100 }).expect(200);
+    expect((await batchOf(xa.cost.acquireKey)).version).toBe(earlier.version);
+  });
+
+  it('edits only the purchase the next unit of a line belongs to when a line was bought in two purchases', async () => {
+    const sku = await createOrderableSku(prisma);
+    const order = await checkout([{ sku, quantity: 2 }]);
+    const itemId = order.items[0].id;
+    await buy(sku, 1); await buy(sku, 1);
+    const first = (await deskOrder(order.id)).lines[0].cost.acquireKey;
+    await putDiscount(order.id, itemId, { discountPercent: 10, listUnitPrice: 200 }).expect(200);
+    await scan(order.id, { barcodeScanned: sku.barcode }).expect(201); // consumes the first purchase
+    const second = (await deskOrder(order.id)).lines[0].cost.acquireKey;
+    expect(second).not.toBe(first);
+    await putDiscount(order.id, itemId, { discountPercent: 20, listUnitPrice: 300 }).expect(200);
+    const rows = await prisma.purchaseCostBatch.findMany({ where: { acquireKey: { in: [first, second] } } });
+    const byKey = new Map(rows.map(r => [r.acquireKey, r]));
+    expect(byKey.get(first)).toMatchObject({ version: 1 });
+    expect(byKey.get(first)!.discountPerUnit.toString()).toBe('20');
+    expect(byKey.get(second)!.discountPerUnit.toString()).toBe('60');
+  });
 });
