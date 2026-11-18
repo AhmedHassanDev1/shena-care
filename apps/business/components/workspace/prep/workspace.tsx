@@ -12,9 +12,7 @@ import { useApi } from '@/lib/use-api'
 import { cn } from '@/lib/utils'
 import { type Desk, type DeskOrder, type Packaging, STAGE_LABEL, receivedOf, shortNumber, unitsOf } from './model'
 import { PrepBar } from './bar'
-import { UnitsPanel } from './units-panel'
-import { ProductRow } from './product'
-import { type PackInfo, VerifyStep } from './verify'
+import { PrepProducts } from './verify'
 
 /**
  * Orders & Preparation: pick an order, then one step at a time — verify the products, choose the packaging, print, hand off.
@@ -28,7 +26,6 @@ export function PreparationDesk() {
   const [selectedId, setSelectedId] = React.useState<string | null>(null)
   const [onPhone, setOnPhone] = React.useState<'queue' | 'order'>('queue')
   const [override, setOverride] = React.useState<DeskOrder | null>(null)
-  const [packInfo, setPackInfo] = React.useState<PackInfo>({})
   // A packed parcel leaves the list at once; this keeps the confirmation on screen so it is never missed.
   const [handedOff, setHandedOff] = React.useState<string | null>(null)
   const orders = desk.data?.orders ?? []
@@ -80,8 +77,8 @@ export function PreparationDesk() {
                 {orders.length ? <Button size="touch" onClick={() => pick(orders[0].orderId)}>الطلب اللي بعده</Button> : null}
               </div>
             ) : selected ? (
-              <OrderWorkspace key={selected.orderId} order={selected} hubId={hub.id} lastLots={desk.data?.lastLots ?? {}} lastCosts={desk.data?.lastCosts ?? {}}
-                packagingCosts={costs.data?.packagingCosts ?? null} packInfo={packInfo} setPackInfo={setPackInfo}
+              <OrderWorkspace key={selected.orderId} order={selected} hubId={hub.id} lastCosts={desk.data?.lastCosts ?? {}}
+                packagingCosts={costs.data?.packagingCosts ?? null}
                 onOrder={setOverride} onChanged={reload} onPacked={() => setHandedOff(selected.orderNumber)} />
             ) : (
               <div className="bw-panel hidden lg:block"><StateBlock kind="empty" title="اختار طلب من القايمة" /></div>
@@ -119,13 +116,11 @@ function QueueItem({ order, active, onPick }: { order: DeskOrder; active: boolea
   )
 }
 
-function OrderWorkspace({ order, hubId, lastLots, lastCosts, packagingCosts, packInfo, setPackInfo, onOrder, onChanged, onPacked }: {
-  order: DeskOrder; hubId: string; lastLots: Desk['lastLots']; lastCosts: Desk['lastCosts']; packagingCosts: PackagingCosts | null
-  packInfo: PackInfo; setPackInfo: React.Dispatch<React.SetStateAction<PackInfo>>
+function OrderWorkspace({ order, hubId, lastCosts, packagingCosts, onOrder, onChanged, onPacked }: {
+  order: DeskOrder; hubId: string; lastCosts: Desk['lastCosts']; packagingCosts: PackagingCosts | null
   onOrder: (order: DeskOrder) => void; onChanged: () => void; onPacked: () => void
 }) {
   const packaging = useApi<Packaging>(`/order-costs/${order.orderId}`)
-  const verified = order.stage === 'packing' && !!order.shipment
 
   return (
     <section aria-label={`طلب ${shortNumber(order.orderNumber)}`} className="space-y-4">
@@ -135,15 +130,7 @@ function OrderWorkspace({ order, hubId, lastLots, lastCosts, packagingCosts, pac
       </div>
       <PrepBar order={order} packaging={packaging.data ?? null} costs={packagingCosts} onPackaging={packaging.reload} onChanged={onChanged} onPacked={onPacked} />
       <div className="bw-panel space-y-4 p-4">
-        {verified ? (
-          <>
-            <p className="flex items-center gap-2 text-bw-small font-semibold text-bw-ink"><CheckCircle2 className="size-5 text-bw-emerald" aria-hidden />{unitsOf(order)} قطعة اتمسحت واتأكدت</p>
-            <ul className="divide-y divide-bw-line overflow-hidden rounded-bw-card border border-bw-line bg-bw-surface">{order.lines.map((line) => <ProductRow key={line.orderItemId} line={line} />)}</ul>
-            <UnitsPanel order={order} hubId={hubId} onOrder={onOrder} onChanged={onChanged} />
-          </>
-        ) : (
-          <VerifyStep order={order} hubId={hubId} lastLots={lastLots} lastCosts={lastCosts} packInfo={packInfo} setPackInfo={setPackInfo} onOrder={onOrder} onChanged={onChanged} />
-        )}
+        <PrepProducts order={order} hubId={hubId} lastCosts={lastCosts} onOrder={onOrder} onChanged={onChanged} />
       </div>
     </section>
   )

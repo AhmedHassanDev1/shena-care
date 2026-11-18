@@ -9,7 +9,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { CatalogService } from '../../catalog/public';
-import { CreateSellingPriceDto, UpdateSellingPriceDto } from '../dto/price.dto';
+import { ChangeSellingPriceDto, CreateSellingPriceDto, UpdateSellingPriceDto } from '../dto/price.dto';
 
 export type SellabilityReason =
   | 'SELLABLE'
@@ -769,6 +769,41 @@ export class CommerceService {
       isActive: created.isActive,
       createdAt: created.createdAt,
       updatedAt: created.updatedAt,
+    };
+  }
+
+  /**
+   * Changes the storefront price of a SKU from now on. The current price row is closed at this instant and a new open-ended one starts, so
+   * the history stays. Carts and checkouts read the live price (a cart whose price no longer matches goes to review), while confirmed
+   * orders keep the price snapshot taken when they were placed: nothing here touches an order.
+   */
+  async changeSellingPrice(skuId: string, dto: ChangeSellingPriceDto): Promise<SellingPriceDetail> {
+    if (!this.isUuid(skuId)) throw new BadRequestException(`Invalid SKU ID format: ${skuId}`);
+    if (this.catalogService && !(await this.catalogService.validateSku(skuId))) {
+      throw new NotFoundException(`SKU not found or inactive in Catalog: ${skuId}`);
+    }
+    const now = new Date();
+    const row = await this.prisma.$transaction(async tx => {
+      const active = await tx.sellingPrice.findMany({ where: { skuId, isActive: true }, orderBy: { validFrom: 'asc' } });
+      if (active.some(price => price.validFrom > now)) {
+        throw new ConflictException('A scheduled price exists for this product; manage it in pricing instead');
+      }
+      const current = active.find(price => !price.validUntil || price.validUntil > now);
+      const amount = new Prisma.Decimal(dto.amount);
+      if (current?.amount.equals(amount)) return current;
+      if (current && current.validFrom.getTime() >= now.getTime()) {
+        return tx.sellingPrice.update({ where: { id: current.id }, data: { amount, ...(current.compareAtAmount && current.compareAtAmount.lt(amount) ? { compareAtAmount: null } : {}) } });
+      }
+      if (current) await tx.sellingPrice.update({ where: { id: current.id }, data: { validUntil: now } });
+      return tx.sellingPrice.create({ data: {
+        skuId, amount, currency: current?.currency ?? 'EGP', validFrom: now, validUntil: null, isActive: true,
+        compareAtAmount: current?.compareAtAmount && current.compareAtAmount.gte(amount) ? current.compareAtAmount : null,
+      } });
+    });
+    return {
+      id: row.id, skuId: row.skuId, amount: row.amount.toNumber(), currency: row.currency,
+      compareAtAmount: row.compareAtAmount ? row.compareAtAmount.toNumber() : null,
+      validFrom: row.validFrom, validUntil: row.validUntil, isActive: row.isActive, createdAt: row.createdAt, updatedAt: row.updatedAt,
     };
   }
 

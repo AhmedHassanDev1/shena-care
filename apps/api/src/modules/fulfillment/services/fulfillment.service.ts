@@ -15,6 +15,9 @@ import { SupportService } from '../../operations/services/support.service';
 import { expiryProblem } from './receiving-policy';
 import { derivePrintState, PRINT_EVENT_TYPES_FOR_STATE } from './print-state';
 
+/** What the service receives: the supplier-goods endpoint still requires the printed expiry (the DTO); the Hub desk's preparation flow does not capture it. */
+export type ReceiveAllocatedGoodsInput = Omit<ReceiveAllocatedGoodsDto, 'expiryDate'> & { expiryDate?: string };
+
 /**
  * What the Hub may only learn from other contexts before it hands a parcel off. The composition layer registers it at start-up, so the
  * Fulfillment module never reads another context's tables: `assertPackable` throws a typed conflict when the order's packaging is not
@@ -23,6 +26,8 @@ import { derivePrintState, PRINT_EVENT_TYPES_FOR_STATE } from './print-state';
 export interface PackingGate {
   assertPackable(orderId: string): Promise<void>;
   afterPacked(orderId: string, actor: { id: string; roles: string[] }): Promise<void>;
+  /** The recorded purchase cost behind an order changed (e.g. the supplier discount edited at the desk): re-check it for a loss. */
+  afterCostChanged(orderId: string): Promise<void>;
 }
 
 export interface FulfillmentLocationDetail {
@@ -141,6 +146,9 @@ export class FulfillmentService {
 
   /** Registered once by the composition layer; without it only the Fulfillment-owned conditions (verification, printing) are enforced. */
   registerPackingGate(gate: PackingGate) { this.packingGate = gate; }
+
+  /** Lets the owner of order costs re-check an order after its purchase cost changed; never blocks or fails the caller. */
+  async notifyCostChanged(orderId: string) { await this.packingGate?.afterCostChanged(orderId).catch(() => undefined); }
 
   /** The paper outcome of one shipment, from its confirmed print events. */
   async getPrintState(shipmentId: string) {
@@ -331,7 +339,7 @@ export class FulfillmentService {
     quantity: number;
     condition: string;
     actorId: string;
-  }, dto: ReceiveAllocatedGoodsDto, actorId: string): boolean {
+  }, dto: ReceiveAllocatedGoodsInput, actorId: string): boolean {
     return receipt.locationId === dto.locationId &&
       receipt.sourceAllocationId === dto.allocationId &&
       receipt.orderId === dto.orderId &&
@@ -381,7 +389,7 @@ export class FulfillmentService {
     };
   }
 
-  async receiveAllocatedGoods(dto: ReceiveAllocatedGoodsDto, actor: FulfillmentActor) {
+  async receiveAllocatedGoods(dto: ReceiveAllocatedGoodsInput, actor: FulfillmentActor) {
     await this.getOperationalLocation(dto.locationId, FulfillmentCapability.RECEIVE_SUPPLIER_GOODS);
     await this.assertLocationAccess(dto.locationId, actor);
 
@@ -402,7 +410,7 @@ export class FulfillmentService {
       throw new BadRequestException('Receipt does not match the Supply Plan allocation');
     }
     // An expired or short-dated pack (less than the owner's minimum shelf life) is treated like any other unacceptable condition.
-    const shelfProblem = expiryProblem(dto.expiryDate);
+    const shelfProblem = dto.expiryDate ? expiryProblem(dto.expiryDate) : null;
     if (dto.condition !== 'ACCEPTABLE' || shelfProblem) {
       const condition = dto.condition !== 'ACCEPTABLE' ? dto.condition : shelfProblem!;
       // Held, not received: the physical fact is recorded as a receiving exception for a human decision.

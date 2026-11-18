@@ -274,4 +274,137 @@ describe('Hub orders & preparation: barcode registration, handoff gate, loss rev
     const pending = (await http().get('/buy-list/costs?pending=true&take=100').set(hub.auth).expect(200)).body;
     expect(pending.items.find((row: any) => row.skuId === skuC.id)).toMatchObject({ cost: null });
   });
+
+  /* ── Order preparation cards: supplier discount %, manual confirmation, barcode correction, storefront price ── */
+
+  const putDiscount = (orderId: string, orderItemId: string, body: Record<string, unknown>, auth = hub.auth) =>
+    http().put(`/fulfillment/locations/${locationId}/desk/orders/${orderId}/lines/${orderItemId}/discount`).set(auth).send(body);
+
+  it('receives without expiry or lot, and stores the card discount as a percentage of the list price with history, refusals and a loss re-check', async () => {
+    const sku = await createOrderableSku(prisma);
+    const order = await checkout([{ sku, quantity: 1 }]);
+    const itemId = order.items[0].id;
+    const priceBefore = (await prisma.orderItem.findFirstOrThrow({ where: { orderId: order.id } })).price.toString();
+    await putDiscount(order.id, itemId, { discountPercent: 10, listUnitPrice: 200 }).expect(409).expect(res => expect(res.body.code).toBe('NOT_PURCHASED_YET'));
+    await buy(sku, 1);
+
+    // No expiry date and no lot: the normal preparation flow does not ask for them.
+    const received = await scan(order.id, { barcodeScanned: sku.barcode }).expect(201);
+    expect(received.body).toMatchObject({ outcome: 'received', order: { stage: 'packing' } });
+    const line = (id: string) => deskOrder(order.id).then(o => o.lines.find((l: any) => l.orderItemId === id));
+    expect(await line(itemId)).toMatchObject({ cost: { recorded: false, listUnitPrice: null, discountPercent: null }, productSlug: expect.any(String) });
+
+    // The base price is needed once; the discount is a percentage of it.
+    await putDiscount(order.id, itemId, { discountPercent: 10 }).expect(400).expect(res => expect(res.body.code).toBe('LIST_PRICE_REQUIRED'));
+    await putDiscount(order.id, itemId, { discountPercent: 100, listUnitPrice: 200 }).expect(400);
+    await putDiscount(order.id, itemId, { discountPercent: 10, listUnitPrice: 200 }, otherHub.auth).expect(403);
+    await putDiscount(order.id, itemId, { discountPercent: 10, listUnitPrice: 200 }, driver.auth).expect(403);
+    const first = await putDiscount(order.id, itemId, { discountPercent: 10, listUnitPrice: 200 }).expect(200);
+    expect(first.body.order.lines[0].cost).toMatchObject({ recorded: true, listUnitPrice: '200.00', discountPerUnit: '20.00', discountPercent: '10.00', finalUnitCost: '180.00', version: 1 });
+
+    // Editing again corrects the same purchase (history kept); the recorded list price is never changed from here.
+    const second = await putDiscount(order.id, itemId, { discountPercent: 12.5 }).expect(200);
+    expect(second.body.order.lines[0].cost).toMatchObject({ discountPerUnit: '25.00', discountPercent: '12.50', finalUnitCost: '175.00', version: 2 });
+    await putDiscount(order.id, itemId, { discountPercent: 12.5, listUnitPrice: 300 }).expect(409).expect(res => expect(res.body.code).toBe('LIST_PRICE_RECORDED'));
+    const key = second.body.order.lines[0].cost.acquireKey;
+    const batch = await prisma.purchaseCostBatch.findUniqueOrThrow({ where: { acquireKey: key } });
+    expect((batch.history as any[]).map(h => h.discountPerUnit)).toEqual(['20.00']);
+    await putDiscount(order.id, itemId, { discountPercent: 12.5 }).expect(200); // unchanged value: a replay, no new version
+    expect((await prisma.purchaseCostBatch.findUniqueOrThrow({ where: { acquireKey: key } })).version).toBe(2);
+
+    // Sold at 100 and bought at 175+: already a loss, flagged once packaging is recorded; the customer's price never moves.
+    await http().put(`/order-costs/${order.id}`).set(hub.auth).send({ packagingType: 'BAG' }).expect(200);
+    expect(await reviewCases(order.id)).toHaveLength(1);
+    await putDiscount(order.id, itemId, { discountPercent: 1 }).expect(200);
+    expect(await reviewCases(order.id)).toHaveLength(1);
+    const after = await prisma.orderItem.findFirstOrThrow({ where: { orderId: order.id } });
+    expect(after.price.toString()).toBe(priceBefore);
+  });
+
+  it('confirms a unit by hand as a manual verification (never a barcode scan) and refuses an incomplete or wrong manual check', async () => {
+    const sku = await createOrderableSku(prisma);
+    const other = await createOrderableSku(prisma);
+    const order = await checkout([{ sku, quantity: 2 }]);
+    await buy(sku, 2);
+    const manual = { skuId: sku.id, manualReason: 'Compared the pack with the photo and details', manualChecks: ['brand', 'variant', 'size', 'pack'] };
+    await scan(order.id, { skuId: sku.id, manualReason: manual.manualReason, manualChecks: ['brand'] }).expect(400);
+    await scan(order.id, { skuId: sku.id }).expect(400);
+    expect((await scan(order.id, { ...manual, skuId: other.id }).expect(201)).body).toMatchObject({ outcome: 'rejected', code: 'WRONG_ITEM' });
+    const done = await scan(order.id, manual).expect(201);
+    expect(done.body).toMatchObject({ outcome: 'received' });
+    const receipts = await prisma.fulfillmentReceipt.findMany({ where: { orderId: order.id } });
+    expect(receipts).toHaveLength(1);
+    expect(receipts[0]).toMatchObject({ identityMethod: 'manual', identityNote: manual.manualReason, expiryDate: null });
+    // The quantity limit holds for manual units as well.
+    await scan(order.id, manual).expect(201);
+    expect((await scan(order.id, manual).expect(201)).body).toMatchObject({ outcome: 'rejected' });
+    expect(await prisma.fulfillmentReceipt.count({ where: { orderId: order.id } })).toBe(2);
+  });
+
+  it('corrects a wrong barcode for catalog reviewers only, keeps the old code as a retired alias and refuses every conflict', async () => {
+    const sku = await createOrderableSku(prisma);
+    const taken = await createOrderableSku(prisma);
+    const noCode = await createOrderableSku(prisma);
+    const order = await checkout([{ sku, quantity: 1 }, { sku: noCode, quantity: 1 }]);
+    await prisma.sku.update({ where: { id: noCode.id }, data: { barcode: null } });
+    const oldCode = sku.barcode!;
+    const fresh = ean13();
+    const correct = (body: Record<string, unknown>, auth = admin.auth) =>
+      http().post(`/fulfillment/locations/${locationId}/desk/orders/${order.id}/correct-barcode`).set(auth)
+        .send({ clientScanId: randomUUID(), skuId: sku.id, barcode: fresh, checks: ['brand', 'variant', 'size', 'pack'], note: 'The printed code differs from the catalog', ...body });
+
+    await correct({}, hub.auth).expect(403);
+    await correct({ checks: ['brand'] }).expect(400);
+    await correct({ barcode: withBadCheckDigit(fresh) }).expect(409).expect(res => expect(res.body.code).toBe('INVALID_BARCODE'));
+    await correct({ barcode: taken.barcode }).expect(409).expect(res => expect(res.body.code).toBe('BARCODE_ALREADY_USED'));
+    await correct({ skuId: taken.id }).expect(409).expect(res => expect(res.body.code).toBe('WRONG_ITEM'));
+    await correct({ skuId: noCode.id }).expect(409).expect(res => expect(res.body.code).toBe('SKU_HAS_NO_BARCODE'));
+    expect((await prisma.sku.findUniqueOrThrow({ where: { id: sku.id } })).barcode).toBe(oldCode);
+
+    const id = randomUUID();
+    const ok = await correct({ clientScanId: id }).expect(201);
+    expect(ok.body).toMatchObject({ corrected: true, replayed: false, barcode: fresh });
+    expect((await prisma.sku.findUniqueOrThrow({ where: { id: sku.id } })).barcode).toBe(fresh);
+    const retired = await prisma.skuBarcodeAlias.findFirstOrThrow({ where: { skuId: sku.id, barcode: oldCode } });
+    expect(retired).toMatchObject({ status: 'retired', retiredBy: admin.id, approvedBy: admin.id });
+    expect(retired.reason).toContain('The printed code differs');
+    await correct({ clientScanId: id }).expect(201).expect(res => expect(res.body.replayed).toBe(true));
+    expect(await prisma.hubScanAttempt.findMany({ where: { orderId: order.id, outcomeCode: 'BARCODE_CORRECTED' } })).toHaveLength(1);
+
+    // The new code identifies the product; the replaced one no longer does.
+    await buy(sku, 1);
+    expect((await scan(order.id, { barcodeScanned: oldCode }).expect(201)).body).toMatchObject({ outcome: 'rejected', code: 'PRODUCT_IDENTITY_REVIEW_REQUIRED' });
+    expect((await scan(order.id, { barcodeScanned: fresh }).expect(201)).body).toMatchObject({ outcome: 'received', skuId: sku.id });
+    // A hub operator can still add a code where the product has none.
+    await register(order.id, { skuId: noCode.id, barcode: ean13() }).expect(201);
+  });
+
+  it('changes the storefront price for authorized users only: future checkouts and open carts follow it, confirmed orders keep theirs', async () => {
+    const sku = await createOrderableSku(prisma, 100);
+    const placed = await checkout([{ sku, quantity: 1 }]);
+    const orderLine = () => prisma.orderItem.findFirstOrThrow({ where: { orderId: placed.id } });
+    const customer = await signInCustomer(app);
+    await http().post('/ordering/cart/add').set(customer.auth).send({ skuId: sku.id, quantity: 1 }).expect(201);
+
+    await http().post(`/commerce/prices/skus/${sku.id}/change`).set(hub.auth).send({ amount: 130 }).expect(403);
+    await http().post(`/commerce/prices/skus/${sku.id}/change`).set(admin.auth).send({ amount: 0 }).expect(400);
+    const changed = await http().post(`/commerce/prices/skus/${sku.id}/change`).set(admin.auth).send({ amount: 130 }).expect(200);
+    expect(changed.body).toMatchObject({ amount: 130, validUntil: null, isActive: true });
+    await http().post(`/commerce/prices/skus/${sku.id}/change`).set(admin.auth).send({ amount: 130 }).expect(200).expect(res => expect(res.body.id).toBe(changed.body.id));
+
+    // History is kept: the old price row is closed, one open price remains.
+    const rows = await prisma.sellingPrice.findMany({ where: { skuId: sku.id }, orderBy: { validFrom: 'asc' } });
+    expect(rows).toHaveLength(2);
+    expect(rows[0].validUntil).not.toBeNull();
+    expect(rows.filter(r => r.validUntil === null)).toHaveLength(1);
+    expect((await http().get(`/commerce/prices/skus/${sku.id}/current`).set(admin.auth).expect(200)).body.amount).toBe(130);
+
+    // The confirmed order is untouched (even though it is being prepared); the unfinished cart now prices at 130.
+    expect((await orderLine()).price.toString()).toBe('100');
+    const cart = (await http().get('/ordering/cart').set(customer.auth).expect(200)).body;
+    expect(cart.items.find((i: any) => i.skuId === sku.id)).toMatchObject({ price: 130 });
+    const next = await checkout([{ sku, quantity: 1 }]);
+    expect((await prisma.orderItem.findFirstOrThrow({ where: { orderId: next.id } })).price.toString()).toBe('130');
+    expect((await orderLine()).price.toString()).toBe('100');
+  });
 });

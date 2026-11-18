@@ -175,10 +175,9 @@ describe('Golden journeys (e2e)', () => {
     expect(await net(order.id)).toBe(0);
     expect((await desk(order.id))!.lines[0]).toMatchObject({ required: 2, purchased: 2, received: 0 });
 
-    // Wrong product, unknown code and a missing expiry change nothing (the first two are recorded at order level).
+    // Wrong product and unknown code change nothing (both are recorded at order level). Expiry is not asked in the preparation flow.
     expect((await scan(order.id, { barcodeScanned: otherSku.barcode, expiryDate: EXPIRY }).expect(201)).body).toMatchObject({ outcome: 'rejected', code: 'WRONG_ITEM' });
     expect((await scan(order.id, { barcodeScanned: '0000000000000', expiryDate: EXPIRY }).expect(201)).body).toMatchObject({ outcome: 'rejected', code: 'PRODUCT_IDENTITY_REVIEW_REQUIRED' });
-    await scan(order.id, { barcodeScanned: sku.barcode }).expect(400);
     expect(await net(order.id)).toBe(0);
     expect(await prisma.hubScanAttempt.count({ where: { orderId: order.id } })).toBe(2);
 

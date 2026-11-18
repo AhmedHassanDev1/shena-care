@@ -1,11 +1,11 @@
-import { Controller, Post, Body, Get, Param, ParseUUIDPipe, Patch, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, ParseUUIDPipe, Patch, Put, Delete, UseGuards, Query } from '@nestjs/common';
 import { FulfillmentService } from './services/fulfillment.service';
 import { RoutePlanningService } from './services/route-planning.service';
 import { RouteOptimizationService } from './services/route-optimization.service';
 import { DispatchPlanningService } from './services/dispatch-planning.service';
 import { HubDeskService } from './services/hub-desk.service';
 import { HubReturnsService } from './services/hub-returns.service';
-import { CorrectInspectionDto, DeskScanDto, InspectReturnDto, RegisterBarcodeDto, ReverseReceiptDto } from './dto/hub-desk.dto';
+import { CorrectBarcodeDto, CorrectInspectionDto, DeskScanDto, InspectReturnDto, RegisterBarcodeDto, ReverseReceiptDto, SetLineDiscountDto } from './dto/hub-desk.dto';
 import { PlanRouteDto } from './dto/routing.dto';
 import { ApplyOptimizationDto, OptimizationOptionsDto } from './dto/optimization.dto';
 import { PlanDispatchDto, ApproveDispatchPlanDto } from './dto/dispatch-planning.dto';
@@ -232,6 +232,22 @@ export class FulfillmentController {
   @RequirePermissions('hub.receive', 'hub.prepare')
   async deskRegisterBarcode(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @Body() dto: RegisterBarcodeDto, @CurrentUser() actor: FulfillmentActor) {
     return this.hubDesk.registerBarcode(locationId, orderId, dto, actor);
+  }
+
+  /** Replaces the barcode of a product that already has one: catalog reviewers (Admin with catalog.manage) only. */
+  @Post('locations/:id/desk/orders/:orderId/correct-barcode')
+  @Roles('ADMIN')
+  @RequirePermissions('hub.receive', 'hub.prepare', 'catalog.manage')
+  async deskCorrectBarcode(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @Body() dto: CorrectBarcodeDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.correctBarcode(locationId, orderId, dto, actor);
+  }
+
+  /** The supplier discount (% of the list price) obtained for one order line's purchase. */
+  @Put('locations/:id/desk/orders/:orderId/lines/:orderItemId/discount')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.receive', 'hub.prepare')
+  async deskSetDiscount(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @Param('orderItemId', ParseUUIDPipe) orderItemId: string, @Body() dto: SetLineDiscountDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.setLineDiscount(locationId, orderId, orderItemId, dto, actor);
   }
 
   @Post('locations/:id/desk/receipts/:receiptId/reverse')

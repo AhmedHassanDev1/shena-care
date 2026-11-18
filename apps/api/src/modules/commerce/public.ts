@@ -11,7 +11,7 @@ export type {
   ExistingCustomerReview,
 } from './services/product-review.service';
 export { CreateListingDto, UpdateListingStatusDto, QueryListingDto } from './dto/listing.dto';
-export { CreateSellingPriceDto, UpdateSellingPriceDto } from './dto/price.dto';
+export { ChangeSellingPriceDto, CreateSellingPriceDto, UpdateSellingPriceDto } from './dto/price.dto';
 export type {
   SellingTerms,
   SkuCommercialSummary,

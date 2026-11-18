@@ -14,6 +14,7 @@ import { AuthGuard } from '../../../modules/accounts/guards/auth.guard';
 import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
 import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import {
+  ChangeSellingPriceDto,
   CommerceService,
   CreateSellingPriceDto,
   UpdateSellingPriceDto,
@@ -59,6 +60,13 @@ export class PriceController {
   // ---------------------------------------------------------------------------
   // Price Updates & Deactivation
   // ---------------------------------------------------------------------------
+
+  // POST /commerce/prices/skus/:skuId/change — new storefront price from now on (current price closed, history kept)
+  @Post('skus/:skuId/change')
+  @HttpCode(HttpStatus.OK)
+  async changeSellingPrice(@Param('skuId') skuId: string, @Body() dto: ChangeSellingPriceDto) {
+    return this.commerceService.changeSellingPrice(skuId, dto);
+  }
 
   // PATCH /commerce/prices/:id/deactivate
   @Patch(':id/deactivate')
