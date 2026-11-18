@@ -206,6 +206,11 @@ export class RecordShipmentEventDto {
   @IsIn(DELIVERY_FAILURE_REASONS)
   reasonCode?: string;
 
+  /** Which paper failed (PRINT_FAILED only): the customer receipt or the shipping label. Without it both are treated as failed. */
+  @IsOptional()
+  @IsIn(['RECEIPT', 'LABEL'])
+  document?: 'RECEIPT' | 'LABEL';
+
   /** Label barcode scanned at handoff; required for HANDOFF_SCANNED, RECEIVED_BACK and RETURNED. */
   @IsOptional()
   @IsString()

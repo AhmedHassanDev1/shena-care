@@ -5,6 +5,7 @@ import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
 import { OrderCostService, RecordOrderCostDto } from '../services/order-cost.service';
+import { OrderProfitabilityService } from '../services/order-profitability.service';
 
 /**
  * Actual courier and packaging cost per order. Hub operators record them at the Hub (the packaging type is chosen at the pack step,
@@ -15,11 +16,18 @@ import { OrderCostService, RecordOrderCostDto } from '../services/order-cost.ser
 @Roles('ADMIN', 'HUB_OPERATOR')
 @RequirePermissions('hub.pack')
 export class OrderCostController {
-  constructor(private readonly costs: OrderCostService) {}
+  constructor(private readonly costs: OrderCostService, private readonly profit: OrderProfitabilityService) {}
 
   @Get('pending')
   pending(@Query('take') take?: string) {
     return this.costs.pending(Math.min(Math.max(Number.parseInt(take ?? '100', 10) || 100, 1), 200));
+  }
+
+  /** Internal margin of one order (Admin only: hub operators record costs, they do not see profit). */
+  @Get(':orderId/profitability')
+  @Roles('ADMIN')
+  profitability(@Param('orderId', ParseUUIDPipe) orderId: string) {
+    return this.profit.evaluate(orderId);
   }
 
   @Get(':orderId')

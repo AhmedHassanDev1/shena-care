@@ -5,7 +5,7 @@ import { RouteOptimizationService } from './services/route-optimization.service'
 import { DispatchPlanningService } from './services/dispatch-planning.service';
 import { HubDeskService } from './services/hub-desk.service';
 import { HubReturnsService } from './services/hub-returns.service';
-import { CorrectInspectionDto, DeskScanDto, InspectReturnDto, ReverseReceiptDto } from './dto/hub-desk.dto';
+import { CorrectInspectionDto, DeskScanDto, InspectReturnDto, RegisterBarcodeDto, ReverseReceiptDto } from './dto/hub-desk.dto';
 import { PlanRouteDto } from './dto/routing.dto';
 import { ApplyOptimizationDto, OptimizationOptionsDto } from './dto/optimization.dto';
 import { PlanDispatchDto, ApproveDispatchPlanDto } from './dto/dispatch-planning.dto';
@@ -225,6 +225,13 @@ export class FulfillmentController {
   @RequirePermissions('hub.prepare')
   async deskVerify(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @CurrentUser() actor: FulfillmentActor) {
     return this.hubDesk.verify(locationId, orderId, actor);
+  }
+
+  @Post('locations/:id/desk/orders/:orderId/register-barcode')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.receive', 'hub.prepare')
+  async deskRegisterBarcode(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @Body() dto: RegisterBarcodeDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.registerBarcode(locationId, orderId, dto, actor);
   }
 
   @Post('locations/:id/desk/receipts/:receiptId/reverse')

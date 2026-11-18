@@ -10,6 +10,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { DomainEventsService } from '../../src/platform/events/domain-events.service';
 import { AiClient, ConsultUnderstandRequest, ConsultUnderstandResult } from '../../src/platform/ai';
 import { createActor, Actor } from '../fixtures/actors';
+import { recordPackaging } from '../fixtures/pack-ready';
 import { signInCustomer } from '../fixtures/checkout';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { ensureFixtureReviewer, FIXTURE_SOURCE_URL } from '../fixtures/sellable-sku';
@@ -106,6 +107,7 @@ describe('Golden journeys 2-4: routines to delivery (e2e)', () => {
     const barcode = (await http().post(`/fulfillment/shipments/${shipmentId}/label`).set(hub.auth).expect(201)).body.barcode as string;
     await event(shipmentId, hub, { type: 'LABEL_PRINTED' }).expect(201);
     await event(shipmentId, hub, { type: 'RECEIPT_PRINTED' }).expect(201);
+    await recordPackaging(app, hub.auth, shipmentId);
     await event(shipmentId, hub, { type: 'PACKED' }).expect(201);
     const batch = (await http().post('/fulfillment/delivery-batches').set(hub.auth).send({ hubId: locationId, name: 'Routine run', driverId: driver.id }).expect(201)).body as { id: string };
     await http().post(`/fulfillment/delivery-batches/${batch.id}/stops`).set(hub.auth).send({ stops: [{ shipmentId, sequence: 1 }] }).expect(201);

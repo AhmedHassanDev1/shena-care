@@ -4,6 +4,7 @@ const request = require('supertest');
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { createSellableSku } from '../fixtures/sellable-sku';
+import { makeReadyToPack } from '../fixtures/pack-ready';
 import { signInCustomer } from '../fixtures/checkout';
 
 /**
@@ -357,6 +358,7 @@ describe('Fulfillment Lifecycle (e2e)', () => {
     });
 
     it('should allow PACKED event in prepared state', async () => {
+      await makeReadyToPack(app, { Authorization: authToken }, shipmentId);
       const res = await request(app.getHttpServer())
         .post(`/fulfillment/shipments/${shipmentId}/events`).set('Authorization', authToken)
         .send({ type: 'PACKED', actorId: 'op-1' })

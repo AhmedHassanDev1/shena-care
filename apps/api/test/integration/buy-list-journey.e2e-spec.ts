@@ -9,6 +9,7 @@ import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { DomainEventsService } from '../../src/platform/events/domain-events.service';
 import { createActor, Actor } from '../fixtures/actors';
+import { makeReadyToPack } from '../fixtures/pack-ready';
 import { signInCustomer } from '../fixtures/checkout';
 import { createSellableSku } from '../fixtures/sellable-sku';
 
@@ -120,7 +121,7 @@ describe('Customer order across Admin / Hub / Driver workspaces via the Buy List
           .send({ barcodeScanned: sku.barcode, clientScanId: randomUUID() }).expect(201);
       }
       await http().post(`/fulfillment/preparation-sessions/${session.id}/complete`).set(hub.auth).expect(201);
-      await http().post(`/fulfillment/shipments/${shipment.id}/label`).set(hub.auth).expect(201);
+      await makeReadyToPack(app, hub.auth, shipment.id, order.id);
       await http().post(`/fulfillment/shipments/${shipment.id}/events`).set(hub.auth).send({ type: 'PACKED' }).expect(201);
       shipmentIds.push(shipment.id);
     }

@@ -7,7 +7,7 @@ export type BarcodeResolution =
   | { status: 'unknown' }
   | { status: 'ambiguous'; skuIds: string[] };
 
-export const BARCODE_ALIAS_SOURCES = ['packaging_revision', 'legacy_stock', 'manufacturer_list', 'other'] as const;
+export const BARCODE_ALIAS_SOURCES = ['packaging_revision', 'legacy_stock', 'manufacturer_list', 'hub_registration', 'other'] as const;
 
 /**
  * Canonical product identity for physical scans (GLO-242). A code resolves through the SKU's

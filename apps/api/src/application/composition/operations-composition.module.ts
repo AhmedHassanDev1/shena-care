@@ -19,6 +19,7 @@ import { PurchaseBatchController } from './controllers/purchase-batch.controller
 import { OrderCostController } from './controllers/order-cost.controller';
 import { OrderCostService } from './services/order-cost.service';
 import { ProfitService } from './services/profit.service';
+import { OrderProfitabilityService, PackingReadinessService } from './services/order-profitability.service';
 
 /**
  * Cross-module operational HTTP endpoints (GLO-238+): composes Ordering facts with Fulfillment
@@ -27,6 +28,6 @@ import { ProfitService } from './services/profit.service';
 @Module({
   imports: [OrderingModule, FulfillmentModule, SourcingModule, OperationsModule, AccountsModule, CatalogModule],
   controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController, FinanceController, BuyListController, PurchaseBatchController, OrderCostController],
-  providers: [OrderCancellationService, FinanceReportService, OrderCostService, ProfitService],
+  providers: [OrderCancellationService, FinanceReportService, OrderCostService, ProfitService, OrderProfitabilityService, PackingReadinessService],
 })
 export class OperationsCompositionModule {}

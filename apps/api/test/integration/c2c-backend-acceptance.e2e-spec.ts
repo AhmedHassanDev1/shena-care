@@ -11,6 +11,7 @@ import { OutboxService } from '../../src/modules/operations/services/outbox.serv
 import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
+import { recordPackaging } from '../fixtures/pack-ready';
 import { createSellableSku } from '../fixtures/sellable-sku';
 import { CAIRO_PIN, signInCustomer } from '../fixtures/checkout';
 import { CartService } from '../../src/modules/ordering/services/cart.service';
@@ -206,6 +207,8 @@ describe('C1 backend Cart-to-Cash acceptance (GLO-235)', () => {
     barcode = (await http().post(`/fulfillment/shipments/${shipmentId}/label`).set(hub.auth).expect(201)).body.barcode;
     expect(barcode).toBe(docs.shippingSlip.barcode);
     await http().post(`/fulfillment/shipments/${shipmentId}/events`).set(hub.auth).send({ type: 'LABEL_PRINTED' }).expect(201);
+    await http().post(`/fulfillment/shipments/${shipmentId}/events`).set(hub.auth).send({ type: 'RECEIPT_PRINTED' }).expect(201);
+    await recordPackaging(app, hub.auth, shipmentId);
     await http().post(`/fulfillment/shipments/${shipmentId}/events`).set(hub.auth).send({ type: 'PACKED' }).expect(201);
     expect((await prisma.shipment.findUniqueOrThrow({ where: { id: shipmentId } })).status).toBe('packed');
   });
