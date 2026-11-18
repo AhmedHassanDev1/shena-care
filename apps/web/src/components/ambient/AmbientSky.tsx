@@ -11,7 +11,7 @@ export type AmbientTheme = 'AM' | 'PM';
  * Always aria-hidden and pointer-events none: it carries no information. `morningOnly` mounts only the Morning layer, so a page that
  * never shows Evening (the chatbot) never downloads the Evening picture. The light enters from the START edge of the page: upper-left in
  * LTR, upper-right in RTL (the stylesheet mirrors the layer under html[dir='rtl']). `calm` swaps the Morning picture for a softened,
- * linen-toned variant that fades out before the content (routine pages); the chatbot keeps the original.
+ * linen-toned variant that fades out before the content (routine pages and the chatbot).
  */
 export function AmbientSky({ morningOnly = false, calm = false }: { morningOnly?: boolean; calm?: boolean }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
@@ -41,8 +41,8 @@ export function useAmbientTheme(theme: AmbientTheme | null) {
   }, [theme]);
 }
 
-/** Morning-only ambient background for a whole page (Ask Shina). No Evening, no period switch. */
+/** Morning-only ambient background for a whole page (Ask Shina), in the same calm light as the routine pages. No Evening, no period switch. */
 export function MorningAmbient() {
   useAmbientTheme('AM');
-  return <AmbientSky morningOnly />;
+  return <AmbientSky morningOnly calm />;
 }

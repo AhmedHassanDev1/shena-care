@@ -69,7 +69,7 @@ add these two rows when it is merged.
 | --- | --- | --- | --- |
 | `public/images/routines/morning-light.webp` | Morning sky, Routine pages | upper-left | `dawn` (#E5D9D0, sampled from the far edge) |
 | `public/images/routines/evening-light.webp` | Evening sky, Routine pages | upper-right | `night-ground` (#0C1645, sampled from the far edge) |
-| `public/images/routines/morning-calm.webp`, `morning-calm-phone.webp` | Calm Morning for the routine pages: the supplied Morning picture after a 4px diffusion blur, ~35% less colour, a light pull toward warm linen (Ask Shina keeps the original) | upper-left | `dawn` |
+| `public/images/routines/morning-calm.webp`, `morning-calm-phone.webp` | Calm Morning for the routine pages and Ask Shina: the supplied Morning picture after a 4px diffusion blur, ~35% less colour, a light pull toward warm linen (`<AmbientSky>` without `calm` still uses the original `morning-light*.webp`) | upper-left | `dawn` |
 | `public/images/routines/morning-light-phone.webp`, `evening-light-phone.webp` | phone crops of the two above | left / right | same |
 
 Each theme is one fixed full-viewport layer, so it is independent of page length (no tiling, nothing repeats on a long page), with art direction per screen shape:
