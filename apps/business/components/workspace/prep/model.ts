@@ -6,6 +6,7 @@ export type Stage = 'waiting_purchase' | 'receiving' | 'verifying' | 'packing'
 export interface DeskLine {
   orderItemId: string; skuId: string; productName: string | null; brandName: string | null; variantName: string | null
   skuCode: string | null; barcode: string | null; imageUrl: string | null; size: string | null
+  sizeUnit?: string | null; unitPrice?: number | null; texture?: string | null; categoryName?: string | null; productSlug?: string | null
   required: number; purchased: number; received: number; verified: number
   /** The purchase the next unit belongs to and whether its actual cost is already recorded. */
   cost: { acquireKey: string; recorded: boolean; listUnitPrice: string | null; discountPerUnit: string | null; finalUnitCost: string | null } | null

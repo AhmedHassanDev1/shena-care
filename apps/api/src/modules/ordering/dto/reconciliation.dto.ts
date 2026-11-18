@@ -174,6 +174,17 @@ export class SettleRoundDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  /** Settle only collections for this specific delivery run (prevents mixing with other runs of same courier). */
+  @IsOptional()
+  @IsUUID()
+  runId?: string;
+
+  /** Explicit order IDs to settle for this run. */
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  orderIds?: string[];
 }
 
 /** Manual refund obligation; method is how the operator will pay it back (no gateway). */

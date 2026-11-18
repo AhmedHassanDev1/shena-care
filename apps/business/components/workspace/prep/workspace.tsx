@@ -5,7 +5,6 @@ import { ArrowRight, CheckCircle2, RefreshCw } from 'lucide-react'
 import { Button, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { Meter } from '@/components/bw/ops'
 import { useHub } from '@/components/workspace/hub'
-import { PendingCosts, type PendingCost } from '@/components/workspace/buy-costs'
 import { LoadError } from '@/components/workspace/role-shell'
 import type { PackagingCosts } from '@/components/workspace/pack-card'
 import { useApi } from '@/lib/use-api'
@@ -24,7 +23,6 @@ export function PreparationDesk() {
   const hub = useHub()
   const desk = useApi<Desk>(`/fulfillment/locations/${hub.id}/desk`, { pollMs: 20000 })
   const costs = useApi<{ packagingCosts: PackagingCosts }>('/order-costs/pending?take=1')
-  const pendingCosts = useApi<{ pending: number; items: PendingCost[] }>('/buy-list/costs?pending=true&take=50', { pollMs: 30000 })
   const [selectedId, setSelectedId] = React.useState<string | null>(null)
   const [onPhone, setOnPhone] = React.useState<'queue' | 'order'>('queue')
   const [override, setOverride] = React.useState<DeskOrder | null>(null)
@@ -41,7 +39,7 @@ export function PreparationDesk() {
   }, [orders, selectedId])
   const listed = orders.find((o) => o.orderId === selectedId) ?? null
   const selected = override && override.orderId === selectedId ? override : listed
-  const reload = () => { desk.reload(); pendingCosts.reload() }
+  const reload = () => { desk.reload() }
   const pick = (id: string) => { setSelectedId(id); setHandedOff(null); setOnPhone('order') }
 
   return (
@@ -89,8 +87,6 @@ export function PreparationDesk() {
           </div>
         </div>
       ) : null}
-
-      {pendingCosts.data && pendingCosts.data.items.length > 0 ? <div className="hidden lg:block"><PendingCosts items={pendingCosts.data.items} onSaved={() => { pendingCosts.reload(); desk.reload() }} /></div> : null}
     </div>
   )
 }
@@ -138,7 +134,7 @@ function OrderWorkspace({ order, hubId, lastLots, lastCosts, packagingCosts, pac
         {verified ? (
           <>
             <p className="flex items-center gap-2 text-bw-small font-semibold text-bw-ink"><CheckCircle2 className="size-5 text-bw-emerald" aria-hidden />{unitsOf(order)} قطعة اتمسحت واتأكدت</p>
-            <ul className="divide-y divide-bw-line overflow-hidden rounded-bw-card border border-bw-line bg-bw-surface">{order.lines.map((line) => <ProductRow key={line.orderItemId} line={line} />)}</ul>
+            <ul className="divide-y divide-bw-line overflow-hidden rounded-bw-card border border-bw-line bg-bw-surface">{order.lines.map((line) => <ProductRow key={line.orderItemId} line={line} hubId={hubId} orderId={order.orderId} onChanged={onChanged} />)}</ul>
             <UnitsPanel order={order} hubId={hubId} onOrder={onOrder} onChanged={onChanged} />
           </>
         ) : (

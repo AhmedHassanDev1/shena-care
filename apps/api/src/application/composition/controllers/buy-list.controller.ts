@@ -54,13 +54,30 @@ export class BuyListController {
   async costs(@Query('pending') pending?: string, @Query('take') take?: string) {
     const limit = Math.min(Math.max(Number.parseInt(take ?? '50', 10) || 50, 1), 200);
     const result = await this.purchaseCosts.batches({ pendingOnly: pending === 'true', take: limit });
-    const identities = await Promise.all([...new Set(result.items.map(item => item.skuId))].map(async id => [id, await this.catalog.getSkuIdentity(id)] as const));
-    const byId = new Map(identities);
+    const skuIds = [...new Set(result.items.map(item => item.skuId))];
+    const [labels, prices] = await Promise.all([
+      this.catalog.getSkuLabels(skuIds),
+      this.catalog.getSkuSellingPrices(skuIds),
+    ]);
     return {
       ...result,
       items: result.items.map(item => {
-        const identity = byId.get(item.skuId);
-        return { ...item, skuCode: identity?.code ?? null, variantName: identity?.variantName ?? null, size: identity?.size ?? null, sizeUnit: identity?.sizeUnit ?? null };
+        const label = labels.get(item.skuId);
+        return {
+          ...item,
+          skuCode: label?.skuCode ?? null,
+          variantName: label?.variantName ?? null,
+          productName: label?.productName ?? null,
+          brandName: label?.brandName ?? null,
+          size: label?.size ?? null,
+          sizeUnit: label?.sizeUnit ?? null,
+          barcode: label?.barcode ?? null,
+          imageUrl: label?.imageUrl ?? null,
+          productSlug: label?.productSlug ?? null,
+          texture: label?.texture ?? null,
+          categoryName: label?.categoryName ?? null,
+          defaultPrice: prices.get(item.skuId) ?? null,
+        };
       }),
     };
   }

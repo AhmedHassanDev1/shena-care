@@ -87,6 +87,7 @@ interface CandidateOrder {
   orderNumber: string;
   customerName: string;
   address: string;
+  area?: string | null;
   latitude: number;
   longitude: number;
   bearing: number;
@@ -307,6 +308,7 @@ export class DispatchPlanningService {
         orderNumber: order.orderNumber,
         customerName: order.customerName,
         address,
+        area: order.area,
         latitude: order.latitude,
         longitude: order.longitude,
         bearing,
@@ -318,7 +320,7 @@ export class DispatchPlanningService {
     let availableDrivers: DriverAvailabilityDto[] = [];
     if (dto.drivers && dto.drivers.length > 0) {
       availableDrivers = dto.drivers;
-    } else {
+    } else if (dto.drivers === undefined) {
       const dbDrivers = await this.prisma.customer.findMany({
         where: { roles: { has: Role.DRIVER } },
         select: { id: true, name: true },
@@ -328,10 +330,8 @@ export class DispatchPlanningService {
         name: d.name,
         maxTrips: maxTripsPerDriver,
       }));
-    }
-
-    // If 0 drivers available, all candidates become unassigned
-    if (availableDrivers.length === 0) {
+    } else if (Array.isArray(dto.drivers) && dto.drivers.length === 0) {
+      // Explicit empty driver array requested
       for (const order of candidateOrders) {
         unassignedOrders.push({
           shipmentId: order.shipmentId,
@@ -377,13 +377,32 @@ export class DispatchPlanningService {
     );
 
     // 5. Driver Assignment: Multi-Driver & Sequential Trips
-    const { assignedTrips, unassignedClusterOrders } = this.assignClustersToDrivers(
-      clusters,
-      availableDrivers,
-      maxTripsPerDriver,
-    );
+    let assignedTrips: Array<{
+      clusterId: string;
+      driverId: string | null;
+      driverName: string | null;
+      tripSequence: number;
+      orders: CandidateOrder[];
+    }> = [];
 
-    unassignedOrders.push(...unassignedClusterOrders);
+    if (availableDrivers.length > 0) {
+      const { assignedTrips: assigned, unassignedClusterOrders } = this.assignClustersToDrivers(
+        clusters,
+        availableDrivers,
+        maxTripsPerDriver,
+      );
+      assignedTrips = assigned;
+      unassignedOrders.push(...unassignedClusterOrders);
+    } else {
+      warnings.push('No available drivers provided or found; proposed geographic clusters without courier assignment.');
+      assignedTrips = clusters.map((cluster) => ({
+        clusterId: cluster.clusterId,
+        driverId: null,
+        driverName: null,
+        tripSequence: 1,
+        orders: cluster.orders,
+      }));
+    }
 
     // 6. Stop Optimization and Metric Calculation per Trip
     const proposedTrips: ProposedTrip[] = [];
@@ -409,11 +428,15 @@ export class DispatchPlanningService {
         mapboxCallsMade++;
       }
 
+      const areaList = Array.from(new Set(rawTrip.orders.map((o) => o.area).filter(Boolean)));
+      const areaSummary = areaList.length > 0 ? areaList.join(' · ') : undefined;
+
       proposedTrips.push({
         tripId,
         clusterId: rawTrip.clusterId,
         driverId: rawTrip.driverId,
         driverName: rawTrip.driverName,
+        areaSummary,
         tripSequenceForDriver: rawTrip.tripSequence,
         stops: orderedStops,
         metrics,
@@ -762,7 +785,7 @@ export class DispatchPlanningService {
     tripId: string,
     hubOrigin: RouteWaypoint,
     orders: CandidateOrder[],
-    driverId: string,
+    driverId: string | null,
     driverName: string | null,
     tripSequence: number,
     useRoadOptimization: boolean,
@@ -788,6 +811,7 @@ export class DispatchPlanningService {
         orderNumber: singleOrder.orderNumber,
         customerName: singleOrder.customerName,
         address: singleOrder.address,
+        area: singleOrder.area,
         latitude: singleOrder.latitude,
         longitude: singleOrder.longitude,
         sequence: 1,
@@ -898,6 +922,7 @@ export class DispatchPlanningService {
         orderNumber: order.orderNumber,
         customerName: order.customerName,
         address: order.address,
+        area: order.area,
         latitude: order.latitude,
         longitude: order.longitude,
         sequence: idx + 1,

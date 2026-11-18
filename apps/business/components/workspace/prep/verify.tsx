@@ -6,7 +6,8 @@ import { ArrowRight, Camera, ScanLine, Undo2 } from 'lucide-react'
 import { Button, Field } from '@/components/bw/primitives'
 import { Flash, Meter } from '@/components/bw/ops'
 import { CameraScanner } from '@/components/workspace/camera-scanner'
-import { costFrom, egp } from '@/components/workspace/buy-costs'
+import { costFrom, costFromPercent, egp } from '@/components/workspace/buy-costs'
+import { ProductIdentity } from '@/components/bw/product-card'
 import { ApiError, api, newKey } from '@/lib/api'
 import { useCommand } from '@/lib/use-api'
 import { type Desk, type DeskLine, type DeskOrder, REJECT, type ScanResult, productMeta, productTitle, receivedOf, unitsOf } from './model'
@@ -174,7 +175,7 @@ export function VerifyStep({ order, hubId, lastLots, lastCosts, packInfo, setPac
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-16 lg:pb-0">
       <div className="space-y-2">
         <div className="flex items-end justify-between gap-3">
           <p className="text-bw-heading font-semibold text-bw-ink">امسح كل قطعة</p>
@@ -205,7 +206,14 @@ export function VerifyStep({ order, hubId, lastLots, lastCosts, packInfo, setPac
 
       <ul className="divide-y divide-bw-line overflow-hidden rounded-bw-card border border-bw-line bg-bw-surface" aria-label="منتجات الطلب">
         {[...order.lines].sort((a, b) => Number(a.received >= a.required) - Number(b.received >= b.required)).map((line) => (
-          <ProductRow key={line.orderItemId} line={line} pending={pending?.line.skuId === line.skuId ? 1 : 0}>
+          <ProductRow
+            key={line.orderItemId}
+            line={line}
+            pending={pending?.line.skuId === line.skuId ? 1 : 0}
+            hubId={hubId}
+            orderId={order.orderId}
+            onChanged={onChanged}
+          >
             {line.received < line.required && !waitingOnly && line.purchased > line.received
               ? <button type="button" className="mt-1 min-h-8 text-[12px] font-semibold text-bw-cobalt underline-offset-4 hover:underline" onClick={() => setMode({ kind: 'exception', line, code: '' })}>مش بيتمسح؟</button> : null}
           </ProductRow>
@@ -277,9 +285,8 @@ function ExceptionFlow({ order, hubId, initialLine, initialCode, onCancel, onMan
         </ul>
       ) : (
         <>
-          <div className="flex items-center gap-3 rounded-bw-card border border-bw-line bg-bw-surface p-3">
-            <Thumb line={line} size="lg" />
-            <div className="min-w-0"><p className="text-bw-body font-semibold text-bw-ink"><bdi>{productTitle(line)}</bdi></p><p className="text-bw-small text-bw-ink-soft"><bdi>{productMeta(line)}</bdi></p></div>
+          <div className="rounded-bw-card border border-bw-line bg-bw-surface p-3">
+            <ProductIdentity item={line} size="md" showBarcode />
           </div>
 
           {!problem ? (
@@ -325,22 +332,31 @@ function PackInfoForm({ line, suggestion, costSuggestion, current, onConfirm, on
   onConfirm: (info: PackInfo[string]) => void; onCancel: () => void
 }) {
   const needsCost = !!line.cost && !line.cost.recorded
+  const defaultList = current?.listPrice ?? (line.unitPrice != null ? String(line.unitPrice) : (costSuggestion?.listUnitPrice ?? ''))
+  const defaultDiscount = current?.discount ?? (costSuggestion && Number(costSuggestion.discountPerUnit) > 0 && costSuggestion.listUnitPrice
+    ? String(Math.round((Number(costSuggestion.discountPerUnit) / Number(costSuggestion.listUnitPrice)) * 100))
+    : '')
   const [expiry, setExpiry] = React.useState(current?.expiryDate ?? suggestion?.expiryDate ?? '')
   const [lot, setLot] = React.useState(current?.lotNumber ?? suggestion?.lotNumber ?? '')
-  const [listPrice, setListPrice] = React.useState(current?.listPrice ?? costSuggestion?.listUnitPrice ?? '')
-  const [discount, setDiscount] = React.useState(current?.discount ?? (costSuggestion && Number(costSuggestion.discountPerUnit) > 0 ? costSuggestion.discountPerUnit : ''))
+  const [listPrice, setListPrice] = React.useState(defaultList)
+  const [discountPercent, setDiscountPercent] = React.useState(defaultDiscount)
   const [defer, setDefer] = React.useState(false)
-  const typed = costFrom(listPrice, discount)
+  const typed = costFromPercent(listPrice, discountPercent)
   const costInvalid = needsCost && !defer && !typed
   return (
     <form className="space-y-4" onSubmit={(event) => {
       event.preventDefault()
       if (!expiry || costInvalid) return
-      onConfirm({ expiryDate: expiry, lotNumber: lot.trim(), listPrice: needsCost && !defer ? listPrice : '', discount: needsCost && !defer ? discount : '', ...(needsCost && defer ? { deferKey: line.cost!.acquireKey } : {}) })
+      onConfirm({
+        expiryDate: expiry,
+        lotNumber: lot.trim(),
+        listPrice: needsCost && !defer ? listPrice : '',
+        discount: needsCost && !defer && typed ? String(typed.discountPerUnit) : '',
+        ...(needsCost && defer ? { deferKey: line.cost!.acquireKey } : {})
+      })
     }}>
-      <div className="flex items-center gap-3 rounded-bw-card border border-bw-line bg-bw-surface p-3">
-        <Thumb line={line} size="lg" />
-        <div className="min-w-0"><p className="text-bw-body font-semibold text-bw-ink"><bdi>{productTitle(line)}</bdi></p><p className="text-bw-small text-bw-ink-soft"><bdi>{productMeta(line)}</bdi></p></div>
+      <div className="rounded-bw-card border border-bw-line bg-bw-surface p-3">
+        <ProductIdentity item={line} size="md" showBarcode />
       </div>
       <p className="text-bw-heading font-semibold text-bw-ink">بيانات العبوة</p>
       {suggestion || costSuggestion ? <p className="text-[12px] text-bw-ink-soft">آخر قيم اتسجّلت للمنتج ده متعبّية؛ قارنها بالعبوة والفاتورة قبل التأكيد.</p> : null}
@@ -350,11 +366,11 @@ function PackInfoForm({ line, suggestion, costSuggestion, current, onConfirm, on
         <fieldset className="space-y-3" disabled={defer}>
           <legend className="mb-1 text-bw-small font-semibold text-bw-ink">تكلفة الشراء الفعلية للقطعة (من الفاتورة)</legend>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="سعر القائمة · ج.م" ltr inputMode="decimal" value={listPrice} onChange={(event) => setListPrice(event.target.value.replace(/[^\d.]/g, ''))} className="[&_input]:h-bw-touch" />
-            <Field label="الخصم للقطعة · ج.م" ltr inputMode="decimal" value={discount} onChange={(event) => setDiscount(event.target.value.replace(/[^\d.]/g, ''))} className="[&_input]:h-bw-touch"
-              error={(listPrice !== '' || discount !== '') && !typed && !defer ? 'الخصم لازم يكون أقل من سعر القائمة' : undefined} />
+            <Field label="سعر القائمة (البيع) · ج.م" ltr inputMode="decimal" value={listPrice} onChange={(event) => setListPrice(event.target.value.replace(/[^\d.]/g, ''))} className="[&_input]:h-bw-touch" />
+            <Field label="الخصم للقطعة %" ltr inputMode="decimal" value={discountPercent} onChange={(event) => setDiscountPercent(event.target.value.replace(/[^\d.]/g, ''))} className="[&_input]:h-bw-touch"
+              error={(listPrice !== '' || discountPercent !== '') && !typed && !defer ? 'اكتب نسبة خصم صحيحة (أقل من ١٠٠٪)' : undefined} />
           </div>
-          {typed ? <p className="text-[12px] text-bw-ink-soft" aria-live="polite">التكلفة النهائية <strong className="tabular-nums text-bw-ink">{egp(typed.final)}</strong> للقطعة. بتتسجّل مرة واحدة لكل عملية شراء.</p> : null}
+          {typed ? <p className="text-[12px] text-bw-ink-soft" aria-live="polite">التكلفة النهائية <strong className="tabular-nums text-bw-ink">{egp(typed.final)}</strong> للقطعة (خصم {typed.discountPercent}% = {egp(typed.discountPerUnit)}). بتتسجّل مرة واحدة لكل عملية شراء.</p> : null}
         </fieldset>
       ) : null}
       {needsCost ? <label className="flex items-start gap-2 text-bw-small text-bw-ink-soft"><input type="checkbox" className="mt-0.5 size-4" checked={defer} onChange={(event) => setDefer(event.target.checked)} />مش معايا الفاتورة دلوقتي — هسجّل التكلفة بعدين (الربح هيفضل ناقص لحد ما تتسجّل)</label> : null}

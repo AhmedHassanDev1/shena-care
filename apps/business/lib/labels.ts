@@ -63,9 +63,9 @@ export const COLLECTION_STATUS: Labelled = {
 }
 
 export const RUN_STATUS: Labelled = {
-  planning: ['بيتجهّز', 'pending'],
-  dispatched: ['خرج', 'neutral'],
-  completed: ['خلص', 'ok'],
+  planning: ['بانتظار الاستلام', 'pending'],
+  dispatched: ['جاري التوصيل', 'ok'],
+  completed: ['مكتمل', 'ok'],
 }
 
 export const PAYABLE_STATUS: Labelled = {
@@ -77,14 +77,14 @@ export const PAYABLE_STATUS: Labelled = {
 }
 
 export const FAILURE_REASONS: Record<string, string> = {
-  CUSTOMER_UNREACHABLE: 'العميل مش بيرد',
+  CUSTOMER_UNREACHABLE: 'العميل لا يرد',
   CUSTOMER_REFUSED: 'العميل رفض الاستلام',
-  ADDRESS_NOT_FOUND: 'العنوان مش موجود',
-  PIN_MISMATCH: 'الموقع على الخريطة مش مطابق',
+  RESCHEDULE_REQUESTED: 'العميل طلب التأجيل',
+  ADDRESS_NOT_FOUND: 'العنوان غير صحيح أو غير واضح',
+  PIN_MISMATCH: 'تعذر الوصول إلى الموقع',
   NOT_SERVICEABLE: 'المكان خارج نطاق التوصيل',
-  RESCHEDULE_REQUESTED: 'العميل طلب ميعاد تاني',
-  PACKAGE_DAMAGED: 'الطرد اتلف',
-  OTHER: 'سبب تاني',
+  PACKAGE_DAMAGED: 'الطرد تالف',
+  OTHER: 'مشكلة أخرى',
 }
 
 export const SHORTFALL_REASONS: Record<string, string> = {

@@ -31,6 +31,11 @@ export interface DeskLine {
   skuCode: string | null; barcode: string | null; imageUrl: string | null
   /** Pack size as printed, e.g. "200 ml" (null when the catalog has none). */
   size: string | null
+  sizeUnit: string | null
+  unitPrice: number | null
+  texture: string | null
+  categoryName: string | null
+  productSlug: string | null
   /** Units the customer ordered. */
   required: number
   /** Units recorded as bought on the Purchases checklist (received + still awaiting the scan). Not a physical fact. */
@@ -127,6 +132,11 @@ export class HubDeskService {
           brandName: label?.brandName ?? null, variantName: label?.variantName ?? item.variantName ?? null,
           skuCode: label?.skuCode ?? item.skuCode ?? null, barcode: label?.barcode ?? null, imageUrl: label?.imageUrl ?? null,
           size: label?.size != null ? `${label.size}${label.sizeUnit ? ` ${label.sizeUnit}` : ""}` : null,
+          sizeUnit: label?.sizeUnit ?? null,
+          unitPrice: item.price ? Number(item.price) : null,
+          texture: label?.texture ?? null,
+          categoryName: label?.categoryName ?? null,
+          productSlug: label?.productSlug ?? null,
           required: item.quantity, purchased: received + (awaitingByItem.get(item.id) ?? 0), received,
           verified: Math.min(scans.filter(scan => scan.skuId === item.skuId).length, item.quantity),
           cost: (() => {
@@ -344,6 +354,72 @@ export class HubDeskService {
     if (!receipt || receipt.locationId !== locationId) throw new NotFoundException('Receipt not found at this Hub');
     const result = await this.fulfillment.reverseReceipt(receiptId, dto, actor);
     return { ...result, ...(await this.outcome('verified', receipt.orderId, locationId, actor, {})) };
+  }
+
+  /**
+   * Adjusts the required quantity or price of an order line during preparation (e.g. supplier shortage / partial fulfillment).
+   * Keeps line totals, order totals, and shipment item quantities in sync so printed documents reflect actual quantities.
+   */
+  async updateLine(
+    locationId: string,
+    orderId: string,
+    orderItemId: string,
+    dto: { quantity?: number; unitPrice?: number },
+    actor: FulfillmentActor,
+  ) {
+    await this.fulfillment.assertDeskLocation(locationId, actor);
+    const order = await this.ordering.getOrder(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (!OPEN_ORDER_STATUSES.includes(order.status)) {
+      throw new ConflictException({ code: 'ORDER_NOT_OPEN', message: 'This order is cancelled or closed' });
+    }
+    const item = order.items.find(i => i.id === orderItemId);
+    if (!item) throw new NotFoundException('Order item not found');
+
+    const newQuantity = dto.quantity !== undefined ? dto.quantity : item.quantity;
+    const newPrice = dto.unitPrice !== undefined ? dto.unitPrice : Number(item.price);
+
+    if (newQuantity <= 0) throw new BadRequestException('Quantity must be at least 1');
+    if (newPrice < 0) throw new BadRequestException('Unit price cannot be negative');
+
+    const discountAmount = item.discountAmount ? Number(item.discountAmount) : 0;
+    const lineTotal = Math.round((newPrice - discountAmount) * newQuantity * 100) / 100;
+
+    await this.prisma.$transaction(async tx => {
+      await tx.orderItem.update({
+        where: { id: orderItemId },
+        data: {
+          quantity: newQuantity,
+          price: new Prisma.Decimal(newPrice),
+          lineTotal: new Prisma.Decimal(lineTotal),
+        },
+      });
+
+      const allItems = await tx.orderItem.findMany({ where: { orderId } });
+      const subtotal = allItems.reduce((sum, it) => sum + (it.id === orderItemId ? newPrice * newQuantity : Number(it.price) * it.quantity), 0);
+      const totalDiscount = allItems.reduce((sum, it) => sum + (it.discountAmount ? Number(it.discountAmount) : 0), 0);
+      const shippingFee = order.shippingFee ? Number(order.shippingFee) : 0;
+      const totalAmount = Math.round((subtotal - totalDiscount + shippingFee) * 100) / 100;
+
+      await tx.order.update({
+        where: { id: orderId },
+        data: {
+          subtotal: new Prisma.Decimal(subtotal),
+          totalAmount: new Prisma.Decimal(totalAmount),
+          codAmount: new Prisma.Decimal(totalAmount),
+        },
+      });
+
+      const shipment = await tx.shipment.findUnique({ where: { orderId } });
+      if (shipment) {
+        await tx.shipmentItem.updateMany({
+          where: { shipmentId: shipment.id, skuId: item.skuId },
+          data: { quantity: newQuantity },
+        });
+      }
+    });
+
+    return this.outcome('verified', orderId, locationId, actor, {});
   }
 
   /** Lot/expiry last recorded at this Hub for each SKU, offered for confirmation (never applied silently). */

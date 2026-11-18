@@ -21,7 +21,7 @@ import {
 
 @Controller('commerce/prices')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('ADMIN', 'HUB_OPERATOR')
 export class PriceController {
   constructor(private readonly commerceService: CommerceService) {}
 

@@ -9,7 +9,7 @@ import { CorrectInspectionDto, DeskScanDto, InspectReturnDto, RegisterBarcodeDto
 import { PlanRouteDto } from './dto/routing.dto';
 import { ApplyOptimizationDto, OptimizationOptionsDto } from './dto/optimization.dto';
 import { PlanDispatchDto, ApproveDispatchPlanDto } from './dto/dispatch-planning.dto';
-import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto, AssignLocationOperatorDto, ReceiveAllocatedGoodsDto, HubShipmentQueryDto, HubRunQueryDto } from './dto/fulfillment.dto';
+import { CreateLocationDto, AllocateShipmentDto, UpdateShipmentStatusDto, StartPreparationDto, ScanItemDto, RecordShipmentEventDto, CreateDeliveryBatchDto, AddStopsToBatchDto, UpdateStopSequenceDto, AdjustInventoryDto, AssignLocationOperatorDto, ReceiveAllocatedGoodsDto, HubShipmentQueryDto, HubRunQueryDto, BatchHandoffScanDto } from './dto/fulfillment.dto';
 import { AuthGuard } from '../accounts/guards/auth.guard';
 import { RolesGuard } from '../accounts/guards/roles.guard';
 import { PermissionsGuard, RequirePermissions } from '../../platform/auth';
@@ -199,9 +199,20 @@ export class FulfillmentController {
   }
 
   @Post('delivery-batches/:id/complete')
-  @Roles('ADMIN', 'DRIVER')
+  @Roles('ADMIN', 'DRIVER', 'HUB_OPERATOR')
   async completeBatch(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
     return this.fulfillmentService.completeBatch(id, actor);
+  }
+
+  @Post('delivery-batches/:id/handoff-scan')
+  @Roles('ADMIN', 'HUB_OPERATOR', 'DRIVER')
+  @RequirePermissions('delivery.handoff')
+  async batchHandoffScan(
+    @Param('id') id: string,
+    @Body() dto: BatchHandoffScanDto,
+    @CurrentUser() actor: FulfillmentActor,
+  ) {
+    return this.fulfillmentService.batchHandoffScan(id, dto.barcode, actor);
   }
 
   // --- One-person Hub desk (GLO-315): receive + verify with one scan ---
@@ -239,6 +250,19 @@ export class FulfillmentController {
   @RequirePermissions('hub.receive')
   async deskReverse(@Param('id') locationId: string, @Param('receiptId', ParseUUIDPipe) receiptId: string, @Body() dto: ReverseReceiptDto, @CurrentUser() actor: FulfillmentActor) {
     return this.hubDesk.reverse(locationId, receiptId, dto, actor);
+  }
+
+  @Patch('locations/:id/desk/orders/:orderId/lines/:orderItemId')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.prepare')
+  async deskUpdateLine(
+    @Param('id') locationId: string,
+    @Param('orderId', ParseUUIDPipe) orderId: string,
+    @Param('orderItemId', ParseUUIDPipe) orderItemId: string,
+    @Body() dto: { quantity?: number; unitPrice?: number },
+    @CurrentUser() actor: FulfillmentActor,
+  ) {
+    return this.hubDesk.updateLine(locationId, orderId, orderItemId, dto, actor);
   }
 
   // --- Hub Returns (GLO-315): physical inspection; the refund decision stays with Ordering/admin ---

@@ -256,6 +256,12 @@ export class UpdateStopSequenceDto {
   stops: DeliveryStopInputDto[]; // { shipmentId, sequence }
 }
 
+export class BatchHandoffScanDto {
+  @IsString()
+  @IsNotEmpty()
+  barcode: string;
+}
+
 export class AdjustInventoryDto {
   @IsString()
   @IsNotEmpty()

@@ -563,7 +563,7 @@ export class ReconciliationService {
    * dispatch) is compared with the count at round level; each order keeps the driver's own declaration, so a difference
    * is shown on the round, never guessed onto one order. A reference is idempotent: the same count returns the same batch.
    */
-  async settleRound(dto: { courierId: string; locationId: string; reference: string; countedTotal: number; fees?: number; notes?: string; actorId: string },
+  async settleRound(dto: { courierId: string; locationId: string; reference: string; countedTotal: number; fees?: number; notes?: string; actorId: string; runId?: string; orderIds?: string[] },
     allowedLocationIds: string[] | 'all') {
     if (allowedLocationIds !== 'all' && !allowedLocationIds.includes(dto.locationId)) {
       throw new ForbiddenException('Operator is not assigned to this hub');
@@ -583,21 +583,45 @@ export class ReconciliationService {
     const prior = await replay();
     if (prior) return prior;
 
+    let targetOrderIds: string[] | undefined = dto.orderIds && dto.orderIds.length > 0 ? [...dto.orderIds] : undefined;
+
+    // Independent run settlement: resolve the run's exact order IDs so collections from other runs of the same courier are never mixed
+    if (dto.runId) {
+      const batch = await this.prisma.deliveryBatch.findUnique({
+        where: { id: dto.runId },
+        include: { stops: { include: { shipment: true } } },
+      });
+      if (batch) {
+        const batchOrderIds = batch.stops.map(s => s.shipment.orderId);
+        targetOrderIds = targetOrderIds ? targetOrderIds.filter(id => batchOrderIds.includes(id)) : batchOrderIds;
+      }
+    }
+
     let batchId: string;
     try {
       batchId = await this.prisma.$transaction(async tx => {
-        const rows = await tx.paymentCollection.findMany({
-          where: { courierId: dto.courierId, locationId: dto.locationId, status: 'collected', settlementBatchId: null, order: { status: 'delivered' } },
-        });
+        const where: Prisma.PaymentCollectionWhereInput = {
+          courierId: dto.courierId,
+          locationId: dto.locationId,
+          status: 'collected',
+          settlementBatchId: null,
+          order: { status: 'delivered' },
+        };
+        if (targetOrderIds && targetOrderIds.length > 0) {
+          where.orderId = { in: targetOrderIds };
+        }
+
+        const rows = await tx.paymentCollection.findMany({ where });
         if (!rows.length) {
-          throw new ConflictException({ code: 'NO_OPEN_ROUND', message: 'This driver has no declared cash waiting to be counted at this hub' });
+          throw new ConflictException({ code: 'NO_OPEN_ROUND', message: dto.runId ? 'This run has no declared cash waiting to be counted at this hub' : 'This driver has no declared cash waiting to be counted at this hub' });
         }
         const currency = rows[0].currency;
         if (rows.some(row => row.currency !== currency)) throw new ConflictException('The round mixes currencies');
         const expected = rows.reduce((sum, row) => sum.plus(row.expectedAmount), new Prisma.Decimal(0));
+        const runNote = dto.runId ? `[Run: ${dto.runId}] ${dto.notes ?? ''}`.trim() : dto.notes;
         const batch = await tx.courierSettlementBatch.create({ data: {
           reference: dto.reference, courierId: dto.courierId, locationId: dto.locationId, totalExpected: expected,
-          totalCollected: counted, fees, netSettled: counted.minus(fees), currency, actorId: dto.actorId, notes: dto.notes,
+          totalCollected: counted, fees, netSettled: counted.minus(fees), currency, actorId: dto.actorId, notes: runNote,
         } });
         for (const row of rows) {
           const declared = row.declaredAmount as Prisma.Decimal;

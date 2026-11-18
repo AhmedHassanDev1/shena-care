@@ -1686,11 +1686,12 @@ export class FulfillmentService {
     const [total, rows] = await Promise.all([
       this.prisma.deliveryBatch.count({ where }),
       this.prisma.deliveryBatch.findMany({ where, orderBy: { createdAt: 'desc' }, take: filter.take, skip: filter.skip,
-        include: { stops: { select: { status: true } } } }),
+        include: { stops: { select: { status: true, shipment: { select: { orderId: true } } } } } }),
     ]);
     return { total, items: rows.map(run => ({
       id: run.id, status: run.status, driverId: run.driverId, plannedAt: run.plannedAt, dispatchedAt: run.dispatchedAt, completedAt: run.completedAt,
       stops: run.stops.length,
+      stopOrderIds: run.stops.map(s => s.shipment.orderId),
       attempts: run.stops.reduce<Record<string, number>>((acc, stop) => ({ ...acc, [stop.status]: (acc[stop.status] ?? 0) + 1 }), {}),
     })) };
   }
@@ -1808,9 +1809,96 @@ export class FulfillmentService {
       plannedAt: batch.plannedAt, dispatchedAt: batch.dispatchedAt, completedAt: batch.completedAt,
       stops: batch.stops.map(stop => ({
         sequence: stop.sequence, shipmentId: stop.shipmentId, attemptStatus: stop.status, shipmentStatus: stop.shipment.status,
+        orderId: stop.shipment.orderId,
         orderNumber: orders.get(stop.shipment.orderId)?.orderNumber ?? null, area: orders.get(stop.shipment.orderId)?.area ?? null,
         handedOver: stop.shipment.events.some(event => event.createdAt >= stop.createdAt),
       })),
+    };
+  }
+
+  /**
+   * Continuous barcode scanning for all parcels in a delivery run.
+   * Reuses isValidShipmentBarcode for HMAC validation and records HANDOFF_SCANNED.
+   */
+  async batchHandoffScan(batchId: string, barcode: string, actor: FulfillmentActor) {
+    if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
+    if (!barcode || typeof barcode !== 'string') throw new BadRequestException('Barcode is required');
+
+    const batch = await this.prisma.deliveryBatch.findUnique({
+      where: { id: batchId },
+      include: {
+        stops: {
+          orderBy: { sequence: 'asc' },
+          include: {
+            shipment: {
+              include: {
+                events: {
+                  where: { type: 'HANDOFF_SCANNED' },
+                  select: { id: true, createdAt: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!batch) throw new NotFoundException('Delivery run not found');
+    await this.resolveBatchScope(batch, actor);
+
+    if (batch.status !== 'planning' && batch.status !== 'dispatched') {
+      throw new BadRequestException('Cannot scan handoff for a completed or cancelled run');
+    }
+
+    const matchedStop = batch.stops.find((stop) =>
+      isValidShipmentBarcode(stop.shipmentId, barcode),
+    );
+
+    if (!matchedStop) {
+      throw new BadRequestException('Scanned barcode does not match any parcel in this delivery run');
+    }
+
+    const alreadyHandedOver = matchedStop.shipment.events.some(
+      (e) => e.createdAt >= matchedStop.createdAt,
+    );
+
+    if (!alreadyHandedOver) {
+      await this.prisma.shipmentEvent.create({
+        data: {
+          shipmentId: matchedStop.shipmentId,
+          type: 'HANDOFF_SCANNED',
+          actorId: actor.id,
+        },
+      });
+    }
+
+    const updatedEvents = await this.prisma.shipmentEvent.findMany({
+      where: {
+        shipmentId: { in: batch.stops.map((s) => s.shipmentId) },
+        type: 'HANDOFF_SCANNED',
+      },
+      select: { shipmentId: true, createdAt: true },
+    });
+
+    const handedOverShipmentIds = new Set(
+      batch.stops
+        .filter((stop) =>
+          updatedEvents.some(
+            (e) => e.shipmentId === stop.shipmentId && e.createdAt >= stop.createdAt,
+          ),
+        )
+        .map((s) => s.shipmentId),
+    );
+
+    return {
+      success: true,
+      batchId: batch.id,
+      shipmentId: matchedStop.shipmentId,
+      orderId: matchedStop.shipment.orderId,
+      alreadyScanned: alreadyHandedOver,
+      totalStops: batch.stops.length,
+      scannedStopsCount: handedOverShipmentIds.size,
+      isComplete: handedOverShipmentIds.size === batch.stops.length,
     };
   }
 

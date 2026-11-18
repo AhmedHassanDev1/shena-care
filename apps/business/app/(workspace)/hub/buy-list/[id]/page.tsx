@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { ArrowRight, Check, ChevronDown, Copy, ExternalLink, MessageCircle, Package, Printer, RefreshCw, Undo2 } from 'lucide-react'
 import { Button, Code, Field, Notice, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { Flash, Meter } from '@/components/bw/ops'
+import { ProductIdentity } from '@/components/bw/product-card'
 import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api, newKey } from '@/lib/api'
@@ -175,43 +176,7 @@ const imageSrc = (url: string) => (url.startsWith('/') ? `${(process.env.NEXT_PU
  * to its storefront page. Tags carry the size only when the name does not already say it.
  */
 function ProductCell({ line }: { line: BatchLine }) {
-  const name = purchaseLineName(line)
-  const texture = textureLabel(line.texture)
-  const category = categoryLabel(line.categoryName)
-  const href = productUrl(line)
-  const [broken, setBroken] = React.useState(false)
-  // An image that failed before React attached its handler never fires onError again, so look at it once on mount.
-  const imageRef = React.useCallback((node: HTMLImageElement | null) => { if (node && node.complete && node.naturalWidth === 0) setBroken(true) }, [])
-  const title = (
-    <bdi>{name.brand ? <><strong className="font-bold">{name.brand}</strong>{' '}</> : null}{name.name || shortId(line.skuId)}</bdi>
-  )
-  return (
-    <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
-      {line.imageUrl && !broken ? (
-        <img ref={imageRef} src={imageSrc(line.imageUrl)} alt={name.full} width={48} height={48} loading="lazy" onError={() => setBroken(true)}
-          className="size-11 shrink-0 rounded-bw-field border border-bw-line bg-bw-surface object-cover sm:size-12" />
-      ) : (
-        <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-bw-field border border-bw-line bg-bw-veil-1 text-bw-ink-subtle sm:size-12"><Package className="size-5" /></span>
-      )}
-      <div className="min-w-0 flex-1">
-        {/* One isolate, so the brand reads first even inside the RTL page; the whole name opens the product page. */}
-        <h3 className="text-bw-body font-medium leading-6 text-bw-ink">
-          {href ? (
-            <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`فتح صفحة ${name.full}`} title="فتح صفحة المنتج" className="group/link hover:underline hover:underline-offset-4">
-              {title}<ExternalLink className="ms-1.5 inline size-3.5 align-[-1px] text-bw-ink-subtle transition-colors group-hover/link:text-bw-ink" aria-hidden />
-            </a>
-          ) : title}
-        </h3>
-        {category || texture || name.tags.length ? (
-          <p className="mt-1 flex flex-wrap items-center gap-1.5">
-            {category ? <Tag tone="violet"><bdi>{category}</bdi></Tag> : null}
-            {texture ? <Tag tone="amber"><bdi>{texture}</bdi></Tag> : null}
-            {name.tags.map((tag) => <Tag key={tag} tone="cobalt"><bdi>{tag}</bdi></Tag>)}
-          </p>
-        ) : null}
-      </div>
-    </div>
-  )
+  return <ProductIdentity item={line} />
 }
 
 /** One product to buy: a checkbox, the quantity as the loudest thing on the row, then the product. */

@@ -56,14 +56,13 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
       { id: 'orders', label: 'الطلبات والتجهيز', icon: ScanLine, href: '/hub/orders' },
       { id: 'handoff', label: 'التسليم للمندوب', icon: Truck, href: '/hub/dispatch' },
       { id: 'returns', label: 'المرتجعات', icon: Undo2, href: '/hub/returns' },
-      { id: 'cash', label: 'عدّ النقدية', icon: Wallet, href: '/hub/cash' },
       { id: 'costs', label: 'تكلفة الفواتير', icon: Wallet, href: '/hub/costs', supplierFlow: true },
     ],
   },
   driver: {
     title: 'المندوب',
     items: [
-      { id: 'run', label: 'مشواري', icon: Route, href: '/driver' },
+      { id: 'run', label: 'مشاويري', icon: Route, href: '/driver' },
       { id: 'history', label: 'السجل', icon: History, href: '/driver/history' },
       { id: 'account', label: 'حسابي', icon: UserRound, href: '/driver/profile' },
     ],

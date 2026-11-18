@@ -1119,6 +1119,27 @@ export class CatalogService {
     }));
   }
 
+  /** Current active selling prices for SKUs; reference and prefill for operational screens. */
+  async getSkuSellingPrices(skuIds: string[]): Promise<Map<string, number>> {
+    const ids = [...new Set(skuIds)].filter(id => this.isUuid(id));
+    if (!ids.length) return new Map();
+    const now = new Date();
+    const rows = await this.prisma.sellingPrice.findMany({
+      where: {
+        skuId: { in: ids },
+        isActive: true,
+        validFrom: { lte: now },
+        OR: [{ validUntil: null }, { validUntil: { gt: now } }],
+      },
+      orderBy: { validFrom: 'desc' },
+    });
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      if (!map.has(row.skuId)) map.set(row.skuId, Number(row.amount));
+    }
+    return map;
+  }
+
   /** Stable identity lookup for internal custody workflows, including inactive catalog items. */
   async getSkuIdentity(skuId: string): Promise<PublishedSku | null> {
     if (!this.isUuid(skuId)) return null;

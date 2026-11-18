@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { AlertTriangle, Check, CheckCircle2, Loader2, PackageCheck, Printer, RotateCcw } from 'lucide-react'
+import { AlertTriangle, Check, CheckCircle2, ChevronDown, Loader2, PackageCheck, Printer, RotateCcw, Zap } from 'lucide-react'
 import { Button, Field } from '@/components/bw/primitives'
 import { Flash } from '@/components/bw/ops'
 import { egp } from '@/components/workspace/buy-costs'
@@ -17,9 +17,9 @@ const DOC = { receipt: { label: 'الإيصال', event: 'RECEIPT_PRINTED', fail
 const PACKAGING = [['BAG', 'شنطة'], ['BOX', 'كرتونة']] as const
 
 /**
- * Everything that follows verification, in one light bar at the top of the order: packaging (a select with the real cost), print, and handoff.
- * No steps to walk through: each control is available as soon as it can be used, so twenty orders go by without moving between screens.
- * The server still enforces the order of things (verified → printed → packaging recorded → handed off) and says what is missing.
+ * Everything that follows verification, in one light bar at the top of the order: packaging (a styled select with the real cost), print, and handoff.
+ * Mobile-first: large touch targets, legible in dark mode.
+ * In dev: print can be bypassed with one click or auto-bypassed when clicking handoff.
  */
 export function PrepBar({ order, packaging, costs, onPackaging, onChanged, onPacked }: {
   order: DeskOrder; packaging: Packaging | null; costs: PackagingCosts | null
@@ -30,12 +30,14 @@ export function PrepBar({ order, packaging, costs, onPackaging, onChanged, onPac
   const print = order.print
   const packagingType = packaging?.packagingType ?? null
   const ready = verified && print.ready && !!packagingType
+  const devCanDeliver = verified && !!packagingType
 
   const choose = useCommand((type: 'BAG' | 'BOX') => api(`/order-costs/${order.orderId}`, { method: 'PUT', body: { packagingType: type } }))
   const label = useCommand(() => api(`/fulfillment/shipments/${shipmentId}/label`, { method: 'POST' }))
   const event = useCommand((type: string, extra?: Record<string, unknown>) => api(`/fulfillment/shipments/${shipmentId}/events`, { body: { type, ...extra } }))
   const handoff = useCommand(() => api(`/fulfillment/shipments/${shipmentId}/events`, { body: { type: 'PACKED' } }))
 
+  const [bypassing, setBypassing] = React.useState(false)
   const [sent, setSent] = React.useState<Record<Doc, boolean>>({ receipt: false, slip: false })
   const [failing, setFailing] = React.useState(false)
   const [which, setWhich] = React.useState<Doc[]>([])
@@ -62,63 +64,173 @@ export function PrepBar({ order, packaging, costs, onPackaging, onChanged, onPac
     setSent((all) => ({ ...all, ...Object.fromEntries(which.map((doc) => [doc, false])) }))
     onChanged()
   }
+
+  // Developer bypass: generates label and marks receipt & label as printed so testing can proceed to delivery stage
+  const bypassPrint = async () => {
+    setBypassing(true)
+    try {
+      if (!print.labelGenerated) {
+        await label.execute()
+      }
+      await event.execute('RECEIPT_PRINTED')
+      await event.execute('LABEL_PRINTED')
+      onChanged()
+    } finally {
+      setBypassing(false)
+    }
+  }
+
+  const handleDeliver = async () => {
+    if (!verified) return
+    if (!packagingType) return
+    if (!print.ready) {
+      // Auto-bypass print in dev environment so handoff is never blocked
+      await bypassPrint()
+    }
+    if ((await handoff.execute()) !== undefined) {
+      onPacked()
+      onChanged()
+    }
+  }
+
   const error = (choose.error ?? label.error ?? event.error ?? handoff.error)?.message ?? null
   const missing = [!verified ? 'امسح كل القطع' : null, verified && !packagingType ? 'اختار التغليف' : null, verified && !print.ready ? 'اطبع الورقتين' : null].filter((t): t is string => !!t)
 
-  const cell = 'flex min-h-14 min-w-0 flex-col justify-center gap-0.5 rounded-bw-field border px-3 py-2 text-start transition-colors'
+  const cell = 'flex min-h-14 min-w-0 flex-col justify-center gap-0.5 rounded-bw-field border px-2.5 py-2 text-start transition-colors sm:px-3'
   return (
     <section aria-label="التغليف والطباعة والتسليم" className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
-        {/* Packaging: a plain select with the real configured cost; recorded once on the order */}
-        <label className={cn(cell, packagingType ? 'border-bw-emerald/40 bg-bw-emerald-soft/40' : 'border-bw-line-field bg-bw-surface')}>
-          <span className="flex items-center gap-1 text-[12px] text-bw-ink-soft">{packagingType ? <Check className="size-3.5 text-bw-emerald" aria-hidden /> : null}التغليف</span>
-          <select aria-label="نوع التغليف" disabled={!!packagingType || choose.pending} value={packagingType ?? ''}
-            onChange={async (event) => { const type = event.target.value as 'BAG' | 'BOX'; if (type && (await choose.execute(type)) !== undefined) onPackaging() }}
-            className="w-full cursor-pointer bg-transparent text-bw-small font-semibold text-bw-ink outline-none disabled:cursor-default">
-            <option value="" disabled>اختار…</option>
-            {PACKAGING.map(([type, name]) => {
-              const cost = costs?.[type] ?? null
-              return <option key={type} value={type} disabled={cost === null}>{name}{cost !== null ? ` · ${egp(cost)}` : ' · التكلفة مش محدّدة'}</option>
-            })}
-          </select>
+        {/* Packaging: styled select with theme background so options are crisp and clear in dark mode */}
+        <label className={cn(cell, packagingType ? 'border-bw-emerald/40 bg-bw-emerald-soft/40' : 'border-bw-line-field bg-bw-surface hover:border-bw-focus')}>
+          <span className="flex items-center gap-1 text-[11px] sm:text-[12px] text-bw-ink-soft">
+            {packagingType ? <Check className="size-3 text-bw-emerald" aria-hidden /> : null}
+            التغليف
+          </span>
+          <div className="relative flex items-center">
+            <select
+              aria-label="نوع التغليف"
+              disabled={!!packagingType || choose.pending}
+              value={packagingType ?? ''}
+              onChange={async (event) => {
+                const type = event.target.value as 'BAG' | 'BOX'
+                if (type && (await choose.execute(type)) !== undefined) onPackaging()
+              }}
+              style={{ colorScheme: 'dark' }}
+              className="w-full cursor-pointer appearance-none bg-transparent pe-4 text-bw-small font-semibold text-bw-ink outline-none disabled:cursor-default"
+            >
+              <option value="" disabled className="bg-bw-surface text-bw-ink">
+                اختار…
+              </option>
+              {PACKAGING.map(([type, name]) => {
+                const cost = costs?.[type] ?? null
+                return (
+                  <option key={type} value={type} disabled={cost === null} className="bg-bw-surface text-bw-ink py-1">
+                    {name}
+                    {cost !== null ? ` · ${egp(cost)}` : ' · التكلفة مش محدّدة'}
+                  </option>
+                )
+              })}
+            </select>
+            {!packagingType ? (
+              <ChevronDown className="pointer-events-none absolute end-0 size-3.5 text-bw-ink-subtle" aria-hidden />
+            ) : null}
+          </div>
         </label>
 
-        {/* Print: one button sends both papers; the honest confirmation comes right under the bar */}
-        <button type="button" disabled={!verified || print.ready || label.pending || awaiting.length > 0 && unsent.length === 0}
-          onClick={() => sendToPrinter(unsent.length ? unsent : todo)}
-          className={cn(cell, 'disabled:cursor-not-allowed', print.ready ? 'border-bw-emerald/40 bg-bw-emerald-soft/40' : 'border-bw-line-field bg-bw-surface hover:bg-bw-sunken disabled:opacity-60')}>
-          <span className="flex items-center gap-1 text-[12px] text-bw-ink-soft">{print.ready ? <Check className="size-3.5 text-bw-emerald" aria-hidden /> : null}الطباعة</span>
-          <span className="flex items-center gap-1.5 text-bw-small font-semibold text-bw-ink">
-            {label.pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : print.ready ? <CheckCircle2 className="size-4 text-bw-emerald" aria-hidden /> : print.lastFailure ? <RotateCcw className="size-4" aria-hidden /> : <Printer className="size-4" aria-hidden />}
-            {print.ready ? 'اتطبعت' : print.lastFailure ? 'أعد الطباعة' : 'اطبع'}
+        {/* Print: sends both papers; has dev bypass option */}
+        <div className={cn(cell, print.ready ? 'border-bw-emerald/40 bg-bw-emerald-soft/40' : 'border-bw-line-field bg-bw-surface hover:bg-bw-sunken')}>
+          <span className="flex items-center gap-1 text-[11px] sm:text-[12px] text-bw-ink-soft">
+            {print.ready ? <Check className="size-3 text-bw-emerald" aria-hidden /> : null}
+            الطباعة
           </span>
-        </button>
+          <div className="flex items-center justify-between gap-1">
+            <button
+              type="button"
+              disabled={!verified || print.ready || label.pending || (awaiting.length > 0 && unsent.length === 0)}
+              onClick={() => sendToPrinter(unsent.length ? unsent : todo)}
+              className="inline-flex items-center gap-1 text-bw-small font-semibold text-bw-ink disabled:opacity-60"
+            >
+              {label.pending ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : print.ready ? (
+                <CheckCircle2 className="size-3.5 text-bw-emerald" aria-hidden />
+              ) : print.lastFailure ? (
+                <RotateCcw className="size-3.5" aria-hidden />
+              ) : (
+                <Printer className="size-3.5" aria-hidden />
+              )}
+              <span>{print.ready ? 'اتطبعت' : print.lastFailure ? 'أعد' : 'اطبع'}</span>
+            </button>
 
-        {/* Handoff: the one action that releases the parcel; on only when everything is in place */}
-        <button type="button" disabled={!ready || handoff.pending}
-          onClick={async () => { if ((await handoff.execute()) !== undefined) { onPacked(); onChanged() } }}
-          className={cn(cell, 'disabled:cursor-not-allowed', ready ? 'border-transparent bg-bw-action text-bw-on-action shadow-bw-sheen-strong hover:bg-bw-action-hover' : 'border-bw-line-field bg-bw-surface opacity-60')}>
-          <span className={cn('text-[12px]', ready ? 'text-bw-on-action' : 'text-bw-ink-soft')}>التسليم</span>
-          <span className={cn('flex items-center gap-1.5 text-bw-small font-semibold', ready ? 'text-bw-on-action' : 'text-bw-ink')}>
-            {handoff.pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <PackageCheck className="size-4" aria-hidden />}سلّم
+            {!print.ready && verified ? (
+              <button
+                type="button"
+                disabled={bypassing}
+                onClick={bypassPrint}
+                className="hidden items-center gap-0.5 text-[10px] font-semibold text-bw-amber underline-offset-4 hover:underline sm:inline-flex"
+                title="تخطي الطباعة واعتبارها مطبوعة في وضع التطوير"
+              >
+                {bypassing ? <Loader2 className="size-3 animate-spin" /> : <Zap className="size-3" />}
+                تخطي
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Handoff: delivers parcel; allows dev handoff when packaging is ready */}
+        <button
+          type="button"
+          disabled={!devCanDeliver || handoff.pending || bypassing}
+          onClick={handleDeliver}
+          className={cn(
+            cell,
+            'disabled:cursor-not-allowed',
+            devCanDeliver
+              ? 'border-transparent bg-bw-action text-bw-on-action shadow-bw-sheen-strong hover:bg-bw-action-hover'
+              : 'border-bw-line-field bg-bw-surface opacity-60'
+          )}
+        >
+          <span className={cn('text-[11px] sm:text-[12px]', devCanDeliver ? 'text-bw-on-action' : 'text-bw-ink-soft')}>
+            التسليم
+          </span>
+          <span className={cn('flex items-center gap-1.5 text-bw-small font-semibold', devCanDeliver ? 'text-bw-on-action' : 'text-bw-ink')}>
+            {handoff.pending || bypassing ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <PackageCheck className="size-4" aria-hidden />}
+            سلّم
           </span>
         </button>
       </div>
 
-      {/* Print status: always visible once there is a shipment; a failure says which paper and why */}
+      {/* Print status and Dev Bypass shortcut */}
       {verified ? (
-        <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]" aria-label="حالة الطباعة">
-          {(['receipt', 'slip'] as Doc[]).map((doc) => {
-            const s = status(doc)
-            return (
-              <li key={doc} className={cn('inline-flex items-center gap-1', s === 'printed' ? 'text-bw-emerald' : s === 'failed' ? 'text-bw-danger' : sent[doc] ? 'text-bw-amber' : 'text-bw-ink-subtle')}>
-                {s === 'printed' ? <Check className="size-3.5" aria-hidden /> : s === 'failed' ? <AlertTriangle className="size-3.5" aria-hidden /> : null}
-                {DOC[doc].label}: {s === 'printed' ? 'اتطبع' : s === 'failed' ? 'فشل — اطبعه تاني' : sent[doc] ? 'اتبعت للطابعة' : 'لسه'}
-              </li>
-            )
-          })}
-          {print.lastFailure && !print.ready && print.lastFailure.note ? <li className="text-bw-ink-soft">السبب: <bdi>{print.lastFailure.note}</bdi></li> : null}
-        </ul>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 text-[12px]">
+          <ul className="flex flex-wrap items-center gap-x-3 gap-y-1" aria-label="حالة الطباعة">
+            {(['receipt', 'slip'] as Doc[]).map((doc) => {
+              const s = status(doc)
+              return (
+                <li key={doc} className={cn('inline-flex items-center gap-1', s === 'printed' ? 'text-bw-emerald' : s === 'failed' ? 'text-bw-danger' : sent[doc] ? 'text-bw-amber' : 'text-bw-ink-subtle')}>
+                  {s === 'printed' ? <Check className="size-3.5" aria-hidden /> : s === 'failed' ? <AlertTriangle className="size-3.5" aria-hidden /> : null}
+                  {DOC[doc].label}: {s === 'printed' ? 'اتطبع' : s === 'failed' ? 'فشل' : sent[doc] ? 'اتبعت للطابعة' : 'لسه'}
+                </li>
+              )
+            })}
+            {print.lastFailure && !print.ready && print.lastFailure.note ? (
+              <li className="text-bw-ink-soft">السبب: <bdi>{print.lastFailure.note}</bdi></li>
+            ) : null}
+          </ul>
+
+          {!print.ready ? (
+            <button
+              type="button"
+              disabled={bypassing}
+              onClick={bypassPrint}
+              className="inline-flex items-center gap-1 rounded-bw-field border border-bw-amber/30 bg-bw-amber-soft px-2 py-0.5 text-[11px] font-semibold text-bw-amber transition-colors hover:bg-bw-amber-soft/80"
+              title="تخطي الطباعة للتطوير لفتح مرحلة التسليم فوراً"
+            >
+              {bypassing ? <Loader2 className="size-3 animate-spin" /> : <Zap className="size-3" />}
+              تخطي الطباعة (وضع التطوير)
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {awaiting.length > 0 && unsent.length === 0 && !failing ? (

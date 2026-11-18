@@ -120,6 +120,7 @@ export interface PlannedTripStop {
   orderNumber: string;
   customerName: string;
   address: string;
+  area?: string | null;
   latitude: number;
   longitude: number;
   sequence: number;
@@ -141,6 +142,7 @@ export interface ProposedTrip {
   clusterId: string;
   driverId: string | null;
   driverName: string | null;
+  areaSummary?: string;
   tripSequenceForDriver: number;
   stops: PlannedTripStop[];
   metrics: PlannedTripMetrics;
