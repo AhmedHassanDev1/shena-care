@@ -15,6 +15,8 @@ export interface BatchLine {
   id: string; skuId: string; productName: string | null; skuCode: string | null; variantName: string | null
   /** Catalog brand of the SKU (the order snapshot's product name has none). Absent from older API responses. */
   brandName?: string | null
+  /** Primary product photo, the storefront slug and the catalog texture (e.g. GEL). Absent from older API responses. */
+  imageUrl?: string | null; productSlug?: string | null; texture?: string | null; categorySlug?: string | null; categoryName?: string | null
   size: number | null; sizeUnit: string | null; packCount: number | null; barcode: string | null
   required: number; received: number; remaining: number; closedOut: number
   orders: Array<{ orderId: string; orderNumber: string; orderItemId: string; quantity: number; received: number; remaining: number; state: OrderState }>
@@ -57,12 +59,38 @@ function brandLabel(brand: string | null | undefined): string {
 const squash = (value: string) => value.toLowerCase().replace(/\s+/g, '')
 
 export interface PurchaseLineName {
-  /** Shown small above the name; empty when the brand is already the first word of the product name. */
+  /** Shown right beside the name; empty when the brand is already the first word of the product name. */
   brand: string
-  /** Product, variant and size: what a person reads to recognise the item. */
+  /** Product and variant, without the size. */
+  name: string
+  /** Size (and pack) as separate short labels for tags; empty when the name already says the size. */
+  tags: string[]
+  /** Product, variant and size as one string: what a person reads to recognise the item. */
   title: string
   /** Everything together: exactly what goes into the copied / shared text. */
   full: string
+}
+
+const TEXTURE_LABEL: Record<string, string> = {
+  GEL: 'Gel', CREAM: 'Cream', GEL_CREAM: 'Gel-cream', LOTION: 'Lotion', EMULSION: 'Emulsion', SERUM: 'Serum', OIL: 'Oil', BALM: 'Balm',
+  FOAM: 'Foam', LIQUID: 'Liquid', SPRAY: 'Spray', PASTE: 'Paste', STICK: 'Stick', POWDER: 'Powder',
+}
+
+/** Catalog texture as the storefront words it in English (Gel, Cream…); empty when the product has none. */
+export function textureLabel(texture: string | null | undefined): string {
+  return texture ? TEXTURE_LABEL[texture] ?? '' : ''
+}
+
+/** The product's category exactly as the catalog names it (Cleansers, Moisturizers…); empty when it has none. */
+export function categoryLabel(name: string | null | undefined): string {
+  return (name ?? '').trim()
+}
+
+const STOREFRONT_URL = (process.env.NEXT_PUBLIC_STOREFRONT_URL || 'http://localhost:3000').replace(/\/$/, '')
+
+/** Storefront page of the exact variant, or null when the API did not send the product's slug. */
+export function productUrl(line: Pick<BatchLine, 'productSlug' | 'skuId'>): string | null {
+  return line.productSlug ? `${STOREFRONT_URL}/products/${encodeURIComponent(line.productSlug)}?sku=${encodeURIComponent(line.skuId)}` : null
 }
 
 /**
@@ -79,7 +107,7 @@ export function purchaseLineName(line: Pick<BatchLine, 'productName' | 'brandNam
   const size = sizeText && !squash(product + variant).includes(squash(sizeText)) ? sizeText : ''
   const pack = line.packCount && line.packCount > 1 ? `${line.packCount}-pack` : ''
   const title = [product, variant, size, pack].filter(Boolean).join(' ')
-  return { brand, title, full: [brand, title].filter(Boolean).join(' ') }
+  return { brand, name: [product, variant].filter(Boolean).join(' '), tags: [size, pack].filter(Boolean), title, full: [brand, title].filter(Boolean).join(' ') }
 }
 
 /** Every line of the batch, ordered by brand and name so every list built from it scans the same way. */
@@ -105,8 +133,8 @@ const WHEN = (value: Date) => value.toLocaleString('ar-EG-u-nu-latn', { dateStyl
  * The text staff copy or share with a supplier by hand (the system sends nothing): one line per product, `name × quantity`, and
  * nothing else. No codes, barcodes, ids, status, dates or notes, so it can be sent exactly as copied.
  */
-export function purchaseListText(batch: BatchDetail): string {
-  return openLines(batch).map((line) => `${purchaseLineName(line).full} × ${line.remaining}`).join('\n')
+export function purchaseListText(batch: BatchDetail, only?: ReadonlySet<string>): string {
+  return openLines(batch).filter((line) => !only || only.has(line.id)).map((line) => `${purchaseLineName(line).full} × ${line.remaining}`).join('\n')
 }
 
 export function whatsappUrl(text: string): string {

@@ -100,3 +100,40 @@ test('the default expected arrival is tomorrow at midday and round-trips through
   assert.equal(m.fromLocalInput(''), null)
   assert.equal(m.fromLocalInput('nonsense'), null)
 })
+
+test('the name is split into brand, name and size tags for the page, while the copied text keeps one string', () => {
+  const n = m.purchaseLineName(line())
+  assert.deepEqual({ brand: n.brand, name: n.name, tags: n.tags, full: n.full }, { brand: 'Shaan', name: 'Soothing Gel', tags: ['120 g'], full: 'Shaan Soothing Gel 120 g' })
+  // A size the product name already carries is not repeated as a tag.
+  assert.deepEqual(m.purchaseLineName(line({ productName: 'Soothing Gel 120 g', variantName: '' })).tags, [])
+  assert.deepEqual(m.purchaseLineName(line({ packCount: 3 })).tags, ['120 g', '3-pack'])
+  assert.equal(m.purchaseLineName(line({ variantName: 'Rose' })).name, 'Soothing Gel Rose')
+})
+
+test('textures read in English like the storefront, and unknown or missing ones add nothing', () => {
+  assert.equal(m.textureLabel('GEL'), 'Gel')
+  assert.equal(m.textureLabel('GEL_CREAM'), 'Gel-cream')
+  assert.equal(m.textureLabel('SOMETHING_NEW'), '')
+  assert.equal(m.textureLabel(null), '')
+  assert.equal(m.textureLabel(undefined), '')
+})
+
+test('the product link opens the exact variant on the storefront, and is absent when the API sent no slug', () => {
+  assert.equal(m.productUrl({ productSlug: 'soothing gel/120', skuId: 's1' }), 'http://localhost:3000/products/soothing%20gel%2F120?sku=s1')
+  assert.equal(m.productUrl({ productSlug: null, skuId: 's1' }), null)
+  assert.equal(m.productUrl({ skuId: 's1' }), null)
+})
+
+test('copying only the selected lines keeps the same clean format, and an empty selection yields nothing', () => {
+  const b = batch([line({ id: 'a', productName: 'Rejuvenation Cream', remaining: 2 }), line({ id: 'b' }), line({ id: 'c', productName: 'Aloe Gel', brandName: 'Bobai', remaining: 3 })])
+  assert.equal(m.purchaseListText(b, new Set(['b', 'c'])), 'Bobai Aloe Gel 120 g × 3\nShaan Soothing Gel 120 g × 1')
+  assert.equal(m.purchaseListText(b, new Set()), '')
+  assert.equal(m.purchaseListText(b).split('\n').length, 3)
+})
+
+test('the category is shown as the catalog names it, and adds nothing when missing', () => {
+  assert.equal(m.categoryLabel('Cleansers'), 'Cleansers')
+  assert.equal(m.categoryLabel('  Moisturizers '), 'Moisturizers')
+  assert.equal(m.categoryLabel(null), '')
+  assert.equal(m.categoryLabel(undefined), '')
+})
