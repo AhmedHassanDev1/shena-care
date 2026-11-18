@@ -403,9 +403,9 @@ export function CheckoutView() {
   if (authLoading || cartLoading || !isAuthenticated || !ready) return <CheckoutSkeleton label={m.loading} />;
   if (!cart || cart.items.length === 0) {
     return (
-      <section className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-4 rounded-card bg-linen px-6 py-10 text-center shadow-outline-hairline">
+      <section className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-4 rounded-card border border-line/70 bg-linen/95 px-6 py-10 text-center shadow-elevation-1">
         <p className="m-0 text-body text-ink">{m.checkoutEmptyCart}</p>
-        <Link href={routes.products} className={buttonVariants({ variant: 'ink' })}>
+        <Link href={routes.products} className={buttonVariants({ variant: 'cobalt' })}>
           {m.cartShop}
         </Link>
       </section>
@@ -425,7 +425,7 @@ export function CheckoutView() {
             <MessageBox tone="err" role="alert">
               <p className="m-0 text-14 font-semibold">{m.checkoutStockLostTitle}</p>
               <p className="m-0 text-14 leading-22">{m.checkoutStockLostBody}</p>
-              <Link href={routes.cart} className={buttonVariants({ variant: 'ink', size: 's', className: 'mt-2' })}>
+              <Link href={routes.cart} className={buttonVariants({ variant: 'cobalt', size: 's', className: 'mt-2' })}>
                 {m.checkoutBackToCart}
               </Link>
             </MessageBox>
@@ -517,7 +517,7 @@ export function CheckoutView() {
 
       {/* Phone: «أكد الطلب · total» in the sticky action area where the nav would be (CommerceMobile ٣ب). */}
       <div className="pdp-bar fixed inset-x-0 bottom-0 z-nav bg-chalk/95 px-4 pt-3 shadow-hairline-top backdrop-blur-sm lg:hidden">
-        <AsyncButton size="l" className="w-full" state={placeState} pendingLabel={m.checkoutPlacing} retryLabel={placeLabel} disabled={!canPlace} onClick={placeOrder}>
+        <AsyncButton variant="cobalt" size="l" className="w-full" state={placeState} pendingLabel={m.checkoutPlacing} retryLabel={placeLabel} disabled={!canPlace} onClick={placeOrder}>
           {placeLabel}
         </AsyncButton>
       </div>

@@ -46,7 +46,7 @@ export function OrderTrackingView({
     const missing = access || status === 404 || status === 400;
 
     return (
-      <section className="mx-auto flex max-w-narrow flex-col items-center gap-4 rounded-sheet bg-linen px-6 py-12 text-center shadow-elevation-1">
+      <section className="mx-auto flex max-w-narrow flex-col items-center gap-4 rounded-sheet border border-line/70 bg-linen/95 px-6 py-12 text-center shadow-elevation-1">
         <div className="grid size-14 place-items-center rounded-pill bg-sand text-ink">
           <Icon name="package" size={26} />
         </div>
@@ -62,16 +62,16 @@ export function OrderTrackingView({
                 e.preventDefault();
                 openAuthModal();
               }}
-              className={buttonVariants({ variant: 'ink', size: 'l' })}
+              className={buttonVariants({ variant: 'cobalt', size: 'l' })}
             >
               {m.orderSignIn}
             </Link>
           ) : missing ? (
-            <Link href={routes.myOrders} className={buttonVariants({ variant: 'light', size: 'l' })}>
+            <Link href={routes.myOrders} className={buttonVariants({ variant: 'light', size: 'l', className: 'border border-line/70' })}>
               {m.myOrdersBack}
             </Link>
           ) : (
-            <Button variant="light" size="l" onClick={() => query.refetch()}>
+            <Button variant="light" size="l" className="border border-line/70" onClick={() => query.refetch()}>
               {m.checkoutRetry}
             </Button>
           )}

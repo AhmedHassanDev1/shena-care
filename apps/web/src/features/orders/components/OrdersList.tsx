@@ -62,7 +62,7 @@ export function OrdersList({
       ) : null}
 
       {visible.length === 0 ? (
-        <div className="rounded-24 bg-linen p-8 text-center shadow-elevation-1">
+        <div className="rounded-card border border-line/60 bg-linen/95 p-8 text-center shadow-elevation-1">
           <p className="m-0 text-14 text-stone">{m.myOrdersEmptyFilter}</p>
         </div>
       ) : (
@@ -96,9 +96,9 @@ function OrderCard({
       href={routes.order(order.orderNumber)}
       aria-current={selected ? 'page' : undefined}
       className={cn(
-        'group flex flex-col gap-3 rounded-24 bg-linen p-4.5 text-ink no-underline transition-all duration-base hover:shadow-elevation-2',
+        'group flex flex-col gap-3 rounded-card bg-linen/95 p-4.5 text-ink no-underline transition-all duration-base hover:border-line hover:shadow-elevation-2',
         selected
-          ? 'border border-cobalt bg-cobalt/5 shadow-outline-cobalt ring-2 ring-cobalt/15'
+          ? 'border border-cobalt bg-cobalt/5 ring-1 ring-cobalt/20 shadow-elevation-1'
           : 'border border-line/60 shadow-elevation-1'
       )}
     >
@@ -149,7 +149,7 @@ export function OrdersListSkeleton() {
   return (
     <div aria-busy="true" className="flex flex-col gap-3.5">
       {Array.from({ length: 3 }, (_, index) => (
-        <div key={index} className="flex flex-col gap-3 rounded-24 bg-linen p-5 shadow-elevation-1">
+        <div key={index} className="flex flex-col gap-3 rounded-card border border-line/60 bg-linen/95 p-5 shadow-elevation-1">
           <div className="flex justify-between items-center">
             <Skeleton className="h-4 w-32 rounded-pill" />
             <Skeleton className="h-5 w-20 rounded-pill" />
@@ -169,7 +169,7 @@ export function OrdersSignIn() {
   const m = useMessages();
   const { openAuthModal } = useAuth();
   return (
-    <section className="flex flex-col items-center gap-4 rounded-sheet bg-linen p-8 text-center shadow-elevation-1">
+    <section className="flex flex-col items-center gap-4 rounded-card border border-line/70 bg-linen/95 p-8 text-center shadow-elevation-1">
       <div className="grid size-14 place-items-center rounded-pill bg-sand text-ink">
         <Icon name="user" size={26} />
       </div>
@@ -180,7 +180,7 @@ export function OrdersSignIn() {
           e.preventDefault();
           openAuthModal();
         }}
-        className={buttonVariants({ variant: 'ink', size: 'l' })}
+        className={buttonVariants({ variant: 'cobalt', size: 'l' })}
       >
         {m.myOrdersSignInButton}
       </Link>
@@ -191,12 +191,12 @@ export function OrdersSignIn() {
 export function OrdersEmpty() {
   const m = useMessages();
   return (
-    <section className="flex flex-col items-center gap-4 rounded-sheet bg-linen px-6 py-12 text-center shadow-elevation-1">
+    <section className="flex flex-col items-center gap-4 rounded-card border border-line/70 bg-linen/95 px-6 py-12 text-center shadow-elevation-1">
       <div className="grid size-14 place-items-center rounded-pill bg-sand text-ink">
         <Icon name="bag" size={26} />
       </div>
       <p className="m-0 font-display text-20 font-bold text-ink">{m.myOrdersEmpty}</p>
-      <Link href={routes.products} className={buttonVariants({ variant: 'ink', size: 'l' })}>
+      <Link href={routes.products} className={buttonVariants({ variant: 'cobalt', size: 'l' })}>
         {m.cartShop}
       </Link>
     </section>
@@ -206,7 +206,7 @@ export function OrdersEmpty() {
 export function OrdersLoadFailed({ onRetry }: { onRetry: () => void }) {
   const m = useMessages();
   return (
-    <MessageBox tone="err" role="alert" className="rounded-24">
+    <MessageBox tone="err" role="alert" className="rounded-card border border-line/70">
       <p className="m-0 text-14">{m.myOrdersLoadFailed}</p>
       <button type="button" onClick={onRetry} className="text-link text-13.5 mt-2">
         {m.checkoutRetry}

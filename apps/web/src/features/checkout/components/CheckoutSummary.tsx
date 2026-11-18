@@ -60,7 +60,7 @@ export function CheckoutSummary({
   return (
     <aside
       aria-labelledby="co-summary"
-      className="flex flex-col gap-5 rounded-24 bg-linen p-5 shadow-elevation-1 lg:sticky lg:top-6 lg:rounded-sheet lg:p-7 lg:shadow-elevation-2"
+      className="flex flex-col gap-5 rounded-card border border-line/70 bg-linen/95 p-5 shadow-elevation-1 lg:sticky lg:top-6 lg:rounded-sheet lg:p-7 lg:shadow-elevation-2"
     >
       <div className="flex items-baseline justify-between gap-3 border-b border-line pb-3">
         <div className="flex items-center gap-2">
@@ -83,7 +83,7 @@ export function CheckoutSummary({
           const size = formatPackSize(item.sku.size, item.sku.sizeUnit, locale) ?? item.sku.variantName;
           const total = lineTotal(item.skuId, item.subtotal);
           return (
-            <li key={item.skuId} className="flex items-center gap-3 rounded-16 bg-chalk/40 p-2.5">
+            <li key={item.skuId} className="flex items-center gap-3 rounded-16 border border-line/50 bg-chalk/50 p-2.5 shadow-hairline-bottom">
               <ProductTile size="thumb" className="h-16 w-13 flex-none rounded-image shadow-hairline-bottom" src={item.sku.image?.url ?? null} alt="" name={name} />
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span dir="auto" className="truncate text-match-parent text-14 font-bold text-ink">
@@ -105,7 +105,7 @@ export function CheckoutSummary({
 
       {/* Coupon form */}
       <form
-        className="flex flex-col gap-2 rounded-16 bg-chalk/60 p-3"
+        className="flex flex-col gap-2 rounded-16 border border-line/50 bg-chalk/60 p-3 shadow-hairline-bottom"
         onSubmit={(event) => {
           event.preventDefault();
           if (code.trim()) onApplyCoupon(code.trim());
@@ -143,7 +143,7 @@ export function CheckoutSummary({
           ) : (
             <Button
               type="submit"
-              variant="ink"
+              variant="cobalt"
               className="h-11 rounded-input"
               loading={coupon.status === 'applying'}
               pendingLabel={m.checkoutCouponApplying}
@@ -203,6 +203,7 @@ export function CheckoutSummary({
       {/* Desktop place button */}
       <div className="hidden pt-2 lg:block">
         <AsyncButton
+          variant="cobalt"
           size="l"
           className="w-full text-17"
           state={quoteStatus === 'loading' ? 'resolving' : placeState}

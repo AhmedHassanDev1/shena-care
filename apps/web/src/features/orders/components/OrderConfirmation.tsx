@@ -67,7 +67,7 @@ export function OrderConfirmation({ order }: { order: OrderTracking }) {
         </h1>
 
         {/* Order reference pill */}
-        <div className="mt-3.5 flex items-center gap-2.5 rounded-pill bg-linen px-4 py-2 shadow-elevation-1 border border-line">
+        <div className="mt-3.5 flex items-center gap-2.5 rounded-pill border border-line/70 bg-linen/95 px-4 py-2 shadow-elevation-1">
           <span className="text-14 font-medium text-stone">{m.confirmNumber}</span>
           <bdi dir="ltr" className="font-display text-17 font-extrabold tabular-nums text-ink">
             {order.orderNumber}
@@ -89,7 +89,7 @@ export function OrderConfirmation({ order }: { order: OrderTracking }) {
       </header>
 
       {/* 3-Stage Delivery Progress Ladder */}
-      <section aria-label="مراحل معالجة الطلب" className="rounded-24 bg-linen p-5 shadow-elevation-1 lg:p-7">
+      <section aria-label="مراحل معالجة الطلب" className="rounded-card border border-line/70 bg-linen/95 p-5 shadow-elevation-1 lg:rounded-sheet lg:p-7">
         <ol className="m-0 flex list-none flex-col p-0">
           <StageRow
             icon="done"
@@ -114,7 +114,7 @@ export function OrderConfirmation({ order }: { order: OrderTracking }) {
       {/* Delivery details and items preview card */}
       <section
         aria-labelledby="confirm-delivery"
-        className="flex flex-col gap-5 rounded-24 bg-linen p-5 shadow-elevation-1 lg:p-7"
+        className="flex flex-col gap-5 rounded-card border border-line/70 bg-linen/95 p-5 shadow-elevation-1 lg:rounded-sheet lg:p-7"
       >
         <div className="flex items-center justify-between border-b border-line pb-3">
           <h2 id="confirm-delivery" className="m-0 font-display text-22 font-bold leading-28 text-ink">
@@ -126,7 +126,7 @@ export function OrderConfirmation({ order }: { order: OrderTracking }) {
         </div>
 
         {/* Courier reassurance banner */}
-        <div className="flex items-start gap-3 rounded-16 bg-chalk/70 p-3.5">
+        <div className="flex items-start gap-3 rounded-card border border-line/60 bg-chalk/60 p-3.5">
           <Icon name="truck" size={20} className="mt-0.5 text-cobalt flex-none" />
           <p className="m-0 text-13.5 leading-21 text-stone">
             {m.confirmAdvice}
@@ -161,7 +161,7 @@ export function OrderConfirmation({ order }: { order: OrderTracking }) {
                 .map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-2 rounded-16 bg-chalk/50 p-2 shadow-hairline-bottom"
+                    className="flex items-center gap-2 rounded-card border border-line/50 bg-chalk/60 p-2 shadow-hairline-bottom"
                   >
                     <ProductTile size="thumb" className="h-12 w-10 rounded-image" src={null} alt="" name={item.productName ?? ''} />
                     <div className="flex flex-col pe-2">
@@ -183,14 +183,14 @@ export function OrderConfirmation({ order }: { order: OrderTracking }) {
         <Link
           href={routes.order(order.orderNumber)}
           replace
-          className={buttonVariants({ variant: 'ink', size: 'l', className: 'flex-1 lg:flex-none text-16' })}
+          className={buttonVariants({ variant: 'cobalt', size: 'l', className: 'flex-1 lg:flex-none text-16' })}
         >
           <Icon name="package" size={18} />
           <span>{m.confirmTrack}</span>
         </Link>
         <Link
           href={routes.products}
-          className={buttonVariants({ variant: 'light', size: 'l', className: 'flex-1 lg:flex-none text-16' })}
+          className={buttonVariants({ variant: 'light', size: 'l', className: 'flex-1 lg:flex-none text-16 border border-line/70' })}
         >
           <Icon name="shop" size={18} />
           <span>{m.confirmShop}</span>

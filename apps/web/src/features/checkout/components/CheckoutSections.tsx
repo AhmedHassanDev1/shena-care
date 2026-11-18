@@ -40,7 +40,7 @@ export function CheckoutSection({
 }) {
   const locale = useLocale();
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-4 rounded-24 bg-linen p-4.5 shadow-outline-hairline lg:p-6">
+    <section aria-labelledby={id} className="flex flex-col gap-4 rounded-card border border-line/70 bg-linen/95 p-4.5 shadow-elevation-1 lg:p-6">
       <div className="flex items-center gap-3">
         <span
           aria-hidden="true"
@@ -194,8 +194,10 @@ export function AddressSection({
               <label
                 key={address.id}
                 className={cn(
-                  'relative flex cursor-pointer items-start gap-3 rounded-16 px-4 py-3.5',
-                  checked ? 'bg-cobalt/10 shadow-outline-cobalt' : 'bg-linen shadow-outline-control'
+                  'relative flex cursor-pointer items-start gap-3 rounded-card px-4 py-3.5 transition-all',
+                  checked
+                    ? 'border border-cobalt bg-cobalt/5 shadow-elevation-1 ring-1 ring-cobalt/20'
+                    : 'border border-line/70 bg-linen/90 shadow-elevation-1 hover:border-line hover:bg-linen'
                 )}
               >
                 <input
@@ -395,7 +397,7 @@ export function DeliverySection({
 
   return (
     <CheckoutSection id="co-delivery" step={3} done={Boolean(ready)} title={m.checkoutDeliveryTitle}>
-      <div className="flex items-center justify-between gap-3 rounded-16 bg-chalk px-4 py-3.5">
+      <div className="flex items-center justify-between gap-3 rounded-card border border-line/60 bg-chalk/60 px-4 py-3.5">
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="text-15 font-bold text-ink">
             {area ? fillMessage(m.checkoutDeliveryTo, { area }) : m.checkoutDeliveryTitle}
@@ -458,7 +460,7 @@ export function PaymentSection() {
   return (
     <CheckoutSection id="co-payment" step={4} done title={m.checkoutPaymentTitle}>
       <div role="radiogroup" aria-labelledby="co-payment">
-        <label className="flex cursor-pointer items-center gap-3 rounded-16 bg-cobalt/10 px-4 py-3.5 shadow-outline-cobalt">
+        <label className="flex cursor-pointer items-center gap-3 rounded-card border border-cobalt/80 bg-cobalt/5 px-4 py-3.5 shadow-elevation-1 ring-1 ring-cobalt/20">
           <input type="radio" name="co-payment" value="COD" className="sr-only" checked readOnly />
           <RadioMark checked />
           <Icon name="cash" size={22} className="flex-none text-ink" />

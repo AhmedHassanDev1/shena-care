@@ -87,9 +87,9 @@ export function CartLine({ item, busy, priceReview, onQuantity, onRemove, onPric
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
       className={cn(
-        'group relative flex flex-col rounded-24 bg-linen p-4 shadow-elevation-1 transition-all duration-base hover:shadow-elevation-2 lg:p-5',
-        unavailable && 'border border-tomato/30',
-        priceReview && 'border border-warn/40'
+        'group relative flex flex-col rounded-card border border-line/60 bg-linen/95 p-4 shadow-elevation-1 transition-all duration-base hover:border-line hover:shadow-elevation-2 lg:p-5',
+        unavailable && 'border-tomato/40',
+        priceReview && 'border-warn/50'
       )}
       aria-busy={busy || undefined}
     >

@@ -59,7 +59,7 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
       : m.checkoutDeliveryPromise;
 
   return (
-    <article className="flex flex-col gap-6 rounded-24 bg-linen p-5 shadow-elevation-1 lg:rounded-sheet lg:p-7 lg:shadow-elevation-2">
+    <article className="flex flex-col gap-6 rounded-card border border-line/70 bg-linen/95 p-5 shadow-elevation-1 lg:rounded-sheet lg:p-7 lg:shadow-elevation-2">
       {/* Header bar */}
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
         <div className="flex flex-col gap-1">
@@ -105,7 +105,7 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
       <OrderVisualProgress order={order} />
 
       {/* Detailed tracking timestamps timeline */}
-      <div className="rounded-24 bg-chalk/50 p-4.5">
+      <div className="rounded-card border border-line/50 bg-chalk/50 p-4.5">
         <h3 className="m-0 mb-3 font-display text-16 font-bold text-ink">{m.orderTimeline}</h3>
         <Timeline items={trackingSteps(order, m, locale)} label={m.orderTimeline} />
       </div>
@@ -132,7 +132,7 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
               <li
                 key={item.id}
                 className={cn(
-                  'flex flex-col gap-3 rounded-24 bg-chalk/40 p-3.5 transition-all lg:p-4',
+                  'flex flex-col gap-3 rounded-card border border-line/50 bg-chalk/50 p-3.5 transition-all lg:p-4 hover:border-line/70 hover:bg-chalk/70',
                   gone && 'opacity-60'
                 )}
               >
@@ -175,7 +175,7 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
       </section>
 
       {/* Financial breakdown card */}
-      <section aria-label={m.confirmTotal} className="flex flex-col gap-2 rounded-24 bg-chalk/40 p-4 border-t border-line">
+      <section aria-label={m.confirmTotal} className="flex flex-col gap-2 rounded-card border border-line/60 bg-chalk/50 p-4 border-t">
         <Row label={fillMessage(m.checkoutSubtotalCount, { count: formatProductCount(count, locale) })}>
           <Money amount={order.amounts.subtotal} />
         </Row>
@@ -199,7 +199,7 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
       </section>
 
       {/* Delivery address & courier notes */}
-      <section aria-labelledby="od-delivery" className="flex flex-col gap-2 rounded-24 bg-chalk/40 p-4.5">
+      <section aria-labelledby="od-delivery" className="flex flex-col gap-2 rounded-card border border-line/60 bg-chalk/50 p-4.5">
         <div className="flex items-center gap-2">
           <Icon name="truck" size={18} className="text-cobalt" />
           <h2 id="od-delivery" className="m-0 font-display text-17 font-bold text-ink">
@@ -214,7 +214,7 @@ export function OrderDetail({ order }: { order: OrderTracking }) {
 
       {/* Order resolutions (if applicable) */}
       {order.resolutions.length ? (
-        <section aria-labelledby="od-resolutions" className="flex flex-col gap-2.5 rounded-24 bg-chalk/40 p-4.5">
+        <section aria-labelledby="od-resolutions" className="flex flex-col gap-2.5 rounded-card border border-line/60 bg-chalk/50 p-4.5">
           <h2 id="od-resolutions" className="m-0 font-display text-17 font-bold text-ink">
             {m.orderResolutions}
           </h2>
@@ -271,7 +271,7 @@ function OrderVisualProgress({ order }: { order: OrderTracking }) {
   const currentLevel = LADDER[order.status] ?? 0;
 
   return (
-    <div className="rounded-24 bg-chalk/60 p-4 shadow-hairline-bottom">
+    <div className="rounded-card border border-line/60 bg-chalk/60 p-4 shadow-hairline-bottom">
       <div className="flex items-center justify-between">
         {stages.map((stage, idx) => {
           const reached = currentLevel >= idx;
@@ -288,7 +288,7 @@ function OrderVisualProgress({ order }: { order: OrderTracking }) {
                     reached
                       ? 'bg-ok text-white shadow-elevation-1'
                       : isCurrent
-                        ? 'bg-cobalt text-chalk ring-4 ring-cobalt/25'
+                        ? 'bg-cobalt text-chalk ring-4 ring-cobalt/20 shadow-elevation-1'
                         : 'bg-sand/60 text-stone'
                   )}
                 >
@@ -413,7 +413,7 @@ function OrderSelfService({ order }: { order: OrderTracking }) {
           </Button>
         ) : null}
         {finished ? (
-          <AsyncButton variant="ink" state={reorder.state === 'pending' ? 'pending' : 'idle'} pendingLabel={m.buyAgainAdding} onClick={orderAgain}>
+          <AsyncButton variant="cobalt" state={reorder.state === 'pending' ? 'pending' : 'idle'} pendingLabel={m.buyAgainAdding} onClick={orderAgain}>
             <Icon name="shop" size={17} />
             <span>{m.buyAgainOrder}</span>
           </AsyncButton>
@@ -455,7 +455,7 @@ function OrderSelfService({ order }: { order: OrderTracking }) {
 
       {/* Support ticket submission drawer/card */}
       {supportOpen ? (
-        <form onSubmit={send} className="flex flex-col gap-4 rounded-24 bg-chalk/70 p-5 shadow-elevation-1">
+        <form onSubmit={send} className="flex flex-col gap-4 rounded-card border border-line/60 bg-chalk/70 p-5 shadow-elevation-1">
           <div className="flex items-center justify-between">
             <h3 className="m-0 font-display text-17 font-bold text-ink">{m.orderSupportTitle}</h3>
             <button

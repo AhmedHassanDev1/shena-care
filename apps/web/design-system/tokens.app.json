@@ -325,11 +325,11 @@
     "tokens": [
       {
         "name": "nav",
-        "value": "0 2px 6px rgba(107,52,16,.15), -16px 22px 34px -18px rgba(107,52,16,.38)"
+        "value": "0 2px 6px rgba(107,52,16,.08), -8px 14px 28px -6px rgba(107,52,16,.14)"
       },
       {
         "name": "action",
-        "value": "-6px 8px 14px -8px rgba(107,52,16,.32)"
+        "value": "-4px 6px 18px -4px rgba(107,52,16,.10), 0 2px 6px -1px rgba(107,52,16,.05)"
       },
       {
         "name": "outline-ink",
@@ -337,11 +337,11 @@
       },
       {
         "name": "outline-control",
-        "value": "inset 0 0 0 1px rgba(22,19,15,.18)"
+        "value": "inset 0 0 0 1px rgba(22,19,15,.14)"
       },
       {
         "name": "outline-hairline",
-        "value": "inset 0 0 0 1px rgba(22,19,15,.14)"
+        "value": "inset 0 0 0 1px rgba(22,19,15,.10)"
       },
       {
         "name": "outline-ok",
@@ -369,7 +369,7 @@
       },
       {
         "name": "focus-field",
-        "value": "inset 0 0 0 2px var(--ink), -6px 8px 14px -8px rgba(107,52,16,.32)"
+        "value": "inset 0 0 0 2px var(--ink), -4px 6px 18px -4px rgba(107,52,16,.10)"
       },
       {
         "name": "hairline-bottom",
