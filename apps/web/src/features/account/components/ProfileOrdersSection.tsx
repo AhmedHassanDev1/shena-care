@@ -140,7 +140,7 @@ export function ProfileOrdersSection({
       </div>
 
       {isLoading ? (
-        <div className="divide-y divide-line rounded-card border border-line bg-linen">
+        <div className="divide-y divide-line/70 rounded-card border border-line/70 bg-linen/95 shadow-elevation-1">
           {[0, 1].map((idx) => (
             <div key={idx} className="flex items-center justify-between gap-4 p-5">
               <div className="flex items-center gap-3.5">
@@ -163,7 +163,7 @@ export function ProfileOrdersSection({
           </Button>
         </MessageBox>
       ) : visibleOrders.length === 0 ? (
-        <div className="rounded-card border border-line bg-linen p-6 text-start">
+        <div className="rounded-card border border-line/70 bg-linen/95 p-6 shadow-elevation-1 text-start">
           <div className="flex items-start gap-3.5">
             <span className="grid size-10 flex-none place-items-center rounded-pill bg-chalk text-cobalt shadow-outline-control">
               <Icon name="bag" size={20} />
@@ -180,7 +180,7 @@ export function ProfileOrdersSection({
           </div>
         </div>
       ) : (
-        <ul className="m-0 list-none divide-y divide-line rounded-card border border-line bg-linen p-0">
+        <ul className="m-0 list-none divide-y divide-line/70 rounded-card border border-line/70 bg-linen/95 p-0 shadow-elevation-1">
           {visibleOrders.map((order) => {
             const thumbs = order.skuIds.slice(0, THUMB_LIMIT);
             const overflow = Math.max(0, order.skuIds.length - THUMB_LIMIT);

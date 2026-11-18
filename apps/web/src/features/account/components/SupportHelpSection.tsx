@@ -151,7 +151,7 @@ export function SupportHelpSection({ orders, onSessionExpired }: SupportHelpSect
     <section
       id="account-support"
       aria-labelledby="profile-support-heading"
-      className="scroll-mt-24 rounded-card border border-line bg-linen p-5 md:p-6"
+      className="scroll-mt-24 rounded-card border border-line/70 bg-linen/95 p-5 shadow-elevation-1 md:p-6"
     >
       <div className="flex items-start gap-3">
         <span

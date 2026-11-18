@@ -37,7 +37,7 @@ export function SecuritySessionSection({ user }: SecuritySessionSectionProps) {
     <section
       id="account-security"
       aria-labelledby="profile-security-heading"
-      className="scroll-mt-24 rounded-card border border-line bg-chalk p-5 md:p-6"
+      className="scroll-mt-24 rounded-card border border-line/70 bg-linen/95 p-5 shadow-elevation-1 md:p-6"
     >
       <h2
         id="profile-security-heading"

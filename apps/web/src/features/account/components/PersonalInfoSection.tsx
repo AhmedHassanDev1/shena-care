@@ -150,7 +150,7 @@ export function PersonalInfoSection({
     <section
       id="account-personal"
       aria-labelledby="profile-personal-heading"
-      className="scroll-mt-24 rounded-card border border-line bg-linen p-5 md:p-6"
+      className="scroll-mt-24 rounded-card border border-line/70 bg-linen/95 p-5 shadow-elevation-1 md:p-6"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>

@@ -132,7 +132,7 @@ export function AddressFormPanel({
   return (
     <div
       ref={panelRef}
-      className="rounded-card border border-line bg-linen p-5 shadow-elevation-1 md:p-6"
+      className="rounded-card border border-line/70 bg-linen/95 p-5 shadow-elevation-1 md:p-6"
     >
       <div className="mb-5 flex items-center justify-between gap-3 border-b border-line pb-4">
         <h3 className="m-0 font-display text-22 font-bold leading-28 text-ink">

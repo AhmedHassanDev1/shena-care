@@ -143,7 +143,7 @@ export function SavedAddressesSection({
       ) : null}
 
       {isLoading ? (
-        <div className="divide-y divide-line rounded-card border border-line bg-linen">
+        <div className="divide-y divide-line/70 rounded-card border border-line/70 bg-linen/95 shadow-elevation-1">
           {[0, 1].map((idx) => (
             <div key={idx} className="flex flex-col gap-3 p-5">
               <div className="flex items-center gap-2">
@@ -164,7 +164,7 @@ export function SavedAddressesSection({
           </Button>
         </MessageBox>
       ) : ordered.length === 0 && formMode === 'closed' ? (
-        <div className="rounded-card border border-line bg-linen p-6 text-start">
+        <div className="rounded-card border border-line/70 bg-linen/95 p-6 shadow-elevation-1 text-start">
           <div className="flex items-start gap-3.5">
             <span className="grid size-10 flex-none place-items-center rounded-pill bg-chalk text-cobalt shadow-outline-control">
               <Icon name="pin" size={20} />
@@ -190,7 +190,7 @@ export function SavedAddressesSection({
           </div>
         </div>
       ) : ordered.length > 0 ? (
-        <ul className="m-0 list-none divide-y divide-line rounded-card border border-line bg-linen p-0">
+        <ul className="m-0 list-none divide-y divide-line/70 rounded-card border border-line/70 bg-linen/95 p-0 shadow-elevation-1">
           {ordered.map((addr) => {
             const isEditingThis =
               formMode !== 'closed' && formMode !== 'create' && formMode.id === addr.id;

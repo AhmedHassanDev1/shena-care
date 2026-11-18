@@ -93,14 +93,14 @@ export function AddressBookView() {
   if (!isAuthenticated) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 text-center">
-        <div className="rounded-input border border-line bg-linen p-8">
+        <div className="rounded-card border border-line/70 bg-linen/95 p-8 shadow-elevation-1">
           <Icon name="pin" size={40} className="mx-auto text-stone" />
           <h1 className="mt-3 text-display-3 text-ink">{m.addressBookTitle}</h1>
           <p className="mt-2 text-14 text-stone">{m.myOrdersSignIn}</p>
           <div className="mt-6">
             <Link
               href={`${routes.login}?returnTo=${encodeURIComponent(routes.accountAddresses)}`}
-              className={buttonVariants({ size: 'l' })}
+              className={buttonVariants({ variant: 'cobalt', size: 'l' })}
             >
               {m.myOrdersSignInButton}
             </Link>
@@ -292,7 +292,7 @@ export function AddressBookView() {
       )}
 
       {formOpen ? (
-        <div className="rounded-card bg-linen shadow-outline-hairline">
+        <div className="rounded-card border border-line/70 bg-linen/95 shadow-elevation-1">
           <div className="flex flex-col gap-1.5 px-5 pt-5">
             <h2 className="m-0 text-display-3 text-ink">{editingId ? m.addressBookEdit : m.addressBookAddNew}</h2>
           </div>
@@ -448,10 +448,10 @@ export function AddressBookView() {
           <Skeleton className="h-28 w-full rounded-input" />
         </div>
       ) : addresses.length === 0 && !formOpen ? (
-        <div className="rounded-input border border-dashed border-line p-8 text-center">
+        <div className="rounded-card border border-dashed border-line/80 bg-linen/95 p-8 shadow-elevation-1 text-center">
           <Icon name="pin" size={36} className="mx-auto text-stone" />
           <p className="mt-3 text-14 text-stone">{m.addressBookEmpty}</p>
-          <Button onClick={openAddForm} size="s" className="mt-4">
+          <Button onClick={openAddForm} variant="cobalt" size="s" className="mt-4">
             <Icon name="plus" size={18} className="me-1.5" />
             {m.addressBookAddNew}
           </Button>
@@ -461,7 +461,10 @@ export function AddressBookView() {
           {addresses.map((addr) => (
             <div
               key={addr.id}
-              className={cn('rounded-card bg-linen shadow-outline-hairline', addr.isDefault && 'shadow-outline-cobalt')}
+              className={cn(
+                'rounded-card border border-line/70 bg-linen/95 shadow-elevation-1 transition-all hover:shadow-elevation-2',
+                addr.isDefault && 'border-cobalt/60 ring-1 ring-cobalt/20'
+              )}
             >
               <div className="pb-2 flex flex-col gap-1.5 px-5 pt-5">
                 <div className="flex items-start justify-between gap-2">
