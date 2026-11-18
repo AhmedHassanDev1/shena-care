@@ -466,4 +466,35 @@ describe('Hub orders & preparation: barcode registration, handoff gate, loss rev
     expect(byKey.get(first)!.discountPerUnit.toString()).toBe('20');
     expect(byKey.get(second)!.discountPerUnit.toString()).toBe('60');
   });
+
+  it('keeps the audit trail when a shared purchase is corrected from another order, and never changes any confirmed customer price or total', async () => {
+    const sku = await createOrderableSku(prisma);
+    const x = await checkout([{ sku, quantity: 1 }]);
+    const y = await checkout([{ sku, quantity: 1 }]);
+    await buy(sku, 2);
+    await scan(x.id, { barcodeScanned: sku.barcode }).expect(201);
+    await scan(y.id, { barcodeScanned: sku.barcode }).expect(201);
+    const money = async () => Promise.all([x, y].map(async order => {
+      const line = await prisma.orderItem.findFirstOrThrow({ where: { orderId: order.id } });
+      const row = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+      return { price: line.price.toString(), lineTotal: line.lineTotal?.toString(), total: row.totalAmount.toString() };
+    }));
+    const before = await money();
+    const xLine = (await deskOrder(x.id)).lines[0]; const yLine = (await deskOrder(y.id)).lines[0];
+    expect(xLine.cost.acquireKey).toBe(yLine.cost.acquireKey);
+
+    await putDiscount(x.id, xLine.orderItemId, { discountPercent: 10, listUnitPrice: 200 }, hub.auth).expect(200);
+    await putDiscount(y.id, yLine.orderItemId, { discountPercent: 20 }, admin.auth).expect(200); // corrected from the other order, by another actor
+    const batch = await prisma.purchaseCostBatch.findUniqueOrThrow({ where: { acquireKey: xLine.cost.acquireKey } });
+    expect(batch).toMatchObject({ version: 2, recordedBy: hub.id });
+    expect(batch.discountPerUnit.toString()).toBe('40');
+    const history = batch.history as any[];
+    expect(history).toHaveLength(1);
+    expect(history[0]).toMatchObject({ version: 1, discountPerUnit: '20.00', listUnitPrice: '200.00', finalUnitCost: '180.00', correctedBy: admin.id });
+    expect(history[0].reason).toContain('20%');
+    expect(history[0].correctedAt).toEqual(expect.any(String));
+    // Both orders see the corrected cost; nothing the customers agreed to moved.
+    expect((await deskOrder(x.id)).lines[0].cost).toMatchObject({ discountPercent: '20.00', finalUnitCost: '160.00', version: 2 });
+    expect(await money()).toEqual(before);
+  });
 });
