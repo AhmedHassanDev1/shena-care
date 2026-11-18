@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { useCart } from '../hooks/useCart';
 import { markPricesReviewed, needsPriceReview, pendingChanges, reviewedPrices } from '../lib/cart-review';
 import { CartLine } from './CartLine';
+import { FreeDeliveryProgress } from './FreeDeliveryProgress';
 
 /** How long «تراجع» stays offered after a removal (CommerceStates §١: until the toast closes or another action). */
 const UNDO_MS = 8000;
@@ -152,24 +153,16 @@ export function CartView() {
           <p className="m-0 text-14 text-stone">{m.cartLead}</p>
         </div>
 
-        {/* Editorial reassurance ribbon */}
-        <div className="mt-4 flex items-center justify-between rounded-24 bg-linen px-5 py-3 shadow-elevation-1">
-          <span className="inline-flex items-center gap-2 text-13 font-medium text-ink">
-            <Icon name="truck" size={17} className="text-cobalt" />
-            <span>{m.cartPerksDelivery}</span>
-          </span>
-          <span className="h-4 w-px bg-line" aria-hidden="true" />
-          <span className="inline-flex items-center gap-2 text-13 font-medium text-ink">
-            <Icon name="cash" size={17} className="text-ok" />
-            <span>{m.cartPerksCod}</span>
-          </span>
-          <span className="h-4 w-px bg-line" aria-hidden="true" />
-          <span className="inline-flex items-center gap-2 text-13 font-medium text-ink">
-            <Icon name="shield" size={17} className="text-stone" />
-            <span>{m.cartPerksAuthentic}</span>
-          </span>
+        {/* Free delivery threshold progress */}
+        <div className="mt-4">
+          <FreeDeliveryProgress total={cart?.total ?? 0} />
         </div>
       </header>
+
+      {/* Mobile Free delivery threshold progress */}
+      <div className="mb-4 lg:hidden">
+        <FreeDeliveryProgress total={cart?.total ?? 0} />
+      </div>
 
       {merged ? (
         <MessageBox tone="info" role="status" className="mb-5 rounded-24">
@@ -242,7 +235,7 @@ function CartSummary({
   return (
     <aside
       aria-labelledby="cart-summary"
-      className="mt-6 flex flex-col gap-4 rounded-24 bg-linen p-5 shadow-elevation-1 lg:sticky lg:top-6 lg:mt-0 lg:rounded-sheet lg:p-7 lg:shadow-elevation-2"
+      className="mt-6 flex flex-col gap-4 rounded-card border border-line/70 bg-linen/95 p-5 shadow-elevation-1 lg:sticky lg:top-6 lg:mt-0 lg:rounded-sheet lg:p-7 lg:shadow-elevation-2"
     >
       <div className="flex items-center justify-between pb-1">
         <h2 id="cart-summary" className="m-0 font-display text-24 font-extrabold leading-30 text-ink">
@@ -272,18 +265,18 @@ function CartSummary({
 
       <div className="hidden lg:block pt-1">
         {changes > 0 ? (
-          <Button size="l" className="w-full" disabled={blocked} onClick={onCheckout}>
+          <Button variant="cobalt" size="l" className="w-full" disabled={blocked} onClick={onCheckout}>
             {m.cartReviewed}
           </Button>
         ) : (
-          <Button size="l" className="w-full" onClick={onCheckout}>
+          <Button variant="cobalt" size="l" className="w-full" onClick={onCheckout}>
             {m.cartCheckout}
           </Button>
         )}
       </div>
 
       {/* Trust guarantees list */}
-      <div className="rounded-16 bg-sand/30 p-3.5">
+      <div className="rounded-card border border-line/60 bg-sand/25 p-3.5">
         <ul className="m-0 flex list-none flex-col gap-2 p-0 text-13 leading-20 text-stone">
           {signedIn ? null : (
             <li className="flex items-center gap-2">
@@ -328,7 +321,7 @@ function MobileCheckoutBar({ total, blocked, onCheckout }: { total: number; bloc
         <span className="text-11 leading-15 text-stone">{m.cartWithoutDelivery}</span>
         <Money amount={total} className="font-display text-18 font-extrabold leading-24 text-ink" />
       </div>
-      <Button size="l" className="flex-1" disabled={blocked} onClick={onCheckout}>
+      <Button variant="cobalt" size="l" className="flex-1" disabled={blocked} onClick={onCheckout}>
         {m.cartCheckout}
       </Button>
     </div>
@@ -343,7 +336,7 @@ function EmptyCart({ signedIn }: { signedIn: boolean }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-4 rounded-sheet bg-linen px-6 py-14 text-center shadow-elevation-1 lg:mt-16 lg:px-12 lg:py-20"
+      className="mx-auto mt-10 flex max-w-narrow flex-col items-center gap-4 rounded-card border border-line/70 bg-linen/95 px-6 py-14 text-center shadow-elevation-1 lg:mt-16 lg:rounded-sheet lg:px-12 lg:py-20"
     >
       <div className="relative mb-2 grid size-20 place-items-center rounded-pill bg-sand text-ink shadow-elevation-1">
         <span aria-hidden="true" className="sun sm think absolute -top-1 -end-1" />
@@ -352,7 +345,7 @@ function EmptyCart({ signedIn }: { signedIn: boolean }) {
       <h1 className="m-0 font-display text-32 font-extrabold leading-38 text-ink lg:text-40 lg:leading-44">{m.cartEmptyTitle}</h1>
       <p className="m-0 max-w-md text-15 leading-24 text-stone">{m.cartEmptyBody}</p>
       <div className="mt-4 flex flex-wrap justify-center gap-3">
-        <Link href={routes.products} className={buttonVariants({ variant: 'ink', size: 'l' })}>
+        <Link href={routes.products} className={buttonVariants({ variant: 'cobalt', size: 'l' })}>
           {m.cartShop}
         </Link>
         {signedIn ? null : (
@@ -362,7 +355,7 @@ function EmptyCart({ signedIn }: { signedIn: boolean }) {
               e.preventDefault();
               openAuthModal();
             }}
-            className={buttonVariants({ variant: 'light', size: 'l' })}
+            className={buttonVariants({ variant: 'light', size: 'l', className: 'border border-line/70' })}
           >
             {m.cartSignIn}
           </Link>
