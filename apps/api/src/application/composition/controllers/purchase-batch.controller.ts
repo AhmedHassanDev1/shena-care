@@ -25,13 +25,18 @@ export class PurchaseBatchController {
   constructor(private readonly batches: PurchaseBatchService, private readonly catalog: CatalogService) {}
 
   private async withIdentity(detail: PurchaseBatchDetail) {
-    const identities = new Map(await Promise.all([...new Set(detail.lines.map(line => line.skuId))]
-      .map(async id => [id, await this.catalog.getSkuIdentity(id)] as const)));
+    const skuIds = [...new Set(detail.lines.map(line => line.skuId))];
+    const [identities, labels] = await Promise.all([
+      Promise.all(skuIds.map(async id => [id, await this.catalog.getSkuIdentity(id)] as const)).then(rows => new Map(rows)),
+      this.catalog.getSkuLabels(skuIds),
+    ]);
     return {
       ...detail,
       lines: detail.lines.map(line => {
         const identity = identities.get(line.skuId);
+        // The brand is not part of the stored order snapshot; staff need it to name the product exactly when buying it.
         return { ...line, skuCode: identity?.code ?? line.skuCode, variantName: identity?.variantName ?? line.variantName,
+          brandName: labels.get(line.skuId)?.brandName ?? null,
           size: identity?.size ?? null, sizeUnit: identity?.sizeUnit ?? null, packCount: identity?.packCount ?? null, barcode: identity?.barcode ?? null };
       }),
     };

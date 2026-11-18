@@ -8,36 +8,87 @@ const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.Modu
 const m = await import(`data:text/javascript;base64,${Buffer.from(compiled.outputText).toString('base64')}`)
 
 const line = (over = {}) => ({
-  id: 'l1', skuId: 's1', productName: 'كريم', skuCode: 'A-50', variantName: '50 مل', size: 50, sizeUnit: 'ml', packCount: null, barcode: '6221',
-  required: 5, received: 1, remaining: 4, closedOut: 0, orders: [], receipts: [], ...over,
+  id: 'l1', skuId: 's1', productName: 'Soothing Gel', brandName: 'shaan', skuCode: 'SC-SHAAN-2424A866', variantName: '120 g', size: 120, sizeUnit: 'g', packCount: null,
+  barcode: '6221234567890', required: 1, received: 0, remaining: 1, closedOut: 0, orders: [], receipts: [], ...over,
 })
 const batch = (lines, over = {}) => ({
-  id: 'b1', number: 12, kind: 'scheduled', status: 'sent', cutoffAt: '2026-11-14T10:00:00Z', createdAt: '2026-11-14T10:00:01Z', sentAt: null, sentBy: null,
-  expectedAt: null, note: null, closedAt: null, closeReason: null, skus: lines.length, orders: 1, units: 5, received: 1, remaining: 4, nextAction: 'receive', lines, events: [], ...over,
+  id: 'b1', number: 12, kind: 'scheduled', status: 'ready', cutoffAt: '2026-11-14T10:00:00Z', createdAt: '2026-11-14T10:00:01Z', sentAt: null, sentBy: null,
+  expectedAt: '2026-11-15T12:00:00Z', note: 'اتصل قبل ما تروح', closedAt: null, closeReason: null, skus: lines.length, orders: 1, units: 5, received: 0, remaining: 4, nextAction: 'send', lines, events: [], ...over,
 })
 
-test('the message only lists what is still to be ordered, with the exact size and the remaining quantity', () => {
-  const text = m.batchText(batch([line(), line({ id: 'l2', skuCode: 'B-100', productName: 'سيروم', remaining: 0, received: 2, required: 2 })]))
-  assert.match(text, /دفعة #12/)
-  assert.match(text, /1\. كريم — 50 مل · 50 ml \[A-50 \/ 6221\] × 4/)
-  assert.doesNotMatch(text, /سيروم/)
-  assert.match(text, /الإجمالي: 1 صنف · 4 قطعة/)
+test('the copied text is only "name × quantity" per line, with brand and size in the name and nothing else', () => {
+  const text = m.purchaseListText(batch([
+    line({ id: 'a', productName: 'Rejuvenation Cream', skuCode: 'SC-SHAAN-DF5C9F53', required: 2, remaining: 2 }),
+    line({ id: 'b' }),
+    line({ id: 'c', productName: 'Acne Prone Skin Facial Cleanser', brandName: 'StarVille', variantName: '200 ml', size: 200, sizeUnit: 'ml', skuCode: 'SC-STARVI-49343ABD' }),
+  ]))
+  assert.equal(text, [
+    'Shaan Rejuvenation Cream 120 g × 2',
+    'Shaan Soothing Gel 120 g × 1',
+    'StarVille Acne Prone Skin Facial Cleanser 200 ml × 1',
+  ].join('\n'))
 })
 
-test('a batch with nothing left says so instead of listing zero-quantity rows', () => {
-  assert.match(m.batchText(batch([line({ remaining: 0 })])), /مفيش حاجة مطلوبة/)
+test('the copied text never carries codes, barcodes, ids, batch numbers, dates, status or notes', () => {
+  const text = m.purchaseListText(batch([line()]))
+  for (const leaked of ['SC-SHAAN', '6221234567890', 'l1', 's1 ', '#12', 'ShinaCare', 'اتصل', '2026', 'جاهزة', 'الإجمالي']) assert.ok(!text.includes(leaked), leaked)
 })
 
-test('the WhatsApp link only carries the typed message (no recipient, no automatic sending)', () => {
-  const url = m.whatsappUrl('دفعة #12\n1. كريم × 4')
+test('only what is still to be bought is listed, using the remaining quantity', () => {
+  const text = m.purchaseListText(batch([line({ required: 5, received: 1, remaining: 4 }), line({ id: 'l2', productName: 'Serum', remaining: 0, received: 2, required: 2 })]))
+  assert.equal(text, 'Shaan Soothing Gel 120 g × 4')
+})
+
+test('size is never repeated when the variant, the product name or the structured size already says it', () => {
+  const name = (over) => m.purchaseLineName(line(over)).full
+  assert.equal(name({}), 'Shaan Soothing Gel 120 g')
+  assert.equal(name({ variantName: '120g' }), 'Shaan Soothing Gel 120 g')
+  assert.equal(name({ productName: 'Soothing Gel 120 g', variantName: 'Default' }), 'Shaan Soothing Gel 120 g Default')
+  assert.equal(name({ productName: 'Soothing Gel 120g', variantName: '' }), 'Shaan Soothing Gel 120g')
+  assert.equal(name({ variantName: 'Rose' }), 'Shaan Soothing Gel Rose 120 g')
+  assert.equal(name({ size: null, sizeUnit: null, variantName: '120 g' }), 'Shaan Soothing Gel 120 g')
+  assert.equal(name({ size: 12.5, sizeUnit: 'ml', variantName: '' }), 'Shaan Soothing Gel 12.5 ml')
+  assert.equal(name({ packCount: 3 }), 'Shaan Soothing Gel 120 g 3-pack')
+})
+
+test('the brand is added once, kept as stored when it has its own casing, and missing brands do not break the name', () => {
+  const name = (over) => m.purchaseLineName(line(over))
+  assert.equal(name({ productName: 'Shaan Soothing Gel' }).full, 'Shaan Soothing Gel 120 g')
+  assert.equal(name({ productName: 'Shaan Soothing Gel' }).brand, '')
+  assert.equal(name({ brandName: "L'Oréal Paris", productName: 'Hyaluron Moisture Shampoo', variantName: '200 ml', size: 200, sizeUnit: 'ml' }).full, "L'Oréal Paris Hyaluron Moisture Shampoo 200 ml")
+  assert.equal(name({ brandName: 'eva cosmetics', productName: 'Niacinamide Facial Serum', variantName: '30 ml', size: 30, sizeUnit: 'ml' }).full, 'Eva Cosmetics Niacinamide Facial Serum 30 ml')
+  assert.equal(name({ brandName: undefined }).full, 'Soothing Gel 120 g')
+  assert.equal(name({ brandName: null }).brand, '')
+})
+
+test('the list is ordered by brand and name, and the header counts match the copied text', () => {
+  const b = batch([line({ id: 'z', productName: 'Zinc Cream', brandName: 'Bobai', remaining: 3 }), line({ id: 'a', productName: 'Aloe Gel', brandName: 'Bobai', remaining: 2 }), line({ id: 'x', brandName: 'Alpha', productName: 'Mask', remaining: 1 }),
+    line({ id: 'd', productName: 'Done', remaining: 0, received: 1 })])
+  assert.deepEqual(m.openLines(b).map((l) => l.id), ['x', 'a', 'z'])
+  assert.deepEqual(m.purchaseTotals(b), { products: 3, units: 6 })
+  assert.equal(m.purchaseListText(b).split('\n').length, 3)
+})
+
+test('a batch with nothing left to buy has an empty copy text and falls back to the batch totals in the header', () => {
+  const b = batch([line({ remaining: 0, received: 1 })], { skus: 1, units: 1 })
+  assert.equal(m.purchaseListText(b), '')
+  assert.deepEqual(m.purchaseTotals(b), { products: 1, units: 1 })
+})
+
+test('the WhatsApp link carries exactly the copied text (no recipient, no automatic sending)', () => {
+  const text = m.purchaseListText(batch([line(), line({ id: 'l2', productName: 'Rejuvenation Cream', remaining: 2 })]))
+  const url = m.whatsappUrl(text)
   assert.ok(url.startsWith('https://wa.me/?text='))
-  assert.equal(decodeURIComponent(url.slice('https://wa.me/?text='.length)), 'دفعة #12\n1. كريم × 4')
+  assert.equal(decodeURIComponent(url.slice('https://wa.me/?text='.length)), 'Shaan Rejuvenation Cream 120 g × 2\nShaan Soothing Gel 120 g × 1')
 })
 
-test('the printable checklist escapes product names and keeps a tick box per line', () => {
+test('the printable checklist escapes product names, keeps a tick box per line and carries no codes', () => {
   const html = m.batchPrintHtml(batch([line({ productName: '<b>x</b> & "y"' })]))
   assert.match(html, /&lt;b&gt;x&lt;\/b&gt; &amp; &quot;y&quot;/)
   assert.match(html, /class="box"/)
+  const clean = m.batchPrintHtml(batch([line()]))
+  assert.match(clean, /Shaan Soothing Gel 120 g/)
+  assert.doesNotMatch(clean, /SC-SHAAN|6221234567890/)
 })
 
 test('the default expected arrival is tomorrow at midday and round-trips through the datetime-local control', () => {

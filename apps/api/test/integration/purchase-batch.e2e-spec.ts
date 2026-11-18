@@ -13,7 +13,7 @@ import { createActor, Actor } from '../fixtures/actors';
 import { signInCustomer } from '../fixtures/checkout';
 import { ensureFixtureReviewer, FIXTURE_SOURCE_URL } from '../fixtures/sellable-sku';
 
-type OrderableSku = { id: string; barcode: string; variantName: string };
+type OrderableSku = { id: string; barcode: string; variantName: string; brandName: string };
 
 /** A valid EAN-13 (the media review rejects barcodes without a correct check digit). */
 function ean13() {
@@ -40,7 +40,7 @@ async function createOrderableSku(prisma: PrismaService): Promise<OrderableSku> 
   } });
   await prisma.listing.create({ data: { skuId: sku.id, isListed: true } });
   await prisma.sellingPrice.create({ data: { skuId: sku.id, amount: 100, currency: 'EGP', validFrom: new Date(Date.now() - 60000) } });
-  return { id: sku.id, barcode, variantName: '50 ml' };
+  return { id: sku.id, barcode, variantName: '50 ml', brandName: brand.name };
 }
 
 /**
@@ -133,6 +133,8 @@ describe('Purchase batches (e2e)', () => {
     const batch1 = await detail(first!.batchId);
     expect(batch1).toMatchObject({ status: 'ready', kind: 'scheduled', skus: 1, units: 2, received: 0, remaining: 2, nextAction: 'send' });
     expect(lineOf(batch1, skuA).orders.map(o => [o.orderId, o.quantity])).toEqual([[o1.order.id, 2]]);
+    // The purchase list names each product exactly: brand, size and unit come from the catalog, not the order snapshot.
+    expect(lineOf(batch1, skuA)).toMatchObject({ brandName: skuA.brandName, size: 50, sizeUnit: 'ml', variantName: '50 ml' });
 
     // The scheduled cut is idempotent: retries and a concurrent burst (several instances) end with one batch.
     expect(await batches.cut({ slotKey: slot1, cutoffAt: cutoff1, kind: 'scheduled', actorId: null })).toMatchObject({ replayed: true, batchId: first!.batchId });
