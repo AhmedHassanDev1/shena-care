@@ -11,7 +11,7 @@ function Stage({ className, children }: { className?: string; children: ReactNod
 
   return (
     <div className={cn('routine-stage', className)} data-period={period ?? undefined}>
-      <AmbientSky />
+      <AmbientSky calm />
       {children}
     </div>
   );
