@@ -4,6 +4,7 @@ import { IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } 
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { SETTING_KEYS } from '../../../platform/settings/runtime-settings';
 import { SettingsService } from '../../../modules/operations/settings/settings.service';
+import { OrderProfitabilityService } from './order-profitability.service';
 
 export const PACKAGING_TYPES = ['BAG', 'BOX'] as const;
 export type PackagingType = (typeof PACKAGING_TYPES)[number];
@@ -40,7 +41,7 @@ const LOOKBACK_DAYS = 90;
  */
 @Injectable()
 export class OrderCostService {
-  constructor(private readonly prisma: PrismaService, private readonly settings: SettingsService) {}
+  constructor(private readonly prisma: PrismaService, private readonly settings: SettingsService, private readonly profitability: OrderProfitabilityService) {}
 
   private packagingCostOf(type: PackagingType): number {
     const value = this.settings.effective<number | null>(type === 'BAG' ? SETTING_KEYS.bagCost : SETTING_KEYS.boxCost);
@@ -64,7 +65,7 @@ export class OrderCostService {
     const isAdmin = actor.roles.includes('ADMIN');
     const packagingCost = dto.packagingType ? new Prisma.Decimal(this.packagingCostOf(dto.packagingType)) : undefined;
 
-    return this.prisma.$transaction(async tx => {
+    const result = await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(44100, hashtext(${orderId}))::text AS locked`;
       const existing = await tx.orderCostRecord.findUnique({ where: { orderId } });
       const now = new Date();
@@ -101,6 +102,9 @@ export class OrderCostService {
         : await tx.orderCostRecord.create({ data: { ...(data as Omit<Prisma.OrderCostRecordUncheckedCreateInput, 'orderId'>), orderId } });
       return { replayed: false, ...this.present(saved) };
     });
+    // A newly recorded packaging cost can make the order a loss: flag it for an authorized review (best effort, never blocks the recording).
+    if (dto.packagingType && !result.replayed) await this.profitability.flagIfLoss(orderId).catch(() => undefined);
+    return result;
   }
 
   private assertCanOverwrite(label: string, isAdmin: boolean, reason?: string) {

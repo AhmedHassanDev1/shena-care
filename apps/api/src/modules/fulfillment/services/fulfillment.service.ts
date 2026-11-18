@@ -13,6 +13,17 @@ import { OrderDeliveredEvent } from '../../../platform/events/integration.events
 import { OutboxService } from '../../operations/services/outbox.service';
 import { SupportService } from '../../operations/services/support.service';
 import { expiryProblem } from './receiving-policy';
+import { derivePrintState, PRINT_EVENT_TYPES_FOR_STATE } from './print-state';
+
+/**
+ * What the Hub may only learn from other contexts before it hands a parcel off. The composition layer registers it at start-up, so the
+ * Fulfillment module never reads another context's tables: `assertPackable` throws a typed conflict when the order's packaging is not
+ * recorded, `afterPacked` lets the owner of order costs react once the parcel is packed (e.g. flag a loss-making order for review).
+ */
+export interface PackingGate {
+  assertPackable(orderId: string): Promise<void>;
+  afterPacked(orderId: string, actor: { id: string; roles: string[] }): Promise<void>;
+}
 
 export interface FulfillmentLocationDetail {
   id: string;
@@ -125,6 +136,35 @@ export class FulfillmentService {
     private readonly identity: ProductIdentityService,
     private readonly buyList: BuyListService,
   ) {}
+
+  private packingGate: PackingGate | null = null;
+
+  /** Registered once by the composition layer; without it only the Fulfillment-owned conditions (verification, printing) are enforced. */
+  registerPackingGate(gate: PackingGate) { this.packingGate = gate; }
+
+  /** The paper outcome of one shipment, from its confirmed print events. */
+  async getPrintState(shipmentId: string) {
+    const events = await this.prisma.shipmentEvent.findMany({
+      where: { shipmentId, type: { in: [...PRINT_EVENT_TYPES_FOR_STATE] } },
+      select: { type: true, reasonCode: true, notes: true, createdAt: true }, orderBy: { createdAt: 'asc' },
+    });
+    return derivePrintState(events);
+  }
+
+  /**
+   * Handoff readiness (the parcel is packed and may leave): preparation was verified by scan (the status machine only reaches
+   * prepared/ready_to_pack/packing through the verified session), both papers are confirmed printed right now, and the packaging used
+   * is recorded. Typed conflicts so the desk can say exactly what is still missing.
+   */
+  private async assertReadyToPack(shipment: { id: string; orderId: string; status: ShipmentStatus }) {
+    const print = await this.getPrintState(shipment.id);
+    if (!print.labelGenerated) throw new ConflictException({ code: 'LABEL_NOT_GENERATED', message: 'Generate the shipping label before packing', print });
+    if (!print.ready) {
+      const missing = [print.receipt !== 'printed' ? 'the customer receipt' : null, print.label !== 'printed' ? 'the shipping label' : null].filter(Boolean).join(' and ');
+      throw new ConflictException({ code: 'PRINT_NOT_CONFIRMED', message: `Confirm that ${missing} printed correctly before packing`, print });
+    }
+    await this.packingGate?.assertPackable(shipment.orderId);
+  }
 
   /**
    * Physical identity evidence for one unit/line (GLO-242): a scanned manufacturer barcode resolved
@@ -1201,6 +1241,9 @@ export class FulfillmentService {
       }
     }
 
+    if (dto.document && dto.type !== 'PRINT_FAILED') throw new BadRequestException('document is only recorded with a print failure');
+    if (dto.type === 'PRINT_FAILED' && !dto.notes?.trim()) throw new BadRequestException('Say what went wrong with the print so it can be redone');
+
     if (dto.type === 'PACKED') {
       const order = await this.orderingService.getOrder(shipment.orderId);
       if (order?.status === 'cancelled') throw new ConflictException('Order was cancelled; do not print or pack it');
@@ -1209,6 +1252,8 @@ export class FulfillmentService {
     const newStatus = EVENT_STATUS[dto.type];
     // Reject an illegal transition before anything is persisted, so the audit trail stays truthful.
     if (newStatus) assertShipmentTransition(shipment.status, newStatus);
+    // Handoff only once verification, printing and packaging are all in place (a replay of an already packed parcel changes nothing).
+    if (dto.type === 'PACKED' && shipment.status !== ShipmentStatus.packed) await this.assertReadyToPack(shipment);
     if (dto.type !== 'DELIVERED' && dto.collectedAmount !== undefined) {
       throw new BadRequestException('collectedAmount is only recorded with a delivery');
     }
@@ -1226,6 +1271,10 @@ export class FulfillmentService {
     if (newStatus && shipment.status !== newStatus) {
       await this.updateShipmentStatus(shipmentId, { status: newStatus },
         { as: scope.as, actor, collectedAmount: dto.collectedAmount, event: { type: dto.type, notes: dto.notes, reasonCode: dto.reasonCode } });
+      if (dto.type === 'PACKED' && this.packingGate) {
+        // Reacts to the finished handoff (e.g. flags a loss-making order for review); never undoes the packing if it fails.
+        await this.packingGate.afterPacked(shipment.orderId, actor).catch(() => undefined);
+      }
       return this.prisma.shipmentEvent.findFirstOrThrow({ where: { shipmentId, type: dto.type }, orderBy: { createdAt: 'desc' } });
     }
 
@@ -1235,6 +1284,7 @@ export class FulfillmentService {
         type: dto.type,
         actorId: actor.id,
         notes: dto.notes,
+        ...(dto.type === 'PRINT_FAILED' && dto.document ? { reasonCode: dto.document } : {}),
       }
     });
   }
@@ -1612,7 +1662,7 @@ export class FulfillmentService {
       this.prisma.shipment.findMany({ where, orderBy: { updatedAt: 'asc' }, take: filter.take, skip: filter.skip,
         include: {
           items: true, deliveryStops: { where: { status: 'active' }, select: { batchId: true, sequence: true } },
-          events: { where: { type: { in: ['LABEL_GENERATED', 'LABEL_PRINTED', 'RECEIPT_PRINTED', 'PRINT_FAILED'] } }, select: { type: true, createdAt: true } },
+          events: { where: { type: { in: [...PRINT_EVENT_TYPES_FOR_STATE] } }, select: { type: true, reasonCode: true, notes: true, createdAt: true } },
         } }),
     ]);
     const orders = await this.orderingService.getOrderSummaries(rows.map(r => r.orderId));
@@ -1624,6 +1674,7 @@ export class FulfillmentService {
       activeRun: row.deliveryStops[0] ?? null, updatedAt: row.updatedAt,
       // Paper outcomes the operator confirmed (a preview is never a print).
       printEvents: [...new Set(row.events.map(event => event.type))],
+      print: derivePrintState(row.events),
     })) };
   }
 

@@ -9,6 +9,7 @@ import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { DomainEventsService } from '../../src/platform/events/domain-events.service';
 import { createActor, Actor } from '../fixtures/actors';
+import { recordPackaging } from '../fixtures/pack-ready';
 import { signInCustomer } from '../fixtures/checkout';
 import { ensureFixtureReviewer, FIXTURE_SOURCE_URL } from '../fixtures/sellable-sku';
 
@@ -91,6 +92,7 @@ describe('Golden journeys (e2e)', () => {
     const barcode = (await http().post(`/fulfillment/shipments/${shipmentId}/label`).set(hub.auth).expect(201)).body.barcode as string;
     await event(shipmentId, hub, { type: 'LABEL_PRINTED' }).expect(201);
     await event(shipmentId, hub, { type: 'RECEIPT_PRINTED' }).expect(201);
+    await recordPackaging(app, hub.auth, shipmentId);
     await event(shipmentId, hub, { type: 'PACKED' }).expect(201);
     return barcode;
   };

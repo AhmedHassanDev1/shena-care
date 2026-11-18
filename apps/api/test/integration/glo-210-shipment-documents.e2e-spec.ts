@@ -8,6 +8,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service';
 import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
+import { makeReadyToPack } from '../fixtures/pack-ready';
 
 /**
  * GLO-210 (W18): thermal documents come from the canonical order snapshot, reprints keep one
@@ -162,7 +163,9 @@ describe('GLO-210 shipment documents, print lifecycle and transitions (e2e)', ()
     });
 
     it('moves forward from verified preparation and rejects going back', async () => {
-      const shipmentId = await makeShipment((await makeOrder()).id, 'prepared');
+      const order = await makeOrder();
+      const shipmentId = await makeShipment(order.id, 'prepared');
+      await makeReadyToPack(app, hub.auth, shipmentId, order.id);
       await http().post(`/fulfillment/shipments/${shipmentId}/events`).set(hub.auth).send({ type: 'PACKED' }).expect(201);
       await http().post(`/fulfillment/shipments/${shipmentId}/events`).set(hub.auth).send({ type: 'PACKED' }).expect(201);
       expect(await statusOf(shipmentId)).toBe('packed');

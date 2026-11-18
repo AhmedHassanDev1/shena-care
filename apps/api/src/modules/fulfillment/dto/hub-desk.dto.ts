@@ -61,6 +61,38 @@ export class DeskScanDto {
   cost?: DeskCostDto;
 }
 
+/**
+ * Registers the barcode of a product that has none, after the operator physically verified the exact product (brand, variant, size and pack)
+ * against the order line. The code becomes an approved identity of that one SKU; it never rewrites catalog identity and is never accepted if
+ * it already identifies anything else.
+ */
+export class RegisterBarcodeDto {
+  /** Client-generated id of this registration; a retry returns the original outcome. */
+  @IsUUID()
+  clientScanId: string;
+
+  /** The SKU of the order line the physical unit was verified as. */
+  @IsUUID()
+  skuId: string;
+
+  /** The code as scanned or typed from the pack. */
+  @IsString()
+  @MinLength(8)
+  @MaxLength(14)
+  barcode: string;
+
+  /** Every identity check the operator performed on the physical pack. */
+  @IsArray()
+  @IsIn(MANUAL_IDENTITY_CHECKS, { each: true })
+  checks: string[];
+
+  /** Why the code is not registered yet / what was compared (kept as audit evidence). */
+  @IsString()
+  @MinLength(5)
+  @MaxLength(300)
+  note: string;
+}
+
 export const CORRECTION_REASONS = ['WRONG_UNIT_SCANNED', 'DUPLICATE_SCAN', 'DAMAGED_ON_INSPECTION', 'WRONG_ORDER', 'OTHER'] as const;
 
 /** Compensating correction of one committed receipt scan. The original stays; a negative receipt points at it. */
