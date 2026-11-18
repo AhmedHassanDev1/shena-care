@@ -300,6 +300,12 @@ export interface SkuLabel {
   size?: number | null;
   sizeUnit?: string | null;
   imageUrl?: string | null;
+  /** The product's storefront slug and texture (e.g. GEL), for staff screens that link to or tag the product. */
+  productSlug?: string;
+  texture?: string | null;
+  /** The product's merchandising category (leaf, e.g. cleansers), for staff screens that tag the product. */
+  categorySlug?: string | null;
+  categoryName?: string | null;
 }
 
 export interface SkuIdentityCandidateRequest {
@@ -1083,6 +1089,7 @@ export class CatalogService {
         product: {
           include: {
             brand: true,
+            category: true,
             media: {
               where: { originType: { not: 'generated' } },
               orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
@@ -1104,6 +1111,10 @@ export class CatalogService {
         size: sku.size ? sku.size.toNumber() : null,
         sizeUnit: sku.sizeUnit,
         imageUrl: primaryMedia?.url ?? null,
+        productSlug: sku.product.slug,
+        texture: sku.product.texture ?? null,
+        categorySlug: sku.product.category?.slug ?? null,
+        categoryName: sku.product.category?.name ?? null,
       }];
     }));
   }

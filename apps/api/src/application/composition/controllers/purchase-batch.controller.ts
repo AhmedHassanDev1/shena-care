@@ -36,7 +36,9 @@ export class PurchaseBatchController {
         const identity = identities.get(line.skuId);
         // The brand is not part of the stored order snapshot; staff need it to name the product exactly when buying it.
         return { ...line, skuCode: identity?.code ?? line.skuCode, variantName: identity?.variantName ?? line.variantName,
-          brandName: labels.get(line.skuId)?.brandName ?? null,
+          brandName: labels.get(line.skuId)?.brandName ?? null, imageUrl: labels.get(line.skuId)?.imageUrl ?? null,
+          productSlug: labels.get(line.skuId)?.productSlug ?? null, texture: labels.get(line.skuId)?.texture ?? null,
+          categorySlug: labels.get(line.skuId)?.categorySlug ?? null, categoryName: labels.get(line.skuId)?.categoryName ?? null,
           size: identity?.size ?? null, sizeUnit: identity?.sizeUnit ?? null, packCount: identity?.packCount ?? null, barcode: identity?.barcode ?? null };
       }),
     };

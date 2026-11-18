@@ -135,6 +135,8 @@ describe('Purchase batches (e2e)', () => {
     expect(lineOf(batch1, skuA).orders.map(o => [o.orderId, o.quantity])).toEqual([[o1.order.id, 2]]);
     // The purchase list names each product exactly: brand, size and unit come from the catalog, not the order snapshot.
     expect(lineOf(batch1, skuA)).toMatchObject({ brandName: skuA.brandName, size: 50, sizeUnit: 'ml', variantName: '50 ml' });
+    // …and carries what staff need to recognise and open the product: photo, storefront slug and texture (none set on the fixture).
+    expect(lineOf(batch1, skuA)).toMatchObject({ imageUrl: expect.stringContaining('cdn.fixtures.test'), productSlug: expect.stringMatching(/^batch-product-/), texture: null, categorySlug: null, categoryName: null });
 
     // The scheduled cut is idempotent: retries and a concurrent burst (several instances) end with one batch.
     expect(await batches.cut({ slotKey: slot1, cutoffAt: cutoff1, kind: 'scheduled', actorId: null })).toMatchObject({ replayed: true, batchId: first!.batchId });

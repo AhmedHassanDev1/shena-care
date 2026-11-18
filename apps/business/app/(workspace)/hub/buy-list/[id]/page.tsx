@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowRight, Check, ChevronDown, Copy, MessageCircle, Printer, RefreshCw, Undo2 } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, Copy, ExternalLink, MessageCircle, Package, Printer, RefreshCw, Undo2 } from 'lucide-react'
 import { Button, Code, Field, Notice, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { Flash, Meter } from '@/components/bw/ops'
 import { CommandError, Page } from '@/components/workspace/kit'
@@ -11,7 +11,8 @@ import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api, newKey } from '@/lib/api'
 import { formatDateTime, shortId } from '@/lib/labels'
 import {
-  batchPrintHtml, fromLocalInput, openLines, orderedLines, purchaseLineName, purchaseListText, purchaseTotals, STATUS_LABEL, toLocalInput, tomorrowMidday, whatsappUrl,
+  batchPrintHtml, categoryLabel, fromLocalInput, openLines, orderedLines, productUrl, purchaseLineName, purchaseListText, purchaseTotals, STATUS_LABEL, textureLabel, toLocalInput,
+  tomorrowMidday, whatsappUrl,
   type BatchDetail, type BatchLine,
 } from '@/lib/purchase-batch'
 import { useApi, useCommand } from '@/lib/use-api'
@@ -61,11 +62,23 @@ function BatchBody() {
   const hasOpen = rows.length > 0
   const totals = data ? purchaseTotals(data) : null
 
-  const copy = async () => {
-    if (!data) return
-    setCopied((await writeClipboard(purchaseListText(data))) ? 'ok' : 'failed')
+  // Selection lives only on the purchase list's rows; a line that is bought or closed out drops out of it on the next refresh.
+  const [selected, setSelected] = React.useState<ReadonlySet<string>>(new Set())
+  React.useEffect(() => {
+    setSelected((current) => {
+      const live = new Set(rows.map((line) => line.id))
+      const kept = [...current].filter((id) => live.has(id))
+      return kept.length === current.size ? current : new Set(kept)
+    })
+  }, [rows])
+  const toggle = (id: string) => setSelected((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next })
+  const toggleAll = () => setSelected((current) => (current.size === rows.length ? new Set() : new Set(rows.map((line) => line.id))))
+
+  const copyText = async (text: string) => {
+    setCopied((await writeClipboard(text)) ? 'ok' : 'failed')
     window.setTimeout(() => setCopied(null), 2500)
   }
+  const copy = async () => { if (data) await copyText(purchaseListText(data)) }
   const print = () => {
     if (!data) return
     // A self-contained document in its own window, so the app chrome and controls never reach the paper.
@@ -122,9 +135,12 @@ function BatchBody() {
 
           <section aria-label="قائمة المشتريات" className="bw-panel overflow-hidden">
             {hasOpen ? (
-              <ul className="divide-y divide-bw-line">
-                {rows.map((line) => <PurchaseRow key={line.id} line={line} />)}
-              </ul>
+              <>
+                <SelectionBar batch={data} rows={rows} selected={selected} onToggleAll={toggleAll} onCopy={(text) => void copyText(text)} onChanged={reload} />
+                <ul className="divide-y divide-bw-line">
+                  {rows.map((line) => <PurchaseRow key={line.id} line={line} checked={selected.has(line.id)} onToggle={() => toggle(line.id)} />)}
+                </ul>
+              </>
             ) : (
               <StateBlock kind="empty" title={data.status === 'closed' ? 'مفيش حاجة للشراء في الدفعة دي' : 'كل أصناف الدفعة اتشترت أو اتحسمت'}
                 body={data.status === 'closed' ? undefined : 'التفاصيل في «تسجيل الاستلام» تحت.'} />
@@ -141,20 +157,137 @@ function BatchBody() {
   )
 }
 
-/** One product to buy: the name people recognise, the brand above it, and the quantity as the loudest thing on the row. */
-function PurchaseRow({ line }: { line: BatchLine }) {
+const tagTone = {
+  violet: 'bg-bw-violet-soft text-bw-violet border-bw-violet/25',
+  amber: 'bg-bw-amber-soft text-bw-amber border-bw-amber/25',
+  cobalt: 'bg-bw-cobalt-soft text-bw-cobalt border-bw-cobalt/25',
+} as const
+
+/** A small colored label: category (violet), texture (amber), size (cobalt). Colour is never the only carrier: each tag has its own words. */
+function Tag({ tone, children }: { tone: keyof typeof tagTone; children: React.ReactNode }) {
+  return <span className={cn('inline-flex items-center rounded-full border px-2 text-[11px] font-semibold leading-5', tagTone[tone])}>{children}</span>
+}
+
+const imageSrc = (url: string) => (url.startsWith('/') ? `${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '')}${url}` : url)
+
+/**
+ * How one product is shown everywhere on this page: photo, the brand right beside the name, size and texture as small tags, and a link
+ * to its storefront page. Tags carry the size only when the name does not already say it.
+ */
+function ProductCell({ line }: { line: BatchLine }) {
   const name = purchaseLineName(line)
+  const texture = textureLabel(line.texture)
+  const category = categoryLabel(line.categoryName)
+  const href = productUrl(line)
+  const [broken, setBroken] = React.useState(false)
+  // An image that failed before React attached its handler never fires onError again, so look at it once on mount.
+  const imageRef = React.useCallback((node: HTMLImageElement | null) => { if (node && node.complete && node.naturalWidth === 0) setBroken(true) }, [])
+  const title = (
+    <bdi>{name.brand ? <><strong className="font-bold">{name.brand}</strong>{' '}</> : null}{name.name || shortId(line.skuId)}</bdi>
+  )
   return (
-    <li className="flex items-center gap-4 px-4 py-3">
-      <p className="flex w-14 shrink-0 items-baseline justify-center gap-0.5 text-bw-ink" aria-label={`الكمية ${line.remaining}`}>
+    <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+      {line.imageUrl && !broken ? (
+        <img ref={imageRef} src={imageSrc(line.imageUrl)} alt={name.full} width={48} height={48} loading="lazy" onError={() => setBroken(true)}
+          className="size-11 shrink-0 rounded-bw-field border border-bw-line bg-bw-surface object-cover sm:size-12" />
+      ) : (
+        <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-bw-field border border-bw-line bg-bw-veil-1 text-bw-ink-subtle sm:size-12"><Package className="size-5" /></span>
+      )}
+      <div className="min-w-0 flex-1">
+        {/* One isolate, so the brand reads first even inside the RTL page; the whole name opens the product page. */}
+        <h3 className="text-bw-body font-medium leading-6 text-bw-ink">
+          {href ? (
+            <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`فتح صفحة ${name.full}`} title="فتح صفحة المنتج" className="group/link hover:underline hover:underline-offset-4">
+              {title}<ExternalLink className="ms-1.5 inline size-3.5 align-[-1px] text-bw-ink-subtle transition-colors group-hover/link:text-bw-ink" aria-hidden />
+            </a>
+          ) : title}
+        </h3>
+        {category || texture || name.tags.length ? (
+          <p className="mt-1 flex flex-wrap items-center gap-1.5">
+            {category ? <Tag tone="violet"><bdi>{category}</bdi></Tag> : null}
+            {texture ? <Tag tone="amber"><bdi>{texture}</bdi></Tag> : null}
+            {name.tags.map((tag) => <Tag key={tag} tone="cobalt"><bdi>{tag}</bdi></Tag>)}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+/** One product to buy: a checkbox, the quantity as the loudest thing on the row, then the product. */
+function PurchaseRow({ line, checked, onToggle }: { line: BatchLine; checked: boolean; onToggle: () => void }) {
+  return (
+    <li className={cn('flex items-center gap-2.5 px-3 py-2.5 sm:gap-3 sm:px-4', checked && 'bg-bw-veil-1')}>
+      <input type="checkbox" className="size-4 shrink-0 accent-bw-action" checked={checked} onChange={onToggle} aria-label={`تحديد ${purchaseLineName(line).full}`} />
+      <p className="flex w-10 shrink-0 items-baseline justify-center gap-0.5 text-bw-ink sm:w-12" aria-label={`الكمية ${line.remaining}`}>
         <bdi className="bw-code text-[1.5rem] font-semibold leading-none tabular-nums">{line.remaining}</bdi>
         <span className="text-bw-small text-bw-ink-subtle" aria-hidden>×</span>
       </p>
-      <div className="min-w-0 flex-1">
-        {name.brand ? <p className="text-[12px] leading-5 text-bw-ink-soft"><bdi>{name.brand}</bdi></p> : null}
-        <h3 className="text-bw-body font-semibold leading-6 text-bw-ink"><bdi>{name.title || shortId(line.skuId)}</bdi></h3>
-      </div>
+      <ProductCell line={line} />
     </li>
+  )
+}
+
+/**
+ * Select all / pick some, then act on just those: copy or share their text, or (once the order is confirmed) record each as bought at
+ * its remaining quantity through the same per-line receive call the receiving section uses. Nothing is selected by default, so the
+ * header's copy button keeps copying the whole list.
+ */
+function SelectionBar({ batch, rows, selected, onToggleAll, onCopy, onChanged }: {
+  batch: BatchDetail; rows: BatchLine[]; selected: ReadonlySet<string>; onToggleAll: () => void; onCopy: (text: string) => void; onChanged: () => void
+}) {
+  const all = selected.size === rows.length
+  const some = selected.size > 0 && !all
+  const boxRef = React.useRef<HTMLInputElement>(null)
+  React.useEffect(() => { if (boxRef.current) boxRef.current.indeterminate = some }, [some])
+  const [confirming, setConfirming] = React.useState(false)
+  const [busy, setBusy] = React.useState(false)
+  const [result, setResult] = React.useState<{ tone: 'ok' | 'warn'; text: string } | null>(null)
+  const chosen = rows.filter((line) => selected.has(line.id))
+  const units = chosen.reduce((sum, line) => sum + line.remaining, 0)
+  React.useEffect(() => { if (selected.size === 0) setConfirming(false) }, [selected])
+
+  const markBought = async () => {
+    setBusy(true); setResult(null)
+    let done = 0; const failed: string[] = []
+    for (const line of chosen) {
+      try {
+        await api(`/purchase-batches/${batch.id}/lines/${line.id}/receive`, { body: { quantity: line.remaining, idempotencyKey: newKey() } })
+        done += 1
+      } catch { failed.push(purchaseLineName(line).full) }
+    }
+    setBusy(false); setConfirming(false)
+    setResult(failed.length
+      ? { tone: 'warn', text: `اتسجّل ${done} من ${chosen.length}. مااتسجّلش: ${failed.join('، ')}. الأرقام اتحدّثت، جرّب تاني.` }
+      : { tone: 'ok', text: `اتسجّل شراء ${units} قطعة لـ ${done} منتج. الوصول الفعلي والتكلفة بيتسجّلوا في «الطلبات والتجهيز» وقت المسح.` })
+    onChanged()
+  }
+
+  return (
+    <div className="border-b border-bw-line px-4 py-2">
+      <div className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-2">
+        <label className="flex items-center gap-3 text-bw-small font-semibold text-bw-ink-soft">
+          <input ref={boxRef} type="checkbox" className="size-4 accent-bw-action" checked={all} onChange={onToggleAll} />
+          {selected.size ? <>تم تحديد <Code>{selected.size}</Code> من <Code>{rows.length}</Code></> : 'تحديد الكل'}
+        </label>
+        {selected.size ? (
+          <span className="ms-auto flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => onCopy(purchaseListText(batch, selected))}><Copy className="size-4" aria-hidden />نسخ المحدد</Button>
+            <a href={whatsappUrl(purchaseListText(batch, selected))} target="_blank" rel="noopener noreferrer"
+              className="inline-flex h-9 items-center gap-2 rounded-bw-field border border-bw-line bg-bw-surface px-3 text-bw-small font-semibold text-bw-ink shadow-bw-sheen transition-colors hover:bg-bw-sunken"><MessageCircle className="size-4" aria-hidden />واتساب</a>
+            {batch.status === 'sent' ? (
+              confirming ? (
+                <>
+                  <Button size="sm" loading={busy} onClick={() => void markBought()}>تأكيد: اتشترى <Code>{units}</Code> قطعة</Button>
+                  <Button variant="ghost" size="sm" disabled={busy} onClick={() => setConfirming(false)}>رجوع</Button>
+                </>
+              ) : <Button variant="secondary" size="sm" onClick={() => setConfirming(true)}><Check className="size-4" aria-hidden />تم الشراء للمحدد</Button>
+            ) : null}
+          </span>
+        ) : null}
+      </div>
+      {result ? <div className="mt-2"><Flash tone={result.tone}>{result.text}</Flash></div> : null}
+    </div>
   )
 }
 
@@ -306,7 +439,6 @@ function LineRow({ batch, line, onChanged }: { batch: BatchDetail; line: BatchLi
   const stale = receive.error?.code === 'EXCEEDS_OUTSTANDING' || receive.error?.code === 'NOTHING_OUTSTANDING'
     ? 'الكمية المتبقية اتغيّرت (طلب اتلغى أو اتعدّل). اتحدّثت بالأرقام الحالية.' : null
   const done = line.remaining === 0
-  const name = purchaseLineName(line)
 
   const submit = async () => {
     setMessage(null)
@@ -322,8 +454,7 @@ function LineRow({ batch, line, onChanged }: { batch: BatchDetail; line: BatchLi
     <li className={cn('px-4 py-3.5', done && 'bg-bw-veil-1')}>
       <div className="grid gap-x-4 gap-y-3 md:grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem_minmax(0,19rem)] md:items-center">
         <div className="min-w-0">
-          {name.brand ? <p className="text-[12px] text-bw-ink-soft"><bdi>{name.brand}</bdi></p> : null}
-          <h3 className="text-bw-body font-semibold text-bw-ink"><bdi>{name.title || shortId(line.skuId)}</bdi></h3>
+          <ProductCell line={line} />
           <p className="mt-1 flex flex-wrap items-center gap-x-3 text-[12px] text-bw-ink-subtle">
             <Code>{line.skuCode ?? shortId(line.skuId)}</Code>
             {line.barcode ? <Code>{line.barcode}</Code> : null}
