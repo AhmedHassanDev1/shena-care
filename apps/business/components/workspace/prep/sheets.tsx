@@ -1,16 +1,16 @@
 'use client'
 
 import * as React from 'react'
-import { BadgeDollarSign, Barcode, ChevronLeft, ExternalLink, ScanSearch } from 'lucide-react'
+import { BadgeDollarSign, Barcode, ChevronLeft, ExternalLink, Minus, Plus, ScanSearch } from 'lucide-react'
 import { Button, Dialog, Field, useDialog } from '@/components/bw/primitives'
 import { Flash } from '@/components/bw/ops'
 import { type ApiError, api, newKey } from '@/lib/api'
 import { productUrl } from '@/lib/purchase-batch'
 import { useApi, useCommand } from '@/lib/use-api'
-import { type DeskLine, type DeskOrder, REJECT, type ScanResult, productMeta, productTitle } from './model'
+import { type DeskLine, type DeskOrder, MANUAL_CHECKS as ALL_CHECKS, MANUAL_REASON, REJECT, type ScanResult, productMeta, productTitle } from './model'
 import { Thumb } from './product'
+import { registerUnits } from './register'
 
-const ALL_CHECKS = ['brand', 'variant', 'size', 'pack']
 
 /** A bottom sheet that opens as soon as it is mounted and tells its owner when it closes (button, Esc or backdrop). */
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -20,18 +20,26 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
 }
 
 export type SheetKind = 'menu' | 'manual' | 'barcode' | 'price'
+export type ActionKind = Exclude<SheetKind, 'menu'>
+export interface ActionItem { kind: ActionKind; label: string; hint: string; icon: React.ElementType }
 
-/** The few things that are not part of the scan flow. Opens over the preparation screen; nothing is navigated away from. */
-export function ActionsSheet({ line, canPrice, onPick, onClose }: { line: DeskLine; canPrice: boolean; onPick: (kind: Exclude<SheetKind, 'menu'>) => void; onClose: () => void }) {
-  const items: Array<{ kind: Exclude<SheetKind, 'menu'>; label: string; hint: string; icon: React.ElementType; show: boolean }> = [
+/** The actions of one product that are not part of the scan flow; the popover (desktop) and the bottom sheet (phone) list the same ones. */
+export function actionItems(line: DeskLine, canPrice: boolean): ActionItem[] {
+  const items: Array<ActionItem & { show: boolean }> = [
     { kind: 'manual', label: 'تسجيل بدون باركود', hint: 'قارن العبوة بالبيانات وأكّد القطعة بنفسك', icon: ScanSearch, show: true },
     { kind: 'barcode', label: line.barcode ? 'تعديل الباركود' : 'إضافة باركود', hint: line.barcode ? 'لو الباركود المسجّل غلط' : 'المنتج ده من غير باركود متسجّل', icon: Barcode, show: true },
     { kind: 'price', label: 'تعديل سعر البيع في الموقع', hint: 'بيسري على الطلبات الجديدة بس', icon: BadgeDollarSign, show: canPrice },
   ]
+  return items.filter((item) => item.show)
+}
+
+/** The same actions as a bottom sheet (phone). Opens over the preparation screen; nothing is navigated away from. */
+export function ActionsSheet({ line, canPrice, onPick, onClose }: { line: DeskLine; canPrice: boolean; onPick: (kind: ActionKind) => void; onClose: () => void }) {
+  const items = actionItems(line, canPrice)
   return (
     <Sheet title={productTitle(line)} onClose={onClose}>
       <ul className="space-y-2">
-        {items.filter((item) => item.show).map(({ kind, label, hint, icon: Icon }) => (
+        {items.map(({ kind, label, hint, icon: Icon }) => (
           <li key={kind}>
             <button type="button" onClick={() => onPick(kind)} className="flex min-h-14 w-full items-center gap-3 rounded-bw-card border border-bw-line bg-bw-surface px-4 py-3 text-start hover:bg-bw-sunken">
               <Icon className="size-5 shrink-0 text-bw-ink-soft" aria-hidden />
@@ -49,11 +57,16 @@ export function ActionsSheet({ line, canPrice, onPick, onClose }: { line: DeskLi
  * Manual confirmation: the employee compares the physical pack with what the catalog says it must be and confirms it themselves.
  * Recorded as a manual verification (the server stores the reason and the four identity checks), never as a barcode scan.
  */
-export function ManualSheet({ line, hubId, orderId, onDone, onClose }: { line: DeskLine; hubId: string; orderId: string; onDone: (order: DeskOrder | null) => void; onClose: () => void }) {
+export function ManualSheet({ line, hubId, orderId, onDone, onClose }: { line: DeskLine; hubId: string; orderId: string; onDone: (order: DeskOrder | null, recorded: number, requested: number) => void; onClose: () => void }) {
+  // One server call per unit (the scan API records one unit each, every one audited), so the quantity below is only how many are sent in a row.
   const confirm = useCommand(() => api<ScanResult>(`/fulfillment/locations/${hubId}/desk/orders/${orderId}/scan`, {
-    body: { clientScanId: newKey(), skuId: line.skuId, manualReason: 'قارنت العبوة بصورة وبيانات المنتج وأكّدتها يدويًا', manualChecks: ALL_CHECKS },
+    body: { clientScanId: newKey(), skuId: line.skuId, manualReason: MANUAL_REASON, manualChecks: ALL_CHECKS },
   }))
   const [refused, setRefused] = React.useState<string | null>(null)
+  // What can still be registered right now: never more than is required, nor more than was bought. The default is all of it.
+  const room = Math.max(Math.min(line.required, line.purchased) - line.received, 1)
+  const [wanted, setWanted] = React.useState(room)
+  const count = Math.min(Math.max(wanted, 1), room)
   const link = productUrl(line)
   const rows: Array<[string, string | null]> = [
     ['الماركة', line.brandName], ['الحجم', line.size], ['النوع', line.variantName], ['كود المنتج', line.skuCode], ['الباركود المسجّل', line.barcode ?? 'مفيش'],
@@ -72,14 +85,30 @@ export function ManualSheet({ line, hubId, orderId, onDone, onClose }: { line: D
           ))}
         </dl>
         <p className="rounded-bw-field bg-bw-sunken/60 px-3 py-2 text-[12px] text-bw-ink-soft">قارن العبوة اللي في إيدك بالصورة والبيانات دي. هتتسجّل «تحقق يدوي» باسمك، مش مسح باركود.</p>
+        <div className="flex items-center justify-between gap-3">
+          <span id="manual-qty" className="text-bw-small font-semibold text-bw-ink">عدد القطع<span className="ms-1.5 text-[12px] font-normal text-bw-ink-soft">(المتاح <bdi className="tabular-nums">{room}</bdi>)</span></span>
+          <div role="group" aria-labelledby="manual-qty" className="flex items-center gap-1">
+            <button type="button" disabled={count <= 1 || confirm.pending} aria-label="نقّص العدد" onClick={() => setWanted(count - 1)}
+              className="grid size-bw-control place-items-center rounded-full border border-bw-line bg-bw-surface text-bw-ink hover:bg-bw-sunken disabled:cursor-not-allowed disabled:opacity-60"><Minus className="size-4" aria-hidden /></button>
+            <span className="min-w-10 text-center text-bw-heading font-semibold tabular-nums text-bw-ink" dir="ltr" aria-live="polite">{count}</span>
+            <button type="button" disabled={count >= room || confirm.pending} aria-label="زوّد العدد" onClick={() => setWanted(count + 1)}
+              className="grid size-bw-control place-items-center rounded-full bg-bw-action text-bw-on-action hover:bg-bw-action-hover disabled:cursor-not-allowed disabled:bg-bw-sunken disabled:text-bw-ink-subtle"><Plus className="size-4" aria-hidden /></button>
+          </div>
+        </div>
         {confirm.error ? <Flash tone="danger">{confirm.error.message}</Flash> : null}
         {refused ? <Flash tone="danger">{refused}</Flash> : null}
         <Button size="touch" className="w-full" loading={confirm.pending} onClick={async () => {
           setRefused(null)
-          const result = await confirm.execute()
-          if (result && result.outcome !== 'rejected') { onDone(result.order); onClose() }
-          else if (result) { setRefused(REJECT[result.code ?? ''] ?? 'التسجيل اترفض.') }
-        }}>تأكيد وإضافة القطعة</Button>
+          const outcome = await registerUnits<DeskOrder>(count, async () => {
+            const result = await confirm.execute()
+            if (!result) return undefined
+            return { refusal: result.outcome === 'rejected' ? REJECT[result.code ?? ''] ?? 'التسجيل اترفض.' : null, order: result.order }
+          })
+          if (outcome.refusal) setRefused(outcome.refusal)
+          // Only what the server confirmed is reported, even when a later unit was refused or failed: each unit was decided on its own.
+          if (outcome.done > 0) onDone(outcome.last, outcome.done, count)
+          if (outcome.complete) onClose()
+        }}>{count > 1 ? `تأكيد وإضافة ${count} قطع` : 'تأكيد وإضافة القطعة'}</Button>
         {link ? <a href={link} target="_blank" rel="noreferrer" className="flex min-h-11 items-center justify-center gap-1.5 text-bw-small font-semibold text-bw-cobalt underline-offset-4 hover:underline">تفاصيل المنتج<ExternalLink className="size-4" aria-hidden /></a> : null}
       </div>
     </Sheet>

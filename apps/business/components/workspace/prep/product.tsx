@@ -14,7 +14,7 @@ export function Thumb({ line, size = 'md' }: { line: DeskLine; size?: 'md' | 'lg
   const img = React.useRef<HTMLImageElement>(null)
   // A photo that already failed before this component hydrated never fires onError: check it once mounted.
   React.useEffect(() => { const el = img.current; if (el && el.complete && el.naturalWidth === 0) setBroken(true) }, [src])
-  const box = size === 'xl' ? 'size-48' : size === 'lg' ? 'size-20 sm:size-24' : 'size-12 sm:size-14'
+  const box = size === 'xl' ? 'size-48' : size === 'lg' ? 'size-20 sm:size-24' : 'size-14'
   if (!src || broken) {
     return (
       <span
@@ -36,7 +36,7 @@ export function Thumb({ line, size = 'md' }: { line: DeskLine; size?: 'md' | 'lg
       alt=""
       loading="lazy"
       onError={() => setBroken(true)}
-      className={cn(box, 'shrink-0 rounded-bw-field border border-bw-line bg-bw-surface', size === 'xl' ? 'object-contain' : 'object-cover')}
+      className={cn(box, 'shrink-0 rounded-bw-field border border-bw-line bg-bw-sunken object-contain', size !== 'xl' && 'p-1')}
     />
   )
 }

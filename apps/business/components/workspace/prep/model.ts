@@ -64,3 +64,7 @@ export const unitsOf = (order: DeskOrder) => order.lines.reduce((sum, line) => s
 export const receivedOf = (order: DeskOrder) => order.lines.reduce((sum, line) => sum + Math.min(line.received, line.required), 0)
 export const productTitle = (line: DeskLine) => line.productName ?? 'منتج'
 export const productMeta = (line: DeskLine) => [line.brandName, line.size, line.variantName === line.size ? null : line.variantName].filter(Boolean).join(' · ')
+
+/** The manual verification recorded when a unit is confirmed without a barcode: the audit row carries this reason and every identity check. */
+export const MANUAL_CHECKS = ['brand', 'variant', 'size', 'pack']
+export const MANUAL_REASON = 'قارنت العبوة بصورة وبيانات المنتج وأكّدتها يدويًا'
