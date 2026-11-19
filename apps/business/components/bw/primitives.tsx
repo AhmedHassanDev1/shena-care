@@ -255,7 +255,7 @@ export function Toast({ tone, title, children, action, onClose }: {
   onClose?: () => void
 }) {
   const Icon = toneIcon[tone]
-  return <div className="flex w-full max-w-md items-center gap-2.5 rounded-bw-card border border-bw-line bg-bw-surface py-2 ps-3.5 pe-2 text-bw-ink shadow-bw-overlay">
+  return <div className="bw-glass-raised flex w-full max-w-md items-center gap-2.5 rounded-bw-card py-2 ps-3.5 pe-2 text-bw-ink">
     <Icon className={cn('size-[18px] shrink-0', toastAccent[tone])} aria-hidden />
     <div className="min-w-0 flex-1 py-0.5">
       <p className="text-bw-small font-semibold leading-snug">{title}</p>

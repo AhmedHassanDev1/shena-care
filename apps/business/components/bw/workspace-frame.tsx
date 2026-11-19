@@ -341,13 +341,13 @@ function MobileNav({ title, accent, items, primary, isItemActive, getItemCount }
   React.useEffect(() => { sheetRef.current?.close() }, [pathname, sheetRef])
 
   const slot = 'flex h-14 min-w-0 flex-col items-center justify-center border-t-2 px-1 text-[11px] transition-colors duration-150'
-  const on = accent === 'cobalt' ? 'border-bw-cobalt bg-bw-sunken font-semibold text-bw-ink' : 'border-bw-action bg-bw-sunken font-semibold text-bw-ink'
-  const off = 'border-transparent text-bw-ink-soft hover:bg-bw-surface hover:text-bw-ink'
+  const on = accent === 'cobalt' ? 'border-bw-cobalt bg-bw-veil-3 font-semibold text-bw-ink' : 'border-bw-action bg-bw-veil-3 font-semibold text-bw-ink'
+  const off = 'border-transparent text-bw-ink-soft hover:bg-bw-veil-2 hover:text-bw-ink'
   const iconOn = accent === 'cobalt' ? 'text-bw-cobalt' : 'text-bw-ink'
 
   return (
     <>
-      <nav aria-label={title} className="bw-glass fixed inset-x-0 bottom-0 z-30 grid grid-flow-col auto-cols-fr border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav aria-label={title} className="bw-glass-nav fixed inset-x-0 bottom-0 z-30 grid grid-flow-col auto-cols-fr pb-[env(safe-area-inset-bottom)] lg:hidden">
         {bar.map((item) => {
           const isActive = isItemActive(item.id)
           const count = getItemCount(item.id)
